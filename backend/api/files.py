@@ -217,7 +217,11 @@ async def upload_files(
                 uploaded_files.append(pipeline_file)
 
             except Exception as e:
-                errors.append(f"Failed to import {Path(folder_path_str).name}: {str(e)}")
+                try:
+                    label = Path(folder_path_str).name or folder_path_str
+                except Exception:
+                    label = str(folder_path_str)
+                errors.append(f"Failed to import {label}: {str(e)}")
 
     # --- Process uploaded files ---
     # Get supported formats

@@ -292,11 +292,18 @@ def _get_image_manifest(file_id: str):
 
 def _resolve_text_model_path(mlx_cfg: dict) -> str:
     """Get the lighter/faster model for text-only tasks.
-    Falls back to the default model if no fallback is configured."""
+
+    Resolution order:
+      1. configured `fallback_model_path` if it exists on disk
+      2. smallest valid model dir found under the MLX models root
+      3. configured `model_path` if it exists on disk
+
+    Raises FileNotFoundError if none resolve to a real path, so callers fail
+    loudly rather than passing an empty/missing path into MLX.
+    """
     fallback = (mlx_cfg.get('fallback_model_path') or '').strip()
     if fallback and Path(fallback).exists():
         return fallback
-    # Auto-detect: find the smallest model in the models directory
     try:
         from config.settings import get_mlx_models_path
         models_root = get_mlx_models_path()
@@ -313,7 +320,13 @@ def _resolve_text_model_path(mlx_cfg: dict) -> str:
             return smallest
     except Exception:
         pass
-    return (mlx_cfg.get('model_path') or '').strip()
+    default_path = (mlx_cfg.get('model_path') or '').strip()
+    if default_path and Path(default_path).exists():
+        return default_path
+    raise FileNotFoundError(
+        "No usable MLX text model found. Configure enhancement.mlx.model_path "
+        "or place a model in the dependencies models folder."
+    )
 
 
 def _reinsert_image_markers(text: str, img_nums: list, anchors: dict) -> str:

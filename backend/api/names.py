@@ -12,7 +12,10 @@ underlying file via `utils.names_store`.
 """
 
 import logging
+from typing import List, Optional
+
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from utils import names_store
 
@@ -41,8 +44,21 @@ async def get_names():
         raise HTTPException(status_code=500, detail=f"Failed to read names: {e}")
 
 
+class Person(BaseModel):
+    canonical: str = Field(..., min_length=1)
+    aliases: List[str] = Field(default_factory=list)
+    short: Optional[str] = None
+    lastModifiedAt: Optional[str] = None
+    deleted: bool = False
+
+
+class NamesPayload(BaseModel):
+    lastModifiedAt: Optional[str] = None
+    people: List[Person]
+
+
 @router.put("")
-async def put_names(payload: dict):
+async def put_names(payload: NamesPayload):
     """Replace the entire names.json with the caller's merged payload.
 
     Caller is responsible for the merge — server writes verbatim. Top-level
@@ -50,20 +66,14 @@ async def put_names(payload: dict):
     of what the caller sent, to keep it authoritative.
     """
     try:
-        people = payload.get("people")
-        if not isinstance(people, list):
-            raise HTTPException(status_code=400, detail="payload.people must be a list")
-        result = names_store.write_names(payload)
-        # Opportunistic tombstone pruning on every PUT.
+        result = names_store.write_names(payload.model_dump())
         try:
             pruned = names_store.prune_old_tombstones(max_age_days=90)
             if pruned:
                 logger.info(f"[names] pruned {pruned} old tombstones")
                 result = names_store.read_names()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[names] tombstone prune failed: {e}")
         return result
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to write names: {e}")
