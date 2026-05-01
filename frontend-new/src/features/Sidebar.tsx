@@ -69,7 +69,9 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
     ids: string[]
     step: 'transcribe' | 'enhance'
     label: string
+    batchId?: string
   } | null>(null)
+  const [cancelling, setCancelling] = useState(false)
   const [batchCurrentFile, setBatchCurrentFile] = useState<{ fileId: string; step: string } | null>(null)
   const batchEsRef = useRef<EventSource | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -85,16 +87,42 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
     }
   }, [])
 
+  // Sync `batchProgress` from the backend's view of the current batch. This
+  // covers two cases: (1) sidebar remount/reload while a batch is still
+  // running, (2) a batch that finished/failed but our local state lagged.
+  // Without this the UI silently desynced and the user had no way to see
+  // what was running or cancel it (just got "A batch is already running").
+  const syncCurrentBatch = useCallback(async () => {
+    try {
+      const r = await api.getCurrentBatch()
+      if (r.active && r.batch) {
+        const fileIds = r.batch.files.map(f => f.file_id)
+        const stepKey = r.batch.type === 'enhance' ? 'enhance' : 'transcribe'
+        const label = stepKey === 'enhance' ? 'Enhancing' : 'Transcribing'
+        setBatchProgress(prev => {
+          // Don't clobber a richer local state for the same batch.
+          if (prev?.batchId === r.batch!.batch_id) return prev
+          return { ids: fileIds, step: stepKey, label, batchId: r.batch!.batch_id }
+        })
+      }
+    } catch {
+      // Network blip — leave local state untouched.
+    }
+  }, [])
+
   useEffect(() => {
     void loadFiles()
-    const interval = setInterval(() => void loadFiles(), 5_000)
+    void syncCurrentBatch()
+    const interval = setInterval(() => {
+      void loadFiles()
+      void syncCurrentBatch()
+    }, 5_000)
     return () => {
       clearInterval(interval)
-      // Clean up any open batch EventSource when sidebar unmounts
       batchEsRef.current?.close()
       batchEsRef.current = null
     }
-  }, [loadFiles])
+  }, [loadFiles, syncCurrentBatch])
 
   // ── Prune stale checked IDs when files list changes ────
   useEffect(() => {
@@ -561,15 +589,41 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
           ? stepLabels[batchCurrentFile.step] ?? batchCurrentFile.step.replace('_', ' ')
           : undefined
         const pct = batchTotal > 0 ? (batchDone / batchTotal) * 100 : 0
+        const canCancel = !!batchProgress.batchId && batchDone < batchTotal
         return (
           <div className="px-4 py-3 border-t border-border/[0.07] bg-accent/[0.10]">
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="text-sm text-accent font-medium">
+            <div className="flex items-baseline justify-between mb-2 gap-2">
+              <span className="text-sm text-accent font-medium truncate">
                 {batchProgress.label} {batchDone} of {batchTotal}
               </span>
-              <span className="text-xs text-text-secondary tabular-nums">
-                {Math.round(pct)}%
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-text-secondary tabular-nums">
+                  {Math.round(pct)}%
+                </span>
+                {canCancel && (
+                  <button
+                    onClick={async () => {
+                      if (!batchProgress.batchId || cancelling) return
+                      setCancelling(true)
+                      try {
+                        await api.cancelBatch(batchProgress.batchId)
+                        setBatchProgress(null)
+                        setBatchCurrentFile(null)
+                        batchEsRef.current?.close()
+                        batchEsRef.current = null
+                      } catch (err: unknown) {
+                        setBatchError(`Cancel failed: ${err instanceof Error ? err.message : String(err)}`)
+                      } finally {
+                        setCancelling(false)
+                      }
+                    }}
+                    disabled={cancelling}
+                    className="text-[10px] px-2 py-0.5 rounded bg-white/[0.08] hover:bg-white/[0.14] text-text-secondary hover:text-text-primary disabled:opacity-50 transition-colors"
+                  >
+                    {cancelling ? 'Cancelling…' : 'Cancel'}
+                  </button>
+                )}
+              </div>
             </div>
             {currentStepLabel && (
               <div className="text-xs text-text-secondary mb-2 truncate">
@@ -663,11 +717,20 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
                 setBatchProgress({ ids: toRun, step: 'transcribe', label: force ? 'Re-transcribing' : 'Transcribing' })
                 exitMultiSelect()
                 try {
-                  await api.startTranscribeBatch(toRun, force)
-                  // Progress observed via the 5s loadFiles poll.
+                  const resp = await api.startTranscribeBatch(toRun, force)
+                  setBatchProgress(prev => prev && { ...prev, batchId: resp.batch?.batch_id })
                 } catch (err: unknown) {
                   const msg = err instanceof Error ? err.message : String(err)
-                  setBatchError(`Batch transcribe failed: ${msg}`)
+                  // Surface the "already running" case clearly so the user can
+                  // act on it (the progress panel now has a Cancel button, and
+                  // syncCurrentBatch will restore progress visibility on the
+                  // next poll tick).
+                  if (msg.includes('already running')) {
+                    setBatchError('Another batch is still running. Cancel it from the progress panel below, then try again.')
+                    void syncCurrentBatch()
+                  } else {
+                    setBatchError(`Batch transcribe failed: ${msg}`)
+                  }
                   setBatchProgress(null)
                 }
               }}
@@ -708,11 +771,19 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
                   setBatchCurrentFile(null)
                 })
                 try {
-                  await api.startEnhanceBatch(ready)
+                  const resp = await api.startEnhanceBatch(ready)
+                  setBatchProgress(prev => prev && { ...prev, batchId: resp.batch?.batch_id })
                   await loadFiles()
                 } catch (err: unknown) {
                   const msg = err instanceof Error ? err.message : String(err)
-                  setBatchError(msg.includes('already been enhanced') ? 'All selected files are already fully enhanced.' : msg)
+                  if (msg.includes('already been enhanced')) {
+                    setBatchError('All selected files are already fully enhanced.')
+                  } else if (msg.includes('already running')) {
+                    setBatchError('Another batch is still running. Cancel it from the progress panel below, then try again.')
+                    void syncCurrentBatch()
+                  } else {
+                    setBatchError(msg)
+                  }
                   setBatchProgress(null)
                   es.close()
                   batchEsRef.current = null

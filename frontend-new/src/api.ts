@@ -110,6 +110,21 @@ export interface DepsZip {
   size_mb: number
 }
 
+export interface CurrentBatchResponse {
+  active: boolean
+  batch: {
+    batch_id: string
+    status: string
+    type: string
+    progress: { total: number; completed: number; failed: number; current: number; percentage: number }
+    files: Array<{ file_id: string; status: string }>
+    current_file_id: string | null
+    consecutive_failures: number
+    created_at: string
+    updated_at: string
+  } | null
+}
+
 export interface EnhancePrompt {
   id: string
   label: string
@@ -345,8 +360,14 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
       method: 'POST', body: JSON.stringify({ file_ids: fileIds, force }),
     })
   },
-  async startEnhanceBatch(fileIds: string[]): Promise<{ batch_id: string; status: string }> {
-    return fetchJSON<{ batch_id: string; status: string }>('/api/batch/enhance/start', {
+  async getCurrentBatch(): Promise<CurrentBatchResponse> {
+    return fetchJSON<CurrentBatchResponse>('/api/batch/current')
+  },
+  async cancelBatch(batchId: string): Promise<void> {
+    await fetchJSON<unknown>(`/api/batch/${batchId}/cancel`, { method: 'POST' })
+  },
+  async startEnhanceBatch(fileIds: string[]): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
+    return fetchJSON<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }>('/api/batch/enhance/start', {
       method: 'POST', body: JSON.stringify({ file_ids: fileIds }),
     })
   },
