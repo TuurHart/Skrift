@@ -35,25 +35,11 @@ async def start_transcription(background_tasks: BackgroundTasks, file_id: str, r
             file=pipeline_file
         )
 
-    # Force redo: reset transcribe step and clear all downstream data
+    # Force redo: clear all downstream data so the UI never shows stale
+    # enhancements/tags. Centralised on status_tracker so single-file +
+    # batch force paths stay in sync.
     if pipeline_file.steps.transcribe == ProcessingStatus.DONE and request.force:
-        pipeline_file.transcript = None
-        pipeline_file.sanitised = None
-        pipeline_file.enhanced_copyedit = None
-        pipeline_file.enhanced_summary = None
-        pipeline_file.enhanced_title = None
-        pipeline_file.enhanced_tags = None
-        pipeline_file.compiled_text = None
-        pipeline_file.steps.transcribe = ProcessingStatus.PENDING
-        pipeline_file.steps.sanitise = ProcessingStatus.PENDING
-        pipeline_file.steps.enhance = ProcessingStatus.PENDING
-        pipeline_file.steps.export = ProcessingStatus.PENDING
-        status_tracker.save_file_status(pipeline_file.id)
-        # Delete cached processed.wav so preprocessing runs fresh (with current denoising)
-        from pathlib import Path
-        cached_wav = Path(pipeline_file.path).parent / "processed.wav"
-        if cached_wav.exists():
-            cached_wav.unlink()
+        status_tracker.reset_for_retranscribe(pipeline_file.id)
 
     try:
         # Update status to processing

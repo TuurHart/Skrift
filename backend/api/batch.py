@@ -44,8 +44,6 @@ async def start_transcribe_batch(request: StartBatchRequest):
         raise HTTPException(status_code=400, detail="No file IDs provided")
     
     # Verify all files exist; include those still pending or all when force=True
-    from models import ProcessingStatus
-
     untranscribed_files = []
     for file_id in request.file_ids:
         file = status_tracker.get_file(file_id)
@@ -61,28 +59,15 @@ async def start_transcribe_batch(request: StartBatchRequest):
             detail="All files have already been transcribed (pass force=true to re-run)"
         )
 
-    # When forcing, mirror the single-file flow: clear downstream data and the
-    # cached processed.wav so preprocessing runs fresh (current denoiser settings).
+    # When forcing, clear downstream data via the shared helper so single-file
+    # and batch paths stay consistent (clears tag_suggestions, significance,
+    # title_approval_status — all of which used to leak stale state into the UI).
     if request.force:
         for file_id in untranscribed_files:
             pf = status_tracker.get_file(file_id)
             if not pf or pf.steps.transcribe != "done":
                 continue
-            pf.transcript = None
-            pf.sanitised = None
-            pf.enhanced_copyedit = None
-            pf.enhanced_summary = None
-            pf.enhanced_title = None
-            pf.enhanced_tags = None
-            pf.compiled_text = None
-            pf.steps.transcribe = ProcessingStatus.PENDING
-            pf.steps.sanitise = ProcessingStatus.PENDING
-            pf.steps.enhance = ProcessingStatus.PENDING
-            pf.steps.export = ProcessingStatus.PENDING
-            status_tracker.save_file_status(pf.id)
-            cached_wav = Path(pf.path).parent / "processed.wav"
-            if cached_wav.exists():
-                cached_wav.unlink()
+            status_tracker.reset_for_retranscribe(file_id)
     
     try:
         # Start the batch

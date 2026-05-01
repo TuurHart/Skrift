@@ -258,6 +258,52 @@ class StatusTracker:
         pf.lastActivityAt = datetime.now()
         self.save_file_status(file_id)
     
+    def reset_for_retranscribe(self, file_id: str) -> bool:
+        """Clear all downstream state so a forced re-transcribe starts clean.
+
+        Used by both the single-file `/api/process/transcribe/{id}?force=true`
+        and the batch `/api/batch/transcribe/start` (with `force=true`) flows
+        — keep them in sync so the UI never shows stale enhancements/tags
+        after a re-transcribe.
+
+        Also deletes the cached `processed.wav` so audio preprocessing runs
+        fresh with current denoiser settings.
+
+        Does NOT change steps.transcribe to PENDING — caller is expected to
+        immediately set it to PROCESSING.
+        """
+        if file_id not in self._files:
+            return False
+        pf = self._files[file_id]
+
+        pf.transcript = None
+        pf.sanitised = None
+        pf.exported = None
+        pf.enhanced_title = None
+        pf.title_approval_status = None
+        pf.enhanced_copyedit = None
+        pf.enhanced_summary = None
+        pf.enhanced_tags = None
+        pf.tag_suggestions = None
+        pf.compiled_text = None
+        pf.significance = None
+
+        pf.steps.transcribe = ProcessingStatus.PENDING
+        pf.steps.sanitise = ProcessingStatus.PENDING
+        pf.steps.enhance = ProcessingStatus.PENDING
+        pf.steps.export = ProcessingStatus.PENDING
+
+        self.save_file_status(file_id)
+
+        try:
+            cached_wav = Path(pf.path).parent / "processed.wav"
+            if cached_wav.exists():
+                cached_wav.unlink()
+        except Exception:
+            pass
+
+        return True
+
     def delete_file(self, file_id: str) -> bool:
         """Delete a pipeline file and its status"""
         if file_id not in self._files:
