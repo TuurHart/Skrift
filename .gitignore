@@ -70,3 +70,6 @@ backend/config/names.json
 
 # Claude Code
 .claude/
+
+# Local scratch folders (named to be deleted)
+test images - delete this folder/
