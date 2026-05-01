@@ -541,6 +541,19 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
         })}
       </div>
 
+      {/* ── Batch error (visible regardless of selection state) ── */}
+      {batchError && !batchProgress && (
+        <div className="px-3 py-2 border-t border-border/[0.07] bg-destructive/[0.08] flex items-start justify-between gap-2">
+          <div className="text-xs text-destructive leading-snug">{batchError}</div>
+          <button
+            onClick={() => setBatchError(null)}
+            className="text-[10px] text-text-muted hover:text-text-primary px-1"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ── Batch progress bar ── */}
       {batchProgress && (
         <div className="px-3 py-2 border-t border-border/[0.07] bg-accent/[0.06]">
@@ -623,29 +636,34 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
             <button
               onClick={async () => {
                 const ids = Array.from(checked)
-                exitMultiSelect()
                 setBatchError(null)
-                // Filter to files that haven't been transcribed yet (the backend
-                // also enforces this and returns 400 if all are already done).
                 const pending = ids.filter(id => {
                   const f = files.find(x => x.id === id)
                   return f?.steps.transcribe !== 'done'
                 })
+                // Default: only run on un-transcribed files. If user selected
+                // exclusively already-done files, confirm and force re-run
+                // (clears downstream sanitise/enhance/export and processed.wav).
+                let toRun = pending
+                let force = false
                 if (pending.length === 0) {
-                  setBatchError('All selected files are already transcribed.')
-                  return
+                  const ok = window.confirm(
+                    `All ${ids.length} selected file${ids.length === 1 ? ' is' : 's are'} already transcribed.\n\n` +
+                    `Re-transcribe? This clears the existing transcript, sanitised text, ` +
+                    `enhancements, and compiled output for those files.`
+                  )
+                  if (!ok) return
+                  toRun = ids
+                  force = true
                 }
-                setBatchProgress({ ids: pending, step: 'transcribe', label: 'Transcribing' })
+                setBatchProgress({ ids: toRun, step: 'transcribe', label: force ? 'Re-transcribing' : 'Transcribing' })
+                exitMultiSelect()
                 try {
-                  // Backend processes sequentially in a single batch — keeps
-                  // Parakeet model hot and avoids the per-file model reload
-                  // that the previous loop caused.
-                  await api.startTranscribeBatch(pending)
-                  // Progress is observed via the existing 5s loadFiles poll,
-                  // which feeds `batchDone` from each file's steps.transcribe.
+                  await api.startTranscribeBatch(toRun, force)
+                  // Progress observed via the 5s loadFiles poll.
                 } catch (err: unknown) {
                   const msg = err instanceof Error ? err.message : String(err)
-                  setBatchError(msg)
+                  setBatchError(`Batch transcribe failed: ${msg}`)
                   setBatchProgress(null)
                 }
               }}

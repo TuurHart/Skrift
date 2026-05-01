@@ -24,6 +24,7 @@ class StartBatchRequest(BaseModel):
     """Request to start a batch operation"""
     file_ids: List[str]
     batch_type: str = "transcribe"  # or "enhance"
+    force: bool = False  # Re-run even when files are already done
 
 
 class CancelBatchRequest(BaseModel):
@@ -42,22 +43,46 @@ async def start_transcribe_batch(request: StartBatchRequest):
     if not request.file_ids:
         raise HTTPException(status_code=400, detail="No file IDs provided")
     
-    # Verify all files exist and are untranscribed
+    # Verify all files exist; include those still pending or all when force=True
+    from models import ProcessingStatus
+
     untranscribed_files = []
     for file_id in request.file_ids:
         file = status_tracker.get_file(file_id)
         if not file:
             raise HTTPException(status_code=404, detail=f"File not found: {file_id}")
-        
-        # Only include files that haven't been transcribed yet
-        if file.steps.transcribe != "done":
+
+        if request.force or file.steps.transcribe != "done":
             untranscribed_files.append(file_id)
-    
+
     if not untranscribed_files:
         raise HTTPException(
-            status_code=400, 
-            detail="All files have already been transcribed"
+            status_code=400,
+            detail="All files have already been transcribed (pass force=true to re-run)"
         )
+
+    # When forcing, mirror the single-file flow: clear downstream data and the
+    # cached processed.wav so preprocessing runs fresh (current denoiser settings).
+    if request.force:
+        for file_id in untranscribed_files:
+            pf = status_tracker.get_file(file_id)
+            if not pf or pf.steps.transcribe != "done":
+                continue
+            pf.transcript = None
+            pf.sanitised = None
+            pf.enhanced_copyedit = None
+            pf.enhanced_summary = None
+            pf.enhanced_title = None
+            pf.enhanced_tags = None
+            pf.compiled_text = None
+            pf.steps.transcribe = ProcessingStatus.PENDING
+            pf.steps.sanitise = ProcessingStatus.PENDING
+            pf.steps.enhance = ProcessingStatus.PENDING
+            pf.steps.export = ProcessingStatus.PENDING
+            status_tracker.save_file_status(pf.id)
+            cached_wav = Path(pf.path).parent / "processed.wav"
+            if cached_wav.exists():
+                cached_wav.unlink()
     
     try:
         # Start the batch

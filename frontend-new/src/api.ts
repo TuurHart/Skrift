@@ -340,9 +340,9 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
   },
 
   // Batch
-  async startTranscribeBatch(fileIds: string[]): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
+  async startTranscribeBatch(fileIds: string[], force = false): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
     return fetchJSON<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }>('/api/batch/transcribe/start', {
-      method: 'POST', body: JSON.stringify({ file_ids: fileIds }),
+      method: 'POST', body: JSON.stringify({ file_ids: fileIds, force }),
     })
   },
   async startEnhanceBatch(fileIds: string[]): Promise<{ batch_id: string; status: string }> {
