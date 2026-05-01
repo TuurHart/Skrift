@@ -70,9 +70,7 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
     step: 'transcribe' | 'enhance'
     label: string
   } | null>(null)
-  const [batchStream, setBatchStream] = useState<string>('')
   const [batchCurrentFile, setBatchCurrentFile] = useState<{ fileId: string; step: string } | null>(null)
-  const batchStreamRef = useRef<HTMLDivElement>(null)
   const batchEsRef = useRef<EventSource | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -123,7 +121,6 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
     if (batchProgress && batchDone === batchTotal) {
       const t = setTimeout(() => {
         setBatchProgress(null)
-        setBatchStream('')
         setBatchCurrentFile(null)
         batchEsRef.current?.close()
         batchEsRef.current = null
@@ -131,13 +128,6 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
       return () => clearTimeout(t)
     }
   }, [batchProgress, batchDone, batchTotal])
-
-  // Auto-scroll stream output
-  useEffect(() => {
-    if (batchStreamRef.current) {
-      batchStreamRef.current.scrollTop = batchStreamRef.current.scrollHeight
-    }
-  }, [batchStream])
 
   // ── Filtering & sorting ────────────────────────────────
 
@@ -555,35 +545,49 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
       )}
 
       {/* ── Batch progress bar ── */}
-      {batchProgress && (
-        <div className="px-3 py-2 border-t border-border/[0.07] bg-accent/[0.06]">
-          <div className="flex justify-between text-xs text-text-secondary mb-1.5">
-            <span className="text-accent font-medium">{batchProgress.label}…</span>
-            <span>{batchDone} / {batchTotal}</span>
-          </div>
-          {batchCurrentFile && (
-            <div className="text-[10px] text-text-secondary mb-1 truncate">
-              <span className="text-accent/70">{batchCurrentFile.step.replace('_', ' ')}</span>
-              {' → '}
-              {files.find(f => f.id === batchCurrentFile.fileId)?.filename ?? batchCurrentFile.fileId}
+      {batchProgress && (() => {
+        const stepLabels: Record<string, string> = {
+          title: 'Generating title',
+          copy_edit: 'Editing',
+          copyedit: 'Editing',
+          summary: 'Summarizing',
+          tags: 'Choosing tags',
+          transcribe: 'Transcribing',
+        }
+        const currentFilename = batchCurrentFile
+          ? files.find(f => f.id === batchCurrentFile.fileId)?.filename
+          : undefined
+        const currentStepLabel = batchCurrentFile
+          ? stepLabels[batchCurrentFile.step] ?? batchCurrentFile.step.replace('_', ' ')
+          : undefined
+        const pct = batchTotal > 0 ? (batchDone / batchTotal) * 100 : 0
+        return (
+          <div className="px-4 py-3 border-t border-border/[0.07] bg-accent/[0.10]">
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-sm text-accent font-medium">
+                {batchProgress.label} {batchDone} of {batchTotal}
+              </span>
+              <span className="text-xs text-text-secondary tabular-nums">
+                {Math.round(pct)}%
+              </span>
             </div>
-          )}
-          <div className="h-1 rounded-full bg-border/20 overflow-hidden">
-            <div
-              className="h-full bg-accent rounded-full transition-all duration-500"
-              style={{ width: batchTotal > 0 ? `${(batchDone / batchTotal) * 100}%` : '0%' }}
-            />
-          </div>
-          {batchStream && (
-            <div
-              ref={batchStreamRef}
-              className="mt-2 max-h-20 overflow-y-auto text-[10px] leading-relaxed text-text-secondary font-mono whitespace-pre-wrap"
-            >
-              {batchStream}
+            {currentStepLabel && (
+              <div className="text-xs text-text-secondary mb-2 truncate">
+                {currentStepLabel}
+                {currentFilename && (
+                  <span className="text-text-muted"> · {currentFilename}</span>
+                )}
+              </div>
+            )}
+            <div className="h-1.5 rounded-full bg-border/30 overflow-hidden">
+              <div
+                className="h-full bg-accent rounded-full transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )
+      })()}
 
       {/* ── Quick-select bar ── */}
       {multiSelect && (
@@ -688,16 +692,13 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
                 const skipped = ids.length - ready.length
                 const label = skipped > 0 ? `Enhancing (${skipped} not ready, skipped)` : 'Enhancing'
                 setBatchProgress({ ids: ready, step: 'enhance', label })
-                setBatchStream('')
-                // Connect to SSE stream for live token output
+                // Subscribe to SSE for current-step events. We don't display
+                // the live token stream — it flickers too fast to be readable
+                // and adds noise. The progress panel shows step + filename.
                 batchEsRef.current?.close()
                 const es = new EventSource(`${API_BASE}/api/batch/enhance/stream`)
                 batchEsRef.current = es
-                es.addEventListener('token', (e) => {
-                  setBatchStream(prev => prev + e.data)
-                })
                 es.addEventListener('start', (e) => {
-                  setBatchStream('')
                   try {
                     const d = JSON.parse(e.data)
                     if (d.file_id) setBatchCurrentFile({ fileId: d.file_id, step: d.step || '' })
@@ -713,7 +714,6 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
                   const msg = err instanceof Error ? err.message : String(err)
                   setBatchError(msg.includes('already been enhanced') ? 'All selected files are already fully enhanced.' : msg)
                   setBatchProgress(null)
-                  setBatchStream('')
                   es.close()
                   batchEsRef.current = null
                 }
