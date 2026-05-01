@@ -123,6 +123,7 @@ export const DEFAULT_PROMPTS: EnhancePrompt[] = [
   { id: 'title', label: 'Generate Title', tag: 'title', tagColor: '#7c6bf5', desc: 'Extract or generate a title', instruction: 'Generate a short, descriptive title for this text (5\u201315 words). If the speaker explicitly names the topic, use their words. Match the primary language of the text. Return ONLY the title, nothing else.' },
   { id: 'copy_edit', label: 'Copy Edit', tag: 'copy-edit', tagColor: '#6366f1', desc: 'Fix spelling, grammar, readability', instruction: 'Clean up this transcript. The author may switch between English and Dutch mid-sentence \u2014 this is intentional, keep it exactly as-is.\n\nDo:\n- Remove filler words (um, uh, like, you know, so basically, I mean, yeah so).\n- Fix spelling and grammar.\n- Add punctuation and paragraph breaks at natural pauses.\n- Preserve [[double bracket links]] exactly.\n- When the speaker immediately rephrases the same thought (e.g. saying a sentence then saying it again slightly differently), collapse into the final version.\n- Remove false starts and repeated words from thinking out loud.\n\nDo not:\n- Rephrase, rewrite, or restructure sentences.\n- Translate anything between languages.\n- Add formality \u2014 it should still sound like the person speaking.\n- Add any preamble, heading, or explanation.\n\nOutput only the cleaned text.' },
   { id: 'summary', label: 'Summary', tag: 'summary', tagColor: '#a855f7', desc: '1\u20133 sentence summary', instruction: 'Summarize this in 1\u20133 sentences (30\u201360 words). Capture the main point and any decision or action item. If there are multiple topics, mention each briefly. Write in third person. Match the primary language of the text. Output only the summary.' },
+  { id: 'importance', label: 'Importance', tag: 'importance', tagColor: '#f59e0b', desc: 'Score 0.0\u20131.0', instruction: 'Rate the personal significance of this text from 0.0 to 1.0.\nHigh (0.7\u20131.0): life decisions, personal realizations, meaningful experiences, important plans, relationship insights.\nMedium (0.3\u20130.7): useful ideas, project updates, learning notes, opinions.\nLow (0.0\u20130.3): routine tasks, weather, small talk, logistics.\nReturn ONLY a number between 0.0 and 1.0.' },
 ]
 
 // ── API ────────────────────────────────────────────────────
@@ -138,19 +139,7 @@ export const api = {
   async getFileStatus(fileId: string): Promise<PipelineFile> {
     return fetchJSON<PipelineFile>(`/api/files/${fileId}/status`)
   },
-  /** Poll until transcription finishes (done or error). Resolves with final status.
-   *  Pass an AbortSignal to cancel polling when no longer needed. */
-  async waitForTranscription(fileId: string, intervalMs = 2000, signal?: AbortSignal): Promise<PipelineFile> {
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      if (signal?.aborted) throw new DOMException('Polling aborted', 'AbortError')
-      await new Promise(r => setTimeout(r, intervalMs))
-      if (signal?.aborted) throw new DOMException('Polling aborted', 'AbortError')
-      const f = await this.getFileStatus(fileId)
-      if (f.steps.transcribe === 'done' || f.steps.transcribe === 'error') return f
-    }
-  },
-  async uploadFiles(files: File[], conversationMode = false, folderPaths: string[] = []): Promise<UploadResponse> {
+async uploadFiles(files: File[], conversationMode = false, folderPaths: string[] = []): Promise<UploadResponse> {
     const form = new FormData()
     for (const f of files) form.append('files', f)
     form.append('conversationMode', String(conversationMode))
@@ -351,8 +340,8 @@ export const api = {
   },
 
   // Batch
-  async startTranscribeBatch(fileIds: string[]): Promise<{ batch_id: string; status: string }> {
-    return fetchJSON<{ batch_id: string; status: string }>('/api/batch/transcribe/start', {
+  async startTranscribeBatch(fileIds: string[]): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
+    return fetchJSON<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }>('/api/batch/transcribe/start', {
       method: 'POST', body: JSON.stringify({ file_ids: fileIds }),
     })
   },

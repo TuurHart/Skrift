@@ -625,17 +625,24 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
                 const ids = Array.from(checked)
                 exitMultiSelect()
                 setBatchError(null)
-                setBatchProgress({ ids, step: 'transcribe', label: 'Transcribing' })
+                // Filter to files that haven't been transcribed yet (the backend
+                // also enforces this and returns 400 if all are already done).
+                const pending = ids.filter(id => {
+                  const f = files.find(x => x.id === id)
+                  return f?.steps.transcribe !== 'done'
+                })
+                if (pending.length === 0) {
+                  setBatchError('All selected files are already transcribed.')
+                  return
+                }
+                setBatchProgress({ ids: pending, step: 'transcribe', label: 'Transcribing' })
                 try {
-                  for (const id of ids) {
-                    const resp = await api.startTranscription(id).catch(() => null)
-                    // Wait for transcription to finish before starting the next one
-                    // (Parakeet uses ~4GB RAM — running in parallel causes OOM)
-                    if (resp && resp.status === 'started') {
-                      await api.waitForTranscription(id)
-                    }
-                  }
-                  await loadFiles()
+                  // Backend processes sequentially in a single batch — keeps
+                  // Parakeet model hot and avoids the per-file model reload
+                  // that the previous loop caused.
+                  await api.startTranscribeBatch(pending)
+                  // Progress is observed via the existing 5s loadFiles poll,
+                  // which feeds `batchDone` from each file's steps.transcribe.
                 } catch (err: unknown) {
                   const msg = err instanceof Error ? err.message : String(err)
                   setBatchError(msg)
