@@ -290,26 +290,6 @@ def _get_image_manifest(file_id: str):
         return None
 
 
-def _get_image_path(file_id: str, img_num: int) -> str | None:
-    """Resolve the file path for img_XXX in a file's images/ folder."""
-    pf = status_tracker.get_file(file_id)
-    if not pf:
-        return None
-    file_folder = Path(pf.path).parent
-    manifest = _get_image_manifest(file_id)
-    if not manifest:
-        return None
-    # img_num is 1-indexed, manifest is 0-indexed
-    idx = img_num - 1
-    if idx < 0 or idx >= len(manifest):
-        return None
-    filename = manifest[idx].get("filename")
-    if not filename:
-        return None
-    img_path = file_folder / "images" / filename
-    return str(img_path) if img_path.exists() else None
-
-
 def _resolve_text_model_path(mlx_cfg: dict) -> str:
     """Get the lighter/faster model for text-only tasks.
     Falls back to the default model if no fallback is configured."""

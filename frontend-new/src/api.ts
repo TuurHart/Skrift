@@ -274,22 +274,12 @@ export const api = {
     })
     es.addEventListener('done', (e) => {
       es.close()
-      // Prefer the server's reassembled final text (has image markers for hybrid pipeline)
+      // Server may reassemble final text (e.g. copy-edit reinserts image markers)
       const serverFinal = (e as MessageEvent).data
       callbacks.onDone(serverFinal || accumulated)
     })
-    // Progress events from vision pipeline
-    es.addEventListener('phase', (e) => {
-      callbacks.onStatus?.((e as MessageEvent).data === 'vision' ? 'Analyzing photos...' : 'Editing text...')
-    })
     es.addEventListener('status', (e) => {
       callbacks.onStatus?.((e as MessageEvent).data)
-    })
-    es.addEventListener('vision_progress', (e) => {
-      try {
-        const d = JSON.parse((e as MessageEvent).data)
-        callbacks.onStatus?.(`Analyzing photo ${d.current}/${d.total}...`)
-      } catch { /* ignore */ }
     })
     es.addEventListener('insufficient_ram', (e) => {
       es.close()
