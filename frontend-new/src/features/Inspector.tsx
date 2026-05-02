@@ -82,9 +82,19 @@ interface InspectorProps {
   onChatStopRef: (stopFn: (() => void) | null) => void
   exportPreviewActive: boolean
   onToggleExportPreview: () => void
+  /** Whichever file is currently mid-enhancement, or null. Polled in App. */
+  runningEnhanceFile?: PipelineFile | null
+  /** Lets the locked-state banner jump to the file actually running. */
+  onSelectFile?: (id: string) => void
 }
 
-export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatStopRef, exportPreviewActive, onToggleExportPreview }: InspectorProps) {
+export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatStopRef, exportPreviewActive, onToggleExportPreview, runningEnhanceFile, onSelectFile }: InspectorProps) {
+  // Three-way enhancement state derived from the polled running file:
+  //   - this file is running       → show progress, allow cancel
+  //   - some other file is running → lock controls, show banner
+  //   - nothing running             → normal idle controls
+  const isThisRunning = !!runningEnhanceFile && runningEnhanceFile.id === file.id
+  const isOtherRunning = !!runningEnhanceFile && runningEnhanceFile.id !== file.id
   // Transcription polling
   const [polling, setPolling] = useState(false)
   const [stale, setStale] = useState(false)
@@ -107,6 +117,22 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
 
   // Chat SSE
   const chatSSE = useSSE()
+
+  // Selected enhancement model — fetch once so the running banner can name it.
+  // Stored on the component (not a hook into settings) since settings doesn't
+  // currently track the selected model.
+  const [modelName, setModelName] = useState<string | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    api.getModels()
+      .then(r => {
+        if (cancelled) return
+        const sel = r.models.find(m => m.selected)
+        setModelName(sel?.name ?? null)
+      })
+      .catch(() => { /* model list unavailable — banner just hides the name */ })
+    return () => { cancelled = true }
+  }, [])
 
   // Sync chat state up to App
   useEffect(() => {
@@ -435,7 +461,9 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
   const enhanceDone = file.steps.enhance === 'done'
   const canExport = enhanceDone || file.compiled_text != null
 
-  const anyEnhancing = titleSSE.streaming || copyeditSSE.streaming || summarySSE.streaming || generatingTags || chatSSE.streaming
+  // Lock controls when this file is mid-stream OR when *any other* file is.
+  // The latter is RAM safety: only one MLX session at a time.
+  const anyEnhancing = titleSSE.streaming || copyeditSSE.streaming || summarySSE.streaming || generatingTags || chatSSE.streaming || isOtherRunning
 
   const tagSuggestions = localTagSuggestions
 
@@ -508,6 +536,25 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
         )}
       </Section>
 
+      {/* ── Locked-while-other-file-enhances banner ── */}
+      {isOtherRunning && runningEnhanceFile && (
+        <div className="mx-3 mt-3 mb-1 px-3 py-2 rounded-md bg-step-enhance/[0.10] border border-step-enhance/[0.25]">
+          <div className="text-[11px] uppercase tracking-wider text-step-enhance/80 font-semibold mb-1">
+            Locked
+          </div>
+          <div className="text-[12px] text-text-secondary leading-snug">
+            Enhancing{' '}
+            <button
+              onClick={() => onSelectFile?.(runningEnhanceFile.id)}
+              className="text-accent hover:underline truncate max-w-full"
+            >
+              {runningEnhanceFile.enhanced_title || runningEnhanceFile.filename}
+            </button>
+            . Enhancement actions on this file are paused until that finishes — only one model runs at a time.
+          </div>
+        </div>
+      )}
+
       {/* ── Enhancement ── */}
       <Section title="Enhancement" done={enhanceDone} disabled={!sanitiseDone}>
         {(() => {
@@ -521,6 +568,26 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
 
           // Currently streaming — show live progress
           const currentStep = titleSSE.streaming ? 'title' : copyeditSSE.streaming ? 'copy_edit' : summarySSE.streaming ? 'summary' : generatingTags ? 'tags' : null
+
+          const handleCancelEnhance = async () => {
+            titleSSE.stop?.()
+            copyeditSSE.stop?.()
+            summarySSE.stop?.()
+            try { await api.cancelEnhance(file.id) } catch { /* best-effort */ }
+          }
+
+          if (isThisRunning && !currentStep) {
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[12px] text-text-secondary">
+                  <span className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin inline-block" />
+                  Enhancing in background…
+                </div>
+                {modelName && <div className="text-[10px] text-text-muted">via {modelName}</div>}
+                <Btn label="Cancel" small danger onClick={() => void handleCancelEnhance()} />
+              </div>
+            )
+          }
 
           return (
             <div className="space-y-2">
@@ -540,14 +607,17 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
                     streaming
                   />
                   <Btn
-                    label="Stop"
+                    label="Cancel"
                     small
                     danger
-                    onClick={currentStep === 'title' ? titleSSE.stop : currentStep === 'copy_edit' ? copyeditSSE.stop : currentStep === 'summary' ? summarySSE.stop : undefined}
+                    onClick={() => void handleCancelEnhance()}
                   />
                 </div>
               ) : noneStarted ? (
-                <Btn label="Enhance" full onClick={() => void handleEnhanceAll()} />
+                <div className="space-y-1">
+                  <Btn label="Enhance" full onClick={() => void handleEnhanceAll()} />
+                  {modelName && <div className="text-[10px] text-text-muted text-center">via {modelName}</div>}
+                </div>
               ) : allDone && !tagSuggestions ? (
                 <div className="text-[12px] text-text-secondary flex items-center gap-1.5">
                   <span className="text-check-green">{'\u2713'}</span> All steps complete

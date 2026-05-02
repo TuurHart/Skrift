@@ -366,6 +366,9 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
   async cancelBatch(batchId: string): Promise<void> {
     await fetchJSON<unknown>(`/api/batch/${batchId}/cancel`, { method: 'POST' })
   },
+  async cancelEnhance(fileId: string): Promise<{ success: boolean; was_active: boolean }> {
+    return fetchJSON<{ success: boolean; was_active: boolean }>(`/api/process/enhance/${fileId}/cancel`, { method: 'POST' })
+  },
   async startEnhanceBatch(fileIds: string[]): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
     return fetchJSON<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }>('/api/batch/enhance/start', {
       method: 'POST', body: JSON.stringify({ file_ids: fileIds }),

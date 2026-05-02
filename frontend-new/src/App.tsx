@@ -144,18 +144,39 @@ export default function App() {
       .catch(() => { if (!cancelled) setFile(null) })
       .finally(() => { if (!cancelled) setFileLoading(false) })
 
-    // Poll for updates every 3s so the UI stays in sync during
-    // transcription, enhancement, sanitisation, etc. Stops when
-    // no steps are processing and the file has settled.
+    // Poll the selected file every 1s so the UI stays tightly in sync
+    // during transcription, enhancement, sanitisation, etc. At small file
+    // counts the request cost is negligible; the responsive feel matters
+    // more (e.g. the Inspector lock-out when a different file is enhancing).
     const poll = setInterval(() => {
       if (cancelled) return
       api.getFile(selectedId)
         .then(data => { if (!cancelled) setFile(data) })
         .catch(() => { /* ignore poll errors */ })
-    }, 3_000)
+    }, 1_000)
 
     return () => { cancelled = true; clearInterval(poll) }
   }, [selectedId])
+
+  // Derive which file (if any) is currently mid-enhancement. The Inspector
+  // uses this to render three states: running / locked-because-other / idle.
+  // Polled every 1s independently of the selected-file poll so the lock
+  // appears as soon as another file kicks off enhancement.
+  const [runningEnhanceFile, setRunningEnhanceFile] = useState<PipelineFile | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const tick = async () => {
+      try {
+        const all = await api.getFiles()
+        if (cancelled) return
+        const running = all.find(f => f.steps.enhance === 'processing') ?? null
+        setRunningEnhanceFile(running)
+      } catch { /* ignore */ }
+    }
+    void tick()
+    const id = setInterval(() => void tick(), 1_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [])
 
   // ── Load word timings when transcription is done ───────────
   useEffect(() => {
@@ -263,6 +284,8 @@ export default function App() {
           onChatStopRef={handleChatStopRef}
           exportPreviewActive={!!exportPreviewContent}
           onToggleExportPreview={handleToggleExportPreview}
+          runningEnhanceFile={runningEnhanceFile}
+          onSelectFile={setSelectedId}
         />
       )}
 

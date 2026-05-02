@@ -116,7 +116,7 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
     const interval = setInterval(() => {
       void loadFiles()
       void syncCurrentBatch()
-    }, 5_000)
+    }, 1_000)
     return () => {
       clearInterval(interval)
       batchEsRef.current?.close()

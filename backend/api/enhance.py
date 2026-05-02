@@ -27,6 +27,7 @@ from services.enhancement import (
     load_tag_whitelist,
     generate_tags_service,
     score_importance_for_file,
+    request_enhance_cancel,
 )
 from config.settings import settings as app_settings
 from models import ProcessingRequest, ProcessingResponse
@@ -182,6 +183,22 @@ async def enhance_stream(file_id: str, prompt: str = "", step: str = "", model_o
     except RuntimeError as e:
         # Concurrency error
         raise HTTPException(status_code=409, detail=str(e))
+
+@router.post("/{file_id}/cancel")
+async def cancel_enhance_stream(file_id: str):
+    """Request cancellation of a running enhancement stream for a file.
+
+    The MLX model can't be preempted mid-forward-pass, but the stream
+    generator checks the cancel flag once per token, so the loop breaks
+    on the next token boundary (~10–50ms). Partial output is discarded
+    and the file's `steps.enhance` reverts to its prior state.
+    """
+    pipeline_file = status_tracker.get_file(file_id)
+    if not pipeline_file:
+        raise HTTPException(status_code=404, detail="File not found")
+    requested = request_enhance_cancel(file_id)
+    return {"success": True, "was_active": requested}
+
 
 # =========================
 # Enhancement Fields APIs

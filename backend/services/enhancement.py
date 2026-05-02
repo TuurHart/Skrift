@@ -23,6 +23,26 @@ logger = logging.getLogger(__name__)
 # Track active streams to prevent concurrent encodes per file
 ACTIVE_ENHANCE_STREAMS: set[str] = set()
 
+# File IDs the user has requested to cancel. Streams check this between
+# tokens and break out of the loop. The MLX call itself can't be preempted
+# mid-forward-pass, but a forward pass is ~10–50ms so the user perceives
+# cancellation as instant.
+CANCELLED_ENHANCE_STREAMS: set[str] = set()
+
+
+def request_enhance_cancel(file_id: str) -> bool:
+    """Mark a streaming enhancement for cancellation. Returns True if a
+    stream was active for this file. The stream loop checks the flag once
+    per token and breaks out cleanly."""
+    if file_id in ACTIVE_ENHANCE_STREAMS:
+        CANCELLED_ENHANCE_STREAMS.add(file_id)
+        return True
+    return False
+
+
+def is_enhance_cancelled(file_id: str) -> bool:
+    return file_id in CANCELLED_ENHANCE_STREAMS
+
 
 def build_enhancement_context(file_id: str) -> str:
     """
@@ -518,6 +538,21 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
     if file_id in ACTIVE_ENHANCE_STREAMS:
         raise RuntimeError("Enhancement stream already in progress for this file")
     ACTIVE_ENHANCE_STREAMS.add(file_id)
+    # Stale cancel flag from a prior aborted run — clear so this fresh stream
+    # doesn't get cancelled instantly.
+    CANCELLED_ENHANCE_STREAMS.discard(file_id)
+
+    # Capture prior step status so we can restore it on completion. enhance
+    # only flips to DONE after compile runs (separate path); during streaming
+    # we mark it PROCESSING so the UI can lock other files' enhance buttons.
+    _prior_enhance_status = None
+    try:
+        _pf = status_tracker.get_file(file_id)
+        if _pf:
+            _prior_enhance_status = _pf.steps.enhance
+            status_tracker.update_file_status(file_id, 'enhance', ProcessingStatus.PROCESSING)
+    except Exception:
+        pass
 
     try:
         # Helper to emit SSE with proper multi-line data framing
@@ -669,7 +704,7 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
 
             async def stream_tokens():
                 # stream_with_mlx is a regular generator; iterate in thread to avoid blocking loop
-                loop_acc = {"error": None}
+                loop_acc = {"error": None, "cancelled": False}
 
                 def run_and_collect():
                     try:
@@ -683,6 +718,10 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
                                 model_path=model_path,
                                 mlx_cfg=mlx_cfg,
                             ):
+                                # Honour user cancel between tokens
+                                if is_enhance_cancelled(file_id):
+                                    loop_acc["cancelled"] = True
+                                    break
                                 if evt_type == "token":
                                     acc.append(piece)
                                 elif evt_type == "done":
@@ -704,6 +743,9 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
                                 max_tokens=int(mlx_cfg.get('max_tokens', 512)),
                                 temperature=float(mlx_cfg.get('temperature', 0.7)),
                             ):
+                                if is_enhance_cancelled(file_id):
+                                    loop_acc["cancelled"] = True
+                                    break
                                 if first_token:
                                     step_label = (_step_lower or 'text').replace('_', ' ').title()
                                     acc.append(f"\n__SSE__status__Generating {step_label.lower()}...\n")
@@ -765,10 +807,21 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
                 
                 if loop_acc["error"]:
                     raise RuntimeError(loop_acc["error"])
+                # Stash cancel flag on outer scope so the post-stream code
+                # can short-circuit before persisting partial output.
+                stream_tokens.cancelled = loop_acc.get("cancelled", False)
             
             async for evt in stream_tokens():
                 yield evt
-            
+
+            # If the user cancelled mid-stream, discard partial output and
+            # emit a `cancelled` event. The frontend treats this distinctly
+            # from `error` and `done`.
+            if getattr(stream_tokens, 'cancelled', False):
+                logger.info(f"Enhance stream cancelled for {file_id}")
+                yield _sse("cancelled", "")
+                return
+
             # Build final strictly from what we actually emitted as tokens
             # For hybrid pipeline, use the reassembled final text from the generator
             all_acc = ''.join(acc)
@@ -795,6 +848,16 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
         # Release lock regardless of outcome
         try:
             ACTIVE_ENHANCE_STREAMS.discard(file_id)
+            CANCELLED_ENHANCE_STREAMS.discard(file_id)
+        except Exception:
+            pass
+        # Restore step status — leave at PROCESSING is wrong; if we don't
+        # restore, the UI will think enhance is still running forever.
+        try:
+            if _prior_enhance_status is not None:
+                pf = status_tracker.get_file(file_id)
+                if pf and pf.steps.enhance == ProcessingStatus.PROCESSING:
+                    status_tracker.update_file_status(file_id, 'enhance', _prior_enhance_status)
         except Exception:
             pass
 
