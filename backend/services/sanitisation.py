@@ -87,11 +87,14 @@ def process_sanitisation(file_id: str, text: str) -> dict:
                     continue
                 alias_map.setdefault(al, []).append(entry)
 
-        # Detect ambiguous aliases present in text
+        # Ambiguous aliases = those that map to 2+ people. We no longer block
+        # the pipeline on these; instead we leave them UNLINKED and record their
+        # occurrences as data on the note so the review step can resolve them.
+        ambiguous_aliases = {a for a, c in alias_map.items() if len(c) >= 2}
+
         ambiguous_occurrences = []
-        for alias, candidates in alias_map.items():
-            if len(candidates) < 2:
-                continue
+        for alias in ambiguous_aliases:
+            candidates = alias_map[alias]
             # Find all occurrences of alias in text (case-insensitive)
             pat = re.compile(rf"\b{re.escape(alias)}\b", flags=re.IGNORECASE)
             for m in pat.finditer(text):
@@ -116,15 +119,8 @@ def process_sanitisation(file_id: str, text: str) -> dict:
                     ]
                 })
 
-        if ambiguous_occurrences:
-            return {
-                'status': 'needs_disambiguation',
-                'session_id': f"disamb-{file_id}",
-                'occurrences': ambiguous_occurrences,
-                'policy': { 'first_mention': 'canonical', 'subsequent': 'short' }
-            }
-
-        # Now process linking
+        # Process linking for UNAMBIGUOUS aliases only. Ambiguous aliases are
+        # skipped (left as plain text) and carried as ambiguous_occurrences.
         for entry in people:
             canonical_raw = entry.get('canonical')
             aliases = entry.get('aliases', []) or []
@@ -133,18 +129,20 @@ def process_sanitisation(file_id: str, text: str) -> dict:
             link_text = build_link(str(canonical_raw))
             if not link_text:
                 continue
-            
+
             # Derive short (unbracketed) first-name for subsequent mentions
             canon_core = canonical_raw[2:-2] if str(canonical_raw).startswith('[[') and str(canonical_raw).endswith(']]') else str(canonical_raw)
             short_override = str(entry.get('short') or '').strip()
             short_name = short_override or (canon_core.split()[0] if canon_core.strip() else '')
-            
+
             # Prepare alias patterns
             alias_patterns = []
             for alias in aliases:
                 alias = str(alias).strip()
                 if not alias:
                     continue
+                if alias.lower() in ambiguous_aliases:
+                    continue  # leave ambiguous mentions unlinked, resolved at review
                 poss_group = "(?P<poss>(?:'s|'s)?)" if preserve_poss else ""
                 wb = "\\b" if whole_word else ""
                 pattern = re.compile(rf"{wb}{re.escape(alias)}{wb}{poss_group}", flags=re.IGNORECASE)
@@ -199,9 +197,10 @@ def process_sanitisation(file_id: str, text: str) -> dict:
         
         return {
             'status': 'done',
-            'result_content': text
+            'result_content': text,
+            'ambiguous_occurrences': ambiguous_occurrences,
         }
-    
+
     except Exception as e:
         return {
             'status': 'error',

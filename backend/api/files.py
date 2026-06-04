@@ -1071,6 +1071,7 @@ async def reset_file(file_id: str):
 
         # Clear all downstream content
         pipeline_file.sanitised = None
+        pipeline_file.ambiguous_names = None
         pipeline_file.enhanced_copyedit = None
         pipeline_file.enhanced_summary = None
         pipeline_file.enhanced_title = None

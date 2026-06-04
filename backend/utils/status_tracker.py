@@ -19,6 +19,7 @@ from config.settings import get_output_folder
 # here to ensure they are always cascade-invalidated.
 _TRANSCRIPT_DERIVED_FIELDS = (
     "sanitised",
+    "ambiguous_names",
     "enhanced_copyedit",
     "enhanced_summary",
     "enhanced_title",
@@ -279,6 +280,7 @@ class StatusTracker:
 
         pf.transcript = None
         pf.sanitised = None
+        pf.ambiguous_names = None
         pf.exported = None
         pf.enhanced_title = None
         pf.title_approval_status = None

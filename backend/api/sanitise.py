@@ -3,8 +3,7 @@ Sanitisation API endpoints
 Handles text sanitisation with name linking and disambiguation
 """
 
-import json
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException
 from models import ProcessingRequest, ProcessingResponse, ProcessingStatus
 from utils.status_tracker import status_tracker
 from services.sanitisation import process_sanitisation, resolve_name_disambiguation
@@ -44,32 +43,24 @@ async def start_sanitise(file_id: str):
         
         # Call service layer
         result = process_sanitisation(file_id, text)
-        
-        if result['status'] == 'needs_disambiguation':
-            # Return 409 with disambiguation data
-            return Response(
-                status_code=409,
-                content=json.dumps(result),
-                media_type='application/json'
-            )
-        
+
         if result['status'] == 'error':
             raise ValueError(result['error'])
-        
-        # Mark processing and save result
-        status_tracker.update_file_status(
-            file_id,
-            "sanitise",
-            ProcessingStatus.PROCESSING
-        )
-        
+
+        # Persist the linked text. Unambiguous names are already linked; any
+        # ambiguous occurrences are carried as data on the note (resolved at the
+        # review step) rather than blocking the pipeline with a 409.
         status_tracker.update_file_status(
             file_id,
             "sanitise",
             ProcessingStatus.DONE,
             result_content=result['result_content']
         )
-        
+        pf = status_tracker.get_file(file_id)
+        if pf is not None:
+            pf.ambiguous_names = result.get('ambiguous_occurrences') or None
+            status_tracker.save_file_status(file_id)
+
         return ProcessingResponse(
             status="done",
             message="Sanitise completed",

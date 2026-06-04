@@ -61,6 +61,11 @@ class PipelineFile(BaseModel):
     enhanced_tags: Optional[List[str]] = Field(None, description="Selected tags from whitelist for this file")
     tag_suggestions: Optional[Dict[str, List[str]]] = Field(None, description="Tag suggestions awaiting user approval: {'old': [...], 'new': [...]}" )
 
+    # Ambiguous name occurrences recorded during name-linking (an alias that maps
+    # to 2+ people). Carried as data and resolved at the review step instead of
+    # blocking the pipeline with a 409. Shape mirrors the old 409 'occurrences'.
+    ambiguous_names: Optional[List[Dict[str, Any]]] = Field(None, description="Unresolved ambiguous name occurrences for review-time disambiguation")
+
     # Transient: which enhancement step is currently streaming for this file.
     # Set by generate_enhancement_stream when a step starts, cleared when it
     # ends (or on cancel). Polled by the frontend so the Inspector can show
