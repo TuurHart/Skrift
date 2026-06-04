@@ -285,6 +285,62 @@ async def start_enhance_batch(request: StartBatchRequest):
         raise HTTPException(status_code=500, detail=f"Failed to start batch: {str(e)}")
 
 
+@router.post("/run/start")
+async def start_run(request: StartBatchRequest):
+    """Run the canonical pipeline for the given files: transcribe → enhance →
+    name-link → compile → Ready for Review. One Process action; a single file is
+    a run of one. Files already at Ready (title + copy-edit + summary present)
+    are skipped unless they still need transcription.
+    """
+    if not request.file_ids:
+        raise HTTPException(status_code=400, detail="No file IDs provided")
+
+    eligible = []
+    for file_id in request.file_ids:
+        f = status_tracker.get_file(file_id)
+        if not f:
+            raise HTTPException(status_code=404, detail=f"File not found: {file_id}")
+        needs_transcribe = f.steps.transcribe not in ("done", "skipped")
+        ready = bool(
+            (f.enhanced_title or '').strip()
+            and (f.enhanced_copyedit or '').strip()
+            and (f.enhanced_summary or '').strip()
+        )
+        if needs_transcribe or not ready:
+            eligible.append(file_id)
+
+    if not eligible:
+        raise HTTPException(
+            status_code=400,
+            detail="All selected files are already processed (Ready for review)."
+        )
+
+    # Fail fast if the enhancement model isn't configured/present.
+    from config.settings import settings as _settings
+    mlx_cfg = _settings.get('enhancement.mlx') or {}
+    model_path = (mlx_cfg.get('model_path') or '').strip()
+    if not model_path or not Path(model_path).exists():
+        raise HTTPException(
+            status_code=400,
+            detail="MLX model not selected or not found. Check Settings > Enhancement."
+        )
+
+    try:
+        batch_state = await batch_manager.start_run(
+            file_ids=eligible,
+            file_service=status_tracker,
+        )
+        return {
+            "success": True,
+            "message": f"Run started with {len(eligible)} file(s)",
+            "batch": batch_state,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start run: {str(e)}")
+
+
 @router.delete("/{batch_id}")
 async def delete_batch(batch_id: str):
     """

@@ -756,9 +756,16 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
 # =========================
 
 def _all_enhancement_parts_present(pf) -> bool:
-    """Return True when tags have been applied — tags are the final user-confirmed step.
-    Title, copy edit and summary are compiled if present but are not required to trigger compile."""
-    return bool(pf.enhanced_tags or [])
+    """Auto-processing complete = Ready for Review.
+
+    Title, copy-edit and summary are the auto-generated parts; once all three
+    exist the note is ready and `enhance` flips to done. Tags are chosen by the
+    user at the review step and are NOT required to reach Ready."""
+    return bool(
+        (pf.enhanced_copyedit or '').strip()
+        and (pf.enhanced_title or '').strip()
+        and (pf.enhanced_summary or '').strip()
+    )
 
 
 async def compile_file(file_id: str) -> dict:
@@ -794,7 +801,9 @@ async def compile_file(file_id: str) -> dict:
         date_str = None
 
     folder = Path(pf.path).parent
-    working = pf.enhanced_copyedit or pf.sanitised or pf.transcript or ''
+    # Name-linked body wins (it's the last deterministic step), then the raw
+    # copy-edit, then the transcript.
+    working = pf.sanitised or pf.enhanced_copyedit or pf.transcript or ''
     summary = pf.enhanced_summary or ''
     tags = pf.enhanced_tags or []
 

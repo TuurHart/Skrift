@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 class BatchType(str, Enum):
     TRANSCRIBE = "transcribe"
     ENHANCE = "enhance"
+    RUN = "run"  # canonical pipeline: transcribe → enhance → name-link → compile → Ready
 
 
 class BatchStatus(str, Enum):
@@ -586,6 +587,234 @@ class BatchManager:
             except Exception as e:
                 logger.warning(f"Failed to clear MLX cache after batch: {e}")
     
+    async def start_run(self, file_ids: List[str], file_service: Any) -> Dict[str, Any]:
+        """Start the canonical pipeline for a set of files.
+
+        transcribe (Parakeet hot) → enhance (Gemma hot) → name-link → compile →
+        Ready for Review. A single file is just a run of one. Files are processed
+        oldest-first. No mid-flight human gates: tags are suggested (not approved)
+        and ambiguous names are recorded for the review step.
+        """
+        if self.has_active_batch():
+            raise ValueError("A batch is already running. Cancel it first.")
+
+        sorted_file_ids = await self._sort_files_by_creation_date(file_ids, file_service)
+        batch_id = f"batch_run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+        self.current_batch = {
+            "batch_id": batch_id,
+            "type": BatchType.RUN,
+            "status": BatchStatus.RUNNING,
+            "current_file_id": None,
+            "files": [
+                {
+                    "file_id": file_id,
+                    "status": FileStatus.WAITING,
+                    "current_step": None,
+                    "steps": {
+                        "transcribe": "waiting",
+                        "title": "waiting",
+                        "copy_edit": "waiting",
+                        "summary": "waiting",
+                        "tags": "waiting",
+                    },
+                    "error": None,
+                    "started_at": None,
+                    "completed_at": None,
+                }
+                for file_id in sorted_file_ids
+            ],
+            "consecutive_failures": 0,
+            "mlx_model_loaded": False,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+        }
+        self._save_state()
+        self.processing_task = asyncio.create_task(self._process_run(file_service))
+        logger.info(f"Started run {batch_id} with {len(sorted_file_ids)} files")
+        return self.current_batch
+
+    async def _process_run(self, file_service: Any):
+        """Two model-grouped passes so neither heavy model reloads mid-run:
+        Pass A transcribes everything that needs it (Parakeet stays hot), then
+        Pass B enhances + name-links + compiles everything (Gemma stays hot).
+        """
+        from utils.status_tracker import status_tracker
+        max_failures = int(settings.get('batch.max_consecutive_failures') or 3)
+
+        try:
+            # ── Pass A: transcription ──
+            from services.transcription import process_transcription_thread
+            loop = asyncio.get_event_loop()
+
+            for file_entry in self.current_batch["files"]:
+                if self.current_batch["status"] == BatchStatus.CANCELLED:
+                    break
+                file_id = file_entry["file_id"]
+                self.current_batch["current_file_id"] = file_id
+                pf = file_service.get_file(file_id)
+                if not pf:
+                    file_entry["status"] = FileStatus.FAILED
+                    file_entry["error"] = "File not found"
+                    file_entry["steps"]["transcribe"] = "failed"
+                    self._save_state()
+                    continue
+
+                # Notes/captures arrive transcribed (or skipped); already-done audio too.
+                if pf.steps.transcribe in ("done", "skipped"):
+                    file_entry["steps"]["transcribe"] = "done"
+                    continue
+
+                file_entry["current_step"] = "transcribe"
+                file_entry["steps"]["transcribe"] = "processing"
+                file_entry["started_at"] = file_entry["started_at"] or datetime.now().isoformat()
+                self.current_batch["updated_at"] = datetime.now().isoformat()
+                self._save_state()
+                await self.broadcast("start", {"file_id": file_id, "step": "transcribe"})
+
+                try:
+                    status_tracker.update_file_status(file_id, "transcribe", "processing")
+                    # process_transcription_thread is blocking — run it off the loop.
+                    await loop.run_in_executor(None, process_transcription_thread, file_id)
+                    pf = file_service.get_file(file_id)
+                    if pf and pf.steps.transcribe == "done":
+                        file_entry["steps"]["transcribe"] = "done"
+                        self.current_batch["consecutive_failures"] = 0
+                    else:
+                        file_entry["steps"]["transcribe"] = "failed"
+                        file_entry["status"] = FileStatus.FAILED
+                        file_entry["error"] = (pf.error if pf else None) or "Transcription failed"
+                        self.current_batch["consecutive_failures"] += 1
+                    await self.broadcast("done", {"file_id": file_id, "step": "transcribe"})
+                except Exception as e:
+                    logger.error(f"Run: transcription failed for {file_id}: {e}")
+                    file_entry["steps"]["transcribe"] = "failed"
+                    file_entry["status"] = FileStatus.FAILED
+                    file_entry["error"] = str(e)
+                    self.current_batch["consecutive_failures"] += 1
+                    await self.broadcast("error", {"file_id": file_id, "step": "transcribe", "error": str(e)})
+                file_entry["current_step"] = None
+                self._save_state()
+
+            # ── Pass B: enhancement + name-link + compile ──
+            from pathlib import Path as _Path
+            mlx_cfg = settings.get('enhancement.mlx') or {}
+            model_path = (mlx_cfg.get('model_path') or '').strip()
+            if not model_path or not _Path(model_path).exists():
+                self.current_batch["status"] = BatchStatus.FAILED
+                self.current_batch["error"] = "MLX model not selected or not found. Check Settings > Enhancement."
+                self.current_batch["updated_at"] = datetime.now().isoformat()
+                self._save_state()
+                return
+
+            for file_entry in self.current_batch["files"]:
+                if self.current_batch["status"] == BatchStatus.CANCELLED:
+                    break
+                if self.current_batch["consecutive_failures"] >= max_failures:
+                    logger.error(f"Run: {max_failures} consecutive failures, stopping")
+                    self.current_batch["status"] = BatchStatus.FAILED
+                    self._save_state()
+                    break
+
+                file_id = file_entry["file_id"]
+                self.current_batch["current_file_id"] = file_id
+                pf = file_service.get_file(file_id)
+                if not pf or pf.steps.transcribe not in ("done", "skipped"):
+                    continue  # can't enhance what isn't transcribed
+
+                # Skip if already Ready (auto-steps present — never clobber).
+                if ((pf.enhanced_title or '').strip()
+                        and (pf.enhanced_copyedit or '').strip()
+                        and (pf.enhanced_summary or '').strip()):
+                    file_entry["status"] = FileStatus.COMPLETED
+                    for k in ("title", "copy_edit", "summary"):
+                        file_entry["steps"][k] = "done"
+                    continue
+
+                status_tracker.update_file_status(file_id, "enhance", "processing")
+                file_entry["status"] = FileStatus.PROCESSING
+                file_entry["started_at"] = file_entry["started_at"] or datetime.now().isoformat()
+                self._save_state()
+
+                try:
+                    await self._process_enhancement_steps(file_id, file_entry, pf)
+                    await self._finalize_to_ready(file_id)
+                    file_entry["status"] = FileStatus.COMPLETED
+                    file_entry["completed_at"] = datetime.now().isoformat()
+                    file_entry["current_step"] = None
+                except Exception as e:
+                    logger.error(f"Run: enhancement failed for {file_id}: {e}")
+                    file_entry["status"] = FileStatus.FAILED
+                    if not file_entry.get("error"):
+                        file_entry["error"] = str(e)
+                    self.current_batch["consecutive_failures"] += 1
+                    status_tracker.update_file_status(file_id, "enhance", "pending")
+                self.current_batch["updated_at"] = datetime.now().isoformat()
+                self._save_state()
+
+            if self.current_batch["status"] == BatchStatus.RUNNING:
+                self.current_batch["status"] = BatchStatus.COMPLETED
+                self.current_batch["current_file_id"] = None
+                self.current_batch["result"] = self._compute_batch_result()
+                self.current_batch["updated_at"] = datetime.now().isoformat()
+                self._save_state()
+                logger.info(f"Run {self.current_batch['batch_id']} completed: {self.current_batch.get('result')}")
+
+        except Exception as e:
+            logger.error(f"Run processing failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.current_batch["status"] = BatchStatus.FAILED
+            self.current_batch["error"] = str(e)
+            self.current_batch["updated_at"] = datetime.now().isoformat()
+            self._save_state()
+        finally:
+            # Unload the MLX (enhancement) model once the run ends.
+            try:
+                from services.mlx_cache import get_model_cache
+                get_model_cache().clear_cache(reason="run ended")
+                logger.info("✅ MLX model unloaded from cache (run ended)")
+            except Exception as e:
+                logger.warning(f"Failed to clear MLX cache after run: {e}")
+
+    async def _finalize_to_ready(self, file_id: str):
+        """Final deterministic steps for one file: name-link the copy-edited body,
+        then compile a draft so the note lands at Ready for Review.
+
+        Ambiguous names are recorded on the note (resolved at review), never
+        blocked here. Typed captures skip name-linking (no transcript names).
+        """
+        from utils.status_tracker import status_tracker, ProcessingStatus
+        from services.enhancement import compile_file
+        from services.sanitisation import process_sanitisation
+
+        pf = status_tracker.get_file(file_id)
+        if not pf:
+            return
+
+        if pf.source_type != 'capture':
+            body = (pf.enhanced_copyedit or pf.transcript or '')
+            if body.strip():
+                try:
+                    san = process_sanitisation(file_id, body)
+                    if san.get('status') == 'done':
+                        status_tracker.update_file_status(
+                            file_id, "sanitise", ProcessingStatus.DONE,
+                            result_content=san['result_content'],
+                        )
+                        pf2 = status_tracker.get_file(file_id)
+                        if pf2:
+                            pf2.ambiguous_names = san.get('ambiguous_occurrences') or None
+                            status_tracker.save_file_status(file_id)
+                except Exception as e:
+                    logger.warning(f"Run: name-linking failed for {file_id}: {e}")
+
+        # compile_file flips enhance→done when title + copy-edit + summary exist.
+        try:
+            await compile_file(file_id)
+        except Exception as e:
+            logger.warning(f"Run: compile failed for {file_id}: {e}")
+
     async def _process_enhancement_steps(
         self,
         file_id: str,
@@ -609,11 +838,14 @@ class BatchManager:
         import json as _json
         
         logger.debug(f"Status tracker initialized for file {file_id}")
-        
-        # Get sanitised text (required for all enhancement steps)
-        input_text = pf.sanitised or ''
+
+        # All LLM steps run on the RAW transcript — name-linking is applied later
+        # as the final deterministic step. build_enhancement_context returns the
+        # transcript (plus any capture/shared-content preamble).
+        from services.enhancement import build_enhancement_context
+        input_text = build_enhancement_context(file_id)
         if not input_text:
-            raise ValueError("No sanitised text available for enhancement")
+            raise ValueError("No transcript available for enhancement")
         
         # Get prompts from settings
         enh_cfg = settings.get('enhancement') or {}
@@ -759,12 +991,8 @@ class BatchManager:
         else:
             file_entry["steps"]["summary"] = "done"
         
-        # Score importance (runs while batch continues to tags)
-        try:
-            from services.enhancement import score_importance_for_file
-            await score_importance_for_file(file_id)
-        except Exception as e:
-            logger.warning(f"Importance scoring failed for {file_id}: {e}")
+        # (Significance is no longer scored by an LLM — the user sets it with a
+        # slider at review. No automatic step here.)
 
         # Step 3: Tags (non-streaming, direct call)
         # Refresh pf to ensure we check the latest state
