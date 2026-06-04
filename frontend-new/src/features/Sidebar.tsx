@@ -378,7 +378,7 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
   return (
     <aside
       className={cn(
-        'w-[280px] min-w-[280px] h-full flex flex-col bg-surface border-r border-border/[0.07] relative transition-colors',
+        'w-full h-full flex flex-col bg-surface border-r border-border/[0.07] relative transition-colors',
         dragOver && 'bg-accent/[0.08]',
       )}
       onDragOver={onDragOver}

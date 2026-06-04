@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Group, Panel, Separator } from 'react-resizable-panels'
 import { api } from '@/api'
 import { useSettings } from '@/hooks/useSettings'
 import { useFiles, useFilesCache } from '@/hooks/useFiles'
@@ -173,11 +174,16 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden bg-bg text-text-primary font-sans">
       <FindBar />
+      <Group orientation="horizontal" className="flex-1 min-w-0 min-h-0">
+      <Panel defaultSize="22%" minSize="15%" maxSize="34%" className="h-full w-full flex min-w-0">
       <Sidebar
         selectedId={selectedId}
         onSelectFile={setSelectedId}
         onSettingsOpen={() => setSettingsOpen(true)}
       />
+      </Panel>
+      <Separator className="w-px bg-border/[0.1] hover:bg-accent/50 transition-colors cursor-col-resize" />
+      <Panel className="h-full w-full flex min-w-0">
 
       <NoteDisplay
         file={file}
@@ -200,6 +206,8 @@ export default function App() {
         onSelectFile={setSelectedId}
         onSeek={handleSeek}
       />
+      </Panel>
+      </Group>
 
       {showWizard && (
         <SetupWizard onComplete={() => setShowWizard(false)} />
