@@ -97,8 +97,9 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
       const r = await api.getCurrentBatch()
       if (r.active && r.batch) {
         const fileIds = r.batch.files.map(f => f.file_id)
-        const stepKey = r.batch.type === 'enhance' ? 'enhance' : 'transcribe'
-        const label = stepKey === 'enhance' ? 'Enhancing' : 'Transcribing'
+        // A 'run' counts progress by reaching Ready (enhance done), same as enhance.
+        const stepKey = (r.batch.type === 'enhance' || r.batch.type === 'run') ? 'enhance' : 'transcribe'
+        const label = r.batch.type === 'run' ? 'Processing' : (stepKey === 'enhance' ? 'Enhancing' : 'Transcribing')
         setBatchProgress(prev => {
           // Don't clobber a richer local state for the same batch.
           if (prev?.batchId === r.batch!.batch_id) return prev
@@ -694,70 +695,12 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
             <button
               onClick={async () => {
                 const ids = Array.from(checked)
-                setBatchError(null)
-                const pending = ids.filter(id => {
-                  const f = files.find(x => x.id === id)
-                  return f?.steps.transcribe !== 'done'
-                })
-                // Default: only run on un-transcribed files. If user selected
-                // exclusively already-done files, confirm and force re-run
-                // (clears downstream sanitise/enhance/export and processed.wav).
-                let toRun = pending
-                let force = false
-                if (pending.length === 0) {
-                  const ok = window.confirm(
-                    `All ${ids.length} selected file${ids.length === 1 ? ' is' : 's are'} already transcribed.\n\n` +
-                    `Re-transcribe? This clears the existing transcript, sanitised text, ` +
-                    `enhancements, and compiled output for those files.`
-                  )
-                  if (!ok) return
-                  toRun = ids
-                  force = true
-                }
-                setBatchProgress({ ids: toRun, step: 'transcribe', label: force ? 'Re-transcribing' : 'Transcribing' })
-                exitMultiSelect()
-                try {
-                  const resp = await api.startTranscribeBatch(toRun, force)
-                  setBatchProgress(prev => prev && { ...prev, batchId: resp.batch?.batch_id })
-                } catch (err: unknown) {
-                  const msg = err instanceof Error ? err.message : String(err)
-                  // Surface the "already running" case clearly so the user can
-                  // act on it (the progress panel now has a Cancel button, and
-                  // syncCurrentBatch will restore progress visibility on the
-                  // next poll tick).
-                  if (msg.includes('already running')) {
-                    setBatchError('Another batch is still running. Cancel it from the progress panel below, then try again.')
-                    void syncCurrentBatch()
-                  } else {
-                    setBatchError(`Batch transcribe failed: ${msg}`)
-                  }
-                  setBatchProgress(null)
-                }
-              }}
-              className="px-[10px] py-[5px] text-xs rounded-md bg-accent text-white font-medium hover:bg-accent/90 transition-colors"
-            >
-              Transcribe
-            </button>
-            <button
-              onClick={async () => {
-                const ids = Array.from(checked)
                 exitMultiSelect()
                 setBatchError(null)
-                // Only enhance files that are transcribed
-                const ready = ids.filter(id => {
-                  const f = files.find(x => x.id === id)
-                  return f?.steps.transcribe === 'done'
-                })
-                if (ready.length === 0) {
-                  setBatchError('None of the selected files have been transcribed yet.')
-                  return
-                }
-                const skipped = ids.length - ready.length
-                const label = skipped > 0 ? `Enhancing (${skipped} not ready, skipped)` : 'Enhancing'
-                setBatchProgress({ ids: ready, step: 'enhance', label })
-                // Subscribe to SSE for current-step events. We don't display
-                // the live token stream — it flickers too fast to be readable
-                // and adds noise. The progress panel shows step + filename.
+                // One Process action runs the whole pipeline to Ready for Review.
+                setBatchProgress({ ids, step: 'enhance', label: 'Processing' })
+                // Subscribe to the run's SSE so the progress panel can show the
+                // current step + filename (transcribe → enhance steps).
                 batchEsRef.current?.close()
                 const es = new EventSource(`${API_BASE}/api/batch/enhance/stream`)
                 batchEsRef.current = es
@@ -767,19 +710,17 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
                     if (d.file_id) setBatchCurrentFile({ fileId: d.file_id, step: d.step || '' })
                   } catch { /* ignore */ }
                 })
-                es.addEventListener('done', () => {
-                  setBatchCurrentFile(null)
-                })
+                es.addEventListener('done', () => setBatchCurrentFile(null))
                 try {
-                  const resp = await api.startEnhanceBatch(ready)
+                  const resp = await api.startRun(ids)
                   setBatchProgress(prev => prev && { ...prev, batchId: resp.batch?.batch_id })
                   await loadFiles()
                 } catch (err: unknown) {
                   const msg = err instanceof Error ? err.message : String(err)
-                  if (msg.includes('already been enhanced')) {
-                    setBatchError('All selected files are already fully enhanced.')
+                  if (msg.includes('already processed')) {
+                    setBatchError('All selected files are already processed (Ready for review).')
                   } else if (msg.includes('already running')) {
-                    setBatchError('Another batch is still running. Cancel it from the progress panel below, then try again.')
+                    setBatchError('Another run is still going. Cancel it from the progress panel below, then try again.')
                     void syncCurrentBatch()
                   } else {
                     setBatchError(msg)
@@ -791,7 +732,7 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
               }}
               className="px-[10px] py-[5px] text-xs rounded-md bg-accent text-white font-medium hover:bg-accent/90 transition-colors"
             >
-              Enhance
+              Process
             </button>
             <button
               onClick={() => void handleDeleteChecked()}

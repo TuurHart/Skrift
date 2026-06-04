@@ -346,6 +346,12 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
       method: 'POST', body: JSON.stringify({ file_ids: fileIds }),
     })
   },
+  // Canonical pipeline: transcribe → enhance → name-link → compile → Ready.
+  async startRun(fileIds: string[]): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
+    return fetchJSON<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }>('/api/batch/run/start', {
+      method: 'POST', body: JSON.stringify({ file_ids: fileIds }),
+    })
+  },
 
   // Audio
   getAudioUrl(fileId: string, which: 'original' | 'processed' = 'processed'): string {

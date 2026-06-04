@@ -4,9 +4,7 @@ import { api } from '@/api'
 import { useSSE } from '@/hooks/useSSE'
 import type { PipelineFile } from '@/types/pipeline'
 import type { AppSettings } from '@/hooks/useSettings'
-import { DisambiguationModal } from '@/components/DisambiguationModal'
 import { TagSuggestions } from '@/components/TagSuggestions'
-import type { Ambiguity } from '@/api'
 
 // ── Section wrapper ────────────────────────────────────────
 
@@ -97,10 +95,6 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
   const [stale, setStale] = useState(false)
   const pollingRef = useRef(false)
 
-  // Cleanup
-  const [sanitising, setSanitising] = useState(false)
-  const [sanitiseError, setSanitiseError] = useState<string | null>(null)
-  const [disambigData, setDisambigData] = useState<{ ambiguities: Ambiguity[]; sessionId: string } | null>(null)
   const [ramWarning, setRamWarning] = useState<{
     required_gb: number; available_gb: number; model_name: string;
     fallback_model: string; fallback_name: string | null;
@@ -220,46 +214,15 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
     } catch { /* ignore */ }
   }
 
-  // ── Cleanup ────────────────────────────────────────────
+  // ── Process ────────────────────────────────────────────
 
-  async function handleCleanUp() {
-    setSanitising(true)
-    setSanitiseError(null)
+  async function handleProcess() {
     try {
-      const res = await api.startSanitise(file.id)
-      if (res.status === 'done') {
-        if (res.file) onFileUpdate(res.file)
-        else {
-          // file missing from response — reload manually
-          const updated = await api.getFile(file.id)
-          onFileUpdate(updated)
-        }
-      } else if (res.status === 'needs_disambiguation' && res.ambiguities && res.session_id) {
-        setDisambigData({ ambiguities: res.ambiguities, sessionId: res.session_id })
-      } else if (res.status === 'already_processing') {
-        setSanitiseError('Already running \u2014 please wait')
-      }
+      await api.startRun([file.id])
+      // App's 1s poll picks up the enhance/compile progress for this file.
     } catch (err) {
-      console.error('Sanitise failed:', err)
-      setSanitiseError(err instanceof Error ? err.message : 'Cleanup failed')
-    } finally {
-      setSanitising(false)
+      console.error('Process failed:', err)
     }
-  }
-
-  async function handleDisambigResolve(decisions: Parameters<typeof api.resolveSanitise>[2]) {
-    if (!disambigData) return
-    try {
-      const res = await api.resolveSanitise(file.id, disambigData.sessionId, decisions)
-      onFileUpdate(res.file)
-    } finally { setDisambigData(null) }
-  }
-
-  async function handleDisambigCancel() {
-    setDisambigData(null)
-    await api.cancelSanitise(file.id).catch(() => {})
-    const updated = await api.getFile(file.id)
-    onFileUpdate(updated)
   }
 
   // ── Enhancement ────────────────────────────────────────
@@ -317,54 +280,6 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
         } catch { /* ignore */ }
       },
     )
-  }
-
-  async function handleEnhanceAll() {
-    // Sequential: title -> copyedit -> summary -> tags
-    // Each step passes its name so the backend routes to the right model
-    await new Promise<void>((resolve) => {
-      titleSSE.start(
-        (cbs) => api.startEnhanceStream(file.id, getPrompt('title'),
-          { ...cbs, onInsufficientRam: makeRamHandler('title', getPrompt('title')) },
-          'title'),
-        async (text) => {
-          try { await api.setTitle(file.id, text.trim()) } catch { /* ignore */ }
-          resolve()
-        },
-      )
-    })
-    const updated1 = await api.getFile(file.id)
-    onFileUpdate(updated1)
-
-    await new Promise<void>((resolve) => {
-      copyeditSSE.start(
-        (cbs) => api.startEnhanceStream(file.id, getPrompt('copy_edit'),
-          { ...cbs, onInsufficientRam: makeRamHandler('copy_edit', getPrompt('copy_edit')) },
-          'copy_edit'),
-        async (text) => {
-          try { await api.setCopyedit(file.id, text) } catch { /* ignore */ }
-          resolve()
-        },
-      )
-    })
-
-    await new Promise<void>((resolve) => {
-      summarySSE.start(
-        (cbs) => api.startEnhanceStream(file.id, getPrompt('summary'),
-          { ...cbs, onInsufficientRam: makeRamHandler('summary', getPrompt('summary')) },
-          'summary'),
-        async (text) => {
-          try { await api.setSummary(file.id, text) } catch { /* ignore */ }
-          resolve()
-        },
-      )
-    })
-
-    const updated2 = await api.getFile(file.id)
-    onFileUpdate(updated2)
-
-    // Tags
-    await handleGenerateTags()
   }
 
   async function handleGenerateTags() {
@@ -434,8 +349,6 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
   const transcribeProcessing = file.steps.transcribe === 'processing' || polling
   const transcribeError = file.steps.transcribe === 'error'
 
-  const sanitiseDone = file.steps.sanitise === 'done'
-
   const enhanceDone = file.steps.enhance === 'done'
   const canExport = enhanceDone || file.compiled_text != null
 
@@ -493,26 +406,7 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
         )}
       </Section>
 
-      {/* ── Cleanup ── */}
-      <Section title="Cleanup" done={sanitiseDone} disabled={!transcribeDone && !isAppleNote && !transcribeSkipped}>
-        {sanitiseDone ? (
-          <div className="text-[12px] text-text-secondary flex items-center gap-1.5">
-            <span className="text-check-green">{'\u2713'}</span> Cleanup complete
-            <button onClick={() => void handleCleanUp()} className="ml-auto text-[11px] px-2 py-0.5 rounded bg-white/[0.05] border border-border/[0.15] text-text-muted hover:text-text-secondary transition-all duration-150 active:scale-[0.98]">Redo</button>
-          </div>
-        ) : file.steps.sanitise === 'error' ? (
-          <div className="space-y-2">
-            <div className="text-[12px] text-destructive">{file.error ?? 'Cleanup failed'}</div>
-            <Btn label="Retry" onClick={() => void handleCleanUp()} small />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="text-[12px] text-text-secondary">Link names and fix formatting</div>
-            <Btn label={sanitising ? '' : 'Clean Up'} loading={sanitising} onClick={() => void handleCleanUp()} />
-            {sanitiseError && <div className="text-[11px] text-destructive">{sanitiseError}</div>}
-          </div>
-        )}
-      </Section>
+      {/* ── Cleanup removed: name-linking is automatic (runs last in the pipeline) ── */}
 
       {/* ── Locked-while-other-file-enhances banner ── */}
       {isOtherRunning && runningEnhanceFile && (
@@ -534,7 +428,7 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
       )}
 
       {/* ── Enhancement ── */}
-      <Section title="Enhancement" done={enhanceDone} disabled={!sanitiseDone}>
+      <Section title="Enhancement" done={enhanceDone} disabled={!transcribeDone && !isAppleNote && !transcribeSkipped}>
         {(() => {
           const hasTitle = !!file.enhanced_title
           const hasCopyedit = !!file.enhanced_copyedit
@@ -593,16 +487,15 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
                 </div>
               ) : noneStarted ? (
                 <div className="space-y-1">
-                  <Btn label="Enhance" full onClick={() => void handleEnhanceAll()} />
+                  <Btn label="Process" full onClick={() => void handleProcess()} />
                   {modelName && <div className="text-[10px] text-text-muted text-center">via {modelName}</div>}
                 </div>
               ) : allDone && !tagSuggestions ? (
                 <div className="text-[12px] text-text-secondary flex items-center gap-1.5">
                   <span className="text-check-green">{'\u2713'}</span> All steps complete
-                  <button onClick={() => void handleEnhanceAll()} className="ml-auto text-[11px] px-2 py-0.5 rounded bg-white/[0.05] border border-border/[0.15] text-text-muted hover:text-text-secondary transition-all duration-150 active:scale-[0.98]">Redo all</button>
                 </div>
               ) : !tagSuggestions ? (
-                <Btn label="Continue Enhancing" full onClick={() => void handleEnhanceAll()} />
+                <Btn label="Continue Processing" full onClick={() => void handleProcess()} />
               ) : null}
 
               {/* Error display */}
@@ -737,15 +630,6 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
       </Section>
 
       {/* ── Modals ── */}
-      {disambigData && (
-        <DisambiguationModal
-          ambiguities={disambigData.ambiguities}
-          sessionId={disambigData.sessionId}
-          onResolve={(decisions) => void handleDisambigResolve(decisions)}
-          onCancel={() => void handleDisambigCancel()}
-        />
-      )}
-
       {/* RAM Warning Modal */}
       {ramWarning && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 animate-modal-in">
