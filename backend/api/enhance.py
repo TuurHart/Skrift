@@ -18,7 +18,6 @@ import re as _re
 from utils.status_tracker import status_tracker, ProcessingStatus
 from services.enhancement import (
     test_model,
-    generate_enhancement,
     generate_enhancement_stream,
     MLXNotAvailable,
     _all_enhancement_parts_present,
@@ -30,7 +29,6 @@ from services.enhancement import (
     request_enhance_cancel,
 )
 from config.settings import settings as app_settings
-from models import ProcessingRequest, ProcessingResponse
 
 router = APIRouter()
 
@@ -78,66 +76,6 @@ async def save_chat_template_override(body: dict):
         overrides.pop(model_path, None)
     app_settings.set('enhancement.mlx.chat_template_overrides', overrides)
     return { 'success': True }
-
-
-@router.post("/{file_id}", response_model=ProcessingResponse)
-async def start_enhancement(file_id: str, request: ProcessingRequest = ProcessingRequest()):
-    """
-    Start AI enhancement for a file (local MLX planned; MVP uses deterministic text transform)
-    - Requires sanitisation to be completed first
-    - Enhances the sanitised text and saves to status.json
-    """
-    pipeline_file = status_tracker.get_file(file_id)
-    if not pipeline_file:
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    # Check if sanitisation is done
-    if pipeline_file.steps.sanitise != ProcessingStatus.DONE:
-        raise HTTPException(status_code=400, detail="Sanitisation must be completed before enhancement")
-    
-    # Determine source text
-    text = pipeline_file.sanitised or pipeline_file.transcript or ""
-    if not text:
-        raise HTTPException(status_code=400, detail="No input text available to enhance")
-    
-    # Mark processing
-    status_tracker.update_file_status(file_id, "enhance", ProcessingStatus.PROCESSING)
-    
-    try:
-        preset = (request.enhancementType or "polish").lower()
-        prompt_text = (request.prompt or "").strip()
-
-        # Call service layer
-        result = generate_enhancement(file_id, text, prompt_text, preset)
-        
-        if result['status'] == 'error':
-            status_tracker.update_file_status(file_id, "enhance", ProcessingStatus.ERROR, error=result['error'])
-            raise HTTPException(status_code=400, detail=result['error'])
-        
-        # Update status with result
-        status_tracker.add_processing_time(file_id, "enhance", result['processing_time'])
-        status_tracker.update_file_status(
-            file_id,
-            "enhance",
-            ProcessingStatus.DONE,
-            result_content=result['enhanced']
-        )
-
-        return ProcessingResponse(
-            status="done",
-            message=f"Enhancement ({preset}) completed",
-            file=status_tracker.get_file(file_id)
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        status_tracker.update_file_status(
-            file_id,
-            "enhance",
-            ProcessingStatus.ERROR,
-            error=str(e)
-        )
-        raise HTTPException(status_code=500, detail=f"Failed to enhance: {str(e)}")
 
 
 @router.get("/input/{file_id}")
@@ -408,19 +346,10 @@ async def get_selected_chat_template():
     overrides = cfg.get('chat_template_overrides') or {}
     override = overrides.get(model_path) or None
 
-    # Check built-in templates for known model families
-    builtin = None
-    if not template:
-        from services.chat_templates import get_builtin_template
-        builtin = get_builtin_template(model_path)
-
     if override:
         source = 'override'
     elif template:
         source = 'tokenizer'
-    elif builtin:
-        source = 'builtin'
-        template = builtin
     else:
         source = 'none'
     return { 'template': template, 'override': override, 'source': source }

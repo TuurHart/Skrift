@@ -11,7 +11,7 @@ from typing import List
 
 logger = logging.getLogger(__name__)
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Request
-from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 
 from models import PipelineFile, UploadResponse, TitleApprovalStatus
 from utils.status_tracker import status_tracker
@@ -745,24 +745,6 @@ async def get_file_content(file_id: str, content_type: str):
         content = pipeline_file.sanitised
     elif content_type == "exported":
         content = pipeline_file.exported
-    elif content_type == "wts":
-        # Serve raw .wts text if available
-        base_name = Path(pipeline_file.filename).stem
-        # Prefer path recorded in audioMetadata
-        wts_path = None
-        try:
-            wts_path = pipeline_file.audioMetadata.get("wts_path") if pipeline_file.audioMetadata else None
-        except Exception:
-            wts_path = None
-        if not wts_path:
-            wts_path = str(Path(pipeline_file.path).parent / f"{base_name}.wts")
-        wts_p = Path(wts_path)
-        if not wts_p.exists():
-            raise HTTPException(status_code=404, detail="No wts file available")
-        try:
-            content = wts_p.read_text(encoding='utf-8', errors='ignore')
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to read wts file: {e}")
     else:
         raise HTTPException(status_code=400, detail="Invalid content type")
 
@@ -864,29 +846,6 @@ async def get_file_audio(file_id: str, which: str, request: Request):
     headers = dict(common_headers)
     headers.update({"Content-Length": str(file_size)})
     return FileResponse(str(path), media_type=media, filename=path.name, headers=headers)
-
-@router.get("/{file_id}/srt")
-async def get_file_srt(file_id: str):
-    """
-    Return the human SRT subtitle text if present (CLI -osrt output).
-    We no longer synthesize SRT from JSON; the editor uses word_timings.json instead.
-    """
-    pipeline_file = status_tracker.get_file(file_id)
-    if not pipeline_file:
-        raise HTTPException(status_code=404, detail="File not found")
-    file_folder = Path(pipeline_file.path).parent
-
-    # Serve on-disk SRT only
-    srts = list(file_folder.glob("*.srt"))
-    if srts:
-        try:
-            txt = srts[0].read_text(encoding="utf-8", errors="ignore")
-            return PlainTextResponse(txt, media_type="text/plain; charset=utf-8", headers={"Access-Control-Allow-Origin": "*"})
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to read SRT: {e}")
-
-    raise HTTPException(status_code=404, detail="No SRT available; use word_timings instead")
-
 
 @router.get("/{file_id}/word_timings")
 async def get_file_word_timings(file_id: str):

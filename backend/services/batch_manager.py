@@ -913,17 +913,3 @@ class BatchManager:
             
             # Small delay to ensure cleanup completes
             await asyncio.sleep(0.1)
-
-
-# Global instance
-_batch_manager: Optional[BatchManager] = None
-
-
-def get_batch_manager() -> BatchManager:
-    """Get or create the global BatchManager instance."""
-    global _batch_manager
-    if _batch_manager is None:
-        from pathlib import Path
-        data_dir = Path(__file__).parent.parent / "data"
-        _batch_manager = BatchManager(data_dir)
-    return _batch_manager

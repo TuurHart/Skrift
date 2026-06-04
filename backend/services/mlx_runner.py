@@ -98,12 +98,6 @@ def _build_prompt(prompt: str, input_text: str, model_path: Path) -> Tuple[str, 
         override = overrides.get(str(model_path.resolve())) or overrides.get(str(model_path))
         if override:
             tok.chat_template = override
-        elif not getattr(tok, 'chat_template', None):
-            # No user override and no tokenizer template — try built-in defaults
-            from services.chat_templates import get_builtin_template
-            builtin = get_builtin_template(str(model_path))
-            if builtin:
-                tok.chat_template = builtin
 
     if use_chat and tok is not None and getattr(tok, 'chat_template', None):
         try:
