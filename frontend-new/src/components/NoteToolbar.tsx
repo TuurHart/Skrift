@@ -125,8 +125,10 @@ export function NoteToolbar({ src, isPlaying, currentTime, seekTo, onPlayPause, 
   const duration = durationRef.current || 0
   const pct = duration > 0 ? Math.max(0, Math.min(1, currentTime / duration)) : 0
 
+  // Renders inline (transport + scrubber + speed) — the parent NoteDisplay owns
+  // the surrounding toolbar bar so NoteActions can sit on the same row.
   return (
-    <div className="flex items-center gap-4 px-10 py-2.5 border-b border-border/[0.06] bg-surface/40 flex-none">
+    <>
       <audio ref={audioRef} src={src} preload="metadata" />
 
       {/* Transport */}
@@ -168,6 +170,6 @@ export function NoteToolbar({ src, isPlaying, currentTime, seekTo, onPlayPause, 
       >
         {speed}×
       </button>
-    </div>
+    </>
   )
 }

@@ -5,7 +5,7 @@ import { NoteProperties } from '@/components/NoteProperties'
 import { NoteBody, getBestText } from '@/components/NoteBody'
 import { KaraokeText } from '@/components/KaraokeText'
 import { NoteToolbar } from '@/components/NoteToolbar'
-import { ExportPreview } from '@/components/ExportPreview'
+import { NoteActions } from '@/components/NoteActions'
 import { api } from '@/api'
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -55,7 +55,7 @@ interface NoteDisplayProps {
   currentTime: number
   tokens: Token[]
   seekTo?: { time: number; seq: number } | null
-  exportPreviewContent?: string | null
+  runningEnhanceFile?: PipelineFile | null
   onPlayPause: (v: boolean) => void
   onTimeUpdate: (t: number) => void
   onTranscribe?: () => void
@@ -63,6 +63,8 @@ interface NoteDisplayProps {
   onTitleSave: (title: string) => void
   onTagsChange: (tags: string[]) => void
   onSignificanceSave: (value: number) => void
+  onFileUpdate: (f: PipelineFile) => void
+  onSelectFile?: (id: string) => void
   onSeek?: (time: number) => void
 }
 
@@ -74,7 +76,7 @@ export function NoteDisplay({
   currentTime,
   tokens,
   seekTo,
-  exportPreviewContent,
+  runningEnhanceFile,
   onPlayPause,
   onTimeUpdate,
   onTranscribe,
@@ -82,6 +84,8 @@ export function NoteDisplay({
   onTitleSave,
   onTagsChange,
   onSignificanceSave,
+  onFileUpdate,
+  onSelectFile,
   onSeek,
 }: NoteDisplayProps) {
   if (loading && !file) return <Spinner />
@@ -91,10 +95,12 @@ export function NoteDisplay({
   const bestText = getBestText(file) ?? ''
   const isAppleNote = file.source_type === 'note'
   const transcribeDone = file.steps.transcribe === 'done'
+  const transcribeSkipped = file.steps.transcribe === 'skipped'
   const isCapture = file.source_type === 'capture'
   const hasAudio = !!file.audioMetadata?.duration
-  const showToolbar = transcribeDone && !isAppleNote && (!isCapture || hasAudio)
-  const showExportPreview = !!exportPreviewContent
+  const showTransport = transcribeDone && !isAppleNote && (!isCapture || hasAudio)
+  // The action bar appears once there's something to review/export.
+  const showActionBar = transcribeDone || transcribeSkipped || isAppleNote
 
   return (
     <div className="flex flex-col flex-1 min-w-0 min-h-0">
@@ -103,16 +109,29 @@ export function NoteDisplay({
         date={formatBreadcrumbDate(file.uploadedAt)}
       />
 
-      {/* Audio transport — pinned above the scroll area */}
-      {showToolbar && (
-        <NoteToolbar
-          src={api.getAudioUrl(file.id, 'processed')}
-          isPlaying={isPlaying}
-          currentTime={currentTime}
-          seekTo={seekTo}
-          onPlayPause={onPlayPause}
-          onTimeUpdate={onTimeUpdate}
-        />
+      {/* Toolbar bar — pinned above the scroll area: audio transport (left) + actions (right) */}
+      {showActionBar && (
+        <div className="flex items-center gap-4 px-10 py-2.5 border-b border-border/[0.06] bg-surface/40 flex-none">
+          {showTransport ? (
+            <NoteToolbar
+              src={api.getAudioUrl(file.id, 'processed')}
+              isPlaying={isPlaying}
+              currentTime={currentTime}
+              seekTo={seekTo}
+              onPlayPause={onPlayPause}
+              onTimeUpdate={onTimeUpdate}
+            />
+          ) : (
+            <div className="flex-1" />
+          )}
+          <NoteActions
+            file={file}
+            settings={settings}
+            onFileUpdate={onFileUpdate}
+            runningEnhanceFile={runningEnhanceFile}
+            onSelectFile={onSelectFile}
+          />
+        </div>
       )}
 
       <div className="flex flex-col flex-1 min-h-0">
@@ -202,31 +221,24 @@ export function NoteDisplay({
               )
             })()}
 
-            {/* Export preview replaces note body when active */}
-            {showExportPreview ? (
-              <ExportPreview content={exportPreviewContent!} />
-            ) : (
-              <>
-                {/* NoteBody stays mounted to preserve edits; hidden during karaoke */}
-                <div className={karaokeActive ? 'hidden' : undefined}>
-                  <NoteBody
-                    file={file}
-                    onTranscribe={onTranscribe}
-                    onBodySave={onBodySave}
-                  />
-                </div>
+            {/* NoteBody stays mounted to preserve edits; hidden during karaoke */}
+            <div className={karaokeActive ? 'hidden' : undefined}>
+              <NoteBody
+                file={file}
+                onTranscribe={onTranscribe}
+                onBodySave={onBodySave}
+              />
+            </div>
 
-                {/* Karaoke overlay — only while audio is actively playing */}
-                {karaokeActive && (
-                  <KaraokeText
-                    tokens={tokens}
-                    fallback={bestText}
-                    currentTime={currentTime}
-                    isActive={true}
-                    onSeek={onSeek}
-                  />
-                )}
-              </>
+            {/* Karaoke overlay — only while audio is actively playing */}
+            {karaokeActive && (
+              <KaraokeText
+                tokens={tokens}
+                fallback={bestText}
+                currentTime={currentTime}
+                isActive={true}
+                onSeek={onSeek}
+              />
             )}
           </div>
         </div>

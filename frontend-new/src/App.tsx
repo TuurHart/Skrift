@@ -3,10 +3,8 @@ import { api } from '@/api'
 import { useSettings } from '@/hooks/useSettings'
 import { useFiles, useFilesCache } from '@/hooks/useFiles'
 import type { PipelineFile } from '@/types/pipeline'
-import { extractYamlTitle, injectEmbedLines } from '@/components/ExportPreview'
 import { Sidebar } from './features/Sidebar'
 import { NoteDisplay } from './features/NoteDisplay'
-import { Inspector } from './features/Inspector'
 import { Settings } from './features/Settings'
 import { SetupWizard } from './features/SetupWizard'
 import { FindBar } from '@/components/FindBar'
@@ -32,28 +30,6 @@ export default function App() {
   const [tokens, setTokens] = useState<Token[]>([])
   const [seekTo, setSeekTo] = useState<{ time: number; seq: number } | null>(null)
   const seekSeqRef = useRef(0)
-
-  // ── Export preview state (inline in NoteDisplay) ────────────
-  const [exportPreviewContent, setExportPreviewContent] = useState<string | null>(null)
-
-  const handleToggleExportPreview = useCallback(async () => {
-    if (exportPreviewContent) {
-      setExportPreviewContent(null)
-      return
-    }
-    if (!file) return
-    try {
-      const compiled = await api.getCompiledMarkdown(file.id)
-      let md = compiled.content
-      const title = extractYamlTitle(md)
-      const includeAudio = file.include_audio_in_export ?? false
-      const hasPhoto = !!file.audioMetadata?.phone_photo
-      if (title && (includeAudio || hasPhoto)) {
-        md = injectEmbedLines(md, title, hasPhoto, includeAudio)
-      }
-      setExportPreviewContent(md)
-    } catch (err) { console.error('Failed to load export preview:', err) }
-  }, [file, exportPreviewContent])
 
   const handleSeek = useCallback((time: number) => {
     seekSeqRef.current += 1
@@ -102,18 +78,17 @@ export default function App() {
     return () => { cancelled = true }
   }, [])
 
-  // ── Reset audio / karaoke / preview state when the selected note changes ──
+  // ── Reset audio / karaoke state when the selected note changes ──
   useEffect(() => {
     setTokens([])
     setIsPlaying(false)
     setCurrentTime(0)
     setSeekTo(null)
-    setExportPreviewContent(null)
   }, [selectedId])
 
   // Which file (if any) is mid-enhancement — derived from the one query. The
-  // Inspector uses it for running / locked-because-other / idle states (only
-  // one MLX run at a time).
+  // toolbar actions use it for running / locked-because-other / idle states
+  // (only one MLX run at a time).
   const runningEnhanceFile = files.find(f => f.steps.enhance === 'processing') ?? null
 
   // ── Load word timings when transcription is done ───────────
@@ -126,7 +101,7 @@ export default function App() {
     return () => { cancelled = true }
   }, [file?.id, file?.steps.transcribe])
 
-  // ── File update callback (Inspector hands back a full server object) ──
+  // ── File update callback (actions hand back a full server object) ──
   const handleFileUpdate = useCallback((updated: PipelineFile) => {
     replaceFile(updated)
   }, [replaceFile])
@@ -203,7 +178,7 @@ export default function App() {
         currentTime={currentTime}
         tokens={tokens}
         seekTo={seekTo}
-        exportPreviewContent={exportPreviewContent}
+        runningEnhanceFile={runningEnhanceFile}
         onPlayPause={setIsPlaying}
         onTimeUpdate={setCurrentTime}
         onTranscribe={file ? handleTranscribe : undefined}
@@ -211,20 +186,10 @@ export default function App() {
         onTitleSave={handleTitleSave}
         onTagsChange={handleTagsChange}
         onSignificanceSave={handleSignificanceSave}
+        onFileUpdate={handleFileUpdate}
+        onSelectFile={setSelectedId}
         onSeek={handleSeek}
       />
-
-      {file && (
-        <Inspector
-          file={file}
-          settings={settings}
-          onFileUpdate={handleFileUpdate}
-          exportPreviewActive={!!exportPreviewContent}
-          onToggleExportPreview={handleToggleExportPreview}
-          runningEnhanceFile={runningEnhanceFile}
-          onSelectFile={setSelectedId}
-        />
-      )}
 
       {showWizard && (
         <SetupWizard onComplete={() => setShowWizard(false)} />
