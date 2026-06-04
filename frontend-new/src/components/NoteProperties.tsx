@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { cn } from '@/lib/utils'
 import { formatDuration } from '@/lib/format'
 import { api } from '@/api'
 import { Slider } from '@/components/ui/slider'
@@ -156,6 +157,86 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
   )
 }
 
+// ── Two-title chooser ───────────────────────────────────────
+
+function cleanFilename(name: string): string {
+  return name.replace(/\.[^./\\]+$/, '').trim()
+}
+
+// Shown only when the LLM produced a suggestion (title_suggested) that differs
+// from the recording's own name — then the user picks between them. The active
+// card is editable so a custom title is still possible without losing either
+// candidate (the suggestion stays stored in title_suggested).
+function TitleChooser({ file, onTitleSave }: { file: PipelineFile; onTitleSave: (t: string) => void }) {
+  const suggested = (file.title_suggested ?? '').trim()
+  const original = cleanFilename(file.filename)
+  const [draft, setDraft] = useState(file.enhanced_title ?? '')
+  const [active, setActive] = useState<'suggested' | 'original'>(
+    (file.enhanced_title ?? '').trim() === original ? 'original' : 'suggested',
+  )
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Reset only when switching files — don't fight the user's live edits.
+  useEffect(() => {
+    setDraft(file.enhanced_title ?? '')
+    setActive((file.enhanced_title ?? '').trim() === original ? 'original' : 'suggested')
+  }, [file.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function onEdit(v: string) {
+    setDraft(v)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => { if (v !== file.enhanced_title) onTitleSave(v) }, 700)
+  }
+  function pick(kind: 'suggested' | 'original', text: string) {
+    setActive(kind); setDraft(text)
+    if (timer.current) clearTimeout(timer.current)
+    if (text !== file.enhanced_title) onTitleSave(text)
+  }
+
+  const cards: Array<{ kind: 'suggested' | 'original'; label: string; icon: string; value: string }> = [
+    { kind: 'suggested', label: 'Suggested', icon: '✦', value: suggested },
+    { kind: 'original', label: 'From recording', icon: '🎙', value: original },
+  ]
+
+  return (
+    <div className="mb-3.5">
+      <div className="text-[10px] uppercase tracking-[0.07em] text-text-muted mb-1.5">Title — pick one</div>
+      <div className="flex gap-2 items-stretch">
+        {cards.map(c => {
+          const isActive = active === c.kind
+          return (
+            <div
+              key={c.kind}
+              onClick={() => { if (!isActive) pick(c.kind, c.value) }}
+              className={cn(
+                'flex-1 min-w-0 rounded-lg border px-3 py-2 relative transition-colors',
+                isActive ? 'border-accent/55 bg-accent/[0.08]' : 'border-border/[0.1] hover:border-border/[0.25] cursor-pointer',
+              )}
+            >
+              <div className={cn('text-[10px] mb-1 flex items-center gap-1.5', isActive ? 'text-accent' : 'text-text-muted')}>
+                <span>{c.icon}</span>{c.label}
+              </div>
+              {isActive ? (
+                <input
+                  value={draft}
+                  onChange={e => onEdit(e.target.value)}
+                  className="w-full text-[16px] font-bold leading-tight tracking-tight bg-transparent outline-none text-text-primary"
+                />
+              ) : (
+                <div className="text-[16px] font-bold leading-tight tracking-tight text-text-secondary line-clamp-2">{c.value || '—'}</div>
+              )}
+              <span
+                className={cn('absolute top-2.5 right-3 w-3.5 h-3.5 rounded-full border-2', isActive ? 'border-accent' : 'border-border/[0.2]')}
+                style={isActive ? { background: 'radial-gradient(circle, rgb(var(--color-accent)) 0 4px, transparent 5px)' } : undefined}
+              />
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Properties block ────────────────────────────────────────
 
 interface NotePropertiesProps {
@@ -202,10 +283,20 @@ export function NoteProperties({ file, author, onTitleSave, onTagsChange, onSign
     { key: 'daylight', label: 'daylight', value: daylightStr },
   ].filter(r => r.value)
 
+  // Offer the chooser only when the LLM suggestion exists and differs from the
+  // recording's own name; otherwise a single editable title.
+  const suggested = (file.title_suggested ?? '').trim()
+  const original = cleanFilename(file.filename)
+  const showChooser = transcribed && !!suggested && !!original && suggested !== original
+
   return (
     <div className="mb-7">
       {/* Title */}
-      {transcribed ? (
+      {!transcribed ? (
+        <h1 className="text-[26px] font-bold tracking-tight mb-3.5 text-text-muted leading-tight">{file.filename}</h1>
+      ) : showChooser ? (
+        <TitleChooser file={file} onTitleSave={onTitleSave} />
+      ) : (
         <input
           value={titleDraft}
           placeholder={file.filename}
@@ -213,8 +304,6 @@ export function NoteProperties({ file, author, onTitleSave, onTagsChange, onSign
           className="w-full text-[26px] font-bold tracking-tight bg-transparent border-none outline-none mb-3.5 leading-tight"
           style={{ color: titleDraft ? 'rgb(var(--color-text-primary))' : 'rgb(var(--color-text-muted))' }}
         />
-      ) : (
-        <h1 className="text-[26px] font-bold tracking-tight mb-3.5 text-text-muted leading-tight">{file.filename}</h1>
       )}
 
       {/* Metadata grid */}

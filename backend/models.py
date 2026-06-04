@@ -54,7 +54,8 @@ class PipelineFile(BaseModel):
     exported: Optional[str] = Field(None, description="Final exported content")
 
     # Enhancement pipeline fields
-    enhanced_title: Optional[str] = Field(None, description="AI-generated or extracted title")
+    enhanced_title: Optional[str] = Field(None, description="Effective title used for compile/export (selected or edited)")
+    title_suggested: Optional[str] = Field(None, description="The LLM-generated title, preserved so the review chooser can offer it as an alternative")
     title_approval_status: Optional[TitleApprovalStatus] = Field(None, description="Title approval status")
     enhanced_copyedit: Optional[str] = Field(None, description="Copy-edited text (applied)")
     enhanced_summary: Optional[str] = Field(None, description="One-sentence summary produced by enhancement")

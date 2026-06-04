@@ -203,7 +203,7 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
         'title', modelOverride),
       async (text) => {
         try {
-          const updated = await api.setTitle(file.id, text.trim())
+          const updated = await api.setTitle(file.id, text.trim(), true) // LLM origin → preserve as the suggestion
           onFileUpdate(updated)
         } catch { /* ignore */ }
       },

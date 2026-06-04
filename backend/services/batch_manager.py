@@ -536,8 +536,8 @@ class BatchManager:
                     file_id, input_text, title_prompt, "title"
                 )
                 
-                # Persist result using status tracker
-                status_tracker.set_enhancement_title(file_id, result_text.strip())
+                # Persist result using status tracker (LLM origin → also the suggestion)
+                status_tracker.set_enhancement_title(file_id, result_text.strip(), suggested=True)
                 
                 file_entry["steps"]["title"] = "done"
                 self.current_batch["consecutive_failures"] = 0

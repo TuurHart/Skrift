@@ -279,12 +279,19 @@ class StatusTracker:
         pf.lastActivityAt = datetime.now()
         self.save_file_status(file_id)
     
-    def set_enhancement_title(self, file_id: str, title: str):
-        """Set enhanced title for a file and persist. Resets approval status to pending."""
+    def set_enhancement_title(self, file_id: str, title: str, suggested: bool = False):
+        """Set enhanced title for a file and persist. Resets approval status to pending.
+
+        When ``suggested`` is True the title came from the LLM, so it is also
+        stored as ``title_suggested`` — the review chooser keeps it available
+        as an alternative even after the user picks/edits a different title.
+        """
         if file_id not in self._files:
             return
         pf = self._files[file_id]
         pf.enhanced_title = title
+        if suggested:
+            pf.title_suggested = title
         pf.title_approval_status = TitleApprovalStatus.PENDING
         pf.lastModified = datetime.now()
         pf.lastActivityAt = datetime.now()

@@ -220,9 +220,9 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
       method: 'POST', body: JSON.stringify({ session_id: sessionId, decisions }),
     })
   },
-  async setTitle(fileId: string, title: string): Promise<PipelineFile> {
+  async setTitle(fileId: string, title: string, suggested = false): Promise<PipelineFile> {
     const res = await fetchJSON<{ success: boolean; file: PipelineFile }>(`/api/process/enhance/title/${fileId}`, {
-      method: 'POST', body: JSON.stringify({ title }),
+      method: 'POST', body: JSON.stringify({ title, suggested }),
     })
     return res.file
   },

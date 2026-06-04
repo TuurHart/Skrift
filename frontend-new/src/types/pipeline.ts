@@ -71,6 +71,7 @@ export interface PipelineFile {
   sanitised: string | null
   exported: string | null
   enhanced_title: string | null
+  title_suggested: string | null
   title_approval_status: string | null
   enhanced_copyedit: string | null
   enhanced_summary: string | null

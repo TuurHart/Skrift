@@ -146,7 +146,9 @@ async def set_enhance_title(file_id: str, body: dict):
     pf = status_tracker.get_file(file_id)
     if not pf:
         raise HTTPException(status_code=404, detail="File not found")
-    status_tracker.set_enhancement_title(file_id, title)
+    # `suggested=true` marks an LLM-generated title (manual "Generate title");
+    # plain edits / chooser picks omit it so the suggestion is preserved.
+    status_tracker.set_enhancement_title(file_id, title, suggested=bool(body.get('suggested')))
     await _auto_compile_if_complete(file_id)
     return { 'success': True, 'file': status_tracker.get_file(file_id) }
 
