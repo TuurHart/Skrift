@@ -210,6 +210,28 @@ async def set_enhance_tags(file_id: str, body: dict):
     await _auto_compile_if_complete(file_id)
     return { 'success': True, 'tags': tags, 'file': status_tracker.get_file(file_id) }
 
+@router.post("/resolve-names/{file_id}")
+async def resolve_names(file_id: str, body: dict):
+    """Apply the user's review-time choices for ambiguous names to the body.
+
+    Body: { decisions: [{ alias, canonical: '[[Full Name]]', short }] }
+    Links each decided alias into the current body (sanitised), clears the note's
+    ambiguous_names, and recompiles. Aliases left out stay plain text.
+    """
+    pf = status_tracker.get_file(file_id)
+    if not pf:
+        raise HTTPException(status_code=404, detail="File not found")
+    decisions = body.get('decisions')
+    if not isinstance(decisions, list):
+        raise HTTPException(status_code=400, detail="'decisions' must be a list")
+    from services.sanitisation import apply_resolved_names
+    source = pf.sanitised or pf.enhanced_copyedit or pf.transcript or ''
+    pf.sanitised = apply_resolved_names(source, decisions)
+    pf.ambiguous_names = None  # everything surfaced was decided (linked or left plain)
+    status_tracker.save_file_status(file_id)
+    await _auto_compile_if_complete(file_id)
+    return { 'success': True, 'file': status_tracker.get_file(file_id) }
+
 # =========================
 # Tag Management APIs
 # =========================

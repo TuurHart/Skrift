@@ -208,6 +208,59 @@ def process_sanitisation(file_id: str, text: str) -> dict:
         }
 
 
+def apply_resolved_names(text: str, decisions: list) -> str:
+    """Apply review-time choices for ambiguous aliases to the (already sanitised) body.
+
+    decisions: [{ 'alias': str, 'canonical': '[[Full Name]]', 'short': 'Nick' }]
+    For each decided alias, link its first remaining plain occurrence to the
+    canonical [[link]] and replace later mentions with the short name — mirroring
+    the auto-linker's first-mention rule. Occurrences already inside [[...]] are
+    left alone, so prior links and the user's edits are preserved. Aliases the
+    user left unresolved are simply absent from `decisions` → they stay plain.
+    """
+    san_cfg = app_settings.get("sanitisation") or {}
+    linking_cfg = san_cfg.get("linking", {}) or {}
+    whole_word = bool(san_cfg.get("whole_word", True))
+    avoid_inside = bool(linking_cfg.get('avoid_inside_links', True))
+    preserve_poss = bool(linking_cfg.get('preserve_possessive', True))
+
+    def not_inside_link(s: str, start: int) -> bool:
+        open_idx = s.rfind("[[", 0, start)
+        if open_idx == -1:
+            return True
+        close_idx = s.find("]]", open_idx)
+        return close_idx != -1 and close_idx < start
+
+    for d in (decisions or []):
+        alias = str(d.get('alias') or '').strip()
+        canon = str(d.get('canonical') or '').strip()
+        if not alias or not canon:
+            continue  # no choice / "leave as plain text" → skip
+        link_text = canon if (canon.startswith('[[') and canon.endswith(']]')) else f"[[{canon}]]"
+        core = canon[2:-2] if (canon.startswith('[[') and canon.endswith(']]')) else canon
+        short = str(d.get('short') or '').strip() or (core.split()[0] if core.strip() else alias)
+
+        wb = "\\b" if whole_word else ""
+        poss_group = "(?P<poss>(?:'s|’s)?)" if preserve_poss else ""
+        pattern = re.compile(rf"{wb}{re.escape(alias)}{wb}{poss_group}", flags=re.IGNORECASE)
+
+        eligible = [m for m in pattern.finditer(text)
+                    if (not avoid_inside or not_inside_link(text, m.start()))]
+        if not eligible:
+            continue
+        out = []
+        cur = 0
+        for i, m in enumerate(eligible):
+            out.append(text[cur:m.start()])
+            poss_local = (m.group('poss') if preserve_poss else '') or ''
+            out.append(f"{link_text}{poss_local}" if i == 0 else f"{short}{poss_local}")
+            cur = m.end()
+        out.append(text[cur:])
+        text = ''.join(out)
+
+    return text
+
+
 def resolve_name_disambiguation(file_id: str, text: str, decisions: list) -> dict:
     """
     Resolve ambiguous alias occurrences using user decisions.

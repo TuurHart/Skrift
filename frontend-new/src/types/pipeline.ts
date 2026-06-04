@@ -57,6 +57,21 @@ export interface AudioMetadata {
   [key: string]: unknown
 }
 
+export interface NameCandidate {
+  id: string
+  canonical: string
+  short: string
+}
+
+export interface AmbiguousOccurrence {
+  alias: string
+  offset: number
+  length: number
+  context_before: string
+  context_after: string
+  candidates: NameCandidate[]
+}
+
 export interface PipelineFile {
   id: string
   filename: string
@@ -77,6 +92,7 @@ export interface PipelineFile {
   enhanced_summary: string | null
   enhanced_tags: string[] | null
   tag_suggestions: Record<string, string[]> | null
+  ambiguous_names: AmbiguousOccurrence[] | null
   /** Currently streaming enhance step (transient). Null when idle. */
   enhance_step: 'title' | 'copy_edit' | 'summary' | 'tags' | null
   source_type: 'audio' | 'note' | 'capture' | null

@@ -2,6 +2,7 @@ import type { PipelineFile } from '@/types/pipeline'
 import type { AppSettings } from '@/hooks/useSettings'
 import { PipelineBreadcrumb } from '@/components/PipelineBreadcrumb'
 import { NoteProperties } from '@/components/NoteProperties'
+import { ResolverStrip } from '@/components/ResolverStrip'
 import { NoteBody, getBestText } from '@/components/NoteBody'
 import { KaraokeText } from '@/components/KaraokeText'
 import { NoteToolbar } from '@/components/NoteToolbar'
@@ -63,6 +64,7 @@ interface NoteDisplayProps {
   onTitleSave: (title: string) => void
   onTagsChange: (tags: string[]) => void
   onSignificanceSave: (value: number) => void
+  onResolveNames: (decisions: Array<{ alias: string; canonical: string; short: string }>) => void
   onFileUpdate: (f: PipelineFile) => void
   onSelectFile?: (id: string) => void
   onSeek?: (time: number) => void
@@ -84,6 +86,7 @@ export function NoteDisplay({
   onTitleSave,
   onTagsChange,
   onSignificanceSave,
+  onResolveNames,
   onFileUpdate,
   onSelectFile,
   onSeek,
@@ -138,6 +141,11 @@ export function NoteDisplay({
         {/* Note content area — scrollable */}
         <div className="overflow-y-auto relative flex-1">
           <div className="px-10 py-7">
+            {/* Resolver strip — only when a note has unresolved ambiguous names */}
+            {file.ambiguous_names && file.ambiguous_names.length > 0 && (
+              <ResolverStrip occurrences={file.ambiguous_names} onResolve={onResolveNames} />
+            )}
+
             <NoteProperties
               file={file}
               author={settings.author || undefined}

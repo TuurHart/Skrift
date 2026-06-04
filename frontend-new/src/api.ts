@@ -21,50 +21,6 @@ async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
 
 // ── Types ──────────────────────────────────────────────────
 
-export interface Ambiguity {
-  alias: string
-  occurrences: Array<{ offset: number; context: string }>
-  candidates: Array<{ id: string; canonical: string; aliases: string[] }>
-}
-
-export interface SanitiseResponse {
-  status: 'done' | 'needs_disambiguation' | 'already_processing'
-  message?: string
-  file?: PipelineFile
-  ambiguities?: Ambiguity[]
-  session_id?: string
-}
-
-// The backend returns flat per-occurrence objects; transform to the grouped
-// Ambiguity[] that DisambiguationModal expects.
-interface _BackendOccurrence {
-  alias: string
-  offset: number
-  length: number
-  context_before: string
-  context_after: string
-  candidates: Array<{ id: string; canonical: string; short: string }>
-}
-
-function groupOccurrences(flat: _BackendOccurrence[]): Ambiguity[] {
-  const map = new Map<string, Ambiguity>()
-  for (const occ of flat) {
-    const key = occ.alias.toLowerCase()
-    if (!map.has(key)) {
-      map.set(key, {
-        alias: occ.alias,
-        occurrences: [],
-        candidates: occ.candidates.map(c => ({ id: c.id, canonical: c.canonical, aliases: [] })),
-      })
-    }
-    map.get(key)?.occurrences.push({
-      offset: occ.offset,
-      context: occ.context_before + occ.alias + occ.context_after,
-    })
-  }
-  return Array.from(map.values())
-}
-
 export interface TagSuggestionResponse {
   success: boolean
   old: string[]
@@ -191,35 +147,6 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
   async cancelProcessing(fileId: string): Promise<void> {
     await fetchJSON<unknown>(`/api/process/${fileId}/cancel`, { method: 'POST' })
   },
-  async startSanitise(fileId: string): Promise<SanitiseResponse> {
-    const res = await fetch(`${API_BASE}/api/process/sanitise/${fileId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    })
-    // 409 = needs_disambiguation — treat as a valid response, not an error
-    if (res.ok || res.status === 409) {
-      const data = await res.json()
-      // Backend returns flat 'occurrences' array; normalise to grouped Ambiguity[]
-      if (data.status === 'needs_disambiguation' && Array.isArray(data.occurrences)) {
-        return {
-          status: 'needs_disambiguation',
-          session_id: data.session_id as string,
-          ambiguities: groupOccurrences(data.occurrences as _BackendOccurrence[]),
-        }
-      }
-      return data as SanitiseResponse
-    }
-    const text = await res.text().catch(() => '')
-    const err = new Error(`${res.status}: ${text}`) as Error & { status: number; body: string }
-    err.status = res.status
-    err.body = text
-    throw err
-  },
-  async resolveSanitise(fileId: string, sessionId: string, decisions: Array<{ alias: string; offset: number; person_id: string; apply_to_remaining?: boolean }>): Promise<{ status: string; file: PipelineFile }> {
-    return fetchJSON<{ status: string; file: PipelineFile }>(`/api/process/sanitise/${fileId}/resolve`, {
-      method: 'POST', body: JSON.stringify({ session_id: sessionId, decisions }),
-    })
-  },
   async setTitle(fileId: string, title: string, suggested = false): Promise<PipelineFile> {
     const res = await fetchJSON<{ success: boolean; file: PipelineFile }>(`/api/process/enhance/title/${fileId}`, {
       method: 'POST', body: JSON.stringify({ title, suggested }),
@@ -248,6 +175,12 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
   async setSignificance(fileId: string, significance: number | null): Promise<PipelineFile> {
     const res = await fetchJSON<{ success: boolean; significance: number | null; file: PipelineFile }>(`/api/process/enhance/significance/${fileId}`, {
       method: 'POST', body: JSON.stringify({ significance }),
+    })
+    return res.file
+  },
+  async resolveNames(fileId: string, decisions: Array<{ alias: string; canonical: string; short: string }>): Promise<PipelineFile> {
+    const res = await fetchJSON<{ success: boolean; file: PipelineFile }>(`/api/process/enhance/resolve-names/${fileId}`, {
+      method: 'POST', body: JSON.stringify({ decisions }),
     })
     return res.file
   },

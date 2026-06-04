@@ -152,6 +152,15 @@ export default function App() {
     } catch (err) { console.error('Significance save failed:', err) }
   }, [file, patchFile, replaceFile])
 
+  // ── Resolve ambiguous names (review-time resolver strip) ───
+  const handleResolveNames = useCallback(async (decisions: Array<{ alias: string; canonical: string; short: string }>) => {
+    if (!file) return
+    try {
+      const updated = await api.resolveNames(file.id, decisions)
+      replaceFile(updated)
+    } catch (err) { console.error('Resolve names failed:', err) }
+  }, [file, replaceFile])
+
   // ── Transcribe trigger (from NoteBody placeholder) ─────────
   const handleTranscribe = useCallback(async () => {
     if (!file) return
@@ -186,6 +195,7 @@ export default function App() {
         onTitleSave={handleTitleSave}
         onTagsChange={handleTagsChange}
         onSignificanceSave={handleSignificanceSave}
+        onResolveNames={handleResolveNames}
         onFileUpdate={handleFileUpdate}
         onSelectFile={setSelectedId}
         onSeek={handleSeek}

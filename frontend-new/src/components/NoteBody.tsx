@@ -27,7 +27,9 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
 }
 
 export function getBestText(file: PipelineFile): string | null {
-  return file.enhanced_copyedit ?? file.sanitised ?? file.transcript
+  // Prefer the name-linked `sanitised` (what compile/export uses) so the desktop
+  // body shows exactly what ships to Obsidian — [[links]] and all.
+  return file.sanitised ?? file.enhanced_copyedit ?? file.transcript
 }
 
 function TranscribePlaceholder({ file, onTranscribe }: { file: PipelineFile; onTranscribe?: () => void }) {
@@ -170,7 +172,7 @@ export function NoteBody({ file, onTranscribe, onBodySave }: NoteBodyProps) {
       if (!divRef.current) return
       const text = hasImages ? extractTextWithMarkers(divRef.current) : (divRef.current.innerText ?? '')
       lastSentRef.current = text
-      const field = file.enhanced_copyedit != null ? 'copyedit' : file.sanitised != null ? 'sanitised' : 'transcript'
+      const field = file.sanitised != null ? 'sanitised' : file.enhanced_copyedit != null ? 'copyedit' : 'transcript'
       onBodySave(text, field)
     }, 1500)
   }, [file.enhanced_copyedit, file.sanitised, onBodySave, hasImages])
