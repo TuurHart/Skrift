@@ -63,7 +63,10 @@ async function createWindow() {
     minWidth: 1100,
     minHeight: 700,
     show: false,
-    titleBarStyle: 'default',
+    // Native macOS chrome: inset traffic lights over the content, with a
+    // draggable titlebar region (the sidebar header sets WebkitAppRegion: drag).
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 13, y: 18 },
     backgroundColor: '#0f1117',
     webPreferences: {
       contextIsolation: true,

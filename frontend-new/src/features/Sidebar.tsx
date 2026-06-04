@@ -391,8 +391,9 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
         </div>
       )}
 
-      {/* ── Header ── */}
-      <div className="px-4 pt-4 pb-3 border-b border-border/[0.07]" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+      {/* ── Header ── (extra top padding = draggable macOS titlebar band so the
+          inset traffic lights don't collide with the logo) */}
+      <div className="px-4 pt-9 pb-3 border-b border-border/[0.07]" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
 
         {/* Logo row */}
         <div className="flex items-center justify-between mb-3">
