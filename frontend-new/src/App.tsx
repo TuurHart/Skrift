@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '@/api'
 import { useSettings } from '@/hooks/useSettings'
+import { useFiles, useFilesCache } from '@/hooks/useFiles'
 import type { PipelineFile } from '@/types/pipeline'
 import { extractYamlTitle, injectEmbedLines } from '@/components/ExportPreview'
 import { Sidebar } from './features/Sidebar'
@@ -17,10 +18,12 @@ interface Token {
 }
 
 export default function App() {
-  // ── Selection + file state ─────────────────────────────────
+  // ── Selection + file state (one query is the single source of truth) ──
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [file, setFile] = useState<PipelineFile | null>(null)
-  const [fileLoading, setFileLoading] = useState(false)
+  const { data: files = [], isLoading: filesLoading } = useFiles()
+  const { replaceFile, patchFile, invalidateFiles } = useFilesCache()
+  const file = selectedId ? (files.find(f => f.id === selectedId) ?? null) : null
+  const fileLoading = filesLoading && !!selectedId && !file
 
   // ── Audio / karaoke state (lifted so NoteDisplay can karaoke-sync) ──
   const [isPlaying, setIsPlaying] = useState(false)
@@ -98,63 +101,19 @@ export default function App() {
     return () => { cancelled = true }
   }, [])
 
-  // ── Load file on selection change + poll while processing ──
+  // ── Reset audio / karaoke / preview state when the selected note changes ──
   useEffect(() => {
-    if (!selectedId) {
-      setFile(null)
-      setTokens([])
-      setIsPlaying(false)
-      setCurrentTime(0)
-      setExportPreviewContent(null)
-      return
-    }
-
-    let cancelled = false
-    setFileLoading(true)
     setTokens([])
     setIsPlaying(false)
     setCurrentTime(0)
     setSeekTo(null)
     setExportPreviewContent(null)
-
-    api.getFile(selectedId)
-      .then(data => { if (!cancelled) setFile(data) })
-      .catch(() => { if (!cancelled) setFile(null) })
-      .finally(() => { if (!cancelled) setFileLoading(false) })
-
-    // Poll the selected file every 1s so the UI stays tightly in sync
-    // during transcription, enhancement, sanitisation, etc. At small file
-    // counts the request cost is negligible; the responsive feel matters
-    // more (e.g. the Inspector lock-out when a different file is enhancing).
-    const poll = setInterval(() => {
-      if (cancelled) return
-      api.getFile(selectedId)
-        .then(data => { if (!cancelled) setFile(data) })
-        .catch(() => { /* ignore poll errors */ })
-    }, 1_000)
-
-    return () => { cancelled = true; clearInterval(poll) }
   }, [selectedId])
 
-  // Derive which file (if any) is currently mid-enhancement. The Inspector
-  // uses this to render three states: running / locked-because-other / idle.
-  // Polled every 1s independently of the selected-file poll so the lock
-  // appears as soon as another file kicks off enhancement.
-  const [runningEnhanceFile, setRunningEnhanceFile] = useState<PipelineFile | null>(null)
-  useEffect(() => {
-    let cancelled = false
-    const tick = async () => {
-      try {
-        const all = await api.getFiles()
-        if (cancelled) return
-        const running = all.find(f => f.steps.enhance === 'processing') ?? null
-        setRunningEnhanceFile(running)
-      } catch { /* ignore */ }
-    }
-    void tick()
-    const id = setInterval(() => void tick(), 1_000)
-    return () => { cancelled = true; clearInterval(id) }
-  }, [])
+  // Which file (if any) is mid-enhancement — derived from the one query. The
+  // Inspector uses it for running / locked-because-other / idle states (only
+  // one MLX run at a time).
+  const runningEnhanceFile = files.find(f => f.steps.enhance === 'processing') ?? null
 
   // ── Load word timings when transcription is done ───────────
   useEffect(() => {
@@ -166,29 +125,34 @@ export default function App() {
     return () => { cancelled = true }
   }, [file?.id, file?.steps.transcribe])
 
-  // ── File update callback ────────────────────────────────────
+  // ── File update callback (Inspector hands back a full server object) ──
   const handleFileUpdate = useCallback((updated: PipelineFile) => {
-    setFile(updated)
-  }, [])
+    replaceFile(updated)
+  }, [replaceFile])
 
   // ── Body save ──────────────────────────────────────────────
   const handleBodySave = useCallback(async (text: string, field: 'copyedit' | 'sanitised' | 'transcript') => {
     if (!file) return
+    const id = file.id
+    // Optimistically write the edit into the cache so an in-flight refetch
+    // can't revert it; then persist and re-sync derived fields.
+    patchFile(id, field === 'copyedit' ? { enhanced_copyedit: text } : field === 'sanitised' ? { sanitised: text } : { transcript: text })
     try {
-      if (field === 'copyedit') await api.setCopyedit(file.id, text)
-      else if (field === 'sanitised') await api.updateSanitised(file.id, text)
-      else await api.updateTranscript(file.id, text)
+      if (field === 'copyedit') await api.setCopyedit(id, text)
+      else if (field === 'sanitised') await api.updateSanitised(id, text)
+      else await api.updateTranscript(id, text)
+      invalidateFiles()
     } catch (err) { console.error('Body save failed:', err) }
-  }, [file])
+  }, [file, patchFile, invalidateFiles])
 
   // ── Title save ─────────────────────────────────────────────
   const handleTitleSave = useCallback(async (title: string) => {
     if (!file) return
     try {
       const updated = await api.setTitle(file.id, title)
-      setFile(updated)
+      replaceFile(updated)
     } catch (err) { console.error('Title save failed:', err) }
-  }, [file])
+  }, [file, replaceFile])
 
   // ── Tag remove ─────────────────────────────────────────────
   const handleTagRemove = useCallback(async (tag: string) => {
@@ -196,19 +160,18 @@ export default function App() {
     const updated_tags = (file.enhanced_tags ?? []).filter(t => t !== tag)
     try {
       const updated = await api.setTags(file.id, updated_tags)
-      setFile(updated)
+      replaceFile(updated)
     } catch (err) { console.error('Tag remove failed:', err) }
-  }, [file])
+  }, [file, replaceFile])
 
   // ── Transcribe trigger (from NoteBody placeholder) ─────────
   const handleTranscribe = useCallback(async () => {
     if (!file) return
     try {
       await api.startTranscription(file.id)
-      const updated = await api.getFile(file.id)
-      setFile(updated)
+      invalidateFiles() // refetch picks up 'processing' → live polling kicks in
     } catch (err) { console.error('Transcription start failed:', err) }
-  }, [file])
+  }, [file, invalidateFiles])
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg text-text-primary font-sans">

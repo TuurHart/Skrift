@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { api } from '@/api'
 import { useSSE } from '@/hooks/useSSE'
@@ -90,11 +90,6 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
   //   - nothing running             → normal idle controls
   const isThisRunning = !!runningEnhanceFile && runningEnhanceFile.id === file.id
   const isOtherRunning = !!runningEnhanceFile && runningEnhanceFile.id !== file.id
-  // Transcription polling
-  const [polling, setPolling] = useState(false)
-  const [stale, setStale] = useState(false)
-  const pollingRef = useRef(false)
-
   const [ramWarning, setRamWarning] = useState<{
     required_gb: number; available_gb: number; model_name: string;
     fallback_model: string; fallback_name: string | null;
@@ -152,53 +147,18 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
 
   // ── Transcription ──────────────────────────────────────
 
-  const startPolling = useCallback(() => {
-    pollingRef.current = true
-    setPolling(true)
-    setStale(false)
-  }, [])
-
-  useEffect(() => {
-    if (file.steps.transcribe === 'processing' && !pollingRef.current) {
-      startPolling()
-    }
-  }, [file.steps.transcribe, startPolling])
-
-  useEffect(() => {
-    if (!polling) return
-    let cancelled = false
-    const iv = setInterval(async () => {
-      if (cancelled) return
-      try {
-        const updated = await api.getFileStatus(file.id)
-        if (cancelled) return
-        onFileUpdate(updated)
-        if (updated.steps.transcribe === 'done' || updated.steps.transcribe === 'error') {
-          setPolling(false)
-          pollingRef.current = false
-        }
-        // Stale check
-        if (updated.lastActivityAt) {
-          const age = (Date.now() - new Date(updated.lastActivityAt).getTime()) / 1000
-          setStale(age > 120)
-        }
-      } catch { /* keep polling */ }
-    }, 3000)
-    return () => { cancelled = true; clearInterval(iv) }
-  }, [polling, file.id, onFileUpdate])
-
   async function handleTranscribe() {
     try {
       await api.startTranscription(file.id)
-      startPolling()
+      // Reflect 'processing' immediately; the files query then polls live.
+      const updated = await api.getFile(file.id)
+      onFileUpdate(updated)
     } catch (err) { console.error('Transcribe failed:', err) }
   }
 
   async function handleCancelTranscription() {
     try {
       await api.cancelProcessing(file.id)
-      setPolling(false)
-      pollingRef.current = false
       const updated = await api.getFile(file.id)
       onFileUpdate(updated)
     } catch { /* ignore */ }
@@ -210,7 +170,6 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
       // Reload immediately so NoteBody shows the cleared state
       const updated = await api.getFile(file.id)
       onFileUpdate(updated)
-      startPolling()
     } catch { /* ignore */ }
   }
 
@@ -346,7 +305,7 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
   const isCapture = file.source_type === 'capture'
   const transcribeSkipped = file.steps.transcribe === 'skipped'
   const transcribeDone = file.steps.transcribe === 'done'
-  const transcribeProcessing = file.steps.transcribe === 'processing' || polling
+  const transcribeProcessing = file.steps.transcribe === 'processing'
   const transcribeError = file.steps.transcribe === 'error'
 
   const enhanceDone = file.steps.enhance === 'done'
@@ -388,7 +347,6 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
               {file.progressMessage ?? 'Transcribing\u2026'}
               {file.progress != null && <span className="text-text-muted ml-auto">{file.progress}%</span>}
             </div>
-            {stale && <div className="text-[11px] text-step-enhance">{'\u26A0'} Transcription may be stuck</div>}
             <Btn label="Cancel" onClick={() => void handleCancelTranscription()} small />
           </div>
         ) : transcribeError ? (
