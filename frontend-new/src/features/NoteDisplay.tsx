@@ -230,13 +230,13 @@ export function NoteDisplay({
               />
             </div>
 
-            {/* Karaoke overlay — only while audio is actively playing */}
+            {/* Karaoke highlight on the body text — only while audio is playing.
+                Same text + typography as the editor, so no reflow on play. */}
             {karaokeActive && (
               <KaraokeText
+                text={bestText}
                 tokens={tokens}
-                fallback={bestText}
                 currentTime={currentTime}
-                isActive={true}
                 onSeek={onSeek}
               />
             )}
