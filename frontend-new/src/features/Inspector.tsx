@@ -5,6 +5,8 @@ import { useSSE } from '@/hooks/useSSE'
 import type { PipelineFile } from '@/types/pipeline'
 import type { AppSettings } from '@/hooks/useSettings'
 import { TagSuggestions } from '@/components/TagSuggestions'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 // ── Section wrapper ────────────────────────────────────────
 
@@ -589,41 +591,42 @@ export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, o
 
       {/* ── Modals ── */}
       {/* RAM Warning Modal */}
-      {ramWarning && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 animate-modal-in">
-          <div className="bg-surface border border-border/30 rounded-xl p-6 max-w-sm mx-4 shadow-2xl">
-            <h3 className="text-[16px] font-semibold text-text-primary mb-2">Not enough memory</h3>
-            <p className="text-[13px] text-text-secondary mb-4 leading-relaxed">
-              <span className="font-medium text-text-primary">{ramWarning.model_name}</span> needs
-              ~{ramWarning.required_gb}GB but only {ramWarning.available_gb}GB is available.
-            </p>
-            <div className="flex flex-col gap-2">
-              {ramWarning.fallback_model && (
-                <button
-                  onClick={() => {
-                    const fallback = ramWarning.fallback_model
-                    const step = ramWarning.pendingStep
-                    setRamWarning(null)
-                    // Retry with lighter model
-                    if (step === 'title') runTitleStream(fallback)
-                    else if (step === 'copy_edit') runCopyeditStream(fallback)
-                    else if (step === 'summary') runSummaryStream(fallback)
-                  }}
-                  className="w-full px-4 py-2.5 rounded-lg bg-accent text-white text-[14px] font-medium hover:bg-accent/90 transition-colors"
-                >
-                  Use lighter model{ramWarning.fallback_name ? ` (${ramWarning.fallback_name})` : ''}
-                </button>
-              )}
-              <button
-                onClick={() => setRamWarning(null)}
-                className="w-full px-4 py-2.5 rounded-lg bg-white/[0.05] text-text-primary text-[14px] font-medium hover:bg-white/[0.08] transition-colors"
-              >
-                I'll close apps, try again
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={!!ramWarning} onOpenChange={(o) => { if (!o) setRamWarning(null) }}>
+        <DialogContent className="max-w-sm">
+          {ramWarning && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Not enough memory</DialogTitle>
+                <DialogDescription>
+                  <span className="font-medium text-text-primary">{ramWarning.model_name}</span> needs
+                  ~{ramWarning.required_gb}GB but only {ramWarning.available_gb}GB is available.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-2 mt-2">
+                {ramWarning.fallback_model && (
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={() => {
+                      const fallback = ramWarning.fallback_model
+                      const step = ramWarning.pendingStep
+                      setRamWarning(null)
+                      if (step === 'title') runTitleStream(fallback)
+                      else if (step === 'copy_edit') runCopyeditStream(fallback)
+                      else if (step === 'summary') runSummaryStream(fallback)
+                    }}
+                  >
+                    Use lighter model{ramWarning.fallback_name ? ` (${ramWarning.fallback_name})` : ''}
+                  </Button>
+                )}
+                <Button variant="secondary" size="lg" className="w-full" onClick={() => setRamWarning(null)}>
+                  I'll close apps, try again
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </aside>
   )
 }

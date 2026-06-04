@@ -8,6 +8,8 @@ import type { PipelineFile } from '@/types/pipeline'
 import { StepDots } from '@/components/StepDots'
 import { SystemStatus } from '@/components/SystemStatus'
 import { formatDuration } from '@/lib/format'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -719,41 +721,23 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
       />
 
       {/* ── Delete confirmation modal ── */}
-      {deleteConfirmId && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm"
-          onClick={() => setDeleteConfirmId(null)}
-        >
-          <div
-            className="bg-surface border border-border/[0.15] rounded-xl p-6 w-80 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="text-sm font-semibold text-text-primary mb-2">
-              Delete note?
-            </h3>
-            <p className="text-xs text-text-secondary leading-relaxed mb-5">
+      <Dialog open={!!deleteConfirmId} onOpenChange={(o) => { if (!o) setDeleteConfirmId(null) }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Delete note?</DialogTitle>
+            <DialogDescription>
               <span className="font-medium text-text-primary">
                 {deleteTarget?.enhanced_title ?? deleteTarget?.filename}
               </span>{' '}
               will be permanently deleted.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-1.5 text-xs rounded-lg bg-white/[0.05] hover:bg-white/[0.08] border border-border/[0.15] text-text-secondary transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => void handleDelete(deleteConfirmId)}
-                className="px-4 py-1.5 text-xs rounded-lg bg-destructive text-white font-medium hover:opacity-90 transition-opacity"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirmId && void handleDelete(deleteConfirmId)}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   )
 }

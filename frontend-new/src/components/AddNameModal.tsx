@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { api } from '@/api'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import type { Person } from '@/api'
 
 interface AddNameModalProps {
@@ -81,20 +83,14 @@ export function AddNameModal({ selectedText, onClose }: AddNameModalProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[300] backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div
-        className="bg-surface border border-border/[0.15] rounded-xl w-[420px] shadow-2xl flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
+    <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent hideClose className="w-[420px] max-w-[420px] p-0 overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-border/[0.07]">
-          <div className="text-[15px] font-semibold mb-0.5">Add name</div>
-          <div className="text-[12px] text-text-secondary">
+          <DialogTitle className="text-[15px] font-semibold mb-0.5">Add name</DialogTitle>
+          <DialogDescription className="text-[12px] text-text-secondary">
             Selected: <span className="font-medium text-accent">"{selectedText}"</span>
-          </div>
+          </DialogDescription>
         </div>
 
         {/* Tabs */}
@@ -191,22 +187,16 @@ export function AddNameModal({ selectedText, onClose }: AddNameModalProps) {
 
         {/* Footer */}
         <div className="px-5 py-3.5 border-t border-border/[0.07] flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 text-xs rounded-lg bg-white/[0.05] border border-border/[0.15] text-text-secondary hover:text-text-primary transition-colors"
-          >
-            Cancel
-          </button>
-          <button
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button
             onClick={() => void (tab === 'new' ? handleSaveNew() : handleAddAlias())}
             disabled={saving || (tab === 'new' ? !fullName.trim() : selectedPersonIdx === null)}
-            className="px-4 py-1.5 text-xs rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
             {saving && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />}
             {tab === 'new' ? 'Create name' : 'Add alias'}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

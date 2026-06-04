@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api, type MlxModel, type EnhancePrompt } from '@/api'
 import type { AppSettings } from '@/hooks/useSettings'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 
 // ── Model display ──────────────────────────────────────────
 //
@@ -121,15 +123,11 @@ function ChatTemplateModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[300]"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="bg-surface border border-border/[0.15] rounded-xl w-[600px] max-h-[80vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-border/[0.07] flex items-center justify-between">
-          <span className="text-[15px] font-semibold">Chat Template</span>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors"><X size={16} /></button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="w-[600px] max-w-[600px] max-h-[80vh] p-0 overflow-hidden flex flex-col">
+        <DialogHeader className="px-5 py-4 border-b border-border/[0.07] mb-0">
+          <DialogTitle>Chat Template</DialogTitle>
+        </DialogHeader>
         <div className="flex-1 overflow-y-auto p-5">
           {loading ? (
             <div className="flex justify-center h-24 items-center">
@@ -145,18 +143,14 @@ function ChatTemplateModal({ onClose }: { onClose: () => void }) {
             />
           )}
         </div>
-        <div className="px-5 py-3.5 border-t border-border/[0.07] flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-1.5 text-xs rounded-lg bg-white/[0.05] border border-border/[0.15] text-text-secondary hover:text-text-primary transition-colors">Cancel</button>
-          <button
-            onClick={() => void handleSave()}
-            disabled={saving || loading}
-            className="px-4 py-1.5 text-xs rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-60"
-          >
+        <DialogFooter className="px-5 py-3.5 border-t border-border/[0.07] mt-0">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => void handleSave()} disabled={saving || loading}>
             {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
