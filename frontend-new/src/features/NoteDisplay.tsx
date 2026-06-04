@@ -1,11 +1,10 @@
-import { useState } from 'react'
 import type { PipelineFile } from '@/types/pipeline'
 import type { AppSettings } from '@/hooks/useSettings'
 import { PipelineBreadcrumb } from '@/components/PipelineBreadcrumb'
 import { NoteProperties } from '@/components/NoteProperties'
 import { NoteBody, getBestText } from '@/components/NoteBody'
 import { KaraokeText } from '@/components/KaraokeText'
-import { AudioPlayer } from '@/components/AudioPlayer'
+import { NoteToolbar } from '@/components/NoteToolbar'
 import { ExportPreview } from '@/components/ExportPreview'
 import { api } from '@/api'
 
@@ -85,8 +84,6 @@ export function NoteDisplay({
   onSignificanceSave,
   onSeek,
 }: NoteDisplayProps) {
-  const [audioCollapsed, setAudioCollapsed] = useState(false)
-
   if (loading && !file) return <Spinner />
   if (!file) return <EmptyState />
 
@@ -96,7 +93,7 @@ export function NoteDisplay({
   const transcribeDone = file.steps.transcribe === 'done'
   const isCapture = file.source_type === 'capture'
   const hasAudio = !!file.audioMetadata?.duration
-  const showAudioPlayer = transcribeDone && !isAppleNote && (!isCapture || hasAudio)
+  const showToolbar = transcribeDone && !isAppleNote && (!isCapture || hasAudio)
   const showExportPreview = !!exportPreviewContent
 
   return (
@@ -106,25 +103,21 @@ export function NoteDisplay({
         date={formatBreadcrumbDate(file.uploadedAt)}
       />
 
+      {/* Audio transport — pinned above the scroll area */}
+      {showToolbar && (
+        <NoteToolbar
+          src={api.getAudioUrl(file.id, 'processed')}
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          seekTo={seekTo}
+          onPlayPause={onPlayPause}
+          onTimeUpdate={onTimeUpdate}
+        />
+      )}
+
       <div className="flex flex-col flex-1 min-h-0">
         {/* Note content area — scrollable */}
         <div className="overflow-y-auto relative flex-1">
-          {/* Sticky audio player at top of scroll area */}
-          {showAudioPlayer && (
-            <div className="sticky top-0 z-10 bg-bg px-10 pt-4 pb-3">
-              <AudioPlayer
-                src={api.getAudioUrl(file.id, 'processed')}
-                isPlaying={isPlaying}
-                currentTime={currentTime}
-                collapsed={audioCollapsed}
-                seekTo={seekTo}
-                onPlayPause={onPlayPause}
-                onTimeUpdate={onTimeUpdate}
-                onCollapse={setAudioCollapsed}
-              />
-            </div>
-          )}
-
           <div className="px-10 py-7">
             <NoteProperties
               file={file}
