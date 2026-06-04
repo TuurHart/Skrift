@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api, API_BASE } from '@/api'
+import { useFiles, useCurrentBatch, FILES_KEY, CURRENT_BATCH_KEY } from '@/hooks/useFiles'
 import type { PipelineFile } from '@/types/pipeline'
 import { StepDots } from '@/components/StepDots'
 import { SystemStatus } from '@/components/SystemStatus'
@@ -58,7 +60,9 @@ interface SidebarProps {
 // ── Component ──────────────────────────────────────────────
 
 export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarProps) {
-  const [files, setFiles] = useState<PipelineFile[]>([])
+  const { data: files = [] } = useFiles()
+  const { data: currentBatch } = useCurrentBatch()
+  const qc = useQueryClient()
   const [filter, setFilter] = useState<Filter>('All')
   const [multiSelect, setMultiSelect] = useState(false)
   const [checked, setChecked] = useState<Set<string>>(new Set())
@@ -78,52 +82,24 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
 
   // ── Data loading & polling ──────────────────────────────
 
-  const loadFiles = useCallback(async () => {
-    try {
-      const data = await api.getFiles()
-      setFiles(data)
-    } catch (err) {
-      console.error('Failed to load files:', err)
-    }
-  }, [])
+  // Files + current-batch come from the shared queries (which poll only while
+  // work is in flight). These just nudge a refetch after an action.
+  const loadFiles = useCallback(() => qc.invalidateQueries({ queryKey: FILES_KEY }), [qc])
+  const syncCurrentBatch = useCallback(() => qc.invalidateQueries({ queryKey: CURRENT_BATCH_KEY }), [qc])
 
-  // Sync `batchProgress` from the backend's view of the current batch. This
-  // covers two cases: (1) sidebar remount/reload while a batch is still
-  // running, (2) a batch that finished/failed but our local state lagged.
-  // Without this the UI silently desynced and the user had no way to see
-  // what was running or cancel it (just got "A batch is already running").
-  const syncCurrentBatch = useCallback(async () => {
-    try {
-      const r = await api.getCurrentBatch()
-      if (r.active && r.batch) {
-        const fileIds = r.batch.files.map(f => f.file_id)
-        // A 'run' counts progress by reaching Ready (enhance done), same as enhance.
-        const stepKey = (r.batch.type === 'enhance' || r.batch.type === 'run') ? 'enhance' : 'transcribe'
-        const label = r.batch.type === 'run' ? 'Processing' : (stepKey === 'enhance' ? 'Enhancing' : 'Transcribing')
-        setBatchProgress(prev => {
-          // Don't clobber a richer local state for the same batch.
-          if (prev?.batchId === r.batch!.batch_id) return prev
-          return { ids: fileIds, step: stepKey, label, batchId: r.batch!.batch_id }
-        })
-      }
-    } catch {
-      // Network blip — leave local state untouched.
-    }
-  }, [])
-
+  // Restore the progress panel from the backend's current batch — covers a
+  // sidebar remount while a run is going, or local state lagging behind.
   useEffect(() => {
-    void loadFiles()
-    void syncCurrentBatch()
-    const interval = setInterval(() => {
-      void loadFiles()
-      void syncCurrentBatch()
-    }, 1_000)
-    return () => {
-      clearInterval(interval)
-      batchEsRef.current?.close()
-      batchEsRef.current = null
-    }
-  }, [loadFiles, syncCurrentBatch])
+    const b = currentBatch?.batch
+    if (!currentBatch?.active || !b) return
+    const fileIds = b.files.map(f => f.file_id)
+    const stepKey = (b.type === 'enhance' || b.type === 'run') ? 'enhance' : 'transcribe'
+    const label = b.type === 'run' ? 'Processing' : (stepKey === 'enhance' ? 'Enhancing' : 'Transcribing')
+    setBatchProgress(prev => (prev?.batchId === b.batch_id ? prev : { ids: fileIds, step: stepKey, label, batchId: b.batch_id }))
+  }, [currentBatch])
+
+  // Close the run SSE on unmount.
+  useEffect(() => () => { batchEsRef.current?.close(); batchEsRef.current = null }, [])
 
   // ── Prune stale checked IDs when files list changes ────
   useEffect(() => {
@@ -715,6 +691,7 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
                   const resp = await api.startRun(ids)
                   setBatchProgress(prev => prev && { ...prev, batchId: resp.batch?.batch_id })
                   await loadFiles()
+                  void syncCurrentBatch()
                 } catch (err: unknown) {
                   const msg = err instanceof Error ? err.message : String(err)
                   if (msg.includes('already processed')) {
