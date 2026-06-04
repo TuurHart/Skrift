@@ -20,11 +20,20 @@ Branch: **`overhaul`** (cut from `cleanup/audit-fixes`). Everything committed. B
 
 - **Phase 0 ✓** — branch, `backlog.md`, decisions → memory. (Also: the old "architecture skill" chat never committed anything; `robustness-cleanup` is a stale branch to *mine, not merge*.)
 - **Phase 1 ✓ (backend cleanup)** — removed chat feature, dead VLM/vision path, ~1,900 lines of dead endpoints/scripts; atomic `status.json` writes; spec-valid CORS. ~2,450 lines gone, no behavior lost.
-- **Phase 2 PARTIAL:**
-  - ✓ LLM significance scoring removed → `POST /api/process/enhance/significance/{file_id}` for the manual review slider.
-  - ✓ LLM tagger replaced with **deterministic** matching: suggest vault tags whose word the user actually said (≥2×, lemmatized via simplemma nl+en) + spoken `#hashtags`. Whitelist refresh reads **frontmatter tag names only — never note bodies**.
-  - ✓ `voiceEmbeddings` round-trips through the names store (groundwork for mobile voice profiles).
-- Verified backend-healthy + frontend-type-check-clean after every chunk. Backend currently **stopped**.
+- **Phase 2 ✓ COMPLETE** (commits `fa1b392`, `ed6ab52`, `a583ff2`, `9129763`, `7f00479`):
+  - ✓ Earlier groundwork: LLM significance scoring removed (manual slider via `POST /enhance/significance/{id}`); LLM tagger → **deterministic** vault-tag matching (≥2× lemmatized nl+en + spoken `#hashtags`; whitelist = frontmatter tag NAMES only, never bodies); `voiceEmbeddings` round-trips the names store.
+  - ✓ **Reorder:** all LLM steps run on the **raw transcript**; `preserve_brackets` deleted (no LLM ever sees `[[ ]]`).
+  - ✓ **Non-blocking name-linking:** unambiguous names auto-link; ambiguous ones recorded in a new `ambiguous_names` field on the note (shape = old 409 `occurrences`). No more mid-pipeline 409 / `DisambiguationModal`.
+  - ✓ **Auto-run orchestrator** `POST /api/batch/run/start` (`BatchManager.start_run`/`_process_run`): two model-grouped passes — transcribe-all (Parakeet hot) → enhance-all (copy-edit/title/summary on raw → tag *suggestions* → name-link → compile draft) → **Ready**. Single file = run of one. `batch_manager` folded into this one path (old transcribe/enhance batch methods + endpoints removed).
+  - ✓ **Frontend:** one **Process** button (Sidebar batch + Inspector single file). Inspector Cleanup section gone; enhancement gated on transcribe; manual mid-pipeline disambiguation removed.
+  - ✓ **Unify:** single `clear_transcript_derived()` invalidation helper (was 3 lists).
+  - **Verified LIVE end-to-end** on a user-provided test recording (the "two friends named Jack" memo): transcribe→…→name-link→compile→Ready, 4 ambiguous "jack" occurrences recorded (non-blocking), MLX cache cleared after.
+- **Key behavior changes for later phases:**
+  - `steps.enhance == done` now means **auto-steps complete** (title+copy-edit+summary present), NOT "tags approved." Tags + significance are **review-time**. `_all_enhancement_parts_present` reflects this; `compile` precedence is `sanitised → enhanced_copyedit → transcript`.
+  - `ambiguous_names` needs a **review-time resolver UI** (the old `DisambiguationModal` component still exists, unused — re-wire it at review in Phase 5).
+  - Inspector still has per-step manual enhance/redo (per-file SSE) — harmless, but the full review redesign (Phase 5) replaces it.
+  - **Intentionally NOT unified** (would not simplify / would touch vault YAML): the two image-marker fns (timestamp vs anchor-word, different stages) and the note-vs-audio frontmatter builders. Revisit frontmatter with the Phase 5 export schema.
+- Verified backend-healthy + frontend-type-check-clean after every chunk. Backend currently **running** (test note "Hotel Du Vin" is in the pipeline at Ready — deletable from the app).
 
 ## 2. Rules & hard-won lessons (read — these are not optional)
 
@@ -35,9 +44,9 @@ Branch: **`overhaul`** (cut from `cleanup/audit-fixes`). Everything committed. B
 - **Verify every chunk**: `py_compile` the changed files; `./backend/start_backend.sh restart` then `curl -s localhost:8000/health`; frontend `npm --prefix frontend-new run type-check`. Test logic with **synthetic data**, not the user's real vault/notes. Stop the backend when you pause.
 - **Delegate big mechanical chunks to subagents** (keeps your context lean — that's how Phase 1 got done) but always **verify their diffs**, and forbid them from touching the vault.
 
-## 3. NEXT TASK — Phase 2: pipeline reorder + auto-run orchestrator (the big one)
+## 3. Phase 2 ✓ DONE — NEXT TASK is Phase 3 (frontend state rebuild)
 
-This is the heart of the overhaul. It **changes core behavior AND touches the frontend**, so it's coupled — do it as one coherent pass, verify carefully, and **do not leave it half-done** (a half-rebuilt pipeline = broken app). Budget a full session.
+Phase 2 (pipeline reorder + auto-run orchestrator) is complete and verified live — see §1 for the summary and the key behavior changes. **The next task is Phase 3** (detail in §5): replace the 3–4 overlapping ~1s polling loops (App.tsx 2×, Sidebar, Inspector) with ONE source of truth — TanStack Query keyed by file id + the existing SSE — and fix the contenteditable-vs-poll race. That is the real "feels buggy" cure. The Phase 2 detail below is kept as a record of what was built.
 
 **Read these files before designing:**
 - `backend/services/enhancement.py` — `build_enhancement_context` (source-text selection, currently `pf.sanitised or pf.transcript`), `generate_enhancement_stream` (step orchestration), `preserve_brackets` (the `[[Name]]` hack to DELETE) + its call (~line 763), `compile_file`, `_all_enhancement_parts_present`, `copy_edit_with_image_markers_stream` + `_reinsert_image_markers`.
