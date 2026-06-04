@@ -80,7 +80,7 @@ async def get_enhance_input(file_id: str):
         raise HTTPException(status_code=404, detail="File not found")
     from services.enhancement import build_enhancement_context
     input_text = build_enhancement_context(file_id)
-    source = 'capture-context' if (pipeline_file.audioMetadata or {}).get('shared_content') else ('sanitised' if pipeline_file.sanitised else 'transcript')
+    source = 'capture-context' if (pipeline_file.audioMetadata or {}).get('shared_content') else 'transcript'
     return { 'source': source, 'length': len(input_text), 'input_text': input_text }
 
 @router.get("/stream/{file_id}")

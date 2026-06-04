@@ -54,7 +54,7 @@ def build_enhancement_context(file_id: str) -> str:
     if not pf:
         return ""
 
-    base_text = pf.sanitised or pf.transcript or ""
+    base_text = pf.transcript or ""
     shared = (pf.audioMetadata or {}).get('shared_content')
     if not shared:
         return base_text
@@ -107,47 +107,6 @@ async def _schedule_idle_cache_clear():
             logger.info("✅ MLX model auto-unloaded after 10s idle (manual mode)")
     except Exception as e:
         logger.error(f"Failed to auto-clear MLX cache: {e}")
-
-
-def preserve_brackets(source: str, output: str) -> str:
-    """
-    Ensure any [[...]] tokens from source are preserved verbatim in output.
-    Strategy: for each unique inner token from source, if [[token]] not in out,
-    replace standalone occurrences of token in out with [[token]] (case-sensitive first,
-    then case-insensitive fallback). Avoid double-bracketing.
-    """
-    if not source or not output:
-        return output
-    
-    tokens = []
-    try:
-        for m in re.finditer(r"\[\[([^\]]+)\]\]", source):
-            inner = m.group(1).strip()
-            if inner and inner not in tokens:
-                tokens.append(inner)
-    except Exception:
-        return output
-    
-    fixed = output
-    for tok in tokens:
-        if f"[[{tok}]]" in fixed:
-            continue
-        # Protect already-bracketed segments and brackets themselves
-        try:
-            # Case-sensitive first
-            pattern_cs = re.compile(rf"(?<!\[\[)\b{re.escape(tok)}\b(?!\]\])")
-            fixed_cs, n_cs = pattern_cs.subn(f"[[{tok}]]", fixed)
-            fixed = fixed_cs
-            if n_cs == 0:
-                # Case-insensitive fallback: preserve original casing in replacement text
-                def repl(m):
-                    return "[[" + m.group(0) + "]]"
-                pattern_ci = re.compile(rf"(?<!\[\[)\b{re.escape(tok)}\b(?!\]\])", re.IGNORECASE)
-                fixed = pattern_ci.sub(repl, fixed)
-        except Exception:
-            # Best-effort: do not break output
-            continue
-    return fixed
 
 
 def test_model() -> dict:
@@ -759,9 +718,6 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
             err = f"Streaming not available: {e}"
             yield _sse("error", err)
             return
-
-        # Preserve [[Name]] brackets that the model may have stripped
-        final = preserve_brackets(input_text, final)
 
         yield _sse("done", final)
         
