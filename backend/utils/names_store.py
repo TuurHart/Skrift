@@ -58,6 +58,13 @@ def _normalise_entry(p: dict) -> dict | None:
         "aliases": aliases,
         "short": short,
     }
+    # Preserve voice profiles (forthcoming mobile diarization feature) as an
+    # opaque pass-through so we never drop the phone's data, whatever shape the
+    # embedding entries eventually take. Omitted from output when empty/absent
+    # to keep names.json clean.
+    voice = p.get("voiceEmbeddings")
+    if voice:
+        entry["voiceEmbeddings"] = voice
     # Preserve sync fields verbatim if present.
     if p.get("lastModifiedAt"):
         entry["lastModifiedAt"] = p["lastModifiedAt"]

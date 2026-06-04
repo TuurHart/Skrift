@@ -12,7 +12,7 @@ underlying file via `utils.names_store`.
 """
 
 import logging
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -48,6 +48,11 @@ class Person(BaseModel):
     canonical: str = Field(..., min_length=1)
     aliases: List[str] = Field(default_factory=list)
     short: Optional[str] = None
+    # Optional voice profiles from the mobile diarization feature. Kept as an
+    # opaque pass-through (bare vectors or tagged objects both fine) so the
+    # phone's data round-trips through a desktop save untouched. Omitted from
+    # serialized output when absent (exclude_none on dump below).
+    voiceEmbeddings: Optional[List[Any]] = None
     lastModifiedAt: Optional[str] = None
     deleted: bool = False
 
@@ -66,7 +71,7 @@ async def put_names(payload: NamesPayload):
     of what the caller sent, to keep it authoritative.
     """
     try:
-        result = names_store.write_names(payload.model_dump())
+        result = names_store.write_names(payload.model_dump(exclude_none=True))
         try:
             pruned = names_store.prune_old_tombstones(max_age_days=90)
             if pruned:
