@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api, API_BASE } from '@/api'
 import { useFiles, useCurrentBatch, FILES_KEY, CURRENT_BATCH_KEY } from '@/hooks/useFiles'
 import type { PipelineFile } from '@/types/pipeline'
-import { StepDots } from '@/components/StepDots'
 import { SystemStatus } from '@/components/SystemStatus'
 import { formatDuration } from '@/lib/format'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,19 @@ function isComplete(file: PipelineFile): boolean {
     enhance === 'done' &&
     exp === 'done'
   )
+}
+
+// Honest one-word status for the queue chip, derived from the steps.
+function noteStatus(f: PipelineFile): { label: string; cls: string } {
+  const s = f.steps
+  if (s.transcribe === 'error' || s.enhance === 'error' || s.export === 'error')
+    return { label: 'Error', cls: 'bg-destructive/15 text-destructive' }
+  if (s.transcribe === 'processing') return { label: 'Transcribing', cls: 'bg-step-transcribe/15 text-step-transcribe' }
+  if (s.enhance === 'processing') return { label: 'Enhancing', cls: 'bg-step-enhance/15 text-step-enhance' }
+  if (s.export === 'done') return { label: 'Exported', cls: 'bg-step-export/15 text-step-export' }
+  if (s.enhance === 'done') return { label: 'Ready', cls: 'bg-check-green/15 text-check-green' }
+  if (s.transcribe === 'done' || s.transcribe === 'skipped') return { label: 'Transcribed', cls: 'bg-white/[0.06] text-text-secondary' }
+  return { label: 'Queued', cls: 'bg-white/[0.06] text-text-muted' }
 }
 
 // ── Props ──────────────────────────────────────────────────
@@ -68,6 +81,7 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
   const [batchCurrentFile, setBatchCurrentFile] = useState<{ fileId: string; step: string } | null>(null)
   const batchEsRef = useRef<EventSource | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const listParentRef = useRef<HTMLDivElement>(null)
 
   // ── Data loading & polling ──────────────────────────────
 
@@ -135,6 +149,14 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
     if (filter === 'Complete') return isComplete(f)
     if (filter === 'Needs Work') return !isComplete(f)
     return true
+  })
+
+  // Virtualize the queue so a large vault stays smooth.
+  const rowVirtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => listParentRef.current,
+    estimateSize: () => 62,
+    overscan: 8,
   })
 
   // ── Batch select ───────────────────────────────────────
@@ -431,98 +453,112 @@ export function Sidebar({ selectedId, onSelectFile, onSettingsOpen }: SidebarPro
         </div>
       </div>
 
-      {/* ── Note list ── */}
-      <div className="flex-1 overflow-y-auto p-[6px]">
-        {filtered.length === 0 && (
+      {/* ── Note list (virtualized) ── */}
+      <div ref={listParentRef} className="flex-1 overflow-y-auto p-[6px]">
+        {filtered.length === 0 ? (
           <div className="text-center py-8 px-4">
             <div className="text-text-muted text-[13px]">No notes yet</div>
             <div className="text-text-muted/60 text-[11px] mt-1">Drop files here or click Upload</div>
           </div>
-        )}
+        ) : (
+          <div style={{ height: rowVirtualizer.getTotalSize(), width: '100%', position: 'relative' }}>
+            {rowVirtualizer.getVirtualItems().map(vi => {
+              const file = filtered[vi.index]
+              const isSelected = !multiSelect && selectedId === file.id
+              const isChecked = checked.has(file.id)
+              const sc = file.audioMetadata?.shared_content
+              const displayName = file.enhanced_title
+                ?? (sc?.type === 'url' ? (sc.urlTitle || (() => { try { return new URL(sc.url || '').hostname } catch { return sc.url } })() || file.filename)
+                  : sc?.type === 'text' ? ((sc.text || '').slice(0, 40).replace(/\n/g, ' ') || 'Text capture')
+                  : sc?.type === 'image' ? 'Image capture'
+                  : sc?.type === 'file' ? (sc.fileName?.replace(/\.[^.]+$/, '') || 'File')
+                  : file.filename)
+              const duration = formatDuration(file.audioMetadata?.duration)
+              const st = noteStatus(file)
 
-        {filtered.map(file => {
-          const isSelected = !multiSelect && selectedId === file.id
-          const isChecked = checked.has(file.id)
-          const sc = file.audioMetadata?.shared_content
-          const displayName = file.enhanced_title
-            ?? (sc?.type === 'url' ? (sc.urlTitle || (() => { try { return new URL(sc.url || '').hostname } catch { return sc.url } })() || file.filename)
-              : sc?.type === 'text' ? ((sc.text || '').slice(0, 40).replace(/\n/g, ' ') || 'Text capture')
-              : sc?.type === 'image' ? 'Image capture'
-              : sc?.type === 'file' ? (sc.fileName?.replace(/\.[^.]+$/, '') || 'File')
-              : file.filename)
-          const duration = formatDuration(file.audioMetadata?.duration)
+              return (
+                <div
+                  key={file.id}
+                  data-index={vi.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${vi.start}px)` }}
+                >
+                  <div style={{ paddingBottom: 4 }}>
+                    <div
+                      onClick={(e) => {
+                        if (multiSelect) toggleCheck(file.id, e.shiftKey)
+                        else onSelectFile(file.id)
+                      }}
+                      className={cn(
+                        'group/note relative px-3 py-[10px] rounded-lg cursor-pointer',
+                        'border transition-colors',
+                        isSelected
+                          ? 'bg-accent/15 border-accent/20 shadow-sm shadow-accent/10'
+                          : 'bg-white/[0.02] border-transparent hover:bg-white/[0.05] hover:shadow-sm',
+                      )}
+                    >
+                      <div className="flex items-start gap-2">
+                        {/* Batch checkbox */}
+                        {multiSelect && (
+                          <div
+                            onClick={e => { e.stopPropagation(); toggleCheck(file.id, e.shiftKey) }}
+                            className={cn(
+                              'mt-0.5 w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors cursor-pointer',
+                              isChecked
+                                ? 'bg-accent border-accent'
+                                : 'border-border/[0.3] hover:border-border/[0.5]',
+                            )}
+                          >
+                            {isChecked && (
+                              <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 6l3 3 5-5" />
+                              </svg>
+                            )}
+                          </div>
+                        )}
 
-          return (
-            <div
-              key={file.id}
-              onClick={(e) => {
-                if (multiSelect) toggleCheck(file.id, e.shiftKey)
-                else onSelectFile(file.id)
-              }}
-              className={cn(
-                'group/note relative px-3 py-[10px] rounded-lg cursor-pointer mb-1',
-                'border transition-colors',
-                isSelected
-                  ? 'bg-accent/15 border-accent/20 shadow-sm shadow-accent/10'
-                  : 'bg-white/[0.02] border-transparent hover:bg-white/[0.05] hover:shadow-sm',
-              )}
-            >
-              <div className="flex items-start gap-2">
-                {/* Batch checkbox */}
-                {multiSelect && (
-                  <div
-                    onClick={e => { e.stopPropagation(); toggleCheck(file.id, e.shiftKey) }}
-                    className={cn(
-                      'mt-0.5 w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors cursor-pointer',
-                      isChecked
-                        ? 'bg-accent border-accent'
-                        : 'border-border/[0.3] hover:border-border/[0.5]',
-                    )}
-                  >
-                    {isChecked && (
-                      <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 6l3 3 5-5" />
-                      </svg>
-                    )}
-                  </div>
-                )}
+                        <div className="flex-1 min-w-0">
+                          {/* Title row */}
+                          <div className="flex items-start gap-1 mb-1">
+                            <span className="flex-1 text-[13px] font-medium truncate leading-tight">
+                              {displayName}
+                            </span>
 
-                <div className="flex-1 min-w-0">
-                  {/* Title row */}
-                  <div className="flex items-start gap-1 mb-1">
-                    <span className="flex-1 text-[13px] font-medium truncate leading-tight">
-                      {displayName}
-                    </span>
+                            {/* Delete button — visible on hover */}
+                            {!multiSelect && (
+                              <button
+                                className="opacity-0 group-hover/note:opacity-100 shrink-0 text-text-muted hover:text-destructive transition-all text-[11px] px-1 py-px -mt-px"
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  setDeleteConfirmId(file.id)
+                                }}
+                                aria-label="Delete note"
+                                title="Delete note"
+                              >
+                                🗑
+                              </button>
+                            )}
+                          </div>
 
-                    {/* Delete button — visible on hover */}
-                    {!multiSelect && (
-                      <button
-                        className="opacity-0 group-hover/note:opacity-100 shrink-0 text-text-muted hover:text-destructive transition-all text-[11px] px-1 py-px -mt-px"
-                        onClick={e => {
-                          e.stopPropagation()
-                          setDeleteConfirmId(file.id)
-                        }}
-                        aria-label="Delete note"
-                        title="Delete note"
-                      >
-                        🗑
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Meta row */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-text-muted leading-none">
-                      {formatDate(file.uploadedAt)}
-                      {duration && ` · ${duration}`}
-                    </span>
-                    <StepDots steps={file.steps} />
+                          {/* Meta row */}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[12px] text-text-muted leading-none truncate">
+                              {formatDate(file.uploadedAt)}
+                              {duration && ` · ${duration}`}
+                            </span>
+                            <span className={cn('text-[10px] px-2 py-[2px] rounded-full font-medium shrink-0', st.cls)}>
+                              {st.label}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          )
-        })}
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Batch error (visible regardless of selection state) ── */}
