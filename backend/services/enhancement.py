@@ -963,11 +963,247 @@ async def auto_compile_if_complete(file_id: str):
 
 
 # =========================
+# Deterministic tag matching (vault-derived, no LLM)
+# =========================
+
+# The user mixes Dutch and English, so we lemmatize trying both languages.
+_LEMMA_LANGS = ("nl", "en")
+
+# A "word" for lemmatization: unicode letters, digits, apostrophes and hyphens.
+# Kept deliberately broad so Dutch/English words survive intact.
+_WORD_RX = _re.compile(r"[^\W\d_]+(?:['\-][^\W\d_]+)*", _re.UNICODE)
+
+
+def _get_simplemma():
+    """Lazily import simplemma so the server still boots if it's missing.
+
+    Raises a clear ValueError (surfaced to the user) only when tagging is
+    actually invoked without simplemma installed.
+    """
+    try:
+        import simplemma  # noqa: F401
+        return simplemma
+    except ImportError as e:
+        raise ValueError(
+            "simplemma is not installed in the backend venv. Install it with "
+            "`~/Skrift_dependencies/mlx-env/bin/pip install simplemma` "
+            "(it is declared in backend/requirements.txt)."
+        ) from e
+
+
+def _lemmatize_word(simplemma, word: str) -> str:
+    """Lemmatize a single (already-lowercased) word trying Dutch then English."""
+    try:
+        return simplemma.lemmatize(word, lang=_LEMMA_LANGS).lower()
+    except Exception:
+        # simplemma can raise on unexpected input; fall back to the raw word.
+        return word
+
+
+def _lemmatize_tokens(simplemma, text: str) -> list[str]:
+    """Tokenize free text and return the lemma of every word (lowercased)."""
+    if not text:
+        return []
+    return [_lemmatize_word(simplemma, m.group(0).lower()) for m in _WORD_RX.finditer(text)]
+
+
+def _tag_lemmas(simplemma, tag: str) -> list[str]:
+    """Lemmatize a tag into its component word-lemmas.
+
+    Multi-word / hyphenated tags (e.g. `car-leasing`, `to_process`) are split on
+    hyphens/underscores/slashes/spaces and each de-hyphenated word is lemmatized.
+    Numeric and empty fragments are dropped.
+    """
+    # De-hyphenate: treat - _ / and whitespace as separators.
+    parts = [_lemmatize_word(simplemma, p.lower()) for p in _re.split(r"[\s\-_/]+", tag) if p]
+    return [p for p in parts if p]
+
+
+def _body_text_for_matching(txt: str) -> str:
+    """Return the note body with YAML frontmatter stripped.
+
+    Tags live in frontmatter; the rule-A test asks whether the tag word appears
+    in the *prose*, so we must not count the frontmatter itself as a hit.
+    """
+    if txt.startswith('---'):
+        # Strip a leading frontmatter block ( --- ... --- ).
+        m = _re.match(r"^---\n[\s\S]*?\n---\n?", txt)
+        if m:
+            return txt[m.end():]
+    return txt
+
+
+def derive_matchable_tags(vault: Path, all_tags: set[str]) -> dict:
+    """Rule A — compute which vault tags are 'matchable' (topic words) vs structural.
+
+    For each tag: ratio = (#notes carrying the tag whose body contains the tag's
+    lemma) / (#notes carrying the tag). A tag is matchable when
+    ratio >= match_min_ratio AND it is carried by >= match_min_carriers notes.
+
+    Multi-word/hyphenated tags match if ALL of their de-hyphenated word-lemmas
+    appear somewhere in the body (loose phrase match).
+
+    Returns {'matchable': sorted[str], 'stats': {tag: {carriers, hits, ratio}}}.
+    Walks the vault read-only.
+    """
+    simplemma = _get_simplemma()
+
+    tag_cfg = settings.get('enhancement.tagging') or {}
+    min_ratio = float(tag_cfg.get('match_min_ratio', 0.3))
+    min_carriers = int(tag_cfg.get('match_min_carriers', 2))
+
+    fm_start_rx = _re.compile(r"^---\n([\s\S]*?)\n---\n?")
+
+    # Precompute each tag's component lemmas once.
+    tag_lemma_map = {t: _tag_lemmas(simplemma, t) for t in all_tags}
+
+    carriers: dict[str, int] = {t: 0 for t in all_tags}  # notes carrying the tag
+    hits: dict[str, int] = {t: 0 for t in all_tags}       # carriers whose body contains the lemma(s)
+
+    for p in vault.rglob('*.md'):
+        if any(part.startswith('.obsidian') for part in p.parts):
+            continue
+        try:
+            txt = p.read_text(encoding='utf-8', errors='ignore')
+        except Exception:
+            continue
+
+        mfm = fm_start_rx.search(txt)
+        if not mfm:
+            continue
+        block = mfm.group(1)
+
+        # Which of the known tags does this note carry? (frontmatter only)
+        note_tags = _extract_frontmatter_tags(block)
+        note_tags = {t for t in note_tags if t in all_tags}
+        if not note_tags:
+            continue
+
+        # Lemmatize the body prose once, build a set for fast membership.
+        body = _body_text_for_matching(txt)
+        body_lemmas = set(_lemmatize_tokens(simplemma, body))
+
+        for t in note_tags:
+            carriers[t] += 1
+            lemmas = tag_lemma_map.get(t) or []
+            # All component lemmas must be present (loose phrase match for
+            # multi-word tags; single-word tags need just their one lemma).
+            if lemmas and all(lem in body_lemmas for lem in lemmas):
+                hits[t] += 1
+
+    matchable = []
+    stats = {}
+    for t in all_tags:
+        c = carriers[t]
+        h = hits[t]
+        ratio = (h / c) if c else 0.0
+        stats[t] = {'carriers': c, 'hits': h, 'ratio': round(ratio, 3)}
+        if c >= min_carriers and ratio >= min_ratio:
+            matchable.append(t)
+
+    return {'matchable': sorted(matchable), 'stats': stats}
+
+
+def _extract_frontmatter_tags(block: str) -> set[str]:
+    """Extract tag strings from a YAML frontmatter block.
+
+    Handles `tags: [a, b]`, scalar `tags: a`, and dash-list form. Mirrors the
+    parsing in the refresh endpoint so derivation and the whitelist agree.
+    Returns lowercased tags; numeric-only values are dropped.
+    """
+    tags: set[str] = set()
+    numeric_only_rx = _re.compile(r"^\d+$")
+    tags_key_rx = _re.compile(r"^tags:\s*(.+)$", _re.MULTILINE)
+    yaml_list_rx = _re.compile(r"\[(.*?)\]")
+
+    for m in tags_key_rx.finditer(block):
+        val = m.group(1).strip()
+        mlist = yaml_list_rx.search(val)
+        if mlist:
+            for item in mlist.group(1).split(','):
+                t = item.strip().strip('"\'').lstrip('-').lstrip('#').strip().lower()
+                if t and not numeric_only_rx.match(t):
+                    tags.add(t)
+        else:
+            t = val.strip().strip('"\'').lstrip('-').lstrip('#').strip().lower()
+            if t and not numeric_only_rx.match(t):
+                tags.add(t)
+
+    # Dash items directly under a `tags:` key.
+    if 'tags:' in block:
+        lines = block.splitlines()
+        for i, line in enumerate(lines):
+            if line.strip().startswith('tags:'):
+                j = i + 1
+                while j < len(lines) and lines[j].lstrip().startswith('-'):
+                    dm = _re.match(r"^\s*-\s*([A-Za-z][A-Za-z0-9/_-]*)\s*$", lines[j])
+                    if dm:
+                        t = dm.group(1).strip().lower()
+                        if t and not numeric_only_rx.match(t):
+                            tags.add(t)
+                    j += 1
+                break
+    return tags
+
+
+def match_tags_in_text(text: str, matchable: list[str], min_occurrences: int | None = None) -> list[str]:
+    """Rule B — return the matchable tags whose lemma occurs in `text` often enough.
+
+    A tag becomes a candidate when its lemma appears in the lemmatized
+    transcript >= min_occurrences times (default from settings). Multi-word tags
+    require EACH component lemma to clear the threshold.
+    """
+    if not text or not matchable:
+        return []
+    simplemma = _get_simplemma()
+
+    if min_occurrences is None:
+        tag_cfg = settings.get('enhancement.tagging') or {}
+        min_occurrences = int(tag_cfg.get('match_min_occurrences', 2))
+
+    # Count lemma frequencies in the transcript once.
+    from collections import Counter
+    lemma_counts = Counter(_lemmatize_tokens(simplemma, text))
+
+    out = []
+    for tag in matchable:
+        lemmas = _tag_lemmas(simplemma, tag)
+        if not lemmas:
+            continue
+        if all(lemma_counts.get(lem, 0) >= min_occurrences for lem in lemmas):
+            out.append(tag)
+    return out
+
+
+def extract_spoken_hashtags(text: str) -> list[str]:
+    """Return explicit #hashtags literally present in the text (high precision).
+
+    These are committed directly even if not in the vault list. Returns
+    lowercased tag words without the leading '#', numeric-only dropped,
+    de-duplicated preserving order.
+    """
+    if not text:
+        return []
+    seen = set()
+    out = []
+    for m in _re.finditer(r"(?<!\w)#([^\W\d_][\w\-/]*)", text, _re.UNICODE):
+        t = m.group(1).strip().lower()
+        if t and t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
+# =========================
 # Tag generation service
 # =========================
 
 def load_tag_whitelist() -> dict:
-    """Load the tag whitelist from disk. Raises ValueError on read failure."""
+    """Load the tag whitelist from disk. Raises ValueError on read failure.
+
+    The file may be the legacy shape ({version, count, tags}) or the enriched
+    shape that also carries a `matchable` list. Either is returned verbatim.
+    """
     cfg = settings.get('enhancement.obsidian') or {}
     wl_path = (Path(cfg.get('tags_whitelist_path') or '')).expanduser()
     try:
@@ -975,135 +1211,70 @@ def load_tag_whitelist() -> dict:
             return _json.loads(wl_path.read_text(encoding='utf-8', errors='ignore'))
     except Exception as e:
         raise ValueError(f"Failed to read whitelist: {e}")
-    return {'version': 1, 'count': 0, 'tags': []}
+    return {'version': 1, 'count': 0, 'tags': [], 'matchable': []}
 
 
 async def generate_tags_service(file_id: str) -> dict:
-    """
-    Generate tag suggestions using MLX. Returns suggestions only (does not persist the final selection).
-    Returns {'success': True, 'old': [...], 'new': [...], 'raw': str, ...}
+    """Generate tag suggestions deterministically from the vault-derived matchable
+    list — no LLM. Returns suggestions only (does not persist the final selection).
+
+    Return shape (unchanged for the frontend / batch_manager):
+      {'success': True, 'old': [...], 'new': [...], 'raw': str, ...}
+      - `old` = matched vault tags (candidates from the matchable list, rule B)
+      - `new` = spoken `#hashtag` tags not already present in the vault tag list
+
+    The text matched is `enhanced_copyedit or sanitised or transcript`.
     Raises ValueError for user-facing errors.
     """
     pf = status_tracker.get_file(file_id)
     if not pf:
         raise ValueError(f"File not found: {file_id}")
 
-    text = pf.sanitised or pf.transcript or ''
+    text = pf.enhanced_copyedit or pf.sanitised or pf.transcript or ''
     if not text:
-        raise ValueError("No text available for tagging (need sanitised or transcript)")
+        raise ValueError("No text available for tagging (need enhanced copy edit, sanitised or transcript)")
 
     wl_data = load_tag_whitelist()
-    wl_list = [str(t).strip() for t in wl_data.get('tags', []) if str(t).strip()]
-    wl = {t.lower(): t for t in wl_list}
-    if not wl:
-        raise ValueError("Whitelist is empty; refresh it in settings")
+    all_tags = {str(t).strip().lower() for t in wl_data.get('tags', []) if str(t).strip()}
+    # Prefer the enriched `matchable` subset; fall back to the full tag list for
+    # whitelists written before this feature existed.
+    matchable = [str(t).strip().lower() for t in wl_data.get('matchable', []) if str(t).strip()]
+    if not matchable and not all_tags:
+        raise ValueError("Tag whitelist is empty; refresh it in Settings > Enhancement.")
+    if not matchable:
+        logger.info(f"No 'matchable' subset in whitelist for {file_id}; falling back to full tag list. Refresh the whitelist to compute it.")
+        matchable = sorted(all_tags)
 
-    tag_cfg = settings.get('enhancement.tags') or {}
-    max_old = int(tag_cfg.get('max_old', 10))
-    max_new = int(tag_cfg.get('max_new', 5))
-    selection_criteria = (tag_cfg.get('selection_criteria') or '').strip()
+    tag_cfg = settings.get('enhancement.tagging') or {}
+    min_occ = int(tag_cfg.get('match_min_occurrences', 2))
 
-    allowed = "\n".join(f"- {t}" for t in wl_list)
-    criteria_block = (
-        f"SELECTION CRITERIA:\n{selection_criteria}\n\n"
-        if selection_criteria else ""
-    )
+    # Rule B: matchable vault tags whose lemma occurs >= min_occ times.
+    old_final = match_tags_in_text(text, matchable, min_occurrences=min_occ)
 
-    mlx_cfg = settings.get('enhancement.mlx') or {}
-    model_path = (mlx_cfg.get('model_path') or '').strip()
-    if not model_path:
-        raise ValueError("MLX model not selected. Set one in Settings > Enhancement.")
-    temperature = float(mlx_cfg.get('temperature', 0.6))
-    timeout = int(mlx_cfg.get('timeout_seconds', 40))
+    # Spoken/explicit #hashtags committed directly (high precision). Surface
+    # only the ones that aren't already known vault tags as "new".
+    spoken = extract_spoken_hashtags(text)
+    new_final = [t for t in spoken if t not in all_tags and t not in set(old_final)]
 
-    # ── Helper: parse a list of tags from LLM output ──
-    item_rx = _re.compile(r"^\s*(?:[-*]\s+|(?:\d+[.)]\s+))?#?\s*([A-Za-z][A-Za-z0-9_\-/]*)\s*$")
-
-    def parse_tags(raw_text: str) -> list[str]:
-        seen = set()
-        out = []
-        for line in raw_text.replace('\r', '\n').split('\n'):
-            m = item_rx.match(line)
-            if m:
-                t = m.group(1).strip()
-                tl = t.lower()
-                if tl and tl not in seen:
-                    seen.add(tl)
-                    out.append(t)
-        return out
-
-    # ── PASS 1: Select from whitelist ──
-    prompt_select = (
-        "You are selecting tags for a personal knowledge note.\n"
-        "Your ONLY job: pick the most relevant tags from the WHITELIST below.\n\n"
-        "TEXT:\n" + text + "\n\n"
-        + criteria_block
-        + "WHITELIST:\n" + allowed + "\n\n"
-        f"Select up to {max_old} tags from the WHITELIST that are relevant to the TEXT.\n"
-        "Copy them EXACTLY as written. Do NOT invent new tags.\n"
-        "If fewer are relevant, that is fine.\n\n"
-        "Output ONLY a list, one tag per line, prefixed with a dash:\n"
-        "- tag1\n- tag2\n"
-    )
-
-    logger.info(f"Pass 1: Selecting from {len(wl_list)} whitelist tags for {file_id}")
-    try:
-        raw_select = (generate_with_mlx(
-            prompt=prompt_select, input_text="",
-            model_path=model_path, max_tokens=200,
-            temperature=temperature, timeout_seconds=timeout
-        ) or '').strip()
-    except Exception as e:
-        raise ValueError(f"Tag selection failed: {e}")
-
-    old_parsed = parse_tags(raw_select)
-    old_final = []
-    old_rejected = []
-    for t in old_parsed:
-        tl = t.lower()
-        if tl in wl:
-            old_final.append(wl[tl])
-        else:
-            old_rejected.append(t)
-    if old_rejected:
-        logger.info(f"Pass 1 rejected (not in whitelist): {old_rejected}")
+    legacy_cap = settings.get('enhancement.tags') or {}
+    max_old = int(legacy_cap.get('max_old', 10))
+    max_new = int(legacy_cap.get('max_new', 5))
     if len(old_final) > max_old:
         old_final = old_final[:max_old]
-    logger.info(f"Pass 1 result: {len(old_final)} whitelist matches from {len(old_parsed)} parsed")
-
-    # ── PASS 2: Invent new tags ──
-    selected_str = ", ".join(old_final) if old_final else "(none)"
-    prompt_new = (
-        "You are inventing new tags for a personal knowledge note.\n"
-        "Tags already assigned: " + selected_str + "\n\n"
-        "TEXT:\n" + text + "\n\n"
-        f"Propose up to {max_new} NEW tags that would help categorise this text.\n"
-        "Tags must be lowercase, single-word or hyphenated (e.g. car-leasing).\n"
-        "Do NOT repeat any of the already-assigned tags.\n\n"
-        "Output ONLY a list, one tag per line, prefixed with a dash:\n"
-        "- newtag1\n- newtag2\n"
-    )
-
-    logger.info(f"Pass 2: Generating new tags for {file_id}")
-    try:
-        raw_new = (generate_with_mlx(
-            prompt=prompt_new, input_text="",
-            model_path=model_path, max_tokens=150,
-            temperature=temperature, timeout_seconds=timeout
-        ) or '').strip()
-    except Exception as e:
-        logger.warning(f"New tag generation failed: {e}")
-        raw_new = ""
-
-    new_parsed = parse_tags(raw_new)
-    # Filter out any that are already in whitelist or in selected
-    selected_lower = {t.lower() for t in old_final}
-    new_final = [t for t in new_parsed if t.lower() not in wl and t.lower() not in selected_lower]
     if len(new_final) > max_new:
         new_final = new_final[:max_new]
-    logger.info(f"Pass 2 result: {len(new_final)} new suggestions from {len(new_parsed)} parsed")
 
-    raw = f"--- PASS 1 (select) ---\n{raw_select}\n\n--- PASS 2 (invent) ---\n{raw_new}"
+    logger.info(
+        f"Deterministic tags for {file_id}: {len(old_final)} matched vault tags, "
+        f"{len(new_final)} spoken hashtags (min_occ={min_occ}, matchable_pool={len(matchable)})"
+    )
+
+    raw = (
+        f"--- matched vault tags (lemma occurs >= {min_occ}x) ---\n"
+        + ("\n".join(f"- {t}" for t in old_final) if old_final else "(none)")
+        + "\n\n--- spoken #hashtags ---\n"
+        + ("\n".join(f"- #{t}" for t in new_final) if new_final else "(none)")
+    )
 
     pf.tag_suggestions = {'old': old_final, 'new': new_final}
     status_tracker.save_file_status(file_id)
@@ -1113,7 +1284,7 @@ async def generate_tags_service(file_id: str) -> dict:
         'old': old_final,
         'new': new_final,
         'raw': raw,
-        'whitelist_count': len(wl_list),
-        'used_max_old': max_old,
-        'used_max_new': max_new,
+        'matchable_count': len(matchable),
+        'whitelist_count': len(all_tags),
+        'min_occurrences': min_occ,
     }

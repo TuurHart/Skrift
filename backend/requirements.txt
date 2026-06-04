@@ -5,3 +5,4 @@ psutil==5.9.6
 pydantic==2.5.0
 parakeet-mlx
 mlx-lm
+simplemma

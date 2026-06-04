@@ -87,6 +87,16 @@ DEFAULT_SETTINGS = {
             "max_old": 10,
             "max_new": 5,
             "selection_criteria": ""  # Optional free-text hint injected into the tag prompt
+        },
+        # Deterministic, vault-derived tag matching (no LLM).
+        "tagging": {
+            # Derivation (rule A): a vault tag is "matchable" if its lemma actually
+            # appears in the bodies of the notes that carry it, often enough.
+            "match_min_ratio": 0.3,       # min (notes-with-lemma / notes-carrying-tag)
+            "match_min_carriers": 2,      # min number of notes that must carry the tag
+            # Matching (rule B): a matchable tag becomes a candidate if its lemma
+            # appears in the transcript at least this many times.
+            "match_min_occurrences": 2,
         }
     },
     

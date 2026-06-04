@@ -224,9 +224,13 @@ async def get_tag_whitelist():
 async def refresh_tag_whitelist():
     """
     Scan the configured Obsidian vault (read-only) and rebuild the tag whitelist.
-    - Reads tags from YAML frontmatter (tags: [...]) and inline #tags.
+    - Reads tags from YAML frontmatter (tags: [...]).
     - Excludes numeric-only and code-block tags; requires a letter.
-    - Writes to enhancement.obsidian.tags_whitelist_path.
+    - Also computes the "matchable" subset (rule A): tags whose lemma actually
+      appears in the prose of the notes carrying them — i.e. topic words, not
+      structural labels like #to-process. Used by deterministic tag matching.
+    - Writes an enriched file {version, count, tags, matchable} to
+      enhancement.obsidian.tags_whitelist_path.
     """
     cfg = app_settings.get('enhancement.obsidian') or {}
     vault = (Path(cfg.get('vault_path') or '')).expanduser()
@@ -292,19 +296,48 @@ async def refresh_tag_whitelist():
                         j += 1
                     break
 
-    data = { 'version': 1, 'count': len(tags), 'tags': sorted(tags) }
+    # Rule A: compute the "matchable" subset — tags whose lemma actually appears
+    # in the prose of the notes that carry them (topic words, not structural
+    # labels like #to-process). This is a second read-only pass over the vault.
+    matchable = []
+    match_stats = {}
+    try:
+        from services.enhancement import derive_matchable_tags
+        derived = derive_matchable_tags(vault, set(tags))
+        matchable = derived.get('matchable', [])
+        match_stats = derived.get('stats', {})
+    except ValueError as e:
+        # simplemma missing — keep the whitelist usable (tags only), surface the reason.
+        _logger.warning(f"Matchable derivation skipped: {e}")
+    except Exception as e:
+        _logger.warning(f"Matchable derivation failed (non-fatal): {e}")
+
+    data = {
+        'version': 2,
+        'count': len(tags),
+        'tags': sorted(tags),           # kept for back-compat
+        'matchable': matchable,         # rule-A topic subset (used by the matcher)
+        'matchable_count': len(matchable),
+    }
     try:
         wl_path.parent.mkdir(parents=True, exist_ok=True)
         wl_path.write_text(_json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to write whitelist: {e}")
 
-    return { 'success': True, 'count': len(tags), 'path': str(wl_path), 'scanned_files': scanned }
+    return {
+        'success': True,
+        'count': len(tags),
+        'matchable_count': len(matchable),
+        'path': str(wl_path),
+        'scanned_files': scanned,
+    }
 
 @router.post("/tags/generate/{file_id}")
 async def generate_tags(file_id: str, body: dict = None):
     """
-    Generate tag suggestions using MLX. Returns suggestions only (does not persist the final selection).
+    Generate tag suggestions deterministically from the vault-derived matchable
+    list (no LLM). Returns suggestions only (does not persist the final selection).
     """
     try:
         return await generate_tags_service(file_id)
