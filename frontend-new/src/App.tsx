@@ -155,15 +155,27 @@ export default function App() {
     } catch (err) { console.error('Title save failed:', err) }
   }, [file, replaceFile])
 
-  // ── Tag remove ─────────────────────────────────────────────
-  const handleTagRemove = useCallback(async (tag: string) => {
+  // ── Tags change (add / remove from the properties block) ───
+  const handleTagsChange = useCallback(async (tags: string[]) => {
     if (!file) return
-    const updated_tags = (file.enhanced_tags ?? []).filter(t => t !== tag)
+    const id = file.id
+    patchFile(id, { enhanced_tags: tags }) // optimistic so the chip updates instantly
     try {
-      const updated = await api.setTags(file.id, updated_tags)
+      const updated = await api.setTags(id, tags)
       replaceFile(updated)
-    } catch (err) { console.error('Tag remove failed:', err) }
-  }, [file, replaceFile])
+    } catch (err) { console.error('Tags change failed:', err) }
+  }, [file, patchFile, replaceFile])
+
+  // ── Significance save (review slider) ──────────────────────
+  const handleSignificanceSave = useCallback(async (value: number) => {
+    if (!file) return
+    const id = file.id
+    patchFile(id, { significance: value })
+    try {
+      const updated = await api.setSignificance(id, value)
+      replaceFile(updated)
+    } catch (err) { console.error('Significance save failed:', err) }
+  }, [file, patchFile, replaceFile])
 
   // ── Transcribe trigger (from NoteBody placeholder) ─────────
   const handleTranscribe = useCallback(async () => {
@@ -197,7 +209,8 @@ export default function App() {
         onTranscribe={file ? handleTranscribe : undefined}
         onBodySave={handleBodySave}
         onTitleSave={handleTitleSave}
-        onTagRemove={handleTagRemove}
+        onTagsChange={handleTagsChange}
+        onSignificanceSave={handleSignificanceSave}
         onSeek={handleSeek}
       />
 

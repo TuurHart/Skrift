@@ -62,7 +62,8 @@ interface NoteDisplayProps {
   onTranscribe?: () => void
   onBodySave: (text: string, field: 'copyedit' | 'sanitised' | 'transcript') => void
   onTitleSave: (title: string) => void
-  onTagRemove: (tag: string) => void
+  onTagsChange: (tags: string[]) => void
+  onSignificanceSave: (value: number) => void
   onSeek?: (time: number) => void
 }
 
@@ -80,7 +81,8 @@ export function NoteDisplay({
   onTranscribe,
   onBodySave,
   onTitleSave,
-  onTagRemove,
+  onTagsChange,
+  onSignificanceSave,
   onSeek,
 }: NoteDisplayProps) {
   const [audioCollapsed, setAudioCollapsed] = useState(false)
@@ -128,7 +130,8 @@ export function NoteDisplay({
               file={file}
               author={settings.author || undefined}
               onTitleSave={onTitleSave}
-              onTagRemove={onTagRemove}
+              onTagsChange={onTagsChange}
+              onSignificanceSave={onSignificanceSave}
             />
 
             {/* Photo from mobile capture */}

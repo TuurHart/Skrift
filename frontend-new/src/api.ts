@@ -245,6 +245,12 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
     })
     return res.file
   },
+  async setSignificance(fileId: string, significance: number | null): Promise<PipelineFile> {
+    const res = await fetchJSON<{ success: boolean; significance: number | null; file: PipelineFile }>(`/api/process/enhance/significance/${fileId}`, {
+      method: 'POST', body: JSON.stringify({ significance }),
+    })
+    return res.file
+  },
   async triggerCompile(fileId: string): Promise<void> {
     await fetchJSON<unknown>(`/api/process/enhance/compile/${fileId}`, { method: 'POST' })
   },
