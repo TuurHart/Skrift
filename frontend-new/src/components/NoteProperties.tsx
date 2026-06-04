@@ -63,7 +63,7 @@ function SignificanceSlider({ value, onSave }: { value: number | null; onSave: (
 
 // ── Tags ────────────────────────────────────────────────────
 
-function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string[]) => void }) {
+function TagEditor({ tags, suggestions, onChange }: { tags: string[]; suggestions: string[]; onChange: (next: string[]) => void }) {
   const [adding, setAdding] = useState(false)
   const [query, setQuery] = useState('')
   const [whitelist, setWhitelist] = useState<string[]>([])
@@ -112,6 +112,18 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (next: string
           #{tag}
           <button onClick={() => onChange(tags.filter(t => t !== tag))} className="opacity-50 hover:opacity-100 text-[9px] leading-none transition-opacity" aria-label={`Remove ${tag}`}>&times;</button>
         </span>
+      ))}
+
+      {/* One-tap suggestions from the auto-run (vault matches + spoken #hashtags) */}
+      {suggestions.map(s => (
+        <button
+          key={s}
+          onClick={() => onChange([...tags, s])}
+          className="text-[11px] text-text-secondary bg-white/[0.03] border border-dashed border-border/[0.2] px-2.5 py-[3px] rounded-full hover:text-accent hover:border-accent/40 hover:bg-accent/[0.06] transition-colors"
+          title="Add suggested tag"
+        >
+          + #{s}
+        </button>
       ))}
 
       <div className="relative" ref={popRef}>
@@ -283,6 +295,12 @@ export function NoteProperties({ file, author, onTitleSave, onTagsChange, onSign
     { key: 'daylight', label: 'daylight', value: daylightStr },
   ].filter(r => r.value)
 
+  // Applied tags + auto-run suggestions (deduped, minus already-applied)
+  const appliedTags = file.enhanced_tags ?? []
+  const tagSuggestions = [...(file.tag_suggestions?.old ?? []), ...(file.tag_suggestions?.new ?? [])]
+    .filter((t, i, a) => a.indexOf(t) === i)
+    .filter(t => !appliedTags.includes(t))
+
   // Offer the chooser only when the LLM suggestion exists and differs from the
   // recording's own name; otherwise a single editable title.
   const suggested = (file.title_suggested ?? '').trim()
@@ -321,8 +339,8 @@ export function NoteProperties({ file, author, onTitleSave, onTagsChange, onSign
       {/* Significance slider */}
       <SignificanceSlider value={file.significance} onSave={onSignificanceSave} />
 
-      {/* Tags */}
-      <TagEditor tags={file.enhanced_tags ?? []} onChange={onTagsChange} />
+      {/* Tags + one-tap suggestions */}
+      <TagEditor tags={appliedTags} suggestions={tagSuggestions} onChange={onTagsChange} />
     </div>
   )
 }

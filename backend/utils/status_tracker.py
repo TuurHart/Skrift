@@ -274,7 +274,9 @@ class StatusTracker:
             pf.enhanced_summary = summary
         if tags is not None:
             pf.enhanced_tags = tags
-            pf.tag_suggestions = None  # Clear suggestions when tags are applied
+            # Keep tag_suggestions intact — the review UI applies them one tap at a
+            # time and hides already-applied ones; clearing all on the first apply
+            # would wipe the remaining suggestion chips. Re-processing overwrites them.
         pf.lastModified = datetime.now()
         pf.lastActivityAt = datetime.now()
         self.save_file_status(file_id)
