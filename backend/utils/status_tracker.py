@@ -4,6 +4,7 @@ Manages file processing status using JSON files
 """
 
 import json
+import os
 import uuid
 import threading
 from collections import defaultdict
@@ -349,8 +350,15 @@ class StatusTracker:
             data['lastActivityAt'] = data['lastActivityAt'].isoformat()
         
         with self._locks[file_id]:
-            with open(status_file, 'w') as f:
+            # Atomic write: serialise to a temp file in the same directory, then
+            # os.replace() it into place. A crash mid-write can no longer corrupt
+            # status.json (the single source of truth for all pipeline state).
+            tmp_file = status_file.with_name(status_file.name + ".tmp")
+            with open(tmp_file, 'w') as f:
                 json.dump(data, f, indent=2, default=str)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_file, status_file)
     
     def get_processing_queue(self) -> List[PipelineFile]:
         """Get files that are currently being processed"""

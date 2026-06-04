@@ -52,7 +52,10 @@ _cors_origins.append("*")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
-    allow_credentials=True,
+    # No cookies/auth are used (localhost + LAN mobile sync), so credentials are
+    # disabled. This keeps the wildcard origin spec-valid instead of the invalid
+    # "*" + allow_credentials=True combination that browsers reject.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
