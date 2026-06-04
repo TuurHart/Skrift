@@ -10,6 +10,7 @@ import { Inspector } from './features/Inspector'
 import { Settings } from './features/Settings'
 import { SetupWizard } from './features/SetupWizard'
 import { FindBar } from '@/components/FindBar'
+import { Toaster } from '@/components/ui/sonner'
 
 interface Token {
   text: string
@@ -225,6 +226,8 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+
+      <Toaster />
     </div>
   )
 }

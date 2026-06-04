@@ -24,18 +24,15 @@ function Section({ title, done, disabled, children }: { title: string; done: boo
 
 function Btn({ label, onClick, loading, disabled, small, full, danger }: { label: string; onClick?: () => void; loading?: boolean; disabled?: boolean; small?: boolean; full?: boolean; danger?: boolean }) {
   return (
-    <button
+    <Button
       onClick={onClick}
       disabled={loading || disabled}
-      className={cn(
-        'rounded-md font-medium transition-all duration-150 disabled:opacity-60 active:scale-[0.98]',
-        small ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-[12px]',
-        full && 'w-full',
-        danger ? 'bg-destructive text-white hover:opacity-90' : 'bg-accent text-white hover:bg-accent/90 hover:shadow-md hover:shadow-accent/20',
-      )}
+      variant={danger ? 'destructive' : 'default'}
+      size={small ? 'sm' : 'default'}
+      className={cn(full && 'w-full')}
     >
       {loading ? <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : label}
-    </button>
+    </Button>
   )
 }
 
