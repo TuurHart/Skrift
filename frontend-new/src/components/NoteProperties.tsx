@@ -1,18 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { formatDuration } from '@/lib/format'
 import type { PipelineFile } from '@/types/pipeline'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-function formatDuration(raw: string | undefined): string {
-  if (!raw) return ''
-  const parts = raw.split(':').map(Number)
-  if (parts.length === 3) {
-    const [h, m, s] = parts
-    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`
-  }
-  return raw
 }
 function sourceLabel(t: string | null) {
   if (t === 'audio') return 'Voice memo'

@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import type { PipelineFile } from '@/types/pipeline'
 import { AddNameModal } from './AddNameModal'
 import { API_BASE } from '@/api'
+import { formatDuration } from '@/lib/format'
 
 // Lightbox for click-to-enlarge images
 function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
@@ -23,16 +24,6 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
       <img src={src} alt={alt} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8 }} />
     </div>
   )
-}
-
-function formatDuration(raw: string | undefined): string {
-  if (!raw) return ''
-  const parts = raw.split(':').map(Number)
-  if (parts.length === 3) {
-    const [h, m, s] = parts
-    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`
-  }
-  return raw
 }
 
 export function getBestText(file: PipelineFile): string | null {

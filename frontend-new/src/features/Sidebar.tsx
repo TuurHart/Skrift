@@ -7,6 +7,7 @@ import { useFiles, useCurrentBatch, FILES_KEY, CURRENT_BATCH_KEY } from '@/hooks
 import type { PipelineFile } from '@/types/pipeline'
 import { StepDots } from '@/components/StepDots'
 import { SystemStatus } from '@/components/SystemStatus'
+import { formatDuration } from '@/lib/format'
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -22,20 +23,6 @@ function formatDate(iso: string): string {
     month: '2-digit',
     year: 'numeric',
   })
-}
-
-function formatDuration(raw: string | undefined): string {
-  if (!raw) return ''
-  // Backend returns "HH:MM:SS" — strip leading zero hours
-  const parts = raw.split(':').map(Number)
-  if (parts.length === 3) {
-    const [h, m, s] = parts
-    if (h > 0) {
-      return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-    }
-    return `${m}:${String(s).padStart(2, '0')}`
-  }
-  return raw
 }
 
 function isComplete(file: PipelineFile): boolean {
