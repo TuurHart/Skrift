@@ -6,7 +6,6 @@ import type { PipelineFile } from '@/types/pipeline'
 import type { AppSettings } from '@/hooks/useSettings'
 import { DisambiguationModal } from '@/components/DisambiguationModal'
 import { TagSuggestions } from '@/components/TagSuggestions'
-import { ChatInput } from '@/components/ChatInput'
 import type { Ambiguity } from '@/api'
 
 // ── Section wrapper ────────────────────────────────────────
@@ -78,8 +77,6 @@ interface InspectorProps {
   file: PipelineFile
   settings: AppSettings
   onFileUpdate: (f: PipelineFile) => void
-  onChatUpdate: (text: string, streaming: boolean) => void
-  onChatStopRef: (stopFn: (() => void) | null) => void
   exportPreviewActive: boolean
   onToggleExportPreview: () => void
   /** Whichever file is currently mid-enhancement, or null. Polled in App. */
@@ -88,7 +85,7 @@ interface InspectorProps {
   onSelectFile?: (id: string) => void
 }
 
-export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatStopRef, exportPreviewActive, onToggleExportPreview, runningEnhanceFile, onSelectFile }: InspectorProps) {
+export function Inspector({ file, settings, onFileUpdate, exportPreviewActive, onToggleExportPreview, runningEnhanceFile, onSelectFile }: InspectorProps) {
   // Three-way enhancement state derived from the polled running file:
   //   - this file is running       → show progress, allow cancel
   //   - some other file is running → lock controls, show banner
@@ -115,9 +112,6 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
   const copyeditSSE = useSSE()
   const summarySSE = useSSE()
 
-  // Chat SSE
-  const chatSSE = useSSE()
-
   // Selected enhancement model — fetch once so the running banner can name it.
   // Stored on the component (not a hook into settings) since settings doesn't
   // currently track the selected model.
@@ -134,22 +128,6 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
     return () => { cancelled = true }
   }, [])
 
-  // Sync chat state up to App
-  useEffect(() => {
-    onChatUpdate(chatSSE.text, chatSSE.streaming)
-  }, [chatSSE.text, chatSSE.streaming, onChatUpdate])
-
-  // Expose stop function to App (for cleanup on file switch)
-  useEffect(() => {
-    onChatStopRef(chatSSE.streaming ? chatSSE.stop : null)
-    return () => onChatStopRef(null)
-  }, [chatSSE.streaming, chatSSE.stop, onChatStopRef])
-
-  function handleChatSend(message: string) {
-    chatSSE.start(
-      (cbs) => api.startChatStream(file.id, message, cbs),
-    )
-  }
   const [generatingTags, setGeneratingTags] = useState(false)
   const [applyingTags, setApplyingTags] = useState(false)
   const [pendingTags, setPendingTags] = useState<string[]>([])
@@ -463,7 +441,7 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
 
   // Lock controls when this file is mid-stream OR when *any other* file is.
   // The latter is RAM safety: only one MLX session at a time.
-  const anyEnhancing = titleSSE.streaming || copyeditSSE.streaming || summarySSE.streaming || generatingTags || chatSSE.streaming || isOtherRunning
+  const anyEnhancing = titleSSE.streaming || copyeditSSE.streaming || summarySSE.streaming || generatingTags || isOtherRunning
 
   const tagSuggestions = localTagSuggestions
 
@@ -755,22 +733,6 @@ export function Inspector({ file, settings, onFileUpdate, onChatUpdate, onChatSt
             <Btn label={exportPreviewActive ? 'Back to note' : 'Preview'} onClick={onToggleExportPreview} small />
             <Btn label={exporting ? '' : file.steps.export === 'done' ? 'Re-export' : 'Export'} loading={exporting} onClick={() => void handleExportDirect()} small />
           </div>
-        </div>
-      </Section>
-
-      {/* ── Ask AI ── */}
-      <Section title="Ask AI" done={false} disabled={!file.transcript && !file.sanitised && !file.enhanced_copyedit}>
-        <div className="space-y-2">
-          <div className="text-[11px] text-text-muted">Ask a question about this note</div>
-          {chatSSE.error && (
-            <div className="text-[11px] text-destructive">{formatEnhanceError(chatSSE.error)}</div>
-          )}
-          <ChatInput
-            disabled={anyEnhancing && !chatSSE.streaming}
-            streaming={chatSSE.streaming}
-            onSend={handleChatSend}
-            onStop={chatSSE.stop}
-          />
         </div>
       </Section>
 

@@ -311,34 +311,6 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
     return () => es.close()
   },
 
-  // Chat — ask AI about the note (SSE stream, same pattern as enhancement)
-  startChatStream(
-    fileId: string,
-    message: string,
-    callbacks: { onToken: (t: string) => void; onDone: (full: string) => void; onError: (msg: string) => void },
-  ): () => void {
-    const url = `${API_BASE}/api/chat/stream/${fileId}?message=${encodeURIComponent(message)}`
-    const es = new EventSource(url)
-    let accumulated = ''
-
-    es.addEventListener('token', (e) => {
-      accumulated += (e as MessageEvent).data
-      callbacks.onToken((e as MessageEvent).data)
-    })
-    es.addEventListener('done', () => {
-      es.close()
-      callbacks.onDone(accumulated)
-    })
-    es.addEventListener('error', (e) => {
-      es.close()
-      try { callbacks.onError(JSON.parse((e as MessageEvent).data).message) }
-      catch { callbacks.onError('Chat failed') }
-    })
-    es.onerror = () => { es.close(); callbacks.onError('Connection failed') }
-
-    return () => es.close()
-  },
-
   // Export
   async getCompiledMarkdown(fileId: string): Promise<CompiledMarkdown> {
     return fetchJSON<CompiledMarkdown>(`/api/process/export/compiled/${fileId}`)

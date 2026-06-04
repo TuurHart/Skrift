@@ -6,7 +6,6 @@ import { NoteProperties } from '@/components/NoteProperties'
 import { NoteBody, getBestText } from '@/components/NoteBody'
 import { KaraokeText } from '@/components/KaraokeText'
 import { AudioPlayer } from '@/components/AudioPlayer'
-import { ChatPanel } from '@/components/ChatPanel'
 import { ExportPreview } from '@/components/ExportPreview'
 import { api } from '@/api'
 
@@ -57,11 +56,7 @@ interface NoteDisplayProps {
   currentTime: number
   tokens: Token[]
   seekTo?: { time: number; seq: number } | null
-  chatText?: string
-  chatStreaming?: boolean
   exportPreviewContent?: string | null
-  onChatDismiss?: () => void
-  onChatAppend?: () => void
   onPlayPause: (v: boolean) => void
   onTimeUpdate: (t: number) => void
   onTranscribe?: () => void
@@ -79,11 +74,7 @@ export function NoteDisplay({
   currentTime,
   tokens,
   seekTo,
-  chatText,
-  chatStreaming,
   exportPreviewContent,
-  onChatDismiss,
-  onChatAppend,
   onPlayPause,
   onTimeUpdate,
   onTranscribe,
@@ -104,7 +95,6 @@ export function NoteDisplay({
   const isCapture = file.source_type === 'capture'
   const hasAudio = !!file.audioMetadata?.duration
   const showAudioPlayer = transcribeDone && !isAppleNote && (!isCapture || hasAudio)
-  const showChat = !!(chatText || chatStreaming)
   const showExportPreview = !!exportPreviewContent
 
   return (
@@ -115,8 +105,8 @@ export function NoteDisplay({
       />
 
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Note content area — scrollable, shrinks when chat panel is open */}
-        <div className={`overflow-y-auto relative ${showChat ? 'flex-1 min-h-0' : 'flex-1'}`}>
+        {/* Note content area — scrollable */}
+        <div className="overflow-y-auto relative flex-1">
           {/* Sticky audio player at top of scroll area */}
           {showAudioPlayer && (
             <div className="sticky top-0 z-10 bg-bg px-10 pt-4 pb-3">
@@ -244,16 +234,6 @@ export function NoteDisplay({
             )}
           </div>
         </div>
-
-        {/* Chat response panel — split pane at bottom */}
-        {showChat && onChatDismiss && onChatAppend && (
-          <ChatPanel
-            text={chatText || ''}
-            streaming={chatStreaming || false}
-            onDismiss={onChatDismiss}
-            onAppend={onChatAppend}
-          />
-        )}
       </div>
     </div>
   )
