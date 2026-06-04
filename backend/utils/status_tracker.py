@@ -66,7 +66,26 @@ class StatusTracker:
                             data = json.load(f)
                             # Construct model
                             pipeline_file = PipelineFile(**data)
-                            
+
+                            # Heal stale 'processing' steps. No work survives a
+                            # backend restart, so any step persisted mid-run is a
+                            # phantom that would spin/lock the UI forever. Demote
+                            # to a real state (enhance → done when the auto-parts
+                            # are present, else pending).
+                            _healed = False
+                            for _step in ("transcribe", "sanitise", "export"):
+                                if getattr(pipeline_file.steps, _step) == ProcessingStatus.PROCESSING:
+                                    setattr(pipeline_file.steps, _step, ProcessingStatus.PENDING)
+                                    _healed = True
+                            if pipeline_file.steps.enhance == ProcessingStatus.PROCESSING:
+                                _parts = bool(
+                                    (pipeline_file.enhanced_copyedit or '').strip()
+                                    and (pipeline_file.enhanced_title or '').strip()
+                                    and (pipeline_file.enhanced_summary or '').strip()
+                                )
+                                pipeline_file.steps.enhance = ProcessingStatus.DONE if _parts else ProcessingStatus.PENDING
+                                _healed = True
+
                             # Backfill compiled_text from compiled.md if not yet in status.json
                             if not pipeline_file.compiled_text:
                                 compiled_md = file_folder / "compiled.md"
@@ -82,6 +101,8 @@ class StatusTracker:
                             # Validate that the actual audio file exists
                             if Path(pipeline_file.path).exists():
                                 self._files[pipeline_file.id] = pipeline_file
+                                if _healed:
+                                    self.save_file_status(pipeline_file.id)
                             else:
                                 print(f"Warning: Audio file not found, removing orphaned entry: {pipeline_file.path}")
                                 # Clean up orphaned status file
