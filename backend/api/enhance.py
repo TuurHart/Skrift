@@ -224,13 +224,9 @@ async def get_tag_whitelist():
 async def refresh_tag_whitelist():
     """
     Scan the configured Obsidian vault (read-only) and rebuild the tag whitelist.
-    - Reads tags from YAML frontmatter (tags: [...]).
-    - Excludes numeric-only and code-block tags; requires a letter.
-    - Also computes the "matchable" subset (rule A): tags whose lemma actually
-      appears in the prose of the notes carrying them — i.e. topic words, not
-      structural labels like #to-process. Used by deterministic tag matching.
-    - Writes an enriched file {version, count, tags, matchable} to
-      enhancement.obsidian.tags_whitelist_path.
+    - Reads tag NAMES from YAML frontmatter only (never note bodies).
+    - Excludes numeric-only tags; requires a letter.
+    - Writes {version, count, tags} to enhancement.obsidian.tags_whitelist_path.
     """
     cfg = app_settings.get('enhancement.obsidian') or {}
     vault = (Path(cfg.get('vault_path') or '')).expanduser()
@@ -296,28 +292,10 @@ async def refresh_tag_whitelist():
                         j += 1
                     break
 
-    # Rule A: compute the "matchable" subset — tags whose lemma actually appears
-    # in the prose of the notes that carry them (topic words, not structural
-    # labels like #to-process). This is a second read-only pass over the vault.
-    matchable = []
-    match_stats = {}
-    try:
-        from services.enhancement import derive_matchable_tags
-        derived = derive_matchable_tags(vault, set(tags))
-        matchable = derived.get('matchable', [])
-        match_stats = derived.get('stats', {})
-    except ValueError as e:
-        # simplemma missing — keep the whitelist usable (tags only), surface the reason.
-        _logger.warning(f"Matchable derivation skipped: {e}")
-    except Exception as e:
-        _logger.warning(f"Matchable derivation failed (non-fatal): {e}")
-
     data = {
-        'version': 2,
+        'version': 1,
         'count': len(tags),
-        'tags': sorted(tags),           # kept for back-compat
-        'matchable': matchable,         # rule-A topic subset (used by the matcher)
-        'matchable_count': len(matchable),
+        'tags': sorted(tags),
     }
     try:
         wl_path.parent.mkdir(parents=True, exist_ok=True)
@@ -328,7 +306,6 @@ async def refresh_tag_whitelist():
     return {
         'success': True,
         'count': len(tags),
-        'matchable_count': len(matchable),
         'path': str(wl_path),
         'scanned_files': scanned,
     }

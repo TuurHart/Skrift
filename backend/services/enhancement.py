@@ -1215,12 +1215,12 @@ def load_tag_whitelist() -> dict:
 
 
 async def generate_tags_service(file_id: str) -> dict:
-    """Generate tag suggestions deterministically from the vault-derived matchable
-    list — no LLM. Returns suggestions only (does not persist the final selection).
+    """Generate tag suggestions deterministically from the vault tag list — no LLM.
+    Returns suggestions only (does not persist the final selection).
 
     Return shape (unchanged for the frontend / batch_manager):
       {'success': True, 'old': [...], 'new': [...], 'raw': str, ...}
-      - `old` = matched vault tags (candidates from the matchable list, rule B)
+      - `old` = vault tags whose word the user actually said often enough
       - `new` = spoken `#hashtag` tags not already present in the vault tag list
 
     The text matched is `enhanced_copyedit or sanitised or transcript`.
@@ -1236,20 +1236,14 @@ async def generate_tags_service(file_id: str) -> dict:
 
     wl_data = load_tag_whitelist()
     all_tags = {str(t).strip().lower() for t in wl_data.get('tags', []) if str(t).strip()}
-    # Prefer the enriched `matchable` subset; fall back to the full tag list for
-    # whitelists written before this feature existed.
-    matchable = [str(t).strip().lower() for t in wl_data.get('matchable', []) if str(t).strip()]
-    if not matchable and not all_tags:
+    if not all_tags:
         raise ValueError("Tag whitelist is empty; refresh it in Settings > Enhancement.")
-    if not matchable:
-        logger.info(f"No 'matchable' subset in whitelist for {file_id}; falling back to full tag list. Refresh the whitelist to compute it.")
-        matchable = sorted(all_tags)
 
     tag_cfg = settings.get('enhancement.tagging') or {}
     min_occ = int(tag_cfg.get('match_min_occurrences', 2))
 
-    # Rule B: matchable vault tags whose lemma occurs >= min_occ times.
-    old_final = match_tags_in_text(text, matchable, min_occurrences=min_occ)
+    # Suggest vault tags whose word (lemma) the user actually said >= min_occ times.
+    old_final = match_tags_in_text(text, sorted(all_tags), min_occurrences=min_occ)
 
     # Spoken/explicit #hashtags committed directly (high precision). Surface
     # only the ones that aren't already known vault tags as "new".
@@ -1266,7 +1260,7 @@ async def generate_tags_service(file_id: str) -> dict:
 
     logger.info(
         f"Deterministic tags for {file_id}: {len(old_final)} matched vault tags, "
-        f"{len(new_final)} spoken hashtags (min_occ={min_occ}, matchable_pool={len(matchable)})"
+        f"{len(new_final)} spoken hashtags (min_occ={min_occ}, vault_tags={len(all_tags)})"
     )
 
     raw = (
@@ -1284,7 +1278,6 @@ async def generate_tags_service(file_id: str) -> dict:
         'old': old_final,
         'new': new_final,
         'raw': raw,
-        'matchable_count': len(matchable),
         'whitelist_count': len(all_tags),
         'min_occurrences': min_occ,
     }
