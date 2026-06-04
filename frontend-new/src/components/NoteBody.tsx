@@ -73,6 +73,10 @@ export function NoteBody({ file, onTranscribe, onBodySave }: NoteBodyProps) {
   const divRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastFileId = useRef<string | null>(null)
+  // Race guard: true from the first keystroke until the server echoes our save.
+  // While dirty, an in-flight refetch must never overwrite the editor.
+  const dirtyRef = useRef(false)
+  const lastSentRef = useRef<string | null>(null)
 
   // Selection toolbar state
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number } | null>(null)
@@ -132,14 +136,19 @@ export function NoteBody({ file, onTranscribe, onBodySave }: NoteBodyProps) {
   useEffect(() => {
     if (!divRef.current) return
     const switching = lastFileId.current !== file.id
+    // Once the server echoes our last save, stop guarding.
+    if (dirtyRef.current && bestText === lastSentRef.current) dirtyRef.current = false
     const focused = document.activeElement === divRef.current
-    if (switching || !focused) {
+    // Never clobber the editor while the user is typing OR while a local edit
+    // is still unsaved — a stale in-flight refetch must not revert keystrokes.
+    if (switching || (!focused && !dirtyRef.current)) {
       if (hasImages) {
         divRef.current.innerHTML = textToHtml(bestText ?? '', file.id)
       } else {
         divRef.current.innerText = bestText ?? ''
       }
       lastFileId.current = file.id
+      if (switching) { dirtyRef.current = false; lastSentRef.current = null }
     }
   }, [file.id, bestText]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -164,10 +173,12 @@ export function NoteBody({ file, onTranscribe, onBodySave }: NoteBodyProps) {
   }
 
   const scheduleSave = useCallback(() => {
+    dirtyRef.current = true
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       if (!divRef.current) return
       const text = hasImages ? extractTextWithMarkers(divRef.current) : (divRef.current.innerText ?? '')
+      lastSentRef.current = text
       const field = file.enhanced_copyedit != null ? 'copyedit' : file.sanitised != null ? 'sanitised' : 'transcript'
       onBodySave(text, field)
     }, 1500)
