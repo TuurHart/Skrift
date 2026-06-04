@@ -184,26 +184,6 @@ def stream_with_mlx(prompt: str, input_text: str, model_path: str, max_tokens: i
     # Compute effective max tokens (dynamic budget if enabled)
     eff_max = _effective_max_tokens(input_text, max_tokens, hf_tok)
 
-    # VLM path — use mlx_vlm.stream_generate (vision encoder runs once, then streams tokens)
-    if cache.is_vlm():
-        from mlx_vlm import stream_generate as vlm_stream
-        for chunk in vlm_stream(
-            model,
-            tokenizer,
-            prompt=final_prompt,
-            image=None,
-            max_tokens=eff_max,
-            temp=float(temperature),
-        ):
-            if isinstance(chunk, str):
-                if chunk:
-                    yield chunk
-            else:
-                piece = getattr(chunk, 'text', None)
-                if piece:
-                    yield piece
-        return
-
     # Build sampling kwargs (read from settings, filter to what this version supports)
     from config.settings import settings as _stream_settings
     _stream_mlx_cfg = _stream_settings.get('enhancement.mlx') or {}
@@ -288,31 +268,22 @@ def generate_with_mlx(prompt: str, input_text: str, model_path: str, max_tokens:
             from config.settings import settings as _gen_settings
             _gen_mlx_cfg = _gen_settings.get('enhancement.mlx') or {}
 
-            if cache.is_vlm():
-                from mlx_vlm import generate as vlm_generate
-                r = vlm_generate(
-                    model, tokenizer,
-                    prompt=final_prompt, image=None, verbose=False,
-                    max_tokens=eff_max, temp=float(temperature),
-                )
-                result_box['output'] = r.text if hasattr(r, 'text') else str(r)
-            else:
-                base_kwargs = {
-                    "max_tokens": eff_max,
-                    "temperature": float(temperature),
-                    "verbose": False,
-                    "stop": None,
-                    "top_p": float(_gen_mlx_cfg.get('top_p', 0.95)),
-                    "top_k": int(_gen_mlx_cfg.get('top_k', 50)),
-                    "repetition_penalty": float(_gen_mlx_cfg.get('repetition_penalty', 1.0)),
-                }
-                gen_kwargs = _filter_generate_kwargs(generate, base_kwargs)
-                try:
-                    result_box['output'] = generate(model, tokenizer, prompt=final_prompt, **gen_kwargs)
-                except TypeError:
-                    safe_kwargs = {k: v for k, v in gen_kwargs.items()
-                                   if k in ("max_tokens", "temperature", "temp", "verbose", "stop")}
-                    result_box['output'] = generate(model, tokenizer, prompt=final_prompt, **safe_kwargs)
+            base_kwargs = {
+                "max_tokens": eff_max,
+                "temperature": float(temperature),
+                "verbose": False,
+                "stop": None,
+                "top_p": float(_gen_mlx_cfg.get('top_p', 0.95)),
+                "top_k": int(_gen_mlx_cfg.get('top_k', 50)),
+                "repetition_penalty": float(_gen_mlx_cfg.get('repetition_penalty', 1.0)),
+            }
+            gen_kwargs = _filter_generate_kwargs(generate, base_kwargs)
+            try:
+                result_box['output'] = generate(model, tokenizer, prompt=final_prompt, **gen_kwargs)
+            except TypeError:
+                safe_kwargs = {k: v for k, v in gen_kwargs.items()
+                               if k in ("max_tokens", "temperature", "temp", "verbose", "stop")}
+                result_box['output'] = generate(model, tokenizer, prompt=final_prompt, **safe_kwargs)
         except Exception as e:
             result_box['error'] = e
 

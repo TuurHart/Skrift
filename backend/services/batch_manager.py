@@ -674,11 +674,12 @@ class BatchManager:
             self.current_batch["updated_at"] = datetime.now().isoformat()
             self._save_state()
             
-            # Broadcast step start — include has_images so frontend knows vision pipeline is active
+            # Broadcast step start — include has_images so frontend knows the
+            # marker-aware copy-edit (photo markers) runs for this file
             from services.enhancement import _get_image_manifest
             _has_imgs = _get_image_manifest(file_id) is not None
             await self.broadcast("start", {"file_id": file_id, "step": "copy_edit", "has_images": _has_imgs})
-            logger.info(f"📡 Broadcasted 'start' event for Copy Edit (vision={_has_imgs}). Active SSE clients: {len(self._stream_clients)}")
+            logger.info(f"📡 Broadcasted 'start' event for Copy Edit (has_images={_has_imgs}). Active SSE clients: {len(self._stream_clients)}")
             
             try:
                 logger.info(f"Running Copy Edit for {file_id}")
@@ -843,8 +844,8 @@ class BatchManager:
         token_count = 0
         
         try:
-            # Create the streaming generator — pass step_name so vision pipeline
-            # activates for copy_edit on files with timestamped images
+            # Create the streaming generator — pass step_name so the marker-aware
+            # copy-edit activates for copy_edit on files with timestamped images
             generator = generate_enhancement_stream(file_id, input_text, prompt, step=step_name)
 
             # Consume the streaming generator
@@ -869,9 +870,6 @@ class BatchManager:
                     await self.broadcast("token", data_text)
                     if token_count % 10 == 0:  # Log every 10th token to avoid spam
                         logger.debug(f"📡 Broadcasted token #{token_count} for {file_id} ({step_name})")
-                elif event_type == 'vision_start':
-                    # Broadcast per-image progress during hybrid vision pipeline
-                    await self.broadcast("vision", {"file_id": file_id, "image": data_text})
                 elif event_type == 'stats':
                     # Forward token budget stats to batch clients
                     import json as _stats_json
