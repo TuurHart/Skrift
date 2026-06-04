@@ -799,56 +799,10 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
 # Compile / Auto-compile
 # =========================
 
-async def score_importance_for_file(file_id: str):
-    """Score importance and persist to status.json. Call after summary, before tags."""
-    pf = status_tracker.get_file(file_id)
-    if not pf:
-        return
-    text = pf.enhanced_copyedit or pf.sanitised or pf.transcript or ''
-    if not text:
-        return
-    score = _score_importance(text)
-    if score is not None:
-        pf.significance = score
-        status_tracker.save_file_status(file_id)
-        logger.info(f"Importance scored for {file_id}: {score}")
-
-
 def _all_enhancement_parts_present(pf) -> bool:
     """Return True when tags have been applied — tags are the final user-confirmed step.
     Title, copy edit and summary are compiled if present but are not required to trigger compile."""
     return bool(pf.enhanced_tags or [])
-
-
-def _score_importance(text: str) -> float | None:
-    """Ask the LLM to rate personal significance of the text (0.0-1.0).
-
-    Returns None if the model is unavailable or the output can't be parsed.
-    """
-    prompt = settings.get('enhancement.prompts.importance')
-    if not prompt:
-        return None
-    mlx_cfg = settings.get('enhancement.mlx') or {}
-    # Use the lighter text model — importance scoring is a trivial task
-    model_path = _resolve_text_model_path(mlx_cfg)
-    if not model_path:
-        return None
-    try:
-        raw = generate_with_mlx(
-            prompt=prompt,
-            input_text=text[:2000],  # cap input to keep it fast
-            model_path=model_path,
-            max_tokens=8,
-            temperature=0.1,  # deterministic
-            timeout_seconds=15,
-        )
-        # Extract the first float-like number from the output
-        m = _re.search(r'(0(?:\.\d+)?|1(?:\.0+)?)', raw.strip())
-        if m:
-            return round(float(m.group(1)), 2)
-    except Exception as e:
-        logger.warning(f"Importance scoring failed for {text[:30]}…: {e}")
-    return None
 
 
 async def compile_file(file_id: str) -> dict:

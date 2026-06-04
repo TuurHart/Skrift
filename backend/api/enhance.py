@@ -8,7 +8,7 @@ Handles all enhancement-related endpoints including:
 - MLX model management (list, upload, delete, select)
 """
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from pathlib import Path
 import json as _json
@@ -25,7 +25,6 @@ from services.enhancement import (
     auto_compile_if_complete,
     load_tag_whitelist,
     generate_tags_service,
-    score_importance_for_file,
     request_enhance_cancel,
 )
 from config.settings import settings as app_settings
@@ -34,13 +33,6 @@ router = APIRouter()
 
 import asyncio, logging
 _logger = logging.getLogger(__name__)
-
-async def _score_importance_bg(file_id: str):
-    """Background task: score importance while user picks tags."""
-    try:
-        await score_importance_for_file(file_id)
-    except Exception as e:
-        _logger.warning(f"Background importance scoring failed for {file_id}: {e}")
 
 # =========================
 # Enhancement Core APIs
@@ -171,16 +163,37 @@ async def set_enhance_copyedit(file_id: str, body: dict):
     return { 'success': True, 'file': status_tracker.get_file(file_id) }
 
 @router.post("/summary/{file_id}")
-async def set_enhance_summary(background_tasks: BackgroundTasks, file_id: str, body: dict):
+async def set_enhance_summary(file_id: str, body: dict):
     summary = str(body.get('summary') or '')
     pf = status_tracker.get_file(file_id)
     if not pf:
         raise HTTPException(status_code=404, detail="File not found")
     status_tracker.set_enhancement_fields(file_id, summary=summary)
     await _auto_compile_if_complete(file_id)
-    # Score importance in background while user picks tags
-    background_tasks.add_task(_score_importance_bg, file_id)
     return { 'success': True, 'file': status_tracker.get_file(file_id) }
+
+@router.post("/significance/{file_id}")
+async def set_enhance_significance(file_id: str, body: dict):
+    """Set the user's personal significance score (0.0-1.0), or null to clear.
+
+    Significance is set by the user via the review slider — it is no longer
+    scored by the LLM.
+    """
+    pf = status_tracker.get_file(file_id)
+    if not pf:
+        raise HTTPException(status_code=404, detail="File not found")
+    val = body.get('significance')
+    if val is not None:
+        try:
+            val = round(float(val), 2)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="'significance' must be a number 0.0-1.0 or null")
+        if not (0.0 <= val <= 1.0):
+            raise HTTPException(status_code=400, detail="'significance' must be between 0.0 and 1.0")
+    pf.significance = val
+    status_tracker.save_file_status(file_id)
+    await _auto_compile_if_complete(file_id)
+    return { 'success': True, 'significance': val, 'file': status_tracker.get_file(file_id) }
 
 @router.post("/tags/{file_id}")
 async def set_enhance_tags(file_id: str, body: dict):
