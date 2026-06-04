@@ -14,7 +14,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Request
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 
 from models import PipelineFile, UploadResponse, TitleApprovalStatus
-from utils.status_tracker import status_tracker
+from utils.status_tracker import status_tracker, clear_transcript_derived
 from config.settings import get_input_folder, get_output_folder, get_file_output_folder, settings
 
 router = APIRouter()
@@ -1069,17 +1069,8 @@ async def reset_file(file_id: str):
             pipeline_file.transcript = saved_transcript
             pipeline_file.steps.transcribe = ProcessingStatus.DONE
 
-        # Clear all downstream content
-        pipeline_file.sanitised = None
-        pipeline_file.ambiguous_names = None
-        pipeline_file.enhanced_copyedit = None
-        pipeline_file.enhanced_summary = None
-        pipeline_file.enhanced_title = None
-        pipeline_file.enhanced_tags = None
-        pipeline_file.tag_suggestions = None
-        pipeline_file.exported = None
-        pipeline_file.compiled_text = None
-        pipeline_file.title_approval_status = None
+        # Clear all transcript-derived content (single shared invalidation list)
+        clear_transcript_derived(pipeline_file)
 
         # Clear error information
         pipeline_file.error = None

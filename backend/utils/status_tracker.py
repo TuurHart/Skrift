@@ -31,6 +31,16 @@ _TRANSCRIPT_DERIVED_FIELDS = (
 )
 
 
+def clear_transcript_derived(pf) -> None:
+    """Clear every field derived from the transcript (sanitise / enhance /
+    compile outputs). Single source of truth for cascade-invalidation — used by
+    the re-transcribe cascade and both reset endpoints so they can never drift.
+    Does NOT touch `transcript` itself or the user-set `significance`; callers
+    decide whether to clear those."""
+    for field in _TRANSCRIPT_DERIVED_FIELDS:
+        setattr(pf, field, None)
+
+
 class StatusTracker:
     """Manages file processing status using JSON files"""
 
@@ -157,8 +167,7 @@ class StatusTracker:
                 # a content-bleed bug). This prevents wrong sanitised/enhanced data
                 # from silently persisting and polluting later pipeline steps.
                 if (pipeline_file.sanitised or '').strip() or pipeline_file.compiled_text:
-                    for field in _TRANSCRIPT_DERIVED_FIELDS:
-                        setattr(pipeline_file, field, None)
+                    clear_transcript_derived(pipeline_file)
                     pipeline_file.steps.sanitise = ProcessingStatus.PENDING
                     pipeline_file.steps.enhance = ProcessingStatus.PENDING
                     pipeline_file.steps.export = ProcessingStatus.PENDING
@@ -278,18 +287,9 @@ class StatusTracker:
             return False
         pf = self._files[file_id]
 
+        clear_transcript_derived(pf)
         pf.transcript = None
-        pf.sanitised = None
-        pf.ambiguous_names = None
-        pf.exported = None
-        pf.enhanced_title = None
-        pf.title_approval_status = None
-        pf.enhanced_copyedit = None
-        pf.enhanced_summary = None
-        pf.enhanced_tags = None
-        pf.tag_suggestions = None
-        pf.compiled_text = None
-        pf.significance = None
+        pf.significance = None  # user-set; a fresh transcript invalidates the old rating
 
         pf.steps.transcribe = ProcessingStatus.PENDING
         pf.steps.sanitise = ProcessingStatus.PENDING

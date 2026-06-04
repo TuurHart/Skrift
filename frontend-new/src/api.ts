@@ -327,11 +327,6 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
   },
 
   // Batch
-  async startTranscribeBatch(fileIds: string[], force = false): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
-    return fetchJSON<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }>('/api/batch/transcribe/start', {
-      method: 'POST', body: JSON.stringify({ file_ids: fileIds, force }),
-    })
-  },
   async getCurrentBatch(): Promise<CurrentBatchResponse> {
     return fetchJSON<CurrentBatchResponse>('/api/batch/current')
   },
@@ -340,11 +335,6 @@ async uploadFiles(files: File[], conversationMode = false, folderPaths: string[]
   },
   async cancelEnhance(fileId: string): Promise<{ success: boolean; was_active: boolean }> {
     return fetchJSON<{ success: boolean; was_active: boolean }>(`/api/process/enhance/${fileId}/cancel`, { method: 'POST' })
-  },
-  async startEnhanceBatch(fileIds: string[]): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
-    return fetchJSON<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }>('/api/batch/enhance/start', {
-      method: 'POST', body: JSON.stringify({ file_ids: fileIds }),
-    })
   },
   // Canonical pipeline: transcribe → enhance → name-link → compile → Ready.
   async startRun(fileIds: string[]): Promise<{ success: boolean; message: string; batch: { batch_id: string; [k: string]: unknown } }> {
