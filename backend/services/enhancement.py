@@ -551,6 +551,13 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
         if _pf:
             _prior_enhance_status = _pf.steps.enhance
             status_tracker.update_file_status(file_id, 'enhance', ProcessingStatus.PROCESSING)
+            # Expose which step is running so the Inspector can show stage
+            # info even when the local SSE isn't attached (background mode).
+            # Normalise to one of: title / copy_edit / summary / tags.
+            _step_norm = (step or '').lower().replace(' ', '_').replace('-', '_')
+            if _step_norm in ('title', 'copy_edit', 'copyedit', 'summary', 'tags'):
+                _pf.enhance_step = 'copy_edit' if _step_norm == 'copyedit' else _step_norm
+                status_tracker.save_file_status(file_id)
     except Exception:
         pass
 
@@ -858,6 +865,14 @@ async def generate_enhancement_stream(file_id: str, input_text: str, prompt: str
                 pf = status_tracker.get_file(file_id)
                 if pf and pf.steps.enhance == ProcessingStatus.PROCESSING:
                     status_tracker.update_file_status(file_id, 'enhance', _prior_enhance_status)
+        except Exception:
+            pass
+        # Clear the transient step indicator regardless of outcome.
+        try:
+            pf = status_tracker.get_file(file_id)
+            if pf and pf.enhance_step is not None:
+                pf.enhance_step = None
+                status_tracker.save_file_status(file_id)
         except Exception:
             pass
 

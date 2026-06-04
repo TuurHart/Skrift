@@ -61,6 +61,13 @@ class PipelineFile(BaseModel):
     enhanced_tags: Optional[List[str]] = Field(None, description="Selected tags from whitelist for this file")
     tag_suggestions: Optional[Dict[str, List[str]]] = Field(None, description="Tag suggestions awaiting user approval: {'old': [...], 'new': [...]}" )
 
+    # Transient: which enhancement step is currently streaming for this file.
+    # Set by generate_enhancement_stream when a step starts, cleared when it
+    # ends (or on cancel). Polled by the frontend so the Inspector can show
+    # the active step even when the local SSE isn't attached (e.g. user
+    # switched tabs mid-stream).
+    enhance_step: Optional[str] = Field(None, description="Currently streaming enhance step: 'title' | 'copy_edit' | 'summary' | 'tags' | None")
+
     # Personal significance score (0.0–1.0) from LLM
     significance: Optional[float] = Field(None, description="Personal significance score (0.0-1.0) rated by LLM")
 

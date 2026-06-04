@@ -76,6 +76,8 @@ export interface PipelineFile {
   enhanced_summary: string | null
   enhanced_tags: string[] | null
   tag_suggestions: Record<string, string[]> | null
+  /** Currently streaming enhance step (transient). Null when idle. */
+  enhance_step: 'title' | 'copy_edit' | 'summary' | 'tags' | null
   source_type: 'audio' | 'note' | 'capture' | null
   compiled_text: string | null
   include_audio_in_export: boolean | null
