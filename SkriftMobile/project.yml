@@ -1,0 +1,62 @@
+name: SkriftMobile
+options:
+  bundleIdPrefix: com.skrift
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+targets:
+  SkriftMobile:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Skrift
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        NSMicrophoneUsageDescription: "Skrift records audio to transcribe your speech. Recording only happens when you trigger it."
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        CFBundleURLTypes:
+          - CFBundleURLName: com.skrift.mobile
+            CFBundleURLSchemes:
+              - skrift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+
+  SkriftMobileUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: SkriftMobileUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.uitests
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - target: SkriftMobile
+
+schemes:
+  SkriftMobile:
+    build:
+      targets:
+        SkriftMobile: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SkriftMobileUITests
