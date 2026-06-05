@@ -119,14 +119,10 @@ export async function syncMemo(memo: Memo, host: string, port: number): Promise<
 
     // Pre-made transcript from on-device Parakeet. Only send if we actually
     // have one; the backend treats missing transcript as "do it yourself".
+    // Name-linking is NOT done on-device — the Mac links names from the trusted
+    // transcript and resolves ambiguities at its review step.
     if (memo.transcriptStatus === 'done' && memo.transcript) {
       formData.append('transcript', memo.transcript);
-    }
-
-    // Pre-sanitised transcript (name-linked). Backend only honors this if the
-    // transcript was trusted — see backend/api/files.py.
-    if (memo.sanitiseStatus === 'done' && memo.sanitised) {
-      formData.append('sanitised', memo.sanitised);
     }
 
     // Add timestamped photos from recording (multi-image manifest)
@@ -231,8 +227,8 @@ export async function syncAllPending(): Promise<SyncResult> {
   const reachable = await checkMacHealth(conn.host, conn.port);
   if (!reachable) return { synced: 0, failed: 0, total: 0 };
 
-  // Sync names FIRST — bidirectional last-write-wins merge. Sanitise on the
-  // phone (and on the Mac) reads names, so getting the latest list before
+  // Sync names FIRST — bidirectional last-write-wins merge. The Mac links
+  // names from the trusted transcript, so getting the latest list before
   // memos upload means anything just-added on either side is in scope.
   try {
     const namesResult = await syncNames(conn.host, conn.port);

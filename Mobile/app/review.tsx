@@ -26,8 +26,6 @@ import * as haptics from '../lib/haptics';
 import Parakeet from '../modules/parakeet';
 import { startTranscription } from '../lib/transcribe';
 import { TranscriptView } from '../components/TranscriptView';
-import { sanitise, type Ambiguity } from '../lib/sanitise';
-import { DisambiguationModal } from '../components/DisambiguationModal';
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -99,12 +97,6 @@ export default function ReviewScreen() {
     return unsub;
   }, []);
 
-  // Sanitise / name linking state. Runs after transcription completes.
-  const [sanitisedText, setSanitisedText] = useState<string>('');
-  const [sanitiseStatus, setSanitiseStatus] = useState<'pending' | 'running' | 'done' | 'ambiguous' | 'failed'>('pending');
-  const [ambiguities, setAmbiguities] = useState<Ambiguity[]>([]);
-  const sanitiseEditedRef = useRef(false);
-
   // Read timestamped photos from shared ref (set by _layout.tsx on stop) — must
   // happen BEFORE transcription so the manifest is available when we transcribe.
   useEffect(() => {
@@ -157,60 +149,6 @@ export default function ReviewScreen() {
       cancelled = true;
     };
   }, [uri]);
-
-  // Run sanitise (name linking) once the transcript is ready and the user
-  // hasn't already manually edited the sanitised text. We re-run if they
-  // edit the upstream transcript so the linked output stays in sync.
-  useEffect(() => {
-    if (transcriptStatus !== 'done' || !transcriptText) return;
-    if (sanitiseEditedRef.current) return; // user is editing — don't clobber
-    let cancelled = false;
-    setSanitiseStatus('running');
-    (async () => {
-      try {
-        const r = await sanitise(transcriptText);
-        if (cancelled) return;
-        if (r.status === 'ambiguous') {
-          setAmbiguities(r.occurrences);
-          setSanitiseStatus('ambiguous');
-        } else {
-          setSanitisedText(r.result);
-          setSanitiseStatus('done');
-        }
-      } catch {
-        if (cancelled) return;
-        setSanitiseStatus('failed');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [transcriptText, transcriptStatus]);
-
-  async function handleResolveDisambiguation(decisions: Record<string, string>) {
-    setSanitiseStatus('running');
-    setAmbiguities([]);
-    try {
-      const r = await sanitise(transcriptText, decisions);
-      if (r.status === 'ambiguous') {
-        // Shouldn't happen — decisions cover them. Bail to manual edit.
-        setSanitisedText(transcriptText);
-        setSanitiseStatus('failed');
-      } else {
-        setSanitisedText(r.result);
-        setSanitiseStatus('done');
-      }
-    } catch {
-      setSanitiseStatus('failed');
-    }
-  }
-
-  function handleCancelDisambiguation() {
-    // User skipped — fall back to using the raw transcript as-is.
-    setSanitisedText(transcriptText);
-    setSanitiseStatus('done');
-    setAmbiguities([]);
-  }
 
   const hasTimestampedPhotos = capturedPhotos.length > 0;
 
@@ -456,14 +394,6 @@ export default function ReviewScreen() {
         ? { text: '', status: 'failed' as const }
         : { text: '', status: transcriptStatus };
 
-    // Sanitised payload — only include if it actually completed. If the user
-    // never resolved an ambiguity we drop sanitised so the Mac runs its own
-    // sanitise step (it has the full names DB).
-    const sanitisedInput =
-      sanitiseStatus === 'done' && sanitisedText
-        ? { text: sanitisedText, status: 'done' as const, userEdited: sanitiseEditedRef.current }
-        : null;
-
     try {
       const saved = await saveMemo(
         uri,
@@ -473,7 +403,6 @@ export default function ReviewScreen() {
         photoUri,
         capturedPhotos,
         transcriptInput,
-        sanitisedInput,
       );
       // If transcription hasn't finished yet, hand it off to the background queue
       // so it completes after the user leaves the Review screen.
@@ -680,8 +609,7 @@ export default function ReviewScreen() {
           {/* Transcript */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              Transcript{sanitiseStatus === 'running' ? ' · linking names…' : ''}
-              {sanitiseStatus === 'ambiguous' ? ' · pick names below' : ''}
+              Transcript
             </Text>
             {transcriptStatus === 'transcribing' || transcriptStatus === 'pending' ? (
               <View style={styles.metaLoading}>
@@ -700,17 +628,10 @@ export default function ReviewScreen() {
               <Text style={styles.metaEmpty}>Transcription failed — Mac will transcribe on sync</Text>
             ) : (
               <TranscriptView
-                // Show sanitised text when available — that's what gets saved.
-                // Falls back to raw transcript while sanitise is still running.
-                text={sanitiseStatus === 'done' ? sanitisedText : transcriptText}
+                text={transcriptText}
                 onChangeText={(t) => {
-                  if (sanitiseStatus === 'done') {
-                    sanitiseEditedRef.current = true;
-                    setSanitisedText(t);
-                  } else {
-                    transcriptEditedRef.current = true;
-                    setTranscriptText(t);
-                  }
+                  transcriptEditedRef.current = true;
+                  setTranscriptText(t);
                 }}
                 imageUris={
                   capturedPhotos.length > 0
@@ -754,13 +675,6 @@ export default function ReviewScreen() {
           </Text>
         </Pressable>
       </KeyboardAvoidingView>
-
-      <DisambiguationModal
-        visible={sanitiseStatus === 'ambiguous' && ambiguities.length > 0}
-        occurrences={ambiguities}
-        onResolve={handleResolveDisambiguation}
-        onCancel={handleCancelDisambiguation}
-      />
     </SafeAreaView>
   );
 }

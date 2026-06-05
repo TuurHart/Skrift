@@ -18,7 +18,6 @@ export type SharedContent = {
 };
 
 export type TranscriptStatus = 'pending' | 'transcribing' | 'done' | 'failed';
-export type SanitiseStatus = 'pending' | 'done' | 'ambiguous' | 'failed';
 
 export type WordTiming = { word: string; start: number; end: number };
 
@@ -39,11 +38,8 @@ export type Memo = {
   transcriptUserEdited?: boolean;
   /** True when the transcript already contains `[[img_NNN]]` markers (from the native module). */
   transcriptMarkersInjected?: boolean;
-  /** Word-level timings from FluidAudio, kept for re-sanitise / future karaoke. */
+  /** Word-level timings from FluidAudio, kept for future karaoke. */
   wordTimings?: WordTiming[];
-  /** Sanitised (name-linked) transcript. Same string with `[[Person Name]]` substitutions. */
-  sanitised?: string;
-  sanitiseStatus?: SanitiseStatus;
 };
 
 const memosFile = new File(Paths.document, 'memos.json');
@@ -96,7 +92,7 @@ export async function updateMemoSyncStatus(memoId: string, status: 'waiting' | '
  */
 export async function updateMemoTranscript(
   memoId: string,
-  patch: Partial<Pick<Memo, 'transcript' | 'transcriptStatus' | 'transcriptConfidence' | 'transcriptUserEdited' | 'transcriptMarkersInjected' | 'wordTimings' | 'sanitised' | 'sanitiseStatus'>>,
+  patch: Partial<Pick<Memo, 'transcript' | 'transcriptStatus' | 'transcriptConfidence' | 'transcriptUserEdited' | 'transcriptMarkersInjected' | 'wordTimings'>>,
 ): Promise<void> {
   const memos = await loadMemos();
   const idx = memos.findIndex((m) => m.id === memoId);
@@ -165,12 +161,6 @@ export type TranscriptInput = {
   markersInjected?: boolean;
 };
 
-export type SanitisedInput = {
-  text: string;
-  status: SanitiseStatus;
-  userEdited?: boolean;
-};
-
 export async function saveMemo(
   tempUri: string,
   duration: number,
@@ -179,7 +169,6 @@ export async function saveMemo(
   photoUri?: string | null,
   photos?: CapturedPhoto[],
   transcriptInput?: TranscriptInput | null,
-  sanitisedInput?: SanitisedInput | null,
 ): Promise<Memo> {
   ensureRecordingsDir();
 
@@ -218,8 +207,6 @@ export async function saveMemo(
     transcriptUserEdited: transcriptInput?.userEdited,
     transcriptMarkersInjected: transcriptInput?.markersInjected,
     wordTimings: transcriptInput?.wordTimings,
-    sanitised: sanitisedInput?.text,
-    sanitiseStatus: sanitisedInput?.status,
   };
 
   const memos = await loadMemos();

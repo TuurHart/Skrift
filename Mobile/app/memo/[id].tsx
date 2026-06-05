@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, Pressable, Alert, Image, ScrollView, Linking, M
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Paths } from 'expo-file-system';
-import { getMemo, deleteMemo, updateMemoTranscript, type Memo } from '../../lib/storage';
-import { sanitise } from '../../lib/sanitise';
+import { getMemo, deleteMemo, type Memo } from '../../lib/storage';
 import { usePlayback } from '../../hooks/usePlayback';
 import { useTheme } from '../../contexts/ThemeContext';
 import * as haptics from '../../lib/haptics';
@@ -408,33 +407,12 @@ export default function MemoDetailScreen() {
           </View>
         </View> : null}
 
-        {/* Transcript + re-sanitise */}
+        {/* Transcript */}
         {memo.transcript && (
           <View style={styles.section}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={styles.sectionTitle}>Transcript</Text>
-              <Pressable
-                onPress={async () => {
-                  if (!memo.transcript) return;
-                  const r = await sanitise(memo.transcript);
-                  if (r.status === 'done') {
-                    await updateMemoTranscript(memo.id, { sanitised: r.result, sanitiseStatus: 'done' });
-                    setMemo({ ...memo, sanitised: r.result, sanitiseStatus: 'done' });
-                    Alert.alert('Re-sanitised', 'Transcript re-linked against current names.');
-                  } else {
-                    Alert.alert('Names need a pick', 'There are ambiguous names — open the memo on Review to resolve, or edit on the Mac.');
-                  }
-                }}
-                style={({ pressed }) => [
-                  { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: theme.accent + '20' },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={{ color: theme.accent, fontSize: 12, fontWeight: '600' }}>Re-sanitise</Text>
-              </Pressable>
-            </View>
+            <Text style={styles.sectionTitle}>Transcript</Text>
             <Text style={[styles.metaValue, { marginTop: 8, lineHeight: 22 }]} numberOfLines={20}>
-              {memo.sanitised || memo.transcript}
+              {memo.transcript}
             </Text>
           </View>
         )}

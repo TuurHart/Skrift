@@ -4,7 +4,7 @@
 
 iPhone companion app for the Skrift desktop pipeline. Captures voice memos with contextual metadata (location, weather, pressure, daylight, steps, photos) and either:
 - syncs raw audio to the Mac for processing, or
-- transcribes + sanitises on-device first (Parakeet TDT v3 via FluidAudio on the Apple Neural Engine), then syncs the finished text. The Mac picks up at whichever pipeline stage is left.
+- transcribes on-device first (Parakeet TDT v3 via FluidAudio on the Apple Neural Engine), then syncs the finished text. The Mac picks up at whichever pipeline stage is left. **Name-linking is NOT done on-device** — the Mac links names from the trusted transcript and resolves ambiguities at its review step.
 
 The phone and Mac share a names database via bidirectional last-write-wins sync.
 
@@ -57,9 +57,9 @@ app/
 │   ├── index.tsx            # Memos list (FlatList, pull-to-refresh, long-press delete)
 │   ├── record.tsx           # Recording screen (live timer, metering, camera, photos)
 │   └── settings.tsx         # Settings (Mac connection, Names, weather, prompts, theme...)
-├── review.tsx               # Post-recording review (transcript + sanitise + photos + tags)
+├── review.tsx               # Post-recording review (transcript + photos + tags)
 └── memo/
-    └── [id].tsx             # Memo detail (playback, transcript, re-sanitise, sync status)
+    └── [id].tsx             # Memo detail (playback, transcript, sync status)
 ```
 
 ### Core modules
@@ -70,8 +70,7 @@ app/
 | Recording | `hooks/useRecording.ts` | Wraps `useAudioRecorder`, exposes start/stop/duration/metering/pause |
 | Playback | `hooks/usePlayback.ts` | Wraps `useAudioPlayer` |
 | Transcribe | `lib/transcribe.ts` | Background queue around the native module; per-memo serial |
-| Names store | `lib/names.ts` | Local copy of names.json + bidirectional sync (last-write-wins, tombstones) |
-| Sanitise | `lib/sanitise.ts` | TS port of `backend/services/sanitisation.py` — name-linking with disambiguation |
+| Names store | `lib/names.ts` | Local copy of names.json + bidirectional sync (last-write-wins, tombstones). Carries `voiceEmbeddings` for diarization. |
 | Sync | `lib/sync.ts` | Multipart upload to Mac. Runs `syncNames` first, then memos. |
 | Parakeet | `modules/parakeet/` | Native Expo module wrapping FluidAudio. JS bridge in `index.ts`, Swift in `ios/ParakeetModule.swift` |
 | Colors | `constants/colors.ts` | Dark + light tokens matching the desktop app |
@@ -98,10 +97,6 @@ type Memo = {
   transcriptUserEdited?: boolean;
   transcriptMarkersInjected?: boolean; // tells the Mac not to re-inject
   wordTimings?: WordTiming[];          // [{word, start, end}]
-
-  // On-device sanitise (name linking)
-  sanitised?: string;
-  sanitiseStatus?: 'pending' | 'done' | 'ambiguous' | 'failed';
 };
 ```
 
@@ -113,7 +108,7 @@ Names stored separately as `Paths.document/names.json` (canonical schema mirrors
 
 1. **Names sync first** — bidirectional last-write-wins merge by canonical name. Cheap pre-check via `GET /api/names/meta` skips the heavy round-trip when nothing changed.
 2. **Reconcile** — query `GET /api/files/` for memos already on the backend, mark them locally as synced (handles stale state after IP changes).
-3. **Per-memo upload** — wait for any pending on-device transcription, then `POST /api/files/upload` with audio + photos + metadata + (if available) `transcript` + `sanitised`. Mac upload handler trusts those when `transcriptUserEdited === true` OR `transcriptConfidence >= 0.7`.
+3. **Per-memo upload** — wait for any pending on-device transcription, then `POST /api/files/upload` with audio + photos + metadata + (if available) `transcript`. Mac upload handler trusts the transcript when `transcriptUserEdited === true` OR `transcriptConfidence >= 0.7`, then runs its own name-linking.
 
 ### On-device transcription pipeline
 
@@ -125,13 +120,9 @@ Names stored separately as `Paths.document/names.json` (canonical schema mirrors
 
 JS surface: `import Parakeet from '../modules/parakeet'` exposes `isAvailable`, `isModelReady`, `downloadModel`, `transcribe(uri, manifest?)`, and `onDownloadProgress(cb)`.
 
-### Sanitise (`lib/sanitise.ts`)
+### Name-linking is Mac-side (no on-device sanitise)
 
-Direct TS port of the Python algorithm. Same defaults: linking mode `first` (only the first occurrence becomes `[[Canonical]]`, subsequent mentions become the unbracketed short name); whole-word matching; preserve `'s` possessives; skip matches inside `[[...]]` (so the photo markers are safe). Returns `{status: 'done', result}` or `{status: 'ambiguous', occurrences}` for the disambiguation modal.
-
-### Disambiguation (`components/DisambiguationModal.tsx`)
-
-Mobile port of desktop's `DisambiguationModal.tsx`. Bottom sheet with grouped occurrences ("Alex × 3 mentions"), per-row candidate buttons, plus "All → X" shortcut for the common case. Resolved decisions feed back into `sanitise(text, decisions)` for the second pass.
+The phone does **not** link names. It sends the trusted transcript and the Mac runs its (now non-blocking) name-linking: unambiguous aliases auto-link to `[[Canonical]]`, ambiguous ones are left plain and resolved at the Mac's review step. `lib/sanitise.ts` and `components/DisambiguationModal.tsx` were removed in the 2026-06 mobile overhaul (matching the desktop overhaul). The names DB still syncs — it feeds the Mac's linker and the diarization voice profiles (`voiceEmbeddings`).
 
 ### Names UI (`components/NamesList.tsx`)
 
