@@ -35,6 +35,7 @@ type ParakeetNativeModule = {
   transcribe(audioUri: string, imageManifestJson: string | null): Promise<TranscribeResult>;
   isModelReady(): Promise<boolean>;
   downloadModel(): Promise<void>;
+  unloadModel(): Promise<void>;
   addListener(eventName: string): void;
   removeListeners(count: number): void;
 };
@@ -67,6 +68,15 @@ export const Parakeet = {
     const n = getNative();
     if (!n) throw new Error('Parakeet native module not available');
     await n.downloadModel();
+  },
+
+  /** Release the in-memory ASR model (~600 MB) to relieve memory pressure. The
+   *  model reloads from the on-disk cache on the next transcribe. No-op while a
+   *  transcription is in flight. Safe to call anytime. */
+  async unloadModel(): Promise<void> {
+    const n = getNative();
+    if (!n) return;
+    await n.unloadModel();
   },
 
   /**

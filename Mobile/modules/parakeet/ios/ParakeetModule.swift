@@ -1,6 +1,8 @@
 import ExpoModulesCore
 import Foundation
 import FluidAudio
+import AVFoundation
+import UIKit
 
 // On-device ASR via FluidAudio (Parakeet TDT v3 0.6B, multilingual —
 // supports Dutch / English and 23 other European languages).
@@ -32,14 +34,41 @@ public class ParakeetModule: Module {
   private var asr: AsrManager?
   private var models: AsrModels?
   private var loadTask: Task<Void, Error>?
+  private var isTranscribing = false
+  private var memoryWarningObserver: NSObjectProtocol?
 
   public func definition() -> ModuleDefinition {
     Name("ParakeetModule")
 
     Events("downloadProgress")
 
+    // Free the ~600 MB ASR model under memory pressure so iOS doesn't jetsam
+    // the app. It reloads from the on-disk cache on the next transcribe.
+    OnCreate {
+      self.memoryWarningObserver = NotificationCenter.default.addObserver(
+        forName: UIApplication.didReceiveMemoryWarningNotification,
+        object: nil,
+        queue: .main
+      ) { [weak self] _ in
+        self?.teardown()
+      }
+    }
+
+    OnDestroy {
+      if let obs = self.memoryWarningObserver {
+        NotificationCenter.default.removeObserver(obs)
+        self.memoryWarningObserver = nil
+      }
+    }
+
     AsyncFunction("isModelReady") { () -> Bool in
       return self.asr != nil
+    }
+
+    // Explicit unload from JS (e.g. when the model won't be needed for a while).
+    // No-op while a transcription is in flight.
+    AsyncFunction("unloadModel") { () -> Void in
+      self.teardown()
     }
 
     AsyncFunction("downloadModel") { (promise: Promise) in
@@ -56,6 +85,8 @@ public class ParakeetModule: Module {
     AsyncFunction("transcribe") { (audioUri: String, imageManifestJson: String?, promise: Promise) in
       Task {
         do {
+          self.isTranscribing = true
+          defer { self.isTranscribing = false }
           try await self.ensureLoaded()
           guard let asr = self.asr else {
             throw NSError(domain: "Parakeet", code: 1, userInfo: [NSLocalizedDescriptionKey: "ASR not loaded"])
@@ -69,9 +100,31 @@ public class ParakeetModule: Module {
             url = URL(fileURLWithPath: audioUri)
           }
 
+          // Mean audio energy, used by the silence/phantom guard below.
+          let rms = Self.averageRMS(url: url)
+
           let started = Date()
           let result = try await asr.transcribe(url, source: .system)
           let ms = Int(Date().timeIntervalSince(started) * 1000)
+
+          // Silence/phantom guard: Parakeet TDT can hallucinate a short phantom
+          // transcript on (near-)silent audio. Return nothing when the transcript
+          // is empty, or when it's tiny AND audio energy is low. Conservative +
+          // gated on a tiny word count so real speech is never dropped — tune the
+          // threshold on device.
+          let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+          let wordCount = trimmed.isEmpty ? 0 : trimmed.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
+          let lowEnergy = rms.map { $0 < 0.0075 } ?? false
+          if trimmed.isEmpty || (lowEnergy && wordCount <= 3) {
+            promise.resolve([
+              "text": "",
+              "confidence": Double(result.confidence),
+              "durationMs": ms,
+              "wordTimings": [[String: Any]](),
+              "markersInjected": false,
+            ])
+            return
+          }
 
           // Merge BPE sub-word tokens → whole words.
           let words = Self.mergeBPETokens(result.tokenTimings ?? [])
@@ -161,6 +214,50 @@ public class ParakeetModule: Module {
       self.loadTask = nil
       throw error
     }
+  }
+
+  // MARK: - Memory management
+
+  /// Release the loaded ASR model + CoreML weights. No-op while transcribing or
+  /// while a load is in flight (the in-flight call holds its own reference, so
+  /// tearing down would only force a redundant reload).
+  private func teardown() {
+    guard !isTranscribing, loadTask == nil else { return }
+    asr = nil
+    models = nil
+  }
+
+  // MARK: - Silence detection
+
+  /// Mean RMS amplitude across the whole file (chunked so a long recording is
+  /// never fully loaded into memory). Returns nil if the file can't be read.
+  private static func averageRMS(url: URL) -> Float? {
+    guard let file = try? AVAudioFile(forReading: url) else { return nil }
+    let format = file.processingFormat
+    let frameCapacity: AVAudioFrameCount = 16384
+    guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCapacity) else { return nil }
+    var sumSquares: Double = 0
+    var totalFrames: Double = 0
+    while true {
+      do {
+        try file.read(into: buffer, frameCount: frameCapacity)
+      } catch {
+        break
+      }
+      let n = Int(buffer.frameLength)
+      if n == 0 { break }
+      guard let channels = buffer.floatChannelData else { break }
+      let samples = channels[0]
+      var i = 0
+      while i < n {
+        let s = Double(samples[i])
+        sumSquares += s * s
+        i += 1
+      }
+      totalFrames += Double(n)
+    }
+    if totalFrames == 0 { return nil }
+    return Float((sumSquares / totalFrames).squareRoot())
   }
 
   // MARK: - Token merging (mirrors backend transcription.py:240-285)
