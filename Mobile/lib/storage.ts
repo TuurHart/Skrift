@@ -185,15 +185,16 @@ export async function saveMemo(
 
   let finalMetadata = metadata ?? null;
 
-  // Handle timestamped photos from recording (multi-photo manifest)
-  if (photos && photos.length > 0 && finalMetadata) {
+  // Save photos even if metadata capture failed (metadata === null) — otherwise
+  // the captured photos and their temp files are silently dropped.
+  if (photos && photos.length > 0) {
     const imageManifest = copyPhotosToRecordings(photos, id);
-    finalMetadata = { ...finalMetadata, imageManifest };
+    finalMetadata = { ...(finalMetadata ?? ({} as MemoMetadata)), imageManifest };
   }
   // Handle single cover photo from review screen (legacy flow)
-  else if (photoUri && finalMetadata) {
+  else if (photoUri) {
     const photoFilename = copyPhotoToRecordings(photoUri, id);
-    finalMetadata = { ...finalMetadata, photoFilename };
+    finalMetadata = { ...(finalMetadata ?? ({} as MemoMetadata)), photoFilename };
   }
 
   const memo: Memo = {

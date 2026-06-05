@@ -153,15 +153,34 @@ export async function syncMemo(memo: Memo, host: string, port: number): Promise<
       } as unknown as Blob);
     }
 
-    const res = await fetch(`http://${host}:${port}/api/files/upload`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        // Let RN set Content-Type with boundary automatically
-      },
-    });
-
-    return res.ok;
+    // Upload with a timeout + one retry. Without an AbortController a stalled
+    // multipart POST hangs the whole sync indefinitely.
+    const UPLOAD_TIMEOUT_MS = 60_000;
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+      try {
+        const res = await fetch(`http://${host}:${port}/api/files/upload`, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) return true;
+        // Client errors (4xx) won't improve on retry — bail.
+        if (res.status >= 400 && res.status < 500) {
+          console.warn(`[sync] upload rejected ${res.status} for ${memo.id}`);
+          return false;
+        }
+        lastErr = `status ${res.status}`;
+      } catch (err) {
+        clearTimeout(timer);
+        lastErr = err;
+      }
+    }
+    console.warn('[sync] upload failed after retry:', lastErr);
+    return false;
   } catch (err) {
     console.warn('[sync] syncMemo failed:', err);
     return false;
