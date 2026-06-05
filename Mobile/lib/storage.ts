@@ -57,12 +57,16 @@ function ensureRecordingsDir() {
 let _memosCache: Memo[] | null = null;
 
 export async function loadMemos(): Promise<Memo[]> {
-  if (_memosCache) return _memosCache;
+  // Return a shallow copy so callers can't mutate the cache in place. Combined
+  // with the immutable updaters below, the cache, disk, and React state never
+  // share a mutable object graph — a failed write can't leave the cache and
+  // disk diverged.
+  if (_memosCache) return [..._memosCache];
   try {
     if (!memosFile.exists) return [];
     const data = await memosFile.text();
     _memosCache = JSON.parse(data) as Memo[];
-    return _memosCache;
+    return [..._memosCache];
   } catch {
     return [];
   }
@@ -74,14 +78,14 @@ function writeMemos(memos: Memo[]) {
 }
 
 /**
- * Update a memo's syncStatus in the local index.
- * Uses the same file reference as loadMemos to avoid races.
+ * Update a memo's syncStatus in the local index. Builds a new memo object
+ * (never mutates the cached one) and writes a fresh array.
  */
 export async function updateMemoSyncStatus(memoId: string, status: 'waiting' | 'synced'): Promise<void> {
   const memos = await loadMemos();
   const idx = memos.findIndex((m) => m.id === memoId);
   if (idx >= 0) {
-    memos[idx].syncStatus = status;
+    memos[idx] = { ...memos[idx], syncStatus: status };
     writeMemos(memos);
   }
 }
