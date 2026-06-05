@@ -604,12 +604,10 @@ export default function SettingsScreen() {
                       text: 'Clear',
                       style: 'destructive',
                       onPress: async () => {
+                        const { deleteMemos } = await import('../../lib/storage');
                         const memos = await loadMemos();
-                        for (const m of memos) {
-                          if (m.syncStatus === 'synced') {
-                            await (await import('../../lib/storage')).deleteMemo(m.id);
-                          }
-                        }
+                        const syncedIds = memos.filter((m) => m.syncStatus === 'synced').map((m) => m.id);
+                        await deleteMemos(syncedIds);
                         const remaining = await loadMemos();
                         setMemoCount(remaining.length);
                         setSyncedCount(remaining.filter((m) => m.syncStatus === 'synced').length);

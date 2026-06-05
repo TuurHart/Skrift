@@ -38,8 +38,6 @@ export type Memo = {
   transcriptUserEdited?: boolean;
   /** True when the transcript already contains `[[img_NNN]]` markers (from the native module). */
   transcriptMarkersInjected?: boolean;
-  /** Word-level timings from FluidAudio, kept for future karaoke. */
-  wordTimings?: WordTiming[];
 };
 
 const memosFile = new File(Paths.document, 'memos.json');
@@ -77,6 +75,46 @@ function writeMemos(memos: Memo[]) {
   _memosCache = memos; // update cache so next loadMemos() doesn't re-read disk
 }
 
+// ── Word-timings sidecar ──────────────────────────────────────────────
+// wordTimings are large per-word arrays only needed for (future) karaoke.
+// Keep them in a per-memo file so memos.json stays small + cheap to parse/hold.
+function wordTimingsFile(id: string): File {
+  return new File(recordingsDir, `wt_${id}.json`);
+}
+
+function writeWordTimings(id: string, wt: WordTiming[]): void {
+  try {
+    ensureRecordingsDir();
+    wordTimingsFile(id).write(JSON.stringify(wt));
+  } catch {
+    // non-fatal — karaoke timings are best-effort
+  }
+}
+
+export async function loadWordTimings(id: string): Promise<WordTiming[] | null> {
+  try {
+    const f = wordTimingsFile(id);
+    if (!f.exists) return null;
+    return JSON.parse(await f.text()) as WordTiming[];
+  } catch {
+    return null;
+  }
+}
+
+/** Delete all on-disk files for a memo (audio, photos, timings sidecar). */
+function deleteMemoFiles(memo: Memo): void {
+  try { const f = new File(memo.audioUri); if (f.exists) f.delete(); } catch { /* gone */ }
+  if (memo.metadata?.photoFilename) {
+    try { const p = new File(recordingsDir, memo.metadata.photoFilename); if (p.exists) p.delete(); } catch { /* gone */ }
+  }
+  if (memo.metadata?.imageManifest) {
+    for (const e of memo.metadata.imageManifest) {
+      try { const img = new File(recordingsDir, e.filename); if (img.exists) img.delete(); } catch { /* gone */ }
+    }
+  }
+  try { const wt = wordTimingsFile(memo.id); if (wt.exists) wt.delete(); } catch { /* gone */ }
+}
+
 /**
  * Update a memo's syncStatus in the local index. Builds a new memo object
  * (never mutates the cached one) and writes a fresh array.
@@ -96,12 +134,15 @@ export async function updateMemoSyncStatus(memoId: string, status: 'waiting' | '
  */
 export async function updateMemoTranscript(
   memoId: string,
-  patch: Partial<Pick<Memo, 'transcript' | 'transcriptStatus' | 'transcriptConfidence' | 'transcriptUserEdited' | 'transcriptMarkersInjected' | 'wordTimings'>>,
+  patch: Partial<Pick<Memo, 'transcript' | 'transcriptStatus' | 'transcriptConfidence' | 'transcriptUserEdited' | 'transcriptMarkersInjected'>> & { wordTimings?: WordTiming[] },
 ): Promise<void> {
+  const { wordTimings, ...rest } = patch;
+  // wordTimings go to a per-memo sidecar, not the memo index.
+  if (wordTimings) writeWordTimings(memoId, wordTimings);
   const memos = await loadMemos();
   const idx = memos.findIndex((m) => m.id === memoId);
   if (idx >= 0) {
-    memos[idx] = { ...memos[idx], ...patch };
+    memos[idx] = { ...memos[idx], ...rest };
     writeMemos(memos);
   }
 }
@@ -211,8 +252,11 @@ export async function saveMemo(
     transcriptConfidence: transcriptInput?.confidence,
     transcriptUserEdited: transcriptInput?.userEdited,
     transcriptMarkersInjected: transcriptInput?.markersInjected,
-    wordTimings: transcriptInput?.wordTimings,
   };
+
+  if (transcriptInput?.wordTimings?.length) {
+    writeWordTimings(id, transcriptInput.wordTimings);
+  }
 
   const memos = await loadMemos();
   memos.unshift(memo);
@@ -293,37 +337,21 @@ export async function deleteMemo(id: string): Promise<void> {
   const memo = memos.find((m) => m.id === id);
 
   if (memo) {
-    // Delete audio file
-    try {
-      const file = new File(memo.audioUri);
-      if (file.exists) file.delete();
-    } catch {
-      // file might already be gone
-    }
-
-    // Delete cover photo if present
-    if (memo.metadata?.photoFilename) {
-      try {
-        const photoFile = new File(recordingsDir, memo.metadata.photoFilename);
-        if (photoFile.exists) photoFile.delete();
-      } catch {
-        // photo might already be gone
-      }
-    }
-
-    // Delete timestamped photos from imageManifest
-    if (memo.metadata?.imageManifest) {
-      for (const entry of memo.metadata.imageManifest) {
-        try {
-          const imgFile = new File(recordingsDir, entry.filename);
-          if (imgFile.exists) imgFile.delete();
-        } catch {
-          // image might already be gone
-        }
-      }
-    }
+    deleteMemoFiles(memo);
   }
 
   const updated = memos.filter((m) => m.id !== id);
   writeMemos(updated);
+}
+
+/** Delete several memos in one pass + a single index rewrite (avoids the
+ *  O(n^2) loop of calling deleteMemo per id, e.g. "Clear synced"). */
+export async function deleteMemos(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const idSet = new Set(ids);
+  const memos = await loadMemos();
+  for (const memo of memos) {
+    if (idSet.has(memo.id)) deleteMemoFiles(memo);
+  }
+  writeMemos(memos.filter((m) => !idSet.has(m.id)));
 }
