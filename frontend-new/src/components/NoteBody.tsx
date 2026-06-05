@@ -84,7 +84,7 @@ export function NoteBody({ file, onTranscribe, onBodySave }: NoteBodyProps) {
 
   const bestText = getBestText(file)
   const hasImages = bestText
-    ? /!\[\[.+?\.(jpg|jpeg|png)\]\]/i.test(bestText) || /\[\[img_\d{3}\]\]/.test(bestText)
+    ? /!\[\[.+?\.(jpg|jpeg|png)\]\]/i.test(bestText) || /\[\[img_\d{3}\]\]/.test(bestText) || /!\[[^\]]*\]\([^)]+?\.(jpg|jpeg|png|gif|webp)\)/i.test(bestText)
     : false
 
   // Convert image markers to img tags for rendering.
@@ -115,6 +115,19 @@ export function NoteBody({ file, onTranscribe, onBodySave }: NoteBodyProps) {
       (_match, marker) => {
         const src = `${API_BASE}/api/files/${fileId}/images/${marker}`
         return `<img src="${src}" alt="${marker}" data-marker="[[${marker}]]" style="max-width:120px;border-radius:6px;margin:6px 0;display:inline-block;cursor:zoom-in;vertical-align:middle;" contenteditable="false" />`
+      }
+    )
+
+    // Convert standard markdown images (Apple Notes: ![alt](Attachments/foo.jpg))
+    // to img tags. Serve the basename via the images endpoint (which also looks
+    // in Attachments/); keep the original markdown in data-marker so edits round-trip.
+    html = html.replace(
+      /!\[[^\]]*\]\(([^)]+?\.(?:jpg|jpeg|png|gif|webp))\)/gi,
+      (match, path) => {
+        const base = (path.split('/').pop() || path)
+        const src = `${API_BASE}/api/files/${fileId}/images/${encodeURIComponent(base)}`
+        const marker = match.replace(/"/g, '&quot;')
+        return `<img src="${src}" alt="${base}" data-marker="${marker}" style="max-width:120px;border-radius:6px;margin:6px 0;display:inline-block;cursor:zoom-in;vertical-align:middle;" contenteditable="false" />`
       }
     )
 

@@ -641,7 +641,6 @@ async def get_file_image(file_id: str, filename: str):
         raise HTTPException(status_code=404, detail="File not found")
 
     file_folder = Path(pipeline_file.path).parent
-    images_dir = file_folder / "images"
 
     # Resolve img_XXX markers via manifest (img_001 → manifest[0].filename)
     import re as _re_img
@@ -658,18 +657,22 @@ async def get_file_image(file_id: str, filename: str):
             except Exception:
                 pass
 
-    image_path = (images_dir / filename).resolve()
+    # Look in the timestamped-photo dir (mobile capture) and the Apple-Notes
+    # Attachments dir. Resolve must stay inside the note folder (no traversal).
+    folder_resolved = str(file_folder.resolve())
+    image_path = None
+    for sub in ("images", "Attachments"):
+        cand = (file_folder / sub / filename).resolve()
+        if str(cand).startswith(folder_resolved) and cand.exists() and cand.is_file():
+            image_path = cand
+            break
 
-    # Prevent path traversal — resolved path must be inside the images directory
-    if not str(image_path).startswith(str(images_dir.resolve())):
-        raise HTTPException(status_code=400, detail="Invalid filename")
-
-    if not image_path.exists():
+    if image_path is None:
         raise HTTPException(status_code=404, detail=f"Image not found: {filename}")
 
     # Determine media type
     ext = image_path.suffix.lower()
-    media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif"}
+    media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp"}
     media_type = media_types.get(ext, "application/octet-stream")
 
     return FileResponse(str(image_path), media_type=media_type)
