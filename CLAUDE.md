@@ -71,26 +71,24 @@ FastAPI app with routers split by domain:
 |--------|--------|---------|
 | `api/files.py` | `/api/files` | Upload, list, delete audio/note files |
 | `api/transcribe.py` | `/api/process/transcribe` | Trigger Parakeet transcription; supports `force` flag to re-transcribe |
-| `api/sanitise.py` | `/api/process/sanitise` | Name linking (returns 409 on ambiguous aliases) |
-| `api/enhance.py` | `/api/process/enhance` | MLX text enhancement, model management, tags |
+| `api/sanitise.py` | `/api/process/sanitise` | Name linking — **non-blocking**: unambiguous aliases auto-link; ambiguous ones are carried on the note as `ambiguous_names` and resolved at review (no 409). (Now mostly invoked inside the auto-run, not directly.) |
+| `api/enhance.py` | `/api/process/enhance` | MLX text enhancement (copy-edit/title/summary), **deterministic** tag suggestions, manual significance setter, **`POST /resolve-names`** (apply review-time ambiguous-name choices), model management |
 | `api/export.py` | `/api/process/export` | Compile + export to Markdown/Obsidian |
-| `api/batch.py` | `/api/batch` | Batch enhancement jobs with SSE streaming |
+| `api/batch.py` | `/api/batch` | The **auto-run orchestrator** (`/batch/run/start`) — transcribe→enhance→name-link→compile to Ready; SSE progress stream |
 | `api/system.py` | `/api/system` | Resource monitoring, health check |
 | `api/config.py` | `/api/config` | Read/write user settings, dependency detection/setup |
 | `api/names.py` | `/api/names` | Phone↔Mac names sync: meta GET, full GET, full PUT |
 
 Business logic lives in `services/`:
 - `transcription.py` — Parakeet-MLX transcription (in-process, model cached as singleton between calls). Audio preprocessing via ffmpeg: high-pass filter + `afftdn` adaptive denoiser + EBU R128 loudness normalization. Produces `word_timings.json` by merging BPE sub-word tokens into whole words. **Parakeet loads from local files only — never downloads from HuggingFace.**
-- `sanitisation.py` — Name linking and disambiguation logic
-- `enhancement.py` — MLX model invocation (streaming SSE); auto-unloads after 10s idle in manual mode
+- `sanitisation.py` — Name linking. `process_sanitisation` auto-links unambiguous aliases and returns ambiguous occurrences as data (no blocking). `apply_resolved_names(text, decisions)` applies the user's review-time choices to the current body (first mention → `[[Canonical]]`, rest → short name; preserves existing links + edits). (`resolve_name_disambiguation` is the old session-based path — now frontend-orphaned.)
+- `enhancement.py` — MLX model invocation (streaming SSE); auto-unloads after 10s idle in manual mode. **All LLM steps (copy-edit/title/summary) run on the RAW transcript** — no `[[ ]]` ever reaches the LLM (the bracket-preservation hack was deleted).
 - `export.py` — Markdown/Obsidian compilation; reads `export.attachments_folder` for image destination
-- `batch_manager.py` — Batch enhancement queue: Title → Copy Edit → Summary → Tags → Compile, SSE broadcast of tokens, MLX model stays loaded throughout batch, unloads on completion
+- `batch_manager.py` — **The single auto-run orchestrator** (`start_run`/`_process_run`, `POST /api/batch/run/start`). Two model-grouped passes: transcribe-all (Parakeet hot) → enhance-all (copy-edit/title/summary on the raw transcript → **deterministic** tag *candidates* → name-link → compile draft) → lands at **Ready for Review**. A single file is a run of one. No mid-flight human gates. SSE broadcast of tokens; MLX model stays loaded across the run.
 - `mlx_runner.py` + `mlx_cache.py` — MLX model singleton cache; survives between calls within a session
 - `apple_notes_importer.py` — Apple Notes `.md` export parser; sets `source: Apple-Note` in frontmatter
 
-**Batch transcription** (`/api/batch/transcribe/start`) processes files sequentially via `process_transcription_thread` (parakeet-mlx). The frontend sidebar currently calls `/api/process/transcribe/{id}` per file individually instead.
-
-**Batch enhancement** (`/api/batch/enhance/start`) works correctly — calls enhancement service directly, keeps MLX model hot, broadcasts tokens via SSE at `GET /api/batch/enhance/stream`.
+**One Process action drives everything** (`POST /api/batch/run/start`) — the Sidebar's batch "Process" and the toolbar's single-file "Process" both call `startRun`. The old separate transcribe/enhance batch endpoints were removed in the overhaul. Live progress streams via SSE at `GET /api/batch/enhance/stream`.
 
 `utils/status_tracker.py` — heartbeat-style status files stored as `status.json` per file in the output folder.
 
@@ -138,38 +136,35 @@ The mobile app may send `transcript`, `sanitised`, and metadata flags alongside 
 
 Entry: `src/main.tsx` → `App.tsx`
 
-`App.tsx` is the shell — manages selected file, seekTo state for karaoke, first-launch detection, and renders:
-- `SetupWizard` — first-launch setup (auto-detects deps zip/folder, extracts, configures)
-- `Sidebar` — file list, multi-select with batch actions, upload
-- `NoteDisplay` — note body (contenteditable) + karaoke text overlay
-- `Inspector` — right panel: transcription, cleanup, enhancement, export controls
+`App.tsx` is the shell — manages the selected file, audio/karaoke state (`isPlaying`/`currentTime`/`seekTo`/`tokens`), first-launch detection, and the review-time mutation handlers (body, title, tags, significance, resolve-names, transcribe). It renders a **2-pane resizable layout** (`react-resizable-panels` v4 `Group`/`Panel`/`Separator`): **`Sidebar` | `NoteDisplay`**. Plus overlays: `SetupWizard`, `Settings`, `FindBar`, `<Toaster/>`. **There is no third "Inspector" column** — the redesign moved its controls into the note's toolbar + properties block (Phase 5).
 
-**First-launch detection:** On mount, checks `GET /api/system/health`. If backend is unreachable, parakeet unavailable, or deps not configured, shows the `SetupWizard` overlay instead of the old Settings-in-setup-mode.
+**State = ONE source of truth.** `useFiles` (TanStack Query, key `['files']`) holds the full file objects and polls 1s only while something is processing; `useCurrentBatch` tracks the active run. The selected file + the enhance-lock are derived from it. Edits go through optimistic cache patches (`useFilesCache.patchFile`) + invalidation. **Do not reintroduce polling loops.** `NoteBody` has a dirty-guard so an in-flight refetch can't revert unsaved keystrokes.
 
-**Setup wizard** (`src/features/SetupWizard.tsx`):
-- Step 1: auto-detects `Skrift_dependencies.zip` in Downloads/Desktop, or an existing extracted folder. One-click extraction to `~/Skrift_dependencies`. Also supports manual folder/zip browse.
-- Step 2: author name, Obsidian vault paths (notes/audio/attachments). All optional, skippable.
-- On complete: saves all config to backend, dismisses wizard.
+**First-launch detection:** On mount, retries `GET /api/system/health` a few times before concluding setup is needed (so a booting/restarting backend doesn't flash the wizard). Shows `SetupWizard` only if the backend never comes up, parakeet is unavailable, or no deps folder is configured.
+
+**Setup wizard** (`src/features/SetupWizard.tsx`): Step 1 auto-detects `Skrift_dependencies.zip`/folder (one-click extract to `~/Skrift_dependencies`); Step 2 author name + Obsidian vault paths (optional). Saves config to backend on complete.
 
 Key files:
-- `src/api.ts` — `api` singleton + `API_BASE` export, all HTTP calls to `http://localhost:8000`. Also exports `DEFAULT_PROMPTS` (should match backend `settings.py` defaults) and types (`DepsValidation`, `DepsZip`, `EnhancePrompt`, etc.)
-- `src/types/pipeline.ts` — `PipelineFile` interface, `SystemHealth` type
-- `src/hooks/useSettings.ts` — `AppSettings` with localStorage cache + backend as single source of truth. **Backend config returns nested dicts** — always use `(config as any)?.export?.note_folder`, never `config['export.note_folder']`.
-- `src/components/SystemStatus.tsx` — 2 dots: Backend / Parakeet
-- `src/components/KaraokeText.tsx` — word-level highlight; zero padding on all tokens (toggling padding breaks line wrapping); click-to-seek via `onSeek` prop
-- `src/components/NoteBody.tsx` — contenteditable; floating toolbar on text selection for adding names; `AddNameModal`; renders `![[image.jpg]]` as inline `<img>` (max-width 400px) via backend image serving endpoint
-- `src/components/DisambiguationModal.tsx` — shown on 409 from sanitise
-- `src/features/Sidebar.tsx` — multi-select mode; batch Transcribe (calls `startTranscription` per file) and Enhance (calls `startEnhanceBatch`); progress bar + SSE token stream for enhance; stale `checked` IDs pruned on file list change
-- `src/features/Inspector.tsx` — `localTagSuggestions` seeded from `file.tag_suggestions` on poll update (so batch-generated tags appear without clicking "Suggest Tags")
-- `src/features/NoteDisplay.tsx` — NoteBody always mounted, hidden during karaoke (preserves edits)
-- `src/features/Settings.tsx` — pure preferences UI (no setup mode). Close button always visible.
-- `src/features/settings/PathsTab.tsx` — "Local folders" and "Obsidian vault" sections
-- `src/features/settings/TranscriptionTab.tsx` — Engine info, model name, audio preprocessing sliders (noise reduction, high-pass filter)
-- `src/features/settings/EnhancementTab.tsx` — `ModelPresets` (shows the single text-only model + test button), `TagSettings` component (max_old, max_new, selection_criteria textarea). **Config reads use nested access** (`(config as any)?.enhancement?.tags`).
+- `src/api.ts` — `api` singleton + `API_BASE`; all HTTP calls. Exports `DEFAULT_PROMPTS` (match `settings.py`) + types. Review-time setters: `setTitle(id,title,suggested?)`, `setCopyedit`, `setSummary`, `setTags`, `setSignificance`, `resolveNames(id,decisions)`, `startRun(ids)`.
+- `src/types/pipeline.ts` — `PipelineFile` (incl. `title_suggested`, `ambiguous_names`, `significance`), `AmbiguousOccurrence`/`NameCandidate`, `SystemHealth`.
+- `src/hooks/useSettings.ts` — `AppSettings`; **backend config is nested** — use `(config as any)?.export?.note_folder`, never dot-keys.
+- `src/hooks/useFiles.ts` — the single `useFiles`/`useCurrentBatch` queries + `useFilesCache`.
+- `src/features/Sidebar.tsx` — **virtualized** queue (`@tanstack/react-virtual`, windowed rows) with honest status chips (Queued/Transcribing/Transcribed/Enhancing/Ready/Exported/Error); multi-select batch **Process** (`startRun`) / Delete; drag/picker/folder upload; header has a top band for the inset macOS traffic lights. Fills its resizable panel (no hard width).
+- `src/features/NoteDisplay.tsx` — the middle pane: breadcrumb → a pinned **toolbar bar** (`NoteToolbar` audio transport on the left + `NoteActions` on the right) → scroll area (`ResolverStrip` when ambiguous names exist → `NoteProperties` → summary → `NoteBody`/`KaraokeText`). `NoteBody` stays mounted, hidden during karaoke.
+- `src/components/NoteProperties.tsx` — the editable **properties block**: two-title chooser (Suggested = `title_suggested` vs From-recording = cleaned filename; active card editable), significance **slider** (`ui/slider`), tag chips + **vault autocomplete** (`ui/command`/cmdk over the cached `/tags/whitelist` — never scans the vault) + one-tap dashed suggestion chips from `tag_suggestions`, metadata grid.
+- `src/components/NoteToolbar.tsx` — owns the `<audio>`; skip ±10s (circular-arrow-with-10), play, draggable click-to-seek scrubber, speed cycle. Renders inline so the toolbar bar can also hold `NoteActions`.
+- `src/components/NoteActions.tsx` — contextual primary button (**Process → Export to Obsidian → Re-export**) + a ⋯ overflow (re-transcribe, per-step redo title/copy-edit/summary) + the RAM-warning dialog + a toast when another note is enhancing (only one MLX run at a time).
+- `src/components/NoteBody.tsx` — contenteditable. `getBestText` prefers **`sanitised`** (so the body shows the name-linked text that exports — `[[links]]` visible), then `enhanced_copyedit`, then `transcript`; edits save to that same field. Dirty-guard; selection toolbar → `AddNameModal`; renders image markers as inline `<img>`.
+- `src/components/KaraokeText.tsx` — highlights the **body** text itself (same words + typography, so play never reflows — the old jump bug); uses transcript `word_timings` only to drive the moving highlight + click-to-seek (proportional alignment, approximate within seconds).
+- `src/components/ResolverStrip.tsx` — review-time ambiguous-name resolver; groups `ambiguous_names` by alias, shows context + candidate people + "leave as plain", submits to `resolveNames`.
+- `src/components/ui/*` — shadcn primitives adapted to the app tokens (button, dialog, input, tabs, tooltip, slider, sonner, command).
+- `src/features/Settings.tsx` + `settings/*` — preferences UI. `EnhancementTab` shows the single text-only model + `TagSettings`; `TranscriptionTab` has audio-preprocessing sliders. **Config reads use nested access.**
+
+**Removed in the overhaul (do not reference):** `Inspector.tsx`, `ExportPreview.tsx`, `DisambiguationModal.tsx`, `StepDots.tsx`, `AudioPlayer.tsx`, the chat feature (`ChatPanel`/`ChatInput`/`api/chat.py`), and the dead VLM/vision path.
 
 ### Electron (`frontend-new/electron/`)
 
-- `main.cjs` — main process; spawns backend via `bash -l`; uses `fs.existsSync` to fall back to absolute repo path; registers `file://` protocol for audio playback; `dialog:openUpload` IPC opens native picker accepting files and folders; `dialog:openFiles` supports `accept` filter (e.g. `['zip']`)
+- `main.cjs` — main process; spawns backend via `bash -l`; uses `fs.existsSync` to fall back to absolute repo path; registers `file://` protocol for audio playback; `dialog:openUpload` IPC opens native picker accepting files and folders; `dialog:openFiles` supports `accept` filter (e.g. `['zip']`). **Native macOS chrome:** `titleBarStyle: 'hiddenInset'` + `trafficLightPosition` — the inset traffic lights float over the Sidebar header's top band (which is `WebkitAppRegion: drag`). (Vibrancy not enabled — would need translucent surfaces.)
 - `preload.cjs` — contextBridge exposing `electronAPI` to renderer
 
 ### Design system
@@ -187,9 +182,9 @@ Key rules:
 - `user_settings.template.json` is the clean seed for new installs (no personal paths). The developer's `user_settings.json` is excluded from the DMG build.
 - `names.json` is also excluded from the DMG build. If missing, sanitisation defaults to empty people list.
 
-### Sanitise flow
+### Sanitise / name-linking flow (non-blocking)
 
-Sanitise can return HTTP **409** when an alias maps to multiple people. `api.startSanitise()` handles 409 as a valid response and calls `groupOccurrences()` to transform the flat backend `occurrences` array into grouped `Ambiguity[]` for the disambiguation modal.
+Name-linking is the **last** deterministic step of the auto-run and never blocks. Unambiguous aliases auto-link to `[[Canonical]]`; an alias that maps to 2+ people is left as plain text and recorded on the note as `ambiguous_names` (each: `alias`, `offset`, context, `candidates[]`). At review, `ResolverStrip` surfaces these; the user picks a person (or "leave plain") and `POST /api/process/enhance/resolve-names` applies the choices to the body via `apply_resolved_names`, clears `ambiguous_names`, and recompiles. **No 409, no mid-pipeline modal.** The body the user sees/edits prefers `sanitised`, so the applied links are visible (what you see = what exports).
 
 ### Transcription pipeline
 
@@ -208,8 +203,8 @@ The cache (`mlx_cache.py`) calls `mx.clear_cache()` on unload to prevent Metal m
 **Prompts** (defined in `backend/config/settings.py` `DEFAULT_SETTINGS.enhancement.prompts`):
 - `copy_edit` — minimal cleanup, preserves English/Dutch mixing, collapses speech stumbles/self-corrections, removes filler words. Does NOT rephrase or restructure.
 - `summary` — 1–3 sentences, matches primary language of text.
-- `title` — 5–15 words, matches primary language.
-- `importance` — 0.0–1.0 score (shown in Inspector as colored bar).
+- `title` — 5–15 words, matches primary language. (Stored as `title_suggested`; the review chooser offers it vs the recording's own name.)
+- **No LLM significance, no LLM tagging.** Significance is a **manual slider** at review (`POST /enhance/significance`, plain YAML number). Tags are **deterministic**: at capture, lemmatized transcript words that match a vault tag NAME ≥2× (frequency-gated) + spoken `#hashtags` → `tag_suggestions`; the user one-taps to apply. (Any leftover `importance` prompt in settings is unused.)
 
 **Copy-edit with image markers** (`copy_edit_with_image_markers_stream` in `enhancement.py`):
 For transcripts containing `[[img_NNN]]` markers:
@@ -220,9 +215,9 @@ For transcripts containing `[[img_NNN]]` markers:
 
 No vision step — photos appear in the text but are not described by AI.
 
-Single file: Title → Copy Edit → Summary → Tags (manual approval) → Compile. `steps.enhance` is set to `done` only after compile runs with all parts present (including approved tags). Streaming uses SSE with `status` events ("Loading model...", "Generating title...", "Editing text...") so the Inspector shows loading state.
+Both single-file and batch go through the **one auto-run** (`batch_manager`): copy-edit/title/summary on the raw transcript → deterministic tag *candidates* → name-link → compile draft → **Ready for Review**. Streaming uses SSE with `status` events ("Loading model...", "Generating title...", "Editing text...") so the toolbar action shows live progress.
 
-Batch: same steps via `batch_manager`. Tags are generated as `tag_suggestions` (not auto-approved). `steps.enhance` stays pending until user approves tags per file. **Progress bar in sidebar tracks `enhanced_title && enhanced_summary` being set** (not `steps.enhance === done`) so it fills when LLM work is done.
+**`steps.enhance == done` means the auto-steps are complete (title + copy-edit + summary present) — NOT that tags/significance are set.** Tags and significance are **review-time** (set in the properties block), not gates. The sidebar batch progress bar tracks `enhanced_title && enhanced_summary` (so it fills when the LLM work is done, before the user reviews). `compile_file` body precedence is `sanitised → enhanced_copyedit → transcript`.
 
 ### Apple Notes import
 
@@ -300,15 +295,6 @@ The distribution folder (`~/Desktop/Skrift-Distribution/`) contains:
 **DMG build excludes:** `user_settings.json`, `names.json` (via `package.json` `extraResources` filter). Seeds from `user_settings.template.json` on first launch.
 
 The `mlx-env/` venv is NOT distributed (path-specific); `start_backend.sh` bootstraps it automatically. The Parakeet model is pre-bundled in the zip (no HuggingFace download).
-
-### Model comparison scripts
-
-`backend/scripts/` contains test scripts for comparing models and prompts:
-- `compare_gemma_qwen.py` — side-by-side Gemma vs Qwen output comparison
-- `compare_prompts.py` — test different prompt versions
-- `test_stumbles.py` / `test_stumbles2.py` — test speech stumble cleanup
-- `test_refined_prompts.py` — test refined prompt set
-- `test_thinking.py` — Gemma 4 E4B thinking vs no-thinking comparison
 
 ### Photo capture (mobile → desktop pipeline)
 
