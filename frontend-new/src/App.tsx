@@ -53,27 +53,34 @@ export default function App() {
   useEffect(() => {
     let cancelled = false
     async function checkSetup() {
+      // Retry /health before concluding setup is needed — the backend may still
+      // be booting or briefly restarting. Showing the wizard on a single failed
+      // call wrongly greets a configured user with "Welcome, let's set up."
+      let health: Awaited<ReturnType<typeof api.getSystemHealth>> | null = null
+      for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
+        try { health = await api.getSystemHealth(); break }
+        catch { await new Promise(r => setTimeout(r, 1200)) }
+      }
+      if (cancelled) return
+      if (!health) {
+        // Backend never came up after retries — likely a fresh install.
+        setShowWizard(true)
+        return
+      }
+      const parakeetOk = health?.transcription_modules?.parakeet?.available === true
+      if (!parakeetOk) {
+        setShowWizard(true)
+        return
+      }
+      // Backend is reachable — only the genuine "no deps configured" case shows
+      // the wizard; a transient config blip should not.
       try {
-        const h = await api.getSystemHealth()
-        if (cancelled) return
-        const parakeetOk = h?.transcription_modules?.parakeet?.available === true
-        if (!parakeetOk) {
-          setShowWizard(true)
-          return
-        }
-        // Also check if dependencies folder is actually configured
         const { config } = await api.getConfig()
+        if (cancelled) return
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const depsFolder = ((config as any)?.dependencies_folder as string | undefined)
-        if (!depsFolder) {
-          setShowWizard(true)
-        }
-      } catch {
-        // Backend not reachable — likely first launch or deps missing
-        if (!cancelled) {
-          setShowWizard(true)
-        }
-      }
+        if (!depsFolder) setShowWizard(true)
+      } catch { /* config fetch blip — don't show the wizard for a transient */ }
     }
     void checkSetup()
     return () => { cancelled = true }
