@@ -142,7 +142,6 @@ async def upload_files(
     metadata: str = Form(None),  # JSON string from mobile app with capture context
     photo: UploadFile = File(None),  # Optional photo from mobile app
     transcript: str = Form(None),  # Optional pre-made transcript from mobile on-device Parakeet
-    sanitised: str = Form(None),  # Optional pre-sanitised transcript from mobile (only honored if transcript is trusted)
 ):
     """
     Upload audio files or Apple Notes export folders to the processing pipeline.
@@ -368,29 +367,8 @@ async def upload_files(
                         })
                         pipeline_file = status_tracker.get_file(pipeline_file.id)
                         logger.info(f"[transcribe] accepted mobile transcript for {pipeline_file.id} (edited={_user_edited}, conf={_conf_f}, markers={_markers_injected})")
-
-                        # --- Pre-sanitised transcript from mobile (name linking already done) ---
-                        # Only honor if we trusted the transcript above. If the transcript was
-                        # rejected, the Mac will re-transcribe and re-sanitise from scratch.
-                        if sanitised:
-                            try:
-                                from models import ProcessingStatus as _PS2
-                                pf = status_tracker.get_file(pipeline_file.id)
-                                if pf:
-                                    pf.sanitised = sanitised
-                                    pf.steps.sanitise = _PS2.DONE
-                                    status_tracker.save_file_status(pipeline_file.id)
-                                status_tracker.add_audio_metadata(pipeline_file.id, {
-                                    "sanitise_source": "mobile",
-                                })
-                                pipeline_file = status_tracker.get_file(pipeline_file.id)
-                                logger.info(f"[sanitise] accepted mobile sanitised text for {pipeline_file.id}")
-                            except Exception as e:
-                                logger.warning(f"Failed to apply mobile sanitised text: {e}")
                     else:
                         logger.info(f"[transcribe] ignoring mobile transcript: confidence {_conf_f} < {_confidence_threshold}")
-                        if sanitised:
-                            logger.info(f"[sanitise] also ignoring mobile sanitised text (transcript not trusted)")
 
                 # --- Timestamped photos from recording ---
                 image_manifest_data = None

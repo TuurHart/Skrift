@@ -16,7 +16,7 @@
  *   4. PUT merged result to Mac so its copy converges too.
  *
  * Tombstones (`deleted: true`) participate in last-write-wins like any other
- * version. The "live" projection used by sanitise filters them out.
+ * version.
  */
 
 import { File, Paths } from 'expo-file-system';
@@ -105,12 +105,6 @@ function writeData(data: NamesData) {
   };
   namesFile.write(JSON.stringify(out, null, 2));
   _cache = out;
-}
-
-/** Live (non-deleted) people — what sanitise consumes. */
-export async function liveNames(): Promise<Person[]> {
-  const d = await loadNames();
-  return d.people.filter((p) => !p.deleted);
 }
 
 /** Add or update a person. Bumps `lastModifiedAt` to now. */

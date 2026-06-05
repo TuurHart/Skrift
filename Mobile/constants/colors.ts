@@ -14,10 +14,7 @@ export const colors = {
     accent: '#7c6bf5',
     checkGreen: '#34d399',
     destructive: '#ef4444',
-    stepTranscribe: '#60a5fa',
-    stepSanitise: '#a78bfa',
     stepEnhance: '#f59e0b',
-    stepExport: '#34d399',
   },
   light: {
     bg: '#f5f5f7',
@@ -30,10 +27,7 @@ export const colors = {
     accent: '#6c5ce7',
     checkGreen: '#22c55e',
     destructive: '#ef4444',
-    stepTranscribe: '#3b82f6',
-    stepSanitise: '#8b5cf6',
     stepEnhance: '#d97706',
-    stepExport: '#22c55e',
   },
 } as const;
 
