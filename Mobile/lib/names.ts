@@ -21,10 +21,26 @@
 
 import { File, Paths } from 'expo-file-system';
 
+export type VoiceEmbedding = {
+  /** L2-normalized speaker embedding (FluidAudio `Speaker.currentEmbedding`). */
+  vector: number[];
+  /** Optional capture condition, e.g. 'phone-mic' | 'airpods'. */
+  condition?: string | null;
+  /** ISO timestamp when this reference was captured. */
+  addedAt?: string;
+};
+
 export type Person = {
   canonical: string;          // always [[Name]]
   aliases: string[];
   short?: string | null;
+  /**
+   * Speaker voice profiles for diarization. Multi-embedding, NEVER averaged —
+   * matching is max-cosine over the list (AirPods vs phone mic stay distinct).
+   * Synced verbatim with the Mac (opaque pass-through there). Omitted when empty
+   * to keep names.json clean.
+   */
+  voiceEmbeddings?: VoiceEmbedding[];
   lastModifiedAt: string;     // ISO
   deleted?: boolean;
 };
@@ -131,6 +147,27 @@ export async function deletePerson(canonical: string): Promise<void> {
   writeData({ ...data, people: out });
 }
 
+/** Append a voice reference to a person (de-duplicated by vector). Bumps
+ *  `lastModifiedAt` so the addition syncs. Used by diarization enrollment and
+ *  relabel — multi-embedding, never averaged. Resurrects a tombstone if needed. */
+export async function addVoiceEmbedding(canonical: string, embedding: VoiceEmbedding): Promise<void> {
+  const c = normaliseCanonical(canonical);
+  if (!c) throw new Error('canonical required');
+  if (!embedding || !Array.isArray(embedding.vector) || embedding.vector.length === 0) {
+    throw new Error('embedding.vector required');
+  }
+  const data = await loadNames();
+  const idx = data.people.findIndex((p) => p.canonical === c);
+  const out = [...data.people];
+  if (idx >= 0) {
+    const merged = unionEmbeddings(out[idx].voiceEmbeddings, [embedding]) ?? [embedding];
+    out[idx] = { ...out[idx], voiceEmbeddings: merged, deleted: false, lastModifiedAt: nowIso() };
+  } else {
+    out.push({ canonical: c, aliases: [], short: null, voiceEmbeddings: [embedding], lastModifiedAt: nowIso() });
+  }
+  writeData({ ...data, people: out });
+}
+
 /** Direct overwrite (used by the sync merge). Caller has already merged. */
 export function saveNames(data: NamesData): void {
   writeData(data);
@@ -225,24 +262,52 @@ export async function syncNames(host: string, port: number): Promise<
   }
 }
 
-/** Per-canonical last-write-wins merge. Tombstones participate normally. */
+/** Union two embedding lists, de-duplicated by vector identity. Returns
+ *  undefined when empty so we never write an empty array to names.json. */
+function unionEmbeddings(a?: VoiceEmbedding[], b?: VoiceEmbedding[]): VoiceEmbedding[] | undefined {
+  const all = [...(a || []), ...(b || [])];
+  const seen = new Set<string>();
+  const out: VoiceEmbedding[] = [];
+  for (const e of all) {
+    if (!e || !Array.isArray(e.vector) || e.vector.length === 0) continue;
+    const key = JSON.stringify(e.vector);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(e);
+  }
+  return out.length ? out : undefined;
+}
+
+/** Per-canonical last-write-wins merge. Tombstones participate normally.
+ *  Scalar fields use LWW; `voiceEmbeddings` are ADDITIVE — unioned across both
+ *  sides regardless of which scalar version won, so an enrollment on one device
+ *  is never clobbered by a newer name edit on the other. */
 export function mergeByCanonical(localPeople: Person[], remotePeople: Person[]): Person[] {
-  const byCanonical = new Map<string, Person>();
-  for (const p of localPeople) {
-    if (!p.canonical) continue;
-    byCanonical.set(p.canonical, p);
-  }
-  for (const r of remotePeople) {
-    if (!r.canonical) continue;
-    const existing = byCanonical.get(r.canonical);
-    if (!existing) {
-      byCanonical.set(r.canonical, r);
-      continue;
+  const localBy = new Map<string, Person>();
+  for (const p of localPeople) if (p.canonical) localBy.set(p.canonical, p);
+  const remoteBy = new Map<string, Person>();
+  for (const r of remotePeople) if (r.canonical) remoteBy.set(r.canonical, r);
+
+  const out: Person[] = [];
+  for (const canonical of new Set([...localBy.keys(), ...remoteBy.keys()])) {
+    const local = localBy.get(canonical);
+    const remote = remoteBy.get(canonical);
+
+    // Scalar fields: newer lastModifiedAt wins; ties default to remote.
+    let winner: Person;
+    if (!local) winner = { ...remote! };
+    else if (!remote) winner = { ...local };
+    else if (!local.lastModifiedAt || (remote.lastModifiedAt && remote.lastModifiedAt >= local.lastModifiedAt)) {
+      winner = { ...remote };
+    } else {
+      winner = { ...local };
     }
-    // Compare by lastModifiedAt — newer wins. Ties default to remote (arbitrary).
-    if (!existing.lastModifiedAt || (r.lastModifiedAt && r.lastModifiedAt >= existing.lastModifiedAt)) {
-      byCanonical.set(r.canonical, r);
-    }
+
+    const merged = unionEmbeddings(local?.voiceEmbeddings, remote?.voiceEmbeddings);
+    if (merged) winner.voiceEmbeddings = merged;
+    else delete winner.voiceEmbeddings;
+
+    out.push(winner);
   }
-  return Array.from(byCanonical.values());
+  return out;
 }
