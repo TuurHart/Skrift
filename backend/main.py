@@ -25,7 +25,6 @@ from config.settings import get_dependency_paths, settings
 from api.files import router as files_router
 from api.processing import router as processing_router
 from api.transcribe import router as transcribe_router
-from api.sanitise import router as sanitise_router
 from api.enhance import router as enhance_router
 from api.export import router as export_router
 from api.system import router as system_router
@@ -70,7 +69,6 @@ print("[Deps] mlx_venv=", _dep_paths.get('mlx_venv'))
 app.include_router(files_router, prefix="/api/files", tags=["files"])
 app.include_router(processing_router, prefix="/api/process", tags=["processing"])
 app.include_router(transcribe_router, prefix="/api/process/transcribe", tags=["transcription"])
-app.include_router(sanitise_router, prefix="/api/process/sanitise", tags=["sanitisation"])
 app.include_router(enhance_router, prefix="/api/process/enhance", tags=["enhancement"])
 app.include_router(export_router, prefix="/api/process/export", tags=["export"])
 app.include_router(batch_router, prefix="/api/batch", tags=["batch"])
@@ -99,7 +97,6 @@ async def health_check():
             "/api/files/*",
             "/api/process/*",
             "/api/process/transcribe/*",
-            "/api/process/sanitise/*",
             "/api/process/enhance/*",
             "/api/process/export/*",
             "/api/batch/*",
