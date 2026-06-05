@@ -211,6 +211,13 @@ def write_with_smart_bumps(new_people: list[dict]) -> dict:
         canonical = e["canonical"]
         incoming_canonicals.add(canonical)
         prev = existing_by_canonical.get(canonical)
+        # Preserve voice profiles the desktop UI doesn't round-trip: if this
+        # save omits voiceEmbeddings but we have them on disk, carry them
+        # forward so a desktop names edit never wipes phone-enrolled diarization
+        # profiles. Done before the change-comparison so it doesn't bump the
+        # timestamp spuriously.
+        if not e.get("voiceEmbeddings") and prev and prev.get("voiceEmbeddings"):
+            e["voiceEmbeddings"] = prev["voiceEmbeddings"]
         # Compare semantically (ignore timestamps when deciding "changed").
         prev_compare = {k: v for k, v in (prev or {}).items() if k not in ("lastModifiedAt", "deleted")} if prev else None
         new_compare = {k: v for k, v in e.items() if k not in ("lastModifiedAt", "deleted")}
