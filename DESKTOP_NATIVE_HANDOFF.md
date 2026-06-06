@@ -12,10 +12,14 @@
 
 ---
 
-## STATUS — Phases 0–6 GREEN (whole headless pipeline); Phase 7 (review UI) IN PROGRESS
+## STATUS — Phases 0–6 GREEN (headless pipeline); Phase 7 review UI BUILT (4 chunks 7a–7d committed) — visual-complete, pipeline wiring owed
 
 Commits on `desktop-native` (newest first):
 ```
+7c81fbb Phase 7d — body styled [[links]] + karaoke (SwiftUI)
+a5d014b Phase 7c — properties block + smart name resolver (SwiftUI)
+35f7370 Phase 7b — note toolbar + contextual actions (SwiftUI)
+c8edcd7 Phase 7a — review UI shell + sidebar (SwiftUI)
 6d7689c fix NamesStore reading 0 people from legacy names.json (the "two Jacks" find)
 c67d7ae docs: plan status
 41b40c7 Phase 6 — BatchManager auto-run
@@ -123,7 +127,7 @@ ASR + the LLM are non-deterministic → can't golden-diff exactly; pin the trans
 ---
 
 ## OWED / REMAINING
-- **Phase 7** — the SwiftUI review UI (above).
+- **Phase 7 review UI — DONE** (commits 7a–7d): `SkriftDesktop/Features/` (Theme, Shell{RootView,AppModel,DemoSeed,Snapshot}, Sidebar{SidebarView,QueueDerivations}, Review{NoteDisplayView,NoteToolbar,NoteActions,AudioController,NoteProperties,ResolverStrip,FlowLayout,NoteBody,ReviewHelpers}). Faithful v5-mock port; snapshot-verified. **Verification method = the app's `-snapshot <path>` ImageRenderer PNG** (no screencapture/sim/TCC — `Snapshot.swift`; scrollable/interactive flags swap ScrollView→VStack and TextField/TextEditor→Text because ImageRenderer can't draw scroll contents or AppKit controls). **Wiring owed inside Phase 7:** Process/Export/Re-export buttons (→ BatchRunner/Compiler/export), resolver Apply (per-occurrence offset replacement via Sanitiser), Upload + Settings(gear) stubs; body editor is a plain TextEditor MVP (NSTextView self-sizing + inline image markers + live [[link]] styling owed); karaoke is proportional (real `word_timings` sidecar owed); `DemoSeed` stands in until BatchRunner→SwiftData lands. Open resolver design DECIDED: smart alias-default + per-occurrence expander (built in 7c).
 - **Real end-to-end app run** — wire `BatchRunner` → SwiftData saves + write `compiled.md` + `word_timings.json` sidecars + the Obsidian vault export (copy audio/images to the configured folders). Then drop an audio file in the app and get a real note.
 - **Phase 8** — ingest (drag/folder/phone) + Settings + SetupWizard, incl. the HF model **download progress bar** (`swift-huggingface` `Progress` callback; current `loadContainer` ignores it — wire it through). Vault tag-whitelist scan (deferred from Phase 5).
 - **Phase 9** — parity sweep + retire Electron/Python.
