@@ -15,7 +15,7 @@ struct RootView: View {
             SidebarView(model: model, files: files)
                 .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
 
-            DetailPane(file: activeFile)
+            NoteDisplayView(file: activeFile)
                 .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: 900, minHeight: 600)
@@ -32,35 +32,3 @@ struct RootView: View {
     }
 }
 
-/// Placeholder for the review surface (built out in chunks 2–4: toolbar,
-/// properties, body + karaoke).
-struct DetailPane: View {
-    let file: PipelineFile?
-
-    var body: some View {
-        Group {
-            if let file {
-                VStack(spacing: 8) {
-                    Text(file.queueTitle)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
-                    Text("Review surface — building next")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.textMuted)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                VStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 30))
-                        .foregroundStyle(Theme.textMuted.opacity(0.4))
-                    Text("Select a note to get started")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.textMuted)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .background(Theme.bg)
-    }
-}

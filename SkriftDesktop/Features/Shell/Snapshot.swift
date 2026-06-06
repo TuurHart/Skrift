@@ -19,7 +19,7 @@ enum Snapshot {
 
             let view = HStack(spacing: 0) {
                 SidebarView(model: model, files: files, scrollable: false).frame(width: 228)
-                DetailPane(file: files.first).frame(maxWidth: .infinity)
+                NoteDisplayView(file: files.first, scrollable: false).frame(maxWidth: .infinity)
             }
             .frame(width: 1180, height: 780)
             .background(Theme.bg)

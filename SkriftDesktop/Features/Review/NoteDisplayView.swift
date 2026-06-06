@@ -1,0 +1,117 @@
+import SwiftUI
+
+/// The review surface (right pane): breadcrumb → pinned toolbar bar (transport +
+/// actions) → scrollable note content. The properties block, resolver, and the
+/// rich body/karaoke land in chunks 3–4; for now the scroll area shows the summary
+/// and body text so the toolbar reads in context.
+struct NoteDisplayView: View {
+    let file: PipelineFile?
+    /// Snapshot mode renders the body without a ScrollView (ImageRenderer can't lay
+    /// out scroll contents). The live app keeps `true` for real scrolling.
+    var scrollable = true
+    @State private var audio = AudioController()
+
+    var body: some View {
+        Group {
+            if let file {
+                content(file)
+                    .task(id: file.id) { audio.load(path: file.path) }
+            } else {
+                emptyState
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.bg)
+    }
+
+    @ViewBuilder private func content(_ file: PipelineFile) -> some View {
+        VStack(spacing: 0) {
+            breadcrumb(file)
+            toolbarBar(file)
+            if scrollable {
+                ScrollView { bodyArea(file) }
+            } else {
+                bodyArea(file)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func breadcrumb(_ file: PipelineFile) -> some View {
+        HStack(spacing: 6) {
+            Text("Queue").foregroundStyle(Theme.textMuted)
+            Text("›").foregroundStyle(Theme.textMuted)
+            Text(SkriftFormat.breadcrumbDate(file.uploadedAt)).foregroundStyle(Theme.textSecondary)
+            Spacer()
+        }
+        .font(.system(size: 12))
+        .padding(.leading, 28)
+        .frame(height: 48)
+    }
+
+    private func toolbarBar(_ file: PipelineFile) -> some View {
+        HStack(spacing: 16) {
+            if showsTransport(file) {
+                NoteToolbar(audio: audio, durationSeconds: file.durationSeconds)
+            } else {
+                Spacer()
+            }
+            NoteActions(file: file)
+        }
+        .padding(.horizontal, 28)
+        .frame(height: 48)
+        .background(Theme.hairline.opacity(0.012))
+        .overlay(alignment: .top) { hairline }
+        .overlay(alignment: .bottom) { hairline }
+    }
+
+    private func bodyArea(_ file: PipelineFile) -> some View {
+        // Centered ~720pt reading column (Notion/Obsidian-style measure), the
+        // container chunks 3–4 fill with the properties block, resolver, and editor.
+        HStack(spacing: 0) {
+            Spacer(minLength: 36)
+            VStack(alignment: .leading, spacing: 22) {
+                if let summary = file.enhancedSummary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.system(size: 13.5))
+                        .italic()
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineSpacing(3)
+                        .padding(.leading, 14)
+                        .overlay(alignment: .leading) {
+                            Rectangle().fill(Theme.accent.opacity(0.4)).frame(width: 2)
+                        }
+                }
+                Text(file.bestBodyText)
+                    .font(.system(size: 16))
+                    .lineSpacing(6)
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(width: 720, alignment: .leading)
+            Spacer(minLength: 36)
+        }
+        .padding(.vertical, 30)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 30))
+                .foregroundStyle(Theme.textMuted.opacity(0.4))
+            Text("Select a note to get started")
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.textMuted)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var hairline: some View {
+        Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5)
+    }
+
+    /// Audio transport only for transcribed audio/capture with a duration (not Apple notes).
+    private func showsTransport(_ file: PipelineFile) -> Bool {
+        file.sourceType != .note && file.durationSeconds > 0
+    }
+}
