@@ -1,0 +1,165 @@
+import XCTest
+import Foundation
+
+/// Contract-critical names logic: per-canonical last-write-wins with an ADDITIVE
+/// voiceEmbeddings union, plus contract-faithful JSON encoding. Mirrors the iOS
+/// rewrite's NamesMergeTests so both sides of the sync stay byte-compatible.
+final class NamesMergeTests: XCTestCase {
+
+    func testNormaliseCanonical() {
+        XCTAssertEqual(NamesMerge.normaliseCanonical("Nick"), "[[Nick]]")
+        XCTAssertEqual(NamesMerge.normaliseCanonical("  [[Jane Doe]] "), "[[Jane Doe]]")
+        XCTAssertEqual(NamesMerge.normaliseCanonical("   "), "")
+    }
+
+    func testUnionEmbeddingsDedupAndNilWhenEmpty() {
+        XCTAssertNil(NamesMerge.unionEmbeddings(nil, nil))
+        XCTAssertNil(NamesMerge.unionEmbeddings([], []))
+        let a = VoiceEmbedding(vector: [1, 2, 3], condition: "phone-mic")
+        let b = VoiceEmbedding(vector: [1, 2, 3], condition: "airpods") // same vector → dup
+        let c = VoiceEmbedding(vector: [4, 5, 6])
+        let union = NamesMerge.unionEmbeddings([a], [b, c])
+        XCTAssertEqual(union?.count, 2)
+        XCTAssertEqual(union?.first?.vector, [1, 2, 3])
+    }
+
+    func testMergeLocalNewerWinsScalars() {
+        let local = Person(canonical: "[[Nick]]", aliases: ["Nicky"], short: "Nick", lastModifiedAt: "2026-06-06T10:00:00.000Z")
+        let remote = Person(canonical: "[[Nick]]", aliases: ["N"], short: "N", lastModifiedAt: "2026-06-05T10:00:00.000Z")
+        let merged = NamesMerge.mergeByCanonical(local: [local], remote: [remote])
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged[0].aliases, ["Nicky"])
+    }
+
+    func testMergeRemoteNewerWinsScalars() {
+        let local = Person(canonical: "[[Nick]]", aliases: ["Nicky"], short: "Nick", lastModifiedAt: "2026-06-05T10:00:00.000Z")
+        let remote = Person(canonical: "[[Nick]]", aliases: ["N"], short: "N", lastModifiedAt: "2026-06-06T10:00:00.000Z")
+        let merged = NamesMerge.mergeByCanonical(local: [local], remote: [remote])
+        XCTAssertEqual(merged[0].aliases, ["N"])
+    }
+
+    func testMergeTieFavorsRemote() {
+        let same = "2026-06-06T10:00:00.000Z"
+        let local = Person(canonical: "[[Nick]]", aliases: ["L"], lastModifiedAt: same)
+        let remote = Person(canonical: "[[Nick]]", aliases: ["R"], lastModifiedAt: same)
+        let merged = NamesMerge.mergeByCanonical(local: [local], remote: [remote])
+        XCTAssertEqual(merged[0].aliases, ["R"])
+    }
+
+    func testMergeUnionsVoiceEmbeddingsAcrossWinningSide() {
+        let phone = VoiceEmbedding(vector: [0.1, 0.2], condition: "phone-mic")
+        let airpods = VoiceEmbedding(vector: [0.3, 0.4], condition: "airpods")
+        let local = Person(canonical: "[[Jane]]", aliases: ["Janey"], short: "Jane",
+                           voiceEmbeddings: [phone], lastModifiedAt: "2026-06-06T12:00:00.000Z")
+        let remote = Person(canonical: "[[Jane]]", aliases: ["J"], short: "J",
+                            voiceEmbeddings: [airpods], lastModifiedAt: "2026-06-01T12:00:00.000Z")
+        let merged = NamesMerge.mergeByCanonical(local: [local], remote: [remote])
+        XCTAssertEqual(merged[0].aliases, ["Janey"])           // local scalars won
+        XCTAssertEqual(merged[0].voiceEmbeddings?.count, 2)    // but BOTH embeddings survive
+    }
+
+    func testMergeNewerTombstoneWins() {
+        let liveLocal = Person(canonical: "[[Bob]]", aliases: ["Bobby"], lastModifiedAt: "2026-06-01T10:00:00.000Z")
+        let tombRemote = Person(canonical: "[[Bob]]", lastModifiedAt: "2026-06-06T10:00:00.000Z", deleted: true)
+        let merged = NamesMerge.mergeByCanonical(local: [liveLocal], remote: [tombRemote])
+        XCTAssertTrue(merged[0].isDeleted)
+    }
+
+    func testPersonEncodingIsContractFaithful() throws {
+        let encoder = JSONEncoder()
+
+        let live = Person(canonical: "[[Nick]]", aliases: ["Nicky"], short: nil,
+                          lastModifiedAt: "2026-06-06T10:00:00.000Z")
+        let liveJSON = try JSONSerialization.jsonObject(with: encoder.encode(live)) as! [String: Any]
+        XCTAssertEqual(liveJSON["canonical"] as? String, "[[Nick]]")
+        XCTAssertTrue(liveJSON.keys.contains("short"))            // always present...
+        XCTAssertTrue(liveJSON["short"] is NSNull)                // ...as null
+        XCTAssertFalse(liveJSON.keys.contains("voiceEmbeddings")) // omitted when empty
+        XCTAssertFalse(liveJSON.keys.contains("deleted"))         // omitted when live
+
+        let tomb = Person(canonical: "[[Bob]]", aliases: [], short: "Bob",
+                          voiceEmbeddings: [VoiceEmbedding(vector: [0.5])],
+                          lastModifiedAt: "2026-06-06T10:00:00.000Z", deleted: true)
+        let tombJSON = try JSONSerialization.jsonObject(with: encoder.encode(tomb)) as! [String: Any]
+        XCTAssertEqual(tombJSON["deleted"] as? Bool, true)
+        XCTAssertTrue(tombJSON.keys.contains("voiceEmbeddings"))
+        XCTAssertEqual(tombJSON["short"] as? String, "Bob")
+    }
+}
+
+/// The desktop's source-of-truth `NamesStore` — smart bumps, tombstones, prune.
+/// Mirrors `backend/utils/names_store.py` behavior against a temp file.
+final class NamesStoreTests: XCTestCase {
+
+    private func tempStore() -> NamesStore {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("names_\(UUID().uuidString).json")
+        return NamesStore(fileURL: url)
+    }
+
+    func testSmartBumpsKeepTimestampForUnchanged() {
+        let store = tempStore()
+        // Seed with an explicit OLD timestamp so the assertions don't depend on
+        // sub-millisecond wall-clock advances between writes.
+        let old = "2020-01-01T00:00:00.000Z"
+        _ = store.save(NamesData(lastModifiedAt: old, people: [
+            Person(canonical: "[[Nick]]", aliases: ["Nicky"], short: "Nick", lastModifiedAt: old)
+        ]))
+
+        // Re-save identical data (with blanks to trim) → timestamp must STAY old.
+        let unchanged = store.writeWithSmartBumps([
+            Person(canonical: "Nick", aliases: ["Nicky", " "], short: " Nick ", lastModifiedAt: "ignored")
+        ])
+        XCTAssertEqual(unchanged.people[0].aliases, ["Nicky"])   // blanks trimmed
+        XCTAssertEqual(unchanged.people[0].short, "Nick")        // trimmed
+        XCTAssertEqual(unchanged.people[0].lastModifiedAt, old)  // unchanged → kept
+
+        // Change an alias → timestamp MUST move off the old value.
+        let changed = store.writeWithSmartBumps([
+            Person(canonical: "[[Nick]]", aliases: ["Nicky", "Nico"], short: "Nick", lastModifiedAt: "ignored")
+        ])
+        XCTAssertNotEqual(changed.people[0].lastModifiedAt, old)
+    }
+
+    func testRemovingAPersonWritesTombstone() {
+        let store = tempStore()
+        _ = store.writeWithSmartBumps([
+            Person(canonical: "Nick", lastModifiedAt: ""),
+            Person(canonical: "Jane", lastModifiedAt: ""),
+        ])
+        // Save without Jane → Jane becomes a tombstone, hidden from livePeople.
+        let after = store.writeWithSmartBumps([Person(canonical: "Nick", lastModifiedAt: "")])
+        let jane = after.people.first { $0.canonical == "[[Jane]]" }
+        XCTAssertEqual(jane?.isDeleted, true)
+        XCTAssertEqual(store.livePeople().map(\.canonical), ["[[Nick]]"])
+    }
+
+    func testSmartBumpsPreserveVoiceEmbeddings() {
+        let store = tempStore()
+        // Phone enrolled an embedding (simulate by saving directly).
+        _ = store.save(NamesData(lastModifiedAt: ISO8601.now(), people: [
+            Person(canonical: "[[Jane]]", aliases: ["Janey"], short: "Jane",
+                   voiceEmbeddings: [VoiceEmbedding(vector: [0.1, 0.2])],
+                   lastModifiedAt: "2026-06-01T00:00:00.000Z")
+        ]))
+        // Desktop UI saves Jane WITHOUT embeddings (it doesn't round-trip them).
+        let after = store.writeWithSmartBumps([
+            Person(canonical: "[[Jane]]", aliases: ["Janey"], short: "Jane", lastModifiedAt: "")
+        ])
+        XCTAssertEqual(after.people[0].voiceEmbeddings?.count, 1)  // not wiped
+    }
+
+    func testPruneOldTombstones() {
+        let store = tempStore()
+        let old = ISO8601.string(from: Date().addingTimeInterval(-100 * 86_400))   // 100 days ago
+        let recent = ISO8601.string(from: Date().addingTimeInterval(-10 * 86_400)) // 10 days ago
+        _ = store.save(NamesData(lastModifiedAt: ISO8601.now(), people: [
+            Person(canonical: "[[Old]]", lastModifiedAt: old, deleted: true),
+            Person(canonical: "[[Recent]]", lastModifiedAt: recent, deleted: true),
+            Person(canonical: "[[Live]]", lastModifiedAt: recent),
+        ]))
+        let pruned = store.pruneOldTombstones(maxAgeDays: 90)
+        XCTAssertEqual(pruned, 1)
+        XCTAssertEqual(Set(store.load().people.map(\.canonical)), ["[[Recent]]", "[[Live]]"])
+    }
+}

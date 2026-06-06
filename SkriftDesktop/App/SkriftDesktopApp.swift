@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import FluidAudio  // Phase 0 proof: FluidAudio (ASR) links + builds for macOS arm64.
 
 @main
@@ -8,6 +9,7 @@ struct SkriftDesktopApp: App {
             ContentView()
         }
         .defaultSize(width: 900, height: 600)
+        .modelContainer(for: PipelineFile.self)
     }
 }
 

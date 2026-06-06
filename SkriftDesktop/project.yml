@@ -17,6 +17,8 @@ targets:
     platform: macOS
     sources:
       - path: App
+      - path: Models
+      - path: Pipeline
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
@@ -38,11 +40,17 @@ targets:
         product: FluidAudio
 
   # Host-less logic test bundle — proves `xcodebuild test` runs the unit harness.
+  # Host-less logic tests: macOS hosted tests flakily hang on the testmanagerd
+  # control session, so we compile the pure-logic sources straight into the test
+  # bundle instead of @testable-importing the app. Keep FluidAudio/mlx-using files
+  # OUT of here (they belong to integration/manual verification).
   SkriftDesktopTests:
     type: bundle.unit-test
     platform: macOS
     sources:
       - path: SkriftDesktopTests
+      - path: Models
+      - path: Pipeline
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
