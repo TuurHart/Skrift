@@ -29,6 +29,35 @@ extension Memo {
         let total = Int(duration.rounded())
         return String(format: "%d:%02d", total / 60, total % 60)
     }
+
+    /// Honest status for the list pill.
+    var statusKind: MemoStatusKind {
+        if transcriptStatus == .transcribing { return .transcribing }
+        if transcriptStatus == .failed { return .error }
+        return syncStatus == .synced ? .synced : .waiting
+    }
+}
+
+enum MemoStatusKind {
+    case synced, waiting, transcribing, error
+
+    var pillStyle: PillStyle {
+        switch self {
+        case .synced: return .synced
+        case .waiting: return .waiting
+        case .transcribing: return .working
+        case .error: return .error
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .synced: return "Synced"
+        case .waiting: return "Waiting"
+        case .transcribing: return "Transcribing"
+        case .error: return "Retry"
+        }
+    }
 }
 
 /// Relative date labels matching the mockups ("Today · 09:41", "Yesterday · 21:12",
