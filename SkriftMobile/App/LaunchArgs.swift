@@ -32,6 +32,9 @@ enum LaunchFlags {
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Stub the Mac sync layer so UI tests don't need a live backend.
     static var mockMac: Bool { args.boolFlag("-mockMac") }
+    /// Inject fake Bonjour-discovered Macs (the sim can't see the real one) so
+    /// the Pair-a-Mac discovered list is UI-testable.
+    static var seedDiscoveredMacs: Bool { args.boolFlag("-seedDiscoveredMacs") }
     /// Inject a deterministic transcript instead of running FluidAudio (the
     /// Simulator has no Neural Engine). Its presence also puts recording in mock
     /// mode (no mic, no permission prompt) so the record→save→transcribe flow is

@@ -41,6 +41,9 @@ targets:
         NSCameraUsageDescription: "Skrift lets you snap photos while recording, placed into the transcript at the moment you took them."
         NSLocationWhenInUseUsageDescription: "Skrift tags each memo with where you recorded it (place name, daylight, weather)."
         NSMotionUsageDescription: "Skrift records your step count alongside a memo for context."
+        NSLocalNetworkUsageDescription: "Skrift finds your Mac on the local network to sync memos and names."
+        NSBonjourServices:
+          - _skrift._tcp
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         CFBundleURLTypes:

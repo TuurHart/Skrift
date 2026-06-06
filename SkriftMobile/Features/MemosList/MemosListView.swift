@@ -26,7 +26,7 @@ struct MemosListView: View {
 
     @State private var path: [UUID] = []
     @State private var showRecord = false
-    @State private var showNames = false
+    @State private var showSettings = false
     @State private var showSortFilter = false
     @State private var search = ""
     @State private var sort: MemoSort = .recent
@@ -57,7 +57,7 @@ struct MemosListView: View {
             .fullScreenCover(isPresented: $showRecord) {
                 RecordView(onSaved: { newID in path = [newID] })
             }
-            .sheet(isPresented: $showNames) { NamesListView() }
+            .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
             }
@@ -131,8 +131,8 @@ struct MemosListView: View {
         }
         if !selecting {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showNames = true } label: { Image(systemName: "person.2.fill") }
-                    .accessibilityIdentifier("open-names-button")
+                Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                    .accessibilityIdentifier("settings-button")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { Task { await SyncCoordinator().syncAll() } } label: {

@@ -1,8 +1,8 @@
 import Foundation
 
-/// Minimal Mac connection config (host + port), persisted in UserDefaults. The
-/// QR pairing, health check, and multipart upload land in Phase 6 (`SyncService`);
-/// this is just enough for names sync to have a target.
+/// Minimal Mac connection config (host + port), persisted in UserDefaults.
+/// Pairing is Bonjour auto-discovery + a manual host/port fallback (`PairMacView`
+/// / `MacDiscovery`) — the QR flow was dropped.
 struct MacConnection: Equatable {
     var host: String
     var port: Int
@@ -27,13 +27,4 @@ struct MacConnection: Equatable {
     var healthURL: URL? { URL(string: "\(base)/api/system/health") }
     var uploadURL: URL? { URL(string: "\(base)/api/files/upload") }
     var filesURL: URL? { URL(string: "\(base)/api/files/") }
-
-    /// Parse a pairing QR of the form `skrift://{host}:{port}/{name}` (the format
-    /// the Mac shows). The name segment is ignored here.
-    static func parse(qr: String) -> MacConnection? {
-        guard let url = URL(string: qr.trimmingCharacters(in: .whitespaces)),
-              url.scheme == "skrift",
-              let host = url.host, !host.isEmpty else { return nil }
-        return MacConnection(host: host, port: url.port ?? defaultPort)
-    }
 }

@@ -17,9 +17,10 @@ final class NamesUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        let openNames = app.buttons["open-names-button"]
-        XCTAssertTrue(openNames.waitForExistence(timeout: 15))
-        openNames.tap()
+        app.buttons["settings-button"].tap()
+        let namesLink = app.descendants(matching: .any).matching(identifier: "names-link").firstMatch
+        XCTAssertTrue(namesLink.waitForExistence(timeout: 15))
+        namesLink.tap()
 
         XCTAssertTrue(app.staticTexts["Jane Doe"].waitForExistence(timeout: 5), "seeded person missing")
 
@@ -47,16 +48,21 @@ final class NamesUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        app.buttons["open-names-button"].tap()
+        app.buttons["settings-button"].tap()
+        let namesLink = app.descendants(matching: .any).matching(identifier: "names-link").firstMatch
+        XCTAssertTrue(namesLink.waitForExistence(timeout: 10))
+        namesLink.tap()
 
         // Jane is seeded with a voice embedding → "Voice enrolled"; Bob isn't.
         XCTAssertTrue(app.staticTexts["Voice enrolled"].waitForExistence(timeout: 5),
                       "enrolled voice state missing")
 
-        // Open Bob's detail → the Add voice affordance is present.
-        app.staticTexts["Bob Smith"].tap()
-        XCTAssertTrue(app.staticTexts["person-detail-name"].waitForExistence(timeout: 5)
-                      || app.staticTexts["Bob Smith"].waitForExistence(timeout: 5))
+        // Open Bob's detail → the Add voice affordance is present. Query the row
+        // as a button (the NavigationLink is the button; the id also propagates
+        // to its child texts, which are not buttons).
+        let bobRow = app.buttons["person-Bob Smith"]
+        XCTAssertTrue(bobRow.waitForExistence(timeout: 5))
+        bobRow.tap()
         let addVoice = app.buttons["add-voice-button"]
         XCTAssertTrue(addVoice.waitForExistence(timeout: 5), "Add voice affordance missing")
         addVoice.tap()

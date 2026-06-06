@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct SkriftApp: App {
     private let repository: NotesRepository
+    @AppStorage("appTheme") private var appTheme = "dark"
 
     init() {
         let repo = NotesRepository.shared
@@ -16,8 +17,18 @@ struct SkriftApp: App {
         WindowGroup {
             RootView()
                 .modelContainer(repository.container)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(colorScheme)
                 .tint(.skAccent)
+        }
+    }
+
+    // The palette is dark-first (explicit dark surfaces), so "auto"/"light" are
+    // best-effort until a light palette lands; default stays dark.
+    private var colorScheme: ColorScheme? {
+        switch appTheme {
+        case "light": return .light
+        case "auto": return nil
+        default: return .dark
         }
     }
 }

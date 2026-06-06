@@ -8,31 +8,23 @@ struct NamesListView: View {
     @State private var people: [Person] = []
     @State private var search = ""
     @State private var showAdd = false
-    @Environment(\.dismiss) private var dismiss
     private let store = NamesStore.shared
 
+    /// Pushed from Settings → relies on the parent NavigationStack (no own stack).
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.skBg.ignoresSafeArea()
-                content
-            }
-            .navigationTitle("Names")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: { Image(systemName: "plus") }
-                        .accessibilityIdentifier("add-person-button")
-                }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-            .navigationDestination(for: String.self) { canonical in
-                PersonDetailView(canonical: canonical, onChange: reload)
-            }
-            .sheet(isPresented: $showAdd) { AddPersonView { reload() } }
-            .onAppear(perform: reload)
+        ZStack {
+            Color.skBg.ignoresSafeArea()
+            content
         }
+        .navigationTitle("Names")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showAdd = true } label: { Image(systemName: "plus") }
+                    .accessibilityIdentifier("add-person-button")
+            }
+        }
+        .sheet(isPresented: $showAdd) { AddPersonView { reload() } }
+        .onAppear(perform: reload)
     }
 
     @ViewBuilder private var content: some View {
@@ -56,11 +48,13 @@ struct NamesListView: View {
 
                 LazyVStack(spacing: 0) {
                     ForEach(filtered, id: \.canonical) { person in
-                        NavigationLink(value: person.canonical) {
+                        NavigationLink {
+                            PersonDetailView(canonical: person.canonical, onChange: reload)
+                        } label: {
                             PersonRow(person: person)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityIdentifier("person-row")
+                        .accessibilityIdentifier("person-\(NamesDisplay.name(person))")
                     }
                 }
                 .padding(.horizontal, 16).padding(.top, 8)

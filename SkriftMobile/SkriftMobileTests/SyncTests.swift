@@ -41,17 +41,6 @@ final class UploadPayloadTests: XCTestCase {
     }
 }
 
-final class MacConnectionTests: XCTestCase {
-
-    func testQRParse() {
-        let conn = MacConnection.parse(qr: "skrift://192.168.1.5:8000/MacBook")
-        XCTAssertEqual(conn?.host, "192.168.1.5")
-        XCTAssertEqual(conn?.port, 8000)
-        XCTAssertNil(MacConnection.parse(qr: "http://not-skrift"))
-        XCTAssertEqual(MacConnection.parse(qr: "skrift://10.0.0.2/Name")?.port, MacConnection.defaultPort)
-    }
-}
-
 final class SyncCoordinatorTests: XCTestCase {
 
     @MainActor
