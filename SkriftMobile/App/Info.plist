@@ -31,8 +31,14 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_skrift._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Skrift lets you snap photos while recording, placed into the transcript at the moment you took them.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Skrift finds your Mac on the local network to sync memos and names.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Skrift tags each memo with where you recorded it (place name, daylight, weather).</string>
 	<key>NSMicrophoneUsageDescription</key>
