@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<style>
+  :root{--bg:#0f1117;--surface:#181a23;--elev:#1e2130;--border:rgba(255,255,255,0.06);
+    --t1:#e4e4e7;--t2:#8b8b97;--t3:#55556a;--accent:#7c6bf5;--accent-soft:rgba(124,107,245,0.15);
+    --green:#34d399;--amber:#f59e0b;--red:#ef4444}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;background:radial-gradient(1200px 800px at 50% -10%,#15171f,#07080c 60%);color:var(--t1);padding:40px 28px;display:flex;flex-direction:column;align-items:center;gap:22px}
+  .title{font-size:22px;font-weight:700;letter-spacing:-.3px}.title span{color:var(--t2);font-weight:500}
+  .rowp{display:flex;gap:30px}.col{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .cap{color:var(--t2);font-size:13px;font-weight:600}
+  .phone{width:340px;height:710px;background:#000;border-radius:48px;padding:11px;box-shadow:0 0 0 2px #2a2a32,0 30px 60px rgba(0,0,0,.55);position:relative}
+  .screen{width:100%;height:100%;background:var(--bg);border-radius:38px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:96px;height:28px;background:#000;border-radius:16px;z-index:30}
+  .sb{height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:13px;font-weight:600}.sb .r{display:flex;gap:7px;align-items:center}
+  .batt{display:inline-block;width:24px;height:12px;border:1.5px solid currentColor;border-radius:3px;padding:1.5px;opacity:.9}.batt span{display:block;width:100%;height:100%;background:currentColor;border-radius:1px}
+  .x{width:32px;height:32px;border-radius:16px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--t2)}
+  .toggle{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);padding:6px 10px 6px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  .sw{width:38px;height:22px;border-radius:11px;background:var(--accent);position:relative;flex-shrink:0}
+  .sw::after{content:"";position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff}
+  .sw.off{background:var(--elev)}.sw.off::after{left:2px;right:auto}
+
+  /* RECORD caption-first */
+  .rec{flex:1;display:flex;flex-direction:column;padding:8px 20px 0}
+  .rectop{display:flex;align-items:center;justify-content:space-between}
+  .reclabel{display:inline-flex;gap:7px;align-items:center;color:var(--t2);font-size:13px;font-weight:600;margin:18px auto 0}
+  .recdot{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red)}
+  .bigcap{flex:1;margin-top:18px;font-size:22px;line-height:1.42;font-weight:500;overflow:hidden}
+  .bigcap .old{color:var(--t3)}.bigcap .mid{color:var(--t2)}.bigcap .now{color:var(--t1)}
+  .caret{display:inline-block;width:2.5px;height:21px;background:var(--accent);margin-left:2px;vertical-align:-3px;border-radius:1px}
+  .wt{display:flex;align-items:center;gap:14px;margin-top:6px}
+  .wave{display:flex;align-items:center;gap:3px;height:34px;flex:1}
+  .wave i{flex:1;border-radius:3px;background:linear-gradient(var(--accent),#a99cff)}
+  .tmr{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;font-family:ui-rounded,sans-serif;color:var(--t2)}
+  .controls{display:flex;align-items:center;justify-content:space-around;margin:22px 0 30px}
+  .cbtn{display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--t2);font-size:12px;font-weight:600}
+  .cbtn .ic{width:54px;height:54px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--t1);position:relative}
+  .cbtn.cam .ic{background:var(--accent-soft);border-color:rgba(124,107,245,.3);color:#b9acff}
+  .badge{position:absolute;top:-3px;right:-3px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+  .stop{width:74px;height:74px;border-radius:50%;border:4px solid rgba(239,68,68,.35);display:flex;align-items:center;justify-content:center}
+  .stop .sq{width:28px;height:28px;border-radius:8px;background:var(--red)}
+
+  /* CAMERA overlay */
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+  .recstrip{position:absolute;top:54px;left:0;right:0;display:flex;align-items:center;gap:8px;padding:6px 20px;color:var(--t2);font-size:13px;font-weight:600;z-index:5}
+  .sheet{position:absolute;left:0;right:0;bottom:0;height:540px;background:#0a0c12;border-radius:28px 28px 38px 38px;border-top:1px solid var(--border);z-index:6;display:flex;flex-direction:column;align-items:center;padding:14px 16px 26px}
+  .grab{width:38px;height:5px;border-radius:3px;background:var(--elev)}
+  .view{width:100%;flex:1;margin-top:14px;border-radius:18px;background:linear-gradient(155deg,#2a3350,#10131d 78%);position:relative;overflow:hidden}
+  .view .grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:33.3% 33.3%;opacity:.6}
+  .zoom{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:rgba(0,0,0,.4);padding:5px;border-radius:999px;backdrop-filter:blur(4px)}
+  .zoom b{font-size:12px;font-weight:700;color:var(--t2);padding:4px 9px;border-radius:999px}
+  .zoom b.on{background:rgba(255,255,255,.16);color:#fff}
+  .pinch{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--t1);background:rgba(0,0,0,.4);padding:3px 9px;border-radius:8px}
+  .camrow{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:16px;padding:0 6px}
+  .thumbs{display:flex;gap:6px}.thumbs .th{width:40px;height:40px;border-radius:9px;background:linear-gradient(135deg,#2b3350,#1a1f33);border:1px solid var(--border)}
+  .shutter{width:64px;height:64px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.22)}
+  .done{color:var(--accent);font-weight:700;font-size:15px}
+
+  /* REVIEW w/ title */
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:6px 18px}
+  .accentbtn{color:var(--accent);font-weight:700;font-size:16px}.mut{color:var(--red);font-weight:600;font-size:16px}
+  .body{flex:1;overflow:hidden;padding:6px 20px 0}
+  .lbl{color:var(--t2);font-size:11.5px;font-weight:700;letter-spacing:.5px;margin:15px 2px 7px}
+  .titlefield{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px;font-size:18px;font-weight:700;color:var(--t1);display:flex;align-items:center;justify-content:space-between}
+  .titlefield .hintkeep{font-size:10.5px;font-weight:600;color:var(--t3)}
+  .editbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;font-size:14.5px;line-height:1.5;color:var(--t1)}
+  .tagrow{display:flex;flex-wrap:wrap;gap:7px}
+  .tag{font-size:12.5px;border-radius:999px;padding:5px 11px;font-weight:600}
+  .tag.on{color:#fff;background:var(--accent)}.tag.sug{color:#b9acff;background:transparent;border:1px dashed rgba(124,107,245,.5)}
+  .tag.add{color:var(--t2);background:var(--elev);border:1px solid var(--border)}
+  .ctxchips{display:flex;gap:6px;flex-wrap:wrap}.cchip{font-size:12px;color:var(--t2);background:var(--elev);border-radius:8px;padding:4px 9px}
+  svg{display:block}
+</style></head>
+<body>
+  <div class="title">Skrift mobile — round 5 <span>· Recording (caption-first) · Camera (on-demand) · Review + title</span></div>
+  <div class="rowp">
+
+    <!-- RECORDING caption-first -->
+    <div class="col"><div class="phone"><div class="screen">
+      <div class="island"></div>
+      <div class="sb"><div>9:41</div><div class="r"><span>100%</span><span class="batt"><span></span></span></div></div>
+      <div class="rec">
+        <div class="rectop">
+          <div class="x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+          <div class="toggle">Conversation <span class="sw off"></span></div>
+        </div>
+        <div class="reclabel"><span class="recdot"></span> Recording</div>
+        <div class="bigcap"><span class="old">…so we start with the east pier. </span><span class="mid">The lighting along the boardwalk could use warmer tones — maybe 2700 kelvin. </span><span class="now">Then I want to talk to Maria about the budget before the council<span class="caret"></span></span></div>
+        <div class="wt"><div class="wave" id="wave"></div><div class="tmr">0:34</div></div>
+        <div class="controls">
+          <div class="cbtn"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></div>Pause</div>
+          <div class="cbtn"><div class="stop"><div class="sq"></div></div></div>
+          <div class="cbtn cam"><div class="ic"><span class="badge">2</span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2L8 5h8l1.5 2h2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.2"/></svg></div>Photo</div>
+        </div>
+      </div>
+    </div></div><div class="cap">Recording — caption-first · Photo button (×2 taken)</div></div>
+
+    <!-- CAMERA on-demand overlay -->
+    <div class="col"><div class="phone"><div class="screen">
+      <div class="island"></div>
+      <div class="sb"><div>9:41</div><div class="r"><span>100%</span><span class="batt"><span></span></span></div></div>
+      <div class="dim"></div>
+      <div class="recstrip"><span class="recdot"></span> Recording · 0:41 <span style="color:var(--t3);font-weight:500">— still listening</span></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="view">
+          <div class="grid"></div>
+          <div class="pinch">Pinch to zoom</div>
+          <div class="zoom"><b>.5×</b><b class="on">1×</b><b>2×</b></div>
+        </div>
+        <div class="camrow">
+          <div class="thumbs"><div class="th"></div><div class="th"></div></div>
+          <div class="shutter"></div>
+          <div class="done">Done</div>
+        </div>
+      </div>
+    </div></div><div class="cap">Photo — viewfinder slides up · pinch-zoom · recording continues</div></div>
+
+    <!-- REVIEW + title -->
+    <div class="col"><div class="phone"><div class="screen">
+      <div class="island"></div>
+      <div class="sb"><div>9:41</div><div class="r"><span>100%</span><span class="batt"><span></span></span></div></div>
+      <div class="nav"><div class="mut">Discard</div><div style="font-weight:700">New memo</div><div class="accentbtn">Save</div></div>
+      <div class="body">
+        <div class="lbl">TITLE <span style="color:var(--t3);font-weight:600">· optional</span></div>
+        <div class="titlefield">Harbor renovation ideas</div>
+        <div class="lbl">TRANSCRIPT</div>
+        <div class="editbox">…so we start with the east pier. The lighting along the boardwalk could use warmer tones — maybe 2700 kelvin. Then talk to Maria about the budget.</div>
+        <div class="lbl">TAGS</div>
+        <div class="tagrow"><span class="tag on">#ideas</span><span class="tag sug">+ #harbor</span><span class="tag sug">+ #lighting</span><span class="tag add">+ Add tag</span></div>
+        <div class="lbl">CONTEXT</div>
+        <div class="ctxchips"><span class="cchip">2:14</span><span class="cchip">📍 Alfama</span><span class="cchip">⛅ 19°</span><span class="cchip">Morning</span></div>
+      </div>
+    </div></div><div class="cap">Review — optional Title (Mac can keep it) · + Add tag</div></div>
+
+  </div>
+  <script>
+    const w=document.getElementById('wave');
+    [10,18,28,42,30,52,66,48,72,56,40,64,46,32,52,38,24,16,12,22,34,50,64,52,40,28,18,12,20,32].forEach(h=>{const i=document.createElement('i');i.style.height=h+'%';i.style.opacity=(.4+h/120).toFixed(2);w.appendChild(i)});
+  </script>
+</body>
+</html>

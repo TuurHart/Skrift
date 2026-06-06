@@ -112,16 +112,14 @@
   on this branch — **port them into the native transcription service in Phase 2**.
 
 ## Resume here (do this first)
-**Phases 0–6 are GREEN and committed.** Start **Phase 7 (review / memo detail /
-settings)** — plan §3. **MOCK THE SCREENS FIRST** (the user's visual-iteration rule
-+ the autonomous-execution memo's one exception): render mockups of the review,
-memo-detail, and settings screens for the user to pick/critique BEFORE building.
-Then build: review (edit transcript → set `transcriptUserEdited=true`, tags, photo
-filmstrip), memo detail (playback via `Memo.audioURL` + transcript + word-timing
-sidecar), settings (Mac connection host/port + QR scan, Names entry, weather API
-key via `WeatherClient.setAPIKey`, theme). Plain functional is fine AFTER the mock
-is chosen. First, sanity-check the toolchain still builds + tests (runs BOTH
-`SkriftMobileTests` and `SkriftMobileUITests`):
+**Phases 0–6 are GREEN and committed. Phase 7's UI DESIGN IS LOCKED** (mock-first
+done — 5 rounds, user-approved). **Now BUILD Phase 7 to the locked design** — the
+full spec is in **`## Phase 7 — LOCKED UI DESIGN (build to this)`** below
+(decisions, per-screen behavior, the design direction + the 2 libraries, the
+mockups + how to render them, build order, and the open post-record fork). The
+mockups live in `SkriftMobile/mockups/mockup{1..5}.html`. First, sanity-check the
+toolchain still builds + tests (runs BOTH `SkriftMobileTests` and
+`SkriftMobileUITests`):
 ```
 cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
   xcodebuild test -project SkriftMobile.xcodeproj -scheme SkriftMobile \
@@ -146,6 +144,115 @@ on the `Memo` (sidecar via `WordTimingsStore`); `VoiceEmbedding.vector` is `[Dou
 (map FluidAudio's `[Float]` when enrolling); enums (`SyncStatus`/`TranscriptStatus`/
 `DayPeriod`/`PressureTrend`) are String-backed; `ISO8601.now()` matches JS
 `toISOString()` for names timestamps.
+
+## Phase 7 — LOCKED UI DESIGN (build to this)
+
+The whole UI was mock-first designed + approved this session (5 rounds). Build to it.
+
+**Process the user wants (carry forward, durable):** (1) spec ALL functionality →
+(2) agents audit the UI step-by-step for coverage gaps → (3) build → (4) XCUITest
+sims. Catch affordance gaps proactively (they caught a buried camera button). See
+memory `feedback_native_ui_process.md`.
+
+**Mockups = the visual spec.** `SkriftMobile/mockups/mockup{1..5}.html` (committed,
+NOT in the build target). Authoritative per screen: **Record = mockup5**
+(caption-first + on-demand camera) & **mockup4** (ready state); **Memo detail =
+mockup2**; **Memos = mockup3**; **Names = mockup3**; **Settings = mockup2** +
+**Pair-a-Mac = mockup3**; **Review/Onboarding = mockup4** (+ Review title/add-tag in
+mockup5). Render any:
+```
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+  --force-device-scale-factor=2 --window-size=1200,910 \
+  --screenshot=/tmp/m.png "file:///Users/tiurihartog/Hackerman/Skrift/SkriftMobile/mockups/mockup5.html"
+```
+(then Read /tmp/m.png). The user can't see the preview panel until you render+Read.
+
+**Design direction (Opus research agent, web-verified 2026):**
+- Adopt only **2 libs**: **DSWaveformImage** (MIT, v14.5 — live mic waveform; wire to
+  the existing `AVAudioRecorder` meters, don't open a 2nd session) + **Pow** (MIT —
+  tasteful transitions, use sparingly). Everything else native (`NavigationStack` +
+  `TabView(.page)` cover paging; skip confetti/design-system/haptics libs).
+- **Haptics = native `.sensoryFeedback`** (iOS 17+). CAVEAT: it shares the audio
+  session and gets suppressed mid-recording → for the shutter/stop buttons use an
+  `AudioServicesPlaySystemSound` fallback so taps still buzz while recording.
+- Tokens (already in code via the mocks): bg `#0f1117`, surface `#181a23`, elev
+  `#1e2130`, border white@.06, text `#e4e4e7`/`#8b8b97`/`#55556a`, accent `#7c6bf5`,
+  green `#34d399`, amber `#f59e0b`, red `#ef4444`.
+- Type: Dynamic Type styles; only the timer is custom
+  (`.system(size:~52,weight:.semibold,design:.rounded).monospacedDigit()`). Spacing
+  4/8/16/24/32 (card pad 16, inter-card 12, margins 20). **Continuous corners**
+  (`.rect(cornerRadius:style:.continuous)`): cards 16, chips/pills 8/capsule,
+  sheets 24. **Accent restraint:** full strength only on small elements (record btn,
+  active dot, CTA, waveform fill, selection); chips/bg at .12–.18 opacity; never tint
+  body text; avoid pure black. **Motion:** one spring
+  `.spring(response:0.35,dampingFraction:0.85)`, `.snappy` for taps, ≤300ms;
+  `.matchedGeometryEffect` card→detail. Wins: live mic waveform; status pills that
+  pulse while transcribing (`.symbolEffect(.pulse)`); coherent `.symbolEffect` icons.
+
+**LOCKED decisions (this session):**
+1. **Live transcription DURING recording = YES** (signature; "starts the moment you
+   speak"). → Port Shhhcribble's **streaming** path (`Services/TextEngine.swift`:
+   VAD chunk-rotation + `feed`/`liveSnapshot`/`finalize`) into the native engine for
+   the record screen. The current `TranscriptionService.transcribe(url)` is one-shot
+   — KEEP it for import/file, ADD streaming for live record.
+2. **Record = caption-first, camera on-demand** (mockup5). Recording screen = big
+   live caption + compact waveform + timer + Pause/Stop/**Photo** (count badge).
+   Photo → viewfinder **slides up as a sheet** (pinch-zoom .5×/1×/2× via
+   `AVCaptureDevice.videoZoomFactor`), shutter, recording keeps going ("still
+   listening" strip), Done dismisses. Camera NOT persistent. **Ready state** (mockup4):
+   context chips + conversation toggle + on-device/model-download status + big "Tap
+   to start".
+3. **Conversation mode (diarization) = a manual TOGGLE** on the record screen, NOT
+   automatic. Diarization itself is still a later track (voiceEmbeddings round-trip;
+   nothing runs on them yet).
+4. **Names = voice-first (Option B)** (mockup3): people + voice-fingerprint enroll
+   ("Voice enrolled" / "Add voice") + simple add. NO alias editing on the phone (Mac
+   does it; phone syncs aliases silently). NO "synced on Mac" footer. Phone NEVER
+   links names into transcripts.
+5. **Pair-a-Mac = Bonjour auto-discovery, NO QR** (mockup3). `NWBrowser` for
+   `_skrift._tcp` (the native Mac server advertises it: `SkriftDesktop/Server/
+   SyncServer.swift`, name "Skrift Desktop"). UI: "On your network" list (tap to
+   connect) + manual host/port fallback. Add Info.plist `NSLocalNetworkUsageDescription`
+   + `NSBonjourServices` (`_skrift._tcp`). **Drop the QR parser** (built in Phase 6,
+   now unused — user: "noone cares, remove it").
+6. **Memos list** (mockup3): search = **full-text over transcript + tags + place
+   name** (no separate titles). A SINGLE **funnel icon = Sort & Filter** sheet (sort
+   recent/oldest/longest; filter unsynced/has-photos/by place) — NOT a separate
+   "Recent" pill, NOT two controls (user picked the funnel: less vertical space).
+   Day-group headers (Today/Yesterday), multi-select ("Select"), honest status pills
+   incl **Error→Retry**, context chips, photo thumbnail, record FAB.
+7. **Memo detail = the "note" screen** (mockup2): **optional editable title** +
+   transcript (RAW — never fake `[[links]]`; the Mac adds those) with inline image
+   markers rendered, playback (scrub/±10/speed), tags edit, photo filmstrip,
+   metadata, **swipe left/right between notes** (`TabView(.page)`, peek next card),
+   delete, re-transcribe.
+8. **Optional TITLE per memo (NEW):** phone-set title (Review + Memo detail). →
+   add `Memo.title: String?` + UI + `title` in `UploadMetadata`. **CONTRACT
+   ADDITION:** the native Mac server (`UploadService`) must read `title` from the
+   upload metadata and offer it in its title chooser (instead of the LLM title).
+   Coordinate with the desktop-native track. (Phone shows the transcript's first line
+   when no title is set.)
+9. **Tags model (clarified, NOT a synced DB):** the Mac owns the vocabulary — it
+   scans the Obsidian vault locally/privately (NEVER AI — see
+   `feedback_vault_privacy`) for tag NAMES → a whitelist endpoint. Phone PULLS the
+   whitelist (read-only) to suggest matching tags; applied tags ride with the memo
+   upload (`tags`). Phone only ever sees tag names. On-device suggestions = later
+   track (needs the Mac whitelist endpoint); until then free-text tags + Mac-side
+   tagging. Review needs a **"+ Add tag"** free-text affordance beside the dashed
+   suggestions.
+10. **Onboarding/first-run** (mockup4): permissions (mic/camera/location/motion/
+    local-network) + pair Mac (Bonjour) + one-time model download (494 MB, progress).
+11. **OPEN FORK (ASK before building):** post-record flow — save-now→edit-in-Memo-
+    detail (lean: fewer taps, detail already edits) vs a separate **Review** screen
+    (mockup4/5: title + transcript edit + tags + Save/Discard). User dismissed the
+    question; don't decide alone.
+
+**Build order (per the user):** Record (live caption + on-demand camera — biggest,
+needs the streaming port) → Memo detail (swipe + playback) → Memos list → Names
+(voice-first + enroll) → Settings + Bonjour pairing → Onboarding. Each: build →
+XCUITest sim (seed via launch args) → commit. Re-run the agent UI-coverage audit
+against the BUILT app. Still-undrawn minors: voice-enrollment flow, single-person
+detail, empty states, conversation/diarization result.
 
 ## Build / test commands (native)
 ```

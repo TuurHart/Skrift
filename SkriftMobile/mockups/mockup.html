@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root {
+    --bg: #0f1117; --surface: #181a23; --elev: #1e2130;
+    --border: rgba(255,255,255,0.08); --t1: #e4e4e7; --t2: #8b8b97; --t3: #55556a;
+    --accent: #7c6bf5; --green: #34d399; --amber: #f59e0b; --red: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    background: radial-gradient(1200px 800px at 50% -10%, #15171f 0%, #07080c 60%);
+    color: var(--t1); padding: 40px 28px 28px; display: flex; flex-direction: column; align-items: center; gap: 22px;
+  }
+  .title { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .title span { color: var(--t2); font-weight: 500; }
+  .row { display: flex; gap: 30px; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .cap { color: var(--t2); font-size: 13px; font-weight: 600; letter-spacing: 0.2px; }
+
+  /* phone */
+  .phone {
+    width: 330px; height: 700px; background: #000; border-radius: 46px; padding: 11px;
+    box-shadow: 0 0 0 2px #2a2a32, 0 30px 60px rgba(0,0,0,0.55); position: relative;
+  }
+  .screen { width: 100%; height: 100%; background: var(--bg); border-radius: 36px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+  .island { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 96px; height: 28px; background: #000; border-radius: 16px; z-index: 30; }
+  .statusbar { height: 50px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 24px 6px; font-size: 13px; font-weight: 600; color: var(--t1); }
+  .statusbar .r { display: flex; gap: 6px; align-items: center; }
+
+  /* generic */
+  .hdr { padding: 6px 20px 10px; display: flex; align-items: center; justify-content: space-between; }
+  .hdr h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.6px; }
+  .iconbtn { width: 34px; height: 34px; border-radius: 18px; background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--t2); border: 1px solid var(--border); }
+  .iconrow { display: flex; gap: 8px; }
+  .body { flex: 1; overflow: hidden; padding: 4px 16px; }
+
+  /* memo card */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 14px 14px; margin-bottom: 11px; display: flex; gap: 12px; }
+  .card .main { flex: 1; min-width: 0; }
+  .card .snippet { font-size: 15px; line-height: 1.34; color: var(--t1); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .snippet.muted { color: var(--t3); font-style: italic; font-weight: 400; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
+  .chip { font-size: 11.5px; color: var(--t2); background: var(--elev); border-radius: 8px; padding: 3px 8px; display: inline-flex; gap: 4px; align-items: center; }
+  .chip.tag { color: #c5bcff; background: rgba(124,107,245,0.14); }
+  .time { font-size: 12px; color: var(--t3); font-weight: 600; }
+  .pill { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; letter-spacing: 0.2px; }
+  .pill.synced { color: var(--green); background: rgba(52,211,153,0.13); }
+  .pill.wait { color: var(--t2); background: rgba(255,255,255,0.06); }
+  .pill.work { color: var(--amber); background: rgba(245,158,11,0.14); }
+  .thumb { width: 52px; height: 52px; border-radius: 12px; background: linear-gradient(135deg, #2b3350, #1a1f33); flex-shrink: 0; position: relative; overflow: hidden; }
+  .thumb::after { content: "📷"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; opacity: 0.5; }
+  .toprow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+  /* FAB record bar */
+  .fab { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); width: 66px; height: 66px; border-radius: 50%; background: var(--red); box-shadow: 0 8px 24px rgba(239,68,68,0.45); display: flex; align-items: center; justify-content: center; border: 4px solid rgba(255,255,255,0.12); z-index: 20; }
+  .tabbar { position: absolute; bottom: 0; left: 0; right: 0; height: 86px; background: linear-gradient(to top, rgba(15,17,23,0.96), rgba(15,17,23,0.0)); }
+
+  /* record screen */
+  .rec { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 20px 0; }
+  .reclabel { display: inline-flex; gap: 7px; align-items: center; color: var(--t2); font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .recdot { width: 9px; height: 9px; border-radius: 50%; background: var(--red); box-shadow: 0 0 10px var(--red); }
+  .cam { width: 100%; height: 188px; border-radius: 20px; margin-top: 14px; background: linear-gradient(150deg, #20263a, #12121b 70%); border: 1px solid var(--border); position: relative; overflow: hidden; display:flex; align-items:flex-end; justify-content:center; }
+  .cam .ph { position:absolute; top:10px; left:12px; font-size:11px; color:var(--t2); background:rgba(0,0,0,0.35); padding:3px 8px; border-radius:8px; }
+  .shutter { width: 46px; height: 46px; border-radius: 50%; background: #fff; margin-bottom: 12px; box-shadow: 0 0 0 3px rgba(255,255,255,0.25); }
+  .wave { display: flex; align-items: center; justify-content: center; gap: 4px; height: 84px; margin-top: 26px; }
+  .wave i { width: 5px; border-radius: 3px; background: linear-gradient(var(--accent), #a99cff); display: block; }
+  .timer { font-size: 56px; font-weight: 300; letter-spacing: 1px; font-variant-numeric: tabular-nums; margin-top: 14px; font-family: "SF Mono", ui-monospace, monospace; }
+  .reccontrols { display: flex; align-items: center; gap: 34px; margin-top: auto; margin-bottom: 30px; }
+  .rbtn { color: var(--t2); font-size: 13px; font-weight: 600; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .rbtn .ic { width: 46px; height: 46px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+  .stopbig { width: 78px; height: 78px; border-radius: 50%; border: 4px solid rgba(239,68,68,0.4); display:flex; align-items:center; justify-content:center; }
+  .stopbig .sq { width: 28px; height: 28px; border-radius: 7px; background: var(--red); }
+
+  /* names */
+  .search { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 9px 12px; color: var(--t3); font-size: 14px; margin: 2px 4px 12px; display:flex; gap:8px; align-items:center; }
+  .person { display: flex; align-items: center; gap: 13px; padding: 11px 6px; border-bottom: 1px solid var(--border); }
+  .avatar { width: 42px; height: 42px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-weight: 700; font-size: 15px; color: #fff; flex-shrink: 0; }
+  .person .nm { font-size: 16px; font-weight: 600; }
+  .person .al { display: flex; gap: 6px; margin-top: 5px; }
+  .alias { font-size: 11.5px; color: var(--t2); background: var(--elev); border-radius: 7px; padding: 2px 8px; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+  <div class="title">Skrift mobile — proposed UI <span>· Memos · Record · Names</span></div>
+  <div class="row">
+
+    <!-- ============ MEMOS ============ -->
+    <div class="col">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="statusbar"><div>9:41</div><div class="r" style="gap:7px"><span>100%</span><span style="display:inline-block;width:24px;height:12px;border:1.5px solid currentColor;border-radius:3px;padding:1.5px;opacity:0.9"><span style="display:block;width:100%;height:100%;background:currentColor;border-radius:1px"></span></span></div></div>
+        <div class="hdr">
+          <h1>Memos</h1>
+          <div class="iconrow">
+            <div class="iconbtn">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a5 5 0 0 0-9.6-1.5A4 4 0 1 0 6 14h9a3.5 3.5 0 0 0 1-6.9"/><path d="M12 12v6m0 0 2.5-2.5M12 18l-2.5-2.5"/></svg>
+            </div>
+            <div class="iconbtn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 19a6 6 0 0 1 12 0"/><circle cx="17" cy="8" r="2.4"/><path d="M15.5 13.6A5 5 0 0 1 21 19"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="card">
+            <div class="main">
+              <div class="toprow"><span class="time">Today · 09:41</span><span class="pill synced">Synced</span></div>
+              <div class="snippet" style="margin-top:8px">Ideas for the harbor renovation — start with the east pier and the lighting along the boardwalk.</div>
+              <div class="meta">
+                <span class="chip">2:14</span>
+                <span class="chip">📍 Alfama</span>
+                <span class="chip">⛅ 19°</span>
+                <span class="chip tag">#ideas</span>
+              </div>
+            </div>
+            <div class="thumb"></div>
+          </div>
+
+          <div class="card">
+            <div class="main">
+              <div class="toprow"><span class="time">Today · 08:30</span><span class="pill wait">Waiting</span></div>
+              <div class="snippet" style="margin-top:8px">Quick reminder to call the plumber about the leak before the weekend.</div>
+              <div class="meta">
+                <span class="chip">0:47</span>
+                <span class="chip">📍 Home</span>
+                <span class="chip tag">#todo</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="main">
+              <div class="toprow"><span class="time">Yesterday · 21:12</span><span class="pill work">Transcribing…</span></div>
+              <div class="snippet muted" style="margin-top:8px">Voice memo</div>
+              <div class="meta">
+                <span class="chip">0:12</span>
+                <span class="chip">🌙 Night</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar"></div>
+        <div class="fab">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0" fill="none" stroke="#fff" stroke-width="2"/><path d="M12 17v3" stroke="#fff" stroke-width="2"/></svg>
+        </div>
+      </div></div>
+      <div class="cap">Memos — context-rich cards</div>
+    </div>
+
+    <!-- ============ RECORD ============ -->
+    <div class="col">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="statusbar"><div>9:41</div><div class="r" style="gap:7px"><span>100%</span><span style="display:inline-block;width:24px;height:12px;border:1.5px solid currentColor;border-radius:3px;padding:1.5px;opacity:0.9"><span style="display:block;width:100%;height:100%;background:currentColor;border-radius:1px"></span></span></div></div>
+        <div class="rec">
+          <div class="reclabel"><span class="recdot"></span> Recording</div>
+          <div class="cam">
+            <div class="ph">Tap to capture · 2 photos</div>
+            <div class="shutter"></div>
+          </div>
+          <div class="wave" id="wave"></div>
+          <div class="timer">0:23</div>
+          <div class="reccontrols">
+            <div class="rbtn"><div class="ic">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            </div>Pause</div>
+            <div class="stopbig"><div class="sq"></div></div>
+            <div class="rbtn"><div class="ic">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </div>Cancel</div>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap">Record — waveform + camera + pause</div>
+    </div>
+
+    <!-- ============ NAMES ============ -->
+    <div class="col">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="statusbar"><div>9:41</div><div class="r" style="gap:7px"><span>100%</span><span style="display:inline-block;width:24px;height:12px;border:1.5px solid currentColor;border-radius:3px;padding:1.5px;opacity:0.9"><span style="display:block;width:100%;height:100%;background:currentColor;border-radius:1px"></span></span></div></div>
+        <div class="hdr">
+          <h1>Names</h1>
+          <div class="iconbtn" style="background:var(--accent);color:#fff;border:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+        <div class="body">
+          <div class="search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            Search people
+          </div>
+          <div class="person">
+            <div class="avatar" style="background:linear-gradient(135deg,#7c6bf5,#9d8bff)">JD</div>
+            <div><div class="nm">Jane Doe</div><div class="al"><span class="alias">Janey</span><span class="alias">J</span></div></div>
+          </div>
+          <div class="person">
+            <div class="avatar" style="background:linear-gradient(135deg,#34d399,#10b981)">BS</div>
+            <div><div class="nm">Bob Smith</div><div class="al"><span class="alias">Bobby</span></div></div>
+          </div>
+          <div class="person">
+            <div class="avatar" style="background:linear-gradient(135deg,#f59e0b,#f97316)">CJ</div>
+            <div><div class="nm">Carl Jung</div><div class="al"><span class="alias">Carl</span></div></div>
+          </div>
+          <div class="person">
+            <div class="avatar" style="background:linear-gradient(135deg,#38bdf8,#3b82f6)">MA</div>
+            <div><div class="nm">Maria Alves</div><div class="al"><span class="alias">Ria</span><span class="alias">M</span></div></div>
+          </div>
+        </div>
+        <div style="padding:14px 18px;color:var(--t3);font-size:11.5px;line-height:1.4;border-top:1px solid var(--border)">Synced with your Mac · names are linked into transcripts on the Mac, not here.</div>
+      </div></div>
+      <div class="cap">Names — avatars + alias chips</div>
+    </div>
+
+  </div>
+  <script>
+    // build a believable waveform
+    const wave = document.getElementById('wave');
+    const heights = [10,18,26,40,30,52,68,46,72,58,80,62,44,70,50,34,56,38,24,16,12,22,32,48,64,52,38,28,18,12];
+    heights.forEach(h => { const i = document.createElement('i'); i.style.height = h + 'px'; i.style.opacity = (0.4 + h/100).toFixed(2); wave.appendChild(i); });
+  </script>
+</body>
+</html>

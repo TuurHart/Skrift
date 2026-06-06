@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" />
+<style>
+  :root{--bg:#0f1117;--surface:#181a23;--elev:#1e2130;--border:rgba(255,255,255,0.06);
+    --t1:#e4e4e7;--t2:#8b8b97;--t3:#55556a;--accent:#7c6bf5;--accent-soft:rgba(124,107,245,0.15);
+    --green:#34d399;--amber:#f59e0b;--red:#ef4444}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;background:radial-gradient(1200px 800px at 50% -10%,#15171f,#07080c 60%);color:var(--t1);padding:40px 28px;display:flex;flex-direction:column;align-items:center;gap:22px}
+  .title{font-size:22px;font-weight:700;letter-spacing:-.3px}.title span{color:var(--t2);font-weight:500}
+  .rowp{display:flex;gap:30px}.col{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .cap{color:var(--t2);font-size:13px;font-weight:600}
+  .phone{width:340px;height:710px;background:#000;border-radius:48px;padding:11px;box-shadow:0 0 0 2px #2a2a32,0 30px 60px rgba(0,0,0,.55);position:relative}
+  .screen{width:100%;height:100%;background:var(--bg);border-radius:38px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:96px;height:28px;background:#000;border-radius:16px;z-index:30}
+  .sb{height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:13px;font-weight:600}.sb .r{display:flex;gap:7px;align-items:center}
+  .batt{display:inline-block;width:24px;height:12px;border:1.5px solid currentColor;border-radius:3px;padding:1.5px;opacity:.9}.batt span{display:block;width:100%;height:100%;background:currentColor;border-radius:1px}
+  .x{width:32px;height:32px;border-radius:16px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--t2)}
+  .toggle{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);padding:6px 10px 6px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  .sw{width:38px;height:22px;border-radius:11px;background:var(--accent);position:relative;flex-shrink:0}
+  .sw::after{content:"";position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff}
+  .sw.off{background:var(--elev)}.sw.off::after{left:2px;right:auto}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:6px 18px}
+  .accentbtn{color:var(--accent);font-weight:700;font-size:16px}
+  .mut{color:var(--t2);font-weight:600;font-size:16px}
+  h1{font-size:28px;font-weight:800;letter-spacing:-.5px}
+
+  /* READY */
+  .rec{flex:1;display:flex;flex-direction:column;padding:8px 18px 0;align-items:center}
+  .rectop{display:flex;align-items:center;justify-content:space-between;width:100%}
+  .cam{width:100%;height:300px;border-radius:22px;margin-top:16px;background:linear-gradient(155deg,#222a40,#10131d 75%);border:1px solid var(--border);position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .cam .grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:33.3% 33.3%;opacity:.5}
+  .cam .ctx{position:absolute;top:12px;left:12px;display:flex;gap:6px}
+  .chip{font-size:11.5px;color:var(--t1);background:rgba(0,0,0,.4);border-radius:8px;padding:4px 8px;display:inline-flex;gap:4px;backdrop-filter:blur(4px)}
+  .cam .hint{color:var(--t2);font-size:14px;font-weight:500}
+  .modelrow{display:inline-flex;align-items:center;gap:7px;color:var(--t2);font-size:12.5px;font-weight:600;margin-top:18px}
+  .ok{color:var(--green)}
+  .startwrap{margin-top:auto;margin-bottom:34px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .startbtn{width:80px;height:80px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 26px rgba(239,68,68,.5);border:5px solid rgba(255,255,255,.14)}
+  .startlbl{color:var(--t2);font-size:13px;font-weight:600}
+
+  /* REVIEW */
+  .body{flex:1;overflow:hidden;padding:4px 20px 0}
+  .lbl{color:var(--t2);font-size:11.5px;font-weight:700;letter-spacing:.5px;margin:16px 2px 8px}
+  .editbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px;font-size:15px;line-height:1.5;color:var(--t1);position:relative}
+  .editbox .caret{display:inline-block;width:2px;height:17px;background:var(--accent);vertical-align:-3px;margin-left:1px}
+  .editbox .pen{position:absolute;top:11px;right:11px;color:var(--t3)}
+  .tagrow{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+  .tag{font-size:12.5px;border-radius:999px;padding:5px 11px;font-weight:600}
+  .tag.on{color:#fff;background:var(--accent)}
+  .tag.sug{color:#b9acff;background:transparent;border:1px dashed rgba(124,107,245,.5)}
+  .film{display:flex;gap:9px;margin-top:4px}
+  .film .th{width:60px;height:60px;border-radius:12px;background:linear-gradient(135deg,#2b3350,#1a1f33);border:1px solid var(--border)}
+  .film .add{width:60px;height:60px;border-radius:12px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--t3)}
+  .ctxchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  .cchip{font-size:12px;color:var(--t2);background:var(--elev);border-radius:8px;padding:4px 9px}
+
+  /* ONBOARDING */
+  .ob{flex:1;display:flex;flex-direction:column;padding:8px 22px 0}
+  .logo{width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#9d8bff);display:flex;align-items:center;justify-content:center;margin-top:14px;font-size:30px;font-weight:800;color:#fff}
+  .obh{font-size:26px;font-weight:800;margin-top:18px;letter-spacing:-.4px}
+  .obsub{color:var(--t2);font-size:14px;line-height:1.45;margin-top:8px}
+  .steplist{margin-top:22px;display:flex;flex-direction:column;gap:10px}
+  .step{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 13px}
+  .step .ic{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:#b9acff;flex-shrink:0}
+  .step .g{flex:1}.step .nm{font-size:14.5px;font-weight:600}.step .ds{color:var(--t3);font-size:12px;margin-top:1px}
+  .badge{font-size:12.5px;font-weight:700}
+  .badge.done{color:var(--green)} .badge.todo{color:var(--accent)}
+  .progress{height:5px;border-radius:3px;background:var(--elev);margin-top:6px;position:relative;overflow:hidden}
+  .progress::after{content:"";position:absolute;left:0;top:0;bottom:0;width:62%;background:var(--accent);border-radius:3px}
+  .cta{margin-top:auto;margin-bottom:26px;background:var(--accent);color:#fff;text-align:center;font-weight:700;font-size:16px;padding:15px;border-radius:14px;box-shadow:0 8px 22px rgba(124,107,245,.4)}
+  svg{display:block}
+</style></head>
+<body>
+  <div class="title">Skrift mobile — round 4 <span>· Record (ready) · Review · Onboarding</span></div>
+  <div class="rowp">
+
+    <!-- READY -->
+    <div class="col"><div class="phone"><div class="screen">
+      <div class="island"></div>
+      <div class="sb"><div>9:41</div><div class="r"><span>100%</span><span class="batt"><span></span></span></div></div>
+      <div class="rec">
+        <div class="rectop">
+          <div class="x"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+          <div class="toggle">Conversation <span class="sw off"></span></div>
+        </div>
+        <div class="cam">
+          <div class="grid"></div>
+          <div class="ctx"><span class="chip">📍 Alfama</span><span class="chip">⛅ 19°</span></div>
+          <div class="hint">Camera ready — tap photo while recording</div>
+        </div>
+        <div class="modelrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12a7 7 0 0 1 14 0"/><circle cx="12" cy="12" r="2.5"/></svg> On-device transcription <span class="ok">· ready</span></div>
+        <div class="startwrap">
+          <div class="startbtn"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0" fill="none" stroke="#fff" stroke-width="2"/><path d="M12 17v3" stroke="#fff" stroke-width="2"/></svg></div>
+          <div class="startlbl">Tap to start recording</div>
+        </div>
+      </div>
+    </div></div><div class="cap">Record — ready/armed (before you start)</div></div>
+
+    <!-- REVIEW -->
+    <div class="col"><div class="phone"><div class="screen">
+      <div class="island"></div>
+      <div class="sb"><div>9:41</div><div class="r"><span>100%</span><span class="batt"><span></span></span></div></div>
+      <div class="nav"><div class="mut" style="color:var(--red)">Discard</div><div style="font-weight:700">New memo</div><div class="accentbtn">Save</div></div>
+      <div class="body">
+        <div class="lbl">TRANSCRIPT</div>
+        <div class="editbox">Ideas for the harbor renovation — start with the east pier, and the lighting along the boardwalk could use warmer tones.<span class="caret"></span>
+          <span class="pen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg></span></div>
+        <div class="lbl">TAGS</div>
+        <div class="tagrow"><span class="tag on">#ideas</span><span class="tag sug">+ #harbor</span><span class="tag sug">+ #lighting</span></div>
+        <div class="lbl">PHOTOS</div>
+        <div class="film"><div class="th"></div><div class="th"></div><div class="add"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div></div>
+        <div class="lbl">CONTEXT</div>
+        <div class="ctxchips"><span class="cchip">2:14</span><span class="cchip">📍 Alfama</span><span class="cchip">⛅ 19°</span><span class="cchip">Morning</span><span class="cchip">1,240 steps</span></div>
+      </div>
+    </div></div><div class="cap">Review — edit transcript · suggested tags · save/discard</div></div>
+
+    <!-- ONBOARDING -->
+    <div class="col"><div class="phone"><div class="screen">
+      <div class="island"></div>
+      <div class="sb"><div>9:41</div><div class="r"><span>100%</span><span class="batt"><span></span></span></div></div>
+      <div class="ob">
+        <div class="logo">S</div>
+        <div class="obh">Welcome to Skrift</div>
+        <div class="obsub">Record voice memos, transcribed on-device, synced to your Mac. A couple of quick steps:</div>
+        <div class="steplist">
+          <div class="step"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/></svg></div><div class="g"><div class="nm">Microphone &amp; Camera</div><div class="ds">To record and snap photos</div></div><span class="badge done">✓</span></div>
+          <div class="step"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div><div class="g"><div class="nm">Location &amp; Motion</div><div class="ds">Tags memos with place, weather, steps</div></div><span class="badge todo">Allow</span></div>
+          <div class="step"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div><div class="g"><div class="nm">Pair your Mac</div><div class="ds">Found “Skrift Desktop” on your Wi-Fi</div></div><span class="badge todo">Connect</span></div>
+          <div class="step"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></div><div class="g"><div class="nm">Transcription model</div><div class="ds">Downloading · 494 MB · 62%</div><div class="progress"></div></div></div>
+        </div>
+        <div class="cta">Get started</div>
+      </div>
+    </div></div><div class="cap">Onboarding — permissions · pair Mac · model download</div></div>
+
+  </div>
+</body>
+</html>

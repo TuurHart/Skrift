@@ -184,7 +184,9 @@ never average; `voiceEmbeddings` already round-trips), the substitutions list.
   `upload_files`): `location, weather, pressure, daylight, dayPeriod, steps,
   capturedAt, recordedAt, duration, tags (list), source:"mobile", sharedContent,
   annotationText, transcriptConfidence (0..1|null), transcriptUserEdited (bool),
-  transcriptMarkersInjected (bool), imageManifest [{filename, offsetSeconds}]`.
+  transcriptMarkersInjected (bool), imageManifest [{filename, offsetSeconds}],
+  title (optional, phone-set — the Mac uses it in its title chooser instead of the
+  LLM title; CONTRACT ADDITION: the native server's UploadService must read it)`.
 - `transcript`: string, ONLY if on-device transcription succeeded. **Do NOT send a
   `sanitised` field** — name-linking is Mac-side now (the overhaul dropped it; the
   backend's `sanitised` Form param was removed on `mobile-overhaul`).
@@ -308,6 +310,12 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       QR/health/URLs, `SyncCoordinator` (names sync → reconcile-by-filename → upload
       waiting). Sync button on the memos toolbar. 37 tests green. **Live POST against
       the running desktop app is still owed (device/server).**
-- [ ] Phase 7 — review/detail/settings (MOCK the screens first — visual-iteration rule)
+- [~] Phase 7 — review/detail/settings/record-redesign. **UI DESIGN LOCKED** (5
+      mock rounds, user-approved; mockups in `SkriftMobile/mockups/`). Build remains.
+      Full spec in `MOBILE_NATIVE_HANDOFF.md` → "Phase 7 — LOCKED UI DESIGN". Key
+      changes vs what's built: live caption while recording (port Shhhcribble
+      streaming), caption-first + on-demand camera, voice-first Names, Bonjour
+      pairing (drop QR), funnel Sort&Filter, optional memo title, full-text search.
+      Open fork: post-record save-now vs Review screen (ask).
 - [ ] Phase 8 — widget/live activity/intents/share ext
 - [ ] Phase 9 — parity + retire Mobile/
