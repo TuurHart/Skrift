@@ -35,6 +35,11 @@ final class Memo {
     var tags: [String] = []
     var syncStatus: SyncStatus = SyncStatus.waiting
 
+    /// Optional phone-set title (Memo detail). Sent in the upload metadata; the
+    /// Mac may use it in its title chooser instead of the LLM title. When unset,
+    /// the UI falls back to the transcript's first line.
+    var title: String?
+
     /// On-device transcript. Contains `[[img_NNN]]` markers when photos were
     /// taken. Trusted by the Mac iff `transcriptUserEdited || confidence >= 0.7`.
     var transcript: String?
@@ -62,6 +67,7 @@ final class Memo {
         recordedAt: Date = Date(),
         tags: [String] = [],
         syncStatus: SyncStatus = .waiting,
+        title: String? = nil,
         transcript: String? = nil,
         transcriptStatus: TranscriptStatus = .pending,
         transcriptConfidence: Double? = nil,
@@ -77,6 +83,7 @@ final class Memo {
         self.recordedAt = recordedAt
         self.tags = tags
         self.syncStatus = syncStatus
+        self.title = title
         self.transcript = transcript
         self.transcriptStatus = transcriptStatus
         self.transcriptConfidence = transcriptConfidence

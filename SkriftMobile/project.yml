@@ -11,6 +11,14 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     branch: main
+  # Live mic waveform (wired to the AVAudioEngine meters — no 2nd audio session).
+  DSWaveformImage:
+    url: https://github.com/dmrschmidt/DSWaveformImage.git
+    from: "14.0.0"
+  # Tasteful transitions, used sparingly.
+  Pow:
+    url: https://github.com/EmergeTools/Pow.git
+    from: "1.0.0"
 
 targets:
   SkriftMobile:
@@ -21,6 +29,7 @@ targets:
       - path: Models
       - path: Services
       - path: Features
+      - path: DesignSystem
     info:
       path: App/Info.plist
       properties:
@@ -49,6 +58,10 @@ targets:
     dependencies:
       - package: FluidAudio
         product: FluidAudio
+      - package: DSWaveformImage
+        product: DSWaveformImageViews
+      - package: Pow
+        product: Pow
 
   SkriftMobileTests:
     type: bundle.unit-test
