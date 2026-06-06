@@ -301,7 +301,13 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       `NamesStore` (list/add/delete-as-tombstone); `NamesSeeder` (`-seedDemoNames`
       overwrites for deterministic tests); entry via a memos-toolbar button. 31
       tests green. (Sync already shipped in Phase 1.)
-- [ ] Phase 6 — Mac upload (round-trip vs live backend)
-- [ ] Phase 7 — review/detail/settings
+- [x] Phase 6 — Mac upload. Targets the **native** Mac server (`SkriftDesktop`),
+      contract verified byte-for-byte against its `SyncHandlers`/`UploadService`/tests.
+      `UploadPayload` (multipart: files/metadata[flat,`source:"mobile"`]/transcript/
+      images — **never `sanitised`**), `MacTransport` (+mock+factory), `MacConnection`
+      QR/health/URLs, `SyncCoordinator` (names sync → reconcile-by-filename → upload
+      waiting). Sync button on the memos toolbar. 37 tests green. **Live POST against
+      the running desktop app is still owed (device/server).**
+- [ ] Phase 7 — review/detail/settings (MOCK the screens first — visual-iteration rule)
 - [ ] Phase 8 — widget/live activity/intents/share ext
 - [ ] Phase 9 — parity + retire Mobile/

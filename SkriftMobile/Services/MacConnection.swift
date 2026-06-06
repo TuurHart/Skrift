@@ -22,7 +22,18 @@ struct MacConnection: Equatable {
         defaults.set(port, forKey: Self.portKey)
     }
 
-    var namesBaseURL: URL? {
-        URL(string: "http://\(host):\(port)/api/names")
+    private var base: String { "http://\(host):\(port)" }
+    var namesBaseURL: URL? { URL(string: "\(base)/api/names") }
+    var healthURL: URL? { URL(string: "\(base)/api/system/health") }
+    var uploadURL: URL? { URL(string: "\(base)/api/files/upload") }
+    var filesURL: URL? { URL(string: "\(base)/api/files/") }
+
+    /// Parse a pairing QR of the form `skrift://{host}:{port}/{name}` (the format
+    /// the Mac shows). The name segment is ignored here.
+    static func parse(qr: String) -> MacConnection? {
+        guard let url = URL(string: qr.trimmingCharacters(in: .whitespaces)),
+              url.scheme == "skrift",
+              let host = url.host, !host.isEmpty else { return nil }
+        return MacConnection(host: host, port: url.port ?? defaultPort)
     }
 }

@@ -58,6 +58,27 @@
   Phase-1 `NamesStore` (list/add/delete=tombstone); `NamesSeeder` (`-seedDemoNames`
   overwrites names.json for deterministic tests); reached via a `person.2` toolbar
   button on the memos screen. **31 tests green. Next: Phase 6 (Mac upload).**
+- **Phase 6 (Mac upload): ✅ GREEN** — targets the **NATIVE** Mac server
+  (`/Users/tiurihartog/Hackerman/Skrift-desktop/SkriftDesktop`), NOT the Python
+  backend (user's call). Contract verified byte-for-byte by reading its
+  `Server/SyncHandlers.swift` + `Pipeline/Ingest/UploadService.swift` + tests.
+  `UploadPayload` builds the multipart (`files` audio/mp4, `metadata` flat JSON with
+  `source:"mobile"`, `transcript` only when `.done`, `images` per manifest — **never
+  `sanitised`**, name-linking is Mac-side); `MacTransport` (+mock+factory),
+  `MacConnection` (QR `skrift://host:port/name` + health + URLs), `SyncCoordinator`
+  (names sync → reconcile by filename → upload waiting). Sync button on the memos
+  toolbar. **37 tests green. Next: Phase 7 (review/detail/settings — MOCK FIRST).**
+- **⚠ NO on-device name-linking (locked, re-confirmed by the user).** The phone
+  sends the RAW transcript (+ confidence/userEdited/markers/metadata/tags); the MAC
+  links names + resolves ambiguity at review. The names DB + sync + Names screen
+  stay (sync, people mgmt, future voice profiles) but DON'T link names into the
+  transcript and DON'T send a `sanitised` field. (Verified: no sanitise logic in the
+  native app.) Tagging later = on-device topic-tag *matching* (suggestions only,
+  mirrors the desktop deterministic tagger) — separate from name-linking.
+- **⚠ Owed: live upload round-trip** against the running native desktop app
+  (`SkriftDesktop` — launch it, pair via host/port or QR, POST a real memo). Contract
+  is byte-verified but no real POST has run. Also clears the Phase-1 live names
+  round-trip (same server).
 - **⚠ Sim flake note:** UI tests occasionally fail the whole session with *"Busy
   / Application failed preflight checks"* (SpringBoard stuck) — not a code bug.
   Fix: `xcrun simctl shutdown all; xcrun simctl erase "iPhone 17"` then re-run.
@@ -91,19 +112,16 @@
   on this branch — **port them into the native transcription service in Phase 2**.
 
 ## Resume here (do this first)
-**Phases 0–5 are GREEN and committed.** Start **Phase 6 (Mac upload)** — plan §3
-+ the contract in §4 (match byte-for-byte; backend is unchanged). Build:
-`MacConnection` already holds host/port (extend with health check + QR
-`skrift://{ip}:{port}/{name}` parse); a `SyncService` that does the multipart
-`POST /api/files/upload` (`files` = `memo_{uuid}.m4a`, `images` from the manifest,
-`metadata` JSON with all the keys in §4, `transcript` only when present; trust =
-`transcriptUserEdited || transcriptConfidence >= 0.7`) + reconcile via
-`GET /api/files/` + per-memo `syncStatus` + timeout/retry. Port `Mobile/lib/sync.ts`.
-**This phase also clears the Phase-1 names-sync debt:** wire
-`URLSessionNamesTransport` into the connect flow and do the live round-trip against
-a running Mac (`cd backend && ./start_backend.sh start`). Use a `-mockMac` stub so
-UI tests don't need the backend. First, sanity-check the toolchain still builds +
-tests (runs BOTH `SkriftMobileTests` and `SkriftMobileUITests`):
+**Phases 0–6 are GREEN and committed.** Start **Phase 7 (review / memo detail /
+settings)** — plan §3. **MOCK THE SCREENS FIRST** (the user's visual-iteration rule
++ the autonomous-execution memo's one exception): render mockups of the review,
+memo-detail, and settings screens for the user to pick/critique BEFORE building.
+Then build: review (edit transcript → set `transcriptUserEdited=true`, tags, photo
+filmstrip), memo detail (playback via `Memo.audioURL` + transcript + word-timing
+sidecar), settings (Mac connection host/port + QR scan, Names entry, weather API
+key via `WeatherClient.setAPIKey`, theme). Plain functional is fine AFTER the mock
+is chosen. First, sanity-check the toolchain still builds + tests (runs BOTH
+`SkriftMobileTests` and `SkriftMobileUITests`):
 ```
 cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
   xcodebuild test -project SkriftMobile.xcodeproj -scheme SkriftMobile \
@@ -206,6 +224,10 @@ parity, but its fixes + the BACKEND fixes are real and the CONTRACT they encode 
 what the native app must match (plan §4).
 
 ### A. Changes already committed (newest first)
+`mobile-native`: Phase 6 — Mac upload to the NATIVE server (see `git log`).
+`UploadPayload` (multipart, no `sanitised`), `MacTransport` (+mock), `MacConnection`
+QR/health, `SyncCoordinator` (names→reconcile→upload), sync button. 37 tests green.
+Live POST owed (needs the desktop app running).
 `mobile-native`: Phase 5 — names UI (see `git log`). `NamesListView` +
 `AddPersonView` over `NamesStore`; `NamesSeeder` (`-seedDemoNames`); memos-toolbar
 entry. 31 tests green.

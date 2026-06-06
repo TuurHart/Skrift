@@ -39,6 +39,14 @@ struct MemosListView: View {
                     }
                     .accessibilityIdentifier("open-names-button")
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        Task { await SyncCoordinator().syncAll() }
+                    } label: {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                    }
+                    .accessibilityIdentifier("sync-button")
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         showRecord = true
