@@ -10,6 +10,7 @@ struct NoteDisplayView: View {
     /// out scroll contents). The live app keeps `true` for real scrolling.
     var scrollable = true
     @State private var audio = AudioController()
+    @State private var author = SettingsStore.shared.load().authorName
 
     var body: some View {
         Group {
@@ -28,13 +29,50 @@ struct NoteDisplayView: View {
         VStack(spacing: 0) {
             breadcrumb(file)
             toolbarBar(file)
-            if scrollable {
-                ScrollView { bodyArea(file) }
-            } else {
-                bodyArea(file)
-                Spacer(minLength: 0)
+            GeometryReader { geo in
+                let colW = min(720, max(320, geo.size.width - 72))
+                let body = column(file)
+                    .frame(width: colW, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 30)
+                if scrollable {
+                    ScrollView { body }
+                } else {
+                    body
+                }
             }
         }
+    }
+
+    /// The centered reading column: resolver → properties → summary → body.
+    private func column(_ file: PipelineFile) -> some View {
+        VStack(alignment: .leading, spacing: 24) {
+            if let amb = file.ambiguousNames, !amb.isEmpty {
+                ResolverStrip(occurrences: amb) { _ in file.ambiguousNames = nil }
+            }
+            NoteProperties(file: file, author: author, interactive: scrollable)
+            if let summary = file.enhancedSummary, !summary.isEmpty {
+                summaryAside(summary)
+            }
+            Text(file.bestBodyText)
+                .font(.system(size: 16))
+                .lineSpacing(6)
+                .foregroundStyle(Theme.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func summaryAside(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13.5))
+            .italic()
+            .lineSpacing(3)
+            .foregroundStyle(Theme.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 14)
+            .overlay(alignment: .leading) {
+                Rectangle().fill(Theme.accent.opacity(0.4)).frame(width: 2)
+            }
     }
 
     private func breadcrumb(_ file: PipelineFile) -> some View {
@@ -63,35 +101,6 @@ struct NoteDisplayView: View {
         .background(Theme.hairline.opacity(0.012))
         .overlay(alignment: .top) { hairline }
         .overlay(alignment: .bottom) { hairline }
-    }
-
-    private func bodyArea(_ file: PipelineFile) -> some View {
-        // Centered ~720pt reading column (Notion/Obsidian-style measure), the
-        // container chunks 3–4 fill with the properties block, resolver, and editor.
-        HStack(spacing: 0) {
-            Spacer(minLength: 36)
-            VStack(alignment: .leading, spacing: 22) {
-                if let summary = file.enhancedSummary, !summary.isEmpty {
-                    Text(summary)
-                        .font(.system(size: 13.5))
-                        .italic()
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineSpacing(3)
-                        .padding(.leading, 14)
-                        .overlay(alignment: .leading) {
-                            Rectangle().fill(Theme.accent.opacity(0.4)).frame(width: 2)
-                        }
-                }
-                Text(file.bestBodyText)
-                    .font(.system(size: 16))
-                    .lineSpacing(6)
-                    .foregroundStyle(Theme.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(width: 720, alignment: .leading)
-            Spacer(minLength: 36)
-        }
-        .padding(.vertical, 30)
     }
 
     private var emptyState: some View {

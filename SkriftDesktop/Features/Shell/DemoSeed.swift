@@ -37,8 +37,9 @@ enum DemoSeed {
 
         Nick's point was that the hard part is the editor, not the pipeline. De transcription en de enhancement draaien al, dus de vraag is echt hoe de review-kant aanvoelt.
 
-        Idea: keep the body exactly what exports to Obsidian — brackets visible, karaoke on the real words. If [[Sam Jones]] can test it next week, even better.
+        Idea: keep the body exactly what exports to Obsidian — brackets visible, karaoke on the real words. If Sam can test it next week, even better.
         """
+        f1.enhancedCopyedit = f1.sanitised
         f1.tags = ["work", "ideas"]
         f1.tagSuggestions = ["rewrite", "swift"]
         f1.significance = 0.7
@@ -47,6 +48,17 @@ enum DemoSeed {
             "phone_location": ["placeName": "Amsterdam"],
             "phone_weather": ["conditions": "Cloudy", "temperature": 14, "temperatureUnit": "°C"],
         ])
+        // Ambiguous names for the review resolver: "Sam" (one mention, two people)
+        // and "Jack" (two mentions — the smart per-occurrence case).
+        let samCands = [NameCandidate(id: "1", canonical: "[[Sam Smith]]", short: "Sam"),
+                        NameCandidate(id: "2", canonical: "[[Sam Jones]]", short: "Sam")]
+        let jackCands = [NameCandidate(id: "3", canonical: "[[Jack Timmons]]", short: "Jack"),
+                         NameCandidate(id: "4", canonical: "[[Jack de Vries]]", short: "Jack")]
+        f1.ambiguousNames = [
+            AmbiguousOccurrence(alias: "Sam", offset: 300, length: 3, contextBefore: "If ", contextAfter: " can test it", candidates: samCands),
+            AmbiguousOccurrence(alias: "Jack", offset: 40, length: 4, contextBefore: "met with ", contextAfter: " about the plan", candidates: jackCands),
+            AmbiguousOccurrence(alias: "Jack", offset: 180, length: 4, contextBefore: "and then ", contextAfter: " said he'd help", candidates: jackCands),
+        ]
 
         // 2 — Ready shared PDF (phone capture, no audio).
         let f2 = PipelineFile(id: "demo-2", filename: "Project brief.pdf", sourceType: .capture, uploadedAt: date(2026, 6, 6, 11))
