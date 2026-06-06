@@ -138,7 +138,7 @@ actor TranscriptionService: Transcriber {
         var text = result.text
         var markersInjected = false
         if !imageManifest.isEmpty, !words.isEmpty {
-            text = Self.insertImageMarkers(transcript: text, words: words, manifest: imageManifest)
+            text = ImageMarkers.insert(transcript: text, words: words, manifest: imageManifest)
             markersInjected = true
         }
         return TranscriptionResult(text: text, confidence: Double(result.confidence),
@@ -146,14 +146,6 @@ actor TranscriptionService: Transcriber {
     }
 
     // MARK: - Helpers (ported verbatim from the RN ParakeetModule)
-
-    private struct Word {
-        let text: String
-        let start: TimeInterval
-        let end: TimeInterval
-        var charStart: Int = 0
-        var charEnd: Int = 0
-    }
 
     /// Mean RMS amplitude across the file, chunked so a long recording is never
     /// fully loaded into memory. nil if unreadable.
@@ -188,8 +180,8 @@ actor TranscriptionService: Transcriber {
 
     /// Merge BPE sub-word tokens into whole words. A token whose raw text starts
     /// with a space begins a new word; others are continuations.
-    private static func mergeBPETokens(_ tokens: [TokenTiming]) -> [Word] {
-        var words: [Word] = []
+    private static func mergeBPETokens(_ tokens: [TokenTiming]) -> [ImageMarkers.TimedWord] {
+        var words: [ImageMarkers.TimedWord] = []
         var pending: (text: String, start: TimeInterval, end: TimeInterval)?
 
         for token in tokens {
@@ -203,7 +195,7 @@ actor TranscriptionService: Transcriber {
 
             if isNewWord {
                 if let p = pending, !p.text.trimmingCharacters(in: .whitespaces).isEmpty {
-                    words.append(Word(text: p.text.trimmingCharacters(in: .whitespaces), start: p.start, end: p.end))
+                    words.append(ImageMarkers.TimedWord(text: p.text.trimmingCharacters(in: .whitespaces), start: p.start, end: p.end))
                 }
                 pending = (text: clean, start: s, end: e)
             } else {
@@ -212,72 +204,11 @@ actor TranscriptionService: Transcriber {
             }
         }
         if let p = pending, !p.text.trimmingCharacters(in: .whitespaces).isEmpty {
-            words.append(Word(text: p.text.trimmingCharacters(in: .whitespaces), start: p.start, end: p.end))
+            words.append(ImageMarkers.TimedWord(text: p.text.trimmingCharacters(in: .whitespaces), start: p.start, end: p.end))
         }
         return words
     }
 
-    /// Insert `[[img_NNN]]` markers at the word whose start time is closest to each
-    /// photo's offset. Works in UTF-16 indices (NSString) the whole way, matching
-    /// the desktop `_insert_image_markers`. Numbering ascends by offset.
-    private static func insertImageMarkers(transcript: String, words: [Word], manifest: [ImageManifestEntry]) -> String {
-        guard !words.isEmpty, !manifest.isEmpty else { return transcript }
-
-        var indexedWords = words
-        let nsTranscript = transcript as NSString
-        var scanPos = 0
-        let totalLen = nsTranscript.length
-        let totalDuration = max(1.0, words.last?.end ?? 1.0)
-
-        for i in indexedWords.indices {
-            let needle = indexedWords[i].text as NSString
-            var found = -1
-            if scanPos < totalLen {
-                let searchRange = NSRange(location: scanPos, length: totalLen - scanPos)
-                let r = nsTranscript.range(of: needle as String, options: [], range: searchRange)
-                if r.location != NSNotFound {
-                    found = r.location
-                    indexedWords[i].charStart = found
-                    indexedWords[i].charEnd = found + needle.length
-                    scanPos = found + needle.length
-                }
-            }
-            if found == -1 {
-                let estimated = Int(Double(totalLen) * indexedWords[i].start / totalDuration)
-                let clamped = min(max(0, estimated), totalLen)
-                indexedWords[i].charStart = clamped
-                indexedWords[i].charEnd = clamped
-            }
-        }
-
-        let sortedManifest = manifest.sorted { $0.offsetSeconds < $1.offsetSeconds }
-        var insertions: [(pos: Int, marker: String)] = []
-        for (i, entry) in sortedManifest.enumerated() {
-            let offset = entry.offsetSeconds
-            var bestIdx = 0
-            var bestDiff = abs(indexedWords[0].start - offset)
-            for (wi, w) in indexedWords.enumerated() {
-                let diff = abs(w.start - offset)
-                if diff < bestDiff {
-                    bestDiff = diff
-                    bestIdx = wi
-                }
-            }
-            let pos = indexedWords[bestIdx].charEnd
-            let marker = "\n\n[[img_\(String(format: "%03d", i + 1))]]\n\n"
-            insertions.append((pos, marker))
-        }
-
-        var result = transcript
-        for (pos, marker) in insertions.sorted(by: { $0.pos > $1.pos }) {
-            let nsResult = result as NSString
-            let safePos = min(max(0, pos), nsResult.length)
-            let prefix = nsResult.substring(to: safePos)
-            let suffix = nsResult.substring(from: safePos)
-            result = prefix + marker + suffix
-        }
-        return result
-    }
 }
 
 /// Deterministic transcriber for UI tests, fed by the `-seedTranscript` launch
@@ -288,11 +219,18 @@ struct SeededTranscriber: Transcriber {
 
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult {
         let pieces = text.split(separator: " ")
-        let words = pieces.enumerated().map { index, word in
-            WordTiming(word: String(word), start: Double(index) * 0.3, end: Double(index) * 0.3 + 0.25)
+        let timedWords = pieces.enumerated().map { index, word in
+            ImageMarkers.TimedWord(text: String(word), start: Double(index) * 0.3, end: Double(index) * 0.3 + 0.25)
         }
-        return TranscriptionResult(text: text, confidence: 1.0, durationMs: 0,
-                                   wordTimings: words, markersInjected: false)
+        var outText = text
+        var markersInjected = false
+        if !imageManifest.isEmpty, !timedWords.isEmpty {
+            outText = ImageMarkers.insert(transcript: text, words: timedWords, manifest: imageManifest)
+            markersInjected = true
+        }
+        let wordTimings = timedWords.map { WordTiming(word: $0.text, start: $0.start, end: $0.end) }
+        return TranscriptionResult(text: outText, confidence: 1.0, durationMs: 0,
+                                   wordTimings: wordTimings, markersInjected: markersInjected)
     }
 }
 

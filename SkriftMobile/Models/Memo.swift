@@ -45,10 +45,14 @@ final class Memo {
     /// to re-inject them.
     var transcriptMarkersInjected: Bool = false
 
-    /// Contextual capture payload. Stored whole (never queried by SwiftData);
-    /// its shape feeds the Mac upload `metadata` JSON.
-    var metadata: MemoMetadata?
-    var sharedContent: SharedContent?
+    /// Contextual capture payload + shared content, persisted as JSON blobs —
+    /// NOT direct SwiftData Codable-struct attributes. SwiftData's internal decode
+    /// of a nested-optional Codable struct traps at runtime (EXC_BREAKPOINT) the
+    /// first time the attribute is read back; the blob + computed accessors below
+    /// use our own JSON coder, which round-trips cleanly. Never queried by
+    /// SwiftData; the shape feeds the Mac upload JSON.
+    private var metadataData: Data?
+    private var sharedContentData: Data?
     var annotationText: String?
 
     init(
@@ -78,13 +82,33 @@ final class Memo {
         self.transcriptConfidence = transcriptConfidence
         self.transcriptUserEdited = transcriptUserEdited
         self.transcriptMarkersInjected = transcriptMarkersInjected
-        self.metadata = metadata
-        self.sharedContent = sharedContent
+        self.metadataData = Self.encodeJSON(metadata)
+        self.sharedContentData = Self.encodeJSON(sharedContent)
         self.annotationText = annotationText
     }
 
     /// Resolved on-disk audio location, or nil for memos without audio.
     var audioURL: URL? {
         audioFilename.isEmpty ? nil : AppPaths.recordingsDirectory.appendingPathComponent(audioFilename)
+    }
+
+    var metadata: MemoMetadata? {
+        get { Self.decodeJSON(metadataData) }
+        set { metadataData = Self.encodeJSON(newValue) }
+    }
+
+    var sharedContent: SharedContent? {
+        get { Self.decodeJSON(sharedContentData) }
+        set { sharedContentData = Self.encodeJSON(newValue) }
+    }
+
+    private static func encodeJSON<T: Encodable>(_ value: T?) -> Data? {
+        guard let value else { return nil }
+        return try? JSONEncoder().encode(value)
+    }
+
+    private static func decodeJSON<T: Decodable>(_ data: Data?) -> T? {
+        guard let data else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
     }
 }

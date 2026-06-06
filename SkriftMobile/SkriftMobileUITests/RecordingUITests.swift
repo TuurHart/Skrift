@@ -51,4 +51,47 @@ final class RecordingUITests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
     }
+
+    func testShutterCapturesPhotoDuringRecording() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedTranscript", "alpha bravo charlie delta echo"]
+        app.launch()
+
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let cancel = springboard.buttons["Cancel"]
+        if cancel.waitForExistence(timeout: 2) { cancel.tap() }
+
+        let newRecording = app.buttons["new-recording-button"]
+        XCTAssertTrue(newRecording.waitForExistence(timeout: 15))
+        newRecording.tap()
+
+        let recordButton = app.buttons["record-button"]
+        XCTAssertTrue(recordButton.waitForExistence(timeout: 5))
+        recordButton.tap()   // start
+
+        let shutter = app.buttons["shutter-button"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 5), "shutter not shown while recording")
+        shutter.tap()
+
+        XCTAssertTrue(app.staticTexts["1 photo"].waitForExistence(timeout: 5),
+                      "photo count didn't update after shutter")
+
+        recordButton.tap()   // stop → save (with photo) → dismiss
+
+        // A memo row should land in the list (identifier-based, robust to the
+        // [[img_NNN]] markers the transcript now carries). Marker *correctness* is
+        // covered by the deterministic unit test.
+        let firstRow = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        let appeared = firstRow.waitForExistence(timeout: 10)
+
+        let labels = app.staticTexts.allElementsBoundByIndex.filter { $0.exists }.map { $0.label }
+        print("SCREEN[after-stop]: " + labels.joined(separator: " || "))
+
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "record-with-photo"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        XCTAssertTrue(appeared, "memo row never appeared after recording with a photo")
+    }
 }

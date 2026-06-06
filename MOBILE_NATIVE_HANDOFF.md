@@ -36,6 +36,18 @@
   recording (no mic). **23 tests green. Next: Phase 3 (photos + markers).**
   **Design note:** chose one-shot-transcribe-on-stop (RN/Mac behavior), NOT
   Shhhcribble's live VAD streaming — simpler + faithful to Skrift's product.
+- **Phase 3 (photos + markers): ✅ GREEN** — shared `ImageMarkers` helper (real +
+  seeded transcribers both inject); `PhotoCaptureService` (real `AVCapture` + a mock
+  for the camera-less sim) + `CameraPreviewView`; shutter on the record screen
+  (offset = recording elapsed, paused time excluded); `MemoSaver` moves photos →
+  `photo_{memoId}_NNN.jpg`, builds `imageManifest`, injects `[[img_NNN]]`. **25
+  tests green. Next: Phase 4 (metadata).**
+- **⚠ GOTCHA fixed in Phase 3 (don't reintroduce):** SwiftData traps
+  (`EXC_BREAKPOINT`) when it decodes a Codable-**struct** stored as a `@Model`
+  attribute, the first time the attribute is *read back* — it stayed hidden until
+  a read of `Memo.metadata` happened. Fix: store complex value types as JSON
+  `Data?` blobs + computed accessors (see `Memo.metadata`/`sharedContent`). Do NOT
+  add a raw Codable-struct attribute to a SwiftData model.
 - **⚠ Open verification debt (verified-in-sim vs owed-on-device):**
   - **Phase 1 names sync** — mock-transport + unit tests only; the **live Mac
     round-trip** (`GET /meta`→`GET`→merge→`PUT`) is NOT done (backend was down).
@@ -44,6 +56,9 @@
     `AVAudioRecorder` output, the silence-guard threshold (`0.0075`), and the
     memory-pressure `unload()` are **all device-owed** (sim has no ANE/mic; UI tests
     use `-seedTranscript` + mock recording). Verify on a physical iPhone.
+  - **Phase 3 real camera** — the `AVCaptureSession` preview + real photo capture
+    are **device-owed** (sim has no camera; UI tests use the mock capture path).
+    Verify shutter → photo → correct `[[img_NNN]]` placement on a physical iPhone.
 
 ## Branch map (important)
 - `mobile-native` (current) — the rewrite. Branched off `mobile-overhaul`, so it
@@ -58,14 +73,15 @@
   on this branch — **port them into the native transcription service in Phase 2**.
 
 ## Resume here (do this first)
-**Phases 0 + 1 + 2 are GREEN and committed.** Start **Phase 3 (photos during
-recording + `[[img_NNN]]` markers)** — plan §3. The marker-insertion algorithm is
-already ported into `TranscriptionService.insertImageMarkers` and accepts an
-`[ImageManifestEntry]`; Phase 3 adds the camera preview + shutter, the
-timestamp-offset capture (minus paused time), and wires the manifest into
-`MemoSaver`/the recording flow. First, sanity-check the toolchain still builds +
-tests (this runs BOTH the unit target `SkriftMobileTests` and the UI target
-`SkriftMobileUITests`):
+**Phases 0–3 are GREEN and committed.** Start **Phase 4 (metadata capture)** —
+plan §3: CoreLocation (+reverse-geocode place name), `CMAltimeter` pressure,
+`CMPedometer` steps, a solar-position daylight calc, dayPeriod, and weather
+(port the OpenWeatherMap REST call + the user's key from settings). Populate the
+`MemoMetadata` fields (already defined + JSON-blob-persisted on `Memo`); all
+optional/non-blocking. Port logic from `Mobile/lib/metadata.ts`. Add usage-string
+Info.plist keys (location/motion) in `project.yml`. First, sanity-check the
+toolchain still builds + tests (this runs BOTH the unit target `SkriftMobileTests`
+and the UI target `SkriftMobileUITests`):
 ```
 cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
   xcodebuild test -project SkriftMobile.xcodeproj -scheme SkriftMobile \
@@ -168,6 +184,10 @@ parity, but its fixes + the BACKEND fixes are real and the CONTRACT they encode 
 what the native app must match (plan §4).
 
 ### A. Changes already committed (newest first)
+`mobile-native`: Phase 3 — photos + markers (see `git log`). `ImageMarkers`,
+`PhotoCaptureService` (+mock), `CameraPreviewView`, shutter, `MemoSaver` manifest.
+**Includes the SwiftData Codable-attribute crash fix** (`Memo.metadata`/
+`sharedContent` → JSON blobs). 25 tests green. Real camera = device-owed.
 `mobile-native`: Phase 2 — recording + transcription (see `git log`). FluidAudio
 `main` SPM dep; `TranscriptionService` + `RecordingService` + `RecordView` +
 `MemoSaver`; `-seedTranscript` seam. 23 tests green. Real ASR/mic = device-owed.

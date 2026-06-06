@@ -283,7 +283,14 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       screen; `MemoSaver` (record→save→transcribe→sidecar). `-seedTranscript` seam.
       23 tests green. **NB: chose one-shot-on-stop (like the RN app + Mac), NOT
       Shhhcribble's live VAD streaming.** Real ASR/mic/memory/silence = device-owed.
-- [ ] Phase 3 — photos + markers
+- [x] Phase 3 — photos + markers. Shared `ImageMarkers` helper (used by the real
+      + seeded transcribers); `PhotoCaptureService` (real `AVCapture` + mock for the
+      camera-less sim); camera preview; shutter on the record screen (offset =
+      recording elapsed, paused time excluded); `MemoSaver` moves photos →
+      `photo_{memoId}_NNN.jpg`, builds `imageManifest`, injects `[[img_NNN]]`.
+      **Also fixed a latent crash:** SwiftData traps decoding a Codable-struct
+      attribute on read-back → `Memo.metadata`/`sharedContent` now persist as JSON
+      `Data?` blobs with computed accessors. 25 tests green. Real camera = device-owed.
 - [ ] Phase 4 — metadata
 - [ ] Phase 5 — names + sync
 - [ ] Phase 6 — Mac upload (round-trip vs live backend)

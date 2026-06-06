@@ -1,33 +1,53 @@
 import SwiftUI
 
-/// Phase 2 **placeholder** record screen — plain and functional (timer, level
-/// meter, record/stop, pause/resume, cancel). The designed version comes in the
-/// visual-polish pass; don't treat this layout as final.
+/// Phase 2–3 **placeholder** record screen — plain and functional (camera, timer,
+/// level meter, record/stop, pause/resume, shutter, cancel). The designed version
+/// comes in the visual-polish pass; don't treat this layout as final.
 struct RecordView: View {
     @StateObject private var service = RecordingService()
+    @StateObject private var camera = PhotoCaptureService()
     @Environment(\.dismiss) private var dismiss
     private let saver = MemoSaver()
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer()
+        VStack(spacing: 20) {
+            cameraArea
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal)
 
             Text(timeString)
-                .font(.system(size: 52, weight: .light, design: .monospaced))
+                .font(.system(size: 48, weight: .light, design: .monospaced))
                 .monospacedDigit()
                 .accessibilityIdentifier("record-timer")
 
             LevelMeter(level: service.level)
-                .frame(height: 56)
+                .frame(height: 44)
                 .padding(.horizontal, 24)
 
-            Spacer()
-
             if service.isRecording {
-                Button(service.isPaused ? "Resume" : "Pause", action: togglePause)
+                HStack(spacing: 20) {
+                    Button(service.isPaused ? "Resume" : "Pause", action: togglePause)
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("pause-button")
+
+                    Button {
+                        camera.capture(offsetSeconds: service.elapsed)
+                    } label: {
+                        Image(systemName: "camera.fill").font(.title2)
+                    }
                     .buttonStyle(.bordered)
-                    .accessibilityIdentifier("pause-button")
+                    .accessibilityIdentifier("shutter-button")
+                }
+
+                Text("\(camera.capturedCount) photo\(camera.capturedCount == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("photo-count")
             }
+
+            Spacer()
 
             Button(action: handleRecordTap) {
                 ZStack {
@@ -44,14 +64,29 @@ struct RecordView: View {
 
             Button("Cancel") {
                 service.cancel()
+                camera.discardAll()
                 dismiss()
             }
             .accessibilityIdentifier("cancel-record")
-            .padding(.top, 8)
-
-            Spacer()
+            .padding(.bottom, 8)
         }
-        .padding()
+        .padding(.vertical)
+        .onAppear { camera.configure() }
+        .onDisappear { camera.stop() }
+    }
+
+    @ViewBuilder private var cameraArea: some View {
+        if camera.mock {
+            ZStack {
+                Rectangle().fill(Color.black.opacity(0.85))
+                Image(systemName: "camera.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            .accessibilityIdentifier("camera-placeholder")
+        } else {
+            CameraPreviewView(session: camera.session)
+        }
     }
 
     private var timeString: String {
@@ -62,7 +97,7 @@ struct RecordView: View {
     private func handleRecordTap() {
         if service.isRecording {
             if let result = service.stop() {
-                saver.save(tempURL: result.url, duration: result.duration)
+                saver.save(tempURL: result.url, duration: result.duration, photos: camera.takeAll())
             }
             dismiss()
         } else {
@@ -96,6 +131,6 @@ struct LevelMeter: View {
         let center = 6.0
         let distance = abs(Double(index) - center) / center   // 0 center → 1 edge
         let envelope = 1.0 - 0.6 * distance
-        return max(4, CGFloat(Double(level) * 52 * envelope))
+        return max(4, CGFloat(Double(level) * 44 * envelope))
     }
 }
