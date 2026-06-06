@@ -35,6 +35,10 @@ enum LaunchFlags {
     /// Inject fake Bonjour-discovered Macs (the sim can't see the real one) so
     /// the Pair-a-Mac discovered list is UI-testable.
     static var seedDiscoveredMacs: Bool { args.boolFlag("-seedDiscoveredMacs") }
+    /// Force the first-run onboarding on (the onboarding UI test). Existing tests
+    /// pass `-inMemoryStore` and auto-skip onboarding without it.
+    static var forceOnboarding: Bool { args.boolFlag("-forceOnboarding") }
+    static var skipOnboarding: Bool { args.boolFlag("-skipOnboarding") }
     /// Inject a deterministic transcript instead of running FluidAudio (the
     /// Simulator has no Neural Engine). Its presence also puts recording in mock
     /// mode (no mic, no permission prompt) so the record→save→transcribe flow is
