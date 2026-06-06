@@ -44,6 +44,10 @@ struct UploadMetadata: Encodable {
     var imageManifest: [ImageManifestEntry]?
     var tags: [String]
     var source: String
+    /// Optional phone-set title. The Mac may use it in its title chooser instead
+    /// of the LLM title. CONTRACT ADDITION — the native Mac server's
+    /// UploadService must read this (see the desktop-native flag).
+    var title: String?
     var recordedAt: String
     var duration: Double
     var sharedContent: SharedContent?
@@ -65,6 +69,8 @@ struct UploadMetadata: Encodable {
         imageManifest = meta?.imageManifest
         tags = memo.tags
         source = "mobile"
+        let trimmedTitle = memo.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        title = (trimmedTitle?.isEmpty == false) ? trimmedTitle : nil
         recordedAt = ISO8601.string(from: memo.recordedAt)
         duration = memo.duration
         sharedContent = memo.sharedContent

@@ -39,6 +39,18 @@ final class UploadPayloadTests: XCTestCase {
         let (body, _) = UploadPayload.build(memo: memo, audioData: Data("A".utf8), photos: [])
         XCTAssertFalse(String(decoding: body, as: UTF8.self).contains(#"name="transcript""#))
     }
+
+    @MainActor
+    func testTitleRidesInMetadataWhenSet() {
+        let titled = Memo(audioFilename: "m.m4a", title: "Harbor renovation ideas", transcriptStatus: .pending)
+        let withTitle = String(decoding: UploadPayload.build(memo: titled, audioData: Data("A".utf8), photos: []).body, as: UTF8.self)
+        XCTAssertTrue(withTitle.contains(#""title":"Harbor renovation ideas""#),
+                      "phone-set title should ride in the upload metadata")
+
+        let untitled = Memo(audioFilename: "m.m4a", transcriptStatus: .pending)
+        let noTitle = String(decoding: UploadPayload.build(memo: untitled, audioData: Data("A".utf8), photos: []).body, as: UTF8.self)
+        XCTAssertFalse(noTitle.contains(#""title":"#), "no title key when unset")
+    }
 }
 
 final class SyncCoordinatorTests: XCTestCase {
