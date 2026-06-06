@@ -16,7 +16,7 @@ enum EnhancementError: LocalizedError {
 /// only) so MLX stays out of the host-less logic test target; the deterministic
 /// marker reinsert is tested separately. The load+generate path was proven in the
 /// Phase 0 go/no-go spike.
-actor EnhancementService {
+actor EnhancementService: Enhancing {
     static let shared = EnhancementService()
 
     private var container: ModelContainer?

@@ -3,16 +3,6 @@ import AVFoundation
 import CoreML
 import FluidAudio
 
-/// Result of transcribing one file. `text` carries `[[img_NNN]]` markers when a
-/// photo manifest was supplied; `wordTimings` feed the per-file sidecar + karaoke.
-struct TranscriptionResult: Sendable {
-    let text: String
-    let confidence: Double
-    let durationMs: Int
-    let wordTimings: [WordTiming]
-    let markersInjected: Bool
-}
-
 enum ASRError: LocalizedError {
     case notInitialized
     var errorDescription: String? { "ASR model is not loaded." }
@@ -24,7 +14,7 @@ enum ASRError: LocalizedError {
 /// stays out of the host-less logic test target; the deterministic post-processing
 /// (BPEMerge / ImageMarkers) is tested separately. Mirrors Shhhcribble + the phone's
 /// TranscriptionService on FluidAudio `main`.
-actor TranscriptionService {
+actor TranscriptionService: Transcribing {
     static let shared = TranscriptionService()
 
     private var asr: AsrManager?
