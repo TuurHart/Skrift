@@ -42,6 +42,20 @@ actor TranscriptionService: Transcriber {
     private var isTranscribing = false
     private var memoryObserver: NSObjectProtocol?
 
+    // Live streaming session state (record-screen captions). See the
+    // "Live streaming" section below.
+    private var streamBuffers: [AVAudioPCMBuffer] = []
+    private var committedChunks: [String] = []
+    private var streamStartedAt: Date?
+    private var lastRotationAt: Date?
+    private var rotating = false
+    private var snapshotRunning = false
+    private var streaming = false
+    /// Force-commit the accumulated buffer to a committed chunk after this long,
+    /// bounding live-buffer memory on long recordings (Shhhcribble uses a VAD
+    /// speech-end trigger too; we keep just the time-based hard cap for now).
+    private static let rotationInterval: TimeInterval = 25
+
     private init() {}
 
     var isModelReady: Bool { asr != nil }
@@ -85,7 +99,7 @@ actor TranscriptionService: Transcriber {
     /// loading (the in-flight call holds its own reference). Reloads from the
     /// on-disk cache on the next transcribe.
     func unload() {
-        guard !isTranscribing, loadTask == nil else { return }
+        guard !isTranscribing, !streaming, loadTask == nil else { return }
         let manager = asr
         asr = nil
         models = nil
@@ -209,6 +223,138 @@ actor TranscriptionService: Transcriber {
         return words
     }
 
+    // MARK: - Live streaming (record-screen captions)
+    //
+    // A faithful port of Shhhcribble's `TextEngine` feed/liveSnapshot/finalize,
+    // minus the VAD-triggered rotation (time-based hard cap only) and minus the
+    // vocabulary/filler passes (Skrift sends the RAW transcript; the Mac
+    // copy-edits). It shares the one loaded `asr` manager with the file path —
+    // never a second model in memory. Calls into `asr.transcribe` serialise on
+    // the AsrManager's own executor even when interleaved, so the snapshot +
+    // rotation guards just avoid redundant work, not data races.
+    //
+    // DEVICE-OWED: the Simulator has no Neural Engine, so the record screen
+    // drives a mock caption instead (see `LiveRecordingService`). This path is
+    // only exercised on a physical device. The authoritative transcript (with
+    // word timings + image markers) still comes from the one-shot file pass
+    // after stop — the live caption is display-only.
+
+    /// Begin a live session: clear prior state and kick off the model load so
+    /// the first buffers transcribe as soon as it's ready.
+    func beginStream() async {
+        streamBuffers.removeAll(keepingCapacity: true)
+        committedChunks.removeAll()
+        streamStartedAt = Date()
+        lastRotationAt = nil
+        rotating = false
+        streaming = true
+        try? await ensureLoaded()
+    }
+
+    /// Append a captured buffer. The caller hands off an **owned** copy — the
+    /// record tap copies off the audio thread before this actor hop, because the
+    /// tap's backing storage is reused under us.
+    func feedStream(_ ownedBuffer: AVAudioPCMBuffer) {
+        guard streaming else { return }
+        streamBuffers.append(ownedBuffer)
+    }
+
+    /// Best-effort full transcript right now: committed chunks + a live
+    /// re-transcribe of the accumulated buffer. Overlapping calls short-circuit.
+    func liveCaption() async -> String {
+        await rotateIfNeeded()
+        guard let asr, !streamBuffers.isEmpty else { return committedText() }
+        if snapshotRunning { return committedText() }
+        snapshotRunning = true
+        defer { snapshotRunning = false }
+        guard let merged = Self.concatenate(buffers: streamBuffers) else { return committedText() }
+        var state = TdtDecoderState.make()
+        do {
+            let tail = try await asr.transcribe(merged, decoderState: &state).text
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if tail.isEmpty { return committedText() }
+            return committedChunks.isEmpty ? tail : committedChunks.joined(separator: " ") + " " + tail
+        } catch {
+            return committedText()
+        }
+    }
+
+    /// Stitched transcribe of the remaining buffer + committed chunks. Provided
+    /// for completeness; the authoritative transcript is the one-shot file pass,
+    /// so the record flow calls `endStream()` instead.
+    func finishStream() async -> String {
+        var finalSegment = ""
+        if let asr, !streamBuffers.isEmpty, let merged = Self.concatenate(buffers: streamBuffers) {
+            var state = TdtDecoderState.make()
+            finalSegment = ((try? await asr.transcribe(merged, decoderState: &state).text) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let stitched = (committedChunks + [finalSegment]).filter { !$0.isEmpty }.joined(separator: " ")
+        endStream()
+        return stitched
+    }
+
+    /// Drop all live state (called on stop/cancel).
+    func endStream() {
+        streamBuffers.removeAll(keepingCapacity: false)
+        committedChunks.removeAll(keepingCapacity: false)
+        streamStartedAt = nil
+        lastRotationAt = nil
+        rotating = false
+        streaming = false
+    }
+
+    private func committedText() -> String { committedChunks.joined(separator: " ") }
+
+    /// Time-based chunk rotation: once the live buffer spans `rotationInterval`,
+    /// transcribe it into a committed chunk and clear it, bounding memory.
+    private func rotateIfNeeded() async {
+        guard !rotating, let asr, !streamBuffers.isEmpty else { return }
+        let started = lastRotationAt ?? streamStartedAt ?? Date()
+        guard Date().timeIntervalSince(started) > Self.rotationInterval else { return }
+        rotating = true
+        let snapshot = streamBuffers
+        streamBuffers.removeAll(keepingCapacity: true)
+        defer { rotating = false }
+        guard let merged = Self.concatenate(buffers: snapshot) else { return }
+        var state = TdtDecoderState.make()
+        if let text = try? await asr.transcribe(merged, decoderState: &state).text {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { committedChunks.append(trimmed) }
+        }
+        lastRotationAt = Date()
+    }
+
+    // MARK: - Buffer helpers (ported from Shhhcribble TextEngine)
+
+    private static func copyBuffer(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        guard let dst = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else { return nil }
+        dst.frameLength = buffer.frameLength
+        let channels = Int(buffer.format.channelCount)
+        let frames = Int(buffer.frameLength)
+        if let src = buffer.floatChannelData, let out = dst.floatChannelData {
+            for ch in 0..<channels { memcpy(out[ch], src[ch], frames * MemoryLayout<Float>.size) }
+        }
+        return dst
+    }
+
+    private static func concatenate(buffers: [AVAudioPCMBuffer]) -> AVAudioPCMBuffer? {
+        guard let first = buffers.first else { return nil }
+        let format = first.format
+        let total = buffers.reduce(AVAudioFrameCount(0)) { $0 + $1.frameLength }
+        guard total > 0, let out = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: total) else { return nil }
+        out.frameLength = total
+        let channels = Int(format.channelCount)
+        var offset = 0
+        for buf in buffers {
+            let frames = Int(buf.frameLength)
+            if let src = buf.floatChannelData, let dst = out.floatChannelData {
+                for ch in 0..<channels { memcpy(dst[ch] + offset, src[ch], frames * MemoryLayout<Float>.size) }
+            }
+            offset += frames
+        }
+        return out
+    }
 }
 
 /// Deterministic transcriber for UI tests, fed by the `-seedTranscript` launch

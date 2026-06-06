@@ -56,7 +56,7 @@ struct MemosListView: View {
                     .accessibilityIdentifier("new-recording-button")
                 }
             }
-            .sheet(isPresented: $showRecord) {
+            .fullScreenCover(isPresented: $showRecord) {
                 RecordView()
             }
             .sheet(isPresented: $showNames) {

@@ -52,7 +52,7 @@ final class RecordingUITests: XCTestCase {
         add(shot)
     }
 
-    func testShutterCapturesPhotoDuringRecording() throws {
+    func testPhotoSheetCapturesDuringRecording() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemoryStore", "-seedTranscript", "alpha bravo charlie delta echo"]
         app.launch()
@@ -69,18 +69,38 @@ final class RecordingUITests: XCTestCase {
         XCTAssertTrue(recordButton.waitForExistence(timeout: 5))
         recordButton.tap()   // start
 
+        // Let the mock caption reveal a few words, then capture the caption-first
+        // recording screen.
+        _ = app.buttons["pause-button"].waitForExistence(timeout: 5)
+        Thread.sleep(forTimeInterval: 1.2)
+        let recShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        recShot.name = "rec-recording-caption"
+        recShot.lifetime = .keepAlways
+        add(recShot)
+
+        // Caption-first: the Photo button opens the camera sheet; the shutter
+        // inside it captures while recording keeps running.
+        let photoButton = app.buttons["photo-button"]
+        XCTAssertTrue(photoButton.waitForExistence(timeout: 5), "Photo button not shown while recording")
+        photoButton.tap()
+
         let shutter = app.buttons["shutter-button"]
-        XCTAssertTrue(shutter.waitForExistence(timeout: 5), "shutter not shown while recording")
+        XCTAssertTrue(shutter.waitForExistence(timeout: 5), "camera sheet / shutter didn't appear")
+        let camShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        camShot.name = "rec-camera-sheet"
+        camShot.lifetime = .keepAlways
+        add(camShot)
         shutter.tap()
 
-        XCTAssertTrue(app.staticTexts["1 photo"].waitForExistence(timeout: 5),
-                      "photo count didn't update after shutter")
+        app.buttons["camera-done"].tap()
+
+        // Back on the record screen the Photo button now shows a count badge.
+        XCTAssertTrue(app.staticTexts["photo-count"].waitForExistence(timeout: 5),
+                      "photo count badge didn't update after capture")
+        XCTAssertEqual(app.staticTexts["photo-count"].label, "1")
 
         recordButton.tap()   // stop → save (with photo) → dismiss
 
-        // A memo row should land in the list (identifier-based, robust to the
-        // [[img_NNN]] markers the transcript now carries). Marker *correctness* is
-        // covered by the deterministic unit test.
         let firstRow = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
         let appeared = firstRow.waitForExistence(timeout: 10)
 

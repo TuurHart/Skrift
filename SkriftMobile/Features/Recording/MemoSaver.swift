@@ -15,18 +15,21 @@ struct MemoSaver {
     /// A captured photo handed off from the recorder: temp file + recording-time offset.
     typealias CapturedPhoto = (url: URL, offset: Double)
 
-    /// Fire-and-forget: persist now, transcribe + capture metadata in the
-    /// background. Used by the UI.
-    func save(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = []) {
-        let id = persist(tempURL: tempURL, duration: duration, photos: photos)
+    /// Fire-and-forget: persist now (with the live caption as a provisional
+    /// transcript so Memo detail shows text immediately), transcribe + capture
+    /// metadata in the background. Returns the new memo id for navigation.
+    @discardableResult
+    func save(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = [], provisionalTranscript: String? = nil) -> UUID {
+        let id = persist(tempURL: tempURL, duration: duration, photos: photos, provisional: provisionalTranscript)
         Task { await captureMetadata(id: id) }
         Task { await runTranscription(id: id) }
+        return id
     }
 
     /// Awaitable variant for tests — persist + capture metadata + transcribe.
     @discardableResult
     func saveAndTranscribe(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = []) async -> UUID {
-        let id = persist(tempURL: tempURL, duration: duration, photos: photos)
+        let id = persist(tempURL: tempURL, duration: duration, photos: photos, provisional: nil)
         await captureMetadata(id: id)
         await runTranscription(id: id)
         return id
@@ -43,7 +46,7 @@ struct MemoSaver {
         repository.save()
     }
 
-    private func persist(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto]) -> UUID {
+    private func persist(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto], provisional: String?) -> UUID {
         let id = UUID()
         let filename = "memo_\(id.uuidString).m4a"
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
@@ -52,6 +55,7 @@ struct MemoSaver {
 
         let manifest = movePhotos(photos, memoID: id)
         let metadata = manifest.isEmpty ? nil : MemoMetadata(imageManifest: manifest)
+        let provisionalText = provisional?.trimmingCharacters(in: .whitespacesAndNewlines)
 
         repository.insert(Memo(
             id: id,
@@ -59,6 +63,7 @@ struct MemoSaver {
             duration: duration,
             recordedAt: Date(),
             syncStatus: .waiting,
+            transcript: (provisionalText?.isEmpty == false) ? provisionalText : nil,
             transcriptStatus: .transcribing,
             metadata: metadata
         ))

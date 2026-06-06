@@ -1,136 +1,369 @@
 import SwiftUI
 
-/// Phase 2–3 **placeholder** record screen — plain and functional (camera, timer,
-/// level meter, record/stop, pause/resume, shutter, cancel). The designed version
-/// comes in the visual-polish pass; don't treat this layout as final.
+/// Caption-first record screen (mockup4 ready · mockup5 recording + camera).
+/// The live transcript is the hero; the waveform/timer are compact; the camera
+/// is on-demand (a sheet that slides up while recording keeps running). On stop
+/// the memo is persisted immediately and `onSaved` fires with its id so the
+/// caller can open it in Memo detail (the save-now post-record flow).
 struct RecordView: View {
-    @StateObject private var service = RecordingService()
+    @StateObject private var service = LiveRecordingService()
     @StateObject private var camera = PhotoCaptureService()
     @Environment(\.dismiss) private var dismiss
+
+    var onSaved: (UUID) -> Void = { _ in }
     private let saver = MemoSaver()
 
+    @State private var conversation = false
+    @State private var showCamera = false
+
     var body: some View {
-        VStack(spacing: 20) {
-            cameraArea
-                .frame(maxWidth: .infinity)
-                .frame(height: 200)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .padding(.horizontal)
+        ZStack {
+            Color.skBg.ignoresSafeArea()
 
-            Text(timeString)
-                .font(.system(size: 48, weight: .light, design: .monospaced))
-                .monospacedDigit()
-                .accessibilityIdentifier("record-timer")
-
-            LevelMeter(level: service.level)
-                .frame(height: 44)
-                .padding(.horizontal, 24)
-
-            if service.isRecording {
-                HStack(spacing: 20) {
-                    Button(service.isPaused ? "Resume" : "Pause", action: togglePause)
-                        .buttonStyle(.bordered)
-                        .accessibilityIdentifier("pause-button")
-
-                    Button {
-                        camera.capture(offsetSeconds: service.elapsed)
-                    } label: {
-                        Image(systemName: "camera.fill").font(.title2)
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityIdentifier("shutter-button")
-                }
-
-                Text("\(camera.capturedCount) photo\(camera.capturedCount == 1 ? "" : "s")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("photo-count")
-            }
-
-            Spacer()
-
-            Button(action: handleRecordTap) {
-                ZStack {
-                    Circle().stroke(.red, lineWidth: 4).frame(width: 84, height: 84)
-                    if service.isRecording {
-                        RoundedRectangle(cornerRadius: 6).fill(.red).frame(width: 30, height: 30)
-                    } else {
-                        Circle().fill(.red).frame(width: 68, height: 68)
-                    }
+            VStack(spacing: 0) {
+                topBar
+                if service.isRecording {
+                    recordingContent
+                } else {
+                    readyContent
                 }
             }
-            .accessibilityIdentifier("record-button")
-            .accessibilityLabel(service.isRecording ? "Stop recording" : "Start recording")
 
-            Button("Cancel") {
-                service.cancel()
-                camera.discardAll()
-                dismiss()
+            if showCamera {
+                cameraOverlay
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .accessibilityIdentifier("cancel-record")
-            .padding(.bottom, 8)
         }
-        .padding(.vertical)
+        .animation(Theme.Motion.spring, value: showCamera)
         .onAppear { camera.configure() }
         .onDisappear { camera.stop() }
     }
 
-    @ViewBuilder private var cameraArea: some View {
-        if camera.mock {
-            ZStack {
-                Rectangle().fill(Color.black.opacity(0.85))
-                Image(systemName: "camera.fill")
-                    .font(.largeTitle)
-                    .foregroundStyle(.white.opacity(0.4))
+    // MARK: - Top bar
+
+    private var topBar: some View {
+        HStack {
+            Button(action: closeTapped) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.skTextDim)
+                    .frame(width: 32, height: 32)
+                    .background(Color.skSurface, in: .circle)
+                    .overlay(Circle().stroke(Color.skBorder, lineWidth: 1))
             }
-            .accessibilityIdentifier("camera-placeholder")
-        } else {
-            CameraPreviewView(session: camera.session)
+            .accessibilityIdentifier("cancel-record")
+
+            Spacer()
+
+            Button { conversation.toggle() } label: {
+                HStack(spacing: 8) {
+                    Text("Conversation")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                    ToggleDot(on: conversation)
+                }
+                .padding(.leading, 12).padding(.trailing, 6).padding(.vertical, 6)
+                .background(Color.skSurface, in: .capsule)
+                .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
+            }
+            .accessibilityIdentifier("conversation-toggle")
+        }
+        .padding(.horizontal, Theme.Space.margin)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Ready (mockup4)
+
+    private var readyContent: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            Image(systemName: "waveform")
+                .font(.system(size: 40, weight: .regular))
+                .foregroundStyle(Color.skTextFaint)
+            Text("Ready to record")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.skText)
+                .padding(.top, 14)
+            HStack(spacing: 6) {
+                Circle().fill(Color.skGreen).frame(width: 7, height: 7)
+                Text("On-device transcription · ready")
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Color.skTextDim)
+            .padding(.top, 8)
+
+            Spacer()
+
+            Button(action: startTapped) {
+                ZStack {
+                    Circle().stroke(Color.skRed.opacity(0.35), lineWidth: 4).frame(width: 84, height: 84)
+                    Circle().fill(Color.skRed).frame(width: 68, height: 68)
+                    Image(systemName: "mic.fill").font(.system(size: 26)).foregroundStyle(.white)
+                }
+            }
+            .accessibilityIdentifier("record-button")
+            .accessibilityLabel("Start recording")
+
+            Text("Tap to start recording")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.skTextDim)
+                .padding(.top, 14)
+                .padding(.bottom, 40)
+        }
+        .padding(.horizontal, Theme.Space.margin)
+    }
+
+    // MARK: - Recording (mockup5)
+
+    private var recordingContent: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 7) {
+                Circle().fill(Color.skRed).frame(width: 9, height: 9).shadow(color: .skRed, radius: 5)
+                Text(service.isPaused ? "Paused" : "Recording")
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Color.skTextDim)
+            .padding(.top, 18)
+
+            LiveCaption(text: service.liveCaption)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.top, 18)
+                .accessibilityIdentifier("live-caption")
+
+            HStack(spacing: 14) {
+                RecordWaveform(samples: service.waveform)
+                    .frame(height: 34)
+                Text(timeString)
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.skTextDim)
+                    .accessibilityIdentifier("record-timer")
+            }
+            .padding(.top, 6)
+
+            controls
+                .padding(.top, 22)
+                .padding(.bottom, 30)
+        }
+        .padding(.horizontal, Theme.Space.margin)
+    }
+
+    private var controls: some View {
+        HStack {
+            Spacer()
+            ControlButton(
+                title: service.isPaused ? "Resume" : "Pause",
+                systemImage: service.isPaused ? "play.fill" : "pause.fill",
+                id: "pause-button",
+                action: togglePause
+            )
+
+            Spacer()
+            Button(action: stopTapped) {
+                ZStack {
+                    Circle().stroke(Color.skRed.opacity(0.35), lineWidth: 4).frame(width: 74, height: 74)
+                    RoundedRectangle.sk(8).fill(Color.skRed).frame(width: 28, height: 28)
+                }
+            }
+            .accessibilityIdentifier("record-button")
+            .accessibilityLabel("Stop recording")
+
+            Spacer()
+            ControlButton(title: "Photo", systemImage: "camera.fill", accent: true, id: "photo-button") {
+                showCamera = true
+            }
+            .overlay(alignment: .topTrailing) {
+                if camera.capturedCount > 0 {
+                    Text("\(camera.capturedCount)")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 19, height: 19)
+                        .background(Color.skAccent, in: .circle)
+                        .overlay(Circle().stroke(Color.skBg, lineWidth: 2))
+                        .offset(x: -4, y: -2)
+                        .accessibilityIdentifier("photo-count")
+                }
+            }
+            Spacer()
         }
     }
+
+    // MARK: - Camera overlay (mockup5 middle)
+
+    private var cameraOverlay: some View {
+        ZStack(alignment: .bottom) {
+            Color.black.opacity(0.55).ignoresSafeArea()
+                .onTapGesture {}   // swallow taps to the recording layer
+
+            VStack {
+                HStack(spacing: 8) {
+                    Circle().fill(Color.skRed).frame(width: 9, height: 9).shadow(color: .skRed, radius: 5)
+                    Text("Recording · \(timeString)")
+                    Text("— still listening").foregroundStyle(Color.skTextFaint)
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.skTextDim)
+                .padding(.top, 54)
+                Spacer()
+            }
+
+            CameraSheet(
+                camera: camera,
+                elapsed: service.elapsed,
+                onDone: { showCamera = false }
+            )
+        }
+    }
+
+    // MARK: - Actions
 
     private var timeString: String {
         let total = Int(service.elapsed)
         return String(format: "%d:%02d", total / 60, total % 60)
     }
 
-    private func handleRecordTap() {
-        if service.isRecording {
-            if let result = service.stop() {
-                saver.save(tempURL: result.url, duration: result.duration, photos: camera.takeAll())
-            }
-            dismiss()
-        } else {
-            try? service.start()
-        }
+    private func closeTapped() {
+        if service.isRecording { service.cancel(); camera.discardAll() }
+        dismiss()
+    }
+
+    private func startTapped() {
+        Haptics.tap()
+        try? service.start()
+    }
+
+    private func stopTapped() {
+        Haptics.recordingTap()
+        guard let result = service.stop() else { dismiss(); return }
+        let id = saver.save(
+            tempURL: result.url,
+            duration: result.duration,
+            photos: camera.takeAll(),
+            provisionalTranscript: result.liveCaption
+        )
+        Haptics.success()
+        dismiss()
+        onSaved(id)
     }
 
     private func togglePause() {
+        Haptics.recordingTap()
         service.isPaused ? service.resume() : service.pause()
     }
 }
 
-/// Minimal symmetric bar meter driven by the smoothed input level.
-struct LevelMeter: View {
-    let level: Float
+// MARK: - Pieces
+
+/// A small accent/elev pill toggle dot matching the mock's `.sw`.
+private struct ToggleDot: View {
+    let on: Bool
+    var body: some View {
+        Capsule()
+            .fill(on ? Color.skAccent : Color.skElev)
+            .frame(width: 38, height: 22)
+            .overlay(
+                Circle().fill(.white).frame(width: 18, height: 18)
+                    .padding(2)
+                    .frame(maxWidth: .infinity, alignment: on ? .trailing : .leading)
+            )
+            .animation(Theme.Motion.snappy, value: on)
+    }
+}
+
+/// Live transcript with a three-tier fade (older → dim) + an accent caret, like
+/// the mockup's `.old/.mid/.now`.
+private struct LiveCaption: View {
+    let text: String
 
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<13, id: \.self) { index in
-                Capsule()
-                    .fill(Color.accentColor)
-                    .frame(width: 5, height: height(for: index))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .animation(.easeOut(duration: 0.08), value: level)
-        .accessibilityIdentifier("level-meter")
+        (oldText + midText + nowText + caret)
+            .font(.system(size: 22, weight: .medium))
+            .lineSpacing(5)
     }
 
-    private func height(for index: Int) -> CGFloat {
-        let center = 6.0
-        let distance = abs(Double(index) - center) / center   // 0 center → 1 edge
-        let envelope = 1.0 - 0.6 * distance
-        return max(4, CGFloat(Double(level) * 44 * envelope))
+    private var words: [String] { text.split(separator: " ").map(String.init) }
+
+    private var oldText: Text {
+        let w = words
+        guard w.count > 18 else { return Text("") }
+        return Text(w[0..<(w.count - 18)].joined(separator: " ") + " ").foregroundColor(.skTextFaint)
+    }
+    private var midText: Text {
+        let w = words
+        guard w.count > 6 else { return Text("") }
+        let start = max(0, w.count - 18)
+        return Text(w[start..<(w.count - 6)].joined(separator: " ") + " ").foregroundColor(.skTextDim)
+    }
+    private var nowText: Text {
+        let w = words
+        let start = max(0, w.count - 6)
+        guard start < w.count else { return Text("") }
+        return Text(w[start...].joined(separator: " ")).foregroundColor(.skText)
+    }
+    private var caret: Text {
+        Text(" ▏").foregroundColor(.skAccent)
+    }
+}
+
+/// Compact live waveform: centered rounded bars with an accent gradient, driven
+/// by the rolling level history. (Custom view for pixel-fidelity to the mock;
+/// DSWaveformImage powers the static playback scrubber in Memo detail.)
+struct RecordWaveform: View {
+    let samples: [Float]
+    private let barCount = 40
+
+    var body: some View {
+        GeometryReader { geo in
+            let bars = padded
+            HStack(alignment: .center, spacing: 3) {
+                ForEach(bars.indices, id: \.self) { i in
+                    Capsule()
+                        .fill(LinearGradient(colors: [.skAccent, Color(hex: 0xa99cff)],
+                                             startPoint: .bottom, endPoint: .top))
+                        .frame(height: max(3, CGFloat(bars[i]) * geo.size.height))
+                        .opacity(0.45 + Double(bars[i]) * 0.55)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .animation(.easeOut(duration: 0.08), value: samples)
+        }
+        .accessibilityHidden(true)
+    }
+
+    /// Right-align the newest samples; pad the left with quiet bars.
+    private var padded: [Float] {
+        if samples.count >= barCount { return Array(samples.suffix(barCount)) }
+        return Array(repeating: 0.04, count: barCount - samples.count) + samples
+    }
+}
+
+/// A round secondary control with a label below (Pause/Photo). The
+/// accessibility id sits on the `Button` itself so XCUITest can find it.
+private struct ControlButton: View {
+    let title: String
+    let systemImage: String
+    var accent = false
+    let id: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 7) {
+                ZStack {
+                    Circle()
+                        .fill(accent ? Color.skAccentSoft : Color.skSurface)
+                        .frame(width: 54, height: 54)
+                    Circle().stroke(accent ? Color.skAccent.opacity(0.3) : Color.skBorder, lineWidth: 1)
+                        .frame(width: 54, height: 54)
+                    Image(systemName: systemImage)
+                        .font(.system(size: 20))
+                        .foregroundStyle(accent ? Color(hex: 0xb9acff) : Color.skText)
+                }
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.skTextDim)
+            }
+        }
+        .accessibilityIdentifier(id)
     }
 }

@@ -21,6 +21,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     private let sessionQueue = DispatchQueue(label: "skrift.camera.session")
     private var captured: [(url: URL, offset: Double)] = []
     private var pendingOffsets: [Double] = []
+    private var videoDevice: AVCaptureDevice?
 
     init(mock: Bool = LaunchFlags.seedTranscript != nil) {
         self.mock = mock
@@ -40,6 +41,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
                let input = try? AVCaptureDeviceInput(device: device),
                self.session.canAddInput(input) {
                 self.session.addInput(input)
+                self.videoDevice = device
             }
             if self.session.canAddOutput(self.photoOutput) {
                 self.session.addOutput(self.photoOutput)
@@ -53,6 +55,21 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     func stop() {
         guard !mock else { return }
         sessionQueue.async { [weak self] in self?.session.stopRunning() }
+    }
+
+    /// Set the optical/digital zoom factor (e.g. 0.5/1/2). Device-only; clamped
+    /// to the camera's supported range. No-op in the camera-less mock.
+    func setZoom(_ factor: CGFloat) {
+        guard !mock else { return }
+        sessionQueue.async { [weak self] in
+            guard let device = self?.videoDevice else { return }
+            do {
+                try device.lockForConfiguration()
+                let clamped = max(device.minAvailableVideoZoomFactor, min(factor, device.maxAvailableVideoZoomFactor))
+                device.videoZoomFactor = clamped
+                device.unlockForConfiguration()
+            } catch {}
+        }
     }
 
     func capture(offsetSeconds: Double) {
