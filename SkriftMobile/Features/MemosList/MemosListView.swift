@@ -7,6 +7,7 @@ import SwiftData
 struct MemosListView: View {
     @Query(sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
     @State private var showRecord = false
+    @State private var showNames = false
 
     var body: some View {
         NavigationStack {
@@ -30,6 +31,14 @@ struct MemosListView: View {
             }
             .navigationTitle("Memos")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showNames = true
+                    } label: {
+                        Image(systemName: "person.2.fill")
+                    }
+                    .accessibilityIdentifier("open-names-button")
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         showRecord = true
@@ -41,6 +50,9 @@ struct MemosListView: View {
             }
             .sheet(isPresented: $showRecord) {
                 RecordView()
+            }
+            .sheet(isPresented: $showNames) {
+                NamesListView()
             }
         }
         .accessibilityIdentifier("memos-screen")

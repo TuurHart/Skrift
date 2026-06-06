@@ -297,8 +297,10 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       reverse-geocode, `CMPedometer` steps) + `MockMetadataService` + factory.
       `MemoSaver` captures metadata on save and merges it onto the memo, preserving
       the photo `imageManifest`. 30 tests green. Location/steps/weather = device-owed.
-- [ ] Phase 5 — names + sync (sync already shipped in Phase 1; this is the on-phone
-      Names UI)
+- [x] Phase 5 — names UI. `NamesListView` + `AddPersonView` over the Phase-1
+      `NamesStore` (list/add/delete-as-tombstone); `NamesSeeder` (`-seedDemoNames`
+      overwrites for deterministic tests); entry via a memos-toolbar button. 31
+      tests green. (Sync already shipped in Phase 1.)
 - [ ] Phase 6 — Mac upload (round-trip vs live backend)
 - [ ] Phase 7 — review/detail/settings
 - [ ] Phase 8 — widget/live activity/intents/share ext

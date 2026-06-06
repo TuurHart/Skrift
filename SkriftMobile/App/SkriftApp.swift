@@ -8,6 +8,7 @@ struct SkriftApp: App {
     init() {
         let repo = NotesRepository.shared
         DemoDataSeeder.seedIfRequested(repo)
+        NamesSeeder.seedIfRequested()
         repository = repo
     }
 
