@@ -54,11 +54,7 @@ struct NoteDisplayView: View {
             if let summary = file.enhancedSummary, !summary.isEmpty {
                 summaryAside(summary)
             }
-            Text(file.bestBodyText)
-                .font(.system(size: 16))
-                .lineSpacing(6)
-                .foregroundStyle(Theme.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            NoteBody(file: file, audio: audio, interactive: scrollable)
         }
     }
 
