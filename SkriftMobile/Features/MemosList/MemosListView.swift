@@ -8,9 +8,10 @@ struct MemosListView: View {
     @Query(sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
     @State private var showRecord = false
     @State private var showNames = false
+    @State private var path: [UUID] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if memos.isEmpty {
                     ContentUnavailableView(
@@ -22,14 +23,17 @@ struct MemosListView: View {
                 } else {
                     List {
                         ForEach(Array(memos.enumerated()), id: \.element.id) { index, memo in
-                            MemoRow(memo: memo)
-                                .accessibilityIdentifier("memo-row-\(index)")
+                            NavigationLink(value: memo.id) {
+                                MemoRow(memo: memo)
+                            }
+                            .accessibilityIdentifier("memo-row-\(index)")
                         }
                     }
                     .accessibilityIdentifier("memos-list")
                 }
             }
             .navigationTitle("Memos")
+            .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -57,7 +61,7 @@ struct MemosListView: View {
                 }
             }
             .fullScreenCover(isPresented: $showRecord) {
-                RecordView()
+                RecordView(onSaved: { newID in path = [newID] })
             }
             .sheet(isPresented: $showNames) {
                 NamesListView()

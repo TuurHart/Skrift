@@ -99,19 +99,17 @@ final class RecordingUITests: XCTestCase {
                       "photo count badge didn't update after capture")
         XCTAssertEqual(app.staticTexts["photo-count"].label, "1")
 
-        recordButton.tap()   // stop → save (with photo) → dismiss
+        recordButton.tap()   // stop → save (with photo) → save-now opens Memo detail
 
-        let firstRow = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
-        let appeared = firstRow.waitForExistence(timeout: 10)
-
-        let labels = app.staticTexts.allElementsBoundByIndex.filter { $0.exists }.map { $0.label }
-        print("SCREEN[after-stop]: " + labels.joined(separator: " || "))
+        // Save-now flow: stopping lands us straight in Memo detail for the new
+        // memo. Its presence (the player) proves the memo was created + saved.
+        let inDetail = app.buttons["play-button"].waitForExistence(timeout: 10)
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "record-with-photo"
         shot.lifetime = .keepAlways
         add(shot)
 
-        XCTAssertTrue(appeared, "memo row never appeared after recording with a photo")
+        XCTAssertTrue(inDetail, "Memo detail didn't open after recording with a photo (save-now)")
     }
 }

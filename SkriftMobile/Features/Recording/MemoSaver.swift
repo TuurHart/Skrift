@@ -26,6 +26,17 @@ struct MemoSaver {
         return id
     }
 
+    /// Re-run the one-shot transcription on an existing memo's audio (the detail
+    /// overflow "Re-transcribe"). Marks it transcribing, then refreshes the
+    /// transcript + confidence + markers + word-timing sidecar.
+    func retranscribe(id: UUID) {
+        guard let memo = repository.memo(id: id) else { return }
+        memo.transcriptStatus = .transcribing
+        memo.transcriptUserEdited = false
+        repository.save()
+        Task { await runTranscription(id: id) }
+    }
+
     /// Awaitable variant for tests — persist + capture metadata + transcribe.
     @discardableResult
     func saveAndTranscribe(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = []) async -> UUID {

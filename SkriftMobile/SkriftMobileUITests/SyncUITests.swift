@@ -25,7 +25,11 @@ final class SyncUITests: XCTestCase {
         recordButton.tap()
         XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.5)
-        recordButton.tap()   // stop → save → dismiss
+        recordButton.tap()   // stop → save → save-now opens Memo detail
+
+        // Save-now lands in Memo detail; go back to the list to check sync status.
+        XCTAssertTrue(app.buttons["play-button"].waitForExistence(timeout: 10))
+        app.navigationBars.buttons.element(boundBy: 0).tap()   // back to Memos
 
         // It lands with its transcript and starts out Waiting.
         XCTAssertTrue(app.staticTexts["sync this memo"].waitForExistence(timeout: 10))
