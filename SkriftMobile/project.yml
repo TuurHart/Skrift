@@ -5,6 +5,13 @@ options:
     iOS: "18.0"
   createIntermediateGroups: true
 
+packages:
+  # Match Shhhcribble's pin (branch: main) so diarization/boosting APIs line up
+  # with what was verified there — NOT the RN app's exactVersion 0.12.4.
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    branch: main
+
 targets:
   SkriftMobile:
     type: application
@@ -36,6 +43,9 @@ targets:
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - package: FluidAudio
+        product: FluidAudio
 
   SkriftMobileTests:
     type: bundle.unit-test

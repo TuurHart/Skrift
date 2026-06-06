@@ -275,7 +275,14 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       `NamesStore` + `NamesSync` (LWW + voiceEmbeddings union) with an injectable
       transport. 21 tests green (unit + XCUITest). **Live names round-trip vs a
       running Mac is still pending — verified only via mock transport + unit tests.**
-- [ ] Phase 2 — recording + transcription (+ port the memory/silence fixes)
+- [x] Phase 2 — recording + transcription. FluidAudio `main` SPM dep (sim build
+      green); `TranscriptionService` (one-shot file transcribe, ported from the RN
+      `ParakeetModule` + Shhhcribble's `main` API) with the memory-teardown +
+      RMS/word-count silence guard fixes + `insertImageMarkers`; `RecordingService`
+      (`AVAudioRecorder`, metering, pause/resume) with a mock mode; plain record
+      screen; `MemoSaver` (record→save→transcribe→sidecar). `-seedTranscript` seam.
+      23 tests green. **NB: chose one-shot-on-stop (like the RN app + Mac), NOT
+      Shhhcribble's live VAD streaming.** Real ASR/mic/memory/silence = device-owed.
 - [ ] Phase 3 — photos + markers
 - [ ] Phase 4 — metadata
 - [ ] Phase 5 — names + sync

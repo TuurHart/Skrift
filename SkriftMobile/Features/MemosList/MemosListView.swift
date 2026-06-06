@@ -6,6 +6,7 @@ import SwiftData
 /// designed (mock-first) in a later phase; don't treat this layout as final.
 struct MemosListView: View {
     @Query(sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
+    @State private var showRecord = false
 
     var body: some View {
         NavigationStack {
@@ -14,7 +15,7 @@ struct MemosListView: View {
                     ContentUnavailableView(
                         "No memos yet",
                         systemImage: "waveform",
-                        description: Text("Recorded memos will appear here.")
+                        description: Text("Tap the mic to record your first memo.")
                     )
                     .accessibilityIdentifier("memos-empty")
                 } else {
@@ -28,6 +29,19 @@ struct MemosListView: View {
                 }
             }
             .navigationTitle("Memos")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showRecord = true
+                    } label: {
+                        Image(systemName: "mic.fill")
+                    }
+                    .accessibilityIdentifier("new-recording-button")
+                }
+            }
+            .sheet(isPresented: $showRecord) {
+                RecordView()
+            }
         }
         .accessibilityIdentifier("memos-screen")
     }

@@ -23,11 +23,27 @@
   alongside the XCUITest target: 21 tests green (merge/union/tombstone/encoding +
   full mock-transport sync flow + SwiftData repo + a seeded-memos UI test).
   **Next: Phase 2 (recording + transcription).**
-- **⚠ Open verification debt from Phase 1:** the names sync is verified only via
-  the mock transport + unit tests. The **live round-trip against a running Mac
-  backend was NOT done** (backend wasn't up). Do it early in Phase 6 (or sooner if
-  the Mac is running): `GET /api/names/meta` → `GET` → merge → `PUT`, confirm both
-  sides converge. `URLSessionNamesTransport` is the real transport to point at it.
+- **Phase 2 (recording + transcription): ✅ GREEN** — FluidAudio `main` SPM dep
+  builds for the sim. `TranscriptionService` (actor): one-shot file transcribe
+  ported from the RN `ParakeetModule`, adapted to FluidAudio `main`
+  (`AsrModels.downloadAndLoad(configuration:version:progressHandler:)` →
+  `AsrManager.loadModels` → `transcribe(url, decoderState: &TdtDecoderState.make())`
+  → `ASRResult{text,confidence,tokenTimings}`; `cleanup()` teardown). Carries both
+  native fixes (memory-warning `unload()` + RMS/word-count silence guard) and
+  `insertImageMarkers`. `RecordingService` uses `AVAudioRecorder` (metering,
+  pause/resume) + a mock mode; plain `RecordView`; `MemoSaver` does
+  record→save→transcribe→sidecar. `-seedTranscript` seeds a transcript AND mocks
+  recording (no mic). **23 tests green. Next: Phase 3 (photos + markers).**
+  **Design note:** chose one-shot-transcribe-on-stop (RN/Mac behavior), NOT
+  Shhhcribble's live VAD streaming — simpler + faithful to Skrift's product.
+- **⚠ Open verification debt (verified-in-sim vs owed-on-device):**
+  - **Phase 1 names sync** — mock-transport + unit tests only; the **live Mac
+    round-trip** (`GET /meta`→`GET`→merge→`PUT`) is NOT done (backend was down).
+    `URLSessionNamesTransport` is ready; do it early in Phase 6.
+  - **Phase 2 transcription/recording** — the real FluidAudio ASR, mic capture,
+    `AVAudioRecorder` output, the silence-guard threshold (`0.0075`), and the
+    memory-pressure `unload()` are **all device-owed** (sim has no ANE/mic; UI tests
+    use `-seedTranscript` + mock recording). Verify on a physical iPhone.
 
 ## Branch map (important)
 - `mobile-native` (current) — the rewrite. Branched off `mobile-overhaul`, so it
@@ -42,9 +58,13 @@
   on this branch — **port them into the native transcription service in Phase 2**.
 
 ## Resume here (do this first)
-**Phases 0 + 1 are GREEN and committed.** Start **Phase 2 (recording +
-transcription)** — plan §3. First, sanity-check the toolchain still builds + tests
-(this now runs BOTH the unit target `SkriftMobileTests` and the UI target
+**Phases 0 + 1 + 2 are GREEN and committed.** Start **Phase 3 (photos during
+recording + `[[img_NNN]]` markers)** — plan §3. The marker-insertion algorithm is
+already ported into `TranscriptionService.insertImageMarkers` and accepts an
+`[ImageManifestEntry]`; Phase 3 adds the camera preview + shutter, the
+timestamp-offset capture (minus paused time), and wires the manifest into
+`MemoSaver`/the recording flow. First, sanity-check the toolchain still builds +
+tests (this runs BOTH the unit target `SkriftMobileTests` and the UI target
 `SkriftMobileUITests`):
 ```
 cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
@@ -148,6 +168,9 @@ parity, but its fixes + the BACKEND fixes are real and the CONTRACT they encode 
 what the native app must match (plan §4).
 
 ### A. Changes already committed (newest first)
+`mobile-native`: Phase 2 — recording + transcription (see `git log`). FluidAudio
+`main` SPM dep; `TranscriptionService` + `RecordingService` + `RecordView` +
+`MemoSaver`; `-seedTranscript` seam. 23 tests green. Real ASR/mic = device-owed.
 `mobile-native`: Phase 1 — SwiftData data model + full names store/sync (see
 `git log` for the hash). Adds `SkriftMobile/{Models,Services,Features,SkriftMobileTests}`,
 the unit-test target, launch-arg seed hooks. 21 tests green. Names sync verified
