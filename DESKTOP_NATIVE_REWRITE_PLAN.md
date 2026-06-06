@@ -219,7 +219,7 @@ xcodebuild test  -project SkriftDesktop.xcodeproj -scheme SkriftDesktop \
   reaches parity; `main` stays the old baseline until then.
 
 ## 9. Status
-- [ ] Phase 0 — toolchain spike + mlx-swift Gemma go/no-go
+- [x] Phase 0 — toolchain GREEN (xcodegen macOS app + FluidAudio linked + unit test passing; XCUITest written, needs a one-time macOS automation-permission grant) **+ mlx-swift Gemma 4 go/no-go = GO NATIVE.** Spike loaded the local `gemma-4-e4b-it-8bit` via `mlx-swift-lm` (main) and ran the exact `copy_edit` prompt correctly (removed fillers, collapsed false starts, preserved EN/NL — matches the Python pipeline). Debug build: load 3.2s, ~10.8 tok/s, peak ~8.75 GB (8bit). **No Python sidecar.** Distribution decision: ship models via **HF download** (no deps zip; progress bar in SetupWizard). Toolchain note: only `xcodebuild` compiles MLX's `.metallib` (plain `swift build` can't). Quant compare: 4bit (5.2 GB, ~21.5 tok/s, ~5 GB RAM) is faster/lighter but left fillers in; 8bit (9.0 GB, ~10.8 tok/s, ~8.75 GB) follows the copy-edit prompt cleanly → **ship 8bit default**, 4bit as a low-RAM option later. HF download `Progress` callback works but coarse — refine to byte-level for the SetupWizard bar (Phase 8).
 - [ ] Phase 1 — data model
 - [ ] Phase 2 — sync server + Bonjour
 - [ ] Phase 3 — transcription (FluidAudio)

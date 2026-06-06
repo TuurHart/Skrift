@@ -1,0 +1,87 @@
+name: SkriftDesktop
+options:
+  bundleIdPrefix: com.skrift
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+packages:
+  # Match Shhhcribble / the iOS rewrite: FluidAudio pinned to branch main.
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    branch: main
+
+targets:
+  SkriftDesktop:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
+        PRODUCT_NAME: SkriftDesktop
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: Skrift
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
+        # Ad-hoc local signing so build + XCUITest work without a dev team.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        ENABLE_HARDENED_RUNTIME: NO
+    dependencies:
+      - package: FluidAudio
+        product: FluidAudio
+
+  # Host-less logic test bundle — proves `xcodebuild test` runs the unit harness.
+  SkriftDesktopTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: SkriftDesktopTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+
+  SkriftDesktopUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: SkriftDesktopUITests
+    dependencies:
+      - target: SkriftDesktop
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.uitests
+        TEST_TARGET_NAME: SkriftDesktop
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+
+schemes:
+  SkriftDesktop:
+    build:
+      targets:
+        SkriftDesktop: all
+        SkriftDesktopTests: [test]
+        SkriftDesktopUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SkriftDesktopTests
+        - SkriftDesktopUITests
