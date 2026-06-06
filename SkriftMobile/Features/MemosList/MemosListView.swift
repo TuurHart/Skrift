@@ -68,7 +68,7 @@ struct MemosListView: View {
 
     private var listContent: some View {
         ScrollView {
-            SearchField(text: $search)
+            SearchField(text: $search, prompt: "Search transcripts", fieldID: "memo-search")
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
 
@@ -256,30 +256,6 @@ struct MemosListView: View {
         case .oldest: return a.recordedAt < b.recordedAt
         case .longest: return a.duration > b.duration
         }
-    }
-}
-
-// MARK: - Search field
-
-private struct SearchField: View {
-    @Binding var text: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(Color.skTextFaint)
-            TextField("", text: $text, prompt: Text("Search transcripts").foregroundStyle(Color.skTextFaint))
-                .font(.system(size: 14))
-                .foregroundStyle(Color.skText)
-                .tint(.skAccent)
-                .autocorrectionDisabled()
-                .accessibilityIdentifier("memo-search")
-            if !text.isEmpty {
-                Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.skTextFaint) }
-            }
-        }
-        .padding(.horizontal, 12).padding(.vertical, 9)
-        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
-        .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
     }
 }
 

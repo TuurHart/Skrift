@@ -9,7 +9,9 @@ enum NamesSeeder {
         guard LaunchFlags.seedDemoNames else { return }
         let now = ISO8601.now()
         NamesStore.shared.save(NamesData(lastModifiedAt: now, people: [
-            Person(canonical: "[[Jane Doe]]", aliases: ["Janey"], short: "Jane", lastModifiedAt: now),
+            Person(canonical: "[[Jane Doe]]", aliases: ["Janey"], short: "Jane",
+                   voiceEmbeddings: [VoiceEmbedding(vector: [0.1, 0.2, 0.3], condition: "demo", addedAt: now)],
+                   lastModifiedAt: now),
             Person(canonical: "[[Bob Smith]]", aliases: ["Bobby"], short: "Bob", lastModifiedAt: now),
         ]))
     }

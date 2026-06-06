@@ -37,4 +37,30 @@ final class NamesUITests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
     }
+
+    func testVoiceStatesAndPersonDetail() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedDemoNames"]
+        app.launch()
+
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let cancel = springboard.buttons["Cancel"]
+        if cancel.waitForExistence(timeout: 2) { cancel.tap() }
+
+        app.buttons["open-names-button"].tap()
+
+        // Jane is seeded with a voice embedding → "Voice enrolled"; Bob isn't.
+        XCTAssertTrue(app.staticTexts["Voice enrolled"].waitForExistence(timeout: 5),
+                      "enrolled voice state missing")
+
+        // Open Bob's detail → the Add voice affordance is present.
+        app.staticTexts["Bob Smith"].tap()
+        XCTAssertTrue(app.staticTexts["person-detail-name"].waitForExistence(timeout: 5)
+                      || app.staticTexts["Bob Smith"].waitForExistence(timeout: 5))
+        let addVoice = app.buttons["add-voice-button"]
+        XCTAssertTrue(addVoice.waitForExistence(timeout: 5), "Add voice affordance missing")
+        addVoice.tap()
+        XCTAssertTrue(app.staticTexts["Voice enrollment"].waitForExistence(timeout: 5),
+                      "enroll sheet didn't appear")
+    }
 }

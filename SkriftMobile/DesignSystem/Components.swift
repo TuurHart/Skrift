@@ -135,6 +135,30 @@ struct ContextChip: View {
     }
 }
 
+/// Rounded search field used by the memos + names lists. The id sits on the
+/// `TextField` so XCUITest can type into it.
+struct SearchField: View {
+    @Binding var text: String
+    var prompt: String = "Search"
+    var fieldID: String = "search-field"
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(Color.skTextFaint)
+            TextField("", text: $text, prompt: Text(prompt).foregroundStyle(Color.skTextFaint))
+                .font(.system(size: 14)).foregroundStyle(Color.skText).tint(.skAccent)
+                .autocorrectionDisabled()
+                .accessibilityIdentifier(fieldID)
+            if !text.isEmpty {
+                Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.skTextFaint) }
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 9)
+        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
+        .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
+    }
+}
+
 enum TagChipStyle { case applied, suggestion, add }
 
 /// A `#tag` chip: applied (filled accent), suggestion (dashed outline), or the

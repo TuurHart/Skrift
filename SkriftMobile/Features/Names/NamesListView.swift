@@ -1,46 +1,25 @@
 import SwiftUI
 
-/// Phase 5 **placeholder** Names screen — plain list/add/delete over the existing
-/// `NamesStore` (the bidirectional Mac sync already shipped in Phase 1). Delete
-/// writes a tombstone. The designed version comes in the visual-polish pass.
+/// Voice-first Names (mockup3): people + a voice-fingerprint status (enrolled vs
+/// "Add voice"). NO alias editing on the phone (the Mac owns aliases; the phone
+/// syncs them silently) and NO "synced on Mac" footer. The phone never links
+/// names into transcripts — it's just a peer editor + the place to enroll voices.
 struct NamesListView: View {
     @State private var people: [Person] = []
+    @State private var search = ""
     @State private var showAdd = false
     @Environment(\.dismiss) private var dismiss
     private let store = NamesStore.shared
 
     var body: some View {
         NavigationStack {
-            Group {
-                if people.isEmpty {
-                    ContentUnavailableView(
-                        "No people yet",
-                        systemImage: "person.2",
-                        description: Text("Add people so the Mac can link their names in your notes.")
-                    )
-                    .accessibilityIdentifier("names-empty")
-                } else {
-                    List {
-                        ForEach(people, id: \.canonical) { person in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(Self.displayName(person)).font(.headline)
-                                if !person.aliases.isEmpty {
-                                    Text(person.aliases.joined(separator: ", "))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .padding(.vertical, 2)
-                            .accessibilityIdentifier("person-row")
-                        }
-                        .onDelete(perform: delete)
-                    }
-                    .accessibilityIdentifier("names-list")
-                }
+            ZStack {
+                Color.skBg.ignoresSafeArea()
+                content
             }
             .navigationTitle("Names")
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button { showAdd = true } label: { Image(systemName: "plus") }
                         .accessibilityIdentifier("add-person-button")
                 }
@@ -48,47 +27,171 @@ struct NamesListView: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showAdd) {
-                AddPersonView { reload() }
+            .navigationDestination(for: String.self) { canonical in
+                PersonDetailView(canonical: canonical, onChange: reload)
             }
+            .sheet(isPresented: $showAdd) { AddPersonView { reload() } }
             .onAppear(perform: reload)
         }
     }
 
-    private func reload() { people = store.livePeople() }
+    @ViewBuilder private var content: some View {
+        if people.isEmpty {
+            ContentUnavailableView(
+                "No people yet",
+                systemImage: "person.2",
+                description: Text("Add people so the Mac can link their names in your notes.")
+            )
+            .accessibilityIdentifier("names-empty")
+        } else {
+            ScrollView {
+                Text("Enroll a voice so Conversation mode can tell who's speaking.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.skTextFaint)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20).padding(.top, 4)
 
-    private func delete(at offsets: IndexSet) {
-        for index in offsets { store.delete(canonical: people[index].canonical) }
-        reload()
+                SearchField(text: $search, prompt: "Search people")
+                    .padding(.horizontal, 16).padding(.top, 8)
+
+                LazyVStack(spacing: 0) {
+                    ForEach(filtered, id: \.canonical) { person in
+                        NavigationLink(value: person.canonical) {
+                            PersonRow(person: person)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("person-row")
+                    }
+                }
+                .padding(.horizontal, 16).padding(.top, 8)
+            }
+        }
     }
 
-    static func displayName(_ person: Person) -> String {
-        let canonical = person.canonical
-        return (canonical.hasPrefix("[[") && canonical.hasSuffix("]]"))
-            ? String(canonical.dropFirst(2).dropLast(2))
-            : canonical
+    private var filtered: [Person] {
+        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return people }
+        return people.filter { NamesDisplay.name($0).lowercased().contains(q) }
+    }
+
+    private func reload() { people = store.livePeople() }
+}
+
+// MARK: - Row
+
+private struct PersonRow: View {
+    let person: Person
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Avatar(name: NamesDisplay.name(person))
+            VStack(alignment: .leading, spacing: 5) {
+                Text(NamesDisplay.name(person))
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.skText)
+                voiceStatus
+            }
+            Spacer()
+            Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.skTextFaint)
+        }
+        .padding(.vertical, 11).padding(.horizontal, 6)
+        .overlay(Divider().overlay(Color.skBorder), alignment: .bottom)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder private var voiceStatus: some View {
+        if NamesDisplay.isEnrolled(person) {
+            HStack(spacing: 6) {
+                VoiceBars()
+                Text("Voice enrolled")
+            }
+            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.skGreen)
+        } else {
+            HStack(spacing: 6) {
+                Image(systemName: "waveform").font(.system(size: 12))
+                Text("Add voice")
+            }
+            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.skAccent)
+        }
     }
 }
+
+/// Initials avatar with a name-derived gradient.
+struct Avatar: View {
+    let name: String
+    var size: CGFloat = 42
+
+    private static let palettes: [[Color]] = [
+        [Color(hex: 0x7c6bf5), Color(hex: 0x9d8bff)],
+        [Color(hex: 0x34d399), Color(hex: 0x10b981)],
+        [Color(hex: 0xf59e0b), Color(hex: 0xf97316)],
+        [Color(hex: 0x38bdf8), Color(hex: 0x3b82f6)],
+    ]
+
+    var body: some View {
+        let palette = Self.palettes[abs(name.hashValue) % Self.palettes.count]
+        Circle()
+            .fill(LinearGradient(colors: palette, startPoint: .topLeading, endPoint: .bottomTrailing))
+            .frame(width: size, height: size)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: size * 0.36, weight: .bold))
+                    .foregroundStyle(.white)
+            )
+    }
+
+    private var initials: String {
+        let parts = name.split(separator: " ")
+        let first = parts.first?.first.map(String.init) ?? ""
+        let last = parts.count > 1 ? (parts.last?.first.map(String.init) ?? "") : ""
+        return (first + last).uppercased()
+    }
+}
+
+/// Static 5-bar voice glyph for the "enrolled" state.
+struct VoiceBars: View {
+    private let heights: [CGFloat] = [5, 11, 7, 13, 6]
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(heights.indices, id: \.self) { i in
+                Capsule().fill(Color.skGreen).frame(width: 2.5, height: heights[i])
+            }
+        }
+    }
+}
+
+/// Name/enrollment helpers.
+enum NamesDisplay {
+    static func name(_ person: Person) -> String {
+        let c = person.canonical
+        return (c.hasPrefix("[[") && c.hasSuffix("]]")) ? String(c.dropFirst(2).dropLast(2)) : c
+    }
+    static func isEnrolled(_ person: Person) -> Bool { !(person.voiceEmbeddings?.isEmpty ?? true) }
+}
+
+// MARK: - Add person (name only; aliases are Mac-side)
 
 struct AddPersonView: View {
     var onSave: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var short = ""
-    @State private var aliasText = ""
     private let store = NamesStore.shared
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Full name", text: $name)
-                    .accessibilityIdentifier("person-name-field")
-                TextField("Short name (optional)", text: $short)
-                    .accessibilityIdentifier("person-short-field")
-                TextField("Aliases (comma-separated)", text: $aliasText)
-                    .accessibilityIdentifier("person-aliases-field")
+                Section {
+                    TextField("Full name", text: $name)
+                        .accessibilityIdentifier("person-name-field")
+                    TextField("Short name (optional)", text: $short)
+                        .accessibilityIdentifier("person-short-field")
+                } footer: {
+                    Text("Aliases and name-linking are managed on your Mac — the phone keeps them in sync.")
+                }
             }
             .navigationTitle("Add Person")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
@@ -103,11 +206,7 @@ struct AddPersonView: View {
     }
 
     private func save() {
-        let aliases = aliasText
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        store.upsert(canonical: name, aliases: aliases, short: short.isEmpty ? nil : short)
+        store.upsert(canonical: name, aliases: [], short: short.isEmpty ? nil : short)
         onSave()
         dismiss()
     }
