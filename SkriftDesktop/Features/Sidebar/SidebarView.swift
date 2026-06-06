@@ -6,6 +6,7 @@ import SwiftData
 struct SidebarView: View {
     @Bindable var model: AppModel
     let files: [PipelineFile]
+    @Bindable var coordinator: ProcessingCoordinator
     /// Snapshot mode renders the queue without a ScrollView (ImageRenderer can't
     /// lay out scroll contents). The live app keeps `true` for real scrolling.
     var scrollable = true
@@ -15,9 +16,10 @@ struct SidebarView: View {
     private var orderedIDs: [String] { filtered.map(\.id) }
     private var readyCount: Int { files.filter { $0.queueStatus == .ready }.count }
     private var queuedCount: Int { files.filter { $0.queueStatus == .queued }.count }
-    private var pendingCount: Int {
-        files.filter { $0.queueStatus == .queued || $0.queueStatus == .transcribed }.count
+    private var pendingFiles: [PipelineFile] {
+        files.filter { $0.queueStatus == .queued || $0.queueStatus == .transcribed }
     }
+    private var pendingCount: Int { pendingFiles.count }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -75,7 +77,10 @@ struct SidebarView: View {
     }
 
     private var processButton: some View {
-        Button(action: { /* run pipeline — wired with BatchRunner */ }) {
+        Button {
+            let ids = pendingFiles.map(\.id)
+            Task { await coordinator.process(fileIDs: ids, context: ctx) }
+        } label: {
             HStack(spacing: 6) {
                 Image(systemName: "play.fill").font(.system(size: 10))
                 Text("Process")
@@ -90,11 +95,13 @@ struct SidebarView: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 7)
-            .background(Theme.accent.opacity(pendingCount > 0 ? 1 : 0.4), in: RoundedRectangle(cornerRadius: 8))
+            .background(Theme.accent.opacity(canProcess ? 1 : 0.4), in: RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
-        .disabled(pendingCount == 0)
+        .disabled(!canProcess)
     }
+
+    private var canProcess: Bool { pendingCount > 0 && !coordinator.isRunning }
 
     private func actionButton(title: String, system: String, filled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -179,11 +186,39 @@ struct SidebarView: View {
 
     // ── Bottom bar — footer / selection action bar ──────────
     @ViewBuilder private var bottomBar: some View {
-        if model.selection.count > 1 {
+        if let rs = coordinator.runState {
+            runBar(rs)
+        } else if model.selection.count > 1 {
             selectionBar
         } else {
             footer
         }
+    }
+
+    private func runBar(_ rs: ProcessingCoordinator.RunState) -> some View {
+        let pct = rs.total > 0 ? Double(rs.done) / Double(rs.total) : 0
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Processing \(min(rs.done + 1, rs.total)) of \(rs.total)")
+                    .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.accent)
+                Spacer()
+                Text("\(Int(pct * 100))%")
+                    .font(.system(size: 11).monospacedDigit()).foregroundStyle(Theme.textSecondary)
+            }
+            if let title = rs.currentTitle {
+                Text(title).font(.system(size: 11)).foregroundStyle(Theme.textMuted).lineLimit(1)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Theme.hairline.opacity(0.14)).frame(height: 5)
+                    Capsule().fill(Theme.accent).frame(width: geo.size.width * pct, height: 5)
+                }
+            }
+            .frame(height: 5)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 11)
+        .background(Theme.accent.opacity(0.10))
+        .overlay(alignment: .top) { Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5) }
     }
 
     private var footer: some View {
@@ -212,7 +247,11 @@ struct SidebarView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            pillButton("Process", fg: .white, bg: Theme.accent) { /* run selection */ }
+            pillButton("Process", fg: .white, bg: Theme.accent) {
+                let ids = Array(model.selection)
+                model.selection.removeAll()
+                Task { await coordinator.process(fileIDs: ids, context: ctx) }
+            }
             pillButton("Delete", fg: Theme.destructive, bg: Theme.destructive.opacity(0.15)) { deleteSelected() }
         }
         .padding(.horizontal, 14)

@@ -16,10 +16,11 @@ enum Snapshot {
             let model = AppModel()
             model.activeID = files.first?.id
             if let id = files.first?.id { model.selection = [id] }
+            let coordinator = ProcessingCoordinator()
 
             let view = HStack(spacing: 0) {
-                SidebarView(model: model, files: files, scrollable: false).frame(width: 228)
-                NoteDisplayView(file: files.first, scrollable: false).frame(maxWidth: .infinity)
+                SidebarView(model: model, files: files, coordinator: coordinator, scrollable: false).frame(width: 228)
+                NoteDisplayView(file: files.first, coordinator: coordinator, scrollable: false).frame(maxWidth: .infinity)
             }
             .frame(width: 1180, height: 780)
             .background(Theme.bg)

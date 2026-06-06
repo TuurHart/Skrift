@@ -6,9 +6,11 @@ import SwiftUI
 /// and body text so the toolbar reads in context.
 struct NoteDisplayView: View {
     let file: PipelineFile?
+    var coordinator: ProcessingCoordinator
     /// Snapshot mode renders the body without a ScrollView (ImageRenderer can't lay
     /// out scroll contents). The live app keeps `true` for real scrolling.
     var scrollable = true
+    @Environment(\.modelContext) private var ctx
     @State private var audio = AudioController()
     @State private var author = SettingsStore.shared.load().authorName
 
@@ -48,7 +50,9 @@ struct NoteDisplayView: View {
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             if let amb = file.ambiguousNames, !amb.isEmpty {
-                ResolverStrip(occurrences: amb) { _ in file.ambiguousNames = nil }
+                ResolverStrip(occurrences: amb) { decisions in
+                    coordinator.applyResolvedNames(file, decisions: decisions, context: ctx)
+                }
             }
             NoteProperties(file: file, author: author, interactive: scrollable)
             if let summary = file.enhancedSummary, !summary.isEmpty {
@@ -90,7 +94,7 @@ struct NoteDisplayView: View {
             } else {
                 Spacer()
             }
-            NoteActions(file: file)
+            NoteActions(file: file, coordinator: coordinator)
         }
         .padding(.horizontal, 28)
         .frame(height: 48)

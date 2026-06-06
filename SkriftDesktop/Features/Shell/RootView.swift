@@ -6,16 +6,17 @@ import SwiftData
 struct RootView: View {
     @Environment(\.modelContext) private var ctx
     @State private var model = AppModel()
+    @State private var coordinator = ProcessingCoordinator()
     @Query(sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
 
     private var activeFile: PipelineFile? { files.first { $0.id == model.activeID } }
 
     var body: some View {
         HSplitView {
-            SidebarView(model: model, files: files)
+            SidebarView(model: model, files: files, coordinator: coordinator)
                 .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
 
-            NoteDisplayView(file: activeFile)
+            NoteDisplayView(file: activeFile, coordinator: coordinator)
                 .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: 900, minHeight: 600)

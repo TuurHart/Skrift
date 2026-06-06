@@ -5,6 +5,8 @@ import SwiftUI
 /// Actions are stubbed until the export/enhance pipeline is wired to the UI.
 struct NoteActions: View {
     let file: PipelineFile
+    var coordinator: ProcessingCoordinator
+    @Environment(\.modelContext) private var ctx
     @State private var menuOpen = false
 
     private var enhanceDone: Bool { file.steps.enhance == .done }
@@ -29,9 +31,17 @@ struct NoteActions: View {
         return items
     }
 
+    private func primaryAction() {
+        if !enhanceDone {
+            Task { await coordinator.process(fileIDs: [file.id], context: ctx) }
+        } else {
+            coordinator.export(file, context: ctx)
+        }
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            Button(action: {}) {
+            Button(action: primaryAction) {
                 Text(primaryLabel)
                     .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(.white)
