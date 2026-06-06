@@ -163,3 +163,31 @@ final class NamesStoreTests: XCTestCase {
         XCTAssertEqual(Set(store.load().people.map(\.canonical)), ["[[Recent]]", "[[Live]]"])
     }
 }
+
+/// Regression: a real legacy names.json (no top-level / per-entry lastModifiedAt)
+/// must still decode. A strict decoder threw → NamesStore silently read ZERO
+/// people → name-linking quietly no-op'd. Found by running a real memo with two
+/// friends both called "Jack".
+final class LegacyNamesDecodeTests: XCTestCase {
+    private let legacyJSON = """
+    {"people":[
+      {"canonical":"[[Jack Hutton]]","aliases":["Jack","Jank"],"short":"jank"},
+      {"canonical":"[[Jack Timmons]]","aliases":["Jack"],"short":"timmons"},
+      {"canonical":"[[Roksana Gurova]]","aliases":["Rox"],"short":"Rox"}
+    ]}
+    """
+
+    func testLegacyFileWithoutTimestampsDecodes() throws {
+        let data = try JSONDecoder().decode(NamesData.self, from: Data(legacyJSON.utf8))
+        XCTAssertEqual(data.people.count, 3)        // was 0 before the tolerant-decode fix
+        XCTAssertEqual(data.lastModifiedAt, "")     // defaulted, not a thrown decode error
+    }
+
+    func testTwoJacksSurfaceAsAmbiguous() throws {
+        let data = try JSONDecoder().decode(NamesData.self, from: Data(legacyJSON.utf8))
+        let r = Sanitiser.process(text: "I told Jack about it, then Jack again.", people: data.people)
+        XCTAssertFalse(r.sanitised.contains("[["))          // ambiguous → nothing auto-linked
+        XCTAssertEqual(r.ambiguous.first?.alias, "jack")
+        XCTAssertEqual(r.ambiguous.first?.candidates.count, 2)  // both Jacks offered to the picker
+    }
+}

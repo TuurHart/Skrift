@@ -75,6 +75,24 @@ struct Person: Codable, Equatable, Sendable {
 struct NamesData: Codable, Equatable, Sendable {
     var lastModifiedAt: String
     var people: [Person]
+
+    init(lastModifiedAt: String, people: [Person]) {
+        self.lastModifiedAt = lastModifiedAt
+        self.people = people
+    }
+
+    enum CodingKeys: String, CodingKey { case lastModifiedAt, people }
+
+    /// Tolerant decode: legacy `names.json` files (pre-timestamped schema) omit
+    /// the top-level `lastModifiedAt`. Default it instead of failing the whole
+    /// decode — otherwise `NamesStore.load()` silently swallows the error and
+    /// reads ZERO people, so name-linking quietly does nothing on real data.
+    /// (The Python backend migrates these on read; this mirrors that leniency.)
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        lastModifiedAt = (try? c.decode(String.self, forKey: .lastModifiedAt)) ?? ""
+        people = (try? c.decode([Person].self, forKey: .people)) ?? []
+    }
 }
 
 /// Pure, deterministic names-merge logic (no IO / network). Kept side-effect-free
