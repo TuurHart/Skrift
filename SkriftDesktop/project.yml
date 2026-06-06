@@ -20,6 +20,7 @@ targets:
       - path: Models
       - path: Pipeline
       - path: Server
+      - path: Engines
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
