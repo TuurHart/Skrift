@@ -12,8 +12,10 @@ import Foundation
 ///   GET  /api/files/               → [PipelineFile-shaped]  (reconcile by filename)
 struct SyncHandlers {
     var namesStore: NamesStore
-    /// Injected so the SwiftData fetch lands in Phase 2b without touching handlers.
+    /// SwiftData fetch → contract JSON. Injected by the app (keeps handlers pure).
     var listFilesJSON: @Sendable () -> Data = { Data("[]".utf8) }
+    /// Multipart upload → PipelineFile creation. Injected by the app.
+    var handleUpload: @Sendable (HTTPRequest) -> HTTPResponse = { _ in .status(501) }
 
     func handle(_ req: HTTPRequest) -> HTTPResponse {
         switch (req.method, normalise(req.path)) {
@@ -27,6 +29,8 @@ struct SyncHandlers {
             return namesPut(req)
         case (.GET, "/api/files"):
             return .json(raw: listFilesJSON())
+        case (.POST, "/api/files/upload"):
+            return handleUpload(req)
         default:
             return .status(404)
         }
