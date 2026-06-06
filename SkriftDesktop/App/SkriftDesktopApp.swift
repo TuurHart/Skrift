@@ -17,6 +17,9 @@ struct SkriftDesktopApp: App {
     private let syncServer: SyncServer
 
     init() {
+        #if DEBUG
+        Snapshot.renderIfRequested()
+        #endif
         let upload = UploadService()
         let handlers = SyncHandlers(
             namesStore: .shared,
@@ -48,24 +51,10 @@ struct SkriftDesktopApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
-        .defaultSize(width: 900, height: 600)
+        .defaultSize(width: 1180, height: 780)
+        .windowStyle(.hiddenTitleBar)
         .modelContainer(SharedStore.container)
-    }
-}
-
-struct ContentView: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("Skrift Desktop")
-                .font(.largeTitle).bold()
-                .accessibilityIdentifier("welcome.title")
-            Text("Native rewrite — Phase 0 toolchain spike")
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier("welcome.subtitle")
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(40)
     }
 }
