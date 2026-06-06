@@ -11,6 +11,9 @@ targets:
     platform: iOS
     sources:
       - path: App
+      - path: Models
+      - path: Services
+      - path: Features
     info:
       path: App/Info.plist
       properties:
@@ -34,6 +37,21 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
 
+  SkriftMobileTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SkriftMobileTests
+    dependencies:
+      - target: SkriftMobile
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.unittests
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+
   SkriftMobileUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -42,6 +60,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.uitests
+        TEST_TARGET_NAME: SkriftMobile
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         GENERATE_INFOPLIST_FILE: YES
@@ -54,9 +73,12 @@ schemes:
     build:
       targets:
         SkriftMobile: all
+        SkriftMobileTests: [test]
+        SkriftMobileUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
+        - SkriftMobileTests
         - SkriftMobileUITests

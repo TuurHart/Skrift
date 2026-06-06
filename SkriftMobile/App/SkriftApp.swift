@@ -1,27 +1,28 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct SkriftApp: App {
+    private let repository: NotesRepository
+
+    init() {
+        let repo = NotesRepository.shared
+        DemoDataSeeder.seedIfRequested(repo)
+        repository = repo
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
+                .modelContainer(repository.container)
         }
     }
 }
 
-/// Phase 0 placeholder. Replaced by the real tab shell (Memos / Record /
-/// Settings) in later phases — see MOBILE_NATIVE_REWRITE_PLAN.md.
+/// Phase 1 shell. The real tab shell (Memos / Record / Settings) arrives in
+/// later phases — see MOBILE_NATIVE_REWRITE_PLAN.md.
 struct RootView: View {
     var body: some View {
-        VStack(spacing: 12) {
-            Text("Skrift")
-                .font(.largeTitle.bold())
-                .accessibilityIdentifier("app-title")
-            Text("Native rewrite — Phase 0")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier("app-subtitle")
-        }
-        .accessibilityIdentifier("root-view")
+        MemosListView()
     }
 }

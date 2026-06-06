@@ -267,8 +267,14 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
 ---
 
 ## 7. Status (update as you go)
-- [ ] Phase 0 — toolchain spike (build + first XCUITest green)
-- [ ] Phase 1 — data model
+- [x] Phase 0 — toolchain spike (build + first XCUITest green)
+- [x] Phase 1 — data model **+ full names store/sync** (user pulled Phase 5's
+      names sync forward into Phase 1). SwiftData `Memo` + Codable `MemoMetadata`/
+      `SharedContent`, `Person`/`NamesData`, `NotesRepository`, wordTimings
+      sidecar, launch-arg seed hooks (`-inMemoryStore`/`-seedDemoMemos`/`-mockMac`),
+      `NamesStore` + `NamesSync` (LWW + voiceEmbeddings union) with an injectable
+      transport. 21 tests green (unit + XCUITest). **Live names round-trip vs a
+      running Mac is still pending — verified only via mock transport + unit tests.**
 - [ ] Phase 2 — recording + transcription (+ port the memory/silence fixes)
 - [ ] Phase 3 — photos + markers
 - [ ] Phase 4 — metadata

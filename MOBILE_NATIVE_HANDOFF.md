@@ -14,7 +14,20 @@
 - **Plan:** `MOBILE_NATIVE_REWRITE_PLAN.md` (committed). Phase checklist in its §7.
 - **Phase 0 (toolchain spike): ✅ GREEN** — `SkriftMobile/` xcodegen project +
   minimal SwiftUI app + first XCUITest; `xcodebuild test` passes on the iPhone 17
-  sim (commit `09541e0`). Toolchain proven. **Next: Phase 1 (data model).**
+  sim (commit `09541e0`). Toolchain proven.
+- **Phase 1 (data model): ✅ GREEN** — SwiftData `Memo` + Codable `MemoMetadata`/
+  `SharedContent`, `Person`/`NamesData`, `NotesRepository`, wordTimings sidecar,
+  launch-arg seed hooks. **The user pulled Phase 5's names sync forward into
+  Phase 1**, so `NamesStore` + `NamesSync` (LWW + voiceEmbeddings union, injectable
+  transport for `-mockMac`) shipped here too. A **unit-test target** was added
+  alongside the XCUITest target: 21 tests green (merge/union/tombstone/encoding +
+  full mock-transport sync flow + SwiftData repo + a seeded-memos UI test).
+  **Next: Phase 2 (recording + transcription).**
+- **⚠ Open verification debt from Phase 1:** the names sync is verified only via
+  the mock transport + unit tests. The **live round-trip against a running Mac
+  backend was NOT done** (backend wasn't up). Do it early in Phase 6 (or sooner if
+  the Mac is running): `GET /api/names/meta` → `GET` → merge → `PUT`, confirm both
+  sides converge. `URLSessionNamesTransport` is the real transport to point at it.
 
 ## Branch map (important)
 - `mobile-native` (current) — the rewrite. Branched off `mobile-overhaul`, so it
@@ -29,8 +42,10 @@
   on this branch — **port them into the native transcription service in Phase 2**.
 
 ## Resume here (do this first)
-**Phase 0 is GREEN and committed (`09541e0`).** Start **Phase 1 (data model)** —
-plan §3. First, sanity-check the toolchain still builds + tests:
+**Phases 0 + 1 are GREEN and committed.** Start **Phase 2 (recording +
+transcription)** — plan §3. First, sanity-check the toolchain still builds + tests
+(this now runs BOTH the unit target `SkriftMobileTests` and the UI target
+`SkriftMobileUITests`):
 ```
 cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
   xcodebuild test -project SkriftMobile.xcodeproj -scheme SkriftMobile \
@@ -38,10 +53,23 @@ cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
   -resultBundlePath /tmp/sk_ui.xcresult > /tmp/sk_ui_test.log 2>&1; echo "EXIT $?"
 grep -E "TEST SUCCEEDED|TEST FAILED" /tmp/sk_ui_test.log
 ```
-Then build Phase 1 (SwiftData `Memo`/`Person`/`MemoMetadata` + `NotesRepository` +
-launch-arg seed hooks), add a UI test, keep it green, commit. The iPhone 17 sim is
-the test target (run `xcrun simctl shutdown all` first if a stale dialog lingers).
-**Run long builds via Bash `run_in_background: true` + `dangerouslyDisableSandbox: true`.**
+Phase 2: port `AudioInput`/`RecordingCoordinator`/`TextEngine`/`TranscriptionStatus`
+from Shhhcribble (FluidAudio `branch: main`), build the recording screen, wire
+FluidAudio transcribe → transcript + confidence + word timings into the `Memo`
+model. **Carry over the two native fixes** from the RN `ParakeetModule.swift`
+(model teardown + memory-warning observer; RMS/word-count silence guard) and port
+`insertImageMarkers`. SEED transcripts via a `-seedTranscript` launch arg for UI
+tests (the sim has no ANE); verify real ASR/memory/silence on a physical device.
+The iPhone 17 sim is the test target (run `xcrun simctl shutdown all` first if a
+stale dialog lingers). **Run long builds via Bash `run_in_background: true` +
+`dangerouslyDisableSandbox: true`.**
+
+Data-model facts for Phase 2+: audio is stored by `Memo.audioFilename` (resolve
+`Memo.audioURL` at runtime — no absolute paths); transcript trust + word timings go
+on the `Memo` (sidecar via `WordTimingsStore`); `VoiceEmbedding.vector` is `[Double]`
+(map FluidAudio's `[Float]` when enrolling); enums (`SyncStatus`/`TranscriptStatus`/
+`DayPeriod`/`PressureTrend`) are String-backed; `ISO8601.now()` matches JS
+`toISOString()` for names timestamps.
 
 ## Build / test commands (native)
 ```
@@ -120,6 +148,10 @@ parity, but its fixes + the BACKEND fixes are real and the CONTRACT they encode 
 what the native app must match (plan §4).
 
 ### A. Changes already committed (newest first)
+`mobile-native`: Phase 1 — SwiftData data model + full names store/sync (see
+`git log` for the hash). Adds `SkriftMobile/{Models,Services,Features,SkriftMobileTests}`,
+the unit-test target, launch-arg seed hooks. 21 tests green. Names sync verified
+via mock transport only (live Mac round-trip still owed — see TL;DR ⚠).
 `mobile-native`: `09541e0` Phase 0 (green build + XCUITest) · plan doc commit.
 `mobile-overhaul` (inherited by `mobile-native`):
 - `9b7cec5` RN `ParakeetModule.swift`: model teardown + memory-warning observer +
