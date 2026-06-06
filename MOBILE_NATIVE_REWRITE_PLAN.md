@@ -291,8 +291,14 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       **Also fixed a latent crash:** SwiftData traps decoding a Codable-struct
       attribute on read-back → `Memo.metadata`/`sharedContent` now persist as JSON
       `Data?` blobs with computed accessors. 25 tests green. Real camera = device-owed.
-- [ ] Phase 4 — metadata
-- [ ] Phase 5 — names + sync
+- [x] Phase 4 — metadata. `SolarCalc` (sunrise/sunset/hours, NOAA, pure+tested),
+      `DayPeriod.from`, `WeatherClient` (OpenWeatherMap REST + testable parse,
+      pressure from the same response like RN), `MetadataService` (CoreLocation +
+      reverse-geocode, `CMPedometer` steps) + `MockMetadataService` + factory.
+      `MemoSaver` captures metadata on save and merges it onto the memo, preserving
+      the photo `imageManifest`. 30 tests green. Location/steps/weather = device-owed.
+- [ ] Phase 5 — names + sync (sync already shipped in Phase 1; this is the on-phone
+      Names UI)
 - [ ] Phase 6 — Mac upload (round-trip vs live backend)
 - [ ] Phase 7 — review/detail/settings
 - [ ] Phase 8 — widget/live activity/intents/share ext

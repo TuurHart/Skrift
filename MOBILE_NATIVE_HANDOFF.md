@@ -48,6 +48,12 @@
   a read of `Memo.metadata` happened. Fix: store complex value types as JSON
   `Data?` blobs + computed accessors (see `Memo.metadata`/`sharedContent`). Do NOT
   add a raw Codable-struct attribute to a SwiftData model.
+- **Phase 4 (metadata capture): ✅ GREEN** — `SolarCalc` (NOAA sunrise/sunset,
+  pure), `DayPeriod.from`, `WeatherClient` (OpenWeatherMap REST; pressure from the
+  same response, matching RN; testable `parse`), `MetadataService` (CoreLocation +
+  reverse-geocode, `CMPedometer` steps) + `MockMetadataService` + factory.
+  `MemoSaver` captures metadata on save and merges onto the memo, preserving the
+  photo `imageManifest`. **30 tests green. Next: Phase 5 (names UI).**
 - **⚠ Open verification debt (verified-in-sim vs owed-on-device):**
   - **Phase 1 names sync** — mock-transport + unit tests only; the **live Mac
     round-trip** (`GET /meta`→`GET`→merge→`PUT`) is NOT done (backend was down).
@@ -59,6 +65,11 @@
   - **Phase 3 real camera** — the `AVCaptureSession` preview + real photo capture
     are **device-owed** (sim has no camera; UI tests use the mock capture path).
     Verify shutter → photo → correct `[[img_NNN]]` placement on a physical iPhone.
+  - **Phase 4 location/steps/weather** — CoreLocation fix + reverse-geocode,
+    `CMPedometer` steps, and the OpenWeatherMap network call are **device-owed**
+    (sim has no motion sensors; weather needs the user's API key). The pure bits
+    (SolarCalc, day period, weather parse) are unit-tested. Verify a real capture
+    populates location/daylight/weather/steps on a physical iPhone with the key set.
 
 ## Branch map (important)
 - `mobile-native` (current) — the rewrite. Branched off `mobile-overhaul`, so it
@@ -73,15 +84,15 @@
   on this branch — **port them into the native transcription service in Phase 2**.
 
 ## Resume here (do this first)
-**Phases 0–3 are GREEN and committed.** Start **Phase 4 (metadata capture)** —
-plan §3: CoreLocation (+reverse-geocode place name), `CMAltimeter` pressure,
-`CMPedometer` steps, a solar-position daylight calc, dayPeriod, and weather
-(port the OpenWeatherMap REST call + the user's key from settings). Populate the
-`MemoMetadata` fields (already defined + JSON-blob-persisted on `Memo`); all
-optional/non-blocking. Port logic from `Mobile/lib/metadata.ts`. Add usage-string
-Info.plist keys (location/motion) in `project.yml`. First, sanity-check the
-toolchain still builds + tests (this runs BOTH the unit target `SkriftMobileTests`
-and the UI target `SkriftMobileUITests`):
+**Phases 0–4 are GREEN and committed.** Start **Phase 5 (names UI)** — plan §3.
+The names **sync** already shipped in Phase 1 (`NamesStore` + `NamesSync` +
+`URLSessionNamesTransport`), so Phase 5 is mostly the on-phone Names screen:
+list/add/edit/delete (delete = tombstone via `NamesStore.delete`), search, reusing
+`NamesStore`. Ref `Mobile/components/NamesList.tsx` for the shape. Plain UI now
+(visual polish later). Add a `-seedDemoNames` seed hook + a UI test. Settings entry
+point can be a temporary toolbar button until the real Settings screen (Phase 7).
+First, sanity-check the toolchain still builds + tests (runs BOTH the unit target
+`SkriftMobileTests` and the UI target `SkriftMobileUITests`):
 ```
 cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
   xcodebuild test -project SkriftMobile.xcodeproj -scheme SkriftMobile \
@@ -184,6 +195,10 @@ parity, but its fixes + the BACKEND fixes are real and the CONTRACT they encode 
 what the native app must match (plan §4).
 
 ### A. Changes already committed (newest first)
+`mobile-native`: Phase 4 — metadata capture (see `git log`). `SolarCalc`,
+`DayPeriod.from`, `WeatherClient`, `MetadataService` (+mock+factory); `MemoSaver`
+merges captured metadata, preserving the photo manifest. 30 tests green.
+Location/steps/weather = device-owed.
 `mobile-native`: Phase 3 — photos + markers (see `git log`). `ImageMarkers`,
 `PhotoCaptureService` (+mock), `CameraPreviewView`, shutter, `MemoSaver` manifest.
 **Includes the SwiftData Codable-attribute crash fix** (`Memo.metadata`/

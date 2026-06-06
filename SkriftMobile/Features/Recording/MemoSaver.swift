@@ -10,22 +10,37 @@ struct MemoSaver {
     var repository: NotesRepository = .shared
     var transcriber: any Transcriber = TranscriberFactory.make()
     var wordTimings = WordTimingsStore()
+    var metadataProvider: any MetadataProviding = MetadataProviderFactory.make()
 
     /// A captured photo handed off from the recorder: temp file + recording-time offset.
     typealias CapturedPhoto = (url: URL, offset: Double)
 
-    /// Fire-and-forget: persist now, transcribe in the background. Used by the UI.
+    /// Fire-and-forget: persist now, transcribe + capture metadata in the
+    /// background. Used by the UI.
     func save(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = []) {
         let id = persist(tempURL: tempURL, duration: duration, photos: photos)
+        Task { await captureMetadata(id: id) }
         Task { await runTranscription(id: id) }
     }
 
-    /// Awaitable variant for tests — persist + transcribe, return the memo id.
+    /// Awaitable variant for tests — persist + capture metadata + transcribe.
     @discardableResult
     func saveAndTranscribe(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = []) async -> UUID {
         let id = persist(tempURL: tempURL, duration: duration, photos: photos)
+        await captureMetadata(id: id)
         await runTranscription(id: id)
         return id
+    }
+
+    /// Capture contextual metadata and merge it onto the memo, preserving the
+    /// photo `imageManifest` set at persist time (capture doesn't know about it).
+    private func captureMetadata(id: UUID) async {
+        let captured = await metadataProvider.capture()
+        guard let memo = repository.memo(id: id) else { return }
+        var merged = captured
+        merged.imageManifest = memo.metadata?.imageManifest ?? captured.imageManifest
+        memo.metadata = merged
+        repository.save()
     }
 
     private func persist(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto]) -> UUID {

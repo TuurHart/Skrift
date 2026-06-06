@@ -11,7 +11,8 @@ final class MemoSaverTests: XCTestCase {
         let saver = MemoSaver(
             repository: repo,
             transcriber: SeededTranscriber(text: "hello world from skrift"),
-            wordTimings: WordTimingsStore(directory: sidecarDir)
+            wordTimings: WordTimingsStore(directory: sidecarDir),
+            metadataProvider: MockMetadataService()
         )
 
         // A placeholder temp audio file for the save to move into place.
@@ -40,7 +41,8 @@ final class MemoSaverTests: XCTestCase {
             repository: repo,
             transcriber: SeededTranscriber(text: "one two three four five six"),
             wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
-                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true))
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService()
         )
 
         let audio = FileManager.default.temporaryDirectory.appendingPathComponent("rec_\(UUID().uuidString).m4a")
@@ -58,5 +60,38 @@ final class MemoSaverTests: XCTestCase {
 
         let movedPhoto = AppPaths.recordingsDirectory.appendingPathComponent("photo_\(id.uuidString)_001.jpg")
         XCTAssertTrue(FileManager.default.fileExists(atPath: movedPhoto.path))
+    }
+
+    @MainActor
+    func testMetadataCaptureMergesAndPreservesManifest() async {
+        let repo = NotesRepository(inMemory: true)
+        let captured = MemoMetadata(
+            capturedAt: "2026-06-06T10:00:00.000Z",
+            location: LocationInfo(latitude: 38.7, longitude: -9.1, placeName: "Lisbon"),
+            dayPeriod: .morning,
+            steps: 500,
+            tags: []
+        )
+        let saver = MemoSaver(
+            repository: repo,
+            transcriber: SeededTranscriber(text: "one two three four five six"),
+            wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService(captured)
+        )
+
+        let audio = FileManager.default.temporaryDirectory.appendingPathComponent("rec_\(UUID().uuidString).m4a")
+        FileManager.default.createFile(atPath: audio.path, contents: Data())
+        let photo = FileManager.default.temporaryDirectory.appendingPathComponent("cap_\(UUID().uuidString).jpg")
+        FileManager.default.createFile(atPath: photo.path, contents: Data([0xFF, 0xD8, 0xFF]))
+
+        let id = await saver.saveAndTranscribe(tempURL: audio, duration: 2.0, photos: [(url: photo, offset: 0.35)])
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.metadata?.location?.placeName, "Lisbon")   // captured context merged in
+        XCTAssertEqual(memo?.metadata?.steps, 500)
+        XCTAssertEqual(memo?.metadata?.dayPeriod, .morning)
+        XCTAssertEqual(memo?.metadata?.imageManifest?.count, 1)         // photo manifest preserved
+        XCTAssertTrue(memo?.transcript?.contains("[[img_001]]") ?? false)
     }
 }

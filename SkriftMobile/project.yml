@@ -30,6 +30,8 @@ targets:
         UILaunchScreen: {}
         NSMicrophoneUsageDescription: "Skrift records audio to transcribe your speech. Recording only happens when you trigger it."
         NSCameraUsageDescription: "Skrift lets you snap photos while recording, placed into the transcript at the moment you took them."
+        NSLocationWhenInUseUsageDescription: "Skrift tags each memo with where you recorded it (place name, daylight, weather)."
+        NSMotionUsageDescription: "Skrift records your step count alongside a memo for context."
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         CFBundleURLTypes:
