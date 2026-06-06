@@ -19,6 +19,7 @@ targets:
       - path: App
       - path: Models
       - path: Pipeline
+      - path: Server
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
@@ -51,6 +52,7 @@ targets:
       - path: SkriftDesktopTests
       - path: Models
       - path: Pipeline
+      - path: Server
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests

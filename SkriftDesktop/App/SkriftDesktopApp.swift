@@ -4,6 +4,14 @@ import FluidAudio  // Phase 0 proof: FluidAudio (ASR) links + builds for macOS a
 
 @main
 struct SkriftDesktopApp: App {
+    // The phone's sync target — local HTTP + Bonjour. Names/health served now;
+    // upload wires in Phase 2b.
+    private let syncServer: SyncServer = LocalHTTPServer(handlers: SyncHandlers(namesStore: .shared))
+
+    init() {
+        try? syncServer.start()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
