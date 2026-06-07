@@ -211,18 +211,7 @@ struct SidebarView: View {
                     QueueRowView(file: f, selected: model.selection.contains(f.id)) {
                         model.handleClick(f.id, in: orderedIDs)
                     }
-                    .contextMenu {
-                        if coordinator.needsProcessing(f) {
-                            Button("Process") { Task { await coordinator.process(fileIDs: [f.id], context: ctx) } }
-                        }
-                        if f.steps.enhance == .done {
-                            Button(f.steps.export == .done ? "Re-export to Obsidian" : "Export to Obsidian") {
-                                coordinator.export(f, context: ctx)
-                            }
-                        }
-                        Divider()
-                        Button("Delete", role: .destructive) { ctx.delete(f); try? ctx.save() }
-                    }
+                    .contextMenu { rowMenu(f) }
                 }
             }
             .padding(8)
@@ -365,6 +354,78 @@ struct SidebarView: View {
         for f in files where ids.contains(f.id) { ctx.delete(f) }
         try? ctx.save()
         model.selection.removeAll()
+    }
+
+    // ── Right-click context menu (multi-select aware) ───────
+    /// Acts on the whole multi-selection when the clicked row is part of it, else
+    /// just the clicked row.
+    private func contextTargets(_ f: PipelineFile) -> [PipelineFile] {
+        if model.selection.contains(f.id) && model.selection.count > 1 {
+            return files.filter { model.selection.contains($0.id) }
+        }
+        return [f]
+    }
+
+    @ViewBuilder private func rowMenu(_ f: PipelineFile) -> some View {
+        let targets = contextTargets(f)
+        if targets.count > 1 {
+            let pending = targets.filter { coordinator.needsProcessing($0) }
+            if !pending.isEmpty {
+                Button("Process \(pending.count)") { Task { await coordinator.process(fileIDs: pending.map(\.id), context: ctx) } }
+            }
+            let exportable = targets.filter { $0.steps.enhance == .done }
+            if !exportable.isEmpty {
+                Button("Export \(exportable.count) to Obsidian") { for t in exportable { coordinator.export(t, context: ctx) } }
+            }
+            Divider()
+            Button("Delete \(targets.count)", role: .destructive) {
+                for t in targets { ctx.delete(t) }
+                try? ctx.save(); model.selection.removeAll()
+            }
+        } else {
+            if coordinator.needsProcessing(f) {
+                Button("Process") { Task { await coordinator.process(fileIDs: [f.id], context: ctx) } }
+            }
+            if f.steps.transcribe == .done && f.sourceType != .note {
+                Button("Re-transcribe") { Task { await coordinator.retranscribe(f, context: ctx) } }
+            }
+            if f.steps.enhance == .done {
+                Menu("Redo") {
+                    Button("Title") { Task { await coordinator.redo(.title, for: f, context: ctx) } }
+                    Button("Copy-edit") { Task { await coordinator.redo(.copyEdit, for: f, context: ctx) } }
+                    Button("Summary") { Task { await coordinator.redo(.summary, for: f, context: ctx) } }
+                }
+                Button(f.steps.export == .done ? "Re-export to Obsidian" : "Export to Obsidian") { coordinator.export(f, context: ctx) }
+            }
+            Divider()
+            Button("Reveal in Finder") { revealInFinder(f) }
+            if f.steps.export == .done, let p = f.exported, !p.isEmpty {
+                Button("Open in Obsidian") { openInObsidian(p) }
+            }
+            Menu("Copy") {
+                Button("Transcript") { copyText(f.transcript ?? "") }
+                Button("Markdown") { copyText(f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName)) }
+            }
+            Divider()
+            Button("Delete", role: .destructive) { ctx.delete(f); try? ctx.save() }
+        }
+    }
+
+    private func revealInFinder(_ f: PipelineFile) {
+        let path = (f.exported?.isEmpty == false) ? f.exported! : f.path
+        guard !path.isEmpty, FileManager.default.fileExists(atPath: path) else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+    }
+
+    private func openInObsidian(_ mdPath: String) {
+        if let enc = mdPath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+           let url = URL(string: "obsidian://open?path=\(enc)"), NSWorkspace.shared.open(url) { return }
+        NSWorkspace.shared.open(URL(fileURLWithPath: mdPath))   // fallback: default md app
+    }
+
+    private func copyText(_ s: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(s, forType: .string)
     }
 }
 

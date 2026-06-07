@@ -58,8 +58,24 @@ struct NoteDisplayView: View {
             if let summary = file.enhancedSummary, !summary.isEmpty {
                 summaryAside(summary)
             }
-            NoteBody(file: file, audio: audio, interactive: scrollable)
+            NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName)
         }
+    }
+
+    /// Add a body text selection to the names DB — the reliable, user-driven way to
+    /// grow the names graph (you pick the exact words; no flaky auto-detection).
+    private func addName(_ text: String) {
+        let canon = NamesMerge.normaliseCanonical(text)
+        let key = NamesMerge.keyName(canon)
+        guard !key.isEmpty else { return }
+        var people = NamesStore.shared.livePeople()
+        if people.contains(where: { NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(key) == .orderedSame }) {
+            coordinator.flash("“\(key)” is already in your names")
+            return
+        }
+        people.append(Person(canonical: canon, aliases: [text], short: nil, lastModifiedAt: ISO8601.now()))
+        _ = NamesStore.shared.writeWithSmartBumps(people)
+        coordinator.flash("Added “\(key)” to names")
     }
 
     private func summaryAside(_ text: String) -> some View {

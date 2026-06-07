@@ -13,6 +13,8 @@ struct BodyTextView: NSViewRepresentable {
     /// Resolves an image marker number (`[[img_NNN]]`) to its file URL. Defaults to
     /// none (markers stay as styled text).
     var imageURL: (Int) -> URL? = { _ in nil }
+    /// Called when the user right-clicks a text selection → "Add … as a name".
+    var onAddName: (String) -> Void = { _ in }
 
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
     fileprivate static let markerRegex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
@@ -57,6 +59,29 @@ struct BodyTextView: NSViewRepresentable {
             parent.text = modelString(tv)   // attachments → [[img_NNN]] markers
             colorLinks(tv)                   // in-place recolor (keeps attachments + caret)
             tv.invalidateIntrinsicContentSize()
+        }
+
+        /// Inject "Add … as a name" into the right-click menu when there's a short
+        /// text selection — the reliable, user-driven way to grow the names graph
+        /// (no flaky auto-detection; you pick the exact words).
+        func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
+            let r = view.selectedRange()
+            let ns = view.string as NSString
+            if r.length > 0, r.location + r.length <= ns.length {
+                let sel = ns.substring(with: r).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !sel.isEmpty, sel.count <= 60 {
+                    let item = NSMenuItem(title: "Add “\(sel)” as a name", action: #selector(addNameAction(_:)), keyEquivalent: "")
+                    item.target = self
+                    item.representedObject = sel
+                    menu.insertItem(item, at: 0)
+                    menu.insertItem(.separator(), at: 1)
+                }
+            }
+            return menu
+        }
+
+        @objc private func addNameAction(_ sender: NSMenuItem) {
+            if let sel = sender.representedObject as? String { parent.onAddName(sel) }
         }
 
         /// Build the text storage from the model: plain body + inline image thumbnails

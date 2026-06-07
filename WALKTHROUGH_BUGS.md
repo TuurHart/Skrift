@@ -48,7 +48,8 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 
 ## Remaining (walkthrough)
 Deferred only: **W2** (I-beam cursor, P3 AppKit quirk) · **R3 inline-in-text resolver** (design). Everything else fixed.
-- ☑ **#12** Right-click a sidebar row → Process / Export / Delete.
+- ☑ **#12** Right-click a sidebar row → Process · Re-transcribe · Redo ▸ · Reveal in Finder · Open in Obsidian · Copy ▸ · Delete (multi-select aware → "Process N / Export N / Delete N").
+- ☑ **Add-name** Right-click a body text selection → "Add … as a name" (reliable, user-driven names-graph growth).
 - ☑ **#18 / N2** Significance slider disabled until processed.
 - ☑ **T2** title wraps (no truncation) + smaller (18–19pt) — first pass was insufficient.
 
