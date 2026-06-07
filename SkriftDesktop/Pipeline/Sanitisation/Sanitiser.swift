@@ -115,6 +115,45 @@ enum Sanitiser {
         return text
     }
 
+    /// Apply per-occurrence review choices — distinct people for distinct mentions of
+    /// the SAME alias (the "two Jacks" case). `byAlias[alias]` is the ordered list of
+    /// choices, one per plain occurrence (canonical nil = leave plain). For each alias
+    /// the first mention of a given canonical becomes `[[Canonical]]`, later mentions of
+    /// that same canonical become its short name. Order-based against the current body,
+    /// so it's robust to earlier offset shifts.
+    static func applyResolvedOccurrences(text inputText: String,
+                                         byAlias: [String: [(canonical: String?, short: String?)]]) -> String {
+        var text = inputText
+        for (alias, choices) in byAlias {
+            let a = alias.trimmingCharacters(in: .whitespaces)
+            guard !a.isEmpty, let rx = wordRegex(a) else { continue }
+            let eligible = rx.matches(in: text, range: fullRange(text))
+                .filter { !avoidInside || notInsideLink(text, $0.range.location) }
+            guard !eligible.isEmpty else { continue }
+
+            // Forward pass: decide each occurrence's replacement (first-link per canonical).
+            var introduced = Set<String>()
+            var replacements: [(range: NSRange, repl: String)] = []
+            for (i, m) in eligible.enumerated() {
+                guard i < choices.count, let canonRaw = choices[i].canonical else { continue }  // plain → skip
+                let canon = canonRaw.trimmingCharacters(in: .whitespaces)
+                guard !canon.isEmpty else { continue }
+                let linkText = (canon.hasPrefix("[[") && canon.hasSuffix("]]")) ? canon : "[[\(canon)]]"
+                let core = NamesMerge.keyName(linkText)
+                let short = (choices[i].short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
+                    ?? (core.split(separator: " ").first.map(String.init) ?? a)
+                let isFirst = !introduced.contains(core)
+                introduced.insert(core)
+                replacements.append((m.range, (isFirst ? linkText : short) + possText(m, in: text)))
+            }
+            // Apply in reverse so earlier ranges stay valid.
+            for r in replacements.sorted(by: { $0.range.location > $1.range.location }) {
+                text = nsReplace(text, r.range, with: r.repl)
+            }
+        }
+        return text
+    }
+
     // MARK: - Helpers
 
     private static func shortName(for p: Person) -> String {

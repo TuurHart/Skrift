@@ -47,4 +47,27 @@ final class SanitiserTests: XCTestCase {
         )
         XCTAssertEqual(out, "I saw [[Sam Smith]] today, then Sam left.")
     }
+
+    func testApplyResolvedOccurrencesTwoJacks() {
+        // Four "Jack" mentions → two distinct people. First mention of each canonical
+        // links; later mentions of that same canonical use the short name.
+        let out = Sanitiser.applyResolvedOccurrences(
+            text: "Met Jack, then Jack again. Later Jack and finally Jack.",
+            byAlias: ["Jack": [
+                (canonical: "[[Jack Hutton]]", short: "Jack"),
+                (canonical: "[[Jack Hutton]]", short: "Jack"),
+                (canonical: "[[Jack Timmons]]", short: "Jack"),
+                (canonical: "[[Jack Timmons]]", short: "Jack"),
+            ]]
+        )
+        XCTAssertEqual(out, "Met [[Jack Hutton]], then Jack again. Later [[Jack Timmons]] and finally Jack.")
+    }
+
+    func testApplyResolvedOccurrencesLeavePlain() {
+        let out = Sanitiser.applyResolvedOccurrences(
+            text: "Jack and Jack.",
+            byAlias: ["Jack": [(canonical: "[[Jack Hutton]]", short: "Jack"), (canonical: nil, short: nil)]]
+        )
+        XCTAssertEqual(out, "[[Jack Hutton]] and Jack.")
+    }
 }

@@ -50,6 +50,23 @@ final class BatchRunnerTests: XCTestCase {
         XCTAssertTrue(compiled.hasSuffix("[[Nick Jansen]] and I met today. Nick is great."))
     }
 
+    func testPresetTitleIsPreservedAsLLMBecomesSuggestion() async throws {
+        // A phone/user-set title must survive the run; the LLM title becomes the suggestion.
+        let pf = PipelineFile(id: "3", filename: "memo.m4a", path: "/tmp/z", size: 0, sourceType: .audio)
+        pf.enhancedTitle = "User Title"
+        let runner = BatchRunner(
+            transcriber: StubTranscriber(text: "Some words here."),
+            enhancer: EchoEnhancer(),
+            settings: .default,
+            people: [],
+            tagWhitelist: []
+        )
+        try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/z.m4a"))
+
+        XCTAssertEqual(pf.enhancedTitle, "User Title")   // not clobbered
+        XCTAssertEqual(pf.titleSuggested, "A Title")      // LLM result kept as the suggestion
+    }
+
     func testTrustedTranscriptSkipsTranscription() async throws {
         let pf = PipelineFile(id: "2", filename: "memo.m4a", path: "/tmp/y", size: 0, sourceType: .audio)
         pf.transcript = "preset transcript"

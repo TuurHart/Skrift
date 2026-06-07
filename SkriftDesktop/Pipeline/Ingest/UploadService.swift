@@ -34,6 +34,11 @@ struct UploadService: Sendable {
             let pf = PipelineFile(id: id, filename: filename, path: original.path,
                                   size: audio.data.count, sourceType: .audio)
             if let metaData = metadataPart?.data { pf.audioMetadataJSON = metaData }   // verbatim passthrough
+            // Phone may send an optional user-set `title` — honor it (BatchRunner
+            // won't clobber a pre-set enhancedTitle; the LLM title becomes the suggestion).
+            if let title = (meta?["title"] as? String)?.trimmingCharacters(in: .whitespaces), !title.isEmpty {
+                pf.enhancedTitle = title
+            }
 
             // Phone sends NO `sanitised` (Mac links names). Trusted transcript skips
             // the Mac's own transcribe step.

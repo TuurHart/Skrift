@@ -122,15 +122,29 @@ final class ProcessingCoordinator {
 
     // ── Apply review-time ambiguous-name choices ──
     func applyResolvedNames(_ pf: PipelineFile, decisions: [ResolverDecision], context: ModelContext) {
-        // Per-alias (collapsed) choices apply via the Sanitiser. Per-occurrence
-        // choices (distinct people per mention — the two-Jacks case) need an
-        // offset-aware Sanitiser apply; that's an owed follow-up.
+        var text = pf.bestBodyText
+
+        // Collapsed (per-alias) choices — one person for every mention of the alias.
         let aliasDecisions = decisions
             .filter { $0.offset == nil && $0.canonical != nil }
             .map { (alias: $0.alias, canonical: $0.canonical!, short: $0.short) }
         if !aliasDecisions.isEmpty {
-            pf.sanitised = Sanitiser.applyResolvedNames(text: pf.bestBodyText, decisions: aliasDecisions)
+            text = Sanitiser.applyResolvedNames(text: text, decisions: aliasDecisions)
         }
+
+        // Expanded (per-occurrence) choices — distinct people per mention (two Jacks).
+        let expanded = decisions.filter { $0.offset != nil }
+        if !expanded.isEmpty {
+            var byAlias: [String: [(canonical: String?, short: String?)]] = [:]
+            for (_, group) in Dictionary(grouping: expanded, by: { $0.alias.lowercased() }) {
+                let ordered = group.sorted { ($0.offset ?? 0) < ($1.offset ?? 0) }
+                let aliasName = ordered.first?.alias ?? ""
+                byAlias[aliasName] = ordered.map { ($0.canonical, $0.short) }
+            }
+            text = Sanitiser.applyResolvedOccurrences(text: text, byAlias: byAlias)
+        }
+
+        pf.sanitised = text
         pf.ambiguousNames = nil
         pf.sanitiseStatus = .done
         let settings = SettingsStore.shared.load()

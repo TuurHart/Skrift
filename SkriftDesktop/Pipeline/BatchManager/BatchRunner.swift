@@ -42,7 +42,10 @@ struct BatchRunner {
         pf.enhancedCopyedit = copyedit
         let suggestedTitle = try await enhancer.title(transcript, prompts: prompts, modelRepo: repo)
         pf.titleSuggested = suggestedTitle
-        pf.enhancedTitle = suggestedTitle
+        // Keep a title the user/phone already set; only fill from the LLM if empty.
+        if (pf.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
+            pf.enhancedTitle = suggestedTitle
+        }
         pf.enhancedSummary = try await enhancer.summary(transcript, prompts: prompts, modelRepo: repo)
 
         // Deterministic steps work on the cleaned copy-edit (fall back to transcript).
