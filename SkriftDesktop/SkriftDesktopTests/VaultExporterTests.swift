@@ -38,4 +38,34 @@ final class VaultExporterTests: XCTestCase {
         let pf = PipelineFile(id: "1", filename: "x.m4a", path: "/tmp/x", size: 0, sourceType: .audio)
         XCTAssertThrowsError(try VaultExporter.export(pf, settings: .default))
     }
+
+    func testExportConvertsImageMarkersToEmbeds() throws {
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: work) }
+
+        let noteFolder = work.appendingPathComponent("note")
+        let imagesDir = noteFolder.appendingPathComponent("images")
+        try FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
+        let audio = noteFolder.appendingPathComponent("original.m4a")
+        try Data([1, 2, 3]).write(to: audio)
+        try Data([9, 9]).write(to: imagesDir.appendingPathComponent("img_001.jpg"))
+        let vault = work.appendingPathComponent("vault")
+
+        let pf = PipelineFile(id: "1", filename: "memo.m4a", path: audio.path, size: 3, sourceType: .audio)
+        pf.enhancedTitle = "Trip"
+        pf.sanitised = "Look: [[img_001]] nice."
+
+        var settings = AppSettings.default
+        settings.noteFolder = vault.path
+        settings.attachmentsFolder = "Attachments"
+
+        let r = try VaultExporter.export(pf, settings: settings)
+        XCTAssertEqual(r.imageCount, 1)
+        let md = try String(contentsOf: r.markdownURL, encoding: .utf8)
+        XCTAssertTrue(md.contains("![[Trip_001.jpg]]"))
+        XCTAssertFalse(md.contains("[[img_001]]"))
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: vault.appendingPathComponent("Attachments/Trip_001.jpg").path))
+    }
 }

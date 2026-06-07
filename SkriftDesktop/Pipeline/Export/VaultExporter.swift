@@ -30,8 +30,19 @@ enum VaultExporter {
             .trimmingCharacters(in: CharacterSet(charactersIn: " ."))   // avoid "Title..md"
         if safe.isEmpty { safe = "note" }
 
+        // Convert [[img_NNN]] markers → ![[<title>_NNN.ext]] Obsidian embeds and copy
+        // the matched images into the attachments subfolder.
+        var finalMarkdown = markdown
+        var imageCount = 0
+        let imagesDir = URL(fileURLWithPath: pf.path).deletingLastPathComponent().appendingPathComponent("images")
+        if !settings.attachmentsFolder.isEmpty, !pf.path.isEmpty,
+           FileManager.default.fileExists(atPath: imagesDir.path) {
+            let attDir = vaultURL.appendingPathComponent(settings.attachmentsFolder, isDirectory: true)
+            (finalMarkdown, imageCount) = convertImageMarkers(markdown, imagesDir: imagesDir, safe: safe, into: attDir)
+        }
+
         let mdURL = vaultURL.appendingPathComponent(safe + ".md")
-        try Data(markdown.utf8).write(to: mdURL)
+        try Data(finalMarkdown.utf8).write(to: mdURL)
 
         // Original audio → audio subfolder.
         var audioURL: URL?
@@ -46,21 +57,41 @@ enum VaultExporter {
             audioURL = dest
         }
 
-        // Captured images (the note's `images/` sidecar) → attachments subfolder.
-        var imageCount = 0
-        let imagesDir = URL(fileURLWithPath: pf.path).deletingLastPathComponent().appendingPathComponent("images")
-        if !settings.attachmentsFolder.isEmpty, !pf.path.isEmpty,
-           FileManager.default.fileExists(atPath: imagesDir.path) {
-            let dir = vaultURL.appendingPathComponent(settings.attachmentsFolder, isDirectory: true)
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            for img in (try? FileManager.default.contentsOfDirectory(at: imagesDir, includingPropertiesForKeys: nil)) ?? [] {
-                let dest = dir.appendingPathComponent(img.lastPathComponent)
-                try? FileManager.default.removeItem(at: dest)
-                try? FileManager.default.copyItem(at: img, to: dest)
-                imageCount += 1
-            }
-        }
-
         return Result(markdownURL: mdURL, audioURL: audioURL, imageCount: imageCount)
+    }
+
+    /// Replace `[[img_NNN]]` markers with `![[<safe>_NNN.ext]]` Obsidian embeds,
+    /// copying the matched image (by `img_NNN`/`_NNN.` name, else the NNN-th file)
+    /// into `attDir` under the new name. Returns the rewritten markdown + copy count.
+    static func convertImageMarkers(_ markdown: String, imagesDir: URL, safe: String, into attDir: URL) -> (String, Int) {
+        let fm = FileManager.default
+        let files = ((try? fm.contentsOfDirectory(at: imagesDir, includingPropertiesForKeys: nil)) ?? [])
+            .filter { !$0.lastPathComponent.hasPrefix(".") }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        guard !files.isEmpty, let rx = try? NSRegularExpression(pattern: "\\[\\[img_(\\d{3})\\]\\]") else {
+            return (markdown, 0)
+        }
+        let ns = markdown as NSString
+        var replacements: [(NSRange, String)] = []
+        var copied = 0
+        for m in rx.matches(in: markdown, range: NSRange(location: 0, length: ns.length)) {
+            let nnn = ns.substring(with: m.range(at: 1))
+            let idx = (Int(nnn) ?? 1) - 1
+            let file = files.first { $0.lastPathComponent.contains("_\(nnn).") || $0.lastPathComponent.hasPrefix("img_\(nnn)") }
+                ?? ((0..<files.count).contains(idx) ? files[idx] : nil)
+            guard let file else { continue }
+            let ext = file.pathExtension.isEmpty ? "jpg" : file.pathExtension
+            let newName = "\(safe)_\(nnn).\(ext)"
+            try? fm.createDirectory(at: attDir, withIntermediateDirectories: true)
+            let dest = attDir.appendingPathComponent(newName)
+            try? fm.removeItem(at: dest)
+            if (try? fm.copyItem(at: file, to: dest)) != nil { copied += 1 }
+            replacements.append((m.range, "![[\(newName)]]"))
+        }
+        var out = markdown
+        for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
+            out = (out as NSString).replacingCharacters(in: range, with: repl)
+        }
+        return (out, copied)
     }
 }
