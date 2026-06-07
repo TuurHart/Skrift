@@ -11,6 +11,24 @@ struct SettingsView: View {
 
     @State private var settings = SettingsStore.shared.load()
     @State private var people: [Person] = NamesStore.shared.livePeople()
+    @State private var editablePeople: [EditablePerson] = []
+    @State private var namesDirty = false
+
+    /// Stable-identity editor row (Person has no id; its canonical changes mid-edit).
+    struct EditablePerson: Identifiable {
+        let id = UUID()
+        var canonical: String   // display form (no [[ ]])
+        var aliases: String     // comma-separated
+        var short: String
+        var lastModifiedAt: String
+        init(_ p: Person) {
+            canonical = NamesMerge.keyName(p.canonical)
+            aliases = p.aliases.joined(separator: ", ")
+            short = p.short ?? ""
+            lastModifiedAt = p.lastModifiedAt
+        }
+        init() { canonical = ""; aliases = ""; short = ""; lastModifiedAt = "" }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,6 +45,7 @@ struct SettingsView: View {
         .frame(width: 560, height: interactive ? 660 : nil)   // snapshot sizes to full content
         .background(Theme.bg)
         .onChange(of: settings) { _, new in SettingsStore.shared.save(new) }
+        .task { editablePeople = people.map(EditablePerson.init) }
     }
 
     private var sections: some View {
@@ -47,14 +66,31 @@ struct SettingsView: View {
                 sliderRow("Noise reduction", value: noiseBinding, range: -30...0, unit: " dB")
                 sliderRow("High-pass filter", value: highpassBinding, range: 0...200, unit: " Hz")
             }
-            section("Names · \(people.count)") {
-                if people.isEmpty {
+            section("Names · \(interactive ? editablePeople.count : people.count)") {
+                if interactive {
+                    ForEach($editablePeople) { $ep in nameEditRow($ep) }
+                    HStack {
+                        Button { editablePeople.append(EditablePerson()); namesDirty = true } label: {
+                            Label("Add person", systemImage: "plus")
+                                .font(.system(size: 12)).foregroundStyle(Theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
+                        Button("Save names") { saveNames() }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(namesDirty ? .white : Theme.textMuted)
+                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .background(namesDirty ? Theme.accent : Theme.hairline.opacity(0.06),
+                                        in: RoundedRectangle(cornerRadius: 7))
+                            .disabled(!namesDirty)
+                    }
+                    .padding(.top, 4)
+                } else if people.isEmpty {
                     Text("No people yet — names link automatically once added.")
                         .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
                 } else {
                     ForEach(people, id: \.canonical) { person in nameRow(person) }
-                    Text("Edited in names.json / the phone app · full editing here is a follow-up.")
-                        .font(.system(size: 11)).foregroundStyle(Theme.textMuted).padding(.top, 2)
                 }
             }
         }
@@ -175,6 +211,45 @@ struct SettingsView: View {
             }
             .frame(height: 14)
         }
+    }
+
+    private func nameEditRow(_ ep: Binding<EditablePerson>) -> some View {
+        HStack(spacing: 8) {
+            TextField("Full name", text: Binding(
+                get: { ep.wrappedValue.canonical },
+                set: { ep.wrappedValue.canonical = $0; namesDirty = true }))
+                .textFieldStyle(.plain).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            TextField("aliases, comma-separated", text: Binding(
+                get: { ep.wrappedValue.aliases },
+                set: { ep.wrappedValue.aliases = $0; namesDirty = true }))
+                .textFieldStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button {
+                editablePeople.removeAll { $0.id == ep.wrappedValue.id }; namesDirty = true
+            } label: {
+                Image(systemName: "trash").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 4)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline.opacity(0.05)).frame(height: 0.5) }
+    }
+
+    private func saveNames() {
+        let now = ISO8601.now()
+        let result = editablePeople.compactMap { ep -> Person? in
+            let canon = NamesMerge.normaliseCanonical(ep.canonical.trimmingCharacters(in: .whitespaces))
+            guard !NamesMerge.keyName(canon).isEmpty else { return nil }
+            let aliases = ep.aliases.split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            let short = ep.short.trimmingCharacters(in: .whitespaces)
+            return Person(canonical: canon, aliases: aliases, short: short.isEmpty ? nil : short,
+                          lastModifiedAt: ep.lastModifiedAt.isEmpty ? now : ep.lastModifiedAt)
+        }
+        _ = NamesStore.shared.writeWithSmartBumps(result)
+        people = NamesStore.shared.livePeople()
+        namesDirty = false
     }
 
     private func nameRow(_ person: Person) -> some View {
