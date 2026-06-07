@@ -52,7 +52,7 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 - ☑ **E5** Run bar says "Loading" not false "Downloading". `d49a856`
 
 ## Remaining (walkthrough)
-All cleared. **R3 inline-in-text resolver** built (design A). **W2** I-beam cursor fixed. **AUD-P2c** sliders unified. (Live-confirm owed on R3 click→popover, karaoke no-reflow/seek, W2 cursor — Accessibility was off.)
+All cleared. **R3 inline resolver** (banner-asks + auto-apply), **N6/N7** audio player + karaoke, **C2** breadcrumb, **W2** cursor, **AUD-P2c** sliders — all done. **User confirmed R3 + karaoke work on the live app ("perfect, it works").** (W2 cursor not separately called out by the user; standard fix is in.)
 - ☑ **#12** Right-click a sidebar row → Process · Re-transcribe · Redo ▸ · Reveal in Finder · Open in Obsidian · Copy ▸ · Delete (multi-select aware → "Process N / Export N / Delete N").
 - ☑ **Add-name** Right-click a body text selection → "Add … as a name" (reliable, user-driven names-graph growth).
 - ☑ **#18 / N2** Significance slider disabled until processed.
