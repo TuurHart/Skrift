@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import CoreML
 import FluidAudio
+import os
 
 enum ASRError: LocalizedError {
     case notInitialized
@@ -22,6 +23,11 @@ actor TranscriptionService: Transcribing {
     private var loadTask: Task<Void, Error>?
     private var isTranscribing = false
 
+    /// Nonisolated, thread-safe mirror of `isModelReady` so the synchronous /health
+    /// handler can read it without hopping onto the actor. Kept in sync with `asr`.
+    private let ready = OSAllocatedUnfairLock(initialState: false)
+    nonisolated var isModelReadySync: Bool { ready.withLock { $0 } }
+
     private init() {}
 
     var isModelReady: Bool { asr != nil }
@@ -39,6 +45,7 @@ actor TranscriptionService: Transcribing {
             try await manager.loadModels(loaded)
             self.models = loaded
             self.asr = manager
+            self.ready.withLock { $0 = true }
         }
         loadTask = task
         do { try await task.value; loadTask = nil }
@@ -50,6 +57,7 @@ actor TranscriptionService: Transcribing {
         let manager = asr
         asr = nil
         models = nil
+        ready.withLock { $0 = false }
         Task { await manager?.cleanup() }
     }
 

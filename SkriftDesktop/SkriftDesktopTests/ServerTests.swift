@@ -46,10 +46,19 @@ final class SyncHandlerTests: XCTestCase {
         HTTPRequest(method: m, path: path, query: [:], headers: [:], body: body)
     }
 
-    func testHealth() {
-        let resp = handlers().handle(req(.GET, "/api/system/health"))
-        XCTAssertEqual(resp.status, 200)
-        XCTAssertTrue(String(data: resp.body, encoding: .utf8)?.contains("\"healthy\"") == true)
+    func testHealthReflectsModelReadiness() {
+        // Default (no engine wired, as in tests) → reports not-available, still healthy.
+        let down = handlers().handle(req(.GET, "/api/system/health"))
+        XCTAssertEqual(down.status, 200)
+        let downBody = String(data: down.body, encoding: .utf8) ?? ""
+        XCTAssertTrue(downBody.contains("\"healthy\""))
+        XCTAssertTrue(downBody.contains("\"available\":false"))
+
+        // Engine ready → available true (no longer hardcoded).
+        var h = handlers()
+        h.transcriptionReady = { true }
+        let up = String(data: h.handle(req(.GET, "/api/system/health")).body, encoding: .utf8) ?? ""
+        XCTAssertTrue(up.contains("\"available\":true"))
     }
 
     func testNamesRoundTrip() throws {

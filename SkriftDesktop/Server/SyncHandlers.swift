@@ -16,6 +16,11 @@ struct SyncHandlers {
     var listFilesJSON: @Sendable () -> Data = { Data("[]".utf8) }
     /// Multipart upload → PipelineFile creation. Injected by the app.
     var handleUpload: @Sendable (HTTPRequest) -> HTTPResponse = { _ in .status(501) }
+    /// Whether the ASR model is loaded right now — surfaced in /health (the phone
+    /// trusts it). Injected by the app from `TranscriptionService.isModelReadySync`;
+    /// defaults false (host-less tests have no engine). Lazy-loaded, so this is
+    /// false until the first run and again after the idle unload.
+    var transcriptionReady: @Sendable () -> Bool = { false }
 
     func handle(_ req: HTTPRequest) -> HTTPResponse {
         switch (req.method, normalise(req.path)) {
@@ -44,7 +49,7 @@ struct SyncHandlers {
     // MARK: - Handlers
 
     private func health() -> HTTPResponse {
-        .json(HealthResponse())
+        .json(HealthResponse(available: transcriptionReady()))
     }
 
     private func namesMeta() -> HTTPResponse {
@@ -75,7 +80,8 @@ private struct NamesPutPayload: Decodable {
 /// Health payload — contract-shaped. Native transcription is FluidAudio, surfaced
 /// under the `parakeet` key the existing client checks for availability.
 private struct HealthResponse: Encodable {
-    struct Module: Encodable { var available = true; var engine = "fluidaudio" }
+    struct Module: Encodable { var available: Bool; var engine = "fluidaudio" }
     var status = "healthy"
-    var transcription_modules = ["parakeet": Module()]
+    var transcription_modules: [String: Module]
+    init(available: Bool) { transcription_modules = ["parakeet": Module(available: available)] }
 }

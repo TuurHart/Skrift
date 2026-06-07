@@ -59,7 +59,8 @@ struct SkriftDesktopApp: App {
                         }
                     }
                 }
-            }
+            },
+            transcriptionReady: { TranscriptionService.shared.isModelReadySync }
         )
         self.syncServer = LocalHTTPServer(handlers: handlers)
         try? syncServer.start()
