@@ -25,6 +25,7 @@ struct SkriftApp: App {
                 .modelContainer(repository.container)
                 .preferredColorScheme(colorScheme)
                 .tint(.skAccent)
+                .onOpenURL { AppURLHandler.handle($0) }
         }
     }
 

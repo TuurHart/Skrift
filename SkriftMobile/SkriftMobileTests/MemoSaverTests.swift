@@ -63,6 +63,33 @@ final class MemoSaverTests: XCTestCase {
     }
 
     @MainActor
+    func testImportAudioCopiesFilePreservesExtensionAndCreatesMemo() throws {
+        let repo = NotesRepository(inMemory: true)
+        let saver = MemoSaver(
+            repository: repo,
+            transcriber: SeededTranscriber(text: "imported audio"),
+            wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService()
+        )
+
+        // An external "shared" audio file — a non-m4a extension to prove the
+        // import preserves it (so the Mac sees the right format).
+        let source = FileManager.default.temporaryDirectory
+            .appendingPathComponent("shared_\(UUID().uuidString).wav")
+        FileManager.default.createFile(atPath: source.path, contents: Data([0x52, 0x49, 0x46, 0x46]))
+
+        let id = try XCTUnwrap(saver.importAudio(from: source))
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.audioFilename, "memo_\(id.uuidString).wav")  // extension preserved
+        XCTAssertEqual(memo?.syncStatus, .waiting)
+        let copied = AppPaths.recordingsDirectory.appendingPathComponent("memo_\(id.uuidString).wav")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: copied.path), "imported audio not copied into recordings")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: source.path), "import must copy, not move the source")
+    }
+
+    @MainActor
     func testMetadataCaptureMergesAndPreservesManifest() async {
         let repo = NotesRepository(inMemory: true)
         let captured = MemoMetadata(

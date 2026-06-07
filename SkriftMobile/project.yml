@@ -62,6 +62,21 @@ targets:
         # the Live Activity stays meaningful.
         UIBackgroundModes:
           - audio
+        # Share-to-import: appear in the Share Sheet / "Open in" for audio files
+        # (WhatsApp / Voice Memos exports → a Skrift memo). iOS routes the file
+        # URL through .onOpenURL → AppURLHandler → MemoSaver.importAudio.
+        # LSHandlerRank=Alternate so we don't fight the OS default audio app.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Audio
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.audio
+              - public.mp3
+              - public.mpeg-4-audio
+              - com.microsoft.waveform-audio
+              - public.aiff-audio
+        LSSupportsOpeningDocumentsInPlace: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile

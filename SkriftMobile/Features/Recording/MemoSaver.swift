@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 
 /// Persists a finished recording as a `Memo` and runs transcription, writing the
@@ -35,6 +36,46 @@ struct MemoSaver {
         memo.transcriptUserEdited = false
         repository.save()
         Task { await runTranscription(id: id) }
+    }
+
+    /// Import an external audio file shared into Skrift (Share Sheet / "Open in").
+    /// Copies it into recordings (preserving the source extension), creates the
+    /// memo, and runs the same on-device transcription as a recording — common
+    /// formats (m4a/wav/mp3/caf) transcribe on-device; an unsupported one (e.g.
+    /// .opus) fails gracefully → synced as raw audio → the Mac transcribes.
+    /// No contextual metadata (the memo wasn't recorded here/now). Returns the
+    /// new memo id, or nil if the file couldn't be copied.
+    @discardableResult
+    func importAudio(from source: URL) -> UUID? {
+        let id = UUID()
+        let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
+        let filename = "memo_\(id.uuidString).\(ext)"
+        let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
+
+        // Files shared from outside the sandbox arrive security-scoped.
+        let scoped = source.startAccessingSecurityScopedResource()
+        defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+        do {
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.copyItem(at: source, to: dest)
+        } catch {
+            return nil
+        }
+
+        var duration: TimeInterval = 0
+        if let f = try? AVAudioFile(forReading: dest) {
+            duration = Double(f.length) / f.fileFormat.sampleRate
+        }
+
+        repository.insert(Memo(
+            id: id,
+            audioFilename: filename,
+            duration: duration,
+            syncStatus: .waiting,
+            transcriptStatus: .transcribing
+        ))
+        Task { await runTranscription(id: id) }
+        return id
     }
 
     /// Awaitable variant for tests — persist + capture metadata + transcribe.
@@ -102,7 +143,10 @@ struct MemoSaver {
     }
 
     private func runTranscription(id: UUID) async {
-        let url = AppPaths.recordingsDirectory.appendingPathComponent("memo_\(id.uuidString).m4a")
+        // Use the memo's actual filename (recordings are memo_<id>.m4a; imports
+        // preserve the source extension, e.g. .opus/.wav/.mp3).
+        let filename = repository.memo(id: id)?.audioFilename ?? "memo_\(id.uuidString).m4a"
+        let url = AppPaths.recordingsDirectory.appendingPathComponent(filename)
         let manifest = repository.memo(id: id)?.metadata?.imageManifest ?? []
         do {
             let result = try await transcriber.transcribe(audioURL: url, imageManifest: manifest)
