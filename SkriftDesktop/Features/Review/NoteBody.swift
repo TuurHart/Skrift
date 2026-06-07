@@ -38,14 +38,9 @@ struct NoteBody: View {
     }
 
     private var editor: some View {
-        TextEditor(text: bodyBinding)
-            .textEditorStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .font(Self.bodyFont)
-            .lineSpacing(Self.bodyLineSpacing)
-            .foregroundStyle(Theme.textPrimary)
-            .frame(minHeight: 200, alignment: .topLeading)
-            .scrollDisabled(true)
+        // NSTextView bridge: self-sizing + live [[link]] accent styling while editing.
+        BodyTextView(text: bodyBinding)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var karaoke: some View {
