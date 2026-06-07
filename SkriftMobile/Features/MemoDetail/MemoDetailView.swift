@@ -12,6 +12,7 @@ struct MemoDetailView: View {
     @Query(sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
     @Environment(\.dismiss) private var dismiss
     @State private var selection: UUID
+    @State private var showActions = false
     @StateObject private var player = AudioPlayerModel()
     private let repository = NotesRepository.shared
     private let saver = MemoSaver()
@@ -39,7 +40,23 @@ struct MemoDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { overflowMenu }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showActions = true } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 34, height: 34)
+                        .foregroundStyle(Color.skTextDim)
+                }
+                .accessibilityIdentifier("detail-menu")
+            }
+        }
+        // A confirmationDialog is presented by the view controller (not anchored
+        // to the toolbar item), so the paged TabView can't swallow it — unlike a
+        // toolbar `Menu`, which silently failed to present on device.
+        .confirmationDialog("Memo", isPresented: $showActions, titleVisibility: .hidden) {
+            Button("Re-transcribe") { if let id = currentMemo?.id { saver.retranscribe(id: id) } }
+            Button("Delete", role: .destructive, action: deleteCurrent)
+            Button("Cancel", role: .cancel) {}
         }
         .onAppear { player.load(currentMemo?.audioURL) }
         .onChange(of: selection) { _, newID in
@@ -62,24 +79,6 @@ struct MemoDetailView: View {
             LinearGradient(colors: [.skBg, .skBg.opacity(0)], startPoint: .bottom, endPoint: .top)
                 .ignoresSafeArea()
         )
-    }
-
-    private var overflowMenu: some View {
-        Menu {
-            Button {
-                if let id = currentMemo?.id { saver.retranscribe(id: id) }
-            } label: { Label("Re-transcribe", systemImage: "arrow.clockwise") }
-
-            Button(role: .destructive, action: deleteCurrent) {
-                Label("Delete", systemImage: "trash")
-            }
-        } label: {
-            Image(systemName: "ellipsis")
-                .font(.system(size: 16, weight: .semibold))
-                .frame(width: 34, height: 34)
-                .foregroundStyle(Color.skTextDim)
-        }
-        .accessibilityIdentifier("detail-menu")
     }
 
     private func deleteCurrent() {
@@ -187,9 +186,7 @@ private struct TranscriptContentView: View {
     let memo: Memo
 
     var body: some View {
-        if memo.transcriptStatus == .transcribing, (memo.transcript ?? "").isEmpty {
-            StatusPill(style: .working, label: "Transcribing")
-        } else if memo.transcriptStatus == .failed, (memo.transcript ?? "").isEmpty {
+        if memo.transcriptStatus == .failed, (memo.transcript ?? "").isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 StatusPill(style: .error, label: "Transcription failed", systemImage: "exclamationmark.triangle.fill")
                 Text("Re-transcribe from the ⋯ menu.")
@@ -197,6 +194,11 @@ private struct TranscriptContentView: View {
             }
         } else {
             VStack(alignment: .leading, spacing: 12) {
+                // Show the pill whenever transcribing — including a re-transcribe
+                // of a memo that already has text — so the action gives feedback.
+                if memo.transcriptStatus == .transcribing {
+                    StatusPill(style: .working, label: "Transcribing")
+                }
                 ForEach(Array(segments.enumerated()), id: \.offset) { _, seg in
                     switch seg {
                     case .text(let s):

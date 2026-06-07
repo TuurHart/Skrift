@@ -164,7 +164,10 @@ final class LiveRecordingService: ObservableObject {
 
     private func startEngine(writingTo url: URL) throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .measurement, options: [.allowBluetooth, .defaultToSpeaker])
+        // .default (not .measurement): .measurement strips input gain/AGC, which
+        // made recordings very quiet → soft playback + a barely-moving waveform.
+        // A voice-memo wants normal capture gain.
+        try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .defaultToSpeaker])
         try session.setActive(true)
 
         let engine = AVAudioEngine()

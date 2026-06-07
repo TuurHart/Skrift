@@ -33,6 +33,8 @@ struct MemosListView: View {
     @State private var filter = MemoFilter()
     @State private var selecting = false
     @State private var selected: Set<UUID> = []
+    @State private var syncing = false
+    @State private var syncBanner: String?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -51,6 +53,8 @@ struct MemosListView: View {
                     recordFAB
                 }
             }
+            .overlay(alignment: .top) { syncBannerView }
+            .animation(Theme.Motion.spring, value: syncBanner)
             .navigationTitle("Memos")
             .toolbar { toolbarContent }
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
@@ -135,9 +139,14 @@ struct MemosListView: View {
                     .accessibilityIdentifier("settings-button")
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { Task { await SyncCoordinator().syncAll() } } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                Button(action: runSync) {
+                    if syncing {
+                        ProgressView().controlSize(.small).tint(.skAccent)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                    }
                 }
+                .disabled(syncing)
                 .accessibilityIdentifier("sync-button")
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -150,6 +159,34 @@ struct MemosListView: View {
     }
 
     // MARK: - Bottom bars
+
+    @ViewBuilder private var syncBannerView: some View {
+        if let syncBanner {
+            Text(syncBanner)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.skText)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(Color.skElev, in: .capsule)
+                .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
+                .padding(.top, 6)
+                .transition(.move(edge: .top).combined(with: .opacity))
+        }
+    }
+
+    private func runSync() {
+        guard !syncing else { return }
+        Task {
+            syncing = true
+            let synced = await SyncCoordinator().syncAll()
+            syncing = false
+            let paired = MacConnection.load() != nil
+            syncBanner = !paired
+                ? "Pair a Mac in Settings to sync"
+                : (synced > 0 ? "Synced \(synced) memo\(synced == 1 ? "" : "s")" : "Up to date")
+            try? await Task.sleep(for: .seconds(2.2))
+            syncBanner = nil
+        }
+    }
 
     private var recordFAB: some View {
         Button { showRecord = true } label: {

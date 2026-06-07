@@ -22,6 +22,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     private var captured: [(url: URL, offset: Double)] = []
     private var pendingOffsets: [Double] = []
     private var videoDevice: AVCaptureDevice?
+    private var lastCaptureAt: Date?
 
     init(mock: Bool = LaunchFlags.seedTranscript != nil) {
         self.mock = mock
@@ -73,6 +74,11 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     }
 
     func capture(offsetSeconds: Double) {
+        // Debounce: a single shutter tap was firing twice on device.
+        let now = Date()
+        if let last = lastCaptureAt, now.timeIntervalSince(last) < 0.6 { return }
+        lastCaptureAt = now
+
         if mock {
             let url = AppPaths.recordingsDirectory.appendingPathComponent("cap_\(UUID().uuidString).jpg")
             let image = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { ctx in

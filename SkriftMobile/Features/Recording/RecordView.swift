@@ -18,7 +18,7 @@ struct RecordView: View {
     /// Context captured when the recorder opens — shown as ready-state chips and
     /// reused at save (so we don't capture location/weather twice).
     @State private var context: MemoMetadata?
-    @State private var modelReady = false
+    @ObservedObject private var modelStatus = ModelLoadStatus.shared
 
     var body: some View {
         ZStack {
@@ -43,7 +43,12 @@ struct RecordView: View {
         .onDisappear { camera.stop() }
         .task {
             context = await MetadataProviderFactory.make().capture()
-            modelReady = await TranscriptionService.shared.isModelReady
+            // Preload the model on the ready screen so the status goes live
+            // (downloading → ready) before recording, and the first record isn't
+            // a cold start. Skipped in the mock/sim path (no ANE, no download).
+            if LaunchFlags.seedTranscript == nil {
+                Task { try? await TranscriptionService.shared.ensureLoaded() }
+            }
         }
     }
 
@@ -93,8 +98,8 @@ struct RecordView: View {
                 .foregroundStyle(Color.skText)
                 .padding(.top, 14)
             HStack(spacing: 6) {
-                Circle().fill(modelReady ? Color.skGreen : Color.skAmber).frame(width: 7, height: 7)
-                Text(modelReady ? "On-device transcription · ready" : "Transcription model not downloaded")
+                Circle().fill(statusColor).frame(width: 7, height: 7)
+                Text(statusText)
             }
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(Color.skTextDim)
@@ -150,7 +155,7 @@ struct RecordView: View {
 
             HStack(spacing: 14) {
                 RecordWaveform(samples: service.waveform)
-                    .frame(height: 34)
+                    .frame(height: 52)
                 Text(timeString)
                     .font(.system(size: 22, weight: .semibold, design: .rounded))
                     .monospacedDigit()
@@ -231,6 +236,18 @@ struct RecordView: View {
                 onDone: { showCamera = false }
             )
         }
+    }
+
+    // MARK: - Model status (live)
+
+    private var statusText: String {
+        if let p = modelStatus.downloadProgress { return "Downloading model · \(Int(p * 100))%" }
+        return modelStatus.ready ? "On-device transcription · ready" : "Transcription model not downloaded"
+    }
+
+    private var statusColor: Color {
+        if modelStatus.downloadProgress != nil { return .skAmber }
+        return modelStatus.ready ? .skGreen : .skAmber
     }
 
     // MARK: - Context chips

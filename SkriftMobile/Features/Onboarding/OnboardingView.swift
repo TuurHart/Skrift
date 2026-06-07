@@ -13,10 +13,9 @@ struct OnboardingView: View {
     @State private var mediaGranted = false
     @State private var locationRequested = false
     @State private var paired = MacConnection.load() != nil
-    @State private var modelState: ModelState = .idle
+    @ObservedObject private var modelStatus = ModelLoadStatus.shared
+    @State private var modelRequested = false
     private let locationManager = CLLocationManager()
-
-    enum ModelState: Equatable { case idle, downloading, ready }
 
     var body: some View {
         ZStack {
@@ -47,10 +46,15 @@ struct OnboardingView: View {
                         }
                     }
                     stepCard(icon: "arrow.down.circle.fill", title: "Transcription model", desc: modelDesc) {
-                        switch modelState {
-                        case .ready: doneBadge
-                        case .downloading: ProgressView().controlSize(.small).tint(.skAccent)
-                        case .idle:
+                        if modelStatus.ready {
+                            doneBadge
+                        } else if let progress = modelStatus.downloadProgress {
+                            ProgressView(value: progress)
+                                .progressViewStyle(.linear)
+                                .frame(width: 64).tint(.skAccent)
+                        } else if modelRequested {
+                            ProgressView().controlSize(.small).tint(.skAccent)
+                        } else {
                             Button("Get", action: downloadModel)
                                 .font(.system(size: 12.5, weight: .bold)).foregroundStyle(Color.skAccent)
                         }
@@ -118,11 +122,9 @@ struct OnboardingView: View {
     }
 
     private var modelDesc: String {
-        switch modelState {
-        case .ready: return "Ready · on-device"
-        case .downloading: return "Downloading · 494 MB"
-        case .idle: return "494 MB · one-time, on-device"
-        }
+        if modelStatus.ready { return "Ready · on-device" }
+        if let p = modelStatus.downloadProgress { return "Downloading · 494 MB · \(Int(p * 100))%" }
+        return "494 MB · one-time, on-device"
     }
 
     // MARK: - Actions (best-effort; real grants are device-owed)
@@ -148,10 +150,8 @@ struct OnboardingView: View {
     }
 
     private func downloadModel() {
-        modelState = .downloading
-        Task {
-            try? await TranscriptionService.shared.ensureLoaded()
-            modelState = await TranscriptionService.shared.isModelReady ? .ready : .idle
-        }
+        modelRequested = true
+        // Progress + ready come from ModelLoadStatus (driven by TranscriptionService).
+        Task { try? await TranscriptionService.shared.ensureLoaded() }
     }
 }

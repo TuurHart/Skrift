@@ -84,12 +84,23 @@ actor TranscriptionService: Transcriber {
             let loaded = try await AsrModels.downloadAndLoad(
                 configuration: mlConfig,
                 version: .v3,
-                progressHandler: { _ in }
+                progressHandler: { progress in
+                    Task { @MainActor in
+                        switch progress.phase {
+                        case .downloading: ModelLoadStatus.shared.downloadProgress = progress.fractionCompleted
+                        default: ModelLoadStatus.shared.downloadProgress = nil
+                        }
+                    }
+                }
             )
             let manager = AsrManager(config: .default)
             try await manager.loadModels(loaded)
             self.models = loaded
             self.asr = manager
+            await MainActor.run {
+                ModelLoadStatus.shared.ready = true
+                ModelLoadStatus.shared.downloadProgress = nil
+            }
         }
         loadTask = task
         do {
@@ -109,6 +120,7 @@ actor TranscriptionService: Transcriber {
         let manager = asr
         asr = nil
         models = nil
+        Task { @MainActor in ModelLoadStatus.shared.ready = false }
         Task { await manager?.cleanup() }
     }
 

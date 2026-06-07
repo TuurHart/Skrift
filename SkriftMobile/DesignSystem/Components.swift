@@ -125,7 +125,7 @@ struct ContextChip: View {
             if let systemImage {
                 Image(systemName: systemImage).font(.system(size: 10))
             }
-            Text(text)
+            Text(text).lineLimit(1).truncationMode(.tail)
         }
         .font(.system(size: 11))
         .foregroundStyle(Color.skTextDim)
