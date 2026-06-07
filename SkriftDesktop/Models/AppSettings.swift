@@ -13,9 +13,10 @@ struct AppSettings: Codable, Equatable, Sendable {
     var enhancementModelRepo: String = "mlx-community/gemma-4-e4b-it-8bit"
     var prompts: Prompts = .init()
 
-    // Transcription preprocessing (ffmpeg/AVFoundation)
-    var noiseReductionDB: Int = -20      // afftdn noise floor; 0 = off
-    var highpassFreqHz: Int = 80         // high-pass cutoff; 0 = off
+    // Transcription preprocessing (native AVFoundation): high-pass + peak normalize →
+    // 16 kHz mono before ASR. (afftdn-style noise reduction has no faithful native
+    // equivalent, so it's intentionally not offered — see A4.)
+    var highpassFreqHz: Int = 80         // high-pass cutoff in Hz; 0 = off
 
     static let `default` = AppSettings()
 

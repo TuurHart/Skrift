@@ -64,7 +64,6 @@ struct SettingsView: View {
                 promptRow("Summary prompt", \.prompts.summary)
             }
             section("Transcription") {
-                sliderRow("Noise reduction", value: noiseBinding, range: -30...0, unit: " dB")
                 sliderRow("High-pass filter", value: highpassBinding, range: 0...200, unit: " Hz")
             }
             section("Names · \(interactive ? editablePeople.count : people.count)") {
@@ -279,9 +278,6 @@ struct SettingsView: View {
         Binding(get: { settings[keyPath: key] }, set: { settings[keyPath: key] = $0 })
     }
 
-    private var noiseBinding: Binding<Double> {
-        Binding(get: { Double(settings.noiseReductionDB) }, set: { settings.noiseReductionDB = Int($0) })
-    }
     private var highpassBinding: Binding<Double> {
         Binding(get: { Double(settings.highpassFreqHz) }, set: { settings.highpassFreqHz = Int($0) })
     }

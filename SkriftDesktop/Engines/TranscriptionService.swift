@@ -59,10 +59,11 @@ actor TranscriptionService: Transcribing {
         try await ensureLoaded()
         guard let asr else { throw ASRError.notInitialized }
 
-        let rms = Self.averageRMS(url: audioURL)
+        let rms = Self.averageRMS(url: audioURL)            // measured on the original
+        let inputURL = Self.preprocessed(audioURL) ?? audioURL   // high-pass + normalize, else original
         let started = Date()
         var state = TdtDecoderState.make()
-        let result = try await asr.transcribe(audioURL, decoderState: &state)
+        let result = try await asr.transcribe(inputURL, decoderState: &state)
         let ms = Int(Date().timeIntervalSince(started) * 1000)
 
         let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -88,6 +89,17 @@ actor TranscriptionService: Transcribing {
         }
         return TranscriptionResult(text: text, confidence: Double(result.confidence),
                                    durationMs: ms, wordTimings: wordTimings, markersInjected: markersInjected)
+    }
+
+    /// High-pass + normalize the original into a 16 kHz mono `processed.wav` next to
+    /// it, per the user's `highpassFreqHz` setting (the afftdn denoiser has no native
+    /// equivalent and was dropped — see A4). Returns nil (→ transcribe the original)
+    /// when the high-pass is off or preprocessing fails.
+    private static func preprocessed(_ original: URL) -> URL? {
+        let hp = SettingsStore.shared.load().highpassFreqHz
+        guard hp > 0 else { return nil }
+        let out = original.deletingLastPathComponent().appendingPathComponent("processed.wav")
+        return AudioPreprocessor.process(input: original, output: out, highpassHz: hp) ? out : nil
     }
 
     /// Mean RMS amplitude across the file (chunked, never fully loaded). Drives the
