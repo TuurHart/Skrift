@@ -8,6 +8,7 @@ struct SidebarView: View {
     @Bindable var model: AppModel
     let files: [PipelineFile]
     @Bindable var coordinator: ProcessingCoordinator
+    var onOpenSettings: () -> Void = {}
     /// Snapshot mode renders the queue without a ScrollView (ImageRenderer can't
     /// lay out scroll contents). The live app keeps `true` for real scrolling.
     var scrollable = true
@@ -95,7 +96,7 @@ struct SidebarView: View {
                         }
                     }
                     .help("Parakeet · Gemma · server healthy")
-                    iconButton("gearshape") { /* Settings — Phase 8 */ }
+                    iconButton("gearshape") { onOpenSettings() }
                 }
             }
 

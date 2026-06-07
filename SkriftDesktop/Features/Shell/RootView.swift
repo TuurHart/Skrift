@@ -7,13 +7,15 @@ struct RootView: View {
     @Environment(\.modelContext) private var ctx
     @State private var model = AppModel()
     @State private var coordinator = ProcessingCoordinator()
+    @State private var settingsOpen = false
     @Query(sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
 
     private var activeFile: PipelineFile? { files.first { $0.id == model.activeID } }
 
     var body: some View {
         HSplitView {
-            SidebarView(model: model, files: files, coordinator: coordinator)
+            SidebarView(model: model, files: files, coordinator: coordinator,
+                        onOpenSettings: { settingsOpen = true })
                 .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
 
             NoteDisplayView(file: activeFile, coordinator: coordinator)
@@ -21,6 +23,9 @@ struct RootView: View {
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(Theme.bg)
+        .sheet(isPresented: $settingsOpen) {
+            SettingsView(onClose: { settingsOpen = false })
+        }
         .task {
             // Real app starts empty; `-demo` populates with sample notes for dev/demo.
             if ProcessInfo.processInfo.arguments.contains("-demo") { DemoSeed.seedIfEmpty(ctx) }
