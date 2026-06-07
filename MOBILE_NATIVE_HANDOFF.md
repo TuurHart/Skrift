@@ -357,9 +357,8 @@ downloaded" for a cached model.
 - **"Transcription a bit weird" after a cold-launch auto-record** (user, 2026-06-08)
   — likely the streaming caption catching up while the model finishes loading
   mid-recording. Investigate the live-caption behavior on a cold auto-start.
-- Re-install the **clean build** to the device (the phone currently runs `build8`
-  which still had the debug `os_log`; the committed code `150fd4f` stripped it —
-  functionally identical, just install next time it's connected).
+- ✅ Clean build re-installed to the device (2026-06-08) — device now runs the
+  committed `150fd4f` (debug `os_log` stripped); installed without launching.
 - Optional polish: `openAppWhenRun` is deprecated on iOS 18 → `supportedModes:
   .foreground` (not a bug; works as-is).
 
