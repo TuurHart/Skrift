@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import os
 
 /// Abstraction over the phone's sync target so the local HTTP+Bonjour server can
 /// later be swapped for CloudKit without touching callers (plan §4 — a separate
@@ -22,6 +23,10 @@ final class LocalHTTPServer: SyncServer {
     private let queue = DispatchQueue(label: "com.skrift.syncserver", attributes: .concurrent)
     private var listener: NWListener?
     private(set) var port: UInt16?
+    /// Request log — visible in Console.app and `log show/stream --predicate
+    /// 'subsystem == "com.skrift.desktop"'`. Lets us confirm the phone↔Mac
+    /// round-trip (which IP hit which path, and the response status).
+    private static let log = Logger(subsystem: "com.skrift.desktop", category: "server")
     /// Hard cap on a single request body so a huge/hostile upload can't grow the
     /// accumulation buffer without bound. Voice memos are a few MB; 256 MB is ample.
     private let maxBodyBytes = 256 << 20
@@ -81,12 +86,14 @@ final class LocalHTTPServer: SyncServer {
             // Content-Length once headers arrive, and as a hard backstop on the
             // accumulated bytes (covers a missing/lying Content-Length).
             if (HTTPParser.declaredContentLength(buf) ?? 0) > self.maxBodyBytes || buf.count > self.maxBodyBytes {
+                Self.log.warning("413 oversized \(buf.count, privacy: .public)B <- \("\(conn.endpoint)", privacy: .public)")
                 self.send(conn, HTTPResponse.status(413, "Upload too large").serialize())
                 return
             }
 
             if let request = HTTPParser.parse(buf) {
                 let response = self.handlers.handle(request)
+                Self.log.info("\(request.method.rawValue, privacy: .public) \(request.path, privacy: .public) <- \("\(conn.endpoint)", privacy: .public) -> \(response.status, privacy: .public) (\(buf.count, privacy: .public)B)")
                 self.send(conn, response.serialize())
             } else if isComplete || error != nil {
                 conn.cancel()
