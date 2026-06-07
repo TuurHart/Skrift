@@ -24,7 +24,7 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 - ☑ **ST8** Per-note "Include audio in export" toggle + export gates on it. (this batch + `33d45b6`)
 
 ## Note review — general
-- ☑ **N1** AVAudioPlayer load moved off-main (switch lag), token-guarded. `d49a856`
+- ☑ **N1** Note-switch lag FIXED (measured): image thumbnails were loaded+decoded synchronously in render() (~600ms/image → 1389ms for a 2-image note). Now loaded off-main via ImageIO + spliced in → render 1ms; thumbnails async ~30ms. (Audio load also off-main, `d49a856`.)
 - ☐ **N2** P3 — Significance editable pre-process. Left as-is (harmless; it persists). Not a clear bug.
 - ☑ **N3** ⋯ menu dismisses on outside-click (native Menu). `5664200`
 - ☑ **N4** ⋯ menu actions wired (retranscribe + per-step redo). `5664200`

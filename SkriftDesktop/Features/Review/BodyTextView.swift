@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import ImageIO
 
 /// Editable note body with live `[[wiki link]]` accent styling AND inline image
 /// thumbnails for `[[img_NNN]]` markers — an NSTextView bridge (SwiftUI's TextEditor
@@ -88,22 +89,57 @@ struct BodyTextView: NSViewRepresentable {
         /// spliced where `[[img_NNN]]` markers resolve to a file, + accent `[[links]]`.
         func render(_ tv: SelfSizingTextView, model: String) {
             let primary = NSColor(Theme.textPrimary)
+            // Synchronous: text + markers-as-text only — instant. Image disk-load +
+            // thumbnailing (measured ~600ms EACH on the main thread, freezing the
+            // note switch) is moved off-main below and spliced in when ready.
             let attributed = NSMutableAttributedString(
                 string: model, attributes: [.font: BodyTextView.bodyFont, .foregroundColor: primary])
-            if let rx = BodyTextView.markerRegex {
-                let ns = model as NSString
-                // Reverse so earlier ranges stay valid as we replace.
-                for m in rx.matches(in: model, range: NSRange(location: 0, length: ns.length)).reversed() {
-                    let num = Int(ns.substring(with: m.range(at: 1))) ?? 0
-                    guard let url = parent.imageURL(num), let img = NSImage(contentsOf: url) else { continue }
-                    let att = ImageMarkerAttachment(imgNumber: num)
-                    att.image = Self.thumbnail(img, maxWidth: 360)
-                    attributed.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
-                }
-            }
             tv.textStorage?.setAttributedString(attributed)
             colorLinks(tv)
             tv.typingAttributes = [.font: BodyTextView.bodyFont, .foregroundColor: primary]
+            loadThumbnails(into: tv, model: model)
+        }
+
+        /// Resolve marker→URL on main (cheap), load + thumbnail OFF-main, then splice
+        /// the thumbnails into the storage on main — only if the note hasn't changed.
+        private func loadThumbnails(into tv: SelfSizingTextView, model: String) {
+            guard let rx = BodyTextView.markerRegex else { return }
+            let ns = model as NSString
+            var jobs: [(num: Int, url: URL)] = []
+            for m in rx.matches(in: model, range: NSRange(location: 0, length: ns.length)) {
+                let num = Int(ns.substring(with: m.range(at: 1))) ?? 0
+                if let url = parent.imageURL(num) { jobs.append((num, url)) }
+            }
+            guard !jobs.isEmpty else { return }
+            Task.detached(priority: .userInitiated) {
+                var thumbs: [Int: NSImage] = [:]
+                for job in jobs where thumbs[job.num] == nil {
+                    if let img = Coordinator.loadThumbnail(url: job.url) { thumbs[job.num] = img }
+                }
+                guard !thumbs.isEmpty else { return }
+                await MainActor.run { [weak self, weak tv] in
+                    guard let self, let tv, self.modelString(tv) == model else { return }   // same note, unedited
+                    self.splice(thumbs, into: tv)
+                }
+            }
+        }
+
+        private func splice(_ thumbs: [Int: NSImage], into tv: SelfSizingTextView) {
+            guard let storage = tv.textStorage, let rx = BodyTextView.markerRegex else { return }
+            let full = storage.string as NSString
+            let sel = tv.selectedRanges
+            storage.beginEditing()
+            for m in rx.matches(in: storage.string, range: NSRange(location: 0, length: full.length)).reversed() {
+                let num = Int(full.substring(with: m.range(at: 1))) ?? 0
+                guard let img = thumbs[num] else { continue }
+                let att = ImageMarkerAttachment(imgNumber: num)
+                att.image = img
+                storage.replaceCharacters(in: m.range, with: NSAttributedString(attachment: att))
+            }
+            storage.endEditing()
+            colorLinks(tv)
+            tv.selectedRanges = sel
+            tv.invalidateIntrinsicContentSize()
         }
 
         /// Reset to primary, then accent the `[[links]]` — in place, so attachments and
@@ -135,17 +171,18 @@ struct BodyTextView: NSViewRepresentable {
             return out
         }
 
-        /// Downscale to a review-friendly width (keeps aspect; never upscales).
-        static func thumbnail(_ image: NSImage, maxWidth: CGFloat) -> NSImage {
-            let size = image.size
-            guard size.width > maxWidth, size.width > 0 else { return image }
-            let newSize = NSSize(width: maxWidth, height: size.height * (maxWidth / size.width))
-            let thumb = NSImage(size: newSize)
-            thumb.lockFocus()
-            image.draw(in: NSRect(origin: .zero, size: newSize),
-                       from: NSRect(origin: .zero, size: size), operation: .copy, fraction: 1)
-            thumb.unlockFocus()
-            return thumb
+        /// Thread-safe downscaled thumbnail via ImageIO — decodes directly at thumbnail
+        /// size, so it's cheap to run OFF the main thread (unlike NSImage
+        /// lockFocus/draw, which forced a full decode on main → the ~600ms/image lag).
+        static func loadThumbnail(url: URL, maxPixel: CGFloat = 720) -> NSImage? {
+            guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+                  let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, [
+                      kCGImageSourceCreateThumbnailFromImageAlways: true,
+                      kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+                      kCGImageSourceCreateThumbnailWithTransform: true,
+                  ] as CFDictionary) else { return nil }
+            // Display at half the pixel size → ~360pt wide, crisp on Retina.
+            return NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width) / 2, height: CGFloat(cg.height) / 2))
         }
     }
 }
