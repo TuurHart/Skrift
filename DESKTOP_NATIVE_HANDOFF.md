@@ -12,10 +12,18 @@
 
 ---
 
-## STATUS — Phases 0–7 GREEN (review UI wired + real run verified); Phase 8 (ingest + Settings + SetupWizard) DONE. Remaining: per-occurrence resolver apply, HF download bar; Phase 9 (parity + retire Electron/Python).
+## STATUS — Phases 0–8 GREEN; HF download bar + follow-ups F1–F6 DONE. Remaining: inline image thumbnails, marker→embed export, live phone↔Mac round-trip; Phase 9 (parity + retire Electron/Python).
+
+Follow-ups this session: F1 phone-`title` extraction (unblocks mobile title), F2 two-Jacks per-occurrence resolver apply, F3 vault audio/image copy on export (VERIFIED on the test vault), F4 Apple-Notes `#` heading title, F5 names CRUD in Settings, F6 NSTextView body editor (live `[[link]]` styling + self-size).
 
 Commits on `desktop-native` (newest first):
 ```
+1a009e0 F6 — NSTextView body editor (live [[link]] styling + self-size)
+632c0b7 F5 — names editing (CRUD) in Settings
+ee59fe1 F3+F4 — vault audio/image copy on export (verified) + Apple-Notes title
+3a1a73c F1+F2 — phone title extraction + per-occurrence resolver apply
+ea43a5d HF model download progress bar
+ce3a705 docs: Phase 8 done (ingest + Settings + SetupWizard)
 95db821 Phase 8 — first-launch SetupWizard
 2b14a06 Phase 8 — Settings panel
 c217f69 Phase 8 — file/folder ingest + drag-drop
