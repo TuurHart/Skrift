@@ -44,9 +44,23 @@ struct NoteBody: View {
     }
 
     private var editor: some View {
-        // NSTextView bridge: self-sizing + live [[link]] accent styling while editing.
-        BodyTextView(text: bodyBinding)
+        // NSTextView bridge: self-sizing + live [[link]] accent styling + inline
+        // image thumbnails for [[img_NNN]] markers while editing.
+        BodyTextView(text: bodyBinding, imageURL: imageURL)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Resolve an `[[img_NNN]]` marker to its captured photo: the Nth entry in the
+    /// file's `image_manifest.json`, under the working folder's `images/`.
+    private func imageURL(_ num: Int) -> URL? {
+        guard !file.path.isEmpty else { return nil }
+        let folder = URL(fileURLWithPath: file.path).deletingLastPathComponent()
+        guard let data = try? Data(contentsOf: folder.appendingPathComponent("image_manifest.json")),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+              num >= 1, num <= arr.count,
+              let filename = arr[num - 1]["filename"] as? String else { return nil }
+        let url = folder.appendingPathComponent("images").appendingPathComponent(filename)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
     private var karaoke: some View {
