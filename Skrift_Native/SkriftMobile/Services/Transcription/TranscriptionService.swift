@@ -76,7 +76,7 @@ actor TranscriptionService: Transcriber {
             return
         }
         let task = Task<Void, Error> {
-            await MainActor.run { ModelLoadStatus.shared.loading = true }
+            await MainActor.run { ModelLoadStatus.shared.set(.preparing(nil)) }
             let mlConfig = MLModelConfiguration()
             let useANE = UserDefaults.standard.object(forKey: "useANE") as? Bool ?? true
             mlConfig.computeUnits = useANE ? .cpuAndNeuralEngine : .cpuOnly
@@ -88,8 +88,10 @@ actor TranscriptionService: Transcriber {
                 progressHandler: { progress in
                     Task { @MainActor in
                         switch progress.phase {
-                        case .downloading: ModelLoadStatus.shared.downloadProgress = progress.fractionCompleted
-                        default: ModelLoadStatus.shared.downloadProgress = nil
+                        case .downloading: ModelLoadStatus.shared.set(.downloading(progress.fractionCompleted))
+                        // .compiling / .listing — surface as "Preparing N%" so the
+                        // slow cold CoreML compile shows progress, not a frozen label.
+                        default: ModelLoadStatus.shared.set(.preparing(progress.fractionCompleted))
                         }
                     }
                 }
@@ -98,11 +100,7 @@ actor TranscriptionService: Transcriber {
             try await manager.loadModels(loaded)
             self.models = loaded
             self.asr = manager
-            await MainActor.run {
-                ModelLoadStatus.shared.ready = true
-                ModelLoadStatus.shared.loading = false
-                ModelLoadStatus.shared.downloadProgress = nil
-            }
+            await MainActor.run { ModelLoadStatus.shared.set(.ready) }
         }
         loadTask = task
         do {
@@ -110,7 +108,7 @@ actor TranscriptionService: Transcriber {
             loadTask = nil
         } catch {
             loadTask = nil
-            await MainActor.run { ModelLoadStatus.shared.loading = false; ModelLoadStatus.shared.downloadProgress = nil }
+            await MainActor.run { ModelLoadStatus.shared.set(.failed) }
             throw error
         }
     }
@@ -123,7 +121,11 @@ actor TranscriptionService: Transcriber {
         let manager = asr
         asr = nil
         models = nil
-        Task { @MainActor in ModelLoadStatus.shared.ready = false }
+        // Memory-pressure unload: the model is still cached on disk, so reflect
+        // "will reload" rather than a false "not downloaded".
+        Task { @MainActor in
+            ModelLoadStatus.shared.set(ModelLoadStatus.shared.everDownloaded ? .preparing(nil) : .idle)
+        }
         Task { await manager?.cleanup() }
     }
 

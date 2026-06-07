@@ -43,16 +43,15 @@ struct RecordView: View {
             }
         }
         .animation(Theme.Motion.spring, value: showCamera)
-        .onAppear {
-            camera.configure()
-            // Cold launch (Record intent / widget / deep link): defer the auto-start
-            // a beat so the cover has finished presenting and the audio session is
-            // ready before we activate it — firing in onAppear raced and no-op'd.
-            if autoStart, !service.isRecording {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    if !service.isRecording { startTapped() }
-                }
-            }
+        .onAppear { camera.configure() }
+        // Cold launch (Record intent / widget / deep link): auto-start via
+        // `.task(id:)`, which runs against the LIVE @StateObject — a deferred
+        // onAppear closure captured a stale `self` whose `service` wasn't the
+        // installed instance, so `start()` flipped a throwaway object and the UI
+        // stayed on "Ready". `.task(id:)` fires once the view graph is settled.
+        .task(id: autoStart) {
+            guard autoStart, !service.isRecording else { return }
+            startTapped()
         }
         .onDisappear { camera.stop() }
         .onChange(of: intentBridge.stopRequestID) {
@@ -258,13 +257,26 @@ struct RecordView: View {
     // MARK: - Model status (live)
 
     private var statusText: String {
-        if let p = modelStatus.downloadProgress { return "Downloading model · \(Int(p * 100))%" }
-        if modelStatus.ready { return "On-device transcription · ready" }
-        if modelStatus.loading { return "Preparing model…" }
-        return "Transcription model not downloaded"
+        switch modelStatus.phase {
+        case .downloading(let p): return "Downloading model · \(Int(p * 100))%"
+        case .preparing(let p?):  return "Preparing model · \(Int(p * 100))%"
+        case .preparing(nil):     return "Preparing model…"
+        case .ready:              return "On-device transcription · ready"
+        case .failed:             return "Couldn’t load model"
+        case .idle:
+            // Once cached, never claim "not downloaded" — the preload is bringing
+            // it back from disk (a fast reload, not a re-download).
+            return modelStatus.everDownloaded ? "Preparing model…" : "Transcription model not downloaded"
+        }
     }
 
-    private var statusColor: Color { modelStatus.ready ? .skGreen : .skAmber }
+    private var statusColor: Color {
+        switch modelStatus.phase {
+        case .ready:  return .skGreen
+        case .failed: return .skRed
+        default:      return .skAmber
+        }
+    }
 
     // MARK: - Context chips
 
