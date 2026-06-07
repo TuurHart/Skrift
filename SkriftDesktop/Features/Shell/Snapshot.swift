@@ -12,6 +12,9 @@ enum Snapshot {
         if let i = args.firstIndex(of: "-snapshot-settings"), i + 1 < args.count {
             MainActor.assumeIsolated { renderSettings(to: args[i + 1]); exit(0) }
         }
+        if let i = args.firstIndex(of: "-snapshot-wizard"), i + 1 < args.count {
+            MainActor.assumeIsolated { renderWizard(to: args[i + 1]); exit(0) }
+        }
         guard let i = args.firstIndex(of: "-snapshot"), i + 1 < args.count else { return }
         MainActor.assumeIsolated { renderReview(to: args[i + 1]); exit(0) }
     }
@@ -35,6 +38,14 @@ enum Snapshot {
 
     @MainActor private static func renderSettings(to path: String) {
         let view = SettingsView(interactive: false)   // sizes to full content (no 660 cap)
+            .background(Theme.bg)
+            .environment(\.colorScheme, .dark)
+        writePNG(view, to: path)
+    }
+
+    @MainActor private static func renderWizard(to path: String) {
+        let view = SetupWizardView(interactive: false)
+            .frame(width: 900, height: 620)
             .background(Theme.bg)
             .environment(\.colorScheme, .dark)
         writePNG(view, to: path)

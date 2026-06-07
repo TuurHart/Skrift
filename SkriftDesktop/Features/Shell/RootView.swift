@@ -8,6 +8,7 @@ struct RootView: View {
     @State private var model = AppModel()
     @State private var coordinator = ProcessingCoordinator()
     @State private var settingsOpen = false
+    @State private var showWizard = false
     @Query(sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
 
     private var activeFile: PipelineFile? { files.first { $0.id == model.activeID } }
@@ -26,9 +27,20 @@ struct RootView: View {
         .sheet(isPresented: $settingsOpen) {
             SettingsView(onClose: { settingsOpen = false })
         }
+        .overlay {
+            if showWizard {
+                SetupWizardView(onDone: { showWizard = false })
+                    .transition(.opacity)
+            }
+        }
         .task {
             // Real app starts empty; `-demo` populates with sample notes for dev/demo.
-            if ProcessInfo.processInfo.arguments.contains("-demo") { DemoSeed.seedIfEmpty(ctx) }
+            if ProcessInfo.processInfo.arguments.contains("-demo") {
+                DemoSeed.seedIfEmpty(ctx)
+            } else {
+                let s = SettingsStore.shared.load()
+                if s.authorName.isEmpty && s.noteFolder.isEmpty { showWizard = true }
+            }
         }
         .onChange(of: files.count, initial: true) { _, _ in ensureSelection() }
     }
