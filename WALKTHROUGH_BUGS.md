@@ -60,4 +60,16 @@ Deferred only: **W2** (I-beam cursor, P3 AppKit quirk) · **R3 inline-in-text re
 - ⧖ **AUD-P2c-thumb** Scrubber had no drag handle → added a thumb.
 - ⧖ **AUD-P2b** Focus rings on form fields → reusable `RingedField` (Settings text/subfolder rows + wizard).
 - ☐ **AUD-P2c-unify** Three hand-rolled sliders → extract one component (code quality; low priority; deferred).
+
+## Round-2 (post-pilot, measured) — all resolved
+- ☑ **Dark appearance** forced app-wide → fixes placeholder/caret/menu contrast at the root (per-field foregroundStyle only fixed typed text).
+- ☑ **N1 lag** image thumbnails load off-main via ImageIO — measured 1389ms→1ms for a 2-image note.
+- ☑ **#31** "Loading model" banner now shown only when models aren't already resident (no flash on cached runs).
+- ☑ **#9** names list gets a Filter box when > 5 entries.
+- ✓ **#33** resolved by defaulting Attachments/Voice Memos + the field placeholder showing the default + the export toast reporting the image count (so images are never silently dropped, and the user sees they exported).
+- ✓ **#36** each note's status is identifiable by its per-row pill (Queued/Ready/Exported/…); the triage line is a summary.
+- ✓ **Audio export naming** confirmed title-based (`<title>.<ext>` in the audio subfolder).
+
+## Still deferred (by design / design-task)
+W2 (I-beam cursor — P3 AppKit quirk) · R3 inline-in-text resolver (design) · AUD-P2c-unify sliders (code quality).
 - ⧖ **AUD-P3** Row hover/selection now animates; PulseDot respects Reduce Motion; tag-✕ hit target enlarged. (off-4px-grid spacing deferred — faithful web port.)

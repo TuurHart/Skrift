@@ -13,6 +13,7 @@ struct SettingsView: View {
     @State private var people: [Person] = NamesStore.shared.livePeople()
     @State private var editablePeople: [EditablePerson] = []
     @State private var namesDirty = false
+    @State private var nameQuery = ""
 
     /// Stable-identity editor row (Person has no id; its canonical changes mid-edit).
     struct EditablePerson: Identifiable {
@@ -28,6 +29,9 @@ struct SettingsView: View {
             lastModifiedAt = p.lastModifiedAt
         }
         init() { canonical = ""; aliases = ""; short = ""; lastModifiedAt = "" }
+        func matches(_ q: String) -> Bool {
+            canonical.localizedCaseInsensitiveContains(q) || aliases.localizedCaseInsensitiveContains(q)
+        }
     }
 
     var body: some View {
@@ -74,7 +78,14 @@ struct SettingsView: View {
                     Text("Aliases (comma-separated) are the spoken nicknames that link to a person; the full name becomes the [[link]].")
                         .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                         .fixedSize(horizontal: false, vertical: true)
-                    ForEach($editablePeople) { $ep in nameEditRow($ep) }
+                    if editablePeople.count > 5 {
+                        RingedField(placeholder: "Filter names…", text: $nameQuery)
+                    }
+                    ForEach($editablePeople) { $ep in
+                        if nameQuery.isEmpty || ep.matches(nameQuery) {
+                            nameEditRow($ep)
+                        }
+                    }
                     HStack {
                         Button { editablePeople.append(EditablePerson()); namesDirty = true } label: {
                             Label("Add person", systemImage: "plus")

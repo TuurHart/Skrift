@@ -116,24 +116,26 @@ final class ProcessingCoordinator {
             let needsAudio = targets.contains {
                 $0.sourceType != .note && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
             }
+            // Show the load banner only when the models aren't already resident —
+            // ensureLoaded is a no-op when cached, so a "Loading…" flash on every run
+            // was misleading (#31).
+            let showLoad = !modelsLoaded
             do {
                 if needsAudio {
-                    runState?.loadingLabel = "transcription model"
+                    if showLoad { runState?.loadingLabel = "transcription model" }
                     try await TranscriptionService.shared.ensureLoaded { f in
-                        Task { @MainActor in self.runState?.loadingFraction = f }
+                        Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
                     }
                 }
-                runState?.loadingLabel = "enhancement model"
-                runState?.loadingFraction = nil
+                if showLoad { runState?.loadingLabel = "enhancement model"; runState?.loadingFraction = nil }
                 try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
-                    Task { @MainActor in self.runState?.loadingFraction = f }
+                    Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
                 }
             } catch {
                 lastError = "Model load failed: \(error.localizedDescription)"
                 return   // defer resets isRunning + runState
             }
-            runState?.loadingLabel = nil
-            runState?.loadingFraction = nil
+            if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
         }
         modelsLoaded = true
 
@@ -260,15 +262,16 @@ final class ProcessingCoordinator {
         let settings = SettingsStore.shared.load()
         let repo = settings.enhancementModelRepo
         if !stubbedEngines {
-            runState?.loadingLabel = "enhancement model"
+            let showLoad = !modelsLoaded
+            if showLoad { runState?.loadingLabel = "enhancement model" }
             do {
                 try await EnhancementService.shared.ensureLoaded(modelRepo: repo) { f in
-                    Task { @MainActor in self.runState?.loadingFraction = f }
+                    Task { @MainActor in if showLoad { self.runState?.loadingFraction = f } }
                 }
             } catch {
                 lastError = "Model load failed: \(error.localizedDescription)"; return
             }
-            runState?.loadingLabel = nil; runState?.loadingFraction = nil
+            if showLoad { runState?.loadingLabel = nil; runState?.loadingFraction = nil }
         }
         modelsLoaded = true
 
