@@ -22,6 +22,9 @@ final class LocalHTTPServer: SyncServer {
     private let queue = DispatchQueue(label: "com.skrift.syncserver", attributes: .concurrent)
     private var listener: NWListener?
     private(set) var port: UInt16?
+    /// Hard cap on a single request body so a huge/hostile upload can't grow the
+    /// accumulation buffer without bound. Voice memos are a few MB; 256 MB is ample.
+    private let maxBodyBytes = 256 << 20
 
     init(
         handlers: SyncHandlers,
@@ -73,6 +76,14 @@ final class LocalHTTPServer: SyncServer {
             guard let self else { conn.cancel(); return }
             var buf = buffer
             if let chunk, !chunk.isEmpty { buf.append(chunk) }
+
+            // Reject an oversized body before buffering it all: by the declared
+            // Content-Length once headers arrive, and as a hard backstop on the
+            // accumulated bytes (covers a missing/lying Content-Length).
+            if (HTTPParser.declaredContentLength(buf) ?? 0) > self.maxBodyBytes || buf.count > self.maxBodyBytes {
+                self.send(conn, HTTPResponse.status(413, "Upload too large").serialize())
+                return
+            }
 
             if let request = HTTPParser.parse(buf) {
                 let response = self.handlers.handle(request)

@@ -60,6 +60,7 @@ struct HTTPResponse: Sendable {
         case 400: return "Bad Request"
         case 404: return "Not Found"
         case 405: return "Method Not Allowed"
+        case 413: return "Payload Too Large"
         case 500: return "Internal Server Error"
         default:  return "Status \(code)"
         }
@@ -80,6 +81,25 @@ struct HTTPResponse: Sendable {
 }
 
 enum HTTPParser {
+    /// Peek the declared `Content-Length` once the header block (`\r\n\r\n`) has
+    /// fully arrived, so the transport can reject an oversized body BEFORE buffering
+    /// all of it in RAM. Returns nil while headers are still incomplete; 0 when the
+    /// headers are complete but carry no Content-Length.
+    static func declaredContentLength(_ data: Data) -> Int? {
+        let sep = Data("\r\n\r\n".utf8)
+        guard let headerEnd = data.range(of: sep) else { return nil }
+        let headerData = data.subdata(in: data.startIndex..<headerEnd.lowerBound)
+        guard let headerText = String(data: headerData, encoding: .utf8) else { return nil }
+        for line in headerText.components(separatedBy: "\r\n") {
+            guard let colon = line.firstIndex(of: ":") else { continue }
+            let key = line[line.startIndex..<colon].trimmingCharacters(in: .whitespaces).lowercased()
+            if key == "content-length" {
+                return Int(line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)) ?? 0
+            }
+        }
+        return 0
+    }
+
     /// Parse a full request from accumulated bytes. Returns nil when the header
     /// block or the Content-Length body hasn't fully arrived yet (caller keeps
     /// reading). Only Content-Length bodies are supported (URLSession sends them).

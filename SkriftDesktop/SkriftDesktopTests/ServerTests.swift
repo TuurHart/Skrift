@@ -11,6 +11,16 @@ final class HTTPParserTests: XCTestCase {
         XCTAssertEqual(req?.query["since"], "5")
     }
 
+    func testDeclaredContentLengthPeek() {
+        // Headers not yet complete → nil (transport keeps reading before deciding).
+        XCTAssertNil(HTTPParser.declaredContentLength(Data("POST /x HTTP/1.1\r\nContent-Length: 5".utf8)))
+        // Complete headers with Content-Length → that value (lets the server reject
+        // an oversized body before buffering it all).
+        XCTAssertEqual(HTTPParser.declaredContentLength(Data("POST /x HTTP/1.1\r\nContent-Length: 1048576\r\n\r\n".utf8)), 1_048_576)
+        // Complete headers, no Content-Length → 0.
+        XCTAssertEqual(HTTPParser.declaredContentLength(Data("GET /x HTTP/1.1\r\nHost: a\r\n\r\n".utf8)), 0)
+    }
+
     func testParsePUTBodyAndIncomplete() {
         let body = #"{"hi":1}"#
         let head = "PUT /api/names HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: \(body.utf8.count)\r\n\r\n"
