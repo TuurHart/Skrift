@@ -20,12 +20,7 @@ struct PairMacView: View {
                         discoveredRow(mac)
                         Divider().overlay(Color.skBorder)
                     }
-                    HStack(spacing: 11) {
-                        ProgressView().controlSize(.small).tint(.skAccent)
-                        Text("Looking for more Macs…").font(.system(size: 13)).foregroundStyle(Color.skTextDim)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 14).padding(.vertical, 13)
+                    discoveryStatusRow
                 }
 
                 SectionLabel("MANUALLY").padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 8)
@@ -64,6 +59,33 @@ struct PairMacView: View {
         .onDisappear { discovery.stop() }
     }
 
+    /// While discovery is live: the spinner. Once it settles (or finds nothing):
+    /// a "Search again" button so the user isn't staring at a perpetual spinner.
+    @ViewBuilder private var discoveryStatusRow: some View {
+        if discovery.searching {
+            HStack(spacing: 11) {
+                ProgressView().controlSize(.small).tint(.skAccent)
+                Text("Looking for more Macs…").font(.system(size: 13)).foregroundStyle(Color.skTextDim)
+                Spacer()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 13)
+            .accessibilityIdentifier("discovery-searching")
+        } else {
+            Button(action: { discovery.restart() }) {
+                HStack(spacing: 11) {
+                    Image(systemName: "arrow.clockwise").font(.system(size: 13)).foregroundStyle(Color.skAccent)
+                    Text(discovery.macs.isEmpty ? "No Macs found · Search again" : "Search again")
+                        .font(.system(size: 13)).foregroundStyle(Color.skAccent)
+                    Spacer()
+                }
+                .padding(.horizontal, 14).padding(.vertical, 13)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("discovery-search-again")
+        }
+    }
+
     @ViewBuilder private func groupCard<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         VStack(spacing: 0) { content() }
             .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.group, style: .continuous))
@@ -80,7 +102,13 @@ struct PairMacView: View {
                 .background(isConnected(mac) ? Color.skAccentSoft : Color.skElev, in: .rect(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text(mac.name).font(.system(size: 15)).foregroundStyle(Color.skText)
-                if let host = mac.host { Text("\(host) · \(mac.port ?? 8000)").font(.system(size: 12.5)).foregroundStyle(Color.skTextFaint) }
+                if let host = mac.host {
+                    // verbatim: a port is a bare number — LocalizedStringKey would
+                    // group it with the locale separator (e.g. "8.000" on nl_NL).
+                    Text(verbatim: "\(host) · \(mac.port ?? 8000)").font(.system(size: 12.5)).foregroundStyle(Color.skTextFaint)
+                } else {
+                    Text("resolving…").font(.system(size: 12.5)).foregroundStyle(Color.skTextFaint)
+                }
             }
             Spacer()
             if isConnected(mac) {
