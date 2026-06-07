@@ -20,6 +20,7 @@ struct SkriftDesktopApp: App {
     init() {
         #if DEBUG
         Snapshot.renderIfRequested()
+        RunFile.runAudioDateProbeIfRequested()
         RunFile.runIfRequested()
         #endif
         // The app is dark-only (Theme tokens). Force dark appearance so EVERY

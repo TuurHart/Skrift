@@ -101,6 +101,20 @@ final class IngestServiceTests: XCTestCase {
         XCTAssertTrue(created.contains { $0.filename == "New Recording 22.m4a" })
     }
 
+    func testDateFromFilename() {
+        func ymd(_ d: Date?) -> [Int]? {
+            guard let d else { return nil }
+            let c = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: d)
+            return [c.year!, c.month!, c.day!, c.hour!, c.minute!, c.second!]
+        }
+        XCTAssertEqual(ymd(IngestService.dateFromFilename("WhatsApp Audio 2025-12-18 at 18.30.44.mp3")), [2025, 12, 18, 18, 30, 44])
+        XCTAssertEqual(ymd(IngestService.dateFromFilename("signal-2026-04-13-18-15-24-552.m4a")), [2026, 4, 13, 18, 15, 24])
+        XCTAssertEqual(ymd(IngestService.dateFromFilename("AUDIO-2026-03-07-19-30-08.m4a")), [2026, 3, 7, 19, 30, 8])
+        XCTAssertEqual(ymd(IngestService.dateFromFilename("Memo 2024-01-09.m4a"))?.prefix(3).map { $0 }, [2024, 1, 9])  // date only → noon
+        XCTAssertNil(IngestService.dateFromFilename("New Recording 22.m4a"))           // no date
+        XCTAssertNil(IngestService.dateFromFilename("Rua 7 de Junho de 1759 3.m4a"))   // street number, not a date
+    }
+
     func testSanitizeTitle() {
         XCTAssertEqual(IngestService.sanitizeTitle("a/b:c"), "a-b-c")        // illegal → "-"
         XCTAssertEqual(IngestService.sanitizeTitle("  hi  there  "), "hi there")  // whitespace collapsed + trimmed

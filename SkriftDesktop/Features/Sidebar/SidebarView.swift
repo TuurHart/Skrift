@@ -69,9 +69,40 @@ struct SidebarView: View {
                 model.activeID = first.id
                 model.selection = [first.id]
             }
+            // Backfill the real RECORDING date from the audio's embedded metadata —
+            // the filesystem date is the import/copy date, not when it was recorded.
+            // (Async; survives copies because the date lives inside the m4a.)
+            let audio = created.filter { $0.sourceType == .audio }
+            if !audio.isEmpty {
+                Task { @MainActor in
+                    for pf in audio {
+                        if let d = await AudioMetadata.recordingDate(of: URL(fileURLWithPath: pf.path)) {
+                            pf.uploadedAt = d
+                        }
+                    }
+                    try? ctx.save()
+                }
+            }
         } catch {
             coordinator.lastError = "Import failed: \(error.localizedDescription)"
         }
+    }
+
+    /// Delete notes: remove the SwiftData record AND move the on-disk working folder
+    /// to the Trash (recoverable) — so deleting in-app actually frees the disk too.
+    /// Safety: only trashes a per-file working folder inside the output dir.
+    private func deleteFiles(_ targets: [PipelineFile]) {
+        let outRoot = AppPaths.audioOutputDirectory.standardizedFileURL.path
+        for f in targets {
+            if !f.path.isEmpty {
+                let folder = URL(fileURLWithPath: f.path).deletingLastPathComponent()
+                if folder.standardizedFileURL.path.hasPrefix(outRoot), folder.lastPathComponent.contains("_") {
+                    try? FileManager.default.trashItem(at: folder, resultingItemURL: nil)
+                }
+            }
+            ctx.delete(f)
+        }
+        try? ctx.save()
     }
 
     // ── Header ──────────────────────────────────────────────
@@ -351,8 +382,7 @@ struct SidebarView: View {
 
     private func deleteSelected() {
         let ids = model.selection
-        for f in files where ids.contains(f.id) { ctx.delete(f) }
-        try? ctx.save()
+        deleteFiles(files.filter { ids.contains($0.id) })
         model.selection.removeAll()
     }
 
@@ -379,8 +409,7 @@ struct SidebarView: View {
             }
             Divider()
             Button("Delete \(targets.count)", role: .destructive) {
-                for t in targets { ctx.delete(t) }
-                try? ctx.save(); model.selection.removeAll()
+                deleteFiles(targets); model.selection.removeAll()
             }
         } else {
             if coordinator.needsProcessing(f) {
@@ -407,7 +436,7 @@ struct SidebarView: View {
                 Button("Markdown") { copyText(f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName)) }
             }
             Divider()
-            Button("Delete", role: .destructive) { ctx.delete(f); try? ctx.save() }
+            Button("Delete", role: .destructive) { deleteFiles([f]) }
         }
     }
 

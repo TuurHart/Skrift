@@ -11,6 +11,20 @@ import Foundation
 /// We schedule a detached Task, let `init` return so the run loop spins, and
 /// `exit(0)` when finished.
 enum RunFile {
+    /// `-audiodate <path>` → print the embedded recording date AudioMetadata reads
+    /// (verifies the date-backfill works before relying on it). DEBUG only.
+    nonisolated static func runAudioDateProbeIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-audiodate"), i + 1 < args.count else { return }
+        let path = args[i + 1]
+        Task.detached(priority: .userInitiated) {
+            let d = await AudioMetadata.recordingDate(of: URL(fileURLWithPath: path))
+            let out = d.map { ISO8601DateFormatter().string(from: $0) } ?? "nil"
+            FileHandle.standardError.write(Data("AUDIODATE \(path) -> \(out)\n".utf8))
+            exit(0)
+        }
+    }
+
     nonisolated static func runIfRequested() {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-runfile"), i + 1 < args.count else { return }

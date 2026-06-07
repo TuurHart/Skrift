@@ -75,6 +75,11 @@ All cleared. **R3 inline resolver** (banner-asks + auto-apply), **N6/N7** audio 
 - ✓ **#36** each note's status is identifiable by its per-row pill (Queued/Ready/Exported/…); the triage line is a summary.
 - ✓ **Audio export naming** confirmed title-based (`<title>.<ext>` in the audio subfolder).
 
+## Port / ingest (porting old Electron notes)
+- ☑ **P1** Folder drop now ingests **audio** too (was `.md`-only) → drag a folder of recordings in.
+- ☑ **P2** Memo date = the **recording date**, not the import date. Source priority: embedded m4a `creation_time` (AVAsset, app backfill — survives copies; verified `-audiodate` reads `2026-05-01T14:13:06Z`) → date in the filename (WhatsApp/Signal/recorder names, `IngestService.dateFromFilename`) → source file creation date → now.
+- ☑ **P3** In-app **Delete now removes the on-disk working folder** (moves it to Trash, recoverable) — it used to only drop the SwiftData record, orphaning `<uuid>_<name>/` on disk. (All 3 delete sites route through `deleteFiles`.)
+
 ## Still deferred (by design / design-task)
 Nothing — W2, R3, and AUD-P2c are all done. (New round of walkthrough findings: N6 audio player, N7 karaoke reflow+seek, C2 breadcrumb — all fixed this session.)
 - ⧖ **AUD-P3** Row hover/selection now animates; PulseDot respects Reduce Motion; tag-✕ hit target enlarged. (off-4px-grid spacing deferred — faithful web port.)

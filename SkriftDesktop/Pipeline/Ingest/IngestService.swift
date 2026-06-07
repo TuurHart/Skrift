@@ -45,7 +45,15 @@ struct IngestService: Sendable {
         let dest = folder.appendingPathComponent("original.\(ext)")
         try FileManager.default.copyItem(at: url, to: dest)
         let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
-        let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size, sourceType: .audio)
+        // Baseline date: a date in the filename (WhatsApp/Signal/recorder names),
+        // else the source file's creation date (right for fresh memos), else now. The
+        // app then backfills the EMBEDDED recording date (AudioMetadata) when present,
+        // which is correct even for copied/ported Apple recordings.
+        let recorded = Self.dateFromFilename(filename)
+            ?? (try? url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
+            ?? Date()
+        let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
+                              sourceType: .audio, uploadedAt: recorded)
         context.insert(pf)
         return pf
     }
@@ -81,6 +89,23 @@ struct IngestService: Sendable {
         pf.enhancedTitle = title
         context.insert(pf)
         return pf
+    }
+
+    /// Best-effort recording date parsed from common messaging/recorder filenames,
+    /// e.g. "WhatsApp Audio 2025-12-18 at 18.30.44", "signal-2026-04-13-18-15-24-552",
+    /// "AUDIO-2026-03-07-19-30-08". Local time; time defaults to noon if absent. nil
+    /// when no `YYYY-MM-DD` is present (so a plain "New Recording 22" falls through).
+    static func dateFromFilename(_ name: String) -> Date? {
+        guard let rx = try? NSRegularExpression(
+            pattern: #"(\d{4})-(\d{2})-(\d{2})(?:[ _\-]?(?:at )?(\d{2})[.\-:](\d{2})[.\-:](\d{2}))?"#) else { return nil }
+        let ns = name as NSString
+        guard let m = rx.firstMatch(in: name, range: NSRange(location: 0, length: ns.length)) else { return nil }
+        func g(_ i: Int) -> Int? { let r = m.range(at: i); return r.location == NSNotFound ? nil : Int(ns.substring(with: r)) }
+        guard let y = g(1), let mo = g(2), let d = g(3), (1...12).contains(mo), (1...31).contains(d) else { return nil }
+        var c = DateComponents()
+        c.year = y; c.month = mo; c.day = d
+        c.hour = g(4) ?? 12; c.minute = g(5) ?? 0; c.second = g(6) ?? 0
+        return Calendar.current.date(from: c)
     }
 
     /// Filename-safe title: illegal chars → "-", whitespace collapsed, edges trimmed.
