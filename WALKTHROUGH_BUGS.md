@@ -29,6 +29,7 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 - ☑ **N3** ⋯ menu dismisses on outside-click (native Menu). `5664200`
 - ☑ **N4** ⋯ menu actions wired (retranscribe + per-step redo). `5664200`
 - ☑ **N5** Export shows a transient confirmation toast. (this batch)
+- ☑ **N6** Audio player + karaoke missing for locally-ingested audio (e.g. "Hotel Du Vin"). Root cause: `durationSeconds` read ONLY phone-metadata `duration`, so any non-phone audio had `durationSeconds==0` → `showsTransport` false → whole transport hidden → karaoke unreachable. Fix: `AudioController` now exposes the real loaded `duration`; `showsTransport` shows whenever a real audio file exists on disk; toolbar + karaoke use the player's real duration (metadata is just a pre-load label hint). word_timings are persisted (A.2) so karaoke tracks speech; falls back to proportional. (this batch)
 
 ## Title chooser
 - ☑ **T1** Explicit `selectedTitle` state — no more flip/discard on edit. `d49a856`

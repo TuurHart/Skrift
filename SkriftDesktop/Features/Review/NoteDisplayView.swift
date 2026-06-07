@@ -172,8 +172,12 @@ struct NoteDisplayView: View {
         Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5)
     }
 
-    /// Audio transport only for transcribed audio/capture with a duration (not Apple notes).
+    /// Audio transport for any non-note source with playable audio — a real file on
+    /// disk (locally-ingested memos have no phone-metadata duration; the player reads
+    /// the real one) OR a metadata duration (demo notes without a backing file).
     private func showsTransport(_ file: PipelineFile) -> Bool {
-        file.sourceType != .note && file.durationSeconds > 0
+        guard file.sourceType != .note else { return false }
+        if file.durationSeconds > 0 { return true }
+        return !file.path.isEmpty && FileManager.default.fileExists(atPath: file.path)
     }
 }

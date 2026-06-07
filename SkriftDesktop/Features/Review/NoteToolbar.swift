@@ -5,10 +5,15 @@ import SwiftUI
 /// the file metadata so it shows even before the audio file loads.
 struct NoteToolbar: View {
     @Bindable var audio: AudioController
+    /// Phone-metadata duration hint; the loaded file's real duration wins once known.
     let durationSeconds: Double
 
+    /// Real loaded duration when available, else the metadata hint (so the label reads
+    /// something before the file loads).
+    private var total: Double { audio.duration > 0 ? audio.duration : durationSeconds }
+
     private var progress: Double {
-        durationSeconds > 0 ? min(1, max(0, audio.currentTime / durationSeconds)) : 0
+        total > 0 ? min(1, max(0, audio.currentTime / total)) : 0
     }
 
     var body: some View {
@@ -31,7 +36,7 @@ struct NoteToolbar: View {
                     .font(.system(size: 11.5, design: .monospaced))
                     .foregroundStyle(Theme.textSecondary)
                 scrubber
-                Text(SkriftFormat.clock(durationSeconds))
+                Text(SkriftFormat.clock(total))
                     .font(.system(size: 11.5, design: .monospaced))
                     .foregroundStyle(Theme.textSecondary)
             }
@@ -62,7 +67,7 @@ struct NoteToolbar: View {
             .gesture(
                 DragGesture(minimumDistance: 0).onChanged { v in
                     let p = min(1, max(0, v.location.x / geo.size.width))
-                    audio.seek(to: p * durationSeconds)
+                    audio.seek(to: p * total)
                 }
             )
         }

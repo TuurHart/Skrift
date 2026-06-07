@@ -10,6 +10,10 @@ final class AudioController {
     var isPlaying = false
     var currentTime: Double = 0
     var rate: Float = 1
+    /// Real duration of the loaded file (0 until it loads). Phone-metadata duration
+    /// is only a label hint before load — locally-ingested audio has no metadata, so
+    /// the transport gate + karaoke rely on this.
+    var duration: Double = 0
 
     private var player: AVAudioPlayer?
     private var ticker: Timer?
@@ -23,6 +27,7 @@ final class AudioController {
         stop()
         player = nil
         currentTime = 0
+        duration = 0
         loadToken += 1
         let token = loadToken
         guard !path.isEmpty, FileManager.default.fileExists(atPath: path) else { return }
@@ -39,6 +44,7 @@ final class AudioController {
                 guard let self, self.loadToken == token else { return }
                 p.rate = wantRate
                 self.player = p
+                self.duration = p.duration
             }
         }
     }

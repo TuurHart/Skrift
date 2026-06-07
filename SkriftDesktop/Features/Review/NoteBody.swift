@@ -21,10 +21,13 @@ struct NoteBody: View {
     private static let bodyFont = Font.system(size: 16)
     private static let bodyLineSpacing: CGFloat = 6
 
-    /// Phone metadata duration, falling back to the last word-timing's end (so
-    /// Mac-ingested audio without phone metadata still karaokes).
+    /// The real loaded duration when available (locally-ingested audio has no phone
+    /// metadata), then the metadata hint, then the last word-timing's end — so karaoke
+    /// activates for any playable note, not just phone memos.
     private var effectiveDuration: Double {
-        file.durationSeconds > 0 ? file.durationSeconds : (file.wordTimings.last?.end ?? 0)
+        if audio.duration > 0 { return audio.duration }
+        if file.durationSeconds > 0 { return file.durationSeconds }
+        return file.wordTimings.last?.end ?? 0
     }
 
     private var karaokeActive: Bool {
