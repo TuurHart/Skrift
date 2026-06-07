@@ -26,6 +26,9 @@ struct SkriftApp: App {
                 .preferredColorScheme(colorScheme)
                 .tint(.skAccent)
                 .onOpenURL { AppURLHandler.handle($0) }
+                // Clear any Live Activity orphaned by a kill mid-recording (iOS
+                // keeps the banner alive after the process dies).
+                .task { RecordingActivityManager.shared.reapOrphans() }
         }
     }
 

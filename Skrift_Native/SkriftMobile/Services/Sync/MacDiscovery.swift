@@ -150,24 +150,35 @@ final class MacDiscovery: ObservableObject {
                 ip.version = .v4
             }
             let connection = NWConnection(to: endpoint, using: params)
+            // Serialize the state callback + the timeout on one queue so `resumed`
+            // is race-free; resume at most once, then cancel the connection.
+            let queue = DispatchQueue(label: "skrift.resolve")
             var resumed = false
+            func finish(_ result: MacConnection?) {
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(returning: result)
+                connection.cancel()
+            }
             connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
                     if case let .hostPort(host, port)? = connection.currentPath?.remoteEndpoint {
                         let hostString = "\(host)".components(separatedBy: "%").first ?? "\(host)"
-                        if !resumed { resumed = true; continuation.resume(returning: MacConnection(host: hostString, port: Int(port.rawValue))) }
-                    } else if !resumed {
-                        resumed = true; continuation.resume(returning: nil)
+                        finish(MacConnection(host: hostString, port: Int(port.rawValue)))
+                    } else {
+                        finish(nil)
                     }
-                    connection.cancel()
                 case .failed, .cancelled:
-                    if !resumed { resumed = true; continuation.resume(returning: nil) }
+                    finish(nil)
                 default:
                     break
                 }
             }
-            connection.start(queue: .global())
+            connection.start(queue: queue)
+            // Timeout: an unreachable / stuck-in-.waiting service must not leak the
+            // continuation + connection (and pin its `resolving` slot forever).
+            queue.asyncAfter(deadline: .now() + 5) { finish(nil) }
         }
     }
 }
