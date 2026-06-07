@@ -31,6 +31,18 @@ final class MemoDetailUITests: XCTestCase {
         shot.name = "memo-detail"; shot.lifetime = .keepAlways; add(shot)
     }
 
+    func testSwipeBetweenMemos() throws {
+        let app = launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        XCTAssertTrue(app.staticTexts["First seeded memo about the harbor at dawn."].waitForExistence(timeout: 5))
+        app.swipeLeft()
+        XCTAssertTrue(app.staticTexts["Second seeded memo, a quick reminder to call the plumber."].waitForExistence(timeout: 5),
+                      "swipe didn't page to the next memo")
+    }
+
     func testAddTagInDetail() throws {
         let app = launch()
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch

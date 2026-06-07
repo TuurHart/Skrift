@@ -49,6 +49,22 @@ enum DemoDataSeeder {
                 syncStatus: .waiting,
                 transcriptStatus: .pending
             ),
+            // Status-pill coverage: a transcribing one and a failed one (oldest,
+            // so the row-0 assertions in other tests stay stable).
+            Memo(
+                audioFilename: "memo_demo4.m4a",
+                duration: 33,
+                recordedAt: now.addingTimeInterval(-100_000),
+                syncStatus: .waiting,
+                transcriptStatus: .transcribing
+            ),
+            Memo(
+                audioFilename: "memo_demo5.m4a",
+                duration: 18,
+                recordedAt: now.addingTimeInterval(-110_000),
+                syncStatus: .waiting,
+                transcriptStatus: .failed
+            ),
         ]
     }
 }
