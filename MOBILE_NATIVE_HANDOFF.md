@@ -147,12 +147,21 @@ iPhone 13 UDID this session: `00008110-001208C902EA201E`. Mac LAN IP: `192.168.1
 Crash reports: `~/Library/Logs/DiagnosticReports/SkriftMobile-*.ips`.
 
 **What's left — all follow-ups, none blocking:**
-1. **Multi-Mac disambiguation** (user-flagged): phone should show each discovered
-   Mac's **IP/host per row** (eager-resolve) + cap the perpetual "Looking for
-   more Macs…" spinner; **desktop** should advertise a **unique Bonjour instance
-   name** (its machine name, not the fixed "Skrift Desktop") — a room of 5 Macs
-   is currently indistinguishable. No pairing code (QR dropped) → a Mac-side
-   "allow this iPhone?" confirm is the right hardening for shared networks.
+1. ✅ **Multi-Mac disambiguation DONE** (2026-06-07). Phone (`a7c24ca`,
+   mobile-native): `MacDiscovery` eager-resolves each discovered service's
+   host/port as it appears (preserved across result churn) → every Pair-a-Mac
+   row shows its **IP**; the "Looking for more Macs…" spinner **caps** via a
+   settle timer (6s quiet window; 2s seeded) → becomes a "Search again" button
+   (also the empty state). Also fixed a latent port-format bug (`Text(verbatim:)`
+   → "8000", not LocalizedStringKey-grouped "8.000"). Desktop (`3fd4848`,
+   desktop-native): `LocalHTTPServer` advertises a **unique Bonjour name** from
+   the Mac's computer name (`Host.current().localizedName`, fallback "Skrift
+   Desktop"). Contract unchanged (connect by host/port; name is display-only).
+   18 UI + unit tests green (sim); 81 desktop UnitTests green; screenshot-verified.
+   **Still open (deferred hardening):** no pairing code (QR dropped) → a Mac-side
+   "allow this iPhone?" confirm is the right hardening for shared networks. The
+   device-owed bit: confirm real Bonjour eager-resolve shows IPs on hardware
+   (sim seeds entries).
 2. **Desktop `title`-read** (spawned task in the desktop repo): `UploadService`
    decodes the metadata but never extracts `title`; `BatchRunner.swift:44` sets
    `titleSuggested` from the LLM unconditionally.
