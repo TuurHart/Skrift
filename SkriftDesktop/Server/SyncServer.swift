@@ -93,7 +93,7 @@ final class LocalHTTPServer: SyncServer {
 
             if let request = HTTPParser.parse(buf) {
                 let response = self.handlers.handle(request)
-                Self.log.info("\(request.method.rawValue, privacy: .public) \(request.path, privacy: .public) <- \("\(conn.endpoint)", privacy: .public) -> \(response.status, privacy: .public) (\(buf.count, privacy: .public)B)")
+                Self.log.notice("\(request.method.rawValue, privacy: .public) \(request.path, privacy: .public) <- \("\(conn.endpoint)", privacy: .public) -> \(response.status, privacy: .public) (\(buf.count, privacy: .public)B)")
                 self.send(conn, response.serialize())
             } else if isComplete || error != nil {
                 conn.cancel()
