@@ -14,6 +14,9 @@ struct NoteBody: View {
     @Bindable var audio: AudioController
     var interactive: Bool = true
     var onAddName: (String) -> Void = { _ in }
+    /// Inline name-disambiguation state, present only while the note has ambiguous
+    /// names. Passed into the editor so mentions are marked + clickable in place (R3).
+    var resolver: InlineResolverModel? = nil
 
     private static let bodyFont = Font.system(size: 16)
     private static let bodyLineSpacing: CGFloat = 6
@@ -46,8 +49,8 @@ struct NoteBody: View {
 
     private var editor: some View {
         // NSTextView bridge: self-sizing + live [[link]] accent styling + inline
-        // image thumbnails for [[img_NNN]] markers while editing.
-        BodyTextView(text: bodyBinding, imageURL: imageURL, onAddName: onAddName)
+        // image thumbnails for [[img_NNN]] markers + inline name resolution (R3).
+        BodyTextView(text: bodyBinding, imageURL: imageURL, onAddName: onAddName, resolver: resolver)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 

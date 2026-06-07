@@ -33,9 +33,9 @@ enum DemoSeed {
         f1.titleSuggested = f1.enhancedTitle
         f1.enhancedSummary = "Reflecting on collapsing the two-process app into one native Swift process — leaning toward FluidAudio plus mlx-swift in-process, and what that means for the sync with the phone."
         f1.sanitised = """
-        So I was talking with [[Nick Jansen]] this morning about collapsing the whole thing into one native app. Het voelt nu eindelijk goed — no Python backend that won't start, no localhost in between.
+        So I was talking with [[Nick Jansen]] this morning about collapsing the whole thing into one native app. Jack brought the new mock and we argued about the sidebar for an hour — het voelt nu eindelijk goed, no Python backend that won't start.
 
-        Nick's point was that the hard part is the editor, not the pipeline. De transcription en de enhancement draaien al, dus de vraag is echt hoe de review-kant aanvoelt.
+        Later Jack texted that the build's green again. De transcription en de enhancement draaien al, dus de vraag is echt hoe de review-kant aanvoelt.
 
         Idea: keep the body exactly what exports to Obsidian — brackets visible, karaoke on the real words. If Sam can test it next week, even better.
         """

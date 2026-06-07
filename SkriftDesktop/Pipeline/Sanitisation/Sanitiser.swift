@@ -154,6 +154,20 @@ enum Sanitiser {
         return text
     }
 
+    /// Plain (not-inside-`[[ ]]`) whole-word occurrences of `alias` in `text`, in
+    /// reading order — the clickable ambiguous mentions for the inline resolver UI.
+    /// Uses the SAME matching as `process`/`applyResolvedOccurrences` (whole-word,
+    /// possessive-aware, link-skipping), so the i-th occurrence here is the i-th
+    /// `eligible` match there → the UI's per-occurrence choices line up exactly with
+    /// the order-based apply. Each range covers the alias (+ any trailing `'s`).
+    static func plainOccurrences(of alias: String, in text: String) -> [NSRange] {
+        let a = alias.trimmingCharacters(in: .whitespaces)
+        guard !a.isEmpty, let rx = wordRegex(a) else { return [] }
+        return rx.matches(in: text, range: fullRange(text))
+            .map { $0.range }
+            .filter { !avoidInside || notInsideLink(text, $0.location) }
+    }
+
     // MARK: - Helpers
 
     private static func shortName(for p: Person) -> String {
