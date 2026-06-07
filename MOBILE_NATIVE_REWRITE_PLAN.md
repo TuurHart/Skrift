@@ -321,10 +321,20 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       Bonjour Pair-a-Mac (**QR dropped**) · 7.7 onboarding · 7.8 optional memo
       `title` in upload metadata (desktop must read it — flagged via a spawned
       task) · 7.9 ready-state context chips + model status (UI-coverage audit).
-      15 UI + 31 unit tests green; every screen screenshot-verified.
-      **Owed:** the live Mac round-trip (needs SkriftDesktop running) + on-device
-      verification of the device-owed bits (real ASR/mic/camera/GPS/weather,
-      Bonjour resolve, 494 MB model download, voice enrollment). Commits on
-      `mobile-native` after `108a86f` (7.0=0d4ca98 … 7.9=d97e783).
-- [ ] Phase 8 — widget/live activity/intents/share ext
+      …7.10 correctness hardening · 7.11 sim test-coverage. 17 UI + 31 unit tests
+      green; every screen screenshot-verified. Commits `0d4ca98`…`200523a`.
+- [x] On-device hardening + LIVE ROUND-TRIP VERIFIED (2026-06-07). Deployed signed
+      to a physical iPhone 13; real-device run fixed: recording gain
+      (.measurement→.default), live model-load status + onboarding download bar,
+      place-name shorten + chip truncate, photo double-capture debounce, dead
+      detail ⋯ (Menu→confirmationDialog) + Copy-transcript/Delete, **ATS
+      NSAllowsLocalNetworking** + **Bonjour IPv4 resolve** (these two unblocked
+      sync), honest sync banner. Commits 8.0=`f4ab571`, 8.1=`9a36c46`, 8.2=`5a5cb96`.
+      **Round-trip CONFIRMED:** iPhone → native SkriftDesktop over Wi-Fi; 2 real
+      memos uploaded, Mac trusted the transcript (transcribe=done), names synced.
+      (NB: these "8.x" commits are device-hardening, NOT the Phase-8 below.)
+- [ ] Phase 8 — widget/live activity/intents/share ext (**App Intents needs user
+      sign-off** — Scribble SIGTRAP history). Plus follow-ups: multi-Mac
+      disambiguation (phone IP-per-row + desktop unique Bonjour name), desktop
+      title-read (spawned), Process-on-Mac validation, voice-enrollment ML.
 - [ ] Phase 9 — parity + retire Mobile/

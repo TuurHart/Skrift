@@ -112,35 +112,61 @@
   on this branch — **port them into the native transcription service in Phase 2**.
 
 ## Resume here (do this first)
-**Phases 0–7 are GREEN and committed. The FULL Phase 7 UI is built** to the locked
-mockups (7.0→7.9 on `mobile-native`; 7.0=`0d4ca98` … 7.9=`d97e783`). 15 UI + 31
-unit tests green; every screen screenshot-verified vs its mockup; an agent
-UI-coverage audit ran against the built app and its gaps were closed (7.9).
-Locked fork resolved: **save-now → Memo detail** (no separate Review screen).
+**Phases 0–7 DONE + on-device hardening DONE + the live round-trip is VERIFIED on
+real hardware.** The native iOS app is no longer "owed" — it works end-to-end.
 
-**What's left:**
-1. **Live Mac round-trip (owed, was blocked):** with **SkriftDesktop running**
-   (it advertises `_skrift._tcp` on :8000), pair the sim app (Bonjour or manual
-   host/port), POST a real memo (multipart), and run the names round-trip
-   (`GET /meta`→`GET`→merge→`PUT`). This also clears the Phase-1 + Phase-6 live
-   debt. (As of last session SkriftDesktop was still building — wait for it.)
-2. **Desktop title contract:** the phone now sends an optional `title` in upload
-   metadata (7.8). The native Mac server must read it — `UploadService.swift`
-   decodes the metadata but never extracts `title`, and `BatchRunner.swift:44`
-   sets `titleSuggested` from the LLM unconditionally. (Flagged as a spawned task
-   in the desktop repo.)
-3. **On-device verification** of everything marked device-owed: real ASR + the
-   live streaming caption, mic/AVAudioEngine file write, camera + pinch-zoom,
-   CoreLocation/weather/steps, real Bonjour discovery+resolve, the 494 MB model
-   download, voice-enrollment ML. (The sim seam covers UI; behavior needs a phone.)
-4. **Phase 8** (widget/Live Activity/App Intents/share ext) — **App Intents:
-   still confirm with the user first** (they're hesitant; Scribble SIGTRAP/
-   keyboard cold-start history). **Phase 9** parity + retire `Mobile/`.
+- **Phase 7 (full UI)** built to the locked mockups: 7.0=`0d4ca98` … 7.11=`200523a`.
+  15 UI + 31 unit tests green; every screen screenshot-verified; UI-coverage +
+  correctness agent audits run and closed. Locked fork: **save-now → Memo detail**.
+- **On-device hardening** (committed as "Phase 8.x" — from real iPhone testing;
+  NOT the plan's Phase 8 = widget/intents): 8.0=`f4ab571`, 8.1=`9a36c46`,
+  8.2=`5a5cb96`. Fixed from the device run: recording gain (`.measurement`→
+  `.default` — was soft + tiny waveform), live model-load status + onboarding
+  download % bar, place-name shorten + chip truncation, photo double-capture
+  debounce, the dead detail ⋯ (`Menu`→`Button`+`.confirmationDialog` — a Menu
+  won't present over a paged TabView on device), ⋯ = Copy transcript + Delete
+  (dropped Re-transcribe), **ATS `NSAllowsLocalNetworking`** (cleartext LAN HTTP
+  was blocked → upload never left the phone), **Bonjour resolve forced to IPv4**
+  (was resolving a dead `fe80::` link-local), honest sync banner.
+- **LIVE ROUND-TRIP VERIFIED (2026-06-07):** real iPhone 13 → native `SkriftDesktop`
+  server over Wi-Fi. Two real memos uploaded (`memo_<uuid>.m4a`, 495 KB), the Mac
+  **trusted the on-device transcript** (`steps.transcribe = done`), names synced
+  (`/api/names/meta` timestamp updated). Confirmed on real hardware: ASR + live
+  caption, mic→.m4a, camera+photos, CoreLocation place, model load, Bonjour
+  discover+IPv4 resolve, ATS cleartext upload, multipart accept, names LWW sync.
 
-Build order + per-screen spec are in **`## Phase 7 — LOCKED UI DESIGN`** below
-(kept for reference). The mockups live in `SkriftMobile/mockups/mockup{1..5}.html`.
-Sanity-check the toolchain still builds + tests (runs BOTH `SkriftMobileTests` and
-`SkriftMobileUITests`):
+**Device build/run (signed; the user's team):**
+```
+cd SkriftMobile && xcodebuild build -project SkriftMobile.xcodeproj -scheme SkriftMobile \
+  -destination 'platform=iOS,id=<DEVICE_UDID>' -derivedDataPath build-device \
+  -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic
+xcrun devicectl device install app --device <UDID> build-device/Build/Products/Debug-iphoneos/SkriftMobile.app
+xcrun devicectl device process launch --device <UDID> com.skrift.mobile   # device must be UNLOCKED
+```
+iPhone 13 UDID this session: `00008110-001208C902EA201E`. Mac LAN IP: `192.168.1.139:8000`.
+Crash reports: `~/Library/Logs/DiagnosticReports/SkriftMobile-*.ips`.
+
+**What's left — all follow-ups, none blocking:**
+1. **Multi-Mac disambiguation** (user-flagged): phone should show each discovered
+   Mac's **IP/host per row** (eager-resolve) + cap the perpetual "Looking for
+   more Macs…" spinner; **desktop** should advertise a **unique Bonjour instance
+   name** (its machine name, not the fixed "Skrift Desktop") — a room of 5 Macs
+   is currently indistinguishable. No pairing code (QR dropped) → a Mac-side
+   "allow this iPhone?" confirm is the right hardening for shared networks.
+2. **Desktop `title`-read** (spawned task in the desktop repo): `UploadService`
+   decodes the metadata but never extracts `title`; `BatchRunner.swift:44` sets
+   `titleSuggested` from the LLM unconditionally.
+3. **Process a synced phone memo on the Mac** to validate the Mac's half
+   (name-link → enhance → Obsidian export) with real mobile input.
+4. **Still device/later-owed:** voice-enrollment ML (diarization track — the
+   on-phone flow is a placeholder), word-timings→karaoke (computed but unused),
+   weather (needs the user's OpenWeatherMap key), Light/Auto theme palette.
+5. **Plan's Phase 8** (widget / Live Activity / App Intents / share ext) — **App
+   Intents NEEDS user sign-off** (Scribble SIGTRAP / keyboard cold-start history).
+   **Phase 9** = parity sweep + retire the RN `Mobile/`.
+
+Sanity-check the sim toolchain (runs BOTH test targets; sim flake → re-run after
+`xcrun simctl shutdown all; xcrun simctl erase "iPhone 17"`):
 ```
 cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
   xcodebuild test -project SkriftMobile.xcodeproj -scheme SkriftMobile \
@@ -148,11 +174,10 @@ cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
   -resultBundlePath /tmp/sk_ui.xcresult > /tmp/sk_ui_test.log 2>&1; echo "EXIT $?"
 grep -E "TEST SUCCEEDED|TEST FAILED" /tmp/sk_ui_test.log
 ```
-Phase 2: port `AudioInput`/`RecordingCoordinator`/`TextEngine`/`TranscriptionStatus`
-from Shhhcribble (FluidAudio `branch: main`), build the recording screen, wire
-FluidAudio transcribe → transcript + confidence + word timings into the `Memo`
-model. **Carry over the two native fixes** from the RN `ParakeetModule.swift`
-(model teardown + memory-warning observer; RMS/word-count silence guard) and port
+
+The per-screen spec + mockups are in **`## Phase 7 — LOCKED UI DESIGN`** below and
+`SkriftMobile/mockups/mockup{1..5}.html`. The Shhhcribble streaming port lives in
+`TranscriptionService` (feed/liveCaption/finish + time-based rotation) and
 `insertImageMarkers`. SEED transcripts via a `-seedTranscript` launch arg for UI
 tests (the sim has no ANE); verify real ASR/memory/silence on a physical device.
 The iPhone 17 sim is the test target (run `xcrun simctl shutdown all` first if a

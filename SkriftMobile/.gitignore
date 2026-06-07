@@ -2,6 +2,7 @@
 *.xcodeproj/
 # Build output
 build/
+build-device/
 DerivedData/
 .DS_Store
 *.xcuserstate
