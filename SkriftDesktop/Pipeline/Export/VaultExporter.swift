@@ -29,26 +29,30 @@ enum VaultExporter {
         var safe = base.replacingOccurrences(of: "/", with: "-")
             .trimmingCharacters(in: CharacterSet(charactersIn: " ."))   // avoid "Title..md"
         if safe.isEmpty { safe = "note" }
+        // Sensible defaults so images/audio export even when the subfolders aren't
+        // configured — the walkthrough hit silently-dropped images (E1/E2). Image
+        // names are title-derived (`<safe>_NNN`), so they don't collide across notes.
+        let attFolder = settings.attachmentsFolder.isEmpty ? "Attachments" : settings.attachmentsFolder
+        let audFolder = settings.audioFolder.isEmpty ? "Voice Memos" : settings.audioFolder
 
         // Convert [[img_NNN]] markers → ![[<title>_NNN.ext]] Obsidian embeds and copy
         // the matched images into the attachments subfolder.
         var finalMarkdown = markdown
         var imageCount = 0
         let imagesDir = URL(fileURLWithPath: pf.path).deletingLastPathComponent().appendingPathComponent("images")
-        if !settings.attachmentsFolder.isEmpty, !pf.path.isEmpty,
-           FileManager.default.fileExists(atPath: imagesDir.path) {
-            let attDir = vaultURL.appendingPathComponent(settings.attachmentsFolder, isDirectory: true)
+        if !pf.path.isEmpty, FileManager.default.fileExists(atPath: imagesDir.path) {
+            let attDir = vaultURL.appendingPathComponent(attFolder, isDirectory: true)
             (finalMarkdown, imageCount) = convertImageMarkers(markdown, imagesDir: imagesDir, safe: safe, into: attDir)
         }
 
         // Apple-Note attachments: copy the note's `Attachments/` into the vault
         // attachments folder and convert `(Attachments/<name>)` refs → Obsidian
         // `![[<name>]]` embeds (robust to the renamed files' spaces).
-        if pf.sourceType == .note, !settings.attachmentsFolder.isEmpty, !pf.path.isEmpty {
+        if pf.sourceType == .note, !pf.path.isEmpty {
             let attSrc = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
                 .appendingPathComponent("Attachments", isDirectory: true)
             if FileManager.default.fileExists(atPath: attSrc.path) {
-                let attDir = vaultURL.appendingPathComponent(settings.attachmentsFolder, isDirectory: true)
+                let attDir = vaultURL.appendingPathComponent(attFolder, isDirectory: true)
                 let (rewritten, copied) = convertNoteAttachments(finalMarkdown, attachmentsSrc: attSrc, into: attDir)
                 finalMarkdown = rewritten
                 imageCount += copied
@@ -58,11 +62,11 @@ enum VaultExporter {
         let mdURL = vaultURL.appendingPathComponent(safe + ".md")
         try Data(finalMarkdown.utf8).write(to: mdURL)
 
-        // Original audio → audio subfolder.
+        // Original audio → audio subfolder (per-note opt-out via includeAudioInExport).
         var audioURL: URL?
-        if !settings.audioFolder.isEmpty, pf.sourceType == .audio,
+        if pf.includeAudioInExport, pf.sourceType == .audio,
            !pf.path.isEmpty, FileManager.default.fileExists(atPath: pf.path) {
-            let dir = vaultURL.appendingPathComponent(settings.audioFolder, isDirectory: true)
+            let dir = vaultURL.appendingPathComponent(audFolder, isDirectory: true)
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             let ext = URL(fileURLWithPath: pf.path).pathExtension
             let dest = dir.appendingPathComponent(safe + "." + (ext.isEmpty ? "m4a" : ext))
