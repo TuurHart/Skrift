@@ -261,11 +261,52 @@ Control Center, onboarding, richer interactive Live Activity, on-device hardenin
 **Deliberate design swaps (not regressions):** QR pairing → Bonjour + manual;
 post-record Review screen → save-now → Memo detail.
 
-**Retirement decision (owed — DESTRUCTIVE, needs user sign-off):** close gaps
-1–2 (capture-items share ext + Lock/Home widgets) first, OR accept the gaps and
-`git mv Mobile/ archive/` (reversible) / delete (git history retains it), then
-update root `CLAUDE.md` (its Photo-capture + mobile sections still describe the RN
-app). Do NOT delete until the user picks.
+**Gap-closure status (user picked which to build, 2026-06-07):**
+- ✅ **9a — hand-editable transcript** (`97a3bf1`): Edit/Done toggle in Memo
+  detail; sets `transcriptUserEdited`. **Re-transcribe removed** (dead
+  `MemoSaver.retranscribe` + the list Error→Retry button; failed = informational
+  "Error" pill, recovers via sync or hand-edit).
+- ✅ **9b — Lock/Home record widget** (`3773b5f`): `RecordWidget` (accessory +
+  systemSmall) → `skrift://record`.
+- ⏸ **9c — capture items: DEFERRED, and it's CROSS-TRACK.** Re-verified: the
+  native Mac `UploadService.ingest` ONLY loops `files` (audio) parts + always
+  `sourceType:.audio` — a pure capture item (no audio, just `attachments`+meta)
+  yields **zero PipelineFiles → silently dropped**. So capture items needs
+  **desktop work too** (UploadService accept captures + a capture content-type
+  through pipeline/compile/export). Mobile-only would be broken. Mobile
+  `UploadMetadata` already carries `sharedContent`/`annotationText`; only the
+  `attachments` multipart part + the whole Mac side are missing. **Build it as a
+  coordinated mobile+desktop change AFTER convergence** (below). Small stuff
+  (metadata grid, filmstrip, settings extras, alias editing, prompts) — user
+  doesn't care, won't port.
+- ⏸ **Retiring `Mobile/` — DEFERRED.** User wants the old apps kept **fully
+  operational** (to look back at, incl. an even-older wildly-different Skrift) —
+  so "archive" = relocate intact under `archive/`, never gut. Do this during
+  convergence, NOT before.
+
+## CONVERGENCE PLAN (mobile-native + desktop-native → one `native` branch) — WAIT FOR DESKTOP
+
+User decision (2026-06-07): the desktop app is **actively being worked on**
+(`desktop-native` is mid-flight), so **do NOT merge/move folders yet** — wait
+until desktop reaches a stable point, then converge. The merge itself is
+**verified conflict-free** (the two branches changed disjoint files since
+merge-base `9b7cec5`; `comm -12` of changed-on-both = empty). When desktop is
+ready, execute (clean trees first):
+1. `git checkout -b native` (off mobile-native) → `git merge desktop-native`
+   (conflict-free → both `SkriftMobile/` + `SkriftDesktop/` on one branch).
+2. Group: `git mv SkriftMobile Skrift_Native/SkriftMobile` +
+   `git mv SkriftDesktop Skrift_Native/SkriftDesktop` (wholesale dir moves keep
+   each `project.yml`'s relative paths; then update all absolute paths in the
+   docs/build/deploy commands).
+3. Archive (KEEP OPERATIONAL — relocate intact, don't delete/gut):
+   `git mv Mobile archive/`, `git mv frontend-new archive/`, `git mv backend archive/`.
+4. Rewrite root `CLAUDE.md` for the native-only layout.
+5. `git worktree remove …/Skrift-desktop` (+ prune the stray `.claude/worktrees/*`);
+   single checkout on `native` after that.
+6. THEN build capture items (9c) as one coordinated commit across both apps.
+
+Verify each app still builds after the moves (sim for mobile; `-skipMacroValidation`
+full scheme for desktop).
 
 Sanity-check the sim toolchain (runs BOTH test targets; sim flake → re-run after
 `xcrun simctl shutdown all; xcrun simctl erase "iPhone 17"`):
