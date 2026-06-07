@@ -33,6 +33,19 @@ struct RootView: View {
                     .transition(.opacity)
             }
         }
+        .overlay(alignment: .top) {
+            if let toast = coordinator.toast {
+                Text(toast)
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Theme.accent, in: Capsule())
+                    .shadow(color: .black.opacity(0.3), radius: 10, y: 3)
+                    .padding(.top, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: coordinator.toast)
         .task {
             // Real app starts empty; `-demo` populates with sample notes for dev/demo.
             if ProcessInfo.processInfo.arguments.contains("-demo") {

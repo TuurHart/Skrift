@@ -45,7 +45,8 @@ struct SettingsView: View {
         .frame(width: 560, height: interactive ? 660 : nil)   // snapshot sizes to full content
         .background(Theme.bg)
         .onChange(of: settings) { _, new in SettingsStore.shared.save(new) }
-        .task { editablePeople = people.map(EditablePerson.init) }
+        .task { editablePeople = people.map(EditablePerson.init)
+            .sorted { $0.canonical.localizedCaseInsensitiveCompare($1.canonical) == .orderedAscending } }
         .accessibilityIdentifier("settings.root")
     }
 
@@ -54,8 +55,8 @@ struct SettingsView: View {
             section("Vault & author") {
                 textRow("Author", \.authorName, placeholder: "Your name")
                 folderRow("Obsidian vault", \.noteFolder)
-                textRow("Audio subfolder", \.audioFolder, placeholder: "Voice Memos")
-                textRow("Attachments subfolder", \.attachmentsFolder, placeholder: "Attachments")
+                subfolderRow("Audio subfolder", \.audioFolder, placeholder: "Voice Memos")
+                subfolderRow("Attachments subfolder", \.attachmentsFolder, placeholder: "Attachments")
             }
             section("Enhancement") {
                 textRow("Model (HuggingFace repo)", \.enhancementModelRepo)
@@ -65,9 +66,14 @@ struct SettingsView: View {
             }
             section("Transcription") {
                 sliderRow("High-pass filter", value: highpassBinding, range: 0...200, unit: " Hz")
+                Text(highpassHelp).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             section("Names · \(interactive ? editablePeople.count : people.count)") {
                 if interactive {
+                    Text("Aliases (comma-separated) are the spoken nicknames that link to a person; the full name becomes the [[link]].")
+                        .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
                     ForEach($editablePeople) { $ep in nameEditRow($ep) }
                     HStack {
                         Button { editablePeople.append(EditablePerson()); namesDirty = true } label: {
@@ -291,5 +297,58 @@ struct SettingsView: View {
         if panel.runModal() == .OK, let url = panel.url {
             settings[keyPath: key] = url.path
         }
+    }
+
+    // A subfolder NAME (relative to the vault), with a picker rooted at the vault. (ST3)
+    private func subfolderRow(_ label: String, _ key: WritableKeyPath<AppSettings, String>, placeholder: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+            HStack(spacing: 8) {
+                fieldBox {
+                    if interactive {
+                        TextField(placeholder, text: bind(key)).textFieldStyle(.plain).foregroundStyle(Theme.textPrimary)
+                    } else {
+                        let v = settings[keyPath: key]
+                        Text(v.isEmpty ? placeholder : v)
+                            .foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                if interactive {
+                    Button("Choose…") { chooseSubfolder(key) }
+                        .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
+                        .disabled(settings.noteFolder.isEmpty)
+                }
+            }
+        }
+    }
+
+    /// Pick a subfolder rooted at the vault; store the path RELATIVE to the vault
+    /// (a name like "Voice Memos"), or the folder name if chosen elsewhere.
+    private func chooseSubfolder(_ key: WritableKeyPath<AppSettings, String>) {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Choose"
+        if !settings.noteFolder.isEmpty { panel.directoryURL = URL(fileURLWithPath: settings.noteFolder) }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let vault = settings.noteFolder
+        if !vault.isEmpty, url.path.hasPrefix(vault) {
+            let rel = String(url.path.dropFirst(vault.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            settings[keyPath: key] = rel.isEmpty ? url.lastPathComponent : rel
+        } else {
+            settings[keyPath: key] = url.lastPathComponent
+        }
+    }
+
+    private var highpassHelp: String {
+        let hz = settings.highpassFreqHz
+        return hz == 0
+            ? "Off — no filtering. Raise it to cut low-frequency rumble (AC hum, handling noise) before transcription."
+            : "Cuts everything below \(hz) Hz before transcription — removes low rumble/hum. 80 Hz is a safe default; drag to 0 to turn it off."
     }
 }

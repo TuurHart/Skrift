@@ -20,6 +20,10 @@ final class ProcessingCoordinator {
     private(set) var runState: RunState?
     private(set) var isRunning = false
     var lastError: String?
+    /// Transient confirmation banner (auto-clears) — shown by RootView so an action
+    /// like Export gives visible feedback (N5).
+    var toast: String?
+    private var toastToken = 0
 
     // Engine seam — the real FluidAudio/MLX services by default; swapped for canned
     // stubs when launched with `-stubEnhancement` (UI piloting / XCUITest), so
@@ -174,9 +178,20 @@ final class ProcessingCoordinator {
             pf.exportStatus = .done
             pf.lastActivityAt = Date()
             try? context.save()
+            let imgs = result.imageCount > 0 ? " · \(result.imageCount) image\(result.imageCount == 1 ? "" : "s")" : ""
+            flash("Exported “\(result.markdownURL.deletingPathExtension().lastPathComponent)” to your vault\(imgs)")
         } catch {
             lastError = "Export failed: \(error.localizedDescription)"
+            flash((error as? LocalizedError)?.errorDescription ?? "Export failed")
         }
+    }
+
+    /// Show a transient banner for ~3.5s (latest call wins).
+    func flash(_ message: String) {
+        toast = message
+        toastToken += 1
+        let t = toastToken
+        Task { try? await Task.sleep(for: .seconds(3.5)); if toastToken == t { toast = nil } }
     }
 
     // ── Apply review-time ambiguous-name choices ──

@@ -110,6 +110,10 @@ struct NoteProperties: View {
     private var propertiesCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             metadataGrid
+            if file.sourceType == .audio {
+                divider
+                audioExportRow
+            }
             divider
             SignificanceRow(value: Binding(get: { file.significance ?? 0 }, set: { file.significance = ($0 * 10).rounded() / 10 }))
             divider
@@ -118,6 +122,21 @@ struct NoteProperties: View {
         .padding(.horizontal, 16).padding(.vertical, 14)
         .background(Theme.hairline.opacity(0.022), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.hairline.opacity(0.07), lineWidth: 1))
+    }
+
+    /// Per-note opt-out for copying the audio into the vault on export (ST8).
+    @ViewBuilder private var audioExportRow: some View {
+        HStack {
+            Text("Include audio file in export").font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+            Spacer()
+            if interactive {
+                Toggle("", isOn: $file.includeAudioInExport)
+                    .labelsHidden().toggleStyle(.switch).controlSize(.mini).tint(Theme.accent)
+            } else {
+                Text(file.includeAudioInExport ? "Yes" : "No")
+                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.accent)
+            }
+        }
     }
 
     private var metadataGrid: some View {

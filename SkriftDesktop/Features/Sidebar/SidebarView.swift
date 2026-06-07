@@ -194,12 +194,13 @@ struct SidebarView: View {
         HStack(spacing: 0) {
             Text("\(readyCount) ready to review")
                 .foregroundStyle(Theme.accent).fontWeight(.semibold)
-            if queuedCount > 0 {
-                Text(" · \(queuedCount) queued").foregroundStyle(Theme.textMuted)
+            if pendingCount > 0 {
+                Text(" · \(pendingCount) to process").foregroundStyle(Theme.textMuted)
             }
             Spacer(minLength: 0)
         }
         .font(.system(size: 11))
+        .help("Ready = processed, waiting for your review. To process = still needs transcribe + enhance.")
         .padding(.horizontal, 14)
         .padding(.top, 9)
         .padding(.bottom, 4)
