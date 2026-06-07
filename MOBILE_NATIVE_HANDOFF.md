@@ -165,8 +165,15 @@ Crash reports: `~/Library/Logs/DiagnosticReports/SkriftMobile-*.ips`.
 2. **Desktop `title`-read** (spawned task in the desktop repo): `UploadService`
    decodes the metadata but never extracts `title`; `BatchRunner.swift:44` sets
    `titleSuggested` from the LLM unconditionally.
-3. **Process a synced phone memo on the Mac** to validate the Mac's half
-   (name-link → enhance → Obsidian export) with real mobile input.
+3. ✅ **Process-a-synced-phone-memo on the Mac DONE** (2026-06-07, desktop-native
+   `10548fe`). A real synced memo (`memo_203…`, `source=mobile`, conf 0.96, with
+   `[[img_001]]`) ran through the Mac's half via `-runfile -transcript`: **ASR
+   skipped** (Mac trusted the phone transcript byte-for-byte — no re-transcribe),
+   Gemma title+summary+filler-removal copy-edit, **`[[img_001]]` preserved →
+   Obsidian `![[…]]` embed**, audio+photo exported to the test vault. A
+   names-bearing transcript confirmed name-link on the trust path
+   (`Tuur`→`[[Tiuri Hartog]]`, `Rox`→`[[Roksana Gurova]]`, ambiguous `Jack`
+   flagged). The Mac's half is validated on real mobile input end-to-end.
 4. **Still device/later-owed:** voice-enrollment ML (diarization track — the
    on-phone flow is a placeholder), word-timings→karaoke (computed but unused),
    weather (needs the user's OpenWeatherMap key), Light/Auto theme palette.
