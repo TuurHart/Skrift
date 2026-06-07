@@ -7,7 +7,6 @@ struct NoteActions: View {
     let file: PipelineFile
     var coordinator: ProcessingCoordinator
     @Environment(\.modelContext) private var ctx
-    @State private var menuOpen = false
 
     private var enhanceDone: Bool { file.steps.enhance == .done }
     private var exported: Bool { file.steps.export == .done }
@@ -19,17 +18,13 @@ struct NoteActions: View {
         return exported ? "Re-export" : "Export to Obsidian"
     }
 
-    private var menuItems: [String] {
-        var items: [String] = []
-        if transcribeDone && !isAppleNote { items.append("Re-transcribe") }
-        let hasParts = !(file.enhancedTitle ?? "").isEmpty
+    private var hasParts: Bool {
+        !(file.enhancedTitle ?? "").isEmpty
             && !(file.enhancedCopyedit ?? "").isEmpty
             && !(file.enhancedSummary ?? "").isEmpty
-        if hasParts {
-            items.append(contentsOf: ["Redo title", "Redo copy-edit", "Redo summary"])
-        }
-        return items
     }
+    private var canRetranscribe: Bool { transcribeDone && !isAppleNote }
+    private var hasOverflow: Bool { canRetranscribe || hasParts }
 
     private func primaryAction() {
         if !enhanceDone {
@@ -51,44 +46,30 @@ struct NoteActions: View {
             }
             .buttonStyle(.plain)
 
-            if !menuItems.isEmpty {
-                Button { menuOpen.toggle() } label: {
+            if hasOverflow {
+                // Native Menu: auto-dismisses on outside click (N3) and the items
+                // run real actions (N4). Default-closed, so it snapshots fine.
+                Menu {
+                    if canRetranscribe {
+                        Button("Re-transcribe") { Task { await coordinator.retranscribe(file, context: ctx) } }
+                    }
+                    if hasParts {
+                        Button("Redo title") { Task { await coordinator.redo(.title, for: file, context: ctx) } }
+                        Button("Redo copy-edit") { Task { await coordinator.redo(.copyEdit, for: file, context: ctx) } }
+                        Button("Redo summary") { Task { await coordinator.redo(.summary, for: file, context: ctx) } }
+                    }
+                } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 15))
-                        .foregroundStyle(menuOpen ? Theme.textPrimary : Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                         .frame(width: 30, height: 30)
-                        .background(Theme.hairline.opacity(menuOpen ? 0.09 : 0.05), in: RoundedRectangle(cornerRadius: 7))
+                        .background(Theme.hairline.opacity(0.05), in: RoundedRectangle(cornerRadius: 7))
                 }
-                .buttonStyle(.plain)
-                .overlay(alignment: .topTrailing) {
-                    if menuOpen { dropdown }
-                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
             }
         }
     }
 
-    /// Custom dropdown (matches the web's styled menu; renders cleanly in snapshots,
-    /// unlike the AppKit-backed `Menu`). Default-closed.
-    private var dropdown: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(menuItems, id: \.self) { item in
-                Button { menuOpen = false } label: {
-                    Text(item)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .frame(width: 184)
-        .padding(.vertical, 4)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 9))
-        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline.opacity(0.12), lineWidth: 1))
-        .shadow(color: .black.opacity(0.4), radius: 14, y: 4)
-        .offset(y: 38)
-        .zIndex(10)
-    }
 }

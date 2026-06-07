@@ -210,4 +210,69 @@ final class ProcessingCoordinator {
         pf.compiledText = Compiler.compile(file: pf, author: settings.authorName)
         try? context.save()
     }
+
+    // ── ⋯ overflow actions: re-transcribe + per-step redo ──
+    enum RedoStep { case title, copyEdit, summary }
+
+    /// Re-run the whole pipeline on one file (re-transcribe → re-enhance).
+    func retranscribe(_ pf: PipelineFile, context: ModelContext) async {
+        guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
+        pf.transcript = nil
+        pf.transcribeStatus = .pending
+        pf.enhanceStatus = .pending
+        pf.error = nil
+        try? context.save()
+        await process(fileIDs: [pf.id], context: context)
+    }
+
+    /// Re-run a single LLM step on the RAW transcript and recompile (the ⋯ menu's
+    /// "Redo title / copy-edit / summary"). Loads the enhancement model first.
+    func redo(_ step: RedoStep, for pf: PipelineFile, context: ModelContext) async {
+        guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
+        let transcript = pf.transcript ?? ""
+        guard !transcript.isEmpty else { lastError = "Nothing to redo — transcribe first."; return }
+
+        isRunning = true
+        idleUnloadTask?.cancel(); idleUnloadTask = nil
+        runState = RunState(total: 1, done: 0, currentTitle: pf.queueTitle)
+        defer { isRunning = false; runState = nil; scheduleIdleUnload() }
+
+        let settings = SettingsStore.shared.load()
+        let repo = settings.enhancementModelRepo
+        if !stubbedEngines {
+            runState?.loadingLabel = "enhancement model"
+            do {
+                try await EnhancementService.shared.ensureLoaded(modelRepo: repo) { f in
+                    Task { @MainActor in self.runState?.loadingFraction = f }
+                }
+            } catch {
+                lastError = "Model load failed: \(error.localizedDescription)"; return
+            }
+            runState?.loadingLabel = nil; runState?.loadingFraction = nil
+        }
+
+        do {
+            switch step {
+            case .title:
+                let t = try await enhancer.title(transcript, prompts: settings.prompts, modelRepo: repo)
+                pf.titleSuggested = t
+                pf.enhancedTitle = t   // redo title → adopt the fresh one
+            case .copyEdit:
+                let c = try await enhancer.copyEdit(transcript, prompts: settings.prompts, modelRepo: repo)
+                pf.enhancedCopyedit = c
+                // re-link names on the fresh copy-edit so the body stays consistent
+                let working = c.isEmpty ? transcript : c
+                let san = Sanitiser.process(text: working, people: NamesStore.shared.livePeople())
+                pf.sanitised = san.sanitised
+                pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
+            case .summary:
+                pf.enhancedSummary = try await enhancer.summary(transcript, prompts: settings.prompts, modelRepo: repo)
+            }
+            pf.compiledText = Compiler.compile(file: pf, author: settings.authorName)
+            pf.lastActivityAt = Date()
+            try? context.save()
+        } catch {
+            lastError = "Redo failed: \(error.localizedDescription)"
+        }
+    }
 }
