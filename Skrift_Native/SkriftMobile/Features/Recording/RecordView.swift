@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Caption-first record screen (mockup4 ready · mockup5 recording + camera).
 /// The live transcript is the hero; the waveform/timer are compact; the camera
@@ -11,9 +12,6 @@ struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
 
     var onSaved: (UUID) -> Void = { _ in }
-    /// When true (launched via the Record App Intent / Control Center / Siri),
-    /// start recording immediately on appear instead of showing the ready screen.
-    var autoStart: Bool = false
     private let saver = MemoSaver()
 
     @State private var conversation = UserDefaults.standard.bool(forKey: "conversationDefault")
@@ -23,6 +21,7 @@ struct RecordView: View {
     @State private var context: MemoMetadata?
     @ObservedObject private var modelStatus = ModelLoadStatus.shared
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
+    @State private var autoStarted = false
 
     var body: some View {
         ZStack {
@@ -43,15 +42,17 @@ struct RecordView: View {
             }
         }
         .animation(Theme.Motion.spring, value: showCamera)
-        .onAppear { camera.configure() }
-        // Cold launch (Record intent / widget / deep link): auto-start via
-        // `.task(id:)`, which runs against the LIVE @StateObject — a deferred
-        // onAppear closure captured a stale `self` whose `service` wasn't the
-        // installed instance, so `start()` flipped a throwaway object and the UI
-        // stayed on "Ready". `.task(id:)` fires once the view graph is settled.
-        .task(id: autoStart) {
-            guard autoStart, !service.isRecording else { return }
-            startTapped()
+        .onAppear {
+            camera.configure()
+            autoStartIfActive()
+        }
+        // Cold launch (Record intent / Siri / widget): the auto-start MUST wait
+        // until the app is foreground-`.active` — iOS blocks mic capture before
+        // then, so firing in onAppear/.task (scene still `.inactive`) silently
+        // no-ops. `didBecomeActiveNotification` is the reliable signal on cold
+        // launch (and avoids scenePhase not propagating into a fullScreenCover).
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            autoStartIfActive()
         }
         .onDisappear { camera.stop() }
         .onChange(of: intentBridge.stopRequestID) {
@@ -302,6 +303,38 @@ struct RecordView: View {
     private func closeTapped() {
         if service.isRecording { service.cancel(); camera.discardAll() }
         dismiss()
+    }
+
+    /// Auto-start for a Record intent / Siri / widget cold launch — only once the
+    /// app is foreground-`.active` (iOS blocks mic capture before then). Retries
+    /// briefly because Siri may still be releasing the audio session right after a
+    /// voice launch. Recording is independent of the model; the live caption
+    /// buffers + catches up once the model finishes loading.
+    /// Auto-start for a Record intent / Siri / widget. Hard-won on-device fixes:
+    /// 1. Gate on foreground-`.active` FIRST — iOS blocks mic capture before then
+    ///    (don't consume the pending start while inactive or it's wasted).
+    /// 2. Read the pending flag from the live bridge singleton (set at intent
+    ///    time) — a param passed through the fullScreenCover arrived stale on cold
+    ///    launch.
+    /// 3. NO haptic here — haptics share the audio session, and right after a Siri
+    ///    launch Siri still owns it, so a haptic blocks the main actor and the
+    ///    start Task never runs.
+    /// 4. Brief delay + retry: let Siri fully release the mic before we contend.
+    /// Recording is independent of the model; the live caption catches up once the
+    /// model loads.
+    private func autoStartIfActive() {
+        guard !autoStarted, !service.isRecording,
+              UIApplication.shared.applicationState == .active else { return }
+        guard intentBridge.consumePendingStart() else { return }
+        autoStarted = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(700))
+            for _ in 0..<16 {
+                if service.isRecording { return }
+                do { try service.start(); return }
+                catch { try? await Task.sleep(for: .milliseconds(300)) }
+            }
+        }
     }
 
     private func startTapped() {

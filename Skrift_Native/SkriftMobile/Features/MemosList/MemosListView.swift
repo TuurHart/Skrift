@@ -26,7 +26,6 @@ struct MemosListView: View {
 
     @State private var path: [UUID] = []
     @State private var showRecord = false
-    @State private var recordAutoStart = false
     @State private var lastHandledStart = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @State private var showSettings = false
@@ -62,7 +61,7 @@ struct MemosListView: View {
             .toolbar { toolbarContent }
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .fullScreenCover(isPresented: $showRecord) {
-                RecordView(onSaved: { newID in path = [newID] }, autoStart: recordAutoStart)
+                RecordView(onSaved: { newID in path = [newID] })
             }
             .onChange(of: intentBridge.startRequestID) { handleStartRequest() }
             // Also catch a request that fired during a COLD launch (App Intent /
@@ -209,12 +208,13 @@ struct MemosListView: View {
     private func handleStartRequest() {
         guard intentBridge.startRequestID > lastHandledStart else { return }
         lastHandledStart = intentBridge.startRequestID
-        recordAutoStart = true
+        // Just present — RecordView consumes the bridge's pending start once it's
+        // foreground-active (no stale-flag propagation through the cover).
         showRecord = true
     }
 
     private var recordFAB: some View {
-        Button { recordAutoStart = false; showRecord = true } label: {
+        Button { intentBridge.clearPendingStart(); showRecord = true } label: {
             Image(systemName: "mic.fill")
                 .font(.system(size: 24))
                 .foregroundStyle(.white)
