@@ -35,12 +35,22 @@ final class LocalHTTPServer: SyncServer {
         handlers: SyncHandlers,
         preferredPort: UInt16 = 8000,
         serviceType: String = "_skrift._tcp",
-        serviceName: String = "Skrift Desktop"
+        serviceName: String = LocalHTTPServer.defaultServiceName()
     ) {
         self.handlers = handlers
         self.preferredPort = preferredPort
         self.serviceType = serviceType
         self.serviceName = serviceName
+    }
+
+    /// The Bonjour instance name the phone shows in its "On your network" list.
+    /// Defaults to this Mac's user-facing computer name (System Settings →
+    /// General → About → Name, e.g. "Tiuri's MacBook") so a room of Macs is
+    /// distinguishable — instead of every Mac advertising the same fixed
+    /// "Skrift Desktop". Falls back to "Skrift Desktop" if the name is empty.
+    static func defaultServiceName() -> String {
+        if let name = Host.current().localizedName, !name.isEmpty { return name }
+        return "Skrift Desktop"
     }
 
     func start() throws {
