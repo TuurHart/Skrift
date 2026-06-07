@@ -180,9 +180,17 @@ struct MemosListView: View {
             let synced = await SyncCoordinator().syncAll()
             syncing = false
             let paired = MacConnection.load() != nil
-            syncBanner = !paired
-                ? "Pair a Mac in Settings to sync"
-                : (synced > 0 ? "Synced \(synced) memo\(synced == 1 ? "" : "s")" : "Up to date")
+            // Distinguish a real failure (memos still waiting) from "nothing to do".
+            let stillWaiting = repository.allMemos().contains { $0.syncStatus == .waiting && $0.audioURL != nil }
+            if !paired {
+                syncBanner = "Pair a Mac in Settings to sync"
+            } else if synced > 0 {
+                syncBanner = "Synced \(synced) memo\(synced == 1 ? "" : "s")"
+            } else if stillWaiting {
+                syncBanner = "Couldn't reach the Mac"
+            } else {
+                syncBanner = "Up to date"
+            }
             try? await Task.sleep(for: .seconds(2.2))
             syncBanner = nil
         }

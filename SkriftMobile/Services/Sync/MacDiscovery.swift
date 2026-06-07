@@ -72,7 +72,14 @@ final class MacDiscovery: ObservableObject {
         if let host = mac.host { return MacConnection(host: host, port: mac.port ?? MacConnection.defaultPort) }
         guard let endpoint = mac.endpoint else { return nil }
         return await withCheckedContinuation { continuation in
-            let connection = NWConnection(to: endpoint, using: .tcp)
+            // Force IPv4: Bonjour often resolves to a link-local IPv6 address
+            // (fe80::…) that's unroutable without an interface zone and awkward
+            // in a URL. The Mac's IPv4 (e.g. 192.168.1.139) is reachable + clean.
+            let params = NWParameters.tcp
+            if let ip = params.defaultProtocolStack.internetProtocol as? NWProtocolIP.Options {
+                ip.version = .v4
+            }
+            let connection = NWConnection(to: endpoint, using: params)
             var resumed = false
             connection.stateUpdateHandler = { state in
                 switch state {
