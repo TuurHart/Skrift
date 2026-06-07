@@ -56,18 +56,102 @@ struct IngestService: Sendable {
         let (folder, _) = try makeFolder(id: id, filename: filename)
         let dest = folder.appendingPathComponent("original.md")
         try FileManager.default.copyItem(at: url, to: dest)
-        let content = (try? String(contentsOf: dest, encoding: .utf8)) ?? ""
+        var content = (try? String(contentsOf: dest, encoding: .utf8)) ?? ""
+        // Title from the first `# ` heading, else the filename stem (apple_notes_importer.py).
+        let title = Self.appleNoteTitle(content, fallback: (filename as NSString).deletingPathExtension)
+
+        // Copy the note's sibling `Attachments/` into the working folder, renamed to
+        // "<safe title> - <index>.<ext>" (HEIC/HEIF → JPG via sips), and rewrite the
+        // markdown refs. Mirrors apple_notes_importer.parse_markdown_note, but COPIES
+        // (never mutates the user's source export). Re-persist the rewritten markdown.
+        content = Self.importAttachments(
+            content: content,
+            from: url.deletingLastPathComponent().appendingPathComponent("Attachments", isDirectory: true),
+            into: folder.appendingPathComponent("Attachments", isDirectory: true),
+            safeTitle: Self.sanitizeTitle(title)
+        )
+        try? Data(content.utf8).write(to: dest)
+
         let pf = PipelineFile(id: id, filename: filename, path: dest.path,
                               size: content.utf8.count, sourceType: .note)
         // Apple notes arrive already "transcribed" — the markdown body is the text.
         pf.transcript = content
         pf.transcribeStatus = .done
-        // Title from the first `# ` heading, else the filename stem (apple_notes_importer.py).
         // BatchRunner won't clobber this; the LLM title becomes the suggestion.
-        pf.enhancedTitle = Self.appleNoteTitle(content, fallback: (filename as NSString).deletingPathExtension)
-        // (Attachment rename + HEIC→JPG conversion from the Python importer is a follow-up.)
+        pf.enhancedTitle = title
         context.insert(pf)
         return pf
+    }
+
+    /// Filename-safe title: illegal chars → "-", whitespace collapsed, edges trimmed.
+    /// Mirrors `apple_notes_importer`'s `safe_title`.
+    static func sanitizeTitle(_ title: String) -> String {
+        let illegal = Set("\\/:*?\"<>|")
+        let replaced = String(title.map { illegal.contains($0) ? "-" : $0 })
+        let collapsed = replaced.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let trimmed = collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "- "))
+        return trimmed.isEmpty ? "note" : trimmed
+    }
+
+    /// Copy each file in `srcDir` into `destDir` renamed "<safeTitle> - <i>.<ext>"
+    /// (HEIC/HEIF → JPG via `sips`), then rewrite the markdown `(Attachments/<orig>)`
+    /// refs (plain + URL-encoded) to the new names. Returns the rewritten content;
+    /// a no-op (returns `content`) when there's no Attachments dir. Copies — never
+    /// mutates the source export.
+    static func importAttachments(content: String, from srcDir: URL, into destDir: URL, safeTitle: String) -> String {
+        let fm = FileManager.default
+        var isDir: ObjCBool = false
+        guard fm.fileExists(atPath: srcDir.path, isDirectory: &isDir), isDir.boolValue else { return content }
+        let files = ((try? fm.contentsOfDirectory(at: srcDir, includingPropertiesForKeys: nil)) ?? [])
+            .filter { !$0.lastPathComponent.hasPrefix(".") }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        guard !files.isEmpty else { return content }
+        try? fm.createDirectory(at: destDir, withIntermediateDirectories: true)
+
+        var updated = content
+        for (i, src) in files.enumerated() {
+            let ext = src.pathExtension.lowercased()
+            let isHEIC = (ext == "heic" || ext == "heif")
+            var outExt = (isHEIC ? "jpg" : ext)
+            if outExt.isEmpty { outExt = "bin" }
+            var newName = "\(safeTitle) - \(i + 1).\(outExt)"
+            var dest = destDir.appendingPathComponent(newName)
+
+            var ok = false
+            if isHEIC {
+                try? fm.removeItem(at: dest)
+                ok = sipsConvertToJPEG(src: src, dst: dest)
+                if !ok {   // sips unavailable/failed — keep the original file + ext
+                    outExt = ext.isEmpty ? "bin" : ext
+                    newName = "\(safeTitle) - \(i + 1).\(outExt)"
+                    dest = destDir.appendingPathComponent(newName)
+                }
+            }
+            if !ok {
+                try? fm.removeItem(at: dest)
+                ok = ((try? fm.copyItem(at: src, to: dest)) != nil)
+            }
+            guard ok else { continue }
+
+            let orig = src.lastPathComponent
+            let encoded = orig.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? orig
+            for oldRef in Set(["Attachments/\(orig)", "Attachments/\(encoded)"]) {
+                updated = updated.replacingOccurrences(of: "(\(oldRef))", with: "(Attachments/\(newName))")
+            }
+        }
+        return updated
+    }
+
+    private static func sipsConvertToJPEG(src: URL, dst: URL) -> Bool {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/sips")
+        p.arguments = ["-s", "format", "jpeg", src.path, "--out", dst.path]
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        do {
+            try p.run(); p.waitUntilExit()
+            return p.terminationStatus == 0 && FileManager.default.fileExists(atPath: dst.path)
+        } catch { return false }
     }
 
     /// First `# ` heading (trailing dots trimmed), else the fallback. Mirrors

@@ -41,6 +41,20 @@ enum VaultExporter {
             (finalMarkdown, imageCount) = convertImageMarkers(markdown, imagesDir: imagesDir, safe: safe, into: attDir)
         }
 
+        // Apple-Note attachments: copy the note's `Attachments/` into the vault
+        // attachments folder and convert `(Attachments/<name>)` refs → Obsidian
+        // `![[<name>]]` embeds (robust to the renamed files' spaces).
+        if pf.sourceType == .note, !settings.attachmentsFolder.isEmpty, !pf.path.isEmpty {
+            let attSrc = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
+                .appendingPathComponent("Attachments", isDirectory: true)
+            if FileManager.default.fileExists(atPath: attSrc.path) {
+                let attDir = vaultURL.appendingPathComponent(settings.attachmentsFolder, isDirectory: true)
+                let (rewritten, copied) = convertNoteAttachments(finalMarkdown, attachmentsSrc: attSrc, into: attDir)
+                finalMarkdown = rewritten
+                imageCount += copied
+            }
+        }
+
         let mdURL = vaultURL.appendingPathComponent(safe + ".md")
         try Data(finalMarkdown.utf8).write(to: mdURL)
 
@@ -87,6 +101,37 @@ enum VaultExporter {
             try? fm.removeItem(at: dest)
             if (try? fm.copyItem(at: file, to: dest)) != nil { copied += 1 }
             replacements.append((m.range, "![[\(newName)]]"))
+        }
+        var out = markdown
+        for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {
+            out = (out as NSString).replacingCharacters(in: range, with: repl)
+        }
+        return (out, copied)
+    }
+
+    /// Copy an Apple Note's `Attachments/` files referenced as `![alt](Attachments/x)`
+    /// or `[alt](Attachments/x)` into `attDir`, and convert the refs to Obsidian
+    /// embeds/links (`![[x]]` / `[[x]]`). Robust to spaces in the renamed files (the
+    /// wikilink form sidesteps markdown URL escaping). Returns rewritten md + copies.
+    static func convertNoteAttachments(_ markdown: String, attachmentsSrc: URL, into attDir: URL) -> (String, Int) {
+        let fm = FileManager.default
+        guard let rx = try? NSRegularExpression(pattern: "(!?)\\[[^\\]]*\\]\\(Attachments/([^)]+)\\)") else {
+            return (markdown, 0)
+        }
+        let ns = markdown as NSString
+        var replacements: [(NSRange, String)] = []
+        var copied = 0
+        for m in rx.matches(in: markdown, range: NSRange(location: 0, length: ns.length)) {
+            let bang = ns.substring(with: m.range(at: 1))
+            let raw = ns.substring(with: m.range(at: 2))
+            let name = raw.removingPercentEncoding ?? raw
+            let src = attachmentsSrc.appendingPathComponent(name)
+            guard fm.fileExists(atPath: src.path) else { continue }
+            try? fm.createDirectory(at: attDir, withIntermediateDirectories: true)
+            let dest = attDir.appendingPathComponent(name)
+            try? fm.removeItem(at: dest)
+            if (try? fm.copyItem(at: src, to: dest)) != nil { copied += 1 }
+            replacements.append((m.range, "\(bang)[[\(name)]]"))
         }
         var out = markdown
         for (range, repl) in replacements.sorted(by: { $0.0.location > $1.0.location }) {

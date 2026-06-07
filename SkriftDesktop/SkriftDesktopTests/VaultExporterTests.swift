@@ -34,6 +34,36 @@ final class VaultExporterTests: XCTestCase {
         XCTAssertEqual(r.audioURL?.path, audioDest.path)
     }
 
+    func testExportConvertsAppleNoteAttachments() throws {
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: work) }
+
+        let noteFolder = work.appendingPathComponent("note")
+        let att = noteFolder.appendingPathComponent("Attachments")
+        try FileManager.default.createDirectory(at: att, withIntermediateDirectories: true)
+        let mdSrc = noteFolder.appendingPathComponent("original.md")
+        try "body".write(to: mdSrc, atomically: true, encoding: .utf8)
+        try Data([9, 9]).write(to: att.appendingPathComponent("My Trip - 1.png"))
+        let vault = work.appendingPathComponent("vault")
+
+        let pf = PipelineFile(id: "1", filename: "export.md", path: mdSrc.path, size: 0, sourceType: .note)
+        pf.enhancedTitle = "My Trip"
+        pf.transcript = "Look ![](Attachments/My Trip - 1.png) end"   // ingest-rewritten ref
+
+        var settings = AppSettings.default
+        settings.noteFolder = vault.path
+        settings.attachmentsFolder = "Attachments"
+
+        let r = try VaultExporter.export(pf, settings: settings)
+        let out = try String(contentsOf: r.markdownURL, encoding: .utf8)
+        XCTAssertTrue(out.contains("![[My Trip - 1.png]]"), "ref → Obsidian embed")
+        XCTAssertFalse(out.contains("(Attachments/"), "markdown image ref replaced")
+        XCTAssertEqual(r.imageCount, 1)
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: vault.appendingPathComponent("Attachments/My Trip - 1.png").path), "attachment copied to vault")
+    }
+
     func testExportThrowsWithoutVault() {
         let pf = PipelineFile(id: "1", filename: "x.m4a", path: "/tmp/x", size: 0, sourceType: .audio)
         XCTAssertThrowsError(try VaultExporter.export(pf, settings: .default))

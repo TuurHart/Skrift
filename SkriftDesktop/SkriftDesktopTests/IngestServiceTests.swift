@@ -79,6 +79,36 @@ final class IngestServiceTests: XCTestCase {
         XCTAssertTrue(created.allSatisfy { $0.sourceType == .note })
     }
 
+    func testSanitizeTitle() {
+        XCTAssertEqual(IngestService.sanitizeTitle("a/b:c"), "a-b-c")        // illegal → "-"
+        XCTAssertEqual(IngestService.sanitizeTitle("  hi  there  "), "hi there")  // whitespace collapsed + trimmed
+        XCTAssertEqual(IngestService.sanitizeTitle("////"), "note")          // all illegal → empty → fallback
+    }
+
+    func testIngestNoteImportsAndRenamesAttachment() throws {
+        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let noteURL = work.appendingPathComponent("export.md")
+        try "# My Trip\n\nLook: ![](Attachments/IMG_1.png)".write(to: noteURL, atomically: true, encoding: .utf8)
+        let srcAtt = work.appendingPathComponent("Attachments", isDirectory: true)
+        try FileManager.default.createDirectory(at: srcAtt, withIntermediateDirectories: true)
+        try Data([0x89, 0x50, 0x4E, 0x47]).write(to: srcAtt.appendingPathComponent("IMG_1.png"))
+
+        let ctx = try makeContext()
+        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+            .ingest(localURLs: [noteURL], into: ctx)
+
+        let pf = try XCTUnwrap(created.first)
+        XCTAssertTrue((pf.transcript ?? "").contains("(Attachments/My Trip - 1.png)"), "ref rewritten to safe name")
+        XCTAssertFalse((pf.transcript ?? "").contains("IMG_1.png"), "old ref replaced")
+
+        let noteFolder = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: noteFolder.appendingPathComponent("Attachments/My Trip - 1.png").path),
+            "attachment copied + renamed into the note folder")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: srcAtt.appendingPathComponent("IMG_1.png").path),
+            "source export left untouched (copy, not move)")
+    }
+
     func testIngestNoteParsesHeadingTitle() throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let noteURL = work.appendingPathComponent("export-2026-06-07.md")
