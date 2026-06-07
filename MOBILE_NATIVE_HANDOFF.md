@@ -209,6 +209,64 @@ Crash reports: `~/Library/Logs/DiagnosticReports/SkriftMobile-*.ips`.
      widget (only Control Center + Live Activity shipped).
 6. **Plan's Phase 9** = parity sweep + retire the RN `Mobile/`.
 
+## Phase 9 — parity sweep DONE (2026-06-07); retirement of `Mobile/` NOT yet done
+
+Ran a full feature-by-feature RN (`Mobile/`) → native (`SkriftMobile/`) audit.
+**Verdict: at parity-or-better on the whole core loop, but NOT 1:1 — real gaps
+remain, so `Mobile/` was NOT deleted** (the plan's gate is "parity → then
+retire"; user decision pending — see end).
+
+**Native meets/exceeds RN for:** recording (+ pause/resume, live caption — a
+native *addition*), on-device Parakeet (BPE merge, `[[img_NNN]]` markers, silence
+guard, memory teardown, download progress), photos-during-recording, the full
+contextual-metadata set (location/weather/pressure/daylight/dayPeriod/steps),
+names DB + bidirectional LWW/tombstone/**voiceEmbeddings-union** sync, the
+multipart Mac upload contract (flat metadata, `source:"mobile"`, phone `title`,
+**no `sanitised`**), reconcile/health, memo list/detail/playback. Native-only
+extras: Bonjour auto-discovery + multi-Mac, full-text search + sort/filter,
+swipe-paging detail, editable title + in-detail tags, Siri App Shortcuts +
+Control Center, onboarding, richer interactive Live Activity, on-device hardening.
+
+**GAP PUNCH-LIST (what blocks retiring `Mobile/`), ranked:**
+1. **Share Extension + capture items** — ❌ entirely missing. RN has
+   `ios/ShareExtension/ShareViewController.swift` + `capture.tsx` +
+   `saveCaptureItem` + URL-metadata fetch (share URL/text/image/file + annotate).
+   Native has no share-extension target; the `SharedContent` model + upload field
+   exist but nothing produces them. **+ `UploadPayload` sends no `attachments`/
+   legacy `photo` multipart parts**, so capture-item files wouldn't upload anyway.
+   *Biggest gap.*
+2. **Lock Screen / Home Screen widgets + QuickActions** — ❌ RN `record-widget`
+   (accessoryCircular/rectangular/inline + systemSmall) + app-icon long-press
+   "Quick Record" not ported. Native covers quick-start via Control Center + Siri
+   + `skrift://record`, but the dedicated Lock/Home widget + app-icon action are
+   absent.
+3. **Memory-aid prompts** — ❌ record-screen prompt list + Settings editor dropped.
+4. **Full capture-context in Memo detail** — ⚠️ daylight/steps/pressure/full
+   weather/sync-status row captured + uploaded but not surfaced (detail shows only
+   place/temp/day-period chips).
+5. **Photo filmstrip w/ offset labels + full-screen viewer** — ⚠️ native shows
+   inline embeds only (no horizontal filmstrip + tap-to-fullscreen).
+6. **On-device transcript text editing → `transcriptUserEdited`** — ⚠️ flag +
+   upload plumbing exist but detail transcript is read-only (no editor; only
+   Re-transcribe). RN's Review let you fix the transcript (flips the Mac trust).
+7. **Settings extras** — ❌ storage stats + "Clear synced memos", persisted
+   last-sync time (native has a transient banner), metadata-capture status rows.
+8. **Pull-to-refresh / on-focus auto-sync / row-swipe-delete** — ⚠️ native sync is
+   an explicit toolbar tap; delete via multi-select or detail ⋯.
+9. **Names alias editing** — ⚠️ deliberate (Mac owns aliases): native edits
+   name+short+delete only.
+10. **Voice enrollment** — ⚠️ store API ready + round-trips; UI is a placeholder
+    (diarization track).
+
+**Deliberate design swaps (not regressions):** QR pairing → Bonjour + manual;
+post-record Review screen → save-now → Memo detail.
+
+**Retirement decision (owed — DESTRUCTIVE, needs user sign-off):** close gaps
+1–2 (capture-items share ext + Lock/Home widgets) first, OR accept the gaps and
+`git mv Mobile/ archive/` (reversible) / delete (git history retains it), then
+update root `CLAUDE.md` (its Photo-capture + mobile sections still describe the RN
+app). Do NOT delete until the user picks.
+
 Sanity-check the sim toolchain (runs BOTH test targets; sim flake → re-run after
 `xcrun simctl shutdown all; xcrun simctl erase "iPhone 17"`):
 ```
