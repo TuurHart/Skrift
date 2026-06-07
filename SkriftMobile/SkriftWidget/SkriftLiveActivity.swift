@@ -1,4 +1,5 @@
 import ActivityKit
+import AppIntents
 import SkriftShared
 import SwiftUI
 import WidgetKit
@@ -34,8 +35,11 @@ struct SkriftLiveActivity: Widget {
                             .foregroundStyle(.white.opacity(0.85))
                     }
                 }
-                DynamicIslandExpandedRegion(.trailing) {
+                DynamicIslandExpandedRegion(.center) {
                     timer(context.state).font(.system(size: 13, weight: .semibold, design: .monospaced))
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    stopButton(32)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     Text(context.state.caption.isEmpty ? "Listening…" : context.state.caption)
@@ -75,7 +79,7 @@ struct SkriftLiveActivity: Widget {
                     .truncationMode(.head)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Circle().fill(paused ? SK.amber : SK.red).frame(width: 10, height: 10)
+            stopButton(34)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -87,6 +91,18 @@ struct SkriftLiveActivity: Widget {
              pauseTime: state.pausedAt, countsDown: false)
             .foregroundStyle(state.status == .paused ? SK.amber : .white.opacity(0.9))
             .monospacedDigit()
+    }
+
+    /// Stop button → StopRecordingIntent (foregrounds the app + stops/saves).
+    private func stopButton(_ size: CGFloat) -> some View {
+        Button(intent: StopRecordingIntent()) {
+            Image(systemName: "stop.fill")
+                .font(.system(size: size * 0.4, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: size, height: size)
+                .background(Circle().fill(SK.red))
+        }
+        .buttonStyle(.plain)
     }
 }
 

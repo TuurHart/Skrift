@@ -11,6 +11,9 @@ struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
 
     var onSaved: (UUID) -> Void = { _ in }
+    /// When true (launched via the Record App Intent / Control Center / Siri),
+    /// start recording immediately on appear instead of showing the ready screen.
+    var autoStart: Bool = false
     private let saver = MemoSaver()
 
     @State private var conversation = UserDefaults.standard.bool(forKey: "conversationDefault")
@@ -19,6 +22,7 @@ struct RecordView: View {
     /// reused at save (so we don't capture location/weather twice).
     @State private var context: MemoMetadata?
     @ObservedObject private var modelStatus = ModelLoadStatus.shared
+    @ObservedObject private var intentBridge = RecordingIntentBridge.shared
 
     var body: some View {
         ZStack {
@@ -39,8 +43,14 @@ struct RecordView: View {
             }
         }
         .animation(Theme.Motion.spring, value: showCamera)
-        .onAppear { camera.configure() }
+        .onAppear {
+            camera.configure()
+            if autoStart, !service.isRecording { startTapped() }
+        }
         .onDisappear { camera.stop() }
+        .onChange(of: intentBridge.stopRequestID) {
+            if service.isRecording { stopTapped() }
+        }
         .task {
             context = await MetadataProviderFactory.make().capture()
             // Preload the model on the ready screen so the status goes live

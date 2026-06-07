@@ -26,6 +26,8 @@ struct MemosListView: View {
 
     @State private var path: [UUID] = []
     @State private var showRecord = false
+    @State private var recordAutoStart = false
+    @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @State private var showSettings = false
     @State private var showSortFilter = false
     @State private var search = ""
@@ -59,7 +61,12 @@ struct MemosListView: View {
             .toolbar { toolbarContent }
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .fullScreenCover(isPresented: $showRecord) {
-                RecordView(onSaved: { newID in path = [newID] })
+                RecordView(onSaved: { newID in path = [newID] }, autoStart: recordAutoStart)
+            }
+            .onChange(of: intentBridge.startRequestID) {
+                // Record App Intent / Control Center / Siri → present + auto-start.
+                recordAutoStart = true
+                showRecord = true
             }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showSortFilter) {
@@ -197,7 +204,7 @@ struct MemosListView: View {
     }
 
     private var recordFAB: some View {
-        Button { showRecord = true } label: {
+        Button { recordAutoStart = false; showRecord = true } label: {
             Image(systemName: "mic.fill")
                 .font(.system(size: 24))
                 .foregroundStyle(.white)

@@ -109,6 +109,13 @@ targets:
     platform: iOS
     sources:
       - path: SkriftWidget
+      # Multi-target source membership (Apple's iOS-18 pattern): the widget
+      # compiles its own copy of the intents it triggers (Control Center Start,
+      # Live Activity Stop). They reference only their static performer, so they
+      # build here; the app sets the performer and openAppWhenRun routes the run
+      # into the app process. SkriftShortcuts stays app-only (AppShortcutsProvider).
+      - path: App/Intents/StartRecordingIntent.swift
+      - path: App/Intents/StopRecordingIntent.swift
     info:
       path: SkriftWidget/Info.plist
       properties:

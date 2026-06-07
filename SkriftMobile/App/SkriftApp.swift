@@ -11,6 +11,12 @@ struct SkriftApp: App {
         DemoDataSeeder.seedIfRequested(repo)
         NamesSeeder.seedIfRequested()
         repository = repo
+
+        // App Intents (Control Center / Siri / Live Activity Stop) run in this
+        // process and call these performers, which signal the record UI via the
+        // bridge. Set at launch so a cold launch via an intent finds them ready.
+        StartRecordingIntent.performer = { await MainActor.run { RecordingIntentBridge.shared.requestStart() } }
+        StopRecordingIntent.performer = { await MainActor.run { RecordingIntentBridge.shared.requestStop() } }
     }
 
     var body: some Scene {
