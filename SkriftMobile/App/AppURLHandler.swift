@@ -15,6 +15,10 @@ enum AppURLHandler {
             }
             return
         }
-        // skrift://record → start recording (wired in Phase 8d).
+        // skrift://record (Lock Screen widget / Siri / any deep link) → start a
+        // recording via the same bridge the Record App Intent uses.
+        if url.scheme == "skrift", url.host == "record" {
+            RecordingIntentBridge.shared.requestStart()
+        }
     }
 }
