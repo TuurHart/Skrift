@@ -30,8 +30,46 @@ Follow-ups this session: F1 phone-`title` extraction (unblocks mobile title), F2
 - **⚠ Two-instance store hazard:** `-runfile` still creates `SharedStore.container` + starts the server + runs `RunReconciler` (which WRITES SwiftData) at launch. **Quit the running app before a headless run** or two `ModelContainer`s race on `~/Library/Application Support/default.store`.
 - **Unique Bonjour name** (`3fd4848`): `LocalHTTPServer` defaults the service name to this Mac's computer name (`Host.current().localizedName`) so a room of Macs is distinguishable on the phone — pairs with mobile `a7c24ca` (per-row IP + spinner cap). Display-only; contract unchanged.
 
+### SESSION 2026-06-07 (cont. 2) — FULL-USE WALKTHROUGH → ~30 fixes + UI-audit + MEASURED lag fix (commits `90479ba`…`f6b1049`)
+The user did a complete spoken walkthrough of the running app; I drove it live (`pilot/axdrive`) and fixed nearly everything. **Tracker = `WALKTHROUGH_BUGS.md` (committed), the canonical checklist.** App builds green, **84 host-less tests green**, tree clean (`mocks/`+`pilot/`+`pipecheck/` = scratch, don't commit). Newest commit `f6b1049`.
+
+**Done:**
+- **B2** Apple-Notes attachments (`a76d76e`): copy sibling `Attachments/` into the note folder renamed `<safe title> - <n>.<ext>`, sips HEIC→JPG, rewrite md refs; export → Obsidian `![[…]]`. Copies, never mutates source.
+- **Server request logging** (`90479ba`,`9c0de1f`): `LocalHTTPServer` logs each request at `.notice` — read with **`/usr/bin/log show --predicate 'subsystem=="com.skrift.desktop"'`** (plain `log` is shadowed in the shell!). Format `METHOD /path <- <client-ip> -> status (bytes)` — for the phone round-trip.
+- **~30 walkthrough fixes** (`5664200`,`d49a856`,`33d45b6`,`da78ffa`,`068bcf2`,`5d2b3a6`,`f16c231`,`1689ae9`,`f6b1049`): contrast ROOT-fixed via **forced `.darkAqua` app-wide** (`1689ae9` — per-field `foregroundStyle` had only fixed *typed* text, not placeholders/carets/menus); dead ⋯ menu → native `Menu` wired to `retranscribe`/`redo`; title chooser flip-bug → explicit `selectedTitle` state + wrap (`axis:.vertical`) + smaller font; resolver real button + full-width + 2-line context; significance `%.1f` + snap-0.1 + "Not rated" + disabled-pre-process; title-based image+audio export names; per-note include-audio toggle; queue "to process" wording; Settings subfolder pickers + Hz help + names sort/**filter** (>5); export toast; "Loading" not "Downloading" (no banner flash when models resident); right-click sidebar menu (multi-select aware) + body **"Add … as a name"** (`6e82622`); UI-audit pass (ran the `ui-audit` skill): honest engine dots (reflect `modelsLoaded`, removed redundant header trio), empty-queue state, `RingedField` focus rings, scrubber thumb, Reduce-Motion/hit-targets.
+- **NOTE-SWITCH LAG — measured & fixed** (`17ec8d8`): os.Logger timing showed `render()` was ~600ms PER image (sync NSImage load+`lockFocus` on main; text-only 0–1ms; 2-image note 1389ms). Fix: load thumbnails OFF-main via ImageIO (`CGImageSourceCreateThumbnailAtIndex`), splice when ready if the note is unchanged. **1389ms → 1ms, proven.**
+
+**HARD-WON GOTCHAS (this session — don't relearn):**
+- **MEASURE, don't claim "fixed".** The user (rightly) called out unverified fixes — significance read "fixed" twice while a STALE pre-fix `.md` still showed the long number (the code's only render is `%.1f`; re-export fixes the file); lag "fixed" while the real cost was image-load, not audio. Pattern: add `os.Logger` perf timing → `/usr/bin/log show` → fix → **re-measure**.
+- **Use an agent to comb the user's walkthroughs.** I kept missing items reading too fast; a general-purpose agent (given the verbatim walkthrough + my fix-list) caught the gaps.
+- **Live driving** (`pilot/axdrive`): Accessibility grant on `/Applications/Claude.app` is **LOST on a Claude restart** → re-grant (Settings→Privacy→Accessibility→Claude, off→on; applies live, NO app restart). Screen Recording (for screenshots) never worked even post-restart → **AX-only**. `cliclick` not installed. Synthetic *keyboard* does NOT reach NSTextView (mouse + AX only; text-entry verification needs the user or XCUITest).
+- **Build:** ABSOLUTE paths (cwd drifts into `SkriftDesktop/`); `killall -9 testmanagerd`; `-skipMacroValidation`; don't pipe xcodebuild to tail.
+- **desktop-native is SHARED** (mobile-track/other sessions commit here too — e.g. `10548fe`/`189da83` interleaved mid-session; no conflict, just expect it).
+
+**USER PROFILE:** sharp visual taste; tests via spoken full-use walkthroughs; demands measured/verified fixes; mock-first for new UI. **PRIVACY:** never point an agent at vault contents (the app's own Swift may scan); test vault `~/Hackerman/Obsidian_LLM_Test_Vault` OK to export to.
+
+**NEXT (prioritized):**
+1. **R3 — inline-in-text name disambiguation** — the one real UX gap the user cares about (currently a card with ~7 words of context; resolve names directly in the body text).
+2. **Product north-star** (`/Users/tiurihartog/Hackerman/Skrift/backlog.md` is canonical): local-embedding vault semantic search + related-notes timeline ("see how my thinking evolved over time").
+3. Deferred polish: **W2** (I-beam cursor stays after the wizard's "Get started"), unify the 3 hand-rolled sliders (`AUD-P2c`).
+4. Live phone↔Mac round-trip: iOS pairs over Bonjour to THIS server (request logging now in). Needs the desktop server running.
+
 Commits on `desktop-native` (newest first):
 ```
+f6b1049 finish partials — no model-banner flash (#31) + names filter (#9)
+17ec8d8 note-switch lag — load image thumbnails off-main (N1, measured 1389→1ms)
+1689ae9 force dark appearance app-wide (root contrast fix)
+6e82622 richer right-click — sidebar actions + body "Add as name"
+f16c231 finish walkthrough — title wrap, readable names, right-click, gated significance
+5d2b3a6 ui-audit P2b/P3 — focus rings + motion/hit-target polish
+068bcf2 ui-audit P1/P2 — honest signals + missing affordances
+da78ffa settings pickers/help/sort, audio toggle, export toast, queue copy
+33d45b6 export — default attachment/audio folders, gate audio (E1,E2,ST8)
+d49a856 walkthrough fixes — contrast, title chooser, resolver, sig, labels
+5664200 wire ⋯ menu actions + native dismiss (N3, N4)
+9c0de1f log requests at .notice so they persist in `log show`
+a76d76e B2 — Apple-Notes attachment rename + HEIC→JPG
+90479ba log each sync request (phone round-trip debug)
 10548fe -runfile -transcript trusted-mobile validation mode
 3fd4848 advertise unique Bonjour name for multi-Mac disambiguation
 0c8e508 image embeds — [[img_NNN]] → Obsidian ![[…]] on export
