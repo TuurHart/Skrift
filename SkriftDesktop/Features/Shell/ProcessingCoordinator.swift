@@ -64,6 +64,14 @@ final class ProcessingCoordinator {
     /// A file still needs the auto-run until it reaches Ready (enhance done).
     func needsProcessing(_ pf: PipelineFile) -> Bool { pf.enhanceStatus != .done }
 
+    /// On launch, recover notes stranded mid-run by a crash/quit (a `.processing`
+    /// step with no run actually active) so the queue can pick them up again. A
+    /// pilot found such notes stuck showing "Enhancing" forever.
+    func reconcileInterruptedRuns(context: ModelContext) {
+        let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        if RunReconciler.resetInterrupted(all) { try? context.save() }
+    }
+
     // ── Process (transcribe → enhance → tag → name-link → compile) ──
     func process(fileIDs: [String], context: ModelContext) async {
         guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }

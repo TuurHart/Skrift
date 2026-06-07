@@ -41,6 +41,8 @@ struct RootView: View {
                 let s = SettingsStore.shared.load()
                 if s.authorName.isEmpty && s.noteFolder.isEmpty { showWizard = true }
             }
+            // Recover any run stranded mid-flight by a previous crash/quit.
+            coordinator.reconcileInterruptedRuns(context: ctx)
         }
         .onChange(of: files.count, initial: true) { _, _ in ensureSelection() }
     }
