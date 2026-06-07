@@ -97,6 +97,7 @@ struct SidebarView: View {
                     }
                     .help("Parakeet · Gemma · server healthy")
                     iconButton("gearshape") { onOpenSettings() }
+                        .accessibilityIdentifier("sidebar.settings")
                 }
             }
 
@@ -138,6 +139,7 @@ struct SidebarView: View {
         }
         .buttonStyle(.plain)
         .disabled(!canProcess)
+        .accessibilityIdentifier("sidebar.process")
     }
 
     private var canProcess: Bool { pendingCount > 0 && !coordinator.isRunning }

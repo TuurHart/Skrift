@@ -46,6 +46,7 @@ struct SettingsView: View {
         .background(Theme.bg)
         .onChange(of: settings) { _, new in SettingsStore.shared.save(new) }
         .task { editablePeople = people.map(EditablePerson.init) }
+        .accessibilityIdentifier("settings.root")
     }
 
     private var sections: some View {
@@ -107,6 +108,7 @@ struct SettingsView: View {
                     .background(Theme.accent, in: RoundedRectangle(cornerRadius: 7))
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("settings.done")
         }
         .padding(.horizontal, 20).padding(.vertical, 14)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5) }
