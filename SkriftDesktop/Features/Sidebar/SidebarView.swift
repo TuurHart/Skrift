@@ -211,6 +211,18 @@ struct SidebarView: View {
                     QueueRowView(file: f, selected: model.selection.contains(f.id)) {
                         model.handleClick(f.id, in: orderedIDs)
                     }
+                    .contextMenu {
+                        if coordinator.needsProcessing(f) {
+                            Button("Process") { Task { await coordinator.process(fileIDs: [f.id], context: ctx) } }
+                        }
+                        if f.steps.enhance == .done {
+                            Button(f.steps.export == .done ? "Re-export to Obsidian" : "Export to Obsidian") {
+                                coordinator.export(f, context: ctx)
+                            }
+                        }
+                        Divider()
+                        Button("Delete", role: .destructive) { ctx.delete(f); try? ctx.save() }
+                    }
                 }
             }
             .padding(8)

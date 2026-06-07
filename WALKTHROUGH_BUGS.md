@@ -15,7 +15,7 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 
 ## Settings
 - ☑ **ST1** Model HF-repo field readable (S1). `d49a856`
-- ☑ **ST2** Names fields readable (already themed; verified). 
+- ☑ **ST2** Names fields now boxed + readable (RingedField) — was wrongly dismissed first pass.
 - ☑ **ST3** Audio/attachments subfolders now have a vault-rooted "Choose…" picker. (this batch)
 - ☑ **ST4** High-pass slider now has plain-language help text. (this batch)
 - ☑ **ST5** Names list sorted alphabetically on load. (this batch)
@@ -47,7 +47,10 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 - ☑ **E5** Run bar says "Loading" not false "Downloading". `d49a856`
 
 ## Remaining (walkthrough)
-W2 (cursor), N2 (subsumed by audit-P1a), R3 inline (design).
+Deferred only: **W2** (I-beam cursor, P3 AppKit quirk) · **R3 inline-in-text resolver** (design). Everything else fixed.
+- ☑ **#12** Right-click a sidebar row → Process / Export / Delete.
+- ☑ **#18 / N2** Significance slider disabled until processed.
+- ☑ **T2** title wraps (no truncation) + smaller (18–19pt) — first pass was insufficient.
 
 ## UI Audit findings (code-based pass, 2026-06-07)
 - ⧖ **AUD-P1a** Significance showed false "0.0 · Passing" on unrated notes → "Not rated" until set. (subsumes N2)

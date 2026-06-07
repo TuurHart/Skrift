@@ -222,25 +222,22 @@ struct SettingsView: View {
 
     private func nameEditRow(_ ep: Binding<EditablePerson>) -> some View {
         HStack(spacing: 8) {
-            TextField("Full name", text: Binding(
+            // Boxed, primary-text fields (ST2: the bare dim fields were hard to read) + focus rings.
+            RingedField(placeholder: "Full name", text: Binding(
                 get: { ep.wrappedValue.canonical },
                 set: { ep.wrappedValue.canonical = $0; namesDirty = true }))
-                .textFieldStyle(.plain).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            TextField("aliases, comma-separated", text: Binding(
+            RingedField(placeholder: "aliases, comma-separated", text: Binding(
                 get: { ep.wrappedValue.aliases },
-                set: { ep.wrappedValue.aliases = $0; namesDirty = true }))
-                .textFieldStyle(.plain).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                set: { ep.wrappedValue.aliases = $0; namesDirty = true }), font: .system(size: 11))
             Button {
                 editablePeople.removeAll { $0.id == ep.wrappedValue.id }; namesDirty = true
             } label: {
-                Image(systemName: "trash").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                Image(systemName: "trash").font(.system(size: 12)).foregroundStyle(Theme.textMuted)
+                    .frame(width: 22, height: 22).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
         .padding(.vertical, 4)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline.opacity(0.05)).frame(height: 0.5) }
     }
 
     private func saveNames() {

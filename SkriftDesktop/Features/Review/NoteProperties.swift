@@ -44,13 +44,13 @@ struct NoteProperties: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
         } else if interactive {
-            TextField("", text: titleBinding, prompt: Text(file.filename).foregroundStyle(Theme.textMuted))
+            TextField("", text: titleBinding, prompt: Text(file.filename).foregroundStyle(Theme.textMuted), axis: .vertical)
                 .textFieldStyle(.plain)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 19, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
         } else {
             Text(file.enhancedTitle?.isEmpty == false ? file.enhancedTitle! : file.filename)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 19, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
         }
     }
@@ -67,13 +67,13 @@ struct NoteProperties: View {
             .foregroundStyle(isActive ? Theme.accent : Theme.textMuted)
 
             if isActive && interactive {
-                TextField("", text: titleBinding)
+                TextField("", text: titleBinding, axis: .vertical)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
             } else if isActive {
                 Text(titleBinding.wrappedValue.isEmpty ? value : titleBinding.wrappedValue)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -115,7 +115,7 @@ struct NoteProperties: View {
                 audioExportRow
             }
             divider
-            SignificanceRow(value: $file.significance)
+            SignificanceRow(value: $file.significance, enabled: file.steps.enhance == .done)
             divider
             TagEditor(file: file)
         }
@@ -190,6 +190,8 @@ private struct SignificanceRow: View {
     /// Optional: nil = the user hasn't rated this note yet (shows "Not rated", not a
     /// misleading "0.0 · Passing"). Dragging the slider sets a value, snapped to 0.1.
     @Binding var value: Double?
+    /// Disabled until the note is processed (#18 — can't rate an unprocessed note).
+    var enabled: Bool = true
 
     private var label: String { let v = value ?? 0; return v >= 0.67 ? "Significant" : v >= 0.34 ? "Useful" : "Passing" }
     private var sliderBinding: Binding<Double> {
@@ -201,7 +203,9 @@ private struct SignificanceRow: View {
             HStack {
                 Text("significance").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
                 Spacer()
-                if let value {
+                if !enabled {
+                    Text("rate after processing").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                } else if let value {
                     Text(String(format: "%.1f · %@", value, label))
                         .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
                         .foregroundStyle(Theme.accent)
@@ -210,11 +214,13 @@ private struct SignificanceRow: View {
                 }
             }
             ThinSlider(value: sliderBinding)
+                .disabled(!enabled)
             HStack {
                 Text("passing"); Spacer(); Text("useful"); Spacer(); Text("significant")
             }
             .font(.system(size: 9.5)).foregroundStyle(Theme.textMuted)
         }
+        .opacity(enabled ? 1 : 0.5)
     }
 }
 
