@@ -79,6 +79,28 @@ final class IngestServiceTests: XCTestCase {
         XCTAssertTrue(created.allSatisfy { $0.sourceType == .note })
     }
 
+    func testIngestFolderWithAudioAndNotes() throws {
+        // Dropping a folder of recordings (+ a note) imports the audio AND the .md,
+        // skips other types — the path used to port the old app's recordings.
+        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let folder = work.appendingPathComponent("Recordings", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data([0, 1, 2, 3]).write(to: folder.appendingPathComponent("New Recording 22.m4a"))
+        try Data([0, 1]).write(to: folder.appendingPathComponent("WhatsApp Audio.mp3"))
+        try "a memo".write(to: folder.appendingPathComponent("note.md"), atomically: true, encoding: .utf8)
+        try "skip".write(to: folder.appendingPathComponent("readme.txt"), atomically: true, encoding: .utf8)
+
+        let ctx = try makeContext()
+        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+            .ingest(localURLs: [folder], into: ctx)
+
+        XCTAssertEqual(created.count, 3)
+        XCTAssertEqual(created.filter { $0.sourceType == .audio }.count, 2)
+        XCTAssertEqual(created.filter { $0.sourceType == .note }.count, 1)
+        // Real filenames preserved (so titles aren't all "original").
+        XCTAssertTrue(created.contains { $0.filename == "New Recording 22.m4a" })
+    }
+
     func testSanitizeTitle() {
         XCTAssertEqual(IngestService.sanitizeTitle("a/b:c"), "a-b-c")        // illegal → "-"
         XCTAssertEqual(IngestService.sanitizeTitle("  hi  there  "), "hi there")  // whitespace collapsed + trimmed

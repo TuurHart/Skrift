@@ -168,11 +168,16 @@ struct IngestService: Sendable {
         return fallback
     }
 
-    /// A picked folder (e.g. an Apple Notes export) → ingest its `.md` files.
+    /// A picked folder → ingest its top-level supported files: Apple-Note `.md`
+    /// exports AND audio recordings (e.g. dropping a folder of voice memos). Skips
+    /// subfolders (an Apple Notes export's `Attachments/` images aren't notes).
     private func ingestFolder(_ url: URL, into context: ModelContext) throws -> [PipelineFile] {
-        let items = (try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? []
+        let items = ((try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? [])
+            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
         var created: [PipelineFile] = []
-        for item in items where ["md", "markdown"].contains(item.pathExtension.lowercased()) {
+        for item in items {
+            let ext = item.pathExtension.lowercased()
+            guard ["md", "markdown"].contains(ext) || Self.supportedAudio.contains(ext) else { continue }
             if let pf = try ingestFile(item, into: context) { created.append(pf) }
         }
         return created
