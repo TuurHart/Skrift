@@ -24,6 +24,24 @@ enum RunFile {
 
             let pf = PipelineFile(id: "runfile", filename: URL(fileURLWithPath: path).lastPathComponent,
                                   path: path, sourceType: .audio)
+
+            // Trusted-mobile path: `-transcript <file>` pre-loads a phone transcript
+            // and marks transcribe done, so BatchRunner SKIPS ASR — exactly what the
+            // Mac does for a trusted phone upload (confidence ≥ 0.7 / user-edited).
+            // Validates name-link → enhance → compile → export on a REAL synced memo
+            // (markers already injected on-device; the audio + images stay on disk
+            // for export). Without it, this stays a normal raw-audio run.
+            var trustedMobile = false
+            var inputTranscript: String?
+            if let ti = args.firstIndex(of: "-transcript"), ti + 1 < args.count,
+               let text = try? String(contentsOfFile: args[ti + 1], encoding: .utf8) {
+                pf.transcript = text
+                pf.transcribeStatus = .done
+                trustedMobile = true
+                inputTranscript = text
+                log(">>> MODE: trusted-mobile (ASR skipped) — transcript \(text.count) chars")
+            }
+
             let settings = SettingsStore.shared.load()
             let runner = BatchRunner(
                 transcriber: TranscriptionService.shared,
@@ -37,6 +55,12 @@ enum RunFile {
                 try await runner.run(pf, audioURL: URL(fileURLWithPath: path))
                 log(String(format: ">>> elapsed: %.1fs", Date().timeIntervalSince(t0)))
                 log(">>> steps: transcribe=\(pf.transcribeStatus.rawValue) enhance=\(pf.enhanceStatus.rawValue)")
+                if trustedMobile {
+                    // Proof the trust path held: the transcript is byte-for-byte the
+                    // phone's (ASR never ran and overwrote it).
+                    let preserved = (pf.transcript == inputTranscript)
+                    log(">>> TRUST CHECK: ASR skipped, phone transcript preserved = \(preserved)")
+                }
                 log(">>> TRANSCRIPT:\n\(pf.transcript ?? "(nil)")")
                 log(">>> TITLE: \(pf.enhancedTitle ?? "(nil)")")
                 log(">>> SUMMARY: \(pf.enhancedSummary ?? "(nil)")")
