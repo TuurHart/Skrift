@@ -41,6 +41,13 @@ final class LiveRecordingService: ObservableObject {
     // would be a data race, so we mirror what the tap needs.
     private nonisolated(unsafe) var tapPaused = false
     private nonisolated(unsafe) var tapLive = true
+    /// Set before tearing down the tap so a callback already past `installTap`'s
+    /// guard doesn't enqueue another write while we're finalizing the file.
+    private nonisolated(unsafe) var tapStopped = false
+    /// File encode (AAC) + RMS run here, OFF the real-time audio render thread,
+    /// so disk/encode work can't cause render overruns. Drained at stop before
+    /// the `AVAudioFile` is released.
+    private let writerQueue = DispatchQueue(label: "skrift.recording.writer")
 
     private var displayTimer: Timer?
     private var captionTimer: Timer?
@@ -68,6 +75,7 @@ final class LiveRecordingService: ObservableObject {
         tempURL = url
 
         tapPaused = false
+        tapStopped = false
         tapLive = liveTranscription
 
         if mock {
@@ -111,8 +119,10 @@ final class LiveRecordingService: ObservableObject {
         accumulate()
         stopTimers()
         if !mock {
+            tapStopped = true
             engine?.inputNode.removeTap(onBus: 0)
             engine?.stop()
+            writerQueue.sync {}   // drain pending writes before releasing the file
             engine = nil
             audioFile = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
@@ -131,8 +141,10 @@ final class LiveRecordingService: ObservableObject {
         guard isRecording else { return }
         stopTimers()
         if !mock {
+            tapStopped = true
             engine?.inputNode.removeTap(onBus: 0)
             engine?.stop()
+            writerQueue.sync {}   // drain pending writes before releasing the file
             engine = nil
             audioFile = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
@@ -168,22 +180,22 @@ final class LiveRecordingService: ObservableObject {
         let file = try AVAudioFile(forWriting: url, settings: settings)
         self.audioFile = file
 
-        // Real-time audio thread: do the buffer-bound work synchronously here
-        // (the tap reuses its backing storage, so the buffer is only valid for
-        // the callback) — gate on pause, write the file, measure the level, copy
-        // for the stream. Only value-typed results hop to the main actor.
+        // Real-time audio thread: keep this minimal. Copy the buffer (tap storage
+        // is reused after the callback) and hand the heavy work — AAC encode +
+        // RMS — to the writer queue so it never blocks the render thread.
         input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
-            guard let self, !self.tapPaused else { return }
-            try? file.write(from: buffer)
-            let lvl = Self.rms(buffer)
-            let owned = self.tapLive ? Self.copyBuffer(buffer) : nil
-            Task { @MainActor [weak self] in
-                guard let self, self.isRecording, !self.isPaused else { return }
-                self.level = lvl
-                self.pushWaveform(lvl)
-            }
-            if let owned {
-                Task { await TranscriptionService.shared.feedStream(owned) }
+            guard let self, !self.tapPaused, !self.tapStopped,
+                  let copy = Self.copyBuffer(buffer) else { return }
+            let live = self.tapLive
+            self.writerQueue.async { [weak self] in
+                try? file.write(from: copy)
+                let lvl = Self.rms(copy)
+                Task { @MainActor [weak self] in
+                    guard let self, self.isRecording, !self.isPaused else { return }
+                    self.level = lvl
+                    self.pushWaveform(lvl)
+                }
+                if live { Task { await TranscriptionService.shared.feedStream(copy) } }
             }
         }
         try engine.start()

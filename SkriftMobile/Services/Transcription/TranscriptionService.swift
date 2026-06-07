@@ -55,6 +55,12 @@ actor TranscriptionService: Transcriber {
     /// bounding live-buffer memory on long recordings (Shhhcribble uses a VAD
     /// speech-end trigger too; we keep just the time-based hard cap for now).
     private static let rotationInterval: TimeInterval = 25
+    /// Hard ceiling on the live buffer (≈90 s at 48 kHz). `rotateIfNeeded`
+    /// normally trims at 25 s, but it bails when the model isn't loaded — so
+    /// this cap (enforced in `feedStream`, model-independent) stops the buffer
+    /// running away while the model is downloading/loading or after a
+    /// memory-warning `unload()`.
+    private static let maxStreamFrames: AVAudioFrameCount = 48_000 * 90
 
     private init() {}
 
@@ -257,6 +263,15 @@ actor TranscriptionService: Transcriber {
     func feedStream(_ ownedBuffer: AVAudioPCMBuffer) {
         guard streaming else { return }
         streamBuffers.append(ownedBuffer)
+        // Safety net: if the model isn't trimming yet (loading/failed/unloaded),
+        // drop the oldest buffers so memory can't run away. The .m4a on disk
+        // still has the full audio (the authoritative one-shot pass uses that);
+        // only the live-caption prefix is sacrificed, which is empty anyway
+        // while `asr == nil`.
+        var total = streamBuffers.reduce(AVAudioFrameCount(0)) { $0 + $1.frameLength }
+        while total > Self.maxStreamFrames, streamBuffers.count > 1 {
+            total -= streamBuffers.removeFirst().frameLength
+        }
     }
 
     /// Best-effort full transcript right now: committed chunks + a live

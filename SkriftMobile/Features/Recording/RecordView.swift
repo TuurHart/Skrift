@@ -275,8 +275,10 @@ struct RecordView: View {
             capturedMetadata: context
         )
         Haptics.success()
-        dismiss()
+        // Set the navigation target before dismissing the cover — pushing onto
+        // the stack from a closure fired *during* dismissal can no-op.
         onSaved(id)
+        dismiss()
     }
 
     private func togglePause() {

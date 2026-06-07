@@ -42,7 +42,9 @@ struct MemoDetailView: View {
             ToolbarItem(placement: .topBarTrailing) { overflowMenu }
         }
         .onAppear { player.load(currentMemo?.audioURL) }
-        .onChange(of: selection) { _, _ in player.load(currentMemo?.audioURL) }
+        .onChange(of: selection) { _, newID in
+            player.load(memos.first { $0.id == newID }?.audioURL)
+        }
         .onDisappear { player.stopAndClear(); repository.save() }
     }
 

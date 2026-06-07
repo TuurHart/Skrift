@@ -33,6 +33,7 @@ final class AudioPlayerModel: NSObject, ObservableObject {
         player.enableRate = true
         player.rate = rate
         player.prepareToPlay()
+        try? AVAudioSession.sharedInstance().setCategory(.playback)
         self.player = player
         self.url = url
         duration = player.duration
@@ -44,7 +45,6 @@ final class AudioPlayerModel: NSObject, ObservableObject {
 
     func play() {
         guard let player else { return }
-        try? AVAudioSession.sharedInstance().setCategory(.playback)
         try? AVAudioSession.sharedInstance().setActive(true)
         player.rate = rate
         player.play()
