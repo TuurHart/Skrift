@@ -12,10 +12,14 @@
 
 ---
 
-## STATUS — Phases 0–6 GREEN; Phase 7 review UI BUILT (7a–7d) + WIRED to the pipeline + REAL end-to-end run VERIFIED (two-Jacks recording). Remaining: per-occurrence resolver apply; Phase 8 ingest/Settings/SetupWizard.
+## STATUS — Phases 0–7 GREEN (review UI wired + real run verified); Phase 8 (ingest + Settings + SetupWizard) DONE. Remaining: per-occurrence resolver apply, HF download bar; Phase 9 (parity + retire Electron/Python).
 
 Commits on `desktop-native` (newest first):
 ```
+95db821 Phase 8 — first-launch SetupWizard
+2b14a06 Phase 8 — Settings panel
+c217f69 Phase 8 — file/folder ingest + drag-drop
+df6014a docs: Phase 7 wired + real end-to-end run verified
 bb7cc95 -runfile harness + REAL end-to-end run verified (two-Jacks)
 062ce55 wire review UI to the pipeline (process/export/resolve)
 e105490 docs: mark Phase 7 review UI built (7a–7d)
@@ -131,6 +135,7 @@ ASR + the LLM are non-deterministic → can't golden-diff exactly; pin the trans
 
 ## OWED / REMAINING
 - **Phase 7 review UI — DONE** (commits 7a–7d): `SkriftDesktop/Features/` (Theme, Shell{RootView,AppModel,DemoSeed,Snapshot}, Sidebar{SidebarView,QueueDerivations}, Review{NoteDisplayView,NoteToolbar,NoteActions,AudioController,NoteProperties,ResolverStrip,FlowLayout,NoteBody,ReviewHelpers}). Faithful v5-mock port; snapshot-verified. **Verification method = the app's `-snapshot <path>` ImageRenderer PNG** (no screencapture/sim/TCC — `Snapshot.swift`; scrollable/interactive flags swap ScrollView→VStack and TextField/TextEditor→Text because ImageRenderer can't draw scroll contents or AppKit controls). **WIRED (commit 062ce55) + real run VERIFIED (bb7cc95):** `Features/Shell/ProcessingCoordinator.swift` runs `BatchRunner` over SwiftData files (Process all-pending / selection / single), publishes a live run bar, exports via `Compiler.compile` → `<title>.md` to the vault root, and applies per-alias resolver choices via `Sanitiser.applyResolvedNames`. Headless validation: `<App>.app/Contents/MacOS/SkriftDesktop -runfile <audio>` (`RunFile.swift`) — proven on `Hotel Du Vin.m4a` (two-Jacks): Parakeet transcript → Gemma copy-edit+title+summary → Sanitiser flagged 4 "Jack" ambiguous → 792-char markdown, 105s on M4, models from HF cache, no Python. **GOTCHA:** never block the main thread waiting on the engines — FluidAudio ASR posts completion callbacks to main; a semaphore-on-main DEADLOCKS at inference (loading is fine). **Remaining inside Phase 7:** per-occurrence resolver APPLY (distinct people per mention — UI ready, needs an offset-aware Sanitiser apply); Upload + Settings(gear) still stubs (Phase 8); body editor is a plain TextEditor MVP (NSTextView self-sizing + inline image markers + live [[link]] styling owed); karaoke proportional (real `word_timings` owed); export copies only the .md (vault audio/image copy owed); `DemoSeed` seeds the UI until ingest lands. Resolver design DECIDED: smart alias-default + per-occurrence expander (built in 7c).
+- **Phase 8 ingest + Settings + SetupWizard — DONE** (commits c217f69 / 2b14a06 / 95db821): `Pipeline/Ingest/IngestService.swift` (host-tested, mirrors UploadService per-file folders; +Upload → NSOpenPanel + sidebar `.dropDestination`; audio→.audio, .md→.note, folder→.md enumerate); `Features/Settings/SettingsView.swift` (gear → sheet: vault/author/model/prompts/preprocessing sliders/names list, autosaves to SettingsStore); `Features/Settings/SetupWizardView.swift` (first-launch overlay, author + vault). `DemoSeed` gated behind `-demo` so the real app starts empty. Snapshot modes added: `-snapshot-settings`, `-snapshot-wizard`. **Owed:** live HF model **download progress bar** (wire swift-huggingface `Progress` through the engines' `ensureLoaded`, currently ignored); Apple-Notes frontmatter parsing (ingestNote stores raw markdown); names editing in Settings is read-only (CRUD owed); phone `title` upload-metadata extraction in UploadService (flagged by the mobile track — BatchRunner sets `titleSuggested` from the LLM unconditionally).
 - **Real end-to-end app run** — wire `BatchRunner` → SwiftData saves + write `compiled.md` + `word_timings.json` sidecars + the Obsidian vault export (copy audio/images to the configured folders). Then drop an audio file in the app and get a real note.
 - **Phase 8** — ingest (drag/folder/phone) + Settings + SetupWizard, incl. the HF model **download progress bar** (`swift-huggingface` `Progress` callback; current `loadContainer` ignores it — wire it through). Vault tag-whitelist scan (deferred from Phase 5).
 - **Phase 9** — parity sweep + retire Electron/Python.
