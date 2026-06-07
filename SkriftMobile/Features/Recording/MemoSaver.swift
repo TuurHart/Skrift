@@ -19,9 +19,9 @@ struct MemoSaver {
     /// transcript so Memo detail shows text immediately), transcribe + capture
     /// metadata in the background. Returns the new memo id for navigation.
     @discardableResult
-    func save(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = [], provisionalTranscript: String? = nil) -> UUID {
+    func save(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = [], provisionalTranscript: String? = nil, capturedMetadata: MemoMetadata? = nil) -> UUID {
         let id = persist(tempURL: tempURL, duration: duration, photos: photos, provisional: provisionalTranscript)
-        Task { await captureMetadata(id: id) }
+        Task { await applyMetadata(id: id, pre: capturedMetadata) }
         Task { await runTranscription(id: id) }
         return id
     }
@@ -41,15 +41,17 @@ struct MemoSaver {
     @discardableResult
     func saveAndTranscribe(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = []) async -> UUID {
         let id = persist(tempURL: tempURL, duration: duration, photos: photos, provisional: nil)
-        await captureMetadata(id: id)
+        await applyMetadata(id: id, pre: nil)
         await runTranscription(id: id)
         return id
     }
 
-    /// Capture contextual metadata and merge it onto the memo, preserving the
-    /// photo `imageManifest` set at persist time (capture doesn't know about it).
-    private func captureMetadata(id: UUID) async {
-        let captured = await metadataProvider.capture()
+    /// Merge contextual metadata onto the memo, preserving the photo
+    /// `imageManifest` set at persist time. Reuses `pre` (captured when the
+    /// recorder opened) if given, else captures now.
+    private func applyMetadata(id: UUID, pre: MemoMetadata?) async {
+        let captured: MemoMetadata
+        if let pre { captured = pre } else { captured = await metadataProvider.capture() }
         guard let memo = repository.memo(id: id) else { return }
         var merged = captured
         merged.imageManifest = memo.metadata?.imageManifest ?? captured.imageManifest

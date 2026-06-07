@@ -34,6 +34,17 @@ final class RecordingUITests: XCTestCase {
         // Start → (mock timer runs) → stop.
         let recordButton = app.buttons["record-button"]
         XCTAssertTrue(recordButton.waitForExistence(timeout: 5))
+
+        // Ready state shows the captured context chip + an honest model status
+        // (the sim has no model, so it reads "not downloaded").
+        XCTAssertTrue(app.staticTexts["Afternoon"].waitForExistence(timeout: 5),
+                      "ready-state context chip missing")
+        XCTAssertTrue(app.staticTexts["Transcription model not downloaded"].exists,
+                      "ready-state model status not wired")
+
+        let readyShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        readyShot.name = "record-ready"; readyShot.lifetime = .keepAlways; add(readyShot)
+
         recordButton.tap()
         XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5),
                       "Pause control didn't appear — recording didn't start")

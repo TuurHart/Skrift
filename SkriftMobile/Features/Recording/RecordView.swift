@@ -13,8 +13,12 @@ struct RecordView: View {
     var onSaved: (UUID) -> Void = { _ in }
     private let saver = MemoSaver()
 
-    @State private var conversation = false
+    @State private var conversation = UserDefaults.standard.bool(forKey: "conversationDefault")
     @State private var showCamera = false
+    /// Context captured when the recorder opens — shown as ready-state chips and
+    /// reused at save (so we don't capture location/weather twice).
+    @State private var context: MemoMetadata?
+    @State private var modelReady = false
 
     var body: some View {
         ZStack {
@@ -37,6 +41,10 @@ struct RecordView: View {
         .animation(Theme.Motion.spring, value: showCamera)
         .onAppear { camera.configure() }
         .onDisappear { camera.stop() }
+        .task {
+            context = await MetadataProviderFactory.make().capture()
+            modelReady = await TranscriptionService.shared.isModelReady
+        }
     }
 
     // MARK: - Top bar
@@ -85,12 +93,22 @@ struct RecordView: View {
                 .foregroundStyle(Color.skText)
                 .padding(.top, 14)
             HStack(spacing: 6) {
-                Circle().fill(Color.skGreen).frame(width: 7, height: 7)
-                Text("On-device transcription · ready")
+                Circle().fill(modelReady ? Color.skGreen : Color.skAmber).frame(width: 7, height: 7)
+                Text(modelReady ? "On-device transcription · ready" : "Transcription model not downloaded")
             }
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(Color.skTextDim)
             .padding(.top, 8)
+
+            if !contextChips.isEmpty {
+                FlowLayout(spacing: 6, lineSpacing: 6) {
+                    ForEach(contextChips) { chip in
+                        ContextChip(text: chip.text, systemImage: chip.symbol)
+                    }
+                }
+                .padding(.top, 16)
+                .padding(.horizontal, 24)
+            }
 
             Spacer()
 
@@ -215,6 +233,20 @@ struct RecordView: View {
         }
     }
 
+    // MARK: - Context chips
+
+    private struct Chip: Identifiable { let id = UUID(); let text: String; let symbol: String? }
+
+    private var contextChips: [Chip] {
+        var out: [Chip] = []
+        if let place = context?.location?.placeName, !place.isEmpty {
+            out.append(Chip(text: place, symbol: "mappin.circle.fill"))
+        }
+        if let w = context?.weather { out.append(Chip(text: "\(w.temperature)°", symbol: "cloud.sun.fill")) }
+        if let period = context?.dayPeriod { out.append(Chip(text: period.label, symbol: period.symbol)) }
+        return out
+    }
+
     // MARK: - Actions
 
     private var timeString: String {
@@ -239,7 +271,8 @@ struct RecordView: View {
             tempURL: result.url,
             duration: result.duration,
             photos: camera.takeAll(),
-            provisionalTranscript: result.liveCaption
+            provisionalTranscript: result.liveCaption,
+            capturedMetadata: context
         )
         Haptics.success()
         dismiss()
