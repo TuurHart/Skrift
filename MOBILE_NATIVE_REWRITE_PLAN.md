@@ -310,12 +310,21 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       QR/health/URLs, `SyncCoordinator` (names sync → reconcile-by-filename → upload
       waiting). Sync button on the memos toolbar. 37 tests green. **Live POST against
       the running desktop app is still owed (device/server).**
-- [~] Phase 7 — review/detail/settings/record-redesign. **UI DESIGN LOCKED** (5
-      mock rounds, user-approved; mockups in `SkriftMobile/mockups/`). Build remains.
-      Full spec in `MOBILE_NATIVE_HANDOFF.md` → "Phase 7 — LOCKED UI DESIGN". Key
-      changes vs what's built: live caption while recording (port Shhhcribble
-      streaming), caption-first + on-demand camera, voice-first Names, Bonjour
-      pairing (drop QR), funnel Sort&Filter, optional memo title, full-text search.
-      Open fork: post-record save-now vs Review screen (ask).
+- [x] Phase 7 — full SwiftUI build to the locked mockups. 7.0 design system
+      (tokens + DSWaveformImage/Pow + `Memo.title`) · 7.1 caption-first Record
+      (Shhhcribble streaming ported onto the shared model; one AVAudioEngine tap
+      writes the .m4a AND feeds live captions; on-demand camera sheet) · 7.3 Memo
+      detail (swipe paging, editable title, RAW transcript + inline image embeds,
+      playback; **save-now → Memo detail** post-record flow — user picked it over
+      a Review screen) · 7.4 Memos list (search, funnel Sort&Filter, day groups,
+      status pills, multi-select, FAB) · 7.5 voice-first Names · 7.6 Settings +
+      Bonjour Pair-a-Mac (**QR dropped**) · 7.7 onboarding · 7.8 optional memo
+      `title` in upload metadata (desktop must read it — flagged via a spawned
+      task) · 7.9 ready-state context chips + model status (UI-coverage audit).
+      15 UI + 31 unit tests green; every screen screenshot-verified.
+      **Owed:** the live Mac round-trip (needs SkriftDesktop running) + on-device
+      verification of the device-owed bits (real ASR/mic/camera/GPS/weather,
+      Bonjour resolve, 494 MB model download, voice enrollment). Commits on
+      `mobile-native` after `108a86f` (7.0=0d4ca98 … 7.9=d97e783).
 - [ ] Phase 8 — widget/live activity/intents/share ext
 - [ ] Phase 9 — parity + retire Mobile/

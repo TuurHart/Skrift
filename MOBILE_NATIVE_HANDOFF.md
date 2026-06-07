@@ -112,13 +112,34 @@
   on this branch — **port them into the native transcription service in Phase 2**.
 
 ## Resume here (do this first)
-**Phases 0–6 are GREEN and committed. Phase 7's UI DESIGN IS LOCKED** (mock-first
-done — 5 rounds, user-approved). **Now BUILD Phase 7 to the locked design** — the
-full spec is in **`## Phase 7 — LOCKED UI DESIGN (build to this)`** below
-(decisions, per-screen behavior, the design direction + the 2 libraries, the
-mockups + how to render them, build order, and the open post-record fork). The
-mockups live in `SkriftMobile/mockups/mockup{1..5}.html`. First, sanity-check the
-toolchain still builds + tests (runs BOTH `SkriftMobileTests` and
+**Phases 0–7 are GREEN and committed. The FULL Phase 7 UI is built** to the locked
+mockups (7.0→7.9 on `mobile-native`; 7.0=`0d4ca98` … 7.9=`d97e783`). 15 UI + 31
+unit tests green; every screen screenshot-verified vs its mockup; an agent
+UI-coverage audit ran against the built app and its gaps were closed (7.9).
+Locked fork resolved: **save-now → Memo detail** (no separate Review screen).
+
+**What's left:**
+1. **Live Mac round-trip (owed, was blocked):** with **SkriftDesktop running**
+   (it advertises `_skrift._tcp` on :8000), pair the sim app (Bonjour or manual
+   host/port), POST a real memo (multipart), and run the names round-trip
+   (`GET /meta`→`GET`→merge→`PUT`). This also clears the Phase-1 + Phase-6 live
+   debt. (As of last session SkriftDesktop was still building — wait for it.)
+2. **Desktop title contract:** the phone now sends an optional `title` in upload
+   metadata (7.8). The native Mac server must read it — `UploadService.swift`
+   decodes the metadata but never extracts `title`, and `BatchRunner.swift:44`
+   sets `titleSuggested` from the LLM unconditionally. (Flagged as a spawned task
+   in the desktop repo.)
+3. **On-device verification** of everything marked device-owed: real ASR + the
+   live streaming caption, mic/AVAudioEngine file write, camera + pinch-zoom,
+   CoreLocation/weather/steps, real Bonjour discovery+resolve, the 494 MB model
+   download, voice-enrollment ML. (The sim seam covers UI; behavior needs a phone.)
+4. **Phase 8** (widget/Live Activity/App Intents/share ext) — **App Intents:
+   still confirm with the user first** (they're hesitant; Scribble SIGTRAP/
+   keyboard cold-start history). **Phase 9** parity + retire `Mobile/`.
+
+Build order + per-screen spec are in **`## Phase 7 — LOCKED UI DESIGN`** below
+(kept for reference). The mockups live in `SkriftMobile/mockups/mockup{1..5}.html`.
+Sanity-check the toolchain still builds + tests (runs BOTH `SkriftMobileTests` and
 `SkriftMobileUITests`):
 ```
 cd SkriftMobile && xcodegen generate && rm -rf /tmp/sk_ui.xcresult && \
