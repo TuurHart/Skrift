@@ -44,6 +44,17 @@ enum RunFile {
                 log(">>> AMBIGUOUS NAMES: \((pf.ambiguousNames ?? []).map { $0.alias })")
                 log(">>> SANITISED:\n\(pf.sanitised ?? "(nil)")")
                 log(">>> COMPILED (\((pf.compiledText ?? "").count) chars):\n\(pf.compiledText ?? "(nil)")")
+
+                // Optional: -vault <path> exports to a real (test) vault.
+                if let vi = args.firstIndex(of: "-vault"), vi + 1 < args.count {
+                    var s = settings
+                    s.noteFolder = args[vi + 1]
+                    if s.audioFolder.isEmpty { s.audioFolder = "Voice Memos" }
+                    if s.attachmentsFolder.isEmpty { s.attachmentsFolder = "Attachments" }
+                    let r = try VaultExporter.export(pf, settings: s)
+                    log(">>> EXPORTED md: \(r.markdownURL.path)")
+                    log(">>> EXPORTED audio: \(r.audioURL?.path ?? "(none)")  images: \(r.imageCount)")
+                }
             } catch {
                 log(">>> ERROR: \(error)")
             }

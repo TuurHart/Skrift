@@ -99,19 +99,12 @@ final class ProcessingCoordinator {
         }
     }
 
-    // ── Export to the Obsidian vault ──
+    // ── Export to the Obsidian vault (markdown + audio + images) ──
     func export(_ pf: PipelineFile, context: ModelContext) {
         let settings = SettingsStore.shared.load()
-        let vault = settings.noteFolder.trimmingCharacters(in: .whitespaces)
-        guard !vault.isEmpty else { lastError = "Set your Obsidian vault path in Settings first."; return }
-
-        let markdown = Compiler.compile(file: pf, author: settings.authorName)
-        let base = (pf.enhancedTitle?.isEmpty == false ? pf.enhancedTitle! : SkriftFormat.cleanFilename(pf.filename))
-        let safe = base.replacingOccurrences(of: "/", with: "-")
-        let url = URL(fileURLWithPath: vault).appendingPathComponent(safe + ".md")
         do {
-            try Data(markdown.utf8).write(to: url)
-            pf.exported = url.path
+            let result = try VaultExporter.export(pf, settings: settings)
+            pf.exported = result.markdownURL.path
             pf.exportStatus = .done
             pf.lastActivityAt = Date()
             try? context.save()

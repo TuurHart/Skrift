@@ -78,4 +78,18 @@ final class IngestServiceTests: XCTestCase {
         XCTAssertEqual(created.count, 2)
         XCTAssertTrue(created.allSatisfy { $0.sourceType == .note })
     }
+
+    func testIngestNoteParsesHeadingTitle() throws {
+        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let noteURL = work.appendingPathComponent("export-2026-06-07.md")
+        try "# Hotel du Vin plan\n\nBook the table for Friday.".write(to: noteURL, atomically: true, encoding: .utf8)
+
+        let ctx = try makeContext()
+        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+            .ingest(localURLs: [noteURL], into: ctx)
+
+        let pf = try XCTUnwrap(created.first)
+        XCTAssertEqual(pf.enhancedTitle, "Hotel du Vin plan")        // from the # heading, not the filename
+        XCTAssertTrue((pf.transcript ?? "").contains("Book the table"))
+    }
 }

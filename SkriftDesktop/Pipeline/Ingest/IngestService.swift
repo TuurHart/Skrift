@@ -60,11 +60,28 @@ struct IngestService: Sendable {
         let pf = PipelineFile(id: id, filename: filename, path: dest.path,
                               size: content.utf8.count, sourceType: .note)
         // Apple notes arrive already "transcribed" — the markdown body is the text.
-        // (Frontmatter/title parsing like apple_notes_importer.py is a follow-up.)
         pf.transcript = content
         pf.transcribeStatus = .done
+        // Title from the first `# ` heading, else the filename stem (apple_notes_importer.py).
+        // BatchRunner won't clobber this; the LLM title becomes the suggestion.
+        pf.enhancedTitle = Self.appleNoteTitle(content, fallback: (filename as NSString).deletingPathExtension)
+        // (Attachment rename + HEIC→JPG conversion from the Python importer is a follow-up.)
         context.insert(pf)
         return pf
+    }
+
+    /// First `# ` heading (trailing dots trimmed), else the fallback. Mirrors
+    /// `apple_notes_importer.parse_markdown_note`.
+    static func appleNoteTitle(_ content: String, fallback: String) -> String {
+        for line in content.split(separator: "\n", omittingEmptySubsequences: false) {
+            let s = line.trimmingCharacters(in: .whitespaces)
+            if s.hasPrefix("# ") {
+                let t = String(s.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "."))
+                if !t.isEmpty { return t }
+            }
+        }
+        return fallback
     }
 
     /// A picked folder (e.g. an Apple Notes export) → ingest its `.md` files.
