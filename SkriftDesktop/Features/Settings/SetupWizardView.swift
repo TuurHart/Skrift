@@ -66,6 +66,10 @@ struct SetupWizardView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.bg)
+        // W2: the wizard's text fields leave an I-beam cursor set; when the overlay
+        // goes away nothing crosses a cursor-rect boundary to reset it, so force it
+        // back to the arrow as the wizard disappears.
+        .onDisappear { NSCursor.arrow.set() }
     }
 
     private func finish() {
@@ -73,6 +77,7 @@ struct SetupWizardView: View {
         s.authorName = author
         s.noteFolder = vault
         SettingsStore.shared.save(s)
+        NSCursor.arrow.set()
         onDone()
     }
 

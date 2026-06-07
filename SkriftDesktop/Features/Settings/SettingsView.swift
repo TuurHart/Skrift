@@ -212,22 +212,9 @@ struct SettingsView: View {
                 Text("\(Int(value.wrappedValue))\(unit)")
                     .font(.system(size: 11.5, weight: .semibold).monospacedDigit()).foregroundStyle(Theme.accent)
             }
-            GeometryReader { geo in
-                let frac = (value.wrappedValue - range.lowerBound) / (range.upperBound - range.lowerBound)
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Theme.hairline.opacity(0.12)).frame(height: 4)
-                    Capsule().fill(Theme.accent).frame(width: max(0, geo.size.width * frac), height: 4)
-                    Circle().fill(.white).frame(width: 13, height: 13)
-                        .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
-                        .offset(x: geo.size.width * frac - 6.5)
-                }
-                .frame(maxHeight: .infinity).contentShape(Rectangle())
-                .gesture(DragGesture(minimumDistance: 0).onChanged { g in
-                    let f = min(1, max(0, g.location.x / geo.size.width))
-                    value.wrappedValue = (range.lowerBound + f * (range.upperBound - range.lowerBound)).rounded()
-                })
+            TrackSlider(fraction: (value.wrappedValue - range.lowerBound) / (range.upperBound - range.lowerBound)) { f in
+                value.wrappedValue = (range.lowerBound + f * (range.upperBound - range.lowerBound)).rounded()
             }
-            .frame(height: 14)
         }
     }
 

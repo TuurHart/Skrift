@@ -194,9 +194,6 @@ private struct SignificanceRow: View {
     var enabled: Bool = true
 
     private var label: String { let v = value ?? 0; return v >= 0.67 ? "Significant" : v >= 0.34 ? "Useful" : "Passing" }
-    private var sliderBinding: Binding<Double> {
-        Binding(get: { value ?? 0 }, set: { value = ($0 * 10).rounded() / 10 })
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -213,7 +210,7 @@ private struct SignificanceRow: View {
                     Text("Not rated").font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textMuted)
                 }
             }
-            ThinSlider(value: sliderBinding)
+            TrackSlider(fraction: value ?? 0) { value = ($0 * 10).rounded() / 10 }   // snap to 0.1
                 .disabled(!enabled)
             HStack {
                 Text("passing"); Spacer(); Text("useful"); Spacer(); Text("significant")
@@ -221,31 +218,6 @@ private struct SignificanceRow: View {
             .font(.system(size: 9.5)).foregroundStyle(Theme.textMuted)
         }
         .opacity(enabled ? 1 : 0.5)
-    }
-}
-
-/// Pure-SwiftUI thin slider (renders in ImageRenderer, matches the mock's 4pt track).
-private struct ThinSlider: View {
-    @Binding var value: Double  // 0...1
-
-    var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.hairline.opacity(0.12)).frame(height: 4)
-                Capsule().fill(Theme.accent).frame(width: w * value, height: 4)
-                Circle().fill(.white)
-                    .frame(width: 13, height: 13)
-                    .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
-                    .offset(x: w * value - 6.5)
-            }
-            .frame(maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 0).onChanged { g in
-                value = min(1, max(0, g.location.x / w))
-            })
-        }
-        .frame(height: 14)
     }
 }
 

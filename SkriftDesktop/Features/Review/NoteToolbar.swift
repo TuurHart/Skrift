@@ -54,24 +54,9 @@ struct NoteToolbar: View {
     }
 
     private var scrubber: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.hairline.opacity(0.15)).frame(height: 5)
-                Capsule().fill(Theme.accent).frame(width: geo.size.width * progress, height: 5)
-                Circle().fill(.white).frame(width: 11, height: 11)
-                    .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
-                    .offset(x: max(0, geo.size.width * progress - 5.5))   // drag handle + position
-            }
-            .frame(maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0).onChanged { v in
-                    let p = min(1, max(0, v.location.x / geo.size.width))
-                    audio.seek(to: p * total)
-                }
-            )
+        TrackSlider(fraction: progress, trackHeight: 5, thumbSize: 11) { f in
+            audio.seek(to: f * total)
         }
-        .frame(height: 16)
         .frame(maxWidth: .infinity)
     }
 

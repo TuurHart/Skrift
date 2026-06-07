@@ -7,7 +7,7 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 
 ## Setup wizard
 - ☑ **W1** Author-name field readable now (S1). `d49a856`
-- ☐ **W2** P3 — Cursor stays I-beam after "Get started". Deferred (AppKit cursor quirk; low value).
+- ☑ **W2** I-beam cursor stayed set after "Get started". Fix: `NSCursor.arrow.set()` on the wizard's `.onDisappear` + in `finish()` (nothing crossed a cursor-rect boundary to reset it when the overlay was removed). (this batch — live confirm owed)
 
 ## Sidebar / top chrome
 - ☐ **C1** P2 — Three green health dots unclear. Deferred to ui-audit visual pass (has a tooltip; clarity is a design call).
@@ -50,7 +50,7 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 - ☑ **E5** Run bar says "Loading" not false "Downloading". `d49a856`
 
 ## Remaining (walkthrough)
-Deferred only: **W2** (I-beam cursor, P3 AppKit quirk) · **R3 inline-in-text resolver** (design). Everything else fixed.
+All cleared. **R3 inline-in-text resolver** built (design A). **W2** I-beam cursor fixed. **AUD-P2c** sliders unified. (Live-confirm owed on R3 click→popover, karaoke no-reflow/seek, W2 cursor — Accessibility was off.)
 - ☑ **#12** Right-click a sidebar row → Process · Re-transcribe · Redo ▸ · Reveal in Finder · Open in Obsidian · Copy ▸ · Delete (multi-select aware → "Process N / Export N / Delete N").
 - ☑ **Add-name** Right-click a body text selection → "Add … as a name" (reliable, user-driven names-graph growth).
 - ☑ **#18 / N2** Significance slider disabled until processed.
@@ -62,7 +62,7 @@ Deferred only: **W2** (I-beam cursor, P3 AppKit quirk) · **R3 inline-in-text re
 - ⧖ **AUD-P2a** No empty-queue state → first-run hint added.
 - ⧖ **AUD-P2c-thumb** Scrubber had no drag handle → added a thumb.
 - ⧖ **AUD-P2b** Focus rings on form fields → reusable `RingedField` (Settings text/subfolder rows + wizard).
-- ☐ **AUD-P2c-unify** Three hand-rolled sliders → extract one component (code quality; low priority; deferred).
+- ☑ **AUD-P2c-unify** Three hand-rolled sliders (significance, Settings preprocessing, audio scrubber) → one reusable `TrackSlider` (fraction + onScrub; track/thumb size params). (this batch)
 
 ## Round-2 (post-pilot, measured) — all resolved
 - ☑ **Dark appearance** forced app-wide → fixes placeholder/caret/menu contrast at the root (per-field foregroundStyle only fixed typed text).
@@ -74,5 +74,5 @@ Deferred only: **W2** (I-beam cursor, P3 AppKit quirk) · **R3 inline-in-text re
 - ✓ **Audio export naming** confirmed title-based (`<title>.<ext>` in the audio subfolder).
 
 ## Still deferred (by design / design-task)
-W2 (I-beam cursor — P3 AppKit quirk) · R3 inline-in-text resolver (design) · AUD-P2c-unify sliders (code quality).
+Nothing — W2, R3, and AUD-P2c are all done. (New round of walkthrough findings: N6 audio player, N7 karaoke reflow+seek, C2 breadcrumb — all fixed this session.)
 - ⧖ **AUD-P3** Row hover/selection now animates; PulseDot respects Reduce Motion; tag-✕ hit target enlarged. (off-4px-grid spacing deferred — faithful web port.)
