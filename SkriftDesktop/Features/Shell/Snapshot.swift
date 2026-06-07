@@ -15,6 +15,9 @@ enum Snapshot {
         if let i = args.firstIndex(of: "-snapshot-wizard"), i + 1 < args.count {
             MainActor.assumeIsolated { renderWizard(to: args[i + 1]); exit(0) }
         }
+        if let i = args.firstIndex(of: "-snapshot-run"), i + 1 < args.count {
+            MainActor.assumeIsolated { renderRun(to: args[i + 1]); exit(0) }
+        }
         guard let i = args.firstIndex(of: "-snapshot"), i + 1 < args.count else { return }
         MainActor.assumeIsolated { renderReview(to: args[i + 1]); exit(0) }
     }
@@ -40,6 +43,23 @@ enum Snapshot {
         let view = SettingsView(interactive: false)   // sizes to full content (no 660 cap)
             .background(Theme.bg)
             .environment(\.colorScheme, .dark)
+        writePNG(view, to: path)
+    }
+
+    @MainActor private static func renderRun(to path: String) {
+        let files = DemoSeed.snapshotFiles()
+        let model = AppModel()
+        model.activeID = files.first?.id
+        let coordinator = ProcessingCoordinator.preview(
+            .init(total: 5, done: 2, currentTitle: "Standup notes",
+                  loadingLabel: "enhancement model", loadingFraction: 0.45))
+        let view = HStack(spacing: 0) {
+            SidebarView(model: model, files: files, coordinator: coordinator, scrollable: false).frame(width: 228)
+            NoteDisplayView(file: files.first, coordinator: coordinator, scrollable: false).frame(maxWidth: .infinity)
+        }
+        .frame(width: 1180, height: 780)
+        .background(Theme.bg)
+        .environment(\.colorScheme, .dark)
         writePNG(view, to: path)
     }
 

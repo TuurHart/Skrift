@@ -11,11 +11,22 @@ final class ProcessingCoordinator {
         var total: Int
         var done: Int
         var currentTitle: String?
+        /// Non-nil while a model is loading/downloading (shown before processing).
+        var loadingLabel: String?
+        /// Download fraction 0…1; nil = indeterminate (loading from cache).
+        var loadingFraction: Double?
     }
 
     private(set) var runState: RunState?
     private(set) var isRunning = false
     var lastError: String?
+
+    #if DEBUG
+    /// Snapshot helper — a coordinator with a preset run state for verification.
+    static func preview(_ rs: RunState) -> ProcessingCoordinator {
+        let c = ProcessingCoordinator(); c.runState = rs; return c
+    }
+    #endif
 
     /// A file still needs the auto-run until it reaches Ready (enhance done).
     func needsProcessing(_ pf: PipelineFile) -> Bool { pf.enhanceStatus != .done }
@@ -40,8 +51,32 @@ final class ProcessingCoordinator {
             enhancer: EnhancementService.shared,
             settings: settings,
             people: NamesStore.shared.livePeople(),
-            tagWhitelist: []   // vault tag-whitelist scan lands in Phase 8
+            tagWhitelist: []   // vault tag-whitelist scan is a follow-up
         )
+
+        // Pre-load the engines up front so the first run shows download/load
+        // progress in the run bar (instant when the models are already cached).
+        let needsAudio = targets.contains {
+            $0.sourceType != .note && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
+        }
+        do {
+            if needsAudio {
+                runState?.loadingLabel = "transcription model"
+                try await TranscriptionService.shared.ensureLoaded { f in
+                    Task { @MainActor in self.runState?.loadingFraction = f }
+                }
+            }
+            runState?.loadingLabel = "enhancement model"
+            runState?.loadingFraction = nil
+            try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
+                Task { @MainActor in self.runState?.loadingFraction = f }
+            }
+        } catch {
+            lastError = "Model load failed: \(error.localizedDescription)"
+            return   // defer resets isRunning + runState
+        }
+        runState?.loadingLabel = nil
+        runState?.loadingFraction = nil
 
         for pf in targets {
             runState?.currentTitle = pf.queueTitle

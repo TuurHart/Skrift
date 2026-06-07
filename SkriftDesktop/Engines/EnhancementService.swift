@@ -26,13 +26,15 @@ actor EnhancementService: Enhancing {
 
     var isModelReady: Bool { container != nil }
 
-    func ensureLoaded(modelRepo: String) async throws {
+    func ensureLoaded(modelRepo: String,
+                      onProgress: @Sendable @escaping (Double) -> Void = { _ in }) async throws {
         if container != nil, loadedRepo == modelRepo { return }
         let config = ModelConfiguration(id: modelRepo)
         container = try await LLMModelFactory.shared.loadContainer(
             from: #hubDownloader(),
             using: #huggingFaceTokenizerLoader(),
-            configuration: config
+            configuration: config,
+            progressHandler: { onProgress($0.fractionCompleted) }
         )
         loadedRepo = modelRepo
     }

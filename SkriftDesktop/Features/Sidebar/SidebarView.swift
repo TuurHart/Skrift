@@ -234,30 +234,49 @@ struct SidebarView: View {
         }
     }
 
-    private func runBar(_ rs: ProcessingCoordinator.RunState) -> some View {
-        let pct = rs.total > 0 ? Double(rs.done) / Double(rs.total) : 0
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Processing \(min(rs.done + 1, rs.total)) of \(rs.total)")
-                    .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.accent)
-                Spacer()
-                Text("\(Int(pct * 100))%")
-                    .font(.system(size: 11).monospacedDigit()).foregroundStyle(Theme.textSecondary)
-            }
-            if let title = rs.currentTitle {
-                Text(title).font(.system(size: 11)).foregroundStyle(Theme.textMuted).lineLimit(1)
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Theme.hairline.opacity(0.14)).frame(height: 5)
-                    Capsule().fill(Theme.accent).frame(width: geo.size.width * pct, height: 5)
+    @ViewBuilder private func runBar(_ rs: ProcessingCoordinator.RunState) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let label = rs.loadingLabel {
+                HStack {
+                    Text((rs.loadingFraction != nil ? "Downloading " : "Loading ") + label)
+                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.accent)
+                    Spacer()
+                    if let f = rs.loadingFraction {
+                        Text("\(Int(f * 100))%")
+                            .font(.system(size: 11).monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                    }
                 }
+                progressTrack(rs.loadingFraction)
+            } else {
+                let pct = rs.total > 0 ? Double(rs.done) / Double(rs.total) : 0
+                HStack {
+                    Text("Processing \(min(rs.done + 1, rs.total)) of \(rs.total)")
+                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.accent)
+                    Spacer()
+                    Text("\(Int(pct * 100))%")
+                        .font(.system(size: 11).monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                }
+                if let title = rs.currentTitle {
+                    Text(title).font(.system(size: 11)).foregroundStyle(Theme.textMuted).lineLimit(1)
+                }
+                progressTrack(pct)
             }
-            .frame(height: 5)
         }
         .padding(.horizontal, 14).padding(.vertical, 11)
         .background(Theme.accent.opacity(0.10))
         .overlay(alignment: .top) { Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5) }
+    }
+
+    private func progressTrack(_ fraction: Double?) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Theme.hairline.opacity(0.14)).frame(height: 5)
+                Capsule().fill(Theme.accent)
+                    .frame(width: geo.size.width * (fraction ?? 0.12), height: 5)
+                    .opacity(fraction == nil ? 0.5 : 1)
+            }
+        }
+        .frame(height: 5)
     }
 
     private var footer: some View {

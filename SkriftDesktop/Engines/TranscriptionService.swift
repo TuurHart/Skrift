@@ -27,13 +27,14 @@ actor TranscriptionService: Transcribing {
     var isModelReady: Bool { asr != nil }
 
     /// Load Parakeet v3 (multilingual incl. EN+NL). First call downloads from HF.
-    func ensureLoaded() async throws {
+    func ensureLoaded(onProgress: @Sendable @escaping (Double) -> Void = { _ in }) async throws {
         if asr != nil { return }
         if let loadTask { try await loadTask.value; return }
         let task = Task<Void, Error> {
             let cfg = MLModelConfiguration()
             cfg.computeUnits = .cpuAndNeuralEngine
-            let loaded = try await AsrModels.downloadAndLoad(configuration: cfg, version: .v3, progressHandler: { _ in })
+            let loaded = try await AsrModels.downloadAndLoad(configuration: cfg, version: .v3,
+                                                             progressHandler: { onProgress($0.fractionCompleted) })
             let manager = AsrManager(config: .default)
             try await manager.loadModels(loaded)
             self.models = loaded
