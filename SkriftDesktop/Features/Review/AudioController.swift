@@ -13,21 +13,34 @@ final class AudioController {
 
     private var player: AVAudioPlayer?
     private var ticker: Timer?
+    /// Bumped on every load so a slow async load that resolves after the user has
+    /// already switched notes is ignored (no stale player).
+    private var loadToken = 0
 
     private static let rateSteps: [Float] = [0.75, 1, 1.25, 1.5, 2]
 
     func load(path: String) {
         stop()
+        player = nil
         currentTime = 0
-        guard !path.isEmpty, FileManager.default.fileExists(atPath: path),
-              let p = try? AVAudioPlayer(contentsOf: URL(fileURLWithPath: path)) else {
-            player = nil
-            return
+        loadToken += 1
+        let token = loadToken
+        guard !path.isEmpty, FileManager.default.fileExists(atPath: path) else { return }
+        let url = URL(fileURLWithPath: path)
+        let wantRate = rate
+        // AVAudioPlayer init + prepareToPlay can block ~1s for some files — keep it
+        // off the main thread so switching notes stays snappy (N1). Assign back on
+        // main only if this is still the latest requested load.
+        Task.detached(priority: .userInitiated) {
+            guard let p = try? AVAudioPlayer(contentsOf: url) else { return }
+            p.enableRate = true
+            p.prepareToPlay()
+            await MainActor.run { [weak self] in
+                guard let self, self.loadToken == token else { return }
+                p.rate = wantRate
+                self.player = p
+            }
         }
-        p.enableRate = true
-        p.rate = rate
-        p.prepareToPlay()
-        player = p
     }
 
     func playPause() {

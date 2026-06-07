@@ -65,7 +65,7 @@ enum Compiler {
 
         y.append("tags:")
         for t in pf.tags { y.append("  - \(t)") }
-        y.append(pf.significance != nil ? "significance: \(fmtNum(pf.significance!))" : "significance:")
+        y.append(pf.significance != nil ? "significance: \(String(format: "%.1f", pf.significance!))" : "significance:")
         y.append(summary.isEmpty ? "summary:" : "summary: \(summary)")
         y.append("---")
         y.append("")

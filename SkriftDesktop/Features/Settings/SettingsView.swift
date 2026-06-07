@@ -131,7 +131,7 @@ struct SettingsView: View {
             Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
             fieldBox {
                 if interactive {
-                    TextField(placeholder, text: bind(key)).textFieldStyle(.plain)
+                    TextField(placeholder, text: bind(key)).textFieldStyle(.plain).foregroundStyle(Theme.textPrimary)
                 } else {
                     let v = settings[keyPath: key]
                     Text(v.isEmpty ? placeholder : v)

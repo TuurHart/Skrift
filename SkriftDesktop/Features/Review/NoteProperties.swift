@@ -11,6 +11,11 @@ struct NoteProperties: View {
     /// ImageRenderer can't draw AppKit-backed TextFields).
     var interactive = true
 
+    /// Which title card is selected — EXPLICIT state, not derived from comparing
+    /// `enhancedTitle` to a candidate (that flipped the active card the instant you
+    /// typed, and discarded the edit — the T1 bug). Re-seeded when the note changes.
+    @State private var selectedTitle: TitleKind = .suggested
+
     private var suggested: String { (file.titleSuggested ?? "").trimmingCharacters(in: .whitespaces) }
     private var original: String { SkriftFormat.cleanFilename(file.filename) }
     private var showChooser: Bool {
@@ -21,6 +26,9 @@ struct NoteProperties: View {
         VStack(alignment: .leading, spacing: 18) {
             titleSection
             propertiesCard
+        }
+        .onChange(of: file.id, initial: true) { _, _ in
+            selectedTitle = (file.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces) == original ? .original : .suggested
         }
     }
 
@@ -38,23 +46,19 @@ struct NoteProperties: View {
         } else if interactive {
             TextField("", text: titleBinding, prompt: Text(file.filename).foregroundStyle(Theme.textMuted))
                 .textFieldStyle(.plain)
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
         } else {
             Text(file.enhancedTitle?.isEmpty == false ? file.enhancedTitle! : file.filename)
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
         }
     }
 
     private enum TitleKind { case suggested, original }
 
-    private var activeKind: TitleKind {
-        (file.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces) == original ? .original : .suggested
-    }
-
     private func titleCard(_ kind: TitleKind, icon: String, label: String, value: String) -> some View {
-        let isActive = activeKind == kind
+        let isActive = selectedTitle == kind
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: icon).font(.system(size: 10))
@@ -65,11 +69,11 @@ struct NoteProperties: View {
             if isActive && interactive {
                 TextField("", text: titleBinding)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 21, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
             } else if isActive {
                 Text(titleBinding.wrappedValue.isEmpty ? value : titleBinding.wrappedValue)
-                    .font(.system(size: 21, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -88,7 +92,7 @@ struct NoteProperties: View {
         .overlay(alignment: .topTrailing) { radio(isActive).padding(12) }
         .opacity(isActive ? 1 : 0.6)
         .contentShape(Rectangle())
-        .onTapGesture { if !isActive { file.enhancedTitle = value } }
+        .onTapGesture { if !isActive { selectedTitle = kind; file.enhancedTitle = value } }
     }
 
     private func radio(_ on: Bool) -> some View {
@@ -107,7 +111,7 @@ struct NoteProperties: View {
         VStack(alignment: .leading, spacing: 0) {
             metadataGrid
             divider
-            SignificanceRow(value: Binding(get: { file.significance ?? 0 }, set: { file.significance = $0 }))
+            SignificanceRow(value: Binding(get: { file.significance ?? 0 }, set: { file.significance = ($0 * 10).rounded() / 10 }))
             divider
             TagEditor(file: file)
         }
@@ -260,6 +264,7 @@ private struct TagEditor: View {
             TextField("tag…", text: $draft)
                 .textFieldStyle(.plain)
                 .font(.system(size: 11))
+                .foregroundStyle(Theme.textPrimary)
                 .frame(width: 80)
                 .padding(.horizontal, 9).padding(.vertical, 3)
                 .background(Theme.hairline.opacity(0.06), in: Capsule())

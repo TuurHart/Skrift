@@ -240,7 +240,7 @@ struct SidebarView: View {
         VStack(alignment: .leading, spacing: 6) {
             if let label = rs.loadingLabel {
                 HStack {
-                    Text((rs.loadingFraction != nil ? "Downloading " : "Loading ") + label)
+                    Text("Loading " + label)
                         .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.accent)
                     Spacer()
                     if let f = rs.loadingFraction {

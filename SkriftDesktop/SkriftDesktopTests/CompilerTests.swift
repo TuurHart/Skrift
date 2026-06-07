@@ -48,6 +48,15 @@ final class CompilerTests: XCTestCase {
         XCTAssertTrue(md.contains("date: 2026-06-05"))
     }
 
+    func testSignificanceRoundsToOneDecimal() {
+        let pf = makeFile()
+        pf.transcript = "body"
+        pf.significance = 0.7000000000000001   // float noise the slider produced (E3)
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        XCTAssertTrue(md.contains("significance: 0.7"), "rounded to one decimal")
+        XCTAssertFalse(md.contains("0.70000"), "no float-noise decimals in YAML")
+    }
+
     func testEmptySignificanceAndSummaryAreBareKeys() {
         let pf = makeFile()
         pf.transcript = "body"

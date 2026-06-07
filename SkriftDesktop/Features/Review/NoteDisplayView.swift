@@ -32,7 +32,7 @@ struct NoteDisplayView: View {
             breadcrumb(file)
             toolbarBar(file)
             GeometryReader { geo in
-                let colW = min(720, max(320, geo.size.width - 72))
+                let colW = min(820, max(320, geo.size.width - 72))
                 let body = column(file)
                     .frame(width: colW, alignment: .leading)
                     .frame(maxWidth: .infinity, alignment: .center)

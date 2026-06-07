@@ -81,7 +81,7 @@ struct SetupWizardView: View {
             Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
             Group {
                 if interactive {
-                    TextField(placeholder, text: binding()).textFieldStyle(.plain)
+                    TextField(placeholder, text: binding()).textFieldStyle(.plain).foregroundStyle(Theme.textPrimary)
                 } else {
                     let v = binding().wrappedValue
                     Text(v.isEmpty ? placeholder : v)

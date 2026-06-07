@@ -45,6 +45,7 @@ struct ResolverStrip: View {
             applyButton
         }
         .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)   // fill the column, in line with the body (R2)
         .background(Theme.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 11))
         .overlay(RoundedRectangle(cornerRadius: 11).stroke(Theme.accent.opacity(0.25), lineWidth: 0.5))
     }
@@ -104,13 +105,16 @@ struct ResolverStrip: View {
             + Text(occ.alias).foregroundStyle(Theme.textSecondary).bold()
             + Text("\(occ.contextAfter)…").foregroundStyle(Theme.textMuted))
             .font(.system(size: 11))
-            .lineLimit(1)
+            .lineLimit(2)
     }
 
     private func expandToggle(_ g: Group) -> some View {
         Button { expanded.insert(g.key); aliasChoice[g.key] = nil } label: {
             Label("These are different people", systemImage: "arrow.triangle.branch")
-                .font(.system(size: 11)).foregroundStyle(Theme.accent)
+                .font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.accent)
+                .padding(.horizontal, 9).padding(.vertical, 4)
+                .background(Theme.accent.opacity(0.12), in: Capsule())
+                .overlay(Capsule().stroke(Theme.accent.opacity(0.3), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
     }
@@ -119,6 +123,8 @@ struct ResolverStrip: View {
         Button { expanded.remove(g.key); for occ in g.occs { occChoice[occ.offset] = nil } } label: {
             Label("Same person, actually", systemImage: "arrow.uturn.left")
                 .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                .padding(.horizontal, 9).padding(.vertical, 4)
+                .background(Theme.hairline.opacity(0.07), in: Capsule())
         }
         .buttonStyle(.plain)
     }
