@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
 /// The ingest queue / worklist. Organized around the daily loop:
 /// memos arrive → Process the pile → review what's Ready → Export.
@@ -20,6 +21,7 @@ struct SidebarView: View {
         files.filter { $0.queueStatus == .queued || $0.queueStatus == .transcribed }
     }
     private var pendingCount: Int { pendingFiles.count }
+    @State private var dragOver = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -32,6 +34,42 @@ struct SidebarView: View {
         .background(Theme.sidebar)
         .overlay(alignment: .trailing) {
             Rectangle().fill(Theme.hairline.opacity(0.07)).frame(width: 0.5)
+        }
+        .dropDestination(for: URL.self) { urls, _ in ingest(urls); return true } isTargeted: { dragOver = $0 }
+        .overlay {
+            if dragOver {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Theme.accent.opacity(0.6), style: StrokeStyle(lineWidth: 2, dash: [6]))
+                    .background(Theme.accent.opacity(0.06))
+                    .overlay(Text("Drop to add").font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.accent))
+                    .padding(6)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    // ── Ingest ──────────────────────────────────────────────
+    private func openUploadPanel() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.prompt = "Add"
+        panel.message = "Add voice memos, audio files, or an Apple Notes folder"
+        guard panel.runModal() == .OK else { return }
+        ingest(panel.urls)
+    }
+
+    private func ingest(_ urls: [URL]) {
+        guard !urls.isEmpty else { return }
+        do {
+            let created = try IngestService().ingest(localURLs: urls, into: ctx)
+            if let first = created.first {
+                model.activeID = first.id
+                model.selection = [first.id]
+            }
+        } catch {
+            coordinator.lastError = "Import failed: \(error.localizedDescription)"
         }
     }
 
@@ -62,7 +100,7 @@ struct SidebarView: View {
             }
 
             HStack(spacing: 7) {
-                actionButton(title: "Upload", system: "plus", filled: false) { /* ingest — Phase 8 */ }
+                actionButton(title: "Upload", system: "plus", filled: false) { openUploadPanel() }
                 processButton
             }
 

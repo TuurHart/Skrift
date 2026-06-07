@@ -21,7 +21,10 @@ struct RootView: View {
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(Theme.bg)
-        .task { DemoSeed.seedIfEmpty(ctx) }
+        .task {
+            // Real app starts empty; `-demo` populates with sample notes for dev/demo.
+            if ProcessInfo.processInfo.arguments.contains("-demo") { DemoSeed.seedIfEmpty(ctx) }
+        }
         .onChange(of: files.count, initial: true) { _, _ in ensureSelection() }
     }
 
