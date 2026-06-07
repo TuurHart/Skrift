@@ -1,0 +1,131 @@
+name: SkriftDesktop
+options:
+  bundleIdPrefix: com.skrift
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+packages:
+  # Match Shhhcribble / the iOS rewrite: FluidAudio pinned to branch main.
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    branch: main
+  # mlx-swift LLM stack for enhancement (gemma4 registered on main). 3.x decoupled
+  # the downloader/tokenizer → swift-huggingface + swift-transformers integrations.
+  mlx-swift-lm:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    branch: main
+  swift-huggingface:
+    url: https://github.com/huggingface/swift-huggingface
+    from: "0.9.0"
+  swift-transformers:
+    url: https://github.com/huggingface/swift-transformers
+    from: "1.3.0"
+
+targets:
+  SkriftDesktop:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+      - path: Models
+      - path: Pipeline
+      - path: Server
+      - path: Engines
+      - path: Features
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
+        PRODUCT_NAME: SkriftDesktop
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: Skrift
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
+        # Ad-hoc local signing so build + XCUITest work without a dev team.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        ENABLE_HARDENED_RUNTIME: NO
+    dependencies:
+      - package: FluidAudio
+        product: FluidAudio
+      - package: mlx-swift-lm
+        product: MLXLLM
+      - package: mlx-swift-lm
+        product: MLXLMCommon
+      - package: mlx-swift-lm
+        product: MLXHuggingFace
+      - package: swift-huggingface
+        product: HuggingFace
+      - package: swift-transformers
+        product: Tokenizers
+
+  # Host-less logic test bundle — proves `xcodebuild test` runs the unit harness.
+  # Host-less logic tests: macOS hosted tests flakily hang on the testmanagerd
+  # control session, so we compile the pure-logic sources straight into the test
+  # bundle instead of @testable-importing the app. Keep FluidAudio/mlx-using files
+  # OUT of here (they belong to integration/manual verification).
+  SkriftDesktopTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: SkriftDesktopTests
+      - path: Models
+      - path: Pipeline
+      - path: Server
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+
+  SkriftDesktopUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: SkriftDesktopUITests
+    dependencies:
+      - target: SkriftDesktop
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.uitests
+        TEST_TARGET_NAME: SkriftDesktop
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+
+schemes:
+  SkriftDesktop:
+    build:
+      targets:
+        SkriftDesktop: all
+        SkriftDesktopTests: [test]
+        SkriftDesktopUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SkriftDesktopTests
+        - SkriftDesktopUITests
+
+  # Fast loop: builds + runs ONLY the host-less logic tests (no app target, so no
+  # FluidAudio/MLX compile). Use `-scheme UnitTests` for the routine test cycle.
+  UnitTests:
+    build:
+      targets:
+        SkriftDesktopTests: [test]
+    test:
+      config: Debug
+      targets:
+        - SkriftDesktopTests
