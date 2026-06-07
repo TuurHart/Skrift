@@ -201,37 +201,9 @@ final class ProcessingCoordinator {
         Task { try? await Task.sleep(for: .seconds(3.5)); if toastToken == t { toast = nil } }
     }
 
-    // ── Apply review-time ambiguous-name choices ──
-    func applyResolvedNames(_ pf: PipelineFile, decisions: [ResolverDecision], context: ModelContext) {
-        var text = pf.bestBodyText
-
-        // Collapsed (per-alias) choices — one person for every mention of the alias.
-        let aliasDecisions = decisions
-            .filter { $0.offset == nil && $0.canonical != nil }
-            .map { (alias: $0.alias, canonical: $0.canonical!, short: $0.short) }
-        if !aliasDecisions.isEmpty {
-            text = Sanitiser.applyResolvedNames(text: text, decisions: aliasDecisions)
-        }
-
-        // Expanded (per-occurrence) choices — distinct people per mention (two Jacks).
-        let expanded = decisions.filter { $0.offset != nil }
-        if !expanded.isEmpty {
-            var byAlias: [String: [(canonical: String?, short: String?)]] = [:]
-            for (_, group) in Dictionary(grouping: expanded, by: { $0.alias.lowercased() }) {
-                let ordered = group.sorted { ($0.offset ?? 0) < ($1.offset ?? 0) }
-                let aliasName = ordered.first?.alias ?? ""
-                byAlias[aliasName] = ordered.map { ($0.canonical, $0.short) }
-            }
-            text = Sanitiser.applyResolvedOccurrences(text: text, byAlias: byAlias)
-        }
-
-        pf.sanitised = text
-        pf.ambiguousNames = nil
-        pf.sanitiseStatus = .done
-        let settings = SettingsStore.shared.load()
-        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName)
-        try? context.save()
-    }
+    // (Review-time ambiguous-name resolution now lives in NoteDisplayView — it
+    // applies each alias the moment you choose, via Sanitiser.applyResolvedNames /
+    // applyResolvedOccurrences. No batch step here.)
 
     // ── ⋯ overflow actions: re-transcribe + per-step redo ──
     enum RedoStep { case title, copyEdit, summary }

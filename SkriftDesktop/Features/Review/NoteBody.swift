@@ -60,7 +60,8 @@ struct NoteBody: View {
         BodyTextView(
             text: bodyBinding, imageURL: imageURL, onAddName: onAddName,
             resolver: karaokeActive ? nil : resolver,
-            karaoke: karaokeActive ? karaokePlayback : nil
+            karaoke: karaokeActive ? karaokePlayback : nil,
+            refresh: resolver?.styleVersion ?? 0
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }

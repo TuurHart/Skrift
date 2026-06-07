@@ -53,12 +53,12 @@ struct NoteDisplayView: View {
     }
 
     /// The centered reading column: resolver banner → properties → summary → body.
-    /// Inline name disambiguation (R3) happens in the body itself; the banner is just
-    /// progress + Apply.
+    /// The banner asks "Who is X?" per alias (auto-applies); the body marks the
+    /// mentions and handles the per-occurrence "different people" case (R3).
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
-            if let resolver, scrollable {
-                InlineResolverBanner(model: resolver) { applyInline(file, resolver) }
+            if let resolver, scrollable, !resolver.isEmpty {
+                InlineResolverBanner(model: resolver)
             }
             NoteProperties(file: file, author: author, interactive: scrollable)
             if let summary = file.enhancedSummary, !summary.isEmpty {
@@ -68,35 +68,76 @@ struct NoteDisplayView: View {
         }
     }
 
-    /// (Re)create the inline resolver model for the active note. Same model is kept
-    /// while the same note still has ambiguous names (so in-progress choices survive
-    /// re-renders); recreated on note switch; cleared once names are resolved.
+    /// (Re)create the inline resolver model for the active note + wire its actions.
+    /// Kept while the same note still has ambiguous names (in-progress choices survive
+    /// re-renders); recreated on note switch; cleared once all names are resolved.
     private func syncResolver(_ file: PipelineFile) {
         let amb = file.ambiguousNames ?? []
         if amb.isEmpty {
             if resolver != nil { resolver = nil }
         } else if resolver?.fileID != file.id {
-            resolver = InlineResolverModel(fileID: file.id, ambiguous: amb)
+            let m = InlineResolverModel(fileID: file.id, ambiguous: amb)
+            wireResolver(m, file)
+            resolver = m
         }
     }
 
-    /// Apply all inline choices at once. Re-enumerate the body's ambiguous mentions in
-    /// order and feed the existing order-based apply (offset = ordinal → per-occurrence
-    /// path, so two friends named "Jack" resolve independently).
-    private func applyInline(_ file: PipelineFile, _ model: InlineResolverModel) {
-        let body = file.bestBodyText
-        var out: [ResolverDecision] = []
-        for aliasLower in model.candidatesByAlias.keys {
-            let display = model.displayAlias[aliasLower] ?? aliasLower
-            for (i, range) in Sanitiser.plainOccurrences(of: aliasLower, in: body).enumerated() {
-                let choice = model.decisions[range.location]
-                out.append(ResolverDecision(alias: display, offset: i,
-                                            canonical: choice?.candidate?.canonical,
-                                            short: choice?.candidate?.short))
-            }
+    private func wireResolver(_ m: InlineResolverModel, _ file: PipelineFile) {
+        m.onResolveAlias = { [weak m] alias, choice in
+            guard let m else { return }
+            resolveAlias(file, m, alias: alias, choice: choice)
         }
-        coordinator.applyResolvedNames(file, decisions: out, context: ctx)
-        resolver = nil
+        m.onEscalate = { [weak m] alias in m?.escalated.insert(alias.lowercased()); m?.styleVersion += 1 }
+        m.onDeescalate = { [weak m] alias in
+            let k = alias.lowercased(); m?.escalated.remove(k); m?.occDecisions[k] = nil; m?.styleVersion += 1
+        }
+        m.onDecideOccurrence = { [weak m] alias, loc, choice in
+            guard let m else { return }
+            m.occDecisions[alias.lowercased(), default: [:]][loc] = choice
+            maybeApplyEscalated(file, m, alias: alias)
+        }
+    }
+
+    /// "Who is X?" answered with one person (or plain) → apply to EVERY mention at
+    /// once (first → `[[Canonical]]`, rest → the alias) and clear the alias.
+    private func resolveAlias(_ file: PipelineFile, _ m: InlineResolverModel, alias: String, choice: ResolverChoice) {
+        let body = file.bestBodyText
+        let text: String
+        switch choice {
+        case let .person(c):
+            text = Sanitiser.applyResolvedNames(text: body, decisions: [(alias: m.display(alias), canonical: c.canonical, short: c.short)])
+        case .plain:
+            text = body   // leave every mention plain
+        }
+        commitResolution(file, m, alias: alias, text: text)
+    }
+
+    /// Escalated ("different people"): once every mention of the alias has a choice,
+    /// apply them per-occurrence (distinct people stay distinct) and clear the alias.
+    private func maybeApplyEscalated(_ file: PipelineFile, _ m: InlineResolverModel, alias: String) {
+        let body = file.bestBodyText
+        let occ = Sanitiser.plainOccurrences(of: alias, in: body)
+        guard !occ.isEmpty, occ.allSatisfy({ m.choice(alias: alias, location: $0.location) != nil }) else { return }
+        let ordered: [(canonical: String?, short: String?)] = occ.map {
+            if case let .person(c) = m.choice(alias: alias, location: $0.location) { return (c.canonical, c.short) }
+            return (nil, nil)
+        }
+        let text = Sanitiser.applyResolvedOccurrences(text: body, byAlias: [m.display(alias): ordered])
+        commitResolution(file, m, alias: alias, text: text)
+    }
+
+    /// Persist a resolved alias: update the body, trim it from `ambiguousNames`, drop
+    /// it from the live model, recompile. When none remain, dismiss the resolver.
+    private func commitResolution(_ file: PipelineFile, _ m: InlineResolverModel, alias: String, text: String) {
+        file.sanitised = text
+        let remaining = (file.ambiguousNames ?? []).filter { $0.alias.lowercased() != alias.lowercased() }
+        file.ambiguousNames = remaining.isEmpty ? nil : remaining
+        file.sanitiseStatus = .done
+        file.compiledText = Compiler.compile(file: file, author: author)
+        file.lastActivityAt = Date()
+        try? ctx.save()
+        m.removeAlias(alias)
+        if m.isEmpty { resolver = nil }
     }
 
     /// Add a body text selection to the names DB — the reliable, user-driven way to

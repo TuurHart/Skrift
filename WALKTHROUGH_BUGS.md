@@ -40,7 +40,9 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 ## Resolver
 - ☑ **R1** "These are different people" is a real button now. `d49a856`
 - ☑ **R2** Resolver card fills the column (in line with body). `d49a856`
-- ☑ **R3** Context shows up to 2 lines. (deeper: inline-in-text disambiguation still owed — Wave D)
+- ☑ **R3** Inline-in-text disambiguation built (design A), then REWORKED per the user's use-test:
+  - **R3a** marks were too faint → undecided mentions now read as "needs you" (accent text + accent highlight + solid accent underline).
+  - **R3b** "nothing happened after selecting" → no more separate "Apply names" step. **Auto-apply:** the banner asks "Who is X?" per alias; pick one person → applied to EVERY mention instantly (first → `[[Canonical]]`, rest → alias). Pick **"Different people"** → tap each mention in the text; auto-applies once all are chosen ("It's one person" backs out). The body click opens the same popover in-context.
 
 ## Export
 - ☑ **E1** Title-derived unique image names + default folder so they export. `33d45b6`

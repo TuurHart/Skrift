@@ -115,7 +115,7 @@ final class SanitiserTests: XCTestCase {
     /// End-to-end of what R3's inline resolver produces: the user clicks each mention
     /// (decisions keyed by body LOCATION, as `InlineResolverModel` stores them); on
     /// Apply we re-enumerate `plainOccurrences` in order to build the per-occurrence
-    /// arrays (mirrors `NoteDisplayView.applyInline` + `ProcessingCoordinator`). Two
+    /// arrays (mirrors `NoteDisplayView.maybeApplyEscalated`). Two
     /// friends named "Jack" must resolve to DIFFERENT people, "Sam" to its own.
     func testInlineResolverLocationKeyedApplyTwoDistinctJacks() {
         let body = "Met Jack at the studio. Later Jack texted. And Sam will test it next week."

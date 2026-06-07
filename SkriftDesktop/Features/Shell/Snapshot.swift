@@ -72,20 +72,19 @@ enum Snapshot {
     @MainActor private static func renderResolver(to path: String) {
         let amb = DemoSeed.snapshotFiles().first?.ambiguousNames ?? []
         let model = InlineResolverModel(fileID: "demo-1", ambiguous: amb)
-        model.observedTotal = 3
-        model.decisions = [0: .person(model.candidates(for: "Jack").first!)]   // 1 of 3 decided
+        model.escalated.insert("jack")   // one alias row (Sam) + one escalated row (Jack)
         model.jumpHandler = {}
-        let cands = model.candidates(for: "Jack")
+        let cands = model.candidates(for: "Sam")
         let view = VStack(alignment: .leading, spacing: 26) {
-            InlineResolverBanner(model: model) {}
-            ResolverPopover(alias: "Jack", contextBefore: "met up with ", contextAfter: " this morning at the studio",
-                            candidates: cands, current: .person(cands[0])) { _ in }
+            InlineResolverBanner(model: model)
+            ResolverPopover(mode: .alias, alias: "Sam", contextBefore: "If ", contextAfter: " can test it next week",
+                            candidates: cands, current: nil, onPick: { _ in }, onEscalate: {})
                 .clipShape(RoundedRectangle(cornerRadius: 11))
                 .overlay(RoundedRectangle(cornerRadius: 11).stroke(Theme.hairline.opacity(0.12), lineWidth: 0.5))
             Spacer()
         }
         .padding(40)
-        .frame(width: 760, height: 460, alignment: .topLeading)
+        .frame(width: 760, height: 480, alignment: .topLeading)
         .background(Theme.bg)
         .environment(\.colorScheme, .dark)
         writePNG(view, to: path)

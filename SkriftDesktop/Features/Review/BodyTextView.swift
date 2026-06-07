@@ -27,6 +27,9 @@ struct BodyTextView: NSViewRepresentable {
     /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
     /// THIS text view (no renderer swap → no reflow) + click-a-word-to-seek.
     var karaoke: KaraokePlayback? = nil
+    /// A re-render trigger (the resolver's styleVersion) — bumping it re-styles the
+    /// ambiguous marks on escalate/de-escalate, which the view doesn't otherwise observe.
+    var refresh: Int = 0
 
     /// How far through the body's words to brighten (0…1) + a click-a-word → seek
     /// callback (arg = the clicked word's 0…1 position).
@@ -250,39 +253,35 @@ struct BodyTextView: NSViewRepresentable {
             storage.endEditing()
         }
 
-        /// Mark each plain ambiguous mention: undecided → dotted accent underline +
-        /// tint; resolved-to-person → accent + faint tint + a tooltip of who; resolved
-        /// to plain → no mark (it's just a word now).
+        /// Mark each plain ambiguous mention so it clearly reads as "needs you":
+        /// accent text + an accent highlight + a solid accent underline. In a
+        /// per-occurrence ("different people") alias, a chosen mention shows its
+        /// person (calmer tint + who-tooltip); a leave-plain mention shows normal.
         private func markAmbiguous(_ storage: NSTextStorage) {
             guard let resolver = parent.resolver else { return }
             let text = storage.string
             let accent = NSColor(Theme.accent)
-            let undecidedBG = accent.withAlphaComponent(0.14)
+            let undecidedBG = accent.withAlphaComponent(0.22)
             let decidedBG = accent.withAlphaComponent(0.10)
-            let underline = accent.withAlphaComponent(0.65)
-            let dotted = NSUnderlineStyle([.single, .patternDot]).rawValue
-            var observed = 0
+            let underline = accent.withAlphaComponent(0.9)
             for alias in resolver.candidatesByAlias.keys {
+                let escalated = resolver.isEscalated(alias)
                 for range in Sanitiser.plainOccurrences(of: alias, in: text) where NSMaxRange(range) <= storage.length {
-                    observed += 1
-                    switch resolver.decisions[range.location] {
-                    case .none:
-                        storage.addAttribute(.backgroundColor, value: undecidedBG, range: range)
-                        storage.addAttribute(.underlineStyle, value: dotted, range: range)
-                        storage.addAttribute(.underlineColor, value: underline, range: range)
+                    let choice = escalated ? resolver.choice(alias: alias, location: range.location) : nil
+                    switch choice {
                     case .some(.person(let c)):
                         storage.addAttribute(.foregroundColor, value: accent, range: range)
                         storage.addAttribute(.backgroundColor, value: decidedBG, range: range)
                         storage.addAttribute(.toolTip, value: clean(c.canonical), range: range)
                     case .some(.plain):
-                        break   // resolved → render as normal text
+                        break   // chosen as plain → render as normal text
+                    case .none:   // undecided — make it obvious
+                        storage.addAttribute(.foregroundColor, value: accent, range: range)
+                        storage.addAttribute(.backgroundColor, value: undecidedBG, range: range)
+                        storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
+                        storage.addAttribute(.underlineColor, value: underline, range: range)
                     }
                 }
-            }
-            // Report the true occurrence count so the banner total is exact. Defer the
-            // write so we don't mutate the @Observable during a SwiftUI view update.
-            if resolver.observedTotal != observed {
-                DispatchQueue.main.async { resolver.observedTotal = observed }
             }
         }
 
@@ -321,18 +320,27 @@ struct BodyTextView: NSViewRepresentable {
             let before = ns.substring(with: NSRange(location: range.location - beforeLen, length: beforeLen))
             let afterStart = NSMaxRange(range)
             let after = ns.substring(with: NSRange(location: afterStart, length: min(38, ns.length - afterStart)))
-            let display = resolver.displayAlias[aliasLower] ?? aliasLower
-            let cands = resolver.candidatesByAlias[aliasLower] ?? []
-            let current = resolver.decisions[range.location]
+            let display = resolver.display(aliasLower)
+            let cands = resolver.candidates(for: aliasLower)
             let loc = range.location
+            let escalated = resolver.isEscalated(aliasLower)
 
-            let view = ResolverPopover(alias: display, contextBefore: before, contextAfter: after,
-                                       candidates: cands, current: current) { [weak self, weak tv] choice in
-                resolver.decisions[loc] = choice
-                self?.activePopover?.performClose(nil)
-                self?.activePopover = nil
-                if let tv { self?.restyle(tv) }
-            }
+            let view = ResolverPopover(
+                mode: escalated ? .occurrence : .alias,
+                alias: display, contextBefore: before, contextAfter: after,
+                candidates: cands,
+                current: escalated ? resolver.choice(alias: aliasLower, location: loc) : nil,
+                onPick: { [weak self, weak tv] choice in
+                    self?.closePopover()
+                    if escalated { resolver.onDecideOccurrence?(aliasLower, loc, choice) }
+                    else { resolver.onResolveAlias?(aliasLower, choice) }
+                    if let tv { self?.restyle(tv) }
+                },
+                onEscalate: { [weak self, weak tv] in
+                    self?.closePopover()
+                    resolver.onEscalate?(aliasLower)
+                    if let tv { self?.restyle(tv) }
+                })
             let host = NSHostingController(rootView: view)
             host.sizingOptions = [.preferredContentSize]
             let pop = NSPopover()
@@ -342,9 +350,11 @@ struct BodyTextView: NSViewRepresentable {
             pop.show(relativeTo: boundingRect(range, in: tv), of: tv, preferredEdge: .maxY)
         }
 
+        private func closePopover() { activePopover?.performClose(nil); activePopover = nil }
+
         /// Hook the banner's "jump to next" up to this text view: scroll the first
-        /// undecided mention (reading order, across aliases) into view + open it.
-        /// Deferred so we never mutate the @Observable model mid SwiftUI update.
+        /// still-undecided mention of an ESCALATED alias into view + open it. Deferred
+        /// so we never mutate the @Observable model mid SwiftUI update.
         func registerJump(_ tv: SelfSizingTextView) {
             guard let resolver = parent.resolver, resolver.jumpHandler == nil else { return }
             DispatchQueue.main.async { [weak self, weak tv] in
@@ -358,9 +368,9 @@ struct BodyTextView: NSViewRepresentable {
                 guard let self, let tv, let resolver = self.parent.resolver, let storage = tv.textStorage else { return }
                 let text = storage.string
                 var first: (alias: String, range: NSRange)?
-                for alias in resolver.candidatesByAlias.keys {
+                for alias in resolver.candidatesByAlias.keys where resolver.isEscalated(alias) {
                     for range in Sanitiser.plainOccurrences(of: alias, in: text)
-                    where resolver.decisions[range.location] == nil {
+                    where resolver.choice(alias: alias, location: range.location) == nil {
                         if first == nil || range.location < first!.range.location { first = (alias, range) }
                     }
                 }
