@@ -5,8 +5,8 @@ import UIKit
 /// The "note" screen (mockup2). Swipe left/right between memos (`TabView(.page)`),
 /// each page = editable title + RAW transcript (with inline `[[img_NNN]]` embeds)
 /// + context/tags. A single playback bar is pinned at the bottom and re-targets
-/// as you swipe. Title + tags edits fold in the Review affordances (save-now
-/// post-record flow); delete / re-transcribe live in the ⋯ menu.
+/// as you swipe. Title, tags, and the transcript are hand-editable (save-now
+/// post-record flow); copy + delete live in the ⋯ menu.
 struct MemoDetailView: View {
     let initialID: UUID
 
@@ -108,6 +108,8 @@ private struct MemoPageView: View {
     private let repository = NotesRepository.shared
     @State private var showAddTag = false
     @State private var newTag = ""
+    @State private var editingTranscript = false
+    @State private var draft = ""
 
     var body: some View {
         ScrollView {
@@ -132,7 +134,7 @@ private struct MemoPageView: View {
                 }
                 .padding(.top, 12)
 
-                TranscriptContentView(memo: memo)
+                transcriptSection
                     .padding(.top, 18)
 
                 Color.clear.frame(height: bottomInset)
@@ -168,6 +170,61 @@ private struct MemoPageView: View {
         repository.save()
     }
 
+    // MARK: - Transcript (rendered ⇄ hand-editable)
+
+    /// Default: the rendered transcript (inline image embeds). Tapping Edit swaps
+    /// to a raw TextEditor (markers shown as `[[img_NNN]]` text — leave them be);
+    /// Done writes it back and marks `transcriptUserEdited` so the Mac trusts it
+    /// (no re-transcription). Edit is offered once there's text and it's not still
+    /// transcribing.
+    @ViewBuilder private var transcriptSection: some View {
+        // Editable unless actively transcribing — including an empty/failed memo
+        // (type the transcript from scratch).
+        let canEdit = memo.transcriptStatus != .transcribing
+        VStack(alignment: .leading, spacing: 10) {
+            if canEdit || editingTranscript {
+                HStack {
+                    Spacer()
+                    Button(editingTranscript ? "Done" : "Edit") {
+                        if editingTranscript { saveTranscript() } else { beginEditTranscript() }
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.skAccent)
+                    .accessibilityIdentifier("edit-transcript-button")
+                }
+            }
+            if editingTranscript {
+                TextEditor(text: $draft)
+                    .font(.system(size: 15.5))
+                    .lineSpacing(4)
+                    .frame(minHeight: 220)
+                    .scrollContentBackground(.hidden)
+                    .padding(10)
+                    .background(Color.skSurface, in: .rect(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle.sk(12).stroke(Color.skBorder, lineWidth: 1))
+                    .tint(.skAccent)
+                    .foregroundStyle(Color.skText)
+                    .accessibilityIdentifier("transcript-editor")
+            } else {
+                TranscriptContentView(memo: memo)
+            }
+        }
+    }
+
+    private func beginEditTranscript() {
+        draft = memo.transcript ?? ""
+        editingTranscript = true
+    }
+
+    private func saveTranscript() {
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        memo.transcript = trimmed.isEmpty ? nil : draft
+        memo.transcriptUserEdited = true   // flips the Mac's trust → it won't re-transcribe
+        if !trimmed.isEmpty { memo.transcriptStatus = .done }
+        repository.save()
+        editingTranscript = false
+    }
+
     private struct MetaChip: Identifiable { let id = UUID(); let text: String; let symbol: String? }
 
     private var metaChips: [MetaChip] {
@@ -194,13 +251,12 @@ private struct TranscriptContentView: View {
         if memo.transcriptStatus == .failed, (memo.transcript ?? "").isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 StatusPill(style: .error, label: "Transcription failed", systemImage: "exclamationmark.triangle.fill")
-                Text("Re-transcribe from the ⋯ menu.")
+                Text("It'll be transcribed on your Mac when you sync — or tap Edit to type it yourself.")
                     .font(.footnote).foregroundStyle(Color.skTextDim)
             }
         } else {
             VStack(alignment: .leading, spacing: 12) {
-                // Show the pill whenever transcribing — including a re-transcribe
-                // of a memo that already has text — so the action gives feedback.
+                // Show the pill whenever transcribing so the state is visible.
                 if memo.transcriptStatus == .transcribing {
                     StatusPill(style: .working, label: "Transcribing")
                 }

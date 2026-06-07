@@ -55,7 +55,7 @@ enum MemoStatusKind {
         case .synced: return "Synced"
         case .waiting: return "Waiting"
         case .transcribing: return "Transcribing"
-        case .error: return "Retry"
+        case .error: return "Error"
         }
     }
 }

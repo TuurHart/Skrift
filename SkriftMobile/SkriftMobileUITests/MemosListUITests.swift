@@ -49,16 +49,17 @@ final class MemosListUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[harbor].exists, "waiting memo should remain")
     }
 
-    func testStatusPillsShowTranscribingAndRetry() throws {
+    func testStatusPillsShowTranscribingAndError() throws {
         let app = launch()
         XCTAssertTrue(app.staticTexts["Synced"].waitForExistence(timeout: 10))   // demo2
 
         // demo4 (.transcribing) + demo5 (.failed) are the oldest, so scroll the
-        // LazyVStack until the Retry pill materializes.
-        var retry = app.buttons["Retry"]
+        // LazyVStack until the Error pill materializes. (Re-transcribe was removed;
+        // a failed memo shows an informational "Error" pill — no Retry button.)
+        var errorPill = app.staticTexts["Error"]
         var tries = 0
-        while !retry.exists && tries < 4 { app.swipeUp(); tries += 1; retry = app.buttons["Retry"] }
-        XCTAssertTrue(retry.exists, "Error→Retry pill missing")
+        while !errorPill.exists && tries < 4 { app.swipeUp(); tries += 1; errorPill = app.staticTexts["Error"] }
+        XCTAssertTrue(errorPill.exists, "Error status pill missing")
         XCTAssertTrue(app.staticTexts["Transcribing"].exists, "Transcribing pill missing")
     }
 

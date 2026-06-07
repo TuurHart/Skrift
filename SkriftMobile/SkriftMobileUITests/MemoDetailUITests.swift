@@ -63,6 +63,27 @@ final class MemoDetailUITests: XCTestCase {
                       "added tag chip didn't appear")
     }
 
+    func testEditTranscriptInDetail() throws {
+        let app = launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let edit = app.buttons["edit-transcript-button"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 5), "Edit button missing")
+        edit.tap()
+
+        let editor = app.textViews["transcript-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "transcript editor didn't appear")
+        editor.tap()
+        editor.typeText(" Edited on phone.")
+        app.buttons["edit-transcript-button"].tap()   // now labelled "Done"
+
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Edited on phone."))
+                        .firstMatch.waitForExistence(timeout: 5),
+                      "hand-edited transcript didn't render")
+    }
+
     func testDeleteMemoFromDetail() throws {
         let app = launch()
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch

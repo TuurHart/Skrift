@@ -96,8 +96,7 @@ struct MemosListView: View {
                         MemoCard(
                             memo: memo,
                             selecting: selecting,
-                            isSelected: selected.contains(memo.id),
-                            onRetry: { MemoSaver().retranscribe(id: memo.id) }
+                            isSelected: selected.contains(memo.id)
                         )
                         .padding(.horizontal, 16)
                         .padding(.bottom, 10)
@@ -317,7 +316,6 @@ private struct MemoCard: View {
     let memo: Memo
     let selecting: Bool
     let isSelected: Bool
-    let onRetry: () -> Void
 
     var body: some View {
         HStack(spacing: 11) {
@@ -372,14 +370,10 @@ private struct MemoCard: View {
         .skCard()
     }
 
+    // A failed on-device transcription is informational, not a dead end: the memo
+    // syncs as raw audio (the Mac transcribes it) and can be hand-edited in detail.
     @ViewBuilder private var statusPill: some View {
-        if memo.statusKind == .error {
-            Button(action: onRetry) {
-                StatusPill(style: .error, label: "Retry", systemImage: "exclamationmark.circle.fill")
-            }
-        } else {
-            StatusPill(style: memo.statusKind.pillStyle, label: memo.statusKind.label)
-        }
+        StatusPill(style: memo.statusKind.pillStyle, label: memo.statusKind.label)
     }
 
     @ViewBuilder private var photoThumb: some View {
