@@ -177,9 +177,37 @@ Crash reports: `~/Library/Logs/DiagnosticReports/SkriftMobile-*.ips`.
 4. **Still device/later-owed:** voice-enrollment ML (diarization track — the
    on-phone flow is a placeholder), word-timings→karaoke (computed but unused),
    weather (needs the user's OpenWeatherMap key), Light/Auto theme palette.
-5. **Plan's Phase 8** (widget / Live Activity / App Intents / share ext) — **App
-   Intents NEEDS user sign-off** (Scribble SIGTRAP / keyboard cold-start history).
-   **Phase 9** = parity sweep + retire the RN `Mobile/`.
+5. ✅ **Plan's Phase 8 DONE** (2026-06-07; user signed off App Intents "from the
+   start"). Commits `55c2032`→`ece27b9`, mock-first, per-chunk:
+   - **8a** (`55c2032`): `SkriftShared` framework (`RecordingActivityAttributes`,
+     ActivityKit, +`paused`/`pausedAt`) + `SkriftWidget` widgetkit extension —
+     recording **Live Activity** (Lock Screen + Dynamic Island, Skrift-tokened,
+     self-animating waveform, head-truncated caption, frozen timer while paused).
+     `RecordingActivityManager` drives it (throttle + orphan reaping, ported from
+     Shhhcribble). Info.plist `NSSupportsLiveActivities` + `UIBackgroundModes
+     audio`. Mock: `mockups/liveactivity.html`.
+   - **8b** (`3ce27a6`): **App Intents** (Start/Stop) + **Control Center** record
+     button + **Siri** shortcut + interactive Live Activity **Stop** button.
+     **SIGTRAP-avoided by design:** plain `AppIntent` + `openAppWhenRun:true`,
+     NOT `AudioRecordingIntent` (that's what SIGTRAP'd at AppShortcutsProvider
+     registration without PTT). Static-performer indirection compiles intents in
+     both app+widget; `RecordingIntentBridge` routes to the existing record
+     handlers. No App Group.
+   - **8c** (`7d919a7`): **share-to-import audio** via document types
+     (`CFBundleDocumentTypes public.audio` + `.onOpenURL` → `MemoSaver.importAudio`)
+     — Shhhcribble's path, no share-extension target. m4a/wav/mp3 transcribe
+     on-device; .opus etc. fall back to Mac transcription.
+   - **8d** (`ece27b9`): `skrift://record` deep link → start recording (shared
+     `AppURLHandler` + bridge).
+   - **Verified:** 18 UI + 35 unit tests green on the iPhone 17 sim; app launches
+     with the shortcut registered + no crash (so registration is SIGTRAP-free —
+     it would surface on the sim too). **Device-owed:** real Live Activity
+     display, Control Center / Siri invocation, Live Activity Stop, the Share
+     Sheet hand-off, and stop-without-unlock (needs a shared session controller).
+   - **Deferred to Phase 9 parity:** richer capture-items (shared URL/text/image +
+     annotation) via a full share extension; the RN `record-widget` Home/Lock
+     widget (only Control Center + Live Activity shipped).
+6. **Plan's Phase 9** = parity sweep + retire the RN `Mobile/`.
 
 Sanity-check the sim toolchain (runs BOTH test targets; sim flake → re-run after
 `xcrun simctl shutdown all; xcrun simctl erase "iPhone 17"`):

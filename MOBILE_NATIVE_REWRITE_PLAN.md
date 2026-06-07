@@ -333,8 +333,16 @@ xcrun xcresulttool get --path /tmp/sk_ui.xcresult ...   # pull screenshots/logs
       **Round-trip CONFIRMED:** iPhone → native SkriftDesktop over Wi-Fi; 2 real
       memos uploaded, Mac trusted the transcript (transcribe=done), names synced.
       (NB: these "8.x" commits are device-hardening, NOT the Phase-8 below.)
-- [ ] Phase 8 — widget/live activity/intents/share ext (**App Intents needs user
-      sign-off** — Scribble SIGTRAP history). Plus follow-ups: multi-Mac
-      disambiguation (phone IP-per-row + desktop unique Bonjour name), desktop
-      title-read (spawned), Process-on-Mac validation, voice-enrollment ML.
+- [x] Phase 8 — widget/live activity/intents/share ext (2026-06-07; user signed
+      off App Intents). 8a Live Activity + `SkriftShared` (`55c2032`); 8b App
+      Intents + Control Center + Live Activity Stop (`3ce27a6`, **SIGTRAP-avoided**:
+      plain `AppIntent`+`openAppWhenRun`, NOT `AudioRecordingIntent`); 8c
+      share-to-import audio via document types (`7d919a7`); 8d `skrift://record`
+      deep link (`ece27b9`). 18 UI + 35 unit tests green. Device-owed: real Live
+      Activity/Control Center/Siri/Share-Sheet display. Deferred to Phase 9:
+      capture-items share extension + the RN Home/Lock `record-widget`.
+      Follow-ups also DONE this session: multi-Mac disambiguation (phone `a7c24ca`
+      IP-per-row + spinner cap; desktop `3fd4848` unique Bonjour name);
+      Process-on-Mac validation (desktop `10548fe`); desktop title-read was the
+      prior `3a1a73c`. Still owed: voice-enrollment ML (diarization track).
 - [ ] Phase 9 — parity + retire Mobile/
