@@ -22,6 +22,10 @@
 				<string>public.mpeg-4-audio</string>
 				<string>com.microsoft.waveform-audio</string>
 				<string>public.aiff-audio</string>
+				<string>public.aac-audio</string>
+				<string>com.apple.m4a-audio</string>
+				<string>org.xiph.opus</string>
+				<string>public.mpeg-4</string>
 			</array>
 		</dict>
 	</array>

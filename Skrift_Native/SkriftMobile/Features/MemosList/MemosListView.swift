@@ -27,6 +27,7 @@ struct MemosListView: View {
     @State private var path: [UUID] = []
     @State private var showRecord = false
     @State private var recordAutoStart = false
+    @State private var lastHandledStart = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @State private var showSettings = false
     @State private var showSortFilter = false
@@ -63,11 +64,11 @@ struct MemosListView: View {
             .fullScreenCover(isPresented: $showRecord) {
                 RecordView(onSaved: { newID in path = [newID] }, autoStart: recordAutoStart)
             }
-            .onChange(of: intentBridge.startRequestID) {
-                // Record App Intent / Control Center / Siri → present + auto-start.
-                recordAutoStart = true
-                showRecord = true
-            }
+            .onChange(of: intentBridge.startRequestID) { handleStartRequest() }
+            // Also catch a request that fired during a COLD launch (App Intent /
+            // widget / deep link) BEFORE this view subscribed — onChange alone
+            // misses it, which left Siri/widget "opens but doesn't record".
+            .onAppear { handleStartRequest() }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
@@ -200,6 +201,16 @@ struct MemosListView: View {
             try? await Task.sleep(for: .seconds(2.2))
             syncBanner = nil
         }
+    }
+
+    /// Present the recorder + auto-start for a Record intent / widget / deep link.
+    /// `lastHandledStart` makes it fire once per request and catches a request that
+    /// arrived during a cold launch before `.onChange` was subscribed.
+    private func handleStartRequest() {
+        guard intentBridge.startRequestID > lastHandledStart else { return }
+        lastHandledStart = intentBridge.startRequestID
+        recordAutoStart = true
+        showRecord = true
     }
 
     private var recordFAB: some View {

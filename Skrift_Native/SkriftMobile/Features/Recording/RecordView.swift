@@ -45,7 +45,14 @@ struct RecordView: View {
         .animation(Theme.Motion.spring, value: showCamera)
         .onAppear {
             camera.configure()
-            if autoStart, !service.isRecording { startTapped() }
+            // Cold launch (Record intent / widget / deep link): defer the auto-start
+            // a beat so the cover has finished presenting and the audio session is
+            // ready before we activate it — firing in onAppear raced and no-op'd.
+            if autoStart, !service.isRecording {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    if !service.isRecording { startTapped() }
+                }
+            }
         }
         .onDisappear { camera.stop() }
         .onChange(of: intentBridge.stopRequestID) {

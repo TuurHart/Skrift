@@ -76,6 +76,14 @@ targets:
               - public.mpeg-4-audio
               - com.microsoft.waveform-audio
               - public.aiff-audio
+              # Broaden coverage — some apps (e.g. Signal) export voice notes with
+              # a UTI that doesn't conform to public.audio (.opus / .aac / .m4a /
+              # mp4-container). A true Share Extension is the robust catch-all
+              # (lands with capture items); these add the common concrete types.
+              - public.aac-audio
+              - com.apple.m4a-audio
+              - org.xiph.opus
+              - public.mpeg-4
         LSSupportsOpeningDocumentsInPlace: true
     settings:
       base:
