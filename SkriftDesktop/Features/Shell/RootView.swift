@@ -24,6 +24,7 @@ struct RootView: View {
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(Theme.bg)
+        .preferredColorScheme(.dark)   // app is dark-only; keep all controls light-on-dark
         .sheet(isPresented: $settingsOpen) {
             SettingsView(onClose: { settingsOpen = false })
         }

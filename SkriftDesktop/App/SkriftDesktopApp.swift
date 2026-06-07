@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 import FluidAudio  // Phase 0 proof: FluidAudio (ASR) links + builds for macOS arm64.
 
 /// One shared SwiftData container for both the UI (`@Query`) and the sync server's
@@ -21,6 +22,11 @@ struct SkriftDesktopApp: App {
         Snapshot.renderIfRequested()
         RunFile.runIfRequested()
         #endif
+        // The app is dark-only (Theme tokens). Force dark appearance so EVERY
+        // system-drawn control — text-field placeholders, carets, menus — renders
+        // light-on-dark. Per-field foregroundStyle only fixed typed text; placeholders
+        // were still following the system appearance (the recurring "black text").
+        NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
         let upload = UploadService()
         let handlers = SyncHandlers(
             namesStore: .shared,
