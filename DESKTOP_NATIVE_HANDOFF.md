@@ -1,13 +1,24 @@
 # Skrift Desktop — Native Rewrite HANDOFF
 
+> ⚠️ **POST-CONVERGENCE (2026-06-07):** the macOS app moved to
+> **`Skrift_Native/SkriftDesktop/`** in the main repo
+> (`/Users/tiurihartog/Hackerman/Skrift`) on the unified **`native`** branch
+> (merged `mobile-native` + `desktop-native`). **The `Skrift-desktop` worktree is
+> retired** — do all work in the main checkout on `native`. The old Electron/Python
+> source is preserved under `archive/frontend-new/` + `archive/backend/`. **Paths in
+> the session notes below are pre-move** — see the repo-root **`CLAUDE.md`** for
+> current build/run commands (the full scheme still needs `-skipMacroValidation`).
+
 > Session ledger for the **desktop** native (SwiftUI/Swift) rewrite. Read this
 > first, then `DESKTOP_NATIVE_REWRITE_PLAN.md` (the phased plan) and the root
-> `CLAUDE.md` (documents the Electron/Python app being replaced). Memory
-> auto-loads: `project_desktop_native_arch`, `feedback_autonomous_execution`,
-> `feedback_vault_privacy`, `feedback_visual_ui_iteration`, `project_overhaul`.
+> `CLAUDE.md`. Memory auto-loads: `project_desktop_native_arch`,
+> `feedback_autonomous_execution`, `feedback_vault_privacy`,
+> `feedback_visual_ui_iteration`, `project_overhaul`, `project_native_convergence`.
 
-- **Branch:** `desktop-native` · **Worktree:** `/Users/tiurihartog/Hackerman/Skrift-desktop`
-- **New code:** `SkriftDesktop/` (xcodegen project). The Electron app (`frontend-new/`) + Python `backend/` are still in this worktree as the **source of truth** — port behavior from them; verify against them.
+- **Branch:** `native` (was `desktop-native`) · **App:** `Skrift_Native/SkriftDesktop/`
+- **New code:** `Skrift_Native/SkriftDesktop/` (xcodegen project). The old Electron
+  (`archive/frontend-new/`) + Python (`archive/backend/`) remain as the **source of
+  truth** to port behavior from / verify against.
 - **The goal:** collapse Electron(UI) + Python(backend) into ONE native macOS process — FluidAudio (ASR) + mlx-swift (Gemma enhancement) in-process, a thin Swift HTTP+Bonjour server as the phone's sync target. Kills Python, drops Chromium, far lower RAM, unifies with the iOS rewrite (`mobile-native`) on one stack + test harness.
 
 ---

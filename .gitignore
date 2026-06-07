@@ -73,3 +73,16 @@ backend/config/names.json
 
 # Local scratch folders (named to be deleted)
 test images - delete this folder/
+
+# Archived old apps (post-convergence move 2026-06) — re-ignore the build
+# artifacts + personal config that the anchored root patterns above no longer
+# match under archive/. (node_modules/ + .DS_Store are already non-anchored.)
+archive/frontend-new/renderer-dist/
+archive/frontend-new/dist-electron/
+archive/frontend-new/*.tsbuildinfo
+archive/frontend-new/vite.config.d.ts
+archive/frontend-new/vite.config.js
+archive/backend/data/
+archive/backend/config/user_settings.json
+archive/backend/config/names.json
+archive/backend/resources/models/mlx/

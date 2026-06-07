@@ -1,9 +1,17 @@
 # Skrift Mobile Native Rewrite — HANDOFF
 
+> ⚠️ **POST-CONVERGENCE (2026-06-07):** the iOS app moved to
+> **`Skrift_Native/SkriftMobile/`** and now lives on the unified **`native`**
+> branch (merged `mobile-native` + `desktop-native`; the macOS app is at
+> `Skrift_Native/SkriftDesktop/`). There is no longer a separate `Skrift-desktop`
+> worktree. **Absolute/relative paths in the session notes below are
+> pre-move** — see the repo-root **`CLAUDE.md`** for the current build/run commands.
+>
 > For the next chat. Resume the **native SwiftUI rewrite** of the Skrift iOS app.
 > Read this, then **`MOBILE_NATIVE_REWRITE_PLAN.md`** (the full plan — phases,
 > Shhhcribble reuse, the mobile↔Mac contract, the XCUITest harness). Repo:
-> `/Users/tiurihartog/Hackerman/Skrift`. Branch: **`mobile-native`**.
+> `/Users/tiurihartog/Hackerman/Skrift`, branch **`native`**, app in
+> `Skrift_Native/SkriftMobile/`.
 
 ## TL;DR — where we are
 - Decided to rewrite the iOS companion from Expo/RN (`Mobile/`) to **native
