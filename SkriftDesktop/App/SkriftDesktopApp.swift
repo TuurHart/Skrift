@@ -19,6 +19,7 @@ struct SkriftDesktopApp: App {
     init() {
         #if DEBUG
         Snapshot.renderIfRequested()
+        RunFile.runIfRequested()
         #endif
         let upload = UploadService()
         let handlers = SyncHandlers(
