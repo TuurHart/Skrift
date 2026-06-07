@@ -79,20 +79,18 @@ struct SetupWizardView: View {
     @ViewBuilder private func fieldRow(_ label: String, placeholder: String, _ binding: () -> Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
-            Group {
-                if interactive {
-                    TextField(placeholder, text: binding()).textFieldStyle(.plain).foregroundStyle(Theme.textPrimary)
-                } else {
-                    let v = binding().wrappedValue
-                    Text(v.isEmpty ? placeholder : v)
-                        .foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+            if interactive {
+                RingedField(placeholder: placeholder, text: binding())
+            } else {
+                let v = binding().wrappedValue
+                Text(v.isEmpty ? placeholder : v)
+                    .font(.system(size: 12))
+                    .foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 9).padding(.vertical, 7)
+                    .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.hairline.opacity(0.08), lineWidth: 1))
             }
-            .font(.system(size: 12))
-            .padding(.horizontal, 9).padding(.vertical, 7)
-            .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.hairline.opacity(0.08), lineWidth: 1))
         }
     }
 

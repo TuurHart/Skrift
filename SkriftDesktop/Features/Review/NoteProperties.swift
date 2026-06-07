@@ -270,6 +270,8 @@ private struct TagEditor: View {
             Text("#\(tag)").font(.system(size: 11, weight: .medium))
             Button { file.tags.removeAll { $0 == tag } } label: {
                 Image(systemName: "xmark").font(.system(size: 8, weight: .bold)).opacity(0.5)
+                    .frame(width: 15, height: 15)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }

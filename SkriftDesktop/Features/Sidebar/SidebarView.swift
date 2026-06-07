@@ -392,6 +392,8 @@ private struct QueueRowView: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .onHover { hovering = $0 }
+        .animation(.easeInOut(duration: 0.12), value: hovering)
+        .animation(.easeOut(duration: 0.12), value: selected)
     }
 
     private var rowBackground: Color {
@@ -420,12 +422,13 @@ private struct StatusPill: View {
 private struct PulseDot: View {
     let color: Color
     @State private var on = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         Circle()
             .fill(color)
             .frame(width: 6, height: 6)
-            .opacity(on ? 1 : 0.35)
-            .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: on)
-            .onAppear { on = true }
+            .opacity(reduceMotion ? 1 : (on ? 1 : 0.35))
+            .animation(reduceMotion ? nil : .easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: on)
+            .onAppear { if !reduceMotion { on = true } }
     }
 }

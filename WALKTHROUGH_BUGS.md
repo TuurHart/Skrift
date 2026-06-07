@@ -54,6 +54,6 @@ W2 (cursor), N2 (subsumed by audit-P1a), R3 inline (design).
 - ⧖ **AUD-P1b** Status dots were always-green/cosmetic → removed redundant header trio; footer dots reflect real `modelsLoaded`. (subsumes C1)
 - ⧖ **AUD-P2a** No empty-queue state → first-run hint added.
 - ⧖ **AUD-P2c-thumb** Scrubber had no drag handle → added a thumb.
-- ☐ **AUD-P2b** No focus ring on `.plain` fields (keyboard nav invisible) → form fields next.
-- ☐ **AUD-P2c-unify** Three hand-rolled sliders → extract one component (code quality; low priority).
-- ☐ **AUD-P3** Snap transitions (hover/selection), PulseDot ignores Reduce Motion, tiny hit targets (tag ✕, gear), off-4px-grid spacing.
+- ⧖ **AUD-P2b** Focus rings on form fields → reusable `RingedField` (Settings text/subfolder rows + wizard).
+- ☐ **AUD-P2c-unify** Three hand-rolled sliders → extract one component (code quality; low priority; deferred).
+- ⧖ **AUD-P3** Row hover/selection now animates; PulseDot respects Reduce Motion; tag-✕ hit target enlarged. (off-4px-grid spacing deferred — faithful web port.)

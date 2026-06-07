@@ -135,10 +135,10 @@ struct SettingsView: View {
     private func textRow(_ label: String, _ key: WritableKeyPath<AppSettings, String>, placeholder: String = "") -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
-            fieldBox {
-                if interactive {
-                    TextField(placeholder, text: bind(key)).textFieldStyle(.plain).foregroundStyle(Theme.textPrimary)
-                } else {
+            if interactive {
+                RingedField(placeholder: placeholder, text: bind(key))
+            } else {
+                fieldBox {
                     let v = settings[keyPath: key]
                     Text(v.isEmpty ? placeholder : v)
                         .foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
@@ -304,10 +304,10 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
             HStack(spacing: 8) {
-                fieldBox {
-                    if interactive {
-                        TextField(placeholder, text: bind(key)).textFieldStyle(.plain).foregroundStyle(Theme.textPrimary)
-                    } else {
+                if interactive {
+                    RingedField(placeholder: placeholder, text: bind(key))
+                } else {
+                    fieldBox {
                         let v = settings[keyPath: key]
                         Text(v.isEmpty ? placeholder : v)
                             .foregroundStyle(v.isEmpty ? Theme.textMuted : Theme.textPrimary)
@@ -350,5 +350,24 @@ struct SettingsView: View {
         return hz == 0
             ? "Off — no filtering. Raise it to cut low-frequency rumble (AC hum, handling noise) before transcription."
             : "Cuts everything below \(hz) Hz before transcription — removes low rumble/hum. 80 Hz is a safe default; drag to 0 to turn it off."
+    }
+}
+
+/// A boxed plain text field with a visible accent focus ring — `.plain` suppresses
+/// the system focus ring, so keyboard focus was invisible in the forms (AUD-P2b).
+struct RingedField: View {
+    var placeholder: String = ""
+    @Binding var text: String
+    var font: Font = .system(size: 12)
+    @FocusState private var focused: Bool
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .textFieldStyle(.plain).font(font).foregroundStyle(Theme.textPrimary)
+            .focused($focused)
+            .padding(.horizontal, 9).padding(.vertical, 7)
+            .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .stroke(focused ? Theme.accent.opacity(0.6) : Theme.hairline.opacity(0.08), lineWidth: focused ? 1.5 : 1))
+            .animation(.easeOut(duration: 0.12), value: focused)
     }
 }
