@@ -12,12 +12,15 @@
 
 ---
 
-## STATUS — Phases 0–8 GREEN; HF download bar + follow-ups F1–F6 DONE. Remaining: inline image thumbnails, marker→embed export, live phone↔Mac round-trip; Phase 9 (parity + retire Electron/Python).
+## STATUS — Phases 0–8 GREEN; HF download bar + follow-ups F1–F6 + image-embed export DONE. The native app is feature-complete for the core loop (ingest → process → review → export). Remaining: the prioritized backlog below + Phase 9 (parity + retire Electron/Python).
 
-Follow-ups this session: F1 phone-`title` extraction (unblocks mobile title), F2 two-Jacks per-occurrence resolver apply, F3 vault audio/image copy on export (VERIFIED on the test vault), F4 Apple-Notes `#` heading title, F5 names CRUD in Settings, F6 NSTextView body editor (live `[[link]]` styling + self-size).
+Follow-ups this session: F1 phone-`title` extraction (unblocks mobile title), F2 two-Jacks per-occurrence resolver apply, F3 vault audio/image copy on export (VERIFIED on the test vault `~/Hackerman/Obsidian_LLM_Test_Vault`), F4 Apple-Notes `#` heading title, F5 names CRUD in Settings, F6 NSTextView body editor (live `[[link]]` styling + self-size), image-embed export (`[[img_NNN]]` → `![[Title_NNN.ext]]` + image copy).
+
+➡ **Start the next session from the "## NEXT SESSION" block below.**
 
 Commits on `desktop-native` (newest first):
 ```
+0c8e508 image embeds — [[img_NNN]] → Obsidian ![[…]] on export
 1a009e0 F6 — NSTextView body editor (live [[link]] styling + self-size)
 632c0b7 F5 — names editing (CRUD) in Settings
 ee59fe1 F3+F4 — vault audio/image copy on export (verified) + Apple-Notes title
@@ -62,6 +65,37 @@ aa71b85 Phase 0 — toolchain + mlx-swift Gemma 4 go/no-go (GO native)
 - **6** — `BatchRunner` orchestrates transcribe→copy-edit/title/summary→tags→name-link→compile; engines behind `Transcribing`/`Enhancing` protocols so it host-tests with stubs.
 
 ---
+
+## NEXT SESSION — prioritized backlog + how to start
+
+Phase 7 UI + pipeline wiring + Phase 8 + image-embed export are DONE & committed (newest = `0c8e508`). Verify: `git -C /Users/tiurihartog/Hackerman/Skrift-desktop log --oneline -20`. Verify UI headlessly via `-snapshot` / `-snapshot-settings` / `-snapshot-wizard` / `-snapshot-run`; verify the real pipeline+export via `-runfile <audio> [-vault <path>]` (method = memory `native-ui-verification`; screencapture/sim are blocked). Test vault `~/Hackerman/Obsidian_LLM_Test_Vault` — OK to export to; never read OTHER vault contents.
+
+### A. Correctness / reliability (do first — fresh-eyes code audit, all grounded in files)
+1. **Models never unload (~9 GB pinned all session).** `TranscriptionService.unload()` + `EnhancementService.unload()` have NO call sites. Add an idle timer in `ProcessingCoordinator` that unloads both ~30–60 s after the last run (the Python app did this). HIGH — jetsam risk on 16 GB Macs.
+2. **Karaoke is fake.** `TranscriptionService` builds `wordTimings` but `BatchRunner.run` keeps only `result.text` and never persists them → `NoteBody.karaoke` is always proportional. Persist timings (a `word_timings.json` sidecar next to `original.*`, or a PipelineFile field) and feed `KaraokeText`. HIGH value, cheap.
+3. **SwiftData written off the Bonjour socket queue** (`SkriftDesktopApp` upload handler makes a `ModelContext` on the Network-framework queue while the UI uses `mainContext`) → concurrent-write corruption risk. Marshal `UploadService.ingest` onto `@MainActor`/a serial actor. (On the phone's exact path.)
+4. **Audio-preprocessing sliders are inert.** `AppSettings.noiseReductionDB/highpassFreqHz` + the Settings sliders do nothing; FluidAudio gets the raw m4a. Apply an AVAudioEngine high-pass + normalize (write `processed.wav`, feed that), or remove the sliders.
+5. **Upload buffered fully in RAM, no size cap** (`HTTPParser.parse` needs the whole Content-Length body). Stream multipart to disk past a threshold + reject oversized.
+6. **Health endpoint hardcodes `available = true`** (`SyncHandlers`) → should report `TranscriptionService.shared.isModelReady` (the phone trusts it). (Phone path.)
+7. **Parity golden tests.** Stages are stub-tested but nothing pins Swift vs the Python backend on fixtures. Check in a few golden `{transcript,names,whitelist} → {sanitised,tags,markdown}` cases (use `pipecheck/` + Python siblings) and assert byte-equality — guards the "same results, no Python" promise. (Note: F2's resolver apply is ORDER-based on the current body, so the audit's "offset alignment" worry is moot.)
+
+### B. Remaining owed UI/feature bits
+- **In-app inline image thumbnails** (export embeds are done; the body render + NSTextView editor still show `[[img_NNN]]` as text). Needs NSTextAttachment in `BodyTextView` + segmenting in `BodyText.styled`.
+- **Apple-Notes attachment rename + HEIC→JPG** (`IngestService.ingestNote` stores raw md; `apple_notes_importer.py` renames `Attachments/` + sips-converts HEIC).
+- **Vault tag-whitelist scan** so `TagMatcher` suggests real vault tags (currently `tagWhitelist: []`) — app's own FileManager frontmatter scan (privacy OK: app code, not an agent).
+
+### C. Product ideas (fresh-eyes brainstorm — ask the user which to pursue)
+- **Backlink Weaver** (high impact / low effort): on export, auto-`[[link]]` any vault note title (places/projects), not just people — generalize `Sanitiser.process` to take a vault-title whitelist like `TagMatcher`. Makes memos a connected graph.
+- **Context-aware enhancement**: the phone's place/weather/people/time is only stamped into frontmatter — feed a one-line context string into the Gemma title/summary prompts in `BatchRunner`. Free signal already captured.
+- **People Timeline**: per-person view (every note mentioning `[[Jack]]` + date/place/summary) from the graph you already write.
+- **Smart Suggest New People**: NLTagger PersonalName pass minus existing aliases → "Add [[Sam]]?" chips at review (the names graph only grows by hand today).
+- **Ask-Your-Memos**: local RAG over exported notes (offline, reuses the loaded Gemma). **Weekly Digest**: scheduled person/place/significance summary. (Photo-caption VLM was deliberately dropped.)
+
+### D. The mobile track waits on this app
+`mobile-native`'s live upload/names round-trip is blocked on a RUNNING desktop server (`_skrift._tcp`, the in-app `LocalHTTPServer` starts on launch; contract intact incl. F1's `title`). To unblock: run the desktop app, confirm the server is up, then the phone pairs over Bonjour and round-trips `POST /api/files/upload` + `GET/PUT /api/names`. Do A.3 + A.6 first (phone's exact path).
+
+### NEXT-CHAT PROMPT (copy-paste)
+> Continue the Skrift DESKTOP native rewrite. Worktree `/Users/tiurihartog/Hackerman/Skrift-desktop`, branch `desktop-native` — do NOT switch branches (other worktrees share the repo; `git worktree list` to confirm). READ FIRST: `DESKTOP_NATIVE_HANDOFF.md` "## NEXT SESSION" → the rest of the handoff → root `CLAUDE.md`. Memory auto-loads — `native-ui-verification` is essential: verify UI via the app's headless `-snapshot*` ImageRenderer PNGs (screencapture/System-Events/iOS-sim are blocked); verify the real pipeline via `-runfile <audio> [-vault <path>]`. STATE: Phases 0–8 + follow-ups F1–F6 + image-embed export DONE & committed (newest `0c8e508`); 64 host-less tests green; tree clean (`mocks/` + `pipecheck/` are intentional scratch — don't commit). Work the "## NEXT SESSION" backlog in order: **A (correctness: model-unload idle timer, real word_timings→karaoke, SwiftData cross-queue marshal, inert audio sliders, upload streaming/cap, health `isModelReady`, parity golden tests), then B (in-app image thumbnails, Apple-Notes attachments, vault tag-whitelist), then C (product ideas — ask the user which).** Verify every change (host-less `UnitTests` scheme — `killall -9 testmanagerd` first; full app build via background Bash + `dangerouslyDisableSandbox`, don't pipe xcodebuild to tail; `xcodegen generate` after adding files; Swift 5.9) and commit per item. PRIVACY: the app may read/write the test vault `~/Hackerman/Obsidian_LLM_Test_Vault`; never point an agent at vault contents.
 
 ## ARCHITECTURE / FILE LAYOUT (`SkriftDesktop/`)
 ```
