@@ -46,5 +46,14 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 - ☐ **E4** verify — Confirm YAML frontmatter structure. (Wave D)
 - ☑ **E5** Run bar says "Loading" not false "Downloading". `d49a856`
 
-## Remaining
-C1 (dots — ui-audit), W2 (cursor), N2 (left as-is), ST7 + E4 (verify), R3 inline (design). Then the ui-audit visual pass (Wave D).
+## Remaining (walkthrough)
+W2 (cursor), N2 (subsumed by audit-P1a), R3 inline (design).
+
+## UI Audit findings (code-based pass, 2026-06-07)
+- ⧖ **AUD-P1a** Significance showed false "0.0 · Passing" on unrated notes → "Not rated" until set. (subsumes N2)
+- ⧖ **AUD-P1b** Status dots were always-green/cosmetic → removed redundant header trio; footer dots reflect real `modelsLoaded`. (subsumes C1)
+- ⧖ **AUD-P2a** No empty-queue state → first-run hint added.
+- ⧖ **AUD-P2c-thumb** Scrubber had no drag handle → added a thumb.
+- ☐ **AUD-P2b** No focus ring on `.plain` fields (keyboard nav invisible) → form fields next.
+- ☐ **AUD-P2c-unify** Three hand-rolled sliders → extract one component (code quality; low priority).
+- ☐ **AUD-P3** Snap transitions (hover/selection), PulseDot ignores Reduce Motion, tiny hit targets (tag ✕, gear), off-4px-grid spacing.

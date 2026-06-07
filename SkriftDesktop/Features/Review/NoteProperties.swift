@@ -115,7 +115,7 @@ struct NoteProperties: View {
                 audioExportRow
             }
             divider
-            SignificanceRow(value: Binding(get: { file.significance ?? 0 }, set: { file.significance = ($0 * 10).rounded() / 10 }))
+            SignificanceRow(value: $file.significance)
             divider
             TagEditor(file: file)
         }
@@ -187,20 +187,29 @@ struct NoteProperties: View {
 
 // ── Significance (unified accent) ───────────────────────────
 private struct SignificanceRow: View {
-    @Binding var value: Double
+    /// Optional: nil = the user hasn't rated this note yet (shows "Not rated", not a
+    /// misleading "0.0 · Passing"). Dragging the slider sets a value, snapped to 0.1.
+    @Binding var value: Double?
 
-    private var label: String { value >= 0.67 ? "Significant" : value >= 0.34 ? "Useful" : "Passing" }
+    private var label: String { let v = value ?? 0; return v >= 0.67 ? "Significant" : v >= 0.34 ? "Useful" : "Passing" }
+    private var sliderBinding: Binding<Double> {
+        Binding(get: { value ?? 0 }, set: { value = ($0 * 10).rounded() / 10 })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("significance").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
                 Spacer()
-                Text(String(format: "%.1f · %@", value, label))
-                    .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(Theme.accent)
+                if let value {
+                    Text(String(format: "%.1f · %@", value, label))
+                        .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(Theme.accent)
+                } else {
+                    Text("Not rated").font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textMuted)
+                }
             }
-            ThinSlider(value: $value)
+            ThinSlider(value: sliderBinding)
             HStack {
                 Text("passing"); Spacer(); Text("useful"); Spacer(); Text("significant")
             }

@@ -89,16 +89,9 @@ struct SidebarView: View {
                         .foregroundStyle(Theme.textPrimary)
                 }
                 Spacer()
-                HStack(spacing: 8) {
-                    HStack(spacing: 3) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Circle().fill(Theme.green).frame(width: 6, height: 6)
-                        }
-                    }
-                    .help("Parakeet · Gemma · server healthy")
-                    iconButton("gearshape") { onOpenSettings() }
-                        .accessibilityIdentifier("sidebar.settings")
-                }
+                iconButton("gearshape") { onOpenSettings() }
+                    .accessibilityIdentifier("sidebar.settings")
+                    .accessibilityLabel("Settings")
             }
 
             HStack(spacing: 7) {
@@ -208,22 +201,40 @@ struct SidebarView: View {
 
     // ── Queue ───────────────────────────────────────────────
     @ViewBuilder private var queue: some View {
-        // Plain VStack (not Lazy) is fine for a personal-scale vault; revisit
-        // windowing (List / lazy) only if a very large queue shows scroll jank.
-        let content = VStack(spacing: 2) {
-            ForEach(filtered) { f in
-                QueueRowView(file: f, selected: model.selection.contains(f.id)) {
-                    model.handleClick(f.id, in: orderedIDs)
+        if files.isEmpty {
+            emptyQueue
+        } else {
+            // Plain VStack (not Lazy) is fine for a personal-scale vault; revisit
+            // windowing (List / lazy) only if a very large queue shows scroll jank.
+            let content = VStack(spacing: 2) {
+                ForEach(filtered) { f in
+                    QueueRowView(file: f, selected: model.selection.contains(f.id)) {
+                        model.handleClick(f.id, in: orderedIDs)
+                    }
                 }
             }
-        }
-        .padding(8)
+            .padding(8)
 
-        if scrollable {
-            ScrollView { content }
-        } else {
-            VStack(spacing: 0) { content; Spacer(minLength: 0) }
+            if scrollable {
+                ScrollView { content }
+            } else {
+                VStack(spacing: 0) { content; Spacer(minLength: 0) }
+            }
         }
+    }
+
+    /// First-run guidance when there are no notes yet (P2a).
+    private var emptyQueue: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "tray.and.arrow.down")
+                .font(.system(size: 26)).foregroundStyle(Theme.textMuted.opacity(0.5))
+            Text("No memos yet").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.textSecondary)
+            Text("Drop a voice memo here, click + Upload above, or sync from your phone.")
+                .font(.system(size: 11.5)).foregroundStyle(Theme.textMuted)
+                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 24)
     }
 
     // ── Bottom bar — footer / selection action bar ──────────
@@ -288,6 +299,7 @@ struct SidebarView: View {
             engineDot("Gemma 4")
             Spacer(minLength: 0)
         }
+        .help(coordinator.modelsLoaded ? "Models loaded in memory" : "Models load on Process, freed after a minute idle")
         .padding(.horizontal, 16)
         .padding(.vertical, 9)
         .overlay(alignment: .top) {
@@ -297,7 +309,8 @@ struct SidebarView: View {
 
     private func engineDot(_ name: String) -> some View {
         HStack(spacing: 5) {
-            Circle().fill(Theme.green).frame(width: 6, height: 6)
+            Circle().fill(coordinator.modelsLoaded ? Theme.green : Theme.textMuted.opacity(0.6))
+                .frame(width: 6, height: 6)
             Text(name).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
         }
     }

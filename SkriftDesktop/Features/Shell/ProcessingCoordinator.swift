@@ -24,6 +24,9 @@ final class ProcessingCoordinator {
     /// like Export gives visible feedback (N5).
     var toast: String?
     private var toastToken = 0
+    /// True while the ASR/LLM weights are resident in memory — drives the sidebar
+    /// engine dots (green = loaded, dim = idle/unloaded) so they reflect reality.
+    private(set) var modelsLoaded = false
 
     // Engine seam — the real FluidAudio/MLX services by default; swapped for canned
     // stubs when launched with `-stubEnhancement` (UI piloting / XCUITest), so
@@ -132,6 +135,7 @@ final class ProcessingCoordinator {
             runState?.loadingLabel = nil
             runState?.loadingFraction = nil
         }
+        modelsLoaded = true
 
         for pf in targets {
             runState?.currentTitle = pf.queueTitle
@@ -165,6 +169,7 @@ final class ProcessingCoordinator {
             if Task.isCancelled { return }
             await TranscriptionService.shared.unload()
             await EnhancementService.shared.unload()
+            self?.modelsLoaded = false
             self?.idleUnloadTask = nil
         }
     }
@@ -265,6 +270,7 @@ final class ProcessingCoordinator {
             }
             runState?.loadingLabel = nil; runState?.loadingFraction = nil
         }
+        modelsLoaded = true
 
         do {
             switch step {

@@ -53,6 +53,9 @@ struct NoteToolbar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Theme.hairline.opacity(0.15)).frame(height: 5)
                 Capsule().fill(Theme.accent).frame(width: geo.size.width * progress, height: 5)
+                Circle().fill(.white).frame(width: 11, height: 11)
+                    .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+                    .offset(x: max(0, geo.size.width * progress - 5.5))   // drag handle + position
             }
             .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
