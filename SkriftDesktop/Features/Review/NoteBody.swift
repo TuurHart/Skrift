@@ -17,8 +17,14 @@ struct NoteBody: View {
     private static let bodyFont = Font.system(size: 16)
     private static let bodyLineSpacing: CGFloat = 6
 
+    /// Phone metadata duration, falling back to the last word-timing's end (so
+    /// Mac-ingested audio without phone metadata still karaokes).
+    private var effectiveDuration: Double {
+        file.durationSeconds > 0 ? file.durationSeconds : (file.wordTimings.last?.end ?? 0)
+    }
+
     private var karaokeActive: Bool {
-        audio.isPlaying && file.durationSeconds > 0 && file.steps.transcribe == .done
+        audio.isPlaying && effectiveDuration > 0 && file.steps.transcribe == .done
     }
 
     var body: some View {
@@ -44,7 +50,8 @@ struct NoteBody: View {
     }
 
     private var karaoke: some View {
-        BodyText.karaoke(file.bestBodyText, currentTime: audio.currentTime, duration: file.durationSeconds)
+        BodyText.karaoke(file.bestBodyText, currentTime: audio.currentTime,
+                         duration: effectiveDuration, timings: file.wordTimings)
             .font(Self.bodyFont)
             .lineSpacing(Self.bodyLineSpacing)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -74,13 +81,23 @@ enum BodyText {
         return out
     }
 
-    /// Karaoke: brighten words up to the proportional play position, dim the rest.
-    /// Proportional alignment (copy-edit is minimal, so it lines up within seconds)
-    /// mirrors `KaraokeText.tsx`.
-    static func karaoke(_ text: String, currentTime: Double, duration: Double) -> Text {
+    /// Karaoke: brighten words up to the play position, dim the rest. When real
+    /// word `timings` are present, the highlight tracks actual speech cadence
+    /// (counting how many spoken words have started by `currentTime`) and maps that
+    /// proportionally onto the body words — exact when the body equals the
+    /// transcript, graceful when the copy-edit shifted words. Falls back to a pure
+    /// time/duration proportion when timings are absent (demo/pre-A2 notes).
+    static func karaoke(_ text: String, currentTime: Double, duration: Double, timings: [WordTiming] = []) -> Text {
         let tokens = tokenize(text)
         let wordCount = tokens.reduce(0) { $0 + ($1.isWord ? 1 : 0) }
-        let frac = duration > 0 ? min(1, max(0, currentTime / duration)) : 0
+        let frac: Double
+        if timings.isEmpty {
+            frac = duration > 0 ? min(1, max(0, currentTime / duration)) : 0
+        } else {
+            var started = 0
+            for t in timings { if t.start <= currentTime { started += 1 } else { break } }
+            frac = min(1, Double(started) / Double(max(1, timings.count)))
+        }
         let active = Int(frac * Double(max(1, wordCount)))
         var out = Text("")
         var wc = -1

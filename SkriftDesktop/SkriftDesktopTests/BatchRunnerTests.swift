@@ -8,6 +8,16 @@ private struct StubTranscriber: Transcribing {
     }
 }
 
+private struct TimingTranscriber: Transcribing {
+    func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult {
+        TranscriptionResult(text: "one two three", confidence: 0.9, durationMs: 1,
+                            wordTimings: [WordTiming(word: "one", start: 0, end: 0.5),
+                                          WordTiming(word: "two", start: 0.5, end: 1.0),
+                                          WordTiming(word: "three", start: 1.0, end: 1.5)],
+                            markersInjected: false)
+    }
+}
+
 private final class CallTracker: @unchecked Sendable { var transcribeCalled = false }
 
 private struct TrackingTranscriber: Transcribing {
@@ -65,6 +75,20 @@ final class BatchRunnerTests: XCTestCase {
 
         XCTAssertEqual(pf.enhancedTitle, "User Title")   // not clobbered
         XCTAssertEqual(pf.titleSuggested, "A Title")      // LLM result kept as the suggestion
+    }
+
+    func testWordTimingsPersistedFromTranscribe() async throws {
+        // A2: timings were computed by the transcriber then discarded — assert the
+        // run now persists them (and that they round-trip through the JSON blob).
+        let pf = PipelineFile(id: "wt", filename: "memo.m4a", path: "/tmp/wt", size: 0, sourceType: .audio)
+        let runner = BatchRunner(transcriber: TimingTranscriber(), enhancer: EchoEnhancer(),
+                                 settings: .default, people: [], tagWhitelist: [])
+        try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/wt.m4a"))
+
+        XCTAssertEqual(pf.wordTimings.count, 3)
+        XCTAssertEqual(pf.wordTimings.first?.word, "one")
+        XCTAssertEqual(pf.wordTimings.last?.end, 1.5)
+        XCTAssertNotNil(pf.wordTimingsJSON)   // persisted as a blob
     }
 
     func testTrustedTranscriptSkipsTranscription() async throws {

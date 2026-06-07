@@ -73,6 +73,9 @@ final class PipelineFile {
     var sanitised: String?
     /// `[AmbiguousOccurrence]` stored as a JSON blob (struct arrays trap SwiftData).
     var ambiguousNamesJSON: Data?
+    /// `[WordTiming]` stored as a JSON blob (the per-file `word_timings.json`
+    /// equivalent) — drives the karaoke highlight. Set by the transcribe step.
+    var wordTimingsJSON: Data?
 
     // Enhancement (review-time fields)
     var enhancedTitle: String?
@@ -132,5 +135,11 @@ final class PipelineFile {
     var ambiguousNames: [AmbiguousOccurrence]? {
         get { ambiguousNamesJSON.flatMap { try? JSONDecoder().decode([AmbiguousOccurrence].self, from: $0) } }
         set { ambiguousNamesJSON = newValue.flatMap { try? JSONEncoder().encode($0) } }
+    }
+
+    /// Per-word transcript timings (backed by `wordTimingsJSON`) — drives karaoke.
+    var wordTimings: [WordTiming] {
+        get { wordTimingsJSON.flatMap { try? JSONDecoder().decode([WordTiming].self, from: $0) } ?? [] }
+        set { wordTimingsJSON = newValue.isEmpty ? nil : (try? JSONEncoder().encode(newValue)) }
     }
 }

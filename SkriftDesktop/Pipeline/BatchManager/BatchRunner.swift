@@ -23,6 +23,7 @@ struct BatchRunner {
             if let audioURL {
                 let result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
                 pf.transcript = result.text
+                pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
             }
             pf.transcribeStatus = .done
         }
