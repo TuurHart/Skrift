@@ -36,10 +36,13 @@ struct NoteBody: View {
 
     var body: some View {
         Group {
-            if karaokeActive {
-                karaoke
-            } else if interactive {
+            if interactive {
+                // The real app ALWAYS uses the NSTextView — even during karaoke — so
+                // play never swaps renderers (no reflow / size change). Karaoke is
+                // applied as a recolor + click-to-seek on the same view.
                 editor
+            } else if karaokeActive {
+                karaoke   // snapshot/read-only path (ImageRenderer can't host NSTextView)
             } else {
                 BodyText.styled(file.bestBodyText)
                     .font(Self.bodyFont)
@@ -52,9 +55,25 @@ struct NoteBody: View {
 
     private var editor: some View {
         // NSTextView bridge: self-sizing + live [[link]] accent styling + inline
-        // image thumbnails for [[img_NNN]] markers + inline name resolution (R3).
-        BodyTextView(text: bodyBinding, imageURL: imageURL, onAddName: onAddName, resolver: resolver)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        // image thumbnails + inline name resolution (R3) + in-place karaoke (recolor
+        // the same view + click a word to seek — no reflow, no renderer swap).
+        BodyTextView(
+            text: bodyBinding, imageURL: imageURL, onAddName: onAddName,
+            resolver: karaokeActive ? nil : resolver,
+            karaoke: karaokeActive ? karaokePlayback : nil
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Karaoke state for the editor: how far through the words to brighten, and a
+    /// click-a-word → seek callback (proportional to the audio, approximate — matches
+    /// the documented behavior).
+    private var karaokePlayback: BodyTextView.KaraokePlayback {
+        let frac = BodyText.karaokeFraction(
+            currentTime: audio.currentTime, duration: effectiveDuration, timings: file.wordTimings)
+        return .init(fraction: frac) { wordFraction in
+            audio.seek(to: wordFraction * effectiveDuration)
+        }
     }
 
     /// Resolve an `[[img_NNN]]` marker to its captured photo: the Nth entry in the
@@ -108,17 +127,23 @@ enum BodyText {
     /// proportionally onto the body words — exact when the body equals the
     /// transcript, graceful when the copy-edit shifted words. Falls back to a pure
     /// time/duration proportion when timings are absent (demo/pre-A2 notes).
+    /// Fraction 0…1 of the body's words to brighten at `currentTime`. With real word
+    /// `timings` it counts how many spoken words have started (tracks speech cadence);
+    /// otherwise it's a pure time/duration proportion. Shared by the SwiftUI read path
+    /// and the NSTextView in-place karaoke, so they highlight identically.
+    static func karaokeFraction(currentTime: Double, duration: Double, timings: [WordTiming]) -> Double {
+        if timings.isEmpty {
+            return duration > 0 ? min(1, max(0, currentTime / duration)) : 0
+        }
+        var started = 0
+        for t in timings { if t.start <= currentTime { started += 1 } else { break } }
+        return min(1, Double(started) / Double(max(1, timings.count)))
+    }
+
     static func karaoke(_ text: String, currentTime: Double, duration: Double, timings: [WordTiming] = []) -> Text {
         let tokens = tokenize(text)
         let wordCount = tokens.reduce(0) { $0 + ($1.isWord ? 1 : 0) }
-        let frac: Double
-        if timings.isEmpty {
-            frac = duration > 0 ? min(1, max(0, currentTime / duration)) : 0
-        } else {
-            var started = 0
-            for t in timings { if t.start <= currentTime { started += 1 } else { break } }
-            frac = min(1, Double(started) / Double(max(1, timings.count)))
-        }
+        let frac = karaokeFraction(currentTime: currentTime, duration: duration, timings: timings)
         let active = Int(frac * Double(max(1, wordCount)))
         var out = Text("")
         var wc = -1

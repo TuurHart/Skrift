@@ -128,16 +128,27 @@ struct NoteDisplayView: View {
             }
     }
 
+    /// Context line — what you're looking at + when. (Was a "Queue ›" breadcrumb, but
+    /// that implied navigation that doesn't exist; the note list is always in the
+    /// sidebar, so this just names the source + date.)
     private func breadcrumb(_ file: PipelineFile) -> some View {
-        HStack(spacing: 6) {
-            Text("Queue").foregroundStyle(Theme.textMuted)
-            Text("›").foregroundStyle(Theme.textMuted)
-            Text(SkriftFormat.breadcrumbDate(file.uploadedAt)).foregroundStyle(Theme.textSecondary)
+        HStack(spacing: 7) {
+            Text(sourceLabel(file)).foregroundStyle(Theme.textSecondary)
+            Text("·").foregroundStyle(Theme.textMuted)
+            Text(SkriftFormat.breadcrumbDate(file.uploadedAt)).foregroundStyle(Theme.textMuted)
             Spacer()
         }
         .font(.system(size: 12))
         .padding(.leading, 28)
         .frame(height: 48)
+    }
+
+    private func sourceLabel(_ file: PipelineFile) -> String {
+        switch file.sourceType {
+        case .audio: return "Voice memo"
+        case .note: return "Apple Note"
+        case .capture: return "Capture"
+        }
     }
 
     private func toolbarBar(_ file: PipelineFile) -> some View {

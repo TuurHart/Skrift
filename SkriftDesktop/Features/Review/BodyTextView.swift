@@ -24,6 +24,16 @@ struct BodyTextView: NSViewRepresentable {
     var onAddName: (String) -> Void = { _ in }
     /// Inline name-disambiguation state, or nil when the note has no ambiguous names.
     var resolver: InlineResolverModel? = nil
+    /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
+    /// THIS text view (no renderer swap → no reflow) + click-a-word-to-seek.
+    var karaoke: KaraokePlayback? = nil
+
+    /// How far through the body's words to brighten (0…1) + a click-a-word → seek
+    /// callback (arg = the clicked word's 0…1 position).
+    struct KaraokePlayback {
+        var fraction: Double
+        var seek: (Double) -> Void
+    }
 
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
     fileprivate static let markerRegex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
@@ -45,7 +55,7 @@ struct BodyTextView: NSViewRepresentable {
         // Single-click on an ambiguous mention → resolve it (suppress cursor placement).
         tv.onSingleClickAt = { [weak coordinator = context.coordinator, weak tv] idx in
             guard let coordinator, let tv else { return false }
-            return coordinator.handleResolverClick(idx, tv)
+            return coordinator.handleClick(idx, tv)
         }
         context.coordinator.render(tv, model: text)
         context.coordinator.registerJump(tv)
@@ -60,19 +70,30 @@ struct BodyTextView: NSViewRepresentable {
         context.coordinator.registerJump(tv)
         // Re-render only on an EXTERNAL change (compare against the reconstructed
         // model so our own edits / thumbnail attachments don't trigger a clobber).
-        if context.coordinator.modelString(tv) != text {
+        let textChanged = context.coordinator.modelString(tv) != text
+        if textChanged {
             context.coordinator.render(tv, model: text)
             tv.invalidateIntrinsicContentSize()
+        }
+        if let k = karaoke {
+            // Playing: lock editing and recolor in place (bright up to the current
+            // word, dim the rest). Same view → identical layout, no reflow.
+            if tv.isEditable { tv.isEditable = false }
+            context.coordinator.applyKaraoke(tv, fraction: k.fraction)
         } else {
-            // Same text, but the resolver/decisions may have changed (e.g. a fresh
-            // note with the same body, or marks need refreshing) — restyle in place.
-            context.coordinator.restyle(tv)
+            if !tv.isEditable { tv.isEditable = true }
+            // render() already restyled; otherwise the resolver/decisions or text may
+            // have changed (or we're leaving karaoke) — restyle in place.
+            if !textChanged { context.coordinator.restyle(tv) }
         }
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: BodyTextView
         private var activePopover: NSPopover?
+        /// Last applied karaoke boundary, so the ~20 Hz playback ticks skip a recolor
+        /// unless the active-word count actually moved (cheap even on long notes).
+        private var lastKaraoke: (active: Int, count: Int)?
         init(_ parent: BodyTextView) { self.parent = parent }
 
         func textDidChange(_ notification: Notification) {
@@ -116,9 +137,53 @@ struct BodyTextView: NSViewRepresentable {
             let attributed = NSMutableAttributedString(
                 string: model, attributes: [.font: BodyTextView.bodyFont, .foregroundColor: primary])
             tv.textStorage?.setAttributedString(attributed)
+            lastKaraoke = nil   // new text → force the next karaoke recolor
             restyle(tv)
             tv.typingAttributes = [.font: BodyTextView.bodyFont, .foregroundColor: primary]
             loadThumbnails(into: tv, model: model)
+        }
+
+        /// In-place karaoke: brighten the first `fraction` of the body's words, dim the
+        /// rest — on the SAME text view as the editor, so playing never reflows. Skips
+        /// the work when the boundary hasn't moved (called ~20×/s while playing).
+        func applyKaraoke(_ tv: SelfSizingTextView, fraction: Double) {
+            guard let storage = tv.textStorage else { return }
+            let words = Coordinator.wordRanges(storage.string)
+            let active = max(0, min(words.count, Int((fraction * Double(words.count)).rounded())))
+            if let last = lastKaraoke, last.active == active, last.count == words.count { return }
+            lastKaraoke = (active, words.count)
+            let bright = NSColor(Theme.textPrimary)
+            let dim = NSColor(Theme.textPrimary).withAlphaComponent(0.4)
+            let full = NSRange(location: 0, length: storage.length)
+            storage.beginEditing()
+            storage.addAttribute(.foregroundColor, value: dim, range: full)
+            storage.removeAttribute(.backgroundColor, range: full)
+            storage.removeAttribute(.underlineStyle, range: full)
+            storage.removeAttribute(.underlineColor, range: full)
+            for (i, r) in words.enumerated() where i < active {
+                storage.addAttribute(.foregroundColor, value: bright, range: r)
+            }
+            storage.endEditing()
+        }
+
+        /// Whitespace-delimited word ranges — the karaoke highlight unit + the
+        /// click-to-seek hit map. Matches `BodyText.tokenize`'s word definition so the
+        /// NSTextView highlight lines up with the read-path one.
+        static func wordRanges(_ s: String) -> [NSRange] {
+            let ns = s as NSString
+            var ranges: [NSRange] = []
+            var start = -1
+            for i in 0..<ns.length {
+                let c = ns.character(at: i)
+                let isSpace = CharacterSet.whitespacesAndNewlines.contains(UnicodeScalar(c) ?? UnicodeScalar(32))
+                if isSpace {
+                    if start >= 0 { ranges.append(NSRange(location: start, length: i - start)); start = -1 }
+                } else if start < 0 {
+                    start = i
+                }
+            }
+            if start >= 0 { ranges.append(NSRange(location: start, length: ns.length - start)) }
+            return ranges
         }
 
         /// Resolve marker→URL on main (cheap), load + thumbnail OFF-main, then splice
@@ -168,6 +233,7 @@ struct BodyTextView: NSViewRepresentable {
         /// rebuild per keystroke).
         func restyle(_ tv: SelfSizingTextView) {
             guard let storage = tv.textStorage else { return }
+            lastKaraoke = nil   // normal styling applied → next karaoke entry must recolor
             let full = NSRange(location: 0, length: storage.length)
             storage.beginEditing()
             storage.addAttribute(.foregroundColor, value: NSColor(Theme.textPrimary), range: full)
@@ -222,9 +288,19 @@ struct BodyTextView: NSViewRepresentable {
 
         // MARK: - Inline resolver interaction
 
-        /// A single click landed at character `idx`; if it's on an ambiguous mention,
-        /// open the candidate popover and return true (suppress cursor placement).
-        func handleResolverClick(_ idx: Int, _ tv: SelfSizingTextView) -> Bool {
+        /// A single click at character `idx`. During karaoke it seeks the audio to the
+        /// clicked word; otherwise, if it's on an ambiguous mention, it opens the
+        /// candidate popover. Returns true when handled (suppresses cursor placement).
+        func handleClick(_ idx: Int, _ tv: SelfSizingTextView) -> Bool {
+            // Karaoke: click a word → seek there (the old behavior the user missed).
+            if let k = parent.karaoke, let storage = tv.textStorage {
+                let words = Coordinator.wordRanges(storage.string)
+                if let wi = words.firstIndex(where: { NSLocationInRange(idx, $0) || idx == NSMaxRange($0) }) {
+                    k.seek(words.count > 1 ? Double(wi) / Double(words.count - 1) : 0)
+                    return true
+                }
+                return false
+            }
             guard let resolver = parent.resolver, let storage = tv.textStorage else { return false }
             let text = storage.string
             for alias in resolver.candidatesByAlias.keys {
