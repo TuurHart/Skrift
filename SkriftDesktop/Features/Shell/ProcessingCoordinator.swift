@@ -28,6 +28,11 @@ final class ProcessingCoordinator {
     private let enhancer: Enhancing
     private let stubbedEngines: Bool
 
+    /// Frees the ~9 GB of model weights after the queue goes idle (the Python app
+    /// did this). Cancelled when a run starts, rescheduled when it ends.
+    private var idleUnloadTask: Task<Void, Never>?
+    private static let idleUnloadDelay: Duration = .seconds(60)
+
     init() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
@@ -70,8 +75,9 @@ final class ProcessingCoordinator {
         guard !targets.isEmpty else { return }
 
         isRunning = true
+        idleUnloadTask?.cancel(); idleUnloadTask = nil   // don't unload mid-run
         runState = RunState(total: targets.count, done: 0, currentTitle: nil)
-        defer { isRunning = false; runState = nil }
+        defer { isRunning = false; runState = nil; scheduleIdleUnload() }
 
         let settings = SettingsStore.shared.load()
         let runner = BatchRunner(
@@ -127,6 +133,21 @@ final class ProcessingCoordinator {
             }
             try? context.save()
             runState?.done += 1
+        }
+    }
+
+    /// After the queue is idle for `idleUnloadDelay`, free the ASR + LLM weights so
+    /// they don't sit pinned (~9 GB) for the rest of the session. Reloads lazily on
+    /// the next run. No-op when engines are stubbed (nothing loaded).
+    private func scheduleIdleUnload() {
+        guard !stubbedEngines else { return }
+        idleUnloadTask?.cancel()
+        idleUnloadTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.idleUnloadDelay)
+            if Task.isCancelled { return }
+            await TranscriptionService.shared.unload()
+            await EnhancementService.shared.unload()
+            self?.idleUnloadTask = nil
         }
     }
 
