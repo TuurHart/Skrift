@@ -24,25 +24,40 @@ struct SkriftDesktopApp: App {
         let upload = UploadService()
         let handlers = SyncHandlers(
             namesStore: .shared,
+            // SwiftData isn't thread-safe across contexts. These handlers run on the
+            // Bonjour server's background queue, while the UI mutates `mainContext`
+            // on the main thread — concurrent writes risk store corruption. Marshal
+            // all SwiftData access onto the main actor and use the SAME mainContext
+            // the UI observes (so phone uploads also appear live via @Query). The
+            // sync is deadlock-free: these never run on the main queue. The CPU-heavy
+            // multipart parse stays off-main; only the DB touch is marshaled.
             listFilesJSON: {
-                let ctx = ModelContext(SharedStore.container)
-                let files = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
-                return (try? JSONEncoder().encode(files.map(\.dto))) ?? Data("[]".utf8)
+                DispatchQueue.main.sync {
+                    MainActor.assumeIsolated {
+                        let ctx = SharedStore.container.mainContext
+                        let files = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
+                        return (try? JSONEncoder().encode(files.map(\.dto))) ?? Data("[]".utf8)
+                    }
+                }
             },
             handleUpload: { req in
                 guard let boundary = MultipartParser.boundary(fromContentType: req.contentType) else {
                     return .status(400, "Expected multipart/form-data")
                 }
                 let parts = MultipartParser.parse(req.body, boundary: boundary)
-                let ctx = ModelContext(SharedStore.container)
-                do {
-                    let created = try upload.ingest(parts: parts, into: ctx)
-                    return .json(UploadResponseDTO(success: true, files: created.map(\.dto),
-                                                   message: "Uploaded \(created.count) file(s)", errors: nil))
-                } catch {
-                    return .json(UploadResponseDTO(success: false, files: [],
-                                                   message: "Upload failed", errors: [String(describing: error)]),
-                                 status: 500)
+                return DispatchQueue.main.sync {
+                    MainActor.assumeIsolated {
+                        let ctx = SharedStore.container.mainContext
+                        do {
+                            let created = try upload.ingest(parts: parts, into: ctx)
+                            return .json(UploadResponseDTO(success: true, files: created.map(\.dto),
+                                                           message: "Uploaded \(created.count) file(s)", errors: nil))
+                        } catch {
+                            return .json(UploadResponseDTO(success: false, files: [],
+                                                           message: "Upload failed", errors: [String(describing: error)]),
+                                         status: 500)
+                        }
+                    }
                 }
             }
         )
