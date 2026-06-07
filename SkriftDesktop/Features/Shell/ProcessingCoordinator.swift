@@ -88,12 +88,18 @@ final class ProcessingCoordinator {
         defer { isRunning = false; runState = nil; scheduleIdleUnload() }
 
         let settings = SettingsStore.shared.load()
+        // Scan the vault for existing tag names so TagMatcher suggests real vault
+        // tags (off the main actor — file I/O). Empty when no vault is configured.
+        let vaultRoot = settings.noteFolder
+        let tagWhitelist: [String] = vaultRoot.isEmpty ? [] : await Task.detached(priority: .utility) {
+            VaultTagScanner.scan(root: URL(fileURLWithPath: vaultRoot))
+        }.value
         let runner = BatchRunner(
             transcriber: transcriber,
             enhancer: enhancer,
             settings: settings,
             people: NamesStore.shared.livePeople(),
-            tagWhitelist: []   // vault tag-whitelist scan is a follow-up
+            tagWhitelist: tagWhitelist
         )
 
         // Pre-load the engines up front so the first run shows download/load
