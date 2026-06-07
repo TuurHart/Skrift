@@ -316,6 +316,53 @@ ready, execute (clean trees first):
 Verify each app still builds after the moves (sim for mobile; `-skipMacroValidation`
 full scheme for desktop).
 
+## Device verification — Phase 8 on a real iPhone 13 (2026-06-08) — DONE
+
+Deployed signed (team `9W82X49JZS`) from `Skrift_Native/SkriftMobile`; UDID
+`00008110-001208C902EA201E`. **Confirmed working on hardware:** app launches (App
+Intents register with **NO SIGTRAP** — the plain-`AppIntent` design holds on
+device); **Live Activity** (Lock Screen + Dynamic Island, Stop button); **Control
+Center** record control; **Siri "Record with Skrift"** + **Lock-Screen widget**
+now **auto-record** (after the fix below); **share audio** import works from
+WhatsApp + (after broadening UTIs) **Signal**.
+
+**⚠ The cold-launch auto-record saga (commit `150fd4f`) — read before touching the
+intent→record path.** Siri/widget opened the record screen but didn't start
+recording on a COLD launch (warm/Control-Center + manual always worked). Took 6
+research agents + on-device `os_log` tracing (via `idevicesyslog -u <UDID>` — `log
+collect`/`log stream --device` both need root/aren't supported; `idevicesyslog`
+needs neither). FOUR stacked causes:
+1. The `autoStart` Bool passed into `RecordView` through `.fullScreenCover`
+   arrived **stale (false)** on cold launch (@State→cover propagation race). →
+   `RecordView` now reads a **consumable pending-start from `RecordingIntentBridge`**
+   (set at intent time); FAB calls `clearPendingStart()`.
+2. Fired **too early** — iOS blocks mic capture until the app is foreground-
+   `.active`. → gate on `UIApplication.applicationState == .active` via
+   `didBecomeActiveNotification` (reliable on cold launch + inside a cover, unlike
+   `scenePhase`).
+3. **THE blocker:** `Haptics.tap()` ran on the main actor right before the start
+   Task — **haptics share the audio session, which Siri still owns just after a
+   voice launch, so the haptic BLOCKED** and the Task never ran (trace: "consumed
+   → starting" with no `start()` after). → **no haptic in the auto-start path.**
+4. Siri mic handoff → 700ms delay + retry so `start()` doesn't contend.
+Recording is independent of the model (the live caption catches up on load).
+
+**Also fixed (committed `0c76494`):** the model-load status state machine —
+`ModelLoadStatus` is now a single `phase` (written only via `set(_:)`) with a
+persisted `everDownloaded` latch; `.compiling` surfaces as "Preparing N%" (was a
+frozen "Preparing…"); a memory-warning `unload()` no longer falsely shows "not
+downloaded" for a cached model.
+
+**Owed (next session):**
+- **"Transcription a bit weird" after a cold-launch auto-record** (user, 2026-06-08)
+  — likely the streaming caption catching up while the model finishes loading
+  mid-recording. Investigate the live-caption behavior on a cold auto-start.
+- Re-install the **clean build** to the device (the phone currently runs `build8`
+  which still had the debug `os_log`; the committed code `150fd4f` stripped it —
+  functionally identical, just install next time it's connected).
+- Optional polish: `openAppWhenRun` is deprecated on iOS 18 → `supportedModes:
+  .foreground` (not a bug; works as-is).
+
 Sanity-check the sim toolchain (runs BOTH test targets; sim flake → re-run after
 `xcrun simctl shutdown all; xcrun simctl erase "iPhone 17"`):
 ```
