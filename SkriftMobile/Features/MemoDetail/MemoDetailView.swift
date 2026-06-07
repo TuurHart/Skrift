@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 /// The "note" screen (mockup2). Swipe left/right between memos (`TabView(.page)`),
 /// each page = editable title + RAW transcript (with inline `[[img_NNN]]` embeds)
@@ -15,7 +16,6 @@ struct MemoDetailView: View {
     @State private var showActions = false
     @StateObject private var player = AudioPlayerModel()
     private let repository = NotesRepository.shared
-    private let saver = MemoSaver()
 
     init(initialID: UUID) {
         self.initialID = initialID
@@ -54,7 +54,7 @@ struct MemoDetailView: View {
         // to the toolbar item), so the paged TabView can't swallow it — unlike a
         // toolbar `Menu`, which silently failed to present on device.
         .confirmationDialog("Memo", isPresented: $showActions, titleVisibility: .hidden) {
-            Button("Re-transcribe") { if let id = currentMemo?.id { saver.retranscribe(id: id) } }
+            Button("Copy transcript", action: copyTranscript)
             Button("Delete", role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
         }
@@ -79,6 +79,11 @@ struct MemoDetailView: View {
             LinearGradient(colors: [.skBg, .skBg.opacity(0)], startPoint: .bottom, endPoint: .top)
                 .ignoresSafeArea()
         )
+    }
+
+    private func copyTranscript() {
+        guard let text = currentMemo?.transcript, !text.isEmpty else { return }
+        UIPasteboard.general.string = text
     }
 
     private func deleteCurrent() {

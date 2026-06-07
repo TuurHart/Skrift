@@ -76,6 +76,7 @@ actor TranscriptionService: Transcriber {
             return
         }
         let task = Task<Void, Error> {
+            await MainActor.run { ModelLoadStatus.shared.loading = true }
             let mlConfig = MLModelConfiguration()
             let useANE = UserDefaults.standard.object(forKey: "useANE") as? Bool ?? true
             mlConfig.computeUnits = useANE ? .cpuAndNeuralEngine : .cpuOnly
@@ -99,6 +100,7 @@ actor TranscriptionService: Transcriber {
             self.asr = manager
             await MainActor.run {
                 ModelLoadStatus.shared.ready = true
+                ModelLoadStatus.shared.loading = false
                 ModelLoadStatus.shared.downloadProgress = nil
             }
         }
@@ -108,6 +110,7 @@ actor TranscriptionService: Transcriber {
             loadTask = nil
         } catch {
             loadTask = nil
+            await MainActor.run { ModelLoadStatus.shared.loading = false; ModelLoadStatus.shared.downloadProgress = nil }
             throw error
         }
     }

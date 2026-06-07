@@ -242,13 +242,12 @@ struct RecordView: View {
 
     private var statusText: String {
         if let p = modelStatus.downloadProgress { return "Downloading model · \(Int(p * 100))%" }
-        return modelStatus.ready ? "On-device transcription · ready" : "Transcription model not downloaded"
+        if modelStatus.ready { return "On-device transcription · ready" }
+        if modelStatus.loading { return "Preparing model…" }
+        return "Transcription model not downloaded"
     }
 
-    private var statusColor: Color {
-        if modelStatus.downloadProgress != nil { return .skAmber }
-        return modelStatus.ready ? .skGreen : .skAmber
-    }
+    private var statusColor: Color { modelStatus.ready ? .skGreen : .skAmber }
 
     // MARK: - Context chips
 

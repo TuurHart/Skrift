@@ -126,15 +126,16 @@ final class LocationOneShot: NSObject, CLLocationManagerDelegate {
     private static func reverseGeocode(_ location: CLLocation) async -> String? {
         let placemarks = try? await CLGeocoder().reverseGeocodeLocation(location)
         guard let placemark = placemarks?.first else { return nil }
-        // Some regions return very long administrative names ("União das
-        // freguesias de Algés, Linda-a-Velha e …"). For a place chip, pick the
-        // SHORTEST meaningful component (usually the town/neighborhood) and cap
-        // it, so it never overflows the row.
-        let candidates = [placemark.subLocality, placemark.locality,
-                          placemark.subAdministrativeArea, placemark.administrativeArea]
+        // Prefer the most SPECIFIC name that fits, walking town/neighborhood →
+        // municipality → region (never jump straight to the broad region like
+        // "Lisbon"). Some regions return very long parish-union names; skip
+        // those in favor of the next concise component, truncating only as a
+        // last resort.
+        let ordered = [placemark.subLocality, placemark.locality,
+                       placemark.subAdministrativeArea, placemark.administrativeArea, placemark.name]
             .compactMap { $0 }.filter { !$0.isEmpty }
-        guard var best = candidates.min(by: { $0.count < $1.count }) ?? placemark.name, !best.isEmpty else { return nil }
-        if best.count > 24 { best = String(best.prefix(22)).trimmingCharacters(in: .whitespacesAndNewlines) + "…" }
-        return best
+        guard !ordered.isEmpty else { return nil }
+        if let concise = ordered.first(where: { $0.count <= 22 }) { return concise }
+        return String(ordered[0].prefix(20)).trimmingCharacters(in: .whitespacesAndNewlines) + "…"
     }
 }

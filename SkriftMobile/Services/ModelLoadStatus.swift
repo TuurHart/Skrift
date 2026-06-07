@@ -9,6 +9,9 @@ final class ModelLoadStatus: ObservableObject {
     static let shared = ModelLoadStatus()
     /// True once the Parakeet model is loaded + ready to transcribe.
     @Published var ready = false
+    /// True while loading/compiling the (already-downloaded) model into memory —
+    /// distinct from "not downloaded". Drives a "Preparing model…" status.
+    @Published var loading = false
     /// 0...1 while actively downloading; nil otherwise (idle/compiling/ready).
     @Published var downloadProgress: Double?
     private init() {}

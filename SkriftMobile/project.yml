@@ -44,6 +44,12 @@ targets:
         NSLocalNetworkUsageDescription: "Skrift finds your Mac on the local network to sync memos and names."
         NSBonjourServices:
           - _skrift._tcp
+        # The Mac server is plain HTTP on the LAN; iOS blocks cleartext by
+        # default. NSAllowsLocalNetworking permits it for local/.local/Bonjour
+        # hosts only (no global ATS disable). Without this the upload/health/
+        # names requests never leave the phone.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         CFBundleURLTypes:

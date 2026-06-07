@@ -11,6 +11,7 @@ struct CameraSheet: View {
     let onDone: () -> Void
 
     @State private var zoom: CGFloat = 1
+    @State private var zoomBase: CGFloat = 1
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,19 +22,22 @@ struct CameraSheet: View {
                 .padding(.top, 14)
                 .padding(.horizontal, 16)
 
-            HStack {
-                thumbnails
-                Spacer()
+            // Shutter centered on screen; thumbnails left, Done right.
+            ZStack {
                 Button(action: capture) {
                     Circle().fill(.white).frame(width: 64, height: 64)
                         .overlay(Circle().stroke(.white.opacity(0.22), lineWidth: 4))
                 }
                 .accessibilityIdentifier("shutter-button")
-                Spacer()
-                Button(action: onDone) {
-                    Text("Done").font(.system(size: 15, weight: .bold)).foregroundStyle(Color.skAccent)
+
+                HStack {
+                    thumbnails
+                    Spacer()
+                    Button(action: onDone) {
+                        Text("Done").font(.system(size: 15, weight: .bold)).foregroundStyle(Color.skAccent)
+                    }
+                    .accessibilityIdentifier("camera-done")
                 }
-                .accessibilityIdentifier("camera-done")
             }
             .padding(.horizontal, 22)
             .padding(.vertical, 18)
@@ -61,19 +65,18 @@ struct CameraSheet: View {
             }
 
             VStack {
-                Text("Pinch to zoom")
-                    .font(.system(size: 11)).foregroundStyle(Color.skText)
-                    .padding(.horizontal, 9).padding(.vertical, 3)
-                    .background(.black.opacity(0.4), in: .rect(cornerRadius: 8, style: .continuous))
-                    .padding(.top, 10)
                 Spacer()
                 zoomSelector.padding(.bottom, 12)
             }
         }
         .contentShape(Rectangle())
         .gesture(
+            // Scale is relative to the gesture start, so multiply a snapshot of
+            // the zoom at gesture-start (not the live value) — otherwise it
+            // feeds back on itself and jumps straight to the limits.
             MagnificationGesture()
-                .onChanged { scale in setZoom(zoom * scale) }
+                .onChanged { scale in setZoom(zoomBase * scale) }
+                .onEnded { _ in zoomBase = zoom }
         )
     }
 
@@ -114,6 +117,7 @@ struct CameraSheet: View {
 
     private func setZoom(_ factor: CGFloat) {
         zoom = max(0.5, min(factor, 5))
+        zoomBase = zoom   // keep the pinch baseline in sync with button taps
         camera.setZoom(zoom)
     }
 }
