@@ -64,7 +64,7 @@ struct NoteDisplayView: View {
             if let summary = file.enhancedSummary, !summary.isEmpty {
                 summaryAside(summary)
             }
-            NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, resolver: scrollable ? resolver : nil)
+            NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias, resolver: scrollable ? resolver : nil)
         }
     }
 
@@ -154,6 +154,27 @@ struct NoteDisplayView: View {
         people.append(Person(canonical: canon, aliases: [text], short: nil, lastModifiedAt: ISO8601.now()))
         _ = NamesStore.shared.writeWithSmartBumps(people)
         coordinator.flash("Added “\(key)” to names")
+    }
+
+    /// Add a body selection as an ALIAS of an existing person (right-click → "Add … as
+    /// → alias of <person>"). Lets the names graph grow without inventing duplicates —
+    /// e.g. mark "Tuur" as another alias of [[Tiuri Hartog]]. (Cross-person duplicate
+    /// aliases are allowed on purpose — that's exactly the two-Jacks ambiguity.)
+    private func addAlias(_ word: String, to canonical: String) {
+        let alias = word.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !alias.isEmpty else { return }
+        var people = NamesStore.shared.livePeople()
+        guard let i = people.firstIndex(where: { $0.canonical == canonical }) else {
+            coordinator.flash("That name isn’t in your list anymore"); return
+        }
+        let name = NamesMerge.keyName(canonical)
+        if people[i].aliases.contains(where: { $0.localizedCaseInsensitiveCompare(alias) == .orderedSame }) {
+            coordinator.flash("“\(alias)” is already an alias of \(name)"); return
+        }
+        people[i].aliases.append(alias)
+        people[i].lastModifiedAt = ISO8601.now()
+        _ = NamesStore.shared.writeWithSmartBumps(people)
+        coordinator.flash("Added “\(alias)” as an alias of \(name)")
     }
 
     private func summaryAside(_ text: String) -> some View {

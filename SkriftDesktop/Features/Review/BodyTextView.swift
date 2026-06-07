@@ -20,8 +20,10 @@ struct BodyTextView: NSViewRepresentable {
     /// Resolves an image marker number (`[[img_NNN]]`) to its file URL. Defaults to
     /// none (markers stay as styled text).
     var imageURL: (Int) -> URL? = { _ in nil }
-    /// Called when the user right-clicks a text selection → "Add … as a name".
+    /// Right-click a text selection → "Add … as a new name".
     var onAddName: (String) -> Void = { _ in }
+    /// Right-click a selection → "Add … as → alias of <existing person>" (word, canonical).
+    var onAddAlias: (String, String) -> Void = { _, _ in }
     /// Inline name-disambiguation state, or nil when the note has no ambiguous names.
     var resolver: InlineResolverModel? = nil
     /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
@@ -106,27 +108,49 @@ struct BodyTextView: NSViewRepresentable {
             tv.invalidateIntrinsicContentSize()
         }
 
-        /// Inject "Add … as a name" into the right-click menu when there's a short
-        /// text selection — the reliable, user-driven way to grow the names graph
-        /// (no flaky auto-detection; you pick the exact words).
+        /// Right-click a short text selection → "Add '…' as ▸" with a submenu: a NEW
+        /// name, or an ALIAS of any existing person. The reliable, user-driven way to
+        /// grow the names graph (you pick the exact words; no flaky auto-detection).
         func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
             let r = view.selectedRange()
             let ns = view.string as NSString
-            if r.length > 0, r.location + r.length <= ns.length {
-                let sel = ns.substring(with: r).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !sel.isEmpty, sel.count <= 60 {
-                    let item = NSMenuItem(title: "Add “\(sel)” as a name", action: #selector(addNameAction(_:)), keyEquivalent: "")
-                    item.target = self
-                    item.representedObject = sel
-                    menu.insertItem(item, at: 0)
-                    menu.insertItem(.separator(), at: 1)
+            guard r.length > 0, r.location + r.length <= ns.length else { return menu }
+            let sel = ns.substring(with: r).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !sel.isEmpty, sel.count <= 60 else { return menu }
+
+            let parentItem = NSMenuItem(title: "Add “\(sel)” as…", action: nil, keyEquivalent: "")
+            let sub = NSMenu()
+
+            let newItem = NSMenuItem(title: "A new name", action: #selector(addNewNameAction(_:)), keyEquivalent: "")
+            newItem.target = self; newItem.representedObject = sel
+            sub.addItem(newItem)
+
+            let people = NamesStore.shared.livePeople().sorted {
+                NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(NamesMerge.keyName($1.canonical)) == .orderedAscending
+            }
+            if !people.isEmpty {
+                sub.addItem(.separator())
+                let header = NSMenuItem(title: "An alias of…", action: nil, keyEquivalent: "")
+                header.isEnabled = false
+                sub.addItem(header)
+                for p in people {
+                    let pi = NSMenuItem(title: NamesMerge.keyName(p.canonical), action: #selector(addAliasAction(_:)), keyEquivalent: "")
+                    pi.target = self
+                    pi.representedObject = AliasTarget(word: sel, canonical: p.canonical)
+                    sub.addItem(pi)
                 }
             }
+            parentItem.submenu = sub
+            menu.insertItem(parentItem, at: 0)
+            menu.insertItem(.separator(), at: 1)
             return menu
         }
 
-        @objc private func addNameAction(_ sender: NSMenuItem) {
+        @objc private func addNewNameAction(_ sender: NSMenuItem) {
             if let sel = sender.representedObject as? String { parent.onAddName(sel) }
+        }
+        @objc private func addAliasAction(_ sender: NSMenuItem) {
+            if let t = sender.representedObject as? AliasTarget { parent.onAddAlias(t.word, t.canonical) }
         }
 
         /// Build the text storage from the model: plain body + inline image thumbnails
@@ -421,6 +445,13 @@ struct BodyTextView: NSViewRepresentable {
             return NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width) / 2, height: CGFloat(cg.height) / 2))
         }
     }
+}
+
+/// Carries (selected word, target person canonical) on an "add as alias" menu item.
+private final class AliasTarget {
+    let word: String
+    let canonical: String
+    init(word: String, canonical: String) { self.word = word; self.canonical = canonical }
 }
 
 /// An `NSTextAttachment` that remembers which `[[img_NNN]]` marker it stands in for,

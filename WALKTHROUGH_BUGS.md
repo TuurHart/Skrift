@@ -54,7 +54,7 @@ Status: ☐ open · ⧖ pending build-verify · ☑ fixed
 ## Remaining (walkthrough)
 All cleared. **R3 inline resolver** (banner-asks + auto-apply), **N6/N7** audio player + karaoke, **C2** breadcrumb, **W2** cursor, **AUD-P2c** sliders — all done. **User confirmed R3 + karaoke work on the live app ("perfect, it works").** (W2 cursor not separately called out by the user; standard fix is in.)
 - ☑ **#12** Right-click a sidebar row → Process · Re-transcribe · Redo ▸ · Reveal in Finder · Open in Obsidian · Copy ▸ · Delete (multi-select aware → "Process N / Export N / Delete N").
-- ☑ **Add-name** Right-click a body text selection → "Add … as a name" (reliable, user-driven names-graph growth).
+- ☑ **Add-name** Right-click a body text selection → **"Add '…' as ▸"** submenu: **a new name**, or an **alias of** any existing person (user-driven names-graph growth without inventing duplicates). (was: only ever created a new name)
 - ☑ **#18 / N2** Significance slider disabled until processed.
 - ☑ **T2** title wraps (no truncation) + smaller (18–19pt) — first pass was insufficient.
 
