@@ -50,6 +50,12 @@
 	<string>Skrift records audio to transcribe your speech. Recording only happens when you trigger it.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Skrift records your step count alongside a memo for context.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

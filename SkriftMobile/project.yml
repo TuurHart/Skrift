@@ -56,6 +56,12 @@ targets:
           - CFBundleURLName: com.skrift.mobile
             CFBundleURLSchemes:
               - skrift
+        # Live Activity (recording status on Lock Screen / Dynamic Island).
+        NSSupportsLiveActivities: true
+        # Keep the audio session + recording alive when backgrounded/locked so
+        # the Live Activity stays meaningful.
+        UIBackgroundModes:
+          - audio
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile
@@ -71,6 +77,58 @@ targets:
         product: DSWaveformImageViews
       - package: Pow
         product: Pow
+      - target: SkriftShared
+        embed: true
+      - target: SkriftWidget
+        embed: true
+
+  # Shared framework: Live Activity ActivityAttributes (and, in 8b, the App
+  # Intents) — visible to both the app and the widget extension.
+  SkriftShared:
+    type: framework
+    platform: iOS
+    sources:
+      - path: SkriftShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.shared
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: YES
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: YES
+        DEFINES_MODULE: YES
+        BUILD_LIBRARY_FOR_DISTRIBUTION: NO
+
+  # WidgetKit extension: the recording Live Activity (8a); Control Center +
+  # Home/Lock widgets land in 8b.
+  SkriftWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: SkriftWidget
+    info:
+      path: SkriftWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Skrift
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.widget
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+    dependencies:
+      - target: SkriftShared
+        embed: false
 
   SkriftMobileTests:
     type: bundle.unit-test
@@ -107,6 +165,8 @@ schemes:
   SkriftMobile:
     build:
       targets:
+        SkriftShared: all
+        SkriftWidget: all
         SkriftMobile: all
         SkriftMobileTests: [test]
         SkriftMobileUITests: [test]

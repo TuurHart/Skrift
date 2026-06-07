@@ -94,6 +94,7 @@ final class LiveRecordingService: ObservableObject {
         isPaused = false
         segmentStart = Date()
         startDisplayTimer()
+        if !mock { RecordingActivityManager.shared.start() }
     }
 
     func pause() {
@@ -101,7 +102,7 @@ final class LiveRecordingService: ObservableObject {
         accumulate()
         isPaused = true
         tapPaused = true
-        if !mock { engine?.pause() }
+        if !mock { engine?.pause(); RecordingActivityManager.shared.pause() }
     }
 
     func resume() {
@@ -110,6 +111,7 @@ final class LiveRecordingService: ObservableObject {
         segmentStart = Date()
         isPaused = false
         tapPaused = false
+        if !mock { RecordingActivityManager.shared.resume(elapsed: elapsed) }
     }
 
     struct Result { let url: URL; let duration: TimeInterval; let liveCaption: String }
@@ -127,6 +129,7 @@ final class LiveRecordingService: ObservableObject {
             audioFile = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
             if liveTranscription { Task { await TranscriptionService.shared.endStream() } }
+            RecordingActivityManager.shared.end()
         }
         isRecording = false
         isPaused = false
@@ -149,6 +152,7 @@ final class LiveRecordingService: ObservableObject {
             audioFile = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
             if liveTranscription { Task { await TranscriptionService.shared.endStream() } }
+            RecordingActivityManager.shared.end()
         }
         if let url = tempURL { try? FileManager.default.removeItem(at: url) }
         tempURL = nil
@@ -222,7 +226,10 @@ final class LiveRecordingService: ObservableObject {
                 guard let self, self.isRecording, !self.isPaused else { return }
                 Task {
                     let caption = await TranscriptionService.shared.liveCaption()
-                    if !caption.isEmpty { self.liveCaption = caption }
+                    if !caption.isEmpty {
+                        self.liveCaption = caption
+                        RecordingActivityManager.shared.update(caption: caption)
+                    }
                 }
             }
         }
