@@ -21,6 +21,34 @@ final class ProcessingCoordinator {
     private(set) var isRunning = false
     var lastError: String?
 
+    // Engine seam — the real FluidAudio/MLX services by default; swapped for canned
+    // stubs when launched with `-stubEnhancement` (UI piloting / XCUITest), so
+    // Process→Ready runs instantly without the 9 GB model.
+    private let transcriber: Transcribing
+    private let enhancer: Enhancing
+    private let stubbedEngines: Bool
+
+    init() {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-stubEnhancement") {
+            let seed: String
+            if let i = args.firstIndex(of: "-seedTranscript"), i + 1 < args.count {
+                seed = args[i + 1]
+            } else {
+                seed = "This is a stubbed transcript for UI piloting. We talked through the desktop rewrite and what to test next week."
+            }
+            transcriber = StubTranscriber(text: seed)
+            enhancer = StubEnhancer()
+            stubbedEngines = true
+            return
+        }
+        #endif
+        transcriber = TranscriptionService.shared
+        enhancer = EnhancementService.shared
+        stubbedEngines = false
+    }
+
     #if DEBUG
     /// Snapshot helper — a coordinator with a preset run state for verification.
     static func preview(_ rs: RunState) -> ProcessingCoordinator {
@@ -47,8 +75,8 @@ final class ProcessingCoordinator {
 
         let settings = SettingsStore.shared.load()
         let runner = BatchRunner(
-            transcriber: TranscriptionService.shared,
-            enhancer: EnhancementService.shared,
+            transcriber: transcriber,
+            enhancer: enhancer,
             settings: settings,
             people: NamesStore.shared.livePeople(),
             tagWhitelist: []   // vault tag-whitelist scan is a follow-up
@@ -56,27 +84,30 @@ final class ProcessingCoordinator {
 
         // Pre-load the engines up front so the first run shows download/load
         // progress in the run bar (instant when the models are already cached).
-        let needsAudio = targets.contains {
-            $0.sourceType != .note && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
-        }
-        do {
-            if needsAudio {
-                runState?.loadingLabel = "transcription model"
-                try await TranscriptionService.shared.ensureLoaded { f in
+        // Skipped for stubbed engines (UI piloting) — nothing to load.
+        if !stubbedEngines {
+            let needsAudio = targets.contains {
+                $0.sourceType != .note && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
+            }
+            do {
+                if needsAudio {
+                    runState?.loadingLabel = "transcription model"
+                    try await TranscriptionService.shared.ensureLoaded { f in
+                        Task { @MainActor in self.runState?.loadingFraction = f }
+                    }
+                }
+                runState?.loadingLabel = "enhancement model"
+                runState?.loadingFraction = nil
+                try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
                     Task { @MainActor in self.runState?.loadingFraction = f }
                 }
+            } catch {
+                lastError = "Model load failed: \(error.localizedDescription)"
+                return   // defer resets isRunning + runState
             }
-            runState?.loadingLabel = "enhancement model"
+            runState?.loadingLabel = nil
             runState?.loadingFraction = nil
-            try await EnhancementService.shared.ensureLoaded(modelRepo: settings.enhancementModelRepo) { f in
-                Task { @MainActor in self.runState?.loadingFraction = f }
-            }
-        } catch {
-            lastError = "Model load failed: \(error.localizedDescription)"
-            return   // defer resets isRunning + runState
         }
-        runState?.loadingLabel = nil
-        runState?.loadingFraction = nil
 
         for pf in targets {
             runState?.currentTitle = pf.queueTitle
