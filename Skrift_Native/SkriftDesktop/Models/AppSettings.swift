@@ -83,9 +83,21 @@ final class SettingsStore {
     func load() -> AppSettings {
         guard let data = try? Data(contentsOf: fileURL),
               let parsed = try? decoder.decode(AppSettings.self, from: data) else {
-            return .default
+            return Self.freshDefault
         }
         return parsed
+    }
+
+    /// Defaults for a fresh install (no settings file yet). The Debug ("Skrift Dev")
+    /// build defaults its export vault to the TEST vault so dev runs NEVER write the
+    /// user's real Obsidian vault (privacy). Release ("Skrift") stays empty → the
+    /// SetupWizard prompts for the real vault.
+    static var freshDefault: AppSettings {
+        var s = AppSettings.default
+        #if DEBUG
+        s.noteFolder = (("~/Hackerman/Obsidian_LLM_Test_Vault") as NSString).expandingTildeInPath
+        #endif
+        return s
     }
 
     @discardableResult

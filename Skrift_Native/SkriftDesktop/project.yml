@@ -35,14 +35,12 @@ targets:
       - path: Features
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
         PRODUCT_NAME: SkriftDesktop
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         SWIFT_VERSION: "5.9"
         GENERATE_INFOPLIST_FILE: YES
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
-        INFOPLIST_KEY_CFBundleDisplayName: Skrift
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
         # App icon from App/Assets.xcassets (macOS squircle, full size set).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -51,6 +49,17 @@ targets:
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGNING_REQUIRED: NO
         ENABLE_HARDENED_RUNTIME: NO
+      configs:
+        # Dev/prod separation. Debug = "Skrift Dev" (com.skrift.desktop.dev) → its own
+        # ~/Library/Application Support/Skrift Dev/ + SwiftData store + defaults to the
+        # TEST vault (AppPaths/SettingsStore #if DEBUG), so dev runs never touch the
+        # production data or the real Obsidian vault. Release = the real "Skrift".
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.dev
+          INFOPLIST_KEY_CFBundleDisplayName: Skrift Dev
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
+          INFOPLIST_KEY_CFBundleDisplayName: Skrift
     dependencies:
       - package: FluidAudio
         product: FluidAudio

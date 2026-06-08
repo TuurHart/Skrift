@@ -7,7 +7,10 @@ import FluidAudio  // Phase 0 proof: FluidAudio (ASR) links + builds for macOS a
 /// background upload/list contexts.
 enum SharedStore {
     static let container: ModelContainer = {
-        do { return try ModelContainer(for: PipelineFile.self) }
+        // Explicit store path so dev ("Skrift Dev") and prod ("Skrift") keep
+        // SEPARATE SwiftData stores (AppPaths.storeFile is suffixed per build).
+        let config = ModelConfiguration(url: AppPaths.storeFile)
+        do { return try ModelContainer(for: PipelineFile.self, configurations: config) }
         catch { fatalError("Failed to create ModelContainer: \(error)") }
     }()
 }
