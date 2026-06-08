@@ -292,7 +292,25 @@ post-record Review screen → save-now → Memo detail.
   so "archive" = relocate intact under `archive/`, never gut. Do this during
   convergence, NOT before.
 
-## CONVERGENCE PLAN (mobile-native + desktop-native → one `native` branch) — WAIT FOR DESKTOP
+## CONVERGENCE PLAN (mobile-native + desktop-native → one `native` branch) — DONE + CLEANED UP
+
+**EXECUTED 2026-06-07** (merge `9e338b6` + reorg `8b3a409`) **and re-audited + cleaned
+up 2026-06-08:** convergence re-verified by git tree-hash equality (not eyeballing) —
+both apps' code byte-identical to their source branches across merge+reorg (reorg was
+a pure R100 rename; only intended doc/`.gitignore` edits + the archived Electron-Python
+doc were non-renames), `desktop-native` fully merged (`is-ancestor`=0, zero unmerged
+commits), all 3 archived apps byte-identical to source. The redundant
+`Skrift-desktop` worktree was cleaned up: salvaged the 6 desktop UI mocks →
+`Skrift_Native/SkriftDesktop/mocks/` (incl. locked `v5.html`; committed `eba5576`,
+mirrors `SkriftMobile/mockups/`, NOT in build target), dropped `pilot/`+`pipecheck/`
+spike scratch (user's call), `git worktree remove --force …/Skrift-desktop` (763 MB
+DerivedData reclaimed). `desktop-native` branch kept as a harmless merged pointer.
+**Both apps re-build-verified from the new homes this session:** mobile TEST
+SUCCEEDED (`SkriftMobileTests` 35 unit + `SkriftMobileUITests` 19 UI = 54, 0 fail,
+iPhone 17 sim); desktop BUILD SUCCEEDED (full MLX `-skipMacroValidation`). The
+separate `.claude/worktrees/competent-haslett-718d5a` worktree is on a different
+branch (origin/main) — left alone, not convergence scratch. The historical plan
+follows for reference.
 
 User decision (2026-06-07): the desktop app is **actively being worked on**
 (`desktop-native` is mid-flight), so **do NOT merge/move folders yet** — wait
