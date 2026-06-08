@@ -33,7 +33,9 @@ targets:
     info:
       path: App/Info.plist
       properties:
-        CFBundleDisplayName: Skrift
+        # Resolved per-config (SKRIFT_DISPLAY_NAME): "Skrift Dev" in Debug, "Skrift"
+        # in Release — so the dev + prod apps are distinguishable on the home screen.
+        CFBundleDisplayName: $(SKRIFT_DISPLAY_NAME)
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         UILaunchScreen: {}
@@ -87,7 +89,6 @@ targets:
         LSSupportsOpeningDocumentsInPlace: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
@@ -95,6 +96,17 @@ targets:
         CODE_SIGN_STYLE: Automatic
         # App icon from App/Assets.xcassets (light + dark iOS-18 adaptive variants).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        # Dev/prod separation. Debug = "Skrift Dev" (com.skrift.mobile.dev) — its OWN
+        # OS data container, so dev iteration NEVER touches the production app's
+        # memos/recordings. Release = the real "Skrift". The widget + shared framework
+        # bundle IDs follow (an app-extension id must be prefixed by its host's).
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev
+          SKRIFT_DISPLAY_NAME: Skrift Dev
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile
+          SKRIFT_DISPLAY_NAME: Skrift
     dependencies:
       - package: FluidAudio
         product: FluidAudio
@@ -116,7 +128,6 @@ targets:
       - path: SkriftShared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.shared
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         CODE_SIGN_STYLE: Automatic
@@ -126,6 +137,11 @@ targets:
         SKIP_INSTALL: YES
         DEFINES_MODULE: YES
         BUILD_LIBRARY_FOR_DISTRIBUTION: NO
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev.shared
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.shared
 
   # WidgetKit extension: the recording Live Activity (8a); Control Center +
   # Home/Lock widgets land in 8b.
@@ -151,13 +167,17 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.widget
         TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
         SKIP_INSTALL: YES
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev.widget
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.widget
     dependencies:
       - target: SkriftShared
         embed: false
