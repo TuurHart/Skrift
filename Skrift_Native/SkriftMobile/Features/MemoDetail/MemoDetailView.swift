@@ -30,7 +30,7 @@ struct MemoDetailView: View {
 
             TabView(selection: $selection) {
                 ForEach(memos) { memo in
-                    MemoPageView(memo: memo, bottomInset: 150)
+                    MemoPageView(memo: memo, bottomInset: 160)   // clears the floating glass bar
                         .tag(memo.id)
                 }
             }
@@ -72,13 +72,20 @@ struct MemoDetailView: View {
             }
             PlayerBar(player: player)
         }
-        .padding(.horizontal, Theme.Space.margin)
-        .padding(.bottom, 24)
-        .padding(.top, 12)
-        .background(
-            LinearGradient(colors: [.skBg, .skBg.opacity(0)], startPoint: .bottom, endPoint: .top)
-                .ignoresSafeArea()
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        // Frosted "liquid glass" bar: the transcript scrolls softly blurred UNDER it
+        // (intentional, iOS-toolbar feel) instead of being ghosted by an opaque
+        // gradient. iOS-26 Liquid Glass (`glassEffect`) isn't available at the iOS-18
+        // target, so `.ultraThinMaterial` is the closest native frosted material.
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
         )
+        .shadow(color: .black.opacity(0.28), radius: 18, y: 6)
+        .padding(.horizontal, Theme.Space.margin)
+        .padding(.bottom, 6)
     }
 
     private func copyTranscript() {
