@@ -73,7 +73,26 @@ struct MemoDetailView: View {
         .onDisappear { player.stopAndClear(); repository.save() }
     }
 
-    private var bottomChrome: some View {
+    @ViewBuilder private var bottomChrome: some View {
+        // REAL iOS-26 Liquid Glass on the floating playback bar (device + SDK are 26):
+        // the transcript/photos refract through it. `.ultraThinMaterial` is only the
+        // fallback for iOS < 26 (where glassEffect is unavailable).
+        if #available(iOS 26.0, *) {
+            playerBarStack
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .padding(.horizontal, Theme.Space.margin)
+                .padding(.bottom, 6)
+        } else {
+            playerBarStack
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.28), radius: 18, y: 6)
+                .padding(.horizontal, Theme.Space.margin)
+                .padding(.bottom, 6)
+        }
+    }
+
+    private var playerBarStack: some View {
         VStack(spacing: 10) {
             if memos.count > 1, memos.count <= 8 {
                 PageDots(count: memos.count, index: memos.firstIndex { $0.id == selection } ?? 0)
@@ -82,18 +101,6 @@ struct MemoDetailView: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
-        // Frosted "liquid glass" bar: the transcript scrolls softly blurred UNDER it
-        // (intentional, iOS-toolbar feel) instead of being ghosted by an opaque
-        // gradient. iOS-26 Liquid Glass (`glassEffect`) isn't available at the iOS-18
-        // target, so `.ultraThinMaterial` is the closest native frosted material.
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.28), radius: 18, y: 6)
-        .padding(.horizontal, Theme.Space.margin)
-        .padding(.bottom, 6)
     }
 
     private func copyTranscript() {
