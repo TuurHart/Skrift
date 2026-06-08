@@ -119,6 +119,40 @@
   RMS/word-count silence guard) live in `Mobile/modules/parakeet/ios/ParakeetModule.swift`
   on this branch — **port them into the native transcription service in Phase 2**.
 
+## NEXT SESSION (2026-06-09) — capture items + deferred UI
+
+**Dev/prod split is LIVE (both apps); the user runs prod "Skrift" on the iPhone 13 +
+the prod desktop on the Mac.** Build prod = `-configuration Release`; dev iteration =
+Debug (`com.skrift.{mobile,desktop}.dev`, "Skrift Dev"). Deploy prod to the phone:
+`xcodebuild build -scheme SkriftMobile -configuration Release -destination 'platform=iOS,id=00008110-001208C902EA201E' -derivedDataPath build-device -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic` → `devicectl device install … Release-iphoneos/SkriftMobile.app`.
+
+**Deferred work (user-requested, in priority-ish order):**
+1. **Capture items** — the user will drive this tomorrow (they've built iOS share
+   extensions before). Plan: new **ShareExtension** target + **App Group**
+   (`group.com.skrift.mobile[.dev]`, per-config like the bundle IDs; entitlements via a
+   `$(SKRIFT_APP_GROUP)` build-setting var) → extension writes shared URL/text/image to
+   the App-Group container → app ingests on launch → no-audio "capture" `Memo`
+   (`sharedContent`/`annotationText` already on the model + in `UploadMetadata`) →
+   desktop `UploadService` accepts a non-audio capture content type through
+   pipeline/compile/export. (Mobile-only would break — coordinated both-apps change.)
+2. **Karaoke tap-to-seek (toggleable in Settings)** — while playing, tap a word →
+   `player.seek(to: timing.start)`; when paused, tapping leaves Edit available. Needs
+   per-word hit-testing: the transcript currently renders via `Text(AttributedString)`
+   (not per-word tappable) — switch the text segments to a word-flow of tappable views
+   (the app has `FlowLayout`) OR map tap-location→word. Add a Settings toggle (default
+   off). Karaoke grey-out + active-word logic already shipped (`Karaoke.activeWordIndex`).
+3. **Restore the ~35 old notes** — data is SAFE: 31 working folders in
+   `~/Documents/Voice Transcription Pipeline Audio Output/`, but each holds ONLY
+   `original.m4a` (no processed output), so recovery = re-ingest the 31 originals into
+   the prod desktop (+Upload/drag-drop) and Process (re-run transcribe/enhance/export).
+   This is the deferred "port old notes" task. (The split did NOT lose SwiftData notes —
+   the native store had none persisted.)
+4. **Liquid Glass polish (optional)** — `.glassEffect` is CORRECT + verified (it refracts
+   content behind it; proven over a bright bg). Over the dark UI it's subtle by design
+   (Apple DTS/WWDC25). A hairline+specular edge was added so it reads as glass. If the
+   user wants it obviously glassy on the dark UI, options: a subtle `.tint(...)` on the
+   glass, or lighter content behind the bar. Don't "fix" it as a bug — it works.
+
 ## Resume here (do this first)
 **Phases 0–7 DONE + on-device hardening DONE + the live round-trip is VERIFIED on
 real hardware.** The native iOS app is no longer "owed" — it works end-to-end.
