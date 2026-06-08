@@ -134,15 +134,27 @@ private struct MemoPageView: View {
                         ContextChip(text: chip.text, systemImage: chip.symbol)
                     }
                     ForEach(memo.tags, id: \.self) { tag in
-                        Button { removeTag(tag) } label: { TagChip(label: "#\(tag)", style: .applied) }
+                        Button { removeTag(tag) } label: {
+                            Text("#\(tag)")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color(hex: 0xc5bcff))
+                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .background(Color.skAccentSoft, in: .rect(cornerRadius: 7, style: .continuous))
+                        }
                     }
-                    Button { showAddTag = true } label: { TagChip(label: "+ Tag", style: .add) }
-                        .accessibilityIdentifier("add-tag-button")
+                    Button { showAddTag = true } label: {
+                        Text("+ Tag")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.skTextDim)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(Color.skElev, in: .rect(cornerRadius: 7, style: .continuous))
+                    }
+                    .accessibilityIdentifier("add-tag-button")
                 }
                 .padding(.top, 12)
 
                 SignificanceRow(value: $memo.significance) { repository.save() }
-                    .padding(.top, 16)
+                    .padding(.top, 10)
 
                 transcriptSection
                     .padding(.top, 18)
@@ -261,34 +273,23 @@ private struct SignificanceRow: View {
     @Binding var value: Double
     var onCommit: () -> Void
 
-    private var tier: String { value >= 0.67 ? "Significant" : value >= 0.34 ? "Useful" : "Passing" }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Significance")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.skTextDim)
-                Spacer()
-                if value > 0 {
-                    Text("\(String(format: "%.1f", value)) · \(tier) · syncs to Mac")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.skAccent)
-                } else {
-                    Text("Stays on phone")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Color.skTextFaint)
-                }
-            }
+        HStack(spacing: 9) {
+            Text("Significance")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.skTextFaint)
+                .fixedSize()
             Slider(value: $value, in: 0...1, step: 0.1) { editing in
                 if !editing { onCommit() }
             }
             .tint(.skAccent)
+            .controlSize(.mini)
             .accessibilityIdentifier("significance-slider")
+            Text(value > 0 ? "\(String(format: "%.1f", value)) · syncs" : "on phone")
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(value > 0 ? Color.skAccent : Color.skTextFaint)
+                .fixedSize()
         }
-        .padding(14)
-        .background(Color.skSurface, in: .rect(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle.sk(12).stroke(Color.skBorder, lineWidth: 1))
     }
 }
 
