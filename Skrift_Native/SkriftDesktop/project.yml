@@ -57,9 +57,11 @@ targets:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.dev
           INFOPLIST_KEY_CFBundleDisplayName: Skrift Dev
+          INFOPLIST_KEY_CFBundleName: Skrift Dev          # macOS menu-bar app name
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
           INFOPLIST_KEY_CFBundleDisplayName: Skrift
+          INFOPLIST_KEY_CFBundleName: Skrift
     dependencies:
       - package: FluidAudio
         product: FluidAudio
