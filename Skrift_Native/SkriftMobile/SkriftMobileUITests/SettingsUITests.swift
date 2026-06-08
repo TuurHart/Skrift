@@ -78,4 +78,31 @@ final class SettingsUITests: XCTestCase {
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "pair-mac-disambiguation"; shot.lifetime = .keepAlways; add(shot)
     }
+
+    /// Feedback capture: type a note → Send. On the Simulator MFMailComposeViewController
+    /// can't send (no Mail account), so the "Mail not available" alert confirms the flow
+    /// reached the send step. (Voice dictation + the real mail composer are device-owed.)
+    func testSendFeedbackTypedNote() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedDemoMemos"]
+        app.launch()
+
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let cancel = springboard.buttons["Cancel"]
+        if cancel.waitForExistence(timeout: 2) { cancel.tap() }
+
+        app.buttons["settings-button"].tap()
+        let feedback = app.buttons["send-feedback-button"]
+        XCTAssertTrue(feedback.waitForExistence(timeout: 5), "Send feedback row missing")
+        feedback.tap()
+
+        let note = app.textFields["feedback-note-field"]
+        XCTAssertTrue(note.waitForExistence(timeout: 5), "feedback note field missing")
+        note.tap()
+        note.typeText("The record button is great")
+
+        app.buttons["feedback-send-button"].tap()
+        XCTAssertTrue(app.staticTexts["Mail not available"].waitForExistence(timeout: 5),
+                      "send should reach the mail step (sim has no Mail → not-available alert)")
+    }
 }

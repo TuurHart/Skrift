@@ -10,6 +10,7 @@ struct SettingsView: View {
     @AppStorage("appTheme") private var appTheme = "dark"
     @AppStorage("weatherAPIKey") private var weatherKey = ""
     @State private var connection = MacConnection.load()
+    @State private var showFeedback = false
 
     var body: some View {
         NavigationStack {
@@ -68,6 +69,13 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                 }
 
+                Section("Feedback") {
+                    Button { showFeedback = true } label: {
+                        Label("Send feedback", systemImage: "paperplane")
+                    }
+                    .accessibilityIdentifier("send-feedback-button")
+                }
+
                 Section("About") {
                     HStack { Text("Version"); Spacer(); Text("0.1.0").foregroundStyle(Color.skTextDim) }
                 }
@@ -78,6 +86,7 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
+            .sheet(isPresented: $showFeedback) { FeedbackCaptureView() }
             .onAppear { connection = MacConnection.load() }
         }
     }
