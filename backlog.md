@@ -52,6 +52,24 @@ Locked process for the UI items: spec → mock → build → XCUITest (feedback_
 6. **"Transcription a bit weird" on cold auto-start** — user UNSURE it's a real bug now; park / quick-
    check only (live caption catching up while the model loads mid-recording).
 
+### Dev/prod separation (DECIDED 2026-06-08 — do AFTER this feature batch)
+Goal: use Skrift for real (real recordings/notes/vault) while still iterating, with the
+real data OS-guaranteed safe from dev churn. **Approach = bundle-ID split** (chosen):
+- **Production** keeps the current bundle IDs (`com.skrift.mobile` / `com.skrift.desktop`)
+  — the install already on the phone, real data preserved.
+- **Dev** builds get `.dev` bundle IDs → a brand-new, SEPARATE OS data container; dev
+  builds physically can't touch prod memos/recordings/names. macOS Dev defaults its
+  export to the **test vault** (`~/Hackerman/Obsidian_LLM_Test_Vault`), never the real one.
+- iOS `.dev` plumbing: own App Group (`group.com.skrift.mobile.dev`) + widget/shared
+  bundle IDs + automatic signing (team 9W82X49JZS handles new IDs); dev Mac advertises a
+  distinct Bonjour name so the dev phone pairs with the dev Mac.
+- **Look = name only** ("Skrift Dev"), same icon (user's call).
+- Implement via an xcodegen build configuration that overrides bundle ID + display name
+  (+ App Group/Bonjour for dev); keep Release = production.
+- **"Switch them out" = promote** dev code under the prod bundle ID; SwiftData migrates in
+  place. SAFE BY CONSTRUCTION if model changes stay **additive** (defaults, like
+  `significance: Double = 0`) → lightweight migration. Test the migration on a copy first.
+
 ### Unification audit (mobile vs desktop) — exists on ONE side only
 - significance slider → desktop only (→ add to mobile, item 1)
 - karaoke word-highlight → desktop only (→ add to mobile, item 3)
