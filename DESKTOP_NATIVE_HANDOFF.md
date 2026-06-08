@@ -280,5 +280,5 @@ ASR + the LLM are non-deterministic → can't golden-diff exactly; pin the trans
 - (Already deleted: `mlx-spike/`, `asr-check/`.)
 
 ## SOURCE OF TRUTH / PRIVACY
-- Port from `backend/` (Python pipeline + contract) and `frontend-new/src/` (React UI + tokens). Root `CLAUDE.md` documents the whole pipeline. `API_REFERENCE.md` / `BACKEND_MAP.md` exist too.
-- **PRIVACY (firm):** never point AI/agents at the user's Obsidian vault contents. The app's own Swift code scanning the vault is fine; an agent reading it is not. Test with small samples the user provides (e.g. they gave `~/Hackerman/Skrift/test images - delete this folder/Hotel Du Vin.m4a`). `names.json` is app config (ok to read for debugging). Don't screenshot the live Electron app at a real note.
+- Port from `archive/backend/` (Python pipeline + contract) and `archive/frontend-new/src/` (React UI + tokens) — old apps were archived intact in the 2026-06 convergence. Root `CLAUDE.md` documents the whole pipeline. `archive/legacy-root/API_REFERENCE.md` / `archive/legacy-root/BACKEND_MAP.md` exist too.
+- **PRIVACY (firm):** never point AI/agents at the user's Obsidian vault contents. The app's own Swift code scanning the vault is fine; an agent reading it is not. Test with small samples the user provides (e.g. the canonical `~/Hackerman/Skrift/test-fixtures/Hotel Du Vin.m4a` two-Jacks sample; renamed 2026-06-08 from "test images - delete this folder"). `names.json` is app config (ok to read for debugging). Don't screenshot the live Electron app at a real note.

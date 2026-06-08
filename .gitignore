@@ -71,8 +71,10 @@ backend/config/names.json
 # Claude Code
 .claude/
 
-# Local scratch folders (named to be deleted)
-test images - delete this folder/
+# Local test fixtures (real recordings/notes/photos for manual -runfile + photo
+# tests; kept out of git to avoid bloat — incl. the canonical "Hotel Du Vin.m4a"
+# two-Jacks sample). Renamed from "test images - delete this folder" 2026-06-08.
+test-fixtures/
 
 # Archived old apps (post-convergence move 2026-06) — re-ignore the build
 # artifacts + personal config that the anchored root patterns above no longer
