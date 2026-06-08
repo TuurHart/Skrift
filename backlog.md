@@ -43,9 +43,22 @@ Locked process for the UI items: spec → mock → build → XCUITest (feedback_
    view; SwiftUI `Text` can't range-highlight live). "if possible" → feasible, data exists.
 3.5 **Mobile delete/select UX** — replace the meh "Select + bubbles" with **left-swipe-to-delete**
    + a nicer drag-to-multi-select (Photos/Mail-style). Current: `MemosListView.swift:134` Select btn.
-4. **Feedback/email in Settings** — NEITHER app has any feedback/contact mechanism today. Model it
-   on the user's **Shhhcribble** app's email feedback flow (user to send the link / local path).
-   Add to mobile Settings (`SettingsView.swift`); consider desktop too (unification).
+4. **Feedback/email in Settings** — NEITHER app has any feedback/contact mechanism today. Port from
+   the user's **Shhhcribble** app at `/Users/tiurihartog/Hackerman/ShhcribbleiOS` →
+   `ShhhcribbleiOS/Features/Feedback/` (explored 2026-06-08). Its module:
+   - `FeedbackStore` — file-based `Documents/Feedback/<uuid>/{metadata.json, screenshot.png}`,
+     items = {createdAt, transcript, note, hasScreenshot, durationSeconds, sentAt?}; CRUD + markSent.
+   - `FeedbackRecorder` — dictate feedback (record→transcribe→keep TEXT, discard audio).
+   - `FeedbackCaptureView` / `FeedbackListView` — capture (note + optional pasted screenshot + dictation)
+     + list with "Sent ✓" badges.
+   - `FeedbackMailComposer` — `MFMailComposeViewController` (MessageUI, `UIViewControllerRepresentable`);
+     To: `tiurihartog@icloud.com`; subject/body = transcript+note+timestamp+device; attaches a `.zip`
+     of the raw folders (via `NSFileCoordinator .forUploading`). `canSendMail()` guard.
+   **Skrift port plan:** add a "Send Feedback" row in `SettingsView.swift` → a capture sheet (typed note
+   + optional dictation REUSING Skrift's `TranscriptionService`/`LiveRecordingService` + optional
+   screenshot) → `FeedbackStore` (mirror, file-based) → email via an MFMailComposer wrapper. Needs
+   `UIFileSharingEnabled`-style access if we want Files visibility. Consider desktop later (unification).
+   Recipient `tiurihartog@icloud.com` (configurable).
 5. **Capture items** — the big deferred cross-app feature (share URL/text/image + annotate): mobile
    share-extension target + App Group + `attachments` multipart; desktop `UploadService` accepts a
    non-audio "capture" content type through pipeline/compile/export. (Also in root CLAUDE.md.)
