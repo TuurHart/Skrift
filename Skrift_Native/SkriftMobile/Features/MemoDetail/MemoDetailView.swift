@@ -31,7 +31,7 @@ struct MemoDetailView: View {
 
             TabView(selection: $selection) {
                 ForEach(memos) { memo in
-                    MemoPageView(memo: memo, bottomInset: 160)   // clears the floating glass bar
+                    MemoPageView(memo: memo, bottomInset: 160, player: player)   // bottomInset clears the floating glass bar
                         .tag(memo.id)
                 }
             }
@@ -120,6 +120,7 @@ struct MemoDetailView: View {
 private struct MemoPageView: View {
     @Bindable var memo: Memo
     let bottomInset: CGFloat
+    @ObservedObject var player: AudioPlayerModel
     private let repository = NotesRepository.shared
     @State private var showAddTag = false
     @State private var newTag = ""
@@ -236,7 +237,7 @@ private struct MemoPageView: View {
                     .foregroundStyle(Color.skText)
                     .accessibilityIdentifier("transcript-editor")
             } else {
-                TranscriptContentView(memo: memo)
+                TranscriptContentView(memo: memo, player: player)
             }
         }
     }
@@ -305,6 +306,15 @@ private struct SignificanceRow: View {
 
 private struct TranscriptContentView: View {
     let memo: Memo
+    @ObservedObject var player: AudioPlayerModel
+    @State private var timings: [WordTiming] = []
+
+    /// Active spoken-word index during playback (nil when paused / no timings) — the
+    /// transcript highlights that word. Word-accurate via the on-device timings.
+    private var activeWord: Int? {
+        guard player.isPlaying, !timings.isEmpty else { return nil }
+        return Karaoke.activeWordIndex(timings, at: player.currentTime)
+    }
 
     var body: some View {
         if memo.transcriptStatus == .failed, (memo.transcript ?? "").isEmpty {
@@ -319,10 +329,11 @@ private struct TranscriptContentView: View {
                 if memo.transcriptStatus == .transcribing {
                     StatusPill(style: .working, label: "Transcribing")
                 }
-                ForEach(Array(segments.enumerated()), id: \.offset) { _, seg in
-                    switch seg {
+                let active = activeWord
+                ForEach(Array(segmentsWithOffsets.enumerated()), id: \.offset) { _, item in
+                    switch item.seg {
                     case .text(let s):
-                        Text(s)
+                        karaokeText(s, wordOffset: item.wordOffset, active: active)
                             .font(.system(size: 15.5))
                             .lineSpacing(4)
                             .foregroundStyle(Color.skText)
@@ -332,7 +343,47 @@ private struct TranscriptContentView: View {
                     }
                 }
             }
+            .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
         }
+    }
+
+    /// Each segment paired with the count of spoken words before it, so karaoke maps
+    /// the global active-word index into the right segment (image markers aren't words).
+    private var segmentsWithOffsets: [(seg: Segment, wordOffset: Int)] {
+        var offset = 0
+        var out: [(seg: Segment, wordOffset: Int)] = []
+        for seg in segments {
+            out.append((seg: seg, wordOffset: offset))
+            if case .text(let s) = seg { offset += s.split(whereSeparator: { $0.isWhitespace }).count }
+        }
+        return out
+    }
+
+    /// Render a text segment, highlighting the active word (accent + semibold) via an
+    /// AttributedString. The word index advances per whitespace-delimited run so it
+    /// aligns with the on-device word timings; whitespace/newlines are preserved.
+    private func karaokeText(_ text: String, wordOffset: Int, active: Int?) -> Text {
+        guard let active, active >= wordOffset else { return Text(text) }
+        var attr = AttributedString()
+        var wordIndex = wordOffset
+        var buffer = ""
+        func flush() {
+            guard !buffer.isEmpty else { return }
+            var piece = AttributedString(buffer)
+            if wordIndex == active {
+                piece.foregroundColor = .skAccent
+                piece.font = .system(size: 15.5, weight: .semibold)
+            }
+            attr += piece
+            wordIndex += 1
+            buffer = ""
+        }
+        for ch in text {
+            if ch.isWhitespace { flush(); attr += AttributedString(String(ch)) }
+            else { buffer.append(ch) }
+        }
+        flush()
+        return Text(attr)
     }
 
     private enum Segment { case text(String); case image(Int) }
