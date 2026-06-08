@@ -34,6 +34,40 @@ final class MemoSaverTests: XCTestCase {
         XCTAssertEqual(timings?.count, 4)   // four words
     }
 
+    /// Append a follow-up recording to an existing memo: the new transcript is
+    /// appended, the memo becomes user-edited (Mac trusts the combined text), and
+    /// the clip is consumed. The placeholder audio can't be merged here, so the base
+    /// audio is kept — the real audio merge is device-owed (like all real audio).
+    @MainActor
+    func testAppendRecordingAppendsTextAndMarksUserEdited() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+        try? FileManager.default.createDirectory(at: AppPaths.recordingsDirectory, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: AppPaths.recordingsDirectory.appendingPathComponent(filename).path,
+                                       contents: Data("AUDIO".utf8))
+        repo.insert(Memo(id: id, audioFilename: filename, duration: 3, recordedAt: Date(),
+                         transcript: "first part", transcriptStatus: .done, transcriptConfidence: 0.9))
+
+        let saver = MemoSaver(
+            repository: repo,
+            transcriber: SeededTranscriber(text: "second part"),
+            wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService()
+        )
+        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("add_\(UUID().uuidString).m4a")
+        FileManager.default.createFile(atPath: temp.path, contents: Data("MORE".utf8))
+
+        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.transcript, "first part\n\nsecond part")
+        XCTAssertEqual(memo?.transcriptUserEdited, true)
+        XCTAssertEqual(memo?.transcriptStatus, .done)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: temp.path), "appended clip should be consumed")
+    }
+
     @MainActor
     func testPhotosBuildManifestAndInjectMarkers() async {
         let repo = NotesRepository(inMemory: true)

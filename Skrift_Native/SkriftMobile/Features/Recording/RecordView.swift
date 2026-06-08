@@ -12,6 +12,10 @@ struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
 
     var onSaved: (UUID) -> Void = { _ in }
+    /// When set, Stop APPENDS the new clip to this existing memo (memo detail →
+    /// "Add recording") instead of creating a new one. `onSaved` then fires with
+    /// the same id so the caller stays on that memo.
+    var appendTo: UUID? = nil
     private let saver = MemoSaver()
 
     @State private var conversation = UserDefaults.standard.bool(forKey: "conversationDefault")
@@ -345,6 +349,15 @@ struct RecordView: View {
     private func stopTapped() {
         Haptics.recordingTap()
         guard let result = service.stop() else { dismiss(); return }
+        // Append mode: fold the new clip into an existing memo, stay on it.
+        if let appendTo {
+            saver.appendRecording(to: appendTo, tempURL: result.url,
+                                  duration: result.duration, liveCaption: result.liveCaption)
+            Haptics.success()
+            onSaved(appendTo)
+            dismiss()
+            return
+        }
         let id = saver.save(
             tempURL: result.url,
             duration: result.duration,

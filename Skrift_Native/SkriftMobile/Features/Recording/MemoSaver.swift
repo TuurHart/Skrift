@@ -76,6 +76,88 @@ struct MemoSaver {
         return id
     }
 
+    /// Append a follow-up recording to an EXISTING memo (memo detail → "Add
+    /// recording"). Fire-and-forget: transcribe the new clip, merge its audio onto
+    /// the memo's file, append the new text (+ word timings shifted past the prior
+    /// duration), and mark the transcript user-edited so the Mac trusts the combined
+    /// result (no re-transcription). The memo updates in place.
+    func appendRecording(to memoID: UUID, tempURL: URL, duration: TimeInterval, liveCaption: String? = nil) {
+        Task { await appendRecordingAsync(to: memoID, tempURL: tempURL, duration: duration, liveCaption: liveCaption) }
+    }
+
+    /// Awaitable core of `appendRecording` (used directly by tests).
+    func appendRecordingAsync(to memoID: UUID, tempURL: URL, duration: TimeInterval, liveCaption: String? = nil) async {
+        guard let memo = repository.memo(id: memoID), let memoURL = memo.audioURL else {
+            try? FileManager.default.removeItem(at: tempURL); return
+        }
+        let priorDuration = memo.duration
+
+        // Transcribe the new clip (no image markers on an append). Fall back to the
+        // live caption if the engine yields nothing.
+        var newText = (liveCaption ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        var newTimings: [WordTiming] = []
+        if let result = try? await transcriber.transcribe(audioURL: tempURL, imageManifest: []) {
+            let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { newText = result.text; newTimings = result.wordTimings }
+        }
+
+        // Merge the new audio onto the memo so playback + sync stay coherent. If the
+        // merge can't run (e.g. placeholder audio in tests), keep the base audio and
+        // still append the text — the feature is "add more text", audio is a bonus.
+        let mergedDuration = (try? await Self.appendAudio(base: memoURL, addition: tempURL)) ?? priorDuration
+        try? FileManager.default.removeItem(at: tempURL)
+
+        guard let memo = repository.memo(id: memoID) else { return }
+        let existing = (memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let combined = existing.isEmpty ? newText : (newText.isEmpty ? existing : existing + "\n\n" + newText)
+        memo.transcript = combined.isEmpty ? nil : combined
+        memo.transcriptUserEdited = true   // Mac trusts the combined transcript as-is
+        if !combined.isEmpty { memo.transcriptStatus = .done }
+        memo.duration = mergedDuration
+
+        // Shift the new clip's word timings past the prior audio + append to the sidecar.
+        if !newTimings.isEmpty {
+            let shifted = newTimings.map { WordTiming(word: $0.word, start: $0.start + priorDuration, end: $0.end + priorDuration) }
+            wordTimings.write((wordTimings.load(for: memoID) ?? []) + shifted, for: memoID)
+        }
+        repository.save()
+    }
+
+    /// Errors that make the audio merge fall back to keeping the base file.
+    private enum AppendError: Error { case composition, noBaseTrack }
+
+    /// Concatenate `addition` after `base` into one .m4a, replacing `base` in place.
+    /// Returns the merged duration (seconds). Throws on non-audio inputs (the caller
+    /// then keeps the base audio).
+    private static func appendAudio(base: URL, addition: URL) async throws -> TimeInterval {
+        let comp = AVMutableComposition()
+        guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+            throw AppendError.composition
+        }
+        let baseAsset = AVURLAsset(url: base)
+        let baseDur = try await baseAsset.load(.duration)
+        guard let baseTrack = try await baseAsset.loadTracks(withMediaType: .audio).first else { throw AppendError.noBaseTrack }
+        try track.insertTimeRange(CMTimeRange(start: .zero, duration: baseDur), of: baseTrack, at: .zero)
+
+        let addAsset = AVURLAsset(url: addition)
+        var addSeconds = 0.0
+        if let addTrack = try? await addAsset.loadTracks(withMediaType: .audio).first,
+           let addDur = try? await addAsset.load(.duration) {
+            try track.insertTimeRange(CMTimeRange(start: .zero, duration: addDur), of: addTrack, at: baseDur)
+            addSeconds = CMTimeGetSeconds(addDur)
+        }
+
+        guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
+            throw AppendError.composition
+        }
+        let tmpOut = base.deletingLastPathComponent().appendingPathComponent("merge_\(UUID().uuidString).m4a")
+        try? FileManager.default.removeItem(at: tmpOut)
+        try await export.export(to: tmpOut, as: .m4a)
+        try? FileManager.default.removeItem(at: base)
+        try FileManager.default.moveItem(at: tmpOut, to: base)
+        return CMTimeGetSeconds(baseDur) + addSeconds
+    }
+
     /// Merge contextual metadata onto the memo, preserving the photo
     /// `imageManifest` set at persist time. Reuses `pre` (captured when the
     /// recorder opened) if given, else captures now.

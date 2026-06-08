@@ -14,6 +14,7 @@ struct MemoDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selection: UUID
     @State private var showActions = false
+    @State private var showAppendRecorder = false
     @StateObject private var player = AudioPlayerModel()
     private let repository = NotesRepository.shared
 
@@ -54,9 +55,16 @@ struct MemoDetailView: View {
         // to the toolbar item), so the paged TabView can't swallow it — unlike a
         // toolbar `Menu`, which silently failed to present on device.
         .confirmationDialog("Memo", isPresented: $showActions, titleVisibility: .hidden) {
+            Button("Add recording", action: { showAppendRecorder = true })
             Button("Copy transcript", action: copyTranscript)
             Button("Delete", role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
+        }
+        // Append a follow-up recording to the current memo (records → transcribes →
+        // appends text + merges audio in MemoSaver.appendRecording). Transcript
+        // updates in place via @Query when it lands.
+        .fullScreenCover(isPresented: $showAppendRecorder) {
+            RecordView(appendTo: selection)
         }
         .onAppear { player.load(currentMemo?.audioURL) }
         .onChange(of: selection) { _, newID in
