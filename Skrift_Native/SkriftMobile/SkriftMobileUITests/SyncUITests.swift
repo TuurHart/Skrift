@@ -32,9 +32,10 @@ final class SyncUITests: XCTestCase {
         // Save-now lands in Memo detail. Flag it significant (flag-to-send: only
         // memos rated > 0 are eligible to sync) by bumping the slider up.
         XCTAssertTrue(app.buttons["play-button"].waitForExistence(timeout: 10))
-        let significance = app.sliders["significance-slider"]
+        // Custom significance slider (not a UISlider) — tap it at ~60% to set ~0.6.
+        let significance = app.descendants(matching: .any).matching(identifier: "significance-slider").firstMatch
         XCTAssertTrue(significance.waitForExistence(timeout: 5))
-        significance.adjust(toNormalizedSliderPosition: 0.6)
+        significance.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)).tap()
 
         app.navigationBars.buttons.element(boundBy: 0).tap()   // back to Memos
 

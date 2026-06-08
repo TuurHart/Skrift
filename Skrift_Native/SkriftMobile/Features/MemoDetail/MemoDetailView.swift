@@ -31,7 +31,7 @@ struct MemoDetailView: View {
 
             TabView(selection: $selection) {
                 ForEach(memos) { memo in
-                    MemoPageView(memo: memo, bottomInset: 160, player: player)   // bottomInset clears the floating glass bar
+                    MemoPageView(memo: memo, bottomInset: 220, player: player)   // clearance so the last line scrolls clear of (and behind) the glass bar
                         .tag(memo.id)
                 }
             }
@@ -80,6 +80,17 @@ struct MemoDetailView: View {
         if #available(iOS 26.0, *) {
             playerBarStack
                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                // A hairline + top specular highlight so the glass reads as an EDGE
+                // even over the near-black transcript (Liquid Glass is subtle over a
+                // flat dark surface by design — it only refracts textured content
+                // behind it, which the transcript provides as it scrolls under).
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(colors: [.white.opacity(0.30), .white.opacity(0.04)],
+                                           startPoint: .top, endPoint: .bottom),
+                            lineWidth: 0.8)
+                )
                 .padding(.horizontal, Theme.Space.margin)
                 .padding(.bottom, 6)
         } else {
@@ -295,17 +306,43 @@ private struct SignificanceRow: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color.skTextFaint)
                 .fixedSize()
-            Slider(value: $value, in: 0...1, step: 0.1) { editing in
-                if !editing { onCommit() }
-            }
-            .tint(.skAccent)
-            .controlSize(.mini)
-            .accessibilityIdentifier("significance-slider")
+            SignificanceSlider(value: $value, onCommit: onCommit)
             Text(value > 0 ? "\(String(format: "%.1f", value)) · syncs" : "on phone")
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(value > 0 ? Color.skAccent : Color.skTextFaint)
                 .fixedSize()
         }
+    }
+}
+
+/// Custom 0–1 (snap 0.1) slider. A native Slider inside the paged TabView loses its
+/// horizontal drag to the page-swipe gesture (dragging it flips to the next memo);
+/// this owns its drag via `.highPriorityGesture` so the swipe can't steal it.
+private struct SignificanceSlider: View {
+    @Binding var value: Double
+    var onCommit: () -> Void
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = max(1, geo.size.width)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.skBorder).frame(height: 4)
+                Capsule().fill(Color.skAccent).frame(width: max(0, min(w, w * value)), height: 4)
+                Circle().fill(.white)
+                    .frame(width: 20, height: 20)
+                    .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+                    .offset(x: max(0, min(w - 20, w * value - 10)))
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { g in value = ((min(1, max(0, g.location.x / w)) * 10).rounded()) / 10 }
+                    .onEnded { _ in onCommit() }
+            )
+        }
+        .frame(height: 24)
+        .accessibilityIdentifier("significance-slider")
     }
 }
 
@@ -370,17 +407,18 @@ private struct TranscriptContentView: View {
     /// AttributedString. The word index advances per whitespace-delimited run so it
     /// aligns with the on-device word timings; whitespace/newlines are preserved.
     private func karaokeText(_ text: String, wordOffset: Int, active: Int?) -> Text {
-        guard let active, active >= wordOffset else { return Text(text) }
+        guard let active else { return Text(text) }   // not playing → plain text
         var attr = AttributedString()
         var wordIndex = wordOffset
         var buffer = ""
         func flush() {
             guard !buffer.isEmpty else { return }
             var piece = AttributedString(buffer)
-            if wordIndex == active {
-                piece.foregroundColor = .skAccent
-                piece.font = .system(size: 15.5, weight: .semibold)
-            }
+            // Played words dim, the current word accents, upcoming stay default — so a
+            // glance shows where playback is (matches desktop). NO weight change: bold
+            // widened the word and made the next one jump, so colour only.
+            if wordIndex < active { piece.foregroundColor = .skTextDim }
+            else if wordIndex == active { piece.foregroundColor = .skAccent }
             attr += piece
             wordIndex += 1
             buffer = ""
