@@ -50,6 +50,12 @@ final class Memo {
     /// to re-inject them.
     var transcriptMarkersInjected: Bool = false
 
+    /// Manual importance rating (0–1, snapped to 0.1), mirroring the desktop review
+    /// slider. **Gates sync (flag-to-send): 0 = the memo STAYS on the phone; > 0 =
+    /// eligible to upload to the Mac.** Sent in the upload metadata when > 0 so the
+    /// Mac pre-fills its own significance slider. Default 0 (unrated → not synced).
+    var significance: Double = 0
+
     /// Contextual capture payload + shared content, persisted as JSON blobs —
     /// NOT direct SwiftData Codable-struct attributes. SwiftData's internal decode
     /// of a nested-optional Codable struct traps at runtime (EXC_BREAKPOINT) the
@@ -73,6 +79,7 @@ final class Memo {
         transcriptConfidence: Double? = nil,
         transcriptUserEdited: Bool = false,
         transcriptMarkersInjected: Bool = false,
+        significance: Double = 0,
         metadata: MemoMetadata? = nil,
         sharedContent: SharedContent? = nil,
         annotationText: String? = nil
@@ -89,6 +96,7 @@ final class Memo {
         self.transcriptConfidence = transcriptConfidence
         self.transcriptUserEdited = transcriptUserEdited
         self.transcriptMarkersInjected = transcriptMarkersInjected
+        self.significance = significance
         self.metadataData = Self.encodeJSON(metadata)
         self.sharedContentData = Self.encodeJSON(sharedContent)
         self.annotationText = annotationText

@@ -55,6 +55,10 @@ struct UploadMetadata: Encodable {
     var transcriptConfidence: Double?
     var transcriptUserEdited: Bool
     var transcriptMarkersInjected: Bool
+    /// Manual importance rating (0–1). CONTRACT ADDITION (additive/optional) — only
+    /// emitted when > 0 (and only > 0 memos are uploaded at all; see SyncCoordinator).
+    /// The desktop UploadService reads it → pre-fills its review significance slider.
+    var significance: Double?
 
     init(memo: Memo) {
         let meta = memo.metadata
@@ -78,6 +82,7 @@ struct UploadMetadata: Encodable {
         transcriptConfidence = memo.transcriptConfidence
         transcriptUserEdited = memo.transcriptUserEdited
         transcriptMarkersInjected = memo.transcriptMarkersInjected
+        significance = memo.significance > 0 ? memo.significance : nil
     }
 }
 

@@ -134,6 +134,9 @@ private struct MemoPageView: View {
                 }
                 .padding(.top, 12)
 
+                SignificanceRow(value: $memo.significance) { repository.save() }
+                    .padding(.top, 16)
+
                 transcriptSection
                     .padding(.top, 18)
 
@@ -239,6 +242,46 @@ private struct MemoPageView: View {
             chips.append(MetaChip(text: period.label, symbol: period.symbol))
         }
         return chips
+    }
+}
+
+// MARK: - Significance (flag-to-send: 0 = stays on phone, > 0 = syncs to the Mac)
+
+/// Mirrors the desktop review slider (0–1, snap 0.1, Passing/Useful/Significant) but
+/// frames it around sync: at 0 the memo stays on the phone; any rating > 0 flags it
+/// to upload (and the value rides along to pre-fill the Mac's own slider).
+private struct SignificanceRow: View {
+    @Binding var value: Double
+    var onCommit: () -> Void
+
+    private var tier: String { value >= 0.67 ? "Significant" : value >= 0.34 ? "Useful" : "Passing" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Significance")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.skTextDim)
+                Spacer()
+                if value > 0 {
+                    Text("\(String(format: "%.1f", value)) · \(tier) · syncs to Mac")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.skAccent)
+                } else {
+                    Text("Stays on phone")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.skTextFaint)
+                }
+            }
+            Slider(value: $value, in: 0...1, step: 0.1) { editing in
+                if !editing { onCommit() }
+            }
+            .tint(.skAccent)
+            .accessibilityIdentifier("significance-slider")
+        }
+        .padding(14)
+        .background(Color.skSurface, in: .rect(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle.sk(12).stroke(Color.skBorder, lineWidth: 1))
     }
 }
 

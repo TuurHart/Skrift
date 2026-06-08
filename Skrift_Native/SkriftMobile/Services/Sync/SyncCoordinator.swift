@@ -3,8 +3,10 @@ import Foundation
 /// Drives a full sync to the Mac, mirroring the RN `sync.ts` order:
 ///   1. names sync (bidirectional LWW) — when a Mac is configured
 ///   2. reconcile — mark memos the Mac already has (by filename) as synced
-///   3. upload each remaining `waiting` memo (audio + metadata + transcript + photos)
+///   3. upload each remaining `waiting` memo with significance > 0 (flag-to-send)
 ///
+/// **Flag-to-send gating:** only memos the user rated significant (`significance > 0`)
+/// are uploaded — an unrated memo (significance 0) stays on the phone until flagged.
 /// Memos whose audio file is missing are skipped (left `waiting`). A failed upload
 /// leaves the memo `waiting` for the next run.
 @MainActor
@@ -28,7 +30,8 @@ struct SyncCoordinator {
         }
 
         var newlySynced = 0
-        for memo in repository.allMemos() where memo.syncStatus == .waiting {
+        // Flag-to-send: skip unrated memos (significance 0) — they stay on the phone.
+        for memo in repository.allMemos() where memo.syncStatus == .waiting && memo.significance > 0 {
             guard let audioURL = memo.audioURL, let audioData = try? Data(contentsOf: audioURL) else { continue }
             let payload = UploadPayload.build(memo: memo, audioData: audioData, photos: loadPhotos(for: memo))
             do {

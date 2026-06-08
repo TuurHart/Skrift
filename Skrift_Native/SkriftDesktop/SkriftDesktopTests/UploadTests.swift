@@ -100,4 +100,26 @@ final class UploadServiceTests: XCTestCase {
         XCTAssertFalse(svc.isTranscriptTrusted(["transcriptConfidence": 0.69]))
         XCTAssertFalse(svc.isTranscriptTrusted(nil))
     }
+
+    /// Phone-sent `significance` (flag-to-send rating) pre-fills the review slider.
+    func testIngestReadsSignificanceFromMetadata() throws {
+        let svc = UploadService(outputDir: tempDir())
+        let ctx = try memoryContext()
+        let parts = [
+            MultipartPart(name: "files", filename: "memo_sig.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
+            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
+                          data: Data(#"{"transcriptConfidence":0.9,"significance":0.6}"#.utf8)),
+        ]
+        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        XCTAssertEqual(pf.significance, 0.6)
+
+        // No significance key → stays nil (unrated on the Mac side).
+        let bare = [
+            MultipartPart(name: "files", filename: "memo_nosig.m4a", contentType: "audio/mp4", data: Data("A".utf8)),
+            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
+                          data: Data(#"{"transcriptConfidence":0.9}"#.utf8)),
+        ]
+        let pf2 = try XCTUnwrap(svc.ingest(parts: bare, into: ctx).first)
+        XCTAssertNil(pf2.significance)
+    }
 }

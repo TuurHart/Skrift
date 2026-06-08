@@ -39,6 +39,11 @@ struct UploadService: Sendable {
             if let title = (meta?["title"] as? String)?.trimmingCharacters(in: .whitespaces), !title.isEmpty {
                 pf.enhancedTitle = title
             }
+            // Phone sends a `significance` rating (flag-to-send gating means it's
+            // always > 0 when present) — pre-fill the review slider with it.
+            if let sig = (meta?["significance"] as? NSNumber)?.doubleValue {
+                pf.significance = sig
+            }
 
             // Phone sends NO `sanitised` (Mac links names). Trusted transcript skips
             // the Mac's own transcribe step.

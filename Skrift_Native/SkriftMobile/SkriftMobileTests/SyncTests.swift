@@ -51,6 +51,18 @@ final class UploadPayloadTests: XCTestCase {
         let noTitle = String(decoding: UploadPayload.build(memo: untitled, audioData: Data("A".utf8), photos: []).body, as: UTF8.self)
         XCTAssertFalse(noTitle.contains(#""title":"#), "no title key when unset")
     }
+
+    @MainActor
+    func testSignificanceRidesInMetadataWhenSet() {
+        let rated = Memo(audioFilename: "m.m4a", transcriptStatus: .pending, significance: 0.5)
+        let withSig = String(decoding: UploadPayload.build(memo: rated, audioData: Data("A".utf8), photos: []).body, as: UTF8.self)
+        XCTAssertTrue(withSig.contains(#""significance":0.5"#), "rating should ride in the upload metadata")
+
+        // Unrated (0) memos aren't uploaded at all, and carry no significance key.
+        let unrated = Memo(audioFilename: "m.m4a", transcriptStatus: .pending, significance: 0)
+        let noSig = String(decoding: UploadPayload.build(memo: unrated, audioData: Data("A".utf8), photos: []).body, as: UTF8.self)
+        XCTAssertFalse(noSig.contains(#""significance":"#), "no significance key when unrated")
+    }
 }
 
 final class SyncCoordinatorTests: XCTestCase {
@@ -63,7 +75,8 @@ final class SyncCoordinatorTests: XCTestCase {
         let url = AppPaths.recordingsDirectory.appendingPathComponent(filename)
         FileManager.default.createFile(atPath: url.path, contents: Data("AUDIO".utf8))
         repo.insert(Memo(id: id, audioFilename: filename, duration: 3, recordedAt: Date(),
-                         syncStatus: .waiting, transcript: "hi", transcriptStatus: .done, transcriptConfidence: 0.9))
+                         syncStatus: .waiting, transcript: "hi", transcriptStatus: .done,
+                         transcriptConfidence: 0.9, significance: 0.7))   // flagged → eligible
 
         let mock = MockMacTransport()
         let synced = await SyncCoordinator(repository: repo, macTransport: mock, namesTransport: nil).syncAll()
@@ -71,6 +84,27 @@ final class SyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(synced, 1)
         XCTAssertEqual(repo.memo(id: id)?.syncStatus, .synced)
         XCTAssertEqual(mock.uploadedBodies.count, 1)
+    }
+
+    /// Flag-to-send: an unrated memo (significance 0) is NOT uploaded — it stays on
+    /// the phone, still `waiting`, until the user rates it.
+    @MainActor
+    func testZeroSignificanceMemoIsNotUploaded() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+        let url = AppPaths.recordingsDirectory.appendingPathComponent(filename)
+        FileManager.default.createFile(atPath: url.path, contents: Data("AUDIO".utf8))
+        repo.insert(Memo(id: id, audioFilename: filename, duration: 3, recordedAt: Date(),
+                         syncStatus: .waiting, transcript: "hi", transcriptStatus: .done,
+                         transcriptConfidence: 0.9, significance: 0))   // unrated → gated out
+
+        let mock = MockMacTransport()
+        let synced = await SyncCoordinator(repository: repo, macTransport: mock, namesTransport: nil).syncAll()
+
+        XCTAssertEqual(synced, 0)
+        XCTAssertEqual(repo.memo(id: id)?.syncStatus, .waiting)
+        XCTAssertEqual(mock.uploadedBodies.count, 0)
     }
 
     @MainActor
