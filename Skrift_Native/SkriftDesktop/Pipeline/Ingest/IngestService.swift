@@ -1,5 +1,7 @@
 import Foundation
 import SwiftData
+import ImageIO
+import UniformTypeIdentifiers
 
 /// Desktop-side ingest for locally-picked files/folders (the +Upload button and
 /// drag-drop). Mirrors `UploadService`'s on-disk layout — one `<id>_<filename>/`
@@ -145,7 +147,7 @@ struct IngestService: Sendable {
             var ok = false
             if isHEIC {
                 try? fm.removeItem(at: dest)
-                ok = sipsConvertToJPEG(src: src, dst: dest)
+                ok = convertToJPEG(src: src, dst: dest)
                 if !ok {   // sips unavailable/failed — keep the original file + ext
                     outExt = ext.isEmpty ? "bin" : ext
                     newName = "\(safeTitle) - \(i + 1).\(outExt)"
@@ -167,16 +169,16 @@ struct IngestService: Sendable {
         return updated
     }
 
-    private static func sipsConvertToJPEG(src: URL, dst: URL) -> Bool {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/sips")
-        p.arguments = ["-s", "format", "jpeg", src.path, "--out", dst.path]
-        p.standardOutput = FileHandle.nullDevice
-        p.standardError = FileHandle.nullDevice
-        do {
-            try p.run(); p.waitUntilExit()
-            return p.terminationStatus == 0 && FileManager.default.fileExists(atPath: dst.path)
-        } catch { return false }
+    /// Convert an image (e.g. an Apple-Notes HEIC attachment) to JPEG using native
+    /// ImageIO — no `/usr/bin/sips` subprocess (faster, dependency-free, survives a
+    /// future sandbox). Returns false if the source can't be decoded or the write fails.
+    private static func convertToJPEG(src: URL, dst: URL) -> Bool {
+        guard let source = CGImageSourceCreateWithURL(src as CFURL, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+              let dest = CGImageDestinationCreateWithURL(dst as CFURL, UTType.jpeg.identifier as CFString, 1, nil)
+        else { return false }
+        CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: 0.9] as CFDictionary)
+        return CGImageDestinationFinalize(dest)
     }
 
     /// First `# ` heading (trailing dots trimmed), else the fallback. Mirrors
