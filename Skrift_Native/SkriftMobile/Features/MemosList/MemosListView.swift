@@ -33,7 +33,7 @@ struct MemosListView: View {
     @State private var search = ""
     @State private var sort: MemoSort = .recent
     @State private var filter = MemoFilter()
-    @State private var selecting = false
+    @State private var editMode: EditMode = .inactive
     @State private var selected: Set<UUID> = []
     @State private var syncing = false
     @State private var syncBanner: String?
@@ -49,7 +49,7 @@ struct MemosListView: View {
                     listContent
                 }
 
-                if selecting {
+                if editMode.isEditing {
                     selectionBar
                 } else {
                     recordFAB
@@ -78,31 +78,37 @@ struct MemosListView: View {
     // MARK: - Content
 
     private var listContent: some View {
-        ScrollView {
+        VStack(spacing: 0) {
             SearchField(text: $search, prompt: "Search transcripts", fieldID: "memo-search")
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
+                .padding(.bottom, 6)
 
-            LazyVStack(alignment: .leading, spacing: 0) {
+            // Native List → reliable swipe-to-delete (.swipeActions) + native
+            // multi-select (EditMode + selection binding, incl. drag-over-rows).
+            // Plain style + cleared backgrounds keep the custom card look.
+            List(selection: $selected) {
                 ForEach(groups, id: \.title) { group in
-                    Text(group.title.uppercased())
-                        .font(.system(size: 11.5, weight: .bold))
-                        .kerning(0.5)
-                        .foregroundStyle(Color.skTextDim)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16).padding(.bottom, 7)
-
-                    ForEach(group.memos) { memo in
-                        MemoCard(
-                            memo: memo,
-                            selecting: selecting,
-                            isSelected: selected.contains(memo.id)
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 10)
-                        .contentShape(Rectangle())
-                        .onTapGesture { tap(memo) }
-                        .accessibilityIdentifier("memo-row-\(flatIndex[memo.id] ?? 0)")
+                    Section {
+                        ForEach(group.memos) { memo in
+                            MemoRow(memo: memo) { path.append(memo.id) }
+                                .tag(memo.id)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                                .accessibilityIdentifier("memo-row-\(flatIndex[memo.id] ?? 0)")
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) { deleteMemo(memo) } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    .accessibilityIdentifier("swipe-delete-button")
+                                }
+                        }
+                    } header: {
+                        Text(group.title.uppercased())
+                            .font(.system(size: 11.5, weight: .bold))
+                            .kerning(0.5)
+                            .foregroundStyle(Color.skTextDim)
                     }
                 }
                 if groups.isEmpty {
@@ -110,12 +116,19 @@ struct MemosListView: View {
                         .font(.subheadline)
                         .foregroundStyle(Color.skTextDim)
                         .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                         .padding(.top, 60)
                 }
-                Color.clear.frame(height: 96)
+                Color.clear.frame(height: 80)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .environment(\.editMode, $editMode)
+            .accessibilityIdentifier("memos-list")
         }
-        .accessibilityIdentifier("memos-list")
     }
 
     private var emptyState: some View {
@@ -131,15 +144,15 @@ struct MemosListView: View {
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button(selecting ? "Done" : "Select") {
+            Button(editMode.isEditing ? "Done" : "Select") {
                 withAnimation(Theme.Motion.snappy) {
-                    selecting.toggle()
-                    if !selecting { selected.removeAll() }
+                    if editMode.isEditing { editMode = .inactive; selected.removeAll() }
+                    else { editMode = .active }
                 }
             }
             .accessibilityIdentifier("select-button")
         }
-        if !selecting {
+        if !editMode.isEditing {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSettings = true } label: { Image(systemName: "gearshape") }
                     .accessibilityIdentifier("settings-button")
@@ -244,26 +257,24 @@ struct MemosListView: View {
 
     // MARK: - Actions
 
-    private func tap(_ memo: Memo) {
-        if selecting {
-            if selected.contains(memo.id) { selected.remove(memo.id) } else { selected.insert(memo.id) }
-        } else {
-            path.append(memo.id)
-        }
-    }
-
     private func deleteSelected() {
         for id in selected {
             guard let memo = memos.first(where: { $0.id == id }) else { continue }
-            if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
-            memo.metadata?.imageManifest?.forEach {
-                try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
-            }
-            WordTimingsStore().delete(for: id)
-            repository.delete(memo)
+            deleteMemo(memo)
         }
         selected.removeAll()
-        selecting = false
+        editMode = .inactive
+    }
+
+    /// Remove a single memo + its on-disk audio/images/word-timings. Shared by
+    /// multi-select delete and swipe-to-delete.
+    private func deleteMemo(_ memo: Memo) {
+        if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
+        memo.metadata?.imageManifest?.forEach {
+            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
+        }
+        WordTimingsStore().delete(for: memo.id)
+        repository.delete(memo)
     }
 
     // MARK: - Derived
@@ -321,21 +332,36 @@ struct MemosListView: View {
     }
 }
 
+// MARK: - Row
+
+/// A memo row: taps open detail in normal mode; in EditMode the tap is left to the
+/// List so its native multi-select (incl. drag-over-rows) and selection circle work.
+/// Conditionally attaching the tap (rather than guarding inside it) is what frees the
+/// tap for List selection — a no-op gesture would still swallow it. No NavigationLink,
+/// so no disclosure chevron over the card.
+private struct MemoRow: View {
+    let memo: Memo
+    let onTap: () -> Void
+    @Environment(\.editMode) private var editMode
+
+    var body: some View {
+        if editMode?.wrappedValue.isEditing == true {
+            MemoCard(memo: memo)
+        } else {
+            MemoCard(memo: memo)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onTap)
+        }
+    }
+}
+
 // MARK: - Card
 
 private struct MemoCard: View {
     let memo: Memo
-    let selecting: Bool
-    let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 11) {
-            if selecting {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
-                    .foregroundStyle(isSelected ? Color.skAccent : Color.skTextFaint)
-            }
-
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text(MemoDate.label(memo.recordedAt))

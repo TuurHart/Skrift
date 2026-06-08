@@ -78,4 +78,21 @@ final class MemosListUITests: XCTestCase {
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "memos-list"; shot.lifetime = .keepAlways; add(shot)
     }
+
+    func testSwipeToDelete() throws {
+        let app = launch()
+        XCTAssertTrue(app.staticTexts[harbor].waitForExistence(timeout: 10))
+
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.swipeLeft()
+
+        // Native .swipeActions reveal a "Delete" button; a full swipe commits
+        // directly. Handle both so the test isn't sensitive to swipe distance.
+        let del = app.buttons["Delete"].firstMatch
+        if del.waitForExistence(timeout: 2) { del.tap() }
+
+        XCTAssertTrue(app.staticTexts[harbor].waitForNonExistence(timeout: 4),
+                      "swiped memo should be deleted")
+    }
 }
