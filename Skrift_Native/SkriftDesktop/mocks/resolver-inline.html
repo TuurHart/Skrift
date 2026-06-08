@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — R3: inline-in-text name disambiguation</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#181a23; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5;
+    --green:#34d399; --amber:#f59e0b; --bd:255 255 255;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:30px 26px 80px;font-size:13px;line-height:1.5}
+  h1{font-size:15px;font-weight:600;margin:0 auto 4px;max-width:860px;color:var(--t1)}
+  .sub{font-size:12px;color:var(--t2);max-width:860px;margin:0 auto 26px;line-height:1.55}
+  .sub b{color:var(--t1);font-weight:600}
+  .variant{max-width:860px;margin:0 auto 30px;background:var(--bg);border:.5px solid rgb(var(--bd)/.08);border-radius:13px;overflow:visible;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  .vhead{display:flex;align-items:center;gap:10px;padding:13px 22px;border-bottom:.5px solid rgb(var(--bd)/.07)}
+  .vtag{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:6px}
+  .vtag.rec{background:rgb(var(--accent)/.18);color:var(--acc);border:.5px solid rgb(var(--accent)/.4)}
+  .vtag.alt{background:rgb(var(--bd)/.06);color:var(--t2)}
+  .vhead .vt{font-size:13px;font-weight:600;color:var(--t1)}
+  .vhead .vd{font-size:11.5px;color:var(--t3)}
+  .col{max-width:720px;margin:0 auto;padding:24px 36px 34px;position:relative}
+
+  /* shared body typography (matches v5 / the real app) */
+  .body{font-size:16px;line-height:1.72;color:var(--t1)}
+  .body p{margin-bottom:15px}
+  .body .lnk{color:var(--acc)}
+  .body .lnk.resolved{position:relative}
+  .body .lnk.resolved::after{content:"✓";font-size:9px;color:var(--green);vertical-align:super;margin-left:1px;opacity:.8}
+
+  /* ── A: inline mark + click-to-resolve popover ── */
+  .amb{color:var(--t1);background:rgb(var(--accent)/.13);border-bottom:1.5px dotted rgb(var(--accent)/.65);border-radius:3px;padding:0 2px;cursor:pointer;position:relative;transition:.12s}
+  .amb:hover{background:rgb(var(--accent)/.22)}
+  .amb .q{font-size:9px;vertical-align:super;color:var(--acc);margin-left:1px;font-weight:700}
+
+  /* banner — slim, replaces the big card */
+  .needbar{display:flex;align-items:center;gap:10px;margin-bottom:22px;padding:8px 13px;background:rgb(var(--accent)/.07);border:.5px solid rgb(var(--accent)/.22);border-radius:9px;font-size:12px;color:var(--t2)}
+  .needbar .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);flex:none;box-shadow:0 0 0 3px rgb(var(--accent)/.18)}
+  .needbar b{color:var(--t1);font-weight:600}
+  .needbar .spacer{flex:1}
+  .needbar .jump{font-size:11.5px;color:var(--acc);background:transparent;border:.5px solid rgb(var(--accent)/.35);border-radius:6px;padding:3px 10px;cursor:pointer}
+
+  /* the popover */
+  .pop{position:absolute;width:248px;background:#1d1f29;border:.5px solid rgb(var(--bd)/.14);border-radius:11px;padding:12px;box-shadow:0 16px 44px rgba(0,0,0,.6);z-index:5}
+  .pop::before{content:"";position:absolute;top:-6px;left:34px;width:11px;height:11px;background:#1d1f29;border-left:.5px solid rgb(var(--bd)/.14);border-top:.5px solid rgb(var(--bd)/.14);transform:rotate(45deg)}
+  .pop .ttl{font-size:12px;color:var(--t2);margin-bottom:3px}.pop .ttl b{color:var(--t1)}
+  .pop .ctx{font-size:10.5px;color:var(--t3);font-style:italic;margin-bottom:10px;line-height:1.45}
+  .pop .ctx em{color:var(--t2);font-style:normal;font-weight:600}
+  .opt{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font-size:12.5px;color:var(--t1);background:transparent;border:none;border-radius:7px;padding:7px 9px;cursor:pointer}
+  .opt:hover{background:rgb(var(--accent)/.14)}
+  .opt .av{width:18px;height:18px;border-radius:50%;background:rgb(var(--accent)/.25);color:var(--acc);font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .opt.sel{background:rgb(var(--accent)/.16)}
+  .opt.sel .ck{margin-left:auto;color:var(--acc)}
+  .opt.plain{color:var(--t3)} .opt.plain .av{background:rgb(var(--bd)/.06);color:var(--t3)}
+  .pop .sep{height:.5px;background:rgb(var(--bd)/.08);margin:7px 2px}
+  .pop .hint{font-size:10px;color:var(--t3);line-height:1.4;padding:2px 4px 0;display:flex;gap:5px}
+  .pop .hint svg{flex:none;margin-top:1px;opacity:.7}
+
+  /* ── B: inline token pills ── */
+  .tok{display:inline-flex;align-items:center;gap:4px;background:rgb(var(--accent)/.12);border:.5px solid rgb(var(--accent)/.4);color:var(--acc);border-radius:6px;padding:1px 5px 1px 7px;font-size:14px;cursor:pointer;line-height:1.3}
+  .tok svg{opacity:.8}
+  .tok.unset{border-style:dashed;color:var(--t1);background:rgb(var(--accent)/.07)}
+
+  /* ── C: guided spotlight ── */
+  .body.dim p{color:rgb(228 228 231/.32)}
+  .body.dim .spot{color:var(--t1);background:rgb(var(--accent)/.16);border-radius:4px;padding:1px 3px;box-shadow:0 0 0 2px rgb(var(--accent)/.5),0 6px 20px rgba(0,0,0,.5)}
+  .guide{display:flex;align-items:center;gap:10px;margin-bottom:22px;padding:8px 13px;background:rgb(var(--accent)/.07);border:.5px solid rgb(var(--accent)/.22);border-radius:9px;font-size:12px;color:var(--t2)}
+  .guide b{color:var(--t1)} .guide .spacer{flex:1}
+  .guide .go{font-size:11.5px;font-weight:600;color:#fff;background:var(--acc);border:none;border-radius:6px;padding:4px 12px;cursor:pointer}
+  .stepcard{position:absolute;width:262px;background:#1d1f29;border:.5px solid rgb(var(--bd)/.14);border-radius:11px;padding:13px;box-shadow:0 16px 44px rgba(0,0,0,.6)}
+  .stepcard .nav{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:var(--t3);margin-bottom:9px}
+  .stepcard .nav .pages{font-variant-numeric:tabular-nums}
+  .stepcard .nav button{font-size:11px;color:var(--acc);background:transparent;border:.5px solid rgb(var(--accent)/.3);border-radius:6px;padding:2px 8px;cursor:pointer}
+  .footnote{max-width:860px;margin:18px auto 0;font-size:11.5px;color:var(--t3);line-height:1.6}
+  .footnote b{color:var(--t2)}
+  .key{display:inline-block;font-size:10px;color:var(--t2);background:rgb(var(--bd)/.07);border:.5px solid rgb(var(--bd)/.12);border-radius:4px;padding:0 5px;margin:0 1px}
+</style>
+</head>
+<body>
+
+  <h1>R3 — resolve names <i>in the text</i>, not in a context card</h1>
+  <p class="sub">Today: a card at the top quotes ~7 words around each ambiguous name and you pick blind. Goal: identify each "Jack" / "Sam" <b>right where it sits in the note</b>, with the whole paragraph as context. Three interaction designs below — same note (your real <b>two-Jacks</b> case: two different friends both called "Jack", plus one "Sam"). The big win in all three: <b>clicking each mention in its own context makes per-occurrence resolution the default</b> — the two-Jacks case just works, no "these are different people" expander.</p>
+
+  <!-- ───────────────────────── A ───────────────────────── -->
+  <div class="variant">
+    <div class="vhead">
+      <span class="vtag rec">Recommended</span>
+      <span class="vt">A · Click-to-resolve popover</span>
+      <span class="vd">— names marked subtly inline; click one → small popover at the word</span>
+    </div>
+    <div class="col">
+      <div class="needbar">
+        <span class="dot"></span>
+        <span><b>2 people to identify</b> — “Jack” (3×), “Sam”</span>
+        <span class="spacer"></span>
+        <button class="jump">Jump to first ›</button>
+      </div>
+      <div class="body">
+        <p>Met up with <span class="amb">Jack<span class="q">?</span></span> this morning at the studio — <span class="amb">Jack<span class="q">?</span></span> brought the new mock and we argued about the sidebar for an hour. Good kind of arguing.</p>
+        <p>Later <span class="amb">Jack<span class="q">?</span></span> texted that the build's green again, and <span class="amb">Sam<span class="q">?</span></span> is going to test the round-trip from the phone next week.</p>
+      </div>
+      <!-- popover anchored under the first "Jack" -->
+      <div class="pop" style="left:104px;top:142px">
+        <div class="ttl">Who is <b>“Jack”</b> here?</div>
+        <div class="ctx">…met up with <em>Jack</em> this morning at the studio…</div>
+        <button class="opt sel"><span class="av">JT</span> Jack Timmons <span class="ck">✓</span></button>
+        <button class="opt"><span class="av">JV</span> Jack Vermeer</button>
+        <div class="sep"></div>
+        <button class="opt plain"><span class="av">—</span> Leave as plain text</button>
+        <div class="hint">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          Each mention is set on its own, so two friends named Jack stay separate.
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--t3);margin-top:96px">After you pick, the word becomes a normal link in place →
+        <span class="lnk resolved" style="font-size:14px">[[Jack Timmons]]</span> (or just <span style="color:var(--t2)">Jack</span> if it’s a later mention of the same person).</p>
+    </div>
+  </div>
+
+  <!-- ───────────────────────── B ───────────────────────── -->
+  <div class="variant">
+    <div class="vhead">
+      <span class="vtag alt">Alt</span>
+      <span class="vt">B · Inline token pills</span>
+      <span class="vd">— each unresolved name is a little dropdown chip in the prose</span>
+    </div>
+    <div class="col">
+      <div class="body">
+        <p>Met up with <span class="tok unset">Jack <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span> this morning at the studio — <span class="tok unset">Jack <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span> brought the new mock and we argued about the sidebar for an hour.</p>
+        <p>Later <span class="tok unset">Jack <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span> texted that the build's green again, and <span class="tok unset">Sam <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></span> is going to test the round-trip next week.</p>
+      </div>
+      <p style="font-size:11px;color:var(--t3);margin-top:6px">Most discoverable (the control is always visible), but the pills interrupt the reading flow — the prose stops looking like prose.</p>
+    </div>
+  </div>
+
+  <!-- ───────────────────────── C ───────────────────────── -->
+  <div class="variant">
+    <div class="vhead">
+      <span class="vtag alt">Alt</span>
+      <span class="vt">C · Guided spotlight</span>
+      <span class="vd">— a “Resolve →” mode steps through each name; the body dims, the current one lights up</span>
+    </div>
+    <div class="col">
+      <div class="guide">
+        <span class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--acc)"></span>
+        <span><b>2 names need you</b> — resolve them one at a time</span>
+        <span class="spacer"></span>
+        <button class="go">Resolve →</button>
+      </div>
+      <div class="body dim">
+        <p>Met up with <span class="spot">Jack</span> this morning at the studio — Jack brought the new mock and we argued about the sidebar for an hour.</p>
+        <p>Later Jack texted that the build's green again, and Sam is going to test the round-trip next week.</p>
+      </div>
+      <div class="stepcard" style="left:150px;top:118px">
+        <div class="nav"><span class="pages">1 of 4</span><span><button>‹ Back</button> <button>Next ›</button></span></div>
+        <div class="ttl" style="font-size:12px;color:var(--t2);margin-bottom:8px">Who is <b style="color:var(--t1)">“Jack”</b> here?</div>
+        <button class="opt sel"><span class="av">JT</span> Jack Timmons <span class="ck">✓</span></button>
+        <button class="opt"><span class="av">JV</span> Jack Vermeer</button>
+        <div class="sep"></div>
+        <button class="opt plain"><span class="av">—</span> Leave as plain text</button>
+      </div>
+      <p style="font-size:11px;color:var(--t3);margin-top:78px">Most hand-holding — good if there are many names — but it’s a modal-ish mode, less “just fix it where you see it.”</p>
+    </div>
+  </div>
+
+  <p class="footnote">
+    <b>My recommendation: A.</b> It reads as the note (prose stays prose), gives full-paragraph context, and maps cleanly onto the Mac text view (each ambiguous range becomes a clickable link → an <span class="key">NSPopover</span> anchored at the word). Per-occurrence is automatic, which kills the old card’s biggest gap. The slim top banner stays as a “2 left · jump to next” affordance so you never lose track. <b>B</b> is the most discoverable but noisiest; <b>C</b> is best only if notes routinely have many names. All three apply through the existing order-based <span class="key">Sanitiser.applyResolvedOccurrences</span>, so the engine work is done — this is the front-end.
+  </p>
+
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — review surface v2 (critique applied)</title>
+<style>
+  :root{
+    --bg:#0f1117; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5;
+    --green:#34d399; --blue:#60a5fa; --amber:#f59e0b; --violet:#a78bfa; --bd:255 255 255;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:26px;font-size:13px}
+  .window{max-width:1180px;height:760px;margin:0 auto;background:var(--bg);border-radius:11px;overflow:hidden;
+    display:flex;box-shadow:0 22px 70px rgba(0,0,0,.55);border:.5px solid rgba(255,255,255,.08)}
+
+  /* sidebar — faux vibrancy: subtle gradient + inner highlight */
+  .sidebar{width:248px;background:linear-gradient(180deg,#191b24,#15171f);border-right:.5px solid rgb(var(--bd)/.06);
+    box-shadow:inset -1px 0 0 rgb(var(--bd)/.03);display:flex;flex-direction:column}
+  .titlebar{height:48px;display:flex;align-items:center;padding:0 16px}
+  .lights{display:flex;gap:8px}.lights i{width:12px;height:12px;border-radius:50%}
+  .lights .r{background:#ff5f57}.lights .y{background:#febc2e}.lights .g{background:#28c840}
+  .side-h{display:flex;align-items:baseline;justify-content:space-between;padding:2px 18px 4px}
+  .side-h b{font-size:15px;font-weight:700}.side-h .cnt{font-size:11px;color:var(--t3)}
+  .side-sub{display:flex;justify-content:flex-end;padding:0 18px 10px}
+  .up{font-size:12px;color:var(--acc);background:none;border:none;cursor:pointer;font-weight:600}
+  .queue{flex:1;overflow:auto;padding:2px 10px}
+  .row{padding:7px 10px;border-radius:7px;margin-bottom:1px;cursor:pointer}
+  .row.sel{background:rgb(var(--accent)/.14)}
+  .row .t{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .m{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:11px;color:var(--t3)}
+  .sdot{width:6px;height:6px;border-radius:50%;flex:none}
+  .sdot.ready{background:#34d399}.sdot.enh{background:#f59e0b}.sdot.tx{background:#60a5fa}.sdot.exp{background:#55556a}
+  .row .st{color:var(--t2)}
+  .side-f{padding:9px 18px;border-top:.5px solid rgb(var(--bd)/.06);display:flex;gap:14px}
+  .side-f span{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:5px}
+  .gd{width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+  /* note */
+  .note{flex:1;display:flex;flex-direction:column;min-width:0}
+  .crumb{height:48px;display:flex;align-items:center;padding:0 0 0 28px;font-size:12px;color:var(--t3)}
+  .crumb b{color:var(--t2);font-weight:500}
+
+  /* toolbar — etched 44px bar */
+  .toolbar{height:48px;display:flex;align-items:center;gap:16px;padding:0 28px;
+    border-bottom:.5px solid rgb(var(--bd)/.07);box-shadow:inset 0 1px 0 rgb(var(--bd)/.04);background:rgb(255 255 255/.012)}
+  .transport{display:flex;align-items:center;gap:4px;flex:none}
+  .sq{width:30px;height:30px;border-radius:7px;background:transparent;border:none;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .sq:hover{background:rgb(var(--bd)/.05);color:var(--t1)}
+  .play{width:34px;height:34px;border-radius:50%;background:var(--acc);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px rgb(var(--accent)/.45)}
+  .scrub{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+  .tm{font-size:11px;color:var(--t3);font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .track{flex:1;height:4px;border-radius:3px;background:rgb(var(--bd)/.12);position:relative}
+  .track i{position:absolute;left:0;top:0;height:100%;width:42%;background:var(--acc);border-radius:3px}
+  .track b{position:absolute;left:42%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#fff;opacity:0}
+  .track:hover b{opacity:1}
+  .speed{font-size:11px;font-family:ui-monospace,monospace;font-weight:600;color:var(--t3);background:transparent;border:none;border-radius:6px;padding:5px 8px;cursor:pointer}
+  .speed:hover{background:rgb(var(--bd)/.05);color:var(--t1)}
+  .acts{display:flex;align-items:center;gap:8px;flex:none}
+  .primary{background:var(--acc);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 1px 6px rgb(var(--accent)/.4)}
+  .ovf{width:30px;height:30px;border-radius:7px;border:none;background:transparent;color:var(--t2);cursor:pointer;font-weight:700}
+  .ovf:hover{background:rgb(var(--bd)/.05)}
+
+  /* centered document column */
+  .scroll{flex:1;overflow:auto}
+  .col{max-width:680px;margin:0 auto;padding:30px 32px 60px}
+
+  .resolver{background:rgb(var(--accent)/.08);border:.5px solid rgb(var(--accent)/.25);border-radius:9px;padding:9px 13px;margin-bottom:22px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .resolver .l{font-size:12px;color:var(--t2)}.resolver b{color:var(--t1)}
+  .pick{font-size:11.5px;border:.5px solid rgb(var(--accent)/.35);background:rgb(var(--accent)/.1);color:var(--acc);border-radius:6px;padding:3px 10px;cursor:pointer}
+  .pick.plain{color:var(--t3);border-color:rgb(var(--bd)/.12);background:transparent}
+
+  /* title chooser — refined: big active title, demoted inactive */
+  .tlabel{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:8px}
+  .titles{display:flex;gap:10px;margin-bottom:22px;align-items:stretch}
+  .tcard{border-radius:11px;border:1px solid rgb(var(--bd)/.08);padding:11px 14px;position:relative;cursor:pointer;transition:.12s}
+  .tcard.on{flex:1.6;border-color:rgb(var(--accent)/.5);background:rgb(var(--accent)/.07)}
+  .tcard.off{flex:1;opacity:.6}
+  .tcard .k{font-size:10px;margin-bottom:5px;display:flex;gap:6px;align-items:center;color:var(--t3);text-transform:uppercase;letter-spacing:.05em}
+  .tcard.on .k{color:var(--acc)}
+  .tcard .ic{width:12px;height:12px;opacity:.8}
+  .tcard.on .v{font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.15;color:var(--t1)}
+  .tcard.off .v{font-size:14px;font-weight:600;line-height:1.25;color:var(--t2)}
+  .radio{position:absolute;top:12px;right:13px;width:13px;height:13px;border-radius:50%;border:2px solid rgb(var(--bd)/.18)}
+  .tcard.on .radio{border-color:var(--acc);background:radial-gradient(circle,var(--acc) 0 3.5px,transparent 4.5px)}
+
+  /* properties — one quiet grouped card */
+  .props{background:rgb(255 255 255/.022);border:.5px solid rgb(var(--bd)/.07);border-radius:12px;padding:14px 16px;margin-bottom:24px}
+  .grid{display:grid;grid-template-columns:84px 1fr;row-gap:3px}
+  .grid .k{font-size:11px;color:var(--t3);line-height:18px;text-transform:capitalize}
+  .grid .v{font-size:11px;color:var(--t2);line-height:18px}
+  .divider{height:.5px;background:rgb(var(--bd)/.07);margin:13px 0}
+  .sig .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .sig .lab{font-size:11px;color:var(--t3);text-transform:capitalize}
+  .sig .val{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--acc)}
+  .sig .track2{height:4px;border-radius:3px;background:rgb(var(--bd)/.12);position:relative}
+  .sig .track2 i{position:absolute;height:100%;left:0;width:70%;background:var(--acc);border-radius:3px}
+  .sig .track2 b{position:absolute;left:70%;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+  .sig .ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-top:7px}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .tag{font-size:11px;font-weight:500;background:rgb(var(--accent)/.15);color:var(--acc);border-radius:6px;padding:3px 9px;display:inline-flex;gap:5px;align-items:center}
+  .tag .x{opacity:.45;font-size:10px}
+  .tsug{font-size:11px;color:var(--t2);background:transparent;border-radius:6px;padding:3px 9px;cursor:pointer;opacity:.7}
+  .tsug:hover{color:var(--acc);background:rgb(var(--accent)/.08);opacity:1}
+  .tadd{font-size:13px;color:var(--t3);background:rgb(var(--bd)/.05);border:none;border-radius:6px;width:24px;height:23px;cursor:pointer}
+
+  /* summary — left-rule aside */
+  .summary{margin:0 0 26px;padding:2px 0 2px 14px;border-left:2px solid rgb(var(--accent)/.4);
+    font-size:13.5px;line-height:1.6;color:var(--t2);font-style:italic}
+
+  /* body — primary, real measure */
+  .body{font-size:16px;line-height:1.72;color:var(--t1)}
+  .body p{margin-bottom:15px}
+  .body .lnk{color:var(--acc)}
+  .body.kar p{color:rgb(228 228 231/.5)}        /* karaoke: dim the rest… */
+  .body .kara{color:#fff;text-decoration:underline;text-decoration-color:rgb(var(--accent)/.7);text-underline-offset:3px}  /* …brighten active word */
+  .imgchip{display:inline-flex;align-items:center;gap:8px;margin:6px 0;color:var(--t2);font-size:12px;
+    background:rgb(var(--accent)/.08);border:.5px solid rgb(var(--accent)/.2);border-radius:8px;padding:7px 11px}
+  .imgchip svg{opacity:.7}
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="sidebar">
+      <div class="titlebar"><div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div></div>
+      <div class="side-h"><b>Skrift</b><span class="cnt">5 notes</span></div>
+      <div class="side-sub"><button class="up">+ Upload</button></div>
+      <div class="queue">
+        <div class="row sel"><div class="t">Rethinking the desktop rewrite</div><div class="m"><span class="sdot ready"></span><span class="st">Ready</span> · 2:14</div></div>
+        <div class="row"><div class="t">Walk along the Amstel</div><div class="m"><span class="sdot ready"></span><span class="st">Ready</span> · 4:51</div></div>
+        <div class="row"><div class="t">Standup notes</div><div class="m"><span class="sdot enh"></span><span class="st">Enhancing…</span></div></div>
+        <div class="row"><div class="t">Voice memo 14:02</div><div class="m"><span class="sdot tx"></span><span class="st">Transcribing…</span></div></div>
+        <div class="row"><div class="t">Groceries en het plan</div><div class="m"><span class="sdot exp"></span><span class="st">Exported</span></div></div>
+      </div>
+      <div class="side-f"><span><i class="gd"></i>Parakeet</span><span><i class="gd"></i>Gemma 4</span></div>
+    </div>
+
+    <div class="note">
+      <div class="crumb">Queue&nbsp;&nbsp;›&nbsp;&nbsp;<b>Fri, 6 Jun 2026</b></div>
+
+      <div class="toolbar">
+        <div class="transport">
+          <button class="sq"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 3 8 6l3 3"/><path d="M8 6h6a6 6 0 1 1-6 6"/></svg></button>
+          <button class="play"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="sq"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m13 3 3 3-3 3"/><path d="M16 6h-6a6 6 0 1 0 6 6"/></svg></button>
+        </div>
+        <div class="scrub"><span class="tm">0:56</span><div class="track"><i></i><b></b></div><span class="tm">2:14</span></div>
+        <button class="speed">1×</button>
+        <div style="flex:1"></div>
+        <div class="acts"><button class="primary">Export to Obsidian</button><button class="ovf">⋯</button></div>
+      </div>
+
+      <div class="scroll"><div class="col">
+        <div class="resolver"><span class="l">Who is <b>“Sam”</b>?</span><button class="pick">Sam Smith</button><button class="pick">Sam Jones</button><button class="pick plain">leave plain</button></div>
+
+        <div class="tlabel">Title — pick one</div>
+        <div class="titles">
+          <div class="tcard on">
+            <div class="k"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8l-4.4 1.2L12 14l-1.6-4.8L6 8l4.4-1.2z"/></svg> Suggested</div>
+            <div class="v">Rethinking the desktop rewrite as one native app</div><span class="radio"></span>
+          </div>
+          <div class="tcard off">
+            <div class="k"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M7 8v8M17 8v8M3 11v2M21 11v2"/></svg> From recording</div>
+            <div class="v">Voice Memo 09-14</div><span class="radio"></span>
+          </div>
+        </div>
+
+        <div class="props">
+          <div class="grid">
+            <span class="k">date</span><span class="v">06 Jun 2026</span>
+            <span class="k">author</span><span class="v">Tiuri Hartog</span>
+            <span class="k">source</span><span class="v">Voice memo</span>
+            <span class="k">location</span><span class="v">Amsterdam · Cloudy, 14°C</span>
+          </div>
+          <div class="divider"></div>
+          <div class="sig">
+            <div class="top"><span class="lab">significance</span><span class="val">0.7 · Significant</span></div>
+            <div class="track2"><i></i><b></b></div>
+            <div class="ticks"><span>passing</span><span>useful</span><span>significant</span></div>
+          </div>
+          <div class="divider"></div>
+          <div class="tags">
+            <span class="tag">#work <span class="x">×</span></span>
+            <span class="tag">#ideas <span class="x">×</span></span>
+            <span class="tsug">+ rewrite</span>
+            <span class="tsug">+ swift</span>
+            <button class="tadd">+</button>
+          </div>
+        </div>
+
+        <div class="summary">Reflecting on collapsing the two-process app into one native Swift process — leaning toward FluidAudio plus mlx-swift in-process, and what that means for the sync with the phone.</div>
+
+        <div class="body kar">
+          <p>So I was talking with <span class="lnk">[[Nick Jansen]]</span> this morning about <span class="kara">collapsing</span> the whole thing into one native app. Het voelt nu eindelijk goed — no Python backend that won't start, no localhost in between.</p>
+          <p>Nick's point was that the hard part is the editor, not the pipeline. De transcription en de enhancement draaien al, dus de vraag is echt hoe de review-kant aanvoelt.</p>
+          <span class="imgchip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg> rewrite-sketch_001.jpg</span>
+          <p>Idea: keep the body exactly what exports to Obsidian — brackets visible, karaoke on the real words. If <span class="lnk">[[Sam Jones]]</span> can test it next week, even better.</p>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</body>
+</html>
