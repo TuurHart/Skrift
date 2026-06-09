@@ -127,6 +127,18 @@ Debug (`com.skrift.{mobile,desktop}.dev`, "Skrift Dev"). Deploy prod to the phon
 `xcodebuild build -scheme SkriftMobile -configuration Release -destination 'platform=iOS,id=00008110-001208C902EA201E' -derivedDataPath build-device -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic` → `devicectl device install … Release-iphoneos/SkriftMobile.app`.
 
 **Deferred work (user-requested, in priority-ish order):**
+0. **Replace `TabView(.page)` → SwiftUI paging ScrollView in MemoDetailView (fixes TWO
+   bugs).** Root cause found 2026-06-09: `.glassEffect` on the playback bar refracts the
+   ZStack background but NOT the UIKit-hosted `TabView(.page)` scroll content — so photos
+   inside a page don't show through the glass (user confirmed over a picture; a bright
+   ZStack bg DID refract). Same UIKit hosting is why the significance slider's drag is
+   stolen by the page-pan (currently a tap-to-set workaround). Fix: `ScrollView(.horizontal)`
+   + `LazyHStack { MemoPageView.containerRelativeFrame(.horizontal) }` +
+   `.scrollTargetBehavior(.paging)` + `.scrollPosition(id: $selection)`. Then glass refracts
+   page content (real Liquid Glass) AND revert the significance slider to a drag
+   (`SignificanceSlider`'s `.highPriorityGesture` works over a SwiftUI ScrollView).
+   Verify swipe-between-memos + the player re-targeting on selection still work.
+   (Dating of re-ingested audio is FINE — desktop reads the embedded m4a recording date.)
 1. **Capture items** — the user will drive this tomorrow (they've built iOS share
    extensions before). Plan: new **ShareExtension** target + **App Group**
    (`group.com.skrift.mobile[.dev]`, per-config like the bundle IDs; entitlements via a
