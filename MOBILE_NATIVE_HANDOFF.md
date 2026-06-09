@@ -228,12 +228,20 @@ FluidAudio ships `SortformerDiarizer`: `SortformerModels.loadFromHuggingFace(con
 `SortformerDiarizer(config: .default)` + `initialize(...)` → `processComplete(samples,
 sourceSampleRate:) -> DiarizerTimeline` (offline) OR streaming `addAudio`/`process()`/
 `finalizeSession()`; `enrollSpeaker(...)` for known voices. (LS-EEND = up to 10 speakers but
-weaker enrollment; Offline VBx = best offline batch quality.) **Next: (2) re-spike Sortformer
-on `6C0C4C75` to confirm a clean 2-speaker split + enrollment (swap DiarizeSpike to Sortformer);
-(3) mock the speaker-split / tag UI; (4) `DiarizationService` on SORTFORMER (streaming for live
-diarization during recording + offline for existing memos) + `enrollSpeaker`-backed tag-as-you-go
-+ cosine-match to names' `voiceEmbeddings` + ASR/word-timing fusion. Needs device (ANE) — the
-sim has no ANE, so diarization (like ASR) can't run there; device-test like the ASR path.**
+weaker enrollment; Offline VBx = best offline batch quality.)
+**(2) SORTFORMER SPIKE DONE (`4678c1c`) — confirmed.** `SortformerModels.loadFromHuggingFace`
+(bundle `Sortformer_v2.1`, 12 files; first compile ~90s, then cached) →
+`SortformerDiarizer(config: .default)` + `initialize(models:)` → `processComplete(samples)`
+→ `DiarizerTimeline`; read `for (slot, spk) in result.speakers { spk.finalizedSegments }`,
+each `DiarizerSegment` has `.speakerLabel/.startTime/.endTime`. On the real `6C0C4C75` memo:
+**2 speakers, fine INTERLEAVED turns + overlap, DEFAULT config, no threshold tuning** (vs
+pyannote's two coarse blocks @0.45). Single-voice memo → 1. Synthetic TTS → 1 (Sortformer is
+real-world-trained → artificial TTS is OOD; irrelevant — the app records real people).
+**Next: (3) mock the speaker-split / tag UI; (4) `DiarizationService` on SORTFORMER (streaming
+for live diarization during recording + offline `processComplete` for existing memos) +
+`enrollSpeaker`-backed tag-as-you-go + cosine-match to names' `voiceEmbeddings` + ASR/word-timing
+fusion. Needs device (ANE) — the sim has no ANE, so diarization (like ASR) can't run there;
+device-test like the ASR path.**
 
 **Still TODO: conversation mode (build, per the plan above — next), capture items (user
 drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop
