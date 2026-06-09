@@ -28,41 +28,41 @@ struct MemoDetailView: View {
     private var currentMemo: Memo? { memos.first { $0.id == selection } }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.skBg.ignoresSafeArea()
-
-            // SwiftUI-native horizontal pager. Unlike `TabView(.page)` (a UIKit page
-            // host) its scroll content IS sampled by `.glassEffect` (the bar refracts
-            // the page) AND it yields child gestures (the significance drag + per-word
-            // tap-to-seek work). `.scrollPosition(id:)` tracks the page; the
-            // ScrollViewReader does the initial jump (the binding's initial value isn't
-            // reliably honoured on first layout).
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(memos) { memo in
-                            MemoPageView(memo: memo, bottomInset: 220, player: player)   // clearance so the last line scrolls clear of (and behind) the glass bar
-                                .containerRelativeFrame(.horizontal)
-                                // The LazyHStack realises adjacent pages; hide the
-                                // off-screen ones from VoiceOver (and XCUITest) so
-                                // their controls/text aren't duplicate matches.
-                                .accessibilityHidden(memo.id != selection)
-                                .id(memo.id)
-                        }
+        ScrollViewReader { proxy in
+            // SwiftUI-native horizontal pager. `.scrollPosition(id:)` tracks the page;
+            // the ScrollViewReader does the initial jump (the binding's initial value
+            // isn't reliably honoured on first layout).
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    ForEach(memos) { memo in
+                        MemoPageView(memo: memo, player: player)
+                            .containerRelativeFrame(.horizontal)
+                            // The LazyHStack realises adjacent pages; hide the
+                            // off-screen ones from VoiceOver (and XCUITest) so
+                            // their controls/text aren't duplicate matches.
+                            .accessibilityHidden(memo.id != selection)
+                            .id(memo.id)
                     }
-                    .scrollTargetLayout()
                 }
-                .scrollTargetBehavior(.paging)
-                .scrollPosition(id: $selection)
-                .scrollIndicators(.hidden)
-                .onAppear {
-                    guard let selection else { return }
-                    DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }
-                }
+                .scrollTargetLayout()
             }
-
-            bottomChrome
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $selection)
+            .scrollIndicators(.hidden)
+            .onAppear {
+                guard let selection else { return }
+                DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }
+            }
         }
+        .background(Color.skBg.ignoresSafeArea())
+        // The floating glass player bar lives in the bottom safe-area inset, NOT a
+        // ZStack overlay. That's the fix for "glass shows nothing": a detached overlay
+        // only samples the flat background behind everything, so Liquid Glass had no
+        // scroll content to refract. As a safeAreaInset the scroll content renders
+        // BEHIND the bar in the same backdrop, so the transcript/photos genuinely
+        // refract through the glass as they pass under it (and content insets to clear
+        // it at rest).
+        .safeAreaInset(edge: .bottom, spacing: 0) { bottomChrome }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -102,27 +102,25 @@ struct MemoDetailView: View {
 
     @ViewBuilder private var bottomChrome: some View {
         // REAL iOS-26 Liquid Glass on the floating playback bar (device + SDK are 26):
-        // the transcript/photos refract through it. `.ultraThinMaterial` is only the
-        // fallback for iOS < 26 (where glassEffect is unavailable).
+        // the transcript/photos refract through it as they scroll under (the bar is a
+        // safeAreaInset, so the scroll content is in the same backdrop). A
+        // GlassEffectContainer gives the glass a proper shared sampling region.
+        // `.ultraThinMaterial` is only the fallback for iOS < 26.
         if #available(iOS 26.0, *) {
-            playerBarStack
-                // Pure Liquid Glass. The pager is now a SwiftUI ScrollView (above), so
-                // the glass samples and refracts the page's transcript/photos as they
-                // scroll under the bar — what the UIKit-hosted TabView(.page) prevented.
-                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                // A hairline + top specular highlight so the glass reads as an EDGE
-                // even over the near-black transcript (Liquid Glass is subtle over a
-                // flat dark surface by design — it only refracts textured content
-                // behind it, which the transcript provides as it scrolls under).
-                .overlay(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(colors: [.white.opacity(0.30), .white.opacity(0.04)],
-                                           startPoint: .top, endPoint: .bottom),
-                            lineWidth: 0.8)
-                )
-                .padding(.horizontal, Theme.Space.margin)
-                .padding(.bottom, 6)
+            GlassEffectContainer {
+                playerBarStack
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    // A hairline + top specular highlight so the glass reads as an EDGE.
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(colors: [.white.opacity(0.30), .white.opacity(0.04)],
+                                               startPoint: .top, endPoint: .bottom),
+                                lineWidth: 0.8)
+                    )
+            }
+            .padding(.horizontal, Theme.Space.margin)
+            .padding(.bottom, 6)
         } else {
             playerBarStack
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -167,7 +165,6 @@ struct MemoDetailView: View {
 
 private struct MemoPageView: View {
     @Bindable var memo: Memo
-    let bottomInset: CGFloat
     @ObservedObject var player: AudioPlayerModel
     private let repository = NotesRepository.shared
     @State private var showAddTag = false
@@ -216,7 +213,9 @@ private struct MemoPageView: View {
                 transcriptSection
                     .padding(.top, 18)
 
-                Color.clear.frame(height: bottomInset)
+                // Small breathing room; the bar's own height is reserved by the
+                // parent's .safeAreaInset, so content rests just clear of the glass.
+                Color.clear.frame(height: 24)
             }
             .padding(.horizontal, Theme.Space.margin)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -337,12 +336,17 @@ private struct SignificanceRow: View {
                 .foregroundStyle(Color.skTextFaint)
                 .fixedSize()
             SignificanceSlider(value: $value, onCommit: onCommit)
-            Text(value > 0 ? "\(String(format: "%.1f", value)) · syncs" : "on phone")
+            // Mirror the desktop slider's label: "0.7 · Significant" (Passing <0.34,
+            // Useful <0.67, Significant). 0 = "Not rated" (desktop shows this for an
+            // unrated note — and it's still the flag-to-send gate: 0 won't sync).
+            Text(value > 0 ? String(format: "%.1f · %@", value, tier) : "Not rated")
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(value > 0 ? Color.skAccent : Color.skTextFaint)
                 .fixedSize()
         }
     }
+
+    private var tier: String { value >= 0.67 ? "Significant" : value >= 0.34 ? "Useful" : "Passing" }
 }
 
 /// Custom 0–1 (snap 0.1) drag slider. A `minimumDistance: 0` `.highPriorityGesture`

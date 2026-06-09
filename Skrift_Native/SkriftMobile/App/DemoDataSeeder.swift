@@ -6,9 +6,32 @@ import SwiftData
 @MainActor
 enum DemoDataSeeder {
     static func seedIfRequested(_ repo: NotesRepository) {
-        guard LaunchFlags.seedDemoMemos else { return }
         guard repo.allMemos().isEmpty else { return }
+        if LaunchFlags.seedLongMemo { repo.insert(longMemo()); return }
+        guard LaunchFlags.seedDemoMemos else { return }
         for memo in demoMemos() { repo.insert(memo) }
+    }
+
+    /// One memo whose transcript is long enough to scroll content (text + an image
+    /// placeholder) UNDER the glass player bar — for the glass-refraction screenshot.
+    static func longMemo() -> Memo {
+        let now = Date()
+        let body = (1...18).map { "Line \($0): the harbour was quiet at dawn and the light came in sideways across the water." }
+            .joined(separator: "\n\n")
+        return Memo(
+            audioFilename: "memo_long.m4a",
+            duration: 240,
+            recordedAt: now,
+            tags: ["glass"],
+            syncStatus: .waiting,
+            transcript: body + "\n\n[[img_001]]\n\n" + "And then the ferry crossed and everyone went quiet.",
+            transcriptStatus: .done,
+            transcriptConfidence: 0.95,
+            metadata: MemoMetadata(
+                capturedAt: ISO8601.string(from: now),
+                imageManifest: [ImageManifestEntry(filename: "missing_glass_demo.jpg", offsetSeconds: 30)]
+            )
+        )
     }
 
     static func demoMemos() -> [Memo] {
