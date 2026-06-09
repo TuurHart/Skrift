@@ -57,6 +57,14 @@ actor DiarizationService: Diarizing {
     }
 }
 
+enum DiarizerFactory {
+    /// Seeded in tests/sim (`-seedTranscript`, which also implies no ANE), real
+    /// Sortformer engine on device otherwise.
+    static func make() -> any Diarizing {
+        LaunchFlags.seedTranscript != nil ? SeededDiarizer() : DiarizationService.shared
+    }
+}
+
 /// Deterministic diarizer for UI tests / the sim (no ANE): splits the timeline evenly
 /// into `speakers` alternating blocks of `blockSeconds`.
 struct SeededDiarizer: Diarizing {

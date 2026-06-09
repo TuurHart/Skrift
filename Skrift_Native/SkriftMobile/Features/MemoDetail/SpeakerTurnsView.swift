@@ -60,22 +60,22 @@ struct SpeakerTurnsView: View {
         HStack(alignment: .top, spacing: 10) {
             RoundedRectangle(cornerRadius: 2).fill(c).frame(width: 3)
             VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    Circle().fill(c).frame(width: 7, height: 7)
-                    Text(turn.name)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(unnamed ? Color.skTextDim : c)
-                    if unnamed {
-                        Button { onTag(turn.name) } label: {
-                            Text("+ name")
-                                .font(.system(size: 10.5, weight: .semibold)).foregroundStyle(c)
-                                .padding(.horizontal, 7).padding(.vertical, 2)
-                                .background(c.opacity(0.16), in: Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("tag-speaker-\(turn.name)")
+                // The whole label is tappable — assign an un-named speaker OR correct a
+                // wrong one (diarization sometimes swaps two people).
+                Button { onTag(turn.name) } label: {
+                    HStack(spacing: 6) {
+                        Circle().fill(c).frame(width: 7, height: 7)
+                        Text(turn.name)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(unnamed ? Color.skTextDim : c)
+                        Text(unnamed ? "+ name" : "edit")
+                            .font(.system(size: 10, weight: .semibold)).foregroundStyle(c)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(c.opacity(0.16), in: Capsule())
                     }
                 }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("tag-speaker-\(turn.name)")
                 Text(turn.text)
                     .font(.system(size: 15.5)).foregroundStyle(Color.skText).lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)

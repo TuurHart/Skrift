@@ -10,6 +10,7 @@ import Foundation
 struct MemoSaver {
     var repository: NotesRepository = .shared
     var transcriber: any Transcriber = TranscriberFactory.make()
+    var diarizer: any Diarizing = DiarizerFactory.make()
     var wordTimings = WordTimingsStore()
     var metadataProvider: any MetadataProviding = MetadataProviderFactory.make()
 
@@ -231,11 +232,35 @@ struct MemoSaver {
             memo.transcriptMarkersInjected = result.markersInjected
             memo.transcriptStatus = text.isEmpty ? .failed : .done
             repository.save()
+
+            // Conversation mode: split the recording into speakers (Sortformer) and
+            // re-emit the transcript as `**Speaker N:**` turns — only if ≥2 speakers
+            // are actually found (a monologue stays plain). The plain transcript shows
+            // first; this updates it once diarization finishes (model load is slow the
+            // first time, then cached).
+            if conversationModeOn, !text.isEmpty, !result.wordTimings.isEmpty {
+                await diarizeIntoTurns(id: id, audioURL: url, words: result.wordTimings)
+            }
         } catch {
             if let memo = repository.memo(id: id) {
                 memo.transcriptStatus = .failed
                 repository.save()
             }
         }
+    }
+
+    private var conversationModeOn: Bool { UserDefaults.standard.bool(forKey: "conversationDefault") }
+
+    /// Diarize the recording and, if ≥2 speakers are found, rewrite the transcript as
+    /// `**Speaker N:**` turns (fused with the word-timings). A single-speaker result is
+    /// left as the plain transcript.
+    private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming]) async {
+        guard let segments = try? await diarizer.diarize(audioURL: audioURL),
+              Set(segments.map(\.speaker)).count >= 2 else { return }
+        let attributed = SpeakerFusion.attributedTranscript(words: words, segments: segments)
+        guard let memo = repository.memo(id: id) else { return }
+        memo.transcript = attributed
+        memo.transcriptStatus = .done
+        repository.save()
     }
 }

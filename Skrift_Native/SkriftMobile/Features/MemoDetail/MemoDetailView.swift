@@ -172,6 +172,8 @@ private struct MemoPageView: View {
     private let repository = NotesRepository.shared
     @State private var showAddTag = false
     @State private var newTag = ""
+    @State private var namingSpeaker: String?       // the speaker label being (re)named
+    @State private var speakerNameDraft = ""
 
     var body: some View {
         ScrollView {
@@ -226,6 +228,33 @@ private struct MemoPageView: View {
             Button("Add", action: addTag)
             Button("Cancel", role: .cancel) { newTag = "" }
         }
+        .alert("Name this speaker", isPresented: Binding(get: { namingSpeaker != nil },
+                                                         set: { if !$0 { namingSpeaker = nil } })) {
+            TextField("Name", text: $speakerNameDraft)
+            Button("Set", action: renameSpeaker)
+            Button("Cancel", role: .cancel) { namingSpeaker = nil }
+        } message: {
+            Text("Assign this speaker to a name. It links to a person on your Mac, and Skrift can learn the voice for next time.")
+        }
+    }
+
+    /// Start (re)naming a speaker — prefill with the current name unless it's the
+    /// "Speaker N" placeholder.
+    private func startNaming(_ speaker: String) {
+        speakerNameDraft = SpeakerTranscript.isUnnamed(speaker) ? "" : speaker
+        namingSpeaker = speaker
+    }
+
+    /// Rewrite every `**old:**` turn prefix → `**new:**` (the speaker label is the key),
+    /// so assigning/correcting one turn relabels all of that speaker's turns.
+    private func renameSpeaker() {
+        defer { namingSpeaker = nil; speakerNameDraft = "" }
+        guard let old = namingSpeaker, let transcript = memo.transcript else { return }
+        let new = speakerNameDraft.trimmingCharacters(in: .whitespaces)
+        guard !new.isEmpty, new != old else { return }
+        memo.transcript = transcript.replacingOccurrences(of: "**\(old):**", with: "**\(new):**")
+        memo.transcriptUserEdited = true
+        repository.save()
     }
 
     private var titleBinding: Binding<String> {
@@ -262,9 +291,9 @@ private struct MemoPageView: View {
     /// idle karaoke view render the same, so play/pause swaps seamlessly.
     @ViewBuilder private var transcriptSection: some View {
         if let turns = SpeakerTranscript.parse(memo.transcript) {
-            // Conversation note → speaker-attributed turns (read-only render; tag-as-
-            // you-go + editing land with the DiarizationService wiring).
-            SpeakerTurnsView(turns: turns)
+            // Conversation note → speaker-attributed turns; tap a speaker to assign or
+            // correct the name (relabels all that speaker's turns).
+            SpeakerTurnsView(turns: turns, onTag: startNaming)
         } else if player.isPlaying || memo.transcriptStatus == .transcribing {
             TranscriptContentView(memo: memo, player: player)
         } else {
