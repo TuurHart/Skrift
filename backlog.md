@@ -160,3 +160,34 @@ diarization-segment persistence) — see `FEATURES.md`. Remaining threads it ope
 - **F3 live confidence-color** is a positional approximation (trailing 6 words = "settling") — FluidAudio's live
   path exposes no finalized/volatile flag. Revisit if/when it does, for true locked-vs-volatile coloring.
 - **Inverted-color dev app ICON** (both apps) so dev is unmistakable by icon (not just name).
+  ✅ DONE same day (Debug → `AppIcon-Dev`, RGB-inverted; both apps).
+
+## Audit findings (2026-06-09 post-batch error sweep — triaged, verified against code)
+Two read-only agents swept both apps after the batch; orchestrator verified each claim before listing.
+None are release blockers; fix in a follow-up pass.
+
+**Mobile:**
+- **`[photo N]` markers anchor by WORD COUNT at capture** (`RecordView.swift:83`) but the live caption
+  re-transcribes wholesale, so the token can drift later than the real capture point (clamped, no crash).
+  Fix: anchor by TIME offset (stable across re-transcription) — `LiveCaptionLayout` maps time→word at render.
+- **Recorder teardown hygiene** (`LiveRecordingService.swift`): route observer + timers rely on `stop()`
+  running before `deinit`; an abnormal teardown can leak them (`[weak self]` prevents a crash). Fix: explicit
+  `stopTimers()` + `teardownRouteObserver()` in `deinit`.
+- UX nits: silent video (no audio track) imports as a silently-`failed` memo (no user feedback); a failed
+  video import shows import-time instead of the video's date; rapid photo taps are silently debounced (0.6s).
+- *Dismissed as false positives (so future sweeps don't re-flag): "SwiftData off-main in append" (`MemoSaver`
+  is `@MainActor`); "append audio format corruption" (export re-encodes via `AppleM4A`; merge-failure falls
+  back to base-audio+text by design; temp-export→swap order is safe).*
+
+**Desktop:**
+- **Re-transcribe leaves STALE diarization segments** (`ProcessingCoordinator.retranscribe` resets transcript
+  but not `diarizationSegmentsJSON`/sidecar) → re-transcribed conversation memos can carry old speaker
+  segments → wrong enrollment slices. Fix FIRST: clear segments + delete the sidecar in `retranscribe()`.
+- **Sidecar write is `try?`** (`DiarizationSidecar.swift:47`) — a failed write is silent. SwiftData copy
+  still survives (so no data loss), but log + surface it; the sidecar is the portability/enroll copy.
+- Pre-existing, already-tracked (now slightly more pressing with video uploads): full multipart body
+  buffered in RAM (256 MB cap; `SyncServer.swift:90`); `DispatchQueue.main.sync` SwiftData bridge in the
+  Bonjour handlers (`SkriftDesktopApp.swift:46,59` — deadlock-free only while handlers never run on main);
+  health endpoint vs the model idle-unload interplay (phone may see `available=false` after 60s idle).
+- Minor: HEIC→JPG conversion failure falls back silently w/ a possibly-broken md ref (`IngestService.swift:282`);
+  snapshot PNG write is `try?`; `SpeakerFusion.foldShortIslands` indexing deserves explicit bounds asserts.
