@@ -79,7 +79,10 @@ struct MemoDetailView: View {
         // fallback for iOS < 26 (where glassEffect is unavailable).
         if #available(iOS 26.0, *) {
             playerBarStack
-                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                // A faint light tint so the glass reads as a distinct translucent
+                // panel on the near-black UI (pure .regular refracts content behind
+                // it but is very subtle over dark — verified working, just subtle).
+                .glassEffect(.regular.tint(.white.opacity(0.10)), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 // A hairline + top specular highlight so the glass reads as an EDGE
                 // even over the near-black transcript (Liquid Glass is subtle over a
                 // flat dark surface by design — it only refracts textured content
@@ -335,10 +338,15 @@ private struct SignificanceSlider: View {
             }
             .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { g in value = ((min(1, max(0, g.location.x / w)) * 10).rounded()) / 10 }
-                    .onEnded { _ in onCommit() }
+            // TAP to set (a SpatialTapGesture is discrete, so the paged TabView's
+            // pan can't steal it — unlike a drag, which kept flipping to the next
+            // memo even with .highPriorityGesture). Tap anywhere on the bar.
+            .gesture(
+                SpatialTapGesture()
+                    .onEnded { g in
+                        value = ((min(1, max(0, g.location.x / w)) * 10).rounded()) / 10
+                        onCommit()
+                    }
             )
         }
         .frame(height: 24)
