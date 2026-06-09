@@ -273,12 +273,21 @@ Sortformer device / SeededDiarizer sim), and if ≥2 speakers re-emits the trans
 `**Speaker N:**` turns via SpeakerFusion (monologue stays plain; plain transcript shows first,
 updates when diarization finishes). ✅ **E-core DONE (`ebd0fd9`):** every speaker name is
 tappable → name alert → rewrite that speaker's `**old:**`→`**new:**` prefixes (relabels all
-its turns) + `transcriptUserEdited`. Deployed Release to the iPhone 13. **REMAINING:
-(E-full)** on naming, `enrollSpeaker` + save the voiceprint to the person's `voiceEmbeddings`
-→ cosine auto-match returning speakers next time (right now naming is per-memo text only);
-**(F)** live streaming during recording (feed the record tap to Sortformer). **Device caveat:
-first conversation downloads+compiles the Sortformer bundle (~90s, one-time, then cached) —
-the plain transcript shows, then it re-splits into speakers.**
+its turns) + `transcriptUserEdited`. **DEVICE-VERIFIED by the user: recording in conversation
+mode splits into Speaker 1/2 + tap-to-name works.** ✅ **Device fixes from that test:** the
+record-screen "Conversation" toggle was a dead local @State → bound to `@AppStorage("conversationDefault")`
+(`eda8d92`); an empty (0-frame) recording made a silent note → `stop()` reports real
+file duration + `stopTapped` discards <0.4s with a "Nothing recorded" alert; diarization ran
+invisibly → `DiarizationStatus` banner ("Downloading speaker model… N%" / "Identifying speakers…").
+✅ **B DONE (`c223d2d`):** detail ⋯ "Split speakers" retro-diarizes a memo recorded
+without conversation mode (`MemoSaver.diarizeExisting`).
+**REMAINING: (E-full) voiceprint auto-match — Sortformer enrolls with AUDIO
+(`enrollSpeaker(withAudio:named:)`), NOT embeddings.** Plan: when naming a speaker, extract the
+audio of that speaker's turns from the memo → save a voice sample to the person; on a new
+recording, `enrollSpeaker` each known person's sample BEFORE diarizing → Sortformer auto-labels
+them (user-reported gap: a new recording is still Speaker 1/2 because naming is per-memo text
+only right now). **(F)** live streaming during recording. **Device caveat: first conversation
+downloads+compiles the Sortformer bundle (~90s, one-time, then cached).**
 
 **Still TODO: conversation mode D/E/F (device — per BUILD PROGRESS above), capture items (user
 drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop
