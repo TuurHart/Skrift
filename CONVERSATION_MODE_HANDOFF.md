@@ -8,21 +8,75 @@ all DONE + deployed) and memory `project_unification_backlog`.
 
 ---
 
+## ⭐ STATUS UPDATE — 2026-06-09 session 2 (the embedding pivot is BUILT)
+
+The §4 pivot is **done + sim-verified on both apps**; only on-device ML + live-sync
+verification remain (the phone was OFFLINE this session). Commits (newest first):
+`4d20736` Mac voice indicator · `245db92` Mac diarize pipeline · `9e19baf` phone naming→enroll ·
+`8ccc3d2` phone diarize→match · `f4c5624` phone SpeakerEmbedder+VoiceMatcher · `9f0b8aa` spike.
+
+**DONE + verified:**
+- **Phone identity layer (§4) — embedding-cosine, sim-green.** `SpeakerEmbedder` (wespeaker
+  `extractSpeakerEmbedding`, device-only; `SeededEmbedder` for sim via `EmbedderFactory`),
+  `VoiceMatcher` (pure cosine + multi-embedding max-match), `VoiceEnroller` (embed→`addVoiceEmbedding`,
+  alias-safe). `DiarizationService.diarize` now drops Sortformer-enroll and instead embeds each
+  slot + cosine-matches `NamesStore` voiceprints (loads the 2nd model only when voices exist).
+  `renameSpeaker` → `learnVoice` enrolls the named speaker. `DiarizationStatus` +`downloadingVoiceModel`
+  +`enrolling`. 56 unit + 30 UI tests green (iPhone 17 sim). **Release device build STAGED** at
+  `Skrift_Native/SkriftMobile/build-device/Build/Products/Release-iphoneos/SkriftMobile.app`.
+- **Threshold MEASURED on real audio (DiarizeSpike `--embed/--pair`, M4 ANE):** different people
+  ≤0.22, same person ≥0.62 (in- AND cross-recording) → **threshold = 0.5** (huge gap; favours no
+  false matches). Embeddings are **NOT unit-norm** (|v|≈2.6–2.9) → use TRUE cosine. Require **≥2s**
+  of speaker audio (short clips gave junk 0.16–0.49). Tunable via `UserDefaults("voiceMatchThreshold")`.
+- **Mac diarization (§5.3, "6a") — VERIFIED END-TO-END.** Ported pure `Diarizing`/`SpeakerFusion`/
+  `VoiceMatcher`/`SpeakerTranscript.isAttributed` to `SkriftDesktop/Pipeline/Diarization/`; real
+  `Engines/DiarizationService` (Sortformer + lazy wespeaker match); `BatchRunner` gained an optional
+  `diarizer` + a diarize step (gated on `conversationMode` + audio + word-timings + not-already-
+  attributed + ≥2 speakers) that re-emits `**[[Person]]:**`/`**Speaker N:**` turns; injected in
+  `RunFile`/`ProcessingCoordinator`. `AppSettings.conversationMode` (Optional → legacy-decode-safe).
+  100 UnitTests green; **`-runfile` on the real 2-person fixture split it into correct
+  `**Speaker 1/2:**` turns through the whole pipeline.**
+- **Mac Names & voices voice indicator ("6b-lite")** — green "Voice"/muted "No voice" per person in
+  Settings (snapshot-verified). Parity with the phone.
+
+**PENDING (need the phone / future sessions):**
+1. **Device-test the phone auto-match (THE thing the user is waiting on).** Phone was offline
+   (`tunnelState: unavailable`). When reconnected+unlocked: install the STAGED build (§6), then
+   name people in recording A → record B with the same people → B should auto-label. Tune the 0.5
+   threshold on real device audio if needed. Confirm the "Voice enrolled" badge + that sync writes
+   `voiceEmbeddings`.
+2. **Bidirectional voice-sync verify (§5.4, "6c").** Contract is byte-compatible + both apps union
+   `voiceEmbeddings`, so phone-enroll → Mac-recognize should already work — needs a live round-trip
+   (phone + running Mac server). Then Mac→phone once 6b-full lands.
+3. **Mac-originated enrollment ("6b-full").** Name a speaker in the Mac review UI (`NoteDisplayView`
+   detects `**Speaker N:**`) → embed that speaker's audio → `NamesStore.addVoiceEmbedding` (NOT yet on
+   the desktop store — add it, mirror the phone) → syncs back to the phone. Bigger UI task, deferred.
+4. **(F) Live diarization while recording (§5.5).** Phone; deferred (lowest priority).
+
+The §0 reading list + §1–§2 design below are still accurate. §4 is now BUILT (read it for the design,
+not as a TODO). Skip to "PENDING" above for what's left.
+
+---
+
 ## 0. READ THIS FIRST — mandatory codebase exploration (do NOT skip)
 
 A previous mistake this session: assuming a feature was missing when it already existed
 (there **IS** a Settings → **"Names & voices"** tab). **Before building or claiming
 anything is absent, read the actual code.** Minimum reading list:
 
-**Conversation-mode code already built (phone):**
+**Conversation-mode code already built (phone) — §4 pivot DONE:**
 - `Skrift_Native/SkriftMobile/Services/SpeakerFusion.swift` — `DiarizedSegment` (Codable) + fusion (words+segments → `**Speaker:**` turns, 1-word-island smoothing). 5 unit tests.
-- `Skrift_Native/SkriftMobile/Services/Diarization/DiarizationService.swift` — Sortformer engine (`Diarizing` protocol, `DiarizationOutput{segments, slotNames}`, `DiarizerFactory`, `SeededDiarizer` sim mock). **Currently matches via Sortformer `enrollSpeaker(audio)` — TO PIVOT (see §4).**
-- `Skrift_Native/SkriftMobile/Services/Diarization/DiarizationStore.swift` — per-memo sidecar `diar_<id>.json` (`DiarizationData{segments, slotNames}`).
-- `Skrift_Native/SkriftMobile/Services/Diarization/SpeakerVoiceStore.swift` — per-person **audio** samples (for Sortformer enroll). **Likely replaced by embeddings on the Person (§4).**
-- `Skrift_Native/SkriftMobile/Services/Diarization/DiarizationStatus.swift` — the "Downloading speaker model… / Identifying speakers…" banner state.
+- `Skrift_Native/SkriftMobile/Services/Diarization/DiarizationService.swift` — Sortformer engine. **NOW embedding-cosine matches** (`identifySpeakers`: per-slot `SpeakerEmbedder.embed` → `VoiceMatcher` vs `NamesStore` voiceprints; static `clip()`). `SeededDiarizer` reads enrolled `NamesStore` people.
+- `Skrift_Native/SkriftMobile/Services/Diarization/SpeakerEmbedder.swift` — **NEW.** wespeaker `extractSpeakerEmbedding` actor (device-only) + `EmbedderFactory` + `SeededEmbedder` (sim). `minSamples`=32k(2s), `maxSamples`=160k(10s).
+- `Skrift_Native/SkriftMobile/Services/Diarization/VoiceMatcher.swift` — **NEW.** pure cosine + `bestMatch` (multi-embedding max), threshold 0.5 (UserDefaults-overridable). 8 unit tests.
+- `Skrift_Native/SkriftMobile/Services/Diarization/VoiceEnroller.swift` — **NEW.** `enroll(name:clip:using:)` → `NamesStore.addVoiceEmbedding` (alias-safe). 4 unit tests.
+- `Skrift_Native/SkriftMobile/Services/Diarization/DiarizationStore.swift` — per-memo sidecar `diar_<id>.json`.
+- `Skrift_Native/SkriftMobile/Services/Diarization/SpeakerVoiceStore.swift` — per-person audio samples. **NOW UNUSED** in the active path; kept as the §7 audio-sample fallback.
+- `Skrift_Native/SkriftMobile/Services/Diarization/DiarizationStatus.swift` — banner; +`downloadingVoiceModel`/`enrolling`.
 - `Skrift_Native/SkriftMobile/Features/MemoDetail/SpeakerTurnsView.swift` — `SpeakerTranscript.parse(**Name:**)` + render turns + tap-to-name (`onTag`).
 - `Skrift_Native/SkriftMobile/Features/MemoDetail/ConversationMockView.swift` — design mock (`-conversationMock`).
-- `Skrift_Native/SkriftMobile/Features/MemoDetail/MemoDetailView.swift` — `transcriptSection` (turns vs editor vs karaoke), `renameSpeaker` (rewrites `**old:**`→`**new:**`, currently enrolls audio), ⋯ "Split speakers", status banner, `SignificanceSlider`, `TranscriptEditor` usage.
+- `Skrift_Native/SkriftMobile/Features/MemoDetail/MemoDetailView.swift` — `transcriptSection`, `renameSpeaker`→`learnVoice` (rewrites `**old:**`→`**new:**` THEN embeds the slot + `VoiceEnroller.enroll`), ⋯ "Split speakers", status banner.
+- Test isolation: `-resetNames` launch flag wipes names.json (the split test needs a clean slate).
 - `Skrift_Native/SkriftMobile/Features/Recording/MemoSaver.swift` — `runTranscription` → `diarizeIntoTurns` (on-save, gated by `conversationDefault`) + `diarizeExisting` (retro). `conversationModeOn`.
 - `Skrift_Native/SkriftMobile/Features/Recording/RecordView.swift` — `@AppStorage("conversationDefault")` Conversation toggle; empty-recording guard (`emptyRecording` alert).
 - `Skrift_Native/SkriftMobile/Features/MemoDetail/TranscriptEditor.swift` — the always-editable UITextView body (inline images + write-back).
@@ -32,7 +86,9 @@ anything is absent, read the actual code.** Minimum reading list:
 - `Skrift_Native/SkriftMobile/Services/NamesStore.swift` — `shared`, `load()/save()`, `upsert(canonical:aliases:short:)`, `delete(canonical:)`, **`addVoiceEmbedding(canonical:embedding:)`**, `livePeople()`.
 - `Skrift_Native/SkriftMobile/Features/Names/NamesListView.swift` — **the "Names & voices" tab** (`PersonRow`, `PersonDetailView`, `AddPersonView`, `NamesDisplay.isEnrolled(person)` = `voiceEmbeddings` non-empty, `VoiceBars`). "Add voice" is a **status label only** today — no enroll action wired.
 - Names SYNC contract (the spine): `MOBILE_NATIVE_HANDOFF.md` §4 + `Services/NamesSync*`. `GET /api/names/meta` → `GET` → LWW merge (**union** voiceEmbeddings) → `PUT`. **Byte-compatible across both apps.**
-- Desktop equivalents: `Skrift_Native/SkriftDesktop/` — `NamesStore`, `Models/` Person/VoiceEmbedding, `Features/Settings/SettingsView.swift` (has a Names section), `Pipeline/`/`UploadService`/`BatchRunner` (memo ingest + name-linking + Obsidian export). The desktop links FluidAudio (has Sortformer + `DiarizerManager.extractSpeakerEmbedding`).
+- Desktop equivalents: `Skrift_Native/SkriftDesktop/` — `NamesStore` (has `livePeople`, `writeWithSmartBumps` preserves voiceprints; **NO `addVoiceEmbedding` yet** — add for 6b-full), `Models/NamesData` (byte-identical to phone), `Features/Settings/SettingsView.swift` (Names section + **NEW voice indicator**), `BatchRunner` (+`diarizer` step), `RunFile`/`ProcessingCoordinator` (inject `DiarizationService.shared`).
+- Desktop conversation code (NEW, §5.3 done): `Pipeline/Diarization/{Diarizing,SpeakerFusion,VoiceMatcher}.swift` (pure, in UnitTests), `Engines/DiarizationService.swift` (Sortformer + wespeaker, app-only), `AppSettings.conversationMode`, `SkriftDesktopTests/DiarizationTests.swift` (9 tests). The desktop links FluidAudio (Sortformer + `DiarizerManager.extractSpeakerEmbedding`).
+- **The spike now has `--embed`/`--pair`** (off-device threshold tuning on the Mac's ANE) — `Skrift_Native/DiarizeSpike/`.
 
 **FluidAudio API (the diarization SDK, pinned `branch: main`):**
 - Checkout: `Skrift_Native/SkriftMobile/build/SourcePackages/checkouts/FluidAudio` (or `DiarizeSpike/.build/checkouts/FluidAudio`).
@@ -175,37 +231,40 @@ Video-import is in `backlog.md`. Full detail: `MOBILE_NATIVE_HANDOFF.md`.
 
 ## 9. ▶ NEXT-CHAT PROMPT (paste verbatim)
 
-> Resume the Skrift native rewrite — **conversation mode, identity (voice) layer**. Repo
+> Resume the Skrift native rewrite — **conversation mode, voice identity layer**. Repo
 > `/Users/tiurihartog/Hackerman/Skrift`, branch `native` (= main = origin, clean). Apps under
 > `Skrift_Native/{SkriftMobile,SkriftDesktop}`.
 >
-> **FIRST, before writing ANY code: read `CONVERSATION_MODE_HANDOFF.md` end-to-end and actually DO
-> its §0 — open every file in the exploration list, especially the Settings → "Names & voices" tab
-> (`Features/Names/NamesListView.swift`), `Services/NamesStore.swift`, `Models/NamesData.swift`, and
-> the FluidAudio diarization API. A past mistake was assuming a feature was missing when it existed —
-> don't repeat it.** Also skim `MOBILE_NATIVE_HANDOFF.md` and memory `project_unification_backlog`.
+> **FIRST read `CONVERSATION_MODE_HANDOFF.md` — especially the "⭐ STATUS UPDATE — 2026-06-09
+> session 2" block at the top: the §4 embedding pivot is BUILT + sim-verified on BOTH apps and
+> Mac diarization is verified end-to-end; the code in §0's reading list now EXISTS (read it, don't
+> re-build it). A past mistake was assuming a feature was missing when it existed — verify before
+> building.**
 >
-> State: conversation mode is built + deployed to the iPhone 13 (UDID `00008110-001208C902EA201E`,
-> prod "Skrift") — Sortformer diarization, on-save + retro "Split speakers", tap-to-name, status
-> banner — all device-verified working EXCEPT auto-recognition of previously-named people.
+> What's DONE (don't redo): phone embedding-cosine identity (`SpeakerEmbedder`/`VoiceMatcher`/
+> `VoiceEnroller`; diarize→match; naming→enroll; 56 unit + 30 UI green; **Release device build
+> STAGED** at `Skrift_Native/SkriftMobile/build-device/.../SkriftMobile.app`). Threshold = **0.5**
+> (measured in DiarizeSpike: different ≤0.22, same ≥0.62; embeddings NOT unit-norm; need ≥2s).
+> Mac diarization in `BatchRunner` (Sortformer + match → `**[[Person]]:**`/`**Speaker N:**` turns),
+> `-runfile`-verified on the real 2-person fixture. Mac Settings voice indicator.
 >
-> Locked design (§2): **Sortformer diarizes** on both apps (no quality loss); the portable voice
-> identity is a **wespeaker embedding** on `Person.voiceEmbeddings` (the names sync contract),
-> matched by **cosine** (Sortformer can't ingest embeddings). Bidirectional voice sync; both apps get
-> Names & voices; the **Mac owns canonical `[[ ]]`** + disambiguation.
->
-> Do, in order (§4–§5): **(1) pivot the phone matcher from Sortformer-audio-enrollment to
-> embedding-cosine** — add `SpeakerEmbedder` (wespeaker `DiarizerManager.extractSpeakerEmbedding`,
-> needs `DiarizerModels.downloadIfNeeded()`, a 2nd device model — surface in `DiarizationStatus`);
-> on naming, compute the speaker's embedding → `NamesStore.addVoiceEmbedding` + `upsert` (shows
-> "Voice enrolled" + syncs); on diarize, cosine-match each speaker vs known `voiceEmbeddings` →
-> label. Device-test name-once→recognized-next-recording; tune the cosine threshold (iterate fast
-> in `Skrift_Native/DiarizeSpike`). (2) confirm Names & voices integration. (3) Mac conversation-mode
-> track (desktop Sortformer + voice UI). (4) verify bidirectional voice sync. (5) live diarization (F).
+> Do, in order (the phone was OFFLINE last session — start by checking it's reachable:
+> `xcrun devicectl list devices`):
+> **(1) Device-test the phone auto-match** (THE thing the user wants). Install the staged Release
+> build (UDID `00008110-001208C902EA201E`, unlocked): `xcrun devicectl device install app --device
+> <UDID> <stagedapp>`. Record A, name the speakers, record B with the same people → B should
+> auto-label. Tune the 0.5 threshold on real device audio if it mis/over-matches (iterate in
+> `DiarizeSpike --embed/--pair` on the Mac; the override is `UserDefaults("voiceMatchThreshold")`).
+> Confirm the "Voice enrolled" badge + that sync writes `voiceEmbeddings`.
+> **(2) Verify bidirectional voice sync** (phone enroll → run the Mac server → Mac recognizes; both
+> union `voiceEmbeddings`). **(3) Mac-originated enrollment ("6b-full")**: add `addVoiceEmbedding`
+> to the desktop `NamesStore` + a name-a-speaker affordance in the review UI (`NoteDisplayView`
+> detects `**Speaker N:**` → embed that slot's audio → enroll → syncs back). **(4) (F) live
+> diarization while recording** (phone; lowest priority).
 >
 > Rules: commit per chunk; verify each (iPhone 17 sim build+test; desktop UnitTests +
 > `-skipMacroValidation`); Mobile↔Mac contract byte-exact (union `voiceEmbeddings`, never send
 > `sanitised`). Device deploy = Release + `DEVELOPMENT_TEAM=9W82X49JZS` + devicectl (§6). Diarization
-> is **device-only** (sim has no ANE) — use SeededDiarizer/SeededEmbedder for sim wiring, device-test
-> the ML. Dev=Debug "Skrift Dev"; prod=Release "Skrift". Commit co-author trailer:
+> is **device-only** (sim has no ANE) — SeededDiarizer/SeededEmbedder for sim wiring, device-test the
+> ML. Dev=Debug "Skrift Dev"; prod=Release "Skrift". Commit co-author trailer:
 > `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`.
