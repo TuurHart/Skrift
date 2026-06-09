@@ -28,6 +28,12 @@ struct Person: Codable, Equatable, Sendable {
 
     var isDeleted: Bool { deleted == true }
 
+    /// The bare name (canonical without `[[ ]]`) — used as a matched-speaker turn label.
+    var displayName: String {
+        (canonical.hasPrefix("[[") && canonical.hasSuffix("]]"))
+            ? String(canonical.dropFirst(2).dropLast(2)) : canonical
+    }
+
     init(
         canonical: String,
         aliases: [String] = [],

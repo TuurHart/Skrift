@@ -13,6 +13,9 @@ struct BatchRunner {
     var settings: AppSettings
     var people: [Person]
     var tagWhitelist: [String]
+    /// Conversation-mode diarizer (Sortformer + voiceprint match). nil in tests / when
+    /// engines are stubbed; the real `DiarizationService` is injected in the app + runfile.
+    var diarizer: Diarizing? = nil
 
     /// Run the pipeline on one file, mutating it in place. `audioURL` is nil for
     /// notes/captures whose transcript is already present.
@@ -26,6 +29,21 @@ struct BatchRunner {
                 pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
             }
             pf.transcribeStatus = .done
+        }
+
+        // 1b. Conversation mode: when the Mac transcribed this itself (so we have word
+        // timings) and it isn't already speaker-attributed, diarize + re-emit as
+        // `**[[Person]]:**` (matched) / `**Speaker N:**` turns. A monologue (<2 speakers)
+        // is left as plain prose. The Sanitiser then links any remaining plain aliases;
+        // matched speakers already carry the canonical `[[ ]]` so they're skipped.
+        if let diarizer, settings.conversationModeEnabled, let audioURL,
+           !(pf.transcript ?? "").isEmpty, !pf.wordTimings.isEmpty,
+           !SpeakerTranscript.isAttributed(pf.transcript),
+           let out = try? await diarizer.diarize(audioURL: audioURL),
+           Set(out.segments.map(\.speaker)).count >= 2 {
+            pf.transcript = SpeakerFusion.attributedTranscript(words: pf.wordTimings, segments: out.segments) { slot in
+                out.slotNames[slot].map { "[[\($0)]]" } ?? "Speaker \(slot + 1)"
+            }
         }
 
         let transcript = pf.transcript ?? ""

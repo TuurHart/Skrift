@@ -18,6 +18,17 @@ struct AppSettings: Codable, Equatable, Sendable {
     // equivalent, so it's intentionally not offered — see A4.)
     var highpassFreqHz: Int = 80         // high-pass cutoff in Hz; 0 = off
 
+    // Conversation mode: when on, the Mac diarizes a recording it transcribes itself (an
+    // import, or a phone upload that wasn't already split), re-emitting multi-speaker
+    // transcripts as `**[[Person]]:**` / `**Speaker N:**` turns (matched against synced
+    // voiceprints). A single-speaker recording is left as plain prose. Mirrors the phone's
+    // conversation toggle. Optional so an existing settings.json (written before this
+    // field) still decodes (synthesized Decodable throws on a missing NON-optional key) —
+    // a nil legacy value reads as ON via `conversationModeEnabled`.
+    var conversationMode: Bool? = true
+    /// Effective flag (nil legacy → on).
+    var conversationModeEnabled: Bool { conversationMode ?? true }
+
     static let `default` = AppSettings()
 
     /// LLM prompts — copied verbatim from `DEFAULT_SETTINGS.enhancement.prompts`.

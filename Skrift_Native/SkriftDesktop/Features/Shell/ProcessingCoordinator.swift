@@ -33,6 +33,7 @@ final class ProcessingCoordinator {
     // Process→Ready runs instantly without the 9 GB model.
     private let transcriber: Transcribing
     private let enhancer: Enhancing
+    private let diarizer: Diarizing?
     private let stubbedEngines: Bool
 
     /// Frees the ~9 GB of model weights after the queue goes idle (the Python app
@@ -52,12 +53,14 @@ final class ProcessingCoordinator {
             }
             transcriber = StubTranscriber(text: seed)
             enhancer = StubEnhancer()
+            diarizer = nil
             stubbedEngines = true
             return
         }
         #endif
         transcriber = TranscriptionService.shared
         enhancer = EnhancementService.shared
+        diarizer = DiarizationService.shared
         stubbedEngines = false
     }
 
@@ -106,7 +109,8 @@ final class ProcessingCoordinator {
             enhancer: enhancer,
             settings: settings,
             people: NamesStore.shared.livePeople(),
-            tagWhitelist: tagWhitelist
+            tagWhitelist: tagWhitelist,
+            diarizer: diarizer
         )
 
         // Pre-load the engines up front so the first run shows download/load

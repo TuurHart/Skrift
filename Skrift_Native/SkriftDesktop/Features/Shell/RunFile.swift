@@ -62,7 +62,8 @@ enum RunFile {
                 enhancer: EnhancementService.shared,
                 settings: settings,
                 people: NamesStore.shared.livePeople(),
-                tagWhitelist: []
+                tagWhitelist: [],
+                diarizer: DiarizationService.shared
             )
             let t0 = Date()
             do {
