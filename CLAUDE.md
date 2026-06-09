@@ -64,6 +64,8 @@ xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroV
 
 ## Ledgers (read to resume)
 
+- **`FEATURES.md`** — cross-app feature source of truth (every feature × {mobile, desktop} ×
+  file × status). **Update it in the same commit whenever you add or change a feature.**
 - **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity (current focus): full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
 - `MOBILE_NATIVE_HANDOFF.md` → `MOBILE_NATIVE_REWRITE_PLAN.md` — the iOS app (phases, contract, XCUITest harness).
 - `DESKTOP_NATIVE_HANDOFF.md` → `DESKTOP_NATIVE_REWRITE_PLAN.md` — the macOS app. `WALKTHROUGH_BUGS.md` — desktop walkthrough tracker.

@@ -17,6 +17,17 @@ final class DiarizationTests: XCTestCase {
                        [.init(speaker: 0, text: "Hi there"), .init(speaker: 1, text: "Hello back")])
     }
 
+    func testFusionFoldsPhantomOneWordIsland() {
+        // "Oh" (spk2) sandwiched between spk0 and spk1, timed against spk0 → folds in (parity
+        // with the phone; kills Sortformer's over-segmented interjections).
+        let words = [w("a", 0, 1), w("b", 1, 2), w("Oh", 2.0, 2.2), w("c", 5, 6), w("d", 6, 7)]
+        let segs = [DiarizedSegment(speaker: 0, start: 0, end: 2),
+                    DiarizedSegment(speaker: 2, start: 2, end: 2.3),
+                    DiarizedSegment(speaker: 1, start: 5, end: 7)]
+        XCTAssertEqual(SpeakerFusion.turns(words: words, segments: segs),
+                       [.init(speaker: 0, text: "a b Oh"), .init(speaker: 1, text: "c d")])
+    }
+
     func testFusionAttributedMarkdownUsesNameClosure() {
         let words = [w("Hi", 0, 1), w("Hello", 3, 4)]
         let segs = [DiarizedSegment(speaker: 0, start: 0, end: 2), DiarizedSegment(speaker: 1, start: 2, end: 5)]

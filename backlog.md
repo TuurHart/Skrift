@@ -112,3 +112,19 @@ real data OS-guaranteed safe from dev churn. **Approach = bundle-ID split** (cho
 - **Re-ingest the ~30 old notes** from `~/Desktop/Skrift old notes/` — run the existing ingest over
   them (DO WITH the user: needs the prod desktop app quit for the shared-store race, and it writes
   into the REAL Obsidian vault).
+- **In-app feedback → `backlog.md` (not just email)** — today dictated/typed feedback is emailed
+  (mobile `Features/Feedback/FeedbackCaptureView.swift` → `FeedbackMailComposer`, recipient
+  `tiurihartog@icloud.com`; desktop has none yet). Idea: route feedback straight into this
+  `backlog.md` so ideas become triage-ready items without copy-paste. **Constraint:** `backlog.md`
+  lives in the repo (Mac/dev side) — the phone can't write it directly. Options: (a) sync feedback
+  phone→Mac like memos, then the Mac appends to a dedicated `## Inbox (from in-app feedback)` section
+  here; (b) a small scheduled agent reads the feedback inbox/email and appends + lightly tidies into
+  the right section; (c) the desktop feedback module writes locally. Open Q: append raw vs. have an
+  agent dedupe/route into existing sections. Pairs with the feedback port (item 4 above).
+- **Show downloaded models in phone Settings** — a Settings → "Models / Storage" section listing
+  the on-device models (Parakeet ASR; the diarization + voiceprint models once enrolled): downloaded?
+  size, version, and optional actions (re-download, delete to free space). The state already exists
+  (onboarding download + the record-ready preload status, `RecordView.swift:271-292`) — surface it in
+  `Features/Settings/SettingsView.swift`. **Unification:** desktop also downloads models (~600 MB ASR
+  + ~9 GB Gemma) — mirror a Models/Storage view on Mac Settings (ties to the desktop model-unload
+  idle-timer backlog item). Open Q: read-only display vs. management (delete/re-download).

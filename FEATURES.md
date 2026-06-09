@@ -1,0 +1,157 @@
+# Skrift — Feature Source of Truth
+
+One table of every feature across **both** native apps: what it does, which app has
+it, where it lives, and its status. This is the canonical map — when you add or change
+a feature, **update this file in the same commit**. Linked from `CLAUDE.md`.
+
+Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `SkriftDesktop/`.
+
+**Status legend:** ✅ shipped · 🟡 partial · 🧩 stub/placeholder · ➖ not present (by design or not yet)
+
+> Generated 2026-06-09 from a full read of both codebases. The contract spine
+> (multipart upload, RAW transcript, names LWW) is in `CLAUDE.md` "Hard rules".
+
+---
+
+## Recording & live transcription  *(mobile-owned)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Record / pause / resume / stop | ✅ | ➖ | `Features/Recording/RecordView.swift:188-219` | Pause hides paused interval from elapsed time |
+| Live caption (color-by-**age** gradient) | ✅ | ➖ | `RecordView.swift:417-448` (LiveCaption) | old=faint → newest 6 words=bright + accent caret. **No color-by-confidence, no auto-scroll** (targets) |
+| Live waveform (40-bar) | ✅ | ➖ | `RecordView.swift:453-480` | |
+| Model preload status | ✅ | n/a | `RecordView.swift:271-292` | Shows on *ready* screen; during record-while-loading the caption is just empty (target: in-place "model loading" placeholder) |
+| Caption polling | ✅ | ➖ | `Services/Recording/LiveRecordingService.swift:231-243` | 0.6s timer |
+| Audio-route-change handling (AirPods pull-out) | 🟡 | n/a | `LiveRecordingService.swift:177-218` | `.allowBluetooth` set but **no `routeChangeNotification` handling / recovery** (target) |
+| Conversation-mode toggle (diarize this take) | ✅ | ✅ | `RecordView.swift:100-111` · desktop `Models/AppSettings.swift:28-30` | |
+| Append to an existing recording | ✅ (menu) | ➖ | `Features/MemoDetail/MemoDetailView.swift:82-83`; merge `MemoSaver.swift:85-125` | Lives in the ⋯ menu, **not** a top-right button. Coded to work; reported broken on device (verify) |
+
+## Memo detail & playback  *(mobile)* / Review surface *(desktop)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Editable transcript | ✅ | ✅ | mobile `MemoDetail/TranscriptEditor.swift`; desktop `Features/Review/BodyTextView.swift` | Both self-sizing native text views w/ inline image attachments + live `[[link]]` styling |
+| Keyboard dismiss on scroll | 🟡 | n/a | `TranscriptEditor.swift:31` | Inner editor has `.interactive`; **outer page ScrollView may not dismiss on scroll** (target) |
+| Karaoke (word highlight + tap-to-seek) | ✅ | ✅ | mobile `MemoDetailView.swift:499-545`; desktop `Features/Review/NoteBody.swift:74-80` | |
+| Playback bar (Liquid Glass) | ✅ | ➖ | `MemoDetailView.swift:603-674` | iOS-26 `glassEffect`, `.ultraThinMaterial` fallback. **Desktop has no glass** (target) |
+| Title editor | ✅ | ✅ | mobile `MemoDetailView.swift:189-195`; desktop `Features/Review/NoteProperties.swift:25-103` | Desktop = two-title chooser (Suggested vs From-recording) |
+| Significance slider (gates sync) | ✅ | ✅ | mobile `MemoDetailView.swift:221`, `Models/Memo.swift:57`; desktop `NoteProperties.swift:118` | **Mobile gating is LIVE** (below). 0–1, snap 0.1 |
+| Tags add/remove | ✅ | ✅ | mobile `MemoDetailView.swift:201-217`; desktop `NoteProperties.swift:120` | |
+| Copy transcript / delete | ✅ | ✅ | `MemoDetailView.swift:84-90` | |
+| Speaker turns + name-a-speaker | ✅ | ✅ | mobile `MemoDetail/SpeakerTurnsView.swift`; desktop `Features/Review/InlineResolver.swift` | Mobile inline relabel; desktop ambiguous-name resolver (per-alias + per-occurrence) |
+| Context chips (place/weather/time) | ✅ | ✅ | `MemoDetailView.swift:343-357`; desktop frontmatter | |
+| Horizontal paging between memos | ✅ | n/a | `MemoDetailView.swift:31-56` | |
+
+## Memos list  *(mobile)* / Sidebar queue *(desktop)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| List / queue | ✅ | ✅ | mobile `Features/MemosList/MemosListView.swift`; desktop `Features/Sidebar/SidebarView.swift` | Desktop groups by status (Queued/Transcribed/Ready/Exported) |
+| Row label source | 🟡 | ✅ | `MemosListView.swift:440-443` | **Mobile row shows transcript first-line, NOT the user-set `title`** (target B2). Desktop shows title |
+| Status pill (synced/waiting/transcribing) | 🟡 | ✅ | `MemosListView.swift:412-414`; `Models/MemoDisplay.swift:34-38` | **A significance-0 memo still shows "Waiting" though it will never sync** (target B3) |
+| Search / sort / filter | ✅ | ✅ | `MemosListView.swift:290-332` | place / has-photos / unsynced filters |
+| Multi-select + delete + swipe-to-delete | ✅ | ✅ | `MemosListView.swift:100-105, 146-154` | |
+| Sync button + status banner | ✅ | n/a | `MemosListView.swift:161-216` | |
+
+## Photos during recording
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| In-record camera + zoom + shutter | ✅ | n/a | `Features/Recording/CameraSheet.swift` | Camera stays open while recording continues |
+| Photo-count badge | ✅ | n/a | `RecordView.swift:227-237` | |
+| `[[img_NNN]]` markers in transcript | ✅ | ✅ | mobile `TranscriptEditor.swift:102-122`; desktop `Pipeline/Transcription/ImageMarkers.swift` | Injected at capture offset |
+| Inline `[photo N]` token in **live** caption | ➖ | n/a | — | **Not shown live** (target F4) |
+| `[[img]]` → Obsidian embed on export | n/a | ✅ | desktop `Pipeline/Export/VaultExporter.swift:84-114` | |
+
+## Names & voices  *(both — synced)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Names list + add/edit/delete | ✅ | ✅ | mobile `Features/Names/NamesListView.swift`; desktop `Features/Settings/SettingsView.swift:93-129` | |
+| Names LWW sync (union voiceEmbeddings) | ✅ | ✅ | `Models/NamesData.swift:147-177` (desktop) | byte-compatible both apps |
+| Voiceprint enrollment | 🧩 | ✅ | mobile `Features/Names/PersonDetailView.swift:99-136` | **Mobile = placeholder** (enroll only via conversation naming). Direct "record a sample" enroll is a backlog item |
+| Voice match (cosine, thr 0.5) | ✅ (match) | ✅ | desktop `Pipeline/Diarization/VoiceMatcher.swift:19-42` | |
+
+## Diarization / conversation mode
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Diarize (Sortformer) + fuse to turns | 🟡 | ✅ | desktop `Engines/DiarizationService.swift`, `Pipeline/Diarization/SpeakerFusion.swift` | Mobile records w/ conversation toggle; heavy fusion is desktop-side |
+| Split-speakers on an existing memo | ✅ (menu) | ✅ | `MemoDetailView.swift:86-88` | |
+
+## Sync & contract  *(the spine)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Significance-gated upload (flag-to-send) | ✅ | ✅ (reads) | mobile `Services/Sync/SyncCoordinator.swift:34`; desktop `Pipeline/Ingest/UploadService.swift:44-46` | **LIVE**: only `significance > 0` uploads. Desktop pre-fills its slider from the sent value |
+| Multipart `POST /api/files/upload` (RAW transcript, never sanitised) | ✅ | ✅ | desktop `Server/SyncHandlers.swift:37-38`, `UploadService.swift` | reads `title`, `significance`, `transcriptUserEdited`, `transcriptConfidence`, `imageManifest` |
+| Names meta/get/put + LWW | ✅ | ✅ | `SyncHandlers.swift:55-71` | |
+| Bonjour discovery / advertise | ✅ | ✅ | mobile `Features/Settings/PairMacView.swift`; desktop `Server/SyncServer.swift:51-64` | Desktop advertises unique host name; phone resolves IPv4 |
+| Health endpoint | ✅ | ✅ | `SyncHandlers.swift:50-53` | reports FluidAudio "parakeet" availability |
+
+## Ingest / import
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Audio file import (share / open-in) | ✅ | ✅ | mobile `App/AppURLHandler.swift`, `MemoSaver.swift:39-69`; desktop `Pipeline/Ingest/IngestService.swift:41-61` | |
+| Folder / drag-drop ingest | n/a | ✅ | desktop `SidebarView.swift:39-62`, `IngestService.swift:201-211` | |
+| Apple-Notes import (+HEIC→JPG relink) | n/a | ✅ | desktop `IngestService.swift:63-94, 128-170` | |
+| **Video import → extract audio** | ➖ | ➖ | mobile `AppURLHandler`; desktop `IngestService.swift:34-39`, `UploadService.swift:23` | **NEITHER app accepts video** (target C). Plan + open Qs in `backlog.md:15` |
+| Capture items (share URL/text/image) | ➖ | ➖ | — | Big deferred cross-app feature (`backlog.md:73`) |
+
+## Transcription engine *(desktop in-process)* / on-device *(mobile)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| FluidAudio / Parakeet ASR | ✅ | ✅ | desktop `Engines/TranscriptionService.swift` | word timings, phantom-transcript guard |
+| Audio preprocessing (high-pass + normalize) | — | ✅ | desktop `Engines/AudioPreprocessor.swift` | `highpassFreqHz`, default 80 Hz |
+| BPE merge / image-marker injection | — | ✅ | desktop `Pipeline/Transcription/BPEMerge.swift`, `ImageMarkers.swift` | |
+
+## Enhancement (Gemma 4 E4B, mlx-swift) *(desktop)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Copy-edit / title / summary | ➖ | ✅ | `Engines/EnhancementService.swift:49-65` | runs on RAW transcript; `[[img]]` stripped + reinserted via anchors |
+| Prompt templates (configurable) | ➖ | ✅ | `Models/AppSettings.swift:37-76` | |
+
+## Name-linking, tagging, export *(desktop)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Sanitiser (alias→`[[Canonical]]`, ambiguity) | ➖ | ✅ | `Pipeline/Sanitisation/Sanitiser.swift:21-90` | per-alias + per-occurrence ("two Jacks") resolver |
+| Deterministic tags (NLTagger lemma + spoken #) | ➖ | ✅ | `Pipeline/Tags/TagMatcher.swift` | |
+| Vault tag scan (privacy: app-only) | ➖ | ✅ | `Pipeline/Tags/VaultTagScanner.swift:13-72` | |
+| Compile Obsidian markdown (YAML frontmatter) | ➖ | ✅ | `Pipeline/Export/Compiler.swift:24-87` | title/date/author/source/location/weather/tags/significance/summary |
+| Export to vault + **copy audio** (per-note toggle) | ➖ | ✅ | `Pipeline/Export/VaultExporter.swift:20-79`; toggle `NoteProperties.swift:127-140` | `includeAudioInExport` (default on) → copies `.m4a` to audio subfolder |
+
+## Settings / onboarding
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Settings | ✅ | ✅ | mobile `Features/Settings/SettingsView.swift`; desktop same path | Desktop adds vault/author/model/prompts/preprocessing |
+| First-run setup | ✅ (onboarding) | ✅ (wizard) | mobile `Features/Onboarding/OnboardingView.swift`; desktop `Features/Settings/SetupWizardView.swift` | |
+| Theme (Light/Dark/Auto) | ✅ | ✅ | `SettingsView.swift` | |
+| Send feedback (record+type+screenshot→Mail) | ✅ | ➖ | mobile `Features/Feedback/FeedbackCaptureView.swift` | Desktop port deferred |
+
+## Widgets / intents / share *(mobile)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Live Activity + Dynamic Island (record) | ✅ | n/a | `SkriftWidget/SkriftLiveActivity.swift` | Stop button intent |
+| Start-recording intent (Siri / Control Center) | ✅ | n/a | `App/Intents/StartRecordingIntent.swift` | plain `AppIntent` + `openAppWhenRun` (SIGTRAP-safe) |
+| Lock/Home record widget · `skrift://record` | ✅ | n/a | `SkriftWidget/RecordWidget.swift`, `AppURLHandler.swift:20-22` | |
+
+## Metadata / sensors *(mobile)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Location / weather / day-period / steps / pressure | ✅ | (consumes) | mobile `Services/Metadata/*`; desktop `Compiler.swift:3-17` (PhoneMetadata) | Phone captures, Mac renders into frontmatter |
+
+---
+
+## Known targets (open work as of 2026-06-09)
+See `backlog.md` for the full list. Active batch:
+- **B (mobile record screen):** model-loading placeholder, live auto-scroll, color-by-confidence, inline `[photo N]`, AirPods route-change robustness, append-flow verify, keyboard-dismiss-on-scroll.
+- **A (mobile list):** surface user `title` on rows; suppress "Waiting" on significance-0 memos.
+- **C (cross-app):** video import → audio extraction (mobile import path + desktop ingest).
+- **D (desktop):** Liquid Glass pass (player bar / sidebar).

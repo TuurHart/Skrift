@@ -15,6 +15,7 @@ enum SpeakerFusion {
         let segs = segments.sorted { $0.start < $1.start }
         var labels = words.map { speaker(at: ($0.start + $0.end) / 2, segs: segs) }
         labels = smooth(labels, minRun: minTurnWords)
+        labels = foldShortIslands(labels, words: words)
 
         var turns: [Turn] = []
         var i = 0
@@ -41,6 +42,37 @@ enum SpeakerFusion {
     private static func speaker(at t: Double, segs: [DiarizedSegment]) -> Int {
         if let s = segs.first(where: { t >= $0.start && t <= $0.end }) { return s.speaker }
         return segs.min(by: { abs(($0.start + $0.end) / 2 - t) < abs(($1.start + $1.end) / 2 - t) })?.speaker ?? 0
+    }
+
+    /// Fold a tiny island (≤ `maxIslandWords`) flanked by DIFFERENT speakers into whichever
+    /// neighbor is nearer in time — catches Sortformer over-segmenting a short interjection
+    /// into its own slot. The same-speaker case is handled by `smooth`. Mirrors the phone.
+    private static func foldShortIslands(_ labels: [Int], words: [WordTiming], maxIslandWords: Int = 1) -> [Int] {
+        guard labels.count > 2, words.count == labels.count else { return labels }
+        var out = labels
+        var i = 0
+        while i < out.count {
+            var j = i
+            while j < out.count, out[j] == out[i] { j += 1 }   // run [i, j)
+            if j - i <= maxIslandWords {
+                let s = out[i]
+                let before: Int? = i > 0 ? out[i - 1] : nil
+                let after: Int? = j < out.count ? out[j] : nil
+                let target: Int?
+                switch (before, after) {
+                case let (b?, a?) where b != s && a != s:
+                    let gapBefore = words[i].start - words[i - 1].end
+                    let gapAfter = words[j].start - words[j - 1].end
+                    target = gapBefore <= gapAfter ? b : a
+                case let (b?, nil) where b != s: target = b
+                case let (nil, a?) where a != s: target = a
+                default: target = nil
+                }
+                if let target { for k in i..<j { out[k] = target } }
+            }
+            i = j
+        }
+        return out
     }
 
     /// Relabel runs shorter than `minRun` words that are flanked by the same speaker.
