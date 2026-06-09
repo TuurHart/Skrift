@@ -213,8 +213,13 @@ struct NoteDisplayView: View {
         }
     }
 
+    /// The pinned transport + actions bar, given a Liquid Glass treatment so it reads
+    /// as a floating surface over the scrolling note (visual parity with the mobile
+    /// playback bar's `glassEffect`). On macOS < 26 it falls back to `.ultraThinMaterial`
+    /// with a hairline + shadow. Inset horizontally so the glass capsule floats rather
+    /// than spanning edge-to-edge.
     private func toolbarBar(_ file: PipelineFile) -> some View {
-        HStack(spacing: 16) {
+        let inner = HStack(spacing: 16) {
             if showsTransport(file) {
                 NoteToolbar(audio: audio, durationSeconds: file.durationSeconds)
             } else {
@@ -222,11 +227,36 @@ struct NoteDisplayView: View {
             }
             NoteActions(file: file, coordinator: coordinator)
         }
-        .padding(.horizontal, 28)
-        .frame(height: 48)
-        .background(Theme.hairline.opacity(0.012))
-        .overlay(alignment: .top) { hairline }
-        .overlay(alignment: .bottom) { hairline }
+        .padding(.horizontal, 18)
+        .frame(height: 44)
+
+        return Group {
+            if #available(macOS 26.0, *) {
+                // Real Liquid Glass: the note text/properties refract through the bar
+                // as they scroll under it. The specular-highlight stroke keeps it
+                // reading as an EDGE over the near-flat dark surface (Liquid Glass is
+                // subtle over flat backgrounds by design).
+                inner
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(colors: [Theme.hairline.opacity(0.22), Theme.hairline.opacity(0.03)],
+                                               startPoint: .top, endPoint: .bottom),
+                                lineWidth: 0.8)
+                    )
+            } else {
+                inner
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Theme.hairline.opacity(0.10), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(0.22), radius: 14, y: 5)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
     }
 
     private var emptyState: some View {
@@ -239,10 +269,6 @@ struct NoteDisplayView: View {
                 .foregroundStyle(Theme.textMuted)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var hairline: some View {
-        Rectangle().fill(Theme.hairline.opacity(0.07)).frame(height: 0.5)
     }
 
     /// Audio transport for any non-note source with playable audio — a real file on
