@@ -118,9 +118,11 @@ targets:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev
           SKRIFT_DISPLAY_NAME: Skrift Dev
+          ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon-Dev   # inverted-color dev icon
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile
           SKRIFT_DISPLAY_NAME: Skrift
+          ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - package: FluidAudio
         product: FluidAudio
