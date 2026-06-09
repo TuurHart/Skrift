@@ -101,6 +101,27 @@ final class NamesStore {
         return save(NamesData(lastModifiedAt: now, people: normalised))
     }
 
+    /// Append a voiceprint to a person (de-duped by vector, union — multi-embedding,
+    /// never averaged) and bump `lastModifiedAt` so it syncs; creates the person if new,
+    /// resurrects a tombstone. Alias-SAFE (never touches aliases/short). Mirrors the
+    /// phone's `NamesStore.addVoiceEmbedding` — Mac-originated enrollment syncs back.
+    func addVoiceEmbedding(canonical: String, embedding: VoiceEmbedding) {
+        let c = NamesMerge.normaliseCanonical(canonical)
+        guard !c.isEmpty, !embedding.vector.isEmpty else { return }
+        var data = load()
+        if let idx = data.people.firstIndex(where: { $0.canonical == c }) {
+            var p = data.people[idx]
+            p.voiceEmbeddings = NamesMerge.unionEmbeddings(p.voiceEmbeddings, [embedding]) ?? [embedding]
+            p.deleted = nil
+            p.lastModifiedAt = ISO8601.now()
+            data.people[idx] = p
+        } else {
+            data.people.append(Person(canonical: c, aliases: [], short: nil,
+                                      voiceEmbeddings: [embedding], lastModifiedAt: ISO8601.now()))
+        }
+        _ = save(data)
+    }
+
     /// Drop tombstones older than `maxAgeDays`. Returns the count pruned.
     @discardableResult
     func pruneOldTombstones(maxAgeDays: Int = 90) -> Int {

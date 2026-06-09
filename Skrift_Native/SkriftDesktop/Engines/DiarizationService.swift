@@ -56,24 +56,39 @@ actor DiarizationService: Diarizing {
         let people = NamesStore.shared.livePeople().filter { !($0.voiceEmbeddings?.isEmpty ?? true) }
         guard !people.isEmpty else { return [:] }
 
-        if embedderManager == nil {
-            let models = try await DiarizerModels.downloadIfNeeded()
-            let m = DiarizerManager()
-            m.initialize(models: models)
-            embedderManager = m
-        }
-        guard let embedderManager else { return [:] }
-
         var slotNames: [Int: String] = [:]
         for slot in Set(segments.map(\.speaker)).sorted() {
             let clip = Self.clip(segments.filter { $0.speaker == slot }, from: samples)
-            guard clip.count >= Self.minSamples,
-                  let embedding = try? embedderManager.extractSpeakerEmbedding(from: clip) else { continue }
+            guard let embedding = try? await embed(samples: clip) else { continue }
             if let match = VoiceMatcher.bestMatch(embedding: embedding, people: people) {
                 slotNames[slot] = match.person.displayName
             }
         }
         return slotNames
+    }
+
+    /// Load the wespeaker bundle (lazy, cached) — the 2nd model beyond Sortformer.
+    func ensureEmbedderLoaded() async throws {
+        guard embedderManager == nil else { return }
+        let models = try await DiarizerModels.downloadIfNeeded()
+        let m = DiarizerManager()
+        m.initialize(models: models)
+        embedderManager = m
+    }
+
+    /// A 256-dim wespeaker voiceprint for one speaker's clip (≥2s; capped at 10s). nil if
+    /// too short. The shared embed path for matching AND Mac-originated enrollment.
+    func embed(samples: [Float]) async throws -> [Float]? {
+        guard samples.count >= Self.minSamples else { return nil }
+        try await ensureEmbedderLoaded()
+        return try embedderManager?.extractSpeakerEmbedding(from: Array(samples.prefix(Self.maxSamples)))
+    }
+
+    /// Embed a specific diarized speaker's audio from a memo file — for Mac-originated
+    /// enrollment (name a speaker in review → learn their voice → syncs back to the phone).
+    func embedSpeaker(audioURL: URL, segments: [DiarizedSegment], slot: Int) async throws -> [Float]? {
+        let samples = try AudioConverter(sampleRate: 16000).resampleAudioFile(audioURL)
+        return try await embed(samples: Self.clip(segments.filter { $0.speaker == slot }, from: samples))
     }
 
     /// Concatenate a slot's segments' audio (time-ordered, 16kHz mono) into one clip,

@@ -134,6 +134,26 @@ final class NamesStoreTests: XCTestCase {
         XCTAssertEqual(store.livePeople().map(\.canonical), ["[[Nick]]"])
     }
 
+    func testAddVoiceEmbeddingUnionsCreatesAndIsAliasSafe() {
+        let store = tempStore()
+        // Pre-existing (Mac-aliased) person; enrolling must NOT wipe aliases/short.
+        _ = store.save(NamesData(lastModifiedAt: "2026-06-01T00:00:00.000Z", people: [
+            Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tuur"], short: "Tiuri",
+                   lastModifiedAt: "2026-06-01T00:00:00.000Z")
+        ]))
+        store.addVoiceEmbedding(canonical: "Tiuri Hartog", embedding: VoiceEmbedding(vector: [1, 2, 3], condition: "voiceloop"))
+        store.addVoiceEmbedding(canonical: "Tiuri Hartog", embedding: VoiceEmbedding(vector: [1, 2, 3]))   // dup → no-op
+        store.addVoiceEmbedding(canonical: "Tiuri Hartog", embedding: VoiceEmbedding(vector: [4, 5, 6]))
+        let tiuri = store.livePeople().first { $0.displayName == "Tiuri Hartog" }
+        XCTAssertEqual(tiuri?.aliases, ["Tuur"], "aliases must survive enrollment")
+        XCTAssertEqual(tiuri?.short, "Tiuri")
+        XCTAssertEqual(tiuri?.voiceEmbeddings?.count, 2)   // union + dedup
+
+        // Brand-new person is created by enrollment.
+        store.addVoiceEmbedding(canonical: "[[Roksana]]", embedding: VoiceEmbedding(vector: [7, 8]))
+        XCTAssertEqual(store.livePeople().first { $0.displayName == "Roksana" }?.voiceEmbeddings?.count, 1)
+    }
+
     func testSmartBumpsPreserveVoiceEmbeddings() {
         let store = tempStore()
         // Phone enrolled an embedding (simulate by saving directly).

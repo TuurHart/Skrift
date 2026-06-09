@@ -25,6 +25,57 @@ enum RunFile {
         }
     }
 
+    /// `-voiceloop <enrollAudio> <recognizeAudio>` → prove the conversation-mode IDENTITY
+    /// loop end-to-end on REAL audio, headlessly (the Mac runs the same wespeaker model as
+    /// the phone): diarize A, enroll its dominant speaker as [[VoiceLoopTest]], then diarize
+    /// B and report whether B auto-labels that voice (+ the raw cosine). Isolates the dev
+    /// names store (backs up → clears → restores) so only the test voiceprint exists. DEBUG.
+    nonisolated static func runVoiceLoopIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-voiceloop"), i + 2 < args.count else { return }
+        let aPath = args[i + 1], bPath = args[i + 2]
+        Task.detached(priority: .userInitiated) {
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            log("== VOICELOOP enroll=\((aPath as NSString).lastPathComponent) recognize=\((bPath as NSString).lastPathComponent) ==")
+            let svc = DiarizationService.shared
+            let namesURL = AppPaths.namesFile
+            let backup = try? Data(contentsOf: namesURL)
+            try? FileManager.default.removeItem(at: namesURL)   // isolate: only our test voiceprint
+            do {
+                let a = try await svc.diarize(audioURL: URL(fileURLWithPath: aPath))
+                guard let aSlot = dominantSlot(a.segments),
+                      let aEmb = try await svc.embedSpeaker(audioURL: URL(fileURLWithPath: aPath), segments: a.segments, slot: aSlot) else {
+                    log(">>> couldn't enroll A's dominant speaker"); restore(backup, namesURL, log); exit(1)
+                }
+                NamesStore.shared.addVoiceEmbedding(canonical: "VoiceLoopTest",
+                    embedding: VoiceEmbedding(vector: aEmb.map(Double.init), condition: "voiceloop", addedAt: ISO8601.now()))
+                log(">>> enrolled A spk\(aSlot) as [[VoiceLoopTest]]")
+
+                let b = try await svc.diarize(audioURL: URL(fileURLWithPath: bPath))
+                if let bSlot = dominantSlot(b.segments),
+                   let bEmb = try await svc.embedSpeaker(audioURL: URL(fileURLWithPath: bPath), segments: b.segments, slot: bSlot) {
+                    log(String(format: ">>> cosine(A spk%d, B spk%d) = %.4f  (threshold %.2f)", aSlot, bSlot,
+                               VoiceMatcher.cosine(aEmb, bEmb), VoiceMatcher.threshold))
+                }
+                let matched = b.slotNames.values.contains("VoiceLoopTest")
+                log(">>> B slotNames: \(b.slotNames)")
+                log(matched ? ">>> RECOGNIZED — B auto-labeled the enrolled voice" : ">>> NOT recognized in B")
+            } catch { log(">>> ERROR: \(error)") }
+            restore(backup, namesURL, log)
+            exit(0)
+        }
+    }
+
+    private static func dominantSlot(_ segs: [DiarizedSegment]) -> Int? {
+        Dictionary(grouping: segs, by: \.speaker)
+            .mapValues { $0.reduce(0.0) { $0 + ($1.end - $1.start) } }
+            .max(by: { $0.value < $1.value })?.key
+    }
+    private static func restore(_ backup: Data?, _ url: URL, _ log: (String) -> Void) {
+        if let backup { try? backup.write(to: url) } else { try? FileManager.default.removeItem(at: url) }
+        log(">>> dev names store restored")
+    }
+
     nonisolated static func runIfRequested() {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-runfile"), i + 1 < args.count else { return }
