@@ -28,6 +28,21 @@
 				<string>public.mpeg-4</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Video</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.movie</string>
+				<string>public.video</string>
+				<string>public.mpeg-4</string>
+				<string>com.apple.quicktime-movie</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
@@ -75,6 +90,8 @@
 	<string>Skrift records audio to transcribe your speech. Recording only happens when you trigger it.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Skrift records your step count alongside a memo for context.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Skrift imports a video you pick, transcribing its audio and tagging the memo with when the video was recorded.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIBackgroundModes</key>
