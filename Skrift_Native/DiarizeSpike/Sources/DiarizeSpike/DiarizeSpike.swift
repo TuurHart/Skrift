@@ -36,6 +36,29 @@ struct DiarizeSpike {
                                  Double(s.endTime - s.startTime)))
                 }
             }
+
+            // Optional fusion: assign each transcribed word (from a wt_*.json sidecar)
+            // to the speaker whose segment covers its midpoint, group consecutive words
+            // into turns → the real `**Speaker N:**` attributed transcript.
+            if CommandLine.arguments.count > 2 {
+                struct Seg { let slot: Int; let start: Double; let end: Double }
+                struct WT: Decodable { let word: String; let start: Double; let end: Double }
+                let flat = active.flatMap { slot, segs in segs.map { Seg(slot: slot, start: Double($0.startTime), end: Double($0.endTime)) } }
+                    .sorted { $0.start < $1.start }
+                let words = try JSONDecoder().decode([WT].self, from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[2])))
+                func speaker(at t: Double) -> Int {
+                    if let s = flat.first(where: { t >= $0.start && t <= $0.end }) { return s.slot }
+                    return flat.min(by: { abs(($0.start + $0.end) / 2 - t) < abs(($1.start + $1.end) / 2 - t) })?.slot ?? 0
+                }
+                var turns: [(Int, [String])] = []
+                for w in words {
+                    let spk = speaker(at: (w.start + w.end) / 2)
+                    if turns.last?.0 == spk { turns[turns.count - 1].1.append(w.word) }
+                    else { turns.append((spk, [w.word])) }
+                }
+                print("\n=== fused attributed transcript (\(turns.count) turns) ===")
+                for (slot, ws) in turns { print("**Speaker \(slot + 1):** \(ws.joined(separator: " "))\n") }
+            }
         } catch {
             err("❌ ERROR: \(error)")
             exit(1)
