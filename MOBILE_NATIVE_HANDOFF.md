@@ -244,13 +244,22 @@ Timeline). Per-speaker COLOR is app-only WYSIWYG chrome (Markdown carries no col
 **Diarization runs LIVE while recording** (Sortformer streaming) + finalize on save. (c)
 Tag-as-you-go: tap a speaker label → assign name → rewrite that speaker's prefixes + `enrollSpeaker`
 + save to the person's `voiceEmbeddings` → auto-match next time.
-**Next: (3) mock the speaker-split / tag UI (bold-name turns + per-speaker tint + tap-to-name);
-(4) `DiarizationService` on SORTFORMER (streaming during recording — feed the same AVAudioEngine
-tap that drives live caption + offline `processComplete` for existing memos) + turn→word-timing
-fusion to build the `**Speaker:**`-prefixed transcript + tag affordance + cosine-match to names'
-`voiceEmbeddings`. Needs device (ANE) — the sim has no ANE, so diarization (like ASR) can't run
-there; device-test like the ASR path. The transcript rendering (bold `**Name:**` + tint) IS
-sim-testable; the diarization is device-only.**
+**(3) UI MOCK DONE (`18b3998`, `ConversationMockView`, `-conversationMock`):** bold-name turns
++ per-speaker color (dot/left-edge/tint) + "+ name" tag affordance; user approved the look.
+Screenshots `~/Desktop/conversation-mock/{dark,light}.png`.
+**(3b) FUSION VALIDATED (`a98b769`):** `DiarizeSpike <audio> <wt.json>` now assigns each word to
+the speaker whose segment covers its midpoint → `**Speaker N:**` turns. On the real memo this
+matched the user's MANUAL ground-truth alternation (Spk1/2/1/2) EXACTLY — only error = a single
+stray word ("But") became a micro-turn. **Fix in the service: merge ultra-short (≤1–2 word /
+<~0.5s) turns into the neighbour.**
+**Next (THE BUILD, device-dependent): (4) `DiarizationService` on SORTFORMER (streaming during
+recording — feed the same AVAudioEngine tap that drives live caption + offline `processComplete`
+for existing memos) + the turn→word-timing fusion (with short-turn smoothing) to build the
+`**Speaker:**`-prefixed transcript; (5) render bold `**Name:**` + per-speaker tint in the REAL
+TranscriptEditor/karaoke view (the mock's look on real data — sim-testable); (6) tap "+ name" →
+`enrollSpeaker` + save to the person's `voiceEmbeddings` → cosine auto-match next time; (7) a
+"conversation mode" toggle (the `conversationDefault` AppStorage exists). Needs device (ANE) — the
+sim has no ANE, so diarization (like ASR) can't run there; device-test like the ASR path.**
 
 **Still TODO: conversation mode (build, per the plan above — next), capture items (user
 drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop
