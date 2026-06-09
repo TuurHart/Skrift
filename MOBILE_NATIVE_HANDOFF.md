@@ -119,6 +119,36 @@
   RMS/word-count silence guard) live in `Mobile/modules/parakeet/ios/ParakeetModule.swift`
   on this branch — **port them into the native transcription service in Phase 2**.
 
+## ▶ NEXT-CHAT PROMPT (paste this to start the next session)
+
+> Resume the Skrift native rewrite. Repo `/Users/tiurihartog/Hackerman/Skrift`, branch
+> `native` (= main = origin, clean); apps under `Skrift_Native/{SkriftMobile,SkriftDesktop}`.
+> **Read `MOBILE_NATIVE_HANDOFF.md` "## NEXT SESSION" first** (memory auto-loads:
+> `project_unification_backlog`, `project_native_convergence`, `feedback_native_ui_process`).
+>
+> State: dev/prod split DONE both apps; prod "Skrift" is on the iPhone 13 (UDID
+> `00008110-001208C902EA201E`, unlocked) + prod desktop runs on the Mac. Big batch shipped
+> (significance + flag-to-send sync gating, native-List swipe/multiselect, append-transcription,
+> feedback/email, karaoke grey-out, sips→ImageIO).
+>
+> ⚠️ **Three MemoDetailView features are committed but DON'T WORK ON DEVICE** — Liquid Glass,
+> the significance slider, and karaoke "tap words to seek" — all rooted in the UIKit-hosted
+> `TabView(.page)`. **START with handoff item 0: replace `TabView(.page)` with a SwiftUI paging
+> ScrollView** (`.scrollTargetBehavior(.paging)` + `.scrollPosition(id:)`); it's expected to fix
+> all three (glass refracts page content; slider drag + per-word tap-seek work). Then revert the
+> significance control to a drag slider. Verify on the iPhone 17 sim, then deploy Release to the
+> device and have me confirm on the phone.
+>
+> Then the rest of "## NEXT SESSION": capture items (share-extension + App Group + desktop
+> non-audio ingest), light+dark mode (both apps), conversation mode (I'll record a sample →
+> diarization + Parakeet speaker-embedding vs my names/aliases), and re-ingest the ~30 old notes
+> (drag from `~/Desktop/Skrift old notes/` → Process; dates come from the embedded m4a metadata).
+>
+> Rules: dev builds = Debug ("Skrift Dev", isolated data); prod = Release ("Skrift"). Commit per
+> chunk; verify each (xcodebuild build+test on the iPhone 17 sim; desktop UnitTests +
+> `-skipMacroValidation`). Keep the mobile↔Mac contract byte-exact (no `sanitised`). Device deploy
+> = Release + `DEVELOPMENT_TEAM=9W82X49JZS` + `devicectl`.
+
 ## NEXT SESSION (2026-06-09) — capture items + deferred UI
 
 **Dev/prod split is LIVE (both apps); the user runs prod "Skrift" on the iPhone 13 +
@@ -126,19 +156,30 @@ the prod desktop on the Mac.** Build prod = `-configuration Release`; dev iterat
 Debug (`com.skrift.{mobile,desktop}.dev`, "Skrift Dev"). Deploy prod to the phone:
 `xcodebuild build -scheme SkriftMobile -configuration Release -destination 'platform=iOS,id=00008110-001208C902EA201E' -derivedDataPath build-device -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic` → `devicectl device install … Release-iphoneos/SkriftMobile.app`.
 
-**Deferred work (user-requested, in priority-ish order):**
-0. **Replace `TabView(.page)` → SwiftUI paging ScrollView in MemoDetailView (fixes TWO
-   bugs).** Root cause found 2026-06-09: `.glassEffect` on the playback bar refracts the
-   ZStack background but NOT the UIKit-hosted `TabView(.page)` scroll content — so photos
-   inside a page don't show through the glass (user confirmed over a picture; a bright
-   ZStack bg DID refract). Same UIKit hosting is why the significance slider's drag is
-   stolen by the page-pan (currently a tap-to-set workaround). Fix: `ScrollView(.horizontal)`
-   + `LazyHStack { MemoPageView.containerRelativeFrame(.horizontal) }` +
-   `.scrollTargetBehavior(.paging)` + `.scrollPosition(id: $selection)`. Then glass refracts
-   page content (real Liquid Glass) AND revert the significance slider to a drag
-   (`SignificanceSlider`'s `.highPriorityGesture` works over a SwiftUI ScrollView).
-   Verify swipe-between-memos + the player re-targeting on selection still work.
-   (Dating of re-ingested audio is FINE — desktop reads the embedded m4a recording date.)
+### ⚠️ THREE MemoDetailView features are committed but DO NOT WORK ON DEVICE (start here)
+All three live inside `MemoDetailView`'s `TabView(.page)` page content, and the
+**UIKit-hosted `TabView(.page)` is the common root cause** (verified 2026-06-09 on the
+iPhone 13):
+- **Glass** — `.glassEffect` on the playback bar refracts the ZStack background but NOT the
+  page's scroll content, so a photo inside a page doesn't show through (user confirmed over a
+  picture; a bright ZStack bg DID refract → it's the page-hosting layer, not the API).
+- **Significance slider** — the page-pan steals the gesture; neither drag
+  (`.highPriorityGesture`) nor the current tap-to-set (`SpatialTapGesture`) reliably register.
+- **Karaoke "tap words to seek"** — committed (`6bf74db`…`7678f85`: Settings toggle +
+  per-word `FlowLayout`), but tapping a word doesn't seek on device (same page-content gesture
+  hosting; ALSO verify the `@AppStorage("karaokeTapToSeek")` toggle actually flips the
+  per-word renderer, and that `player.seek` fires).
+
+**0. THE FIX — replace `TabView(.page)` with a SwiftUI-native paging ScrollView** (one change,
+likely fixes all three): `ScrollView(.horizontal){ LazyHStack(spacing:0){ ForEach(memos){
+MemoPageView.containerRelativeFrame(.horizontal) } } }.scrollTargetBehavior(.paging)
+.scrollPosition(id: $selection)` (+ keep the bottom glass bar as the ZStack overlay). SwiftUI
+ScrollView is sampled by `.glassEffect` (glass refracts page content) AND yields child gestures
+(restore the significance **drag** slider; per-word tap-to-seek works). Then re-verify:
+swipe-between-memos, player re-targets on `selection`, page dots, karaoke colour, the glass over
+a photo, the slider drag, and a word tap seeking. Update `MemoDetailUITests`/`SyncUITests`
+(the sync test taps the significance control). (Dating of re-ingested audio is already FINE —
+desktop reads the embedded m4a recording date.)
 1. **Capture items** — the user will drive this tomorrow (they've built iOS share
    extensions before). Plan: new **ShareExtension** target + **App Group**
    (`group.com.skrift.mobile[.dev]`, per-config like the bundle IDs; entitlements via a
