@@ -37,21 +37,21 @@ Locked process for the UI items: spec → mock → build → XCUITest (feedback_
   (User: "only if they have more than 0 significance are they suitable for transfer — I don't
   need to send stupid messages to the Mac.") NOTE: this flips today's behavior (mobile currently
   uploads ALL `waiting` memos unconditionally — `SyncCoordinator.swift:31`).
-- **Liquid-glass playback bar.** Memo-detail transport overlays an opaque→clear `LinearGradient`
-  (`MemoDetailView.swift:78`) that ghosts the last transcript lines (see user screenshot).
-  Replace with a translucent frosted/Material floating bar + sufficient bottom scroll inset so
-  text scrolls cleanly *under* it (iOS-translucent-toolbar feel). True iOS-26 Liquid Glass
-  (`glassEffect`) is unavailable at the iOS-18 target → approximate with `.ultraThinMaterial`/
-  `.regularMaterial`.
+- ✅ **DONE (2026-06-09)** — **Liquid-glass playback bar.** Replaced the ghosting `LinearGradient`
+  with a real iOS-26 Liquid Glass floating bar (`.glassEffect(.clear)` + `.safeAreaInset(edge:.bottom)`
+  so transcript scrolls cleanly *under* it), and slimmed its vertical height. The iOS-18-target note
+  below is OUTDATED — we run iOS 26 and use `glassEffect`. **Device gotcha (logged for the next chat):**
+  the lensed look needs `.clear` (`.regular` reads frosted), and **Reduce Motion ON throttles Liquid
+  Glass on A15** (user's phone — turn Reduce Motion OFF); the Simulator never renders specular/chromatic
+  glass, so judge glass on-device only.
 
 ### Items
 1. **Significance slider on mobile + sync gating** (above) — unifies a desktop feature, contract change.
 2. **Append-more-transcription to an existing note** — open a memo → a button records more audio,
    transcribes it, and appends to the existing transcript (then re-syncs). Mobile-led.
-3. **Karaoke on mobile** (unification) — mobile already stores word timings in a sidecar
-   (`WordTiming.swift`/`WordTimingsStore`) but never renders them; desktop highlights words during
-   playback (`NoteBody.swift:74`). Render word-level highlighting in mobile playback (custom text
-   view; SwiftUI `Text` can't range-highlight live). "if possible" → feasible, data exists.
+3. ✅ **DONE (2026-06-09)** — **Karaoke on mobile** (unification): word-level highlight + tap-to-seek
+   during playback. Was: mobile stored word timings (`WordTiming.swift`/`WordTimingsStore`) but never
+   rendered them. Device-verified ("karaoke and edit work well").
 3.5 **Mobile delete/select UX** — replace the meh "Select + bubbles" with **left-swipe-to-delete**
    + a nicer drag-to-multi-select (Photos/Mail-style). Current: `MemosListView.swift:134` Select btn.
 4. **Feedback/email in Settings** — NEITHER app has any feedback/contact mechanism today. Port from
@@ -96,8 +96,54 @@ real data OS-guaranteed safe from dev churn. **Approach = bundle-ID split** (cho
 
 ### Unification audit (mobile vs desktop) — exists on ONE side only
 - significance slider → desktop only (→ add to mobile, item 1)
-- karaoke word-highlight → desktop only (→ add to mobile, item 3)
+- karaoke word-highlight → ✅ DONE on mobile (2026-06-09); was desktop-only
 - per-memo sync gating → NEITHER (→ new, item 1)
 - feedback/email → NEITHER (→ new, item 4)
 - swipe-to-delete → NEITHER (→ mobile, item 3.5)
 - deep settings (vault/author/model/prompts) → desktop only (intentionally NOT unified — Mac-side concerns)
+
+## Session 2026-06-09 — status (this chat)
+Snapshot of everything we touched/discussed this chat, so a future chat can pick it up.
+Conversation/voice-identity mode has its OWN ledger → `CONVERSATION_MODE_HANDOFF.md` (start there).
+
+### ✅ Done this chat (device-verified unless noted)
+- **MemoDetail paging refactor** — `TabView(.page)` → `ScrollView` (`.scrollTargetBehavior(.paging)`
+  + `.scrollPosition(id:)`). Unblocked Liquid Glass refraction, the significance slider, and karaoke
+  tap-to-seek (all three were broken under the old TabView).
+- **Real iOS-26 Liquid Glass player bar** + **slimmer bar** (see the marked item above; `.clear` +
+  Reduce-Motion gotcha logged).
+- **Light + dark mode** — both apps (`UIColor`/`NSColor(dynamicProvider:)`).
+- **Always-editable transcript** — removed the Edit button; self-sizing `UITextView` with inline
+  images (`TranscriptEditor.swift`). Device-verified.
+- **Significance control** = drag slider, commit-on-release; label mirrors desktop tiers
+  (`"0.7 · Significant"`, ≥0.67/≥0.34).
+- **Perf** — image thumbnail downsampling + NSCache (`MemoImageLoader.swift`); slider lag fixed via
+  commit-on-release. (Fixed the "desktop note-with-picture loads 600× slower" + laggy-slider reports.)
+- **Empty-recording guard** — real-duration in `LiveRecordingService.stop()` + discard-and-alert on
+  <0.4s / 0-frame recordings; bound the Record-screen Conversation toggle to `@AppStorage`
+  (was a dead `@State`, which is why the blank-note repro had conversation "on" but inert).
+- **Conversation mode (diarization)** — built + on device: Sortformer diarize on save (≥2 speakers)
+  + retro "Split speakers", tap-a-name to rename, status banner. ⚠️ auto-recognition of a
+  previously-named voice is NOT done yet → that's the embedding-cosine pivot in CONVERSATION_MODE_HANDOFF.
+
+### ⏳ Open — discussed this chat, not done
+- **Capture items** — share a URL/text/image into Skrift + annotate. Cross-app (mobile share-extension
+  + App Group + `attachments` multipart; desktop `UploadService` non-audio content type). USER DRIVES.
+  (Also item 5 above + root CLAUDE.md "Open cross-app work".)
+- **Re-ingest the ~30 old notes** from `~/Desktop/Skrift old notes/` — files located, never run. Needs
+  the prod desktop app quit (shared-store race) + the user present (writes into the REAL Obsidian vault).
+- **Desktop Liquid Glass** — user said "later"; the Mac UI has no glass treatment yet.
+- **Direct "record a voice" enroll in Settings → Names & voices** — today the "Add voice" row is a
+  status label only; voices enroll ONLY via conversation-mode naming. A tap-to-record-a-sample enroll
+  would complete the tab. (Tied to the embedding pivot — see CONVERSATION_MODE_HANDOFF §5.)
+- **Video import** — see the dedicated "Import VIDEO" item above (parked).
+- **Conversation-mode remainder** — embedding-cosine auto-match, Mac conversation track, bidirectional
+  voice sync, live diarization. Full plan in `CONVERSATION_MODE_HANDOFF.md`.
+
+### 👀 Verify / watch
+- **Significance slider "not in all notes"** — should be fixed by the paging refactor (gesture arbitration)
+  + commit-on-release, but never got an explicit "works in every note now" — quick re-check owed.
+- **Empty-recording root cause** — guard shipped; the repro was a fast tap→stop. If a *proper-length*
+  recording ever captures nothing, chase it with device logs (`idevicesyslog -u <UDID>`).
+- **"Transcription a bit weird" on cold auto-start** (item 6) — still parked, user unsure it's real.
+- **Multi-Mac "allow this iPhone?" pairing confirm** — deferred hardening for shared networks (QR dropped).
