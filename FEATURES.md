@@ -96,7 +96,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Audio file import (share / open-in) | ✅ | ✅ | mobile `App/AppURLHandler.swift`, `MemoSaver.swift:39-69`; desktop `Pipeline/Ingest/IngestService.swift:41-61` | |
 | Folder / drag-drop ingest | n/a | ✅ | desktop `SidebarView.swift:39-62`, `IngestService.swift:201-211` | |
 | Apple-Notes import (+HEIC→JPG relink) | n/a | ✅ | desktop `IngestService.swift:63-94, 128-170` | |
-| **Video import → extract audio** | ➖ | ➖ | mobile `AppURLHandler`; desktop `IngestService.swift:34-39`, `UploadService.swift:23` | **NEITHER app accepts video** (target C). Plan + open Qs in `backlog.md:15` |
+| **Video import → audio + 1 frame thumbnail** | ✅ | ✅ | mobile `App/AppURLHandler.swift`, `Features/Recording/MemoSaver.swift` (`importVideo`), `Features/Import/VideoImportPicker.swift`; desktop `IngestService.swift` (`ingestVideo`/`hasVideoTrack`/`extractAudioSync`/`embeddedRecordingDate`), `UploadService.swift` | Share/open-in or pick a video → strip audio to `.m4a` + grab one frame as `[[img_001]]`. `recordedAt` = the video's EMBEDDED creation date (not import time). `backlog.md:15` |
 | Capture items (share URL/text/image) | ➖ | ➖ | — | Big deferred cross-app feature (`backlog.md:73`) |
 
 ## Transcription engine *(desktop in-process)* / on-device *(mobile)*

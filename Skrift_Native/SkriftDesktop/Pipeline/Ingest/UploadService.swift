@@ -28,11 +28,25 @@ struct UploadService: Sendable {
 
             var ext = (filename as NSString).pathExtension
             if ext.isEmpty { ext = "m4a" }
-            let original = folder.appendingPathComponent("original.\(ext)")
+            var original = folder.appendingPathComponent("original.\(ext)")
             try audio.data.write(to: original)
 
+            // A directly-uploaded VIDEO (a future share-extension might send one):
+            // strip its audio to `original.m4a` so the pipeline only ever transcribes
+            // audio. The phone's own video import already extracts audio before
+            // uploading, so this is a belt-and-braces path. Falls through to treating
+            // the file as audio if it's audio-only or extraction fails.
+            if IngestService.supportedVideo.contains(ext.lowercased()), IngestService.hasVideoTrack(original) {
+                let extracted = folder.appendingPathComponent("original.m4a")
+                if (try? IngestService.extractAudioSync(from: original, to: extracted)) != nil {
+                    try? FileManager.default.removeItem(at: original)
+                    original = extracted
+                }
+            }
+
+            let size = ((try? FileManager.default.attributesOfItem(atPath: original.path))?[.size] as? Int) ?? audio.data.count
             let pf = PipelineFile(id: id, filename: filename, path: original.path,
-                                  size: audio.data.count, sourceType: .audio)
+                                  size: size, sourceType: .audio)
             if let metaData = metadataPart?.data { pf.audioMetadataJSON = metaData }   // verbatim passthrough
             // Phone may send an optional user-set `title` — honor it (BatchRunner
             // won't clobber a pre-set enhancedTitle; the LLM title becomes the suggestion).

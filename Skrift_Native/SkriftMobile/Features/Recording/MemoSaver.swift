@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import UIKit
 
 /// Persists a finished recording as a `Memo` and runs transcription, writing the
 /// transcript + confidence + markers onto the memo and the word timings to the
@@ -66,6 +67,170 @@ struct MemoSaver {
         ))
         Task { await runTranscription(id: id) }
         return id
+    }
+
+    // MARK: - Video import (extract audio + 1 frame thumbnail)
+
+    /// Import a VIDEO shared into Skrift / picked from Photos (e.g. a self-recorded
+    /// "life advice to myself" clip). Strips the audio track to a `memo_<id>.m4a` and
+    /// transcribes it on-device exactly like an audio import — the original video is
+    /// NOT kept (audio + one representative frame is the captured decision). One frame
+    /// is grabbed (`AVAssetImageGenerator`) and attached as a `[[img_001]]` via the
+    /// existing image-manifest mechanism, landing at the start of the transcript.
+    ///
+    /// `recordedAt` comes from the video's EMBEDDED creation date (`AVAsset.creationDate`)
+    /// or the supplied `creationDate` (e.g. `PHAsset.creationDate` from the Photos
+    /// picker), NOT the import time — mirroring how the Mac reads the embedded recording
+    /// date. Returns the new memo id, or nil if the audio couldn't be extracted.
+    ///
+    /// Fire-and-forget: persists the memo immediately (`.transcribing`) and runs audio
+    /// extraction + transcription in the background; the memo updates in place.
+    @discardableResult
+    func importVideo(from source: URL, creationDate: Date? = nil) -> UUID? {
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+
+        // Insert a placeholder memo right away so the UI shows it while the audio
+        // extraction (which can be slow for long clips) runs in the background. The
+        // embedded creation date is read inside the async task and written back.
+        repository.insert(Memo(
+            id: id,
+            audioFilename: filename,
+            duration: 0,
+            recordedAt: creationDate ?? Date(),
+            syncStatus: .waiting,
+            transcriptStatus: .transcribing
+        ))
+        Task { await processVideo(id: id, source: source, fallbackDate: creationDate) }
+        return id
+    }
+
+    /// Awaitable core of `importVideo` (used directly by tests): extract the audio,
+    /// grab a frame thumbnail, set the embedded recording date, then transcribe.
+    /// Returns true when audio extraction succeeded.
+    @discardableResult
+    func importVideoAsync(id: UUID, source: URL, fallbackDate: Date? = nil) async -> Bool {
+        await processVideo(id: id, source: source, fallbackDate: fallbackDate)
+    }
+
+    @discardableResult
+    private func processVideo(id: UUID, source: URL, fallbackDate: Date?) async -> Bool {
+        let filename = "memo_\(id.uuidString).m4a"
+        let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
+
+        // Files shared from outside the sandbox arrive security-scoped.
+        let scoped = source.startAccessingSecurityScopedResource()
+        defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+
+        let asset = AVURLAsset(url: source)
+
+        // Embedded recording date (survives copies) > supplied PHAsset date > now.
+        let recorded = (await Self.embeddedCreationDate(of: asset)) ?? fallbackDate ?? Date()
+
+        // Extract the audio track to .m4a. If the asset has no audio (a silent clip)
+        // there's nothing to transcribe — fail gracefully.
+        guard (try? await Self.extractAudio(from: asset, to: dest)) == true else {
+            if let memo = repository.memo(id: id) {
+                memo.transcriptStatus = .failed
+                memo.recordedAt = recorded
+                repository.save()
+            }
+            return false
+        }
+
+        var duration: TimeInterval = 0
+        if let f = try? AVAudioFile(forReading: dest) {
+            duration = Double(f.length) / f.fileFormat.sampleRate
+        }
+
+        // One representative frame → photo_<id>_001.jpg → [[img_001]] at offset 0.
+        var manifest: [ImageManifestEntry] = []
+        if let frame = await Self.representativeFrame(of: asset) {
+            let photoName = "photo_\(id.uuidString)_001.jpg"
+            let photoDest = AppPaths.recordingsDirectory.appendingPathComponent(photoName)
+            try? FileManager.default.removeItem(at: photoDest)
+            if (try? frame.write(to: photoDest)) != nil {
+                manifest.append(ImageManifestEntry(filename: photoName, offsetSeconds: 0))
+            }
+        }
+
+        guard let memo = repository.memo(id: id) else { return true }
+        memo.recordedAt = recorded
+        memo.duration = duration
+        if !manifest.isEmpty { memo.metadata = MemoMetadata(imageManifest: manifest) }
+        repository.save()
+
+        await runTranscription(id: id)
+        return true
+    }
+
+    // MARK: - Video helpers (pure AVFoundation — host-less testable)
+
+    /// Video container UTIs/extensions Skrift accepts for import.
+    static let videoExtensions: Set<String> = ["mov", "mp4", "m4v", "qt", "avi", "mpg", "mpeg", "3gp", "3g2"]
+
+    /// True when the URL's extension is a known video container. Used to route a
+    /// shared/opened file to `importVideo` rather than `importAudio`.
+    static func isVideoFile(_ url: URL) -> Bool {
+        videoExtensions.contains(url.pathExtension.lowercased())
+    }
+
+    /// The video's embedded creation date (QuickTime `creationDate` / mp4
+    /// `creation_time`). Survives copies — unlike the filesystem date, which becomes
+    /// the import/copy time. nil when absent or unparseable.
+    static func embeddedCreationDate(of asset: AVAsset) async -> Date? {
+        guard let item = (try? await asset.load(.creationDate)) ?? nil else { return nil }
+        if let d = (try? await item.load(.dateValue)) ?? nil { return d }
+        if let s = (try? await item.load(.stringValue)) ?? nil, let d = parseCreationDate(s) { return d }
+        return nil
+    }
+
+    /// Parse an ISO-8601 creation-date string (with or without fractional seconds).
+    static func parseCreationDate(_ s: String) -> Date? {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = iso.date(from: s) { return d }
+        iso.formatOptions = [.withInternetDateTime]
+        return iso.date(from: s)
+    }
+
+    private enum VideoImportError: Error { case noAudioTrack, exportFailed }
+
+    /// Strip the audio track of `asset` into a standalone .m4a at `dest`. Throws when
+    /// the asset has no audio or the export fails (caller marks the memo failed).
+    private static func extractAudio(from asset: AVAsset, to dest: URL) async throws -> Bool {
+        let comp = AVMutableComposition()
+        guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid),
+              let audioTrack = try await asset.loadTracks(withMediaType: .audio).first else {
+            throw VideoImportError.noAudioTrack
+        }
+        let duration = try await asset.load(.duration)
+        try track.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: audioTrack, at: .zero)
+
+        guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
+            throw VideoImportError.exportFailed
+        }
+        try? FileManager.default.removeItem(at: dest)
+        try await export.export(to: dest, as: .m4a)
+        return true
+    }
+
+    /// Grab one representative frame (near the start, tolerant) as JPEG data. nil when
+    /// the asset has no video track or the generator fails.
+    private static func representativeFrame(of asset: AVAsset) async -> Data? {
+        guard let tracks = try? await asset.loadTracks(withMediaType: .video), !tracks.isEmpty else {
+            return nil
+        }
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = CMTime(seconds: 1, preferredTimescale: 600)
+        generator.requestedTimeToleranceAfter = CMTime(seconds: 1, preferredTimescale: 600)
+        // 1s in (or the first frame for very short clips) — avoids a black opening frame.
+        let duration = (try? await asset.load(.duration)).map { CMTimeGetSeconds($0) } ?? 0
+        let at = CMTime(seconds: min(1.0, max(0, duration / 2)), preferredTimescale: 600)
+        guard let cg = try? await generator.image(at: at).image else { return nil }
+        let ui = UIImage(cgImage: cg)
+        return ui.jpegData(compressionQuality: 0.85)
     }
 
     /// Awaitable variant for tests — persist + capture metadata + transcribe.
