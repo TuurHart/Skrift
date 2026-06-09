@@ -1,0 +1,54 @@
+name: GlassLab
+options:
+  bundleIdPrefix: com.skrift.glasslab
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+# A tiny throwaway harness to iterate on the iOS-26 Liquid Glass player bar in
+# isolation, driven entirely via xcodebuild + XCUITest screenshots (no device,
+# no Skrift complexity). Once the glass reads right here, port it to MemoDetailView.
+targets:
+  GlassLab:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.glasslab
+        CODE_SIGN_STYLE: Automatic
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+
+  GlassLabUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skrift.glasslab.uitests
+        TEST_TARGET_NAME: GlassLab
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - target: GlassLab
+
+schemes:
+  GlassLab:
+    build:
+      targets:
+        GlassLab: all
+        GlassLabUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - GlassLabUITests
