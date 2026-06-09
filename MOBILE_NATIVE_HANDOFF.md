@@ -215,10 +215,25 @@ lowering splits correctly — user's memo → 2 speakers at 0.3–0.5 (3 at 0.25
 at 0.3. **Use ~0.4–0.45.** Segmentation is coarse via `performCompleteDiarization` (big
 blocks; `OfflineDiarizerManager` may give finer turns — try if needed). The 6C0C4C75 memo
 IS two people (user corrected me — not a monologue). Run: `swift run DiarizeSpike <audio>
-[threshold]`. **Next: (2) mock the speaker-split / tag UI; (3) `DiarizationService`
-(mobile, own model download, threshold ~0.45) + ASR/word-timing fusion → speaker-attributed
-transcript + tag affordance + cosine-match to names' `voiceEmbeddings`. Needs device (ANE) —
-the sim has no ANE, so diarization (like ASR) can't run there; device-test like the ASR path.**
+[threshold]`.
+**(1b) RESEARCH PIVOT — use SORTFORMER, NOT DiarizerManager.** Per FluidAudio's own docs
+(`Documentation/Diarization/GettingStarted.md`) the `DiarizerManager` I spiked is the
+**legacy** online diarizer: "struggles with similar-sounding speakers… incorrect labeling…
+poor for low-latency streaming" (exactly the voice-merging I hit). **NVIDIA Sortformer**
+(designed to pair with Parakeet) is rated **Best** for *pre-enrolled speaker mapping* and
+**Great** for *remembering speakers across meetings* = the tag-as-you-go + auto-label-
+returning-people feature; stable IDs, handles similar voices, **streaming** (480ms updates →
+the user's "notice while I'm talking" wish), built-in `enrollSpeaker`. Cap 4 speakers (fine).
+FluidAudio ships `SortformerDiarizer`: `SortformerModels.loadFromHuggingFace(config:)` →
+`SortformerDiarizer(config: .default)` + `initialize(...)` → `processComplete(samples,
+sourceSampleRate:) -> DiarizerTimeline` (offline) OR streaming `addAudio`/`process()`/
+`finalizeSession()`; `enrollSpeaker(...)` for known voices. (LS-EEND = up to 10 speakers but
+weaker enrollment; Offline VBx = best offline batch quality.) **Next: (2) re-spike Sortformer
+on `6C0C4C75` to confirm a clean 2-speaker split + enrollment (swap DiarizeSpike to Sortformer);
+(3) mock the speaker-split / tag UI; (4) `DiarizationService` on SORTFORMER (streaming for live
+diarization during recording + offline for existing memos) + `enrollSpeaker`-backed tag-as-you-go
++ cosine-match to names' `voiceEmbeddings` + ASR/word-timing fusion. Needs device (ANE) — the
+sim has no ANE, so diarization (like ASR) can't run there; device-test like the ASR path.**
 
 **Still TODO: conversation mode (build, per the plan above — next), capture items (user
 drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop
