@@ -41,7 +41,9 @@ final class AppearanceUITests: XCTestCase {
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
-        XCTAssertTrue(app.staticTexts["First seeded memo about the harbor at dawn."].waitForExistence(timeout: 5))
+        // Transcript is now an always-editable text view (its text is the value).
+        let editor = app.textViews["transcript-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
         snap(app, "light-3-memo-detail")
     }
 }

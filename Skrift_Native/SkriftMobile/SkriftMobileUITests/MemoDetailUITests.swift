@@ -21,8 +21,11 @@ final class MemoDetailUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
 
-        XCTAssertTrue(app.staticTexts["First seeded memo about the harbor at dawn."].waitForExistence(timeout: 5),
-                      "transcript didn't render in detail")
+        // Transcript is an always-editable text view now (its text is the value).
+        let editor = app.textViews["transcript-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "transcript editor didn't render in detail")
+        XCTAssertTrue((editor.value as? String ?? "").contains("First seeded memo about the harbor at dawn."),
+                      "transcript text missing")
         XCTAssertTrue(app.buttons["play-button"].exists, "play control missing")
         XCTAssertTrue(app.buttons["speed-button"].exists, "speed control missing")
         XCTAssertTrue(app.buttons["skip-back-button"].exists)
@@ -37,10 +40,13 @@ final class MemoDetailUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
 
-        XCTAssertTrue(app.staticTexts["First seeded memo about the harbor at dawn."].waitForExistence(timeout: 5))
+        let firstEditor = app.textViews["transcript-editor"]
+        XCTAssertTrue(firstEditor.waitForExistence(timeout: 5))
+        XCTAssertTrue((firstEditor.value as? String ?? "").contains("First seeded memo"))
         app.swipeLeft()
-        XCTAssertTrue(app.staticTexts["Second seeded memo, a quick reminder to call the plumber."].waitForExistence(timeout: 5),
-                      "swipe didn't page to the next memo")
+        // Off-screen pages are accessibilityHidden, so the visible editor now holds memo 2.
+        let secondShown = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "Second seeded memo")).firstMatch
+        XCTAssertTrue(secondShown.waitForExistence(timeout: 5), "swipe didn't page to the next memo")
     }
 
     /// Opening a non-first memo must land ON that memo, not page 0. This guards the
@@ -54,10 +60,11 @@ final class MemoDetailUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
 
-        let second = app.staticTexts["Second seeded memo, a quick reminder to call the plumber."]
-        XCTAssertTrue(second.waitForExistence(timeout: 5), "second memo didn't render")
-        XCTAssertTrue(second.isHittable, "opening memo-row-1 didn't land on (scroll to) the second memo")
-        XCTAssertFalse(app.staticTexts["First seeded memo about the harbor at dawn."].isHittable,
+        // Off-screen pages are accessibilityHidden, so only the landed page's editor is
+        // in the tree — opening row-1 must show memo 2 and NOT memo 1.
+        let second = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "Second seeded memo")).firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 5), "opening memo-row-1 didn't land on the second memo")
+        XCTAssertFalse(app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "First seeded memo")).firstMatch.exists,
                        "page 0 is on-screen — detail opened on the wrong page")
     }
 
@@ -87,19 +94,13 @@ final class MemoDetailUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
 
-        let edit = app.buttons["edit-transcript-button"]
-        XCTAssertTrue(edit.waitForExistence(timeout: 5), "Edit button missing")
-        edit.tap()
-
+        // The transcript is always editable in place — no Edit button.
         let editor = app.textViews["transcript-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 5), "transcript editor didn't appear")
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "transcript should be editable in place")
         editor.tap()
         editor.typeText(" Edited on phone.")
-        app.buttons["edit-transcript-button"].tap()   // now labelled "Done"
-
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Edited on phone."))
-                        .firstMatch.waitForExistence(timeout: 5),
-                      "hand-edited transcript didn't render")
+        XCTAssertTrue((editor.value as? String ?? "").contains("Edited on phone."),
+                      "typed text didn't land in the always-editable transcript")
     }
 
     func testDeleteMemoFromDetail() throws {
@@ -108,15 +109,17 @@ final class MemoDetailUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
 
-        XCTAssertTrue(app.staticTexts["First seeded memo about the harbor at dawn."].waitForExistence(timeout: 5))
+        let editor = app.textViews["transcript-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertTrue((editor.value as? String ?? "").contains("First seeded memo"))
 
         app.buttons["detail-menu"].tap()
         app.buttons["Delete"].tap()
 
         // Selection moves to the next memo; the deleted one's transcript is gone.
-        XCTAssertTrue(app.staticTexts["Second seeded memo, a quick reminder to call the plumber."].waitForExistence(timeout: 5),
-                      "detail didn't move to the next memo after delete")
-        XCTAssertFalse(app.staticTexts["First seeded memo about the harbor at dawn."].exists,
+        let secondShown = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "Second seeded memo")).firstMatch
+        XCTAssertTrue(secondShown.waitForExistence(timeout: 5), "detail didn't move to the next memo after delete")
+        XCTAssertFalse(app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "First seeded memo")).firstMatch.exists,
                        "deleted memo's transcript still present")
     }
 }

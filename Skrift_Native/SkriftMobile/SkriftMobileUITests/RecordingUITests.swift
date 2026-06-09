@@ -51,11 +51,13 @@ final class RecordingUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.6)
         recordButton.tap()   // stop → save → dismiss
 
-        // The memo appears with the seeded transcript filled in.
-        XCTAssertTrue(
-            app.staticTexts[transcript].waitForExistence(timeout: 10),
-            "Seeded transcript never appeared on a memo row"
-        )
+        // Save-now lands in Memo detail; the seeded transcript fills the (always-
+        // editable) transcript body — its text is the text view's value.
+        let editor = app.textViews["transcript-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10),
+                      "transcript editor never appeared after recording")
+        XCTAssertTrue((editor.value as? String ?? "").contains(transcript),
+                      "seeded transcript didn't fill the new memo")
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "record-seeded-memo"

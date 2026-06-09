@@ -172,8 +172,6 @@ private struct MemoPageView: View {
     private let repository = NotesRepository.shared
     @State private var showAddTag = false
     @State private var newTag = ""
-    @State private var editingTranscript = false
-    @State private var draft = ""
 
     var body: some View {
         ScrollView {
@@ -251,59 +249,19 @@ private struct MemoPageView: View {
         repository.save()
     }
 
-    // MARK: - Transcript (rendered ⇄ hand-editable)
+    // MARK: - Transcript (always editable in place; karaoke on playback)
 
-    /// Default: the rendered transcript (inline image embeds). Tapping Edit swaps
-    /// to a raw TextEditor (markers shown as `[[img_NNN]]` text — leave them be);
-    /// Done writes it back and marks `transcriptUserEdited` so the Mac trusts it
-    /// (no re-transcription). Edit is offered once there's text and it's not still
-    /// transcribing.
+    /// No Edit button / no separate field. Paused → an inline, always-editable body
+    /// (`TranscriptEditor` — keeps inline photos, writes back + flags
+    /// `transcriptUserEdited` on every change). Playing → the read-only karaoke view
+    /// (highlight + tap-to-seek). Transcribing → its status pill. The editor and the
+    /// idle karaoke view render the same, so play/pause swaps seamlessly.
     @ViewBuilder private var transcriptSection: some View {
-        // Editable unless actively transcribing — including an empty/failed memo
-        // (type the transcript from scratch).
-        let canEdit = memo.transcriptStatus != .transcribing
-        VStack(alignment: .leading, spacing: 10) {
-            if canEdit || editingTranscript {
-                HStack {
-                    Spacer()
-                    Button(editingTranscript ? "Done" : "Edit") {
-                        if editingTranscript { saveTranscript() } else { beginEditTranscript() }
-                    }
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.skAccent)
-                    .accessibilityIdentifier("edit-transcript-button")
-                }
-            }
-            if editingTranscript {
-                TextEditor(text: $draft)
-                    .font(.system(size: 15.5))
-                    .lineSpacing(4)
-                    .frame(minHeight: 220)
-                    .scrollContentBackground(.hidden)
-                    .padding(10)
-                    .background(Color.skSurface, in: .rect(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle.sk(12).stroke(Color.skBorder, lineWidth: 1))
-                    .tint(.skAccent)
-                    .foregroundStyle(Color.skText)
-                    .accessibilityIdentifier("transcript-editor")
-            } else {
-                TranscriptContentView(memo: memo, player: player)
-            }
+        if player.isPlaying || memo.transcriptStatus == .transcribing {
+            TranscriptContentView(memo: memo, player: player)
+        } else {
+            TranscriptEditor(memo: memo, onCommit: { repository.save() })
         }
-    }
-
-    private func beginEditTranscript() {
-        draft = memo.transcript ?? ""
-        editingTranscript = true
-    }
-
-    private func saveTranscript() {
-        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        memo.transcript = trimmed.isEmpty ? nil : draft
-        memo.transcriptUserEdited = true   // flips the Mac's trust → it won't re-transcribe
-        if !trimmed.isEmpty { memo.transcriptStatus = .done }
-        repository.save()
-        editingTranscript = false
     }
 
     private struct MetaChip: Identifiable { let id = UUID(); let text: String; let symbol: String? }
