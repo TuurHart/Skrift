@@ -79,10 +79,11 @@ struct MemoDetailView: View {
         // fallback for iOS < 26 (where glassEffect is unavailable).
         if #available(iOS 26.0, *) {
             playerBarStack
-                // A faint light tint so the glass reads as a distinct translucent
-                // panel on the near-black UI (pure .regular refracts content behind
-                // it but is very subtle over dark — verified working, just subtle).
-                .glassEffect(.regular.tint(.white.opacity(0.10)), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                // Pure Liquid Glass. NOTE: it refracts the ZStack background but NOT the
+                // UIKit-hosted TabView(.page) scroll content — so photos/text inside a
+                // page don't show through. Real fix = replace TabView(.page) with a
+                // SwiftUI paging ScrollView (handoff; also fixes the significance drag).
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 // A hairline + top specular highlight so the glass reads as an EDGE
                 // even over the near-black transcript (Liquid Glass is subtle over a
                 // flat dark surface by design — it only refracts textured content
@@ -360,6 +361,7 @@ private struct TranscriptContentView: View {
     let memo: Memo
     @ObservedObject var player: AudioPlayerModel
     @State private var timings: [WordTiming] = []
+    @AppStorage("karaokeTapToSeek") private var tapToSeek = false
 
     /// Active spoken-word index during playback (nil when paused / no timings) — the
     /// transcript highlights that word. Word-accurate via the on-device timings.
@@ -385,11 +387,16 @@ private struct TranscriptContentView: View {
                 ForEach(Array(segmentsWithOffsets.enumerated()), id: \.offset) { _, item in
                     switch item.seg {
                     case .text(let s):
-                        karaokeText(s, wordOffset: item.wordOffset, active: active)
-                            .font(.system(size: 15.5))
-                            .lineSpacing(4)
-                            .foregroundStyle(Color.skText)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        if tapToSeek {
+                            karaokeWords(s, wordOffset: item.wordOffset, active: active)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            karaokeText(s, wordOffset: item.wordOffset, active: active)
+                                .font(.system(size: 15.5))
+                                .lineSpacing(4)
+                                .foregroundStyle(Color.skText)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     case .image(let n):
                         ImageEmbed(url: imageURL(markerIndex: n))
                     }
@@ -437,6 +444,29 @@ private struct TranscriptContentView: View {
         }
         flush()
         return Text(attr)
+    }
+
+    /// Tap-to-seek mode: each word is its own tappable view (a flowing wrap), so a
+    /// tap jumps playback to that word. Same grey-out colouring. Opt-in (Settings)
+    /// since per-word views lose exact paragraph spacing vs the AttributedString.
+    @ViewBuilder private func karaokeWords(_ text: String, wordOffset: Int, active: Int?) -> some View {
+        let words = text.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        FlowLayout(spacing: 5, lineSpacing: 6) {
+            ForEach(Array(words.enumerated()), id: \.offset) { i, word in
+                let gi = wordOffset + i
+                Text(word)
+                    .font(.system(size: 15.5))
+                    .foregroundStyle(active.map { gi < $0 ? Color.skTextDim : (gi == $0 ? Color.skAccent : Color.skText) } ?? Color.skText)
+                    .contentShape(Rectangle())
+                    .onTapGesture { seekToWord(gi) }
+            }
+        }
+    }
+
+    private func seekToWord(_ i: Int) {
+        guard i >= 0, i < timings.count else { return }
+        player.seek(to: timings[i].start)
+        if !player.isPlaying { player.play() }
     }
 
     private enum Segment { case text(String); case image(Int) }

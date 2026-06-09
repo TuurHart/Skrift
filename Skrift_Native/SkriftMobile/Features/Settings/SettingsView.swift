@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage("conversationDefault") private var conversationDefault = false
     @AppStorage("appTheme") private var appTheme = "dark"
     @AppStorage("weatherAPIKey") private var weatherKey = ""
+    @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = false
     @State private var connection = MacConnection.load()
     @State private var showFeedback = false
 
@@ -40,6 +41,15 @@ struct SettingsView: View {
                     Toggle("Live transcription", isOn: $liveTranscription)
                         .accessibilityIdentifier("setting-live-transcription")
                     Toggle("Conversation mode default", isOn: $conversationDefault)
+                }
+
+                Section {
+                    Toggle("Tap words to seek", isOn: $karaokeTapToSeek)
+                        .accessibilityIdentifier("setting-tap-to-seek")
+                } header: {
+                    Text("Playback")
+                } footer: {
+                    Text("While audio plays, tap a word in the transcript to jump there.")
                 }
 
                 Section("Library") {

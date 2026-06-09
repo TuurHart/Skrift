@@ -93,6 +93,8 @@ final class SettingsUITests: XCTestCase {
 
         app.buttons["settings-button"].tap()
         let feedback = app.buttons["send-feedback-button"]
+        // Settings grew (Playback section) — scroll to reveal the feedback row if needed.
+        if !feedback.waitForExistence(timeout: 3) { app.swipeUp(); app.swipeUp() }
         XCTAssertTrue(feedback.waitForExistence(timeout: 5), "Send feedback row missing")
         feedback.tap()
 
