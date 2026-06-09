@@ -267,12 +267,18 @@ by segment-midpoint, turn grouping, 1-word-island smoothing, `**Name:**` output.
 `-seedConversationMemo` + UI test verify the REAL detail renders turns (screenshot
 `~/Desktop/conversation-mock/`). ✅ **C** `DiarizationService` actor (`9f2ed1d`) — Sortformer
 `ensureLoaded`/`diarize(url:)`/`attributedTranscript(url:words:)`, `SeededDiarizer` mock for the
-sim; compiles against the app FluidAudio (Sortformer API matches). **REMAINING (device-tested):
-(D)** wire conversation toggle → on save, `DiarizationService.attributedTranscript` (SeededDiarizer
-in sim) → set `memo.transcript`; **(E)** tap "+ name" → assign → rewrite that speaker's prefixes +
-`enrollSpeaker` + person `voiceEmbeddings` → cosine auto-match; **(F)** live streaming during
-recording (feed the record tap to Sortformer). First device test: wire D, deploy, record a real
-2-person convo → verify the split on the phone.
+sim; compiles against the app FluidAudio (Sortformer API matches). ✅ **D DONE (`ebd0fd9`):**
+MemoSaver runs diarization on save when `conversationDefault` is on (DiarizerFactory: real
+Sortformer device / SeededDiarizer sim), and if ≥2 speakers re-emits the transcript as
+`**Speaker N:**` turns via SpeakerFusion (monologue stays plain; plain transcript shows first,
+updates when diarization finishes). ✅ **E-core DONE (`ebd0fd9`):** every speaker name is
+tappable → name alert → rewrite that speaker's `**old:**`→`**new:**` prefixes (relabels all
+its turns) + `transcriptUserEdited`. Deployed Release to the iPhone 13. **REMAINING:
+(E-full)** on naming, `enrollSpeaker` + save the voiceprint to the person's `voiceEmbeddings`
+→ cosine auto-match returning speakers next time (right now naming is per-memo text only);
+**(F)** live streaming during recording (feed the record tap to Sortformer). **Device caveat:
+first conversation downloads+compiles the Sortformer bundle (~90s, one-time, then cached) —
+the plain transcript shows, then it re-splits into speakers.**
 
 **Still TODO: conversation mode D/E/F (device — per BUILD PROGRESS above), capture items (user
 drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop
