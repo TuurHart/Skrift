@@ -24,6 +24,10 @@ final class LiveRecordingService: ObservableObject {
     @Published private(set) var waveform: [Float] = []
     /// Best-effort live transcript shown caption-first while recording.
     @Published private(set) var liveCaption: String = ""
+    /// A brief, self-clearing notice surfaced when the audio route changes
+    /// mid-recording (e.g. AirPods pulled out) — so the user knows capture may
+    /// have hiccuped without the recording being dropped. nil = nothing to show.
+    @Published private(set) var routeNotice: String?
 
     /// Whether live captioning is on (Settings toggle; default on). Off = record
     /// + waveform only, transcript comes from the one-shot pass after stop.
@@ -51,6 +55,8 @@ final class LiveRecordingService: ObservableObject {
 
     private var displayTimer: Timer?
     private var captionTimer: Timer?
+    private var routeObserver: NSObjectProtocol?
+    private var noticeClearTimer: Timer?
     private var segmentStart: Date?
     private var accumulated: TimeInterval = 0
 
@@ -62,6 +68,11 @@ final class LiveRecordingService: ObservableObject {
          liveTranscription: Bool = UserDefaults.standard.object(forKey: "liveTranscription") as? Bool ?? true) {
         self.mock = mock
         self.liveTranscription = liveTranscription
+    }
+
+    deinit {
+        if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
+        noticeClearTimer?.invalidate()
     }
 
     func start() throws {
@@ -120,6 +131,7 @@ final class LiveRecordingService: ObservableObject {
         guard isRecording else { return nil }
         accumulate()
         stopTimers()
+        teardownRouteObserver()
         var duration = elapsed
         if !mock {
             tapStopped = true
@@ -151,6 +163,7 @@ final class LiveRecordingService: ObservableObject {
     func cancel() {
         guard isRecording else { return }
         stopTimers()
+        teardownRouteObserver()
         if !mock {
             tapStopped = true
             engine?.inputNode.removeTap(onBus: 0)
@@ -215,6 +228,79 @@ final class LiveRecordingService: ObservableObject {
         }
         try engine.start()
         self.engine = engine
+        observeRouteChanges()
+    }
+
+    /// Keep the recording alive across an audio-route change (AirPods pulled out,
+    /// a wired headset unplugged, a Bluetooth device disconnecting). iOS tears the
+    /// route down and pauses the engine; the in-progress `.m4a` + the live tap must
+    /// survive, so we restart the engine on the new route and surface a brief
+    /// notice instead of letting capture die silently. The session category was set
+    /// once in `startEngine`; we don't reconfigure it here.
+    private func observeRouteChanges() {
+        guard routeObserver == nil else { return }
+        routeObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] note in
+            MainActor.assumeIsolated {
+                self?.handleRouteChange(note)
+            }
+        }
+    }
+
+    private func handleRouteChange(_ note: Notification) {
+        guard isRecording, !mock else { return }
+        let reasonValue = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+        let reason = reasonValue.flatMap { AVAudioSession.RouteChangeReason(rawValue: $0) }
+
+        // The active input was removed (e.g. an AirPod taken out / a headset
+        // unplugged). iOS pauses the engine; restart it on the fallback route so
+        // capture continues to the same file. Don't restart while paused — `resume()`
+        // will start the engine when the user un-pauses.
+        switch reason {
+        case .oldDeviceUnavailable:
+            if !isPaused { restartEngineAfterRouteChange() }
+            showRouteNotice("Input changed — still recording on the built-in mic")
+        case .newDeviceAvailable:
+            if !isPaused { restartEngineAfterRouteChange() }
+        default:
+            // .categoryChange/.routeConfigurationChange etc. can also pause the
+            // engine; make sure it's running again when we're meant to be capturing.
+            if !isPaused, let engine, !engine.isRunning {
+                restartEngineAfterRouteChange()
+            }
+        }
+    }
+
+    /// Best-effort engine restart after a route change. The tap stays installed on
+    /// the input node, so once the engine runs again buffers flow as before. A
+    /// failure here doesn't drop the recording — the file already holds what was
+    /// captured, and the user is shown the notice.
+    private func restartEngineAfterRouteChange() {
+        guard let engine, !engine.isRunning else { return }
+        do {
+            try engine.start()
+        } catch {
+            showRouteNotice("Lost the mic input — tap Stop to keep what was recorded")
+        }
+    }
+
+    /// Surface a transient notice and auto-clear it after a few seconds.
+    private func showRouteNotice(_ text: String) {
+        routeNotice = text
+        noticeClearTimer?.invalidate()
+        noticeClearTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.routeNotice = nil }
+        }
+    }
+
+    private func teardownRouteObserver() {
+        if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
+        routeObserver = nil
+        noticeClearTimer?.invalidate(); noticeClearTimer = nil
+        routeNotice = nil
     }
 
     private static func copyBuffer(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {

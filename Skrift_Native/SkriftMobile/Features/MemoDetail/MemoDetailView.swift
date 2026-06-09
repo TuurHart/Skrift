@@ -67,6 +67,19 @@ struct MemoDetailView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomChrome }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // Add a follow-up recording to this memo — a visible top-right affordance
+            // (the same action also lives in the ⋯ menu). Records → transcribes →
+            // appends text + merges audio in MemoSaver.appendRecording.
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showAppendRecorder = true } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 34, height: 34)
+                        .foregroundStyle(Color.skTextDim)
+                }
+                .accessibilityIdentifier("add-recording-button")
+                .accessibilityLabel("Add recording")
+            }
             // Split into speakers — a deliberate post-transcript action (no pre-record
             // toggle). Shown once there's a transcript + audio to diarize.
             ToolbarItem(placement: .topBarTrailing) {
@@ -270,6 +283,10 @@ private struct MemoPageView: View {
             .padding(.horizontal, Theme.Space.margin)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // Dragging the page itself dismisses the keyboard (the inner TranscriptEditor
+        // already has its own interactive dismiss; this covers scrolling the OUTER
+        // page when the title/transcript field has focus).
+        .scrollDismissesKeyboard(.interactive)
         .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
         .alert("Add tag", isPresented: $showAddTag) {
             TextField("tag", text: $newTag)
