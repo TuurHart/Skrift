@@ -151,15 +151,47 @@
 
 ## NEXT SESSION (2026-06-09) — capture items + deferred UI
 
+### ✅ DONE this session (2026-06-09 cont.)
+- **Item 0 — TabView(.page)→SwiftUI paging ScrollView** (`d96dafb`). MemoDetail
+  pager is now `ScrollView(.horizontal)`+`LazyHStack`(`containerRelativeFrame`)
+  `.scrollTargetBehavior(.paging)`+`.scrollPosition(id:)`, with a `ScrollViewReader`
+  doing the initial jump (the binding's initial value isn't honoured on first
+  layout). Significance reverted to a **drag** slider (0-distance highPriority gesture;
+  tap still works). Gotcha: the LazyHStack realises neighbour pages → duplicate
+  controls/text in the a11y tree (broke add-tag/edit taps) → `.accessibilityHidden`
+  on off-screen pages. New `testOpenNonFirstMemoLandsOnIt` asserts **hittability**
+  to prove the initial scroll lands. 39 unit + 23 UI green; **Release deployed to
+  the iPhone 13** (install OK; launch needs the phone unlocked). **Owed: user
+  confirms glass-refraction / slider-drag / word-tap-seek ON DEVICE** (can't be
+  self-verified — visual/gesture).
+- **Light + dark mode, BOTH apps** (mobile `a7ebb2a`, desktop `4b6afc4`). Tokens
+  are now adaptive (mobile `UIColor` / desktop `NSColor` dynamic providers, light+dark
+  pair each). Mobile: the existing Settings→Theme picker now actually re-skins (root
+  already had `.preferredColorScheme`); stray accent-purple literals routed through a
+  new `skAccentText` token. Desktop: new `AppTheme` helper + a Light/Dark/Auto
+  segmented picker in Settings; `NSApp.appearance` kept in lock-step (system-drawn
+  controls); Snapshot pins the drawing appearance via `performAsCurrentDrawingAppearance`
+  (+`-snapshot-light`). Verified via sim screenshots (mobile) and `-snapshot`/
+  `-snapshot-light` PNGs (desktop); decorative capture/placeholder gradients left dark.
+- **Re-ingest source located:** `~/Desktop/Skrift old notes/` = **30 `.m4a`** (the
+  user staged them today; `PhotoMemo`/`PilotUpload` are tiny placeholders). NOT run
+  yet — it exports 30 notes into the real Obsidian vault + needs the prod desktop
+  quit (store race) → do it WITH the user.
+
+**Still TODO (all user-driven): capture items (user drives, has built share exts),
+conversation mode (needs the user's sample recording), re-ingest the 30 notes.**
+
+
 **Dev/prod split is LIVE (both apps); the user runs prod "Skrift" on the iPhone 13 +
 the prod desktop on the Mac.** Build prod = `-configuration Release`; dev iteration =
 Debug (`com.skrift.{mobile,desktop}.dev`, "Skrift Dev"). Deploy prod to the phone:
 `xcodebuild build -scheme SkriftMobile -configuration Release -destination 'platform=iOS,id=00008110-001208C902EA201E' -derivedDataPath build-device -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic` → `devicectl device install … Release-iphoneos/SkriftMobile.app`.
 
-### ⚠️ THREE MemoDetailView features are committed but DO NOT WORK ON DEVICE (start here)
-All three live inside `MemoDetailView`'s `TabView(.page)` page content, and the
-**UIKit-hosted `TabView(.page)` is the common root cause** (verified 2026-06-09 on the
-iPhone 13):
+### ✅ FIXED (2026-06-09, `d96dafb`) — was: THREE MemoDetailView features broken on device
+All three lived inside `MemoDetailView`'s `TabView(.page)` page content, and the
+**UIKit-hosted `TabView(.page)` was the common root cause** (verified 2026-06-09 on the
+iPhone 13). Replaced with a SwiftUI paging ScrollView (item 0 below). Sim-green +
+deployed; **device confirmation of the three behaviours still owed.** Original diagnosis:
 - **Glass** — `.glassEffect` on the playback bar refracts the ZStack background but NOT the
   page's scroll content, so a photo inside a page doesn't show through (user confirmed over a
   picture; a bright ZStack bg DID refract → it's the page-hosting layer, not the API).
@@ -170,8 +202,8 @@ iPhone 13):
   hosting; ALSO verify the `@AppStorage("karaokeTapToSeek")` toggle actually flips the
   per-word renderer, and that `player.seek` fires).
 
-**0. THE FIX — replace `TabView(.page)` with a SwiftUI-native paging ScrollView** (one change,
-likely fixes all three): `ScrollView(.horizontal){ LazyHStack(spacing:0){ ForEach(memos){
+**0. ✅ DONE (`d96dafb`) — replaced `TabView(.page)` with a SwiftUI-native paging ScrollView**
+(see "DONE this session"; device confirmation owed): `ScrollView(.horizontal){ LazyHStack(spacing:0){ ForEach(memos){
 MemoPageView.containerRelativeFrame(.horizontal) } } }.scrollTargetBehavior(.paging)
 .scrollPosition(id: $selection)` (+ keep the bottom glass bar as the ZStack overlay). SwiftUI
 ScrollView is sampled by `.glassEffect` (glass refracts page content) AND yields child gestures
@@ -200,11 +232,11 @@ desktop reads the embedded m4a recording date.)
    the prod desktop (+Upload/drag-drop) and Process (re-run transcribe/enhance/export).
    This is the deferred "port old notes" task. (The split did NOT lose SwiftData notes —
    the native store had none persisted.)
-5. **Light + dark mode (both apps)** — user todo 2026-06-09. Today both apps are dark-only
-   (`skBg`/`skText` are fixed dark; mobile Settings has a Theme picker light/dark/auto but it
-   isn't applied). Make the DesignSystem colors adapt (asset-catalog color sets or
-   `@Environment(\.colorScheme)`), wire the mobile Theme picker (`.preferredColorScheme`),
-   and give the desktop a light variant. Cross-app design-system work.
+5. ✅ **Light + dark mode (both apps) — DONE 2026-06-09** (mobile `a7ebb2a`, desktop
+   `4b6afc4`). Tokens made adaptive via dynamic color providers (UIColor mobile /
+   NSColor desktop), light+dark pair each. Mobile Theme picker now re-skins;
+   desktop got an Appearance picker + `AppTheme` helper + `NSApp.appearance` sync.
+   Verified by sim screenshots / `-snapshot[-light]` PNGs. (See "DONE this session".)
 4. **Liquid Glass polish (optional)** — `.glassEffect` is CORRECT + verified (it refracts
    content behind it; proven over a bright bg). Over the dark UI it's subtle by design
    (Apple DTS/WWDC25). A hairline+specular edge was added so it reads as glass. If the
