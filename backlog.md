@@ -12,6 +12,17 @@ The eventual reason the app exists. When I add a note about a realization, surfa
 - **Summary prompt quality** — summaries read stale / not in my voice. Dedicated prompt-tuning pass once the rest is stable.
 - **Tagging matchable-subset + lemma expansion** — which vault tags are auto-matchable (flag-per-tag vs separate list) and conjugation/lemma handling. Being decided in the mobile-app chat; align the desktop to it.
 - **Git housekeeping** — remove the empty `claude/competent-haslett-718d5a` worktree; finish mining `robustness-cleanup` for any remaining good fixes before deleting it.
+- **Import VIDEO → transcribe (with the real recording date)** — accept video files on the
+  phone (e.g. self-recorded "life advice to myself" clips) and transcribe their audio.
+  Plan: extend the import path to video UTIs (`CFBundleDocumentTypes` += `public.movie` /
+  `public.mpeg-4` / `com.apple.quicktime-movie`; `AppURLHandler` → `MemoSaver`) and/or a
+  Photos picker (`PHPickerViewController`, filter `.videos`). Extract the audio track via
+  `AVAssetExportSession` / `AVAssetReader` → feed FluidAudio on-device.
+  **The memo's `recordedAt` MUST come from the video's embedded creation date**
+  (`AVAsset` `.creationDate` metadata, or `PHAsset.creationDate` from the library) — NOT the
+  import time. Mirrors how the Mac reads the embedded m4a recording date. Open Qs: keep/attach
+  the original video or audio-only? a frame thumbnail as a `[[img]]`? Desktop side:
+  `UploadService` / ingest needs the same audio-extraction if videos sync to the Mac.
 
 ## Mobile ↔ desktop unification + mobile UX (2026-06-08 brain-dump)
 Captured from a session brain-dump; parity audit done (file refs are on branch `native`).
