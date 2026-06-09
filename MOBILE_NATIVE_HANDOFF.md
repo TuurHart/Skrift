@@ -206,10 +206,19 @@ if you talk?…"). FluidAudio HAS the full API: `DiarizerModels.download/loadFro
 `process()` → `DiarizationResult`/`TimedSpeakerSegment` (embedding per speaker) +
 `initializeKnownSpeakers([Speaker])`. The names store already carries `voiceEmbeddings`.
 **Decision LOCKED: tag-as-you-go** (diarize → Speaker 1/2/3 → user assigns a name → save
-that voiceprint → auto-match next time). **Plan:** (1) headless diarization SPIKE on the
-28s sample (prove split) — desktop `-diarize` or a standalone CLI; (2) mock the speaker-
-split UI; (3) `DiarizationService` (own model download) + ASR/word-timing fusion + the
-tag affordance. Needs device (ANE) for real runs.
+that voiceprint → auto-match next time).
+**(1) SPIKE DONE (`6889881`, `Skrift_Native/DiarizeSpike/`):** diarization works end-to-end
+(models download, ANE/M4, 256-d wespeaker embeddings). **CRITICAL FINDING — the default
+`DiarizerConfig.clusteringThreshold` (0.7) MERGES distinct voices.** The user's real
+2-person memo (`6C0C4C75`) and a synthetic Alex+Samantha clip both gave 1 speaker at 0.7;
+lowering splits correctly — user's memo → 2 speakers at 0.3–0.5 (3 at 0.25), synthetic → 2
+at 0.3. **Use ~0.4–0.45.** Segmentation is coarse via `performCompleteDiarization` (big
+blocks; `OfflineDiarizerManager` may give finer turns — try if needed). The 6C0C4C75 memo
+IS two people (user corrected me — not a monologue). Run: `swift run DiarizeSpike <audio>
+[threshold]`. **Next: (2) mock the speaker-split / tag UI; (3) `DiarizationService`
+(mobile, own model download, threshold ~0.45) + ASR/word-timing fusion → speaker-attributed
+transcript + tag affordance + cosine-match to names' `voiceEmbeddings`. Needs device (ANE) —
+the sim has no ANE, so diarization (like ASR) can't run there; device-test like the ASR path.**
 
 **Still TODO: conversation mode (build, per the plan above — next), capture items (user
 drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop
