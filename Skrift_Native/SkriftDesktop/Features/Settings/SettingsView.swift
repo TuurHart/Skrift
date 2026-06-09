@@ -9,6 +9,7 @@ struct SettingsView: View {
     var onClose: () -> Void = {}
     var interactive = true
 
+    @AppStorage(AppTheme.key) private var appTheme = "dark"
     @State private var settings = SettingsStore.shared.load()
     @State private var people: [Person] = NamesStore.shared.livePeople()
     @State private var editablePeople: [EditablePerson] = []
@@ -56,6 +57,20 @@ struct SettingsView: View {
 
     private var sections: some View {
         VStack(alignment: .leading, spacing: 22) {
+            section("Appearance") {
+                if interactive {
+                    Picker("", selection: $appTheme) {
+                        Text("Light").tag("light")
+                        Text("Dark").tag("dark")
+                        Text("Auto").tag("auto")
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(maxWidth: 280, alignment: .leading)
+                } else {
+                    Text(appTheme.capitalized).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                }
+            }
             section("Vault & author") {
                 textRow("Author", \.authorName, placeholder: "Your name")
                 folderRow("Obsidian vault", \.noteFolder)

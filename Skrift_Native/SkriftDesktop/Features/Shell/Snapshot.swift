@@ -4,28 +4,30 @@ import AppKit
 
 /// Headless visual verification. Renders a view to a PNG via `ImageRenderer` and
 /// exits — no window, no Screen Recording permission. Modes:
-///   -snapshot <path>           → the review surface (sidebar | note)
-///   -snapshot-settings <path>  → the Settings panel
+///   -snapshot <path>            → the review surface (sidebar | note)
+///   -snapshot-light <path>      → the review surface in LIGHT
+///   -snapshot-settings <path>   → the Settings panel
+///   -snapshot-settings-light p  → the Settings panel in LIGHT
+///   -snapshot-wizard <path>     → the first-launch wizard
+///   -snapshot-run <path>        → the review surface mid-run
+///   -snapshot-resolver <path>   → the inline resolver pieces
 enum Snapshot {
     nonisolated static func renderIfRequested() {
         let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "-snapshot-settings"), i + 1 < args.count {
-            MainActor.assumeIsolated { renderSettings(to: args[i + 1]); exit(0) }
+        func path(_ flag: String) -> String? {
+            guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
+            return args[i + 1]
         }
-        if let i = args.firstIndex(of: "-snapshot-wizard"), i + 1 < args.count {
-            MainActor.assumeIsolated { renderWizard(to: args[i + 1]); exit(0) }
-        }
-        if let i = args.firstIndex(of: "-snapshot-run"), i + 1 < args.count {
-            MainActor.assumeIsolated { renderRun(to: args[i + 1]); exit(0) }
-        }
-        if let i = args.firstIndex(of: "-snapshot-resolver"), i + 1 < args.count {
-            MainActor.assumeIsolated { renderResolver(to: args[i + 1]); exit(0) }
-        }
-        guard let i = args.firstIndex(of: "-snapshot"), i + 1 < args.count else { return }
-        MainActor.assumeIsolated { renderReview(to: args[i + 1]); exit(0) }
+        if let p = path("-snapshot-settings-light") { MainActor.assumeIsolated { renderSettings(to: p, scheme: .light); exit(0) } }
+        if let p = path("-snapshot-settings")       { MainActor.assumeIsolated { renderSettings(to: p); exit(0) } }
+        if let p = path("-snapshot-wizard")         { MainActor.assumeIsolated { renderWizard(to: p); exit(0) } }
+        if let p = path("-snapshot-run")            { MainActor.assumeIsolated { renderRun(to: p); exit(0) } }
+        if let p = path("-snapshot-resolver")       { MainActor.assumeIsolated { renderResolver(to: p); exit(0) } }
+        if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
+        if let p = path("-snapshot")                { MainActor.assumeIsolated { renderReview(to: p); exit(0) } }
     }
 
-    @MainActor private static func renderReview(to path: String) {
+    @MainActor private static func renderReview(to path: String, scheme: ColorScheme = .dark) {
         let files = DemoSeed.snapshotFiles()
         let model = AppModel()
         model.activeID = files.first?.id
@@ -38,15 +40,13 @@ enum Snapshot {
         }
         .frame(width: 1180, height: 780)
         .background(Theme.bg)
-        .environment(\.colorScheme, .dark)
-        writePNG(view, to: path)
+        writePNG(view, to: path, scheme: scheme)
     }
 
-    @MainActor private static func renderSettings(to path: String) {
+    @MainActor private static func renderSettings(to path: String, scheme: ColorScheme = .dark) {
         let view = SettingsView(interactive: false)   // sizes to full content (no 660 cap)
             .background(Theme.bg)
-            .environment(\.colorScheme, .dark)
-        writePNG(view, to: path)
+        writePNG(view, to: path, scheme: scheme)
     }
 
     @MainActor private static func renderRun(to path: String) {
@@ -62,7 +62,6 @@ enum Snapshot {
         }
         .frame(width: 1180, height: 780)
         .background(Theme.bg)
-        .environment(\.colorScheme, .dark)
         writePNG(view, to: path)
     }
 
@@ -86,7 +85,6 @@ enum Snapshot {
         .padding(40)
         .frame(width: 760, height: 480, alignment: .topLeading)
         .background(Theme.bg)
-        .environment(\.colorScheme, .dark)
         writePNG(view, to: path)
     }
 
@@ -94,21 +92,27 @@ enum Snapshot {
         let view = SetupWizardView(interactive: false)
             .frame(width: 900, height: 620)
             .background(Theme.bg)
-            .environment(\.colorScheme, .dark)
         writePNG(view, to: path)
     }
 
-    @MainActor private static func writePNG(_ view: some View, to path: String) {
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2
-        if let img = renderer.nsImage,
-           let tiff = img.tiffRepresentation,
-           let rep = NSBitmapImageRep(data: tiff),
-           let png = rep.representation(using: .png, properties: [:]) {
-            try? png.write(to: URL(fileURLWithPath: path))
-            FileHandle.standardError.write(Data("snapshot written: \(path)\n".utf8))
-        } else {
-            FileHandle.standardError.write(Data("snapshot render failed\n".utf8))
+    @MainActor private static func writePNG(_ view: some View, to path: String, scheme: ColorScheme = .dark) {
+        // Dynamic Theme tokens (NSColor providers) resolve against the CURRENT
+        // drawing appearance — not SwiftUI's colorScheme — so pin both: the AppKit
+        // appearance for the draw, and the SwiftUI environment for native adaptive
+        // bits (materials, etc.).
+        let appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua) ?? .currentDrawing()
+        appearance.performAsCurrentDrawingAppearance {
+            let renderer = ImageRenderer(content: view.environment(\.colorScheme, scheme))
+            renderer.scale = 2
+            if let img = renderer.nsImage,
+               let tiff = img.tiffRepresentation,
+               let rep = NSBitmapImageRep(data: tiff),
+               let png = rep.representation(using: .png, properties: [:]) {
+                try? png.write(to: URL(fileURLWithPath: path))
+                FileHandle.standardError.write(Data("snapshot written: \(path)\n".utf8))
+            } else {
+                FileHandle.standardError.write(Data("snapshot render failed\n".utf8))
+            }
         }
     }
 }

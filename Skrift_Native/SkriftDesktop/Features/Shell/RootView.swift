@@ -9,6 +9,7 @@ struct RootView: View {
     @State private var coordinator = ProcessingCoordinator()
     @State private var settingsOpen = false
     @State private var showWizard = false
+    @AppStorage(AppTheme.key) private var appTheme = "dark"
     @Query(sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
 
     private var activeFile: PipelineFile? { files.first { $0.id == model.activeID } }
@@ -24,7 +25,10 @@ struct RootView: View {
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(Theme.bg)
-        .preferredColorScheme(.dark)   // app is dark-only; keep all controls light-on-dark
+        .preferredColorScheme(AppTheme.colorScheme(appTheme))
+        // Keep the AppKit layer (placeholders/carets/menus) in lock-step with the
+        // SwiftUI colorScheme when the user switches theme.
+        .onChange(of: appTheme) { _, new in AppTheme.applyToApp(new) }
         .sheet(isPresented: $settingsOpen) {
             SettingsView(onClose: { settingsOpen = false })
         }

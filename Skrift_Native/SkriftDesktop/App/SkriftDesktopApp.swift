@@ -26,11 +26,11 @@ struct SkriftDesktopApp: App {
         RunFile.runAudioDateProbeIfRequested()
         RunFile.runIfRequested()
         #endif
-        // The app is dark-only (Theme tokens). Force dark appearance so EVERY
-        // system-drawn control — text-field placeholders, carets, menus — renders
-        // light-on-dark. Per-field foregroundStyle only fixed typed text; placeholders
-        // were still following the system appearance (the recurring "black text").
-        NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
+        // Apply the saved theme to the AppKit layer at launch so EVERY system-drawn
+        // control (text-field placeholders, carets, menus) matches — they follow
+        // NSApp.appearance, not SwiftUI's colorScheme. RootView keeps it in sync on
+        // change; "auto" (nil) follows the system.
+        AppTheme.applyToApp()
         let upload = UploadService()
         let handlers = SyncHandlers(
             namesStore: .shared,
