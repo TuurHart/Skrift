@@ -38,6 +38,11 @@ enum LaunchFlags {
     /// detail view renders speaker turns (`SpeakerTurnsView`).
     static var seedConversationMemo: Bool { args.boolFlag("-seedConversationMemo") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
+    /// Wipe the local names.json at launch so a conversation/voice test starts from a
+    /// known-empty names slate (names.json persists across sim runs, unlike the SwiftData
+    /// store — `-inMemoryStore` doesn't reset it). Used by the diarization-split and
+    /// voice-enroll UI tests.
+    static var resetNames: Bool { args.boolFlag("-resetNames") }
     /// Stub the Mac sync layer so UI tests don't need a live backend.
     static var mockMac: Bool { args.boolFlag("-mockMac") }
     /// Inject fake Bonjour-discovered Macs (the sim can't see the real one) so

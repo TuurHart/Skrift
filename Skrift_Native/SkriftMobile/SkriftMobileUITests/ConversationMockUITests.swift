@@ -62,7 +62,9 @@ final class ConversationMockUITests: XCTestCase {
     func testRecordingInConversationModeSplitsSpeakers() throws {
         let app = XCUIApplication()
         let seed = (1...20).map { "word\($0)" }.joined(separator: " ")   // ~6s → spans 2 seeded speakers
-        app.launchArguments = ["-seedTranscript", seed, "-conversationDefault", "1", "-appTheme", "dark"]
+        // -resetNames: no enrolled voices, so the seeded diarizer leaves both speakers
+        // un-named ("Speaker N") rather than auto-matching a leftover person.
+        app.launchArguments = ["-seedTranscript", seed, "-conversationDefault", "1", "-resetNames", "-appTheme", "dark"]
         app.launch()
         app.buttons["new-recording-button"].tap()
         let record = app.buttons["record-button"]

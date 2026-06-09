@@ -6,6 +6,9 @@ import Foundation
 @MainActor
 enum NamesSeeder {
     static func seedIfRequested() {
+        if LaunchFlags.resetNames {
+            NamesStore.shared.save(NamesData(lastModifiedAt: ISO8601.now(), people: []))
+        }
         guard LaunchFlags.seedDemoNames else { return }
         let now = ISO8601.now()
         NamesStore.shared.save(NamesData(lastModifiedAt: now, people: [
