@@ -78,6 +78,23 @@ final class ConversationMockUITests: XCTestCase {
                       "the OTHER Speaker 2 line must remain — merge is per-line, not whole-speaker")
     }
 
+    /// Tap a turn's TEXT (paused) → an inline editor opens, so a transcription error or a
+    /// boundary word can be fixed in place.
+    func testTapTurnTextOpensInlineEditor() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedConversationMemo", "-skipOnboarding", "-resetNames", "-appTheme", "dark"]
+        app.launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
+
+        let firstText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "conversation mode works")).firstMatch
+        XCTAssertTrue(firstText.waitForExistence(timeout: 10)); firstText.tap()
+
+        let editor = app.descendants(matching: .any).matching(identifier: "turn-editor-0").firstMatch
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "tapping a turn's text should open an inline editor")
+        XCTAssertTrue(app.buttons["turn-editor-done"].exists, "editing a turn should offer Done")
+    }
+
     /// Tap a speaker → pick an existing PERSON from the Names DB (typo-free, links the voiceprint).
     func testAssignSpeakerToExistingPerson() throws {
         let app = XCUIApplication()

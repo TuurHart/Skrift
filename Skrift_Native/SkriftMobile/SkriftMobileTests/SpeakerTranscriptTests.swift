@@ -48,4 +48,14 @@ final class SpeakerTranscriptTests: XCTestCase {
         XCTAssertNil(SpeakerTranscript.reassign("**A:** x\n\n**B:** y", turnAt: 9, to: "A"))
         XCTAssertNil(SpeakerTranscript.reassign("plain prose", turnAt: 0, to: "A"))
     }
+
+    /// Inline turn-text edit: replace only that turn's text, keep its speaker (move a
+    /// boundary word — trim "time." off the front of B's line; you'd append it to A separately).
+    func testSetTextReplacesOnlyThatTurnsText() {
+        let t = "**Tiuri:** recognize you next time\n\n**Roksana:** time. You stole my data"
+        XCTAssertEqual(SpeakerTranscript.setText(t, turnAt: 1, to: "You stole my data"),
+                       "**Tiuri:** recognize you next time\n\n**Roksana:** You stole my data")
+        XCTAssertNil(SpeakerTranscript.setText(t, turnAt: 9, to: "x"))
+        XCTAssertNil(SpeakerTranscript.setText("plain prose", turnAt: 0, to: "x"))
+    }
 }

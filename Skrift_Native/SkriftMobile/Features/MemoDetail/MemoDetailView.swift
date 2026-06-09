@@ -210,6 +210,8 @@ private struct MemoPageView: View {
     /// A tapped speaker turn: its position (for per-line merge) + label (for whole-speaker naming).
     struct AssignTarget: Identifiable { let id = UUID(); let index: Int; let speaker: String }
     @ObservedObject private var diarStatus = DiarizationStatus.shared
+    @State private var timings: [WordTiming] = []   // for karaoke highlight in the turn view
+    @AppStorage("karaokeTapToSeek") private var tapToSeek = false
 
     var body: some View {
         ScrollView {
@@ -268,6 +270,7 @@ private struct MemoPageView: View {
             .padding(.horizontal, Theme.Space.margin)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
         .alert("Add tag", isPresented: $showAddTag) {
             TextField("tag", text: $newTag)
             Button("Add", action: addTag)
@@ -299,6 +302,22 @@ private struct MemoPageView: View {
         memo.transcript = updated
         memo.transcriptUserEdited = true
         repository.save()
+    }
+
+    /// Commit an inline edit to one turn's text (fix a word, move a boundary word).
+    private func editTurnText(at index: Int, to newText: String) {
+        guard let updated = SpeakerTranscript.setText(memo.transcript, turnAt: index, to: newText),
+              updated != memo.transcript else { return }
+        memo.transcript = updated
+        memo.transcriptUserEdited = true       // Mac trusts the edited transcript
+        repository.save()
+    }
+
+    /// Karaoke tap-to-seek: jump playback to the tapped word.
+    private func seekToWord(_ i: Int) {
+        guard i >= 0, i < timings.count else { return }
+        player.seek(to: timings[i].start)
+        if !player.isPlaying { player.play() }
     }
 
     /// Apply a speaker assignment: relabel every `**old:**` turn → `**new:**`, re-fuse
@@ -369,9 +388,17 @@ private struct MemoPageView: View {
     /// idle karaoke view render the same, so play/pause swaps seamlessly.
     @ViewBuilder private var transcriptSection: some View {
         if let turns = SpeakerTranscript.parse(memo.transcript) {
-            // Conversation note → speaker-attributed turns; tap a speaker to assign or
-            // correct the name (relabels all that speaker's turns).
-            SpeakerTurnsView(turns: turns, onTag: startAssigning(_:_:))
+            // Conversation note → speaker-attributed turns. Tap the NAME to assign/merge;
+            // paused → tap the TEXT to edit it (fix a word, move a boundary word); playing
+            // → karaoke highlight (+ tap-to-seek) like the rest of the app.
+            SpeakerTurnsView(
+                turns: turns,
+                onTag: startAssigning(_:_:),
+                activeWord: (player.isPlaying && !timings.isEmpty) ? Karaoke.activeWordIndex(timings, at: player.currentTime) : nil,
+                tapToSeek: tapToSeek,
+                onSeek: seekToWord,
+                onEditText: editTurnText
+            )
         } else if player.isPlaying || memo.transcriptStatus == .transcribing {
             TranscriptContentView(memo: memo, player: player)
         } else {
