@@ -167,18 +167,18 @@ struct MemoSaver {
     // MARK: - Video helpers (pure AVFoundation — host-less testable)
 
     /// Video container UTIs/extensions Skrift accepts for import.
-    static let videoExtensions: Set<String> = ["mov", "mp4", "m4v", "qt", "avi", "mpg", "mpeg", "3gp", "3g2"]
+    nonisolated static let videoExtensions: Set<String> = ["mov", "mp4", "m4v", "qt", "avi", "mpg", "mpeg", "3gp", "3g2"]
 
     /// True when the URL's extension is a known video container. Used to route a
     /// shared/opened file to `importVideo` rather than `importAudio`.
-    static func isVideoFile(_ url: URL) -> Bool {
+    nonisolated static func isVideoFile(_ url: URL) -> Bool {
         videoExtensions.contains(url.pathExtension.lowercased())
     }
 
     /// The video's embedded creation date (QuickTime `creationDate` / mp4
     /// `creation_time`). Survives copies — unlike the filesystem date, which becomes
     /// the import/copy time. nil when absent or unparseable.
-    static func embeddedCreationDate(of asset: AVAsset) async -> Date? {
+    nonisolated static func embeddedCreationDate(of asset: AVAsset) async -> Date? {
         guard let item = (try? await asset.load(.creationDate)) ?? nil else { return nil }
         if let d = (try? await item.load(.dateValue)) ?? nil { return d }
         if let s = (try? await item.load(.stringValue)) ?? nil, let d = parseCreationDate(s) { return d }
@@ -186,7 +186,7 @@ struct MemoSaver {
     }
 
     /// Parse an ISO-8601 creation-date string (with or without fractional seconds).
-    static func parseCreationDate(_ s: String) -> Date? {
+    nonisolated static func parseCreationDate(_ s: String) -> Date? {
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let d = iso.date(from: s) { return d }

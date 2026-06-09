@@ -286,7 +286,7 @@ private struct MemoPageView: View {
         // Dragging the page itself dismisses the keyboard (the inner TranscriptEditor
         // already has its own interactive dismiss; this covers scrolling the OUTER
         // page when the title/transcript field has focus).
-        .scrollDismissesKeyboard(.interactive)
+        .scrollDismissesKeyboard(.interactively)
         .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
         .alert("Add tag", isPresented: $showAddTag) {
             TextField("tag", text: $newTag)

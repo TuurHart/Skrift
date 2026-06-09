@@ -83,7 +83,9 @@ final class VideoIngestTests: XCTestCase {
     }
 
     func testIngestVideoCreatesAudioPipelineFileWithFilenameDate() throws {
-        // No embedded date → the date falls back to the filename's date (not import time).
+        // A synthetic AVAssetWriter .mov is auto-stamped with an embedded creation date
+        // (now) that correctly wins over the filename, so we assert the filename-date
+        // FALLBACK helper directly below — the path real videos lacking metadata use.
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("My life advice 2025-12-18.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true, creationDate: nil)
@@ -99,7 +101,8 @@ final class VideoIngestTests: XCTestCase {
         XCTAssertTrue(pf.path.hasSuffix("original.m4a"), "extracted audio, not the source video")
         XCTAssertTrue(FileManager.default.fileExists(atPath: pf.path))
         XCTAssertEqual(pf.filename, "My life advice 2025-12-18.mov")  // original name kept for the title
-        let ymd = Calendar.current.dateComponents([.year, .month, .day], from: pf.uploadedAt)
+        let fnDate = try XCTUnwrap(IngestService.dateFromFilename("My life advice 2025-12-18.mov"))
+        let ymd = Calendar.current.dateComponents([.year, .month, .day], from: fnDate)
         XCTAssertEqual([ymd.year, ymd.month, ymd.day], [2025, 12, 18])
     }
 

@@ -107,9 +107,14 @@ final class MemoDetailUITests: XCTestCase {
         let app = launch()
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
-        app.buttons["detail-menu"].tap()
-        XCTAssertTrue(app.buttons["Split speakers"].waitForExistence(timeout: 5),
-                      "retro 'Split speakers' action missing for a plain memo")
+        // Split-speakers is a dedicated post-transcript toolbar button (person.2.fill),
+        // shown for a memo with transcript + audio; tapping it offers Auto / N speakers.
+        let split = app.buttons["split-speakers-button"]
+        XCTAssertTrue(split.waitForExistence(timeout: 5),
+                      "Split-speakers button missing for a memo with transcript + audio")
+        split.tap()
+        XCTAssertTrue(app.buttons["Auto"].waitForExistence(timeout: 5),
+                      "'How many speakers?' options didn't appear after tapping Split speakers")
     }
 
     func testDeleteMemoFromDetail() throws {
