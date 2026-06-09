@@ -180,7 +180,7 @@ struct TagChip: View {
     private var fg: Color {
         switch style {
         case .applied: return .white
-        case .suggestion: return Color(hex: 0xb9acff)
+        case .suggestion: return Color.skAccentText
         case .add: return .skTextDim
         }
     }

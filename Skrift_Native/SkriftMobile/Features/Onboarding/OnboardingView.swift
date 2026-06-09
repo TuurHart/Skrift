@@ -90,7 +90,7 @@ struct OnboardingView: View {
     private func stepCard<Trailing: View>(icon: String, title: String, desc: String, @ViewBuilder trailing: () -> Trailing) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 16)).foregroundStyle(Color(hex: 0xb9acff))
+                .font(.system(size: 16)).foregroundStyle(Color.skAccentText)
                 .frame(width: 36, height: 36)
                 .background(Color.skAccentSoft, in: .rect(cornerRadius: 10, style: .continuous))
             VStack(alignment: .leading, spacing: 1) {

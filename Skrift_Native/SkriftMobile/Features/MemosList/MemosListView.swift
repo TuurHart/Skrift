@@ -387,7 +387,7 @@ private struct MemoCard: View {
                     ForEach(memo.tags.prefix(2), id: \.self) { tag in
                         Text("#\(tag)")
                             .font(.system(size: 11))
-                            .foregroundStyle(Color(hex: 0xc5bcff))
+                            .foregroundStyle(Color.skAccentText)
                             .padding(.horizontal, 7).padding(.vertical, 2)
                             .background(Color.skAccentSoft, in: .rect(cornerRadius: 7, style: .continuous))
                     }

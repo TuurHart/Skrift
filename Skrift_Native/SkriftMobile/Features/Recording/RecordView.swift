@@ -483,7 +483,7 @@ private struct ControlButton: View {
                         .frame(width: 54, height: 54)
                     Image(systemName: systemImage)
                         .font(.system(size: 20))
-                        .foregroundStyle(accent ? Color(hex: 0xb9acff) : Color.skText)
+                        .foregroundStyle(accent ? Color.skAccentText : Color.skText)
                 }
                 Text(title)
                     .font(.system(size: 12, weight: .semibold))

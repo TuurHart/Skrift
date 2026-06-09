@@ -97,7 +97,7 @@ struct PairMacView: View {
         HStack(spacing: 11) {
             Image(systemName: "desktopcomputer")
                 .font(.system(size: 16))
-                .foregroundStyle(isConnected(mac) ? Color(hex: 0xb9acff) : Color.skTextDim)
+                .foregroundStyle(isConnected(mac) ? Color.skAccentText : Color.skTextDim)
                 .frame(width: 32, height: 32)
                 .background(isConnected(mac) ? Color.skAccentSoft : Color.skElev, in: .rect(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {

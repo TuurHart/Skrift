@@ -1,9 +1,11 @@
 import SwiftUI
+import UIKit
 
 /// The Skrift visual language, ported 1:1 from the locked mockups
-/// (`mockups/mockup{1..5}.html`). Dark-only for now; a Light/Auto toggle is a
-/// later Settings detail. Colors are literal (not semantic) because the design
-/// is a single fixed dark palette — adaptive system colors would fight it.
+/// (`mockups/mockup{1..5}.html`). The dark palette is the original/default; the
+/// light variant is the second column of each token. Tokens are *adaptive*
+/// (`UIColor` dynamic provider) so the whole app flips with the active trait —
+/// `.preferredColorScheme` (driven by Settings → Theme) sets that trait.
 extension Color {
     /// Hex literal → Color, e.g. `Color(hex: 0x7c6bf5)`.
     init(hex: UInt32, alpha: Double = 1) {
@@ -16,23 +18,43 @@ extension Color {
         )
     }
 
-    // Surfaces
-    static let skBg = Color(hex: 0x0f1117)
-    static let skSurface = Color(hex: 0x181a23)
-    static let skElev = Color(hex: 0x1e2130)
-    static let skBorder = Color.white.opacity(0.06)
+    /// A light/dark hex pair → one adaptive Color that resolves against the active
+    /// `userInterfaceStyle` (so it follows `.preferredColorScheme`).
+    static func skDynamic(light: UInt32, dark: UInt32, alpha: Double = 1) -> Color {
+        Color(uiColor: UIColor { tc in
+            let hex = tc.userInterfaceStyle == .dark ? dark : light
+            return UIColor(
+                red: CGFloat((hex >> 16) & 0xff) / 255,
+                green: CGFloat((hex >> 8) & 0xff) / 255,
+                blue: CGFloat(hex & 0xff) / 255,
+                alpha: CGFloat(alpha)
+            )
+        })
+    }
 
-    // Text
-    static let skText = Color(hex: 0xe4e4e7)       // t1 — primary
-    static let skTextDim = Color(hex: 0x8b8b97)    // t2 — secondary
-    static let skTextFaint = Color(hex: 0x55556a)  // t3 — tertiary
+    // Surfaces                              light       dark
+    static let skSurface = skDynamic(light: 0xffffff, dark: 0x181a23)   // cards
+    static let skBg      = skDynamic(light: 0xf5f5f7, dark: 0x0f1117)   // window
+    static let skElev    = skDynamic(light: 0xebebf0, dark: 0x1e2130)   // chips / fields
+    /// Hairline: a faint dark line on light, a faint white line on dark.
+    static let skBorder  = Color(uiColor: UIColor { tc in
+        tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.06) : UIColor(white: 0, alpha: 0.09)
+    })
 
-    // Accent + semantics
-    static let skAccent = Color(hex: 0x7c6bf5)
-    static let skAccentSoft = Color(hex: 0x7c6bf5, alpha: 0.15)
-    static let skGreen = Color(hex: 0x34d399)
-    static let skAmber = Color(hex: 0xf59e0b)
-    static let skRed = Color(hex: 0xef4444)
+    // Text                                     light       dark
+    static let skText      = skDynamic(light: 0x1c1c1e, dark: 0xe4e4e7)   // t1 — primary
+    static let skTextDim   = skDynamic(light: 0x6c6c72, dark: 0x8b8b97)   // t2 — secondary
+    static let skTextFaint = skDynamic(light: 0xa3a3aa, dark: 0x55556a)   // t3 — tertiary
+
+    // Accent + semantics                       light       dark
+    static let skAccent     = skDynamic(light: 0x6c5ce0, dark: 0x7c6bf5)
+    static let skAccentSoft = skDynamic(light: 0x6c5ce0, dark: 0x7c6bf5, alpha: 0.13)
+    /// The lighter-purple accent used for small text/labels (e.g. tag text). On
+    /// light it deepens so it stays legible on white.
+    static let skAccentText = skDynamic(light: 0x6051c8, dark: 0xb9acff)
+    static let skGreen      = skDynamic(light: 0x0f9d72, dark: 0x34d399)
+    static let skAmber      = skDynamic(light: 0xd97706, dark: 0xf59e0b)
+    static let skRed        = skDynamic(light: 0xdc2626, dark: 0xef4444)
 }
 
 /// Spacing, corner radii, and motion constants. The mockups use a 4/8/16/24/32

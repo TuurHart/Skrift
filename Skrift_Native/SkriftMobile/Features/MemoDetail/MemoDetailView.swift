@@ -194,7 +194,7 @@ private struct MemoPageView: View {
                         Button { removeTag(tag) } label: {
                             Text("#\(tag)")
                                 .font(.system(size: 11))
-                                .foregroundStyle(Color(hex: 0xc5bcff))
+                                .foregroundStyle(Color.skAccentText)
                                 .padding(.horizontal, 7).padding(.vertical, 2)
                                 .background(Color.skAccentSoft, in: .rect(cornerRadius: 7, style: .continuous))
                         }
