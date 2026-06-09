@@ -76,6 +76,12 @@ final class PipelineFile {
     /// `[WordTiming]` stored as a JSON blob (the per-file `word_timings.json`
     /// equivalent) — drives the karaoke highlight. Set by the transcribe step.
     var wordTimingsJSON: Data?
+    /// `[DiarizedSegment]` stored as a JSON blob (the per-file `diar_<id>.json`
+    /// sidecar equivalent). Persisted by the conversation-mode diarize step so a
+    /// speaker's audio can be re-extracted later — to ENROLL their voice from the Mac
+    /// review screen — WITHOUT re-diarizing. Empty for monologues / phone-attributed
+    /// memos the Mac never split. (Set alongside the `diar_<id>.json` sidecar.)
+    var diarizationSegmentsJSON: Data?
 
     // Enhancement (review-time fields)
     var enhancedTitle: String?
@@ -141,5 +147,14 @@ final class PipelineFile {
     var wordTimings: [WordTiming] {
         get { wordTimingsJSON.flatMap { try? JSONDecoder().decode([WordTiming].self, from: $0) } ?? [] }
         set { wordTimingsJSON = newValue.isEmpty ? nil : (try? JSONEncoder().encode(newValue)) }
+    }
+
+    /// Per-speaker diarization time-ranges (backed by `diarizationSegmentsJSON`).
+    /// Retained from the conversation-mode diarize step so the review screen can later
+    /// extract one speaker's audio and enroll their voice
+    /// (`DiarizationService.embedSpeaker(audioURL:segments:slot:)`).
+    var diarizationSegments: [DiarizedSegment] {
+        get { diarizationSegmentsJSON.flatMap { try? JSONDecoder().decode([DiarizedSegment].self, from: $0) } ?? [] }
+        set { diarizationSegmentsJSON = newValue.isEmpty ? nil : (try? JSONEncoder().encode(newValue)) }
     }
 }

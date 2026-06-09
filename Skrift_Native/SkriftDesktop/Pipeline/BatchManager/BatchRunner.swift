@@ -44,6 +44,16 @@ struct BatchRunner {
             pf.transcript = SpeakerFusion.attributedTranscript(words: pf.wordTimings, segments: out.segments) { slot in
                 out.slotNames[slot].map { "[[\($0)]]" } ?? "Speaker \(slot + 1)"
             }
+            // Retain the diarization so a speaker's voice can be enrolled later from the
+            // review screen (slice their audio by these segments → embedSpeaker) without
+            // re-diarizing. Persist BOTH on the PipelineFile (survives SwiftData) AND as a
+            // `diar_<id>.json` sidecar next to the audio (byte-mirrors the phone, keeps the
+            // segments with the recording for portability). Was discarded before.
+            pf.diarizationSegments = out.segments
+            if !pf.path.isEmpty {
+                DiarizationSidecar().write(DiarizationData(out),
+                                           in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
+            }
         }
 
         let transcript = pf.transcript ?? ""
