@@ -73,6 +73,15 @@ final class DiarizationTests: XCTestCase {
         let output: DiarizationOutput
         func diarize(audioURL: URL) async throws -> DiarizationOutput { output }
     }
+    /// Simulates the real Gemma copy-edit stripping the `**` bold markers (it drops the
+    /// `**Name:**` speaker prefixes — verified on the fixture).
+    private struct StrippingEnhancer: Enhancing {
+        func copyEdit(_ t: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
+            t.replacingOccurrences(of: "*", with: "")
+        }
+        func title(_ t: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String { "T" }
+        func summary(_ t: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String { "S" }
+    }
 
     private func twoSpeakerStub(named: [Int: String]) -> StubDiarizer {
         StubDiarizer(output: DiarizationOutput(
@@ -110,6 +119,19 @@ final class DiarizationTests: XCTestCase {
         try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c3.m4a"))
         XCTAssertEqual(pf.transcript, attributed)   // phone already split it → not re-diarized
         XCTAssertFalse((pf.transcript ?? "").contains("Should Not Appear"))
+    }
+
+    func testConversationSkipsCopyEditSoTurnsSurviveExport() async throws {
+        // A label-stripping copy-edit must NOT be applied to a diarized conversation —
+        // otherwise the **Speaker N:**/**[[Person]]:** turns vanish from the exported note.
+        let pf = PipelineFile(id: "c5", filename: "m.m4a", path: "/tmp/c5", size: 0, sourceType: .audio)
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: StrippingEnhancer(), settings: .default,
+                                 people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
+        try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c5.m4a"))
+        XCTAssertEqual(pf.enhancedCopyedit, pf.transcript, "copy-edit must be skipped for a conversation")
+        let s = try XCTUnwrap(pf.sanitised)
+        XCTAssertTrue(s.contains("**Speaker 2:**"), "speaker turns must survive into the body; got: \(s)")
+        XCTAssertTrue(s.contains("**[[Tiuri Hartog]]:**"), "matched speaker link must survive; got: \(s)")
     }
 
     func testRunLeavesMonologueUntouched() async throws {

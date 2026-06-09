@@ -57,7 +57,16 @@ struct BatchRunner {
         let prompts = settings.prompts
         let repo = settings.enhancementModelRepo
 
-        let copyedit = try await enhancer.copyEdit(transcript, prompts: prompts, modelRepo: repo)
+        // A speaker-attributed (conversation) transcript SKIPS copy-edit: the LLM strips
+        // the `**Name:**` turn prefixes (verified on the real fixture), destroying the
+        // structure diarization just produced. Conversations stay verbatim — consistent
+        // with the phone, which never copy-edits — so the turns survive into the export.
+        // Title/summary still run (they read fine on the turns), and name-linking below
+        // still links any plain names spoken inside the turns.
+        let isConversation = SpeakerTranscript.isAttributed(transcript)
+        let copyedit = isConversation
+            ? transcript
+            : try await enhancer.copyEdit(transcript, prompts: prompts, modelRepo: repo)
         pf.enhancedCopyedit = copyedit
         let suggestedTitle = try await enhancer.title(transcript, prompts: prompts, modelRepo: repo)
         pf.titleSuggested = suggestedTitle
