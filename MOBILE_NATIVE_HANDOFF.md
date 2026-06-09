@@ -260,8 +260,21 @@ TranscriptEditor/karaoke view (the mock's look on real data — sim-testable); (
 `enrollSpeaker` + save to the person's `voiceEmbeddings` → cosine auto-match next time; (7) a
 "conversation mode" toggle (the `conversationDefault` AppStorage exists). Needs device (ANE) — the
 sim has no ANE, so diarization (like ASR) can't run there; device-test like the ASR path.**
+**BUILD PROGRESS (2026-06-09):** ✅ **A** `SpeakerFusion` (`925441a`, 5 unit tests) — words→speaker
+by segment-midpoint, turn grouping, 1-word-island smoothing, `**Name:**` output. ✅ **B**
+`SpeakerTranscript.parse` + `SpeakerTurnsView` (`7bf9b97`) wired into `MemoDetail.transcriptSection`
+(conversation transcript → speaker turns; else editor/karaoke); `ConversationMockView` reuses it;
+`-seedConversationMemo` + UI test verify the REAL detail renders turns (screenshot
+`~/Desktop/conversation-mock/`). ✅ **C** `DiarizationService` actor (`9f2ed1d`) — Sortformer
+`ensureLoaded`/`diarize(url:)`/`attributedTranscript(url:words:)`, `SeededDiarizer` mock for the
+sim; compiles against the app FluidAudio (Sortformer API matches). **REMAINING (device-tested):
+(D)** wire conversation toggle → on save, `DiarizationService.attributedTranscript` (SeededDiarizer
+in sim) → set `memo.transcript`; **(E)** tap "+ name" → assign → rewrite that speaker's prefixes +
+`enrollSpeaker` + person `voiceEmbeddings` → cosine auto-match; **(F)** live streaming during
+recording (feed the record tap to Sortformer). First device test: wire D, deploy, record a real
+2-person convo → verify the split on the phone.
 
-**Still TODO: conversation mode (build, per the plan above — next), capture items (user
+**Still TODO: conversation mode D/E/F (device — per BUILD PROGRESS above), capture items (user
 drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop
 glass (user said later).**
 
