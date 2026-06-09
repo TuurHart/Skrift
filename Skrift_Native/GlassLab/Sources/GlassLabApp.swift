@@ -83,33 +83,30 @@ struct SkriftScene: View {
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    /// Proposed real fix: a LIGHT glass "island" (forced light colorScheme → bright,
-    /// clear glass — the look you liked) with DARK content so it reads, floating over
-    /// the dark app. This is how you keep bright Liquid Glass in a dark UI.
+    /// Skrift's real bar: .clear glass (the lensed look) with Skrift's dark-UI styling
+    /// (light-gray controls), over the dark transcript + photo. Follows the app mode.
     @ViewBuilder private var skriftBar: some View {
         let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
-        let ink = Color(.sRGB, red: 0.13, green: 0.13, blue: 0.15, opacity: 1)   // dark content on bright glass
         let accent = Color(.sRGB, red: 124/255, green: 107/255, blue: 245/255, opacity: 1)
         let content = VStack(spacing: 10) {
-            Capsule().fill(ink.opacity(0.20)).frame(height: 4)
+            Capsule().fill(text.opacity(0.25)).frame(height: 4)
             HStack(spacing: 34) {
                 Image(systemName: "gobackward.10")
                 Image(systemName: "play.fill").font(.system(size: 22)).foregroundStyle(.white)
                     .frame(width: 60, height: 60).background(accent, in: .circle)
                 Image(systemName: "goforward.10")
             }
-            .font(.system(size: 24)).foregroundStyle(ink)
+            .font(.system(size: 24)).foregroundStyle(text)
         }
         .padding(.horizontal, 18).padding(.vertical, 14)
 
         Group {
             if #available(iOS 26.0, *) {
-                GlassEffectContainer { content.glassEffect(.regular, in: shape) }
+                GlassEffectContainer { content.glassEffect(.clear, in: shape) }
             } else {
                 content.background(.ultraThinMaterial, in: shape)
             }
         }
-        .environment(\.colorScheme, .light)   // bright glass even though the app is dark
         .padding(.horizontal, 20).padding(.bottom, 6)
         .accessibilityIdentifier("skrift-bar")
     }

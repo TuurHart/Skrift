@@ -109,7 +109,10 @@ struct MemoDetailView: View {
         if #available(iOS 26.0, *) {
             GlassEffectContainer {
                 playerBarStack
-                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    // .clear (not .regular) = the lensed, refractive look — .regular
+                    // reads as frosted. (Device must have full Liquid Glass on: Reduce
+                    // Motion / Reduce Transparency OFF, Liquid Glass = Clear.)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                     // A hairline + top specular highlight so the glass reads as an EDGE.
                     .overlay(
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
