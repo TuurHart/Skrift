@@ -173,13 +173,47 @@
   controls); Snapshot pins the drawing appearance via `performAsCurrentDrawingAppearance`
   (+`-snapshot-light`). Verified via sim screenshots (mobile) and `-snapshot`/
   `-snapshot-light` PNGs (desktop); decorative capture/placeholder gradients left dark.
-- **Re-ingest source located:** `~/Desktop/Skrift old notes/` = **30 `.m4a`** (the
-  user staged them today; `PhotoMemo`/`PilotUpload` are tiny placeholders). NOT run
-  yet — it exports 30 notes into the real Obsidian vault + needs the prod desktop
-  quit (store race) → do it WITH the user.
+- **GLASS — SOLVED + device-confirmed.** Root cause was NOT the code: (1) the bar was
+  a detached ZStack overlay (sampled nothing) → moved to `.safeAreaInset(edge:.bottom)`
+  + `GlassEffectContainer` so scroll content is in the backdrop (`9990d32`); (2) the
+  device had **Reduce Motion ON**, which throttles Liquid Glass on the A15 → frosted
+  (also Reduce Transparency / Display&Brightness→Liquid Glass=Tinted frost it). With
+  full glass on, `.regular` reads frosted, **`.clear` is the lensed look the user wants**
+  → switched (`5d60646`). **The iOS-26 Simulator can't render specular/chromatic glass —
+  device-only.** Built `Skrift_Native/GlassLab/` (standalone harness, static/scroll/
+  skrift scenes + dark toggle) to iterate glass on-device (`6ef3553`,`b19c688`).
+- **Slimmer player bar** (`08d6eee`): play 60→46, tighter spacings/padding.
+- **Inline rich-text editor — always editable, no Edit button** (`c07d100`).
+  `TranscriptEditor` (self-sizing UITextView): inline image attachments at `[[img_NNN]]`,
+  edits in place, writes back (reconstructs markers from attachments) + flags
+  `transcriptUserEdited`. Paused→editor; playing→read-only karaoke view; transcribing→pill.
+  Detail UI tests now read the transcript via `app.textViews["transcript-editor"].value`.
+  **User confirmed karaoke + edit work.**
+- **Significance label = desktop tiers** (`9990d32`): `0.7 · Significant` / `Not rated`.
+- **Perf** (`bc98e86`): `MemoImageLoader` (ImageIO thumbnail → display size + NSCache)
+  fixed the "600× with a picture" slow page-render; significance slider commits to
+  SwiftData only on release (per-tick writes re-ran the @Query → lag). User-reported,
+  now fixed.
+- **Video import → backlog** (`3c9978f`, repo `backlog.md`): import `.mov`/`.mp4`,
+  transcribe audio, `recordedAt` from the video's embedded creation date.
 
-**Still TODO (all user-driven): capture items (user drives, has built share exts),
-conversation mode (needs the user's sample recording), re-ingest the 30 notes.**
+**CONVERSATION MODE — scoped + sample in hand (next build):** pulled the app's recordings
+off the device via `devicectl device copy from --domain-type appDataContainer
+--domain-identifier com.skrift.mobile --source Documents/recordings`. The sample is
+`memo_6C0C4C75…m4a` (28s; transcript "If conversation mode works, if I talk, then what
+if you talk?…"). FluidAudio HAS the full API: `DiarizerModels.download/loadFromHuggingFace`
+→ `AudioConverter.resampleAudioFile(url)` → `DiarizerManager.initialize(models:)` +
+`process()` → `DiarizationResult`/`TimedSpeakerSegment` (embedding per speaker) +
+`initializeKnownSpeakers([Speaker])`. The names store already carries `voiceEmbeddings`.
+**Decision LOCKED: tag-as-you-go** (diarize → Speaker 1/2/3 → user assigns a name → save
+that voiceprint → auto-match next time). **Plan:** (1) headless diarization SPIKE on the
+28s sample (prove split) — desktop `-diarize` or a standalone CLI; (2) mock the speaker-
+split UI; (3) `DiarizationService` (own model download) + ASR/word-timing fusion + the
+tag affordance. Needs device (ANE) for real runs.
+
+**Still TODO: conversation mode (build, per the plan above — next), capture items (user
+drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop
+glass (user said later).**
 
 
 **Dev/prod split is LIVE (both apps); the user runs prod "Skrift" on the iPhone 13 +
