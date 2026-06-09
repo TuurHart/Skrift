@@ -103,6 +103,15 @@ final class MemoDetailUITests: XCTestCase {
                       "typed text didn't land in the always-editable transcript")
     }
 
+    func testSplitSpeakersActionAvailable() throws {
+        let app = launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
+        app.buttons["detail-menu"].tap()
+        XCTAssertTrue(app.buttons["Split speakers"].waitForExistence(timeout: 5),
+                      "retro 'Split speakers' action missing for a plain memo")
+    }
+
     func testDeleteMemoFromDetail() throws {
         let app = launch()
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch

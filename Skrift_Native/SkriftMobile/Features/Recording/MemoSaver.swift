@@ -251,6 +251,15 @@ struct MemoSaver {
 
     private var conversationModeOn: Bool { UserDefaults.standard.bool(forKey: "conversationDefault") }
 
+    /// Retro-diarize an already-saved memo (the detail's "Split speakers" action, for
+    /// when you forgot to record in conversation mode): load its audio + word-timings
+    /// and re-emit the transcript as speaker turns (≥2 speakers; otherwise unchanged).
+    func diarizeExisting(id: UUID) async {
+        guard let memo = repository.memo(id: id), let url = memo.audioURL,
+              let words = wordTimings.load(for: id), !words.isEmpty else { return }
+        await diarizeIntoTurns(id: id, audioURL: url, words: words)
+    }
+
     /// Diarize the recording and, if ≥2 speakers are found, rewrite the transcript as
     /// `**Speaker N:**` turns (fused with the word-timings). A single-speaker result is
     /// left as the plain transcript.

@@ -81,6 +81,11 @@ struct MemoDetailView: View {
         .confirmationDialog("Memo", isPresented: $showActions, titleVisibility: .hidden) {
             Button("Add recording", action: { showAppendRecorder = true })
             Button("Copy transcript", action: copyTranscript)
+            // Retro "split speakers" — for a memo recorded without conversation mode.
+            if let memo = currentMemo, !(memo.transcript ?? "").isEmpty, memo.audioURL != nil,
+               SpeakerTranscript.parse(memo.transcript) == nil {
+                Button("Split speakers") { Task { await MemoSaver().diarizeExisting(id: memo.id) } }
+            }
             Button("Delete", role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
         }
