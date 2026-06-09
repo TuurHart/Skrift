@@ -34,4 +34,18 @@ final class SpeakerTranscriptTests: XCTestCase {
     func testMergeLeavesNonConversationUntouched() {
         XCTAssertEqual(SpeakerTranscript.mergeAdjacentTurns("plain prose"), "plain prose")
     }
+
+    /// Per-LINE merge (the bug fix): reassigning ONE turn moves only that line, not every
+    /// turn of the speaker. "A B A B A", merge the 2nd B (index 3) into A → "A, B, A".
+    func testReassignTurnIsPerLineNotWholeSpeaker() {
+        let t = "**A:** one\n\n**B:** two\n\n**A:** three\n\n**B:** four\n\n**A:** five"
+        let r = SpeakerTranscript.reassign(t, turnAt: 3, to: "A")
+        XCTAssertEqual(r, "**A:** one\n\n**B:** two\n\n**A:** three four five")
+        XCTAssertEqual(SpeakerTranscript.parse(r)?.count, 3)   // B's first line survives → still 2 speakers
+    }
+
+    func testReassignOutOfRangeReturnsNil() {
+        XCTAssertNil(SpeakerTranscript.reassign("**A:** x\n\n**B:** y", turnAt: 9, to: "A"))
+        XCTAssertNil(SpeakerTranscript.reassign("plain prose", turnAt: 0, to: "A"))
+    }
 }

@@ -40,13 +40,15 @@ actor SpeakerEmbedder: SpeakerEmbedding {
 
     func ensureLoaded() async throws {
         guard manager == nil else { return }
-        await MainActor.run { DiarizationStatus.shared.set(.downloadingVoiceModel(nil)) }
+        let firstTime = !UserDefaults.standard.bool(forKey: "voiceModelReady")
+        await MainActor.run { DiarizationStatus.shared.set(firstTime ? .downloadingVoiceModel(nil) : .preparingVoiceModel) }
         let models = try await DiarizerModels.downloadIfNeeded { progress in
-            Task { @MainActor in DiarizationStatus.shared.set(.downloadingVoiceModel(progress.fractionCompleted)) }
+            if firstTime { Task { @MainActor in DiarizationStatus.shared.set(.downloadingVoiceModel(progress.fractionCompleted)) } }
         }
         let m = DiarizerManager()
         m.initialize(models: models)
         manager = m
+        UserDefaults.standard.set(true, forKey: "voiceModelReady")
     }
 
     func embed(samples: [Float]) async throws -> [Float] {

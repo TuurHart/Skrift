@@ -40,13 +40,17 @@ actor DiarizationService: Diarizing {
     /// slow, then cached). Device-only in practice (ANE).
     func ensureLoaded() async throws {
         guard diarizer == nil else { return }
-        await MainActor.run { DiarizationStatus.shared.set(.downloadingModel(nil)) }
+        // Distinguish a genuine first-time download from a cached reload (each app launch
+        // reloads into memory — that's "Preparing", not "Downloading"). Flag set once below.
+        let firstTime = !UserDefaults.standard.bool(forKey: "sortformerModelReady")
+        await MainActor.run { DiarizationStatus.shared.set(firstTime ? .downloadingModel(nil) : .preparingModel) }
         let models = try await SortformerModels.loadFromHuggingFace(config: config) { progress in
-            Task { @MainActor in DiarizationStatus.shared.set(.downloadingModel(progress.fractionCompleted)) }
+            if firstTime { Task { @MainActor in DiarizationStatus.shared.set(.downloadingModel(progress.fractionCompleted)) } }
         }
         let d = SortformerDiarizer(config: config)
         d.initialize(models: models)
         diarizer = d
+        UserDefaults.standard.set(true, forKey: "sortformerModelReady")
     }
 
     func diarize(audioURL: URL) async throws -> DiarizationOutput {

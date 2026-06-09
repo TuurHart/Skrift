@@ -179,7 +179,10 @@ private struct MemoPageView: View {
     private let repository = NotesRepository.shared
     @State private var showAddTag = false
     @State private var newTag = ""
-    @State private var assigningSpeaker: String?     // the speaker label being assigned (sheet)
+    @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
+
+    /// A tapped speaker turn: its position (for per-line merge) + label (for whole-speaker naming).
+    struct AssignTarget: Identifiable { let id = UUID(); let index: Int; let speaker: String }
     @ObservedObject private var diarStatus = DiarizationStatus.shared
 
     var body: some View {
@@ -247,22 +250,30 @@ private struct MemoPageView: View {
         // Tap a speaker → an assign sheet: pick a known Person (links + enrolls the
         // voiceprint), merge into another speaker in this convo (fixes a mis-split), or
         // type a new name. Replaces the old free-text alert.
-        .sheet(isPresented: Binding(get: { assigningSpeaker != nil },
-                                    set: { if !$0 { assigningSpeaker = nil } })) {
-            if let speaker = assigningSpeaker {
-                SpeakerAssignSheet(
-                    speaker: speaker,
-                    otherSpeakers: SpeakerTranscript.speakers(in: memo.transcript).filter { $0 != speaker },
-                    people: NamesStore.shared.livePeople(),
-                    onAssignPerson: { assign(speaker, to: NamesDisplay.name($0), enroll: true) },
-                    onMergeInto: { assign(speaker, to: $0, enroll: false) },
-                    onNewName: { assign(speaker, to: $0, enroll: true) }
-                )
-            }
+        .sheet(item: $assignTarget) { target in
+            SpeakerAssignSheet(
+                speaker: target.speaker,
+                otherSpeakers: SpeakerTranscript.speakers(in: memo.transcript).filter { $0 != target.speaker },
+                people: NamesStore.shared.livePeople(),
+                onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), enroll: true) },
+                onMergeInto: { mergeTurn(at: target.index, into: $0) },
+                onNewName: { assign(target.speaker, to: $0, enroll: true) }
+            )
         }
     }
 
-    private func startAssigning(_ speaker: String) { assigningSpeaker = speaker }
+    private func startAssigning(_ index: Int, _ speaker: String) {
+        assignTarget = AssignTarget(index: index, speaker: speaker)
+    }
+
+    /// Merge ONLY the tapped turn into another speaker (per-line) + re-fuse — fixes a
+    /// mis-split line without collapsing the whole speaker. No enrollment (not a naming).
+    private func mergeTurn(at index: Int, into other: String) {
+        guard let updated = SpeakerTranscript.reassign(memo.transcript, turnAt: index, to: other) else { return }
+        memo.transcript = updated
+        memo.transcriptUserEdited = true
+        repository.save()
+    }
 
     /// Apply a speaker assignment: relabel every `**old:**` turn → `**new:**`, re-fuse
     /// adjacent same-speaker turns (so a merged blip folds into its neighbour), and — when
@@ -334,7 +345,7 @@ private struct MemoPageView: View {
         if let turns = SpeakerTranscript.parse(memo.transcript) {
             // Conversation note → speaker-attributed turns; tap a speaker to assign or
             // correct the name (relabels all that speaker's turns).
-            SpeakerTurnsView(turns: turns, onTag: startAssigning)
+            SpeakerTurnsView(turns: turns, onTag: startAssigning(_:_:))
         } else if player.isPlaying || memo.transcriptStatus == .transcribing {
             TranscriptContentView(memo: memo, player: player)
         } else {

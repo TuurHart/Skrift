@@ -56,8 +56,9 @@ final class ConversationMockUITests: XCTestCase {
         XCTAssertFalse(app.buttons["tag-speaker-Speaker 2"].exists, "old Speaker 2 label still present after rename")
     }
 
-    /// Tap a mis-split speaker → "Merge into" another speaker in the conversation → the
-    /// turns fold into them (the phantom-speaker fix).
+    /// Tap a mis-split line → "Merge into" another speaker → ONLY that line folds in
+    /// (per-line). The seeded memo has two Speaker 2 turns; merging the first leaves the
+    /// second, so it stays a 2-speaker conversation (the bug was merging ALL the turns).
     func testMergeSpeakerIntoAnother() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemoryStore", "-seedConversationMemo", "-skipOnboarding", "-resetNames", "-appTheme", "dark"]
@@ -71,15 +72,10 @@ final class ConversationMockUITests: XCTestCase {
         let merge = app.buttons["merge-into-Tiuri Hartog"]
         XCTAssertTrue(merge.waitForExistence(timeout: 5)); merge.tap()
 
-        // The sheet dismisses + the detail re-renders — let it settle. Merging the ONLY
-        // other speaker into Tiuri Hartog leaves a single speaker, so it collapses to a
-        // monologue (the turn view needs ≥2 speakers) → the plain editor shows the combined
-        // text. Both prove the merge folded Speaker 2's words away.
-        Thread.sleep(forTimeInterval: 1.5)
-        XCTAssertFalse(app.buttons.matching(identifier: "tag-speaker-Speaker 2").firstMatch.exists,
-                       "Speaker 2 should be gone after merging into Tiuri Hartog")
-        XCTAssertTrue(app.textViews["transcript-editor"].waitForExistence(timeout: 3),
-                      "one speaker left → collapses to a single-speaker note")
+        Thread.sleep(forTimeInterval: 1.5)   // sheet dismiss + re-render
+        XCTAssertTrue(app.buttons.matching(identifier: "tag-speaker-Tiuri Hartog").firstMatch.exists)
+        XCTAssertTrue(app.buttons.matching(identifier: "tag-speaker-Speaker 2").firstMatch.exists,
+                      "the OTHER Speaker 2 line must remain — merge is per-line, not whole-speaker")
     }
 
     /// Tap a speaker → pick an existing PERSON from the Names DB (typo-free, links the voiceprint).

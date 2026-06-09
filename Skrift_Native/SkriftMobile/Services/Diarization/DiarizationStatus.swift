@@ -11,7 +11,9 @@ final class DiarizationStatus: ObservableObject {
     enum Phase: Equatable {
         case idle
         case downloadingModel(Double?)        // first-time Sortformer download (0...1)
+        case preparingModel                   // loading Sortformer from cache (already downloaded once)
         case downloadingVoiceModel(Double?)   // first-time wespeaker/voiceprint download (0...1)
+        case preparingVoiceModel             // loading wespeaker from cache
         case identifying                      // running diarization
         case enrolling                        // learning a named speaker's voiceprint
     }
@@ -31,9 +33,11 @@ final class DiarizationStatus: ObservableObject {
         case .downloadingModel(let p):
             if let p { return "Downloading speaker model… \(Int(p * 100))%" }
             return "Downloading speaker model…"
+        case .preparingModel: return "Preparing speaker model…"
         case .downloadingVoiceModel(let p):
             if let p { return "Downloading voice model… \(Int(p * 100))%" }
             return "Downloading voice model…"
+        case .preparingVoiceModel: return "Preparing voice model…"
         case .identifying: return "Identifying speakers…"
         case .enrolling: return "Learning this voice…"
         }

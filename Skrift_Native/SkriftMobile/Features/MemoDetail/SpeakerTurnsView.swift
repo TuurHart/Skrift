@@ -40,6 +40,17 @@ enum SpeakerTranscript {
         return out
     }
 
+    /// Reassign a SINGLE turn (by position) to another speaker, then re-fuse — the per-line
+    /// merge fix. Relabels only `turnAt`, NOT every turn of that speaker (so merging one
+    /// mis-split line doesn't collapse the whole conversation). Returns nil if not parseable.
+    static func reassign(_ transcript: String?, turnAt index: Int, to newName: String) -> String? {
+        guard let turns = parse(transcript), index >= 0, index < turns.count else { return nil }
+        let rebuilt = turns.enumerated()
+            .map { i, t in "**\(i == index ? newName : t.name):** \(t.text)" }
+            .joined(separator: "\n\n")
+        return mergeAdjacentTurns(rebuilt)
+    }
+
     /// Collapse consecutive turns by the SAME speaker into one (after a reassign/merge), so
     /// a turn folded into its neighbour reads as a single turn rather than two adjacent
     /// boxes. Re-emits the `**Name:** text` Markdown.
@@ -59,8 +70,9 @@ enum SpeakerTranscript {
 
 struct SpeakerTurnsView: View {
     let turns: [SpeakerTranscript.Turn]
-    /// Tag-as-you-go: tap an un-named speaker to assign a name (wired by the parent).
-    var onTag: (String) -> Void = { _ in }
+    /// Tap a turn → (turn index, speaker label). The index lets the parent merge just
+    /// THIS line (per-line) while naming still relabels the whole speaker.
+    var onTag: (Int, String) -> Void = { _, _ in }
 
     /// Stable per-speaker color by first-appearance order.
     private var palette: [String: Color] {
@@ -73,20 +85,20 @@ struct SpeakerTurnsView: View {
     var body: some View {
         let colorFor = palette
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(turns) { turn in
-                turnRow(turn, color: colorFor[turn.name] ?? .skAccent)
+            ForEach(Array(turns.enumerated()), id: \.element.id) { index, turn in
+                turnRow(turn, index: index, color: colorFor[turn.name] ?? .skAccent)
             }
         }
     }
 
-    @ViewBuilder private func turnRow(_ turn: SpeakerTranscript.Turn, color c: Color) -> some View {
+    @ViewBuilder private func turnRow(_ turn: SpeakerTranscript.Turn, index: Int, color c: Color) -> some View {
         let unnamed = SpeakerTranscript.isUnnamed(turn.name)
         HStack(alignment: .top, spacing: 10) {
             RoundedRectangle(cornerRadius: 2).fill(c).frame(width: 3)
             VStack(alignment: .leading, spacing: 5) {
                 // The whole label is tappable — assign an un-named speaker OR correct a
                 // wrong one (diarization sometimes swaps two people).
-                Button { onTag(turn.name) } label: {
+                Button { onTag(index, turn.name) } label: {
                     HStack(spacing: 6) {
                         Circle().fill(c).frame(width: 7, height: 7)
                         Text(turn.name)
