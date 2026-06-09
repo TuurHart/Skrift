@@ -12,7 +12,11 @@ The eventual reason the app exists. When I add a note about a realization, surfa
 - **Summary prompt quality** — summaries read stale / not in my voice. Dedicated prompt-tuning pass once the rest is stable.
 - **Tagging matchable-subset + lemma expansion** — which vault tags are auto-matchable (flag-per-tag vs separate list) and conjugation/lemma handling. Being decided in the mobile-app chat; align the desktop to it.
 - **Git housekeeping** — remove the empty `claude/competent-haslett-718d5a` worktree; finish mining `robustness-cleanup` for any remaining good fixes before deleting it.
-- **Import VIDEO → transcribe (with the real recording date)** — accept video files on the
+- ✅ **DONE (2026-06-09, parallel-lanes batch)** — **Import VIDEO → transcribe (with the real recording date)** —
+  both apps. Phone: PHPicker + share/open-in video UTIs → extract audio (`AVAssetExportSession`) + ONE frame
+  thumbnail as `[[img_001]]`, `recordedAt` from the embedded creation date. Mac: `IngestService` detects video →
+  extracts audio. Open-Q resolved: **audio-only + 1 frame thumbnail** (original video discarded). Original plan kept below.
+  accept video files on the
   phone (e.g. self-recorded "life advice to myself" clips) and transcribe their audio.
   Plan: extend the import path to video UTIs (`CFBundleDocumentTypes` += `public.movie` /
   `public.mpeg-4` / `com.apple.quicktime-movie`; `AppURLHandler` → `MemoSaver`) and/or a
@@ -46,9 +50,10 @@ Locked process for the UI items: spec → mock → build → XCUITest (feedback_
   glass, so judge glass on-device only.
 
 ### Items
-1. **Significance slider on mobile + sync gating** (above) — unifies a desktop feature, contract change.
-2. **Append-more-transcription to an existing note** — open a memo → a button records more audio,
-   transcribes it, and appends to the existing transcript (then re-syncs). Mobile-led.
+1. ✅ **DONE** — **Significance slider on mobile + sync gating** — slider + flag-to-send live; the
+   2026-06-09 batch also fixed the list to show **no sync pill** for significance-0 (phone-only) memos.
+2. ✅ **DONE (2026-06-09 batch)** — **Append-more-transcription to an existing note** — a visible top-right
+   "+" button on memo detail (and the ⋯ menu) records more audio → transcribes → appends + merges audio. Mobile-led.
 3. ✅ **DONE (2026-06-09)** — **Karaoke on mobile** (unification): word-level highlight + tap-to-seek
    during playback. Was: mobile stored word timings (`WordTiming.swift`/`WordTimingsStore`) but never
    rendered them. Device-verified ("karaoke and edit work well").
@@ -76,7 +81,14 @@ Locked process for the UI items: spec → mock → build → XCUITest (feedback_
 6. **"Transcription a bit weird" on cold auto-start** — user UNSURE it's a real bug now; park / quick-
    check only (live caption catching up while the model loads mid-recording).
 
-### Dev/prod separation (DECIDED 2026-06-08 — do AFTER this feature batch)
+### Dev/prod separation — ✅ DONE (verified implemented 2026-06-09)
+Both apps split by config: Debug = `com.skrift.{mobile,desktop}.dev`, **"Skrift Dev"**, own data container +
+test vault; Release = the real **"Skrift"**. The 2026-06-09 session also fixed the desktop menu-bar NAME
+(`PRODUCT_NAME` per config, since `INFOPLIST_KEY_CFBundleName` was being dropped) and installed prod "Skrift"
+to `/Applications`. **Open follow-up:** inverted-color dev app ICON (both apps) so dev is unmistakable by icon too.
+Original decision recorded below.
+
+#### (original decision, 2026-06-08)
 Goal: use Skrift for real (real recordings/notes/vault) while still iterating, with the
 real data OS-guaranteed safe from dev churn. **Approach = bundle-ID split** (chosen):
 - **Production** keeps the current bundle IDs (`com.skrift.mobile` / `com.skrift.desktop`)
@@ -107,8 +119,9 @@ real data OS-guaranteed safe from dev churn. **Approach = bundle-ID split** (cho
   status label only; voices enroll ONLY via conversation-mode naming. Add a tap-to-record-a-sample
   enroll flow so a Person can be given a voiceprint directly. (Tied to the embedding-cosine pivot —
   see `CONVERSATION_MODE_HANDOFF.md` §5.) Both apps (the Names & voices tab is on phone + Mac).
-- **Desktop Liquid Glass pass** — the Mac UI has no glass treatment; bring the iOS-26 glass look to
-  the desktop player/surfaces for visual parity.
+- ✅ **DONE (2026-06-09 batch)** — **Desktop Liquid Glass pass** — the Mac review transport bar is now a
+  floating glass capsule (`.glassEffect(.regular)` on macOS 26 + `.ultraThinMaterial` fallback). Judge live;
+  flip `.regular`→`.clear` for a more lensed look. Sidebar left opaque (could extend).
 - **Re-ingest the ~30 old notes** from `~/Desktop/Skrift old notes/` — run the existing ingest over
   them (DO WITH the user: needs the prod desktop app quit for the shared-store race, and it writes
   into the REAL Obsidian vault).
@@ -128,3 +141,22 @@ real data OS-guaranteed safe from dev churn. **Approach = bundle-ID split** (cho
   `Features/Settings/SettingsView.swift`. **Unification:** desktop also downloads models (~600 MB ASR
   + ~9 GB Gemma) — mirror a Models/Storage view on Mac Settings (ties to the desktop model-unload
   idle-timer backlog item). Open Q: read-only display vs. management (delete/re-download).
+
+## Follow-ups from the 2026-06-09 parallel-lanes batch
+Most of the brain-dump shipped this batch (record-screen polish, list fixes, video import, desktop glass,
+diarization-segment persistence) — see `FEATURES.md`. Remaining threads it opened:
+- **Task A — auto-sync names after voice enrollment (REAL BUG, confirmed).** Naming a speaker enrolls the
+  voiceprint into the phone's local `names.json` but **never auto-pushes** — it only reaches the Mac on a manual
+  sync-button tap (`SyncCoordinator.syncAll` is the ONLY caller of `NamesSync`). So cross-device auto-match
+  silently lacks the new voiceprint until a manual sync. Fix: fire a names-sync right after a successful enroll
+  (tail of `VoiceEnroller.enroll` / `learnVoice`, or on memo-save / app-foreground), debounced + guarded on a
+  paired Mac. The merge/UNION itself is correct (now covered by `SkriftDesktopTests/NamesSyncRoundTripTests`).
+- **Task A — live device round-trip** (human-gated): enroll on phone → confirm it lands in the Mac `names.json`
+  with the server running → process that person's clip on the Mac → confirm `VoiceMatcher` auto-labels them.
+- **Task B — Mac "name a speaker" review UI** (build phase): mock done (`SkriftDesktop/mocks/name-a-speaker.html`,
+  awaiting sign-off); backend done (segments persisted: `DiarizationSidecar` + `PipelineFile.diarizationSegments`).
+  Owed: a conversation-turn renderer in `Features/Review/` + click-to-name → people picker → relabel `**[[Person]]:**`
+  → `DiarizationService.embedSpeaker` + `NamesStore.addVoiceEmbedding`.
+- **F3 live confidence-color** is a positional approximation (trailing 6 words = "settling") — FluidAudio's live
+  path exposes no finalized/volatile flag. Revisit if/when it does, for true locked-vs-volatile coloring.
+- **Inverted-color dev app ICON** (both apps) so dev is unmistakable by icon (not just name).

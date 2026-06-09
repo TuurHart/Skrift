@@ -18,22 +18,22 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
 | Record / pause / resume / stop | ✅ | ➖ | `Features/Recording/RecordView.swift:188-219` | Pause hides paused interval from elapsed time |
-| Live caption (color-by-**age** gradient) | ✅ | ➖ | `RecordView.swift:417-448` (LiveCaption) | old=faint → newest 6 words=bright + accent caret. **No color-by-confidence, no auto-scroll** (targets) |
+| Live caption (auto-scroll + color-by-confidence) | ✅ | ➖ | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: native auto-scroll+scrollback; finalized text solid / trailing words lighter (positional **approximation** — FluidAudio exposes no volatile flag); inline tinted `[photo N]` tokens |
 | Live waveform (40-bar) | ✅ | ➖ | `RecordView.swift:453-480` | |
-| Model preload status | ✅ | n/a | `RecordView.swift:271-292` | Shows on *ready* screen; during record-while-loading the caption is just empty (target: in-place "model loading" placeholder) |
+| Model preload status | ✅ | n/a | `RecordView.swift:271-292` | ✅ 2026-06-09: in-place "model loading" placeholder in the caption during record-while-loading, cleared once words arrive |
 | Caption polling | ✅ | ➖ | `Services/Recording/LiveRecordingService.swift:231-243` | 0.6s timer |
-| Audio-route-change handling (AirPods pull-out) | 🟡 | n/a | `LiveRecordingService.swift:177-218` | `.allowBluetooth` set but **no `routeChangeNotification` handling / recovery** (target) |
+| Audio-route-change handling (AirPods pull-out) | ✅ | n/a | `LiveRecordingService.swift` | ✅ 2026-06-09: observes `routeChangeNotification`, restarts engine on the new route + amber notice; recording survives. (On-device: tap re-install on format change is a flagged follow-up) |
 | Conversation-mode toggle (diarize this take) | ✅ | ✅ | `RecordView.swift:100-111` · desktop `Models/AppSettings.swift:28-30` | |
-| Append to an existing recording | ✅ (menu) | ➖ | `Features/MemoDetail/MemoDetailView.swift:82-83`; merge `MemoSaver.swift:85-125` | Lives in the ⋯ menu, **not** a top-right button. Coded to work; reported broken on device (verify) |
+| Append to an existing recording | ✅ | ➖ | `MemoDetailView.swift` (`add-recording-button` + ⋯ menu); merge `MemoSaver.swift` | ✅ 2026-06-09: visible top-right **+** button added (also in ⋯ menu); append flow verified |
 
 ## Memo detail & playback  *(mobile)* / Review surface *(desktop)*
 
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
 | Editable transcript | ✅ | ✅ | mobile `MemoDetail/TranscriptEditor.swift`; desktop `Features/Review/BodyTextView.swift` | Both self-sizing native text views w/ inline image attachments + live `[[link]]` styling |
-| Keyboard dismiss on scroll | 🟡 | n/a | `TranscriptEditor.swift:31` | Inner editor has `.interactive`; **outer page ScrollView may not dismiss on scroll** (target) |
+| Keyboard dismiss on scroll | ✅ | n/a | `TranscriptEditor.swift:31`; `MemoDetailView.swift` | ✅ 2026-06-09: outer page ScrollView now `.scrollDismissesKeyboard(.interactively)` too |
 | Karaoke (word highlight + tap-to-seek) | ✅ | ✅ | mobile `MemoDetailView.swift:499-545`; desktop `Features/Review/NoteBody.swift:74-80` | |
-| Playback bar (Liquid Glass) | ✅ | ➖ | `MemoDetailView.swift:603-674` | iOS-26 `glassEffect`, `.ultraThinMaterial` fallback. **Desktop has no glass** (target) |
+| Playback bar (Liquid Glass) | ✅ | ✅ | mobile `MemoDetailView.swift:603-674`; desktop `Features/Review/NoteDisplayView.swift` | ✅ 2026-06-09: desktop review transport bar is now a floating glass capsule (`.glassEffect(.regular)` macOS 26 + `.ultraThinMaterial` fallback) |
 | Title editor | ✅ | ✅ | mobile `MemoDetailView.swift:189-195`; desktop `Features/Review/NoteProperties.swift:25-103` | Desktop = two-title chooser (Suggested vs From-recording) |
 | Significance slider (gates sync) | ✅ | ✅ | mobile `MemoDetailView.swift:221`, `Models/Memo.swift:57`; desktop `NoteProperties.swift:118` | **Mobile gating is LIVE** (below). 0–1, snap 0.1 |
 | Tags add/remove | ✅ | ✅ | mobile `MemoDetailView.swift:201-217`; desktop `NoteProperties.swift:120` | |
@@ -47,8 +47,8 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
 | List / queue | ✅ | ✅ | mobile `Features/MemosList/MemosListView.swift`; desktop `Features/Sidebar/SidebarView.swift` | Desktop groups by status (Queued/Transcribed/Ready/Exported) |
-| Row label source | 🟡 | ✅ | `MemosListView.swift:440-443` | **Mobile row shows transcript first-line, NOT the user-set `title`** (target B2). Desktop shows title |
-| Status pill (synced/waiting/transcribing) | 🟡 | ✅ | `MemosListView.swift:412-414`; `Models/MemoDisplay.swift:34-38` | **A significance-0 memo still shows "Waiting" though it will never sync** (target B3) |
+| Row label source | ✅ | ✅ | `MemosListView.swift`; `Models/MemoDisplay.swift` | ✅ 2026-06-09: titled memos lead with the user `title` (transcript snippet as secondary); untitled keep transcript-first |
+| Status pill (synced/waiting/transcribing) | ✅ | ✅ | `MemosListView.swift`; `Models/MemoDisplay.swift` | ✅ 2026-06-09: significance-0 (phone-only) memos show **no** sync pill; transcribing/error always show; >0 keeps Waiting/Synced |
 | Search / sort / filter | ✅ | ✅ | `MemosListView.swift:290-332` | place / has-photos / unsynced filters |
 | Multi-select + delete + swipe-to-delete | ✅ | ✅ | `MemosListView.swift:100-105, 146-154` | |
 | Sync button + status banner | ✅ | n/a | `MemosListView.swift:161-216` | |
@@ -60,7 +60,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | In-record camera + zoom + shutter | ✅ | n/a | `Features/Recording/CameraSheet.swift` | Camera stays open while recording continues |
 | Photo-count badge | ✅ | n/a | `RecordView.swift:227-237` | |
 | `[[img_NNN]]` markers in transcript | ✅ | ✅ | mobile `TranscriptEditor.swift:102-122`; desktop `Pipeline/Transcription/ImageMarkers.swift` | Injected at capture offset |
-| Inline `[photo N]` token in **live** caption | ➖ | n/a | — | **Not shown live** (target F4) |
+| Inline `[photo N]` token in **live** caption | ✅ | n/a | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: tinted `[photo N]` token inserted inline at the capture point |
 | `[[img]]` → Obsidian embed on export | n/a | ✅ | desktop `Pipeline/Export/VaultExporter.swift:84-114` | |
 
 ## Names & voices  *(both — synced)*
@@ -77,7 +77,8 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
 | Diarize (Sortformer) + fuse to turns | 🟡 | ✅ | desktop `Engines/DiarizationService.swift`, `Pipeline/Diarization/SpeakerFusion.swift` | Mobile records w/ conversation toggle; heavy fusion is desktop-side |
-| Split-speakers on an existing memo | ✅ (menu) | ✅ | `MemoDetailView.swift:86-88` | |
+| Split-speakers on an existing memo | ✅ (button) | ✅ | mobile `MemoDetailView.swift` (`split-speakers-button` → How-many-speakers); desktop pipeline | Mobile = dedicated toolbar button + Auto/N dialog |
+| Persist diarization segments (for later enrollment) | n/a (phone keeps `diar_<id>.json`) | ✅ | desktop `Models/PipelineFile.swift` (`diarizationSegments`) + `Pipeline/BatchManager/DiarizationSidecar.swift` | ✅ 2026-06-09: written by BatchRunner; byte-mirrors the phone sidecar — unblocks Mac "name a speaker" |
 
 ## Sync & contract  *(the spine)*
 
