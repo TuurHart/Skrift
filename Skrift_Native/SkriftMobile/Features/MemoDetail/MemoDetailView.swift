@@ -317,26 +317,36 @@ private struct SignificanceRow: View {
 private struct SignificanceSlider: View {
     @Binding var value: Double
     var onCommit: () -> Void
+    /// Live drag position, local only. Writing `value` (→ memo.significance) on every
+    /// drag tick re-ran the detail `@Query` and re-rendered the page each frame, which
+    /// is what made the slider lag. Track the drag here and commit to the model once,
+    /// on release.
+    @State private var dragging: Double?
 
     var body: some View {
         GeometryReader { geo in
             let w = max(1, geo.size.width)
+            let shown = CGFloat(dragging ?? value)
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.skBorder).frame(height: 4)
-                Capsule().fill(Color.skAccent).frame(width: max(0, min(w, w * value)), height: 4)
+                Capsule().fill(Color.skAccent).frame(width: max(0, min(w, w * shown)), height: 4)
                 Circle().fill(.white)
                     .frame(width: 20, height: 20)
                     .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
-                    .offset(x: max(0, min(w - 20, w * value - 10)))
+                    .offset(x: max(0, min(w - 20, w * shown - 10)))
             }
             .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
             .highPriorityGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { g in
-                        value = ((min(1, max(0, g.location.x / w)) * 10).rounded()) / 10
+                        let frac = max(0, min(1, g.location.x / w))
+                        dragging = (Double(frac) * 10).rounded() / 10
                     }
-                    .onEnded { _ in onCommit() }
+                    .onEnded { _ in
+                        if let d = dragging { value = d; onCommit() }
+                        dragging = nil
+                    }
             )
         }
         .frame(height: 24)
@@ -496,7 +506,7 @@ private struct ImageEmbed: View {
 
     var body: some View {
         Group {
-            if let url, let image = UIImage(contentsOfFile: url.path) {
+            if let url, let image = MemoImageLoader.thumbnail(at: url, maxWidth: UIScreen.main.bounds.width) {
                 Image(uiImage: image)
                     .resizable().scaledToFill()
             } else {

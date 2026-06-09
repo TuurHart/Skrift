@@ -145,7 +145,7 @@ struct TranscriptEditor: UIViewRepresentable {
 
         private func imageAttachment(markerIndex: Int) -> NSTextAttachment {
             let att = NSTextAttachment()
-            if let url = imageURL(markerIndex: markerIndex), let img = UIImage(contentsOfFile: url.path) {
+            if let url = imageURL(markerIndex: markerIndex), let img = MemoImageLoader.thumbnail(at: url, maxWidth: width) {
                 att.image = img
                 let h = min(width * (img.size.height / max(1, img.size.width)), 320)
                 att.bounds = CGRect(x: 0, y: -4, width: width, height: h)
