@@ -135,14 +135,14 @@ struct MemoDetailView: View {
     }
 
     private var playerBarStack: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 7) {
             if memos.count > 1, memos.count <= 8 {
                 PageDots(count: memos.count, index: memos.firstIndex { $0.id == selection } ?? 0)
             }
             PlayerBar(player: player)
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.vertical, 9)
     }
 
     private func copyTranscript() {
@@ -560,7 +560,7 @@ private struct PlayerBar: View {
     @ObservedObject var player: AudioPlayerModel
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             Slider(value: Binding(
                 get: { player.currentTime },
                 set: { player.seek(to: $0) }
@@ -573,7 +573,7 @@ private struct PlayerBar: View {
                 Spacer()
                 Text(timeString(player.duration))
             }
-            .font(.system(size: 12, weight: .semibold))
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(Color.skTextDim)
 
             HStack(spacing: 34) {
@@ -584,11 +584,11 @@ private struct PlayerBar: View {
 
                 Button { player.togglePlay() } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 22))
+                        .font(.system(size: 18))
                         .foregroundStyle(.white)
-                        .frame(width: 60, height: 60)
+                        .frame(width: 46, height: 46)
                         .background(Color.skAccent, in: .circle)
-                        .shadow(color: .skAccent.opacity(0.4), radius: 10, y: 6)
+                        .shadow(color: .skAccent.opacity(0.4), radius: 7, y: 4)
                 }
                 .accessibilityIdentifier("play-button")
                 .disabled(!player.hasAudio)
@@ -615,7 +615,7 @@ private struct PlayerBar: View {
     }
 
     private func skipLabel(_ symbol: String) -> some View {
-        Image(systemName: symbol).font(.system(size: 24))
+        Image(systemName: symbol).font(.system(size: 21))
     }
 
     private var rateLabel: String {
