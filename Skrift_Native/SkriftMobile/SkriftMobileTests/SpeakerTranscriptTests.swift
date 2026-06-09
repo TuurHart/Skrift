@@ -58,4 +58,13 @@ final class SpeakerTranscriptTests: XCTestCase {
         XCTAssertNil(SpeakerTranscript.setText(t, turnAt: 9, to: "x"))
         XCTAssertNil(SpeakerTranscript.setText("plain prose", turnAt: 0, to: "x"))
     }
+
+    /// Inline photos coexist with turns: an `[[img_NNN]]` marker stays inside the turn it
+    /// was spoken in, and isn't counted as a spoken word (so karaoke stays aligned).
+    func testImageMarkerStaysInTurnAndIsntASpokenWord() {
+        let turns = SpeakerTranscript.parse("**Tiuri:** hello [[img_001]] world\n\n**Roksana:** hi there")
+        XCTAssertEqual(turns?.first?.text, "hello [[img_001]] world")
+        XCTAssertEqual(SpeakerTurnsView.spokenWordCount("hello [[img_001]] world"), 2)
+        XCTAssertEqual(SpeakerTurnsView.spokenWordCount("[[img_001]] hi"), 1)
+    }
 }

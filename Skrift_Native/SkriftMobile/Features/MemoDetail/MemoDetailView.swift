@@ -313,6 +313,13 @@ private struct MemoPageView: View {
         repository.save()
     }
 
+    /// Resolve a turn's `[[img_NNN]]` marker (1-based) → its photo file (same mapping as
+    /// the non-conversation transcript). Lets photos render inline within speaker turns.
+    private func turnImageURL(_ n: Int) -> URL? {
+        guard let manifest = memo.metadata?.imageManifest, n >= 1, n <= manifest.count else { return nil }
+        return AppPaths.recordingsDirectory.appendingPathComponent(manifest[n - 1].filename)
+    }
+
     /// Karaoke tap-to-seek: jump playback to the tapped word.
     private func seekToWord(_ i: Int) {
         guard i >= 0, i < timings.count else { return }
@@ -397,7 +404,8 @@ private struct MemoPageView: View {
                 activeWord: (player.isPlaying && !timings.isEmpty) ? Karaoke.activeWordIndex(timings, at: player.currentTime) : nil,
                 tapToSeek: tapToSeek,
                 onSeek: seekToWord,
-                onEditText: editTurnText
+                onEditText: editTurnText,
+                imageURL: turnImageURL
             )
         } else if player.isPlaying || memo.transcriptStatus == .transcribing {
             TranscriptContentView(memo: memo, player: player)
@@ -643,7 +651,7 @@ private struct TranscriptContentView: View {
 
 /// An inline photo from the transcript markers; placeholder if the file is gone
 /// (e.g. seeded demo memos).
-private struct ImageEmbed: View {
+struct ImageEmbed: View {
     let url: URL?
 
     var body: some View {

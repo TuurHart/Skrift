@@ -89,6 +89,9 @@ struct SpeakerTurnsView: View {
     var onSeek: (Int) -> Void = { _ in }
     /// Commit an edit to a turn's TEXT (fix a word, move a boundary word between turns).
     var onEditText: (Int, String) -> Void = { _, _ in }
+    /// Resolve a `[[img_NNN]]` marker (1-based) to its photo file URL — inline photos coexist
+    /// with speaker turns (the photo shows in the turn being spoken when it was taken).
+    var imageURL: (Int) -> URL? = { _ in nil }
 
     @State private var editingIndex: Int?
     @State private var draft = ""
@@ -102,12 +105,17 @@ struct SpeakerTurnsView: View {
         return map
     }
 
-    /// Cumulative spoken-word count before each turn — maps the global active word index
-    /// to a position within a turn (image markers aren't a concern in turn transcripts).
+    /// Cumulative SPOKEN-word count before each turn — maps the global active word index to
+    /// a position within a turn. Excludes `[[img_NNN]]` markers (not spoken words) so the
+    /// karaoke highlight doesn't drift past an inline photo.
     private var wordOffsets: [Int] {
         var offs: [Int] = []; var acc = 0
-        for t in turns { offs.append(acc); acc += t.text.split(whereSeparator: { $0.isWhitespace }).count }
+        for t in turns { offs.append(acc); acc += Self.spokenWordCount(t.text) }
         return offs
+    }
+
+    static func spokenWordCount(_ text: String) -> Int {
+        text.split(whereSeparator: { $0.isWhitespace }).filter { !$0.hasPrefix("[[img_") }.count
     }
 
     var body: some View {
@@ -147,8 +155,9 @@ struct SpeakerTurnsView: View {
         .background(c.opacity(0.06), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
     }
 
-    /// Editing (paused, tapped) → an inline field; playing → karaoke (active word
-    /// highlighted, optional tap-to-seek); otherwise plain text, tap to edit.
+    /// Editing (paused, tapped) → an inline field; otherwise the turn renders as text +
+    /// inline `[[img_NNN]]` photos (split into segments), each text segment plain (paused)
+    /// or karaoke-highlighted (playing). Tap a text segment (paused) to edit the turn.
     @ViewBuilder private func turnBody(_ turn: SpeakerTranscript.Turn, index: Int, wordOffset: Int) -> some View {
         if editingIndex == index {
             VStack(alignment: .trailing, spacing: 4) {
@@ -162,21 +171,64 @@ struct SpeakerTurnsView: View {
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.skAccent)
                     .accessibilityIdentifier("turn-editor-done")
             }
-        } else if let active = activeWord, tapToSeek {
-            karaokeWords(turn.text, wordOffset: wordOffset, active: active)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(segmentItems(turn.text, base: wordOffset)) { item in
+                    switch item.seg {
+                    case .text(let s): textSegment(s, wordOffset: item.offset, turnIndex: index, fullText: turn.text)
+                    case .image(let n): ImageEmbed(url: imageURL(n))
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func textSegment(_ s: String, wordOffset: Int, turnIndex: Int, fullText: String) -> some View {
+        if let active = activeWord, tapToSeek {
+            karaokeWords(s, wordOffset: wordOffset, active: active)
         } else if let active = activeWord {
-            Text(karaokeAttr(turn.text, wordOffset: wordOffset, active: active))
+            Text(karaokeAttr(s, wordOffset: wordOffset, active: active))
                 .font(.system(size: 15.5)).lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            Text(turn.text)
+            Text(s)
                 .font(.system(size: 15.5)).foregroundStyle(Color.skText).lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
-                .onTapGesture { startEditing(index, turn.text) }
+                .onTapGesture { startEditing(turnIndex, fullText) }
         }
+    }
+
+    private enum Seg { case text(String); case image(Int) }
+    private struct SegItem: Identifiable { let id: Int; let seg: Seg; let offset: Int }
+
+    /// Split a turn's text into text/photo segments, tracking the spoken-word offset before
+    /// each (photos don't advance the word index — so karaoke stays aligned across images).
+    private func segmentItems(_ text: String, base: Int) -> [SegItem] {
+        let ns = text as NSString
+        let regex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
+        var out: [SegItem] = []
+        var last = 0, wordIdx = base, sid = 0
+        func addText(_ chunk: String) {
+            let trimmed = chunk.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            out.append(SegItem(id: sid, seg: .text(trimmed), offset: wordIdx)); sid += 1
+            wordIdx += Self.spokenWordCount(trimmed)
+        }
+        regex?.enumerateMatches(in: text, range: NSRange(location: 0, length: ns.length)) { m, _, _ in
+            guard let m else { return }
+            if m.range.location > last {
+                addText(ns.substring(with: NSRange(location: last, length: m.range.location - last)))
+            }
+            let n = Int(ns.substring(with: m.range(at: 1))) ?? 0
+            out.append(SegItem(id: sid, seg: .image(n), offset: wordIdx)); sid += 1
+            last = m.range.location + m.range.length
+        }
+        if last < ns.length { addText(ns.substring(from: last)) }
+        if out.isEmpty { out.append(SegItem(id: 0, seg: .text(text), offset: base)) }
+        return out
     }
 
     private func startEditing(_ index: Int, _ text: String) {

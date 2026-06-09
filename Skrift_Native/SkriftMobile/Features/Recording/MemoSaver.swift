@@ -263,10 +263,17 @@ struct MemoSaver {
         guard let out = try? await diarizer.diarize(audioURL: audioURL, targetSpeakers: targetSpeakers),
               Set(out.segments.map(\.speaker)).count >= 2 else { return }
         // Auto-matched (enrolled) speakers come back named; the rest are "Speaker N".
-        let attributed = SpeakerFusion.attributedTranscript(words: words, segments: out.segments) {
+        var attributed = SpeakerFusion.attributedTranscript(words: words, segments: out.segments) {
             out.slotNames[$0] ?? "Speaker \($0 + 1)"
         }
         guard let memo = repository.memo(id: id) else { return }
+        // Fusion rebuilds from the words, which drops the `[[img_NNN]]` photo markers — so
+        // re-insert them by timestamp, landing each in the turn being spoken when it was
+        // taken (photos + manifest are untouched; this restores the inline markers).
+        if let manifest = memo.metadata?.imageManifest, !manifest.isEmpty {
+            let tw = words.map { ImageMarkers.TimedWord(text: $0.word, start: $0.start, end: $0.end) }
+            attributed = ImageMarkers.insert(transcript: attributed, words: tw, manifest: manifest)
+        }
         memo.transcript = attributed
         memo.transcriptStatus = .done
         repository.save()
