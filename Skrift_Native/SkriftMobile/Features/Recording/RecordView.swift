@@ -26,6 +26,14 @@ struct RecordView: View {
     @ObservedObject private var modelStatus = ModelLoadStatus.shared
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @State private var autoStarted = false
+    /// Photo markers to weave into the LIVE caption: each records the spoken-word
+    /// count at the moment the shutter fired, so `[photo N]` lands inline near where
+    /// you were speaking. Word counts shift as the caption re-transcribes, so the
+    /// renderer clamps each marker to the current word count (never crashes / never
+    /// reorders). Cleared on start.
+    @State private var photoMarks: [PhotoMark] = []
+
+    private struct PhotoMark: Equatable { let wordIndex: Int; let number: Int }
 
     var body: some View {
         ZStack {
@@ -67,6 +75,15 @@ struct RecordView: View {
         .onChange(of: intentBridge.stopRequestID) {
             if service.isRecording { stopTapped() }
         }
+        // A photo was captured mid-record → drop a `[photo N]` marker into the live
+        // caption at the current spoken-word position (the count badge still updates
+        // separately). New markers only — never re-add when the count drops to 0 on save.
+        .onChange(of: camera.capturedCount) { old, new in
+            guard new > old, service.isRecording else { return }
+            let wordIndex = service.liveCaption.split(whereSeparator: { $0.isWhitespace }).count
+            photoMarks.append(PhotoMark(wordIndex: wordIndex, number: new))
+        }
+        .animation(Theme.Motion.snappy, value: service.routeNotice)
         .task {
             context = await MetadataProviderFactory.make().capture()
             // Preload the model on the ready screen so the status goes live
@@ -163,10 +180,29 @@ struct RecordView: View {
             .foregroundStyle(Color.skTextDim)
             .padding(.top, 18)
 
-            LiveCaption(text: service.liveCaption)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.top, 18)
-                .accessibilityIdentifier("live-caption")
+            LiveCaption(
+                text: service.liveCaption,
+                photoMarks: photoMarks.map { (wordIndex: $0.wordIndex, number: $0.number) },
+                modelLoading: !modelStatus.ready && modelStatus.phase != .failed
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.top, 18)
+            .accessibilityIdentifier("live-caption")
+
+            if let notice = service.routeNotice {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text(notice)
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(Color.skAmber)
+                .padding(.horizontal, 11).padding(.vertical, 6)
+                .background(Color.skAmber.opacity(0.12), in: .capsule)
+                .padding(.top, 8)
+                .transition(.opacity)
+                .accessibilityIdentifier("route-notice")
+            }
 
             HStack(spacing: 14) {
                 RecordWaveform(samples: service.waveform)
@@ -337,6 +373,7 @@ struct RecordView: View {
 
     private func startTapped() {
         Haptics.tap()
+        photoMarks = []
         try? service.start()
     }
 
@@ -382,38 +419,109 @@ struct RecordView: View {
 
 // MARK: - Pieces
 
-/// Live transcript with a three-tier fade (older → dim) + an accent caret, like
-/// the mockup's `.old/.mid/.now`.
+/// Live transcript, scrollable. The finalized body is solid; the trailing few words
+/// render lighter to read as "still settling" (a CONFIDENCE APPROXIMATION — the
+/// FluidAudio live path re-transcribes the whole accumulated buffer each poll and
+/// exposes no per-token finalized/volatile flag, so we approximate volatility by
+/// position: the newest words are the ones most likely to change). Photos captured
+/// mid-record appear as tinted `[photo N]` tokens inline. While the model is still
+/// loading and nothing has been transcribed yet, a placeholder stands in (recording
+/// is already capturing audio — the caption just catches up once the model is ready).
+///
+/// Auto-scroll (F2): sticks to the newest text as words append, but if the user
+/// scrolls up to re-read, auto-stick pauses until they scroll back to the bottom.
 private struct LiveCaption: View {
     let text: String
+    /// (wordIndex, photoNumber) — insert `[photo N]` after that many spoken words.
+    var photoMarks: [(wordIndex: Int, number: Int)] = []
+    var modelLoading = false
+
+    /// How many trailing words to treat as volatile (lighter). Approximation only.
+    private static let volatileWordCount = 6
 
     var body: some View {
-        (oldText + midText + nowText + caret)
-            .font(.system(size: 22, weight: .medium))
-            .lineSpacing(5)
+        ScrollView(.vertical) {
+            Group {
+                if words.isEmpty && modelLoading {
+                    Text("Model loading — your words appear once it’s ready")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color.skTextFaint)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("caption-loading")
+                } else {
+                    (captionText + caret)
+                        .font(.system(size: 22, weight: .medium))
+                        .lineSpacing(5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .scrollIndicators(.automatic)
+        // Auto-stick to the newest text as words append: `.bottom` keeps the
+        // content pinned to the bottom edge as it grows. Scrolling up to re-read is
+        // free; scrolling back to the bottom re-engages the stick — exactly the
+        // read-back behaviour F2 asks for, natively (no manual scroll tracking).
+        .defaultScrollAnchor(.bottom)
     }
 
-    private var words: [String] { text.split(separator: " ").map(String.init) }
+    private var words: [String] { text.split(whereSeparator: { $0.isWhitespace }).map(String.init) }
 
-    private var oldText: Text {
+    /// Build the styled caption: solid finalized body + lighter trailing (volatile)
+    /// words + inline tinted `[photo N]` tokens at their captured word positions.
+    private var captionText: Text {
         let w = words
-        guard w.count > 18 else { return Text("") }
-        return Text(w[0..<(w.count - 18)].joined(separator: " ") + " ").foregroundColor(.skTextFaint)
+        let volatileStart = LiveCaptionLayout.volatileStart(wordCount: w.count, trailing: Self.volatileWordCount)
+        let marksByIndex = LiveCaptionLayout.marksByIndex(photoMarks, wordCount: w.count)
+
+        var out = Text("")
+        // Any markers anchored before the first word.
+        out = out + photoTokens(marksByIndex[0])
+        for (i, word) in w.enumerated() {
+            let color: Color = i < volatileStart ? .skText : .skTextDim
+            out = out + Text(word + " ").foregroundColor(color)
+            out = out + photoTokens(marksByIndex[i + 1])
+        }
+        return out
     }
-    private var midText: Text {
-        let w = words
-        guard w.count > 6 else { return Text("") }
-        let start = max(0, w.count - 18)
-        return Text(w[start..<(w.count - 6)].joined(separator: " ") + " ").foregroundColor(.skTextDim)
+
+    /// A tinted `[photo N]` run for each marker at this position. Distinct accent so
+    /// it reads as a non-spoken annotation, not transcript text.
+    private func photoTokens(_ numbers: [Int]?) -> Text {
+        guard let numbers, !numbers.isEmpty else { return Text("") }
+        var out = Text("")
+        for n in numbers {
+            out = out + Text("[photo \(n)] ")
+                .foregroundColor(.skAccentText)
+                .font(.system(size: 18, weight: .semibold))
+        }
+        return out
     }
-    private var nowText: Text {
-        let w = words
-        let start = max(0, w.count - 6)
-        guard start < w.count else { return Text("") }
-        return Text(w[start...].joined(separator: " ")).foregroundColor(.skText)
-    }
+
     private var caret: Text {
-        Text(" ▏").foregroundColor(.skAccent)
+        Text("▏").foregroundColor(.skAccent)
+    }
+}
+
+/// Pure layout maths for the live caption — extracted so the volatile-word boundary
+/// (F3) and the photo-marker clamping (F4) are unit-testable without a view. Stale
+/// photo word-indices (the caption re-transcribes wholesale, so counts drift) are
+/// clamped into range here, never overshooting the current word count.
+enum LiveCaptionLayout {
+    /// Index of the first "volatile" (lighter) word — the trailing `trailing` words.
+    static func volatileStart(wordCount: Int, trailing: Int) -> Int {
+        max(0, wordCount - trailing)
+    }
+
+    /// Photo markers grouped by the word index they follow (0 = before the first
+    /// word, `wordCount` = after the last). Indices are clamped into `0...wordCount`.
+    static func marksByIndex(_ marks: [(wordIndex: Int, number: Int)], wordCount: Int) -> [Int: [Int]] {
+        var out: [Int: [Int]] = [:]
+        for mark in marks {
+            let idx = min(max(0, mark.wordIndex), wordCount)
+            out[idx, default: []].append(mark.number)
+        }
+        return out
     }
 }
 
