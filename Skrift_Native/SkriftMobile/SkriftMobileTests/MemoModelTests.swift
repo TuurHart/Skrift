@@ -71,4 +71,43 @@ final class MemoModelTests: XCTestCase {
         XCTAssertEqual(Memo(audioFilename: "memo_x.m4a").audioURL?.lastPathComponent, "memo_x.m4a")
         XCTAssertNil(Memo(audioFilename: "").audioURL)
     }
+
+    // MARK: - Display helpers
+
+    func testDisplayTitlePrefersTitleThenTranscript() {
+        let titled = Memo(title: "My title", transcript: "first line\nsecond")
+        XCTAssertEqual(titled.displayTitle, "My title")
+
+        let untitled = Memo(transcript: "first line\nsecond")
+        XCTAssertEqual(untitled.displayTitle, "first line")
+
+        let empty = Memo()
+        XCTAssertEqual(empty.displayTitle, "Voice memo")
+
+        // A blank/whitespace title falls through to the transcript.
+        let blankTitle = Memo(title: "   ", transcript: "hi there")
+        XCTAssertEqual(blankTitle.displayTitle, "hi there")
+    }
+
+    func testStatusKindHidesSyncPillWhenInsignificant() {
+        // significance 0 → phone-only → NO sync pill (never uploads).
+        let phoneOnly = Memo(syncStatus: .waiting, transcriptStatus: .done, significance: 0)
+        XCTAssertNil(phoneOnly.statusKind)
+
+        // significance > 0 → flagged to send → Waiting / Synced as before.
+        let waiting = Memo(syncStatus: .waiting, transcriptStatus: .done, significance: 0.5)
+        XCTAssertEqual(waiting.statusKind, .waiting)
+
+        let synced = Memo(syncStatus: .synced, transcriptStatus: .done, significance: 0.5)
+        XCTAssertEqual(synced.statusKind, .synced)
+    }
+
+    func testStatusKindAlwaysShowsTranscriptStateRegardlessOfSignificance() {
+        // Transcript states are informational and show even for phone-only memos.
+        let transcribing = Memo(transcriptStatus: .transcribing, significance: 0)
+        XCTAssertEqual(transcribing.statusKind, .transcribing)
+
+        let failed = Memo(transcriptStatus: .failed, significance: 0)
+        XCTAssertEqual(failed.statusKind, .error)
+    }
 }
