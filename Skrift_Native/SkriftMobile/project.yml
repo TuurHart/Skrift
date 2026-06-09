@@ -86,7 +86,21 @@ targets:
               - com.apple.m4a-audio
               - org.xiph.opus
               - public.mpeg-4
+          # Share/Open-in a VIDEO (e.g. a self-recorded clip): Skrift strips the
+          # audio + grabs one frame thumbnail, then transcribes on-device
+          # (AppURLHandler → MemoSaver.importVideo). Alternate rank so we don't
+          # fight the OS default video app.
+          - CFBundleTypeName: Video
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.movie
+              - public.video
+              - public.mpeg-4
+              - com.apple.quicktime-movie
         LSSupportsOpeningDocumentsInPlace: true
+        # Photos picker (filtered to videos) reads a library asset's recording date.
+        NSPhotoLibraryUsageDescription: "Skrift imports a video you pick, transcribing its audio and tagging the memo with when the video was recorded."
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1"

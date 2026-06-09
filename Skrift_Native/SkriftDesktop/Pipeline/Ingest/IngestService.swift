@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import ImageIO
 import UniformTypeIdentifiers
+import AVFoundation
 
 /// Desktop-side ingest for locally-picked files/folders (the +Upload button and
 /// drag-drop). Mirrors `UploadService`'s on-disk layout — one `<id>_<filename>/`
@@ -12,6 +13,13 @@ struct IngestService: Sendable {
     var outputDir: URL = AppPaths.audioOutputDirectory
 
     static let supportedAudio: Set<String> = ["m4a", "wav", "mp3", "mp4", "mov", "opus", "aac", "aiff", "caf"]
+
+    /// Video containers we accept: strip the audio track to an `original.m4a` and feed
+    /// the normal audio pipeline (e.g. a self-recorded "life advice" clip). Note
+    /// `mp4`/`mov` ALSO appear in `supportedAudio` — those container extensions are
+    /// probed for a video track first (`ingestFile`) and only fall back to plain audio
+    /// when audio-only, so an audio-only `.mp4`/`.m4a-in-mov` is never mis-extracted.
+    static let supportedVideo: Set<String> = ["mov", "mp4", "m4v", "qt", "avi", "mpg", "mpeg", "3gp", "3g2", "webm", "mkv"]
 
     @discardableResult
     func ingest(localURLs: [URL], into context: ModelContext) throws -> [PipelineFile] {
@@ -29,10 +37,15 @@ struct IngestService: Sendable {
         return created
     }
 
-    /// A single file → one PipelineFile (audio or Apple-Note markdown). Unsupported
-    /// types are skipped (returns nil).
+    /// A single file → one PipelineFile (audio, video, or Apple-Note markdown).
+    /// Unsupported types are skipped (returns nil). A video container is probed for
+    /// an actual video track: if present, its audio is extracted; if absent (an
+    /// audio-only `.mp4`/`.mov`), it's ingested as plain audio.
     func ingestFile(_ url: URL, into context: ModelContext) throws -> PipelineFile? {
         let ext = url.pathExtension.lowercased()
+        if Self.supportedVideo.contains(ext), Self.hasVideoTrack(url) {
+            return try ingestVideo(url, into: context)
+        }
         if Self.supportedAudio.contains(ext) { return try ingestAudio(url, into: context) }
         if ext == "md" || ext == "markdown" { return try ingestNote(url, into: context) }
         return nil
@@ -54,6 +67,35 @@ struct IngestService: Sendable {
         let recorded = Self.dateFromFilename(filename)
             ?? (try? url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
             ?? Date()
+        let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
+                              sourceType: .audio, uploadedAt: recorded)
+        context.insert(pf)
+        return pf
+    }
+
+    /// A video file → strip its audio track to `original.m4a` and produce a `.audio`
+    /// PipelineFile so the rest of the pipeline (transcribe/enhance/export) is
+    /// unchanged. The recording date comes from the VIDEO's embedded creation date
+    /// (survives the copy) or a date in the filename, NOT the import time. The
+    /// original video is NOT kept — audio is all the pipeline needs.
+    private func ingestVideo(_ url: URL, into context: ModelContext) throws -> PipelineFile {
+        let filename = url.lastPathComponent
+        let id = UUID().uuidString
+        let (folder, _) = try makeFolder(id: id, filename: filename)
+        let dest = folder.appendingPathComponent("original.m4a")
+
+        try Self.extractAudioSync(from: url, to: dest)
+        let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
+
+        // Embedded recording date from the ORIGINAL video (the extracted m4a may lose
+        // it), then a filename date, then the file's creation date, then now.
+        let recorded = Self.embeddedRecordingDate(of: url)
+            ?? Self.dateFromFilename(filename)
+            ?? (try? url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
+            ?? Date()
+
+        // sourceType .audio: it's now an audio file. Keep the original (video) filename
+        // so the title isn't "original" and it's recognizable in the queue.
         let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
                               sourceType: .audio, uploadedAt: recorded)
         context.insert(pf)
@@ -108,6 +150,71 @@ struct IngestService: Sendable {
         c.year = y; c.month = mo; c.day = d
         c.hour = g(4) ?? 12; c.minute = g(5) ?? 0; c.second = g(6) ?? 0
         return Calendar.current.date(from: c)
+    }
+
+    // MARK: - Video helpers (synchronous AVFoundation — host-less testable)
+
+    /// True when the file has at least one video track (so a `.mp4`/`.mov` that's
+    /// actually audio-only falls through to plain-audio ingest). Uses the synchronous
+    /// `tracks(withMediaType:)` accessor — fine off the main thread (ingest runs from
+    /// a background-friendly path) and avoids making the ingest API async.
+    static func hasVideoTrack(_ url: URL) -> Bool {
+        let asset = AVURLAsset(url: url)
+        return !asset.tracks(withMediaType: .video).isEmpty
+    }
+
+    enum VideoIngestError: Error, Equatable { case noAudioTrack, exportFailed }
+
+    /// Strip `source`'s audio track into a standalone `.m4a` at `dest`, synchronously.
+    /// Throws `noAudioTrack` for a silent clip and `exportFailed` on an export error.
+    /// The legacy `exportAsynchronously` completion fires on an internal (non-main)
+    /// queue, so the semaphore wait is safe even when called from the main thread.
+    static func extractAudioSync(from source: URL, to dest: URL) throws {
+        let asset = AVURLAsset(url: source)
+        guard let audioTrack = asset.tracks(withMediaType: .audio).first else {
+            throw VideoIngestError.noAudioTrack
+        }
+        let comp = AVMutableComposition()
+        guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+            throw VideoIngestError.exportFailed
+        }
+        try track.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: audioTrack, at: .zero)
+
+        guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
+            throw VideoIngestError.exportFailed
+        }
+        try? FileManager.default.removeItem(at: dest)
+        export.outputURL = dest
+        export.outputFileType = .m4a
+
+        let semaphore = DispatchSemaphore(value: 0)
+        export.exportAsynchronously { semaphore.signal() }
+        semaphore.wait()
+
+        guard export.status == .completed,
+              FileManager.default.fileExists(atPath: dest.path) else {
+            throw VideoIngestError.exportFailed
+        }
+    }
+
+    /// The video's embedded RECORDING date (QuickTime `creationDate` / mp4
+    /// `creation_time`) read synchronously. Survives copies — unlike the filesystem
+    /// date, which becomes the import/copy time. nil when absent/unparseable.
+    static func embeddedRecordingDate(of url: URL) -> Date? {
+        let asset = AVURLAsset(url: url)
+        guard let item = asset.creationDate else { return nil }
+        if let d = item.dateValue { return d }
+        if let s = item.stringValue, let d = parseISODate(s) { return d }
+        return nil
+    }
+
+    /// Parse an ISO-8601 creation-date string (with or without fractional seconds).
+    static func parseISODate(_ s: String) -> Date? {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = iso.date(from: s) { return d }
+        iso.formatOptions = [.withInternetDateTime]
+        return iso.date(from: s)
     }
 
     /// Filename-safe title: illegal chars → "-", whitespace collapsed, edges trimmed.
@@ -196,15 +303,16 @@ struct IngestService: Sendable {
     }
 
     /// A picked folder → ingest its top-level supported files: Apple-Note `.md`
-    /// exports AND audio recordings (e.g. dropping a folder of voice memos). Skips
-    /// subfolders (an Apple Notes export's `Attachments/` images aren't notes).
+    /// exports, audio recordings, AND video clips (e.g. dropping a folder of voice
+    /// memos / self-recorded videos). Skips subfolders (an Apple Notes export's
+    /// `Attachments/` images aren't notes).
     private func ingestFolder(_ url: URL, into context: ModelContext) throws -> [PipelineFile] {
         let items = ((try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? [])
             .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
         var created: [PipelineFile] = []
         for item in items {
             let ext = item.pathExtension.lowercased()
-            guard ["md", "markdown"].contains(ext) || Self.supportedAudio.contains(ext) else { continue }
+            guard ["md", "markdown"].contains(ext) || Self.supportedAudio.contains(ext) || Self.supportedVideo.contains(ext) else { continue }
             if let pf = try ingestFile(item, into: context) { created.append(pf) }
         }
         return created
