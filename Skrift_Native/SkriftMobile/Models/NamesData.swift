@@ -25,6 +25,12 @@ struct Person: Codable, Equatable, Sendable {
 
     var isDeleted: Bool { deleted == true }
 
+    /// The bare name for display / as a `**Name:**` turn label (canonical without `[[ ]]`).
+    var displayName: String {
+        (canonical.hasPrefix("[[") && canonical.hasSuffix("]]"))
+            ? String(canonical.dropFirst(2).dropLast(2)) : canonical
+    }
+
     init(
         canonical: String,
         aliases: [String] = [],

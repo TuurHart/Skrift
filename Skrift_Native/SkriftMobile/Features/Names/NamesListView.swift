@@ -156,10 +156,7 @@ struct VoiceBars: View {
 
 /// Name/enrollment helpers.
 enum NamesDisplay {
-    static func name(_ person: Person) -> String {
-        let c = person.canonical
-        return (c.hasPrefix("[[") && c.hasSuffix("]]")) ? String(c.dropFirst(2).dropLast(2)) : c
-    }
+    static func name(_ person: Person) -> String { person.displayName }
     static func isEnrolled(_ person: Person) -> Bool { !(person.voiceEmbeddings?.isEmpty ?? true) }
 }
 

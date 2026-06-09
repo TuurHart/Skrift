@@ -10,14 +10,16 @@ final class DiarizationStatus: ObservableObject {
 
     enum Phase: Equatable {
         case idle
-        case downloadingModel(Double?)   // first-time Sortformer download (0...1)
-        case identifying                 // running diarization
+        case downloadingModel(Double?)        // first-time Sortformer download (0...1)
+        case downloadingVoiceModel(Double?)   // first-time wespeaker/voiceprint download (0...1)
+        case identifying                      // running diarization
+        case enrolling                        // learning a named speaker's voiceprint
     }
 
     @Published private(set) var memoID: UUID?
     @Published private(set) var phase: Phase = .idle
 
-    func begin(_ id: UUID) { memoID = id; phase = .identifying }
+    func begin(_ id: UUID, phase: Phase = .identifying) { memoID = id; self.phase = phase }
     func set(_ phase: Phase) { self.phase = phase }
     func finish() { memoID = nil; phase = .idle }
 
@@ -29,7 +31,11 @@ final class DiarizationStatus: ObservableObject {
         case .downloadingModel(let p):
             if let p { return "Downloading speaker model… \(Int(p * 100))%" }
             return "Downloading speaker model…"
+        case .downloadingVoiceModel(let p):
+            if let p { return "Downloading voice model… \(Int(p * 100))%" }
+            return "Downloading voice model…"
         case .identifying: return "Identifying speakers…"
+        case .enrolling: return "Learning this voice…"
         }
     }
 
