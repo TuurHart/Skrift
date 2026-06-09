@@ -153,5 +153,89 @@ final class DiarizationTests: XCTestCase {
                                  people: [], tagWhitelist: [], diarizer: oneSpeaker)
         try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c4.m4a"))
         XCTAssertEqual(pf.transcript, "one two three four")   // <2 speakers → plain prose
+        XCTAssertTrue(pf.diarizationSegments.isEmpty, "monologue → nothing to retain for enrollment")
+    }
+
+    // MARK: Diarization persistence (segments survive for later enrollment)
+
+    func testDiarizationDataRoundTrip() throws {
+        let data = DiarizationData(
+            segments: [DiarizedSegment(speaker: 0, start: 0, end: 1.5),
+                       DiarizedSegment(speaker: 1, start: 1.5, end: 3.25)],
+            slotNames: ["0": "Tiuri Hartog", "1": "Roksana"])
+        let encoded = try JSONEncoder().encode(data)
+        let decoded = try JSONDecoder().decode(DiarizationData.self, from: encoded)
+        XCTAssertEqual(decoded, data)
+    }
+
+    /// The on-disk JSON must mirror the phone's `DiarizationData` byte-format
+    /// (`segments` of `{speaker,start,end}` + a string-keyed `slotNames`) so the two
+    /// apps' `diar_<id>.json` sidecars stay interchangeable.
+    func testDiarizationDataJSONShapeMatchesPhone() throws {
+        let data = DiarizationData(
+            segments: [DiarizedSegment(speaker: 0, start: 0, end: 1)],
+            slotNames: ["0": "Tiuri Hartog"])
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: try JSONEncoder().encode(data)) as? [String: Any])
+        let segs = try XCTUnwrap(json["segments"] as? [[String: Any]])
+        XCTAssertEqual(segs.first?["speaker"] as? Int, 0)
+        XCTAssertEqual(segs.first?["start"] as? Double, 0)
+        XCTAssertEqual(segs.first?["end"] as? Double, 1)
+        XCTAssertEqual((json["slotNames"] as? [String: String])?["0"], "Tiuri Hartog")
+    }
+
+    func testDiarizationDataFromOutputStringifiesSlotKeys() {
+        let out = DiarizationOutput(
+            segments: [DiarizedSegment(speaker: 0, start: 0, end: 1), DiarizedSegment(speaker: 2, start: 1, end: 2)],
+            slotNames: [0: "Tiuri Hartog", 2: "Roksana"])
+        let data = DiarizationData(out)
+        XCTAssertEqual(data.segments, out.segments)
+        XCTAssertEqual(data.slotNames, ["0": "Tiuri Hartog", "2": "Roksana"])
+    }
+
+    func testSidecarWriteLoadDeleteRoundTrip() throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diar-test-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+
+        let sidecar = DiarizationSidecar()
+        XCTAssertNil(sidecar.load(in: folder, id: "memo1"), "nothing written yet")
+
+        let data = DiarizationData(
+            segments: [DiarizedSegment(speaker: 0, start: 0, end: 2), DiarizedSegment(speaker: 1, start: 2, end: 4)],
+            slotNames: ["0": "Tiuri Hartog"])
+        sidecar.write(data, in: folder, id: "memo1")
+
+        // Lands at the phone-compatible `diar_<id>.json` filename.
+        XCTAssertTrue(FileManager.default.fileExists(atPath: folder.appendingPathComponent("diar_memo1.json").path))
+        XCTAssertEqual(sidecar.load(in: folder, id: "memo1"), data)
+
+        sidecar.delete(in: folder, id: "memo1")
+        XCTAssertNil(sidecar.load(in: folder, id: "memo1"))
+    }
+
+    func testRunPersistsSegmentsForLaterEnrollment() async throws {
+        // After a conversation-mode Process, the speaker segments survive on the
+        // PipelineFile AND as a `diar_<id>.json` sidecar in the working folder, so a
+        // speaker's audio can be re-sliced later to enroll their voice.
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diar-run-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let audioURL = folder.appendingPathComponent("original.m4a")
+
+        let pf = PipelineFile(id: "persist1", filename: "m.m4a", path: audioURL.path, size: 0, sourceType: .audio)
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: .default,
+                                 people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
+        try await runner.run(pf, audioURL: audioURL)
+
+        // Field (SwiftData-backed) retains both speakers' time-ranges.
+        XCTAssertEqual(Set(pf.diarizationSegments.map(\.speaker)), [0, 1])
+
+        // Sidecar mirrors it, keyed by id, with the matched slot name.
+        let loaded = try XCTUnwrap(DiarizationSidecar().load(in: folder, id: "persist1"))
+        XCTAssertEqual(loaded.segments, pf.diarizationSegments)
+        XCTAssertEqual(loaded.slotNames["0"], "Tiuri Hartog")
+        XCTAssertNil(loaded.slotNames["1"], "unmatched slot stays nameless (→ Speaker N)")
     }
 }
