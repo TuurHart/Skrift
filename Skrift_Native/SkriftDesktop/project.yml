@@ -54,14 +54,18 @@ targets:
         # ~/Library/Application Support/Skrift Dev/ + SwiftData store + defaults to the
         # TEST vault (AppPaths/SettingsStore #if DEBUG), so dev runs never touch the
         # production data or the real Obsidian vault. Release = the real "Skrift".
+        # PRODUCT_NAME drives CFBundleName (the macOS app-menu / menu-bar name) AND the
+        # .app filename — the reliable lever (INFOPLIST_KEY_CFBundleName is dropped by the
+        # plist generator, so the menu bar fell back to "SkriftDesktop" for both). Now dev
+        # vs prod are unmistakable everywhere: "Skrift Dev" vs "Skrift".
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.dev
+          PRODUCT_NAME: Skrift Dev
           INFOPLIST_KEY_CFBundleDisplayName: Skrift Dev
-          INFOPLIST_KEY_CFBundleName: Skrift Dev          # macOS menu-bar app name
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
+          PRODUCT_NAME: Skrift
           INFOPLIST_KEY_CFBundleDisplayName: Skrift
-          INFOPLIST_KEY_CFBundleName: Skrift
     dependencies:
       - package: FluidAudio
         product: FluidAudio
