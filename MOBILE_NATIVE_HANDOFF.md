@@ -13,6 +13,9 @@
 > `/Users/tiurihartog/Hackerman/Skrift`, branch **`native`**, app in
 > `Skrift_Native/SkriftMobile/`.
 
+> **CONVERSATION MODE has its own full handoff: `CONVERSATION_MODE_HANDOFF.md`** (state + the
+> locked embedding identity design + the next-chat prompt). Start there for conversation work.
+
 ## TL;DR — where we are
 - Decided to rewrite the iOS companion from Expo/RN (`Mobile/`) to **native
   SwiftUI** (`SkriftMobile/`). Why: iOS-only + native-heavy (FluidAudio/ANE,
