@@ -2,17 +2,19 @@ import SwiftUI
 import SwiftData
 import UIKit
 
-/// The "note" screen (mockup2). Swipe left/right between memos (`TabView(.page)`),
-/// each page = editable title + RAW transcript (with inline `[[img_NNN]]` embeds)
-/// + context/tags. A single playback bar is pinned at the bottom and re-targets
-/// as you swipe. Title, tags, and the transcript are hand-editable (save-now
-/// post-record flow); copy + delete live in the ⋯ menu.
+/// The "note" screen (mockup2). Swipe left/right between memos (a SwiftUI-native
+/// horizontal paging `ScrollView` — NOT `TabView(.page)`, whose UIKit page host
+/// broke `.glassEffect` refraction, the significance drag, and word tap-to-seek on
+/// device), each page = editable title + RAW transcript (with inline `[[img_NNN]]`
+/// embeds) + context/tags. A single playback bar is pinned at the bottom and
+/// re-targets as you swipe. Title, tags, and the transcript are hand-editable
+/// (save-now post-record flow); copy + delete live in the ⋯ menu.
 struct MemoDetailView: View {
     let initialID: UUID
 
     @Query(sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
     @Environment(\.dismiss) private var dismiss
-    @State private var selection: UUID
+    @State private var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
     @State private var showActions = false
     @State private var showAppendRecorder = false
     @StateObject private var player = AudioPlayerModel()
@@ -29,13 +31,35 @@ struct MemoDetailView: View {
         ZStack(alignment: .bottom) {
             Color.skBg.ignoresSafeArea()
 
-            TabView(selection: $selection) {
-                ForEach(memos) { memo in
-                    MemoPageView(memo: memo, bottomInset: 220, player: player)   // clearance so the last line scrolls clear of (and behind) the glass bar
-                        .tag(memo.id)
+            // SwiftUI-native horizontal pager. Unlike `TabView(.page)` (a UIKit page
+            // host) its scroll content IS sampled by `.glassEffect` (the bar refracts
+            // the page) AND it yields child gestures (the significance drag + per-word
+            // tap-to-seek work). `.scrollPosition(id:)` tracks the page; the
+            // ScrollViewReader does the initial jump (the binding's initial value isn't
+            // reliably honoured on first layout).
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(memos) { memo in
+                            MemoPageView(memo: memo, bottomInset: 220, player: player)   // clearance so the last line scrolls clear of (and behind) the glass bar
+                                .containerRelativeFrame(.horizontal)
+                                // The LazyHStack realises adjacent pages; hide the
+                                // off-screen ones from VoiceOver (and XCUITest) so
+                                // their controls/text aren't duplicate matches.
+                                .accessibilityHidden(memo.id != selection)
+                                .id(memo.id)
+                        }
+                    }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.paging)
+                .scrollPosition(id: $selection)
+                .scrollIndicators(.hidden)
+                .onAppear {
+                    guard let selection else { return }
+                    DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
 
             bottomChrome
         }
@@ -68,6 +92,9 @@ struct MemoDetailView: View {
         }
         .onAppear { player.load(currentMemo?.audioURL) }
         .onChange(of: selection) { _, newID in
+            // Re-target the bar when paging settles; ignore the transient nil the
+            // paging scroll reports between snap points (don't stop audio mid-swipe).
+            guard let newID else { return }
             player.load(memos.first { $0.id == newID }?.audioURL)
         }
         .onDisappear { player.stopAndClear(); repository.save() }
@@ -79,10 +106,9 @@ struct MemoDetailView: View {
         // fallback for iOS < 26 (where glassEffect is unavailable).
         if #available(iOS 26.0, *) {
             playerBarStack
-                // Pure Liquid Glass. NOTE: it refracts the ZStack background but NOT the
-                // UIKit-hosted TabView(.page) scroll content — so photos/text inside a
-                // page don't show through. Real fix = replace TabView(.page) with a
-                // SwiftUI paging ScrollView (handoff; also fixes the significance drag).
+                // Pure Liquid Glass. The pager is now a SwiftUI ScrollView (above), so
+                // the glass samples and refracts the page's transcript/photos as they
+                // scroll under the bar — what the UIKit-hosted TabView(.page) prevented.
                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 // A hairline + top specular highlight so the glass reads as an EDGE
                 // even over the near-black transcript (Liquid Glass is subtle over a
@@ -319,9 +345,10 @@ private struct SignificanceRow: View {
     }
 }
 
-/// Custom 0–1 (snap 0.1) slider. A native Slider inside the paged TabView loses its
-/// horizontal drag to the page-swipe gesture (dragging it flips to the next memo);
-/// this owns its drag via `.highPriorityGesture` so the swipe can't steal it.
+/// Custom 0–1 (snap 0.1) drag slider. A `minimumDistance: 0` `.highPriorityGesture`
+/// claims the touch on contact, so the horizontal paging ScrollView can't steal the
+/// drag (the old `TabView(.page)` page-pan did, which is why this was a tap-to-set
+/// stopgap). A plain tap still works — a 0-distance drag fires `onChanged` on contact.
 private struct SignificanceSlider: View {
     @Binding var value: Double
     var onCommit: () -> Void
@@ -339,15 +366,12 @@ private struct SignificanceSlider: View {
             }
             .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
-            // TAP to set (a SpatialTapGesture is discrete, so the paged TabView's
-            // pan can't steal it — unlike a drag, which kept flipping to the next
-            // memo even with .highPriorityGesture). Tap anywhere on the bar.
-            .gesture(
-                SpatialTapGesture()
-                    .onEnded { g in
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { g in
                         value = ((min(1, max(0, g.location.x / w)) * 10).rounded()) / 10
-                        onCommit()
                     }
+                    .onEnded { _ in onCommit() }
             )
         }
         .frame(height: 24)

@@ -43,6 +43,24 @@ final class MemoDetailUITests: XCTestCase {
                       "swipe didn't page to the next memo")
     }
 
+    /// Opening a non-first memo must land ON that memo, not page 0. This guards the
+    /// paging ScrollView's initial scroll (the `.scrollPosition(id:)` initial value
+    /// isn't reliably honoured on first layout — a ScrollViewReader does the jump).
+    /// Asserts *hittability* (on-screen), not mere existence: the LazyHStack realises
+    /// adjacent pages, but only the visible page's text is hittable.
+    func testOpenNonFirstMemoLandsOnIt() throws {
+        let app = launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-1").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let second = app.staticTexts["Second seeded memo, a quick reminder to call the plumber."]
+        XCTAssertTrue(second.waitForExistence(timeout: 5), "second memo didn't render")
+        XCTAssertTrue(second.isHittable, "opening memo-row-1 didn't land on (scroll to) the second memo")
+        XCTAssertFalse(app.staticTexts["First seeded memo about the harbor at dawn."].isHittable,
+                       "page 0 is on-screen — detail opened on the wrong page")
+    }
+
     func testAddTagInDetail() throws {
         let app = launch()
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
