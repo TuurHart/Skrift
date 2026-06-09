@@ -8,8 +8,36 @@ enum DemoDataSeeder {
     static func seedIfRequested(_ repo: NotesRepository) {
         guard repo.allMemos().isEmpty else { return }
         if LaunchFlags.seedLongMemo { repo.insert(longMemo()); return }
+        if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         guard LaunchFlags.seedDemoMemos else { return }
         for memo in demoMemos() { repo.insert(memo) }
+    }
+
+    /// A speaker-attributed (`**Name:**`) conversation memo — one tagged speaker + one
+    /// still "Speaker 2" — so the detail's `SpeakerTurnsView` render is verifiable.
+    static func conversationMemo() -> Memo {
+        let now = Date()
+        let transcript = """
+        **Tiuri Hartog:** If conversation mode works, if I talk, then what if you talk?
+
+        **Speaker 2:** And now if I talk, it will only split it afterwards I'm assuming, but not yeah.
+
+        **Tiuri Hartog:** I don't know. I'm not too sure yet. Supposedly parakeet can do conversation mode.
+
+        **Speaker 2:** Yeah, but can we split the conversation during this pre-recording as well? Because now you'll see if it saves. But it would be cool if it noticed while you were talking.
+        """
+        return Memo(
+            audioFilename: "memo_conversation.m4a",
+            duration: 28,
+            recordedAt: now,
+            tags: ["conversation"],
+            syncStatus: .waiting,
+            transcript: transcript,
+            transcriptStatus: .done,
+            transcriptConfidence: 0.95,
+            metadata: MemoMetadata(capturedAt: ISO8601.string(from: now),
+                                   location: LocationInfo(latitude: 38.71, longitude: -9.14, placeName: "Alfama, Lisbon"))
+        )
     }
 
     /// One memo whose transcript is long enough to scroll content (text + an image

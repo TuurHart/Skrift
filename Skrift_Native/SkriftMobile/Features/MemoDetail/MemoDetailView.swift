@@ -233,7 +233,11 @@ private struct MemoPageView: View {
     }
 
     private var titlePrompt: Text {
-        Text(memo.firstTranscriptLine ?? "Add a title").foregroundStyle(Color.skTextFaint)
+        // Strip a leading `**Speaker:** ` prefix so a conversation note's title prompt
+        // shows the actual first words, not the Markdown.
+        let line = (memo.firstTranscriptLine ?? "Add a title")
+            .replacingOccurrences(of: #"^\*\*.+?:\*\*\s*"#, with: "", options: .regularExpression)
+        return Text(line.isEmpty ? "Add a title" : line).foregroundStyle(Color.skTextFaint)
     }
 
     private func addTag() {
@@ -257,7 +261,11 @@ private struct MemoPageView: View {
     /// (highlight + tap-to-seek). Transcribing → its status pill. The editor and the
     /// idle karaoke view render the same, so play/pause swaps seamlessly.
     @ViewBuilder private var transcriptSection: some View {
-        if player.isPlaying || memo.transcriptStatus == .transcribing {
+        if let turns = SpeakerTranscript.parse(memo.transcript) {
+            // Conversation note → speaker-attributed turns (read-only render; tag-as-
+            // you-go + editing land with the DiarizationService wiring).
+            SpeakerTurnsView(turns: turns)
+        } else if player.isPlaying || memo.transcriptStatus == .transcribing {
             TranscriptContentView(memo: memo, player: player)
         } else {
             TranscriptEditor(memo: memo, onCommit: { repository.save() })

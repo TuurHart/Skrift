@@ -34,6 +34,9 @@ enum LaunchFlags {
     static var seedLongMemo: Bool { args.boolFlag("-seedLongMemo") }
     /// Show the conversation-mode design mock (static; no real diarization).
     static var conversationMock: Bool { args.boolFlag("-conversationMock") }
+    /// Seed ONE memo whose transcript is a `**Name:**` conversation, to verify the real
+    /// detail view renders speaker turns (`SpeakerTurnsView`).
+    static var seedConversationMemo: Bool { args.boolFlag("-seedConversationMemo") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Stub the Mac sync layer so UI tests don't need a live backend.
     static var mockMac: Bool { args.boolFlag("-mockMac") }

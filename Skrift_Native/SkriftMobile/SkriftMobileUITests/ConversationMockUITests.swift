@@ -20,4 +20,20 @@ final class ConversationMockUITests: XCTestCase {
             app.terminate()
         }
     }
+
+    /// The REAL detail view rendering a seeded `**Name:**` conversation transcript via
+    /// SpeakerTurnsView (not the static mock).
+    func testRealConversationMemoRendersTurns() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedConversationMemo", "-skipOnboarding", "-appTheme", "dark"]
+        app.launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        // A named speaker renders as bold text; an un-named one offers "+ name".
+        XCTAssertTrue(app.staticTexts["Tiuri Hartog"].waitForExistence(timeout: 5), "named speaker turn didn't render")
+        XCTAssertTrue(app.buttons["tag-speaker-Speaker 2"].exists, "un-named speaker's tag affordance missing")
+        snap("conversation-real-detail")
+    }
 }
