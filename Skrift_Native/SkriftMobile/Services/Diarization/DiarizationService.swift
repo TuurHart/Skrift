@@ -28,7 +28,10 @@ actor DiarizationService: Diarizing {
     /// slow, then cached). Device-only in practice (ANE).
     func ensureLoaded() async throws {
         guard diarizer == nil else { return }
-        let models = try await SortformerModels.loadFromHuggingFace(config: config)
+        await MainActor.run { DiarizationStatus.shared.set(.downloadingModel(nil)) }
+        let models = try await SortformerModels.loadFromHuggingFace(config: config) { progress in
+            Task { @MainActor in DiarizationStatus.shared.set(.downloadingModel(progress.fractionCompleted)) }
+        }
         let d = SortformerDiarizer(config: config)
         d.initialize(models: models)
         diarizer = d
@@ -36,6 +39,7 @@ actor DiarizationService: Diarizing {
 
     func diarize(audioURL: URL) async throws -> [DiarizedSegment] {
         try await ensureLoaded()
+        await MainActor.run { DiarizationStatus.shared.set(.identifying) }
         guard let diarizer else { throw DiarizationError.notReady }
         let samples = try AudioConverter(sampleRate: 16000).resampleAudioFile(audioURL)
         let timeline = try diarizer.processComplete(samples)

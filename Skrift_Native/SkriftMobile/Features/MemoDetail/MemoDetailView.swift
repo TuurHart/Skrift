@@ -174,6 +174,7 @@ private struct MemoPageView: View {
     @State private var newTag = ""
     @State private var namingSpeaker: String?       // the speaker label being (re)named
     @State private var speakerNameDraft = ""
+    @ObservedObject private var diarStatus = DiarizationStatus.shared
 
     var body: some View {
         ScrollView {
@@ -212,6 +213,15 @@ private struct MemoPageView: View {
 
                 SignificanceRow(value: $memo.significance) { repository.save() }
                     .padding(.top, 10)
+
+                if let label = diarStatus.label(for: memo.id) {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text(label).font(.system(size: 12, weight: .medium)).foregroundStyle(Color.skTextDim)
+                    }
+                    .padding(.top, 14)
+                    .accessibilityIdentifier("diarization-status")
+                }
 
                 transcriptSection
                     .padding(.top, 18)

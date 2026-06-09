@@ -255,6 +255,8 @@ struct MemoSaver {
     /// `**Speaker N:**` turns (fused with the word-timings). A single-speaker result is
     /// left as the plain transcript.
     private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming]) async {
+        DiarizationStatus.shared.begin(id)
+        defer { DiarizationStatus.shared.finish() }
         guard let segments = try? await diarizer.diarize(audioURL: audioURL),
               Set(segments.map(\.speaker)).count >= 2 else { return }
         let attributed = SpeakerFusion.attributedTranscript(words: words, segments: segments)
