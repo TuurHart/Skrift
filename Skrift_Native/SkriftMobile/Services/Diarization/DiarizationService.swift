@@ -1,25 +1,32 @@
 import Foundation
 import FluidAudio
 
-/// Splits a recording into speaker segments. Real implementation = NVIDIA Sortformer
-/// via FluidAudio (ANE, device-only); a seeded mock backs the sim (no ANE there, same
-/// as ASR). See `SpeakerFusion` for turning these segments + word-timings into the
-/// `**Name:**` transcript.
+/// Diarization result: speaker time-ranges + the matched name per slot (Sortformer
+/// labels a slot when its voice matches an enrolled person; nil otherwise).
+struct DiarizationOutput: Sendable {
+    let segments: [DiarizedSegment]
+    let slotNames: [Int: String]
+}
+
+/// Splits a recording into speakers. Real impl = NVIDIA Sortformer via FluidAudio (ANE,
+/// device-only); a seeded mock backs the sim (no ANE, same as ASR). See `SpeakerFusion`
+/// for turning the output into the `**Name:**` transcript.
 protocol Diarizing: Sendable {
-    func diarize(audioURL: URL) async throws -> [DiarizedSegment]
+    func diarize(audioURL: URL) async throws -> DiarizationOutput
 }
 
 enum DiarizationError: Error { case notReady }
 
 /// Sortformer-backed diarizer. Chosen over the legacy pyannote `DiarizerManager` (best
-/// pre-enrolled speaker mapping, stable IDs, similar-voice handling, streaming) — see
-/// the handoff + DiarizeSpike. `clusteringThreshold` games are NOT needed; the default
-/// config splits real conversations correctly (validated on the user's memo).
+/// pre-enrolled speaker mapping, stable IDs, similar-voice handling) — see the handoff +
+/// DiarizeSpike. Default config (no clusteringThreshold games). Before diarizing it
+/// enrolls every known voice (`SpeakerVoiceStore`) so returning speakers come back named.
 actor DiarizationService: Diarizing {
     static let shared = DiarizationService()
 
     private let config = SortformerConfig.default
     private var diarizer: SortformerDiarizer?
+    private let voices = SpeakerVoiceStore()
     private init() {}
 
     var isModelReady: Bool { diarizer != nil }
@@ -37,27 +44,29 @@ actor DiarizationService: Diarizing {
         diarizer = d
     }
 
-    func diarize(audioURL: URL) async throws -> [DiarizedSegment] {
+    func diarize(audioURL: URL) async throws -> DiarizationOutput {
         try await ensureLoaded()
         await MainActor.run { DiarizationStatus.shared.set(.identifying) }
         guard let diarizer else { throw DiarizationError.notReady }
+
+        // Pre-enroll known voices (fresh state first) so matching slots come back named.
+        diarizer.reset()
+        for v in voices.allKnown() where v.samples.count >= 8000 {
+            try? diarizer.enrollSpeaker(withAudio: v.samples, named: v.name)
+        }
+
         let samples = try AudioConverter(sampleRate: 16000).resampleAudioFile(audioURL)
         let timeline = try diarizer.processComplete(samples)
+
         var segments: [DiarizedSegment] = []
+        var slotNames: [Int: String] = [:]
         for (slot, speaker) in timeline.speakers {
             for s in speaker.finalizedSegments {
                 segments.append(DiarizedSegment(speaker: slot, start: Double(s.startTime), end: Double(s.endTime)))
             }
+            if let name = speaker.name, !name.isEmpty { slotNames[slot] = name }
         }
-        return segments.sorted { $0.start < $1.start }
-    }
-
-    /// Diarize + fuse with the ASR word-timings → the `**Name:**` conversation transcript.
-    func attributedTranscript(
-        audioURL: URL, words: [WordTiming], name: @escaping (Int) -> String = { "Speaker \($0 + 1)" }
-    ) async throws -> String {
-        let segments = try await diarize(audioURL: audioURL)
-        return SpeakerFusion.attributedTranscript(words: words, segments: segments, name: name)
+        return DiarizationOutput(segments: segments.sorted { $0.start < $1.start }, slotNames: slotNames)
     }
 }
 
@@ -69,20 +78,24 @@ enum DiarizerFactory {
     }
 }
 
-/// Deterministic diarizer for UI tests / the sim (no ANE): splits the timeline evenly
-/// into `speakers` alternating blocks of `blockSeconds`.
+/// Deterministic diarizer for UI tests / the sim (no ANE): alternating `speakers`
+/// blocks, and — to exercise the name-once→recognized loop — labels slots with any
+/// already-enrolled voices (simulating Sortformer's auto-match).
 struct SeededDiarizer: Diarizing {
     var speakers = 2
     var blockSeconds = 4.0
     var totalSeconds = 28.0
 
-    func diarize(audioURL: URL) async throws -> [DiarizedSegment] {
+    func diarize(audioURL: URL) async throws -> DiarizationOutput {
         var segs: [DiarizedSegment] = []
         var t = 0.0, i = 0
         while t < totalSeconds {
             segs.append(DiarizedSegment(speaker: i % speakers, start: t, end: min(t + blockSeconds, totalSeconds)))
             t += blockSeconds; i += 1
         }
-        return segs
+        let known = SpeakerVoiceStore().knownNames().sorted()
+        var slotNames: [Int: String] = [:]
+        for slot in 0..<speakers where slot < known.count { slotNames[slot] = known[slot] }
+        return DiarizationOutput(segments: segs, slotNames: slotNames)
     }
 }

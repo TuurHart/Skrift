@@ -163,6 +163,7 @@ struct MemoDetailView: View {
             try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
         }
         WordTimingsStore().delete(for: memo.id)
+        DiarizationStore().delete(for: memo.id)
         player.stopAndClear()
         repository.delete(memo)
         if let next { selection = next } else { dismiss() }
@@ -270,6 +271,18 @@ private struct MemoPageView: View {
         memo.transcript = transcript.replacingOccurrences(of: "**\(old):**", with: "**\(new):**")
         memo.transcriptUserEdited = true
         repository.save()
+        // Enroll this speaker's voiceprint under the new name so future recordings
+        // auto-label them. Extract their turns' audio (from the diar sidecar) off-main.
+        let memoID = memo.id, audioURL = memo.audioURL
+        Task.detached {
+            guard let audioURL, let data = DiarizationStore().load(for: memoID),
+                  let slotStr = data.slotNames.first(where: { $0.value == old })?.key,
+                  let slot = Int(slotStr) else { return }
+            SpeakerVoiceStore().enroll(person: new, from: audioURL,
+                                       segments: data.segments.filter { $0.speaker == slot })
+            var updated = data; updated.slotNames[slotStr] = new
+            DiarizationStore().write(updated, for: memoID)
+        }
     }
 
     private var titleBinding: Binding<String> {

@@ -1,7 +1,7 @@
 import Foundation
 
 /// A diarization result: a time range assigned to a speaker slot (0-based).
-struct DiarizedSegment: Sendable, Equatable {
+struct DiarizedSegment: Sendable, Equatable, Codable {
     let speaker: Int
     let start: Double
     let end: Double

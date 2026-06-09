@@ -266,12 +266,19 @@ struct MemoSaver {
     private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming]) async {
         DiarizationStatus.shared.begin(id)
         defer { DiarizationStatus.shared.finish() }
-        guard let segments = try? await diarizer.diarize(audioURL: audioURL),
-              Set(segments.map(\.speaker)).count >= 2 else { return }
-        let attributed = SpeakerFusion.attributedTranscript(words: words, segments: segments)
+        guard let out = try? await diarizer.diarize(audioURL: audioURL),
+              Set(out.segments.map(\.speaker)).count >= 2 else { return }
+        // Auto-matched (enrolled) speakers come back named; the rest are "Speaker N".
+        let attributed = SpeakerFusion.attributedTranscript(words: words, segments: out.segments) {
+            out.slotNames[$0] ?? "Speaker \($0 + 1)"
+        }
         guard let memo = repository.memo(id: id) else { return }
         memo.transcript = attributed
         memo.transcriptStatus = .done
         repository.save()
+        // Persist segments + per-slot names so naming can extract a speaker's audio.
+        var names: [String: String] = [:]
+        for seg in out.segments { names[String(seg.speaker)] = out.slotNames[seg.speaker] ?? "Speaker \(seg.speaker + 1)" }
+        DiarizationStore().write(DiarizationData(segments: out.segments, slotNames: names), for: id)
     }
 }
