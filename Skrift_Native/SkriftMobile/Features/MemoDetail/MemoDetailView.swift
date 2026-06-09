@@ -17,6 +17,7 @@ struct MemoDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
     @State private var showActions = false
+    @State private var showSplitOptions = false
     @State private var showAppendRecorder = false
     @StateObject private var player = AudioPlayerModel()
     private let repository = NotesRepository.shared
@@ -66,6 +67,19 @@ struct MemoDetailView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomChrome }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // Split into speakers — a deliberate post-transcript action (no pre-record
+            // toggle). Shown once there's a transcript + audio to diarize.
+            ToolbarItem(placement: .topBarTrailing) {
+                if let memo = currentMemo, !(memo.transcript ?? "").isEmpty, memo.audioURL != nil {
+                    Button { showSplitOptions = true } label: {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(width: 34, height: 34)
+                            .foregroundStyle(Color.skTextDim)
+                    }
+                    .accessibilityIdentifier("split-speakers-button")
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showActions = true } label: {
                     Image(systemName: "ellipsis")
@@ -76,17 +90,21 @@ struct MemoDetailView: View {
                 .accessibilityIdentifier("detail-menu")
             }
         }
+        // "How many speakers?" — Auto trusts the diarizer; a number forces exactly that
+        // count by merging the most voice-similar slots (the over-segmentation fix).
+        .confirmationDialog("How many speakers?", isPresented: $showSplitOptions, titleVisibility: .visible) {
+            Button("Auto") { splitSpeakers(nil) }
+            ForEach([2, 3, 4, 5], id: \.self) { n in
+                Button("\(n) speakers") { splitSpeakers(n) }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
         // A confirmationDialog is presented by the view controller (not anchored
         // to the toolbar item), so the paged TabView can't swallow it — unlike a
         // toolbar `Menu`, which silently failed to present on device.
         .confirmationDialog("Memo", isPresented: $showActions, titleVisibility: .hidden) {
             Button("Add recording", action: { showAppendRecorder = true })
             Button("Copy transcript", action: copyTranscript)
-            // Retro "split speakers" — for a memo recorded without conversation mode.
-            if let memo = currentMemo, !(memo.transcript ?? "").isEmpty, memo.audioURL != nil,
-               SpeakerTranscript.parse(memo.transcript) == nil {
-                Button("Split speakers") { Task { await MemoSaver().diarizeExisting(id: memo.id) } }
-            }
             Button("Delete", role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
         }
@@ -154,6 +172,14 @@ struct MemoDetailView: View {
     private func copyTranscript() {
         guard let text = currentMemo?.transcript, !text.isEmpty else { return }
         UIPasteboard.general.string = text
+    }
+
+    /// Split the current memo into speakers (Auto, or force `count`). Re-runs diarization
+    /// over the saved audio + word-timings; the model loads on first use here (the slow
+    /// step now happens only when you ask, not after every recording).
+    private func splitSpeakers(_ count: Int?) {
+        guard let id = currentMemo?.id else { return }
+        Task { await MemoSaver().diarizeExisting(id: id, targetSpeakers: count) }
     }
 
     private func deleteCurrent() {

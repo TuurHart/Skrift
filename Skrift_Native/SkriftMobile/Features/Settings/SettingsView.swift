@@ -6,7 +6,6 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("liveTranscription") private var liveTranscription = true
-    @AppStorage("conversationDefault") private var conversationDefault = false
     @AppStorage("appTheme") private var appTheme = "dark"
     @AppStorage("weatherAPIKey") private var weatherKey = ""
     @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = false
@@ -40,7 +39,6 @@ struct SettingsView: View {
                 Section("Capture") {
                     Toggle("Live transcription", isOn: $liveTranscription)
                         .accessibilityIdentifier("setting-live-transcription")
-                    Toggle("Conversation mode default", isOn: $conversationDefault)
                 }
 
                 Section {

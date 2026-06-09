@@ -12,7 +12,9 @@ struct DiarizationOutput: Sendable {
 /// device-only); a seeded mock backs the sim (no ANE, same as ASR). See `SpeakerFusion`
 /// for turning the output into the `**Name:**` transcript.
 protocol Diarizing: Sendable {
-    func diarize(audioURL: URL) async throws -> DiarizationOutput
+    /// `targetSpeakers` forces the result down to exactly N voices by merging the most
+    /// voice-similar slots (the over-segmentation fix); nil = Auto (trust Sortformer).
+    func diarize(audioURL: URL, targetSpeakers: Int?) async throws -> DiarizationOutput
 }
 
 enum DiarizationError: Error { case notReady }
@@ -53,7 +55,7 @@ actor DiarizationService: Diarizing {
         UserDefaults.standard.set(true, forKey: "sortformerModelReady")
     }
 
-    func diarize(audioURL: URL) async throws -> DiarizationOutput {
+    func diarize(audioURL: URL, targetSpeakers: Int?) async throws -> DiarizationOutput {
         try await ensureLoaded()
         await MainActor.run { DiarizationStatus.shared.set(.identifying) }
         guard let diarizer else { throw DiarizationError.notReady }
@@ -70,8 +72,56 @@ actor DiarizationService: Diarizing {
         }
         segments.sort { $0.start < $1.start }
 
+        if let target = targetSpeakers {
+            segments = await clusterToTarget(segments: segments, samples: samples, target: target)
+        }
         let slotNames = await identifySpeakers(segments: segments, samples: samples)
         return DiarizationOutput(segments: segments, slotNames: slotNames)
+    }
+
+    /// Force the result down to `target` voices: embed each slot, agglomeratively merge the
+    /// closest pair (`SpeakerClustering`), and fold any too-short-to-embed slot into the
+    /// embeddable slot nearest in time. Can only merge DOWN — a true single-speaker memo
+    /// stays one (the caller's ≥2 gate then leaves it as plain prose).
+    private func clusterToTarget(segments: [DiarizedSegment], samples: [Float], target: Int) async -> [DiarizedSegment] {
+        let slots = Set(segments.map(\.speaker)).sorted()
+        guard target >= 1, slots.count > target else { return segments }
+
+        var emb: [Int: [Float]] = [:]
+        for s in slots {
+            let clip = Self.clip(segments.filter { $0.speaker == s }, from: samples)
+            if let e = try? await embedder.embed(samples: clip) { emb[s] = e }
+        }
+        await MainActor.run { DiarizationStatus.shared.set(.identifying) }
+        guard !emb.isEmpty else { return segments }
+
+        var mapping = SpeakerClustering.merge(embeddings: emb, target: target)
+        for tiny in slots where emb[tiny] == nil {   // too short to embed → fold by time
+            if let nearest = Self.nearestEmbeddableSlot(to: tiny, embeddable: Array(emb.keys), segments: segments) {
+                mapping[tiny] = mapping[nearest] ?? nearest
+            }
+        }
+        return segments.map { DiarizedSegment(speaker: mapping[$0.speaker] ?? $0.speaker, start: $0.start, end: $0.end) }
+    }
+
+    /// The embeddable slot whose segments fall closest in time to `slot`'s segments.
+    static func nearestEmbeddableSlot(to slot: Int, embeddable: [Int], segments: [DiarizedSegment]) -> Int? {
+        let mine = segments.filter { $0.speaker == slot }
+        guard !mine.isEmpty, !embeddable.isEmpty else { return nil }
+        func gap(_ a: DiarizedSegment, _ b: DiarizedSegment) -> Double {
+            if a.end < b.start { return b.start - a.end }
+            if b.end < a.start { return a.start - b.end }
+            return 0   // overlap
+        }
+        var best: (slot: Int, gap: Double)?
+        for e in embeddable {
+            for es in segments where es.speaker == e {
+                for ms in mine where best == nil || gap(ms, es) < best!.gap {
+                    best = (e, gap(ms, es))
+                }
+            }
+        }
+        return best?.slot
     }
 
     /// Embed each speaker's audio and cosine-match it against known voiceprints. Returns
@@ -126,18 +176,19 @@ struct SeededDiarizer: Diarizing {
     var blockSeconds = 4.0
     var totalSeconds = 28.0
 
-    func diarize(audioURL: URL) async throws -> DiarizationOutput {
+    func diarize(audioURL: URL, targetSpeakers: Int?) async throws -> DiarizationOutput {
+        let n = max(1, targetSpeakers ?? speakers)   // honour the forced count in the sim
         var segs: [DiarizedSegment] = []
         var t = 0.0, i = 0
         while t < totalSeconds {
-            segs.append(DiarizedSegment(speaker: i % speakers, start: t, end: min(t + blockSeconds, totalSeconds)))
+            segs.append(DiarizedSegment(speaker: i % n, start: t, end: min(t + blockSeconds, totalSeconds)))
             t += blockSeconds; i += 1
         }
         let enrolled = NamesStore.shared.livePeople()
             .filter { !($0.voiceEmbeddings?.isEmpty ?? true) }
             .map(\.displayName).sorted()
         var slotNames: [Int: String] = [:]
-        for slot in 0..<speakers where slot < enrolled.count { slotNames[slot] = enrolled[slot] }
+        for slot in 0..<n where slot < enrolled.count { slotNames[slot] = enrolled[slot] }
         return DiarizationOutput(segments: segs, slotNames: slotNames)
     }
 }

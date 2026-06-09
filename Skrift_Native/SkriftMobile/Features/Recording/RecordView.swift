@@ -18,9 +18,6 @@ struct RecordView: View {
     var appendTo: UUID? = nil
     private let saver = MemoSaver()
 
-    // Same key MemoSaver reads, so toggling it here actually enables conversation-mode
-    // diarization for the recording (it was a dead local @State before).
-    @AppStorage("conversationDefault") private var conversation = false
     @State private var showCamera = false
     @State private var emptyRecording = false
     /// Context captured when the recorder opens — shown as ready-state chips and
@@ -96,19 +93,8 @@ struct RecordView: View {
             .accessibilityIdentifier("cancel-record")
 
             Spacer()
-
-            Button { conversation.toggle() } label: {
-                HStack(spacing: 8) {
-                    Text("Conversation")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.skText)
-                    ToggleDot(on: conversation)
-                }
-                .padding(.leading, 12).padding(.trailing, 6).padding(.vertical, 6)
-                .background(Color.skSurface, in: .capsule)
-                .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
-            }
-            .accessibilityIdentifier("conversation-toggle")
+            // (Conversation mode is no longer a pre-record toggle — split into speakers
+            //  after the fact from the memo, where you can also force the speaker count.)
         }
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 8)
@@ -395,22 +381,6 @@ struct RecordView: View {
 }
 
 // MARK: - Pieces
-
-/// A small accent/elev pill toggle dot matching the mock's `.sw`.
-private struct ToggleDot: View {
-    let on: Bool
-    var body: some View {
-        Capsule()
-            .fill(on ? Color.skAccent : Color.skElev)
-            .frame(width: 38, height: 22)
-            .overlay(
-                Circle().fill(.white).frame(width: 18, height: 18)
-                    .padding(2)
-                    .frame(maxWidth: .infinity, alignment: on ? .trailing : .leading)
-            )
-            .animation(Theme.Motion.snappy, value: on)
-    }
-}
 
 /// Live transcript with a three-tier fade (older → dim) + an accent caret, like
 /// the mockup's `.old/.mid/.now`.

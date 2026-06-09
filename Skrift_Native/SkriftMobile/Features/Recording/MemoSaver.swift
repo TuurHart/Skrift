@@ -232,15 +232,10 @@ struct MemoSaver {
             memo.transcriptMarkersInjected = result.markersInjected
             memo.transcriptStatus = text.isEmpty ? .failed : .done
             repository.save()
-
-            // Conversation mode: split the recording into speakers (Sortformer) and
-            // re-emit the transcript as `**Speaker N:**` turns — only if ≥2 speakers
-            // are actually found (a monologue stays plain). The plain transcript shows
-            // first; this updates it once diarization finishes (model load is slow the
-            // first time, then cached).
-            if conversationModeOn, !text.isEmpty, !result.wordTimings.isEmpty {
-                await diarizeIntoTurns(id: id, audioURL: url, words: result.wordTimings)
-            }
+            // Speaker splitting is a deliberate POST-transcript action now (the "Split
+            // speakers" button in Memo detail), not automatic on save — so a recording is
+            // never gated on remembering a toggle, and the slow diarization model only
+            // loads when you actually ask to split.
         } catch {
             if let memo = repository.memo(id: id) {
                 memo.transcriptStatus = .failed
@@ -249,24 +244,23 @@ struct MemoSaver {
         }
     }
 
-    private var conversationModeOn: Bool { UserDefaults.standard.bool(forKey: "conversationDefault") }
-
-    /// Retro-diarize an already-saved memo (the detail's "Split speakers" action, for
-    /// when you forgot to record in conversation mode): load its audio + word-timings
-    /// and re-emit the transcript as speaker turns (≥2 speakers; otherwise unchanged).
-    func diarizeExisting(id: UUID) async {
+    /// Split an already-saved memo into speakers (the detail's "Split speakers" button):
+    /// load its audio + word-timings and re-emit the transcript as speaker turns.
+    /// `targetSpeakers` forces exactly N voices (nil = Auto). ≥2 speakers → turns;
+    /// otherwise the transcript is left as plain prose.
+    func diarizeExisting(id: UUID, targetSpeakers: Int? = nil) async {
         guard let memo = repository.memo(id: id), let url = memo.audioURL,
               let words = wordTimings.load(for: id), !words.isEmpty else { return }
-        await diarizeIntoTurns(id: id, audioURL: url, words: words)
+        await diarizeIntoTurns(id: id, audioURL: url, words: words, targetSpeakers: targetSpeakers)
     }
 
     /// Diarize the recording and, if ≥2 speakers are found, rewrite the transcript as
     /// `**Speaker N:**` turns (fused with the word-timings). A single-speaker result is
     /// left as the plain transcript.
-    private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming]) async {
+    private func diarizeIntoTurns(id: UUID, audioURL: URL, words: [WordTiming], targetSpeakers: Int?) async {
         DiarizationStatus.shared.begin(id)
         defer { DiarizationStatus.shared.finish() }
-        guard let out = try? await diarizer.diarize(audioURL: audioURL),
+        guard let out = try? await diarizer.diarize(audioURL: audioURL, targetSpeakers: targetSpeakers),
               Set(out.segments.map(\.speaker)).count >= 2 else { return }
         // Auto-matched (enrolled) speakers come back named; the rest are "Speaker N".
         let attributed = SpeakerFusion.attributedTranscript(words: words, segments: out.segments) {
