@@ -120,11 +120,20 @@ final class LiveRecordingService: ObservableObject {
         guard isRecording else { return nil }
         accumulate()
         stopTimers()
+        var duration = elapsed
         if !mock {
             tapStopped = true
             engine?.inputNode.removeTap(onBus: 0)
             engine?.stop()
             writerQueue.sync {}   // drain pending writes before releasing the file
+            // Real recorded length from the file — 0 frames means the tap never
+            // captured audio (e.g. a fast start→stop, or an unavailable mic/session);
+            // the caller treats that as an empty recording instead of a silent memo.
+            if let file = audioFile, file.length > 0 {
+                duration = Double(file.length) / file.fileFormat.sampleRate
+            } else {
+                duration = 0
+            }
             engine = nil
             audioFile = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
@@ -134,7 +143,6 @@ final class LiveRecordingService: ObservableObject {
         isRecording = false
         isPaused = false
         let caption = liveCaption
-        let duration = elapsed
         guard let url = tempURL else { return nil }
         tempURL = nil
         return Result(url: url, duration: duration, liveCaption: caption)

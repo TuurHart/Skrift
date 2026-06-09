@@ -18,8 +18,11 @@ struct RecordView: View {
     var appendTo: UUID? = nil
     private let saver = MemoSaver()
 
-    @State private var conversation = UserDefaults.standard.bool(forKey: "conversationDefault")
+    // Same key MemoSaver reads, so toggling it here actually enables conversation-mode
+    // diarization for the recording (it was a dead local @State before).
+    @AppStorage("conversationDefault") private var conversation = false
     @State private var showCamera = false
+    @State private var emptyRecording = false
     /// Context captured when the recorder opens — shown as ready-state chips and
     /// reused at save (so we don't capture location/weather twice).
     @State private var context: MemoMetadata?
@@ -59,6 +62,11 @@ struct RecordView: View {
             autoStartIfActive()
         }
         .onDisappear { camera.stop() }
+        .alert("Nothing recorded", isPresented: $emptyRecording) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("That recording captured no audio — check that Skrift has microphone access, and hold the recording a moment before stopping.")
+        }
         .onChange(of: intentBridge.stopRequestID) {
             if service.isRecording { stopTapped() }
         }
@@ -349,6 +357,14 @@ struct RecordView: View {
     private func stopTapped() {
         Haptics.recordingTap()
         guard let result = service.stop() else { dismiss(); return }
+        // Empty capture (no audio frames — fast start→stop, or an unavailable
+        // mic/session): discard it and tell the user instead of saving a silent,
+        // blank note. Stay on the recorder so they can retry.
+        guard result.duration >= 0.4 else {
+            try? FileManager.default.removeItem(at: result.url)
+            emptyRecording = true
+            return
+        }
         // Append mode: fold the new clip into an existing memo, stay on it.
         if let appendTo {
             saver.appendRecording(to: appendTo, tempURL: result.url,
