@@ -159,6 +159,11 @@ Debug (`com.skrift.{mobile,desktop}.dev`, "Skrift Dev"). Deploy prod to the phon
    the prod desktop (+Upload/drag-drop) and Process (re-run transcribe/enhance/export).
    This is the deferred "port old notes" task. (The split did NOT lose SwiftData notes —
    the native store had none persisted.)
+5. **Light + dark mode (both apps)** — user todo 2026-06-09. Today both apps are dark-only
+   (`skBg`/`skText` are fixed dark; mobile Settings has a Theme picker light/dark/auto but it
+   isn't applied). Make the DesignSystem colors adapt (asset-catalog color sets or
+   `@Environment(\.colorScheme)`), wire the mobile Theme picker (`.preferredColorScheme`),
+   and give the desktop a light variant. Cross-app design-system work.
 4. **Liquid Glass polish (optional)** — `.glassEffect` is CORRECT + verified (it refracts
    content behind it; proven over a bright bg). Over the dark UI it's subtle by design
    (Apple DTS/WWDC25). A hairline+specular edge was added so it reads as glass. If the
