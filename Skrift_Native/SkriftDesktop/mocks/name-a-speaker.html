@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — name a speaker (Mac review · conversation turns)</title>
+<style>
+  :root{
+    --bg:#0f1117; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5;
+    /* per-speaker palette — byte-for-byte the phone's SpeakerTurnsView colors */
+    --sp1:124 107 245;   /* skAccent  */
+    --sp2:43 182 168;    /* 0x2bb6a8 teal */
+    --sp3:224 130 58;    /* 0xe0823a orange */
+    --sp4:192 102 214;   /* 0xc066d6 magenta */
+    --green:#34d399; --bd:255 255 255;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:26px;font-size:13px}
+
+  /* a tiny toolbar above the window to flip between the three states */
+  .modebar{max-width:1180px;margin:0 auto 14px;display:flex;gap:8px;align-items:center}
+  .modebar .lbl{font-size:11.5px;color:var(--t3);margin-right:4px}
+  .modebar button{font-size:12px;font-weight:600;color:var(--t2);background:rgb(var(--bd)/.05);
+    border:.5px solid rgb(var(--bd)/.08);border-radius:7px;padding:6px 13px;cursor:pointer}
+  .modebar button.on{background:rgb(var(--accent)/.16);border-color:rgb(var(--accent)/.4);color:var(--acc)}
+  .modebar button:hover:not(.on){color:var(--t1)}
+
+  .window{max-width:1180px;height:760px;margin:0 auto;background:var(--bg);border-radius:11px;overflow:hidden;
+    display:flex;box-shadow:0 22px 70px rgba(0,0,0,.55);border:.5px solid rgba(255,255,255,.08)}
+
+  /* ── SIDEBAR (trimmed copy of v5 — context only) ── */
+  .sidebar{width:228px;background:#15171f;border-right:.5px solid rgb(var(--bd)/.07);display:flex;flex-direction:column;position:relative}
+  .lights{position:absolute;top:18px;left:16px;display:flex;gap:8px;z-index:2}
+  .lights i{width:12px;height:12px;border-radius:50%}
+  .lights .r{background:#ff5f57}.lights .y{background:#febc2e}.lights .g{background:#28c840}
+  .s-head{padding:38px 12px 0}
+  .logo-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .brand{display:flex;align-items:center;gap:8px}
+  .brand .mk{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#8e7dff,#6a59ef);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;box-shadow:0 1px 4px rgb(var(--accent)/.45)}
+  .brand b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .health{display:flex;gap:3px}.health i{width:6px;height:6px;border-radius:50%;background:var(--green)}
+  .gear{width:24px;height:24px;border-radius:6px;border:none;background:rgb(var(--bd)/.05);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .head-r{display:flex;align-items:center;gap:8px}
+  .filters{display:flex;gap:5px;padding-bottom:11px;border-bottom:.5px solid rgb(var(--bd)/.06)}
+  .chip{font-size:11px;padding:4px 9px;border-radius:6px;border:1px solid transparent;color:var(--t2);background:none;cursor:pointer;white-space:nowrap}
+  .chip.on{background:rgb(var(--accent)/.14);border-color:rgb(var(--accent)/.22);color:var(--acc)}
+  .triage{padding:9px 14px 4px;font-size:11px;color:var(--t3)}.triage b{color:var(--acc);font-weight:600}
+  .queue{flex:1;overflow:auto;padding:2px 8px 8px}
+  .row{padding:8px 10px;border-radius:8px;margin-bottom:2px;cursor:pointer;border:1px solid transparent}
+  .row.sel-row{background:rgb(var(--accent)/.13);border-color:rgb(var(--accent)/.2)}
+  .row .top{display:flex;align-items:center;gap:7px}
+  .row .gi{flex:none;color:var(--t3);display:flex}.row.sel-row .gi{color:var(--acc)}
+  .row .t{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row.done .t{color:var(--t2);font-weight:500}.row.done .gi{opacity:.6}
+  .row .m{margin-top:3px;font-size:11px;color:var(--t3);padding-left:21px}
+  .pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;white-space:nowrap;flex:none}
+  .pill.ready{background:rgb(52 211 153/.16);color:#34d399}
+  .pill.exp{background:transparent;color:var(--t3)}
+  .pill.conv{background:rgb(var(--sp2)/.16);color:rgb(var(--sp2))}
+  .side-f{padding:9px 16px;border-top:.5px solid rgb(var(--bd)/.06);display:flex;gap:14px}
+  .side-f span{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:5px}
+  .gd{width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+  /* ── NOTE PANE ── */
+  .note{flex:1;display:flex;flex-direction:column;min-width:0}
+  .crumb{height:48px;display:flex;align-items:center;padding:0 0 0 28px;font-size:12px;color:var(--t3)}
+  .crumb b{color:var(--t2);font-weight:500}
+  .toolbar{height:48px;display:flex;align-items:center;gap:16px;padding:0 28px;border-bottom:.5px solid rgb(var(--bd)/.07);box-shadow:inset 0 1px 0 rgb(var(--bd)/.04);background:rgb(255 255 255/.012)}
+  .transport{display:flex;align-items:center;gap:4px;flex:none}
+  .sq{width:30px;height:30px;border-radius:7px;background:transparent;border:none;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .play{width:34px;height:34px;border-radius:50%;background:var(--acc);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px rgb(var(--accent)/.45)}
+  .scrub{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+  .tm{font-size:11px;color:var(--t3);font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .track{flex:1;height:4px;border-radius:3px;background:rgb(var(--bd)/.12);position:relative}
+  .track i{position:absolute;left:0;top:0;height:100%;width:34%;background:var(--acc);border-radius:3px}
+  .speed{font-size:11px;font-family:ui-monospace,monospace;font-weight:600;color:var(--t3);background:transparent;border:none;border-radius:6px;padding:5px 8px;cursor:pointer}
+  .acts{display:flex;align-items:center;gap:8px;flex:none}
+  .primary{background:var(--acc);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 1px 6px rgb(var(--accent)/.4)}
+  .ovf{width:30px;height:30px;border-radius:7px;border:none;background:transparent;color:var(--t2);cursor:pointer;font-weight:700}
+  .scroll{flex:1;overflow:auto}
+  .col{max-width:720px;margin:0 auto;padding:30px 36px 60px;position:relative}
+
+  h2.notetitle{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:11px;color:var(--t1)}
+  .meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+  .mchip{font-size:11px;color:var(--t2);background:rgb(var(--bd)/.05);border-radius:999px;padding:3px 9px;display:inline-flex;gap:5px;align-items:center}
+  .mchip.conv{color:rgb(var(--sp2));background:rgb(var(--sp2)/.13)}
+  .mchip svg{opacity:.85}
+
+  /* the "name the speakers" guidance banner — mirrors InlineResolverBanner */
+  .speakbar{display:flex;align-items:center;gap:10px;margin:18px 0 20px;padding:9px 13px;background:rgb(var(--accent)/.07);border:.5px solid rgb(var(--accent)/.22);border-radius:9px;font-size:12px;color:var(--t2)}
+  .speakbar .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);flex:none;box-shadow:0 0 0 3px rgb(var(--accent)/.18)}
+  .speakbar b{color:var(--t1);font-weight:600}
+  .speakbar .spacer{flex:1}
+  .speakbar.done{background:rgb(52 211 153/.07);border-color:rgb(52 211 153/.22)}
+  .speakbar.done .dot{background:var(--green);box-shadow:0 0 0 3px rgb(52 211 153/.18)}
+
+  /* ── SPEAKER TURNS (port of the phone SpeakerTurnsView) ── */
+  .turns{display:flex;flex-direction:column;gap:12px}
+  .turn{display:flex;gap:10px;border-radius:11px;padding:10px 11px 11px 7px;position:relative}
+  .turn .edge{width:3px;border-radius:2px;flex:none}
+  .turn .col2{flex:1;min-width:0}
+  .turn .who{display:inline-flex;align-items:center;gap:6px;border:none;background:transparent;cursor:pointer;padding:0;margin-bottom:6px}
+  .turn .who .swatch{width:7px;height:7px;border-radius:50%;flex:none}
+  .turn .who .nm{font-size:13.5px;font-weight:700}
+  .turn .who .nm .br{opacity:.5;font-weight:600}            /* the [[ ]] brackets, dimmer */
+  .turn .who .tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:4px}
+  .turn .who:hover .tag{filter:brightness(1.12)}
+  .turn .who .tag.name{box-shadow:0 0 0 1px currentColor inset}  /* dashed-feeling cue on unnamed */
+  .turn .txt{font-size:15.5px;line-height:1.62;color:var(--t1)}
+
+  /* speaker color theming via data-sp */
+  .turn[data-sp="1"]{background:rgb(var(--sp1)/.06)} .turn[data-sp="1"] .edge,.turn[data-sp="1"] .swatch{background:rgb(var(--sp1))}
+  .turn[data-sp="1"] .nm{color:rgb(var(--sp1))} .turn[data-sp="1"] .tag{color:rgb(var(--sp1));background:rgb(var(--sp1)/.16)}
+  .turn[data-sp="2"]{background:rgb(var(--sp2)/.06)} .turn[data-sp="2"] .edge,.turn[data-sp="2"] .swatch{background:rgb(var(--sp2))}
+  .turn[data-sp="2"] .nm{color:rgb(var(--sp2))} .turn[data-sp="2"] .tag{color:rgb(var(--sp2));background:rgb(var(--sp2)/.16)}
+  .turn[data-sp="3"]{background:rgb(var(--sp3)/.06)} .turn[data-sp="3"] .edge,.turn[data-sp="3"] .swatch{background:rgb(var(--sp3))}
+  .turn[data-sp="3"] .nm{color:rgb(var(--sp3))} .turn[data-sp="3"] .tag{color:rgb(var(--sp3));background:rgb(var(--sp3)/.16)}
+  /* an UN-named speaker reads neutral-grey with an accent "+ name" cue (the obvious affordance) */
+  .turn.unnamed{background:rgb(var(--bd)/.035)}
+  .turn.unnamed .edge,.turn.unnamed .swatch{background:var(--t3)}
+  .turn.unnamed .nm{color:var(--t2)}
+  .turn.unnamed .who:hover{}
+  .turn.unnamed .tag.name{color:var(--acc);background:rgb(var(--accent)/.14);box-shadow:none;border:.5px dashed rgb(var(--accent)/.55)}
+  .turn.unnamed .who:hover .nm{color:var(--t1)}
+  .turn.unnamed.pulse .tag.name{animation:cue 1.8s ease-in-out infinite}
+  @keyframes cue{0%,100%{box-shadow:0 0 0 0 rgb(var(--accent)/.0)}50%{box-shadow:0 0 0 4px rgb(var(--accent)/.16)}}
+
+  /* ── PEOPLE PICKER POPOVER (port of ResolverPopover) ── */
+  .pop{position:absolute;width:252px;background:#1d1f29;border:.5px solid rgb(var(--bd)/.14);border-radius:11px;padding:12px;box-shadow:0 16px 44px rgba(0,0,0,.6);z-index:30}
+  .pop::before{content:"";position:absolute;top:-6px;left:30px;width:11px;height:11px;background:#1d1f29;border-left:.5px solid rgb(var(--bd)/.14);border-top:.5px solid rgb(var(--bd)/.14);transform:rotate(45deg)}
+  .pop .ttl{font-size:12px;color:var(--t2);margin-bottom:2px}.pop .ttl b{color:var(--t1)}
+  .pop .sub{font-size:9.5px;color:var(--t3);margin-bottom:9px}
+  .pop .search{width:100%;font-size:12px;color:var(--t1);background:rgb(var(--bd)/.05);border:.5px solid rgb(var(--bd)/.1);border-radius:7px;padding:6px 9px;margin-bottom:8px;outline:none}
+  .pop .search::placeholder{color:var(--t3)}
+  .opt{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font-size:12.5px;color:var(--t1);background:transparent;border:none;border-radius:7px;padding:7px 8px;cursor:pointer}
+  .opt:hover{background:rgb(var(--accent)/.14)}
+  .opt .av{width:18px;height:18px;border-radius:50%;background:rgb(var(--accent)/.25);color:var(--acc);font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .opt .mvoice{margin-left:auto;font-size:9px;color:var(--green);background:rgb(52 211 153/.14);border-radius:999px;padding:1px 6px;display:inline-flex;gap:3px;align-items:center}
+  .opt.plain{color:var(--t3)} .opt.plain .av{background:rgb(var(--bd)/.06);color:var(--t3)}
+  .opt.new{color:var(--acc)} .opt.new .av{background:rgb(var(--accent)/.16);color:var(--acc)}
+  .pop .sep{height:.5px;background:rgb(var(--bd)/.08);margin:7px 2px}
+  .pop .hint{font-size:9.5px;color:var(--t3);line-height:1.4;padding:5px 4px 0;display:flex;gap:5px}
+  .pop .hint svg{flex:none;margin-top:1px;opacity:.7}
+
+  /* state visibility — base: hide every state-specific element, then reveal per state */
+  .for-pick,.for-after{display:none}
+  [data-state="pick"] .pop.for-pick{display:block}
+  [data-state="after"] .speakbar.for-after{display:flex}     /* the "done" banner */
+  [data-state="after"] .turn.for-after{display:flex}          /* the renamed Roksana turn */
+  [data-state="after"] .after-hide{display:none}              /* hide the unnamed turn + name-banner */
+  .scrim{display:none}
+  [data-state="pick"] .scrim{display:block;position:absolute;inset:0;z-index:20}
+</style>
+</head>
+<body>
+
+  <div class="modebar">
+    <span class="lbl">Interaction —</span>
+    <button id="m-turns" class="on" onclick="setState('turns')">1 · Diarized turns</button>
+    <button id="m-pick" onclick="setState('pick')">2 · Click “Speaker 2” → pick a person</button>
+    <button id="m-after" onclick="setState('after')">3 · After — relinked to [[Roksana]]</button>
+  </div>
+
+  <div class="window" id="win" data-state="turns">
+    <!-- ───── SIDEBAR (context) ───── -->
+    <div class="sidebar">
+      <div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+      <div class="s-head">
+        <div class="logo-row">
+          <div class="brand"><span class="mk">S</span><b>Skrift</b></div>
+          <div class="head-r">
+            <span class="health" title="Parakeet · Sortformer · Gemma healthy"><i></i><i></i><i></i></span>
+            <button class="gear" title="Settings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+          </div>
+        </div>
+        <div class="filters">
+          <button class="chip on">All</button>
+          <button class="chip">Needs Work</button>
+          <button class="chip">Done</button>
+        </div>
+      </div>
+      <div class="triage"><b>1 to review</b> · conversation</div>
+      <div class="queue">
+        <div class="row sel-row"><div class="top"><span class="gi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span><span class="t">Harbour chat at dawn</span><span class="pill conv">2 spk</span></div><div class="m">Today · 3:48</div></div>
+        <div class="row"><div class="top"><span class="gi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span><span class="t">Standup notes</span><span class="pill ready">Ready</span></div><div class="m">Today · 1:02</div></div>
+        <div class="row done"><div class="top"><span class="gi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span><span class="t">Walk with Nick</span><span class="pill exp">Exported</span></div><div class="m">05 Jun · 2:14</div></div>
+      </div>
+      <div class="side-f"><span><i class="gd"></i>Sortformer</span><span><i class="gd"></i>Gemma 4</span></div>
+    </div>
+
+    <!-- ───── NOTE PANE ───── -->
+    <div class="note">
+      <div class="crumb">Queue&nbsp;&nbsp;›&nbsp;&nbsp;<b>Conversation · Today</b></div>
+      <div class="toolbar">
+        <div class="transport">
+          <button class="sq"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 3 8 6l3 3"/><path d="M8 6h6a6 6 0 1 1-6 6"/></svg></button>
+          <button class="play"><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="sq"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m13 3 3 3-3 3"/><path d="M16 6h-6a6 6 0 1 0 6 6"/></svg></button>
+        </div>
+        <div class="scrub"><span class="tm">1:18</span><div class="track"><i></i></div><span class="tm">3:48</span></div>
+        <button class="speed">1×</button>
+        <div style="flex:1"></div>
+        <div class="acts"><button class="primary">Export to Obsidian</button><button class="ovf">⋯</button></div>
+      </div>
+
+      <div class="scroll"><div class="col">
+        <!-- a transparent scrim catches the click that dismisses the popover -->
+        <div class="scrim" onclick="setState('turns')"></div>
+
+        <h2 class="notetitle">Harbour chat at dawn</h2>
+        <div class="meta">
+          <span class="mchip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 6v6l4 2"/></svg> Today · 08:54</span>
+          <span class="mchip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> Alfama, Lisbon</span>
+          <span class="mchip conv"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M17 11a4 4 0 1 0-4-4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Conversation · 2 speakers</span>
+        </div>
+
+        <!-- STATE 1 + base: the "name the speakers" guidance banner -->
+        <div class="speakbar after-hide">
+          <span class="dot"></span>
+          <span><b>1 speaker to name</b> — click <b>“Speaker 2”</b> to say who it was. Skrift will remember their voice.</span>
+          <span class="spacer"></span>
+        </div>
+        <!-- STATE 3: the banner becomes a "done / voice learned" confirmation -->
+        <div class="speakbar done for-after" style="margin:18px 0 20px">
+          <span class="dot"></span>
+          <span><b>All speakers named.</b> Roksana's voice was learned — the next recording with her auto-labels.</span>
+          <span class="spacer"></span>
+        </div>
+
+        <!-- ───── THE TURNS ───── -->
+        <div class="turns">
+
+          <div class="turn" data-sp="1">
+            <span class="edge"></span>
+            <div class="col2">
+              <button class="who" title="Edit / rename">
+                <span class="swatch"></span>
+                <span class="nm"><span class="br">[[</span>Tiuri Hartog<span class="br">]]</span></span>
+                <span class="tag">edit</span>
+              </button>
+              <div class="txt">If conversation mode works — if I talk, then you talk — does it split it afterwards, or while we go? I’m assuming after.</div>
+            </div>
+          </div>
+
+          <!-- the UNNAMED speaker: obvious click affordance. In states 1+2 this is "Speaker 2";
+               in state 3 it has become [[Roksana]] (handled by .for-after / .after-hide). -->
+          <div class="turn unnamed pulse after-hide" data-sp="2" id="unnamedTurn">
+            <span class="edge"></span>
+            <div class="col2">
+              <button class="who" onclick="event.stopPropagation();setState('pick')" title="Name this speaker">
+                <span class="swatch"></span>
+                <span class="nm">Speaker 2</span>
+                <span class="tag name"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> name</span>
+              </button>
+              <div class="txt">Yeah — but could it split us <i>during</i> the recording too? Right now you only see it once it saves.</div>
+            </div>
+          </div>
+          <!-- STATE 3 replacement: the same turn, now named + accent-linked (teal speaker-2 color) -->
+          <div class="turn for-after" data-sp="2">
+            <span class="edge"></span>
+            <div class="col2">
+              <button class="who" title="Edit / rename">
+                <span class="swatch"></span>
+                <span class="nm"><span class="br">[[</span>Roksana<span class="br">]]</span></span>
+                <span class="tag">edit</span>
+              </button>
+              <div class="txt">Yeah — but could it split us <i>during</i> the recording too? Right now you only see it once it saves.</div>
+            </div>
+          </div>
+
+          <div class="turn" data-sp="1">
+            <span class="edge"></span>
+            <div class="col2">
+              <button class="who" title="Edit / rename">
+                <span class="swatch"></span>
+                <span class="nm"><span class="br">[[</span>Tiuri Hartog<span class="br">]]</span></span>
+                <span class="tag">edit</span>
+              </button>
+              <div class="txt">It would be cool if it noticed while you were talking — like a little ding when a new voice comes in.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ───── PEOPLE PICKER POPOVER (state 2) — anchored under "Speaker 2" ───── -->
+        <div class="pop for-pick" style="left:6px;top:182px">
+          <div class="ttl">Name <b>“Speaker 2”</b></div>
+          <div class="sub">Links every “Speaker 2” turn — and learns this voice</div>
+          <input class="search" placeholder="Search people…">
+          <button class="opt"><span class="av">RB</span> Roksana Bień <span class="mvoice"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 2v8M9 5v2M15 5v2"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg> voice</span></button>
+          <button class="opt"><span class="av">NJ</span> Nick Jansen</button>
+          <button class="opt"><span class="av">SJ</span> Sam Jones</button>
+          <button class="opt new"><span class="av"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span> New person…</button>
+          <div class="sep"></div>
+          <button class="opt plain"><span class="av">—</span> Leave as “Speaker 2”</button>
+          <div class="hint">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v8M9 5v2M15 5v2"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+            The Mac owns the canonical <b style="color:var(--t2)">[[name]]</b>. Picking a person saves their voiceprint so future recordings recognise them.
+          </div>
+        </div>
+
+      </div></div>
+    </div>
+  </div>
+
+<script>
+  function setState(s){
+    document.getElementById('win').setAttribute('data-state', s);
+    for (const [id,key] of [['m-turns','turns'],['m-pick','pick'],['m-after','after']]){
+      document.getElementById(id).classList.toggle('on', key===s);
+    }
+    // when the picker is open, drop the attention pulse on the chip
+    document.getElementById('unnamedTurn').classList.toggle('pulse', s==='turns');
+  }
+</script>
+</body>
+</html>
