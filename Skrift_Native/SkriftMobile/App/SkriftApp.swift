@@ -50,7 +50,9 @@ struct RootView: View {
     @State private var needsOnboarding = RootView.shouldOnboard()
 
     var body: some View {
-        if needsOnboarding {
+        if LaunchFlags.conversationMock {
+            ConversationMockView()           // design mock (screenshot only)
+        } else if needsOnboarding {
             OnboardingView {
                 UserDefaults.standard.set(true, forKey: "onboardingComplete")
                 withAnimation(Theme.Motion.spring) { needsOnboarding = false }

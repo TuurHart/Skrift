@@ -237,11 +237,20 @@ each `DiarizerSegment` has `.speakerLabel/.startTime/.endTime`. On the real `6C0
 **2 speakers, fine INTERLEAVED turns + overlap, DEFAULT config, no threshold tuning** (vs
 pyannote's two coarse blocks @0.45). Single-voice memo → 1. Synthetic TTS → 1 (Sortformer is
 real-world-trained → artificial TTS is OOD; irrelevant — the app records real people).
-**Next: (3) mock the speaker-split / tag UI; (4) `DiarizationService` on SORTFORMER (streaming
-for live diarization during recording + offline `processComplete` for existing memos) +
-`enrollSpeaker`-backed tag-as-you-go + cosine-match to names' `voiceEmbeddings` + ASR/word-timing
-fusion. Needs device (ANE) — the sim has no ANE, so diarization (like ASR) can't run there;
-device-test like the ASR path.**
+**DESIGN LOCKED (user):** (a) **Markdown format = bold-name turns** in the transcript text:
+`**Speaker 1:** text` before tagging → `**[[Tiuri Hartog]]:** text` once tagged (the Mac's
+name-linker turns the speaker name into `[[Person]]` → clickable in Obsidian + feeds People
+Timeline). Per-speaker COLOR is app-only WYSIWYG chrome (Markdown carries no color). (b)
+**Diarization runs LIVE while recording** (Sortformer streaming) + finalize on save. (c)
+Tag-as-you-go: tap a speaker label → assign name → rewrite that speaker's prefixes + `enrollSpeaker`
++ save to the person's `voiceEmbeddings` → auto-match next time.
+**Next: (3) mock the speaker-split / tag UI (bold-name turns + per-speaker tint + tap-to-name);
+(4) `DiarizationService` on SORTFORMER (streaming during recording — feed the same AVAudioEngine
+tap that drives live caption + offline `processComplete` for existing memos) + turn→word-timing
+fusion to build the `**Speaker:**`-prefixed transcript + tag affordance + cosine-match to names'
+`voiceEmbeddings`. Needs device (ANE) — the sim has no ANE, so diarization (like ASR) can't run
+there; device-test like the ASR path. The transcript rendering (bold `**Name:**` + tint) IS
+sim-testable; the diarization is device-only.**
 
 **Still TODO: conversation mode (build, per the plan above — next), capture items (user
 drives the share-ext), re-ingest the 30 notes (with the user — prod desktop quit), desktop

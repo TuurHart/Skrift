@@ -32,6 +32,8 @@ enum LaunchFlags {
     /// Seed ONE long memo (long transcript + an image marker) so a UI test can
     /// scroll content UNDER the glass player bar and screenshot the refraction.
     static var seedLongMemo: Bool { args.boolFlag("-seedLongMemo") }
+    /// Show the conversation-mode design mock (static; no real diarization).
+    static var conversationMock: Bool { args.boolFlag("-conversationMock") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Stub the Mac sync layer so UI tests don't need a live backend.
     static var mockMac: Bool { args.boolFlag("-mockMac") }
