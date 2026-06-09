@@ -371,14 +371,37 @@ private struct MemoCard: View {
                     statusPill
                 }
 
-                Text(snippet)
-                    .font(.system(size: 14.5, weight: .medium))
-                    .foregroundStyle(hasTranscript ? Color.skText : Color.skTextFaint)
-                    .italic(!hasTranscript)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 6)
+                // Titled memos lead with the user-set title; the transcript snippet
+                // drops to a dimmer second line. Untitled memos keep the
+                // transcript-first behaviour.
+                if hasTitle {
+                    Text(memo.displayTitle)
+                        .font(.system(size: 14.5, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(1)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 6)
+
+                    if let secondary = transcriptSnippet {
+                        Text(secondary)
+                            .font(.system(size: 12.5, weight: .regular))
+                            .foregroundStyle(Color.skTextDim)
+                            .lineLimit(1)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 2)
+                    }
+                } else {
+                    Text(snippet)
+                        .font(.system(size: 14.5, weight: .medium))
+                        .foregroundStyle(hasTranscript ? Color.skText : Color.skTextFaint)
+                        .italic(!hasTranscript)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 6)
+                }
 
                 FlowLayout(spacing: 5, lineSpacing: 5) {
                     ForEach(chips, id: \.self) { chip in
@@ -409,8 +432,11 @@ private struct MemoCard: View {
 
     // A failed on-device transcription is informational, not a dead end: the memo
     // syncs as raw audio (the Mac transcribes it) and can be hand-edited in detail.
+    // `statusKind` is nil for phone-only (significance 0) memos → no sync pill.
     @ViewBuilder private var statusPill: some View {
-        StatusPill(style: memo.statusKind.pillStyle, label: memo.statusKind.label)
+        if let kind = memo.statusKind {
+            StatusPill(style: kind.pillStyle, label: kind.label)
+        }
     }
 
     @ViewBuilder private var photoThumb: some View {
@@ -437,10 +463,17 @@ private struct MemoCard: View {
 
     private var hasTranscript: Bool { !(memo.transcript ?? "").isEmpty }
     private var hasPhoto: Bool { !(memo.metadata?.imageManifest?.isEmpty ?? true) }
+    /// True when the user gave the memo an explicit (non-blank) title.
+    private var hasTitle: Bool {
+        !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+    }
     private var snippet: String {
         if let line = memo.firstTranscriptLine { return memo.transcript ?? line }
         return "Voice memo"
     }
+    /// Secondary line for titled rows: the transcript's first line, markers stripped.
+    /// Nil when there's no transcript yet (the title alone carries the row).
+    private var transcriptSnippet: String? { memo.firstTranscriptLine }
 }
 
 // MARK: - Sort & Filter sheet
