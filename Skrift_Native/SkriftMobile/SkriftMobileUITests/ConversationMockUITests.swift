@@ -79,4 +79,29 @@ final class ConversationMockUITests: XCTestCase {
                       "conversation-mode recording didn't render speaker turns")
         XCTAssertTrue(app.buttons["tag-speaker-Speaker 2"].exists, "second speaker turn missing")
     }
+
+    /// The RECOGNIZED half of name-once→recognized: an already-enrolled person is
+    /// auto-labeled when they appear in a NEW conversation recording. `-seedDemoNames`
+    /// seeds "Jane Doe" WITH a voiceprint (+ un-enrolled Bob); the seeded diarizer mocks
+    /// the embedding match by labeling a slot with the enrolled person (the real wespeaker
+    /// cosine match is device-tested — the sim has no ANE + mock audio has no voice).
+    func testEnrolledPersonAutoLabeledOnNewRecording() throws {
+        let app = XCUIApplication()
+        let seed = (1...20).map { "word\($0)" }.joined(separator: " ")
+        app.launchArguments = ["-seedTranscript", seed, "-conversationDefault", "1", "-seedDemoNames", "-appTheme", "dark"]
+        app.launch()
+        app.buttons["new-recording-button"].tap()
+        let record = app.buttons["record-button"]
+        XCTAssertTrue(record.waitForExistence(timeout: 5)); record.tap()
+        XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 0.6)
+        record.tap()   // stop → save → diarize → detail
+
+        // Slot 0 auto-labeled "Jane Doe" (a named turn → "edit" affordance); the second,
+        // un-enrolled speaker stays "Speaker 2".
+        XCTAssertTrue(app.buttons["tag-speaker-Jane Doe"].waitForExistence(timeout: 10),
+                      "enrolled person wasn't auto-labeled on a new recording")
+        XCTAssertTrue(app.buttons["tag-speaker-Speaker 2"].exists, "second (un-enrolled) speaker should stay Speaker 2")
+        XCTAssertFalse(app.buttons["tag-speaker-Speaker 1"].exists, "slot 0 should be named, not Speaker 1")
+    }
 }

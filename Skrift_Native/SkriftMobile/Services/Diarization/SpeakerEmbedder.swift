@@ -73,7 +73,13 @@ enum EmbedderFactory {
 struct SeededEmbedder: SpeakerEmbedding {
     func ensureLoaded() async throws {}
     func embed(samples: [Float]) async throws -> [Float] {
-        let seed = Int(abs(samples.prefix(4000).reduce(0, +)) * 1000)
-        return (0..<256).map { Float((seed + $0 * 7) % 13 + 1) }
+        // A stable, clip-DEPENDENT 256-dim vector (fold the clip's leading samples into a
+        // scalar fingerprint, then spread it across the dims). Distinct clips → distinct
+        // vectors, so enroll/union wiring is exercisable; it's not a real voiceprint.
+        var acc = 1.0
+        for (i, s) in samples.prefix(4000).enumerated() {
+            acc = (acc + Double(s) * Double(i + 1)).truncatingRemainder(dividingBy: 100_000)
+        }
+        return (0..<256).map { Float(sin(acc * 0.0007 + Double($0) * 0.13)) }
     }
 }

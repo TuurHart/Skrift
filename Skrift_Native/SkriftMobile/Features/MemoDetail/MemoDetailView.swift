@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import FluidAudio
 
 /// The "note" screen (mockup2). Swipe left/right between memos (a SwiftUI-native
 /// horizontal paging `ScrollView` — NOT `TabView(.page)`, whose UIKit page host
@@ -271,18 +272,28 @@ private struct MemoPageView: View {
         memo.transcript = transcript.replacingOccurrences(of: "**\(old):**", with: "**\(new):**")
         memo.transcriptUserEdited = true
         repository.save()
-        // Enroll this speaker's voiceprint under the new name so future recordings
-        // auto-label them. Extract their turns' audio (from the diar sidecar) off-main.
-        let memoID = memo.id, audioURL = memo.audioURL
-        Task.detached {
-            guard let audioURL, let data = DiarizationStore().load(for: memoID),
-                  let slotStr = data.slotNames.first(where: { $0.value == old })?.key,
-                  let slot = Int(slotStr) else { return }
-            SpeakerVoiceStore().enroll(person: new, from: audioURL,
-                                       segments: data.segments.filter { $0.speaker == slot })
-            var updated = data; updated.slotNames[slotStr] = new
-            DiarizationStore().write(updated, for: memoID)
-        }
+        // Learn this speaker's voiceprint under the new name so future recordings
+        // auto-label them: extract their turns' audio (from the diar sidecar), embed it,
+        // and add the embedding to the person (which syncs to the Mac → "Voice enrolled").
+        Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new) }
+    }
+
+    /// Extract `old`'s audio from the diar sidecar, embed it, and store the voiceprint
+    /// under `new`. `static` so it isn't tied to the transient (paged) view's lifetime.
+    private static func learnVoice(memoID: UUID, audioURL: URL?, old: String, new: String) async {
+        guard let audioURL, let data = DiarizationStore().load(for: memoID),
+              let slotStr = data.slotNames.first(where: { $0.value == old })?.key,
+              let slot = Int(slotStr) else { return }
+        // Keep the sidecar's slot name current so a later re-enroll finds this slot.
+        var updated = data; updated.slotNames[slotStr] = new
+        DiarizationStore().write(updated, for: memoID)
+
+        await MainActor.run { DiarizationStatus.shared.begin(memoID, phase: .enrolling) }
+        defer { Task { @MainActor in DiarizationStatus.shared.finish() } }
+
+        guard let samples = try? AudioConverter(sampleRate: 16000).resampleAudioFile(audioURL) else { return }
+        let clip = DiarizationService.clip(data.segments.filter { $0.speaker == slot }, from: samples)
+        await VoiceEnroller.enroll(name: new, clip: clip, using: EmbedderFactory.make())
     }
 
     private var titleBinding: Binding<String> {
