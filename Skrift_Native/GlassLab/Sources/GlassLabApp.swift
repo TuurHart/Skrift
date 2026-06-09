@@ -7,20 +7,42 @@ struct GlassLabApp: App {
     }
 }
 
-/// Picks a scene from a launch arg (`-scene static|scroll`); default = static.
+/// Scene chosen by a launch arg (`-scene static|scroll|skrift`) for XCUITests, or by
+/// the in-app segmented picker for hands-on device evaluation.
 struct GlassLabView: View {
-    private var scene: String {
+    @State private var scene: String = {
         let a = ProcessInfo.processInfo.arguments
         if let i = a.firstIndex(of: "-scene"), i + 1 < a.count { return a[i + 1] }
         return "static"
-    }
+    }()
+
+    @State private var dark: Bool = ProcessInfo.processInfo.arguments.contains("-dark")
 
     var body: some View {
-        switch scene {
-        case "scroll": ScrollScene()
-        case "skrift": SkriftScene()
-        default:       StaticScene()
+        ZStack(alignment: .top) {
+            Group {
+                switch scene {
+                case "scroll": ScrollScene()
+                case "skrift": SkriftScene()
+                default:       StaticScene()
+                }
+            }
+            .ignoresSafeArea()
+
+            VStack(spacing: 6) {
+                Picker("", selection: $scene) {
+                    Text("Static").tag("static")
+                    Text("Scroll").tag("scroll")
+                    Text("Skrift").tag("skrift")
+                }
+                .pickerStyle(.segmented)
+                Toggle(isOn: $dark) { Text("Dark mode").font(.caption).foregroundStyle(.white) }
+                    .toggleStyle(.switch)
+            }
+            .padding(.horizontal, 16).padding(.top, 6).padding(.bottom, 8)
+            .background(.black.opacity(0.4))
         }
+        .preferredColorScheme(dark ? .dark : .light)
     }
 }
 
@@ -61,34 +83,33 @@ struct SkriftScene: View {
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    /// EXACT copy of Skrift's bottomChrome (iOS-26 branch).
+    /// Proposed real fix: a LIGHT glass "island" (forced light colorScheme → bright,
+    /// clear glass — the look you liked) with DARK content so it reads, floating over
+    /// the dark app. This is how you keep bright Liquid Glass in a dark UI.
     @ViewBuilder private var skriftBar: some View {
         let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
+        let ink = Color(.sRGB, red: 0.13, green: 0.13, blue: 0.15, opacity: 1)   // dark content on bright glass
+        let accent = Color(.sRGB, red: 124/255, green: 107/255, blue: 245/255, opacity: 1)
         let content = VStack(spacing: 10) {
-            Capsule().fill(text.opacity(0.25)).frame(height: 4)
+            Capsule().fill(ink.opacity(0.20)).frame(height: 4)
             HStack(spacing: 34) {
                 Image(systemName: "gobackward.10")
                 Image(systemName: "play.fill").font(.system(size: 22)).foregroundStyle(.white)
-                    .frame(width: 60, height: 60).background(Color(.sRGB, red: 124/255, green: 107/255, blue: 245/255, opacity: 1), in: .circle)
+                    .frame(width: 60, height: 60).background(accent, in: .circle)
                 Image(systemName: "goforward.10")
             }
-            .font(.system(size: 24)).foregroundStyle(text)
+            .font(.system(size: 24)).foregroundStyle(ink)
         }
         .padding(.horizontal, 18).padding(.vertical, 14)
 
         Group {
             if #available(iOS 26.0, *) {
-                GlassEffectContainer {
-                    content
-                        .glassEffect(.regular, in: shape)
-                        .overlay(shape.strokeBorder(
-                            LinearGradient(colors: [.white.opacity(0.30), .white.opacity(0.04)],
-                                           startPoint: .top, endPoint: .bottom), lineWidth: 0.8))
-                }
+                GlassEffectContainer { content.glassEffect(.regular, in: shape) }
             } else {
                 content.background(.ultraThinMaterial, in: shape)
             }
         }
+        .environment(\.colorScheme, .light)   // bright glass even though the app is dark
         .padding(.horizontal, 20).padding(.bottom, 6)
         .accessibilityIdentifier("skrift-bar")
     }
