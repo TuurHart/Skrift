@@ -74,6 +74,7 @@ enum DemoDataSeeder {
                 transcript: "First seeded memo about the harbor at dawn.",
                 transcriptStatus: .done,
                 transcriptConfidence: 0.92,
+                significance: 0.5,
                 metadata: MemoMetadata(
                     capturedAt: ISO8601.string(from: now.addingTimeInterval(-3_600)),
                     location: LocationInfo(latitude: 38.71, longitude: -9.14, placeName: "Alfama, Lisbon"),
@@ -90,7 +91,8 @@ enum DemoDataSeeder {
                 syncStatus: .synced,
                 transcript: "Second seeded memo, a quick reminder to call the plumber.",
                 transcriptStatus: .done,
-                transcriptConfidence: 0.81
+                transcriptConfidence: 0.81,
+                significance: 0.5
             ),
             Memo(
                 audioFilename: "memo_demo3.m4a",
