@@ -179,8 +179,7 @@ private struct MemoPageView: View {
     private let repository = NotesRepository.shared
     @State private var showAddTag = false
     @State private var newTag = ""
-    @State private var namingSpeaker: String?       // the speaker label being (re)named
-    @State private var speakerNameDraft = ""
+    @State private var assigningSpeaker: String?     // the speaker label being assigned (sheet)
     @ObservedObject private var diarStatus = DiarizationStatus.shared
 
     var body: some View {
@@ -245,37 +244,40 @@ private struct MemoPageView: View {
             Button("Add", action: addTag)
             Button("Cancel", role: .cancel) { newTag = "" }
         }
-        .alert("Name this speaker", isPresented: Binding(get: { namingSpeaker != nil },
-                                                         set: { if !$0 { namingSpeaker = nil } })) {
-            TextField("Name", text: $speakerNameDraft)
-            Button("Set", action: renameSpeaker)
-            Button("Cancel", role: .cancel) { namingSpeaker = nil }
-        } message: {
-            Text("Assign this speaker to a name. It links to a person on your Mac, and Skrift can learn the voice for next time.")
+        // Tap a speaker → an assign sheet: pick a known Person (links + enrolls the
+        // voiceprint), merge into another speaker in this convo (fixes a mis-split), or
+        // type a new name. Replaces the old free-text alert.
+        .sheet(isPresented: Binding(get: { assigningSpeaker != nil },
+                                    set: { if !$0 { assigningSpeaker = nil } })) {
+            if let speaker = assigningSpeaker {
+                SpeakerAssignSheet(
+                    speaker: speaker,
+                    otherSpeakers: SpeakerTranscript.speakers(in: memo.transcript).filter { $0 != speaker },
+                    people: NamesStore.shared.livePeople(),
+                    onAssignPerson: { assign(speaker, to: NamesDisplay.name($0), enroll: true) },
+                    onMergeInto: { assign(speaker, to: $0, enroll: false) },
+                    onNewName: { assign(speaker, to: $0, enroll: true) }
+                )
+            }
         }
     }
 
-    /// Start (re)naming a speaker — prefill with the current name unless it's the
-    /// "Speaker N" placeholder.
-    private func startNaming(_ speaker: String) {
-        speakerNameDraft = SpeakerTranscript.isUnnamed(speaker) ? "" : speaker
-        namingSpeaker = speaker
-    }
+    private func startAssigning(_ speaker: String) { assigningSpeaker = speaker }
 
-    /// Rewrite every `**old:**` turn prefix → `**new:**` (the speaker label is the key),
-    /// so assigning/correcting one turn relabels all of that speaker's turns.
-    private func renameSpeaker() {
-        defer { namingSpeaker = nil; speakerNameDraft = "" }
-        guard let old = namingSpeaker, let transcript = memo.transcript else { return }
-        let new = speakerNameDraft.trimmingCharacters(in: .whitespaces)
-        guard !new.isEmpty, new != old else { return }
-        memo.transcript = transcript.replacingOccurrences(of: "**\(old):**", with: "**\(new):**")
+    /// Apply a speaker assignment: relabel every `**old:**` turn → `**new:**`, re-fuse
+    /// adjacent same-speaker turns (so a merged blip folds into its neighbour), and — when
+    /// assigning to a real person (not merging into another Speaker N) — learn the
+    /// voiceprint under `new` so future recordings auto-label them (syncs → "Voice enrolled").
+    private func assign(_ old: String, to newName: String, enroll: Bool) {
+        let new = newName.trimmingCharacters(in: .whitespaces)
+        guard let transcript = memo.transcript, !new.isEmpty, new != old else { return }
+        let relabeled = transcript.replacingOccurrences(of: "**\(old):**", with: "**\(new):**")
+        memo.transcript = SpeakerTranscript.mergeAdjacentTurns(relabeled)
         memo.transcriptUserEdited = true
         repository.save()
-        // Learn this speaker's voiceprint under the new name so future recordings
-        // auto-label them: extract their turns' audio (from the diar sidecar), embed it,
-        // and add the embedding to the person (which syncs to the Mac → "Voice enrolled").
-        Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new) }
+        if enroll {
+            Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new) }
+        }
     }
 
     /// Extract `old`'s audio from the diar sidecar, embed it, and store the voiceprint
@@ -332,7 +334,7 @@ private struct MemoPageView: View {
         if let turns = SpeakerTranscript.parse(memo.transcript) {
             // Conversation note → speaker-attributed turns; tap a speaker to assign or
             // correct the name (relabels all that speaker's turns).
-            SpeakerTurnsView(turns: turns, onTag: startNaming)
+            SpeakerTurnsView(turns: turns, onTag: startAssigning)
         } else if player.isPlaying || memo.transcriptStatus == .transcribing {
             TranscriptContentView(memo: memo, player: player)
         } else {

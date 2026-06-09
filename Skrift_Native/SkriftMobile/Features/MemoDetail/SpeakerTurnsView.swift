@@ -31,6 +31,30 @@ enum SpeakerTranscript {
     static func isUnnamed(_ name: String) -> Bool {
         name.range(of: #"^Speaker \d+$"#, options: .regularExpression) != nil
     }
+
+    /// The distinct speaker labels in a transcript, in first-appearance order.
+    static func speakers(in transcript: String?) -> [String] {
+        guard let turns = parse(transcript) else { return [] }
+        var seen = Set<String>(), out: [String] = []
+        for t in turns where !seen.contains(t.name) { seen.insert(t.name); out.append(t.name) }
+        return out
+    }
+
+    /// Collapse consecutive turns by the SAME speaker into one (after a reassign/merge), so
+    /// a turn folded into its neighbour reads as a single turn rather than two adjacent
+    /// boxes. Re-emits the `**Name:** text` Markdown.
+    static func mergeAdjacentTurns(_ transcript: String) -> String {
+        guard let turns = parse(transcript) else { return transcript }
+        var merged: [(name: String, text: String)] = []
+        for t in turns {
+            if let last = merged.last, last.name == t.name {
+                merged[merged.count - 1].text += " " + t.text
+            } else {
+                merged.append((t.name, t.text))
+            }
+        }
+        return merged.map { "**\($0.name):** \($0.text)" }.joined(separator: "\n\n")
+    }
 }
 
 struct SpeakerTurnsView: View {

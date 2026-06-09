@@ -37,24 +37,66 @@ final class ConversationMockUITests: XCTestCase {
         snap("conversation-real-detail")
     }
 
-    /// Tapping a speaker → naming it relabels all that speaker's turns (assign + correct).
-    func testTagSpeakerRenamesTurns() throws {
+    /// Tap a speaker → the assign sheet → type a NEW name → relabels all that speaker's turns.
+    func testAssignSpeakerNewNameRelabelsTurns() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["-inMemoryStore", "-seedConversationMemo", "-skipOnboarding", "-appTheme", "dark"]
+        app.launchArguments = ["-inMemoryStore", "-seedConversationMemo", "-skipOnboarding", "-resetNames", "-appTheme", "dark"]
         app.launch()
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
 
-        // The speaker has multiple turns (so multiple identical tag buttons) — tap the first.
         let tag = app.buttons.matching(identifier: "tag-speaker-Speaker 2").firstMatch
         XCTAssertTrue(tag.waitForExistence(timeout: 5)); tag.tap()
-        let field = app.alerts.textFields.firstMatch
+        let field = app.textFields["assign-new-name-field"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
-        field.typeText("Roksana")
-        app.alerts.buttons["Set"].tap()
+        field.tap(); field.typeText("Roksana")
+        app.buttons["assign-new-name-button"].tap()
 
         XCTAssertTrue(app.staticTexts["Roksana"].waitForExistence(timeout: 5), "renamed speaker didn't appear")
         XCTAssertFalse(app.buttons["tag-speaker-Speaker 2"].exists, "old Speaker 2 label still present after rename")
+    }
+
+    /// Tap a mis-split speaker → "Merge into" another speaker in the conversation → the
+    /// turns fold into them (the phantom-speaker fix).
+    func testMergeSpeakerIntoAnother() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedConversationMemo", "-skipOnboarding", "-resetNames", "-appTheme", "dark"]
+        app.launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
+
+        let tag = app.buttons.matching(identifier: "tag-speaker-Speaker 2").firstMatch
+        XCTAssertTrue(tag.waitForExistence(timeout: 10)); tag.tap()
+        Thread.sleep(forTimeInterval: 1.0)   // let the .medium-detent sheet settle (XCUITest won't re-poll its content mid-present)
+        let merge = app.buttons["merge-into-Tiuri Hartog"]
+        XCTAssertTrue(merge.waitForExistence(timeout: 5)); merge.tap()
+
+        // The sheet dismisses + the detail re-renders — let it settle. Merging the ONLY
+        // other speaker into Tiuri Hartog leaves a single speaker, so it collapses to a
+        // monologue (the turn view needs ≥2 speakers) → the plain editor shows the combined
+        // text. Both prove the merge folded Speaker 2's words away.
+        Thread.sleep(forTimeInterval: 1.5)
+        XCTAssertFalse(app.buttons.matching(identifier: "tag-speaker-Speaker 2").firstMatch.exists,
+                       "Speaker 2 should be gone after merging into Tiuri Hartog")
+        XCTAssertTrue(app.textViews["transcript-editor"].waitForExistence(timeout: 3),
+                      "one speaker left → collapses to a single-speaker note")
+    }
+
+    /// Tap a speaker → pick an existing PERSON from the Names DB (typo-free, links the voiceprint).
+    func testAssignSpeakerToExistingPerson() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-seedConversationMemo", "-seedDemoNames", "-skipOnboarding", "-appTheme", "dark"]
+        app.launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
+
+        let tag = app.buttons.matching(identifier: "tag-speaker-Speaker 2").firstMatch
+        XCTAssertTrue(tag.waitForExistence(timeout: 10)); tag.tap()
+        let pick = app.buttons["assign-person-Jane Doe"]   // -seedDemoNames seeds Jane Doe
+        XCTAssertTrue(pick.waitForExistence(timeout: 5)); pick.tap()
+
+        XCTAssertTrue(app.staticTexts["Jane Doe"].waitForExistence(timeout: 5), "picked person didn't become the label")
+        XCTAssertFalse(app.buttons["tag-speaker-Speaker 2"].exists)
     }
 
     /// Recording with conversation mode ON diarizes (SeededDiarizer in sim) + fuses →
