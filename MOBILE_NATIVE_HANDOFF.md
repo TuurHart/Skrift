@@ -281,12 +281,7 @@ file duration + `stopTapped` discards <0.4s with a "Nothing recorded" alert; dia
 invisibly → `DiarizationStatus` banner ("Downloading speaker model… N%" / "Identifying speakers…").
 ✅ **B DONE (`c223d2d`):** detail ⋯ "Split speakers" retro-diarizes a memo recorded
 without conversation mode (`MemoSaver.diarizeExisting`).
-**REMAINING: (E-full) voiceprint auto-match — Sortformer enrolls with AUDIO
-(`enrollSpeaker(withAudio:named:)`), NOT embeddings.** Plan: when naming a speaker, extract the
-audio of that speaker's turns from the memo → save a voice sample to the person; on a new
-recording, `enrollSpeaker` each known person's sample BEFORE diarizing → Sortformer auto-labels
-them (user-reported gap: a new recording is still Speaker 1/2 because naming is per-memo text
-only right now). **(F)** live streaming during recording. **Device caveat: first conversation
+✅ **E-full DONE (plumbing) — `SpeakerVoiceStore`/`DiarizationStore`/`DiarizationService` enroll: naming extracts a speaker's turn-audio → per-person sample; `diarize` reset+enrollSpeaker(all known)+processComplete → `timeline.speakers[slot].name` → auto-matched people come back named; SeededDiarizer mirrors it. Real match is DEVICE-only (ANE) — owed: user verifies name-once→recognized-next-recording.** **(F)** live streaming during recording. **Device caveat: first conversation
 downloads+compiles the Sortformer bundle (~90s, one-time, then cached).**
 
 **Still TODO: conversation mode D/E/F (device — per BUILD PROGRESS above), capture items (user
