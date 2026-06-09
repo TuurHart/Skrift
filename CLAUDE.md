@@ -62,6 +62,22 @@ xcodebuild build -scheme SkriftDesktop -destination 'platform=macOS' -skipMacroV
 # quit the running app first — a 2nd instance races the shared SwiftData store.
 ```
 
+## Dev vs prod — DATA SAFETY (read before building/installing)
+
+Two build configs, fully isolated, so iterating never risks real data:
+- **Debug = "Skrift Dev"** — `com.skrift.{mobile,desktop}.dev`, **inverted app icon**, its OWN OS data
+  container; macOS dev defaults to the TEST vault (`~/Hackerman/Obsidian_LLM_Test_Vault`).
+- **Release = "Skrift"** (prod) — the real data + real Obsidian vault. Prod desktop lives at
+  `/Applications/Skrift.app`.
+
+Rules:
+- **Merging code to a branch changes NOTHING on any installed app.** An app only changes when someone
+  **builds + installs** it.
+- **To TEST, build + install the DEV (Debug) build** — it physically can't touch prod memos/names/vault
+  and runs alongside prod. (Tell them apart by name "Skrift Dev" + the inverted icon.)
+- **Never rebuild/reinstall PROD while it's in use** (e.g. mid-processing). **Promote to prod
+  deliberately, when prod is idle**: Release build + install, and push `native`→`main`.
+
 ## Ledgers (read to resume)
 
 - **`FEATURES.md`** — cross-app feature source of truth (every feature × {mobile, desktop} ×
