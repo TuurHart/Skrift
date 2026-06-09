@@ -23,13 +23,15 @@ struct SettingsView: View {
         var aliases: String     // comma-separated
         var short: String
         var lastModifiedAt: String
+        var enrolled: Bool      // has ≥1 synced voiceprint (Conversation mode can recognise them)
         init(_ p: Person) {
             canonical = NamesMerge.keyName(p.canonical)
             aliases = p.aliases.joined(separator: ", ")
             short = p.short ?? ""
             lastModifiedAt = p.lastModifiedAt
+            enrolled = !(p.voiceEmbeddings?.isEmpty ?? true)
         }
-        init() { canonical = ""; aliases = ""; short = ""; lastModifiedAt = "" }
+        init() { canonical = ""; aliases = ""; short = ""; lastModifiedAt = ""; enrolled = false }
         func matches(_ q: String) -> Bool {
             canonical.localizedCaseInsensitiveContains(q) || aliases.localizedCaseInsensitiveContains(q)
         }
@@ -242,6 +244,7 @@ struct SettingsView: View {
             RingedField(placeholder: "aliases, comma-separated", text: Binding(
                 get: { ep.wrappedValue.aliases },
                 set: { ep.wrappedValue.aliases = $0; namesDirty = true }), font: .system(size: 11))
+            voiceTag(ep.wrappedValue.enrolled)
             Button {
                 editablePeople.removeAll { $0.id == ep.wrappedValue.id }; namesDirty = true
             } label: {
@@ -270,15 +273,28 @@ struct SettingsView: View {
     }
 
     private func nameRow(_ person: Person) -> some View {
-        let canonical = person.canonical.replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
         return HStack(spacing: 8) {
-            Text(canonical).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.textPrimary)
+            Text(person.displayName).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.textPrimary)
             if !person.aliases.isEmpty {
                 Text(person.aliases.joined(separator: ", ")).font(.system(size: 11)).foregroundStyle(Theme.textMuted)
             }
             Spacer()
+            voiceTag(!(person.voiceEmbeddings?.isEmpty ?? true))
         }
         .padding(.vertical, 3)
+    }
+
+    /// Voice-enrollment indicator (parity with the phone's Names & voices). Green
+    /// "Voice" when the person has a synced voiceprint → Conversation mode can attribute
+    /// speech to them; a faint "No voice" otherwise.
+    @ViewBuilder private func voiceTag(_ enrolled: Bool) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "waveform").font(.system(size: 9, weight: .semibold))
+            Text(enrolled ? "Voice" : "No voice").font(.system(size: 10, weight: .semibold))
+        }
+        .foregroundStyle(enrolled ? Theme.green : Theme.textMuted)
+        .help(enrolled ? "A voiceprint is enrolled — Conversation mode can recognise this person."
+                       : "No voiceprint yet — name them in a conversation (phone or Mac) to enroll their voice.")
     }
 
     // ── Helpers ─────────────────────────────────────────────
