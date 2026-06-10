@@ -210,6 +210,42 @@ glass bar acceptable ✓.
 - **`SkriftMobile.diskwrites_resource-2026-06-10-221621.ips`** — disk-writes resource warning; check what's
   writing heavily (likely model download or audio writes).
 
+### Feature decisions — LOCKED 2026-06-10 (user sign-off)
+1. **Feedback loop = plug-in-phone → Claude pulls + parses + triages into this file** (devicectl app-container
+   pull, proven 2026-06-10). Email path dead. **Valid only while the user is the sole user** — revisit if the
+   app ever gets other users. Skill: `.claude/skills/pull-phone-feedback/`.
+2. **Share extension = build as FULL capture items** (not a video-only hack): share URL/text/image/video +
+   annotate, share-extension target + App Group + `attachments` multipart + desktop capture content-type.
+   **OWED TOMORROW: walk the user through what (if anything) must be set up in the Apple Developer portal /
+   App Store Connect for the new extension target + App Group** (likely nothing manual — automatic signing
+   team 9W82X49JZS auto-registers bundle IDs + App Groups for dev builds; explain + verify).
+3. **Custom vocabulary** — GO. Spike FluidAudio CTC keyword-boosting API on current `main`, then a Settings
+   "Custom words" list feeding both apps' transcribers ("Skrift", names, jargon).
+4. **Trash / 2-week retention** — GO. `deletedAt` on Memo (additive schema), delete = soft-delete, "Recently
+   Deleted" section, purge ≥14 days. Mirror on desktop later.
+5. **Auto-copy transcript after transcribe** — GO as an **opt-in Setting, default OFF**.
+6. **Front camera toggle** in the in-record camera — GO (CameraSheet flip button).
+7. **Click-`[[name]]`-to-unlink (desktop)** — GO, mock first (resolver-style popover, "unlink → alias").
+8. **Audiobook quote-capture** — direction written below; design after the current wave.
+9. **Significance wall** — GO, threshold **≥ 0.8**; AirPrint; refine-gate before export; design with the
+   audiobook session. **PLUS a locked UI change, BOTH apps: replace the significance SLIDER with 10
+   clickable CIRCLES** (star-rating style: tapping the 8th fills 1–8). Easier to read at a glance and
+   doesn't visually compete with the audio scrubber. Must fit the theme — mock first.
+
+### Audiobook quote-capture — idea + direction (written down 2026-06-10, design later)
+Capture a passage from an audiobook as a quoted, attributed note + your own thoughts under it.
+- **Flow (preferred shape, in-app):** audiobook section in Skrift → loads the transcription model in the
+  background → fine scrubber for precise positioning (a ~15s micro-scrubber alongside the normal one — a
+  15h book makes one scrubber useless) → set marker-in, listen, marker-out → that span is transcribed,
+  **snapped to natural sentence boundaries** (don't cut mid-sentence; markers are imprecise by nature) →
+  inserted as a QUOTE block (italics) with book/chapter/author metadata asked-or-inferred → free rambling
+  space below the quote (the user's own thinking — the actual point).
+- **Alt shape (lock-screen markers):** marker-in/out from the lock-screen player controls — iOS gives 3rd-
+  party apps limited lock-screen control, so realistically this degrades to the in-app flow; park it.
+- **Player inspiration:** "Bound" audiobooks app (one-time payment; loads audio straight from Files/iCloud —
+  that ingestion model is the one to copy). User has it; could inspect on the jailbroken iPhone for UX.
+- **Maybe-later:** linking the quote-note to existing notes at capture time (or leave linking to Obsidian).
+
 ### P2 — feature requests from testing
 - **Instant record**: tapping record (or + append) should START RECORDING IMMEDIATELY — no record-ready
   screen stop; model loads in background (it already catches up).
