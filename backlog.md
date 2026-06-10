@@ -174,11 +174,13 @@ glass bar acceptable ✓.
    built as per-word concatenated `Text` runs (solid+volatile+photo tokens), so a long recording → thousands-
    deep `Text + Text` chain → stack overflow. Fix: build ONE `AttributedString` and render a single
    `Text(attributedString)` (constant depth). Crash files: `/tmp/skrift-crashes/SkriftMobile-2026-06-10-*.ips`.
-2. **Append silently adds NO text** (2× repro). Stopped the append recording before the ASR model loaded →
-   transcriber yields nothing → falls back to live caption (also empty, model not loaded) → silent no-op
-   (`MemoSaver.appendRecordingAsync`). Audio IS merged but no text, no error. Fix: never silently no-op —
-   queue transcription for when the model is ready (status `.transcribing`) + surface failures. Same class
-   of bug reported earlier: append after manually editing the body appeared to add nothing.
+2. **Append silently adds NO text** (3× repro, BROADER than the model-cold theory — verifier-corrected).
+   Repros: (a) stopped the append recording before the ASR model loaded; (b) tried AGAIN with the model
+   presumably warm — still no text; (c) appended after manually editing the note body — nothing added.
+   `MemoSaver.appendRecordingAsync` merges audio but can silently add no text with no error. Fix: REPRODUCE
+   first (all three sequences), then harden the whole append-text path — never silent-no-op, queue
+   transcription when the engine isn't ready (status `.transcribing`), surface failures; regression tests
+   for cold-model append and append-after-manual-edit.
 3. **Tail of recording cut off after Stop** (BOTH dev + prod, intermittent): live caption had the full text,
    then the final one-shot file transcription replaced it WITHOUT the last bit. Likely a race: final
    transcribe reads the file before the writer flushes the last buffers, or stop truncates. Investigate
@@ -197,8 +199,10 @@ glass bar acceptable ✓.
   videos in the share sheet — likely needs a share extension or different UTI handling. (Photos→file works.)
 - **Desktop: drag direct from Photos app doesn't ingest** (works via Finder) — Photos drags provide promised
   file/`NSItemProvider`, not a file URL; accept promised files in the drop handler.
-- **Desktop: no thumbnail on video ingest** — mobile attaches a frame as `[[img_001]]`; desktop `ingestVideo`
-  doesn't. Add frame-grab on the Mac too.
+- **No video thumbnail seen — check BOTH apps** (verifier: source ambiguous). Desktop `ingestVideo` has no
+  frame-grab by design → add one (mirror mobile). Mobile claims `[[img_001]]` — verify it actually renders
+  on a real import.
+- *(doc fix, not a bug: TESTING guide said the desktop glass play bar is at the BOTTOM — it's pinned at the TOP.)*
 - **Desktop: summary not editable** in review.
 - **Desktop: name-linking brackets EVERY mention** (user expects `[[Name]]` first mention only, alias after —
   the Sanitiser's design intent; verify what produced all-bracket output, possibly the conversation-turn
