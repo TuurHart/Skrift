@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 enum MemoSort: String, CaseIterable, Identifiable {
     case recent = "Most recent"
@@ -37,6 +38,7 @@ struct MemosListView: View {
     @State private var selected: Set<UUID> = []
     @State private var syncing = false
     @State private var syncBanner: String?
+    @State private var bannerToken = 0
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -102,6 +104,29 @@ struct MemosListView: View {
                                         Label("Delete", systemImage: "trash")
                                     }
                                     .accessibilityIdentifier("swipe-delete-button")
+                                }
+                                // Quick copy without opening the memo (today: open → ⋯ →
+                                // Copy). Leading edge so Delete keeps the trailing edge +
+                                // full swipe to itself.
+                                .swipeActions(edge: .leading) {
+                                    Button { copyTranscript(memo) } label: {
+                                        Label("Copy", systemImage: "doc.on.doc")
+                                    }
+                                    .tint(.skAccent)
+                                    .accessibilityIdentifier("swipe-copy-button")
+                                }
+                                .contextMenu {
+                                    // Second path to the same actions; empty while
+                                    // selecting so long-press can't fight multi-select.
+                                    if !editMode.isEditing {
+                                        Button { copyTranscript(memo) } label: {
+                                            Label("Copy transcript", systemImage: "doc.on.doc")
+                                        }
+                                        .accessibilityIdentifier("context-copy-button")
+                                        Button(role: .destructive) { deleteMemo(memo) } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
                                 }
                         }
                     } header: {
@@ -202,16 +227,26 @@ struct MemosListView: View {
             // Distinguish a real failure (memos still waiting) from "nothing to do".
             let stillWaiting = repository.allMemos().contains { $0.syncStatus == .waiting && $0.audioURL != nil }
             if !paired {
-                syncBanner = "Pair a Mac in Settings to sync"
+                flashBanner("Pair a Mac in Settings to sync")
             } else if synced > 0 {
-                syncBanner = "Synced \(synced) memo\(synced == 1 ? "" : "s")"
+                flashBanner("Synced \(synced) memo\(synced == 1 ? "" : "s")")
             } else if stillWaiting {
-                syncBanner = "Couldn't reach the Mac"
+                flashBanner("Couldn't reach the Mac")
             } else {
-                syncBanner = "Up to date"
+                flashBanner("Up to date")
             }
+        }
+    }
+
+    /// Show the top banner briefly. The token keeps an earlier banner's expiry
+    /// from clipping a newer one.
+    private func flashBanner(_ text: String) {
+        bannerToken += 1
+        let token = bannerToken
+        syncBanner = text
+        Task {
             try? await Task.sleep(for: .seconds(2.2))
-            syncBanner = nil
+            if bannerToken == token { syncBanner = nil }
         }
     }
 
@@ -266,14 +301,29 @@ struct MemosListView: View {
         editMode = .inactive
     }
 
-    /// Remove a single memo + its on-disk audio/images/word-timings. Shared by
-    /// multi-select delete and swipe-to-delete.
+    /// Quick copy straight from the list: transcript (fallback: title) → pasteboard,
+    /// with a light haptic + the same top banner as sync. An empty memo says so
+    /// instead of silently copying nothing.
+    private func copyTranscript(_ memo: Memo) {
+        guard let text = memo.copyableText else {
+            flashBanner("Nothing to copy yet")
+            return
+        }
+        UIPasteboard.general.string = text
+        Haptics.tap(.light)
+        flashBanner("Copied")
+    }
+
+    /// Remove a single memo + its on-disk audio/images/word-timings/diarization.
+    /// Shared by multi-select delete, swipe-to-delete, and the context menu.
+    /// Mirrors MemoDetailView.deleteCurrent.
     private func deleteMemo(_ memo: Memo) {
         if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
         memo.metadata?.imageManifest?.forEach {
             try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
         }
         WordTimingsStore().delete(for: memo.id)
+        DiarizationStore().delete(for: memo.id)
         repository.delete(memo)
     }
 
@@ -474,6 +524,18 @@ private struct MemoCard: View {
     /// Secondary line for titled rows: the transcript's first line, markers stripped.
     /// Nil when there's no transcript yet (the title alone carries the row).
     private var transcriptSnippet: String? { memo.firstTranscriptLine }
+}
+
+// MARK: - Quick copy
+
+extension Memo {
+    /// What a quick "Copy" copies: the transcript when there is one, else the
+    /// title; nil when the memo has neither (not yet transcribed, untitled).
+    var copyableText: String? {
+        if let t = transcript, !t.isEmpty { return t }
+        if let t = title, !t.isEmpty { return t }
+        return nil
+    }
 }
 
 // MARK: - Sort & Filter sheet

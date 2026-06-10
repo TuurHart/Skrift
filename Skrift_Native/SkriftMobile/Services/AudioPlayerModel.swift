@@ -21,6 +21,11 @@ final class AudioPlayerModel: NSObject, ObservableObject {
 
     /// Point the player at a memo's audio (or clear it). No-op if it's already
     /// loaded, so swiping back to a page doesn't restart it.
+    ///
+    /// Deliberately does NOT touch the `AVAudioSession`: `prepareToPlay()` acquires
+    /// the audio hardware (an implicit activation) and the `.playback` category is
+    /// non-mixable, so doing either here stopped other apps' audio (Spotify) the
+    /// moment a memo was merely OPENED. The session is claimed in `play()` only.
     func load(_ url: URL?) {
         if url == self.url { return }
         stopAndClear()
@@ -32,8 +37,6 @@ final class AudioPlayerModel: NSObject, ObservableObject {
         player.delegate = self
         player.enableRate = true
         player.rate = rate
-        player.prepareToPlay()
-        try? AVAudioSession.sharedInstance().setCategory(.playback)
         self.player = player
         self.url = url
         duration = player.duration
@@ -45,9 +48,13 @@ final class AudioPlayerModel: NSObject, ObservableObject {
 
     func play() {
         guard let player else { return }
-        try? AVAudioSession.sharedInstance().setActive(true)
+        activateSession()
         player.rate = rate
-        player.play()
+        guard player.play() else {
+            print("[Skrift] Playback failed to start: \(url?.lastPathComponent ?? "?")")
+            deactivateSession()
+            return
+        }
         isPlaying = true
         startTimer()
     }
@@ -82,6 +89,38 @@ final class AudioPlayerModel: NSObject, ObservableObject {
         duration = 0
         hasAudio = false
         stopTimer()
+        deactivateSession()
+    }
+
+    // MARK: - Audio session (claimed on Play, released on stop/finish)
+
+    /// Whether WE hold the audio session. Activating it interrupts other apps'
+    /// audio, so it happens strictly when the user presses Play — never on
+    /// load/note-open — and the flag keeps `deactivateSession()` from stomping a
+    /// session someone else (e.g. the append recorder) owns.
+    private var sessionActive = false
+
+    private func activateSession() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playback)
+            try session.setActive(true)
+            sessionActive = true
+        } catch {
+            // play() still runs (it activates implicitly); log the why in case it fails too.
+            print("[Skrift] Audio session activation failed: \(error)")
+        }
+    }
+
+    /// Release the session so other audio (e.g. music) resumes where it paused.
+    private func deactivateSession() {
+        guard sessionActive else { return }
+        sessionActive = false
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            print("[Skrift] Audio session deactivation failed: \(error)")
+        }
     }
 
     private func startTimer() {
@@ -102,6 +141,7 @@ extension AudioPlayerModel: AVAudioPlayerDelegate {
             self.isPlaying = false
             self.currentTime = 0
             self.stopTimer()
+            self.deactivateSession()   // hand the session back so e.g. music resumes
         }
     }
 }
