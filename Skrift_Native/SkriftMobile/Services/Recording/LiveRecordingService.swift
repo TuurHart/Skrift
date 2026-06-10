@@ -71,8 +71,33 @@ final class LiveRecordingService: ObservableObject {
     }
 
     deinit {
-        if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
+        // Belt-and-braces teardown for an abnormal dismissal where stop()/cancel()
+        // never ran: kill ALL timers + the route observer directly. (deinit is
+        // nonisolated, so it can't call the @MainActor stopTimers()/
+        // teardownRouteObserver() helpers — inline the same work.)
+        displayTimer?.invalidate()
+        captionTimer?.invalidate()
         noticeClearTimer?.invalidate()
+        if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
+    }
+
+    /// Start, retrying briefly when the audio session is contended. Owned by the
+    /// service (not the view) so the retries die with the recorder — `[weak self]`
+    /// means a dismissed RecordView can never ghost-start a recording. With
+    /// `siriGrace` (a pending Record-intent launch) the first attempt waits 700 ms:
+    /// right after a voice launch Siri still owns the audio session, and
+    /// contending instantly just burns retries. A plain in-app open starts at once.
+    func startRetrying(siriGrace: Bool = false) {
+        guard !isRecording else { return }
+        Task { @MainActor [weak self] in
+            if siriGrace { try? await Task.sleep(for: .milliseconds(700)) }
+            for _ in 0..<16 {
+                guard let self, !self.isRecording else { return }
+                do { try self.start(); return }
+                catch { /* session busy (e.g. Siri releasing the mic) — retry */ }
+                try? await Task.sleep(for: .milliseconds(300))
+            }
+        }
     }
 
     func start() throws {
@@ -137,7 +162,7 @@ final class LiveRecordingService: ObservableObject {
             tapStopped = true
             engine?.inputNode.removeTap(onBus: 0)
             engine?.stop()
-            writerQueue.sync {}   // drain pending writes before releasing the file
+            writerQueue.sync {}   // drain pending writes before finalizing the file
             // Real recorded length from the file — 0 frames means the tap never
             // captured audio (e.g. a fast start→stop, or an unavailable mic/session);
             // the caller treats that as an empty recording instead of a silent memo.
@@ -146,6 +171,14 @@ final class LiveRecordingService: ObservableObject {
             } else {
                 duration = 0
             }
+            // FINALIZE the .m4a deterministically BEFORE anyone reads it: close()
+            // flushes the AAC encoder's buffered tail and writes the MP4 header
+            // (moov) NOW. Relying on AVAudioFile dealloc (`audioFile = nil`) was a
+            // race — the tap block can keep the file alive briefly after
+            // removeTap, so the one-shot transcription that runs right after stop
+            // could open a not-yet-finalized file and transcribe it WITHOUT the
+            // last stretch of speech (the intermittent cut-off-tail bug).
+            audioFile?.close()
             engine = nil
             audioFile = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
@@ -168,7 +201,8 @@ final class LiveRecordingService: ObservableObject {
             tapStopped = true
             engine?.inputNode.removeTap(onBus: 0)
             engine?.stop()
-            writerQueue.sync {}   // drain pending writes before releasing the file
+            writerQueue.sync {}    // drain pending writes before finalizing the file
+            audioFile?.close()     // finalize before the temp file is deleted below
             engine = nil
             audioFile = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])

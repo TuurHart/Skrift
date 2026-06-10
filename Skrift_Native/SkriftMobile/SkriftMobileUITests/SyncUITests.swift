@@ -20,11 +20,10 @@ final class SyncUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        // Record a memo.
+        // Record a memo — instant record: the recorder auto-starts on open.
         app.buttons["new-recording-button"].tap()
         let recordButton = app.buttons["record-button"]
         XCTAssertTrue(recordButton.waitForExistence(timeout: 5))
-        recordButton.tap()
         XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.5)
         recordButton.tap()   // stop → save → save-now opens Memo detail

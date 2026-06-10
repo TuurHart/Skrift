@@ -14,6 +14,11 @@ struct MemoSaver {
     var diarizer: any Diarizing = DiarizerFactory.make()
     var wordTimings = WordTimingsStore()
     var metadataProvider: any MetadataProviding = MetadataProviderFactory.make()
+    /// Sleep before each transcription attempt of an APPENDED clip (first entry =
+    /// the immediate attempt). `transcribe` itself awaits the model load, so these
+    /// only kick in on genuine failures (failed download, engine error, unreadable
+    /// file). Injectable so tests can retry instantly.
+    var appendRetryDelays: [TimeInterval] = [0, 2, 5, 15]
 
     /// A captured photo handed off from the recorder: temp file + recording-time offset.
     typealias CapturedPhoto = (url: URL, offset: Double)
@@ -252,34 +257,92 @@ struct MemoSaver {
     }
 
     /// Awaitable core of `appendRecording` (used directly by tests).
+    ///
+    /// Hardened after the 2026-06-10 "append silently adds NO text" repros: the
+    /// memo shows `.transcribing` for the whole append (which also swaps the
+    /// detail editor out, so a mid-edit draft can't clobber the appended text when
+    /// it lands), the clip is KEPT on disk until its text has landed (deleting it
+    /// up front destroyed the only retry source), a cold engine is awaited +
+    /// retried instead of `try?`-swallowed, and a terminal failure surfaces as
+    /// `.failed` (the memos list shows an Error pill) — never a silent no-op.
     func appendRecordingAsync(to memoID: UUID, tempURL: URL, duration: TimeInterval, liveCaption: String? = nil) async {
         guard let memo = repository.memo(id: memoID), let memoURL = memo.audioURL else {
             try? FileManager.default.removeItem(at: tempURL); return
         }
         let priorDuration = memo.duration
+        let priorStatus = memo.transcriptStatus
 
-        // Transcribe the new clip (no image markers on an append). Fall back to the
-        // live caption if the engine yields nothing.
-        var newText = (liveCaption ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        var newTimings: [WordTiming] = []
-        if let result = try? await transcriber.transcribe(audioURL: tempURL, imageManifest: []) {
-            let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { newText = result.text; newTimings = result.wordTimings }
+        // Make the append visible immediately — a cold model can take a while.
+        memo.transcriptStatus = .transcribing
+        repository.save()
+
+        // Move the clip to a stable name; it must survive until its text landed.
+        let clipURL = AppPaths.recordingsDirectory
+            .appendingPathComponent("append_\(memoID.uuidString)_\(UUID().uuidString).m4a")
+        var clip = tempURL
+        do {
+            try FileManager.default.moveItem(at: tempURL, to: clipURL)
+            clip = clipURL
+        } catch {
+            // Couldn't move (shouldn't happen — same volume); transcribe in place.
         }
 
-        // Merge the new audio onto the memo so playback + sync stay coherent. If the
-        // merge can't run (e.g. placeholder audio in tests), keep the base audio and
-        // still append the text — the feature is "add more text", audio is a bonus.
-        let mergedDuration = (try? await Self.appendAudio(base: memoURL, addition: tempURL)) ?? priorDuration
-        try? FileManager.default.removeItem(at: tempURL)
+        // Merge the new audio onto the memo FIRST so playback + sync are coherent
+        // even while a cold engine is still loading. (The merge only reads the
+        // clip — it stays available for transcription.) If the merge can't run
+        // (e.g. placeholder audio in tests), keep the base audio and still append
+        // the text — the feature is "add more text", audio is a bonus.
+        let mergedDuration = (try? await Self.appendAudio(base: memoURL, addition: clip)) ?? priorDuration
 
-        guard let memo = repository.memo(id: memoID) else { return }
-        let existing = (memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let combined = existing.isEmpty ? newText : (newText.isEmpty ? existing : existing + "\n\n" + newText)
-        memo.transcript = combined.isEmpty ? nil : combined
-        memo.transcriptUserEdited = true   // Mac trusts the combined transcript as-is
-        if !combined.isEmpty { memo.transcriptStatus = .done }
+        // Transcribe the clip (no image markers on an append). `transcribe` itself
+        // awaits the model load, so stopping the append before the model was ready
+        // QUEUES here instead of failing; the retry loop covers real errors.
+        var result: TranscriptionResult?
+        let delays = appendRetryDelays.isEmpty ? [0] : appendRetryDelays
+        for delay in delays {
+            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+            if let attempt = try? await transcriber.transcribe(audioURL: clip, imageManifest: []) {
+                result = attempt
+                break
+            }
+        }
+
+        // Prefer the engine text; fall back to the live caption when the engine
+        // ran but heard nothing (e.g. its silence guard).
+        let engineText = (result?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackCaption = (liveCaption ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let newText = engineText.isEmpty ? fallbackCaption : (result?.text ?? "")
+        let newTimings = engineText.isEmpty ? [] : (result?.wordTimings ?? [])
+
+        guard let memo = repository.memo(id: memoID) else {
+            try? FileManager.default.removeItem(at: clip)
+            return
+        }
         memo.duration = mergedDuration
+
+        guard !newText.isEmpty else {
+            if result != nil {
+                // The engine ran and heard no speech (and no live caption either):
+                // an honest no-text append. The audio is merged; restore the prior
+                // status and consume the clip.
+                memo.transcriptStatus = priorStatus
+                try? FileManager.default.removeItem(at: clip)
+            } else {
+                // Transcription failed outright after retries — surface it (the
+                // memos list shows an Error pill) and KEEP the clip on disk as the
+                // retry source. transcriptUserEdited stays untouched, so an
+                // unedited memo can still be re-transcribed by the Mac (the
+                // appended speech is already merged into the audio).
+                memo.transcriptStatus = .failed
+            }
+            repository.save()
+            return
+        }
+
+        let existing = (memo.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        memo.transcript = existing.isEmpty ? newText : existing + "\n\n" + newText
+        memo.transcriptUserEdited = true   // Mac trusts the combined transcript as-is
+        memo.transcriptStatus = .done
 
         // Shift the new clip's word timings past the prior audio + append to the sidecar.
         if !newTimings.isEmpty {
@@ -287,6 +350,7 @@ struct MemoSaver {
             wordTimings.write((wordTimings.load(for: memoID) ?? []) + shifted, for: memoID)
         }
         repository.save()
+        try? FileManager.default.removeItem(at: clip)
     }
 
     /// Errors that make the audio merge fall back to keeping the base file.

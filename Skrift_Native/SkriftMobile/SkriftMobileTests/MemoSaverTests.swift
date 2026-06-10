@@ -66,6 +66,151 @@ final class MemoSaverTests: XCTestCase {
         XCTAssertEqual(memo?.transcriptUserEdited, true)
         XCTAssertEqual(memo?.transcriptStatus, .done)
         XCTAssertFalse(FileManager.default.fileExists(atPath: temp.path), "appended clip should be consumed")
+        XCTAssertTrue(keptAppendClips(for: id).isEmpty, "consumed clip must not linger in recordings")
+    }
+
+    // MARK: - Append robustness (2026-06-10 P0: "append silently adds NO text")
+
+    /// Cold/failed engine: the first transcription attempts throw — the append
+    /// must RETRY off the kept clip and land the text, never silently no-op.
+    @MainActor
+    func testAppendColdEngineRetriesAndLandsText() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = insertBaseMemo(into: repo)
+        let saver = makeAppendSaver(repo: repo,
+                                    transcriber: FlakyTranscriber(failures: 2, text: "second part"),
+                                    retryDelays: [0, 0, 0])
+        let temp = makeTempClip()
+
+        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.transcript, "first part\n\nsecond part")
+        XCTAssertEqual(memo?.transcriptStatus, .done)
+        XCTAssertEqual(memo?.transcriptUserEdited, true)
+        XCTAssertTrue(keptAppendClips(for: id).isEmpty, "clip should be consumed once its text landed")
+    }
+
+    /// Terminal failure: every attempt throws and there's no live caption. The
+    /// memo must SURFACE the failure (`.failed` → the list shows an Error pill),
+    /// KEEP the clip on disk as the retry source, and leave the transcript + the
+    /// userEdited flag untouched (so the Mac may still re-transcribe the merged audio).
+    @MainActor
+    func testAppendTerminalFailureSurfacesErrorAndKeepsClip() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = insertBaseMemo(into: repo)
+        let saver = makeAppendSaver(repo: repo,
+                                    transcriber: FlakyTranscriber(failures: .max, text: "never"),
+                                    retryDelays: [0, 0])
+        let temp = makeTempClip()
+
+        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.transcript, "first part", "a failed append must not alter the transcript")
+        XCTAssertEqual(memo?.transcriptStatus, .failed, "failure must surface, never a silent no-op")
+        XCTAssertEqual(memo?.transcriptUserEdited, false, "a failed append must not claim a user edit")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: temp.path), "temp clip should be moved, not left behind")
+        XCTAssertFalse(keptAppendClips(for: id).isEmpty, "a failed append must KEEP the clip as the retry source")
+        cleanupAppendClips(for: id)
+    }
+
+    /// The third user repro: append AFTER manually editing the body — the edited
+    /// text must be preserved and the new text appended after it.
+    @MainActor
+    func testAppendAfterManualEditLandsText() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = insertBaseMemo(into: repo, transcript: "edited by hand", userEdited: true)
+        let saver = makeAppendSaver(repo: repo, transcriber: SeededTranscriber(text: "appended bit"))
+        let temp = makeTempClip()
+
+        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.transcript, "edited by hand\n\nappended bit")
+        XCTAssertEqual(memo?.transcriptUserEdited, true)
+        XCTAssertEqual(memo?.transcriptStatus, .done)
+    }
+
+    /// The engine RAN but heard nothing (silence guard) and there's no caption:
+    /// an honest no-text append — prior status restored (not an error), clip consumed.
+    @MainActor
+    func testAppendSilentClipRestoresPriorStatus() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = insertBaseMemo(into: repo)
+        let saver = makeAppendSaver(repo: repo, transcriber: SeededTranscriber(text: ""))
+        let temp = makeTempClip()
+
+        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.transcript, "first part")
+        XCTAssertEqual(memo?.transcriptStatus, .done, "a silent clip is not an error")
+        XCTAssertTrue(keptAppendClips(for: id).isEmpty, "silent clip should be consumed")
+    }
+
+    /// Engine silent but the LIVE CAPTION had words → the caption text lands.
+    @MainActor
+    func testAppendFallsBackToLiveCaptionWhenEngineSilent() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = insertBaseMemo(into: repo)
+        let saver = makeAppendSaver(repo: repo, transcriber: SeededTranscriber(text: ""))
+        let temp = makeTempClip()
+
+        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2, liveCaption: "caption words")
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.transcript, "first part\n\ncaption words")
+        XCTAssertEqual(memo?.transcriptStatus, .done)
+    }
+
+    // MARK: - Append helpers
+
+    /// Insert a base memo (with placeholder audio on disk) the appends target.
+    @MainActor
+    private func insertBaseMemo(into repo: NotesRepository,
+                                transcript: String? = "first part",
+                                userEdited: Bool = false) -> UUID {
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+        FileManager.default.createFile(atPath: AppPaths.recordingsDirectory.appendingPathComponent(filename).path,
+                                       contents: Data("AUDIO".utf8))
+        repo.insert(Memo(id: id, audioFilename: filename, duration: 3, recordedAt: Date(),
+                         transcript: transcript, transcriptStatus: .done,
+                         transcriptConfidence: 0.9, transcriptUserEdited: userEdited))
+        return id
+    }
+
+    @MainActor
+    private func makeAppendSaver(repo: NotesRepository,
+                                 transcriber: any Transcriber,
+                                 retryDelays: [TimeInterval] = [0]) -> MemoSaver {
+        MemoSaver(
+            repository: repo,
+            transcriber: transcriber,
+            wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService(),
+            appendRetryDelays: retryDelays
+        )
+    }
+
+    private func makeTempClip() -> URL {
+        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("add_\(UUID().uuidString).m4a")
+        FileManager.default.createFile(atPath: temp.path, contents: Data("MORE".utf8))
+        return temp
+    }
+
+    /// Pending `append_<memoID>_*.m4a` clips kept in the recordings directory.
+    private func keptAppendClips(for id: UUID) -> [String] {
+        ((try? FileManager.default.contentsOfDirectory(atPath: AppPaths.recordingsDirectory.path)) ?? [])
+            .filter { $0.hasPrefix("append_\(id.uuidString)") }
+    }
+
+    private func cleanupAppendClips(for id: UUID) {
+        for name in keptAppendClips(for: id) {
+            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(name))
+        }
     }
 
     @MainActor
@@ -154,5 +299,31 @@ final class MemoSaverTests: XCTestCase {
         XCTAssertEqual(memo?.metadata?.dayPeriod, .morning)
         XCTAssertEqual(memo?.metadata?.imageManifest?.count, 1)         // photo manifest preserved
         XCTAssertTrue(memo?.transcript?.contains("[[img_001]]") ?? false)
+    }
+}
+
+/// Transcriber stub that throws for the first `failures` calls, then returns
+/// `text` — the cold/failed-engine shape the append retry loop must survive.
+private actor FlakyTranscriber: Transcriber {
+    struct NotReady: Error {}
+
+    private var failuresLeft: Int
+    private let text: String
+
+    init(failures: Int, text: String) {
+        self.failuresLeft = failures
+        self.text = text
+    }
+
+    func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult {
+        if failuresLeft > 0 {
+            failuresLeft -= 1
+            throw NotReady()
+        }
+        let timings = text.split(separator: " ").enumerated().map { index, word in
+            WordTiming(word: String(word), start: Double(index) * 0.3, end: Double(index) * 0.3 + 0.25)
+        }
+        return TranscriptionResult(text: text, confidence: 1.0, durationMs: 0,
+                                   wordTimings: timings, markersInjected: false)
     }
 }

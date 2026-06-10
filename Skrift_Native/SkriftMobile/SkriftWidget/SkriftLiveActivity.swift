@@ -17,32 +17,54 @@ private enum SK {
 /// Recording Live Activity (Lock Screen banner + Dynamic Island). Display-only in
 /// 8a — the whole surface deep-links to `skrift://record` to bring the app
 /// forward; the interactive Stop button (a `StopRecordingIntent`) arrives in 8b.
+///
+/// STALE state: the app refreshes the activity's `staleDate` while it's really
+/// recording (RecordingActivityManager keep-alive). When the process dies
+/// mid-recording nothing refreshes it, so instead of a zombie banner counting up
+/// forever ("recording · 45min" hours later), `context.isStale` flips the UI to
+/// a "Recording interrupted" fallback that asks you to open the app (which then
+/// sweeps the orphan).
 struct SkriftLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: RecordingActivityAttributes.self) { context in
-            lockScreen(context.state)
-                .activityBackgroundTint(SK.pill)
-                .activitySystemActionForegroundColor(.white)
-                .widgetURL(SK.recordURL)
+            Group {
+                if context.isStale {
+                    staleLockScreen
+                } else {
+                    lockScreen(context.state)
+                }
+            }
+            .activityBackgroundTint(SK.pill)
+            .activitySystemActionForegroundColor(.white)
+            .widgetURL(SK.recordURL)
         } dynamicIsland: { context in
+            let stale = context.isStale
             let paused = context.state.status == .paused
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
-                        Waveform(size: 16, paused: paused)
-                        Text(paused ? "Paused" : "Recording")
+                        Waveform(size: 16, paused: paused || stale)
+                        Text(stale ? "Interrupted" : (paused ? "Paused" : "Recording"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.85))
                     }
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    timer(context.state).font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    if stale {
+                        Text("Open Skrift")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.7))
+                    } else {
+                        timer(context.state).font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    stopButton(32)
+                    if !stale { stopButton(32) }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text(context.state.caption.isEmpty ? "Listening…" : context.state.caption)
+                    Text(stale
+                         ? "This recording is no longer running"
+                         : (context.state.caption.isEmpty ? "Listening…" : context.state.caption))
                         .font(.system(size: 12))
                         .foregroundStyle(.white.opacity(0.45))
                         .lineLimit(1)
@@ -50,15 +72,38 @@ struct SkriftLiveActivity: Widget {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } compactLeading: {
-                Waveform(size: 14, paused: paused)
+                Waveform(size: 14, paused: paused || stale)
             } compactTrailing: {
-                Circle().fill(paused ? SK.amber : SK.red).frame(width: 8, height: 8)
+                Circle().fill(stale || paused ? SK.amber : SK.red).frame(width: 8, height: 8)
             } minimal: {
-                Waveform(size: 14, paused: paused)
+                Waveform(size: 14, paused: paused || stale)
             }
             .keylineTint(SK.accent)
             .widgetURL(SK.recordURL)
         }
+    }
+
+    /// Shown when no content refresh has landed for the manager's stale window —
+    /// the app crashed / was killed / suspended mid-recording, so a live timer
+    /// would lie. Tapping deep-links into the app, which reaps the orphan banner.
+    private var staleLockScreen: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(SK.amber)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Recording interrupted")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                Text("Open Skrift to check your memo")
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 
     private func lockScreen(_ state: RecordingActivityAttributes.ContentState) -> some View {

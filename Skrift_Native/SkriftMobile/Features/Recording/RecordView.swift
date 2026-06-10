@@ -56,7 +56,7 @@ struct RecordView: View {
         .animation(Theme.Motion.spring, value: showCamera)
         .onAppear {
             camera.configure()
-            autoStartIfActive()
+            startIfActive()
         }
         // Cold launch (Record intent / Siri / widget): the auto-start MUST wait
         // until the app is foreground-`.active` — iOS blocks mic capture before
@@ -64,7 +64,7 @@ struct RecordView: View {
         // no-ops. `didBecomeActiveNotification` is the reliable signal on cold
         // launch (and avoids scenePhase not propagating into a fullScreenCover).
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            autoStartIfActive()
+            startIfActive()
         }
         .onDisappear { camera.stop() }
         .alert("Nothing recorded", isPresented: $emptyRecording) {
@@ -339,38 +339,33 @@ struct RecordView: View {
         dismiss()
     }
 
-    /// Auto-start for a Record intent / Siri / widget cold launch — only once the
-    /// app is foreground-`.active` (iOS blocks mic capture before then). Retries
-    /// briefly because Siri may still be releasing the audio session right after a
-    /// voice launch. Recording is independent of the model; the live caption
-    /// buffers + catches up once the model finishes loading.
-    /// Auto-start for a Record intent / Siri / widget. Hard-won on-device fixes:
+    /// INSTANT RECORD: every way into this screen — FAB, memo-detail "+" append,
+    /// Record intent / Siri / widget — starts recording the moment the screen is
+    /// up (no second tap on a "ready" screen; the model keeps loading in the
+    /// background and the caption catches up). Hard-won on-device rules, shared
+    /// with the old intent-only auto-start:
     /// 1. Gate on foreground-`.active` FIRST — iOS blocks mic capture before then
-    ///    (don't consume the pending start while inactive or it's wasted).
-    /// 2. Read the pending flag from the live bridge singleton (set at intent
-    ///    time) — a param passed through the fullScreenCover arrived stale on cold
-    ///    launch.
+    ///    (so a cold Siri launch waits for `didBecomeActiveNotification`).
+    /// 2. Read the pending-intent flag from the live bridge singleton (set at
+    ///    intent time) — a param passed through the fullScreenCover arrived stale
+    ///    on cold launch. A pending intent means Siri may still own the audio
+    ///    session, so that path gets a grace delay before contending for the mic.
     /// 3. NO haptic here — haptics share the audio session, and right after a Siri
     ///    launch Siri still owns it, so a haptic blocks the main actor and the
     ///    start Task never runs.
-    /// 4. Brief delay + retry: let Siri fully release the mic before we contend.
-    /// Recording is independent of the model; the live caption catches up once the
-    /// model loads.
-    private func autoStartIfActive() {
+    /// The retry loop itself lives in `LiveRecordingService.startRetrying`, owned
+    /// by the service so a dismissed recorder can't ghost-start a recording.
+    private func startIfActive() {
         guard !autoStarted, !service.isRecording,
               UIApplication.shared.applicationState == .active else { return }
-        guard intentBridge.consumePendingStart() else { return }
+        let viaIntent = intentBridge.consumePendingStart()
         autoStarted = true
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(700))
-            for _ in 0..<16 {
-                if service.isRecording { return }
-                do { try service.start(); return }
-                catch { try? await Task.sleep(for: .milliseconds(300)) }
-            }
-        }
+        photoMarks = []
+        service.startRetrying(siriGrace: viaIntent)
     }
 
+    /// Manual start — only reachable after an auto-started recording was stopped
+    /// as empty (the recorder stays up on the ready screen for a retry).
     private func startTapped() {
         Haptics.tap()
         photoMarks = []
@@ -449,7 +444,12 @@ private struct LiveCaption: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityIdentifier("caption-loading")
                 } else {
-                    (captionText + caret)
+                    // ONE Text over ONE AttributedString — constant view depth no
+                    // matter how long the recording runs. (The previous per-word
+                    // `Text + Text` chain made SwiftUI resolve thousands of nested
+                    // concatenations recursively → stack overflow / SIGSEGV in
+                    // ConcatenatedTextStorage.resolve on long recordings.)
+                    Text(caption)
                         .font(.system(size: 22, weight: .medium))
                         .lineSpacing(5)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -467,47 +467,55 @@ private struct LiveCaption: View {
 
     private var words: [String] { text.split(whereSeparator: { $0.isWhitespace }).map(String.init) }
 
-    /// Build the styled caption: solid finalized body + lighter trailing (volatile)
-    /// words + inline tinted `[photo N]` tokens at their captured word positions.
-    private var captionText: Text {
-        let w = words
-        let volatileStart = LiveCaptionLayout.volatileStart(wordCount: w.count, trailing: Self.volatileWordCount)
-        let marksByIndex = LiveCaptionLayout.marksByIndex(photoMarks, wordCount: w.count)
-
-        var out = Text("")
-        // Any markers anchored before the first word.
-        out = out + photoTokens(marksByIndex[0])
-        for (i, word) in w.enumerated() {
-            let color: Color = i < volatileStart ? .skText : .skTextDim
-            out = out + Text(word + " ").foregroundColor(color)
-            out = out + photoTokens(marksByIndex[i + 1])
+    /// The styled caption as a SINGLE AttributedString: solid finalized body +
+    /// lighter trailing (volatile) words + inline tinted `[photo N]` tokens at
+    /// their captured word positions + the accent caret. The run layout comes
+    /// from `LiveCaptionLayout.segments` (pure + unit-tested); this just maps
+    /// each segment style to its colour/font.
+    private var caption: AttributedString {
+        var out = AttributedString()
+        let segments = LiveCaptionLayout.segments(
+            words: words, photoMarks: photoMarks, trailing: Self.volatileWordCount
+        )
+        for segment in segments {
+            var run = AttributedString(segment.text)
+            switch segment.style {
+            case .solid:
+                run.foregroundColor = .skText
+            case .volatile:
+                run.foregroundColor = .skTextDim
+            case .photo:
+                // Distinct accent + size so it reads as a non-spoken annotation,
+                // not transcript text.
+                run.foregroundColor = .skAccentText
+                run.font = .system(size: 18, weight: .semibold)
+            }
+            out.append(run)
         }
+        var caret = AttributedString("▏")
+        caret.foregroundColor = .skAccent
+        out.append(caret)
         return out
-    }
-
-    /// A tinted `[photo N]` run for each marker at this position. Distinct accent so
-    /// it reads as a non-spoken annotation, not transcript text.
-    private func photoTokens(_ numbers: [Int]?) -> Text {
-        guard let numbers, !numbers.isEmpty else { return Text("") }
-        var out = Text("")
-        for n in numbers {
-            out = out + Text("[photo \(n)] ")
-                .foregroundColor(.skAccentText)
-                .font(.system(size: 18, weight: .semibold))
-        }
-        return out
-    }
-
-    private var caret: Text {
-        Text("▏").foregroundColor(.skAccent)
     }
 }
 
 /// Pure layout maths for the live caption — extracted so the volatile-word boundary
-/// (F3) and the photo-marker clamping (F4) are unit-testable without a view. Stale
-/// photo word-indices (the caption re-transcribes wholesale, so counts drift) are
-/// clamped into range here, never overshooting the current word count.
+/// (F3), the photo-marker clamping (F4), and the style-run flattening are
+/// unit-testable without a view. Stale photo word-indices (the caption
+/// re-transcribes wholesale, so counts drift) are clamped into range here, never
+/// overshooting the current word count.
 enum LiveCaptionLayout {
+    /// How one run of caption text renders: solid finalized body, lighter trailing
+    /// (volatile) words, or a tinted `[photo N]` annotation token.
+    enum Style: Equatable { case solid, volatile, photo }
+
+    /// One styled run of the caption. Adjacent words of the same style coalesce
+    /// into a single segment, so a long recording stays a handful of runs.
+    struct Segment: Equatable {
+        let text: String
+        let style: Style
+    }
+
     /// Index of the first "volatile" (lighter) word — the trailing `trailing` words.
     static func volatileStart(wordCount: Int, trailing: Int) -> Int {
         max(0, wordCount - trailing)
@@ -520,6 +528,40 @@ enum LiveCaptionLayout {
         for mark in marks {
             let idx = min(max(0, mark.wordIndex), wordCount)
             out[idx, default: []].append(mark.number)
+        }
+        return out
+    }
+
+    /// Flatten the caption into style runs: words (each with a trailing space)
+    /// coalesced per style, with `[photo N]` tokens spliced in at their clamped
+    /// word positions. The view renders these as AttributedString runs inside ONE
+    /// `Text`, keeping the view depth CONSTANT regardless of recording length —
+    /// the per-word `Text + Text` chain this replaces overflowed the stack
+    /// (SwiftUI resolves concatenated Text recursively) on long recordings.
+    static func segments(words: [String],
+                         photoMarks: [(wordIndex: Int, number: Int)],
+                         trailing: Int) -> [Segment] {
+        let firstVolatile = volatileStart(wordCount: words.count, trailing: trailing)
+        let marks = marksByIndex(photoMarks, wordCount: words.count)
+
+        var out: [Segment] = []
+        func appendWord(_ text: String, style: Style) {
+            if let last = out.last, last.style == style {
+                out[out.count - 1] = Segment(text: last.text + text, style: style)
+            } else {
+                out.append(Segment(text: text, style: style))
+            }
+        }
+        func appendMarks(at index: Int) {
+            for number in marks[index] ?? [] {
+                out.append(Segment(text: "[photo \(number)] ", style: .photo))
+            }
+        }
+
+        appendMarks(at: 0)   // markers anchored before the first word
+        for (i, word) in words.enumerated() {
+            appendWord(word + " ", style: i < firstVolatile ? .solid : .volatile)
+            appendMarks(at: i + 1)
         }
         return out
     }
