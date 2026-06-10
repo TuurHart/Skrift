@@ -3,6 +3,7 @@ import SwiftData
 import ImageIO
 import UniformTypeIdentifiers
 import AVFoundation
+import os
 
 /// Desktop-side ingest for locally-picked files/folders (the +Upload button and
 /// drag-drop). Mirrors `UploadService`'s on-disk layout — one `<id>_<filename>/`
@@ -11,6 +12,8 @@ import AVFoundation
 /// unit-tests host-less.
 struct IngestService: Sendable {
     var outputDir: URL = AppPaths.audioOutputDirectory
+
+    private static let log = Logger(subsystem: "com.skrift.desktop", category: "ingest")
 
     static let supportedAudio: Set<String> = ["m4a", "wav", "mp3", "mp4", "mov", "opus", "aac", "aiff", "caf"]
 
@@ -86,6 +89,17 @@ struct IngestService: Sendable {
 
         try Self.extractAudioSync(from: url, to: dest)
         let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
+
+        // One representative frame → `images/img_001.jpg` + `image_manifest.json`
+        // (offsetSeconds 0) — the same on-disk shape phone uploads write — so the
+        // existing `[[img_001]]` marker pipeline shows the frame in review and
+        // exports it. Mirrors the phone's video import (`MemoSaver.processVideo`).
+        // A failed grab never fails the ingest (the audio is the point) but is logged.
+        do {
+            try Self.writeVideoThumbnail(from: url, into: folder)
+        } catch {
+            Self.log.error("video thumbnail failed for \(filename, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
 
         // Embedded recording date from the ORIGINAL video (the extracted m4a may lose
         // it), then a filename date, then the file's creation date, then now.
@@ -163,7 +177,7 @@ struct IngestService: Sendable {
         return !asset.tracks(withMediaType: .video).isEmpty
     }
 
-    enum VideoIngestError: Error, Equatable { case noAudioTrack, exportFailed }
+    enum VideoIngestError: Error, Equatable { case noAudioTrack, exportFailed, thumbnailFailed }
 
     /// Strip `source`'s audio track into a standalone `.m4a` at `dest`, synchronously.
     /// Throws `noAudioTrack` for a silent clip and `exportFailed` on an export error.
@@ -195,6 +209,37 @@ struct IngestService: Sendable {
               FileManager.default.fileExists(atPath: dest.path) else {
             throw VideoIngestError.exportFailed
         }
+    }
+
+    /// Grab one representative frame (~1s in, or the midpoint for very short clips —
+    /// avoids a black opening frame; same pick as the phone's `representativeFrame`)
+    /// and write it as `images/img_001.jpg` plus a phone-shaped
+    /// `image_manifest.json` entry at offset 0, so the `[[img_001]]` marker pipeline
+    /// (insert at transcription, thumbnail in review, embed on export) just works.
+    static func writeVideoThumbnail(from source: URL, into folder: URL) throws {
+        let asset = AVURLAsset(url: source)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = CMTime(seconds: 1, preferredTimescale: 600)
+        generator.requestedTimeToleranceAfter = CMTime(seconds: 1, preferredTimescale: 600)
+        let duration = CMTimeGetSeconds(asset.duration)
+        let at = CMTime(seconds: min(1.0, max(0, duration / 2)), preferredTimescale: 600)
+        let frame = try generator.copyCGImage(at: at, actualTime: nil)
+
+        let imagesDir = folder.appendingPathComponent("images", isDirectory: true)
+        try FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
+        let name = "img_001.jpg"
+        let dest = imagesDir.appendingPathComponent(name)
+        guard let sink = CGImageDestinationCreateWithURL(dest as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
+            throw VideoIngestError.thumbnailFailed
+        }
+        CGImageDestinationAddImage(sink, frame, [kCGImageDestinationLossyCompressionQuality: 0.85] as CFDictionary)
+        guard CGImageDestinationFinalize(sink) else { throw VideoIngestError.thumbnailFailed }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted]
+        try encoder.encode([ImageManifestEntry(filename: name, offsetSeconds: 0)])
+            .write(to: folder.appendingPathComponent("image_manifest.json"))
     }
 
     /// The video's embedded RECORDING date (QuickTime `creationDate` / mp4

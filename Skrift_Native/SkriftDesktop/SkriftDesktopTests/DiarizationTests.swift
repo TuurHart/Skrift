@@ -214,6 +214,17 @@ final class DiarizationTests: XCTestCase {
         XCTAssertNil(sidecar.load(in: folder, id: "memo1"))
     }
 
+    func testSidecarWriteFailureIsNonFatal() {
+        // Writing into a folder that doesn't exist must not crash (it logs instead —
+        // the SwiftData copy still holds the segments). Deleting from it is a no-op.
+        let missing = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diar-missing-\(UUID().uuidString)", isDirectory: true)
+        let sidecar = DiarizationSidecar()
+        sidecar.write(DiarizationData(segments: [], slotNames: [:]), in: missing, id: "ghost")
+        XCTAssertNil(sidecar.load(in: missing, id: "ghost"))
+        sidecar.delete(in: missing, id: "ghost")
+    }
+
     func testRunPersistsSegmentsForLaterEnrollment() async throws {
         // After a conversation-mode Process, the speaker segments survive on the
         // PipelineFile AND as a `diar_<id>.json` sidecar in the working folder, so a

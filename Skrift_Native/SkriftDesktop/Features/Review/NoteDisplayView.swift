@@ -61,7 +61,9 @@ struct NoteDisplayView: View {
                 InlineResolverBanner(model: resolver)
             }
             NoteProperties(file: file, author: author, interactive: scrollable)
-            if let summary = file.enhancedSummary, !summary.isEmpty {
+            if scrollable, file.enhancedSummary != nil {
+                summaryEditor(file)
+            } else if let summary = file.enhancedSummary, !summary.isEmpty {
                 summaryAside(summary)
             }
             NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias, resolver: scrollable ? resolver : nil)
@@ -177,6 +179,30 @@ struct NoteDisplayView: View {
         coordinator.flash("Added “\(alias)” as an alias of \(name)")
     }
 
+    /// The LLM summary, editable in place like the title/body (it was the one
+    /// read-only field on the review screen). Edits write straight to
+    /// `enhancedSummary` (SwiftData autosaves), and export picks them up because
+    /// `VaultExporter` recompiles from the file at export time. Gated on `!= nil`
+    /// (not non-empty) so clearing the text mid-edit doesn't dismiss the field.
+    private func summaryEditor(_ file: PipelineFile) -> some View {
+        TextField("", text: Binding(
+            get: { file.enhancedSummary ?? "" },
+            set: { file.enhancedSummary = $0 }
+        ), prompt: Text("Summary").foregroundStyle(Theme.textMuted), axis: .vertical)
+            .textFieldStyle(.plain)
+            .font(.system(size: 13.5))
+            .italic()
+            .lineSpacing(3)
+            .foregroundStyle(Theme.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 14)
+            .overlay(alignment: .leading) {
+                Rectangle().fill(Theme.accent.opacity(0.4)).frame(width: 2)
+            }
+    }
+
+    /// Read-only summary for the snapshot path (ImageRenderer can't draw
+    /// AppKit-backed TextFields — same split as NoteProperties).
     private func summaryAside(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 13.5))
