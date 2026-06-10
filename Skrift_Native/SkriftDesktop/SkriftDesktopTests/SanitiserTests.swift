@@ -150,4 +150,65 @@ final class SanitiserTests: XCTestCase {
         let out = Sanitiser.applyResolvedOccurrences(text: body, byAlias: ["Jack": ordered])
         XCTAssertEqual(out, "Met Jack, later [[Jack Timmons]].")
     }
+
+    // MARK: First-mention-only when the input ALREADY carries links (the 2026-06-10
+    // "brackets on every mention" bug — Mac-diarized conversations arrive with
+    // `**[[Person]]:**` on EVERY turn header)
+
+    func testConversationTurnHeadersKeepOnlyFirstLink() {
+        let people = [person("[[Nick Jansen]]", ["Nicky"], short: "Nick")]
+        let text = """
+        **[[Nick Jansen]]:** hello there
+
+        **Speaker 2:** hi Nicky
+
+        **[[Nick Jansen]]:** how are you
+        """
+        let r = Sanitiser.process(text: text, people: people)
+        XCTAssertEqual(r.sanitised, """
+        **[[Nick Jansen]]:** hello there
+
+        **Speaker 2:** hi Nick
+
+        **Nick:** how are you
+        """)
+        // Exactly ONE link survives.
+        XCTAssertEqual(r.sanitised.components(separatedBy: "[[Nick Jansen]]").count - 1, 1)
+    }
+
+    func testExistingLinkSuppressesSecondLink() {
+        // The body already introduces the person — a later plain alias becomes the
+        // short name, NOT another [[link]].
+        let people = [person("[[Nick Jansen]]", ["Nicky"], short: "Nick")]
+        let r = Sanitiser.process(text: "[[Nick Jansen]] is here. Nicky waves.", people: people)
+        XCTAssertEqual(r.sanitised, "[[Nick Jansen]] is here. Nick waves.")
+    }
+
+    func testRepeatedNonPersonLinksUntouched() {
+        // Repeated links that aren't people (image markers, place links) never demote.
+        let people = [person("[[Nick Jansen]]", ["Nicky"], short: "Nick")]
+        let text = "[[img_001]] then [[img_001]] at [[Hotel Du Vin]] and [[Hotel Du Vin]]."
+        XCTAssertEqual(Sanitiser.process(text: text, people: people).sanitised, text)
+    }
+
+    func testApplyResolvedNamesRespectsExistingLink() {
+        // Resolving an ambiguous alias to a person the body ALREADY links → every
+        // plain mention is a later mention (short name), no second link.
+        let out = Sanitiser.applyResolvedNames(
+            text: "I saw Sam today. [[Sam Smith]] left early.",
+            decisions: [(alias: "Sam", canonical: "[[Sam Smith]]", short: "Sammy")]
+        )
+        XCTAssertEqual(out, "I saw Sammy today. [[Sam Smith]] left early.")
+    }
+
+    func testApplyResolvedOccurrencesSeededByExistingLink() {
+        // A turn header already links the person — the per-occurrence apply must not
+        // introduce a second link for the in-text mention.
+        let out = Sanitiser.applyResolvedOccurrences(
+            text: "**[[Jack Hutton]]:** hi\n\nMet Jack later.",
+            byAlias: ["Jack": [(canonical: "[[Jack Hutton]]", short: "Jack")]]
+        )
+        XCTAssertEqual(out, "**[[Jack Hutton]]:** hi\n\nMet Jack later.")
+        XCTAssertEqual(out.components(separatedBy: "[[Jack Hutton]]").count - 1, 1)
+    }
 }

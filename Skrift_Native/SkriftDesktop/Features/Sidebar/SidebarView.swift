@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AppKit
+import os
 
 /// The ingest queue / worklist. Organized around the daily loop:
 /// memos arrive → Process the pile → review what's Ready → Export.
@@ -37,6 +38,12 @@ struct SidebarView: View {
             Rectangle().fill(Theme.hairline.opacity(0.07)).frame(width: 0.5)
         }
         .dropDestination(for: URL.self) { urls, _ in ingest(urls); return true } isTargeted: { dragOver = $0 }
+        // Photos (and Mail/Safari) drag PROMISED files, not real URLs — the URL
+        // dropDestination above never fires for those, so dragging straight from the
+        // Photos app silently did nothing. This AppKit catcher registers ONLY for
+        // file-promise types (Finder's plain-URL drags keep taking the SwiftUI path),
+        // receives the promised files into a temp folder, and ingests the real URLs.
+        .overlay { FilePromiseDropCatcher(isTargeted: $dragOver) { ingest($0) } }
         .overlay {
             if dragOver {
                 RoundedRectangle(cornerRadius: 10)
@@ -455,6 +462,128 @@ struct SidebarView: View {
     private func copyText(_ s: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(s, forType: .string)
+    }
+}
+
+// ── Promised-file drop (drag from Photos / Mail / Safari) ───
+/// Bridges AppKit file-promise drags into the SwiftUI sidebar. Registered ONLY for
+/// `NSFilePromiseReceiver` types, so plain Finder URL drags fall through to the
+/// SwiftUI `.dropDestination` underneath (this view would win the drag-destination
+/// search otherwise, being the deeper registered view). Click-through for normal
+/// mouse events: `hitTest` returns nil — drag routing matches on registered dragged
+/// types, not on `hitTest`.
+private struct FilePromiseDropCatcher: NSViewRepresentable {
+    @Binding var isTargeted: Bool
+    var onDrop: ([URL]) -> Void
+
+    func makeNSView(context: Context) -> PromiseDropView {
+        let view = PromiseDropView()
+        update(view)
+        return view
+    }
+
+    func updateNSView(_ view: PromiseDropView, context: Context) { update(view) }
+
+    private func update(_ view: PromiseDropView) {
+        view.onTargeted = { isTargeted = $0 }
+        view.onDrop = onDrop
+    }
+}
+
+final class PromiseDropView: NSView {
+    var onTargeted: (Bool) -> Void = { _ in }
+    var onDrop: ([URL]) -> Void = { _ in }
+
+    private static let log = Logger(subsystem: "com.skrift.desktop", category: "ingest")
+    /// Serial queue the promises write their files on (Apple's recommended shape).
+    private static let promiseQueue: OperationQueue = {
+        let q = OperationQueue()
+        q.maxConcurrentOperationCount = 1
+        return q
+    }()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        registerPromiseTypes()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        registerPromiseTypes()
+    }
+
+    private func registerPromiseTypes() {
+        registerForDraggedTypes(NSFilePromiseReceiver.readableDraggedTypes.map { NSPasteboard.PasteboardType($0) })
+    }
+
+    /// Click-through: normal mouse events pass to the SwiftUI content below.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        onTargeted(true)
+        return .copy
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) { onTargeted(false) }
+    override func draggingEnded(_ sender: NSDraggingInfo) { onTargeted(false) }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let pb = sender.draggingPasteboard
+        let promises = (pb.readObjects(forClasses: [NSFilePromiseReceiver.self]) as? [NSFilePromiseReceiver]) ?? []
+        if !promises.isEmpty {
+            receive(promises)
+            return true
+        }
+        // Promise types matched but no receiver materialized — fall back to any real
+        // file URLs on the pasteboard rather than dropping the drag on the floor.
+        let urls = (pb.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
+        guard !urls.isEmpty else {
+            Self.log.warning("promise drop had no receivers and no file URLs")
+            return false
+        }
+        onDrop(urls)
+        return true
+    }
+
+    /// Ask each promise to write its file(s) into a fresh temp folder, then hand the
+    /// resolved URLs to `onDrop` on main. `IngestService` COPIES into its own working
+    /// folders, so the temp folder is removed right after.
+    private func receive(_ promises: [NSFilePromiseReceiver]) {
+        let dest = FileManager.default.temporaryDirectory
+            .appendingPathComponent("skrift-drop-\(UUID().uuidString)", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        } catch {
+            Self.log.error("promise drop temp dir failed: \(String(describing: error), privacy: .public)")
+            return
+        }
+        let group = DispatchGroup()
+        let lock = NSLock()
+        var received: [URL] = []
+        for promise in promises {
+            // A receiver can carry several files; the reader runs once per file. Track
+            // a clamped per-promise count so an extra callback can't over-leave.
+            var remaining = max(1, promise.fileNames.count)
+            for _ in 0..<remaining { group.enter() }
+            promise.receivePromisedFiles(atDestination: dest, options: [:], operationQueue: Self.promiseQueue) { url, error in
+                lock.lock()
+                let counted = remaining > 0
+                if counted { remaining -= 1 }
+                if let error {
+                    Self.log.error("promised file failed: \(String(describing: error), privacy: .public)")
+                } else {
+                    received.append(url)
+                }
+                lock.unlock()
+                if counted { group.leave() }
+            }
+        }
+        let deliver = onDrop   // capture the handler as of drop time
+        group.notify(queue: .main) {
+            let urls = received.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+            if !urls.isEmpty { deliver(urls) }
+            try? FileManager.default.removeItem(at: dest)   // ingest copied; temp done
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// A memo's diarization, persisted as a per-file sidecar (`diar_<id>.json`) inside the
 /// working folder, next to `original.<ext>` / `word_timings` / `images/`. Byte-mirrors the
@@ -33,6 +34,11 @@ struct DiarizationData: Codable, Equatable {
 /// Reads/writes `diar_<id>.json` sidecars in a working folder. Mirrors the phone's
 /// `DiarizationStore`, but keyed by the PipelineFile id (which the on-disk folder embeds).
 struct DiarizationSidecar {
+    /// Sidecar I/O failures show up in Console.app / `log stream --predicate
+    /// 'subsystem == "com.skrift.desktop"'` — a silent write failure here would
+    /// quietly cost the portable copy of the segments.
+    private static let log = Logger(subsystem: "com.skrift.desktop", category: "diarization")
+
     private func url(in folder: URL, id: String) -> URL {
         folder.appendingPathComponent("diar_\(id).json")
     }
@@ -44,7 +50,13 @@ struct DiarizationSidecar {
     }
 
     func write(_ data: DiarizationData, in folder: URL, id: String) {
-        try? JSONEncoder().encode(data).write(to: url(in: folder, id: id))
+        do {
+            try JSONEncoder().encode(data).write(to: url(in: folder, id: id))
+        } catch {
+            // Not fatal — the SwiftData copy (pf.diarizationSegments) still holds the
+            // segments — but never silent: the sidecar is the portability/enroll copy.
+            Self.log.error("diar sidecar write failed for \(id, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
     }
 
     func load(in folder: URL, id: String) -> DiarizationData? {
@@ -53,6 +65,12 @@ struct DiarizationSidecar {
     }
 
     func delete(in folder: URL, id: String) {
-        try? FileManager.default.removeItem(at: url(in: folder, id: id))
+        let target = url(in: folder, id: id)
+        guard FileManager.default.fileExists(atPath: target.path) else { return }   // nothing to delete
+        do {
+            try FileManager.default.removeItem(at: target)
+        } catch {
+            Self.log.error("diar sidecar delete failed for \(id, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
     }
 }

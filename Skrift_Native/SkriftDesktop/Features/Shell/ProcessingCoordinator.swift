@@ -149,7 +149,8 @@ final class ProcessingCoordinator {
                 && FileManager.default.fileExists(atPath: pf.path)
             let audioURL = hasAudio ? URL(fileURLWithPath: pf.path) : nil
             do {
-                try await runner.run(pf, audioURL: audioURL)
+                try await runner.run(pf, audioURL: audioURL,
+                                     imageManifest: hasAudio ? Self.imageManifest(for: pf.path) : [])
                 if pf.sanitised != nil { pf.sanitiseStatus = .done }
                 pf.error = nil
                 pf.lastActivityAt = Date()
@@ -162,6 +163,17 @@ final class ProcessingCoordinator {
             try? context.save()
             runState?.done += 1
         }
+    }
+
+    /// The per-file `image_manifest.json` next to the audio (written by phone uploads
+    /// and by video ingest) — fed to the transcriber so `[[img_NNN]]` markers land in
+    /// the transcript at the right words. Empty when absent/unreadable (no images).
+    private static func imageManifest(for path: String) -> [ImageManifestEntry] {
+        guard !path.isEmpty else { return [] }
+        let url = URL(fileURLWithPath: path).deletingLastPathComponent()
+            .appendingPathComponent("image_manifest.json")
+        guard let data = try? Data(contentsOf: url) else { return [] }
+        return (try? JSONDecoder().decode([ImageManifestEntry].self, from: data)) ?? []
     }
 
     /// After the queue is idle for `idleUnloadDelay`, free the ASR + LLM weights so
@@ -212,11 +224,29 @@ final class ProcessingCoordinator {
     // ── ⋯ overflow actions: re-transcribe + per-step redo ──
     enum RedoStep { case title, copyEdit, summary }
 
-    /// Re-run the whole pipeline on one file (re-transcribe → re-enhance).
+    /// Re-run the whole pipeline on one file (re-transcribe → re-enhance). Clears
+    /// every derivative of the OLD transcript first — word timings, diarization
+    /// segments (+ the `diar_<id>.json` sidecar), sanitised body, ambiguous names,
+    /// copy-edit/summary/suggested-title, compiled draft — so a re-run can't mix
+    /// stale state with the fresh transcript. (Stale diarization segments fed wrong
+    /// voice-enrollment slices; a stale sanitised body kept showing the OLD text
+    /// when a fresh run failed midway.)
     func retranscribe(_ pf: PipelineFile, context: ModelContext) async {
         guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
         pf.transcript = nil
+        pf.wordTimings = []
+        pf.diarizationSegments = []
+        if !pf.path.isEmpty {
+            DiarizationSidecar().delete(in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
+        }
+        pf.sanitised = nil
+        pf.ambiguousNames = nil
+        pf.enhancedCopyedit = nil
+        pf.enhancedSummary = nil
+        pf.titleSuggested = nil
+        pf.compiledText = nil
         pf.transcribeStatus = .pending
+        pf.sanitiseStatus = .pending
         pf.enhanceStatus = .pending
         pf.error = nil
         try? context.save()

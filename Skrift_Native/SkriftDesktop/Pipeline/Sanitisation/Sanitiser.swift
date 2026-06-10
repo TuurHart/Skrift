@@ -7,6 +7,13 @@ import Foundation
 /// host-tests without a backend. Ported from `backend/services/sanitisation.py`.
 /// Fixed settings match DEFAULT_SETTINGS.sanitisation (whole_word, mode=first,
 /// avoid_inside_links, preserve_possessive, wiki style).
+///
+/// First-mention-only holds even when the INPUT already carries canonical links:
+/// Mac-diarized conversations arrive with `**[[Person]]:**` on EVERY turn header
+/// (the 2026-06-10 "brackets on every mention" bug) — the earliest existing link
+/// counts as the first mention, every later copy is demoted to the short name, and
+/// no new link is introduced for that person. Only links matching a known person's
+/// canonical are touched (`[[img_NNN]]` markers / place links pass through).
 enum Sanitiser {
     struct Result: Equatable, Sendable {
         let sanitised: String
@@ -63,17 +70,27 @@ enum Sanitiser {
             let short = shortName(for: p)
             let patterns = aliases.compactMap { wordRegex($0) }
 
-            // First eligible occurrence across the person's aliases → the link.
-            var earliest: (range: NSRange, poss: String)?
-            for rx in patterns {
-                guard let m = rx.firstMatch(in: text, range: fullRange(text)) else { continue }
-                if avoidInside && !notInsideLink(text, m.range.location) { continue }
-                if earliest == nil || m.range.location < earliest!.range.location {
-                    earliest = (m.range, possText(m, in: text))
+            // When the text ALREADY carries this person's canonical link (e.g. every
+            // diarized turn header), that earliest link IS the first mention: demote
+            // the later copies to the short name and add no new link. Otherwise the
+            // first eligible occurrence across the person's aliases becomes the link.
+            let existingLinks = occurrences(of: linkText, in: text)
+            if existingLinks.isEmpty {
+                var earliest: (range: NSRange, poss: String)?
+                for rx in patterns {
+                    guard let m = rx.firstMatch(in: text, range: fullRange(text)) else { continue }
+                    if avoidInside && !notInsideLink(text, m.range.location) { continue }
+                    if earliest == nil || m.range.location < earliest!.range.location {
+                        earliest = (m.range, possText(m, in: text))
+                    }
+                }
+                guard let first = earliest else { continue }
+                text = nsReplace(text, first.range, with: linkText + first.poss)
+            } else if !short.isEmpty {
+                for r in existingLinks.dropFirst().reversed() {
+                    text = nsReplace(text, r, with: short)
                 }
             }
-            guard let first = earliest else { continue }
-            text = nsReplace(text, first.range, with: linkText + first.poss)
 
             // Remaining mentions of any alias → the short name (skip inside links).
             guard !short.isEmpty else { continue }
@@ -107,8 +124,11 @@ enum Sanitiser {
             let eligible = rx.matches(in: text, range: fullRange(text))
                 .filter { !avoidInside || notInsideLink(text, $0.range.location) }
             guard !eligible.isEmpty else { continue }
+            // The body may already carry the canonical link (turn headers / a
+            // pre-linked mention) — then every plain occurrence is a LATER mention.
+            let alreadyLinked = !occurrences(of: linkText, in: text).isEmpty
             for (i, m) in eligible.enumerated().reversed() {
-                let replacement = (i == 0 ? linkText : short) + possText(m, in: text)
+                let replacement = ((i == 0 && !alreadyLinked) ? linkText : short) + possText(m, in: text)
                 text = nsReplace(text, m.range, with: replacement)
             }
         }
@@ -142,7 +162,9 @@ enum Sanitiser {
                 let core = NamesMerge.keyName(linkText)
                 let short = (choices[i].short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
                     ?? (core.split(separator: " ").first.map(String.init) ?? a)
-                let isFirst = !introduced.contains(core)
+                // A canonical the body already links (e.g. a turn header) counts as
+                // introduced — its plain mentions all get the short name.
+                let isFirst = !introduced.contains(core) && occurrences(of: linkText, in: text).isEmpty
                 introduced.insert(core)
                 replacements.append((m.range, (isFirst ? linkText : short) + possText(m, in: text)))
             }
@@ -188,6 +210,22 @@ enum Sanitiser {
         let r = m.range(withName: "poss")
         guard r.location != NSNotFound, r.length > 0 else { return "" }
         return nsSub(text, r.location, r.location + r.length)
+    }
+
+    /// Literal occurrences of `needle` in `text` (ascending NSRanges) — used to spot
+    /// canonical links the text already carries.
+    private static func occurrences(of needle: String, in text: String) -> [NSRange] {
+        guard !needle.isEmpty else { return [] }
+        let ns = text as NSString
+        var out: [NSRange] = []
+        var from = 0
+        while from < ns.length {
+            let r = ns.range(of: needle, options: [], range: NSRange(location: from, length: ns.length - from))
+            if r.location == NSNotFound { break }
+            out.append(r)
+            from = r.location + r.length
+        }
+        return out
     }
 
     private static func notInsideLink(_ s: String, _ start: Int) -> Bool {

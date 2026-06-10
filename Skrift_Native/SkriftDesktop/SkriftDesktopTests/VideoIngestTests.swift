@@ -125,6 +125,38 @@ final class VideoIngestTests: XCTestCase {
         XCTAssertEqual(pf.uploadedAt.timeIntervalSince1970, embedded.timeIntervalSince1970, accuracy: 1.0)
     }
 
+    func testIngestVideoWritesThumbnailAndManifest() throws {
+        // Video ingest grabs ONE representative frame into `images/img_001.jpg` and
+        // writes a phone-shaped `image_manifest.json` (offset 0) — so the existing
+        // [[img_001]] marker pipeline renders + exports the frame.
+        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let videoURL = work.appendingPathComponent("clip.mov")
+        try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true)
+
+        let ctx = try makeContext()
+        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+            .ingest(localURLs: [videoURL], into: ctx)
+        let pf = try XCTUnwrap(created.first)
+        let folder = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
+
+        let thumb = folder.appendingPathComponent("images").appendingPathComponent("img_001.jpg")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: thumb.path), "representative frame missing")
+
+        let manifestData = try Data(contentsOf: folder.appendingPathComponent("image_manifest.json"))
+        let entries = try JSONDecoder().decode([ImageManifestEntry].self, from: manifestData)
+        XCTAssertEqual(entries, [ImageManifestEntry(filename: "img_001.jpg", offsetSeconds: 0)])
+    }
+
+    func testThumbnailFailureDoesNotFailIngest() throws {
+        // A video whose frame can't be grabbed still ingests its audio (the thumbnail
+        // is best-effort and logged) — exercised via the helper on a non-video file.
+        let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
+        let audioURL = work.appendingPathComponent("voice.m4a")
+        try makeSilentAudioFile(at: audioURL, seconds: 1.0)
+        XCTAssertThrowsError(try IngestService.writeVideoThumbnail(from: audioURL, into: work))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: work.appendingPathComponent("image_manifest.json").path))
+    }
+
     // MARK: - Synthetic media generators
 
     /// Write a short silent AAC-in-m4a file (audio track only) so detection/extraction
