@@ -26,28 +26,21 @@ final class RecordingUITests: XCTestCase {
             "Memos root never appeared"
         )
 
-        // Open the recorder.
+        // Open the recorder — INSTANT RECORD: recording auto-starts on open (the
+        // "ready" screen is only a transient/fallback state now), so the pause
+        // control must appear WITHOUT tapping the record button.
         let newRecording = app.buttons["new-recording-button"]
         XCTAssertTrue(newRecording.waitForExistence(timeout: 5))
         newRecording.tap()
 
-        // Start → (mock timer runs) → stop.
         let recordButton = app.buttons["record-button"]
         XCTAssertTrue(recordButton.waitForExistence(timeout: 5))
-
-        // Ready state shows the captured context chip + an honest model status
-        // (the sim has no model, so it reads "not downloaded").
-        XCTAssertTrue(app.staticTexts["Afternoon"].waitForExistence(timeout: 5),
-                      "ready-state context chip missing")
-        XCTAssertTrue(app.staticTexts["Transcription model not downloaded"].exists,
-                      "ready-state model status not wired")
-
-        let readyShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        readyShot.name = "record-ready"; readyShot.lifetime = .keepAlways; add(readyShot)
-
-        recordButton.tap()
         XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5),
-                      "Pause control didn't appear — recording didn't start")
+                      "Pause control didn't appear — instant record didn't auto-start")
+
+        let recordingShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        recordingShot.name = "record-instant"; recordingShot.lifetime = .keepAlways; add(recordingShot)
+
         Thread.sleep(forTimeInterval: 0.6)
         recordButton.tap()   // stop → save → dismiss
 
@@ -78,13 +71,14 @@ final class RecordingUITests: XCTestCase {
         XCTAssertTrue(newRecording.waitForExistence(timeout: 15))
         newRecording.tap()
 
+        // INSTANT RECORD: the recorder auto-starts on open — no start tap.
         let recordButton = app.buttons["record-button"]
         XCTAssertTrue(recordButton.waitForExistence(timeout: 5))
-        recordButton.tap()   // start
 
         // Let the mock caption reveal a few words, then capture the caption-first
         // recording screen.
-        _ = app.buttons["pause-button"].waitForExistence(timeout: 5)
+        XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5),
+                      "instant record didn't auto-start")
         Thread.sleep(forTimeInterval: 1.2)
         let recShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         recShot.name = "rec-recording-caption"

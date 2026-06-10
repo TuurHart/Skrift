@@ -121,7 +121,7 @@ final class ConversationMockUITests: XCTestCase {
         app.launch()
         app.buttons["new-recording-button"].tap()
         let record = app.buttons["record-button"]
-        XCTAssertTrue(record.waitForExistence(timeout: 5)); record.tap()
+        XCTAssertTrue(record.waitForExistence(timeout: 5))   // instant record: auto-starts
         XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.6)
         record.tap()   // stop → save → detail (PLAIN transcript)
@@ -146,7 +146,7 @@ final class ConversationMockUITests: XCTestCase {
         app.launch()
         app.buttons["new-recording-button"].tap()
         let record = app.buttons["record-button"]
-        XCTAssertTrue(record.waitForExistence(timeout: 5)); record.tap()
+        XCTAssertTrue(record.waitForExistence(timeout: 5))   // instant record: auto-starts
         XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.6)
         record.tap()
