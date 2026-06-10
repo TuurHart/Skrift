@@ -162,6 +162,69 @@ diarization-segment persistence) — see `FEATURES.md`. Remaining threads it ope
 - **Inverted-color dev app ICON** (both apps) so dev is unmistakable by icon (not just name).
   ✅ DONE same day (Debug → `AppIcon-Dev`, RGB-inverted; both apps).
 
+## Device-testing feedback — 2026-06-10 (12 memos + feedback note pulled off the dev phone)
+User ran the full TESTING_2026-06-09.md pass. Transcripts pulled via `devicectl` from the dev container;
+crash logs via `idevicecrashreport`. **PASSED:** title-on-rows ✓, sig-0-no-pill ✓, + append button exists ✓,
+keyboard-dismiss ✓, inline photos ✓, caption scrollback ✓, video date ✓, desktop video ingest (via Finder) ✓,
+glass bar acceptable ✓.
+
+### P0 — fix before promoting to prod
+1. **CRASH mid-recording (3× today, one recording LOST).** All three .ips identical: SIGSEGV "stack size
+   exceeded due to excessive recursion" in SwiftUI `ConcatenatedTextStorage.resolve` — the live caption is
+   built as per-word concatenated `Text` runs (solid+volatile+photo tokens), so a long recording → thousands-
+   deep `Text + Text` chain → stack overflow. Fix: build ONE `AttributedString` and render a single
+   `Text(attributedString)` (constant depth). Crash files: `/tmp/skrift-crashes/SkriftMobile-2026-06-10-*.ips`.
+2. **Append silently adds NO text** (2× repro). Stopped the append recording before the ASR model loaded →
+   transcriber yields nothing → falls back to live caption (also empty, model not loaded) → silent no-op
+   (`MemoSaver.appendRecordingAsync`). Audio IS merged but no text, no error. Fix: never silently no-op —
+   queue transcription for when the model is ready (status `.transcribing`) + surface failures. Same class
+   of bug reported earlier: append after manually editing the body appeared to add nothing.
+3. **Tail of recording cut off after Stop** (BOTH dev + prod, intermittent): live caption had the full text,
+   then the final one-shot file transcription replaced it WITHOUT the last bit. Likely a race: final
+   transcribe reads the file before the writer flushes the last buffers, or stop truncates. Investigate
+   `LiveRecordingService.stop` → final transcribe ordering. "This shit needs to be very robust."
+4. **Live Activity doesn't end**: lock screen still showed "recording, 45min" long after stop+save. End/
+   dismiss the activity reliably on stop (and on app foreground if stale).
+
+### P1 — bugs (post-promotion ok)
+- **Confidence colors wrong in practice**: "white text is supposed to be non-changing but it also changes" —
+  the positional approximation visibly fails (re-transcription rewrites the 'solid' body too). Either find a
+  real finalized signal or drop/soften the distinction.
+- **Opening a memo stops Spotify**: audio session activates on note open (player setup) instead of on Play.
+  Use `.ambient`/don't activate until playback; respect `.mixWithOthers` when idle.
+- **Paste into note body teleports scroll to top** (mobile editor) — keep scroll position after paste.
+- **Share-a-video from Photos doesn't list Skrift** (mobile): document types alone don't surface the app for
+  videos in the share sheet — likely needs a share extension or different UTI handling. (Photos→file works.)
+- **Desktop: drag direct from Photos app doesn't ingest** (works via Finder) — Photos drags provide promised
+  file/`NSItemProvider`, not a file URL; accept promised files in the drop handler.
+- **Desktop: no thumbnail on video ingest** — mobile attaches a frame as `[[img_001]]`; desktop `ingestVideo`
+  doesn't. Add frame-grab on the Mac too.
+- **Desktop: summary not editable** in review.
+- **Desktop: name-linking brackets EVERY mention** (user expects `[[Name]]` first mention only, alias after —
+  the Sanitiser's design intent; verify what produced all-bracket output, possibly the conversation-turn
+  headers or a regression).
+- **`SkriftMobile.diskwrites_resource-2026-06-10-221621.ips`** — disk-writes resource warning; check what's
+  writing heavily (likely model download or audio writes).
+
+### P2 — feature requests from testing
+- **Instant record**: tapping record (or + append) should START RECORDING IMMEDIATELY — no record-ready
+  screen stop; model loads in background (it already catches up).
+- **Feedback rework**: not email — user wants Claude to read feedback directly off the phone (PROVEN possible
+  today via devicectl pull) or append to backlog.md. Plus: floating/shake-to-feedback affordance w/ screenshot
+  (Henry's idea), not while recording.
+- **Copy-transcript button on each memo row** (today: open → ⋯ → copy). Multiple paths to the same action.
+- **Auto-copy transcript to clipboard after transcription** (cheap backup against data loss).
+- **Custom vocabulary / word boosting** ("Skrift" mis-recognized; FluidAudio CTC boosting exists per memory).
+- **Trash with ~2-week retention** instead of permanent delete (like Apple Voice Memos).
+- **Front camera option** for in-recording photo capture (selfie).
+- **Click a `[[name]]` to revert to alias** (desktop review): popup like the disambiguator with "unlink".
+- **Audiobook quote capture** (BIG idea, design doc needed): mark in/out while listening (in-app audiobook
+  player or lock-screen scrubber), transcribe the marked span snapped to sentence boundaries, insert as a
+  quote block (chapter/book/author metadata) + space for own rambling below. Inspiration: Bound audiobooks
+  app (loads files from iCloud/Files). Possibly later: link to existing notes.
+- **Significance-gated "wall" pipeline**: notes above a significance threshold require a manual refine pass
+  (desktop gate: can't export to Obsidian until refined) → then export + send to printer for the physical wall.
+
 ## Audit findings (2026-06-09 post-batch error sweep — triaged, verified against code)
 Two read-only agents swept both apps after the batch; orchestrator verified each claim before listing.
 None are release blockers; fix in a follow-up pass.
