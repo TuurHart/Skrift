@@ -20,8 +20,12 @@ struct TranscriptEditor: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(memo: memo, onCommit: onCommit, width: contentWidth) }
 
     func makeUIView(context: Context) -> UITextView {
-        let tv = UITextView()
+        let tv = NonScrollingTextView()
         tv.isScrollEnabled = false                 // self-size inside the SwiftUI ScrollView
+        // No safe-area inset adjustment: the view is mid-scroll-content and never
+        // scrolls itself, so its rest contentOffset is always exactly .zero (which
+        // NonScrollingTextView pins it to).
+        tv.contentInsetAdjustmentBehavior = .never
         tv.backgroundColor = .clear
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
@@ -41,7 +45,10 @@ struct TranscriptEditor: UIViewRepresentable {
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
-        let w = proposal.width ?? contentWidth
+        // Clamp degenerate probe widths (0 / tiny) like contentWidth does — measuring a
+        // long transcript at width ~0 reports an absurd height, which spikes the outer
+        // ScrollView's content size and can throw its offset around.
+        let w = max(80, proposal.width ?? contentWidth)
         let h = uiView.sizeThatFits(CGSize(width: w, height: .greatestFiniteMagnitude)).height
         return CGSize(width: w, height: max(h, 40))
     }
@@ -73,7 +80,15 @@ struct TranscriptEditor: UIViewRepresentable {
                 if tv.isFirstResponder { return }                 // don't yank text mid-edit
                 if t == reconstruct(tv.attributedText) { loaded = t; return }
             }
+            // Replacing the attributed string resets the caret to the start — and
+            // SwiftUI's keyboard avoidance then scrolls the note to that top-of-text
+            // caret. Carry the (clamped) selection across the rebuild so the caret —
+            // and with it the visible spot — stays put.
+            let selection = tv.selectedRange
             tv.attributedText = attributed(from: t)
+            let length = tv.attributedText.length
+            let location = min(selection.location, length)
+            tv.selectedRange = NSRange(location: location, length: min(selection.length, length - location))
             loaded = t
             tv.invalidateIntrinsicContentSize()
         }
@@ -168,5 +183,23 @@ struct TranscriptEditor: UIViewRepresentable {
                 }
             }
         }
+    }
+}
+
+/// A `UITextView` that self-sizes (no inner scrolling) without UIKit's caret-scroll
+/// jumps. `isScrollEnabled = false` only blocks USER scrolling — on paste (and some
+/// edits) UIKit still calls `setContentOffset` internally, with an offset computed
+/// against the stale pre-growth bounds. That stray offset shifts the text inside the
+/// fixed frame and feeds SwiftUI's keyboard avoidance a bogus caret rect — the
+/// "paste teleports the note to the top" bug. While self-sizing, the only valid
+/// offset is `.zero`, so pin it there.
+final class NonScrollingTextView: UITextView {
+    override var contentOffset: CGPoint {
+        get { super.contentOffset }
+        set { super.contentOffset = isScrollEnabled ? newValue : .zero }
+    }
+
+    override func setContentOffset(_ contentOffset: CGPoint, animated: Bool) {
+        super.setContentOffset(isScrollEnabled ? contentOffset : .zero, animated: isScrollEnabled && animated)
     }
 }
