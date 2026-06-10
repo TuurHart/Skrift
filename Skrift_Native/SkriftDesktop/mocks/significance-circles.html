@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — significance: slider → 10 circles (desktop + mobile)</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5; --amber:#f59e0b; --green:#34d399; --bd:255 255 255;
+    --warmfill:color-mix(in oklab, #7c6bf5 42%, #f59e0b);
+    --warmtext:color-mix(in oklab, #7c6bf5 50%, #f59e0b);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:30px 26px 80px;font-size:13px;line-height:1.5}
+  h1{font-size:15px;font-weight:600;margin:0 auto 4px;max-width:1080px}
+  .sub{font-size:12px;color:var(--t2);max-width:1080px;margin:0 auto 18px;line-height:1.55}
+  .sub b{color:var(--t1);font-weight:600}
+
+  /* ── mode bar ── */
+  .modebar{max-width:1080px;margin:0 auto 24px;display:flex;align-items:center;gap:7px}
+  .mlab{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-right:3px}
+  .mode{font-size:11.5px;padding:4px 12px;border-radius:7px;border:.5px solid rgb(var(--bd)/.12);
+    background:rgb(var(--bd)/.04);color:var(--t2);cursor:pointer}
+  .mode:hover{color:var(--t1)}
+  .mode.on{background:rgb(var(--accent)/.14);border-color:rgb(var(--accent)/.35);color:var(--acc)}
+  .mnote{font-size:11px;color:var(--t3);margin-left:8px}
+
+  .panels{max-width:1080px;margin:0 auto;display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+  .phead{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+
+  /* ── desktop fragment (v5 note column → props card) ── */
+  .deskwrap{flex:1;min-width:560px}
+  .window{background:var(--bg);border-radius:11px;border:.5px solid rgb(var(--bd)/.08);
+    box-shadow:0 18px 50px rgba(0,0,0,.45);overflow:hidden}
+  .crumb{height:40px;display:flex;align-items:center;padding:0 26px;font-size:12px;color:var(--t3);
+    border-bottom:.5px solid rgb(var(--bd)/.06)}
+  .crumb b{color:var(--t2);font-weight:500}
+  .col{max-width:640px;margin:0 auto;padding:24px 32px 30px}
+  .ntitle{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-bottom:16px}
+  .props{background:rgb(255 255 255/.022);border:.5px solid rgb(var(--bd)/.07);border-radius:12px;padding:14px 16px}
+  .grid{display:grid;grid-template-columns:84px 1fr;row-gap:3px}
+  .grid .k{font-size:11px;color:var(--t3);line-height:18px}
+  .grid .v{font-size:11px;color:var(--t2);line-height:18px}
+  .divider{height:.5px;background:rgb(var(--bd)/.07);margin:13px 0}
+  .exportrow{display:flex;align-items:center;justify-content:space-between}
+  .exportrow .l{font-size:11px;color:var(--t2)}
+  .switch{width:27px;height:16px;border-radius:9px;background:var(--acc);position:relative;flex:none;opacity:.9}
+  .switch i{position:absolute;top:2px;right:2px;width:12px;height:12px;border-radius:50%;background:#fff}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .tag{font-size:11px;font-weight:500;background:rgb(var(--accent)/.15);color:var(--acc);border-radius:6px;padding:3px 9px;display:inline-flex;gap:5px;align-items:center}
+  .tag .x{opacity:.45;font-size:10px}
+  .tsug{font-size:11px;color:var(--t2);border:.5px dashed rgb(var(--bd)/.2);border-radius:6px;padding:3px 9px;opacity:.8}
+
+  /* ── THE CIRCLES ROW (shared) ── */
+  .sig .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .sig .lab{font-size:11px;color:var(--t3)}
+  .val{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--acc)}
+  .val.muted{color:var(--t3);font-weight:500}
+  .val.pv{color:var(--t2)}
+  .val.warm{color:var(--warmtext)}
+  .dots{display:flex;align-items:center;margin-bottom:7px}
+  .dot{border-radius:50%;border:1.5px solid rgb(var(--bd)/.2);background:transparent;cursor:pointer;padding:0;flex:none;
+    transition:transform .1s,background .12s,border-color .12s,box-shadow .12s}
+  .dot:hover{transform:scale(1.22);border-color:rgb(var(--accent)/.8)}
+  .dot.prev{background:rgb(var(--accent)/.3);border-color:rgb(var(--accent)/.55)}
+  .dot.lit{background:var(--acc);border-color:var(--acc);box-shadow:0 1px 5px rgb(var(--accent)/.35)}
+  .dot.lit.warm{background:var(--warmfill);border-color:var(--warmfill);box-shadow:0 0 8px rgb(245 158 11/.3)}
+  .wall{width:1px;flex:none;background:rgb(245 158 11/.35);border-radius:1px}
+  .flame{display:inline-flex;align-items:center;gap:4px;color:var(--amber);font-size:9px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;opacity:0;transition:opacity .18s;margin-left:6px;pointer-events:none;white-space:nowrap}
+  .flame.on{opacity:.9;pointer-events:auto}
+  .tierlabels{display:flex}
+  .tierlabels span{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);text-align:center;flex:none;transition:color .15s}
+  .tierlabels span.on{color:var(--acc)}
+  .tierlabels span.on.warm{color:var(--amber)}
+
+  /* ── mobile fragment (iOS detail card look) ── */
+  .mobwrap{width:390px;flex:none}
+  .phone{background:var(--bg);border:.5px solid rgb(var(--bd)/.1);border-radius:34px;padding:16px 16px 26px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);position:relative}
+  .island{width:96px;height:24px;border-radius:13px;background:#000;margin:0 auto 14px}
+  .pnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px}
+  .pnav .back{font-size:14px;color:var(--acc)}
+  .pnav .ovf{font-size:16px;color:var(--t2);letter-spacing:1px}
+  .ptitle{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0 4px 9px}
+  .pchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 4px 14px}
+  .pchip{font-size:10.5px;color:var(--t2);background:var(--elev);border-radius:8px;padding:3px 8px}
+  .pcard{background:var(--surface);border-radius:16px;padding:13px 13px 12px;margin-bottom:10px}
+  .pcard .sig .lab{font-size:11px;font-weight:500;color:var(--t3)}
+  .pdivider{height:.5px;background:rgb(var(--bd)/.06);margin:11px 0 9px}
+  .sync{display:flex;align-items:center;gap:6px;font-size:10.5px}
+  .sync .sdot{width:6px;height:6px;border-radius:50%;flex:none}
+  .sync.muted{color:var(--t3)}.sync.muted .sdot{background:var(--t3)}
+  .sync.ok{color:var(--t2)}.sync.ok .sdot{background:var(--green)}
+  .sync.warm{color:var(--amber)}
+  .sync svg{flex:none}
+  .ptags{display:flex;gap:6px;flex-wrap:wrap;margin:0 4px 14px}
+  .ptranscript{font-size:14px;line-height:1.6;color:var(--t2);margin:0 4px;
+    -webkit-mask-image:linear-gradient(180deg,#000 30%,transparent);mask-image:linear-gradient(180deg,#000 30%,transparent)}
+
+  .footnote{max-width:1080px;margin:22px auto 0;font-size:11.5px;color:var(--t3);line-height:1.65}
+  .footnote b{color:var(--t2)}
+</style>
+</head>
+<body>
+
+  <h1>Significance — the slider becomes 10 circles (both apps)</h1>
+  <p class="sub">
+    Star-rating interaction, circle glyphs: <b>click the Nth circle → 0.N</b> (circles 1–N fill); click the
+    set circle again → back to <b>Not rated</b>. Discrete dots, ~200px wide — can't be mistaken for the
+    full-width audio scrubber above the note. Tier boundaries stay 0.4 / 0.7 (passing · useful · significant);
+    the faint amber tick before the 8th circle is the <b>refine wall</b> — 0.8+ notes will get a refine pass,
+    so at 0.8+ the top circles warm up and a small flame + “refine pass” tag appears. <b>Hover + click the
+    circles — they're live.</b>
+  </p>
+
+  <div class="modebar">
+    <span class="mlab">State</span>
+    <button class="mode" data-v="0">Not rated</button>
+    <button class="mode" data-v="5">0.5 · Useful</button>
+    <button class="mode" data-v="8">0.8 · Significant</button>
+    <span class="mnote">sets both panels · clicking circles adjusts each on its own</span>
+  </div>
+
+  <div class="panels">
+
+    <!-- ── DESKTOP: NoteProperties card, circles where the slider was ── -->
+    <section class="deskwrap">
+      <div class="phead">macOS — review · properties card</div>
+      <div class="window">
+        <div class="crumb">Queue&nbsp;&nbsp;›&nbsp;&nbsp;<b>Fri, 6 Jun 2026</b></div>
+        <div class="col">
+          <div class="ntitle">Rethinking the desktop rewrite</div>
+          <div class="props">
+            <div class="grid">
+              <span class="k">date</span><span class="v">06 Jun 2026</span>
+              <span class="k">author</span><span class="v">Tiuri Hartog</span>
+              <span class="k">source</span><span class="v">Voice memo</span>
+              <span class="k">duration</span><span class="v">2:14</span>
+              <span class="k">location</span><span class="v">Amsterdam · Cloudy, 14°C</span>
+            </div>
+            <div class="divider"></div>
+            <div class="exportrow"><span class="l">Include audio file in export</span><span class="switch"><i></i></span></div>
+            <div class="divider"></div>
+            <div class="sig" id="sig-desk">
+              <div class="top"><span class="lab">significance</span><span class="val muted">Not rated</span></div>
+              <div class="dots"></div>
+              <div class="tierlabels"></div>
+            </div>
+            <div class="divider"></div>
+            <div class="tags">
+              <span class="tag">#work <span class="x">×</span></span>
+              <span class="tag">#ideas <span class="x">×</span></span>
+              <span class="tsug">+ rewrite</span>
+              <span class="tsug">+ swift</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── MOBILE: memo detail, circles where the slider was ── -->
+    <section class="mobwrap">
+      <div class="phead">iOS — memo detail (flag-to-send)</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="pnav"><span class="back">‹ Memos</span><span class="ovf">⋯</span></div>
+        <div class="ptitle">Rethinking the desktop rewrite</div>
+        <div class="pchips">
+          <span class="pchip">Fri 6 Jun · 14:02</span>
+          <span class="pchip">Amsterdam</span>
+          <span class="pchip">14° · Cloudy</span>
+        </div>
+        <div class="pcard">
+          <div class="sig" id="sig-mob">
+            <div class="top"><span class="lab">Significance</span><span class="val muted">Not rated</span></div>
+            <div class="dots"></div>
+            <div class="tierlabels"></div>
+          </div>
+          <div class="pdivider"></div>
+          <div class="sync muted" id="syncline"></div>
+        </div>
+        <div class="ptags">
+          <span class="tag">#work <span class="x">×</span></span>
+          <span class="tag">#ideas <span class="x">×</span></span>
+        </div>
+        <div class="ptranscript">So I was talking with Nick this morning about collapsing the whole thing
+          into one native app. Het voelt nu eindelijk goed — no Python backend that won't start, no
+          localhost in between. Nick's point was that the hard part is the editor, not the pipeline…</div>
+      </div>
+    </section>
+
+  </div>
+
+  <p class="footnote">
+    <b>Flagged choices, easy to flip:</b> circle size 13px / gap 7px on the Mac (≈200px total) vs 19px / 9px
+    touch targets on the phone — both one constant. The <b>refine wall</b> is shown three ways at once
+    (always-visible amber hairline before circle 8 + warm-tinted fills on circles 8–10 when lit + the flame
+    “refine pass” tag after the row); any of the three can be dropped if it's too much. <b>Tier label</b>
+    lives in two places: the live “0.5 · Useful” top-right (same spot as today's slider value) and faint
+    group labels under the circle clusters (1–3 / 4–6 / 7–10) that light up with the rating — keep one if
+    both is noisy. <b>Clearing</b> = re-click the set circle (no separate “×” affordance). On iOS the card
+    keeps the flag-to-send line under the circles: 0 = stays on the phone, &gt;0 = syncs, 0.8+ = syncs +
+    refine flag.
+  </p>
+
+<script>
+  const FLAME = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd"><path d="M12 2S6 7.5 6 12.5C6 16.09 8.69 19 12 19s6-2.91 6-6.5C18 7.5 12 2 12 2zm0 15a2.5 2.5 0 0 1-2.5-2.5c0-1.5 1-2.6 2.5-4 1.5 1.4 2.5 2.5 2.5 4A2.5 2.5 0 0 1 12 17z"/></svg>';
+
+  const tierName = i => i >= 7 ? 'Significant' : i >= 4 ? 'Useful' : 'Passing';
+  const valText  = v => (v === 10 ? '1.0' : '0.' + v) + ' · ' + tierName(v);
+  const clearModebar = () => document.querySelectorAll('.mode').forEach(b => b.classList.remove('on'));
+
+  function circleRow(mountId, size, gap, onChange){
+    let value = 0;
+    const root = document.getElementById(mountId);
+    const dotsWrap = root.querySelector('.dots');
+    const val = root.querySelector('.val');
+    const tl = root.querySelector('.tierlabels');
+    dotsWrap.style.gap = gap + 'px';
+    tl.style.gap = gap + 'px';
+
+    const dots = [];
+    for (let i = 1; i <= 10; i++){
+      if (i === 8){
+        const w = document.createElement('span');
+        w.className = 'wall';
+        w.style.height = (size + 5) + 'px';
+        w.title = 'refine wall — 0.8+ notes get a refine pass';
+        dotsWrap.appendChild(w);
+      }
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dot';
+      b.style.width = size + 'px';
+      b.style.height = size + 'px';
+      b.title = valText(i);
+      b.addEventListener('mouseenter', () => {
+        dots.forEach((d, idx) => d.classList.toggle('prev', idx + 1 <= i && idx + 1 > value));
+        val.textContent = valText(i);
+        val.className = 'val pv';
+      });
+      b.addEventListener('mouseleave', () => {
+        dots.forEach(d => d.classList.remove('prev'));
+        paintVal();
+      });
+      b.addEventListener('click', () => { clearModebar(); set(value === i ? 0 : i); });
+      dots.push(b);
+      dotsWrap.appendChild(b);
+    }
+
+    const flame = document.createElement('span');
+    flame.className = 'flame';
+    flame.innerHTML = FLAME + '<i style="font-style:normal">refine pass</i>';
+    flame.title = 'Rated 0.8+ — this note gets a refine pass before export';
+    dotsWrap.appendChild(flame);
+
+    // tier group labels sized to the circle clusters (1-3 / 4-6 / 7-10 incl. the wall)
+    const groups = [
+      ['passing',     3 * size + 2 * gap],
+      ['useful',      3 * size + 2 * gap],
+      ['significant', 4 * size + 4 * gap + 1],
+    ];
+    const gEls = groups.map(([n, w]) => {
+      const s = document.createElement('span');
+      s.textContent = n;
+      s.style.width = w + 'px';
+      tl.appendChild(s);
+      return s;
+    });
+
+    function paintVal(){
+      if (value === 0){ val.textContent = 'Not rated'; val.className = 'val muted'; }
+      else { val.textContent = valText(value); val.className = 'val' + (value >= 8 ? ' warm' : ''); }
+    }
+
+    function set(v){
+      value = v;
+      dots.forEach((d, idx) => {
+        const i = idx + 1;
+        d.classList.toggle('lit', i <= v);
+        d.classList.toggle('warm', v >= 8 && i >= 8 && i <= v);
+        d.classList.remove('prev');
+      });
+      flame.classList.toggle('on', v >= 8);
+      gEls.forEach((g, gi) => {
+        const active = v > 0 && ((gi === 0 && v <= 3) || (gi === 1 && v >= 4 && v <= 6) || (gi === 2 && v >= 7));
+        g.classList.toggle('on', active);
+        g.classList.toggle('warm', gi === 2 && v >= 8);
+      });
+      paintVal();
+      if (onChange) onChange(v);
+    }
+
+    set(0);
+    return { set };
+  }
+
+  function syncLine(v){
+    const el = document.getElementById('syncline');
+    if (v === 0){ el.className = 'sync muted'; el.innerHTML = '<i class="sdot"></i>Stays on this phone — rate to flag for sync'; }
+    else if (v < 8){ el.className = 'sync ok'; el.innerHTML = '<i class="sdot"></i>Will sync to the Mac'; }
+    else { el.className = 'sync warm'; el.innerHTML = FLAME + 'Will sync · flagged for a refine pass'; }
+  }
+
+  const desk = circleRow('sig-desk', 13, 7);
+  const mob  = circleRow('sig-mob', 19, 9, syncLine);
+  syncLine(0);
+
+  document.querySelectorAll('.mode').forEach(btn => {
+    btn.addEventListener('click', () => {
+      clearModebar();
+      btn.classList.add('on');
+      const v = +btn.dataset.v;
+      desk.set(v);
+      mob.set(v);
+    });
+  });
+  document.querySelector('.mode[data-v="5"]').click();
+</script>
+</body>
+</html>
