@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — unlink a [[name]] (click-a-linked-mention popover)</title>
+<style>
+  :root{
+    --bg:#0f1117; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5; --green:#34d399; --amber:#f59e0b; --bd:255 255 255;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:30px 26px 80px;font-size:13px;line-height:1.5}
+  h1{font-size:15px;font-weight:600;margin:0 auto 4px;max-width:860px}
+  .sub{font-size:12px;color:var(--t2);max-width:860px;margin:0 auto 18px;line-height:1.55}
+  .sub b{color:var(--t1);font-weight:600}
+
+  /* ── mode bar ── */
+  .modebar{max-width:860px;margin:0 auto 24px;display:flex;align-items:center;gap:7px}
+  .mlab{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-right:3px}
+  .mode{font-size:11.5px;padding:4px 12px;border-radius:7px;border:.5px solid rgb(var(--bd)/.12);
+    background:rgb(var(--bd)/.04);color:var(--t2);cursor:pointer}
+  .mode:hover{color:var(--t1)}
+  .mode.on{background:rgb(var(--accent)/.14);border-color:rgb(var(--accent)/.35);color:var(--acc)}
+  .mnote{font-size:11px;color:var(--t3);margin-left:8px}
+
+  /* ── the review-body window (v5 note pane fragment) ── */
+  .window{max-width:860px;margin:0 auto;background:var(--bg);border:.5px solid rgb(var(--bd)/.08);
+    border-radius:11px;box-shadow:0 18px 50px rgba(0,0,0,.45);overflow:visible}
+  .crumb{height:40px;display:flex;align-items:center;padding:0 26px;font-size:12px;color:var(--t3);
+    border-bottom:.5px solid rgb(var(--bd)/.06)}
+  .crumb b{color:var(--t2);font-weight:500}
+  .col{max-width:720px;margin:0 auto;padding:24px 36px 40px;position:relative}
+  .ntitle{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-bottom:16px}
+
+  /* body typography — matches v5 / the real NSTextView body */
+  .body{font-size:16px;line-height:1.72;color:var(--t1)}
+  .body p{margin-bottom:15px}
+  .mention.lnk{color:var(--acc);cursor:pointer;border-radius:3px;padding:0 1px;transition:background .12s}
+  .mention.lnk:hover{background:rgb(var(--accent)/.13);box-shadow:0 1px 0 rgb(var(--accent)/.5)}
+  .mention.flash{animation:flash 1s ease-out}
+  @keyframes flash{0%{background:rgb(var(--accent)/.25)}100%{background:transparent}}
+
+  /* undo toast */
+  .toast{display:none;align-items:center;gap:10px;margin-bottom:18px;padding:8px 13px;
+    background:rgb(var(--bd)/.04);border:.5px solid rgb(var(--bd)/.1);border-radius:9px;font-size:12px;color:var(--t2)}
+  .toast.on{display:flex}
+  .toast b{color:var(--t1);font-weight:600}
+  .toast .spacer{flex:1}
+  .toast .undo{font-size:11.5px;color:var(--acc);background:transparent;border:.5px solid rgb(var(--accent)/.35);
+    border-radius:6px;padding:3px 10px;cursor:pointer}
+  .toast .undo:hover{background:rgb(var(--accent)/.1)}
+
+  /* ── the popover (same idiom as the inline resolver) ── */
+  .pop{display:none;position:absolute;width:264px;background:#1d1f29;border:.5px solid rgb(var(--bd)/.14);
+    border-radius:11px;padding:12px;box-shadow:0 16px 44px rgba(0,0,0,.6);z-index:5}
+  .pop.on{display:block}
+  .pop::before{content:"";position:absolute;top:-6px;left:var(--ax,34px);width:11px;height:11px;background:#1d1f29;
+    border-left:.5px solid rgb(var(--bd)/.14);border-top:.5px solid rgb(var(--bd)/.14);transform:rotate(45deg)}
+  .pop .ttl{font-size:12px;color:var(--t2);margin-bottom:3px}
+  .pop .ttl b{color:var(--t1)}
+  .pop .ctx{font-size:10.5px;color:var(--t3);font-style:italic;margin-bottom:10px;line-height:1.45}
+  .pop .ctx em{color:var(--acc);font-style:normal;font-weight:600}
+  .opt{display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;background:transparent;border:none;
+    border-radius:7px;padding:7px 9px;cursor:pointer}
+  .opt:hover{background:rgb(var(--accent)/.14)}
+  .opt .ic{width:18px;height:18px;border-radius:50%;background:rgb(var(--accent)/.2);color:var(--acc);
+    display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+  .opt .tx{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .opt .l1{font-size:12.5px;color:var(--t1)}
+  .opt .l2{font-size:10.5px;color:var(--t3)}
+  .opt.plain .ic{background:rgb(var(--bd)/.06);color:var(--t3)}
+  .opt.plain .l1{color:var(--t3)}
+  .pop .sep{height:.5px;background:rgb(var(--bd)/.08);margin:7px 2px}
+  .pop .hint{font-size:10px;color:var(--t3);line-height:1.45;padding:4px 4px 0;display:flex;gap:5px}
+  .pop .hint svg{flex:none;margin-top:1px;opacity:.7}
+
+  .caption{max-width:720px;margin:14px auto 0;font-size:11px;color:var(--t3);line-height:1.55;padding:0 36px}
+  .footnote{max-width:860px;margin:22px auto 0;font-size:11.5px;color:var(--t3);line-height:1.65}
+  .footnote b{color:var(--t2)}
+  .key{display:inline-block;font-size:10px;color:var(--t2);background:rgb(var(--bd)/.07);
+    border:.5px solid rgb(var(--bd)/.12);border-radius:4px;padding:0 5px;margin:0 1px}
+</style>
+</head>
+<body>
+
+  <h1>Unlink a [[name]] — click a linked mention in the note body</h1>
+  <p class="sub">
+    Today a wrong or passing-mention link is stuck once the Sanitiser writes it. New: <b>any linked
+    [[Name]] in the body is clickable</b> — same idiom as the resolver popover — offering <b>unlink this
+    mention</b> (back to the plain alias as spoken), <b>unlink all mentions in this note</b>, or cancel.
+    Reminder of the model: Skrift links a person <b>once per note, at the first mention</b> — later
+    “Nick”s are already plain text. <b>The links below are live — click one.</b>
+  </p>
+
+  <div class="modebar">
+    <span class="mlab">State</span>
+    <button class="mode" data-s="1">1 · Before — linked</button>
+    <button class="mode" data-s="2">2 · Popover open</button>
+    <button class="mode" data-s="3">3 · After — plain</button>
+    <span class="mnote">or just click the purple links in the text</span>
+  </div>
+
+  <div class="window">
+    <div class="crumb">Queue&nbsp;&nbsp;›&nbsp;&nbsp;<b>Fri, 6 Jun 2026</b></div>
+    <div class="col" id="col">
+
+      <div class="ntitle">Rethinking the desktop rewrite</div>
+
+      <div class="toast" id="toast">
+        <span id="toast-text"></span>
+        <span class="spacer"></span>
+        <button class="undo" id="undo">Undo</button>
+      </div>
+
+      <div class="body" id="body">
+        <p>So I was talking with <span class="mention" data-person="Nick Jansen" data-alias="Nick" data-linked="1"
+            data-before="…I was talking with " data-after=" this morning about collapsing…"></span> this
+          morning about collapsing the whole thing into one native app. Het voelt nu eindelijk goed — no
+          Python backend that won't start, no localhost in between.</p>
+        <p><span class="mention" data-person="Nick Jansen" data-alias="Nick" data-linked="0"></span>'s point
+          was that the hard part is the editor, not the pipeline. Later
+          <span class="mention" data-person="Nick Jansen" data-alias="Nick" data-linked="0"></span> texted
+          that the build is green again.</p>
+        <p>If <span class="mention" data-person="Sam Jones" data-alias="Sam" data-linked="1"
+            data-before="…if " data-after=" can test the round-trip from the phone…"></span> can test the
+          round-trip from the phone next week, even better.</p>
+      </div>
+
+      <!-- the unlink popover -->
+      <div class="pop" id="pop">
+        <div class="ttl" id="pop-ttl"></div>
+        <div class="ctx" id="pop-ctx"></div>
+        <button class="opt" id="opt-one">
+          <span class="ic"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m18.84 12.25 1.72-1.71a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></svg></span>
+          <span class="tx"><span class="l1">Unlink this mention</span><span class="l2" id="opt-one-sub"></span></span>
+        </button>
+        <button class="opt" id="opt-all">
+          <span class="ic"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m18.84 12.25 1.72-1.71a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/></svg></span>
+          <span class="tx"><span class="l1">Unlink all mentions in this note</span><span class="l2" id="opt-all-sub"></span></span>
+        </button>
+        <div class="sep"></div>
+        <button class="opt plain" id="opt-cancel">
+          <span class="ic">×</span>
+          <span class="tx"><span class="l1">Cancel</span></span>
+        </button>
+        <div class="hint">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span id="pop-hint"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="caption" id="caption"></p>
+
+  <p class="footnote">
+    <b>Semantics flagged for sign-off:</b> “Unlink this mention” restores the alias <b>as spoken</b>
+    (“Nick”, not “Nick Jansen”) and only edits this note. “Unlink all mentions in this note” also marks the
+    person plain-in-this-note so a later re-process won't re-link them here. Neither touches the Names
+    database — removing a person entirely stays in Settings → Names. A third scope (“never link Nick in any
+    note”) was deliberately left out: that's a Names-level rule, not a body click. Implementation maps 1:1
+    onto the existing resolver idiom — each [[link]] range in the body
+    <span class="key">NSTextView</span> becomes clickable → an <span class="key">NSPopover</span> at the
+    word, applying through the same order-based <span class="key">Sanitiser.applyResolvedOccurrences</span>
+    path (choice = <span class="key">.plain</span>).
+  </p>
+
+<script>
+  const pop = document.getElementById('pop');
+  const col = document.getElementById('col');
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toast-text');
+  const caption = document.getElementById('caption');
+  const mentions = [...document.querySelectorAll('.mention')];
+  let current = null;        // mention the popover is open on
+  let snapshot = null;       // linked-flags before the last action, for Undo
+
+  const CAPTIONS = {
+    1: 'Before — the Sanitiser linked the first “Nick” to [[Nick Jansen]] and the first “Sam” to [[Sam Jones]]. Later mentions are already plain (first-mention-only linking).',
+    2: 'The popover — anchored at the clicked word, same look as the resolver. Pick a scope or cancel; click-away / Esc also closes.',
+    3: 'After — the mention is back to the plain alias “Nick”, exactly as spoken. Nick Jansen stays in Names; only this note changed. Undo stays available.',
+  };
+
+  function render(m){
+    const linked = m.dataset.linked === '1';
+    m.textContent = linked ? '[[' + m.dataset.person + ']]' : m.dataset.alias;
+    m.classList.toggle('lnk', linked);
+    m.title = linked
+      ? 'Linked to ' + m.dataset.person + ' — click to unlink'
+      : 'Plain mention — only the first mention gets the [[link]]';
+  }
+  function renderAll(){ mentions.forEach(render); }
+
+  function place(m){
+    const colR = col.getBoundingClientRect();
+    const r = m.getBoundingClientRect();
+    let left = r.left - colR.left - 10;
+    left = Math.max(8, Math.min(left, col.clientWidth - 280));
+    pop.style.left = left + 'px';
+    pop.style.top = (r.bottom - colR.top + 9) + 'px';
+    const ax = Math.max(14, Math.min(r.left - colR.left + r.width / 2 - left - 5, 240));
+    pop.style.setProperty('--ax', ax + 'px');
+  }
+
+  function openPop(m){
+    current = m;
+    const person = m.dataset.person, alias = m.dataset.alias;
+    const kin = mentions.filter(x => x.dataset.person === person);
+    document.getElementById('pop-ttl').innerHTML = 'Linked to <b>' + person + '</b>';
+    document.getElementById('pop-ctx').innerHTML =
+      (m.dataset.before || '…') + '<em>[[' + person + ']]</em>' + (m.dataset.after || '…');
+    document.getElementById('opt-one-sub').textContent = '→ plain “' + alias + '”, as spoken';
+    document.getElementById('opt-all-sub').textContent = kin.length > 1
+      ? 'all ' + kin.length + ' “' + alias + '” mentions stay plain text'
+      : '“' + alias + '” appears once — same as above';
+    document.getElementById('pop-hint').textContent =
+      'Only the first mention carries the [[link]] — later “' + alias + '”s are already plain. ' +
+      person + ' stays in your Names.';
+    place(m);
+    pop.classList.add('on');
+  }
+
+  function closePop(){ pop.classList.remove('on'); current = null; }
+
+  function showToast(msg){
+    toastText.innerHTML = msg;
+    toast.classList.add('on');
+  }
+  function hideToast(){ toast.classList.remove('on'); }
+
+  function takeSnapshot(){ snapshot = mentions.map(m => m.dataset.linked); }
+
+  document.getElementById('opt-one').addEventListener('click', () => {
+    if (!current) return;
+    takeSnapshot();
+    const alias = current.dataset.alias, el = current;
+    el.dataset.linked = '0';
+    render(el);
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    closePop();
+    showToast('Unlinked — <b>“' + alias + '”</b> is plain text in this note');
+    setCaption(3); clearModebar();
+  });
+
+  document.getElementById('opt-all').addEventListener('click', () => {
+    if (!current) return;
+    takeSnapshot();
+    const person = current.dataset.person, alias = current.dataset.alias;
+    const kin = mentions.filter(x => x.dataset.person === person);
+    kin.forEach(x => {
+      if (x.dataset.linked === '1'){
+        x.dataset.linked = '0';
+        render(x);
+        x.classList.remove('flash'); void x.offsetWidth; x.classList.add('flash');
+      }
+    });
+    closePop();
+    showToast('Unlinked <b>' + person + '</b> everywhere in this note (' + kin.length +
+      ' “' + alias + '” mentions) — won’t re-link on reprocess');
+    setCaption(3); clearModebar();
+  });
+
+  document.getElementById('opt-cancel').addEventListener('click', closePop);
+
+  document.getElementById('undo').addEventListener('click', () => {
+    if (snapshot) mentions.forEach((m, i) => { m.dataset.linked = snapshot[i]; render(m); });
+    snapshot = null;
+    hideToast();
+    setCaption(1); clearModebar();
+  });
+
+  // live click on any linked mention
+  document.getElementById('body').addEventListener('click', e => {
+    const m = e.target.closest('.mention.lnk');
+    if (m){ clearModebar(); openPop(m); }
+  });
+
+  // click-away + Esc close
+  document.addEventListener('mousedown', e => {
+    if (pop.classList.contains('on') && !pop.contains(e.target) && !e.target.closest('.mention.lnk')) closePop();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+
+  // ── canned states via the mode bar ──
+  function setCaption(s){ caption.textContent = CAPTIONS[s]; }
+  function clearModebar(){ document.querySelectorAll('.mode').forEach(b => b.classList.remove('on')); }
+
+  function setState(s){
+    // reset: everything linked as the Sanitiser left it
+    mentions.forEach(m => { m.dataset.linked = (m.dataset.before !== undefined) ? '1' : '0'; });
+    renderAll();
+    closePop(); hideToast();
+    if (s === 2){
+      requestAnimationFrame(() => openPop(mentions[0]));
+    } else if (s === 3){
+      takeSnapshot();
+      mentions[0].dataset.linked = '0';
+      render(mentions[0]);
+      showToast('Unlinked — <b>“Nick”</b> is plain text in this note');
+    }
+    setCaption(s);
+  }
+
+  document.querySelectorAll('.mode').forEach(btn => {
+    btn.addEventListener('click', () => {
+      clearModebar();
+      btn.classList.add('on');
+      setState(+btn.dataset.s);
+    });
+  });
+
+  renderAll();
+  window.addEventListener('load', () => document.querySelector('.mode[data-s="2"]').click());
+</script>
+</body>
+</html>
