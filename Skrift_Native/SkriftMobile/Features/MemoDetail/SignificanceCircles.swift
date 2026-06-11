@@ -103,6 +103,11 @@ struct SignificanceCircles: View {
         .padding(EdgeInsets(top: 13, leading: 13, bottom: 12, trailing: 13))
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
+        // .contain scopes the card as its own AX container — without it, this
+        // identifier propagates DOWN and overwrites every child's identifier
+        // (the circle buttons all reported 'significance-circles', breaking
+        // XCUITest queries for significance-circle-N).
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("significance-circles")
     }
 
