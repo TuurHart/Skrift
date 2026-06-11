@@ -286,6 +286,31 @@ Capture a passage from an audiobook as a quoted, attributed note + your own thou
 - **Significance-gated "wall" pipeline**: notes above a significance threshold require a manual refine pass
   (desktop gate: can't export to Obsidian until refined) → then export + send to printer for the physical wall.
 
+## Device-testing feedback — 2026-06-11 (4 memos pulled; verifier-passed; screenshot of two-Jacks on dev Mac)
+**PASSED:** front-camera flip ✓ (photo mid-record, `[[img_001]]` inline) · circles on phone ✓ (0.4 set via
+circles) · circles render on dev Mac ✓ (screenshot) · "the black screen is fixed" ✓ (ambiguous which —
+ask) · feedback-via-memos + pull workflow accepted (no dedicated feedback feature wanted).
+
+**Not a bug:** two-Jacks file on the dev Mac showed NO name linking — the dev container has NO `names.json`
+(starts empty by design; prod has the Jacks). To test names on dev: add the people in dev Settings or sync
+from the dev phone first.
+
+### New items
+- **P1 — instant-record flashes the old ready screen** before recording starts (model-loaded screen with
+  the legacy record button). Remove the transient screen (or skip straight to the live caption) — it no
+  longer serves a purpose on the auto-start path.
+- **P1 — AirPods RE-insertion doesn't resume**: pull-out mid-record survives (route-change fix works), but
+  putting them back in didn't move input back to AirPods ("I think it was a fail"). Confound: they may have
+  re-paired to the Mac. Repro with Mac BT off; likely the `newDeviceAvailable` branch needs the same
+  restart treatment as removal.
+- **WATCH — Live Activity "still going on the last thing"** on the lock screen right after the new install.
+  Possibly a stale activity from the PRE-fix build (new build reaps on foreground). Observe once more on
+  the new build; if it recurs, the reaper has a gap.
+- **Confirms backlog priority:** Settings → Models/Storage list ("we have three models — transcription,
+  diarization and something else") — already specced under "Show downloaded models in phone Settings".
+- Next focus per user: the BIGGER design items (capture-items build, audiobook, significance-wall pipeline,
+  vocab build).
+
 ## Audit findings (2026-06-09 post-batch error sweep — triaged, verified against code)
 Two read-only agents swept both apps after the batch; orchestrator verified each claim before listing.
 None are release blockers; fix in a follow-up pass.
