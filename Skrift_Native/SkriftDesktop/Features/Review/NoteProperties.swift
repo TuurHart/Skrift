@@ -169,6 +169,9 @@ struct NoteProperties: View {
     }
 
     private var sourceLabel: String {
+        // A book capture syncs as `.audio` (the span IS the memo's audio) — the C2
+        // bookTitle is what marks it, so name the book right on the source line.
+        if let book = file.bookCapture { return "Audiobook quote · \(book.title)" }
         switch file.sourceType {
         case .audio: return "Voice memo"
         case .note: return "Apple Note"
