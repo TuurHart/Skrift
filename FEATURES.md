@@ -35,7 +35,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Karaoke (word highlight + tap-to-seek) | ✅ | ✅ | mobile `MemoDetailView.swift:499-545`; desktop `Features/Review/NoteBody.swift:74-80` | |
 | Playback bar (Liquid Glass) | ✅ | ✅ | mobile `MemoDetailView.swift:603-674`; desktop `Features/Review/NoteDisplayView.swift` | ✅ 2026-06-09: desktop review transport bar is now a floating glass capsule (`.glassEffect(.regular)` macOS 26 + `.ultraThinMaterial` fallback) |
 | Title editor | ✅ | ✅ | mobile `MemoDetailView.swift:189-195`; desktop `Features/Review/NoteProperties.swift:25-103` | Desktop = two-title chooser (Suggested vs From-recording) |
-| Significance slider (gates sync) | ✅ | ✅ | mobile `MemoDetailView.swift:221`, `Models/Memo.swift:57`; desktop `NoteProperties.swift:118` | **Mobile gating is LIVE** (below). 0–1, snap 0.1 |
+| Significance **circles** (gates sync) | ✅ | ✅ | mobile `MemoDetail/SignificanceCircles.swift`; desktop `Features/Review/SignificanceCircles.swift` + `Models/SignificanceScale.swift` | ✅ 2026-06-11: slider → 10 tappable circles (signed-off mock); re-tap clears; tier labels; all three ≥0.8 refine-wall cues. Gating LIVE: 0 = phone-only, >0 syncs |
 | Tags add/remove | ✅ | ✅ | mobile `MemoDetailView.swift:201-217`; desktop `NoteProperties.swift:120` | |
 | Copy transcript / delete | ✅ | ✅ | `MemoDetailView.swift`; list row swipe/long-press `MemosListView.swift` | 2026-06-11: copy also via row swipe-action + context menu (list-delete now cleans the diar sidecar) |
 | Editable summary (review) | n/a | ✅ | desktop `Features/Review/NoteProperties.swift` | 2026-06-11: summary editable like title/tags; export recompiles |
@@ -52,6 +52,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Status pill (synced/waiting/transcribing) | ✅ | ✅ | `MemosListView.swift`; `Models/MemoDisplay.swift` | ✅ 2026-06-09: significance-0 (phone-only) memos show **no** sync pill; transcribing/error always show; >0 keeps Waiting/Synced |
 | Search / sort / filter | ✅ | ✅ | `MemosListView.swift:290-332` | place / has-photos / unsynced filters |
 | Multi-select + delete + swipe-to-delete | ✅ | ✅ | `MemosListView.swift:100-105, 146-154` | |
+| Trash / Recently Deleted (14-day retention) | ✅ | ➖ | `Models/Memo.swift` (`deletedAt`), `Services/NotesRepository.swift` (`softDelete`/purge), `Features/MemosList/RecentlyDeletedView.swift`, purge hook `App/SkriftApp.swift` | ✅ 2026-06-11: ALL delete paths (list + detail) soft-delete; Restore is lossless (files kept); trashed memos excluded from list/search/sync; startup purge ≥14 days. Desktop mirror = backlog |
 | Sync button + status banner | ✅ | n/a | `MemosListView.swift:161-216` | |
 
 ## Photos during recording

@@ -237,16 +237,21 @@ retranscribe clears stale segments, list-delete cleans the diar sidecar. Origina
    `VocabularyRescorer.ctcTokenRescore(...)`, take rescored text when `wasModified`. Cost: one extra
    ~97.5 MB HF model. Build next: Settings "Custom words" list (both apps) + the rescore pass in each
    transcriber.
-4. **Trash / 2-week retention** — GO. `deletedAt` on Memo (additive schema), delete = soft-delete, "Recently
-   Deleted" section, purge ≥14 days. Mirror on desktop later.
-5. **Auto-copy transcript after transcribe** — GO as an **opt-in Setting, default OFF**.
-6. **Front camera toggle** in the in-record camera — GO (CameraSheet flip button).
-7. **Click-`[[name]]`-to-unlink (desktop)** — GO, mock first (resolver-style popover, "unlink → alias").
+4. ✅ **DONE (2026-06-11 batch)** — **Trash / 2-week retention** — all delete paths soft-delete (list +
+   detail), "Recently Deleted" sheet, lossless Restore, startup purge ≥14 days. Desktop mirror = later.
+5. ✅ **DONE (2026-06-11 batch)** — **Auto-copy transcript** — opt-in Setting, default OFF; copies on
+   transcription success incl. appends.
+6. ✅ **DONE (2026-06-11 batch)** — **Front camera toggle** — flip button in CameraSheet; front hides
+   zoom presets, pinch floored at 1×.
+7. ✅ **DONE (2026-06-11 batch)** — **Click-`[[name]]`-to-unlink (desktop)** — built per signed-off mock:
+   two scopes (this mention → alias as spoken; all mentions in note + persisted no-relink-on-reprocess via
+   `PipelineFile.unlinkedNames`), undo toast, 15 tests. Note: single-mention unlink is a body edit (not
+   persisted across re-transcribe) — by design, consistent with hand edits.
 8. **Audiobook quote-capture** — direction written below; design after the current wave.
 9. **Significance wall** — GO, threshold **≥ 0.8**; AirPrint; refine-gate before export; design with the
-   audiobook session. **PLUS a locked UI change, BOTH apps: replace the significance SLIDER with 10
-   clickable CIRCLES** (star-rating style: tapping the 8th fills 1–8). Easier to read at a glance and
-   doesn't visually compete with the audio scrubber. Must fit the theme — mock first.
+   audiobook session. ✅ The locked **circles UI is DONE (2026-06-11 batch, BOTH apps)** — 10 tappable
+   circles per the signed-off mock (all three ≥0.8 wall cues, re-tap clears, tier labels); the wall
+   PIPELINE (refine gate + print) remains the design-session item.
 
 ### Audiobook quote-capture — idea + direction (written down 2026-06-10, design later)
 Capture a passage from an audiobook as a quoted, attributed note + your own thoughts under it.
