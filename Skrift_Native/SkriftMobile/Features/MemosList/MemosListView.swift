@@ -36,6 +36,10 @@ struct MemosListView: View {
     @State private var showSettings = false
     @State private var showSortFilter = false
     @State private var showTrash = false
+    @State private var showAudiobooks = false
+    /// C3 contract: the audiobook session singleton (defined by the Audiobooks
+    /// feature). Drives the conditional mini-player + the toolbar live dot.
+    @ObservedObject private var audiobookSession = AudiobookSession.shared
     @State private var search = ""
     @State private var sort: MemoSort = .recent
     @State private var filter = MemoFilter()
@@ -59,7 +63,24 @@ struct MemosListView: View {
                 if editMode.isEditing {
                     selectionBar
                 } else {
-                    recordFAB
+                    // The conditional audiobook mini-player (spec point 9): the
+                    // glass capsule exists ONLY while a book session is active —
+                    // zero chrome otherwise. Stacking it under the FAB nudges
+                    // the FAB up smoothly when the capsule appears, and the
+                    // FAB's own bottom padding becomes the gap between them.
+                    // It yields on memo detail for free: a pushed destination
+                    // covers this navigation-root ZStack.
+                    VStack(spacing: 0) {
+                        recordFAB
+                        if audiobookSession.isActive {
+                            AudiobookMiniPlayerBar()
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, 14)
+                                .padding(.bottom, 16)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+                    }
+                    .animation(Theme.Motion.spring, value: audiobookSession.isActive)
                 }
             }
             .overlay(alignment: .top) { syncBannerView }
@@ -83,6 +104,11 @@ struct MemosListView: View {
             // typed [UUID] for memo detail, which a non-memo destination can't
             // join.
             .sheet(isPresented: $showTrash) { RecentlyDeletedView() }
+            // The audiobook library (spec point 9: "Library behind a book
+            // toolbar icon on the memos list"). A sheet for the same typed-path
+            // reason as Trash. The view lives in Features/Audiobooks (cross-
+            // lane contract — defined by the audiobook-mobile lane).
+            .sheet(isPresented: $showAudiobooks) { AudiobooksLibraryView() }
         }
     }
 
@@ -229,6 +255,22 @@ struct MemosListView: View {
             .accessibilityIdentifier("select-button")
         }
         if !editMode.isEditing {
+            ToolbarItem(placement: .topBarTrailing) {
+                // The Audiobooks library entry; the green dot mirrors the mock's
+                // "live" badge while a book session is active.
+                Button { showAudiobooks = true } label: {
+                    Image(systemName: "book.closed")
+                        .overlay(alignment: .topTrailing) {
+                            if audiobookSession.isActive {
+                                Circle()
+                                    .fill(Color.skGreen)
+                                    .frame(width: 7, height: 7)
+                                    .offset(x: 3, y: -2)
+                            }
+                        }
+                }
+                .accessibilityIdentifier("audiobooks-button")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSettings = true } label: { Image(systemName: "gearshape") }
                     .accessibilityIdentifier("settings-button")
@@ -457,6 +499,12 @@ private struct MemoCard: View {
 
     var body: some View {
         HStack(spacing: 11) {
+            // Audiobook captures wear a book glyph as their source icon
+            // (mock state 5; detected via the C2 book metadata).
+            if memo.isBookCapture {
+                bookGlyph
+            }
+
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text(MemoDate.label(memo.recordedAt))
@@ -468,7 +516,10 @@ private struct MemoCard: View {
 
                 // Titled memos lead with the user-set title; the transcript snippet
                 // drops to a dimmer second line. Untitled memos keep the
-                // transcript-first behaviour.
+                // transcript-first behaviour. Audiobook captures lead with the
+                // quote — italic, accent-❝, per the signed-off mock — and the
+                // ramble as the dim second line; a phone-set title still wins
+                // the top line, with the quote taking the secondary line.
                 if hasTitle {
                     Text(memo.displayTitle)
                         .font(.system(size: 14.5, weight: .semibold))
@@ -478,8 +529,34 @@ private struct MemoCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 6)
 
-                    if let secondary = transcriptSnippet {
+                    if memo.isBookCapture, let quote = memo.quoteSnippet {
+                        quoteText(quote)
+                            .font(.system(size: 12.5, weight: .regular))
+                            .foregroundStyle(Color.skTextDim)
+                            .lineLimit(1)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 2)
+                    } else if let secondary = transcriptSnippet {
                         Text(secondary)
+                            .font(.system(size: 12.5, weight: .regular))
+                            .foregroundStyle(Color.skTextDim)
+                            .lineLimit(1)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 2)
+                    }
+                } else if memo.isBookCapture, let quote = memo.quoteSnippet {
+                    quoteText(quote)
+                        .font(.system(size: 14.5, weight: .medium))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(1)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 6)
+
+                    if let ramble = memo.rambleSnippet {
+                        Text(ramble)
                             .font(.system(size: 12.5, weight: .regular))
                             .foregroundStyle(Color.skTextDim)
                             .lineLimit(1)
@@ -534,6 +611,26 @@ private struct MemoCard: View {
         }
     }
 
+    /// Leading source icon for audiobook capture rows (accent-tinted book, per
+    /// the mock's `.mrow.cap .ic`).
+    private var bookGlyph: some View {
+        RoundedRectangle.sk(10)
+            .fill(Color.skAccentSoft)
+            .frame(width: 32, height: 32)
+            .overlay(
+                Image(systemName: "book.closed.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.skAccent)
+            )
+    }
+
+    /// "❝ quote" — accent, heavy quote mark + italic body. The caller sets the
+    /// line's base font/color, which the explicitly-styled ❝ keeps overriding.
+    private func quoteText(_ quote: String) -> Text {
+        Text("❝ ").foregroundStyle(Color.skAccent).fontWeight(.heavy)
+            + Text(quote).italic()
+    }
+
     @ViewBuilder private var photoThumb: some View {
         if let first = memo.metadata?.imageManifest?.first,
            let img = UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(first.filename).path) {
@@ -548,7 +645,12 @@ private struct MemoCard: View {
     private struct Chip: Hashable { let text: String; let symbol: String? }
 
     private var chips: [Chip] {
-        var out = [Chip(text: memo.durationLabel, symbol: nil)]
+        var out: [Chip] = []
+        // Captures lead the meta line with "Book · ch. N", like the mock.
+        if let book = memo.bookCaptionLabel {
+            out.append(Chip(text: book, symbol: "book.closed.fill"))
+        }
+        out.append(Chip(text: memo.durationLabel, symbol: nil))
         if let place = memo.metadata?.location?.placeName, !place.isEmpty {
             out.append(Chip(text: place, symbol: "mappin.circle.fill"))
         }

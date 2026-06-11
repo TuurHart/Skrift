@@ -63,6 +63,72 @@ extension Memo {
     }
 }
 
+// MARK: - Audiobook captures
+
+/// Display helpers for audiobook quote-capture memos. Detection rides the C2
+/// contract: `MemoMetadata.bookTitle` (set by the capture flow, defined in
+/// `Models/MemoMetadata.swift`) marks a memo as a book capture. The transcript
+/// shape is the C1 contract: markdown blockquote lines ("> ") holding the quote
+/// at the TOP, a blank line, then the ramble.
+extension Memo {
+    /// True when this memo is an audiobook quote capture (C2 book metadata
+    /// present). Drives the book glyph + quote-styled row in the memos list.
+    var isBookCapture: Bool {
+        !(metadata?.bookTitle?.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
+    }
+
+    /// "Book · ch. N" caption for capture rows. A purely numeric chapter gets
+    /// the "ch. " prefix (matching the export attribution); anything else (e.g.
+    /// an m4b chapter *name*) is shown as-is. Nil for non-capture memos.
+    var bookCaptionLabel: String? {
+        guard let book = metadata?.bookTitle?.trimmingCharacters(in: .whitespaces),
+              !book.isEmpty else { return nil }
+        guard let chapter = metadata?.bookChapter?.trimmingCharacters(in: .whitespaces),
+              !chapter.isEmpty else { return book }
+        let label = chapter.allSatisfy(\.isNumber) ? "ch. \(chapter)" : chapter
+        return "\(book) · \(label)"
+    }
+
+    /// The C1 quote block — the transcript's leading "> " blockquote lines,
+    /// stripped of the markers and joined into one row-sized snippet. Nil when
+    /// the transcript doesn't open with a blockquote (or doesn't exist yet).
+    var quoteSnippet: String? {
+        guard let transcript else { return nil }
+        var lines: [String] = []
+        for raw in transcript.components(separatedBy: .newlines) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix(">") {
+                let text = line.dropFirst().trimmingCharacters(in: .whitespaces)
+                if !text.isEmpty { lines.append(text) }
+            } else if lines.isEmpty && line.isEmpty {
+                continue            // tolerate leading blank lines
+            } else {
+                break               // the quote block is the TOP — stop at the first non-quote line
+            }
+        }
+        guard !lines.isEmpty else { return nil }
+        return String(lines.joined(separator: " ").prefix(120))
+    }
+
+    /// First line of the ramble below the C1 quote block (markers stripped) —
+    /// the capture row's secondary text. Nil while the capture has no ramble
+    /// yet ("Save & keep listening" without recording thoughts).
+    var rambleSnippet: String? {
+        guard let transcript else { return nil }
+        let cleaned = transcript.replacingOccurrences(
+            of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression
+        )
+        // Quote lines only legally appear at the top (C1), so skipping every
+        // "> " line is equivalent to skipping the head block — and simpler.
+        for raw in cleaned.components(separatedBy: .newlines) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty || line.hasPrefix(">") { continue }
+            return String(line.prefix(80))
+        }
+        return nil
+    }
+}
+
 enum MemoStatusKind: Equatable {
     case synced, waiting, transcribing, error
 
