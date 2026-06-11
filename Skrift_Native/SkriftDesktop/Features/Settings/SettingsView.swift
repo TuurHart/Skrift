@@ -244,6 +244,12 @@ struct SettingsView: View {
             RingedField(placeholder: "aliases, comma-separated", text: Binding(
                 get: { ep.wrappedValue.aliases },
                 set: { ep.wrappedValue.aliases = $0; namesDirty = true }), font: .system(size: 11))
+            // The display "nickname": what mentions AFTER the first linked one render
+            // as (e.g. Jack Hutton → "Jank"). Empty = first word of the full name.
+            RingedField(placeholder: "short", text: Binding(
+                get: { ep.wrappedValue.short },
+                set: { ep.wrappedValue.short = $0; namesDirty = true }), font: .system(size: 11))
+                .frame(width: 96)
             voiceTag(ep.wrappedValue.enrolled)
             Button {
                 editablePeople.removeAll { $0.id == ep.wrappedValue.id }; namesDirty = true
