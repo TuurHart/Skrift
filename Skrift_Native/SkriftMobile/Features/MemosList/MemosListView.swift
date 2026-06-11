@@ -21,7 +21,11 @@ struct MemoFilter: Equatable {
 /// record FAB. Tapping a card opens Memo detail; the FAB opens the recorder
 /// (which on Stop pushes detail — the save-now flow).
 struct MemosListView: View {
-    @Query(sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
+    // Trashed memos (deletedAt != nil) are excluded here and live in the
+    // Recently Deleted screen until restored or purged.
+    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
+           sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
+    @Query(filter: #Predicate<Memo> { $0.deletedAt != nil }) private var trashedMemos: [Memo]
     @Environment(\.modelContext) private var context
     private let repository = NotesRepository.shared
 
@@ -31,6 +35,7 @@ struct MemosListView: View {
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @State private var showSettings = false
     @State private var showSortFilter = false
+    @State private var showTrash = false
     @State private var search = ""
     @State private var sort: MemoSort = .recent
     @State private var filter = MemoFilter()
@@ -74,6 +79,10 @@ struct MemosListView: View {
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
             }
+            // A sheet (like Settings) rather than a push: the stack's path is
+            // typed [UUID] for memo detail, which a non-memo destination can't
+            // join.
+            .sheet(isPresented: $showTrash) { RecentlyDeletedView() }
         }
     }
 
@@ -145,6 +154,15 @@ struct MemosListView: View {
                         .listRowSeparator(.hidden)
                         .padding(.top, 60)
                 }
+                // Trash entry point, Voice Memos-style: a quiet footer row that
+                // only exists while the trash is non-empty. Hidden during
+                // multi-select so it can't collect a selection circle.
+                if !trashedMemos.isEmpty && !editMode.isEditing {
+                    recentlyDeletedRow
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                }
                 Color.clear.frame(height: 80)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -157,12 +175,45 @@ struct MemosListView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView(
-            "No memos yet",
-            systemImage: "waveform",
-            description: Text("Tap the mic to record your first memo.")
-        )
-        .accessibilityIdentifier("memos-empty")
+        VStack(spacing: 0) {
+            ContentUnavailableView(
+                "No memos yet",
+                systemImage: "waveform",
+                description: Text("Tap the mic to record your first memo.")
+            )
+            .accessibilityIdentifier("memos-empty")
+            // The trash must stay reachable when the main list is empty (e.g.
+            // everything was just deleted) — otherwise Restore is unreachable.
+            if !trashedMemos.isEmpty {
+                recentlyDeletedRow
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 110)   // clear the record FAB
+            }
+        }
+    }
+
+    /// "Recently Deleted (N)" card row → the trash screen.
+    private var recentlyDeletedRow: some View {
+        Button { showTrash = true } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "trash")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.skTextDim)
+                Text("Recently Deleted")
+                    .font(.system(size: 14.5, weight: .medium))
+                    .foregroundStyle(Color.skText)
+                Spacer()
+                Text("\(trashedMemos.count)")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.skTextDim)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.skTextFaint)
+            }
+            .skCard()
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("recently-deleted-row")
     }
 
     // MARK: - Toolbar
@@ -314,17 +365,11 @@ struct MemosListView: View {
         flashBanner("Copied")
     }
 
-    /// Remove a single memo + its on-disk audio/images/word-timings/diarization.
+    /// Soft-delete: move the memo to Recently Deleted (audio + sidecars stay on
+    /// disk so Restore is lossless; purged for good after ~2 weeks at startup).
     /// Shared by multi-select delete, swipe-to-delete, and the context menu.
-    /// Mirrors MemoDetailView.deleteCurrent.
     private func deleteMemo(_ memo: Memo) {
-        if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
-        memo.metadata?.imageManifest?.forEach {
-            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
-        }
-        WordTimingsStore().delete(for: memo.id)
-        DiarizationStore().delete(for: memo.id)
-        repository.delete(memo)
+        repository.softDelete(memo)
     }
 
     // MARK: - Derived

@@ -30,6 +30,24 @@ extension Memo {
         return String(format: "%d:%02d", total / 60, total % 60)
     }
 
+    /// Whole days until the startup purge permanently removes this trashed memo
+    /// (ceiling — a memo deleted an hour ago shows the full 14). 0 = expires on
+    /// the next purge. Nil when the memo isn't in the trash. `now` injectable
+    /// for tests.
+    func trashDaysRemaining(now: Date = Date()) -> Int? {
+        guard let deletedAt else { return nil }
+        let remaining = TrashPolicy.retention - now.timeIntervalSince(deletedAt)
+        return max(0, Int(ceil(remaining / 86_400)))
+    }
+
+    /// Countdown caption for Recently Deleted rows: "13 days left" / "1 day left"
+    /// / "Deleting soon" (already past retention, gone at next launch).
+    func trashCountdownLabel(now: Date = Date()) -> String? {
+        guard let days = trashDaysRemaining(now: now) else { return nil }
+        if days <= 0 { return "Deleting soon" }
+        return days == 1 ? "1 day left" : "\(days) days left"
+    }
+
     /// Honest status for the list pill, or `nil` when no pill should show.
     ///
     /// Transcript states (`transcribing` / `error`) are always informational and

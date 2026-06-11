@@ -12,6 +12,10 @@ struct SkriftApp: App {
         NamesSeeder.seedIfRequested()
         repository = repo
 
+        // Trash retention: permanently remove memos deleted ≥ 2 weeks ago
+        // (audio + photo + sidecar files included) before any UI shows them.
+        repo.purgeExpiredTrash()
+
         // App Intents (Control Center / Siri / Live Activity Stop) run in this
         // process and call these performers, which signal the record UI via the
         // bridge. Set at launch so a cold launch via an intent finds them ready.

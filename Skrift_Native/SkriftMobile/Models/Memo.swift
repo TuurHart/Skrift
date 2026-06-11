@@ -15,6 +15,15 @@ enum TranscriptStatus: String, Codable, Sendable {
     case failed
 }
 
+/// Trash retention, mirroring Apple Voice Memos' "Recently Deleted" (~2 weeks).
+/// A soft-deleted memo (`deletedAt != nil`) keeps its audio/sidecars on disk so
+/// Restore is lossless; the startup purge permanently removes it once expired.
+enum TrashPolicy {
+    /// Days a trashed memo survives before the startup purge removes it for good.
+    static let retentionDays = 14
+    static var retention: TimeInterval { TimeInterval(retentionDays) * 86_400 }
+}
+
 /// A captured voice memo. Mirrors the RN `Memo` shape (`Mobile/lib/storage.ts`)
 /// plus the mobile↔Mac contract fields the backend trusts.
 @Model
@@ -56,6 +65,12 @@ final class Memo {
     /// Mac pre-fills its own significance slider. Default 0 (unrated → not synced).
     var significance: Double = 0
 
+    /// Soft-delete marker (Recently Deleted). Non-nil = in the trash: hidden from
+    /// the main list/search and never uploaded; purged permanently (audio +
+    /// sidecars included) once it's `TrashPolicy.retention` old. ADDITIVE with a
+    /// nil default → lightweight SwiftData migration (safe for prod data).
+    var deletedAt: Date? = nil
+
     /// Contextual capture payload + shared content, persisted as JSON blobs —
     /// NOT direct SwiftData Codable-struct attributes. SwiftData's internal decode
     /// of a nested-optional Codable struct traps at runtime (EXC_BREAKPOINT) the
@@ -80,6 +95,7 @@ final class Memo {
         transcriptUserEdited: Bool = false,
         transcriptMarkersInjected: Bool = false,
         significance: Double = 0,
+        deletedAt: Date? = nil,
         metadata: MemoMetadata? = nil,
         sharedContent: SharedContent? = nil,
         annotationText: String? = nil
@@ -97,6 +113,7 @@ final class Memo {
         self.transcriptUserEdited = transcriptUserEdited
         self.transcriptMarkersInjected = transcriptMarkersInjected
         self.significance = significance
+        self.deletedAt = deletedAt
         self.metadataData = Self.encodeJSON(metadata)
         self.sharedContentData = Self.encodeJSON(sharedContent)
         self.annotationText = annotationText
