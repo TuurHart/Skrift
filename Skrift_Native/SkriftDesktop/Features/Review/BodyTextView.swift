@@ -15,6 +15,11 @@ import ImageIO
 /// mention of an ambiguous alias is marked (dotted accent underline + tint) and
 /// single-clicking it opens a candidate popover anchored at the word. Resolution is
 /// per-occurrence by nature — two friends named "Jack" are set independently.
+///
+/// Unlink (mocks/name-unlink.html): when `onUnlink` is wired, an already-linked
+/// `[[Name]]` whose core matches a live person is also clickable — same popover
+/// idiom — offering "unlink this mention" (→ the plain alias as spoken) or "unlink
+/// all mentions in this note" (also persisted so re-processing won't re-link).
 struct BodyTextView: NSViewRepresentable {
     @Binding var text: String
     /// Resolves an image marker number (`[[img_NNN]]`) to its file URL. Defaults to
@@ -26,6 +31,10 @@ struct BodyTextView: NSViewRepresentable {
     var onAddAlias: (String, String) -> Void = { _, _ in }
     /// Inline name-disambiguation state, or nil when the note has no ambiguous names.
     var resolver: InlineResolverModel? = nil
+    /// Click an already-linked `[[Name]]` → the unlink popover; the chosen scope is
+    /// reported with the person's bare canonical + the plain alias to restore.
+    /// nil = linked names aren't clickable (read-only hosts).
+    var onUnlink: ((_ canonical: String, _ alias: String, _ scope: UnlinkScope) -> Void)? = nil
     /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
     /// THIS text view (no renderer swap → no reflow) + click-a-word-to-seek.
     var karaoke: KaraokePlayback? = nil
@@ -38,6 +47,15 @@ struct BodyTextView: NSViewRepresentable {
     struct KaraokePlayback {
         var fraction: Double
         var seek: (Double) -> Void
+    }
+
+    /// Unlink scope picked in the linked-mention popover: ONE mention (the i-th
+    /// `[[link]]` of that person in reading order — order-based like the resolver,
+    /// so storage-vs-model offset drift from image attachments can't misapply) or
+    /// ALL of that person's links in this note.
+    enum UnlinkScope: Equatable {
+        case mention(index: Int)
+        case all
     }
 
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
@@ -99,6 +117,10 @@ struct BodyTextView: NSViewRepresentable {
         /// Last applied karaoke boundary, so the ~20 Hz playback ticks skip a recolor
         /// unless the active-word count actually moved (cheap even on long notes).
         private var lastKaraoke: (active: Int, count: Int)?
+        /// Live-people snapshot for the link tooltips applied on every restyle —
+        /// refreshed per render (note switch / external change) and per unlink click,
+        /// NOT per keystroke (`livePeople()` reads names.json from disk).
+        private var peopleCache: [Person] = []
         init(_ parent: BodyTextView) { self.parent = parent }
 
         func textDidChange(_ notification: Notification) {
@@ -165,6 +187,7 @@ struct BodyTextView: NSViewRepresentable {
                 string: model, attributes: [.font: BodyTextView.bodyFont, .foregroundColor: primary])
             tv.textStorage?.setAttributedString(attributed)
             lastKaraoke = nil   // new text → force the next karaoke recolor
+            if parent.onUnlink != nil { peopleCache = NamesStore.shared.livePeople() }
             restyle(tv)
             tv.typingAttributes = [.font: BodyTextView.bodyFont, .foregroundColor: primary]
             loadThumbnails(into: tv, model: model)
@@ -271,10 +294,30 @@ struct BodyTextView: NSViewRepresentable {
             if let rx = BodyTextView.linkRegex {
                 for m in rx.matches(in: storage.string, range: full) {
                     storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: m.range)
+                    // A linked person is clickable (unlink popover) — say so on hover.
+                    if parent.onUnlink != nil, m.range.length > 4,
+                       let p = person(matchingCore: (storage.string as NSString)
+                           .substring(with: NSRange(location: m.range.location + 2, length: m.range.length - 4))) {
+                        storage.addAttribute(
+                            .toolTip,
+                            value: "Linked to \(NamesMerge.keyName(p.canonical)) — click to unlink",
+                            range: m.range)
+                    }
                 }
             }
             markAmbiguous(storage)
             storage.endEditing()
+        }
+
+        /// The cached live person whose canonical key equals a link's core
+        /// (case-insensitive), or nil for non-person links (places, etc.).
+        private func person(matchingCore core: String) -> Person? {
+            let key = core.trimmingCharacters(in: .whitespaces)
+            guard !key.isEmpty else { return nil }
+            return peopleCache.first {
+                NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces)
+                    .caseInsensitiveCompare(key) == .orderedSame
+            }
         }
 
         /// Mark each plain ambiguous mention so it clearly reads as "needs you":
@@ -312,8 +355,9 @@ struct BodyTextView: NSViewRepresentable {
         // MARK: - Inline resolver interaction
 
         /// A single click at character `idx`. During karaoke it seeks the audio to the
-        /// clicked word; otherwise, if it's on an ambiguous mention, it opens the
-        /// candidate popover. Returns true when handled (suppresses cursor placement).
+        /// clicked word; otherwise an ambiguous mention opens the candidate popover and
+        /// an already-linked `[[Name]]` opens the unlink popover. Returns true when
+        /// handled (suppresses cursor placement).
         func handleClick(_ idx: Int, _ tv: SelfSizingTextView) -> Bool {
             // Karaoke: click a word → seek there (the old behavior the user missed).
             if let k = parent.karaoke, let storage = tv.textStorage {
@@ -324,16 +368,74 @@ struct BodyTextView: NSViewRepresentable {
                 }
                 return false
             }
-            guard let resolver = parent.resolver, let storage = tv.textStorage else { return false }
+            guard let storage = tv.textStorage else { return false }
             let text = storage.string
-            for alias in resolver.candidatesByAlias.keys {
-                for range in Sanitiser.plainOccurrences(of: alias, in: text)
-                where NSLocationInRange(idx, range) || idx == NSMaxRange(range) {
-                    showPopover(aliasLower: alias, range: range, tv: tv, resolver: resolver, text: text)
+            // Ambiguous plain mention → resolver popover (R3).
+            if let resolver = parent.resolver {
+                for alias in resolver.candidatesByAlias.keys {
+                    for range in Sanitiser.plainOccurrences(of: alias, in: text)
+                    where NSLocationInRange(idx, range) || idx == NSMaxRange(range) {
+                        showPopover(aliasLower: alias, range: range, tv: tv, resolver: resolver, text: text)
+                        return true
+                    }
+                }
+            }
+            // Already-linked [[Name]] → unlink popover (mocks/name-unlink.html). A
+            // fresh names read per click — one-shot, and the render-time cache could
+            // be stale after a right-click "Add as name".
+            if parent.onUnlink != nil {
+                for link in Sanitiser.linkOccurrences(in: text)
+                where NSLocationInRange(idx, link.range) || idx == NSMaxRange(link.range) {
+                    peopleCache = NamesStore.shared.livePeople()
+                    guard let p = person(matchingCore: link.core) else { return false }   // place link etc. → caret as usual
+                    showUnlinkPopover(link: link, person: p, tv: tv, text: text)
                     return true
                 }
             }
             return false
+        }
+
+        /// The unlink popover at a clicked `[[Name]]` — same NSPopover idiom as the
+        /// resolver. The chosen scope is order-based (the i-th link of this person in
+        /// reading order) so the apply against the MODEL text can't drift when image
+        /// attachments shorten the storage string.
+        private func showUnlinkPopover(link: Sanitiser.BodyLink, person p: Person,
+                                       tv: SelfSizingTextView, text: String) {
+            activePopover?.performClose(nil)
+            let ns = text as NSString
+            let beforeLen = min(38, link.range.location)
+            let before = ns.substring(with: NSRange(location: link.range.location - beforeLen, length: beforeLen))
+            let afterStart = NSMaxRange(link.range)
+            let after = ns.substring(with: NSRange(location: afterStart, length: min(38, ns.length - afterStart)))
+
+            let canonical = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+            let alias = Sanitiser.spokenAlias(for: p)
+            let links = Sanitiser.linkOccurrences(of: canonical, in: text)
+            let index = links.firstIndex { $0.range == link.range } ?? 0
+            // "Mentions" the way the mock counts them: this person's [[links]] plus
+            // the plain short-name mentions the Sanitiser already left/demoted.
+            let mentionCount = links.count + Sanitiser.plainOccurrences(of: alias, in: text).count
+
+            let view = UnlinkPopover(
+                person: canonical, alias: alias,
+                contextBefore: before, contextAfter: after,
+                mentionCount: mentionCount,
+                onUnlinkMention: { [weak self] in
+                    self?.closePopover()
+                    self?.parent.onUnlink?(canonical, alias, .mention(index: index))
+                },
+                onUnlinkAll: { [weak self] in
+                    self?.closePopover()
+                    self?.parent.onUnlink?(canonical, alias, .all)
+                },
+                onCancel: { [weak self] in self?.closePopover() })
+            let host = NSHostingController(rootView: view)
+            host.sizingOptions = [.preferredContentSize]
+            let pop = NSPopover()
+            pop.contentViewController = host
+            pop.behavior = .transient
+            activePopover = pop
+            pop.show(relativeTo: boundingRect(link.range, in: tv), of: tv, preferredEdge: .maxY)
         }
 
         private func showPopover(aliasLower: String, range: NSRange, tv: SelfSizingTextView,
@@ -444,6 +546,89 @@ struct BodyTextView: NSViewRepresentable {
             // Display at half the pixel size → ~360pt wide, crisp on Retina.
             return NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width) / 2, height: CGFloat(cg.height) / 2))
         }
+    }
+}
+
+/// Popover shown at a clicked, already-linked `[[Name]]` — the unlink counterpart
+/// of `ResolverPopover`, per the signed-off mock (mocks/name-unlink.html). Exactly
+/// TWO scopes + cancel: this mention → the plain alias as spoken; all mentions in
+/// this note → also persisted so re-processing won't re-link. (A "never link
+/// anywhere" scope was deliberately left out — that's a Names-level rule.)
+struct UnlinkPopover: View {
+    let person: String          // bare canonical, e.g. "Nick Jansen"
+    let alias: String           // plain replacement as spoken, e.g. "Nick"
+    let contextBefore: String
+    let contextAfter: String
+    let mentionCount: Int       // this person's links + plain mentions in the note
+    var onUnlinkMention: () -> Void
+    var onUnlinkAll: () -> Void
+    var onCancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            (Text("Linked to ").foregroundStyle(Theme.textSecondary)
+                + Text(person).foregroundStyle(Theme.textPrimary).bold())
+                .font(.system(size: 12)).padding(.bottom, 3)
+
+            (Text("…\(contextBefore)").foregroundStyle(Theme.textMuted)
+                + Text("[[\(person)]]").foregroundStyle(Theme.accent).bold()
+                + Text("\(contextAfter)…").foregroundStyle(Theme.textMuted))
+                .font(.system(size: 10.5)).italic().lineLimit(2).padding(.bottom, 9)
+
+            optionRow("Unlink this mention", "→ plain “\(alias)”, as spoken", action: onUnlinkMention)
+            optionRow("Unlink all mentions in this note",
+                      mentionCount > 1
+                        ? "all \(mentionCount) “\(alias)” mentions stay plain — won’t re-link on reprocess"
+                        : "“\(alias)” appears once — won’t re-link on reprocess",
+                      action: onUnlinkAll)
+
+            Rectangle().fill(Theme.hairline.opacity(0.08)).frame(height: 0.5).padding(.vertical, 6)
+
+            optionRow("Cancel", nil, plain: true, action: onCancel)
+
+            HStack(alignment: .top, spacing: 5) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 9)).foregroundStyle(Theme.textMuted.opacity(0.7))
+                Text("Only the first mention carries the [[link]] — later “\(alias)”s are already plain. \(person) stays in your Names.")
+                    .font(.system(size: 10)).foregroundStyle(Theme.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, 5).padding(.horizontal, 4)
+        }
+        .padding(12)
+        .frame(width: 264)
+        .background(Theme.surfaceHover)
+    }
+
+    @ViewBuilder
+    private func optionRow(_ title: String, _ subtitle: String?, plain: Bool = false,
+                           action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(alignment: .top, spacing: 9) {
+                Group {
+                    if plain {
+                        Text("×").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.textMuted)
+                    } else {
+                        Image(systemName: "link").font(.system(size: 8.5, weight: .bold)).foregroundStyle(Theme.accent)
+                    }
+                }
+                .frame(width: 18, height: 18)
+                .background(plain ? Theme.hairline.opacity(0.06) : Theme.accent.opacity(0.2), in: Circle())
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title).font(.system(size: 12.5))
+                        .foregroundStyle(plain ? Theme.textMuted : Theme.textPrimary)
+                    if let subtitle {
+                        Text(subtitle).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8).padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

@@ -93,8 +93,9 @@ struct BatchRunner {
         let suggestions = TagMatcher.suggest(text: working, whitelist: tagWhitelist)
         pf.tagSuggestions = suggestions.matched + suggestions.spoken
 
-        // 4. Name-link — last deterministic step, non-blocking.
-        let san = Sanitiser.process(text: working, people: people)
+        // 4. Name-link — last deterministic step, non-blocking. The note's persisted
+        // "unlink all mentions" choices keep those people plain on a re-run.
+        let san = Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
         pf.sanitised = san.sanitised
         pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
 

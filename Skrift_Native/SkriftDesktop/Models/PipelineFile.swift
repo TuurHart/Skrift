@@ -73,6 +73,12 @@ final class PipelineFile {
     var sanitised: String?
     /// `[AmbiguousOccurrence]` stored as a JSON blob (struct arrays trap SwiftData).
     var ambiguousNamesJSON: Data?
+    /// Canonical keys (bare names, no brackets) the user chose to UNLINK everywhere
+    /// in this note ("Unlink all mentions in this note", mocks/name-unlink.html).
+    /// Fed back into `Sanitiser.process(neverLink:)` so re-processing never re-links
+    /// them HERE — the person stays in the names DB and links normally elsewhere.
+    /// Primitive `[String]` is safe to store directly (see the gotcha above).
+    var unlinkedNames: [String] = []
     /// `[WordTiming]` stored as a JSON blob (the per-file `word_timings.json`
     /// equivalent) — drives the karaoke highlight. Set by the transcribe step.
     var wordTimingsJSON: Data?

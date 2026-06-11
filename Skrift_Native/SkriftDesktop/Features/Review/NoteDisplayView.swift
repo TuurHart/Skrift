@@ -17,13 +17,24 @@ struct NoteDisplayView: View {
     /// ambiguous names; preserved across re-renders (holds in-progress choices);
     /// cleared on note switch or once resolution is applied.
     @State private var resolver: InlineResolverModel?
+    /// Pre-unlink snapshot backing the inline undo toast (mocks/name-unlink.html).
+    /// Stays until dismissed/undone; cleared on note switch.
+    @State private var unlinkUndo: UnlinkUndo?
+
+    /// What "Undo" restores after an unlink: the exact pre-unlink body + the note's
+    /// persisted no-relink list as it was.
+    struct UnlinkUndo {
+        var message: String
+        var body: String
+        var unlinkedNames: [String]
+    }
 
     var body: some View {
         Group {
             if let file {
                 content(file)
                     .task(id: file.id) { audio.load(path: file.path) }
-                    .onChange(of: file.id, initial: true) { _, _ in syncResolver(file) }
+                    .onChange(of: file.id, initial: true) { _, _ in syncResolver(file); unlinkUndo = nil }
                     .onChange(of: file.ambiguousNames?.count ?? 0, initial: true) { _, _ in syncResolver(file) }
             } else {
                 emptyState
@@ -66,8 +77,97 @@ struct NoteDisplayView: View {
             } else if let summary = file.enhancedSummary, !summary.isEmpty {
                 summaryAside(summary)
             }
-            NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias, resolver: scrollable ? resolver : nil)
+            if let undo = unlinkUndo, scrollable {
+                unlinkUndoToast(undo, file)
+            }
+            NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias,
+                     resolver: scrollable ? resolver : nil,
+                     onUnlink: scrollable ? unlinkHandler(file) : nil)
         }
+    }
+
+    // ── Unlink a [[Name]] (mocks/name-unlink.html) ──────────────────────────────
+
+    /// The body's unlink callback, bound to the active note.
+    private func unlinkHandler(_ file: PipelineFile) -> (String, String, BodyTextView.UnlinkScope) -> Void {
+        { canonical, alias, scope in
+            applyUnlink(file, canonical: canonical, alias: alias, scope: scope)
+        }
+    }
+
+    /// Apply a scope picked in the body's unlink popover. ONE mention → the i-th
+    /// `[[link]]` of that person becomes the plain alias as spoken (a body edit,
+    /// like any hand edit). ALL mentions → every link of theirs goes plain AND the
+    /// canonical is persisted on the file so re-processing won't re-link it here.
+    /// Either way the pre-unlink state is kept for the undo toast.
+    private func applyUnlink(_ file: PipelineFile, canonical: String, alias: String,
+                             scope: BodyTextView.UnlinkScope) {
+        let before = file.bestBodyText
+        let beforeUnlinked = file.unlinkedNames
+        let text: String
+        let message: String
+        switch scope {
+        case let .mention(index):
+            text = Sanitiser.unlinkOccurrence(text: before, canonical: canonical, index: index, alias: alias)
+            message = "Unlinked — “\(alias)” is plain text in this note"
+        case .all:
+            text = Sanitiser.unlinkAll(text: before, canonical: canonical, alias: alias)
+            if !file.unlinkedNames.contains(where: { $0.caseInsensitiveCompare(canonical) == .orderedSame }) {
+                file.unlinkedNames.append(canonical)
+            }
+            message = "Unlinked \(canonical) everywhere in this note — won’t re-link on reprocess"
+        }
+        guard text != before || file.unlinkedNames != beforeUnlinked else { return }
+        setBody(text, on: file)
+        file.compiledText = Compiler.compile(file: file, author: author)
+        file.lastActivityAt = Date()
+        try? ctx.save()
+        unlinkUndo = UnlinkUndo(message: message, body: before, unlinkedNames: beforeUnlinked)
+    }
+
+    /// Undo the last unlink: restore the exact pre-unlink body + no-relink list.
+    private func undoUnlink(_ file: PipelineFile) {
+        guard let undo = unlinkUndo else { return }
+        setBody(undo.body, on: file)
+        file.unlinkedNames = undo.unlinkedNames
+        file.compiledText = Compiler.compile(file: file, author: author)
+        file.lastActivityAt = Date()
+        try? ctx.save()
+        unlinkUndo = nil
+    }
+
+    /// Write the body back through the SAME precedence the editor binding uses
+    /// (sanitised → copy-edit → transcript), so unlink/undo edit what's shown.
+    private func setBody(_ text: String, on file: PipelineFile) {
+        if file.sanitised != nil { file.sanitised = text }
+        else if file.enhancedCopyedit != nil { file.enhancedCopyedit = text }
+        else { file.transcript = text }
+    }
+
+    /// The inline undo toast — sits above the body (per the mock) and STAYS until
+    /// undone or dismissed (an unlink shouldn't quietly become permanent).
+    private func unlinkUndoToast(_ undo: UnlinkUndo, _ file: PipelineFile) -> some View {
+        HStack(spacing: 10) {
+            Text(undo.message)
+                .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Button { undoUnlink(file) } label: {
+                Text("Undo").font(.system(size: 11.5)).foregroundStyle(Theme.accent)
+                    .padding(.horizontal, 10).padding(.vertical, 3)
+                    .overlay(Capsule().stroke(Theme.accent.opacity(0.35), lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+            Button { unlinkUndo = nil } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(Theme.textMuted)
+            }
+            .buttonStyle(.plain)
+            .help("Dismiss")
+        }
+        .padding(.horizontal, 13).padding(.vertical, 8)
+        .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline.opacity(0.10), lineWidth: 0.5))
     }
 
     /// (Re)create the inline resolver model for the active note + wire its actions.
