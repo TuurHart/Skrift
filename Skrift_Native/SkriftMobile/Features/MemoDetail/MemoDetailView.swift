@@ -261,8 +261,12 @@ private struct MemoPageView: View {
                 }
                 .padding(.top, 12)
 
-                SignificanceRow(value: $memo.significance) { repository.save() }
-                    .padding(.top, 10)
+                // The 10-circle significance control (SignificanceCircles.swift —
+                // mocks/significance-circles.html): tap circle N → 0.N, re-tap →
+                // Not rated. Flag-to-send: 0 stays on the phone, >0 syncs, 0.8+
+                // is past the refine wall.
+                SignificanceCircles(value: $memo.significance) { repository.save() }
+                    .padding(.top, 14)
 
                 if let label = diarStatus.label(for: memo.id) {
                     HStack(spacing: 8) {
@@ -445,79 +449,6 @@ private struct MemoPageView: View {
             chips.append(MetaChip(text: period.label, symbol: period.symbol))
         }
         return chips
-    }
-}
-
-// MARK: - Significance (flag-to-send: 0 = stays on phone, > 0 = syncs to the Mac)
-
-/// Mirrors the desktop review slider (0–1, snap 0.1, Passing/Useful/Significant) but
-/// frames it around sync: at 0 the memo stays on the phone; any rating > 0 flags it
-/// to upload (and the value rides along to pre-fill the Mac's own slider).
-private struct SignificanceRow: View {
-    @Binding var value: Double
-    var onCommit: () -> Void
-
-    var body: some View {
-        HStack(spacing: 9) {
-            Text("Significance")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.skTextFaint)
-                .fixedSize()
-            SignificanceSlider(value: $value, onCommit: onCommit)
-            // Mirror the desktop slider's label: "0.7 · Significant" (Passing <0.34,
-            // Useful <0.67, Significant). 0 = "Not rated" (desktop shows this for an
-            // unrated note — and it's still the flag-to-send gate: 0 won't sync).
-            Text(value > 0 ? String(format: "%.1f · %@", value, tier) : "Not rated")
-                .font(.system(size: 10.5, weight: .semibold))
-                .foregroundStyle(value > 0 ? Color.skAccent : Color.skTextFaint)
-                .fixedSize()
-        }
-    }
-
-    private var tier: String { value >= 0.67 ? "Significant" : value >= 0.34 ? "Useful" : "Passing" }
-}
-
-/// Custom 0–1 (snap 0.1) drag slider. A `minimumDistance: 0` `.highPriorityGesture`
-/// claims the touch on contact, so the horizontal paging ScrollView can't steal the
-/// drag (the old `TabView(.page)` page-pan did, which is why this was a tap-to-set
-/// stopgap). A plain tap still works — a 0-distance drag fires `onChanged` on contact.
-private struct SignificanceSlider: View {
-    @Binding var value: Double
-    var onCommit: () -> Void
-    /// Live drag position, local only. Writing `value` (→ memo.significance) on every
-    /// drag tick re-ran the detail `@Query` and re-rendered the page each frame, which
-    /// is what made the slider lag. Track the drag here and commit to the model once,
-    /// on release.
-    @State private var dragging: Double?
-
-    var body: some View {
-        GeometryReader { geo in
-            let w = max(1, geo.size.width)
-            let shown = CGFloat(dragging ?? value)
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.skBorder).frame(height: 4)
-                Capsule().fill(Color.skAccent).frame(width: max(0, min(w, w * shown)), height: 4)
-                Circle().fill(.white)
-                    .frame(width: 20, height: 20)
-                    .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
-                    .offset(x: max(0, min(w - 20, w * shown - 10)))
-            }
-            .frame(maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { g in
-                        let frac = max(0, min(1, g.location.x / w))
-                        dragging = (Double(frac) * 10).rounded() / 10
-                    }
-                    .onEnded { _ in
-                        if let d = dragging { value = d; onCommit() }
-                        dragging = nil
-                    }
-            )
-        }
-        .frame(height: 24)
-        .accessibilityIdentifier("significance-slider")
     }
 }
 

@@ -4,7 +4,7 @@ import XCTest
 /// stubs the upload transport (the real round-trip against the native server is
 /// device/server-owed), so this proves the record → rate → waiting → sync → synced
 /// flow end to end. Flag-to-send: an unrated memo (significance 0) would NOT sync,
-/// so the test bumps the significance slider above 0 first.
+/// so the test rates it first via the 10-circle significance control.
 final class SyncUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -29,12 +29,14 @@ final class SyncUITests: XCTestCase {
         recordButton.tap()   // stop → save → save-now opens Memo detail
 
         // Save-now lands in Memo detail. Flag it significant (flag-to-send: only
-        // memos rated > 0 are eligible to sync) by bumping the slider up.
+        // memos rated > 0 are eligible to sync) via the 10-circle control:
+        // tapping circle 6 sets significance 0.6.
         XCTAssertTrue(app.buttons["play-button"].waitForExistence(timeout: 10))
-        // Custom significance slider (not a UISlider) — tap it at ~60% to set ~0.6.
-        let significance = app.descendants(matching: .any).matching(identifier: "significance-slider").firstMatch
-        XCTAssertTrue(significance.waitForExistence(timeout: 5))
-        significance.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)).tap()
+        let circle6 = app.buttons["significance-circle-6"].firstMatch
+        XCTAssertTrue(circle6.waitForExistence(timeout: 5))
+        circle6.tap()
+        // The live tier label confirms the rating took.
+        XCTAssertTrue(app.staticTexts["0.6 · Useful"].waitForExistence(timeout: 5))
 
         app.navigationBars.buttons.element(boundBy: 0).tap()   // back to Memos
 
