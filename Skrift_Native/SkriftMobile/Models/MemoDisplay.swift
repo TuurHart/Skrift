@@ -127,6 +127,101 @@ extension Memo {
         }
         return nil
     }
+
+    /// The C1 quote block split for the DETAIL screen, gated on the C2 book
+    /// metadata (a bare blockquote in an ordinary memo stays plain text). Nil
+    /// when there's no leading "> " block to style.
+    var captureQuote: CaptureQuote? {
+        guard isBookCapture else { return nil }
+        return CaptureQuote.split(transcript)
+    }
+
+    /// Plain-text attribution caption under the styled quote, from the C2
+    /// metadata: "— Author, Book · ch. N". A non-numeric chapter (an m4b
+    /// chapter *name*) passes through as-is, matching `bookCaptionLabel`.
+    /// NO `[[..]]` — the wikilinked attribution stays Mac-export-side.
+    var quoteAttributionLabel: String? {
+        guard let book = metadata?.bookTitle?.trimmingCharacters(in: .whitespaces),
+              !book.isEmpty else { return nil }
+        var label = "— "
+        if let author = metadata?.bookAuthor?.trimmingCharacters(in: .whitespaces),
+           !author.isEmpty {
+            label += "\(author), "
+        }
+        label += book
+        if let chapter = metadata?.bookChapter?.trimmingCharacters(in: .whitespaces),
+           !chapter.isEmpty {
+            label += " · " + (chapter.allSatisfy(\.isNumber) ? "ch. \(chapter)" : chapter)
+        }
+        return label
+    }
+}
+
+/// PRESENTATION-ONLY split of a capture transcript into its leading C1 "> "
+/// blockquote and the ramble below. The stored transcript keeps its raw "> "
+/// lines — this type carries the exact leading substring (`rawBlock`) so the
+/// editor can re-prepend it verbatim and edits can never corrupt the quote.
+///
+/// Round trip: for the C1 shape the app writes (quote block, blank line,
+/// ramble) `split(t)!.transcript(withRamble: split(t)!.ramble) == t` byte for
+/// byte. A degenerate input missing the blank separator keeps the quote and
+/// ramble bytes intact but normalises the separator to one blank line.
+struct CaptureQuote: Equatable {
+    /// The quote with the "> " markers stripped, for styled display. Bare ">"
+    /// spacer lines inside the block become empty lines (paragraph breaks).
+    let displayText: String
+    /// The exact leading substring of the transcript covering the quote block,
+    /// including any leading blanks and the blank separator line(s) after it.
+    let rawBlock: String
+    /// The exact remainder below the quote block (empty = no ramble yet).
+    let ramble: String
+
+    /// Spoken words in the quote (">" markers are not words). The word-timings
+    /// sidecar holds the quote's spoken words first, then the appended ramble's
+    /// — so this is the ramble's base index into the global karaoke timings.
+    var spokenWordCount: Int {
+        displayText.split(whereSeparator: \.isWhitespace).count
+    }
+
+    /// Parse the transcript's leading blockquote. Tolerates blank lines above
+    /// the quote and bare/padded ">" markers (same rules as `quoteSnippet`);
+    /// nil when the transcript doesn't open with a non-empty "> " block.
+    static func split(_ transcript: String?) -> CaptureQuote? {
+        guard let transcript, !transcript.isEmpty else { return nil }
+        let lines = transcript.components(separatedBy: "\n")
+        var i = 0
+        while i < lines.count, lines[i].trimmingCharacters(in: .whitespaces).isEmpty { i += 1 }
+        var quoteLines: [String] = []
+        while i < lines.count {
+            let line = lines[i].trimmingCharacters(in: .whitespaces)
+            guard line.hasPrefix(">") else { break }
+            quoteLines.append(String(line.dropFirst()).trimmingCharacters(in: .whitespaces))
+            i += 1
+        }
+        guard quoteLines.contains(where: { !$0.isEmpty }) else { return nil }
+        // The blank separator after the quote belongs to the raw block, so the
+        // ramble starts at its first real line.
+        while i < lines.count, lines[i].trimmingCharacters(in: .whitespaces).isEmpty { i += 1 }
+        while quoteLines.first?.isEmpty == true { quoteLines.removeFirst() }
+        while quoteLines.last?.isEmpty == true { quoteLines.removeLast() }
+        return CaptureQuote(
+            displayText: quoteLines.joined(separator: "\n"),
+            rawBlock: lines[0..<i].joined(separator: "\n"),
+            ramble: lines[i...].joined(separator: "\n")
+        )
+    }
+
+    /// Reassemble the stored transcript from an edited ramble: the raw quote
+    /// block verbatim + a blank-line separator (kept byte-exact when the block
+    /// already carries one) + the ramble. An emptied ramble leaves a quote-only
+    /// capture — never a nil transcript.
+    func transcript(withRamble newRamble: String) -> String {
+        guard !newRamble.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return rawBlock
+        }
+        let separator = rawBlock.hasSuffix("\n") ? "\n" : "\n\n"
+        return rawBlock + separator + newRamble
+    }
 }
 
 enum MemoStatusKind: Equatable {
