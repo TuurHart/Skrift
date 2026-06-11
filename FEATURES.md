@@ -17,7 +17,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
-| Record / pause / resume / stop | ✅ | ➖ | `Features/Recording/RecordView.swift:188-219` | Pause hides paused interval from elapsed time |
+| Record / pause / resume / stop | ✅ | ➖ | `Features/Recording/RecordView.swift` | Pause hides paused interval from elapsed time. **Instant record (2026-06-11): every entry auto-starts** (FAB, + append, Siri/widget — unified path) |
 | Live caption (auto-scroll + color-by-confidence) | ✅ | ➖ | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: native auto-scroll+scrollback; finalized text solid / trailing words lighter (positional **approximation** — FluidAudio exposes no volatile flag); inline tinted `[photo N]` tokens |
 | Live waveform (40-bar) | ✅ | ➖ | `RecordView.swift:453-480` | |
 | Model preload status | ✅ | n/a | `RecordView.swift:271-292` | ✅ 2026-06-09: in-place "model loading" placeholder in the caption during record-while-loading, cleared once words arrive |
@@ -37,7 +37,8 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Title editor | ✅ | ✅ | mobile `MemoDetailView.swift:189-195`; desktop `Features/Review/NoteProperties.swift:25-103` | Desktop = two-title chooser (Suggested vs From-recording) |
 | Significance slider (gates sync) | ✅ | ✅ | mobile `MemoDetailView.swift:221`, `Models/Memo.swift:57`; desktop `NoteProperties.swift:118` | **Mobile gating is LIVE** (below). 0–1, snap 0.1 |
 | Tags add/remove | ✅ | ✅ | mobile `MemoDetailView.swift:201-217`; desktop `NoteProperties.swift:120` | |
-| Copy transcript / delete | ✅ | ✅ | `MemoDetailView.swift:84-90` | |
+| Copy transcript / delete | ✅ | ✅ | `MemoDetailView.swift`; list row swipe/long-press `MemosListView.swift` | 2026-06-11: copy also via row swipe-action + context menu (list-delete now cleans the diar sidecar) |
+| Editable summary (review) | n/a | ✅ | desktop `Features/Review/NoteProperties.swift` | 2026-06-11: summary editable like title/tags; export recompiles |
 | Speaker turns + name-a-speaker | ✅ | ✅ | mobile `MemoDetail/SpeakerTurnsView.swift`; desktop `Features/Review/InlineResolver.swift` | Mobile inline relabel; desktop ambiguous-name resolver (per-alias + per-occurrence) |
 | Context chips (place/weather/time) | ✅ | ✅ | `MemoDetailView.swift:343-357`; desktop frontmatter | |
 | Horizontal paging between memos | ✅ | n/a | `MemoDetailView.swift:31-56` | |

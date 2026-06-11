@@ -168,7 +168,16 @@ crash logs via `idevicecrashreport`. **PASSED:** title-on-rows ✓, sig-0-no-pil
 keyboard-dismiss ✓, inline photos ✓, caption scrollback ✓, video date ✓, desktop video ingest (via Finder) ✓,
 glass bar acceptable ✓.
 
-### P0 — fix before promoting to prod
+### P0 — ✅ ALL FOUR FIXED (2026-06-11 fix batch, merged + all tests green; awaiting device re-test)
+Fixes in brief: (1) crash → caption is ONE AttributedString in a single Text (run-count pinned by test);
+(2) append → .transcribing shown throughout, clip kept until text lands, retry-with-backoff, terminal
+failure surfaces as Error pill, editor-clobber window closed; (3) tail cutoff → explicit AVAudioFile
+close() finalizes the m4a before transcription reads it (same race also hit append clips); (4) Live
+Activity → staleDate+keep-alive, "Recording interrupted" stale fallback, foreground orphan reaping.
+PLUS: instant record (locked decision — every record entry auto-starts), Spotify ducks only on Play,
+paste keeps scroll position, row swipe/long-press Copy, desktop editable summary, first-mention-only
+name links (incl. conversation turn headers), desktop video thumbnail, drag-from-Photos promised files,
+retranscribe clears stale segments, list-delete cleans the diar sidecar. Original P0 list below.
 1. **CRASH mid-recording (3× today, one recording LOST).** All three .ips identical: SIGSEGV "stack size
    exceeded due to excessive recursion" in SwiftUI `ConcatenatedTextStorage.resolve` — the live caption is
    built as per-word concatenated `Text` runs (solid+volatile+photo tokens), so a long recording → thousands-
