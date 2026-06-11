@@ -16,6 +16,15 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     var tags: [String]
     var photoFilename: String?
     var imageManifest: [ImageManifestEntry]?
+    /// Audiobook quote-capture (CROSS-LANE CONTRACT C2): the source book's
+    /// title / author / chapter NUMBER ("4"), riding the existing metadata JSON
+    /// to the Mac. ADDITIVE + optional — absent on every non-capture memo, so
+    /// the contract stays byte-compatible. The Mac composes the export
+    /// attribution ("— [[Author]], *Book*, ch. N") from these; the phone never
+    /// writes `[[..]]` or an attribution line.
+    var bookTitle: String?
+    var bookAuthor: String?
+    var bookChapter: String?
 
     init(
         capturedAt: String? = nil,
@@ -27,7 +36,10 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         steps: Int? = nil,
         tags: [String] = [],
         photoFilename: String? = nil,
-        imageManifest: [ImageManifestEntry]? = nil
+        imageManifest: [ImageManifestEntry]? = nil,
+        bookTitle: String? = nil,
+        bookAuthor: String? = nil,
+        bookChapter: String? = nil
     ) {
         self.capturedAt = capturedAt
         self.location = location
@@ -39,6 +51,9 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         self.tags = tags
         self.photoFilename = photoFilename
         self.imageManifest = imageManifest
+        self.bookTitle = bookTitle
+        self.bookAuthor = bookAuthor
+        self.bookChapter = bookChapter
     }
 }
 
