@@ -64,4 +64,112 @@ final class CompilerTests: XCTestCase {
         XCTAssertTrue(md.contains("\nsignificance:\n"))
         XCTAssertTrue(md.contains("\nsummary:\n"))
     }
+
+    // MARK: - Audiobook quote-capture (contract C2 + spec 7)
+
+    private let bookJSON = #"{"recordedAt":"2026-06-11T10:00:00.000Z","bookTitle":"The Beginning of Infinity","bookAuthor":"David Deutsch","bookChapter":"4"}"#
+    private let captureBody = "> Optimism is a way of explaining failure.\n> Problems are soluble.\n\nThis maps onto how I think about debugging."
+
+    func testPhoneMetadataDecodesWithoutBookFields() throws {
+        // Old phone builds / non-capture memos: absent keys must decode to nil.
+        let old = Data(#"{"steps":12,"recordedAt":"2026-06-05T08:00:00.000Z"}"#.utf8)
+        let meta = try JSONDecoder().decode(PhoneMetadata.self, from: old)
+        XCTAssertNil(meta.bookTitle)
+        XCTAssertNil(meta.bookAuthor)
+        XCTAssertNil(meta.bookChapter)
+        XCTAssertEqual(meta.steps, 12)
+    }
+
+    func testPhoneMetadataDecodesWithBookFields() throws {
+        let meta = try JSONDecoder().decode(PhoneMetadata.self, from: Data(bookJSON.utf8))
+        XCTAssertEqual(meta.bookTitle, "The Beginning of Infinity")
+        XCTAssertEqual(meta.bookAuthor, "David Deutsch")
+        XCTAssertEqual(meta.bookChapter, "4")
+    }
+
+    func testPhoneMetadataEncodeOmitsAbsentBookFields() throws {
+        // Byte-compat the other direction: a metadata without book fields encodes
+        // WITHOUT the keys (encodeIfPresent), so nothing new rides old memos.
+        let meta = try JSONDecoder().decode(PhoneMetadata.self, from: Data(#"{"steps":3}"#.utf8))
+        let json = String(decoding: try JSONEncoder().encode(meta), as: UTF8.self)
+        XCTAssertFalse(json.contains("bookTitle"))
+        XCTAssertFalse(json.contains("bookAuthor"))
+        XCTAssertFalse(json.contains("bookChapter"))
+    }
+
+    func testAudiobookSourceAndFrontmatter() {
+        let pf = makeFile()
+        pf.transcript = captureBody
+        pf.audioMetadataJSON = Data(bookJSON.utf8)
+        let md = Compiler.compile(file: pf, author: "Tiuri")
+        XCTAssertTrue(md.contains("source: Audiobook-quote"))
+        XCTAssertFalse(md.contains("source: Voice-memo"))
+        XCTAssertTrue(md.contains("book: \"The Beginning of Infinity\""))
+        XCTAssertTrue(md.contains("bookAuthor: \"David Deutsch\""))
+        XCTAssertTrue(md.contains("chapter: \"4\""))
+        XCTAssertTrue(md.contains("author: Tiuri"), "the note author key is untouched")
+    }
+
+    func testNoBookMetadataKeepsVoiceMemoSource() {
+        let pf = makeFile()
+        pf.transcript = captureBody   // a quote block alone is NOT an audiobook capture
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        XCTAssertTrue(md.contains("source: Voice-memo"))
+        XCTAssertFalse(md.contains("book:"))
+        XCTAssertTrue(md.contains("> Optimism is a way"), "body untouched without book metadata")
+        XCTAssertFalse(md.contains("> *"))
+        XCTAssertFalse(md.contains("> — "))
+    }
+
+    func testAudiobookBodyItalicsAndAttribution() {
+        let pf = makeFile()
+        pf.transcript = captureBody
+        pf.audioMetadataJSON = Data(bookJSON.utf8)
+        let md = Compiler.compile(file: pf, author: "T")
+        XCTAssertTrue(md.contains("> *Optimism is a way of explaining failure.*"), "quote lines italicised")
+        XCTAssertTrue(md.contains("> *Problems are soluble.*"))
+        XCTAssertTrue(md.contains("> — [[David Deutsch]], *The Beginning of Infinity*, ch. 4"))
+        XCTAssertTrue(md.hasSuffix("This maps onto how I think about debugging."), "ramble preserved after the block")
+        let attr = md.range(of: "> — [[David Deutsch]]")!
+        let ramble = md.range(of: "This maps onto")!
+        XCTAssertTrue(attr.lowerBound < ramble.lowerBound, "attribution sits between quote and ramble")
+    }
+
+    func testAttributionOmitsMissingChapter() {
+        let pf = makeFile()
+        pf.transcript = "> A line.\n\nramble"
+        pf.audioMetadataJSON = Data(#"{"bookTitle":"Some Book","bookAuthor":"Jane Doe"}"#.utf8)
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        XCTAssertTrue(md.contains("> — [[Jane Doe]], *Some Book*"))
+        XCTAssertFalse(md.contains("ch. "))
+        XCTAssertFalse(md.contains("chapter:"))
+    }
+
+    func testAttributionOmitsMissingAuthor() {
+        let pf = makeFile()
+        pf.transcript = "> A line.\n\nramble"
+        pf.audioMetadataJSON = Data(#"{"bookTitle":"Some Book","bookChapter":"12"}"#.utf8)
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        XCTAssertTrue(md.contains("> — *Some Book*, ch. 12"))
+        XCTAssertFalse(md.contains("[["), "no author → no wikilink anywhere")
+        XCTAssertFalse(md.contains("bookAuthor:"))
+    }
+
+    func testAudiobookBodyWithoutQuoteBlockIsUntouched() {
+        let pf = makeFile()
+        pf.transcript = "just a ramble, the quote got lost upstream"
+        pf.audioMetadataJSON = Data(#"{"bookTitle":"Some Book"}"#.utf8)
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        XCTAssertTrue(md.contains("source: Audiobook-quote"), "frontmatter still book-aware")
+        XCTAssertTrue(md.hasSuffix("just a ramble, the quote got lost upstream"))
+        XCTAssertFalse(md.contains("> — "), "no attribution without a quote block")
+    }
+
+    func testAudiobookBodyDoesNotDoubleItalicise() {
+        // A body whose quote lines are ALREADY wrapped (hand edit) keeps one pair.
+        let out = Compiler.audiobookBody("> *already italic*\n\nramble",
+                                         book: "B", author: nil, chapter: nil)
+        XCTAssertTrue(out.contains("> *already italic*"))
+        XCTAssertFalse(out.contains("**already italic**"))
+    }
 }
