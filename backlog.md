@@ -295,6 +295,8 @@ held — the book quote came through enhancement untouched** ✓.
 - **Backlog (capture-items umbrella): unify the SOURCE taxonomy across both apps** — voice memo / URL /
   document-PDF / video / audiobook quote / Apple Note — consistent glyphs + labels everywhere (user:
   "all the sources should be done well"). 
+- **Mini-player bar ~2× vertical height** (user, 2026-06-11 late): buttons too small to hit comfortably;
+  it only shows during an active session so it can afford the space. Apply post-merge (fix-lane owns the file).
 - Watch: scrubbing while another device held the AirPods felt entangled with the route (audio yanked
   from Mac to phone) — recheck after the gesture fix lands.
 1. **Skrift IS the player** for actively-mined books — model it on **Bound** ("there isn't a feature
