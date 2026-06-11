@@ -228,8 +228,15 @@ retranscribe clears stale segments, list-delete cleans the diar sidecar. Origina
    **OWED TOMORROW: walk the user through what (if anything) must be set up in the Apple Developer portal /
    App Store Connect for the new extension target + App Group** (likely nothing manual — automatic signing
    team 9W82X49JZS auto-registers bundle IDs + App Groups for dev builds; explain + verify).
-3. **Custom vocabulary** — GO. Spike FluidAudio CTC keyword-boosting API on current `main`, then a Settings
-   "Custom words" list feeding both apps' transcribers ("Skrift", names, jargon).
+3. **Custom vocabulary** — GO. ✅ SPIKE DONE (2026-06-11): FluidAudio `main` (7f963cd, identical checkout in
+   both apps) ships a full custom-vocab system — CTC word-spotting + rescoring (NeMo arXiv:2406.07096,
+   "separate CTC encoder"; works with the Parakeet TDT 0.6B v3 both apps use). Neither app uses
+   `SlidingWindowAsrManager` (its built-in `configureVocabularyBoosting` doesn't apply); both call
+   `AsrManager.transcribe` directly → integrate like the CLI batch pattern: after `transcribe`, run
+   `CtcKeywordSpotter.spotKeywordsWithLogProbs` over the same samples, then
+   `VocabularyRescorer.ctcTokenRescore(...)`, take rescored text when `wasModified`. Cost: one extra
+   ~97.5 MB HF model. Build next: Settings "Custom words" list (both apps) + the rescore pass in each
+   transcriber.
 4. **Trash / 2-week retention** — GO. `deletedAt` on Memo (additive schema), delete = soft-delete, "Recently
    Deleted" section, purge ≥14 days. Mirror on desktop later.
 5. **Auto-copy transcript after transcribe** — GO as an **opt-in Setting, default OFF**.
