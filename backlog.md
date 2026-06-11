@@ -297,6 +297,15 @@ held — the book quote came through enhancement untouched** ✓.
   "all the sources should be done well"). 
 - **Mini-player bar ~2× vertical height** (user, 2026-06-11 late): buttons too small to hit comfortably;
   it only shows during an active session so it can afford the space. Apply post-merge (fix-lane owns the file).
+- **Mini-player AUTO-HIDE after idle** (user, 2026-06-11: "I'm always listening to one book or another —
+  the player will be there always"): the bar must end its session automatically after X paused time
+  (start ~2h idle, + on app launch when last-played is >~6h old; constants flippable). Zero loss: progress
+  persists per-book; reopening from the Library resumes exactly. Post-merge pass, with the 2x-height tweak.
+- **Siri: "play/resume my book in Skrift"** — an App Shortcut that resumes the last-played audiobook.
+  SAFE SHAPE per this repo's SIGTRAP history: plain `AppIntent` + `openAppWhenRun` (like
+  StartRecordingIntent), NOT an audio-playback intent; opens the app + resumes playback. Phrases:
+  "Resume my book in Skrift", "Play Skrift book". (True background-start via AudioPlaybackIntent = later
+  experiment, device-tested carefully.)
 - Watch: scrubbing while another device held the AirPods felt entangled with the route (audio yanked
   from Mac to phone) — recheck after the gesture fix lands.
 1. **Skrift IS the player** for actively-mined books — model it on **Bound** ("there isn't a feature
