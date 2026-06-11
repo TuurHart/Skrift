@@ -112,11 +112,12 @@ final class SanitiserTests: XCTestCase {
         XCTAssertEqual(ns.substring(with: occ[0]), "Jack's")
     }
 
-    /// End-to-end of what R3's inline resolver produces: the user clicks each mention
-    /// (decisions keyed by body LOCATION, as `InlineResolverModel` stores them); on
-    /// Apply we re-enumerate `plainOccurrences` in order to build the per-occurrence
-    /// arrays (mirrors `NoteDisplayView.maybeApplyEscalated`). Two
-    /// friends named "Jack" must resolve to DIFFERENT people, "Sam" to its own.
+    /// End-to-end of what R3's inline resolver produces: the user clicks each mention;
+    /// on commit we enumerate `plainOccurrences` in order to build the per-occurrence
+    /// arrays (mirrors `NoteDisplayView.maybeCompleteAlias` — `InlineResolverModel`
+    /// keys choices by that occurrence INDEX; this test keys by location and converts,
+    /// proving the location↔order mapping is stable). Two friends named "Jack" must
+    /// resolve to DIFFERENT people, "Sam" to its own.
     func testInlineResolverLocationKeyedApplyTwoDistinctJacks() {
         let body = "Met Jack at the studio. Later Jack texted. And Sam will test it next week."
         let jackLocs = Sanitiser.plainOccurrences(of: "Jack", in: body).map(\.location)

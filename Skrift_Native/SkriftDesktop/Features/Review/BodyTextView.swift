@@ -14,7 +14,12 @@ import ImageIO
 /// R3: when a `resolver` is attached (the note has ambiguous names), each plain
 /// mention of an ambiguous alias is marked (dotted accent underline + tint) and
 /// single-clicking it opens a candidate popover anchored at the word. Resolution is
-/// per-occurrence by nature — two friends named "Jack" are set independently.
+/// per-occurrence by nature — two friends named "Jack" are set independently — and
+/// in the escalated ("different people") flow every pick applies INSTANTLY: the
+/// body re-renders from the resolver's pristine snapshot + choices so far, so the
+/// clicked mention becomes its `[[link]]`/short name on the spot while undecided
+/// mentions stay highlighted. Mentions are identified by occurrence ORDER (the k-th
+/// plain mention), never by storage offsets (image attachments shift those).
 ///
 /// Unlink (mocks/name-unlink.html): when `onUnlink` is wired, an already-linked
 /// `[[Name]]` whose core matches a live person is also clickable — same popover
@@ -284,6 +289,12 @@ struct BodyTextView: NSViewRepresentable {
         func restyle(_ tv: SelfSizingTextView) {
             guard let storage = tv.textStorage else { return }
             lastKaraoke = nil   // normal styling applied → next karaoke entry must recolor
+            // In-flight per-occurrence choices are trusted only while the displayed
+            // text IS the resolver's own render — a hand edit mid-flight makes the
+            // index-keyed choices stale, so marks fall back to undecided until the
+            // next pick re-bases. (Compared on the MODEL string: attachments
+            // collapse markers in the storage string.)
+            let renderValid = parent.resolver.map { $0.renderMatches(model: modelString(tv)) } ?? false
             let full = NSRange(location: 0, length: storage.length)
             storage.beginEditing()
             storage.addAttribute(.foregroundColor, value: NSColor(Theme.textPrimary), range: full)
@@ -295,17 +306,22 @@ struct BodyTextView: NSViewRepresentable {
                 for m in rx.matches(in: storage.string, range: full) {
                     storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: m.range)
                     // A linked person is clickable (unlink popover) — say so on hover.
-                    if parent.onUnlink != nil, m.range.length > 4,
-                       let p = person(matchingCore: (storage.string as NSString)
-                           .substring(with: NSRange(location: m.range.location + 2, length: m.range.length - 4))) {
-                        storage.addAttribute(
-                            .toolTip,
-                            value: "Linked to \(NamesMerge.keyName(p.canonical)) — click to unlink",
-                            range: m.range)
+                    // Except a link the in-flight resolver just rendered: it isn't
+                    // committed yet (clicks are suppressed too — see handleClick).
+                    if parent.onUnlink != nil, m.range.length > 4 {
+                        let core = (storage.string as NSString)
+                            .substring(with: NSRange(location: m.range.location + 2, length: m.range.length - 4))
+                        if parent.resolver?.isInFlightCandidate(core: core) != true,
+                           let p = person(matchingCore: core) {
+                            storage.addAttribute(
+                                .toolTip,
+                                value: "Linked to \(NamesMerge.keyName(p.canonical)) — click to unlink",
+                                range: m.range)
+                        }
                     }
                 }
             }
-            markAmbiguous(storage)
+            markAmbiguous(storage, renderValid: renderValid)
             storage.endEditing()
         }
 
@@ -324,7 +340,10 @@ struct BodyTextView: NSViewRepresentable {
         /// accent text + an accent highlight + a solid accent underline. In a
         /// per-occurrence ("different people") alias, a chosen mention shows its
         /// person (calmer tint + who-tooltip); a leave-plain mention shows normal.
-        private func markAmbiguous(_ storage: NSTextStorage) {
+        /// Choice lookup is by occurrence ORDER (the k-th plain mention), not
+        /// offsets, so the storage string (image markers collapsed to attachment
+        /// chars) can't drift the in-flight choices.
+        private func markAmbiguous(_ storage: NSTextStorage, renderValid: Bool) {
             guard let resolver = parent.resolver else { return }
             let text = storage.string
             let accent = NSColor(Theme.accent)
@@ -333,8 +352,10 @@ struct BodyTextView: NSViewRepresentable {
             let underline = accent.withAlphaComponent(0.9)
             for alias in resolver.candidatesByAlias.keys {
                 let escalated = resolver.isEscalated(alias)
-                for range in Sanitiser.plainOccurrences(of: alias, in: text) where NSMaxRange(range) <= storage.length {
-                    let choice = escalated ? resolver.choice(alias: alias, location: range.location) : nil
+                for (k, range) in Sanitiser.plainOccurrences(of: alias, in: text).enumerated()
+                where NSMaxRange(range) <= storage.length {
+                    let choice = (escalated && renderValid)
+                        ? resolver.choiceAtPlainIndex(alias: alias, plainIndex: k) : nil
                     switch choice {
                     case .some(.person(let c)):
                         storage.addAttribute(.foregroundColor, value: accent, range: range)
@@ -370,12 +391,14 @@ struct BodyTextView: NSViewRepresentable {
             }
             guard let storage = tv.textStorage else { return false }
             let text = storage.string
-            // Ambiguous plain mention → resolver popover (R3).
+            // Ambiguous plain mention → resolver popover (R3). The mention is
+            // identified by its plain-occurrence INDEX (order-based, like the
+            // apply), so storage offsets never key anything.
             if let resolver = parent.resolver {
                 for alias in resolver.candidatesByAlias.keys {
-                    for range in Sanitiser.plainOccurrences(of: alias, in: text)
+                    for (k, range) in Sanitiser.plainOccurrences(of: alias, in: text).enumerated()
                     where NSLocationInRange(idx, range) || idx == NSMaxRange(range) {
-                        showPopover(aliasLower: alias, range: range, tv: tv, resolver: resolver, text: text)
+                        showPopover(aliasLower: alias, plainIndex: k, range: range, tv: tv, resolver: resolver, text: text)
                         return true
                     }
                 }
@@ -386,6 +409,10 @@ struct BodyTextView: NSViewRepresentable {
             if parent.onUnlink != nil {
                 for link in Sanitiser.linkOccurrences(in: text)
                 where NSLocationInRange(idx, link.range) || idx == NSMaxRange(link.range) {
+                    // A link the in-flight resolver just rendered isn't committed
+                    // yet (it may still demote/move as more mentions are assigned)
+                    // — not unlinkable until its alias completes.
+                    if parent.resolver?.isInFlightCandidate(core: link.core) == true { return false }
                     peopleCache = NamesStore.shared.livePeople()
                     guard let p = person(matchingCore: link.core) else { return false }   // place link etc. → caret as usual
                     showUnlinkPopover(link: link, person: p, tv: tv, text: text)
@@ -438,7 +465,7 @@ struct BodyTextView: NSViewRepresentable {
             pop.show(relativeTo: boundingRect(link.range, in: tv), of: tv, preferredEdge: .maxY)
         }
 
-        private func showPopover(aliasLower: String, range: NSRange, tv: SelfSizingTextView,
+        private func showPopover(aliasLower: String, plainIndex: Int, range: NSRange, tv: SelfSizingTextView,
                                  resolver: InlineResolverModel, text: String) {
             activePopover?.performClose(nil)
             let ns = text as NSString
@@ -448,17 +475,18 @@ struct BodyTextView: NSViewRepresentable {
             let after = ns.substring(with: NSRange(location: afterStart, length: min(38, ns.length - afterStart)))
             let display = resolver.display(aliasLower)
             let cands = resolver.candidates(for: aliasLower)
-            let loc = range.location
             let escalated = resolver.isEscalated(aliasLower)
+            let renderValid = resolver.renderMatches(model: modelString(tv))
 
             let view = ResolverPopover(
                 mode: escalated ? .occurrence : .alias,
                 alias: display, contextBefore: before, contextAfter: after,
                 candidates: cands,
-                current: escalated ? resolver.choice(alias: aliasLower, location: loc) : nil,
+                current: (escalated && renderValid)
+                    ? resolver.choiceAtPlainIndex(alias: aliasLower, plainIndex: plainIndex) : nil,
                 onPick: { [weak self, weak tv] choice in
                     self?.closePopover()
-                    if escalated { resolver.onDecideOccurrence?(aliasLower, loc, choice) }
+                    if escalated { resolver.onDecideOccurrence?(aliasLower, plainIndex, choice) }
                     else { resolver.onResolveAlias?(aliasLower, choice) }
                     if let tv { self?.restyle(tv) }
                 },
@@ -493,16 +521,18 @@ struct BodyTextView: NSViewRepresentable {
             { [weak self, weak tv] in
                 guard let self, let tv, let resolver = self.parent.resolver, let storage = tv.textStorage else { return }
                 let text = storage.string
-                var first: (alias: String, range: NSRange)?
+                let renderValid = resolver.renderMatches(model: self.modelString(tv))
+                var first: (alias: String, index: Int, range: NSRange)?
                 for alias in resolver.candidatesByAlias.keys where resolver.isEscalated(alias) {
-                    for range in Sanitiser.plainOccurrences(of: alias, in: text)
-                    where resolver.choice(alias: alias, location: range.location) == nil {
-                        if first == nil || range.location < first!.range.location { first = (alias, range) }
+                    for (k, range) in Sanitiser.plainOccurrences(of: alias, in: text).enumerated()
+                    where !(renderValid && resolver.choiceAtPlainIndex(alias: alias, plainIndex: k) != nil) {
+                        if first == nil || range.location < first!.range.location { first = (alias, k, range) }
                     }
                 }
                 guard let next = first else { return }
                 tv.scrollRangeToVisible(next.range)
-                self.showPopover(aliasLower: next.alias, range: next.range, tv: tv, resolver: resolver, text: text)
+                self.showPopover(aliasLower: next.alias, plainIndex: next.index, range: next.range,
+                                 tv: tv, resolver: resolver, text: text)
             }
         }
 
