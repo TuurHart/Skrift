@@ -578,6 +578,13 @@ private struct MemoCard: View {
                 FlowLayout(spacing: 5, lineSpacing: 5) {
                     ForEach(chips, id: \.self) { chip in
                         ContextChip(text: chip.text, systemImage: chip.symbol)
+                            // FlowLayout measures children at their IDEAL width, so
+                            // an uncapped chip (a long book title) grows past the
+                            // card and clips off-screen. The cap turns overflow into
+                            // tail-truncation — ContextChip's Text already has
+                            // lineLimit(1) + .tail; short chips keep their ideal
+                            // width (maxWidth never stretches under FlowLayout).
+                            .frame(maxWidth: 220, alignment: .leading)
                     }
                     ForEach(memo.tags.prefix(2), id: \.self) { tag in
                         Text("#\(tag)")

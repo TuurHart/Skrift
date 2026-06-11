@@ -7,6 +7,11 @@ import UIKit
 /// every change it writes the transcript back, reconstructing the markers from the
 /// attachments, and flags `transcriptUserEdited` so the Mac trusts it (no re-transcribe).
 ///
+/// Audiobook captures (C2 book metadata + a C1 "> " quote block) are QUOTE-PROTECTED:
+/// the editor holds only the ramble below the quote — the detail page renders the
+/// styled quote block above it — and write-back re-prepends the raw "> " lines
+/// verbatim (`CaptureQuote`), so editing can never corrupt the stored quote.
+///
 /// Shown when paused; during playback the parent swaps in the read-only karaoke
 /// `TranscriptContentView` (highlight + tap-to-seek). The two render identically when
 /// idle, so the swap is seamless.
@@ -70,22 +75,30 @@ struct TranscriptEditor: UIViewRepresentable {
             self.memo = memo; self.onCommit = onCommit; self.width = width
         }
 
+        /// The protected C1 quote split for a capture memo — recomputed from the
+        /// memo on every use so an external transcript change can't leave a stale
+        /// prefix. Nil for ordinary memos (the editor then holds the full text).
+        private var protectedQuote: CaptureQuote? { memo.captureQuote }
+
         /// (Re)build the attributed text from the memo's transcript when it changed under
         /// us (e.g. transcription finished) — but never while the user is typing.
         func load(force: Bool) {
             guard let tv = textView else { return }
             let t = memo.transcript ?? ""
+            // Quote-protected captures edit only the ramble; the styled quote
+            // block above the editor presents the "> " lines.
+            let display = protectedQuote?.ramble ?? t
             if !force {
                 if t == loaded { return }
                 if tv.isFirstResponder { return }                 // don't yank text mid-edit
-                if t == reconstruct(tv.attributedText) { loaded = t; return }
+                if display == reconstruct(tv.attributedText) { loaded = t; return }
             }
             // Replacing the attributed string resets the caret to the start — and
             // SwiftUI's keyboard avoidance then scrolls the note to that top-of-text
             // caret. Carry the (clamped) selection across the rebuild so the caret —
             // and with it the visible spot — stays put.
             let selection = tv.selectedRange
-            tv.attributedText = attributed(from: t)
+            tv.attributedText = attributed(from: display)
             let length = tv.attributedText.length
             let location = min(selection.location, length)
             tv.selectedRange = NSRange(location: location, length: min(selection.length, length - location))
@@ -96,9 +109,17 @@ struct TranscriptEditor: UIViewRepresentable {
         func textViewDidChange(_ tv: UITextView) {
             let text = reconstruct(tv.attributedText)
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            memo.transcript = trimmed.isEmpty ? nil : text
+            if let quote = protectedQuote {
+                // Capture memo: the editor held ONLY the ramble — re-prepend the
+                // raw "> " block verbatim so the stored quote is untouchable.
+                // Emptying the ramble leaves a quote-only capture, never nil.
+                memo.transcript = quote.transcript(withRamble: text)
+                memo.transcriptStatus = .done
+            } else {
+                memo.transcript = trimmed.isEmpty ? nil : text
+                if !trimmed.isEmpty { memo.transcriptStatus = .done }
+            }
             memo.transcriptUserEdited = true                       // Mac trusts it → no re-transcribe
-            if !trimmed.isEmpty { memo.transcriptStatus = .done }
             loaded = memo.transcript ?? ""
             tv.invalidateIntrinsicContentSize()
             onCommit()

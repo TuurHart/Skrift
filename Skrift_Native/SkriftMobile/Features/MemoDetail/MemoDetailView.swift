@@ -389,10 +389,12 @@ private struct MemoPageView: View {
     }
 
     private var titlePrompt: Text {
-        // Strip a leading `**Speaker:** ` prefix so a conversation note's title prompt
-        // shows the actual first words, not the Markdown.
+        // Strip a leading `**Speaker:** ` prefix (conversation note) or `> `
+        // blockquote marker (capture memo) so the title prompt shows the
+        // actual first words, not the Markdown.
         let line = (memo.firstTranscriptLine ?? "Add a title")
             .replacingOccurrences(of: #"^\*\*.+?:\*\*\s*"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"^>\s*"#, with: "", options: .regularExpression)
         return Text(line.isEmpty ? "Add a title" : line).foregroundStyle(Color.skTextFaint)
     }
 
@@ -416,6 +418,11 @@ private struct MemoPageView: View {
     /// `transcriptUserEdited` on every change). Playing → the read-only karaoke view
     /// (highlight + tap-to-seek). Transcribing → its status pill. The editor and the
     /// idle karaoke view render the same, so play/pause swaps seamlessly.
+    ///
+    /// Audiobook captures (C2 metadata + C1 "> " block) render the quote STYLED —
+    /// accent bar, italics, attribution caption — as a non-editable block above the
+    /// ramble. Presentation only: the stored transcript keeps its raw "> " lines
+    /// (the quote-protected `TranscriptEditor` edits just the ramble below).
     @ViewBuilder private var transcriptSection: some View {
         if let turns = SpeakerTranscript.parse(memo.transcript) {
             // Conversation note → speaker-attributed turns. Tap the NAME to assign/merge;
@@ -430,6 +437,22 @@ private struct MemoPageView: View {
                 onEditText: editTurnText,
                 imageURL: turnImageURL
             )
+        } else if let quote = memo.captureQuote {
+            VStack(alignment: .leading, spacing: 18) {
+                CaptureQuoteBlock(quote: quote.displayText, attribution: memo.quoteAttributionLabel)
+                if player.isPlaying || memo.transcriptStatus == .transcribing {
+                    // Karaoke over the ramble only. The timings sidecar holds the
+                    // quote's spoken words first (no ">" tokens), so the ramble's
+                    // word indices start past them.
+                    TranscriptContentView(
+                        memo: memo, player: player,
+                        overrideText: quote.ramble,
+                        baseWordOffset: quote.spokenWordCount
+                    )
+                } else {
+                    TranscriptEditor(memo: memo, onCommit: { repository.save() })
+                }
+            }
         } else if player.isPlaying || memo.transcriptStatus == .transcribing {
             TranscriptContentView(memo: memo, player: player)
         } else {
@@ -459,8 +482,16 @@ private struct MemoPageView: View {
 private struct TranscriptContentView: View {
     let memo: Memo
     @ObservedObject var player: AudioPlayerModel
+    /// Render this text instead of the whole transcript (capture memos show
+    /// only the ramble here — the styled quote block sits above).
+    var overrideText: String? = nil
+    /// Global word-timing index of the first word in `overrideText` (the
+    /// quote's spoken words precede the ramble's in the karaoke sidecar).
+    var baseWordOffset: Int = 0
     @State private var timings: [WordTiming] = []
     @AppStorage("karaokeTapToSeek") private var tapToSeek = false
+
+    private var displayText: String? { overrideText ?? memo.transcript }
 
     /// Active spoken-word index during playback (nil when paused / no timings) — the
     /// transcript highlights that word. Word-accurate via the on-device timings.
@@ -508,7 +539,7 @@ private struct TranscriptContentView: View {
     /// Each segment paired with the count of spoken words before it, so karaoke maps
     /// the global active-word index into the right segment (image markers aren't words).
     private var segmentsWithOffsets: [(seg: Segment, wordOffset: Int)] {
-        var offset = 0
+        var offset = baseWordOffset
         var out: [(seg: Segment, wordOffset: Int)] = []
         for seg in segments {
             out.append((seg: seg, wordOffset: offset))
@@ -571,7 +602,7 @@ private struct TranscriptContentView: View {
     private enum Segment { case text(String); case image(Int) }
 
     private var segments: [Segment] {
-        guard let text = memo.transcript, !text.isEmpty else { return [] }
+        guard let text = displayText, !text.isEmpty else { return [] }
         var result: [Segment] = []
         let ns = text as NSString
         let regex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
@@ -596,6 +627,43 @@ private struct TranscriptContentView: View {
     private func imageURL(markerIndex: Int) -> URL? {
         guard let manifest = memo.metadata?.imageManifest, markerIndex >= 1, markerIndex <= manifest.count else { return nil }
         return AppPaths.recordingsDirectory.appendingPathComponent(manifest[markerIndex - 1].filename)
+    }
+}
+
+// MARK: - Capture quote block
+
+/// The styled C1 blockquote heading a capture memo's body: an accent quote bar
+/// on the left, italic + slightly dimmed quote text, and a plain-text
+/// attribution caption from the C2 book metadata ("— Author, Book · ch. N" —
+/// the `[[Author]]` wikilink stays Mac-export-side). Non-editable by design:
+/// the ramble below it is the editable part, so the quote never reads as
+/// "recorded twice" plain text.
+private struct CaptureQuoteBlock: View {
+    let quote: String
+    let attribution: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(quote)
+                .font(.system(size: 15.5))
+                .italic()
+                .lineSpacing(4)
+                .foregroundStyle(Color.skText.opacity(0.78))
+            if let attribution {
+                Text(attribution)
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(Color.skTextDim)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 14)
+        .overlay(alignment: .leading) {
+            Capsule()
+                .fill(Color.skAccent.opacity(0.65))
+                .frame(width: 3)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("capture-quote-block")
     }
 }
 
