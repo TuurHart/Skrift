@@ -2,9 +2,12 @@ import SwiftUI
 
 /// The on-demand camera viewfinder that slides up while recording continues
 /// (mockup5 middle). Shutter captures a timestamped photo at the current
-/// recording offset; pinch / .5×·1×·2× control zoom; Done dismisses back to the
-/// caption-first record screen. The real preview + zoom are device-owed; the
-/// Simulator shows a placeholder viewfinder.
+/// recording offset; pinch / .5×·1×·2× control zoom; the flip button swaps
+/// front/back (front hides the zoom presets — the selfie camera has no 0.5×
+/// ultrawide and preset zoom is pointless at arm's length; pinch still works,
+/// floored at 1×); Done dismisses back to the caption-first record screen. The
+/// real preview + zoom are device-owed; the Simulator shows a placeholder
+/// viewfinder.
 struct CameraSheet: View {
     @ObservedObject var camera: PhotoCaptureService
     let elapsed: Double
@@ -33,10 +36,19 @@ struct CameraSheet: View {
                 HStack {
                     thumbnails
                     Spacer()
+                    Button(action: flip) {
+                        Image(systemName: "arrow.triangle.2.circlepath.camera")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background(.white.opacity(0.12), in: .circle)
+                    }
+                    .accessibilityIdentifier("camera-flip")
                     Button(action: onDone) {
                         Text("Done").font(.system(size: 15, weight: .bold)).foregroundStyle(Color.skAccent)
                     }
                     .accessibilityIdentifier("camera-done")
+                    .padding(.leading, 10)
                 }
             }
             .padding(.horizontal, 22)
@@ -66,7 +78,11 @@ struct CameraSheet: View {
 
             VStack {
                 Spacer()
-                zoomSelector.padding(.bottom, 12)
+                // Front camera: no preset row — there's no 0.5× ultrawide and
+                // preset zoom is pointless at arm's length (pinch still works).
+                if camera.position == .back {
+                    zoomSelector.padding(.bottom, 12)
+                }
             }
         }
         .contentShape(Rectangle())
@@ -115,8 +131,18 @@ struct CameraSheet: View {
         camera.capture(offsetSeconds: elapsed)
     }
 
+    private func flip() {
+        Haptics.recordingTap()
+        camera.flipCamera()
+        // The service resets the new device to 1× — mirror that here.
+        zoom = 1
+        zoomBase = 1
+    }
+
     private func setZoom(_ factor: CGFloat) {
-        zoom = max(0.5, min(factor, 5))
+        // The front camera has no 0.5× ultrawide — floor pinch zoom at 1×.
+        let floor: CGFloat = camera.position == .front ? 1 : 0.5
+        zoom = max(floor, min(factor, 5))
         zoomBase = zoom   // keep the pinch baseline in sync with button taps
         camera.setZoom(zoom)
     }

@@ -14,6 +14,9 @@ import UIKit
 final class PhotoCaptureService: NSObject, ObservableObject {
     @Published private(set) var capturedCount = 0
     @Published private(set) var isReady = false
+    /// Which camera feeds the session (CameraSheet's flip button toggles it).
+    /// Reverted if a switch fails so the UI stays truthful.
+    @Published private(set) var position: AVCaptureDevice.Position = .back
 
     let mock: Bool
     let session = AVCaptureSession()
@@ -22,6 +25,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     private var captured: [(url: URL, offset: Double)] = []
     private var pendingOffsets: [Double] = []
     private var videoDevice: AVCaptureDevice?
+    private var videoInput: AVCaptureDeviceInput?
     private var lastCaptureAt: Date?
 
     init(mock: Bool = LaunchFlags.seedTranscript != nil) {
@@ -43,6 +47,7 @@ final class PhotoCaptureService: NSObject, ObservableObject {
                self.session.canAddInput(input) {
                 self.session.addInput(input)
                 self.videoDevice = device
+                self.videoInput = input
             }
             if self.session.canAddOutput(self.photoOutput) {
                 self.session.addOutput(self.photoOutput)
@@ -56,6 +61,52 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     func stop() {
         guard !mock else { return }
         sessionQueue.async { [weak self] in self?.session.stopRunning() }
+    }
+
+    /// Flip between the back and front camera mid-recording (CameraSheet's flip
+    /// button). Swaps the session's video input on the session queue — the photo
+    /// output and the capture→offset→manifest pipeline are untouched. The new
+    /// device starts at 1× (the previous device may have a stale zoom factor).
+    /// If the target camera can't be added (missing device / rejected input) the
+    /// previous input is restored and `position` reverts. In the camera-less
+    /// mock only the published `position` toggles (keeps the sheet testable).
+    func flipCamera() {
+        let previous = position
+        let target: AVCaptureDevice.Position = previous == .back ? .front : .back
+        position = target
+        guard !mock else { return }
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            self.session.beginConfiguration()
+            defer { self.session.commitConfiguration() }
+
+            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: target),
+                  let input = try? AVCaptureDeviceInput(device: device) else {
+                Task { @MainActor in self.position = previous }
+                return
+            }
+            let oldInput = self.videoInput
+            if let oldInput { self.session.removeInput(oldInput) }
+            if self.session.canAddInput(input) {
+                self.session.addInput(input)
+                self.videoInput = input
+                self.videoDevice = device
+                // Shared AVCaptureDevice instances keep their last zoom factor;
+                // reset to 1× so the flip always lands on a predictable framing.
+                do {
+                    try device.lockForConfiguration()
+                    device.videoZoomFactor = max(device.minAvailableVideoZoomFactor,
+                                                 min(1, device.maxAvailableVideoZoomFactor))
+                    device.unlockForConfiguration()
+                } catch {}
+            } else {
+                // Target rejected — put the previous camera back and revert the UI.
+                if let oldInput, self.session.canAddInput(oldInput) {
+                    self.session.addInput(oldInput)
+                }
+                Task { @MainActor in self.position = previous }
+            }
+        }
     }
 
     /// Set the optical/digital zoom factor (e.g. 0.5/1/2). Device-only; clamped

@@ -9,6 +9,8 @@ struct SettingsView: View {
     @AppStorage("appTheme") private var appTheme = "dark"
     @AppStorage("weatherAPIKey") private var weatherKey = ""
     @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = false
+    // Key mirrored by MemoSaver.autoCopySettingKey (default OFF — user-locked).
+    @AppStorage("autoCopyTranscript") private var autoCopyTranscript = false
     @State private var connection = MacConnection.load()
     @State private var showFeedback = false
 
@@ -36,9 +38,15 @@ struct SettingsView: View {
                     .accessibilityIdentifier("pair-mac-link")
                 }
 
-                Section("Capture") {
+                Section {
                     Toggle("Live transcription", isOn: $liveTranscription)
                         .accessibilityIdentifier("setting-live-transcription")
+                    Toggle("Copy transcript to clipboard", isOn: $autoCopyTranscript)
+                        .accessibilityIdentifier("setting-auto-copy-transcript")
+                } header: {
+                    Text("Capture")
+                } footer: {
+                    Text("When a transcription finishes, the final transcript is copied to the clipboard automatically.")
                 }
 
                 Section {
