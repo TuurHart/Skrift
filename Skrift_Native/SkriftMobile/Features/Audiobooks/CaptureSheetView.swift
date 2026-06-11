@@ -7,12 +7,19 @@ import SwiftUI
 /// `RecordView(appendTo:)` so it transcribes and appends below the quote per
 /// C1), "Save & keep listening", and the significance circles (the usual
 /// flag-to-send gate — unrated captures stay on the phone).
+///
+/// Post-ramble (device-test fix): the book does NOT auto-resume when the
+/// recorder closes — it stays paused so the spoken thoughts can be reviewed
+/// (they appear under the quote as they transcribe), the big purple button
+/// flips to a modest "Add more", and "Save & keep listening" — now the
+/// primary action — is the ONLY path that resumes playback.
 struct CaptureSheetView: View {
     let book: Audiobook
     let output: QuoteCaptureOutput
     let memoID: UUID
-    /// Save paths (keep / after-ramble close). The flow resumes the book.
-    var onFinish: () -> Void
+    /// Close-and-save. `resume: true` restarts the book ("Save & keep
+    /// listening"); `false` keeps it paused (✕ after a ramble).
+    var onFinish: (_ resume: Bool) -> Void
     /// ✕ before any ramble: delete the capture memo + resume.
     var onDiscard: () -> Void
 
@@ -20,6 +27,9 @@ struct CaptureSheetView: View {
     @State private var significance: Double = 0
     @State private var showRamble = false
     @State private var rambleAdded = false
+    /// The capture's memo (a SwiftData `@Model`, so Observation re-renders
+    /// this sheet when the appended ramble's transcription lands).
+    @State private var memo: Memo?
 
     var body: some View {
         ZStack {
@@ -31,10 +41,10 @@ struct CaptureSheetView: View {
             .padding(.horizontal, 12)
             .padding(.bottom, 12)
         }
-        .fullScreenCover(isPresented: $showRamble, onDismiss: {
-            // "the book stays paused while you talk — resumes after."
-            session.play()
-        }) {
+        .onAppear { memo = NotesRepository.shared.memo(id: memoID) }
+        .fullScreenCover(isPresented: $showRamble) {
+            // NO auto-resume on dismiss — the book resumes only via
+            // "Save & keep listening", so the ramble can be reviewed first.
             RecordView(onSaved: { _ in rambleAdded = true }, appendTo: memoID)
         }
         .accessibilityElement(children: .contain)
@@ -84,18 +94,32 @@ struct CaptureSheetView: View {
             .padding(.horizontal, 2)
             .padding(.bottom, 12)
 
-            recordButton
-                .padding(.bottom, 9)
+            if rambleAdded {
+                rambleReview
+                    .padding(.bottom, 10)
+                addMoreButton
+                    .padding(.bottom, 9)
+            } else {
+                recordButton
+                    .padding(.bottom, 9)
+            }
 
             Button {
-                onFinish()
+                onFinish(true)
             } label: {
                 Text("Save & keep listening")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.skTextDim)
+                    .font(.system(size: 13, weight: rambleAdded ? .bold : .semibold))
+                    .foregroundStyle(rambleAdded ? .white : Color.skTextDim)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .overlay(RoundedRectangle.sk(12).stroke(Color.skBorder, lineWidth: 1))
+                    .background(
+                        rambleAdded ? Color.skAccent : .clear,
+                        in: .rect(cornerRadius: 12, style: .continuous)
+                    )
+                    .overlay(
+                        RoundedRectangle.sk(12)
+                            .stroke(rambleAdded ? .clear : Color.skBorder, lineWidth: 1)
+                    )
             }
             .accessibilityIdentifier("capture-save-keep-listening")
             .padding(.bottom, 12)
@@ -134,8 +158,10 @@ struct CaptureSheetView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
-                // Once a ramble exists, ✕ must not destroy it — close like save.
-                rambleAdded ? onFinish() : onDiscard()
+                // Once a ramble exists, ✕ must not destroy it — close like
+                // save, but WITHOUT resuming (only "Save & keep listening"
+                // restarts the book).
+                rambleAdded ? onFinish(false) : onDiscard()
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .semibold))
@@ -144,7 +170,9 @@ struct CaptureSheetView: View {
                     .background(Color.skElev, in: .circle)
             }
             .accessibilityIdentifier("capture-close")
-            .accessibilityLabel(rambleAdded ? "Save and close" : "Discard — resume the book")
+            .accessibilityLabel(rambleAdded
+                ? "Save and close — the book stays paused"
+                : "Discard — resume the book")
         }
     }
 
@@ -213,7 +241,7 @@ struct CaptureSheetView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Record your thoughts")
                         .font(.system(size: 14.5, weight: .bold))
-                    Text("the book stays paused while you talk — resumes after")
+                    Text("the book stays paused while you talk — review, then resume")
                         .font(.system(size: 10.5))
                         .opacity(0.75)
                 }
@@ -229,6 +257,101 @@ struct CaptureSheetView: View {
             .shadow(color: Color.skAccent.opacity(0.5), radius: 7, y: 2)
         }
         .accessibilityIdentifier("capture-record-thoughts")
+    }
+
+    // MARK: - Post-ramble state (thoughts saved — review + add more)
+
+    /// The appended ramble, shown under the quote for review the moment its
+    /// transcription lands (`memo` is a SwiftData `@Model`, so the text
+    /// appears here as the append flow writes it).
+    private var rambleReview: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 5) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.skGreen)
+                Text("YOUR THOUGHTS — SAVED")
+                    .font(.system(size: 9, weight: .semibold))
+                    .kerning(0.5)
+                    .foregroundStyle(Color.skTextDim)
+            }
+
+            switch rambleState {
+            case .transcribing:
+                HStack(spacing: 7) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Transcribing what you said…")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Color.skTextDim)
+                }
+            case .failed:
+                Text("Transcription failed — the audio is saved on the memo and can be retried there.")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skAmber)
+            case .noSpeech:
+                Text("No speech was recognized — try Add more.")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skTextDim)
+            case .text(let body):
+                ScrollView(.vertical, showsIndicators: true) {
+                    Text(body)
+                        .font(.system(size: 12.5))
+                        .lineSpacing(3)
+                        .foregroundStyle(Color.skText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 140)
+            }
+        }
+        .padding(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.skGreen.opacity(0.05), in: .rect(cornerRadius: 11, style: .continuous))
+        .overlay(alignment: .leading) {
+            UnevenRoundedRectangle(topLeadingRadius: 11, bottomLeadingRadius: 11)
+                .fill(Color.skGreen.opacity(0.55))
+                .frame(width: 2.5)
+        }
+        .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 0.5))
+        .accessibilityIdentifier("capture-ramble-review")
+    }
+
+    private enum RambleState {
+        case transcribing
+        case failed
+        case noSpeech
+        case text(String)
+    }
+
+    private var rambleState: RambleState {
+        guard let memo else { return .transcribing }
+        if memo.transcriptStatus == .transcribing { return .transcribing }
+        if memo.transcriptStatus == .failed { return .failed }
+        if let body = QuoteFormatting.rambleBody(transcript: memo.transcript ?? "") {
+            return .text(body)
+        }
+        return .noSpeech
+    }
+
+    /// The modest follow-up affordance once a ramble landed — same verb, same
+    /// accessibility id, no longer the screen-dominating purple block.
+    private var addMoreButton: some View {
+        Button {
+            showRamble = true
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: "mic")
+                    .font(.system(size: 11, weight: .medium))
+                Text("Add more")
+                    .font(.system(size: 12.5, weight: .semibold))
+            }
+            .foregroundStyle(Color.skAccentText)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .overlay(RoundedRectangle.sk(11).stroke(Color.skAccent.opacity(0.45), lineWidth: 1))
+        }
+        .accessibilityIdentifier("capture-record-thoughts")
+        .accessibilityLabel("Add more thoughts — the book stays paused")
     }
 
     private func commitSignificance() {

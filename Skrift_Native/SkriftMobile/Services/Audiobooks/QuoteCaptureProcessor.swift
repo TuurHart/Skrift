@@ -32,6 +32,10 @@ enum QuoteCaptureError: LocalizedError {
 /// marked span ± 20 s to a temp file, run it through the existing on-device
 /// `Transcriber` (Parakeet), sentence-snap both edges OUTWARD, then trim the
 /// quote audio to the snapped span.
+///
+/// Times here are LOCAL to `bookAudio` — for a multi-file book the flow passes
+/// the ONE file the capture falls in (`bookDuration` = that file's length) and
+/// a span already rebased into it; a span can never cross a file boundary.
 @MainActor
 struct QuoteCaptureProcessor {
     var transcriber: any Transcriber = TranscriberFactory.make()

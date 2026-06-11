@@ -31,22 +31,34 @@ enum CaptureSpan {
     /// clamped to the file. Near the file start the span shortens; at position
     /// 0 a minimal forward span is proposed so the scrubber has a region.
     static func proposal(now: TimeInterval, duration: TimeInterval) -> Span {
-        let dur = max(0, duration)
-        var end = min(dur, max(0, now))
-        let start = max(0, end - lookback)
+        proposal(now: now, in: Span(start: 0, end: max(0, duration)))
+    }
+
+    /// Bounded variant: the proposal clamps to `bounds` instead of [0, file
+    /// end] — multi-file books confine a capture to the ONE file `now` falls
+    /// in (bounds = that file's global range).
+    static func proposal(now: TimeInterval, in bounds: Span) -> Span {
+        var end = min(bounds.end, max(bounds.start, now))
+        let start = max(bounds.start, end - lookback)
         if end - start < minimumSpan {
-            end = min(dur, start + minimumSpan)
+            end = min(bounds.end, start + minimumSpan)
         }
-        return Span(start: start, end: end)
+        return Span(start: start, end: max(end, start))
     }
 
     /// The micro-scrubber's visible window around the pause point, clamped to
     /// the file. Always contains the proposal for the same `now`.
     static func window(now: TimeInterval, duration: TimeInterval) -> Span {
-        let dur = max(0, duration)
-        let anchor = min(dur, max(0, now))
-        let start = max(0, anchor - windowLookback)
-        let end = min(dur, anchor + windowLookahead)
+        window(now: now, in: Span(start: 0, end: max(0, duration)))
+    }
+
+    /// Bounded variant of `window` (see `proposal(now:in:)`). This is only the
+    /// INITIAL window — the strip can then PAN it anywhere inside the bounds
+    /// (`CaptureScrub.pan`/`panned(toInclude:)`).
+    static func window(now: TimeInterval, in bounds: Span) -> Span {
+        let anchor = min(bounds.end, max(bounds.start, now))
+        let start = max(bounds.start, anchor - windowLookback)
+        let end = min(bounds.end, anchor + windowLookahead)
         return Span(start: start, end: max(end, start))
     }
 
@@ -55,6 +67,90 @@ enum CaptureSpan {
     static func transcriptionBuffer(for span: Span, duration: TimeInterval) -> Span {
         Span(start: max(0, span.start - transcriptionPadding),
              end: min(max(0, duration), span.end + transcriptionPadding))
+    }
+}
+
+/// Pure math for the micro-scrubber's IN/OUT handles and the PANNABLE window
+/// (no UI, host-less unit-tested in `AudiobookScrubberTests`): drag latching,
+/// no-cross clamping with a minimum span, x↔time mapping, and window panning
+/// within the file's bounds.
+enum CaptureScrub {
+    /// IN and OUT can never get closer than this (seconds).
+    static let minimumSpan: TimeInterval = 1
+
+    enum Handle: Equatable, Sendable { case inMarker, outMarker }
+
+    /// Drag ownership: the FIRST change of a drag claims its handle and keeps
+    /// it until that drag releases it — a simultaneous touch on the other
+    /// handle can't steal or re-aim an in-flight drag (the "OUT jumps while
+    /// dragging toward IN" bug). Which handle a drag moves is decided ONCE,
+    /// at gesture start, never re-evaluated per move.
+    struct Latch: Equatable, Sendable {
+        private(set) var active: Handle?
+
+        /// True when `handle` owns the drag (claiming it if free).
+        mutating func claim(_ handle: Handle) -> Bool {
+            if active == nil { active = handle }
+            return active == handle
+        }
+
+        /// Release only by the owner — a stray `onEnded` from a losing gesture
+        /// must not free the latch out from under the active drag.
+        mutating func release(_ handle: Handle) {
+            if active == handle { active = nil }
+        }
+    }
+
+    /// Map a drag x in strip coordinates to time on the window. NOT clamped —
+    /// a finger past the strip's edge maps past the window, which is exactly
+    /// what `panned(toInclude:)` uses to edge-bump the window along.
+    static func time(atX x: Double, stripWidth: Double, window: CaptureSpan.Span) -> TimeInterval {
+        window.start + (x / max(1, stripWidth)) * window.length
+    }
+
+    /// Apply a handle drag: move ONLY `handle` to `raw`, clamped to `bounds`,
+    /// never crossing the other handle (minimum span preserved).
+    static func dragged(
+        _ span: CaptureSpan.Span,
+        handle: Handle,
+        to raw: TimeInterval,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        var s = span
+        switch handle {
+        case .inMarker:
+            // The outer max guards tiny files where end − minimumSpan would
+            // fall before the bounds.
+            s.start = min(max(bounds.start, raw), max(bounds.start, span.end - minimumSpan))
+        case .outMarker:
+            s.end = max(min(bounds.end, raw), min(bounds.end, span.start + minimumSpan))
+        }
+        return s
+    }
+
+    /// Pan the window by `delta` seconds (the strip-background drag),
+    /// preserving its length, clamped inside `bounds`.
+    static func pan(
+        _ window: CaptureSpan.Span,
+        by delta: TimeInterval,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        let length = min(window.length, bounds.length)
+        let start = min(max(bounds.start, window.start + delta), bounds.end - length)
+        return CaptureSpan.Span(start: start, end: start + length)
+    }
+
+    /// Edge-bump: pan the window just enough to contain `t` — a handle dragged
+    /// past the visible edge keeps going and the window follows the finger.
+    static func panned(
+        toInclude t: TimeInterval,
+        window: CaptureSpan.Span,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        let clamped = min(max(bounds.start, t), bounds.end)
+        if clamped < window.start { return pan(window, by: clamped - window.start, bounds: bounds) }
+        if clamped > window.end { return pan(window, by: clamped - window.end, bounds: bounds) }
+        return window
     }
 }
 
@@ -142,6 +238,27 @@ enum QuoteFormatting {
                 return l.isEmpty ? ">" : "> " + l
             }
             .joined(separator: "\n")
+    }
+
+    /// Everything BELOW the leading C1 blockquote — the user's own recorded
+    /// thoughts, shown on the capture sheet for review once a ramble lands
+    /// (`[[img_NNN]]` markers stripped). Nil while the capture is quote-only.
+    static func rambleBody(transcript: String) -> String? {
+        let cleaned = transcript.replacingOccurrences(
+            of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression
+        )
+        var body: [String] = []
+        var inQuoteHead = true
+        for raw in cleaned.components(separatedBy: .newlines) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if inQuoteHead {
+                if line.isEmpty || line.hasPrefix(">") { continue }
+                inQuoteHead = false
+            }
+            body.append(raw)
+        }
+        let joined = body.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        return joined.isEmpty ? nil : joined
     }
 
     /// The attribution PREVIEW shown on the capture sheet — plain text, no

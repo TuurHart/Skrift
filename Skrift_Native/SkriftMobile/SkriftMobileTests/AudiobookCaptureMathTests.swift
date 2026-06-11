@@ -175,4 +175,28 @@ final class AudiobookCaptureMathTests: XCTestCase {
         XCTAssertEqual(QuoteFormatting.attributionPreview(author: "A", book: nil, chapter: nil), "— A")
         XCTAssertEqual(QuoteFormatting.attributionPreview(author: nil, book: nil, chapter: nil), "")
     }
+
+    // MARK: - Ramble body (the capture sheet's post-ramble review text)
+
+    func testRambleBodyIsEverythingBelowTheQuoteBlock() {
+        let transcript = "> The quote line one,\n> and line two.\n\nMy take on it.\nSecond thought."
+        XCTAssertEqual(
+            QuoteFormatting.rambleBody(transcript: transcript),
+            "My take on it.\nSecond thought."
+        )
+    }
+
+    func testRambleBodyNilForAQuoteOnlyCapture() {
+        XCTAssertNil(QuoteFormatting.rambleBody(transcript: "> Just the quote."))
+        XCTAssertNil(QuoteFormatting.rambleBody(transcript: "> Quote.\n>\n> More quote.\n\n  "))
+        XCTAssertNil(QuoteFormatting.rambleBody(transcript: ""))
+    }
+
+    func testRambleBodyStripsImageMarkersAndKeepsLaterQuoteChars() {
+        XCTAssertEqual(
+            QuoteFormatting.rambleBody(transcript: "> Q.\n\n[[img_001]] thoughts here\n> spoken aside"),
+            "thoughts here\n> spoken aside",
+            "only the LEADING block is the quote — later ‘>’ lines are ramble content"
+        )
+    }
 }
