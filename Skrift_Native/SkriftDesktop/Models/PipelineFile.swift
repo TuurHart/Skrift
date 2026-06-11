@@ -163,4 +163,66 @@ final class PipelineFile {
         get { diarizationSegmentsJSON.flatMap { try? JSONDecoder().decode([DiarizedSegment].self, from: $0) } ?? [] }
         set { diarizationSegmentsJSON = newValue.isEmpty ? nil : (try? JSONEncoder().encode(newValue)) }
     }
+
+    /// The C2 book fields when this file is an audiobook quote capture, else nil —
+    /// no `bookTitle` in the metadata blob (every plain memo, and every upload from
+    /// an older phone build). Decoded through the Compiler's lenient `PhoneMetadata`
+    /// shape with the same trimming, so the presentation layer (sidebar glyph,
+    /// properties source row, quote attribution) can never disagree with the export
+    /// about whether a memo is a book capture.
+    var bookCapture: BookCapture? {
+        guard let data = audioMetadataJSON,
+              let meta = try? JSONDecoder().decode(PhoneMetadata.self, from: data),
+              let title = BookCapture.trimmedNonEmpty(meta.bookTitle) else { return nil }
+        return BookCapture(title: title,
+                           author: BookCapture.trimmedNonEmpty(meta.bookAuthor),
+                           chapter: BookCapture.trimmedNonEmpty(meta.bookChapter))
+    }
+}
+
+/// Audiobook quote-capture (contract C2): the book fields a capture memo rides on
+/// the phone metadata JSON. The mirror of the phone's `Memo.isBookCapture` /
+/// `bookCaptionLabel` display helpers.
+struct BookCapture: Equatable, Sendable {
+    var title: String
+    var author: String?
+    var chapter: String?
+
+    /// Plain-text attribution caption — "— Author, Book · ch. N", with the author /
+    /// chapter pieces omitted when absent. A purely numeric chapter gets the "ch. "
+    /// prefix; anything else (an m4b chapter *name*) shows as-is, matching the
+    /// phone's rows. PLAIN text by design: the real `[[Author]]` wikilink is written
+    /// at export only (`Compiler.audiobookBody`) — never duplicated into the body.
+    var attribution: String {
+        var s = "— "
+        if let author { s += "\(author), " }
+        s += title
+        if let chapter {
+            s += " · " + (chapter.allSatisfy(\.isNumber) ? "ch. \(chapter)" : chapter)
+        }
+        return s
+    }
+
+    /// Char ranges (NSString/UTF-16 coords) of the leading C1 blockquote lines —
+    /// the consecutive ">"-prefixed lines from offset 0, exactly the block
+    /// `QuoteProtection.splitLeadingQuote` byte-protects through enhancement.
+    /// Empty when the text doesn't open with ">". Drives the editor's quote
+    /// styling + attribution-caption placement (presentation only — the stored
+    /// text keeps the raw "> " lines).
+    static func quoteLineRanges(in text: String) -> [NSRange] {
+        guard let split = QuoteProtection.splitLeadingQuote(text) else { return [] }
+        var ranges: [NSRange] = []
+        var loc = 0
+        for line in split.quote.components(separatedBy: "\n") {
+            let len = (line as NSString).length
+            ranges.append(NSRange(location: loc, length: len))
+            loc += len + 1   // + the "\n" the join dropped
+        }
+        return ranges
+    }
+
+    static func trimmedNonEmpty(_ v: String?) -> String? {
+        guard let t = v?.trimmingCharacters(in: .whitespaces), !t.isEmpty else { return nil }
+        return t
+    }
 }

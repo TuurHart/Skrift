@@ -58,6 +58,11 @@ extension PipelineFile {
 
     /// SF Symbol for the row's source glyph.
     var sourceSymbol: String {
+        // An audiobook quote capture wears the book glyph (same symbol as the
+        // phone's memo rows). It syncs as `sourceType: .audio` — the captured span
+        // IS the memo's audio — so the type alone can't tell it from a voice memo;
+        // the C2 `bookTitle` in the metadata blob is the discriminator.
+        if bookCapture != nil { return "book.closed.fill" }
         switch sourceType {
         case .note:  return "note.text"
         case .audio: return "mic.fill"

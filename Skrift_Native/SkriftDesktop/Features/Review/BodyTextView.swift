@@ -43,6 +43,13 @@ struct BodyTextView: NSViewRepresentable {
     /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
     /// THIS text view (no renderer swap → no reflow) + click-a-word-to-seek.
     var karaoke: KaraokePlayback? = nil
+    /// Audiobook capture (C2 bookTitle present): the plain-text attribution caption
+    /// ("— Author, Book · ch. N") DRAWN under the leading C1 quote block, which is
+    /// styled italic + indented behind an accent bar (mocks/audiobook-capture.html
+    /// `.quoteblock`). Presentation only — the caption is never inserted into the
+    /// storage, the model keeps the raw "> " lines verbatim, and editing can't
+    /// corrupt either. nil = not a book capture → no quote styling.
+    var quoteAttribution: String? = nil
     /// A re-render trigger (the resolver's styleVersion) — bumping it re-styles the
     /// ambiguous marks on escalate/de-escalate, which the view doesn't otherwise observe.
     var refresh: Int = 0
@@ -66,6 +73,16 @@ struct BodyTextView: NSViewRepresentable {
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
     fileprivate static let markerRegex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
     fileprivate static let linkRegex = try? NSRegularExpression(pattern: #"\[\[[^\]]+\]\]"#)
+    // Quote presentation (the mock's `.quoteblock`): text indented clear of the bar,
+    // caption a step smaller in the secondary color.
+    fileprivate static let quoteIndent: CGFloat = 14
+    fileprivate static let captionFont = NSFont.systemFont(ofSize: 12.5)
+    fileprivate static let captionGap: CGFloat = 7   // last quote line ↘ caption top
+    /// Vertical room reserved under the quote block for the drawn caption (gap +
+    /// caption line height + breathing space before the ramble).
+    fileprivate static var captionReserve: CGFloat {
+        captionGap + ceil(captionFont.ascender - captionFont.descender) + 8
+    }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -85,6 +102,7 @@ struct BodyTextView: NSViewRepresentable {
             guard let coordinator, let tv else { return false }
             return coordinator.handleClick(idx, tv)
         }
+        tv.quoteAttribution = quoteAttribution
         context.coordinator.render(tv, model: text)
         context.coordinator.registerJump(tv)
         return tv
@@ -96,6 +114,10 @@ struct BodyTextView: NSViewRepresentable {
         // resolver, and `resolver` model stay bound to the first note shown.
         context.coordinator.parent = self
         context.coordinator.registerJump(tv)
+        if tv.quoteAttribution != quoteAttribution {
+            tv.quoteAttribution = quoteAttribution   // note switch capture ↔ plain
+            tv.invalidateIntrinsicContentSize()
+        }
         // Re-render only on an EXTERNAL change (compare against the reconstructed
         // model so our own edits / thumbnail attachments don't trigger a clobber).
         let textChanged = context.coordinator.modelString(tv) != text
@@ -302,6 +324,7 @@ struct BodyTextView: NSViewRepresentable {
             storage.removeAttribute(.underlineStyle, range: full)
             storage.removeAttribute(.underlineColor, range: full)
             storage.removeAttribute(.toolTip, range: full)
+            styleLeadingQuote(storage)
             if let rx = BodyTextView.linkRegex {
                 for m in rx.matches(in: storage.string, range: full) {
                     storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: m.range)
@@ -323,6 +346,37 @@ struct BodyTextView: NSViewRepresentable {
             }
             markAmbiguous(storage, renderValid: renderValid)
             storage.endEditing()
+            // The bar + caption are drawn outside the glyph rects (in the reserved
+            // paragraph spacing), which an in-place edit doesn't invalidate.
+            if parent.quoteAttribution != nil { tv.needsDisplay = true }
+        }
+
+        /// Audiobook-capture presentation for the leading C1 quote block: italic,
+        /// indented clear of the accent bar, with room reserved under the last quote
+        /// line for the drawn attribution caption (`drawQuoteDecoration`). Attributes
+        /// only, reapplied in place on every restyle — the model string keeps the raw
+        /// "> " lines verbatim, and a hand edit (even deleting the ">" markers)
+        /// simply restyles whatever block remains.
+        private func styleLeadingQuote(_ storage: NSTextStorage) {
+            guard parent.quoteAttribution != nil else { return }
+            // Reset first — the block may have shrunk or vanished since the last pass.
+            let full = NSRange(location: 0, length: storage.length)
+            storage.addAttribute(.font, value: BodyTextView.bodyFont, range: full)
+            storage.removeAttribute(.paragraphStyle, range: full)
+            let ranges = BookCapture.quoteLineRanges(in: storage.string)
+            guard let last = ranges.last, NSMaxRange(last) <= storage.length else { return }
+            let italic = NSFontManager.shared.convert(BodyTextView.bodyFont, toHaveTrait: .italicFontMask)
+            let quoteStyle = NSMutableParagraphStyle()
+            quoteStyle.firstLineHeadIndent = BodyTextView.quoteIndent
+            quoteStyle.headIndent = BodyTextView.quoteIndent
+            let lastStyle = quoteStyle.mutableCopy() as! NSMutableParagraphStyle
+            lastStyle.paragraphSpacing = BodyTextView.captionReserve
+            for (i, r) in ranges.enumerated() {
+                storage.addAttribute(.font, value: italic, range: r)
+                storage.addAttribute(.paragraphStyle,
+                                     value: i == ranges.count - 1 ? lastStyle : quoteStyle,
+                                     range: r)
+            }
         }
 
         /// The cached live person whose canonical key equals a link's core
@@ -684,12 +738,64 @@ final class SelfSizingTextView: NSTextView {
     /// Returns true if the click at the given character index was handled (a resolver
     /// popover opened) → the default cursor placement is suppressed.
     var onSingleClickAt: ((Int) -> Bool)?
+    /// Audiobook capture: the attribution caption drawn under the leading C1 quote
+    /// block (plus the accent bar beside it). nil = no quote decoration.
+    var quoteAttribution: String? {
+        didSet { if oldValue != quoteAttribution { needsDisplay = true } }
+    }
 
     override var intrinsicContentSize: NSSize {
         guard let layoutManager, let textContainer else { return super.intrinsicContentSize }
         layoutManager.ensureLayout(for: textContainer)
-        let height = layoutManager.usedRect(for: textContainer).height + textContainerInset.height * 2
+        var height = layoutManager.usedRect(for: textContainer).height + textContainerInset.height * 2
+        // A quote-only capture (no ramble yet) ends inside the quote block, and
+        // TextKit drops the trailing paragraph spacing the caption draws into —
+        // make sure the caption still fits.
+        if quoteAttribution != nil, let block = quoteBlockRect(),
+           block.maxY + BodyTextView.captionReserve > height {
+            height = block.maxY + BodyTextView.captionReserve
+        }
         return NSSize(width: NSView.noIntrinsicMetric, height: max(height, 60))
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        drawQuoteDecoration()
+    }
+
+    /// The laid-out bounds of the leading C1 quote block, in view coordinates.
+    private func quoteBlockRect() -> NSRect? {
+        guard let lm = layoutManager, let tc = textContainer,
+              let last = BookCapture.quoteLineRanges(in: string).last else { return nil }
+        let chars = NSRange(location: 0, length: NSMaxRange(last))
+        let glyphs = lm.glyphRange(forCharacterRange: chars, actualCharacterRange: nil)
+        var rect = lm.boundingRect(forGlyphRange: glyphs, in: tc)
+        rect.origin.x += textContainerOrigin.x
+        rect.origin.y += textContainerOrigin.y
+        return rect
+    }
+
+    /// Draws the quote presentation the attributes can't: the accent left bar
+    /// spanning quote + caption (the mock's `border-left`), and the plain-text
+    /// attribution caption in the space `styleLeadingQuote` reserved under the
+    /// block. Pure drawing — nothing enters the text storage or the model.
+    private func drawQuoteDecoration() {
+        guard let caption = quoteAttribution, !caption.isEmpty,
+              let tc = textContainer, let block = quoteBlockRect() else { return }
+        let textLeft = textContainerOrigin.x + tc.lineFragmentPadding + BodyTextView.quoteIndent
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: BodyTextView.captionFont,
+            .foregroundColor: NSColor(Theme.textSecondary),
+        ]
+        let capSize = (caption as NSString).size(withAttributes: attrs)
+        let capOrigin = NSPoint(x: textLeft, y: block.maxY + BodyTextView.captionGap)
+        (caption as NSString).draw(at: capOrigin, withAttributes: attrs)
+
+        let bar = NSRect(x: textContainerOrigin.x + tc.lineFragmentPadding + 2,
+                         y: block.minY, width: 2.5,
+                         height: (capOrigin.y + capSize.height) - block.minY)
+        NSColor(Theme.accent).withAlphaComponent(0.6).setFill()
+        NSBezierPath(roundedRect: bar, xRadius: 1.25, yRadius: 1.25).fill()
     }
 
     override func mouseDown(with event: NSEvent) {

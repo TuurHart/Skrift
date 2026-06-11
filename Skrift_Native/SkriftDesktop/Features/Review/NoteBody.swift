@@ -49,12 +49,57 @@ struct NoteBody: View {
             } else if karaokeActive {
                 karaoke   // snapshot/read-only path (ImageRenderer can't host NSTextView)
             } else {
-                BodyText.styled(file.bestBodyText)
-                    .font(Self.bodyFont)
-                    .lineSpacing(Self.bodyLineSpacing)
-                    .foregroundStyle(Theme.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                readBody
             }
+        }
+    }
+
+    /// Read/snapshot body. An audiobook capture renders its leading C1 quote block
+    /// styled (italic + accent bar + plain-text attribution caption from the C2
+    /// fields) above the ramble — presentation only, the stored text keeps the raw
+    /// "> " lines (and the real `[[Author]]` stays export-time in the Compiler).
+    @ViewBuilder private var readBody: some View {
+        if let book = file.bookCapture,
+           let split = QuoteProtection.splitLeadingQuote(file.bestBodyText) {
+            VStack(alignment: .leading, spacing: 18) {
+                quoteCard(split.quote, attribution: book.attribution)
+                if !split.ramble.isEmpty {
+                    BodyText.styled(split.ramble)
+                        .font(Self.bodyFont)
+                        .lineSpacing(Self.bodyLineSpacing)
+                        .foregroundStyle(Theme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        } else {
+            BodyText.styled(file.bestBodyText)
+                .font(Self.bodyFont)
+                .lineSpacing(Self.bodyLineSpacing)
+                .foregroundStyle(Theme.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// The styled quote block (mocks/audiobook-capture.html `.quoteblock`): italic
+    /// quote lines behind an accent left bar, attribution caption underneath. The
+    /// "> " markers stay visible — same WYSIWYG-to-export rule as the literal
+    /// `[[brackets]]`.
+    private func quoteCard(_ quote: String, attribution: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            BodyText.styled(quote)
+                .font(Self.bodyFont.italic())
+                .lineSpacing(Self.bodyLineSpacing)
+                .foregroundStyle(Theme.textPrimary)
+            Text(attribution)
+                .font(.system(size: 12.5))
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 14)
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 1.25)
+                .fill(Theme.accent.opacity(0.6))
+                .frame(width: 2.5)
         }
     }
 
@@ -67,6 +112,7 @@ struct NoteBody: View {
             resolver: karaokeActive ? nil : resolver,
             onUnlink: karaokeActive ? nil : onUnlink,
             karaoke: karaokeActive ? karaokePlayback : nil,
+            quoteAttribution: file.bookCapture?.attribution,
             refresh: resolver?.styleVersion ?? 0
         )
         .frame(maxWidth: .infinity, alignment: .leading)
