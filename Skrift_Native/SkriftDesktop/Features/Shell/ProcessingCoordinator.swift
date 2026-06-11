@@ -291,8 +291,10 @@ final class ProcessingCoordinator {
                 let c = try await enhancer.copyEdit(transcript, prompts: settings.prompts, modelRepo: repo)
                 pf.enhancedCopyedit = c
                 // re-link names on the fresh copy-edit so the body stays consistent
+                // (honoring the note's persisted "unlink all mentions" choices)
                 let working = c.isEmpty ? transcript : c
-                let san = Sanitiser.process(text: working, people: NamesStore.shared.livePeople())
+                let san = Sanitiser.process(text: working, people: NamesStore.shared.livePeople(),
+                                            neverLink: Set(pf.unlinkedNames))
                 pf.sanitised = san.sanitised
                 pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
             case .summary:

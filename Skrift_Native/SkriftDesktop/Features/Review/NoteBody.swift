@@ -19,6 +19,9 @@ struct NoteBody: View {
     /// Inline name-disambiguation state, present only while the note has ambiguous
     /// names. Passed into the editor so mentions are marked + clickable in place (R3).
     var resolver: InlineResolverModel? = nil
+    /// Click an already-linked `[[Name]]` → unlink popover (passed through to the
+    /// editor; nil = linked names aren't clickable).
+    var onUnlink: ((String, String, BodyTextView.UnlinkScope) -> Void)? = nil
 
     private static let bodyFont = Font.system(size: 16)
     private static let bodyLineSpacing: CGFloat = 6
@@ -62,6 +65,7 @@ struct NoteBody: View {
         BodyTextView(
             text: bodyBinding, imageURL: imageURL, onAddName: onAddName, onAddAlias: onAddAlias,
             resolver: karaokeActive ? nil : resolver,
+            onUnlink: karaokeActive ? nil : onUnlink,
             karaoke: karaokeActive ? karaokePlayback : nil,
             refresh: resolver?.styleVersion ?? 0
         )

@@ -25,9 +25,17 @@ enum Sanitiser {
     private static let preservePossessive = true
     private static let possPattern = "(?<poss>(?:'s|’s)?)"
 
-    static func process(text inputText: String, people: [Person]) -> Result {
+    /// `neverLink` carries the note's persisted "Unlink all mentions in this note"
+    /// choices (`PipelineFile.unlinkedNames`, canonical keys — bare or `[[bracketed]]`,
+    /// matched case-insensitively). Such a person is treated as absent from the names
+    /// DB for THIS note: never linked, never demoted to the short name, and never
+    /// offered as an ambiguity candidate — so re-processing can't re-link them here.
+    static func process(text inputText: String, people: [Person], neverLink: Set<String> = []) -> Result {
         var text = inputText
-        let live = people.filter { !$0.isDeleted }
+        let skip = Set(neverLink.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
+        let live = people.filter {
+            !$0.isDeleted && !skip.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
+        }
 
         var aliasMap: [String: [Person]] = [:]
         for p in live {
@@ -188,6 +196,75 @@ enum Sanitiser {
         return rx.matches(in: text, range: fullRange(text))
             .map { $0.range }
             .filter { !avoidInside || notInsideLink(text, $0.location) }
+    }
+
+    // MARK: - Unlinking (review-time "unlink a [[Name]]" — mocks/name-unlink.html)
+
+    /// A wiki link in the body: the full `[[…]]` range (brackets included) + the
+    /// core text inside the brackets.
+    struct BodyLink: Equatable {
+        var range: NSRange
+        var core: String
+    }
+
+    private static let bodyLinkRegex = try? NSRegularExpression(pattern: #"\[\[([^\]]+)\]\]"#)
+
+    /// Every `[[Name]]` wiki link in `text`, in reading order. `[[img_NNN]]` image
+    /// markers are markers, not links — skipped. Drives the clickable linked-mention
+    /// detection in the review body.
+    static func linkOccurrences(in text: String) -> [BodyLink] {
+        guard let rx = bodyLinkRegex else { return [] }
+        let ns = text as NSString
+        return rx.matches(in: text, range: fullRange(text)).compactMap { m in
+            let core = ns.substring(with: m.range(at: 1))
+            guard core.range(of: #"^img_\d+$"#, options: .regularExpression) == nil else { return nil }
+            return BodyLink(range: m.range, core: core)
+        }
+    }
+
+    /// One person's `[[canonical]]` links in `text` (core match is case-insensitive,
+    /// brackets/whitespace tolerated on `canonical`), in reading order. The i-th
+    /// entry here is what `unlinkOccurrence(index: i)` replaces — the same
+    /// order-based contract as `plainOccurrences`/`applyResolvedOccurrences`.
+    static func linkOccurrences(of canonical: String, in text: String) -> [BodyLink] {
+        let key = NamesMerge.keyName(canonical).trimmingCharacters(in: .whitespaces)
+        guard !key.isEmpty else { return [] }
+        return linkOccurrences(in: text).filter {
+            $0.core.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(key) == .orderedSame
+        }
+    }
+
+    /// "Unlink this mention": the `index`-th `[[canonical]]` link (reading order)
+    /// becomes the plain `alias` as spoken. Order-based, so the UI's storage offsets
+    /// (image attachments collapse `[[img_NNN]]` markers to one character) can't
+    /// misapply. A possessive sits OUTSIDE the brackets (`[[Nick Jansen]]'s`) and is
+    /// left in place → `Nick's`. An out-of-range index returns the text unchanged.
+    static func unlinkOccurrence(text: String, canonical: String, index: Int, alias: String) -> String {
+        let links = linkOccurrences(of: canonical, in: text)
+        guard index >= 0, index < links.count else { return text }
+        return nsReplace(text, links[index].range, with: alias)
+    }
+
+    /// "Unlink all mentions in this note": EVERY `[[canonical]]` link becomes the
+    /// plain `alias`. Plain mentions are already plain and other links (other
+    /// people, image markers, place links) are untouched. The caller persists the
+    /// choice (`PipelineFile.unlinkedNames`) and feeds it back via
+    /// `process(neverLink:)` so re-processing doesn't re-link.
+    static func unlinkAll(text: String, canonical: String, alias: String) -> String {
+        var out = text
+        for link in linkOccurrences(of: canonical, in: text).reversed() {
+            out = nsReplace(out, link.range, with: alias)
+        }
+        return out
+    }
+
+    /// The plain text a mention reads as once unlinked — the SAME short-name rule
+    /// `process` uses when demoting later mentions (short override → first word of
+    /// the canonical), falling back to the bare canonical.
+    static func spokenAlias(for p: Person) -> String {
+        let short = shortName(for: p)
+        if !short.isEmpty { return short }
+        return NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
     }
 
     // MARK: - Helpers

@@ -122,6 +122,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
 | Sanitiser (alias→`[[Canonical]]`, ambiguity) | ➖ | ✅ | `Pipeline/Sanitisation/Sanitiser.swift:21-90` | per-alias + per-occurrence ("two Jacks") resolver |
+| Unlink a `[[Name]]` (click a linked mention) | ➖ | ✅ | `Features/Review/BodyTextView.swift` (popover), `NoteDisplayView.swift` (apply + undo toast), `Sanitiser.swift` (`unlinkOccurrence`/`unlinkAll`/`process(neverLink:)`) | Per signed-off `mocks/name-unlink.html`: exactly TWO scopes — this mention → plain alias as spoken (possessive kept), or all mentions in this note (persists on `PipelineFile.unlinkedNames` so reprocess won't re-link). Inline undo toast stays until dismissed |
 | Deterministic tags (NLTagger lemma + spoken #) | ➖ | ✅ | `Pipeline/Tags/TagMatcher.swift` | |
 | Vault tag scan (privacy: app-only) | ➖ | ✅ | `Pipeline/Tags/VaultTagScanner.swift:13-72` | |
 | Compile Obsidian markdown (YAML frontmatter) | ➖ | ✅ | `Pipeline/Export/Compiler.swift:24-87` | title/date/author/source/location/weather/tags/significance/summary |
