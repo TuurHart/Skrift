@@ -260,6 +260,39 @@ quote-capture" for the full capability×file map. Also in that batch: ✅ the re
 INSTANT-apply fix (each pick renders immediately, document-order demotion, progress counter).
 Owed from lane flags: device-test the capture flow end-to-end (grains/scrubber feel, ramble append,
 Mac round-trip of a quote memo incl. quote protection + [[Author]] export).
+
+#### Device-test results — 2026-06-11 23:00 (first real capture, Steal Like an Artist)
+**WORKED:** import (single file + manual title/author confirm) ✓ · play + mini-player + nudged FAB ✓ ·
+capture E2E ✓ · ramble append ✓ · circles + Will-sync line ✓ · sync to dev Mac ✓ · **QUOTE PROTECTION
+held — the book quote came through enhancement untouched** ✓.
+**P0 fixes (capture UX):**
+- **IN/OUT scrubber handles barely respond / freeze**; dragging toward IN makes OUT jump (gesture grabs
+  the wrong/nearest handle; persisted across audio-route changes, so it's the gesture system, not routes).
+- **Post-ramble flow wrong ×2**: the book auto-resumed IMMEDIATELY on recorder dismiss (user couldn't
+  review what they spoke) AND the record-thoughts button stayed big/purple (rambleAdded state never
+  showed). Fix: no auto-resume after a ramble — resume only on "Save & keep listening"; show the
+  ramble-added state + the appended text for review.
+- **Span can't extend past the proposed 30s window** — the micro-scrubber window must PAN (scroll
+  left/right beyond the initial span) so IN/OUT can be placed further back/forward.
+- **First-capture transcription slow** — preload the transcriber the moment the capture screen opens
+  (second capture was instant; warm-model). 
+- **Multi-file books unsupported**: many audiobooks are file-per-chapter (the user's is ~30 mp3s); Bound's
+  importer multi-selects a whole folder as ONE book ("the selector in Bound is way better"). Import must
+  accept multi-select/folder → one book, files = chapters in order.
+- **Two import affordances in the Library** (big dashed row + toolbar +): keep ONLY the toolbar +.
+**P1 presentation:**
+- **Memos-list capture row: the book chip overflows off-screen** (long book title; needs truncation).
+- **Quote styling missing in the note body (BOTH apps)**: shows as plain "> " lines — no italics, no
+  quote bar, no chapter/author attribution → "looks like I recorded twice". Render the C1 blockquote
+  styled (italic + bar) with an attribution caption derived from C2 metadata (presentation-layer; the
+  real `[[Author]]` line stays export-time).
+- **Desktop source wrong for captures**: shows "Voice memo" + mic glyph; should be an audiobook-quote
+  source (book glyph) when C2 bookTitle is present — sidebar + properties.
+- **Backlog (capture-items umbrella): unify the SOURCE taxonomy across both apps** — voice memo / URL /
+  document-PDF / video / audiobook quote / Apple Note — consistent glyphs + labels everywhere (user:
+  "all the sources should be done well"). 
+- Watch: scrubbing while another device held the AirPods felt entangled with the route (audio yanked
+  from Mac to phone) — recheck after the gesture fix lands.
 1. **Skrift IS the player** for actively-mined books — model it on **Bound** ("there isn't a feature
    there I don't like"): Files/iCloud import, library w/ covers + sort, per-book resume, speed, sleep
    timer, embedded m4b chapters, background playback + lock-screen transport. One book at a time moves in.
