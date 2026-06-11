@@ -18,13 +18,13 @@ struct AudiobookMiniPlayerBar: View {
 
     var body: some View {
         if let book = session.book {
-            HStack(spacing: 2) {
+            HStack(spacing: 4) {
                 Button {
                     showPlayer = true
                 } label: {
                     BookCoverView(book: book, showsPlaceholderTitle: false)
-                        .frame(width: 38, height: 38)
-                        .clipShape(.rect(cornerRadius: 10, style: .continuous))
+                        .frame(width: 64, height: 64)
+                        .clipShape(.rect(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("mini-player-cover")
@@ -52,11 +52,11 @@ struct AudiobookMiniPlayerBar: View {
                     showCapture = true
                 } label: {
                     HStack(spacing: 5) {
-                        Text("❝").font(.system(size: 13, weight: .heavy))
-                        Text("Capture").font(.system(size: 11, weight: .bold))
+                        Text("❝").font(.system(size: 16, weight: .heavy))
+                        Text("Capture").font(.system(size: 14, weight: .bold))
                     }
                     .foregroundStyle(Color.skAccentText)
-                    .padding(.horizontal, 11).padding(.vertical, 6)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(Color.skAccent.opacity(0.2), in: .capsule)
                 }
                 .accessibilityIdentifier("mini-player-capture")
@@ -66,16 +66,17 @@ struct AudiobookMiniPlayerBar: View {
                     showPlayer = true
                 } label: {
                     Image(systemName: "chevron.up")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Color.skTextDim)
-                        .frame(width: 26, height: 32)
+                        .frame(width: 34, height: 44)
                 }
                 .accessibilityIdentifier("mini-player-expand")
                 .accessibilityLabel("Expand to the full player")
             }
-            .padding(.leading, 7)
-            .padding(.trailing, 9)
-            .frame(height: 54)
+            .padding(.leading, 12)
+            .padding(.trailing, 14)
+            // ~2x the original 54pt (user 2026-06-11: buttons too small to hit).
+            .frame(height: 104)
             .background(.ultraThinMaterial, in: .capsule)
             .overlay(
                 Capsule()
@@ -104,9 +105,9 @@ struct AudiobookMiniPlayerBar: View {
                                  action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 19, weight: .medium))
                 .foregroundStyle(Color.skText)
-                .frame(width: 32, height: 32)
+                .frame(width: 48, height: 48)
                 .contentShape(Circle())
         }
         .accessibilityIdentifier(id)

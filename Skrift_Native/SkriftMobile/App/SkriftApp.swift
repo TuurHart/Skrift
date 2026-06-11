@@ -20,6 +20,7 @@ struct SkriftApp: App {
         // process and call these performers, which signal the record UI via the
         // bridge. Set at launch so a cold launch via an intent finds them ready.
         StartRecordingIntent.performer = { await MainActor.run { RecordingIntentBridge.shared.requestStart() } }
+        ResumeAudiobookIntent.performer = { await MainActor.run { AudiobookSession.shared.resumeLastPlayed() } }
         StopRecordingIntent.performer = { await MainActor.run { RecordingIntentBridge.shared.requestStop() } }
     }
 

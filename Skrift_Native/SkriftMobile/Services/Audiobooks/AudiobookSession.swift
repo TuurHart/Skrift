@@ -101,6 +101,7 @@ final class AudiobookSession: ObservableObject {
     /// End the listening session: persist progress, release the player + audio
     /// session, drop the mini-player. The book stays in the library.
     func endSession() {
+        cancelIdleEnd()
         persistProgress(force: true)
         closePlayer()
         book = nil
@@ -118,6 +119,7 @@ final class AudiobookSession: ObservableObject {
         activateAudioSession()
         player.playImmediately(atRate: Float(rate))
         isPlaying = true
+        cancelIdleEnd()
         persistProgress(force: true)
         updateNowPlaying()
     }
@@ -126,11 +128,42 @@ final class AudiobookSession: ObservableObject {
         guard let player else { return }
         player.pause()
         isPlaying = false
+        scheduleIdleEnd()
         persistProgress(force: true)
         updateNowPlaying()
     }
 
+    // MARK: - Idle auto-end (user 2026-06-11: "I'm always listening to one book
+    // or another — the player will be there always"). A session paused this long
+    // quietly ends so the mini-player disappears; nothing is lost (progress is
+    // persisted per book, reopening from the Library resumes exactly).
+    static let idleEndDelay: TimeInterval = 2 * 60 * 60
+    private var idleEndTimer: Timer?
+
+    private func scheduleIdleEnd() {
+        idleEndTimer?.invalidate()
+        idleEndTimer = Timer.scheduledTimer(withTimeInterval: Self.idleEndDelay, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.isActive, !self.isPlaying else { return }
+                self.endSession()
+            }
+        }
+    }
+
+    private func cancelIdleEnd() {
+        idleEndTimer?.invalidate()
+        idleEndTimer = nil
+    }
+
     func togglePlay() { isPlaying ? pause() : play() }
+
+    /// Siri / App Shortcut entry: resume the most recently played book (loads it
+    /// if no session is active) and play. No-op when the library is empty.
+    func resumeLastPlayed() {
+        if book != nil { play(); return }
+        guard let recent = store.sortedByRecent.first else { return }
+        open(recent, autoplay: true)
+    }
 
     func skip(_ delta: TimeInterval) { seek(to: currentTime + delta) }
 
