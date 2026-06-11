@@ -19,6 +19,15 @@ struct MemoSaver {
     /// only kick in on genuine failures (failed download, engine error, unreadable
     /// file). Injectable so tests can retry instantly.
     var appendRetryDelays: [TimeInterval] = [0, 2, 5, 15]
+    /// Opt-in source + clipboard writer for Settings → Capture → "Copy transcript
+    /// to clipboard" (default OFF). Injectable for tests — UIPasteboard is shared
+    /// global state.
+    var defaults: UserDefaults = .standard
+    var copyToClipboard: (String) -> Void = { UIPasteboard.general.string = $0 }
+
+    /// UserDefaults key for the auto-copy opt-in (mirrored by `SettingsView`'s
+    /// `@AppStorage`). Default OFF — user-locked decision.
+    nonisolated static let autoCopySettingKey = "autoCopyTranscript"
 
     /// A captured photo handed off from the recorder: temp file + recording-time offset.
     typealias CapturedPhoto = (url: URL, offset: Double)
@@ -350,7 +359,18 @@ struct MemoSaver {
             wordTimings.write((wordTimings.load(for: memoID) ?? []) + shifted, for: memoID)
         }
         repository.save()
+        autoCopyIfEnabled(memo.transcript)   // the COMBINED transcript, not just the clip
         try? FileManager.default.removeItem(at: clip)
+    }
+
+    /// Settings → Capture → "Copy transcript to clipboard" (default OFF): when
+    /// the user opted in, put the finished transcript on the pasteboard. Called
+    /// only on transcription SUCCESS — failures and silent no-text results never
+    /// overwrite the clipboard.
+    private func autoCopyIfEnabled(_ transcript: String?) {
+        guard defaults.bool(forKey: Self.autoCopySettingKey),
+              let transcript, !transcript.isEmpty else { return }
+        copyToClipboard(transcript)
     }
 
     /// Errors that make the audio merge fall back to keeping the base file.
@@ -461,6 +481,7 @@ struct MemoSaver {
             memo.transcriptMarkersInjected = result.markersInjected
             memo.transcriptStatus = text.isEmpty ? .failed : .done
             repository.save()
+            autoCopyIfEnabled(memo.transcript)
             // Speaker splitting is a deliberate POST-transcript action now (the "Split
             // speakers" button in Memo detail), not automatic on save — so a recording is
             // never gated on remembering a toggle, and the slow diarization model only

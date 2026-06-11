@@ -59,6 +59,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
 | In-record camera + zoom + shutter | ✅ | n/a | `Features/Recording/CameraSheet.swift` | Camera stays open while recording continues |
+| Front/back camera flip | ✅ | n/a | `CameraSheet.swift` (flip button); `Services/Recording/PhotoCaptureService.swift` (`flipCamera`) | 2026-06-11: flip swaps the session input mid-recording; front hides the .5×/1×/2× presets (pinch floored at 1×); photo pipeline unchanged |
 | Photo-count badge | ✅ | n/a | `RecordView.swift:227-237` | |
 | `[[img_NNN]]` markers in transcript | ✅ | ✅ | mobile `TranscriptEditor.swift:102-122`; desktop `Pipeline/Transcription/ImageMarkers.swift` | Injected at capture offset |
 | Inline `[photo N]` token in **live** caption | ✅ | n/a | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: tinted `[photo N]` token inserted inline at the capture point |
@@ -133,6 +134,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Settings | ✅ | ✅ | mobile `Features/Settings/SettingsView.swift`; desktop same path | Desktop adds vault/author/model/prompts/preprocessing |
 | First-run setup | ✅ (onboarding) | ✅ (wizard) | mobile `Features/Onboarding/OnboardingView.swift`; desktop `Features/Settings/SetupWizardView.swift` | |
 | Theme (Light/Dark/Auto) | ✅ | ✅ | `SettingsView.swift` | |
+| Auto-copy transcript to clipboard | ✅ | ➖ | mobile `SettingsView.swift` (toggle); `MemoSaver.swift` (`autoCopyIfEnabled`) | 2026-06-11: opt-in, **default OFF** (user-locked). On transcription success (record/import/append) the final transcript lands on the pasteboard; appends copy the combined text |
 | Send feedback (record+type+screenshot→Mail) | ✅ | ➖ | mobile `Features/Feedback/FeedbackCaptureView.swift` | Desktop port deferred |
 
 ## Widgets / intents / share *(mobile)*
