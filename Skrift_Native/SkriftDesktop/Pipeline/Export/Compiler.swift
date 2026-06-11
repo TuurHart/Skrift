@@ -14,6 +14,13 @@ struct PhoneMetadata: Codable, Sendable {
     var daylight: Daylight?
     var steps: Int?
     var recordedAt: String?
+    // Audiobook quote-capture (contract C2) — additive optional fields riding the
+    // existing metadata JSON. Absent on every non-capture memo and on uploads from
+    // older phone builds (synthesized Codable = decodeIfPresent / encodeIfPresent),
+    // so the contract stays byte-compatible in both directions.
+    var bookTitle: String?
+    var bookAuthor: String?
+    var bookChapter: String?
 }
 
 /// Assembles Obsidian-ready markdown (YAML frontmatter + body) from a PipelineFile.
@@ -29,11 +36,21 @@ enum Compiler {
         let title = firstNonEmpty(pf.enhancedTitle, rawStem) ?? rawStem
         let date = overrideDate ?? meta?.recordedAt.map { String($0.prefix(10)) } ?? ""
 
+        // Audiobook quote-capture (spec 7): the presence of a book title marks the
+        // memo as a capture from an actively-mined audiobook.
+        let bookTitle = trimmedNonEmpty(meta?.bookTitle)
+        let bookAuthor = trimmedNonEmpty(meta?.bookAuthor)
+        let bookChapter = trimmedNonEmpty(meta?.bookChapter)
+
         let source: String
-        switch pf.sourceType {
-        case .note: source = "Apple-Note"
-        case .capture: source = "Capture"
-        case .audio: source = "Voice-memo"
+        if bookTitle != nil {
+            source = "Audiobook-quote"
+        } else {
+            switch pf.sourceType {
+            case .note: source = "Apple-Note"
+            case .capture: source = "Capture"
+            case .audio: source = "Voice-memo"
+            }
         }
 
         var y: [String] = [
@@ -44,6 +61,11 @@ enum Compiler {
             "author: \(author)",
             "source: \(source)",
         ]
+        // Book frontmatter (C2 → spec 7). `bookAuthor:` not `author:` — that key is
+        // the note's author (the user) above. Values quoted: titles carry colons.
+        if let bookTitle { y.append("book: \"\(bookTitle)\"") }
+        if let bookAuthor { y.append("bookAuthor: \"\(bookAuthor)\"") }
+        if let bookChapter { y.append("chapter: \"\(bookChapter)\"") }
         if let place = meta?.location?.placeName, !place.isEmpty {
             y.append("location: \"\(place)\"")
         } else {
@@ -70,7 +92,40 @@ enum Compiler {
         y.append("---")
         y.append("")
 
-        return y.joined(separator: "\n") + "\n" + body
+        let renderedBody = bookTitle.map {
+            audiobookBody(body, book: $0, author: bookAuthor, chapter: bookChapter)
+        } ?? body
+        return y.joined(separator: "\n") + "\n" + renderedBody
+    }
+
+    /// Spec 7: the captured quote block renders in ITALICS with the attribution
+    /// line under it — "— [[Author]], *Book*, ch. N" (author/chapter omitted when
+    /// absent). The `[[Author]]` wikilink is written HERE, at compile/export ONLY:
+    /// authors never enter the names DB, and the Sanitiser ran before compile (and
+    /// never touches links it doesn't know), so the link survives untouched. A
+    /// capture body without a leading quote block is returned as-is.
+    static func audiobookBody(_ body: String, book: String, author: String?, chapter: String?) -> String {
+        guard let split = QuoteProtection.splitLeadingQuote(body) else { return body }
+
+        let italicQuote = split.quote.components(separatedBy: "\n").map { line -> String in
+            guard line.hasPrefix(">") else { return line }
+            var content = String(line.dropFirst())
+            if content.hasPrefix(" ") { content.removeFirst() }
+            let text = content.trimmingCharacters(in: .whitespaces)
+            guard !text.isEmpty else { return ">" }
+            // Already emphasised (a re-render or a hand edit) → don't double-wrap.
+            if text.count > 1, text.hasPrefix("*"), text.hasSuffix("*") { return "> \(text)" }
+            return "> *\(text)*"
+        }.joined(separator: "\n")
+
+        var parts: [String] = []
+        if let author { parts.append("[[\(author)]]") }
+        parts.append("*\(book)*")
+        if let chapter { parts.append("ch. \(chapter)") }
+        let attribution = "> — " + parts.joined(separator: ", ")
+
+        let block = italicQuote + "\n>\n" + attribution
+        return split.ramble.isEmpty ? block : block + "\n\n" + split.ramble
     }
 
     private static func firstNonEmpty(_ vals: String?...) -> String? {
@@ -78,6 +133,11 @@ enum Compiler {
             if let v, !v.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return v }
         }
         return nil
+    }
+
+    private static func trimmedNonEmpty(_ v: String?) -> String? {
+        guard let t = v?.trimmingCharacters(in: .whitespaces), !t.isEmpty else { return nil }
+        return t
     }
 
     /// Whole numbers print without a trailing `.0` (e.g. 21, 1013), fractions keep it.

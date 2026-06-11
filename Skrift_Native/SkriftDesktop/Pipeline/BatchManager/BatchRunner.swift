@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// The unattended auto-run for one file: transcribe → copy-edit / title / summary
 /// (all on the RAW transcript) → deterministic tag candidates → name-link (on the
@@ -8,6 +9,8 @@ import Foundation
 /// model-grouped run; no mid-flight gates). The caller persists the PipelineFile +
 /// writes the compiled.md / word-timing sidecars.
 struct BatchRunner {
+    private static let log = Logger(subsystem: "com.skrift.desktop", category: "batch")
+
     var transcriber: Transcribing
     var enhancer: Enhancing
     var settings: AppSettings
@@ -74,9 +77,18 @@ struct BatchRunner {
         // Title/summary still run (they read fine on the turns), and name-linking below
         // still links any plain names spoken inside the turns.
         let isConversation = SpeakerTranscript.isAttributed(transcript)
-        let copyedit = isConversation
+        var copyedit = isConversation
             ? transcript
             : try await enhancer.copyEdit(transcript, prompts: prompts, modelRepo: repo)
+        // Audiobook quote protection — the outer byte-assert (backlog spec 8): an
+        // audiobook capture opens with a "> " quote block (contract C1) that must
+        // survive copy-edit byte-identical. The enhancer protects it internally; if
+        // it still comes back mutated (ANY mismatch), fall back to the fully-unedited
+        // transcript — skip-all, the conversation-mode precedent above.
+        if !QuoteProtection.leadingQuoteIntact(original: transcript, edited: copyedit) {
+            Self.log.warning("file \(pf.id, privacy: .public): quote block mutated by copy-edit — keeping the unedited transcript")
+            copyedit = transcript
+        }
         pf.enhancedCopyedit = copyedit
         let suggestedTitle = try await enhancer.title(transcript, prompts: prompts, modelRepo: repo)
         pf.titleSuggested = suggestedTitle
