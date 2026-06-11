@@ -198,6 +198,126 @@ enum Sanitiser {
             .filter { !avoidInside || notInsideLink(text, $0.location) }
     }
 
+    // MARK: - Partial (in-flight) per-occurrence apply — the instant-apply resolver
+
+    /// One occurrence's in-flight choice while the user is still clicking mentions
+    /// (the "different people" flow). `.undecided` keeps the mention verbatim (it
+    /// stays plain + highlighted); `.plain` keeps it verbatim too (deliberately left
+    /// as text); `.person` links/shortens it like `applyResolvedOccurrences` would.
+    enum PartialChoice: Equatable, Sendable {
+        case undecided
+        case plain
+        case person(canonical: String, short: String?)
+    }
+
+    /// `applyPartialOccurrences` output: the rendered text + where every input
+    /// occurrence landed in it. `ranges[alias][i]` is the rendered NSRange of the
+    /// i-th plain occurrence of that alias in the INPUT text (the same enumeration
+    /// as `plainOccurrences`), covering whatever it became — verbatim alias,
+    /// `[[Canonical]]`, or the short name (possessive included).
+    struct PartialApplyResult: Equatable {
+        var text: String
+        var ranges: [String: [NSRange]]
+    }
+
+    /// Render an IN-FLIGHT per-occurrence resolution: like
+    /// `applyResolvedOccurrences`, but undecided occurrences stay verbatim, and the
+    /// result maps every occurrence to its rendered position. The whole document is
+    /// recomputed from the pristine input on every call, so first-mention-gets-
+    /// `[[Canonical]]` is decided by DOCUMENT order over the choices made SO FAR —
+    /// assigning a later mention first links it immediately, and assigning an
+    /// earlier mention to the same person afterwards moves the link there and
+    /// demotes the later one to the short name in the same pass.
+    ///
+    /// All aliases are processed in ONE document-order walk (a global
+    /// first-link-per-canonical set), with the same emit rules as
+    /// `applyResolvedOccurrences`: a canonical the input already links anywhere
+    /// counts as introduced; missing/extra choices beyond an alias's occurrence
+    /// count are treated as `.undecided`/ignored. Overlapping matches across
+    /// aliases (one alias inside another) keep the earlier match; the loser gets a
+    /// zero-length range so the per-alias arrays stay parallel.
+    static func applyPartialOccurrences(text inputText: String,
+                                        byAlias: [String: [PartialChoice]]) -> PartialApplyResult {
+        let ns = inputText as NSString
+
+        struct Occ {
+            let alias: String
+            let index: Int
+            let match: NSTextCheckingResult
+            let choice: PartialChoice
+        }
+        var all: [Occ] = []
+        var rangesByAlias: [String: [NSRange]] = [:]
+        for (alias, choices) in byAlias {
+            let a = alias.trimmingCharacters(in: .whitespaces)
+            guard !a.isEmpty, let rx = wordRegex(a) else { rangesByAlias[alias] = []; continue }
+            let eligible = rx.matches(in: inputText, range: fullRange(inputText))
+                .filter { !avoidInside || notInsideLink(inputText, $0.range.location) }
+            rangesByAlias[alias] = Array(repeating: NSRange(location: NSNotFound, length: 0), count: eligible.count)
+            for (i, m) in eligible.enumerated() {
+                all.append(Occ(alias: alias, index: i, match: m,
+                               choice: i < choices.count ? choices[i] : .undecided))
+            }
+        }
+        all.sort { $0.match.range.location < $1.match.range.location }
+
+        var introduced = Set<String>()
+        var out = ""
+        var outLen = 0   // utf16 length of `out`, tracked incrementally
+        var cursor = 0
+        for occ in all {
+            let r = occ.match.range
+            guard r.location >= cursor else {
+                // Overlap (e.g. alias "Jack" inside alias "Jack Hutton") — the
+                // earlier match consumed this span; keep the arrays parallel.
+                rangesByAlias[occ.alias]?[occ.index] = NSRange(location: outLen, length: 0)
+                continue
+            }
+            out += ns.substring(with: NSRange(location: cursor, length: r.location - cursor))
+            outLen += r.location - cursor
+            let emitted: String
+            switch occ.choice {
+            case .undecided, .plain:
+                emitted = ns.substring(with: r)   // verbatim, possessive included
+            case let .person(canonRaw, shortRaw):
+                let canon = canonRaw.trimmingCharacters(in: .whitespaces)
+                if canon.isEmpty {
+                    emitted = ns.substring(with: r)
+                } else {
+                    let linkText = (canon.hasPrefix("[[") && canon.hasSuffix("]]")) ? canon : "[[\(canon)]]"
+                    let core = NamesMerge.keyName(linkText)
+                    let short = (shortRaw?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
+                        ?? (core.split(separator: " ").first.map(String.init) ?? occ.alias)
+                    let isFirst = !introduced.contains(core) && occurrences(of: linkText, in: inputText).isEmpty
+                    introduced.insert(core)
+                    emitted = (isFirst ? linkText : short) + possText(occ.match, in: inputText)
+                }
+            }
+            let emittedLen = (emitted as NSString).length
+            rangesByAlias[occ.alias]?[occ.index] = NSRange(location: outLen, length: emittedLen)
+            out += emitted
+            outLen += emittedLen
+            cursor = NSMaxRange(r)
+        }
+        out += ns.substring(from: cursor)
+        return PartialApplyResult(text: out, ranges: rangesByAlias)
+    }
+
+    /// Map the RENDERED text's plain alias occurrences back to their pristine
+    /// occurrence indices: entry k = the index (into `occurrenceRanges`, i.e. the
+    /// pristine enumeration) of the occurrence whose rendered range overlaps the
+    /// k-th plain occurrence of `alias` in `rendered`; -1 = foreign text no
+    /// occurrence produced. This is how a DEMOTED short name that still reads as
+    /// the alias (the two-Jacks case: short "Jack" == alias "Jack") stays
+    /// attributable to the right choice after the body re-renders around it.
+    static func plainSlotMap(alias: String, rendered: String, occurrenceRanges: [NSRange]) -> [Int] {
+        plainOccurrences(of: alias, in: rendered).map { r in
+            occurrenceRanges.firstIndex {
+                $0.location != NSNotFound && NSIntersectionRange($0, r).length > 0
+            } ?? -1
+        }
+    }
+
     // MARK: - Unlinking (review-time "unlink a [[Name]]" — mocks/name-unlink.html)
 
     /// A wiki link in the body: the full `[[…]]` range (brackets included) + the

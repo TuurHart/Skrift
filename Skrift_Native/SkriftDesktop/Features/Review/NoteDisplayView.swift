@@ -173,11 +173,18 @@ struct NoteDisplayView: View {
     /// (Re)create the inline resolver model for the active note + wire its actions.
     /// Kept while the same note still has ambiguous names (in-progress choices survive
     /// re-renders); recreated on note switch; cleared once all names are resolved.
+    /// Leaving a note mid per-occurrence resolution ABANDONS the in-flight picks:
+    /// the pristine snapshot is restored (guarded — only while the body is still the
+    /// resolver's own render), so `ambiguousNames` and the body stay consistent.
     private func syncResolver(_ file: PipelineFile) {
         let amb = file.ambiguousNames ?? []
         if amb.isEmpty {
-            if resolver != nil { resolver = nil }
+            if let old = resolver {
+                old.onAbandonPartial?()   // switched away, or ambiguity cleared externally
+                resolver = nil
+            }
         } else if resolver?.fileID != file.id {
+            resolver?.onAbandonPartial?()  // leaving a partially-resolved note
             let m = InlineResolverModel(fileID: file.id, ambiguous: amb)
             wireResolver(m, file)
             resolver = m
@@ -189,21 +196,54 @@ struct NoteDisplayView: View {
             guard let m else { return }
             resolveAlias(file, m, alias: alias, choice: choice)
         }
-        m.onEscalate = { [weak m] alias in m?.escalated.insert(alias.lowercased()); m?.styleVersion += 1 }
-        m.onDeescalate = { [weak m] alias in
-            let k = alias.lowercased(); m?.escalated.remove(k); m?.occDecisions[k] = nil; m?.styleVersion += 1
-        }
-        m.onDecideOccurrence = { [weak m] alias, loc, choice in
+        m.onEscalate = { [weak m] alias in
             guard let m else { return }
-            m.occDecisions[alias.lowercased(), default: [:]][loc] = choice
-            maybeApplyEscalated(file, m, alias: alias)
+            let k = alias.lowercased()
+            m.escalated.insert(k)
+            // Count against the baseline the choices will key on (the pristine
+            // snapshot while another alias is mid-flight, else the body as shown).
+            let base = (m.lastRendered == file.bestBodyText ? m.snapshot : nil) ?? file.bestBodyText
+            m.setOccurrenceTotal(Sanitiser.plainOccurrences(of: m.display(k), in: base).count, for: k)
+            m.styleVersion += 1
+        }
+        m.onDeescalate = { [weak m] alias in
+            guard let m else { return }
+            let k = alias.lowercased()
+            m.escalated.remove(k)
+            m.clearDecisions(for: k)
+            if m.snapshot != nil {
+                if m.lastRendered != file.bestBodyText {
+                    m.clearPartial()   // stale (hand edit) — leave the body as the user left it
+                } else if m.hasPartialDecisions {
+                    rerenderPartial(file, m)   // other aliases keep their in-flight render
+                } else if let snap = m.snapshot {
+                    setBody(snap, on: file)    // nothing left in flight → pristine body back
+                    m.clearPartial()
+                }
+            }
+            m.styleVersion += 1
+        }
+        m.onDecideOccurrence = { [weak m] alias, plainIndex, choice in
+            guard let m else { return }
+            decideOccurrence(file, m, alias: alias, plainIndex: plainIndex, choice: choice)
+        }
+        // Restore the pristine body when an in-flight partial render is abandoned
+        // (note switch / external clear) — only while the body is still OUR render,
+        // so a reprocess/hand-edit is never clobbered.
+        m.onAbandonPartial = { [weak m] in
+            guard let m, let snap = m.snapshot, let rendered = m.lastRendered,
+                  snap != rendered, file.bestBodyText == rendered else { return }
+            setBody(snap, on: file)
+            try? ctx.save()
         }
     }
 
     /// "Who is X?" answered with one person (or plain) → apply to EVERY mention at
-    /// once (first → `[[Canonical]]`, rest → the alias) and clear the alias.
+    /// once (first → `[[Canonical]]`, rest → the alias) and clear the alias. Applies
+    /// against the pristine snapshot while another alias is mid per-occurrence
+    /// resolution (the displayed body carries that alias's uncommitted render).
     private func resolveAlias(_ file: PipelineFile, _ m: InlineResolverModel, alias: String, choice: ResolverChoice) {
-        let body = file.bestBodyText
+        let body = (m.lastRendered == file.bestBodyText ? m.snapshot : nil) ?? file.bestBodyText
         let text: String
         switch choice {
         case let .person(c):
@@ -214,23 +254,73 @@ struct NoteDisplayView: View {
         commitResolution(file, m, alias: alias, text: text)
     }
 
-    /// Escalated ("different people"): once every mention of the alias has a choice,
-    /// apply them per-occurrence (distinct people stay distinct) and clear the alias.
-    private func maybeApplyEscalated(_ file: PipelineFile, _ m: InlineResolverModel, alias: String) {
+    /// Escalated ("different people"): ONE per-occurrence pick. Applies instantly —
+    /// the body re-renders from the pristine snapshot + every choice so far (the
+    /// chosen mention links/shortens on the spot, undecided ones stay highlighted,
+    /// document-order first-mention wins even when assigned out of order) — and the
+    /// alias commits once all its mentions are decided.
+    private func decideOccurrence(_ file: PipelineFile, _ m: InlineResolverModel,
+                                  alias: String, plainIndex: Int, choice: ResolverChoice) {
         let body = file.bestBodyText
-        let occ = Sanitiser.plainOccurrences(of: alias, in: body)
-        guard !occ.isEmpty, occ.allSatisfy({ m.choice(alias: alias, location: $0.location) != nil }) else { return }
-        let ordered: [(canonical: String?, short: String?)] = occ.map {
-            if case let .person(c) = m.choice(alias: alias, location: $0.location) { return (c.canonical, c.short) }
+        if m.lastRendered != body {
+            // First pick — or a hand edit invalidated the in-flight render: re-base
+            // on the body as it stands (previous picks are already part of it).
+            m.beginPartial(body: body)
+        }
+        guard let snapIdx = m.snapshotIndex(alias: alias, plainIndex: plainIndex) else { return }
+        m.setChoice(alias: alias, snapshotIndex: snapIdx, choice: choice)
+        rerenderPartial(file, m)
+        maybeCompleteAlias(file, m, alias: alias)
+    }
+
+    /// Recompute the displayed body from the pristine snapshot + ALL in-flight
+    /// choices (every escalated alias composes over the one snapshot). View-owned:
+    /// no `ambiguousNames` trim, no recompile, no explicit save — that's the
+    /// commit's job once an alias completes.
+    private func rerenderPartial(_ file: PipelineFile, _ m: InlineResolverModel) {
+        guard let snapshot = m.snapshot else { return }
+        var byAlias: [String: [Sanitiser.PartialChoice]] = [:]
+        for key in m.aliasOrder where m.isEscalated(key) {
+            let total = m.occTotals[key] ?? 0
+            guard total > 0 else { continue }
+            let d = m.decisions(for: key)
+            byAlias[key] = (0..<total).map { i in
+                switch d[i] {
+                case .none: return .undecided
+                case .some(.plain): return .plain
+                case let .some(.person(c)): return .person(canonical: c.canonical, short: c.short)
+                }
+            }
+        }
+        let render = Sanitiser.applyPartialOccurrences(text: snapshot, byAlias: byAlias)
+        if render.text != file.bestBodyText { setBody(render.text, on: file) }
+        m.setRender(text: render.text, ranges: render.ranges)
+        m.styleVersion += 1
+    }
+
+    /// Once every mention of an escalated alias has a choice, commit it: apply the
+    /// per-occurrence choices to the SNAPSHOT (distinct people stay distinct) and
+    /// clear the alias — exactly the pre-instant-apply completion.
+    private func maybeCompleteAlias(_ file: PipelineFile, _ m: InlineResolverModel, alias: String) {
+        guard let snapshot = m.snapshot else { return }
+        let key = alias.lowercased()
+        let total = m.occTotals[key] ?? 0
+        let d = m.decisions(for: key)
+        guard total > 0, (0..<total).allSatisfy({ d[$0] != nil }) else { return }
+        let ordered: [(canonical: String?, short: String?)] = (0..<total).map { i in
+            if case let .person(c) = d[i] { return (c.canonical, c.short) }
             return (nil, nil)
         }
-        let text = Sanitiser.applyResolvedOccurrences(text: body, byAlias: [m.display(alias): ordered])
+        let text = Sanitiser.applyResolvedOccurrences(text: snapshot, byAlias: [m.display(key): ordered])
         commitResolution(file, m, alias: alias, text: text)
     }
 
     /// Persist a resolved alias: update the body, trim it from `ambiguousNames`, drop
     /// it from the live model, recompile. When none remain, dismiss the resolver.
+    /// Another alias's in-flight picks are RE-BASED onto the committed text (their
+    /// index-keyed choices survive the position shifts) and re-rendered on top.
     private func commitResolution(_ file: PipelineFile, _ m: InlineResolverModel, alias: String, text: String) {
+        let inFlightValid = m.lastRendered == nil || m.lastRendered == file.bestBodyText
         file.sanitised = text
         let remaining = (file.ambiguousNames ?? []).filter { $0.alias.lowercased() != alias.lowercased() }
         file.ambiguousNames = remaining.isEmpty ? nil : remaining
@@ -239,7 +329,15 @@ struct NoteDisplayView: View {
         file.lastActivityAt = Date()
         try? ctx.save()
         m.removeAlias(alias)
-        if m.isEmpty { resolver = nil }
+        if m.isEmpty {
+            resolver = nil
+        } else if inFlightValid && m.hasPartialDecisions {
+            m.rebase(snapshot: text)
+            rerenderPartial(file, m)   // remaining in-flight picks ride on the committed text
+        } else {
+            m.clearPartial()
+            m.styleVersion += 1
+        }
     }
 
     /// Add a body text selection to the names DB — the reliable, user-driven way to
