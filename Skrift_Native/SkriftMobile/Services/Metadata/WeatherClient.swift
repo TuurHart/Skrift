@@ -9,14 +9,20 @@ struct WeatherReading: Sendable {
 
 /// OpenWeatherMap current-weather fetch + parse, ported from the RN
 /// `captureWeather`. Pressure comes from the same response (`main.pressure`),
-/// matching the shipped RN behavior. The API key lives in UserDefaults (same key
-/// the RN app used). The `parse` step is pure + unit-tested; the network call is
-/// device/network-owed.
+/// matching the shipped RN behavior. The API key lives in UserDefaults under the
+/// key Settings' `@AppStorage` writes ("weatherAPIKey"); the RN-era
+/// "openweathermap_api_key" slot is read as a legacy fallback. The `parse` step
+/// is pure + unit-tested; the network call is device/network-owed.
 enum WeatherClient {
-    static let apiKeyDefaultsKey = "openweathermap_api_key"
+    /// Must match SettingsView's `@AppStorage("weatherAPIKey")` — Settings is the
+    /// only writer of the key.
+    static let apiKeyDefaultsKey = "weatherAPIKey"
+    static let legacyAPIKeyDefaultsKey = "openweathermap_api_key"
 
     static var apiKey: String? {
-        guard let raw = UserDefaults.standard.string(forKey: apiKeyDefaultsKey) else { return nil }
+        let raw = UserDefaults.standard.string(forKey: apiKeyDefaultsKey)
+            ?? UserDefaults.standard.string(forKey: legacyAPIKeyDefaultsKey)
+        guard let raw else { return nil }
         let trimmed = raw.trimmingCharacters(in: .whitespaces)
         return trimmed.isEmpty ? nil : trimmed
     }
@@ -27,6 +33,7 @@ enum WeatherClient {
             UserDefaults.standard.set(trimmed, forKey: apiKeyDefaultsKey)
         } else {
             UserDefaults.standard.removeObject(forKey: apiKeyDefaultsKey)
+            UserDefaults.standard.removeObject(forKey: legacyAPIKeyDefaultsKey)
         }
     }
 
