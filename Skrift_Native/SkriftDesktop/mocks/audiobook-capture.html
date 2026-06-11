@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — audiobook quote-capture (library · player · capture flow · mini-player)</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5; --amber:#f59e0b; --green:#34d399; --blue:#60a5fa; --bd:255 255 255;
+    --warmfill:color-mix(in oklab, #7c6bf5 42%, #f59e0b);
+    --warmtext:color-mix(in oklab, #7c6bf5 50%, #f59e0b);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:30px 26px 80px;font-size:13px;line-height:1.5}
+  h1{font-size:15px;font-weight:600;margin:0 auto 4px;max-width:1080px}
+  .sub{font-size:12px;color:var(--t2);max-width:1080px;margin:0 auto 18px;line-height:1.55}
+  .sub b{color:var(--t1);font-weight:600}
+
+  /* ── mode bar ── */
+  .modebar{max-width:1080px;margin:0 auto 24px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .mlab{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-right:3px}
+  .mode{font-size:11.5px;padding:4px 12px;border-radius:7px;border:.5px solid rgb(var(--bd)/.12);
+    background:rgb(var(--bd)/.04);color:var(--t2);cursor:pointer}
+  .mode:hover{color:var(--t1)}
+  .mode.on{background:rgb(var(--accent)/.14);border-color:rgb(var(--accent)/.35);color:var(--acc)}
+
+  .stage{max-width:1080px;margin:0 auto}
+  .panelset{display:none}
+  .panelset.on{display:flex;gap:26px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+  .phead{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+  .panelnote{width:390px;margin-top:12px;font-size:11px;color:var(--t3);line-height:1.6}
+  .panelnote b{color:var(--t2)}
+
+  /* ── phone frame (shared, 390px idiom) ── */
+  .mobwrap{width:390px;flex:none}
+  .phone{background:var(--bg);border:.5px solid rgb(var(--bd)/.1);border-radius:34px;padding:16px 16px 26px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);position:relative;overflow:hidden}
+  .island{width:96px;height:24px;border-radius:13px;background:#000;margin:0 auto 14px;position:relative;z-index:3}
+  .pnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 4px}
+  .pnav .back{font-size:14px;color:var(--acc);cursor:pointer}
+  .lhead{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:2px 4px 12px}
+
+  /* ── STATE 1: Library (Bound-inspired) ── */
+  .addbtn{width:30px;height:30px;border-radius:9px;border:none;background:rgb(var(--accent)/.14);color:var(--acc);
+    font-size:18px;font-weight:600;cursor:pointer;line-height:1}
+  .addbtn:hover{background:rgb(var(--accent)/.22)}
+  .sortrow{display:flex;align-items:center;justify-content:space-between;margin:0 4px 13px}
+  .sortchip{font-size:11.5px;color:var(--t2);background:var(--elev);border-radius:8px;padding:4px 10px;cursor:pointer}
+  .bcount{font-size:10.5px;color:var(--t3)}
+  .brow{display:flex;gap:12px;align-items:center;background:var(--surface);border-radius:14px;padding:11px 12px;
+    margin-bottom:8px;cursor:pointer;border:.5px solid transparent}
+  .brow:hover{border-color:rgb(var(--bd)/.08)}
+  .brow.playing{border-color:rgb(var(--accent)/.3);background:rgb(var(--accent)/.07)}
+  .bcov{width:54px;height:54px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;
+    text-align:center;padding:5px;box-shadow:0 3px 10px rgba(0,0,0,.4);position:relative;overflow:hidden}
+  .bcov::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(255 255 255/.14),transparent 45%)}
+  .bcov span{font-size:6.5px;font-weight:700;line-height:1.3;color:rgb(255 255 255/.85);letter-spacing:.02em;text-transform:uppercase}
+  .cov-boi{background:linear-gradient(135deg,#3b4ce0,#7c6bf5)}
+  .cov-mhe{background:linear-gradient(135deg,#0e7490,#164e63)}
+  .cov-anti{background:linear-gradient(135deg,#b45309,#7c2d12)}
+  .brow .tx{min-width:0;flex:1}
+  .brow .bt{font-size:13.5px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brow .ba{font-size:11.5px;color:var(--t2);margin-top:1px}
+  .brow .bl{font-size:10.5px;color:var(--t3);margin-top:4px;display:flex;align-items:center;gap:7px}
+  .pbar{flex:1;max-width:110px;height:3px;border-radius:2px;background:rgb(var(--bd)/.08);overflow:hidden}
+  .pbar i{display:block;height:100%;background:rgb(var(--accent)/.65)}
+  .lpill{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--green);
+    display:inline-flex;align-items:center;gap:5px;flex:none}
+  .eq{display:inline-flex;gap:1.5px;align-items:flex-end;height:10px}
+  .eq i{width:2px;border-radius:1px;background:var(--green);animation:eq 1s ease-in-out infinite}
+  .eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}
+  @keyframes eq{0%,100%{height:3px}50%{height:10px}}
+  .importrow{display:flex;gap:10px;align-items:center;border:1px dashed rgb(var(--bd)/.16);border-radius:14px;
+    padding:12px;margin-top:12px;color:var(--t3);font-size:11px;line-height:1.45;cursor:pointer}
+  .importrow:hover{border-color:rgb(var(--accent)/.4);color:var(--t2)}
+  .importrow .pl{width:30px;height:30px;border-radius:8px;background:rgb(var(--bd)/.05);color:var(--t2);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:16px}
+
+  /* ── STATE 2: full player ── */
+  .ppnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 4px}
+  .chev{width:30px;height:30px;border-radius:9px;border:none;background:transparent;color:var(--t2);font-size:15px;cursor:pointer}
+  .chev:hover{background:rgb(var(--bd)/.05)}
+  .ppl{font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+  .bigcov{width:300px;height:300px;border-radius:16px;margin:4px auto 18px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:8px;text-align:center;padding:24px;position:relative;overflow:hidden;
+    box-shadow:0 16px 44px rgba(0,0,0,.55)}
+  .bigcov::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(255 255 255/.13),transparent 40%)}
+  .bigcov .ct{font-size:23px;font-weight:800;letter-spacing:.01em;line-height:1.25;color:rgb(255 255 255/.92);text-transform:uppercase}
+  .bigcov .ca{font-size:12px;font-weight:600;color:rgb(255 255 255/.65);letter-spacing:.12em;text-transform:uppercase}
+  .chline{font-size:10.5px;color:var(--t3);text-align:center;letter-spacing:.05em;text-transform:uppercase}
+  .btitle{font-size:17px;font-weight:700;text-align:center;margin-top:3px;letter-spacing:-.01em}
+  .bauthor{font-size:12.5px;color:var(--t2);text-align:center;margin-top:1px}
+  .scrub{margin:16px 6px 0;position:relative;height:14px;display:flex;align-items:center;cursor:pointer}
+  .scrub .track{width:100%;height:4px;border-radius:2px;background:rgb(var(--bd)/.1);overflow:hidden}
+  .scrub .fill{display:block;height:100%;width:38%;background:var(--acc);border-radius:2px}
+  .scrub .knob{position:absolute;left:38%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.5)}
+  .times{display:flex;justify-content:space-between;margin:5px 6px 0;font-size:10.5px;color:var(--t3);font-variant-numeric:tabular-nums}
+  .pchiprow{display:flex;justify-content:center;gap:8px;margin-top:12px}
+  .pchip2{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--t2);background:var(--elev);
+    border-radius:999px;padding:4px 11px;cursor:pointer}
+  .pchip2:hover{color:var(--t1)}
+  .pchip2 svg{opacity:.7}
+  .transport{display:flex;align-items:center;justify-content:center;gap:30px;margin:16px 0 4px}
+  .skip{border:none;background:transparent;color:var(--t1);cursor:pointer;display:flex;opacity:.9}
+  .skip:hover{opacity:1;color:var(--acc)}
+  .playbig{width:66px;height:66px;border-radius:50%;border:none;background:rgb(var(--bd)/.07);color:var(--t1);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+  .playbig:hover{background:rgb(var(--bd)/.12)}
+  .capturebtn{display:flex;align-items:center;justify-content:center;gap:9px;width:calc(100% - 12px);margin:16px 6px 0;
+    border:none;border-radius:14px;background:var(--acc);color:#fff;font-size:15px;font-weight:700;padding:13px 0;
+    cursor:pointer;box-shadow:0 2px 12px rgb(var(--accent)/.45)}
+  .capturebtn:hover{filter:brightness(1.07)}
+  .capturebtn .q{font-size:19px;line-height:0;font-weight:800}
+  .capsub{font-size:10.5px;color:var(--t3);text-align:center;margin-top:7px}
+
+  /* ── STATE 3: capture moment ── */
+  .pausedrow{display:flex;gap:11px;align-items:center;background:var(--surface);border-radius:13px;padding:9px 11px;margin-bottom:12px}
+  .pausedrow .bcov{width:40px;height:40px;border-radius:8px}
+  .pausedrow .bt{font-size:13px;font-weight:600}
+  .pausedrow .bs{font-size:10.5px;color:var(--t3);margin-top:1px}
+  .pausepill{margin-left:auto;flex:none;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--amber);background:rgb(245 158 11/.12);border-radius:999px;padding:3px 9px}
+  .spancard{background:var(--surface);border-radius:16px;padding:14px 13px 13px}
+  .spanhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .spanhead .lab{font-size:11px;color:var(--t3)}
+  .spanhead .pv{font-size:11.5px;font-weight:600;color:var(--acc);font-variant-numeric:tabular-nums}
+  /* zoom context: the chapter scrubber with the zoomed sliver + cone down to the strip */
+  .zoomctx{position:relative;height:30px;margin:0 2px}
+  .chapmini{position:absolute;top:2px;left:0;right:0;height:4px;border-radius:2px;background:rgb(var(--bd)/.08)}
+  .chapmini .mfill{position:absolute;left:0;top:0;bottom:0;width:38%;background:rgb(var(--accent)/.35);border-radius:2px}
+  .chapmini .mwin{position:absolute;top:-3px;bottom:-3px;left:36%;width:5%;border:1px solid var(--acc);
+    border-radius:3px;background:rgb(var(--accent)/.25);box-shadow:0 0 8px rgb(var(--accent)/.4)}
+  .zoomctx svg{position:absolute;top:8px;left:0;width:100%;height:22px}
+  .zoomtag{position:absolute;right:0;top:9px;font-size:9px;color:var(--t3);letter-spacing:.05em;text-transform:uppercase}
+  .stripwrap{padding-top:18px;position:relative;margin:0 2px}
+  .strip{position:relative;height:64px;border-radius:10px;background:var(--elev);overflow:visible;touch-action:none}
+  .wave{position:absolute;inset:0;border-radius:10px;overflow:hidden;display:flex;align-items:center;gap:1px;padding:0 2px}
+  .wave i{flex:1;border-radius:1px;background:rgb(var(--bd)/.16);transition:background .1s}
+  .wave i.inreg{background:rgb(var(--accent)/.75)}
+  .stick{position:absolute;top:6px;bottom:6px;width:1px;background:rgb(var(--accent)/.45);pointer-events:none}
+  .stick::after{content:"";position:absolute;top:-4px;left:-1.5px;width:4px;height:4px;border-radius:50%;background:rgb(var(--accent)/.55)}
+  .nowline{position:absolute;top:-4px;bottom:-4px;width:1.5px;background:rgb(255 255 255/.55);pointer-events:none}
+  .region{position:absolute;top:0;bottom:0;background:rgb(var(--accent)/.13);pointer-events:none;
+    border-top:1px solid rgb(var(--accent)/.4);border-bottom:1px solid rgb(var(--accent)/.4)}
+  .handle{position:absolute;top:-5px;bottom:-5px;width:16px;border:none;border-radius:6px;background:var(--acc);
+    cursor:ew-resize;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;
+    touch-action:none;padding:0}
+  .handle i{width:2px;height:18px;border-radius:1px;background:rgb(255 255 255/.75)}
+  .hlab{position:absolute;top:-1px;transform:translateX(-50%);font-size:8px;font-weight:800;letter-spacing:.08em;
+    color:var(--acc);pointer-events:none}
+  .striplabels{position:relative;height:16px;margin:5px 2px 0}
+  .striplabels span{position:absolute;transform:translateX(-50%);font-size:9.5px;color:var(--t3);font-variant-numeric:tabular-nums}
+  .striplabels .now{color:var(--t2);font-weight:600}
+  .snaprow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:9px 2px 0}
+  .grains{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--t3);background:rgb(var(--bd)/.04);
+    border-radius:999px;padding:3px 9px;transition:color .15s,background .15s;white-space:nowrap}
+  .grains.on{color:var(--acc);background:rgb(var(--accent)/.14)}
+  .snapnote{font-size:10px;color:var(--t3);text-align:right;line-height:1.4}
+  .snapnote b{color:var(--t2);font-weight:600}
+  .readout{display:flex;align-items:baseline;justify-content:space-between;margin:12px 2px 0}
+  .rotimes{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .rotimes .arr{color:var(--t3);font-weight:400;margin:0 4px}
+  .rochip{font-size:10px;color:var(--t2);background:rgb(var(--bd)/.05);border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .confrow{display:flex;gap:8px;margin-top:13px}
+  .ghostbtn{flex:1;border:.5px solid rgb(var(--bd)/.14);border-radius:11px;background:transparent;color:var(--t2);
+    font-size:12.5px;font-weight:600;padding:10px 0;cursor:pointer}
+  .ghostbtn:hover{color:var(--t1);border-color:rgb(var(--bd)/.25)}
+  .confbtn{flex:1.6;border:none;border-radius:11px;background:var(--acc);color:#fff;font-size:12.5px;font-weight:700;
+    padding:10px 0;cursor:pointer;box-shadow:0 1px 8px rgb(var(--accent)/.45)}
+  .confbtn:hover{filter:brightness(1.07)}
+
+  /* ── STATE 4: capture sheet (over the dimmed player) ── */
+  .dimback{padding:0 8px;opacity:.45;filter:saturate(.6)}
+  .dimback .bigcov{width:170px;height:170px;margin-bottom:12px}
+  .dimback .bigcov .ct{font-size:14px}
+  .dimback .bigcov .ca{font-size:8.5px}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:34px;z-index:1}
+  .sheet{position:relative;z-index:2;margin:14px -4px 0;background:#1b1d28;border:.5px solid rgb(var(--bd)/.12);
+    border-radius:22px;padding:11px 16px 16px;box-shadow:0 -10px 36px rgba(0,0,0,.5)}
+  .grab{width:36px;height:4px;border-radius:2px;background:rgb(var(--bd)/.18);margin:0 auto 12px}
+  .shead{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .shead .qmk{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#8e7dff,#6a59ef);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex:none;
+    box-shadow:0 1px 4px rgb(var(--accent)/.45)}
+  .shead .st{flex:1;min-width:0}
+  .shead b{font-size:14px;font-weight:700;display:block}
+  .shead .sc{font-size:10px;color:var(--t3)}
+  .shead .close{width:24px;height:24px;border-radius:50%;border:none;background:rgb(var(--bd)/.07);color:var(--t2);
+    font-size:13px;cursor:pointer;flex:none}
+  .quoteblock{border:.5px solid rgb(var(--bd)/.09);border-left:2.5px solid rgb(var(--accent)/.6);
+    background:rgb(var(--accent)/.05);border-radius:11px;padding:12px 14px;margin-bottom:8px}
+  .qtext{font-size:13.5px;line-height:1.6;font-style:italic;color:var(--t1)}
+  .qattr{font-size:11.5px;color:var(--t2);margin-top:8px}
+  .qattr .qlnk{color:var(--acc);font-weight:600}
+  .qattr i{font-style:italic}
+  .qmeta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--t3);margin:0 2px 12px}
+  .qmeta svg{flex:none;opacity:.8}
+  .recbig{display:flex;align-items:center;gap:12px;width:100%;border:none;border-radius:14px;
+    background:linear-gradient(135deg,#8e7dff,#6a59ef);color:#fff;padding:13px 16px;cursor:pointer;text-align:left;
+    box-shadow:0 2px 14px rgb(var(--accent)/.5);margin-bottom:9px}
+  .recbig:hover{filter:brightness(1.06)}
+  .recbig .rb-ic{width:34px;height:34px;border-radius:50%;background:rgb(255 255 255/.18);flex:none;
+    display:flex;align-items:center;justify-content:center}
+  .recbig .rb-tx b{display:block;font-size:14.5px;font-weight:700}
+  .recbig .rb-tx i{display:block;font-style:normal;font-size:10.5px;opacity:.75;margin-top:1px}
+  .keepbtn{width:100%;border:.5px solid rgb(var(--bd)/.14);border-radius:12px;background:transparent;color:var(--t2);
+    font-size:13px;font-weight:600;padding:10px 0;cursor:pointer;margin-bottom:12px}
+  .keepbtn:hover{color:var(--t1);border-color:rgb(var(--bd)/.25)}
+  .sheetsig{background:var(--surface);border:.5px solid rgb(var(--bd)/.09);border-radius:13px;padding:11px 12px 10px}
+
+  /* ── circles row (verbatim idiom from significance-circles.html, compact) ── */
+  .sig .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .sig .lab{font-size:11px;color:var(--t3)}
+  .val{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--acc)}
+  .val.muted{color:var(--t3);font-weight:500}
+  .val.pv{color:var(--t2)}
+  .val.warm{color:var(--warmtext)}
+  .dots{display:flex;align-items:center;margin-bottom:4px}
+  .dot{border-radius:50%;border:1.5px solid rgb(var(--bd)/.2);background:transparent;cursor:pointer;padding:0;flex:none;
+    transition:transform .1s,background .12s,border-color .12s,box-shadow .12s}
+  .dot:hover{transform:scale(1.22);border-color:rgb(var(--accent)/.8)}
+  .dot.prev{background:rgb(var(--accent)/.3);border-color:rgb(var(--accent)/.55)}
+  .dot.lit{background:var(--acc);border-color:var(--acc);box-shadow:0 1px 5px rgb(var(--accent)/.35)}
+  .dot.lit.warm{background:var(--warmfill);border-color:var(--warmfill);box-shadow:0 0 8px rgb(245 158 11/.3)}
+  .wall{width:1px;flex:none;background:rgb(245 158 11/.35);border-radius:1px}
+  .flame{display:inline-flex;align-items:center;gap:4px;color:var(--amber);font-size:9px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;opacity:0;transition:opacity .18s;margin-left:6px;pointer-events:none;white-space:nowrap}
+  .flame.on{opacity:.9;pointer-events:auto}
+  .sync{display:flex;align-items:center;gap:6px;font-size:10.5px;margin-top:2px}
+  .sync .sdot{width:6px;height:6px;border-radius:50%;flex:none}
+  .sync.muted{color:var(--t3)}.sync.muted .sdot{background:var(--t3)}
+  .sync.ok{color:var(--t2)}.sync.ok .sdot{background:var(--green)}
+  .sync.warm{color:var(--amber)}
+  .sync svg{flex:none}
+
+  /* ── STATE 5: memos list + mini-player ── */
+  .listtop{display:flex;align-items:center;justify-content:space-between;margin:2px 4px 12px}
+  .listtop .lhead{margin:0}
+  .bookbtn{width:32px;height:32px;border-radius:10px;border:none;background:var(--elev);color:var(--t2);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative}
+  .bookbtn:hover{color:var(--acc)}
+  .bookbtn .livedot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--green);
+    border:2px solid var(--bg)}
+  .search{height:32px;border-radius:11px;background:var(--elev);display:flex;align-items:center;gap:7px;
+    padding:0 11px;font-size:12.5px;color:var(--t3);margin:0 0 14px}
+  .dayhead{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin:0 4px 7px}
+  .mrow{display:flex;gap:11px;align-items:flex-start;background:var(--surface);border-radius:14px;padding:11px 12px;margin-bottom:8px}
+  .mrow.cap{border:.5px solid rgb(var(--accent)/.3);background:rgb(var(--accent)/.07)}
+  .mrow .ic{width:32px;height:32px;border-radius:10px;background:var(--elev);color:var(--t2);flex:none;
+    display:flex;align-items:center;justify-content:center}
+  .mrow.cap .ic{background:rgb(var(--accent)/.16);color:var(--acc)}
+  .mrow .tx{min-width:0;flex:1}
+  .mrow .rt{font-size:13.5px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .mrow .rt.qcap{font-style:italic;font-weight:500}
+  .mrow .rt.qcap .qq{color:var(--acc);font-style:normal;font-weight:800;margin-right:2px}
+  .mrow .rs{font-size:11.5px;color:var(--t2);margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  .mrow .rm{font-size:10.5px;color:var(--t3);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .rm .sdot{width:5px;height:5px;border-radius:50%;background:var(--green);flex:none}
+  .listspacer{height:128px}
+
+  /* the conditional mini-player — Bound-style glass capsule */
+  .mini{position:absolute;left:14px;right:14px;bottom:16px;z-index:4;height:54px;border-radius:27px;
+    display:flex;align-items:center;gap:4px;padding:0 9px 0 7px;
+    background:rgba(24,26,35,.55);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);
+    border:.5px solid rgb(var(--bd)/.14);box-shadow:0 12px 32px rgba(0,0,0,.55)}
+  .mini::before{content:"";position:absolute;inset:0;border-radius:27px;pointer-events:none;
+    background:linear-gradient(180deg,rgb(255 255 255/.09),transparent 38%)}
+  .mini .mcov{width:38px;height:38px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;
+    padding:3px;text-align:center;overflow:hidden;position:relative}
+  .mini .mcov::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(255 255 255/.14),transparent 45%)}
+  .mini .mcov span{font-size:4.5px;font-weight:700;line-height:1.3;color:rgb(255 255 255/.85);text-transform:uppercase}
+  .mini .tbtn{border:none;background:transparent;color:var(--t1);cursor:pointer;display:flex;align-items:center;
+    justify-content:center;width:32px;height:32px;border-radius:50%;opacity:.9;flex:none}
+  .mini .tbtn:hover{opacity:1;background:rgb(var(--bd)/.07)}
+  .minicap{display:inline-flex;align-items:center;gap:5px;border:none;border-radius:999px;cursor:pointer;flex:none;
+    background:rgb(var(--accent)/.2);color:var(--acc);font-size:11px;font-weight:700;padding:6px 11px;margin-left:auto}
+  .minicap:hover{background:rgb(var(--accent)/.3)}
+  .minicap .q{font-size:13px;line-height:0;font-weight:800}
+  .mini .expand{color:var(--t2);font-size:13px;width:26px}
+  /* the record FAB, nudged up above the capsule */
+  .fab{position:absolute;right:20px;bottom:84px;z-index:4;width:52px;height:52px;border-radius:50%;border:none;
+    background:var(--acc);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 18px rgb(var(--accent)/.5)}
+  .fab:hover{filter:brightness(1.07)}
+
+  .caption{max-width:1080px;margin:16px auto 0;font-size:11.5px;color:var(--t3);line-height:1.6}
+  .caption b{color:var(--t2)}
+  .footnote{max-width:1080px;margin:26px auto 0;font-size:11.5px;color:var(--t3);line-height:1.65}
+  .footnote b{color:var(--t2)}
+</style>
+</head>
+<body>
+
+  <h1>Audiobook quote-capture — Skrift IS the player (modeled on Bound)</h1>
+  <p class="sub">
+    Per the locked design: Files/iCloud import, library, per-book resume, speed, sleep, chapters —
+    and ONE new verb: <b>Capture</b>. It's <b>retroactive</b> — pauses the book and proposes
+    <b>[now −30 s → now]</b>; a ~15 s-grain <b>micro-scrubber</b> adjusts IN/OUT with audio grains under
+    your finger, both edges <b>snapping outward to whole sentences</b>. The span is transcribed on-demand
+    (never the whole book) into <b>one memo per capture</b>: italic quote + attribution + your voice ramble;
+    the span's audio IS the memo's audio. <b>Everything is clickable</b> — use the mode bar, or ride the
+    flow: Library row → player → Capture → confirm → sheet → save.
+  </p>
+
+  <div class="modebar">
+    <span class="mlab">State</span>
+    <button class="mode" data-s="1">1 · Library</button>
+    <button class="mode" data-s="2">2 · Player</button>
+    <button class="mode" data-s="3">3 · Capture moment</button>
+    <button class="mode" data-s="4">4 · Capture sheet</button>
+    <button class="mode" data-s="5">5 · Memos + mini-player</button>
+  </div>
+
+  <div class="stage">
+
+    <!-- ════ STATE 1 — Library ════ -->
+    <div class="panelset" id="panel-1">
+      <section class="mobwrap">
+        <div class="phead">iOS — Library (behind the book icon on the memos list)</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="pnav">
+            <span class="back" data-go="5">‹ Memos</span>
+            <button class="addbtn" title="Import from Files / iCloud">+</button>
+          </div>
+          <div class="lhead">Library</div>
+          <div class="sortrow">
+            <span class="sortchip">Recent ▾</span>
+            <span class="bcount">3 books · 1 listening</span>
+          </div>
+          <div class="brow playing" data-go="2">
+            <div class="bcov cov-boi"><span>The Beginning of Infinity</span></div>
+            <div class="tx">
+              <span class="bt">The Beginning of Infinity</span>
+              <div class="ba">David Deutsch</div>
+              <div class="bl"><span class="pbar"><i style="width:38%"></i></span>12:10:33 left</div>
+            </div>
+            <span class="lpill"><span class="eq"><i></i><i></i><i></i></span>Playing</span>
+          </div>
+          <div class="brow" data-go="2">
+            <div class="bcov cov-mhe"><span>The Master and His Emissary</span></div>
+            <div class="tx">
+              <span class="bt">The Master and His Emissary</span>
+              <div class="ba">Iain McGilchrist</div>
+              <div class="bl"><span class="pbar"><i style="width:87%"></i></span>3:50:07 left</div>
+            </div>
+          </div>
+          <div class="brow" data-go="2">
+            <div class="bcov cov-anti"><span>Antifragile</span></div>
+            <div class="tx">
+              <span class="bt">Antifragile</span>
+              <div class="ba">Nassim Nicholas Taleb</div>
+              <div class="bl"><span class="pbar"><i style="width:12%"></i></span>14:02:51 left</div>
+            </div>
+          </div>
+          <div class="importrow">
+            <span class="pl">+</span>
+            <span>Import an audiobook from <b style="color:var(--t2)">Files / iCloud</b> — title, author
+            &amp; chapters read from the file's tags (you only confirm if they're missing).</span>
+          </div>
+        </div>
+        <div class="panelnote">
+          One book at a time "moves in". Covers here are placeholder gradients — the real rows use the
+          file's embedded artwork. <b>No mini-player on this screen</b> — the Playing row IS the session
+          (flagged below). Tap a row → the player.
+        </div>
+      </section>
+    </div>
+
+    <!-- ════ STATE 2 — full player ════ -->
+    <div class="panelset" id="panel-2">
+      <section class="mobwrap">
+        <div class="phead">iOS — full player (Bound parity + the Capture verb)</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="ppnav">
+            <button class="chev" data-go="5" title="Collapse to the memos list — the mini-player takes over">⌄</button>
+            <span class="ppl">Now playing</span>
+            <button class="chev" title="Chapters · book settings">⋯</button>
+          </div>
+          <div class="bigcov cov-boi">
+            <span class="ct">The Beginning<br>of Infinity</span>
+            <span class="ca">David Deutsch</span>
+          </div>
+          <div class="chline">Chapter 4 of 18 — Creation</div>
+          <div class="btitle">The Beginning of Infinity</div>
+          <div class="bauthor">David Deutsch</div>
+          <div class="scrub"><span class="track"><span class="fill"></span></span><span class="knob"></span></div>
+          <div class="times"><span>12:36</span><span>−21:13</span></div>
+          <div class="pchiprow">
+            <span class="pchip2">1.25×</span>
+            <span class="pchip2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>Sleep · off</span>
+          </div>
+          <div class="transport">
+            <button class="skip" title="Back 15 s">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4a8 8 0 1 1-7.6 5.6"/><path d="M4.6 3.5v4.6h4.6" stroke-linejoin="round"/><text x="12.4" y="15.2" font-size="7" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">15</text></svg>
+            </button>
+            <button class="playbig" title="Pause">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1.2"/><rect x="14" y="4" width="4" height="16" rx="1.2"/></svg>
+            </button>
+            <button class="skip" title="Forward 15 s">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4a8 8 0 1 0 7.6 5.6"/><path d="M19.4 3.5v4.6h-4.6" stroke-linejoin="round"/><text x="11.6" y="15.2" font-size="7" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">15</text></svg>
+            </button>
+          </div>
+          <button class="capturebtn" data-go="3"><span class="q">❝</span>Capture</button>
+          <div class="capsub">pauses &amp; proposes the last 30 s — adjust on a fine scrubber, confirm</div>
+        </div>
+        <div class="panelnote">
+          The chips: <b>speed</b> + <b>sleep timer</b> (Bound staples). The scrubber is chapter-scoped —
+          a 15 h book makes a whole-book scrubber useless; chapters live behind ⋯. <b>Capture</b> is a
+          full-width pill in the thumb zone, under the transport (flagged below). ⌄ collapses to the list —
+          the mini-player takes over.
+        </div>
+      </section>
+    </div>
+
+    <!-- ════ STATE 3 — capture moment (micro-scrubber) ════ -->
+    <div class="panelset" id="panel-3">
+      <section class="mobwrap">
+        <div class="phead">iOS — capture moment (book paused, span proposed)</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="pausedrow">
+            <div class="bcov cov-boi"><span>The Beginning of Infinity</span></div>
+            <div class="tx">
+              <span class="bt">The Beginning of Infinity</span>
+              <div class="bs">ch. 4 — Creation · paused at 12:36</div>
+            </div>
+            <span class="pausepill">Paused</span>
+          </div>
+          <div class="spancard">
+            <div class="spanhead">
+              <span class="lab">Proposed span</span>
+              <span class="pv" id="spanrel">now −30 s → now</span>
+            </div>
+            <!-- zoom context: where this window sits on the chapter scrubber -->
+            <div class="zoomctx">
+              <div class="chapmini"><span class="mfill"></span><span class="mwin"></span></div>
+              <svg viewBox="0 0 332 22" preserveAspectRatio="none">
+                <line x1="120" y1="0" x2="2" y2="22" stroke="rgb(124 107 245 / .35)" stroke-width="1"/>
+                <line x1="136" y1="0" x2="330" y2="22" stroke="rgb(124 107 245 / .35)" stroke-width="1"/>
+              </svg>
+              <span class="zoomtag">zoomed · ~15 s grain</span>
+            </div>
+            <div class="stripwrap">
+              <span class="hlab" id="labIn">IN</span>
+              <span class="hlab" id="labOut">OUT</span>
+              <div class="strip" id="strip">
+                <div class="wave" id="wave"></div>
+                <div class="region" id="region"></div>
+                <div class="nowline" id="nowline" title="where you hit Capture"></div>
+                <button class="handle" id="hIn" title="IN — drag; snaps outward (earlier) to the sentence start"><i></i></button>
+                <button class="handle" id="hOut" title="OUT — drag; snaps outward (later) to the sentence end"><i></i></button>
+              </div>
+            </div>
+            <div class="striplabels">
+              <span style="left:1%">−60 s</span>
+              <span style="left:40%">−30 s</span>
+              <span class="now" style="left:80%">now</span>
+              <span style="left:98%">+15 s</span>
+            </div>
+            <div class="snaprow">
+              <span class="grains" id="grains"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span id="graintx">audio grains play as you scrub</span></span>
+              <span class="snapnote">handles <b>snap outward</b><br>to whole sentences</span>
+            </div>
+            <div class="readout">
+              <span class="rotimes" id="rotimes">12:05<span class="arr">→</span>12:38</span>
+              <span class="rochip" id="rochip">33 s · whole sentences</span>
+            </div>
+            <div class="confrow">
+              <button class="ghostbtn" data-go="2">Cancel · resume</button>
+              <button class="confbtn" data-go="4">Confirm capture ❝</button>
+            </div>
+          </div>
+          <div style="height:8px"></div>
+        </div>
+        <div class="panelnote">
+          <b>The handles are live — drag them.</b> Dots on the ticks = sentence boundaries (from the span's
+          word timings); IN only lands on a sentence start, OUT on a sentence end — sloppy markers always
+          yield whole sentences. The chip lights while scrubbing: v1 plays raw audio grains under your
+          finger (DaVinci-style varispeed = v2 polish). The bar on top shows where this ~75 s window sits
+          in the chapter.
+        </div>
+      </section>
+    </div>
+
+    <!-- ════ STATE 4 — capture sheet ════ -->
+    <div class="panelset" id="panel-4">
+      <section class="mobwrap">
+        <div class="phead">iOS — capture sheet (span transcribed → quote + your thoughts)</div>
+        <div class="phone">
+          <div class="island"></div>
+          <!-- dimmed player behind -->
+          <div class="dimback">
+            <div class="bigcov cov-boi" style="margin-top:2px">
+              <span class="ct">The Beginning<br>of Infinity</span>
+              <span class="ca">David Deutsch</span>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="shead">
+              <span class="qmk">❝</span>
+              <span class="st"><b>Capture</b><span class="sc">The Beginning of Infinity · ch. 4 — Creation · 12:05 → 12:38</span></span>
+              <button class="close" data-go="2" title="Discard — resume the book">✕</button>
+            </div>
+            <div class="quoteblock">
+              <p class="qtext">“Optimism is not the belief that things will go well. It is the stance that
+              failures are problems, and problems can be solved — that there is no barrier in nature to
+              further improvement.”</p>
+              <div class="qattr">— <span class="qlnk">[[David Deutsch]]</span>, <i>The Beginning of Infinity</i>, ch. 4</div>
+            </div>
+            <div class="qmeta">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h2l2-7 3 14 3-10 2 5 2-2h6"/></svg>
+              0:33 of book audio attached · transcribed on-device, snapped to sentences
+            </div>
+            <button class="recbig">
+              <span class="rb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span>
+              <span class="rb-tx"><b>Record your thoughts</b><i>the book stays paused while you talk — resumes after</i></span>
+            </button>
+            <button class="keepbtn" data-go="5">Save &amp; keep listening</button>
+            <div class="sheetsig">
+              <div class="sig" id="sig-cap">
+                <div class="top"><span class="lab">Significance</span><span class="val muted">Not rated</span></div>
+                <div class="dots"></div>
+              </div>
+              <div class="sync muted" id="sync-cap"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panelnote">
+          One memo per capture — quote block + ramble + book frontmatter, full pipeline (sync, enhance,
+          export). <b>The big button is the point</b>: the ramble is your thinking; it appends via the
+          existing append flow. <b>[[David Deutsch]] becomes a wikilink at export only</b> — authors never
+          enter the names DB. Enhancement copy-edits ONLY the ramble; the quote is anchored out and
+          asserted byte-identical. Circles = the usual flag-to-send gate (flagged below). They're live.
+        </div>
+      </section>
+    </div>
+
+    <!-- ════ STATE 5 — memos list + conditional mini-player ════ -->
+    <div class="panelset" id="panel-5">
+      <section class="mobwrap">
+        <div class="phead">iOS — memos list during a book session</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="listtop">
+            <div class="lhead">Memos</div>
+            <button class="bookbtn" data-go="1" title="Library — green dot = a book session is active">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span class="livedot"></span>
+            </button>
+          </div>
+          <div class="search"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search</div>
+          <div class="dayhead">Today</div>
+          <div class="mrow cap">
+            <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+            <span class="tx">
+              <span class="rt qcap"><span class="qq">❝</span>Optimism is not the belief that things will go well…</span>
+              <span class="rs">My take: this reframes the retro — treat the failure as input, not verdict…</span>
+              <span class="rm"><span>The Beginning of Infinity · ch. 4</span>·<span>0:33</span>·<span>16:12</span>·<span class="sdot"></span><span>synced</span></span>
+            </span>
+          </div>
+          <div class="mrow">
+            <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span>
+            <span class="tx">
+              <span class="rt">Standup notes</span>
+              <span class="rs">So the main thing this morning was the review surface and…</span>
+              <span class="rm"><span>1:02</span>·<span>11:30</span></span>
+            </span>
+          </div>
+          <div class="dayhead" style="margin-top:10px">Yesterday</div>
+          <div class="mrow">
+            <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span>
+            <span class="tx">
+              <span class="rt">Hotel Du Vin</span>
+              <span class="rs">Jack was saying the whole point of the trip was to get the…</span>
+              <span class="rm"><span>2:14</span>·<span>19:21</span></span>
+            </span>
+          </div>
+          <div class="listspacer"></div>
+
+          <!-- the record FAB, nudged up above the capsule -->
+          <button class="fab" title="Record a memo — auto-pauses the book, resumes after save">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg>
+          </button>
+
+          <!-- the conditional mini-player (glass capsule) -->
+          <div class="mini">
+            <div class="mcov cov-boi"><span>The Beginning of Infinity</span></div>
+            <button class="tbtn" title="Back 15 s">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4a8 8 0 1 1-7.6 5.6"/><path d="M4.6 3.5v4.6h4.6" stroke-linejoin="round"/><text x="12.4" y="15.2" font-size="7" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">15</text></svg>
+            </button>
+            <button class="tbtn" title="Play / pause">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>
+            </button>
+            <button class="tbtn" title="Forward 15 s">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4a8 8 0 1 0 7.6 5.6"/><path d="M19.4 3.5v4.6h-4.6" stroke-linejoin="round"/><text x="11.6" y="15.2" font-size="7" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">15</text></svg>
+            </button>
+            <button class="minicap" data-go="3" title="Capture — pauses & proposes the last 30 s"><span class="q">❝</span>Capture</button>
+            <button class="tbtn expand" data-go="2" title="Expand to the full player">˄</button>
+          </div>
+        </div>
+        <div class="panelnote">
+          <b>The capsule exists ONLY while a book session is active</b> — no session, no bar, and the FAB
+          sits in its usual spot. The capture row wears the book glyph + the quote as its (italic) title.
+          The mini-player <b>yields on memo detail</b> (book keeps playing underneath); the FAB
+          auto-pauses the book and resumes it after save. ˄ expands, ❝ captures from right here.
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <p class="caption" id="caption"></p>
+
+  <p class="footnote">
+    <b>Flagged choices, easy to flip:</b>
+    <b>(1) Circles on the capture sheet</b> — included (compact, no tier labels), because significance is
+    the flag-to-send gate and a capture you don't rate would need a second visit before it syncs — same
+    argument as the capture-items sheet; if the sheet must be leaner, delete the card and rate in memo
+    detail like any memo.
+    <b>(2) Micro-scrubber treatment</b> — a zoomed-window strip: chapter bar + zoom cone on top, waveform
+    with sentence-boundary ticks, IN/OUT handles, a grain-play chip that lights while scrubbing. The
+    cheaper alternative is two stacked plain sliders (coarse + fine) with no waveform/cone — drop
+    <i>.zoomctx</i> + <i>.wave</i> and keep the handles on a bare track.
+    <b>(3) Mini-player contents/order</b> — cover → ⟲15 → ▶ → 15⟳ → <b>❝ Capture (labeled, accent
+    tint)</b> → ˄; Capture gets the only label because it's the headline verb, and the cover carries
+    identity so no title text fits the capsule. Alternative: title marquee instead of the skip buttons,
+    or Capture as a bare ❝ glyph.
+    <b>(4) Capture in the full player</b> — a full-width accent pill UNDER the transport (thumb zone,
+    unmissable, transport stays a clean Bound triple). Alternative: a 4th roundel inside the transport
+    row, or a toolbar ❝ top-right.
+    <b>(5) No mini-player on the Library screen</b> — the Playing row already shows the session there;
+    add the capsule to state 1 if switching-while-browsing matters more than a clean list.
+    Also locked-but-shown: the proposed span is fixed at 30 s (the micro-scrubber is the adjustment, not a
+    setting); sentence ticks come from the span transcription's word timings.
+  </p>
+
+<script>
+  const FLAME = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd"><path d="M12 2S6 7.5 6 12.5C6 16.09 8.69 19 12 19s6-2.91 6-6.5C18 7.5 12 2 12 2zm0 15a2.5 2.5 0 0 1-2.5-2.5c0-1.5 1-2.6 2.5-4 1.5 1.4 2.5 2.5 2.5 4A2.5 2.5 0 0 1 12 17z"/></svg>';
+
+  /* ── the circles row — same component as significance-circles.html (compact) ── */
+  const tierName = i => i >= 7 ? 'Significant' : i >= 4 ? 'Useful' : 'Passing';
+  const valText  = v => (v === 10 ? '1.0' : '0.' + v) + ' · ' + tierName(v);
+
+  function circleRow(mountId, size, gap, onChange){
+    let value = 0;
+    const root = document.getElementById(mountId);
+    const dotsWrap = root.querySelector('.dots');
+    const val = root.querySelector('.val');
+    dotsWrap.style.gap = gap + 'px';
+
+    const dots = [];
+    for (let i = 1; i <= 10; i++){
+      if (i === 8){
+        const w = document.createElement('span');
+        w.className = 'wall';
+        w.style.height = (size + 5) + 'px';
+        w.title = 'refine wall — 0.8+ notes get a refine pass';
+        dotsWrap.appendChild(w);
+      }
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dot';
+      b.style.width = size + 'px';
+      b.style.height = size + 'px';
+      b.title = valText(i);
+      b.addEventListener('mouseenter', () => {
+        dots.forEach((d, idx) => d.classList.toggle('prev', idx + 1 <= i && idx + 1 > value));
+        val.textContent = valText(i);
+        val.className = 'val pv';
+      });
+      b.addEventListener('mouseleave', () => {
+        dots.forEach(d => d.classList.remove('prev'));
+        paintVal();
+      });
+      b.addEventListener('click', () => set(value === i ? 0 : i));
+      dots.push(b);
+      dotsWrap.appendChild(b);
+    }
+
+    const flame = document.createElement('span');
+    flame.className = 'flame';
+    flame.innerHTML = FLAME + '<i style="font-style:normal">refine pass</i>';
+    flame.title = 'Rated 0.8+ — this note gets a refine pass before export';
+    dotsWrap.appendChild(flame);
+
+    function paintVal(){
+      if (value === 0){ val.textContent = 'Not rated'; val.className = 'val muted'; }
+      else { val.textContent = valText(value); val.className = 'val' + (value >= 8 ? ' warm' : ''); }
+    }
+
+    function set(v){
+      value = v;
+      dots.forEach((d, idx) => {
+        const i = idx + 1;
+        d.classList.toggle('lit', i <= v);
+        d.classList.toggle('warm', v >= 8 && i >= 8 && i <= v);
+        d.classList.remove('prev');
+      });
+      flame.classList.toggle('on', v >= 8);
+      paintVal();
+      if (onChange) onChange(v);
+    }
+
+    set(0);
+    return { set };
+  }
+
+  function capSync(v){
+    const el = document.getElementById('sync-cap');
+    if (v === 0){ el.className = 'sync muted'; el.innerHTML = '<i class="sdot"></i>Stays on this phone — rate to flag for sync'; }
+    else if (v < 8){ el.className = 'sync ok'; el.innerHTML = '<i class="sdot"></i>Will sync to the Mac'; }
+    else { el.className = 'sync warm'; el.innerHTML = FLAME + 'Will sync · flagged for a refine pass'; }
+  }
+  circleRow('sig-cap', 15, 7, capSync);
+  capSync(0);
+
+  /* ── the micro-scrubber — live IN/OUT handles, sentence-snap OUTWARD ── */
+  // The strip window: 75 s, from now−60 to now+15 (now = 60). Pause point = 12:36 in ch. 4.
+  const W = 75, NOW = 60, CH_NOW = 756;
+  // sentence boundaries inside the window (seconds), from the span's word timings
+  const BOUNDS = [2.8, 9.4, 16.1, 22.6, 28.9, 35.7, 42.3, 48.8, 55.2, 61.8, 68.4, 73.9];
+
+  const strip   = document.getElementById('strip');
+  const wave    = document.getElementById('wave');
+  const region  = document.getElementById('region');
+  const hIn     = document.getElementById('hIn');
+  const hOut    = document.getElementById('hOut');
+  const labIn   = document.getElementById('labIn');
+  const labOut  = document.getElementById('labOut');
+  const nowline = document.getElementById('nowline');
+  const grains  = document.getElementById('grains');
+  const graintx = document.getElementById('graintx');
+
+  // waveform bars (deterministic pseudo-random so the mock is stable)
+  const N = 104, bars = [];
+  for (let i = 0; i < N; i++){
+    const b = document.createElement('i');
+    const h = 12 + 22 * Math.abs(Math.sin(i * 0.55)) + 16 * Math.abs(Math.sin(i * 0.21 + 2)) + ((i * 7919) % 13) - 6;
+    b.style.height = Math.max(6, Math.min(54, h)) + '%';
+    wave.appendChild(b);
+    bars.push(b);
+  }
+  // sentence ticks
+  BOUNDS.forEach(t => {
+    const s = document.createElement('span');
+    s.className = 'stick';
+    s.style.left = (t / W * 100) + '%';
+    s.title = 'sentence boundary';
+    strip.appendChild(s);
+  });
+  nowline.style.left = (NOW / W * 100) + '%';
+
+  const fmt = s => {
+    s = Math.round(s);
+    const m = Math.floor(s / 60), ss = s % 60;
+    return m + ':' + String(ss).padStart(2, '0');
+  };
+  const snapIn  = t => { const c = BOUNDS.filter(b => b <= t); return c.length ? c[c.length - 1] : BOUNDS[0]; };
+  const snapOut = t => { const c = BOUNDS.filter(b => b >= t); return c.length ? c[0] : BOUNDS[BOUNDS.length - 1]; };
+
+  let tIn = snapIn(NOW - 30), tOut = snapOut(NOW);
+
+  function paintSpan(){
+    const l = tIn / W * 100, r = tOut / W * 100;
+    region.style.left = l + '%';
+    region.style.width = (r - l) + '%';
+    hIn.style.left  = 'calc(' + l + '% - 8px)';
+    hOut.style.left = 'calc(' + r + '% - 8px)';
+    labIn.style.left  = l + '%';
+    labOut.style.left = r + '%';
+    bars.forEach((b, i) => {
+      const t = i / (N - 1) * W;
+      b.classList.toggle('inreg', t >= tIn && t <= tOut);
+    });
+    document.getElementById('rotimes').innerHTML =
+      fmt(CH_NOW - NOW + tIn) + '<span class="arr">→</span>' + fmt(CH_NOW - NOW + tOut);
+    document.getElementById('rochip').textContent = Math.round(tOut - tIn) + ' s · whole sentences';
+    const relIn = Math.round(NOW - tIn), relOut = Math.round(tOut - NOW);
+    document.getElementById('spanrel').textContent =
+      'now −' + relIn + ' s → now' + (relOut > 0 ? ' +' + relOut + ' s' : '');
+  }
+  paintSpan();
+
+  function dragHandle(handle, isIn){
+    handle.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      grains.classList.add('on');
+      graintx.textContent = '♪ playing grain…';
+      const move = ev => {
+        const rect = strip.getBoundingClientRect();
+        let t = (ev.clientX - rect.left) / rect.width * W;
+        t = Math.max(0, Math.min(W, t));
+        if (isIn) tIn = snapIn(Math.min(t, tOut - 1));
+        else      tOut = snapOut(Math.max(t, tIn + 1));
+        paintSpan();
+      };
+      const up = ev => {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        grains.classList.remove('on');
+        graintx.textContent = 'audio grains play as you scrub';
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
+    });
+  }
+  dragHandle(hIn, true);
+  dragHandle(hOut, false);
+
+  /* ── state switching + in-mock navigation ── */
+  const CAPTIONS = {
+    1: 'Library — Bound-modeled: import from Files/iCloud (m4b chapters + tags read at import; a confirm screen only if tags are missing), covers, sort, per-book resume with time-left. One book at a time moves in. Tap the Playing row.',
+    2: 'The player — Bound parity (resume, speed, sleep, chapter scrubber, lock-screen transport) plus the one Skrift verb: Capture. It pauses the book and proposes [now −30 s → now]. Tap it.',
+    3: 'Capture moment — the micro-scrubber: a ~75 s window at ~15 s grain (the cone shows where it sits in the chapter). Drag IN/OUT — they snap OUTWARD to whole sentences; audio grains play under your finger (v1; varispeed scrub = v2). Note OUT may snap past “now” — the sentence finishes. Confirm.',
+    4: 'Capture sheet — the span (±20 s buffer) went through Parakeet in seconds; never the whole book. Quote in italics + attribution; [[Author]] becomes a wikilink at export ONLY. The BIG button is the ramble (A-dominant); Save & keep listening resumes the book in place. Circles = flag-to-send.',
+    5: 'Memos list — a capture is a normal memo (book glyph, italic quote title, full pipeline; the span IS its audio). The glass mini-player exists only while a session is active: cover · ⟲15 · ▶ · 15⟳ · ❝ Capture · ˄. The FAB nudges up above it and auto-pauses the book when you record.',
+  };
+  const caption = document.getElementById('caption');
+
+  function setState(s){
+    document.querySelectorAll('.panelset').forEach(p => p.classList.remove('on'));
+    document.getElementById('panel-' + s).classList.add('on');
+    document.querySelectorAll('.mode').forEach(b => b.classList.toggle('on', +b.dataset.s === s));
+    caption.textContent = CAPTIONS[s];
+  }
+
+  document.querySelectorAll('.mode').forEach(btn =>
+    btn.addEventListener('click', () => setState(+btn.dataset.s)));
+  // every element with data-go navigates the flow (library row → player → capture → sheet → list)
+  document.querySelectorAll('[data-go]').forEach(el =>
+    el.addEventListener('click', () => setState(+el.dataset.go)));
+
+  setState(1);
+</script>
+</body>
+</html>
