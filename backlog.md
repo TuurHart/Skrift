@@ -261,7 +261,19 @@ INSTANT-apply fix (each pick renders immediately, document-order demotion, progr
 Owed from lane flags: device-test the capture flow end-to-end (grains/scrubber feel, ramble append,
 Mac round-trip of a quote memo incl. quote protection + [[Author]] export).
 
-#### Device-test results — 2026-06-11 23:00 (first real capture, Steal Like an Artist)
+#### Device-test results — 2026-06-11 23:00 — ✅ ALL FIXED same night (3-lane batch + polish, tests green)
+Fixes: scrubber gesture rewrite (root cause: .contentShape applied AFTER .offset stacked both hit-zones in
+the strip corner → 56pt latched per-handle targets, min-span clamp, pannable window w/ edge-bump); preload
+on capture-open; post-ramble = review-first (green SAVED card w/ live appended text, resume ONLY on Save &
+keep listening, button flips to "Add more"); single import affordance; MULTI-FILE BOOKS (multi-select →
+one book, filename-ordered chapters, continuous cross-file playback, capture confined to one file —
+cross-file spans flagged as a possible later enhancement); styled quote + attribution caption BOTH apps
+(presentation-only, raw "> " preserved); desktop book glyph + "Audiobook quote · <Title>" source; list chip
+truncation (all chips capped 220pt). POLISH: mini-player 104pt (~2×), 2h-idle session auto-end, Siri
+"Resume my book in Skrift" (plain-AppIntent pattern). Owed: morning phone install + re-test (esp. scrubber
+feel, folder import, AirPods re-insert recheck). Original findings below.
+
+#### (original findings)
 **WORKED:** import (single file + manual title/author confirm) ✓ · play + mini-player + nudged FAB ✓ ·
 capture E2E ✓ · ramble append ✓ · circles + Will-sync line ✓ · sync to dev Mac ✓ · **QUOTE PROTECTION
 held — the book quote came through enhancement untouched** ✓.
