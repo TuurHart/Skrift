@@ -310,6 +310,10 @@ from the dev phone first.
   diarization and something else") — already specced under "Show downloaded models in phone Settings".
 - Next focus per user: the BIGGER design items (capture-items build, audiobook, significance-wall pipeline,
   vocab build).
+- **Reassign in the unlink popover** (from the two-Jacks discussion): clicking a linked `[[Name]]` should
+  offer not just Unlink but **"Change to → <other person>"** (one-tap fix when the deterministic alias
+  match picked the wrong person — e.g. a spoken "Jack" auto-linked to Timmons but meant Hutton). Reuses
+  the people-picker; per-mention scope.
 
 ## Audit findings (2026-06-09 post-batch error sweep — triaged, verified against code)
 Two read-only agents swept both apps after the batch; orchestrator verified each claim before listing.
