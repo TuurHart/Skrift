@@ -42,6 +42,12 @@ struct UploadMetadata: Encodable {
     var steps: Int?
     var photoFilename: String?
     var imageManifest: [ImageManifestEntry]?
+    /// Audiobook quote-capture book metadata (CONTRACT ADDITION C2, additive /
+    /// optional — absent on non-capture memos). The Mac's `PhoneMetadata`
+    /// mirror reads these to compose the export attribution.
+    var bookTitle: String?
+    var bookAuthor: String?
+    var bookChapter: String?
     var tags: [String]
     var source: String
     /// Optional phone-set title. The Mac may use it in its title chooser instead
@@ -71,6 +77,9 @@ struct UploadMetadata: Encodable {
         steps = meta?.steps
         photoFilename = meta?.photoFilename
         imageManifest = meta?.imageManifest
+        bookTitle = meta?.bookTitle
+        bookAuthor = meta?.bookAuthor
+        bookChapter = meta?.bookChapter
         tags = memo.tags
         source = "mobile"
         let trimmedTitle = memo.title?.trimmingCharacters(in: .whitespacesAndNewlines)

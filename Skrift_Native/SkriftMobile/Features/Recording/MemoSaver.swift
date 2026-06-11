@@ -247,6 +247,69 @@ struct MemoSaver {
         return ui.jpegData(compressionQuality: 0.85)
     }
 
+    // MARK: - Audiobook quote capture
+
+    /// Save an audiobook QUOTE CAPTURE as a memo (cross-lane contracts C1/C2).
+    /// The audio is the already sentence-snapped quote span (a temp .m4a the
+    /// capture flow extracted + trimmed); the transcript is the quote as
+    /// markdown blockquote lines ("> " prefix) — the ramble later appends below
+    /// it via the ordinary `appendRecording` flow, audio merge included, which
+    /// yields exactly the C1 shape (quote block, blank line, ramble). The phone
+    /// writes NO `[[..]]` and NO attribution line — the Mac owns both at export.
+    ///
+    /// Self-contained like `importAudio`/`importVideo`: no transcription run
+    /// (the quote text came from the capture flow's span transcription) and no
+    /// contextual location/weather capture (the moment belongs to the book, not
+    /// the room). `transcriptUserEdited` is set so the Mac trusts the formatted
+    /// transcript verbatim instead of re-transcribing the quote audio (which
+    /// would destroy the blockquote). `recordedAt` = the capture time.
+    /// Returns the new memo id, or nil if the quote audio couldn't be moved.
+    @discardableResult
+    func saveQuoteCapture(
+        audioTempURL: URL,
+        quote: String,
+        duration: TimeInterval,
+        wordTimings timings: [WordTiming] = [],
+        bookTitle: String?,
+        bookAuthor: String?,
+        bookChapter: String?,
+        recordedAt: Date = Date()
+    ) -> UUID? {
+        let transcript = QuoteFormatting.blockquote(quote)
+        guard !transcript.isEmpty else { return nil }
+
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+        let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
+        do {
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: audioTempURL, to: dest)
+        } catch {
+            print("[Skrift] Quote capture audio move failed: \(error)")
+            return nil
+        }
+
+        repository.insert(Memo(
+            id: id,
+            audioFilename: filename,
+            duration: duration,
+            recordedAt: recordedAt,
+            syncStatus: .waiting,
+            transcript: transcript,
+            transcriptStatus: .done,
+            transcriptUserEdited: true,   // deliberate formatting — Mac must not re-transcribe
+            metadata: MemoMetadata(
+                bookTitle: bookTitle,
+                bookAuthor: bookAuthor,
+                bookChapter: bookChapter
+            )
+        ))
+        if !timings.isEmpty {
+            wordTimings.write(timings, for: id)
+        }
+        return id
+    }
+
     /// Awaitable variant for tests — persist + capture metadata + transcribe.
     @discardableResult
     func saveAndTranscribe(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = []) async -> UUID {
