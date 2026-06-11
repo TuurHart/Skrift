@@ -13,7 +13,10 @@ import FluidAudio
 struct MemoDetailView: View {
     let initialID: UUID
 
-    @Query(sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
+    // Trashed memos (deletedAt != nil) are excluded so a soft-deleted memo
+    // drops out of the pager immediately (same filter as MemosListView).
+    @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
+           sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
     @Environment(\.dismiss) private var dismiss
     @State private var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
     @State private var showActions = false
@@ -195,17 +198,16 @@ struct MemoDetailView: View {
         Task { await MemoSaver().diarizeExisting(id: id, targetSpeakers: count) }
     }
 
+    /// Soft-delete: move the memo to Recently Deleted, same as every list delete
+    /// path (MemosListView.deleteMemo). Audio, photos, and sidecars stay on disk
+    /// so Restore is lossless; the startup purge removes them after the retention
+    /// window. The pager's @Query excludes trashed memos, so the page disappears
+    /// and we move to the next one (or dismiss when it was the last).
     private func deleteCurrent() {
         guard let memo = currentMemo else { return }
         let next = memos.first { $0.id != memo.id }?.id
-        if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
-        memo.metadata?.imageManifest?.forEach {
-            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
-        }
-        WordTimingsStore().delete(for: memo.id)
-        DiarizationStore().delete(for: memo.id)
         player.stopAndClear()
-        repository.delete(memo)
+        repository.softDelete(memo)
         if let next { selection = next } else { dismiss() }
     }
 }
