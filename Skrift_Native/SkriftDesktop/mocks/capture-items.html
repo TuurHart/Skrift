@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — capture items (share sheet → phone → Mac)</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5; --amber:#f59e0b; --green:#34d399; --blue:#60a5fa; --bd:255 255 255;
+    --warmfill:color-mix(in oklab, #7c6bf5 42%, #f59e0b);
+    --warmtext:color-mix(in oklab, #7c6bf5 50%, #f59e0b);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:30px 26px 80px;font-size:13px;line-height:1.5}
+  h1{font-size:15px;font-weight:600;margin:0 auto 4px;max-width:1080px}
+  .sub{font-size:12px;color:var(--t2);max-width:1080px;margin:0 auto 18px;line-height:1.55}
+  .sub b{color:var(--t1);font-weight:600}
+
+  /* ── mode bar ── */
+  .modebar{max-width:1080px;margin:0 auto 24px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .mlab{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-right:3px}
+  .mode{font-size:11.5px;padding:4px 12px;border-radius:7px;border:.5px solid rgb(var(--bd)/.12);
+    background:rgb(var(--bd)/.04);color:var(--t2);cursor:pointer}
+  .mode:hover{color:var(--t1)}
+  .mode.on{background:rgb(var(--accent)/.14);border-color:rgb(var(--accent)/.35);color:var(--acc)}
+
+  .stage{max-width:1080px;margin:0 auto}
+  .panelset{display:none}
+  .panelset.on{display:flex;gap:26px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+  .phead{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+
+  /* ── phone frame (shared, 390px idiom) ── */
+  .mobwrap{width:390px;flex:none}
+  .phone{background:var(--bg);border:.5px solid rgb(var(--bd)/.1);border-radius:34px;padding:16px 16px 26px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);position:relative;overflow:hidden}
+  .island{width:96px;height:24px;border-radius:13px;background:#000;margin:0 auto 14px;position:relative;z-index:3}
+
+  /* ── STATE 1: share sheet over a dimmed page ── */
+  .webpage{padding:4px 8px 0;opacity:.5;filter:saturate(.6)}
+  .webpage .urlbar{height:28px;border-radius:9px;background:var(--elev);display:flex;align-items:center;gap:6px;
+    padding:0 10px;font-size:11px;color:var(--t3);margin-bottom:12px}
+  .skel{border-radius:4px;background:rgb(var(--bd)/.08);margin-bottom:8px}
+  .skel.h{height:14px;width:78%;background:rgb(var(--bd)/.14)}
+  .skel.l1{height:8px;width:100%}.skel.l2{height:8px;width:94%}.skel.l3{height:8px;width:62%}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:34px;z-index:1}
+  .sheet{position:relative;z-index:2;margin:24px -4px 0;background:#1b1d28;border:.5px solid rgb(var(--bd)/.12);
+    border-radius:22px;padding:11px 16px 16px;box-shadow:0 -10px 36px rgba(0,0,0,.5)}
+  .grab{width:36px;height:4px;border-radius:2px;background:rgb(var(--bd)/.18);margin:0 auto 12px}
+  .shead{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+  .shead .mk{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#8e7dff,#6a59ef);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex:none;
+    box-shadow:0 1px 4px rgb(var(--accent)/.45)}
+  .shead b{font-size:14px;font-weight:700;flex:1}
+  .shead .close{width:24px;height:24px;border-radius:50%;border:none;background:rgb(var(--bd)/.07);color:var(--t2);
+    font-size:13px;cursor:pointer}
+
+  .linkcard{display:flex;align-items:center;gap:10px;background:var(--surface);border:.5px solid rgb(var(--bd)/.09);
+    border-radius:13px;padding:10px 12px;margin-bottom:11px}
+  .fav{width:32px;height:32px;border-radius:8px;background:rgb(96 165 250/.14);color:var(--blue);flex:none;
+    display:flex;align-items:center;justify-content:center}
+  .linkcard .tx{min-width:0;flex:1}
+  .linkcard .lt{font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .linkcard .ld{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:5px;margin-top:1px}
+  .linkcard .ld svg{flex:none;opacity:.7}
+
+  .annot{position:relative;margin-bottom:12px}
+  .annot textarea{width:100%;min-height:74px;resize:none;background:var(--surface);border:.5px solid rgb(var(--bd)/.09);
+    border-radius:13px;padding:10px 38px 10px 12px;font:inherit;font-size:14px;line-height:1.5;color:var(--t1);outline:none}
+  .annot textarea:focus{border-color:rgb(var(--accent)/.45)}
+  .annot textarea::placeholder{color:var(--t3)}
+  .annot .mic{position:absolute;right:9px;bottom:9px;width:26px;height:26px;border-radius:50%;border:none;
+    background:rgb(var(--bd)/.06);color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .annot .mic:hover{color:var(--acc);background:rgb(var(--accent)/.12)}
+
+  .sheetsig{background:var(--surface);border:.5px solid rgb(var(--bd)/.09);border-radius:13px;padding:11px 12px 10px;margin-bottom:13px}
+  .save{width:100%;border:none;border-radius:12px;background:var(--acc);color:#fff;font-size:14.5px;font-weight:700;
+    padding:11px 0;cursor:pointer;box-shadow:0 1px 8px rgb(var(--accent)/.45)}
+  .save:hover{filter:brightness(1.06)}
+
+  /* variant strip under the share-sheet phone */
+  .variants{width:390px;margin-top:14px}
+  .vhead{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+  .vrow{display:flex;gap:8px}
+  .vtile{flex:1;border:.5px solid rgb(var(--bd)/.09);border-radius:10px;padding:8px 9px;background:rgb(var(--bd)/.02)}
+  .vtile.on{border-color:rgb(var(--accent)/.4);background:rgb(var(--accent)/.06)}
+  .vtile .vk{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:flex;gap:5px;align-items:center;margin-bottom:6px}
+  .vtile.on .vk{color:var(--acc)}
+  .vmini{border-radius:6px;background:var(--surface);border:.5px solid rgb(var(--bd)/.08);height:30px;
+    display:flex;align-items:center;gap:6px;padding:0 7px;font-size:9px;color:var(--t3);overflow:hidden;white-space:nowrap}
+  .vmini .dot{width:12px;height:12px;border-radius:4px;flex:none;background:rgb(96 165 250/.2)}
+  .vmini.qt{font-style:italic;border-left:2px solid rgb(var(--accent)/.5)}
+  .vmini.im{background:linear-gradient(135deg,#2b3350,#161a29);justify-content:center;color:var(--t3)}
+
+  /* ── STATE 2: phone list + detail ── */
+  .pnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px}
+  .pnav .back{font-size:14px;color:var(--acc)}
+  .pnav .ovf{font-size:16px;color:var(--t2);letter-spacing:1px}
+  .lhead{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:2px 4px 12px}
+  .search{height:32px;border-radius:11px;background:var(--elev);display:flex;align-items:center;gap:7px;
+    padding:0 11px;font-size:12.5px;color:var(--t3);margin:0 0 14px}
+  .dayhead{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin:0 4px 7px}
+  .mrow{display:flex;gap:11px;align-items:flex-start;background:var(--surface);border-radius:14px;padding:11px 12px;margin-bottom:8px}
+  .mrow.sel{border:.5px solid rgb(var(--accent)/.35);background:rgb(var(--accent)/.08)}
+  .mrow .ic{width:32px;height:32px;border-radius:10px;background:var(--elev);color:var(--t2);flex:none;
+    display:flex;align-items:center;justify-content:center}
+  .mrow.sel .ic{background:rgb(var(--accent)/.16);color:var(--acc)}
+  .mrow .tx{min-width:0;flex:1}
+  .mrow .rt{font-size:13.5px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mrow .rs{font-size:11.5px;color:var(--t2);margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  .mrow .rm{font-size:10.5px;color:var(--t3);margin-top:3px;display:flex;gap:6px;align-items:center}
+  .rm .sdot{width:5px;height:5px;border-radius:50%;background:var(--green);flex:none}
+
+  .ptitle{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0 4px 9px}
+  .pchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 4px 12px}
+  .pchip{font-size:10.5px;color:var(--t2);background:var(--elev);border-radius:8px;padding:3px 8px}
+  .pcard{background:var(--surface);border-radius:16px;padding:13px 13px 12px;margin-bottom:10px}
+  .pdivider{height:.5px;background:rgb(var(--bd)/.06);margin:11px 0 9px}
+  .ptags{display:flex;gap:6px;flex-wrap:wrap;margin:2px 4px 14px}
+  .tag{font-size:11px;font-weight:500;background:rgb(var(--accent)/.15);color:var(--acc);border-radius:6px;padding:3px 9px;display:inline-flex;gap:5px;align-items:center}
+  .tag .x{opacity:.45;font-size:10px}
+  .pbody{font-size:14px;line-height:1.6;color:var(--t1);margin:0 4px}
+  .pbody .open{font-size:11px;color:var(--acc);font-weight:600}
+
+  /* sync line (from the circles mock) */
+  .sync{display:flex;align-items:center;gap:6px;font-size:10.5px;margin-top:2px}
+  .sync .sdot{width:6px;height:6px;border-radius:50%;flex:none}
+  .sync.muted{color:var(--t3)}.sync.muted .sdot{background:var(--t3)}
+  .sync.ok{color:var(--t2)}.sync.ok .sdot{background:var(--green)}
+  .sync.warm{color:var(--amber)}
+  .sync svg{flex:none}
+
+  /* ── THE CIRCLES ROW (verbatim idiom from significance-circles.html) ── */
+  .sig .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .sig .lab{font-size:11px;color:var(--t3)}
+  .val{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--acc)}
+  .val.muted{color:var(--t3);font-weight:500}
+  .val.pv{color:var(--t2)}
+  .val.warm{color:var(--warmtext)}
+  .dots{display:flex;align-items:center;margin-bottom:4px}
+  .dot{border-radius:50%;border:1.5px solid rgb(var(--bd)/.2);background:transparent;cursor:pointer;padding:0;flex:none;
+    transition:transform .1s,background .12s,border-color .12s,box-shadow .12s}
+  .dot:hover{transform:scale(1.22);border-color:rgb(var(--accent)/.8)}
+  .dot.prev{background:rgb(var(--accent)/.3);border-color:rgb(var(--accent)/.55)}
+  .dot.lit{background:var(--acc);border-color:var(--acc);box-shadow:0 1px 5px rgb(var(--accent)/.35)}
+  .dot.lit.warm{background:var(--warmfill);border-color:var(--warmfill);box-shadow:0 0 8px rgb(245 158 11/.3)}
+  .wall{width:1px;flex:none;background:rgb(245 158 11/.35);border-radius:1px}
+  .flame{display:inline-flex;align-items:center;gap:4px;color:var(--amber);font-size:9px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;opacity:0;transition:opacity .18s;margin-left:6px;pointer-events:none;white-space:nowrap}
+  .flame.on{opacity:.9;pointer-events:auto}
+
+  /* ── STATE 3: Mac review window (v5 idiom) ── */
+  .deskwrap{flex:1;min-width:880px;max-width:1080px}
+  .window{background:var(--bg);border-radius:11px;border:.5px solid rgb(var(--bd)/.08);
+    box-shadow:0 22px 70px rgba(0,0,0,.55);overflow:hidden;display:flex;height:620px}
+  .sidebar{width:228px;background:#15171f;border-right:.5px solid rgb(var(--bd)/.07);display:flex;flex-direction:column;position:relative}
+  .lights{position:absolute;top:18px;left:16px;display:flex;gap:8px;z-index:2}
+  .lights i{width:12px;height:12px;border-radius:50%}
+  .lights .r{background:#ff5f57}.lights .y{background:#febc2e}.lights .g{background:#28c840}
+  .s-head{padding:38px 12px 0}
+  .logo-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .brand{display:flex;align-items:center;gap:8px}
+  .brand .mk{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#8e7dff,#6a59ef);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;box-shadow:0 1px 4px rgb(var(--accent)/.45)}
+  .brand b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .health{display:flex;gap:3px}.health i{width:6px;height:6px;border-radius:50%;background:var(--green)}
+  .triage{padding:9px 14px 4px;font-size:11px;color:var(--t3);border-top:.5px solid rgb(var(--bd)/.06)}
+  .triage b{color:var(--acc);font-weight:600}
+  .queue{flex:1;overflow:auto;padding:2px 8px 8px}
+  .row{padding:8px 10px;border-radius:8px;margin-bottom:2px;cursor:pointer;border:1px solid transparent}
+  .row.sel-row{background:rgb(var(--accent)/.13);border-color:rgb(var(--accent)/.2)}
+  .row:hover:not(.sel-row){background:rgb(var(--bd)/.04)}
+  .row .top{display:flex;align-items:center;gap:7px}
+  .row .gi{flex:none;color:var(--t3);display:flex}
+  .row.sel-row .gi{color:var(--acc)}
+  .row .t{flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row.done .t{color:var(--t2);font-weight:500}
+  .row.done .gi{opacity:.6}
+  .row .m{margin-top:3px;font-size:11px;color:var(--t3);padding-left:21px}
+  .pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:4px}
+  .pill.ready{background:rgb(52 211 153/.16);color:#34d399}
+  .pill.q{background:rgb(255 255 255/.06);color:var(--t2)}
+  .pill.exp{background:transparent;color:var(--t3)}
+  .side-f{padding:9px 16px;border-top:.5px solid rgb(var(--bd)/.06);display:flex;gap:14px}
+  .side-f span{font-size:11px;color:var(--t2);display:flex;align-items:center;gap:5px}
+  .gd{width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+  .note{flex:1;display:flex;flex-direction:column;min-width:0}
+  .crumb{height:44px;display:flex;align-items:center;padding:0 0 0 28px;font-size:12px;color:var(--t3)}
+  .crumb b{color:var(--t2);font-weight:500}
+  .toolbar{height:48px;display:flex;align-items:center;gap:14px;padding:0 28px;border-bottom:.5px solid rgb(var(--bd)/.07);
+    box-shadow:inset 0 1px 0 rgb(var(--bd)/.04);background:rgb(255 255 255/.012)}
+  .srcstrip{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t2);min-width:0}
+  .srcstrip svg{color:var(--t3);flex:none}
+  .srcstrip .dom{color:var(--t1);font-weight:600}
+  .srcstrip .openlnk{font-size:11px;color:var(--acc);border:.5px solid rgb(var(--accent)/.35);border-radius:6px;
+    padding:2px 9px;cursor:pointer;background:rgb(var(--accent)/.08);white-space:nowrap}
+  .acts{display:flex;align-items:center;gap:8px;flex:none;margin-left:auto}
+  .primary{background:var(--acc);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 1px 6px rgb(var(--accent)/.4)}
+  .ovfbtn{width:30px;height:30px;border-radius:7px;border:none;background:transparent;color:var(--t2);cursor:pointer;font-weight:700}
+  .ovfbtn:hover{background:rgb(var(--bd)/.05)}
+  .scroll{flex:1;overflow:auto}
+  .col{max-width:720px;margin:0 auto;padding:24px 36px 50px}
+  .ntitle{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+
+  .capnote{display:flex;align-items:center;gap:8px;background:rgb(96 165 250/.07);border:.5px solid rgb(96 165 250/.22);
+    border-radius:9px;padding:8px 13px;margin-bottom:18px;font-size:11.5px;color:var(--t2)}
+  .capnote svg{flex:none;color:var(--blue)}
+  .capnote b{color:var(--t1);font-weight:600}
+
+  .props{background:rgb(255 255 255/.022);border:.5px solid rgb(var(--bd)/.07);border-radius:12px;padding:14px 16px;margin-bottom:22px}
+  .grid{display:grid;grid-template-columns:84px 1fr;row-gap:3px}
+  .grid .k{font-size:11px;color:var(--t3);line-height:18px}
+  .grid .v{font-size:11px;color:var(--t2);line-height:18px}
+  .grid .v.lnkv{color:var(--blue)}
+  .divider{height:.5px;background:rgb(var(--bd)/.07);margin:13px 0}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .tsug{font-size:11px;color:var(--t2);border:.5px dashed rgb(var(--bd)/.2);border-radius:6px;padding:3px 9px;opacity:.8;cursor:pointer}
+  .tsug:hover{color:var(--acc);border-color:rgb(var(--accent)/.4);opacity:1}
+
+  .sharedblock{border:.5px solid rgb(var(--bd)/.09);border-left:2.5px solid rgb(96 165 250/.55);
+    background:rgb(96 165 250/.04);border-radius:11px;padding:13px 16px;margin-bottom:22px}
+  .sharedblock .bk{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:9px;display:flex;gap:6px;align-items:center}
+  .sharedblock .inner{display:flex;align-items:center;gap:11px}
+  .sharedblock .lt{font-size:14.5px;font-weight:600;color:var(--t1)}
+  .sharedblock .lu{font-size:11px;color:var(--blue);margin-top:2px;font-family:ui-monospace,monospace}
+  .body{font-size:16px;line-height:1.72;color:var(--t1)}
+  .body p{margin-bottom:15px}
+  .body .lnk{color:var(--acc)}
+
+  .caption{max-width:1080px;margin:16px auto 0;font-size:11.5px;color:var(--t3);line-height:1.6}
+  .caption b{color:var(--t2)}
+  .footnote{max-width:1080px;margin:26px auto 0;font-size:11.5px;color:var(--t3);line-height:1.65}
+  .footnote b{color:var(--t2)}
+</style>
+</head>
+<body>
+
+  <h1>Capture items — share a URL / text / image into Skrift, annotate, done</h1>
+  <p class="sub">
+    From any app's share sheet → <b>Skrift</b>: a one-glance card — preview of what you're sharing, an
+    optional thought, the significance circles (<b>0 default = stays on the phone</b>, rate it to flag
+    for sync), Save. No recording, no transcription — a capture is the <b>annotation as the note body</b>
+    with the shared thing pinned on top. Shown here as the URL variant; text and image shares swap only
+    the preview block. <b>The circles are live — click them.</b>
+  </p>
+
+  <div class="modebar">
+    <span class="mlab">State</span>
+    <button class="mode" data-s="1">1 · Share sheet</button>
+    <button class="mode" data-s="2">2 · On the phone</button>
+    <button class="mode" data-s="3">3 · On the Mac</button>
+  </div>
+
+  <div class="stage">
+
+    <!-- ════ STATE 1 — the share-extension sheet ════ -->
+    <div class="panelset" id="panel-1">
+      <section>
+        <div class="phead">iOS — share sheet (over the page you're sharing)</div>
+        <div class="mobwrap">
+          <div class="phone">
+            <div class="island"></div>
+            <!-- the dimmed page behind -->
+            <div class="webpage">
+              <div class="urlbar"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>swiftwithmajid.com</div>
+              <div class="skel h"></div>
+              <div class="skel l1"></div><div class="skel l2"></div><div class="skel l1"></div><div class="skel l3"></div>
+              <div class="skel l1" style="margin-top:10px"></div><div class="skel l2"></div>
+            </div>
+            <div class="scrim"></div>
+            <!-- the Skrift sheet -->
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="shead">
+                <span class="mk">S</span><b>Save to Skrift</b>
+                <button class="close">✕</button>
+              </div>
+              <div class="linkcard">
+                <span class="fav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+                <span class="tx">
+                  <span class="lt">Rich text editing in SwiftUI — strategies that work</span>
+                  <span class="ld"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>swiftwithmajid.com</span>
+                </span>
+              </div>
+              <div class="annot">
+                <textarea placeholder="Add your thoughts… (optional)">Try this for the desktop body editor — the NSTextView part maps onto what Nick suggested.</textarea>
+                <button class="mic" title="Dictate — uses the same on-device transcriber as memos"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></button>
+              </div>
+              <div class="sheetsig">
+                <div class="sig" id="sig-sheet">
+                  <div class="top"><span class="lab">Significance</span><span class="val muted">Not rated</span></div>
+                  <div class="dots"></div>
+                </div>
+                <div class="sync muted" id="sync-sheet"></div>
+              </div>
+              <button class="save">Save to Skrift</button>
+            </div>
+          </div>
+          <!-- the variant strip -->
+          <div class="variants">
+            <div class="vhead">The preview block per share type — everything else identical</div>
+            <div class="vrow">
+              <div class="vtile on">
+                <div class="vk"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>URL</div>
+                <div class="vmini"><span class="dot"></span>favicon · title · domain</div>
+              </div>
+              <div class="vtile">
+                <div class="vk"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 6H3M21 12H3M15 18H3"/></svg>Text</div>
+                <div class="vmini qt">“the quoted snippet…”</div>
+              </div>
+              <div class="vtile">
+                <div class="vk"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Image</div>
+                <div class="vmini im"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ════ STATE 2 — list + detail on the phone ════ -->
+    <div class="panelset" id="panel-2">
+
+      <section class="mobwrap">
+        <div class="phead">iOS — memos list (capture row among memos)</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="lhead">Memos</div>
+          <div class="search"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search</div>
+          <div class="dayhead">Today</div>
+          <div class="mrow sel">
+            <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></span>
+            <span class="tx">
+              <span class="rt">Rich text editing in SwiftUI</span>
+              <span class="rs">Try this for the desktop body editor — the NSTextView part…</span>
+              <span class="rm"><span>swiftwithmajid.com</span>·<span>14:02</span>·<span class="sdot"></span><span>synced</span></span>
+            </span>
+          </div>
+          <div class="mrow">
+            <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span>
+            <span class="tx">
+              <span class="rt">Standup notes</span>
+              <span class="rs">So the main thing this morning was the review surface and…</span>
+              <span class="rm"><span>1:02</span>·<span>11:30</span></span>
+            </span>
+          </div>
+          <div class="dayhead" style="margin-top:10px">Yesterday</div>
+          <div class="mrow">
+            <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+            <span class="tx">
+              <span class="rt">Whiteboard — sync flow</span>
+              <span class="rs">Photo from the session at Nick's — the arrows are the retry…</span>
+              <span class="rm"><span>image</span>·<span>16:48</span></span>
+            </span>
+          </div>
+          <div class="mrow">
+            <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span>
+            <span class="tx">
+              <span class="rt">Hotel Du Vin</span>
+              <span class="rs">Jack was saying the whole point of the trip was to get the…</span>
+              <span class="rm"><span>2:14</span>·<span>19:21</span></span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="mobwrap">
+        <div class="phead">iOS — capture detail (shared card on top, annotation = body)</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="pnav"><span class="back">‹ Memos</span><span class="ovf">⋯</span></div>
+          <div class="ptitle">Rich text editing in SwiftUI</div>
+          <div class="pchips">
+            <span class="pchip">Thu 11 Jun · 14:02</span>
+            <span class="pchip">Amsterdam</span>
+            <span class="pchip">Shared link</span>
+          </div>
+          <div class="linkcard" style="margin:0 4px 12px">
+            <span class="fav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+            <span class="tx">
+              <span class="lt">Rich text editing in SwiftUI — strategies that work</span>
+              <span class="ld"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>swiftwithmajid.com · <span class="open" style="color:var(--acc);font-weight:600">Open ↗</span></span>
+            </span>
+          </div>
+          <div class="pcard">
+            <div class="sig" id="sig-detail">
+              <div class="top"><span class="lab">Significance</span><span class="val muted">Not rated</span></div>
+              <div class="dots"></div>
+            </div>
+            <div class="pdivider"></div>
+            <div class="sync muted" id="sync-detail"></div>
+          </div>
+          <div class="ptags">
+            <span class="tag">#swift <span class="x">×</span></span>
+            <span class="tag">#editor <span class="x">×</span></span>
+          </div>
+          <div class="pbody">Try this for the desktop body editor — the NSTextView part maps onto
+            what Nick suggested. Especially the bit on attributed-string round-tripping; check it
+            against our [[link]] styling before committing to the approach.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ════ STATE 3 — the Mac review surface ════ -->
+    <div class="panelset" id="panel-3">
+      <section class="deskwrap">
+        <div class="phead">macOS — review (v5 surface, capture selected)</div>
+        <div class="window">
+          <div class="sidebar">
+            <div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+            <div class="s-head">
+              <div class="logo-row">
+                <div class="brand"><span class="mk">S</span><b>Skrift</b></div>
+                <span class="health" title="Parakeet · Gemma · server healthy"><i></i><i></i><i></i></span>
+              </div>
+            </div>
+            <div class="triage"><b>2 ready to review</b> · 1 queued</div>
+            <div class="queue">
+              <div class="row sel-row">
+                <div class="top"><span class="gi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></span><span class="t">Rich text editing in SwiftUI</span><span class="pill ready">Ready</span></div>
+                <div class="m">today · Link · phone</div>
+              </div>
+              <div class="row">
+                <div class="top"><span class="gi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 19v3"/></svg></span><span class="t">Standup notes</span><span class="pill ready">Ready</span></div>
+                <div class="m">today · 1:02</div>
+              </div>
+              <div class="row">
+                <div class="top"><span class="gi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span><span class="t">Whiteboard — sync flow</span><span class="pill q">Queued</span></div>
+                <div class="m">05 Jun · Image · phone</div>
+              </div>
+              <div class="row done">
+                <div class="top"><span class="gi"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span class="t">Groceries en het plan</span><span class="pill exp">Exported</span></div>
+                <div class="m">03 Jun · Apple Note</div>
+              </div>
+            </div>
+            <div class="side-f"><span><i class="gd"></i>Parakeet</span><span><i class="gd"></i>Gemma 4</span></div>
+          </div>
+
+          <div class="note">
+            <div class="crumb">Queue&nbsp;&nbsp;›&nbsp;&nbsp;<b>Thu, 11 Jun 2026</b></div>
+            <div class="toolbar">
+              <div class="srcstrip">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>
+                Shared link · <span class="dom">swiftwithmajid.com</span>
+                <button class="openlnk">Open ↗</button>
+              </div>
+              <div class="acts"><button class="primary">Export to Obsidian</button><button class="ovfbtn">⋯</button></div>
+            </div>
+            <div class="scroll"><div class="col">
+              <div class="ntitle">Rich text editing in SwiftUI</div>
+              <div class="capnote">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                <span><b>Capture</b> — skipped transcription &amp; diarization. Enhancement-lite still ran:
+                title, tags, summary + name-linking on your annotation. The URL exports to Obsidian intact.</span>
+              </div>
+              <div class="props">
+                <div class="grid">
+                  <span class="k">date</span><span class="v">11 Jun 2026</span>
+                  <span class="k">author</span><span class="v">Tiuri Hartog</span>
+                  <span class="k">source</span><span class="v">Shared link · phone</span>
+                  <span class="k">url</span><span class="v lnkv">swiftwithmajid.com/2026/05/rich-text-editing</span>
+                  <span class="k">location</span><span class="v">Amsterdam · Cloudy, 16°C</span>
+                </div>
+                <div class="divider"></div>
+                <div class="sig" id="sig-desk">
+                  <div class="top"><span class="lab">significance</span><span class="val muted">Not rated</span></div>
+                  <div class="dots"></div>
+                </div>
+                <div class="divider"></div>
+                <div class="tags">
+                  <span class="tag">#swift <span class="x">×</span></span>
+                  <span class="tag">#editor <span class="x">×</span></span>
+                  <span class="tsug">+ nstextview</span>
+                  <span class="tsug">+ reading</span>
+                </div>
+              </div>
+
+              <!-- the shared content block — quoted/card style, pinned above the body -->
+              <div class="sharedblock">
+                <div class="bk"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>Shared content</div>
+                <div class="inner">
+                  <span class="fav"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
+                  <span>
+                    <div class="lt">Rich text editing in SwiftUI — strategies that work</div>
+                    <div class="lu">https://swiftwithmajid.com/2026/05/rich-text-editing</div>
+                  </span>
+                </div>
+              </div>
+
+              <!-- the annotation IS the body — name-linked like any note -->
+              <div class="body">
+                <p>Try this for the desktop body editor — the NSTextView part maps onto what
+                  <span class="lnk">[[Nick Jansen]]</span> suggested. Especially the bit on
+                  attributed-string round-tripping; check it against our [[link]] styling before
+                  committing to the approach.</p>
+              </div>
+            </div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <p class="caption" id="caption"></p>
+
+  <p class="footnote">
+    <b>Flagged choices, easy to flip:</b> the sheet asks for <b>annotation + significance only</b> — no
+    tags, no title (the Mac's Gemma-lite suggests both; a tags row in the sheet would slow the
+    one-glance flow — add one row if that's wrong). <b>Significance lives in the sheet</b> because it's
+    the flag-to-send gate: 0 = the capture stays on the phone, exactly like memos — deferring it to the
+    app would mean every capture needs a second visit before it syncs. The <b>URL card</b> is
+    favicon + title + domain (title from the share payload — no network fetch needed, offline-safe); a
+    plain quoted-URL style is the cheaper fallback. An <b>image capture</b> mirrors the URL flow with a
+    thumbnail as the preview block (and the image travelling as the existing <i>attachments</i>
+    multipart part → an Obsidian <i>![[embed]]</i> on export); a <b>text capture</b> shows the snippet
+    as a quote and exports it as a blockquote above the annotation. Dictation in the sheet is the small
+    mic on the annotation field — secondary by design (share-sheet extensions get tight memory limits;
+    typing is the primary path, the mic reuses the on-device transcriber if it fits the budget).
+    Contract: a capture uploads through the same <i>POST /api/files/upload</i> with a
+    <i>capture</i> content type + <i>sharedContent</i>/<i>annotationText</i> (already on mobile's
+    <i>UploadMetadata</i>); desktop's UploadService grows a non-audio branch — no transcribe step, body
+    = annotation.
+  </p>
+
+<script>
+  const FLAME = '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd"><path d="M12 2S6 7.5 6 12.5C6 16.09 8.69 19 12 19s6-2.91 6-6.5C18 7.5 12 2 12 2zm0 15a2.5 2.5 0 0 1-2.5-2.5c0-1.5 1-2.6 2.5-4 1.5 1.4 2.5 2.5 2.5 4A2.5 2.5 0 0 1 12 17z"/></svg>';
+
+  const tierName = i => i >= 7 ? 'Significant' : i >= 4 ? 'Useful' : 'Passing';
+  const valText  = v => (v === 10 ? '1.0' : '0.' + v) + ' · ' + tierName(v);
+
+  // The circles row — same component as significance-circles.html (compact: no tier labels).
+  function circleRow(mountId, size, gap, onChange){
+    let value = 0;
+    const root = document.getElementById(mountId);
+    const dotsWrap = root.querySelector('.dots');
+    const val = root.querySelector('.val');
+    dotsWrap.style.gap = gap + 'px';
+
+    const dots = [];
+    for (let i = 1; i <= 10; i++){
+      if (i === 8){
+        const w = document.createElement('span');
+        w.className = 'wall';
+        w.style.height = (size + 5) + 'px';
+        w.title = 'refine wall — 0.8+ notes get a refine pass';
+        dotsWrap.appendChild(w);
+      }
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dot';
+      b.style.width = size + 'px';
+      b.style.height = size + 'px';
+      b.title = valText(i);
+      b.addEventListener('mouseenter', () => {
+        dots.forEach((d, idx) => d.classList.toggle('prev', idx + 1 <= i && idx + 1 > value));
+        val.textContent = valText(i);
+        val.className = 'val pv';
+      });
+      b.addEventListener('mouseleave', () => {
+        dots.forEach(d => d.classList.remove('prev'));
+        paintVal();
+      });
+      b.addEventListener('click', () => set(value === i ? 0 : i));
+      dots.push(b);
+      dotsWrap.appendChild(b);
+    }
+
+    const flame = document.createElement('span');
+    flame.className = 'flame';
+    flame.innerHTML = FLAME + '<i style="font-style:normal">refine pass</i>';
+    flame.title = 'Rated 0.8+ — this note gets a refine pass before export';
+    dotsWrap.appendChild(flame);
+
+    function paintVal(){
+      if (value === 0){ val.textContent = 'Not rated'; val.className = 'val muted'; }
+      else { val.textContent = valText(value); val.className = 'val' + (value >= 8 ? ' warm' : ''); }
+    }
+
+    function set(v){
+      value = v;
+      dots.forEach((d, idx) => {
+        const i = idx + 1;
+        d.classList.toggle('lit', i <= v);
+        d.classList.toggle('warm', v >= 8 && i >= 8 && i <= v);
+        d.classList.remove('prev');
+      });
+      flame.classList.toggle('on', v >= 8);
+      paintVal();
+      if (onChange) onChange(v);
+    }
+
+    set(0);
+    return { set };
+  }
+
+  function syncLine(id, save){
+    return v => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (v === 0){ el.className = 'sync muted'; el.innerHTML = '<i class="sdot"></i>' + (save ? 'Stays on this phone — rate to flag for sync' : 'Stays on this phone'); }
+      else if (v < 8){ el.className = 'sync ok'; el.innerHTML = '<i class="sdot"></i>Will sync to the Mac'; }
+      else { el.className = 'sync warm'; el.innerHTML = FLAME + 'Will sync · flagged for a refine pass'; }
+    };
+  }
+
+  const sheetSync  = syncLine('sync-sheet', true);
+  const detailSync = syncLine('sync-detail', false);
+  const sigSheet  = circleRow('sig-sheet', 17, 8, sheetSync);
+  const sigDetail = circleRow('sig-detail', 17, 8, detailSync);
+  const sigDesk   = circleRow('sig-desk', 13, 7);
+  sheetSync(0);
+  sigDetail.set(6); // the detail/Mac states show the capture after it was rated 0.6 in the sheet
+  sigDesk.set(6);
+
+  const CAPTIONS = {
+    1: 'The sheet — one glance: what you’re sharing, an optional thought (mic = dictate, secondary), the significance circles (0 default = stays on the phone; rate to flag for sync), Save. No tags, no title — the Mac suggests those.',
+    2: 'On the phone — a capture sits among memos with a link glyph + the annotation as its snippet. Detail = the shared card pinned on top, annotation below, circles + tags exactly like a memo. Rated 0.6 in the sheet → it synced.',
+    3: 'On the Mac — same v5 review surface; the toolbar swaps the audio transport for the source strip (no audio to play). Body = shared-content block + the annotation, name-linked. The banner says what a capture skips and keeps.',
+  };
+  const caption = document.getElementById('caption');
+
+  function setState(s){
+    document.querySelectorAll('.panelset').forEach(p => p.classList.remove('on'));
+    document.getElementById('panel-' + s).classList.add('on');
+    document.querySelectorAll('.mode').forEach(b => b.classList.toggle('on', +b.dataset.s === s));
+    caption.textContent = CAPTIONS[s];
+  }
+
+  document.querySelectorAll('.mode').forEach(btn =>
+    btn.addEventListener('click', () => setState(+btn.dataset.s)));
+
+  setState(1);
+</script>
+</body>
+</html>
