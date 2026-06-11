@@ -254,10 +254,12 @@ retranscribe clears stale segments, list-delete cleans the diar sidecar. Origina
    PIPELINE (refine gate + print) remains the design-session item.
 
 ### Audiobook quote-capture — DESIGN LOCKED 2026-06-11 (grill session; supersedes the direction below)
-Build-ready spec, every branch user-approved. **MOCK SIGNED OFF same day** ("wouww looks great, let's go" —
-`mocks/audiobook-capture.html`, accepted as-mocked incl. circles on the capture sheet). BUILD = next batch
-(queued for when the user is home + spend limit allows agents; lanes: player+library+mini-player /
-capture-flow / desktop quote-protection+export).
+Build-ready spec, every branch user-approved. **MOCK SIGNED OFF same day** ("wouww looks great, let's go").
+✅ **BUILT 2026-06-11 (4-lane batch, all tests green, merged to native)** — see FEATURES.md "Audiobook
+quote-capture" for the full capability×file map. Also in that batch: ✅ the resolver per-occurrence
+INSTANT-apply fix (each pick renders immediately, document-order demotion, progress counter).
+Owed from lane flags: device-test the capture flow end-to-end (grains/scrubber feel, ramble append,
+Mac round-trip of a quote memo incl. quote protection + [[Author]] export).
 1. **Skrift IS the player** for actively-mined books — model it on **Bound** ("there isn't a feature
    there I don't like"): Files/iCloud import, library w/ covers + sort, per-book resume, speed, sleep
    timer, embedded m4b chapters, background playback + lock-screen transport. One book at a time moves in.

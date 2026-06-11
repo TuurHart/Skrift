@@ -66,6 +66,19 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Inline `[photo N]` token in **live** caption | ✅ | n/a | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: tinted `[photo N]` token inserted inline at the capture point |
 | `[[img]]` → Obsidian embed on export | n/a | ✅ | desktop `Pipeline/Export/VaultExporter.swift:84-114` | |
 
+## Audiobook quote-capture *(mobile player + capture; desktop pipeline)* — built 2026-06-11
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Audiobook library + player (Bound-style) | ✅ | n/a | `Features/Audiobooks/*`, `Services/Audiobooks/*` | Files/iCloud import (copy into app), tags/cover/m4b chapters, per-book resume, speed, sleep timer, background + lock-screen transport (`AudiobookSession`) |
+| Retroactive quote capture | ✅ | n/a | `CaptureMomentView` (micro-scrubber + grains), `CaptureMath` (span + OUTWARD sentence-snap), `QuoteCaptureProcessor` | Capture proposes [now−30s→now]; span±20s transcribed on demand; quote audio = the memo's audio |
+| Capture sheet (ramble-first) | ✅ | n/a | `CaptureSheetView`; ramble = `RecordView(appendTo:)` | Big record-your-thoughts, Save & keep listening, circles; book auto-pauses/resumes |
+| Conditional mini-player + list integration | ✅ | n/a | `AudiobookMiniPlayerBar` (C3), mounted in `MemosListView` | Exists only while a session is active; FAB nudges up; capture rows = book glyph + italic ❝-quote lead |
+| Book metadata contract (C2) | ✅ | ✅ | mobile `MemoMetadata`/`UploadPayload` (+bookTitle/bookAuthor/bookChapter, additive); desktop `Compiler.swift` PhoneMetadata | Byte-compatible; absent = old behavior |
+| Quote protection in enhancement | n/a | ✅ | `Pipeline/Enhancement/QuoteProtection.swift`, `EnhancementService`, `BatchRunner` (byte-assert gate) | Copy-edit touches ONLY the ramble; quote byte-identical or full fallback to unedited |
+| Quote export (italics + attribution) | n/a | ✅ | `Compiler.swift` | `> — [[Author]], *Book*, ch. N` inside the blockquote; `[[Author]]` written at export only (never in names DB); frontmatter book/bookAuthor/chapter |
+| Resolver per-occurrence INSTANT apply | n/a | ✅ | `Sanitiser.applyPartialOccurrences`, `InlineResolver`, `NoteDisplayView` | Each pick renders immediately (document-order demotion correct); "N of M assigned" progress |
+
 ## Names & voices  *(both — synced)*
 
 | Capability | Mobile | Desktop | Key files | Notes |
