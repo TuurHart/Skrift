@@ -278,7 +278,10 @@ held — the book quote came through enhancement untouched** ✓.
   (second capture was instant; warm-model). 
 - **Multi-file books unsupported**: many audiobooks are file-per-chapter (the user's is ~30 mp3s); Bound's
   importer multi-selects a whole folder as ONE book ("the selector in Bound is way better"). Import must
-  accept multi-select/folder → one book, files = chapters in order.
+  accept multi-select/folder → one book, files = chapters in order. *Verifier nuance: Bound's PICKER UX
+  itself is the model (Select All over a chapter folder, one obvious flow) — not just the capability;
+  the scrubber bug presented as PROGRESSIVE freezing (handles fully unresponsive on later attempts), so
+  the gesture fix must address freeze, not only wrong-handle grabs.*
 - **Two import affordances in the Library** (big dashed row + toolbar +): keep ONLY the toolbar +.
 **P1 presentation:**
 - **Memos-list capture row: the book chip overflows off-screen** (long book title; needs truncation).
@@ -287,7 +290,8 @@ held — the book quote came through enhancement untouched** ✓.
   styled (italic + bar) with an attribution caption derived from C2 metadata (presentation-layer; the
   real `[[Author]]` line stays export-time).
 - **Desktop source wrong for captures**: shows "Voice memo" + mic glyph; should be an audiobook-quote
-  source (book glyph) when C2 bookTitle is present — sidebar + properties.
+  source (book glyph) when C2 bookTitle is present — sidebar + properties. (NOT a sync bug: the C2 book
+  metadata arrives fine — the phone derives its book glyph from it; the desktop just never does.)
 - **Backlog (capture-items umbrella): unify the SOURCE taxonomy across both apps** — voice memo / URL /
   document-PDF / video / audiobook quote / Apple Note — consistent glyphs + labels everywhere (user:
   "all the sources should be done well"). 
