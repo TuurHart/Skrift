@@ -108,7 +108,7 @@ struct MemosListView: View {
             // toolbar icon on the memos list"). A sheet for the same typed-path
             // reason as Trash. The view lives in Features/Audiobooks (cross-
             // lane contract — defined by the audiobook-mobile lane).
-            .sheet(isPresented: $showAudiobooks) { AudiobooksLibraryView() }
+            .sheet(isPresented: $showAudiobooks) { AudiobookLibraryView() }
         }
     }
 
