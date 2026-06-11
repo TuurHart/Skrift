@@ -32,9 +32,11 @@ struct AudiobookLibraryView: View {
                 bookList
             }
         }
-        .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.importTypes, allowsMultipleSelection: false) { result in
-            if case .success(let urls) = result, let url = urls.first {
-                Task { await runImport(url) }
+        .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
+            // Multi-select imports ONE book: a file-per-chapter folder's mp3s
+            // become its ordered chapters (Bound-style).
+            if case .success(let urls) = result, !urls.isEmpty {
+                Task { await runImport(urls) }
             }
         }
         .sheet(item: $pendingImport) { pending in
@@ -101,7 +103,7 @@ struct AudiobookLibraryView: View {
             }
             .disabled(importing)
             .accessibilityIdentifier("library-import")
-            .accessibilityLabel("Import an audiobook from Files")
+            .accessibilityLabel("Import an audiobook from Files — select every part of a multi-file book at once")
         }
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 8)
@@ -153,13 +155,27 @@ struct AudiobookLibraryView: View {
                         }
                     }
             }
-            importRow
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 8, leading: Theme.Space.margin, bottom: 12, trailing: Theme.Space.margin))
+            // ONE import affordance — the toolbar +. The empty library keeps a
+            // passive hint line only (no second button).
+            if store.books.isEmpty {
+                emptyHint
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 8, leading: Theme.Space.margin, bottom: 12, trailing: Theme.Space.margin))
+            }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+    }
+
+    private var emptyHint: some View {
+        Text("No audiobooks yet — import from **Files / iCloud** with the **+** above. Select every file of a file-per-chapter book at once; title, author & chapters come from the tags (you only confirm if they’re missing).")
+            .font(.system(size: 11))
+            .foregroundStyle(Color.skTextFaint)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 2)
+            .accessibilityIdentifier("library-empty-hint")
     }
 
     private func row(_ book: Audiobook) -> some View {
@@ -221,41 +237,13 @@ struct AudiobookLibraryView: View {
         .accessibilityLabel("\(book.title) by \(book.author), \(AudiobookTime.clock(book.timeLeft)) left")
     }
 
-    private var importRow: some View {
-        Button {
-            showImporter = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.skTextDim)
-                    .frame(width: 30, height: 30)
-                    .background(Color.skElev, in: .rect(cornerRadius: 8, style: .continuous))
-                Text("Import an audiobook from **Files / iCloud** — title, author & chapters read from the file’s tags (you only confirm if they’re missing).")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.skTextFaint)
-                    .multilineTextAlignment(.leading)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(
-                RoundedRectangle.sk(14)
-                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-                    .foregroundStyle(Color.skBorder)
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(importing)
-        .accessibilityIdentifier("library-import-row")
-    }
-
     // MARK: - Actions
 
-    private func runImport(_ url: URL) async {
+    private func runImport(_ urls: [URL]) async {
         importing = true
         defer { importing = false }
         do {
-            let pending = try await AudiobookImporter.importBook(from: url, libraryDirectory: store.directory)
+            let pending = try await AudiobookImporter.importBook(from: urls, libraryDirectory: store.directory)
             if pending.needsConfirmation {
                 pendingImport = pending
             } else {

@@ -17,6 +17,11 @@ struct QuoteCaptureFlowView: View {
 
     private let book: Audiobook?
     private let pausedAt: TimeInterval
+    /// GLOBAL bounds of the audio file `pausedAt` falls in — the span (and the
+    /// pannable micro-scrubber) are confined to ONE file; the quote audio is
+    /// extracted from that file alone. Single-file books: the whole book.
+    private let fileBounds: CaptureSpan.Span
+    private let fileIndex: Int
 
     @State private var stage: Stage = .adjust
     @State private var span: CaptureSpan.Span
@@ -26,9 +31,13 @@ struct QuoteCaptureFlowView: View {
         let session = AudiobookSession.shared
         book = session.book
         pausedAt = session.currentTime
+        let bounds = session.book?.fileBounds(at: session.currentTime)
+            ?? CaptureSpan.Span(start: 0, end: 0)
+        fileBounds = bounds
+        fileIndex = session.book?.fileIndex(at: session.currentTime) ?? 0
         _span = State(initialValue: CaptureSpan.proposal(
             now: session.currentTime,
-            duration: session.book?.duration ?? 0
+            in: bounds
         ))
     }
 
@@ -40,8 +49,9 @@ struct QuoteCaptureFlowView: View {
                 case .adjust:
                     CaptureMomentView(
                         book: book,
-                        audioURL: session.store.audioURL(of: book),
+                        audioURL: session.store.audioURL(of: book, fileIndex: fileIndex),
                         now: pausedAt,
+                        bounds: fileBounds,
                         span: $span,
                         onCancel: {
                             session.play()
@@ -56,12 +66,23 @@ struct QuoteCaptureFlowView: View {
                         book: book,
                         output: output,
                         memoID: memoID,
-                        onFinish: { finish(resume: true) },
+                        onFinish: { resume in finish(resume: resume) },
                         onDiscard: { discard(memoID: memoID) }
                     )
                 }
             } else {
                 Color.clear.onAppear { dismiss() }
+            }
+        }
+        .task {
+            // Warm the ASR model the MOMENT the capture flow opens — the span
+            // transcription after Confirm then takes seconds instead of a
+            // cold-start wait (same pattern as RecordView). Skipped on the
+            // seeded sim/UI-test path (no engine, no download). A load failure
+            // here is non-fatal: the real transcribe call retries the load and
+            // surfaces its error through the capture-failed alert.
+            if LaunchFlags.seedTranscript == nil {
+                Task { try? await TranscriptionService.shared.ensureLoaded() }
             }
         }
         .alert("Capture failed", isPresented: .init(
@@ -108,15 +129,21 @@ struct QuoteCaptureFlowView: View {
 
     private func confirmCapture(_ book: Audiobook) {
         stage = .processing
-        let bookAudio = session.store.audioURL(of: book)
-        let capturedSpan = span
+        let fileAudio = session.store.audioURL(of: book, fileIndex: fileIndex)
+        // The processor works in FILE-LOCAL time: the span is confined to one
+        // file (CaptureMomentView clamps to `fileBounds`), so rebase global →
+        // local for the extraction and back for chapter lookup + display.
+        let origin = fileBounds.start
+        let localSpan = CaptureSpan.Span(start: span.start - origin, end: span.end - origin)
         Task {
             do {
-                let output = try await QuoteCaptureProcessor().process(
-                    bookAudio: bookAudio,
-                    span: capturedSpan,
-                    bookDuration: book.duration
+                var output = try await QuoteCaptureProcessor().process(
+                    bookAudio: fileAudio,
+                    span: localSpan,
+                    bookDuration: fileBounds.length
                 )
+                output.spanStart += origin
+                output.spanEnd += origin
                 guard let memoID = MemoSaver().saveQuoteCapture(
                     audioTempURL: output.audioURL,
                     quote: output.quote,
@@ -137,8 +164,8 @@ struct QuoteCaptureFlowView: View {
         }
     }
 
-    /// Close the flow; the book resumes from the pre-capture position (pausing
-    /// never moved it).
+    /// Close the flow. The book resumes ONLY when asked ("Save & keep
+    /// listening" / cancel-resume paths) — never behind the user's back.
     private func finish(resume: Bool) {
         if resume { session.play() }
         dismiss()

@@ -45,6 +45,11 @@ final class AudiobookSession: ObservableObject {
     private var coverImage: UIImage?
     /// Chapter index when the end-of-chapter sleep was armed.
     private var sleepChapterIndex: Int?
+    /// Which of the book's files is loaded in the player (multi-file books
+    /// play as ONE continuous book; `currentTime` stays GLOBAL).
+    private var currentFileIndex = 0
+    /// Fires when the loaded file plays to its end → auto-advance.
+    private var itemEndObserver: NSObjectProtocol?
 
     init(store: AudiobookLibraryStore = .shared) {
         self.store = store
@@ -54,9 +59,10 @@ final class AudiobookSession: ObservableObject {
 
     // MARK: - Session lifecycle
 
-    /// Load a book (seeking to its resume position) and mark the session
-    /// active. Re-opening the already-loaded book is a no-op (so the player
-    /// screen can be re-entered freely).
+    /// Load a book (seeking to its resume position — for a multi-file book,
+    /// into the right FILE) and mark the session active. Re-opening the
+    /// already-loaded book is a no-op (so the player screen can be re-entered
+    /// freely).
     func open(_ newBook: Audiobook, autoplay: Bool = false) {
         if book?.id == newBook.id, player != nil {
             if autoplay, !isPlaying { play() }
@@ -65,17 +71,22 @@ final class AudiobookSession: ObservableObject {
         persistProgress(force: true)   // the outgoing book keeps its position
         closePlayer()
 
-        let url = store.audioURL(of: newBook)
+        let resume = min(newBook.position, newBook.duration)
+        let location = newBook.fileLocation(at: resume)
+        let url = store.audioURL(of: newBook, fileIndex: location.index)
         guard FileManager.default.fileExists(atPath: url.path) else {
             print("[Skrift] Audiobook audio missing: \(url.lastPathComponent)")
             return
         }
-        let avPlayer = AVPlayer(playerItem: AVPlayerItem(asset: AVURLAsset(url: url)))
+        let item = AVPlayerItem(asset: AVURLAsset(url: url))
+        let avPlayer = AVPlayer(playerItem: item)
         avPlayer.automaticallyWaitsToMinimizeStalling = false
         player = avPlayer
+        currentFileIndex = location.index
+        observeItemEnd(of: item)
         book = newBook
         rate = newBook.playbackRate
-        currentTime = min(newBook.position, newBook.duration)
+        currentTime = resume
         coverImage = store.coverURL(of: newBook).flatMap { UIImage(contentsOfFile: $0.path) }
         seek(to: currentTime)
         isActive = true
@@ -123,14 +134,75 @@ final class AudiobookSession: ObservableObject {
 
     func skip(_ delta: TimeInterval) { seek(to: currentTime + delta) }
 
+    /// Seek to a GLOBAL book time. On a multi-file book this may swap the
+    /// loaded file (e.g. the chapter menu, ⟲15 across a part boundary, or the
+    /// lock-screen position scrubber).
     func seek(to time: TimeInterval) {
-        guard let player else { return }
+        guard let player, let book else { return }
         let clamped = max(0, min(time, duration))
         currentTime = clamped
+        let location = book.fileLocation(at: clamped)
+        if location.index != currentFileIndex {
+            loadFile(at: location.index, of: book, offset: location.offset, resumePlayback: isPlaying)
+        } else {
+            player.seek(
+                to: CMTime(seconds: location.offset, preferredTimescale: 600),
+                toleranceBefore: .zero, toleranceAfter: .zero
+            )
+        }
+        updateNowPlaying()
+    }
+
+    /// Swap the player onto file `index`, seeking to `offset` inside it. Keeps
+    /// the transport state: `resumePlayback` restarts at the session rate.
+    private func loadFile(at index: Int, of book: Audiobook, offset: TimeInterval, resumePlayback: Bool) {
+        guard let player else { return }
+        let url = store.audioURL(of: book, fileIndex: index)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            print("[Skrift] Audiobook part missing: \(url.lastPathComponent)")
+            pause()
+            return
+        }
+        let item = AVPlayerItem(asset: AVURLAsset(url: url))
+        currentFileIndex = index
+        player.replaceCurrentItem(with: item)
+        observeItemEnd(of: item)
         player.seek(
-            to: CMTime(seconds: clamped, preferredTimescale: 600),
+            to: CMTime(seconds: max(0, offset), preferredTimescale: 600),
             toleranceBefore: .zero, toleranceAfter: .zero
         )
+        if resumePlayback { player.playImmediately(atRate: Float(rate)) }
+    }
+
+    /// Re-aim the end-of-file notification at the CURRENT item (a stale
+    /// observer on a replaced item would advance at the wrong moment).
+    private func observeItemEnd(of item: AVPlayerItem) {
+        if let itemEndObserver {
+            NotificationCenter.default.removeObserver(itemEndObserver)
+            self.itemEndObserver = nil
+        }
+        itemEndObserver = NotificationCenter.default.addObserver(
+            forName: AVPlayerItem.didPlayToEndTimeNotification,
+            object: item,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.currentFileEnded() }
+        }
+    }
+
+    /// One part finished: auto-advance into the next file (the book plays as
+    /// one continuous stream), or stop cleanly after the last file.
+    private func currentFileEnded() {
+        guard let book else { return }
+        let next = currentFileIndex + 1
+        guard next < book.files.count else {
+            pause()   // end of the book
+            return
+        }
+        let starts = book.fileStartTimes
+        currentTime = starts.indices.contains(next) ? starts[next] : currentTime
+        loadFile(at: next, of: book, offset: 0, resumePlayback: isPlaying)
+        persistProgress(force: true)
         updateNowPlaying()
     }
 
@@ -200,12 +272,17 @@ final class AudiobookSession: ObservableObject {
             forInterval: CMTime(seconds: 0.5, preferredTimescale: 600),
             queue: .main
         ) { [weak self] time in
-            MainActor.assumeIsolated { self?.tick(CMTimeGetSeconds(time)) }
+            MainActor.assumeIsolated { self?.tick(itemTime: CMTimeGetSeconds(time)) }
         }
     }
 
-    private func tick(_ time: TimeInterval) {
-        guard time.isFinite else { return }
+    /// `itemTime` is the loaded FILE's clock; `currentTime` stays global
+    /// (file start + item time).
+    private func tick(itemTime: TimeInterval) {
+        guard itemTime.isFinite else { return }
+        let starts = book?.fileStartTimes ?? []
+        let base = starts.indices.contains(currentFileIndex) ? starts[currentFileIndex] : 0
+        let time = base + itemTime
         currentTime = time
 
         guard isPlaying else { return }
@@ -239,8 +316,13 @@ final class AudiobookSession: ObservableObject {
             player?.removeTimeObserver(token)
             timeObserverToken = nil
         }
+        if let itemEndObserver {
+            NotificationCenter.default.removeObserver(itemEndObserver)
+            self.itemEndObserver = nil
+        }
         player?.pause()
         player = nil
+        currentFileIndex = 0
         isPlaying = false
     }
 
