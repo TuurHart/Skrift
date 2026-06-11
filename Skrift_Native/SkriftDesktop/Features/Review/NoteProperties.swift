@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The editable properties block: two-title chooser, grouped metadata + significance
 /// + tags card. Ported from `NoteProperties.tsx`. Edits mutate the SwiftData model
-/// directly (autosaves). Significance is unified to the accent color per the design
-/// critique (not the web's multi-color).
+/// directly (autosaves). Significance is the 10-circle star-rating control
+/// (`SignificanceCircles`, per mocks/significance-circles.html — replaced the slider).
 struct NoteProperties: View {
     @Bindable var file: PipelineFile
     var author: String = ""
@@ -115,7 +115,7 @@ struct NoteProperties: View {
                 audioExportRow
             }
             divider
-            SignificanceRow(value: $file.significance, enabled: file.steps.enhance == .done)
+            SignificanceCircles(value: $file.significance, enabled: file.steps.enhance == .done)
             divider
             TagEditor(file: file)
         }
@@ -182,42 +182,6 @@ struct NoteProperties: View {
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text.uppercased()).font(.system(size: 10)).tracking(0.7).foregroundStyle(Theme.textMuted)
-    }
-}
-
-// ── Significance (unified accent) ───────────────────────────
-private struct SignificanceRow: View {
-    /// Optional: nil = the user hasn't rated this note yet (shows "Not rated", not a
-    /// misleading "0.0 · Passing"). Dragging the slider sets a value, snapped to 0.1.
-    @Binding var value: Double?
-    /// Disabled until the note is processed (#18 — can't rate an unprocessed note).
-    var enabled: Bool = true
-
-    private var label: String { let v = value ?? 0; return v >= 0.67 ? "Significant" : v >= 0.34 ? "Useful" : "Passing" }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("significance").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-                Spacer()
-                if !enabled {
-                    Text("rate after processing").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-                } else if let value {
-                    Text(String(format: "%.1f · %@", value, label))
-                        .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(Theme.accent)
-                } else {
-                    Text("Not rated").font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textMuted)
-                }
-            }
-            TrackSlider(fraction: value ?? 0) { value = ($0 * 10).rounded() / 10 }   // snap to 0.1
-                .disabled(!enabled)
-            HStack {
-                Text("passing"); Spacer(); Text("useful"); Spacer(); Text("significant")
-            }
-            .font(.system(size: 9.5)).foregroundStyle(Theme.textMuted)
-        }
-        .opacity(enabled ? 1 : 0.5)
     }
 }
 
