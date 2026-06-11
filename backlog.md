@@ -253,7 +253,41 @@ retranscribe clears stale segments, list-delete cleans the diar sidecar. Origina
    circles per the signed-off mock (all three ≥0.8 wall cues, re-tap clears, tier labels); the wall
    PIPELINE (refine gate + print) remains the design-session item.
 
-### Audiobook quote-capture — idea + direction (written down 2026-06-10, design later)
+### Audiobook quote-capture — DESIGN LOCKED 2026-06-11 (grill session; supersedes the direction below)
+Build-ready spec, every branch user-approved. Mock-first before code (agent task exists).
+1. **Skrift IS the player** for actively-mined books — model it on **Bound** ("there isn't a feature
+   there I don't like"): Files/iCloud import, library w/ covers + sort, per-book resume, speed, sleep
+   timer, embedded m4b chapters, background playback + lock-screen transport. One book at a time moves in.
+2. **One memo per capture** (NOT a per-book note): each capture = quote block + ramble + book metadata in
+   frontmatter; full existing pipeline applies (significance, sync, enhance, export). A generated
+   per-book index note is a possible later export-side addition.
+3. **Capture gesture = RETROACTIVE**: one Capture button (in the full player AND the mini-player) pauses
+   the book and proposes span [now−30s → now]; the ~15s **micro-scrubber** adjusts IN (and OUT), with
+   **snippet audio scrubbing** in v1 (hear grains as you scrub; DaVinci-style varispeed = v2 polish).
+   **Sentence-snap OUTWARD** on both edges (sloppy markers always yield whole sentences). Optional
+   long-press marker-in for the foresight case if it falls out cheap.
+4. **Transcription = span-on-demand ONLY** (marked range ±~20s buffer through Parakeet, seconds-fast).
+   Whole-book indexing explicitly REJECTED ("I don't see the point").
+5. **Quote audio = the memo's audio** (span extracted to the memo .m4a) → playback/karaoke/sync/export
+   toggle all work for free; you can hear the author from Obsidian. **Ramble = the append flow**
+   (A-dominant: record-your-thoughts is the big button on the capture sheet; "Save & keep listening"
+   secondary; book auto-pauses during ramble, resumes in place after).
+6. **Metadata from file tags at import** (title/author/chapters; one editable confirm screen only if
+   missing). Chapter per capture derived from marker position. Capture itself asks NOTHING.
+7. **Export**: italic quote block + attribution "— [[Author]], *Book*, ch. N". `[[Author]]` is written
+   as a literal wikilink AT EXPORT ONLY — authors NEVER enter the names DB (would pollute alias matching).
+8. **Enhancement protects the quote — option (b) from day one**: strip quote block behind an anchor
+   (image-marker pattern), copy-edit ONLY the ramble, reinsert, then **assert the quote is byte-identical**;
+   any mismatch → fall back to skip-all-copy-edit + flag. Title/summary generate normally.
+9. **Placement**: Library behind a book toolbar icon on the memos list. **Conditional mini-player** —
+   exists ONLY while a book session is active (Bound-style glass capsule: cover, ⟲15, play, 15⟳,
+   **Capture ❝**, expand ˄); the record FAB nudges up above it; mini-player YIELDS on memo detail (book
+   keeps playing in background); record-FAB-while-playing auto-pauses the book and resumes after save.
+   Captures appear in the memos list with a book glyph. App identity stays notes-first.
+10. Mobile-first; capture memos sync to the Mac as normal memos (book files never sync). Open/minor (mock
+   decides): significance circles on the capture sheet vs detail-only; mini-player on the Library screen.
+
+### (original direction, 2026-06-10 — superseded above)
 Capture a passage from an audiobook as a quoted, attributed note + your own thoughts under it.
 - **Flow (preferred shape, in-app):** audiobook section in Skrift → loads the transcription model in the
   background → fine scrubber for precise positioning (a ~15s micro-scrubber alongside the normal one — a
