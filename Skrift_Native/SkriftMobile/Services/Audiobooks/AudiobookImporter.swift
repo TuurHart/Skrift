@@ -134,8 +134,11 @@ enum AudiobookImporter {
         if author == nil {
             // m4b files often carry the author in the iTunes keyspace instead.
             let all = (try? await asset.load(.metadata)) ?? []
+            // Two statements: `??`'s right side is an autoclosure, which can't await.
             author = await stringValue(in: all, identifier: .iTunesMetadataArtist)
-                ?? (await stringValue(in: all, identifier: .iTunesMetadataAlbumArtist))
+            if author == nil {
+                author = await stringValue(in: all, identifier: .iTunesMetadataAlbumArtist)
+            }
         }
 
         var artwork: Data?
