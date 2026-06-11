@@ -1,0 +1,85 @@
+import XCTest
+import Foundation
+
+/// The 10-circle significance control's pure scale logic
+/// (Models/SignificanceScale.swift, rendered by Features/Review/
+/// SignificanceCircles.swift per mocks/significance-circles.html):
+/// value↔circle mapping with float-noise tolerance + clamping, tier
+/// boundaries 0.4/0.7, the top-right value text, and the 0.8 refine wall.
+final class SignificanceScaleTests: XCTestCase {
+
+    // MARK: litCount — stored value → lit circles
+
+    func testLitCountOnGridValues() {
+        XCTAssertEqual(SignificanceScale.litCount(0.1), 1)
+        XCTAssertEqual(SignificanceScale.litCount(0.5), 5)
+        XCTAssertEqual(SignificanceScale.litCount(0.7), 7)
+        XCTAssertEqual(SignificanceScale.litCount(1.0), 10)
+    }
+
+    func testLitCountNilAndZeroAreUnrated() {
+        XCTAssertEqual(SignificanceScale.litCount(nil), 0)
+        XCTAssertEqual(SignificanceScale.litCount(0), 0)
+    }
+
+    func testLitCountToleratesFloatNoise() {
+        // Drifted doubles from old slider writes snap back to their circle.
+        XCTAssertEqual(SignificanceScale.litCount(0.30000000000000004), 3)
+        XCTAssertEqual(SignificanceScale.litCount(0.7000000000000001), 7)
+        XCTAssertEqual(SignificanceScale.litCount(0.6999999999999999), 7)
+        XCTAssertEqual(SignificanceScale.litCount(0.9999999999999999), 10)
+    }
+
+    func testLitCountClampsOffContractValues() {
+        // Out-of-range input clamps rather than trapping the Int conversion.
+        XCTAssertEqual(SignificanceScale.litCount(1.7), 10)
+        XCTAssertEqual(SignificanceScale.litCount(-0.3), 0)
+        XCTAssertEqual(SignificanceScale.litCount(42), 10)
+        XCTAssertEqual(SignificanceScale.litCount(-Double.greatestFiniteMagnitude), 0)
+        XCTAssertEqual(SignificanceScale.litCount(Double.greatestFiniteMagnitude), 10)
+    }
+
+    func testLitCountNonFiniteValuesAreUnrated() {
+        XCTAssertEqual(SignificanceScale.litCount(Double.nan), 0)
+        XCTAssertEqual(SignificanceScale.litCount(Double.infinity), 0)
+        XCTAssertEqual(SignificanceScale.litCount(-Double.infinity), 0)
+    }
+
+    // MARK: value(forCircle:) — circle N → persisted 0.N
+
+    func testValueForCircleMatchesContractGrid() {
+        XCTAssertEqual(SignificanceScale.value(forCircle: 1), 0.1)
+        XCTAssertEqual(SignificanceScale.value(forCircle: 5), 0.5)
+        XCTAssertEqual(SignificanceScale.value(forCircle: 10), 1.0)
+    }
+
+    func testValueAndLitCountRoundTripForAllTenCircles() {
+        for n in 1...10 {
+            XCTAssertEqual(SignificanceScale.litCount(SignificanceScale.value(forCircle: n)), n,
+                           "circle \(n) didn't round-trip through its stored value")
+        }
+    }
+
+    // MARK: tiers (mock locks the boundaries at 0.4 / 0.7)
+
+    func testTierBoundaries() {
+        for n in 1...3 { XCTAssertEqual(SignificanceScale.tierName(n), "Passing") }
+        for n in 4...6 { XCTAssertEqual(SignificanceScale.tierName(n), "Useful") }
+        for n in 7...10 { XCTAssertEqual(SignificanceScale.tierName(n), "Significant") }
+    }
+
+    // MARK: valueText — the top-right label
+
+    func testValueText() {
+        XCTAssertEqual(SignificanceScale.valueText(3), "0.3 · Passing")
+        XCTAssertEqual(SignificanceScale.valueText(4), "0.4 · Useful")
+        XCTAssertEqual(SignificanceScale.valueText(7), "0.7 · Significant")
+        XCTAssertEqual(SignificanceScale.valueText(10), "1.0 · Significant")
+    }
+
+    // MARK: refine wall
+
+    func testRefineWallIsCircleEight() {
+        XCTAssertEqual(SignificanceScale.refineWall, 8)
+    }
+}
