@@ -1,23 +1,34 @@
 import SwiftUI
 
 /// Mock state 3 — the capture moment: the book is paused and the proposed span
-/// [now − 30 s → now] sits on a ~75 s micro-scrubber window. Drag IN/OUT to
-/// adjust; audio grains play under your finger (snippet scrubbing, v1 of the
-/// locked design). The window is PANNABLE: drag the strip background to scroll
-/// it earlier/later through the file, or drag a handle past the strip's edge
-/// and the window follows (edge-bump) — so IN can land well before the
-/// proposed 30 s. The sentence-snap itself happens after Confirm, on the span
-/// transcription's word timings — both edges move OUTWARD so sloppy markers
-/// always yield whole sentences.
+/// [pause − 30 s → pause] sits on a ~75 s micro-scrubber window. Drag IN/OUT
+/// to adjust; audio grains play ONLY while a finger actively drags (mute
+/// toggle beside the strip). The sentence-snap itself happens after Confirm,
+/// on the span transcription's word timings — both edges move OUTWARD so
+/// sloppy markers always yield whole sentences.
 ///
-/// Gesture design (the device-test fix): each handle owns its OWN generous
-/// ≥44 pt hit target with a single `DragGesture` bound to THAT handle, placed
-/// with `.position` so the hit area always sits exactly under the visible
-/// handle (the old `.contentShape` AFTER `.offset` left both hit rectangles
-/// stacked at the strip's corner — grabbing "near IN" actually started OUT's
-/// gesture). A `CaptureScrub.Latch` claims the handle on the drag's FIRST
-/// change and never re-evaluates mid-drag; clamping (`CaptureScrub.dragged`)
-/// keeps the handles from crossing. All pure math is unit-tested.
+/// Round-2 semantics (device re-test 2026-06-12 — "I don't actually know how
+/// to use it properly"):
+/// - Every time label is BOOK TIME ("39:20 → 41:54"), never relative now±Ns.
+/// - The strip-background pan moves the WINDOW ONLY — IN/OUT stay anchored to
+///   their book positions while the window slides over them (off-window
+///   handles pin dimmed at the strip's edges).
+/// - A handle drag moves the handle ONLY, confined to the visible window —
+///   no edge-bump auto-pan (that's what ran a span away to pause+256 s).
+///   Pan first, then drag.
+/// - "⟲ pause point" re-centers the window on where Capture fired.
+/// - Audio: nothing touches the route until the first drag (GrainPlayer
+///   activates the session lazily); grains stop the moment the finger lifts.
+///
+/// Gesture design (the round-1 device fix, still in force): each handle owns
+/// its OWN generous ≥44 pt hit target with a single `DragGesture` bound to
+/// THAT handle, placed with `.position` so the hit area always sits exactly
+/// under the visible handle (the old `.contentShape` AFTER `.offset` left
+/// both hit rectangles stacked at the strip's corner — grabbing "near IN"
+/// actually started OUT's gesture). A `CaptureScrub.Latch` claims the handle
+/// on the drag's FIRST change and never re-evaluates mid-drag; clamping
+/// (`CaptureScrub.dragged(_:handle:to:within:bounds:)`) keeps the handles
+/// from crossing. All pure math is unit-tested.
 struct CaptureMomentView: View {
     let book: Audiobook
     /// The audio FILE `now` falls in (multi-file books play file-per-chapter).
@@ -36,6 +47,8 @@ struct CaptureMomentView: View {
     @State private var latch = CaptureScrub.Latch()
     @State private var lastActive: CaptureScrub.Handle = .outMarker
     @State private var lastGrainAt = Date.distantPast
+    /// Mute for the scrub grains (persists across captures).
+    @AppStorage("captureGrainMuted") private var grainMuted = false
     /// The visible slice of the file — pannable state, seeded around `now`.
     @State private var window: CaptureSpan.Span
     /// Window at the start of a background pan (deltas apply to this anchor,
@@ -77,7 +90,9 @@ struct CaptureMomentView: View {
         }
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 14)
-        .task { grain.prepare(url: audioURL) }
+        // NO grain.prepare here — the audio side stays completely untouched
+        // until the first handle drag (capture-open used to yank the user's
+        // AirPods off their Mac).
         .task(id: barsKey) {
             // Re-read the waveform whenever the window settles somewhere new
             // (pan / edge-bump). Reads only the visible slice, off the main
@@ -108,13 +123,18 @@ struct CaptureMomentView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("Proposed span")
                     .font(.system(size: 11))
+                    .lineLimit(1)
                     .foregroundStyle(Color.skTextFaint)
                 Spacer()
-                Text(relativeLabel)
+                // BOOK time ("39:20 → 41:54") — relative now±Ns labels were
+                // unreadable on device.
+                Text(bookTimeLabel)
                     .font(.system(size: 11.5, weight: .semibold))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     .foregroundStyle(Color.skAccentText)
-                    .accessibilityIdentifier("capture-span-relative")
+                    .accessibilityIdentifier("capture-span-times")
             }
             .padding(.bottom, 10)
 
@@ -130,13 +150,11 @@ struct CaptureMomentView: View {
                 .padding(.top, 5)
                 .padding(.horizontal, 2)
 
-            HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: 7) {
+                muteToggle
                 grainChip
-                Spacer()
-                Text("handles **snap outward**\nto whole sentences")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.skTextFaint)
-                    .multilineTextAlignment(.trailing)
+                Spacer(minLength: 4)
+                jumpBackButton
             }
             .padding(.top, 9)
             .padding(.horizontal, 2)
@@ -187,7 +205,7 @@ struct CaptureMomentView: View {
         .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
     }
 
-    /// "12:05 → 12:38" with the arrow dimmed.
+    /// "39:20 → 41:54" in BOOK time with the arrow dimmed.
     private var readoutText: Text {
         let time = { (t: TimeInterval) -> Text in
             Text(AudiobookTime.clock(t))
@@ -201,16 +219,9 @@ struct CaptureMomentView: View {
         return time(span.start) + arrow + time(span.end)
     }
 
-    /// "now −30 s → now" / "now −41 s → now +4 s" (signed both ways — IN can
-    /// be panned to either side of the pause point).
-    private var relativeLabel: String {
-        nowOffsetLabel(span.start) + " → " + nowOffsetLabel(span.end)
-    }
-
-    private func nowOffsetLabel(_ t: TimeInterval) -> String {
-        let delta = Int((t - now).rounded())
-        if delta == 0 { return "now" }
-        return delta < 0 ? "now −\(-delta) s" : "now +\(delta) s"
+    /// The span in book time, compact ("39:20 → 41:54").
+    private var bookTimeLabel: String {
+        AudiobookTime.clock(span.start) + " → " + AudiobookTime.clock(span.end)
     }
 
     // MARK: - Zoom context (where the window sits in the pannable range)
@@ -375,16 +386,22 @@ struct CaptureMomentView: View {
                 lastActive = side
                 // The drag location in the STRIP's space (not the moving
                 // handle's own space — translation against a moving anchor
-                // would double-count). Unclamped: past the edge it drives the
-                // edge-bump pan below.
+                // would double-count). Confined to the visible window — NO
+                // edge-bump auto-pan (round 2): past the edge the handle pins
+                // there; pan the window explicitly to reach further.
                 let raw = CaptureScrub.time(
                     atX: value.location.x, stripWidth: width, window: window
                 )
-                window = CaptureScrub.panned(toInclude: raw, window: window, bounds: bounds)
-                span = CaptureScrub.dragged(span, handle: side, to: raw, bounds: bounds)
+                span = CaptureScrub.dragged(
+                    span, handle: side, to: raw, within: window, bounds: bounds
+                )
+                // Grains sound ONLY mid-drag, and only unmuted. prepare() is
+                // lazy + idempotent: the first drag is the first (and only)
+                // moment the capture flow touches the audio route.
                 let t = side == .inMarker ? span.start : span.end
-                if Date().timeIntervalSince(lastGrainAt) > 0.35 {
+                if !grainMuted, Date().timeIntervalSince(lastGrainAt) > 0.35 {
                     lastGrainAt = Date()
+                    grain.prepare(url: audioURL)
                     grain.playGrain(at: t - bounds.start)
                 }
             }
@@ -392,12 +409,9 @@ struct CaptureMomentView: View {
                 let owned = latch.active == side
                 latch.release(side)
                 guard owned else { return }
-                // The settle grain — hear exactly where the marker landed
-                // (grain times are file-local).
-                grain.playGrain(
-                    at: (side == .inMarker ? span.start : span.end) - bounds.start,
-                    length: 0.6
-                )
+                // Finger lifted → silence (round 2: no settle grain — the
+                // preview must never talk on its own).
+                grain.stop()
             }
     }
 
@@ -419,40 +433,77 @@ struct CaptureMomentView: View {
     private var stripLabels: some View {
         let nowVisible = now > window.start + 0.5 && now < window.end - 0.5
         return HStack {
-            Text(edgeLabel(window.start))
+            Text(AudiobookTime.clock(window.start))
             Spacer()
             if nowVisible {
-                Text("now").fontWeight(.semibold).foregroundStyle(Color.skTextDim)
+                // Where Capture fired, in BOOK time.
+                Text("⏸ " + AudiobookTime.clock(now))
+                    .fontWeight(.semibold).foregroundStyle(Color.skTextDim)
                 Spacer()
             }
-            Text(edgeLabel(window.end))
+            Text(AudiobookTime.clock(window.end))
         }
         .font(.system(size: 9.5))
         .monospacedDigit()
+        .lineLimit(1)
         .foregroundStyle(Color.skTextFaint)
         .accessibilityHidden(true)
     }
 
-    /// A window edge relative to the pause point: "−60 s" / "+15 s".
-    private func edgeLabel(_ t: TimeInterval) -> String {
-        let delta = Int((t - now).rounded())
-        return delta <= 0 ? "−\(-delta) s" : "+\(delta) s"
+    /// Speaker toggle for the scrub grains (persisted via @AppStorage).
+    private var muteToggle: some View {
+        Button {
+            grainMuted.toggle()
+            if grainMuted { grain.stop() }
+        } label: {
+            Image(systemName: grainMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(grainMuted ? Color.skTextFaint : Color.skAccentText)
+                .frame(width: 32, height: 24)
+                .background(Color.skElev.opacity(0.6), in: .capsule)
+        }
+        .accessibilityIdentifier("capture-grain-mute")
+        .accessibilityLabel(grainMuted ? "Unmute preview audio" : "Mute preview audio")
     }
 
     private var grainChip: some View {
-        let scrubbing = latch.active != nil
-        return HStack(spacing: 5) {
-            Image(systemName: "music.note")
-                .font(.system(size: 9))
-            Text(scrubbing ? "♪ playing grain…" : "grains play as you scrub · drag strip to pan")
-                .font(.system(size: 10))
+        let scrubbing = latch.active != nil && !grainMuted
+        return Text(scrubbing
+            ? "♪ grain…"
+            : (grainMuted ? "preview muted" : "sound only while you drag"))
+            .font(.system(size: 10))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .foregroundStyle(scrubbing ? Color.skAccentText : Color.skTextFaint)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(
+                scrubbing ? Color.skAccentSoft : Color.skElev.opacity(0.6),
+                in: .capsule
+            )
+            .accessibilityIdentifier("capture-grain-chip")
+    }
+
+    /// "⟲ pause point" — re-center the window on where Capture fired (the
+    /// span stays anchored; off-window handles pin at the edges, dimmed).
+    private var jumpBackButton: some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.18)) {
+                window = CaptureSpan.window(now: now, in: bounds)
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 9, weight: .semibold))
+                Text("pause point")
+                    .font(.system(size: 10, weight: .semibold))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .foregroundStyle(Color.skAccentText)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(Color.skAccentSoft, in: .capsule)
         }
-        .foregroundStyle(scrubbing ? Color.skAccentText : Color.skTextFaint)
-        .padding(.horizontal, 9).padding(.vertical, 4)
-        .background(
-            scrubbing ? Color.skAccentSoft : Color.skElev.opacity(0.6),
-            in: .capsule
-        )
-        .accessibilityIdentifier("capture-grain-chip")
+        .accessibilityIdentifier("capture-jump-pause-point")
+        .accessibilityLabel("Jump back to the pause point")
     }
 }
