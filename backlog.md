@@ -599,7 +599,18 @@ playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod
    confirmed on device. Follow-up finding: "tap a word → jump" did nothing — NOT a bug: tap-to-seek was an
    opt-in Settings toggle (`karaokeTapToSeek`, default OFF) and the device prefs (pulled over USB) had it
    unset. USER CALL: **default flipped to ON** (commit 0808543; toggle kept for opting back to the crisp
-   single-Text rendering). Owed: user re-verify tap-to-jump after install.
+   single-Text rendering).
+1d. ✅ **Round 2 (same day) — tap-to-seek verified working; two presentation findings, BOTH FIXED:**
+   (a) quote+ramble "all mixed together, no division" — root cause: the tap-to-seek FlowLayout flattens
+   ALL whitespace, so the \n\n division the AttributedString path kept (their first, toggle-off test)
+   collapsed once tap-to-seek became default. (b) layout jumped on play (styled quote swapped out).
+   FIX (design-level, playing mode evolved): the capture KEEPS its styled quote frame during playback —
+   `CaptureQuoteFrame` (accent bar + attribution, shared by all 3 modes) now wraps the LIVE karaoke quote
+   text (italic, offset 0) with the ramble karaoke below (offset `spokenWordCount`, re-added) → no jump,
+   unmistakable book-vs-own-words division, highlight still continuous. Plus `KaraokeWordLayout.lines`
+   (pure + tested): the word grid stacks per-line FlowLayout blocks so paragraph breaks survive in ALL
+   memos (multi-append rambles included). `Memo.karaokeText` deleted again (regions replaced it).
+   Owed: user re-verify the capture playback presentation.
 2. Then user re-tests: trim persistence end-to-end (tap sentence → ramble → saved audio/text/karaoke match).
 3. Owed smalls — **BUILT 2026-06-12 (this session, pending device verify):**
    - ✅ Reverse playback exclusion BUILT — `AudioPlayerModel.nowPlaying` (static weak) +

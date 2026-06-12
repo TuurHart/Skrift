@@ -8,11 +8,14 @@ import SwiftUI
 ///   the always-editable `TranscriptEditor`. Capture: the styled quote block
 ///   (accent bar + attribution) above the quote-protected ramble editor — the
 ///   stored "> " lines never enter the editor (`CaptureQuote` write-back).
-/// - **playing** — the classic full-text karaoke over the WHOLE memo. A capture
-///   renders quote + ramble as one continuous text (`Memo.karaokeText`, "> "
-///   markers stripped) so the highlight runs straight through both: the timings
-///   sidecar holds the quote's words from index 0 and the ramble's after
-///   (`appendRecording` shifts them), lining up 1:1 with the displayed words.
+/// - **playing** — karaoke over the WHOLE memo, one continuous highlight. A
+///   capture KEEPS its styled quote frame (accent bar + italics + attribution —
+///   so nothing jumps when playback starts, and the book's words never read as
+///   the user's): the highlight runs through the quote text inside the frame,
+///   then continues into the ramble below. The timings sidecar holds the
+///   quote's spoken words from index 0 and the ramble's after
+///   (`appendRecording` shifts them), so the quote region karaokes from 0 and
+///   the ramble region from `CaptureQuote.spokenWordCount`.
 /// - **reading** — read-only (transcription in flight): status pill + static
 ///   text; a capture keeps its styled quote. No editor on purpose — an
 ///   in-flight append could otherwise be clobbered by a stale draft.
@@ -45,7 +48,21 @@ struct TranscriptBodyView: View {
     // MARK: - Playing (full-text karaoke)
 
     @ViewBuilder private var playingBody: some View {
-        if let text = memo.karaokeText, !text.isEmpty {
+        if let quote = memo.captureQuote {
+            VStack(alignment: .leading, spacing: 18) {
+                if memo.transcriptStatus == .transcribing {
+                    StatusPill(style: .working, label: "Transcribing")
+                }
+                CaptureQuoteFrame(attribution: memo.quoteAttributionLabel) {
+                    KaraokeTranscriptView(memo: memo, player: player,
+                                          text: quote.displayText, quoteStyle: true)
+                }
+                if !quote.ramble.isEmpty {
+                    KaraokeTranscriptView(memo: memo, player: player,
+                                          text: quote.ramble, wordOffset: quote.spokenWordCount)
+                }
+            }
+        } else if let text = memo.transcript, !text.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 if memo.transcriptStatus == .transcribing {
                     StatusPill(style: .working, label: "Transcribing")
@@ -107,17 +124,27 @@ struct TranscriptBodyView: View {
 /// Read-only transcript text with the karaoke highlight: the active spoken
 /// word accents, played words dim, upcoming stay default. `text` is rendered
 /// as-is (with `[[img_NNN]]` markers becoming inline photos); word indices
-/// count from 0 across all text segments, matching the memo's timings sidecar.
+/// count from `wordOffset` across all text segments, matching the memo's
+/// timings sidecar (a capture's ramble region starts after the quote's words).
 /// When playback is paused (reading mode) it renders as plain static text.
 private struct KaraokeTranscriptView: View {
     let memo: Memo
     @ObservedObject var player: AudioPlayerModel
     let text: String
+    /// Timings-sidecar index of this region's first word (0 unless this is the
+    /// ramble below a capture quote).
+    var wordOffset: Int = 0
+    /// Render as the styled quote's text — italic, slightly dimmed base colour —
+    /// so karaoke can run INSIDE the `CaptureQuoteFrame` without a restyle jump.
+    var quoteStyle = false
     @State private var timings: [WordTiming] = []
     // Default ON (2026-06-12, user call): tapping a word during playback should
     // just work. The Settings toggle remains for opting back into the crisp
     // single-Text rendering (per-word views shift paragraph spacing slightly).
     @AppStorage("karaokeTapToSeek") private var tapToSeek = true
+
+    /// Base colour for un-played words (the quote's text is dimmer by design).
+    private var baseColor: Color { quoteStyle ? Color.skText.opacity(0.78) : .skText }
 
     /// Active spoken-word index during playback (nil when paused / no timings) —
     /// the transcript highlights that word. Word-accurate via the on-device timings.
@@ -138,8 +165,9 @@ private struct KaraokeTranscriptView: View {
                     } else {
                         karaokeText(s, wordOffset: item.wordOffset, active: active)
                             .font(.system(size: 15.5))
+                            .italic(quoteStyle)
                             .lineSpacing(4)
-                            .foregroundStyle(Color.skText)
+                            .foregroundStyle(baseColor)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 case .image(let n):
@@ -153,7 +181,7 @@ private struct KaraokeTranscriptView: View {
     /// Each segment paired with the count of spoken words before it, so karaoke maps
     /// the global active-word index into the right segment (image markers aren't words).
     private var segmentsWithOffsets: [(seg: Segment, wordOffset: Int)] {
-        var offset = 0
+        var offset = wordOffset
         var out: [(seg: Segment, wordOffset: Int)] = []
         for seg in segments {
             out.append((seg: seg, wordOffset: offset))
@@ -191,18 +219,24 @@ private struct KaraokeTranscriptView: View {
     }
 
     /// Tap-to-seek mode: each word is its own tappable view (a flowing wrap), so a
-    /// tap jumps playback to that word. Same grey-out colouring. Opt-in (Settings)
-    /// since per-word views lose exact paragraph spacing vs the AttributedString.
+    /// tap jumps playback to that word. Same grey-out colouring. FlowLayout
+    /// flattens ALL whitespace, so the text is rebuilt as one stacked block per
+    /// LINE (`KaraokeWordLayout.lines`) — otherwise paragraph breaks collapse and
+    /// e.g. a multi-append ramble reads as one run (the "no division" bug).
     @ViewBuilder private func karaokeWords(_ text: String, wordOffset: Int, active: Int?) -> some View {
-        let words = text.split(whereSeparator: { $0.isWhitespace }).map(String.init)
-        FlowLayout(spacing: 5, lineSpacing: 6) {
-            ForEach(Array(words.enumerated()), id: \.offset) { i, word in
-                let gi = wordOffset + i
-                Text(word)
-                    .font(.system(size: 15.5))
-                    .foregroundStyle(active.map { gi < $0 ? Color.skTextDim : (gi == $0 ? Color.skAccent : Color.skText) } ?? Color.skText)
-                    .contentShape(Rectangle())
-                    .onTapGesture { seekToWord(gi) }
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(KaraokeWordLayout.lines(of: text, base: wordOffset).enumerated()), id: \.offset) { _, line in
+                FlowLayout(spacing: 5, lineSpacing: 6) {
+                    ForEach(Array(line.words.enumerated()), id: \.offset) { i, word in
+                        let gi = line.offset + i
+                        Text(word)
+                            .font(.system(size: 15.5))
+                            .italic(quoteStyle)
+                            .foregroundStyle(active.map { gi < $0 ? Color.skTextDim : (gi == $0 ? Color.skAccent : baseColor) } ?? baseColor)
+                            .contentShape(Rectangle())
+                            .onTapGesture { seekToWord(gi) }
+                    }
+                }
             }
         }
     }
@@ -241,24 +275,19 @@ private struct KaraokeTranscriptView: View {
 
 // MARK: - Capture quote block
 
-/// The styled C1 blockquote heading a capture memo's body: an accent quote bar
-/// on the left, italic + slightly dimmed quote text, and a plain-text
+/// The styled C1 quote FRAMING — accent bar on the left + plain-text
 /// attribution caption from the C2 book metadata ("— Author, Book · ch. N" —
-/// the `[[Author]]` wikilink stays Mac-export-side). Non-editable by design:
-/// the ramble below it is the editable part, so the quote never reads as
-/// "recorded twice" plain text. Shown in the editing + reading modes; playback
-/// swaps it out for the full-text karaoke.
-struct CaptureQuoteBlock: View {
-    let quote: String
+/// the `[[Author]]` wikilink stays Mac-export-side) — shared by every mode:
+/// editing/reading wrap the static italic quote text, playing wraps the LIVE
+/// karaoke text, so the block doesn't jump when playback starts and the
+/// book's words always read as the book's.
+struct CaptureQuoteFrame<Content: View>: View {
     let attribution: String?
+    @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(quote)
-                .font(.system(size: 15.5))
-                .italic()
-                .lineSpacing(4)
-                .foregroundStyle(Color.skText.opacity(0.78))
+            content
             if let attribution {
                 Text(attribution)
                     .font(.system(size: 12.5, weight: .medium))
@@ -274,6 +303,49 @@ struct CaptureQuoteBlock: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("capture-quote-block")
+    }
+}
+
+/// The frame with the STATIC quote text (editing + reading modes). Non-editable
+/// by design: the ramble below it is the editable part, so the quote never
+/// reads as "recorded twice" plain text.
+struct CaptureQuoteBlock: View {
+    let quote: String
+    let attribution: String?
+
+    var body: some View {
+        CaptureQuoteFrame(attribution: attribution) {
+            Text(quote)
+                .font(.system(size: 15.5))
+                .italic()
+                .lineSpacing(4)
+                .foregroundStyle(Color.skText.opacity(0.78))
+        }
+    }
+}
+
+/// Pure layout split for the tap-to-seek word grid: `FlowLayout` flattens ALL
+/// whitespace, so newline structure must be rebuilt as stacked per-line blocks
+/// — otherwise paragraph breaks collapse into one continuous wrap. Each
+/// non-empty line carries the timings-sidecar index of its first word so the
+/// highlight and tap-to-seek stay globally aligned across lines.
+enum KaraokeWordLayout {
+    struct Line: Equatable {
+        let words: [String]
+        /// Sidecar word index of `words[0]`.
+        let offset: Int
+    }
+
+    static func lines(of text: String, base: Int) -> [Line] {
+        var out: [Line] = []
+        var offset = base
+        for raw in text.components(separatedBy: .newlines) {
+            let words = raw.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+            guard !words.isEmpty else { continue }
+            out.append(Line(words: words, offset: offset))
+            offset += words.count
+        }
+        return out
     }
 }
 

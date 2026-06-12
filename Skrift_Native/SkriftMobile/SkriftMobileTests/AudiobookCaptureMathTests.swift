@@ -435,22 +435,22 @@ final class AudiobookCaptureMathTests: XCTestCase {
 
     // MARK: - Karaoke word alignment for capture memos
 
-    /// Playback karaoke runs over the WHOLE capture (`Memo.karaokeText`): the
-    /// displayed words must whitespace-split to the quote's spoken words first
-    /// (the sidecar holds them from index 0) and the ramble's after — with the
-    /// "> " markers stripped, since they aren't words and would shift the
-    /// highlight off the timings.
+    /// Playback karaoke runs over the WHOLE capture — the quote region from
+    /// sidecar index 0, the ramble region from `spokenWordCount` — so quote
+    /// words + ramble words must whitespace-split to exactly the sidecar's
+    /// word sequence, with the "> " markers stripped (they aren't words and
+    /// would shift the highlight off the timings).
     func testCaptureKaraokeWordsAlignWithTheSidecarLayout() {
         // Multi-sentence quote with a bare ">" spacer: 4 quote words, 1 ramble word.
         let split = CaptureQuote.split("> One two three.\n>\n> Four.\n\nRamble.")!
-        let full = split.displayText + "\n\n" + split.ramble
-        let words = full.split(whereSeparator: \.isWhitespace).map(String.init)
+        let words = (split.displayText.split(whereSeparator: \.isWhitespace)
+                     + split.ramble.split(whereSeparator: \.isWhitespace)).map(String.init)
         XCTAssertEqual(words, ["One", "two", "three.", "Four.", "Ramble."])
-        XCTAssertFalse(words.contains(">"))
+        XCTAssertEqual(split.spokenWordCount, 4, "the ramble region karaokes from index 4")
     }
 
-    /// When there is no ramble, `quote.ramble` is empty and karaoke falls back
-    /// to the quote text alone (`karaokeText == displayText`, words from 0).
+    /// When there is no ramble, `quote.ramble` is empty and the playing mode
+    /// shows just the quote frame, karaoke from word 0.
     func testCaptureQuoteRambleIsEmptyForQuoteOnlyCapture() {
         let quoteOnly = "> Optimism is not the belief things will go well."
         let split = CaptureQuote.split(quoteOnly)

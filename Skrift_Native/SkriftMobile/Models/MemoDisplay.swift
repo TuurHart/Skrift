@@ -144,16 +144,6 @@ extension Memo {
         return CaptureQuote.split(transcript)
     }
 
-    /// The text playback karaoke runs over — the WHOLE memo as one continuous
-    /// string. For a capture that's the quote with its "> " markers STRIPPED
-    /// (so the displayed words line up 1:1 with the timings sidecar, which
-    /// holds the quote's spoken words from index 0 and the appended ramble's
-    /// after) followed by the ramble; for everything else the raw transcript.
-    var karaokeText: String? {
-        guard let quote = captureQuote else { return transcript }
-        return quote.ramble.isEmpty ? quote.displayText
-                                    : quote.displayText + "\n\n" + quote.ramble
-    }
 
     /// Plain-text attribution caption under the styled quote, from the C2
     /// metadata: "— Author, Book · ch. N". A non-numeric chapter (an m4b
@@ -194,6 +184,13 @@ struct CaptureQuote: Equatable {
     let rawBlock: String
     /// The exact remainder below the quote block (empty = no ramble yet).
     let ramble: String
+
+    /// Spoken words in the quote (">" markers are not words). The word-timings
+    /// sidecar holds the quote's spoken words first, then the appended ramble's
+    /// — so this is the ramble's base index into the global karaoke timings.
+    var spokenWordCount: Int {
+        displayText.split(whereSeparator: \.isWhitespace).count
+    }
 
     /// Parse the transcript's leading blockquote. Tolerates blank lines above
     /// the quote and bare/padded ">" markers (same rules as `quoteSnippet`);
