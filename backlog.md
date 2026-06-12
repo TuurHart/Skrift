@@ -273,6 +273,30 @@ truncation (all chips capped 220pt). POLISH: mini-player 104pt (~2×), 2h-idle s
 "Resume my book in Skrift" (plain-AppIntent pattern). Owed: morning phone install + re-test (esp. scrubber
 feel, folder import, AirPods re-insert recheck). Original findings below.
 
+#### Morning re-test — 2026-06-12 (round 2)
+**PASSED:** folder import → one book ✓ · scrubber handles respond ✓ · post-ramble review flow "way better" ✓
+· styled quote + ch. attribution ✓ · in-note BOOK AUDIO playback loved ✓.
+**New fixes:**
+- **Chapter titles unreadable** (full filename per row): strip the files' longest-common-prefix + extension
+  → "chapter_01"/"Chapter 1". Compare Bound's chapter list.
+- **Mini-player bar grotesquely oversized** (Capture text wraps vertically; ORCHESTRATOR'S OWN MISS — scaled
+  by arithmetic, never rendered): proper resize ~72-76pt, fixedSize/lineLimit(1) so wrap is impossible.
+- **Capture screen round 2:** (a) grains/preview "always talking" — add explicit pause/mute + only sound
+  while actively dragging; (b) span/pan semantics confusing — pan moved the SPAN with the window, span
+  ended up "now+99s→now+256s" (future of the pause point!), labels relative-to-now unreadable → labels in
+  BOOK TIME (or chapter time), pan moves WINDOW only, add "back to pause point" jump; (c) long quote text
+  not scrollable on the sheet; (d) pressing Capture yanked AirPods from the Mac (session activation —
+  don't activate audio for grains until first drag).
+- **Edit book AFTER import:** title + author + cover (⋯ menu in the player — user expected it there; keep
+  Chapters in the menu too, add "Edit book details" sheet; cover pick from Photos/Files).
+- **P0 RECORDING ROUTE STILL BROKEN (worse):** memo recording with AirPods → pull out → recording DIES (no
+  fallback to phone mic — the earlier restart-without-tap-reinstall fix is insufficient on device, the
+  flagged format-mismatch follow-up is the likely cause); re-insert → still dead AND THE AUDIOBOOK STARTED
+  PLAYING (AirPods auto-play remote command hit AudiobookSession while a recording was supposedly active).
+  Fix: reinstall the tap with the new route's input format on EVERY route change; AudiobookSession must
+  IGNORE remote-play while a recording is active (session priority).
+- Bookmarks: user considered, DECIDED AGAINST (linking back into books = complexity/fragility). Skip.
+
 #### (original findings)
 **WORKED:** import (single file + manual title/author confirm) ✓ · play + mini-player + nudged FAB ✓ ·
 capture E2E ✓ · ramble append ✓ · circles + Will-sync line ✓ · sync to dev Mac ✓ · **QUOTE PROTECTION
