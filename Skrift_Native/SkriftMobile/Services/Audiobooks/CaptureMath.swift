@@ -5,16 +5,18 @@ import Foundation
 // Everything here is host-less unit-tested (`AudiobookCaptureMathTests`).
 
 /// The retroactive capture span: Capture pauses the book and proposes
-/// [now − 30 s → now]; the micro-scrubber window around it spans
-/// [now − 60 s → now + 15 s]. All values clamp to the book's bounds.
+/// [now − 30 s → now]; the Hybrid adjust screen opens auto-playing from
+/// [now − 45 s] at 1.5×. All values clamp to the current chapter-file's bounds.
 enum CaptureSpan {
     /// How far back the proposed span reaches from the pause point.
     static let lookback: TimeInterval = 30
-    /// Micro-scrubber window before the pause point.
-    static let windowLookback: TimeInterval = 60
-    /// Micro-scrubber window after the pause point (OUT may snap past "now" —
-    /// the sentence finishes).
-    static let windowLookahead: TimeInterval = 15
+    /// How far back the Hybrid adjust screen begins its auto-replay from the
+    /// pause point (the initial strip window).
+    static let replayLookback: TimeInterval = 45
+    /// Step by which the strip window is extended further back when the user
+    /// skips ⟲5 past the left edge. Repeated taps push the window back by this
+    /// amount each time, clamped to the chapter file's start.
+    static let windowExtensionStep: TimeInterval = 45
     /// Extra audio transcribed on each side of the marked span so the
     /// sentence-snap has material to snap OUTWARD into.
     static let transcriptionPadding: TimeInterval = 20
@@ -29,7 +31,7 @@ enum CaptureSpan {
 
     /// The proposed quote span when Capture fires at `now`: the last 30 s,
     /// clamped to the file. Near the file start the span shortens; at position
-    /// 0 a minimal forward span is proposed so the scrubber has a region.
+    /// 0 a minimal forward span is proposed so the strip has a region.
     static func proposal(now: TimeInterval, duration: TimeInterval) -> Span {
         proposal(now: now, in: Span(start: 0, end: max(0, duration)))
     }
@@ -46,20 +48,13 @@ enum CaptureSpan {
         return Span(start: start, end: max(end, start))
     }
 
-    /// The micro-scrubber's visible window around the pause point, clamped to
-    /// the file. Always contains the proposal for the same `now`.
-    static func window(now: TimeInterval, duration: TimeInterval) -> Span {
-        window(now: now, in: Span(start: 0, end: max(0, duration)))
-    }
-
-    /// Bounded variant of `window` (see `proposal(now:in:)`). This is only the
-    /// INITIAL window — the strip can then PAN it anywhere inside the bounds
-    /// (`CaptureScrub.pan`/`panned(toInclude:)`).
-    static func window(now: TimeInterval, in bounds: Span) -> Span {
+    /// The initial strip window for the Hybrid screen: [pausePoint − 45 s →
+    /// pausePoint], clamped to the file. The right edge is fixed at the pause
+    /// point; the user extends the left edge by skipping ⟲5 past it.
+    static func replayWindow(now: TimeInterval, in bounds: Span) -> Span {
         let anchor = min(bounds.end, max(bounds.start, now))
-        let start = max(bounds.start, anchor - windowLookback)
-        let end = min(bounds.end, anchor + windowLookahead)
-        return Span(start: start, end: max(end, start))
+        let start = max(bounds.start, anchor - replayLookback)
+        return Span(start: start, end: anchor)
     }
 
     /// The span actually sent through the transcriber: the marked span ± the
@@ -70,104 +65,139 @@ enum CaptureSpan {
     }
 }
 
-/// Pure math for the micro-scrubber's IN/OUT handles and the PANNABLE window
-/// (no UI, host-less unit-tested in `AudiobookScrubberTests`): drag latching,
-/// no-cross clamping with a minimum span, x↔time mapping, and window panning
-/// within the file's bounds.
-enum CaptureScrub {
+/// Pure math for the Hybrid capture adjust screen (signed off 2026-06-12):
+/// mark placement with reaction bias, ±1s chip nudging, window extension, and
+/// the strip's x↔time mapping. No draggable handles — IN/OUT flags drop at the
+/// playhead. Everything here is host-less unit-tested in `AudiobookCaptureMathTests`.
+enum CaptureMath {
     /// IN and OUT can never get closer than this (seconds).
     static let minimumSpan: TimeInterval = 1
+    /// Reaction bias subtracted from the playhead time when a Mark button is
+    /// tapped WHILE the audio is playing. Zero while paused.
+    static let reactionBias: TimeInterval = 0.7
+    /// How far before the new out-mark to begin the "last stretch" preview
+    /// triggered by tapping an OUT chip (≈ 5 s tail).
+    static let outChipTailLength: TimeInterval = 5.0
 
-    enum Handle: Equatable, Sendable { case inMarker, outMarker }
+    // MARK: - Mark placement
 
-    /// Drag ownership: the FIRST change of a drag claims its handle and keeps
-    /// it until that drag releases it — a simultaneous touch on the other
-    /// handle can't steal or re-aim an in-flight drag (the "OUT jumps while
-    /// dragging toward IN" bug). Which handle a drag moves is decided ONCE,
-    /// at gesture start, never re-evaluated per move.
-    struct Latch: Equatable, Sendable {
-        private(set) var active: Handle?
-
-        /// True when `handle` owns the drag (claiming it if free).
-        mutating func claim(_ handle: Handle) -> Bool {
-            if active == nil { active = handle }
-            return active == handle
-        }
-
-        /// Release only by the owner — a stray `onEnded` from a losing gesture
-        /// must not free the latch out from under the active drag.
-        mutating func release(_ handle: Handle) {
-            if active == handle { active = nil }
-        }
+    /// Place the IN mark at `playheadTime`, with a −0.7 s bias while playing.
+    /// Result is clamped to `[bounds.start, bounds.end]`.
+    static func placeInMark(
+        playheadTime: TimeInterval,
+        isPlaying: Bool,
+        bounds: CaptureSpan.Span
+    ) -> TimeInterval {
+        let bias = isPlaying ? reactionBias : 0
+        return max(bounds.start, min(bounds.end, playheadTime - bias))
     }
 
-    /// Map a drag x in strip coordinates to time on the window. NOT clamped —
-    /// a finger past the strip's edge maps past the window, which is exactly
-    /// what `panned(toInclude:)` uses to edge-bump the window along.
+    /// Place the OUT mark at `playheadTime`, with a −0.7 s bias while playing.
+    /// Result is clamped to `[bounds.start, bounds.end]` and enforces
+    /// OUT ≥ inMark + minimumSpan when `inMark` is provided.
+    static func placeOutMark(
+        playheadTime: TimeInterval,
+        isPlaying: Bool,
+        inMark: TimeInterval?,
+        bounds: CaptureSpan.Span
+    ) -> TimeInterval {
+        let bias = isPlaying ? reactionBias : 0
+        let clamped = max(bounds.start, min(bounds.end, playheadTime - bias))
+        if let inMark {
+            return max(clamped, inMark + minimumSpan)
+        }
+        return clamped
+    }
+
+    // MARK: - ±1s chip nudging
+
+    /// Nudge the IN mark by `delta` seconds (should be ±1).
+    /// Clamps to `[bounds.start, outMark − minimumSpan]`.
+    static func nudgeInMark(
+        current: TimeInterval,
+        delta: TimeInterval,
+        outMark: TimeInterval?,
+        bounds: CaptureSpan.Span
+    ) -> TimeInterval {
+        let maxIn = outMark.map { $0 - minimumSpan } ?? bounds.end
+        return max(bounds.start, min(maxIn, current + delta))
+    }
+
+    /// Nudge the OUT mark by `delta` seconds (should be ±1).
+    /// Clamps to `[inMark + minimumSpan, bounds.end]`.
+    static func nudgeOutMark(
+        current: TimeInterval,
+        delta: TimeInterval,
+        inMark: TimeInterval?,
+        bounds: CaptureSpan.Span
+    ) -> TimeInterval {
+        let minOut = inMark.map { $0 + minimumSpan } ?? bounds.start
+        return max(minOut, min(bounds.end, current + delta))
+    }
+
+    // MARK: - Seek targets after chip taps
+
+    /// Where to seek when an IN chip is tapped: at the new in-mark itself.
+    /// Playback then resumes from there so the user hears the exact new start.
+    static func inChipSeekTarget(newInMark: TimeInterval) -> TimeInterval {
+        newInMark
+    }
+
+    /// Where to seek when an OUT chip is tapped: `outChipTailLength` seconds
+    /// before the new out-mark so the user hears the last stretch up to the new
+    /// boundary. Clamped to be ≥ inMark (when set).
+    static func outChipSeekTarget(newOutMark: TimeInterval, inMark: TimeInterval?) -> TimeInterval {
+        let earliest = inMark ?? 0
+        return max(earliest, newOutMark - outChipTailLength)
+    }
+
+    // MARK: - Window extension (⟲5 past the left edge)
+
+    /// Extend the strip window further back by `step` seconds. The right edge
+    /// (pause point) is unchanged; the new left edge is
+    /// `max(bounds.start, window.start − step)`.
+    static func extendWindowLeft(
+        window: CaptureSpan.Span,
+        step: TimeInterval = CaptureSpan.windowExtensionStep,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        let newStart = max(bounds.start, window.start - step)
+        return CaptureSpan.Span(start: newStart, end: window.end)
+    }
+
+    // MARK: - Strip x ↔ time mapping
+
+    /// Map a tap x in strip coordinates to time on the window.
+    /// Unclamped — values past the strip edges continue to map past the window.
     static func time(atX x: Double, stripWidth: Double, window: CaptureSpan.Span) -> TimeInterval {
-        window.start + (x / max(1, stripWidth)) * window.length
+        guard stripWidth > 0 else { return window.start }
+        return window.start + (x / stripWidth) * window.length
     }
 
-    /// Apply a handle drag: move ONLY `handle` to `raw`, clamped to `bounds`,
-    /// never crossing the other handle (minimum span preserved).
-    static func dragged(
-        _ span: CaptureSpan.Span,
-        handle: Handle,
-        to raw: TimeInterval,
-        bounds: CaptureSpan.Span
-    ) -> CaptureSpan.Span {
-        var s = span
-        switch handle {
-        case .inMarker:
-            // The outer max guards tiny files where end − minimumSpan would
-            // fall before the bounds.
-            s.start = min(max(bounds.start, raw), max(bounds.start, span.end - minimumSpan))
-        case .outMarker:
-            s.end = max(min(bounds.end, raw), min(bounds.end, span.start + minimumSpan))
-        }
-        return s
+    /// Map a time to its x position in strip coordinates (unclamped).
+    static func xPosition(of t: TimeInterval, stripWidth: Double, window: CaptureSpan.Span) -> Double {
+        guard window.length > 0 else { return 0 }
+        return stripWidth * (t - window.start) / window.length
     }
 
-    /// Window-confined handle drag (capture round 2): the handle moves ONLY
-    /// inside the visible window (∩ bounds) — a finger past the strip's edge
-    /// pins at the edge instead of auto-panning the window along underneath,
-    /// which is how a span ran away to "pause+99s → pause+256s" on device.
-    /// Reaching earlier/later audio is now explicit: pan the window first
-    /// (the span stays anchored to its book positions), then drag the handle.
-    static func dragged(
-        _ span: CaptureSpan.Span,
-        handle: Handle,
-        to raw: TimeInterval,
-        within window: CaptureSpan.Span,
-        bounds: CaptureSpan.Span
-    ) -> CaptureSpan.Span {
-        let pinned = min(max(raw, window.start), window.end)
-        return dragged(span, handle: handle, to: pinned, bounds: bounds)
-    }
+    // MARK: - ⟲5 / 5⟳ skip handling
 
-    /// Pan the window by `delta` seconds (the strip-background drag),
-    /// preserving its length, clamped inside `bounds`.
-    static func pan(
-        _ window: CaptureSpan.Span,
-        by delta: TimeInterval,
-        bounds: CaptureSpan.Span
-    ) -> CaptureSpan.Span {
-        let length = min(window.length, bounds.length)
-        let start = min(max(bounds.start, window.start + delta), bounds.end - length)
-        return CaptureSpan.Span(start: start, end: start + length)
-    }
-
-    /// Edge-bump: pan the window just enough to contain `t` — a handle dragged
-    /// past the visible edge keeps going and the window follows the finger.
-    static func panned(
-        toInclude t: TimeInterval,
+    /// Apply a ⟲5 or 5⟳ skip (negative delta = backward). Returns the new
+    /// playhead time and whether the strip window should be extended left
+    /// (because the skip would push the playhead before the window start).
+    static func applySkip(
+        playheadTime: TimeInterval,
+        delta: TimeInterval,
         window: CaptureSpan.Span,
         bounds: CaptureSpan.Span
-    ) -> CaptureSpan.Span {
-        let clamped = min(max(bounds.start, t), bounds.end)
-        if clamped < window.start { return pan(window, by: clamped - window.start, bounds: bounds) }
-        if clamped > window.end { return pan(window, by: clamped - window.end, bounds: bounds) }
-        return window
+    ) -> (newTime: TimeInterval, extendWindow: Bool) {
+        let proposed = playheadTime + delta
+        if delta < 0, proposed < window.start {
+            // Past the left edge → signal a window extension and pin at the
+            // current window start (the extension will re-anchor the strip).
+            return (window.start, true)
+        }
+        return (max(bounds.start, min(bounds.end, proposed)), false)
     }
 }
 
@@ -185,8 +215,8 @@ enum SentenceSnap {
         var words: [WordTiming]
     }
 
-    /// Closing punctuation that may trail a terminator (`he said.”`).
-    private static let closers = Set<Character>("\"'”’)]»")
+    /// Closing punctuation that may trail a terminator (`he said."`).
+    private static let closers = Set<Character>("\"'"')]»")
     private static let terminators = Set<Character>(".!?…")
 
     /// True when the word ends a sentence: its last character (after stripping
@@ -288,5 +318,79 @@ enum QuoteFormatting {
         if let chapter, !chapter.isEmpty { parts.append("ch. \(chapter)") }
         guard !parts.isEmpty else { return "" }
         return "— " + parts.joined(separator: ", ")
+    }
+}
+
+// MARK: - Legacy CaptureScrub (binary-compatible shim — kept so the old
+// scrubber tests still compile; remove with the next full test-rewrite pass).
+
+enum CaptureScrub {
+    static let minimumSpan: TimeInterval = 1
+
+    enum Handle: Equatable, Sendable { case inMarker, outMarker }
+
+    struct Latch: Equatable, Sendable {
+        private(set) var active: Handle?
+
+        mutating func claim(_ handle: Handle) -> Bool {
+            if active == nil { active = handle }
+            return active == handle
+        }
+
+        mutating func release(_ handle: Handle) {
+            if active == handle { active = nil }
+        }
+    }
+
+    static func time(atX x: Double, stripWidth: Double, window: CaptureSpan.Span) -> TimeInterval {
+        CaptureMath.time(atX: x, stripWidth: stripWidth, window: window)
+    }
+
+    static func dragged(
+        _ span: CaptureSpan.Span,
+        handle: Handle,
+        to raw: TimeInterval,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        var s = span
+        switch handle {
+        case .inMarker:
+            s.start = min(max(bounds.start, raw), max(bounds.start, span.end - minimumSpan))
+        case .outMarker:
+            s.end = max(min(bounds.end, raw), min(bounds.end, span.start + minimumSpan))
+        }
+        return s
+    }
+
+    static func dragged(
+        _ span: CaptureSpan.Span,
+        handle: Handle,
+        to raw: TimeInterval,
+        within window: CaptureSpan.Span,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        let pinned = min(max(raw, window.start), window.end)
+        return dragged(span, handle: handle, to: pinned, bounds: bounds)
+    }
+
+    static func pan(
+        _ window: CaptureSpan.Span,
+        by delta: TimeInterval,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        let length = min(window.length, bounds.length)
+        let start = min(max(bounds.start, window.start + delta), bounds.end - length)
+        return CaptureSpan.Span(start: start, end: start + length)
+    }
+
+    static func panned(
+        toInclude t: TimeInterval,
+        window: CaptureSpan.Span,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        let clamped = min(max(bounds.start, t), bounds.end)
+        if clamped < window.start { return pan(window, by: clamped - window.start, bounds: bounds) }
+        if clamped > window.end { return pan(window, by: clamped - window.end, bounds: bounds) }
+        return window
     }
 }
