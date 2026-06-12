@@ -19,8 +19,22 @@ struct UploadService: Sendable {
         let imageParts = parts.filter { $0.name == "images" && $0.filename != nil }
         let manifest = (meta?["imageManifest"] as? [[String: Any]]) ?? []
 
+        // C3 CAPTURE discriminator: zero audio `files` parts + `sharedContent` present
+        // in the metadata → this is a capture (URL/text/image shared into Skrift from
+        // another app). The absence of audio is intentional — do NOT attempt ASR.
+        // Memo uploads with audio remain BYTE-IDENTICAL in behavior (new branch only).
+        let audioParts = parts.filter { $0.name == "files" && $0.filename != nil }
+        if audioParts.isEmpty, let sharedContent = meta?["sharedContent"] as? [String: Any] {
+            let pf = try ingestCapture(meta: meta, sharedContent: sharedContent,
+                                       metadataPart: metadataPart,
+                                       imageParts: imageParts, manifest: manifest)
+            context.insert(pf)
+            try context.save()
+            return [pf]
+        }
+
         var created: [PipelineFile] = []
-        for audio in parts where audio.name == "files" && audio.filename != nil {
+        for audio in audioParts {
             let filename = audio.filename ?? "memo.m4a"
             let id = UUID().uuidString
             let folder = outputDir.appendingPathComponent("\(id)_\(filename)", isDirectory: true)
@@ -72,6 +86,49 @@ struct UploadService: Sendable {
         }
         try context.save()
         return created
+    }
+
+    // MARK: Capture ingest (C3)
+
+    /// Build ONE PipelineFile for a capture upload. The annotation is already text (no
+    /// ASR needed), so `transcribeStatus` is pre-set to `.done`. Images (for image-type
+    /// captures) are saved under the working folder's `images/` using the same
+    /// `saveImages` path as memo photo uploads — VaultExporter picks them up identically.
+    private func ingestCapture(
+        meta: [String: Any]?,
+        sharedContent: [String: Any],
+        metadataPart: MultipartPart?,
+        imageParts: [MultipartPart],
+        manifest: [[String: Any]]
+    ) throws -> PipelineFile {
+        let id = UUID().uuidString
+        let folderName = "capture_\(id)"
+        let folder = outputDir.appendingPathComponent(folderName, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        let annotation = (meta?["annotationText"] as? String) ?? ""
+        let pf = PipelineFile(id: id, filename: folderName, path: folder.path, size: 0,
+                              sourceType: .capture)
+        if let metaData = metadataPart?.data { pf.audioMetadataJSON = metaData }   // verbatim passthrough
+
+        // Annotation is already written text — treat it as the transcript so the
+        // pipeline body-precedence chain (sanitised → copyedit → transcript) works
+        // the same way it does for memos. ASR is permanently skipped.
+        pf.transcript = annotation
+        pf.transcribeStatus = .done
+
+        // Significance from the sheet (flag-to-send gating means it's always > 0 here).
+        if let sig = (meta?["significance"] as? NSNumber)?.doubleValue {
+            pf.significance = sig
+        }
+
+        // Image captures travel with one `images` part; save it under `images/` so
+        // VaultExporter's existing convertImageMarkers path can copy it on export.
+        if !imageParts.isEmpty {
+            try saveImages(imageParts, manifest: manifest, into: folder)
+        }
+
+        return pf
     }
 
     /// Trust = `transcriptUserEdited || transcriptConfidence >= 0.7` (api/files.py).
