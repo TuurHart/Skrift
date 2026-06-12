@@ -109,15 +109,18 @@ struct AudiobookPlayerView: View {
 
             Menu {
                 if !book.chapters.isEmpty {
+                    // Display titles, not raw chapter names — synthesized
+                    // multi-file chapters carry whole filenames otherwise.
+                    let titles = book.displayChapterTitles
                     Section("Chapters") {
                         ForEach(Array(book.chapters.enumerated()), id: \.offset) { index, chapter in
                             Button {
                                 session.seek(to: chapter.start)
                             } label: {
                                 if book.chapterIndex(at: session.currentTime) == index {
-                                    Label(chapter.title, systemImage: "checkmark")
+                                    Label(titles[index], systemImage: "checkmark")
                                 } else {
-                                    Text(chapter.title)
+                                    Text(titles[index])
                                 }
                             }
                         }

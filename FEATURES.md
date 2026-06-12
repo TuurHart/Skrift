@@ -70,7 +70,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
-| Audiobook library + player (Bound-style) | ✅ | n/a | `Features/Audiobooks/*`, `Services/Audiobooks/*` | Files/iCloud import (copy into app), tags/cover/m4b chapters, per-book resume, speed, sleep timer, background + lock-screen transport (`AudiobookSession`) |
+| Audiobook library + player (Bound-style) | ✅ | n/a | `Features/Audiobooks/*`, `Services/Audiobooks/*` | Files/iCloud import (copy into app), tags/cover/m4b chapters, per-book resume, speed, sleep timer, background + lock-screen transport (`AudiobookSession`); readable multi-file chapter titles (`ChapterDisplay` — LCP-strip + "Chapter N" prettify, 2026-06-12) |
 | Retroactive quote capture | ✅ | n/a | `CaptureMomentView` (micro-scrubber + grains), `CaptureMath` (span + OUTWARD sentence-snap), `QuoteCaptureProcessor` | Capture proposes [now−30s→now]; span±20s transcribed on demand; quote audio = the memo's audio |
 | Capture sheet (ramble-first) | ✅ | n/a | `CaptureSheetView`; ramble = `RecordView(appendTo:)` | Big record-your-thoughts, Save & keep listening, circles; book auto-pauses/resumes |
 | Conditional mini-player + list integration | ✅ | n/a | `AudiobookMiniPlayerBar` (C3), mounted in `MemosListView` | Exists only while a session is active; FAB nudges up; capture rows = book glyph + italic ❝-quote lead |
