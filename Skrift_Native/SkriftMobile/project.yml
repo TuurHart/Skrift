@@ -248,11 +248,15 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
-          NSExtensionActivationRule:
-            NSExtensionActivationSupportsWebURLWithMaxCount: 1
-            NSExtensionActivationSupportsWebPageWithMaxCount: 1
-            NSExtensionActivationSupportsText: true
-            NSExtensionActivationSupportsImageWithMaxCount: 1
+          # The activation rule MUST sit under NSExtensionAttributes — as a direct
+          # NSExtension child iOS finds no rule and the extension never appears in
+          # any share sheet (2026-06-12 device finding). No WebPageWithMaxCount
+          # (implies a JS preprocessing file we don't ship; the URL item suffices).
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsImageWithMaxCount: 1
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1"

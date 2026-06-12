@@ -34,18 +34,23 @@
 		     lifecycle, not @main / App protocol. -->
 		<key>NSExtensionPrincipalClass</key>
 		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
-		<!-- Activation rule: accept URLs (web pages), plain text, and images.
-		     Max 1 of each so we don't have to pick from a collection v1. -->
-		<key>NSExtensionActivationRule</key>
+		<!-- Activation rule: accept URLs, plain text, and images (max 1 each —
+		     no collection picking v1). MUST live under NSExtensionAttributes —
+		     as a direct NSExtension child iOS finds no rule at all and the
+		     extension never appears in any share sheet (the 2026-06-12 device
+		     finding). No WebPageWithMaxCount: it implies a JS preprocessing
+		     file we don't ship, and we only need the URL item Safari provides. -->
+		<key>NSExtensionAttributes</key>
 		<dict>
-			<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
-			<integer>1</integer>
-			<key>NSExtensionActivationSupportsWebPageWithMaxCount</key>
-			<integer>1</integer>
-			<key>NSExtensionActivationSupportsText</key>
-			<true/>
-			<key>NSExtensionActivationSupportsImageWithMaxCount</key>
-			<integer>1</integer>
+			<key>NSExtensionActivationRule</key>
+			<dict>
+				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+				<integer>1</integer>
+				<key>NSExtensionActivationSupportsText</key>
+				<true/>
+				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+				<integer>1</integer>
+			</dict>
 		</dict>
 	</dict>
 </dict>
