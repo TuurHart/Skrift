@@ -111,3 +111,107 @@ final class BatchRunnerTests: XCTestCase {
         XCTAssertEqual(pf.enhancedCopyedit, "preset transcript")
     }
 }
+
+// MARK: - C3 Capture pipeline tests
+
+final class CaptureRunnerTests: XCTestCase {
+
+    private func makeCapture(annotation: String, meta: [String: Any] = [:]) -> PipelineFile {
+        let pf = PipelineFile(id: "cap-\(UUID().uuidString)", filename: "capture_test",
+                              path: "/tmp/cap", size: 0, sourceType: .capture)
+        pf.transcript = annotation
+        pf.transcribeStatus = .done
+        pf.audioMetadataJSON = try? JSONSerialization.data(withJSONObject: meta)
+        return pf
+    }
+
+    private func makeRunner(people: [Person] = []) -> BatchRunner {
+        BatchRunner(transcriber: StubTranscriber(text: "SHOULD NOT RUN"),
+                    enhancer: EchoEnhancer(),
+                    settings: .default,
+                    people: people,
+                    tagWhitelist: [])
+    }
+
+    // MARK: Step decisions
+
+    /// Captures never run ASR — transcribeStatus stays .done.
+    func testCaptureSkipsTranscription() async throws {
+        let tracker = CallTracker()
+        let runner = BatchRunner(
+            transcriber: TrackingTranscriber(tracker: tracker),
+            enhancer: EchoEnhancer(),
+            settings: .default,
+            people: [],
+            tagWhitelist: []
+        )
+        let pf = makeCapture(annotation: "Some annotation.")
+        try await runner.run(pf, audioURL: nil)
+        XCTAssertFalse(tracker.transcribeCalled, "ASR must never run for a capture")
+        XCTAssertEqual(pf.transcribeStatus, .done)
+    }
+
+    /// Captures skip copy-edit — enhancedCopyedit must remain nil.
+    func testCaptureSkipsCopyEdit() async throws {
+        let pf = makeCapture(annotation: "Try this for the body editor.")
+        try await makeRunner().run(pf, audioURL: nil)
+        XCTAssertNil(pf.enhancedCopyedit, "copy-edit must be skipped for captures")
+        XCTAssertEqual(pf.enhanceStatus, .done)
+    }
+
+    /// Title + summary + name-link run on the annotation.
+    func testCaptureTitleAndNameLink() async throws {
+        let nick = Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"],
+                          short: "Nick", lastModifiedAt: "2026-01-01T00:00:00.000Z")
+        let pf = makeCapture(annotation: "Nick said this is a good approach.")
+        try await makeRunner(people: [nick]).run(pf, audioURL: nil)
+        XCTAssertEqual(pf.enhancedTitle, "A Title", "title LLM ran")
+        XCTAssertNotNil(pf.enhancedSummary, "summary LLM ran")
+        // EchoEnhancer returns the annotation unchanged; Sanitiser links the name.
+        XCTAssertTrue((pf.sanitised ?? "").contains("[[Nick Jansen]]"), "name-linked")
+    }
+
+    // MARK: Empty annotation — LLM skipped, title from sharedContent
+
+    func testEmptyAnnotationSkipsLLM() async throws {
+        let meta: [String: Any] = [
+            "sharedContent": ["type": "url",
+                              "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
+                              "urlTitle": "Rich text editing in SwiftUI — strategies that work"]
+        ]
+        let pf = makeCapture(annotation: "", meta: meta)
+        let tracker = CallTracker()
+        let runner = BatchRunner(transcriber: TrackingTranscriber(tracker: tracker),
+                                 enhancer: EchoEnhancer(),
+                                 settings: .default, people: [], tagWhitelist: [])
+        try await runner.run(pf, audioURL: nil)
+        XCTAssertFalse(tracker.transcribeCalled)
+        // urlTitle becomes the title.
+        XCTAssertEqual(pf.enhancedTitle, "Rich text editing in SwiftUI — strategies that work")
+        XCTAssertNil(pf.enhancedSummary, "no summary for empty annotation")
+        XCTAssertEqual(pf.enhanceStatus, .done)
+    }
+
+    func testEmptyAnnotationFallsBackToTextSnippet() {
+        let sc = SharedContent(type: "text", text: "one two three four five six seven eight nine")
+        let title = BatchRunner.captureFallbackTitle(sc, existingTitle: nil)
+        XCTAssertEqual(title, "one two three four five six seven eight…", "8-word truncation + ellipsis")
+    }
+
+    func testEmptyAnnotationFallsBackToImageFilename() {
+        let sc = SharedContent(type: "image", fileName: "whiteboard.jpg")
+        let title = BatchRunner.captureFallbackTitle(sc, existingTitle: nil)
+        XCTAssertEqual(title, "whiteboard.jpg")
+    }
+
+    func testEmptyAnnotationDefaultsToCapture() {
+        let title = BatchRunner.captureFallbackTitle(nil, existingTitle: nil)
+        XCTAssertEqual(title, "Capture")
+    }
+
+    func testPresetTitleHonoredForCapture() {
+        let sc = SharedContent(type: "url", urlTitle: "Page Title")
+        let title = BatchRunner.captureFallbackTitle(sc, existingTitle: "User Set Title")
+        XCTAssertEqual(title, "User Set Title", "preset title wins over urlTitle")
+    }
+}

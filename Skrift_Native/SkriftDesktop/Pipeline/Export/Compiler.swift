@@ -23,6 +23,42 @@ struct PhoneMetadata: Codable, Sendable {
     var bookChapter: String?
 }
 
+/// The `sharedContent` object from `PipelineFile.audioMetadataJSON` for C3 captures.
+/// Mirrors mobile's `SharedContent` Codable — field names are intentionally identical.
+/// Decoded on-demand (not stored on PipelineFile — avoids the SwiftData Codable trap).
+struct SharedContent: Codable, Sendable {
+    var type: String          // "url" | "text" | "image" | "file"
+    var url: String?          // url captures
+    var urlTitle: String?     // url captures (from share payload, no network fetch)
+    var urlDescription: String?
+    var text: String?         // text captures (the quoted snippet)
+    var fileName: String?     // image captures (the image part's filename)
+    var mimeType: String?     // image captures
+
+    /// Decode from the raw metadata JSON blob.
+    static func decode(from metadataJSON: Data?) -> SharedContent? {
+        guard let data = metadataJSON else { return nil }
+        // Try Codable first (standard JSON keys), then fall back to manual extraction
+        // (the demo seeds use a raw dict with snake_case `shared_content` key).
+        if let wrapper = try? JSONDecoder().decode(_Wrapper.self, from: data) { return wrapper.sharedContent }
+        if let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+           let sc = (obj["sharedContent"] ?? obj["shared_content"]) as? [String: Any] {
+            return SharedContent(
+                type: sc["type"] as? String ?? "",
+                url: sc["url"] as? String,
+                urlTitle: sc["urlTitle"] as? String,
+                urlDescription: sc["urlDescription"] as? String,
+                text: sc["text"] as? String,
+                fileName: sc["fileName"] as? String,
+                mimeType: sc["mimeType"] as? String
+            )
+        }
+        return nil
+    }
+
+    private struct _Wrapper: Codable { var sharedContent: SharedContent? }
+}
+
 /// Assembles Obsidian-ready markdown (YAML frontmatter + body) from a PipelineFile.
 /// Pure (no IO) → host-testable. Ported from `enhancement.py:compile_file`. Body
 /// precedence: sanitised → enhanced copy-edit → transcript (the name-linked text
