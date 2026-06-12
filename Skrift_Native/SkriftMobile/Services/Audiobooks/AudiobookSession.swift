@@ -116,6 +116,9 @@ final class AudiobookSession: ObservableObject {
 
     func play() {
         guard let player, book != nil else { return }
+        // Mutual exclusion (reverse direction): starting the book pauses any
+        // playing memo — AudioPlayerModel.play() does the same to this session.
+        AudioPlayerModel.nowPlaying?.pause()
         activateAudioSession()
         player.playImmediately(atRate: Float(rate))
         isPlaying = true

@@ -26,6 +26,13 @@ struct RecordView: View {
     @ObservedObject private var modelStatus = ModelLoadStatus.shared
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @State private var autoStarted = false
+    /// Instant record means the legacy "Ready to record" screen no longer greets
+    /// you — it FLASHED for the few hundred ms before the engine's first frames
+    /// and read as a broken state (logged 2026-06-11). While the auto-start is in
+    /// flight a quiet placeholder shows instead; the manual ready screen remains
+    /// only as the retry surface after an empty stop, or the fallback when the
+    /// auto-start retry loop gives up (~5 s: no mic permission, contended session).
+    @State private var showManualReady = false
     /// Photo markers to weave into the LIVE caption: each records the spoken-word
     /// count at the moment the shutter fired, so `[photo N]` lands inline near where
     /// you were speaking. Word counts shift as the caption re-transcribes, so the
@@ -43,8 +50,10 @@ struct RecordView: View {
                 topBar
                 if service.isRecording {
                     recordingContent
-                } else {
+                } else if showManualReady {
                     readyContent
+                } else {
+                    startingContent
                 }
             }
 
@@ -74,6 +83,11 @@ struct RecordView: View {
         }
         .onChange(of: intentBridge.stopRequestID) {
             if service.isRecording { stopTapped() }
+        }
+        // A recording ended but we're still on this screen (the empty-capture
+        // retry case) → from here on the manual ready screen is the idle state.
+        .onChange(of: service.isRecording) { was, now in
+            if was, !now { showManualReady = true }
         }
         // A photo was captured mid-record → drop a `[photo N]` marker into the live
         // caption at the current spoken-word position (the count badge still updates
@@ -117,7 +131,26 @@ struct RecordView: View {
         .padding(.top, 8)
     }
 
-    // MARK: - Ready (mockup4)
+    // MARK: - Starting (instant record in flight)
+
+    /// The moment between the screen appearing and the engine's first frames —
+    /// usually a few hundred ms. Deliberately quiet (no mic button, no
+    /// "Recording" claim): the live caption pops in when the tap goes live.
+    private var startingContent: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            ProgressView()
+                .tint(Color.skTextDim)
+            Text("Starting…")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.skTextDim)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("record-starting")
+    }
+
+    // MARK: - Ready (mockup4 — manual retry surface only)
 
     private var readyContent: some View {
         VStack(spacing: 0) {
@@ -362,6 +395,14 @@ struct RecordView: View {
         autoStarted = true
         photoMarks = []
         service.startRetrying(siriGrace: viaIntent)
+        // If the retry loop gives up (~5 s: Siri grace 700 ms + 16×300 ms — no mic
+        // permission, contended session), surface the manual ready screen rather
+        // than sitting on the starting placeholder forever. Recording-in-progress
+        // always wins over this flag in the body, so a late success self-heals.
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(7))
+            if !service.isRecording { showManualReady = true }
+        }
     }
 
     /// Manual start — only reachable after an auto-started recording was stopped

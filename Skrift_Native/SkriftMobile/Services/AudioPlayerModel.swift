@@ -17,6 +17,11 @@ final class AudioPlayerModel: NSObject, ObservableObject {
     private var timer: Timer?
     private(set) var url: URL?
 
+    /// The instance currently playing memo audio, if any (weak — instances are
+    /// owned by their views). Lets `AudiobookSession.play()` pause memo playback
+    /// when the book starts: the REVERSE of the exclusion in `play()` below.
+    private(set) static weak var nowPlaying: AudioPlayerModel?
+
     private static let rates: [Float] = [1, 1.5, 2]
 
     /// Point the player at a memo's audio (or clear it). No-op if it's already
@@ -55,12 +60,8 @@ final class AudioPlayerModel: NSObject, ObservableObject {
         // whichever starts second would interrupt the first through the OS
         // interruption mechanism anyway. Pausing explicitly avoids the
         // AVAudioSession interruption callback path and the half-second
-        // stutter it produces. The reverse direction (book play pausing this
-        // player) is a follow-up: AudiobookSession.play() does NOT currently
-        // pause AudioPlayerModel, so memo-playback → book-start can still
-        // sound simultaneously. That direction requires AudiobookSession to
-        // hold a reference to the active AudioPlayerModel — not done here to
-        // respect the lane boundary (DO NOT TOUCH AudiobookSession.play()).
+        // stutter it produces. The reverse direction lives in
+        // AudiobookSession.play(), via the `nowPlaying` reference above.
         if AudiobookSession.shared.isPlaying {
             AudiobookSession.shared.pause()
         }
@@ -72,12 +73,14 @@ final class AudioPlayerModel: NSObject, ObservableObject {
             return
         }
         isPlaying = true
+        Self.nowPlaying = self
         startTimer()
     }
 
     func pause() {
         player?.pause()
         isPlaying = false
+        if Self.nowPlaying === self { Self.nowPlaying = nil }
         stopTimer()
     }
 
@@ -101,6 +104,7 @@ final class AudioPlayerModel: NSObject, ObservableObject {
         player = nil
         url = nil
         isPlaying = false
+        if Self.nowPlaying === self { Self.nowPlaying = nil }
         currentTime = 0
         duration = 0
         hasAudio = false
@@ -156,6 +160,7 @@ extension AudioPlayerModel: AVAudioPlayerDelegate {
         Task { @MainActor in
             self.isPlaying = false
             self.currentTime = 0
+            if Self.nowPlaying === self { Self.nowPlaying = nil }
             self.stopTimer()
             self.deactivateSession()   // hand the session back so e.g. music resumes
         }

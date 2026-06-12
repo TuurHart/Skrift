@@ -57,8 +57,9 @@ Locked process for the UI items: spec → mock → build → XCUITest (feedback_
 3. ✅ **DONE (2026-06-09)** — **Karaoke on mobile** (unification): word-level highlight + tap-to-seek
    during playback. Was: mobile stored word timings (`WordTiming.swift`/`WordTimingsStore`) but never
    rendered them. Device-verified ("karaoke and edit work well").
-3.5 **Mobile delete/select UX** — replace the meh "Select + bubbles" with **left-swipe-to-delete**
-   + a nicer drag-to-multi-select (Photos/Mail-style). Current: `MemosListView.swift:134` Select btn.
+3.5 **Mobile delete/select UX** — ✅ swipe-to-delete DONE (native List `.swipeActions`, full-swipe
+   commits, in `MemosListView`; verified 2026-06-12 status audit). Still open: a nicer
+   drag-to-multi-select (Photos/Mail-style) to replace the Select button.
 4. **Feedback/email in Settings** — NEITHER app has any feedback/contact mechanism today. Port from
    the user's **Shhhcribble** app at `/Users/tiurihartog/Hackerman/ShhcribbleiOS` →
    `ShhhcribbleiOS/Features/Feedback/` (explored 2026-06-08). Its module:
@@ -594,13 +595,36 @@ playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod
    3 dup imageURL(markerIndex:) helpers consolidated onto Memo. Gate: full sim suite green (33 UI +
    unit bundles, 0 failures); new tests pin karaokeText + mode precedence. Dev build installed on the
    iPhone. **USER: verify karaoke on a capture WITH a ramble present (and quote-only).**
+1c. ✅ **KARAOKE DEVICE-VERIFIED 2026-06-12 ("it pretty much works")** — full-text quote+ramble highlight
+   confirmed on device. Follow-up finding: "tap a word → jump" did nothing — NOT a bug: tap-to-seek was an
+   opt-in Settings toggle (`karaokeTapToSeek`, default OFF) and the device prefs (pulled over USB) had it
+   unset. USER CALL: **default flipped to ON** (commit 0808543; toggle kept for opting back to the crisp
+   single-Text rendering). Owed: user re-verify tap-to-jump after install.
 2. Then user re-tests: trim persistence end-to-end (tap sentence → ramble → saved audio/text/karaoke match).
-3. Owed smalls: reverse playback exclusion (book-start should silence a playing memo — AudiobookSession
-   side, one guarded call); ready-screen flash removal on instant record (logged 2026-06-12 morning, still
-   open); mini-player idle auto-hide + Siri resume = shipped but untested by user.
-4. THE BOARD: **prod promotion** (recommended next — push native→main + Release builds when prod idle, per
-   CLAUDE.md dev/prod rules), capture-items build (mock signed off), vocab build (spike done), significance-
-   wall design session. Capture-screen design pause is LIFTED (hybrid shipped + verified).
+3. Owed smalls — **BUILT 2026-06-12 (this session, pending device verify):**
+   - ✅ Reverse playback exclusion BUILT — `AudioPlayerModel.nowPlaying` (static weak) +
+     one guarded `pause()` at the top of `AudiobookSession.play()`; cleared on pause/stop/finish.
+   - ✅ Ready-screen flash BUILT — instant record now shows a quiet "Starting…" placeholder instead of
+     the legacy ready screen (RecordView `showManualReady`); the mic-button screen survives ONLY as the
+     empty-stop retry surface + a ~7 s fallback when the auto-start retry loop gives up.
+   - Mini-player idle auto-hide (2 h `idleEndDelay`) + Siri "Resume my book" (`ResumeAudiobookIntent`):
+     CONFIRMED SHIPPED in code — user test still owed.
+   - ✅ Watch item (stale Live Activity on lock screen): user considers it fixed — CLOSED.
+4. THE BOARD — **ORDER LOCKED BY USER 2026-06-12:**
+   1) **Capture-items build** (mock signed off — share URL/text/image + annotate; mobile share-extension
+      target + App Group + `attachments` multipart; desktop non-audio capture content type; folds in the
+      unified source taxonomy + "share video from Photos doesn't list Skrift").
+   2) **Custom vocabulary build** (spike done — CTC keyword-spot + rescore in both transcribers +
+      Settings "Custom words" list; ~97.5 MB extra model).
+   3) **Models tab in phone Settings** (user re-confirmed: "a tab that says models" — list the on-device
+      models w/ downloaded state/size; spec already under "Show downloaded models in phone Settings";
+      Mac mirror later).
+   4) **Prod promotion LAST** — push native→main + Release builds both apps when prod idle.
+   **Significance-wall design session: DEFERRED** (user call).
+   Status audit done same session: swipe-to-delete ALREADY DONE (native `.swipeActions` in MemosListView
+   — item 3.5 partially closed; nicer drag-multi-select still open); confirmed-bugs list all still open
+   (names auto-sync after enroll, Mac name-a-speaker UI, photo marker drift, confidence colours). QoL
+   user picks: record-a-sample voice enroll = yes (later); desktop unlink-popover "Change to →" = yes.
 PROCESS (now in skill rules): single bugs = orchestrator edits directly; lanes ONLY for batches; Sonnet for
 specced lanes / Opus for taste; verify lane CLAIMS against write-paths. Feedback loop: "pull my feedback"
 (skill) + devlog.txt for anything hardware-ish.
