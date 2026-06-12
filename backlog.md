@@ -601,3 +601,11 @@ playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod
 PROCESS (now in skill rules): single bugs = orchestrator edits directly; lanes ONLY for batches; Sonnet for
 specced lanes / Opus for taste; verify lane CLAIMS against write-paths. Feedback loop: "pull my feedback"
 (skill) + devlog.txt for anything hardware-ish.
+1b. **USER MANDATE for the karaoke fix: REFACTOR, don't patch.** This area is fix-over-fix (original
+   karaoke → styled-quote block → empty-ramble special case → still broken) and the user's gut says it's
+   a shit show — they're right. Before fixing: READ the whole capture-memo rendering path
+   (MemoDetailView.transcriptSection, TranscriptContentView, CaptureQuoteBlock, karaoke swap-in,
+   overrideText/baseWordOffset plumbing) and SIMPLIFY it into ONE rendering component with three explicit
+   modes — editing / playing (full-text karaoke over quote+ramble) / reading (styled quote + attribution) —
+   instead of stacked special cases. Then karaoke falls out of the design rather than being patched in.
+   Keep the editor quote-protection (raw "> " write-back) intact. Inline, sole-editor, device-verify after.
