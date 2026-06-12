@@ -538,3 +538,16 @@ Spec = `mocks/capture-redesign.html` mode 4 ⭐. One screen, one playhead, play/
 - ⟲ past the strip's left edge extends the window arbitrarily far back (clamped to the chapter file).
 - Sentence-snap OUTWARD stays on confirm. ▶ Play span before Continue.
 Replaces CaptureMomentView's interaction wholesale; capture SHEET (quote+ramble) unchanged.
+
+#### Hybrid capture — first device test 2026-06-12 13:11
+Screen matches the mock ✓ (sweep, transport, rate pill, marks, hints). Findings:
+- **Make the capture screen FULLSCREEN + swipe-down to close** (currently floats with dead space below).
+- **UX: start landed wrong — "I think it just added an extra sentence"** (user deleted the capture).
+  Diagnosis: the −0.7s reaction bias can push the in-mark back ACROSS a sentence boundary into the
+  previous sentence's tail; snap-OUTWARD then swallows that ENTIRE previous sentence. Bias + always-
+  outward compose badly at the IN edge. Proposed (awaiting sign-off):
+  (1) NEAREST-boundary snap at IN: if the mark sits in the last ~1s of the previous sentence (bias
+      overshoot) snap FORWARD to the next sentence start; only snap back when the mark is genuinely
+      inside the sentence. Outward stays for OUT.
+  (2) Sentence-level trim on the capture SHEET: render the quote with first/last sentence droppable
+      (one tap removes the leading/trailing sentence) — fix-by-reading after the fact, no re-scrub.
