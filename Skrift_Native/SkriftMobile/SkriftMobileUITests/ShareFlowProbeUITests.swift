@@ -154,6 +154,91 @@ final class ShareFlowProbeUITests: XCTestCase {
         }
     }
 
+    /// DICTATION variant: drives the mic in the sheet — permission alert,
+    /// recording state, recorded chip. Extension-side only (the app-side
+    /// transcription on sim would pull the real model; unit tests cover it).
+    func testDictationRecordingInSheet() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["RUN_SHARE_PROBE"] == "1",
+                          "share-flow probe is opt-in (set TEST_RUNNER_RUN_SHARE_PROBE=1)")
+
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        safari.launch()
+        XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 20))
+        sleep(2)
+
+        // Reuse the already-loaded page if any; else navigate.
+        let addressCapsule = safari.textFields["Address"].firstMatch
+        if addressCapsule.waitForExistence(timeout: 5) {
+            addressCapsule.tap()
+            sleep(1)
+            safari.typeText("https://example.com\n")
+            sleep(4)
+        }
+        let more = safari.buttons["More"].firstMatch
+        XCTAssertTrue(more.waitForExistence(timeout: 5))
+        more.tap()
+        sleep(1)
+        let shareItem = safari.buttons["Share"].firstMatch
+        XCTAssertTrue(shareItem.waitForExistence(timeout: 4))
+        shareItem.tap()
+        sleep(2)
+        var tapped = false
+        for candidate in [safari.cells["Skrift Dev"].firstMatch, safari.buttons["Skrift Dev"].firstMatch] {
+            if candidate.waitForExistence(timeout: 4) { candidate.tap(); tapped = true; break }
+        }
+        XCTAssertTrue(tapped, "Skrift Dev not in the share sheet")
+        sleep(3)
+
+        // Tap the mic (identifier first, accessibility label as fallback —
+        // identifiers don't always survive the remote-view proxy).
+        var mic: XCUIElement?
+        for candidate in [safari.buttons["capture-dictation-mic"].firstMatch,
+                          safari.buttons["Dictate"].firstMatch] {
+            if candidate.waitForExistence(timeout: 4) { mic = candidate; break }
+        }
+        guard let mic else {
+            dumpTree(safari, "tree-d-no-mic"); snap("d00-no-mic")
+            XCTFail("mic button missing"); return
+        }
+        mic.tap()
+        sleep(1)
+        snap("d01-after-mic-tap")
+
+        // Mic permission alert (first run): accept wherever it surfaces.
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for host in [springboard, safari] {
+            for label in ["OK", "Allow"] {
+                let btn = host.buttons[label].firstMatch
+                if btn.waitForExistence(timeout: 3) { btn.tap(); sleep(1); break }
+            }
+        }
+        snap("d02-recording")
+
+        // Record ~2s, then stop (the button's label flips while recording).
+        sleep(2)
+        var stop: XCUIElement?
+        for candidate in [safari.buttons["capture-dictation-mic"].firstMatch,
+                          safari.buttons["Stop dictation"].firstMatch,
+                          safari.buttons["Dictate"].firstMatch] {
+            if candidate.waitForExistence(timeout: 3) { stop = candidate; break }
+        }
+        stop?.tap()
+        sleep(1)
+        snap("d03-recorded-chip")
+        dumpTree(safari, "tree-d-recorded")
+
+        // The chip must exist; save the capture.
+        let chip = safari.otherElements["capture-dictation-chip"].firstMatch
+        let chipText = safari.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Voice note'")).firstMatch
+        XCTAssertTrue(chip.waitForExistence(timeout: 3) || chipText.waitForExistence(timeout: 2),
+                      "recorded chip missing after stop")
+        let save = safari.buttons["capture-save-button"].firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 3))
+        save.tap()
+        sleep(2)
+        snap("d04-after-save")
+    }
+
     /// IMAGE variant: Photos → share → Skrift Dev. Verifies the imageBlock
     /// preview + the image capture path (inbox image file + app-side render).
     func testPhotosShareToSkrift() throws {

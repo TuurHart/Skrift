@@ -29,6 +29,12 @@ struct CaptureInboxEntry: Codable {
     let significance: Double
     /// ISO8601 timestamp when the share action completed.
     let sharedAt: String
+    /// Filename (relative to the entry folder) of a dictated voice note, when the
+    /// user recorded one in the sheet. The EXTENSION only records — Parakeet can't
+    /// fit in the extension's memory ceiling, so the MAIN APP transcribes it on
+    /// drain and appends the text to `annotationText` (audio discarded after).
+    /// Optional so entries written by older builds keep decoding.
+    var dictationFileName: String? = nil
 }
 
 // MARK: - Inbox
@@ -83,22 +89,27 @@ enum CaptureInbox {
     // MARK: - Write (called by the share extension)
 
     /// Write a capture entry to the inbox.  For image captures, `imageData` must
-    /// be non-nil and `entry.imageFileName` must be set.
+    /// be non-nil and `entry.imageFileName` must be set; for dictated captures,
+    /// `dictationData` must be non-nil and `entry.dictationFileName` set.
     ///
     /// Crash-safe: the file is written atomically (write to a tmp file, then
     /// rename) — a crash mid-write leaves the old entry intact or no entry at all,
     /// never a half-written JSON.
     @discardableResult
-    static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil) -> Bool {
+    static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil, dictationData: Data? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
         let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: entryDir, withIntermediateDirectories: true)
-            // Write the image first (if any) so that if the JSON write crashes,
-            // the orphaned image dir gets cleaned up on the next drain pass.
+            // Write the payload files first (if any) so that if the JSON write
+            // crashes, the orphaned dir gets cleaned up on the next drain pass.
             if let imageData, let name = entry.imageFileName {
                 let imageURL = entryDir.appendingPathComponent(name)
                 try imageData.write(to: imageURL, options: .atomic)
+            }
+            if let dictationData, let name = entry.dictationFileName {
+                let audioURL = entryDir.appendingPathComponent(name)
+                try dictationData.write(to: audioURL, options: .atomic)
             }
             // Atomic JSON write.
             let data = try JSONEncoder().encode(entry)
@@ -135,6 +146,12 @@ enum CaptureInbox {
     /// Resolve the on-disk URL of the image for an image-type entry.
     static func imageURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
         guard let name = entry.imageFileName else { return nil }
+        return entryDir.appendingPathComponent(name)
+    }
+
+    /// Resolve the on-disk URL of the dictated voice note, when present.
+    static func dictationURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
+        guard let name = entry.dictationFileName else { return nil }
         return entryDir.appendingPathComponent(name)
     }
 

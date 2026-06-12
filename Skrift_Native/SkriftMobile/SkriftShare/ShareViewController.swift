@@ -48,8 +48,8 @@ final class ShareViewController: UIViewController {
     private func presentSheet(payload: SharePayload) {
         let sheet = ShareSheetView(
             payload: payload,
-            onSave: { [weak self] entry, imageData in
-                self?.complete(entry: entry, imageData: imageData)
+            onSave: { [weak self] entry, imageData, dictationData in
+                self?.complete(entry: entry, imageData: imageData, dictationData: dictationData)
             },
             onCancel: { [weak self] in
                 self?.cancel()
@@ -79,8 +79,8 @@ final class ShareViewController: UIViewController {
 
     // MARK: - Completion
 
-    private func complete(entry: CaptureInboxEntry, imageData: Data?) {
-        CaptureInbox.write(entry, imageData: imageData)
+    private func complete(entry: CaptureInboxEntry, imageData: Data?, dictationData: Data?) {
+        CaptureInbox.write(entry, imageData: imageData, dictationData: dictationData)
         extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
     }
 

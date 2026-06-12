@@ -25,6 +25,11 @@
 	     in both app and extension without hard-coding a string. -->
 	<key>SkriftAppGroup</key>
 	<string>$(SKRIFT_APP_GROUP)</string>
+	<!-- Dictation in the share sheet: the extension RECORDS a voice note (the
+	     main app transcribes it on drain — Parakeet can't fit the extension's
+	     memory ceiling). The usage key must live in the EXTENSION bundle. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Skrift records your spoken thoughts about what you're sharing and transcribes them on-device.</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

@@ -15,8 +15,10 @@ import SwiftData
 enum CaptureInboxDrainer {
 
     /// Convert each pending inbox entry to a Memo and save. Idempotent: safe to call
-    /// on every foreground transition.
+    /// on every foreground transition. Also resumes any dictation transcription a
+    /// previous run never finished (crash / terminal failure recovery).
     static func drain(into repository: NotesRepository) {
+        defer { CaptureDictation.resumePending(repository: repository) }
         let pending = CaptureInbox.pendingEntries()
         guard !pending.isEmpty else { return }
 
@@ -70,6 +72,27 @@ enum CaptureInboxDrainer {
                 }
             }
 
+            // Dictated voice note: move the audio to the app-owned pending spot
+            // BEFORE the entry is deleted (crash between delete and transcription
+            // must not lose the recording). The app transcribes it async after the
+            // memo is saved; the memo shows .transcribing until the text lands.
+            var hasDictation = false
+            if let srcURL = CaptureInbox.dictationURL(for: entry, entryDir: entryDir),
+               FileManager.default.fileExists(atPath: srcURL.path) {
+                let destURL = CaptureDictation.pendingAudioURL(for: memoID)
+                do {
+                    if FileManager.default.fileExists(atPath: destURL.path) {
+                        try FileManager.default.removeItem(at: destURL)
+                    }
+                    try FileManager.default.copyItem(at: srcURL, to: destURL)
+                    hasDictation = true
+                } catch {
+                    // Copy failed — save the capture without the voice note rather
+                    // than abandoning the whole entry (same policy as images).
+                    print("[CaptureInboxDrainer] dictation copy failed: \(error)")
+                }
+            }
+
             // Parse the sharedAt timestamp using the app's canonical formatter
             // (fractional-seconds UTC, matching JavaScript Date.toISOString() and the
             // Mac contract). Fall back to now() if the string is malformed.
@@ -88,7 +111,9 @@ enum CaptureInboxDrainer {
                 tags: [],
                 syncStatus: .waiting,
                 transcript: nil,
-                transcriptStatus: .done,    // no ASR needed; annotation is the body
+                // No ASR needed for the capture itself; a dictated voice note keeps
+                // the memo .transcribing until its text lands (sync waits on .done).
+                transcriptStatus: hasDictation ? .transcribing : .done,
                 significance: entry.significance,
                 metadata: metadata,
                 sharedContent: sharedContent,
@@ -98,6 +123,10 @@ enum CaptureInboxDrainer {
             repository.insert(memo)
             // Delete only AFTER the insert+save (repository.insert calls save()).
             CaptureInbox.delete(entryDir: entryDir)
+
+            if hasDictation {
+                CaptureDictation.transcribe(memoID: memoID, repository: repository)
+            }
         }
     }
 }

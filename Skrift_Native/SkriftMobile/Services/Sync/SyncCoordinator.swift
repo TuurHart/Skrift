@@ -38,6 +38,10 @@ struct SyncCoordinator {
                 // Capture item: no audio. Use the C3 capture multipart path.
                 // Guard: must have sharedContent (otherwise there's nothing to upload).
                 guard memo.sharedContent != nil else { continue }
+                // Hold while a dictated voice note is still transcribing — the
+                // annotation IS the body for captures (the Mac has no audio to
+                // fall back on), so uploading early would drop the spoken part.
+                guard memo.transcriptStatus == .done else { continue }
                 payload = UploadPayload.buildCapture(memo: memo, photos: loadPhotos(for: memo))
             } else {
                 // Standard audio memo path (byte-identical to pre-capture behaviour).

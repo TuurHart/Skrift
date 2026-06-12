@@ -245,6 +245,10 @@ targets:
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
+        # Dictation in the share sheet: the extension RECORDS a voice note (the
+        # main app transcribes it on drain — Parakeet can't fit the extension's
+        # memory ceiling). The usage key must live in the EXTENSION bundle.
+        NSMicrophoneUsageDescription: Skrift records your spoken thoughts about what you're sharing and transcribes them on-device.
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController

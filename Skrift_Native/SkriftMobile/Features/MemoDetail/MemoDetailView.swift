@@ -601,19 +601,37 @@ private struct MemoPageView: View {
 
     /// The annotation body for C3 captures — editable, writes back to
     /// `memo.annotationText` (NOT the transcript). If no annotation yet,
-    /// shows a placeholder prompt.
+    /// shows a placeholder prompt. While a dictated voice note is still
+    /// transcribing, the editor is swapped for a status row — an open draft
+    /// would clobber the landing text (same window the append flow closes).
     @ViewBuilder private var captureAnnotationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             SectionLabel("ANNOTATION")
 
-            // Use TranscriptEditor's existing editable TextEditor pattern for
-            // consistency — but backed by annotationText, not transcript.
-            CaptureAnnotationEditor(
-                text: Binding(
-                    get: { memo.annotationText ?? "" },
-                    set: { memo.annotationText = $0.isEmpty ? nil : $0; repository.save() }
+            if memo.transcriptStatus == .transcribing {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Transcribing your voice note…")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.skTextDim)
+                }
+                .padding(.vertical, 10)
+                .accessibilityIdentifier("capture-dictation-transcribing")
+                if let typed = memo.annotationText, !typed.isEmpty {
+                    Text(typed)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.skText)
+                }
+            } else {
+                // Use TranscriptEditor's existing editable TextEditor pattern for
+                // consistency — but backed by annotationText, not transcript.
+                CaptureAnnotationEditor(
+                    text: Binding(
+                        get: { memo.annotationText ?? "" },
+                        set: { memo.annotationText = $0.isEmpty ? nil : $0; repository.save() }
+                    )
                 )
-            )
+            }
         }
     }
 }

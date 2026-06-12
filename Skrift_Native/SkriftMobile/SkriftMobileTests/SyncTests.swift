@@ -107,6 +107,34 @@ final class SyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(mock.uploadedBodies.count, 0)
     }
 
+    /// A capture whose dictated voice note is still transcribing must NOT upload —
+    /// the annotation IS the body for captures, so an early upload would drop the
+    /// spoken part. It uploads on the next sync once the text has landed.
+    @MainActor
+    func testCaptureHeldWhileDictationTranscribing() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = UUID()
+        repo.insert(Memo(id: id, audioFilename: "", duration: 0, recordedAt: Date(),
+                         syncStatus: .waiting, transcript: nil, transcriptStatus: .transcribing,
+                         significance: 0.6,
+                         sharedContent: SharedContent(type: .url, url: "https://a.com", urlTitle: "A",
+                                                      text: nil, fileName: nil, mimeType: nil),
+                         annotationText: "typed"))
+
+        let mock = MockMacTransport()
+        let coordinator = SyncCoordinator(repository: repo, macTransport: mock, namesTransport: nil)
+        let held = await coordinator.syncAll()
+        XCTAssertEqual(held, 0)
+        XCTAssertEqual(repo.memo(id: id)?.syncStatus, .waiting, "stays waiting, not dropped")
+
+        // Dictation lands → next sync uploads it.
+        repo.memo(id: id)?.transcriptStatus = .done
+        repo.save()
+        let synced = await coordinator.syncAll()
+        XCTAssertEqual(synced, 1)
+        XCTAssertEqual(repo.memo(id: id)?.syncStatus, .synced)
+    }
+
     @MainActor
     func testReconcileMarksSyncedByFilenameWithoutReupload() async {
         let repo = NotesRepository(inMemory: true)
