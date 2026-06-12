@@ -610,7 +610,10 @@ playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod
    unmistakable book-vs-own-words division, highlight still continuous. Plus `KaraokeWordLayout.lines`
    (pure + tested): the word grid stacks per-line FlowLayout blocks so paragraph breaks survive in ALL
    memos (multi-append rambles included). `Memo.karaokeText` deleted again (regions replaced it).
-   Owed: user re-verify the capture playback presentation.
+   ✅ DEVICE-VERIFIED same day ("very close, looks way better"). One P2 polish nit logged, NOT blocking
+   (user: "pretty good", moved on): on play the text spreads slightly vertically — the tap-to-seek word
+   grid's FlowLayout lineSpacing 6 + per-line VStack spacing 8 vs the static text's lineSpacing 4; tune
+   the grid constants to match. USER MOVED ON TO THE BOARD → capture items build started 2026-06-12.
 2. Then user re-tests: trim persistence end-to-end (tap sentence → ramble → saved audio/text/karaoke match).
 3. Owed smalls — **BUILT 2026-06-12 (this session, pending device verify):**
    - ✅ Reverse playback exclusion BUILT — `AudioPlayerModel.nowPlaying` (static weak) +
