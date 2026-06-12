@@ -5,7 +5,19 @@ import Foundation
 /// and the FastAPI backend. Parts: `files` (audio), `metadata` (JSON), `transcript`
 /// (only when present), `images` (one per photo). **Never sends `sanitised`** —
 /// name-linking is Mac-side.
+///
+/// **Two paths, both in the same enum:**
+///   • `build(memo:audioData:photos:)` — standard memo with audio (byte-identical to before).
+///   • `buildCapture(memo:photos:)` — capture item (NO `files`, NO `transcript`, one optional
+///     `images` part for image captures). The discriminator on the Mac side is: zero `files`
+///     parts + `metadata.sharedContent` present.
+///
+/// C3 wire-contract invariant: a normal audio memo's multipart is BYTE-IDENTICAL to
+/// the pre-capture shape — captures are a new branch, not a modification.
 enum UploadPayload {
+
+    // MARK: - Standard memo (audio present) — shape unchanged
+
     static func build(memo: Memo, audioData: Data, photos: [(filename: String, data: Data)]) -> (body: Data, contentType: String) {
         var builder = MultipartBuilder()
 
@@ -27,12 +39,43 @@ enum UploadPayload {
 
         return (builder.finalize(), builder.contentType)
     }
+
+    // MARK: - Capture item (no audio) — C3 contract
+
+    /// Build a capture upload per the C3 contract (CAPTURE_CONTRACT.md):
+    ///   - NO `files` part (absence + sharedContent = the discriminator).
+    ///   - NO `transcript` part.
+    ///   - `metadata` part with sharedContent + annotationText + duration=0.
+    ///   - ONE `images` part when `memo.sharedContent.type == .image` (the image
+    ///     file is passed as `photos`, same tuple shape as the audio path).
+    ///
+    /// `photos` should be empty for non-image captures and contain exactly one
+    /// entry `(filename: sharedContent.fileName!, data: <jpeg>)` for image captures.
+    static func buildCapture(memo: Memo, photos: [(filename: String, data: Data)] = []) -> (body: Data, contentType: String) {
+        var builder = MultipartBuilder()
+        // NO files part — intentional; its absence is the discriminator.
+
+        let metadataJSON = (try? JSONEncoder().encode(UploadMetadata(memo: memo))) ?? Data("{}".utf8)
+        builder.addField(name: "metadata", value: metadataJSON, contentType: "application/json")
+        // NO transcript part — annotation rides in metadata.annotationText.
+
+        // Image captures: one `images` part per the C3 spec.
+        for photo in photos {
+            let mime = photo.filename.hasSuffix(".png") ? "image/png" : "image/jpeg"
+            builder.addFile(name: "images", filename: photo.filename, contentType: mime, data: photo.data)
+        }
+
+        return (builder.finalize(), builder.contentType)
+    }
 }
 
 /// Flat metadata blob the Mac reads, mirroring the RN `sync.ts` object exactly:
 /// the `MemoMetadata` fields + memo-level `tags`/`recordedAt`/`duration` +
 /// `source:"mobile"` + the transcript-trust flags.
-struct UploadMetadata: Encodable {
+///
+/// Codable (not just Encodable) so that tests can decode the multipart body and
+/// assert exact contract field values against the C3 pinned fixture.
+struct UploadMetadata: Codable {
     var capturedAt: String?
     var location: LocationInfo?
     var weather: WeatherInfo?
