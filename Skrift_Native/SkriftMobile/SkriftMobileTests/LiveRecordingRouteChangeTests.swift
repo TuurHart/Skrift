@@ -36,6 +36,42 @@ final class LiveRecordingRouteChangeTests: XCTestCase {
             from: format(rate: 48_000, channels: 2), to: format(rate: 48_000, channels: 1)))
     }
 
+    // MARK: - Tap-install validation (the round-2 P0: InstallTapOnNode raises
+    // an UNCATCHABLE NSException on an invalid mid-transition format, so this
+    // pure precondition is the only defense)
+
+    func testCanInstallTapWhenFormatsRealAndAgree() {
+        XCTAssertTrue(LiveRecordingService.canInstallTap(
+            hwRate: 48_000, hwChannels: 1, tapRate: 48_000, tapChannels: 1))
+        XCTAssertTrue(LiveRecordingService.canInstallTap(
+            hwRate: 24_000, hwChannels: 2, tapRate: 24_000, tapChannels: 2))
+    }
+
+    func testRefusesZeroedMidTransitionFormat() {
+        // What the input node reports mid-route-transition (the crash-log case).
+        XCTAssertFalse(LiveRecordingService.canInstallTap(
+            hwRate: 0, hwChannels: 0, tapRate: 0, tapChannels: 0))
+        XCTAssertFalse(LiveRecordingService.canInstallTap(
+            hwRate: 0, hwChannels: 1, tapRate: 0, tapChannels: 1))
+        XCTAssertFalse(LiveRecordingService.canInstallTap(
+            hwRate: 48_000, hwChannels: 0, tapRate: 48_000, tapChannels: 0))
+    }
+
+    func testRefusesStaleVendedFormatLaggingNewHardware() {
+        // AirPods pulled: hardware is already the 48 kHz built-in mic but the
+        // node still vends the cached 24 kHz AirPods format — installing with
+        // the mismatched format also raises.
+        XCTAssertFalse(LiveRecordingService.canInstallTap(
+            hwRate: 48_000, hwChannels: 1, tapRate: 24_000, tapChannels: 1))
+        XCTAssertFalse(LiveRecordingService.canInstallTap(
+            hwRate: 48_000, hwChannels: 1, tapRate: 48_000, tapChannels: 2))
+    }
+
+    func testRefusesWhenOnlyVendedSideLooksAlive() {
+        XCTAssertFalse(LiveRecordingService.canInstallTap(
+            hwRate: 0, hwChannels: 0, tapRate: 48_000, tapChannels: 1))
+    }
+
     // MARK: - Converter selection
 
     func testNoConverterWhenFormatsMatch() {
