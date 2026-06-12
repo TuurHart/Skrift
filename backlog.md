@@ -297,7 +297,7 @@ feel, folder import, AirPods re-insert recheck). Original findings below.
   IGNORE remote-play while a recording is active (session priority).
 - Bookmarks: user considered, DECIDED AGAINST (linking back into books = complexity/fragility). Skip.
 
-#### Round-2 re-test — 2026-06-12 morning (user off to work; CONTINUE HERE)
+#### Round-2 re-test — 2026-06-12 — ✅ P0 FIXED (validate-before-install + own-activation echo filter + stale-format check), DevLog shipped (Documents/devlog.txt, devicectl-pullable), swipe-down player + tap-cover-to-edit. CAPTURE DESIGN STILL PAUSED. Owed: device re-test w/ devlog pull.
 - **P0 CRASH: first tap of Record crashed the app** (fresh install, round-2 build). Crash log pull attempted
   to /tmp/skrift-crashes2 (check SkriftMobile-2026-06-12-*.ips; if absent, pull next plug-in via
   idevicecrashreport). Suspects: instant-record path or the new route-change tap-reinstall init.
