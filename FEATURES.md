@@ -66,6 +66,13 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Inline `[photo N]` token in **live** caption | ✅ | n/a | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: tinted `[photo N]` token inserted inline at the capture point |
 | `[[img]]` → Obsidian embed on export | n/a | ✅ | desktop `Pipeline/Export/VaultExporter.swift:84-114` | |
 
+## Custom vocabulary *(CTC keyword-spot + rescore — fixes mis-heard names)* — built 2026-06-12
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Vocabulary boost pass | ✅ | ✅ | mobile `Services/Transcription/VocabularyBooster.swift`; desktop `Engines/VocabularyBooster.swift` + `BPEMerge.alignWords` | FluidAudio custom-vocab (NeMo arXiv:2406.07096): after `AsrManager.transcribe`, CTC-spot the custom terms in the same samples → token-rescore → take rescored text when modified; word-timings re-aligned positionally so karaoke shows corrected words. One extra ~97.5 MB HF model (ctc110m), lazy-loaded only while the list is non-empty; failures NEVER fail the transcription. LIVE-verified on the two-Jacks file (planted word replaced; real Jacks untouched) |
+| Custom words list (Settings) | ✅ | ✅ | mobile `Features/Settings/CustomWordsView.swift` + `CustomVocabularyStore` (UserDefaults); desktop Settings → Transcription (`AppSettings.customVocabulary`, optional for legacy decode) | Per-device v1 — no phone↔Mac sync (possible later, names-style). Desktop `-runfile -vocab "A,B"` exercises the pass headlessly |
+
 ## Capture items *(share URL/text/image into Skrift + annotate)* — built 2026-06-12 (C3 contract)
 
 | Capability | Mobile | Desktop | Key files | Notes |

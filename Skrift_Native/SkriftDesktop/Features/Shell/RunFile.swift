@@ -108,6 +108,19 @@ enum RunFile {
                 log(">>> MODE: trusted-mobile (ASR skipped) — transcript \(text.count) chars")
             }
 
+            // `-vocab Word1,Word2` → persist custom-vocabulary words before the run
+            // (the transcriber reads them from SettingsStore), so the CTC boost
+            // pass can be exercised headlessly. They stay set afterwards — same
+            // store the Settings panel edits.
+            if let vi = args.firstIndex(of: "-vocab"), vi + 1 < args.count {
+                var s = SettingsStore.shared.load()
+                s.customVocabulary = args[vi + 1].split(separator: ",").map {
+                    $0.trimmingCharacters(in: .whitespaces)
+                }
+                SettingsStore.shared.save(s)
+                log(">>> VOCAB: \(s.customWords.joined(separator: ", "))")
+            }
+
             let settings = SettingsStore.shared.load()
             let runner = BatchRunner(
                 transcriber: TranscriptionService.shared,

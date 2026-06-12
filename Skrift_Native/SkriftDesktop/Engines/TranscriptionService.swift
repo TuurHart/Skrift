@@ -86,10 +86,29 @@ actor TranscriptionService: Transcribing {
         let raw = (result.tokenTimings ?? []).map {
             RawToken(token: $0.token, startTime: $0.startTime, endTime: $0.endTime)
         }
-        let words = BPEMerge.mergeBPETokens(raw)
+        var words = BPEMerge.mergeBPETokens(raw)
+        var text = result.text
+
+        // Custom-vocabulary rescore (Settings → Custom words). No-op without
+        // words; never fails the transcription. Runs against the ORIGINAL audio
+        // (the spotter resamples itself) and before image markers so markers
+        // are placed against the corrected words.
+        let customWords = SettingsStore.shared.load().customWords
+        if !customWords.isEmpty,
+           let boosted = await VocabularyBooster.shared.boost(
+               text: text, tokenTimings: result.tokenTimings ?? [],
+               audioURL: audioURL, words: customWords) {
+            text = boosted.text
+            if let aligned = BPEMerge.alignWords(original: words.map(\.text),
+                                                 rescoredText: boosted.text) {
+                words = zip(words, aligned).map {
+                    TimedWord(text: $1, start: $0.start, end: $0.end)
+                }
+            }
+        }
+
         let wordTimings = words.map { WordTiming(word: $0.text, start: $0.start, end: $0.end) }
 
-        var text = result.text
         var markersInjected = false
         if !imageManifest.isEmpty, !words.isEmpty {
             text = ImageMarkers.insert(transcript: text, words: words, manifest: imageManifest)

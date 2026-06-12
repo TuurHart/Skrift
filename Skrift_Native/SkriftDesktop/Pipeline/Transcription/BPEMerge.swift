@@ -19,6 +19,18 @@ struct RawToken: Equatable, Sendable {
 /// FluidAudio-coupled engine feeds it `RawToken`s and an RMS reading.
 enum BPEMerge {
 
+    /// Custom-vocab rescore swaps whole words in the TEXT; the word timings
+    /// (karaoke) must show the corrected words too. When the rescored text
+    /// still has the same word count, swap strings positionally (times
+    /// unchanged). nil = counts diverged — caller keeps the original words.
+    static func alignWords(original: [String], rescoredText: String) -> [String]? {
+        let rescored = rescoredText
+            .split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" })
+            .map(String.init)
+        guard rescored.count == original.count else { return nil }
+        return rescored
+    }
+
     /// Merge BPE sub-word tokens into whole words. A token whose raw text starts
     /// with a space begins a new word; others continue the current one. Bit-for-bit
     /// the same as the phone's `mergeBPETokens` and the backend word merge.

@@ -14,6 +14,11 @@ struct SettingsView: View {
     @State private var connection = MacConnection.load()
     @State private var showFeedback = false
 
+    private var customWordsCount: String {
+        let n = CustomVocabularyStore.words().count
+        return n == 0 ? "None" : "\(n)"
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -43,10 +48,20 @@ struct SettingsView: View {
                         .accessibilityIdentifier("setting-live-transcription")
                     Toggle("Copy transcript to clipboard", isOn: $autoCopyTranscript)
                         .accessibilityIdentifier("setting-auto-copy-transcript")
+                    NavigationLink {
+                        CustomWordsView()
+                    } label: {
+                        HStack {
+                            Text("Custom words")
+                            Spacer()
+                            Text(customWordsCount).foregroundStyle(Color.skTextDim)
+                        }
+                    }
+                    .accessibilityIdentifier("custom-words-link")
                 } header: {
                     Text("Capture")
                 } footer: {
-                    Text("When a transcription finishes, the final transcript is copied to the clipboard automatically.")
+                    Text("When a transcription finishes, the final transcript is copied to the clipboard automatically. Custom words teach the transcriber names it mis-hears (like “Skrift”).")
                 }
 
                 Section {

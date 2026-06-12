@@ -169,10 +169,25 @@ actor TranscriptionService: Transcriber {
                                        durationMs: ms, wordTimings: [], markersInjected: false)
         }
 
-        let words = Self.mergeBPETokens(result.tokenTimings ?? [])
+        var words = Self.mergeBPETokens(result.tokenTimings ?? [])
+        var text = result.text
+
+        // Custom-vocabulary rescore (Settings → Custom words). No-op without
+        // words; never fails the transcription. Runs BEFORE image markers so
+        // markers are placed against the corrected words.
+        if let boosted = await VocabularyBooster.shared.boost(
+            text: text, tokenTimings: result.tokenTimings ?? [], audioURL: audioURL) {
+            text = boosted.text
+            if let aligned = VocabularyBooster.alignWords(original: words.map(\.text),
+                                                          rescoredText: boosted.text) {
+                words = zip(words, aligned).map {
+                    ImageMarkers.TimedWord(text: $1, start: $0.start, end: $0.end)
+                }
+            }
+        }
+
         let wordTimings = words.map { WordTiming(word: $0.text, start: $0.start, end: $0.end) }
 
-        var text = result.text
         var markersInjected = false
         if !imageManifest.isEmpty, !words.isEmpty {
             text = ImageMarkers.insert(transcript: text, words: words, manifest: imageManifest)

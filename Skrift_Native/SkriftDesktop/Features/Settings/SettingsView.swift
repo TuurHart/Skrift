@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var editablePeople: [EditablePerson] = []
     @State private var namesDirty = false
     @State private var nameQuery = ""
+    @State private var newCustomWord = ""
 
     /// Stable-identity editor row (Person has no id; its canonical changes mid-edit).
     struct EditablePerson: Identifiable {
@@ -89,6 +90,7 @@ struct SettingsView: View {
                 sliderRow("High-pass filter", value: highpassBinding, range: 0...200, unit: " Hz")
                 Text(highpassHelp).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
+                customWordsEditor
             }
             section("Names · \(interactive ? editablePeople.count : people.count)") {
                 if interactive {
@@ -318,6 +320,58 @@ struct SettingsView: View {
 
     private var highpassBinding: Binding<Double> {
         Binding(get: { Double(settings.highpassFreqHz) }, set: { settings.highpassFreqHz = Int($0) })
+    }
+
+    // MARK: - Custom words (vocabulary boost)
+
+    /// Settings → Transcription → Custom words: the vocabulary-boost list
+    /// (`VocabularyBooster` CTC spot + rescore). Mirrors the phone's editor.
+    @ViewBuilder private var customWordsEditor: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Custom words — names the transcriber mis-hears (“Skrift”, people, products), spelled as they should be written. First transcription after adding words downloads a ~100 MB spotter model.")
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            if interactive {
+                HStack(spacing: 6) {
+                    RingedField(placeholder: "Add a word…", text: $newCustomWord)
+                        .frame(maxWidth: 220)
+                        .onSubmit { addCustomWord() }
+                    Button { addCustomWord() } label: {
+                        Image(systemName: "plus.circle.fill").foregroundStyle(Theme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(newCustomWord.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .accessibilityIdentifier("settings.customword.add")
+                }
+            }
+            ForEach(settings.customWords, id: \.self) { word in
+                HStack(spacing: 8) {
+                    Text(word).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    if interactive {
+                        Button {
+                            settings.customVocabulary = settings.customWords.filter { $0 != word }
+                        } label: {
+                            Image(systemName: "xmark").font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Theme.textMuted)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Remove \(word)")
+                    }
+                }
+                .frame(maxWidth: 280, alignment: .leading)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func addCustomWord() {
+        let trimmed = newCustomWord.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              !settings.customWords.contains(where: { $0.lowercased() == trimmed.lowercased() })
+        else { newCustomWord = ""; return }
+        settings.customVocabulary = settings.customWords + [trimmed]
+        newCustomWord = ""
     }
 
     private func chooseFolder(_ key: WritableKeyPath<AppSettings, String>) {

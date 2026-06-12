@@ -29,6 +29,13 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// Effective flag (nil legacy → on).
     var conversationModeEnabled: Bool { conversationMode ?? true }
 
+    // Custom-vocabulary boost (CTC spot + rescore after ASR — `VocabularyBooster`):
+    // words Parakeet routinely mis-hears, spelled as they should be written.
+    // Optional for the same legacy-decode reason as conversationMode.
+    var customVocabulary: [String]? = []
+    /// Effective list (nil legacy → empty).
+    var customWords: [String] { customVocabulary ?? [] }
+
     static let `default` = AppSettings()
 
     /// LLM prompts — copied verbatim from `DEFAULT_SETTINGS.enhancement.prompts`.
