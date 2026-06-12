@@ -4,10 +4,13 @@ import Foundation
 /// so they don't touch SwiftData storage.
 extension Memo {
     /// What to show as the heading: the phone-set title, else the transcript's
-    /// first line (markers stripped), else a generic fallback.
+    /// first line (markers stripped), else the capture title (C3 captures), else
+    /// a generic fallback.
     var displayTitle: String {
         if let t = title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { return t }
         if let line = firstTranscriptLine { return line }
+        // C3 captures: derive title from sharedContent (urlTitle / text head / "Image")
+        if isShareCapture { return shareCaptureTitle }
         return "Voice memo"
     }
 
@@ -163,6 +166,86 @@ extension Memo {
             label += " · " + (chapter.allSatisfy(\.isNumber) ? "ch. \(chapter)" : chapter)
         }
         return label
+    }
+}
+
+// MARK: - C3 share-item captures
+
+/// Display helpers for C3 capture-item memos (URL / text / image shared via the
+/// SkriftShare extension). Detection: `audioFilename == "" && sharedContent != nil`.
+/// Pattern mirrors the C2 audiobook-capture helpers above.
+extension Memo {
+    /// True when this memo is a C3 capture item (no audio, has sharedContent).
+    var isShareCapture: Bool {
+        audioFilename.isEmpty && sharedContent != nil
+    }
+
+    /// SF Symbol glyph for the list row icon, keyed off `sharedContent.type`.
+    var shareCaptureGlyph: String {
+        switch sharedContent?.type {
+        case .url:   return "link"
+        case .text:  return "text.quote"
+        case .image: return "photo"
+        case .file:  return "doc"
+        case nil:    return "link"
+        }
+    }
+
+    /// Primary title for a capture row: urlTitle (URL), first words of text (text),
+    /// annotation-or-"Image" (image). Falls back through annotationText → generic.
+    var shareCaptureTitle: String {
+        guard let sc = sharedContent else { return "Capture" }
+        switch sc.type {
+        case .url:
+            if let t = sc.urlTitle?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { return t }
+            if let u = sc.url, let host = URL(string: u)?.host { return host }
+            return "Link"
+        case .text:
+            if let text = sc.text?.trimmingCharacters(in: .whitespaces), !text.isEmpty {
+                return String(text.prefix(80))
+            }
+            return "Text snippet"
+        case .image:
+            if let ann = annotationText?.trimmingCharacters(in: .whitespaces), !ann.isEmpty {
+                return String(ann.prefix(80))
+            }
+            return "Image"
+        case .file:
+            return sc.fileName ?? "File"
+        }
+    }
+
+    /// Snippet / secondary line: annotationText for all types; domain for URLs as fallback.
+    var shareCaptureSnippet: String? {
+        if let ann = annotationText?.trimmingCharacters(in: .whitespacesAndNewlines), !ann.isEmpty {
+            return String(ann.prefix(120))
+        }
+        // For URL captures with no annotation, show the domain as the snippet.
+        if sharedContent?.type == .url,
+           let urlStr = sharedContent?.url,
+           let host = URL(string: urlStr)?.host {
+            return host.replacingOccurrences(of: "www.", with: "")
+        }
+        return nil
+    }
+
+    /// "Link", "Text", or "Image" chip label for the detail header chips.
+    var shareCaptureTypeLabel: String {
+        switch sharedContent?.type {
+        case .url:   return "Shared link"
+        case .text:  return "Shared text"
+        case .image: return "Shared image"
+        case .file:  return "Shared file"
+        case nil:    return "Capture"
+        }
+    }
+
+    /// Domain label for URL captures, e.g. "swiftwithmajid.com".
+    var shareCaptureURLDomain: String? {
+        guard sharedContent?.type == .url,
+              let urlStr = sharedContent?.url,
+              let host = URL(string: urlStr)?.host else { return nil }
+        return host.replacingOccurrences(of: "www.", with: "")
     }
 }
 
