@@ -74,6 +74,9 @@ struct NoteDisplayView: View {
             NoteProperties(file: file, author: author, interactive: scrollable)
             if file.sourceType == .capture {
                 CaptureBanner(file: file)
+                // The shared thing itself, pinned above the annotation body —
+                // mirrors what the export pins above the body in markdown.
+                CaptureSharedContentBlock(file: file)
             }
             if scrollable, file.enhancedSummary != nil {
                 summaryEditor(file)

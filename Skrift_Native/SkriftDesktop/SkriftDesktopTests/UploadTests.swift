@@ -177,7 +177,7 @@ final class CaptureIngestTests: XCTestCase {
         XCTAssertEqual(pf.transcript,
                         "Try this for the desktop body editor — the NSTextView part maps onto what Nick suggested.",
                         "annotation becomes the transcript")
-        XCTAssertEqual(pf.significance, 0.6, accuracy: 0.001, "significance pre-filled from metadata")
+        XCTAssertEqual(pf.significance ?? 0, 0.6, accuracy: 0.001, "significance pre-filled from metadata")
         XCTAssertNotNil(pf.audioMetadataJSON, "metadata stored verbatim")
 
         // The working folder must exist on disk (Pipeline writes sidecars there).

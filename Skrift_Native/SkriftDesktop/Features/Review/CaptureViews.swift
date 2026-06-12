@@ -100,3 +100,81 @@ struct CaptureBanner: View {
         )
     }
 }
+
+// MARK: - CaptureSharedContentBlock
+
+/// The shared-content card pinned above the annotation body (mock state 3
+/// `sharedblock`): bordered, blue-tinted left edge, a "SHARED CONTENT" kicker,
+/// then the content per type — url: glyph + bold title + monospaced URL;
+/// text: the snippet as an italic quote; image: the file reference (the pixels
+/// live in the working folder and export as an `![[embed]]`). This mirrors in
+/// the REVIEW what `Compiler.captureSharedBlock` pins in the EXPORT.
+struct CaptureSharedContentBlock: View {
+    let file: PipelineFile
+
+    private var sc: SharedContent? { SharedContent.decode(from: file.audioMetadataJSON) }
+
+    var body: some View {
+        if let sc {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 6) {
+                    Image(systemName: file.sourceSymbol)
+                        .font(.system(size: 9))
+                    Text("SHARED CONTENT")
+                        .font(.system(size: 10, weight: .medium))
+                        .kerning(0.7)
+                }
+                .foregroundStyle(Theme.textMuted)
+
+                switch sc.type {
+                case "url":
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let title = sc.urlTitle, !title.isEmpty {
+                            Text(title)
+                                .font(.system(size: 14.5, weight: .semibold))
+                                .foregroundStyle(Theme.textPrimary)
+                        }
+                        if let url = sc.url, !url.isEmpty {
+                            Text(url)
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(Theme.blue)
+                                .textSelection(.enabled)
+                        }
+                    }
+                case "text":
+                    Text(sc.text ?? "")
+                        .font(.system(size: 13.5))
+                        .italic()
+                        .foregroundStyle(Theme.textPrimary.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                case "image":
+                    HStack(spacing: 8) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.textMuted)
+                        Text(sc.fileName ?? "image")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                default:
+                    Text(sc.fileName ?? "Shared file")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.blue.opacity(0.04), in: RoundedRectangle(cornerRadius: 11))
+            .overlay(
+                RoundedRectangle(cornerRadius: 11)
+                    .stroke(Theme.hairline.opacity(0.09), lineWidth: 0.5)
+            )
+            .overlay(alignment: .leading) {
+                UnevenRoundedRectangle(topLeadingRadius: 11, bottomLeadingRadius: 11)
+                    .fill(Theme.blue.opacity(0.55))
+                    .frame(width: 2.5)
+            }
+        }
+    }
+}

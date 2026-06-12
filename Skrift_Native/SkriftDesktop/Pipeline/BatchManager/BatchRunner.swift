@@ -141,7 +141,7 @@ struct BatchRunner {
 
         if annotation.isEmpty {
             // No annotation → skip all LLM steps; derive a title from sharedContent.
-            pf.enhancedTitle = captureFallbackTitle(sc, existingTitle: pf.enhancedTitle)
+            pf.enhancedTitle = Self.captureFallbackTitle(sc, existingTitle: pf.enhancedTitle)
             pf.titleSuggested = pf.enhancedTitle
         } else {
             // Run title + summary on the annotation text. NO copy-edit — the annotation
