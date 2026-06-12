@@ -450,6 +450,10 @@ struct MemosListView: View {
         if memo.transcript?.lowercased().contains(q) == true { return true }
         if memo.tags.contains(where: { $0.lowercased().contains(q) }) { return true }
         if memo.metadata?.location?.placeName?.lowercased().contains(q) == true { return true }
+        // C3 capture items: search annotation + urlTitle + text snippet
+        if memo.annotationText?.lowercased().contains(q) == true { return true }
+        if memo.sharedContent?.urlTitle?.lowercased().contains(q) == true { return true }
+        if memo.sharedContent?.text?.lowercased().contains(q) == true { return true }
         return false
     }
 
@@ -499,9 +503,12 @@ private struct MemoCard: View {
 
     var body: some View {
         HStack(spacing: 11) {
+            // C3 share-item captures: link/text/image glyph (per mock state 2)
+            if memo.isShareCapture {
+                captureGlyph
             // Audiobook captures wear a book glyph as their source icon
             // (mock state 5; detected via the C2 book metadata).
-            if memo.isBookCapture {
+            } else if memo.isBookCapture {
                 bookGlyph
             }
 
@@ -514,13 +521,34 @@ private struct MemoCard: View {
                     statusPill
                 }
 
+                // C3 share-item captures lead with the resolved title (urlTitle /
+                // text snippet / "Image") and the annotation as the secondary line.
+                // They never have a voice transcript, so the standard snippet path
+                // is bypassed entirely.
+                if memo.isShareCapture {
+                    Text(memo.shareCaptureTitle)
+                        .font(.system(size: 14.5, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 6)
+                        .accessibilityIdentifier("capture-row-title")
+
+                    if let snippet = memo.shareCaptureSnippet {
+                        Text(snippet)
+                            .font(.system(size: 12.5, weight: .regular))
+                            .foregroundStyle(Color.skTextDim)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 2)
+                    }
                 // Titled memos lead with the user-set title; the transcript snippet
                 // drops to a dimmer second line. Untitled memos keep the
                 // transcript-first behaviour. Audiobook captures lead with the
                 // quote — italic, accent-❝, per the signed-off mock — and the
                 // ramble as the dim second line; a phone-set title still wins
                 // the top line, with the quote taking the secondary line.
-                if hasTitle {
+                } else if hasTitle {
                     Text(memo.displayTitle)
                         .font(.system(size: 14.5, weight: .semibold))
                         .foregroundStyle(Color.skText)
@@ -607,6 +635,10 @@ private struct MemoCard: View {
             }
         }
         .skCard()
+        // Accessibility identifier for capture rows (used by UI tests and the
+        // detail "capture-link-card" test). The existing "memo-row-N" id remains
+        // on the ForEach wrapper; this adds the semantic capture identifier.
+        .accessibilityIdentifier(memo.isShareCapture ? "capture-row" : "memo-card")
     }
 
     // A failed on-device transcription is informational, not a dead end: the memo
@@ -616,6 +648,20 @@ private struct MemoCard: View {
         if let kind = memo.statusKind {
             StatusPill(style: kind.pillStyle, label: kind.label)
         }
+    }
+
+    /// Leading source icon for C3 share-item captures (link/text/image glyph per
+    /// the mock's `.mrow .ic`). Uses the same 32×32 rounded-rect as `bookGlyph`.
+    private var captureGlyph: some View {
+        RoundedRectangle.sk(10)
+            .fill(Color.skElev)
+            .frame(width: 32, height: 32)
+            .overlay(
+                Image(systemName: memo.shareCaptureGlyph)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.skTextDim)
+            )
+            .accessibilityIdentifier("capture-row-glyph")
     }
 
     /// Leading source icon for audiobook capture rows (accent-tinted book, per
@@ -653,7 +699,15 @@ private struct MemoCard: View {
 
     private var chips: [Chip] {
         var out: [Chip] = []
-        // Captures lead the meta line with "Book · ch. N", like the mock.
+        // C3 share-item captures show a type label + optional domain instead of duration.
+        if memo.isShareCapture {
+            out.append(Chip(text: memo.shareCaptureTypeLabel, symbol: memo.shareCaptureGlyph))
+            if let domain = memo.shareCaptureURLDomain {
+                out.append(Chip(text: domain, symbol: nil))
+            }
+            return out
+        }
+        // Audiobook captures lead the meta line with "Book · ch. N".
         if let book = memo.bookCaptionLabel {
             out.append(Chip(text: book, symbol: "book.closed.fill"))
         }

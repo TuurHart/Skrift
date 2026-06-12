@@ -34,8 +34,21 @@ struct SkriftApp: App {
                 // Clear any Live Activity orphaned by a kill mid-recording (iOS
                 // keeps the banner alive after the process dies).
                 .task { RecordingActivityManager.shared.reapOrphans() }
+                // Drain the capture inbox whenever the app becomes active: covers
+                // both cold launch and every background→foreground transition. The
+                // share extension writes inbox entries into the App Group container;
+                // we convert them to Memos here and delete the entries after save —
+                // see Services/Capture/CaptureInbox.swift for the crash-safety model.
+                .task { CaptureInboxDrainer.drain(into: repository) }
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase == .active {
+                        CaptureInboxDrainer.drain(into: repository)
+                    }
+                }
         }
     }
+
+    @Environment(\.scenePhase) private var scenePhase
 
     // The palette is dark-first (explicit dark surfaces), so "auto"/"light" are
     // best-effort until a light palette lands; default stays dark.

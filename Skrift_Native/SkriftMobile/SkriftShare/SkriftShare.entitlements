@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Same App Group as the host app — required for CaptureInbox to write
+	     into the shared container the app reads on foreground. The $(SKRIFT_APP_GROUP)
+	     build-setting substitution resolves per-config at signing time. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(SKRIFT_APP_GROUP)</string>
+	</array>
+</dict>
+</plist>

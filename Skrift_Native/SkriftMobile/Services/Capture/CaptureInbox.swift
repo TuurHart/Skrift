@@ -1,0 +1,149 @@
+import Foundation
+
+// MARK: - Inbox entry (shared type, compiled into both app + extension targets)
+
+/// One capture item written by the share extension into the App Group container
+/// and read by the main app when it comes to the foreground.
+///
+/// The shape is intentionally flat (no nested Codable structs) so JSONEncoder /
+/// JSONDecoder never runs into the SwiftData nested-struct trap, even though this
+/// type is NOT a SwiftData model.
+struct CaptureInboxEntry: Codable {
+    /// Stable ID for idempotent drain (write once, delete only after Memo is saved).
+    let id: UUID
+    /// Mirrors `SharedContent.type` raw value: "url" | "text" | "image" | "file".
+    let type: String
+    /// URL string for url-type captures.
+    let url: String?
+    /// Page title from the share payload (no network fetch).
+    let urlTitle: String?
+    /// Plain-text content for text-type captures.
+    let text: String?
+    /// Filename (relative to the inbox folder) for the accompanying image, when type == "image".
+    let imageFileName: String?
+    /// MIME type for image captures, e.g. "image/jpeg".
+    let mimeType: String?
+    /// User-typed annotation from the share sheet (may be nil / empty).
+    let annotationText: String?
+    /// Significance rating (0–1, 0.1 steps) set in the share sheet.
+    let significance: Double
+    /// ISO8601 timestamp when the share action completed.
+    let sharedAt: String
+}
+
+// MARK: - Inbox
+
+/// Manages the capture-inbox folder inside the App Group shared container.
+///
+/// The inbox is a folder of JSON+image pairs, one sub-folder per entry:
+///   `<group>/CaptureInbox/<uuid>/entry.json`
+///   `<group>/CaptureInbox/<uuid>/<imageFileName>` (image captures only)
+///
+/// **Thread safety:** all methods are synchronous and safe to call from any
+/// thread/actor — they only do file I/O and contain no shared mutable state.
+/// The drain path is always called @MainActor (in SkriftApp).
+enum CaptureInbox {
+    // MARK: - Group ID
+
+    /// Read the App Group identifier from the bundle's Info.plist key
+    /// `SkriftAppGroup`.  Both the app and the extension Info.plist carry this
+    /// key with value `$(SKRIFT_APP_GROUP)`, which is substituted at build time
+    /// (Debug → "group.com.skrift.mobile.dev", Release → "group.com.skrift.mobile").
+    /// This avoids hard-coding the group ID in source — one build setting to flip.
+    static var appGroupID: String {
+        // Try the bundle that owns this call (app or extension).
+        if let id = Bundle.main.object(forInfoDictionaryKey: "SkriftAppGroup") as? String,
+           !id.isEmpty {
+            return id
+        }
+        // Fallback: the dev group. Should never be reached in a correctly signed
+        // build; it means the Info.plist key is missing or the build setting
+        // wasn't substituted.
+        assertionFailure("SkriftAppGroup missing from Info.plist — check SKRIFT_APP_GROUP build setting")
+        return "group.com.skrift.mobile.dev"
+    }
+
+    // MARK: - Container
+
+    /// Root of the shared App Group container.
+    static var containerURL: URL? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
+    }
+
+    /// `<group>/CaptureInbox/` — created on first access.
+    static var inboxURL: URL? {
+        guard let base = containerURL else { return nil }
+        let dir = base.appendingPathComponent("CaptureInbox", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    // MARK: - Write (called by the share extension)
+
+    /// Write a capture entry to the inbox.  For image captures, `imageData` must
+    /// be non-nil and `entry.imageFileName` must be set.
+    ///
+    /// Crash-safe: the file is written atomically (write to a tmp file, then
+    /// rename) — a crash mid-write leaves the old entry intact or no entry at all,
+    /// never a half-written JSON.
+    @discardableResult
+    static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil) -> Bool {
+        guard let inbox = inboxURL else { return false }
+        let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: entryDir, withIntermediateDirectories: true)
+            // Write the image first (if any) so that if the JSON write crashes,
+            // the orphaned image dir gets cleaned up on the next drain pass.
+            if let imageData, let name = entry.imageFileName {
+                let imageURL = entryDir.appendingPathComponent(name)
+                try imageData.write(to: imageURL, options: .atomic)
+            }
+            // Atomic JSON write.
+            let data = try JSONEncoder().encode(entry)
+            let jsonURL = entryDir.appendingPathComponent("entry.json")
+            try data.write(to: jsonURL, options: .atomic)
+            return true
+        } catch {
+            // Non-fatal: the app will just not drain this entry. Log and continue.
+            print("[CaptureInbox] write failed: \(error)")
+            return false
+        }
+    }
+
+    // MARK: - Read (called by the app drain)
+
+    /// Return all pending inbox entries (newest-first by filename sort is fine —
+    /// `sharedAt` carries the canonical timestamp for ordering). Entries with a
+    /// missing or corrupt JSON are skipped (stale partial writes).
+    static func pendingEntries() -> [(entry: CaptureInboxEntry, entryDir: URL)] {
+        guard let inbox = inboxURL else { return [] }
+        let fm = FileManager.default
+        guard let dirs = try? fm.contentsOfDirectory(at: inbox,
+                                                      includingPropertiesForKeys: nil,
+                                                      options: .skipsHiddenFiles) else { return [] }
+        return dirs.compactMap { dir in
+            let jsonURL = dir.appendingPathComponent("entry.json")
+            guard let data = try? Data(contentsOf: jsonURL),
+                  let entry = try? JSONDecoder().decode(CaptureInboxEntry.self, from: data)
+            else { return nil }
+            return (entry, dir)
+        }
+    }
+
+    /// Resolve the on-disk URL of the image for an image-type entry.
+    static func imageURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
+        guard let name = entry.imageFileName else { return nil }
+        return entryDir.appendingPathComponent(name)
+    }
+
+    // MARK: - Delete (called by the drain, only AFTER the Memo is saved)
+
+    /// Remove an entry directory (JSON + image if any) from the inbox.
+    /// Called only after the Memo has been successfully inserted into SwiftData —
+    /// order matters for crash safety: drain is idempotent, so a missed delete
+    /// just re-creates the memo on next foreground (which NotesRepository handles
+    /// by UUID uniqueness — `@Attribute(.unique)` on `Memo.id`).
+    static func delete(entryDir: URL) {
+        try? FileManager.default.removeItem(at: entryDir)
+    }
+}

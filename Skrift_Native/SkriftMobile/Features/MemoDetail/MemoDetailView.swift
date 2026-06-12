@@ -67,26 +67,33 @@ struct MemoDetailView: View {
         // BEHIND the bar in the same backdrop, so the transcript/photos genuinely
         // refract through the glass as they pass under it (and content insets to clear
         // it at rest).
-        .safeAreaInset(edge: .bottom, spacing: 0) { bottomChrome }
+        // Playback bar is only meaningful when there's audio. Capture items
+        // (audioURL == nil) have no audio — hide the bar entirely so the
+        // scroll content isn't needlessly padded.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if currentMemo?.isShareCapture != true {
+                bottomChrome
+            }
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Add a follow-up recording to this memo — a visible top-right affordance
-            // (the same action also lives in the ⋯ menu). Records → transcribes →
-            // appends text + merges audio in MemoSaver.appendRecording.
+            // Add a follow-up recording — hidden for C3 capture items (no audio to append to).
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showAppendRecorder = true } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 34, height: 34)
-                        .foregroundStyle(Color.skTextDim)
+                if currentMemo?.isShareCapture != true {
+                    Button { showAppendRecorder = true } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(width: 34, height: 34)
+                            .foregroundStyle(Color.skTextDim)
+                    }
+                    .accessibilityIdentifier("add-recording-button")
+                    .accessibilityLabel("Add recording")
                 }
-                .accessibilityIdentifier("add-recording-button")
-                .accessibilityLabel("Add recording")
             }
-            // Split into speakers — a deliberate post-transcript action (no pre-record
-            // toggle). Shown once there's a transcript + audio to diarize.
+            // Split into speakers — hidden for captures (no audio, no diarization).
             ToolbarItem(placement: .topBarTrailing) {
-                if let memo = currentMemo, !(memo.transcript ?? "").isEmpty, memo.audioURL != nil {
+                if let memo = currentMemo, !(memo.transcript ?? "").isEmpty,
+                   memo.audioURL != nil, !memo.isShareCapture {
                     Button { showSplitOptions = true } label: {
                         Image(systemName: "person.2.fill")
                             .font(.system(size: 15, weight: .semibold))
@@ -279,8 +286,18 @@ private struct MemoPageView: View {
                     .accessibilityIdentifier("diarization-status")
                 }
 
-                transcriptSection
-                    .padding(.top, 18)
+                // C3 capture items: pinned source block (link card / text quote / image)
+                // above the annotation body. The transcript section is replaced entirely
+                // for captures — there's no voice transcript to show.
+                if memo.isShareCapture {
+                    captureSourceBlock
+                        .padding(.top, 18)
+                    captureAnnotationSection
+                        .padding(.top, 14)
+                } else {
+                    transcriptSection
+                        .padding(.top, 18)
+                }
 
                 // Small breathing room; the bar's own height is reserved by the
                 // parent's .safeAreaInset, so content rests just clear of the glass.
@@ -388,6 +405,12 @@ private struct MemoPageView: View {
     }
 
     private var titlePrompt: Text {
+        // C3 captures: use the resolved capture title as the prompt (urlTitle /
+        // text snippet / "Image") — there's no transcript line to fall back to.
+        if memo.isShareCapture {
+            let hint = memo.shareCaptureTitle
+            return Text(hint.isEmpty ? "Add a title" : hint).foregroundStyle(Color.skTextFaint)
+        }
         // Strip a leading `**Speaker:** ` prefix (conversation note) or `> `
         // blockquote marker (capture memo) so the title prompt shows the
         // actual first words, not the Markdown.
@@ -439,6 +462,11 @@ private struct MemoPageView: View {
 
     private var metaChips: [MetaChip] {
         var chips: [MetaChip] = [MetaChip(text: MemoDate.label(memo.recordedAt), symbol: nil)]
+        // C3 captures: show the source type label instead of location/weather chips.
+        if memo.isShareCapture {
+            chips.append(MetaChip(text: memo.shareCaptureTypeLabel, symbol: memo.shareCaptureGlyph))
+            return chips
+        }
         if let place = memo.metadata?.location?.placeName, !place.isEmpty {
             chips.append(MetaChip(text: place, symbol: "mappin.circle.fill"))
         }
@@ -449,6 +477,181 @@ private struct MemoPageView: View {
             chips.append(MetaChip(text: period.label, symbol: period.symbol))
         }
         return chips
+    }
+
+    // MARK: - Capture detail (C3 mock state 2)
+
+    /// The pinned source block shown above the annotation body for captures:
+    /// URL → link card with "Open ↗" button; text → blockquote; image → photo embed.
+    @ViewBuilder private var captureSourceBlock: some View {
+        if let sc = memo.sharedContent {
+            switch sc.type {
+            case .url:
+                captureURLCard(sc: sc)
+            case .text:
+                if let text = sc.text, !text.isEmpty {
+                    captureTextQuote(text: text)
+                }
+            case .image, .file:
+                captureImageEmbed
+            }
+        }
+    }
+
+    private func captureURLCard(sc: SharedContent) -> some View {
+        HStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.skAccent.opacity(0.13))
+                .frame(width: 32, height: 32)
+                .overlay(
+                    Image(systemName: "globe")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.skAccent)
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(sc.urlTitle ?? memo.shareCaptureURLDomain ?? "Link")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.skText)
+                    .lineLimit(2)
+                if let domain = memo.shareCaptureURLDomain {
+                    Text(domain)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.skTextFaint)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 4)
+
+            if let urlStr = sc.url, let url = URL(string: urlStr) {
+                Button {
+                    UIApplication.shared.open(url)
+                } label: {
+                    Text("Open ↗")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.skAccent)
+                        .padding(.horizontal, 9).padding(.vertical, 4)
+                        .background(Color.skAccentSoft, in: .rect(cornerRadius: 6, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(Color.skAccent.opacity(0.35), lineWidth: 0.5)
+                        )
+                }
+                .accessibilityIdentifier("capture-open-link")
+                .accessibilityLabel("Open link")
+            }
+        }
+        .padding(13)
+        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
+        )
+        .accessibilityIdentifier("capture-link-card")
+    }
+
+    private func captureTextQuote(text: String) -> some View {
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(Color.skAccent.opacity(0.5))
+                .frame(width: 2)
+            Text(text)
+                .font(.system(size: 14).italic())
+                .foregroundStyle(Color.skTextDim)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
+        )
+        .accessibilityIdentifier("capture-text-quote")
+    }
+
+    @ViewBuilder private var captureImageEmbed: some View {
+        if let filename = memo.sharedContent?.fileName,
+           let img = UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(filename).path) {
+            Image(uiImage: img)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .clipShape(.rect(cornerRadius: Theme.Radius.card, style: .continuous))
+                .overlay(
+                    RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
+                )
+                .accessibilityIdentifier("capture-image-embed")
+        } else if let manifest = memo.metadata?.imageManifest?.first {
+            // Fallback: look up via the image manifest (the drain copies the image
+            // to the recordings dir under the manifest filename).
+            let manifestURL = AppPaths.recordingsDirectory.appendingPathComponent(manifest.filename)
+            if let img = UIImage(contentsOfFile: manifestURL.path) {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .clipShape(.rect(cornerRadius: Theme.Radius.card, style: .continuous))
+                    .overlay(
+                        RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
+                    )
+                    .accessibilityIdentifier("capture-image-embed")
+            }
+        }
+    }
+
+    /// The annotation body for C3 captures — editable, writes back to
+    /// `memo.annotationText` (NOT the transcript). If no annotation yet,
+    /// shows a placeholder prompt.
+    @ViewBuilder private var captureAnnotationSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionLabel("ANNOTATION")
+
+            // Use TranscriptEditor's existing editable TextEditor pattern for
+            // consistency — but backed by annotationText, not transcript.
+            CaptureAnnotationEditor(
+                text: Binding(
+                    get: { memo.annotationText ?? "" },
+                    set: { memo.annotationText = $0.isEmpty ? nil : $0; repository.save() }
+                )
+            )
+        }
+    }
+}
+
+// MARK: - Capture annotation editor
+
+/// Simple editable body for C3 capture annotations — no karaoke, no markers.
+/// Matches the transcript-editor style (dark surface, tint accent, dismiss on drag).
+private struct CaptureAnnotationEditor: View {
+    @Binding var text: String
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if text.isEmpty {
+                Text("Add a note about this capture…")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.skTextFaint)
+                    .padding(.top, 9)
+                    .padding(.leading, 5)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            TextEditor(text: $text)
+                .font(.system(size: 15))
+                .foregroundStyle(Color.skText)
+                .tint(.skAccent)
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: 80)
+                .focused($focused)
+        }
+        .padding(4)
+        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.editBox, style: .continuous))
+        .overlay(
+            RoundedRectangle.sk(Theme.Radius.editBox)
+                .stroke(focused ? Color.skAccent.opacity(0.45) : Color.skBorder, lineWidth: 1)
+        )
+        .accessibilityIdentifier("capture-annotation-editor")
     }
 }
 

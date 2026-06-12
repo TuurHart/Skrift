@@ -32,8 +32,20 @@ struct SyncCoordinator {
         var newlySynced = 0
         // Flag-to-send: skip unrated memos (significance 0) — they stay on the phone.
         for memo in repository.allMemos() where memo.syncStatus == .waiting && memo.significance > 0 {
-            guard let audioURL = memo.audioURL, let audioData = try? Data(contentsOf: audioURL) else { continue }
-            let payload = UploadPayload.build(memo: memo, audioData: audioData, photos: loadPhotos(for: memo))
+            let payload: (body: Data, contentType: String)
+
+            if memo.audioURL == nil {
+                // Capture item: no audio. Use the C3 capture multipart path.
+                // Guard: must have sharedContent (otherwise there's nothing to upload).
+                guard memo.sharedContent != nil else { continue }
+                payload = UploadPayload.buildCapture(memo: memo, photos: loadPhotos(for: memo))
+            } else {
+                // Standard audio memo path (byte-identical to pre-capture behaviour).
+                guard let audioURL = memo.audioURL,
+                      let audioData = try? Data(contentsOf: audioURL) else { continue }
+                payload = UploadPayload.build(memo: memo, audioData: audioData, photos: loadPhotos(for: memo))
+            }
+
             do {
                 try await macTransport.uploadMemo(body: payload.body, contentType: payload.contentType)
                 memo.syncStatus = .synced
