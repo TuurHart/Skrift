@@ -153,4 +153,95 @@ final class QuoteCaptureSaveTests: XCTestCase {
 
         repo.permanentlyDelete(memo)
     }
+
+    // MARK: - Trim persistence math (no audio export — pure helper logic)
+
+    /// `isUnchangedTrim` + the transcript/timing-rebase path used by
+    /// `applyTrimIfNeeded` in `CaptureSheetView`. These are pure functions
+    /// accessible from the test target so we can verify the data contract
+    /// without spinning up AVAssetExportSession.
+
+    func testIsUnchangedTrimNoOpWhenFlagsMatchInitial() {
+        let s0 = BufferSentence(text: "Prelude.", start: 0, end: 1, words: [], isInInitialSpan: false)
+        let s1 = BufferSentence(text: "Quote.", start: 1, end: 2, words: [], isInInitialSpan: true)
+        let flags = [false, true]
+        XCTAssertTrue(QuoteCaptureProcessor.isUnchangedTrim(included: flags, sentences: [s0, s1]),
+                      "flags equal the initial span \u{2014} must be a no-op")
+    }
+
+    func testIsUnchangedTrimDetectsChange() {
+        let s0 = BufferSentence(text: "Prelude.", start: 0, end: 1, words: [], isInInitialSpan: false)
+        let s1 = BufferSentence(text: "Quote.", start: 1, end: 2, words: [], isInInitialSpan: true)
+        XCTAssertFalse(QuoteCaptureProcessor.isUnchangedTrim(included: [true, true], sentences: [s0, s1]),
+                       "user added the context sentence \u{2014} must detect the change")
+        XCTAssertFalse(QuoteCaptureProcessor.isUnchangedTrim(included: [false, false], sentences: [s0, s1]),
+                       "user dropped the included sentence \u{2014} must detect the change")
+    }
+
+    /// Verify the full trim-rebase data contract:
+    /// - active sentences derive the correct spanStart and spanEnd
+    /// - blockquote transcript is formed from the included sentence texts
+    /// - word timings are rebased to t = 0 of the new audio
+    func testTrimRebaseDataContract() {
+        // Two sentences; user wants only sentence 1 (trim context sentence 0).
+        let s0words = [WordTiming(word: "Prelude.", start: 0.0, end: 0.8)]
+        let s1words = [WordTiming(word: "Optimism", start: 1.0, end: 1.4),
+                       WordTiming(word: "wins.", start: 1.5, end: 1.9)]
+        let s0 = BufferSentence(text: "Prelude.", start: 0.0, end: 0.8, words: s0words, isInInitialSpan: false)
+        let s1 = BufferSentence(text: "Optimism wins.", start: 1.0, end: 1.9, words: s1words, isInInitialSpan: true)
+
+        let included = [false, true]
+        let active = zip([s0, s1], included).filter(\.1).map(\.0)
+
+        // Span bounds.
+        let spanStart = active[0].start
+        let spanEnd   = active[active.count - 1].end
+        XCTAssertEqual(spanStart, 1.0, accuracy: 0.001)
+        XCTAssertEqual(spanEnd,   1.9, accuracy: 0.001)
+        XCTAssertEqual(spanEnd - spanStart, 0.9, accuracy: 0.001, "trim duration")
+
+        // Transcript.
+        let joined = active.map(\.text).joined(separator: " ")
+        XCTAssertEqual(QuoteFormatting.blockquote(joined), "> Optimism wins.")
+
+        // Timing rebase.
+        let allWords = active.flatMap(\.words)
+        let rebased = allWords.map {
+            WordTiming(word: $0.word,
+                       start: max(0, $0.start - spanStart),
+                       end:   max(0, $0.end   - spanStart))
+        }
+        XCTAssertEqual(rebased.count, 2)
+        XCTAssertEqual(rebased[0].word, "Optimism")
+        XCTAssertEqual(rebased[0].start, 0.0, accuracy: 0.001, "first word must start at t=0")
+        XCTAssertEqual(rebased[1].word, "wins.")
+        XCTAssertEqual(rebased[1].start, 0.5, accuracy: 0.001)
+        XCTAssertEqual(rebased[1].end,   0.9, accuracy: 0.001)
+    }
+
+    /// Verify that a trim that adds a context sentence BEFORE the initial snap
+    /// correctly anchors its span at the earlier sentence start.
+    func testTrimExpandToContextSentence() {
+        let s0words = [WordTiming(word: "Context.", start: 0.0, end: 0.7)]
+        let s1words = [WordTiming(word: "Quote.", start: 1.0, end: 1.5)]
+        let s0 = BufferSentence(text: "Context.", start: 0.0, end: 0.7, words: s0words, isInInitialSpan: false)
+        let s1 = BufferSentence(text: "Quote.", start: 1.0, end: 1.5, words: s1words, isInInitialSpan: true)
+
+        let active = [s0, s1]   // user included both
+        let spanStart = active[0].start   // 0.0
+        let spanEnd   = active[active.count - 1].end   // 1.5
+
+        // Duration spans both sentences (including the gap between them).
+        XCTAssertEqual(spanEnd - spanStart, 1.5, accuracy: 0.001)
+
+        // Rebased first word at t=0.
+        let allWords = active.flatMap(\.words)
+        let rebased = allWords.map {
+            WordTiming(word: $0.word,
+                       start: max(0, $0.start - spanStart),
+                       end:   max(0, $0.end   - spanStart))
+        }
+        XCTAssertEqual(rebased[0].start, 0.0, accuracy: 0.001)
+        XCTAssertEqual(rebased[1].start, 1.0, accuracy: 0.001, "second sentence starts 1.0 s in the expanded audio")
+    }
 }

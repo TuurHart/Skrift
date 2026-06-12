@@ -441,14 +441,33 @@ private struct MemoPageView: View {
             VStack(alignment: .leading, spacing: 18) {
                 CaptureQuoteBlock(quote: quote.displayText, attribution: memo.quoteAttributionLabel)
                 if player.isPlaying || memo.transcriptStatus == .transcribing {
-                    // Karaoke over the ramble only. The timings sidecar holds the
-                    // quote's spoken words first (no ">" tokens), so the ramble's
-                    // word indices start past them.
-                    TranscriptContentView(
-                        memo: memo, player: player,
-                        overrideText: quote.ramble,
-                        baseWordOffset: quote.spokenWordCount
-                    )
+                    // Karaoke while playing. The timings sidecar always starts
+                    // at the quote's spoken words (index 0). Two sub-cases:
+                    //
+                    // (a) Quote-only capture (no ramble yet): karaoke the quote
+                    //     text from word 0. The styled CaptureQuoteBlock above
+                    //     is non-interactive, so we add a separate read-only
+                    //     karaoke view below it — same text, live highlighting.
+                    //     This is the primary fix for the "karaoke broken on
+                    //     captures" bug: previously overrideText was empty and
+                    //     TranscriptContentView rendered nothing.
+                    //
+                    // (b) Capture with a ramble: karaoke the ramble only
+                    //     (word index = spokenWordCount so the global sidecar
+                    //     index lands correctly on the ramble words).
+                    if quote.ramble.isEmpty {
+                        TranscriptContentView(
+                            memo: memo, player: player,
+                            overrideText: quote.displayText,
+                            baseWordOffset: 0
+                        )
+                    } else {
+                        TranscriptContentView(
+                            memo: memo, player: player,
+                            overrideText: quote.ramble,
+                            baseWordOffset: quote.spokenWordCount
+                        )
+                    }
                 } else {
                     TranscriptEditor(memo: memo, onCommit: { repository.save() })
                 }
