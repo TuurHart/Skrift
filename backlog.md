@@ -560,3 +560,10 @@ Screen matches the mock ✓ (sweep, transport, rate pill, marks, hints). Finding
    audio span FOLLOWS included sentences via word timings; transcript = the existing span±buffer (already
    transcribed — zero wait). Sentence granularity only, no sub-sentence scrubber.
 3. Capture adjust screen FULLSCREEN. 4. Swipe-down closes it.
+
+#### Capture round 2 — DEVICE-VERIFIED working ("it works, very well done"). Two bugs:
+1. KARAOKE broken on captured notes (word highlight/tap-to-seek no longer works during playback).
+   Suspect: round-2 trim re-derives quote text+audio but the word-timings sidecar isn't re-derived/rebased
+   to the final trimmed audio — or the styled-quote rendering path skips karaoke.
+2. MEMO PLAYBACK and the AUDIOBOOK can play SIMULTANEOUSLY (play in a note while the book plays).
+   Fix: AudioPlayerModel.play() pauses AudiobookSession (and book play should pause the memo player).
