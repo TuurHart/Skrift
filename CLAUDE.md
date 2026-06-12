@@ -12,7 +12,9 @@ network (Bonjour + HTTP) and share a names database (bidirectional last-write-wi
 - **`Skrift_Native/SkriftMobile/`** — native **iOS** app. Records voice memos with
   contextual metadata + photos, transcribes on-device (FluidAudio / Parakeet on the
   Apple Neural Engine), syncs to the Mac. Live caption, Live Activity, Control
-  Center + Lock/Home widgets, App Intents, share-to-import audio.
+  Center + Lock/Home widgets, App Intents, share-to-import audio/video, an
+  **audiobook player with quote-capture** (Bound-style library; captures become
+  memos with the quote audio + the user's voice ramble).
 - **`Skrift_Native/SkriftDesktop/`** — native **macOS** app. ONE process: FluidAudio
   (ASR) + mlx-swift (Gemma enhancement) in-process + a thin Bonjour/HTTP server as
   the phone's sync target. Transcribe → enhance → name-link → compile → export to
@@ -77,11 +79,28 @@ Rules:
   and runs alongside prod. (Tell them apart by name "Skrift Dev" + the inverted icon.)
 - **Never rebuild/reinstall PROD while it's in use** (e.g. mid-processing). **Promote to prod
   deliberately, when prod is idle**: Release build + install, and push `native`→`main`.
+- **Device debugging:** DEV builds write a pullable trace to the app container —
+  `Documents/devlog.txt` (`DevLog.log(...)`, ring-buffered, DEBUG-only): recording lifecycle,
+  every audio-route event + formats, tap installs/refusals. Pull it with
+  `xcrun devicectl device copy from --domain-type appDataContainer --domain-identifier
+  com.skrift.mobile.dev --source "Documents/devlog.txt" ...`. **Hardware-flavored bugs (audio
+  routes/BT/sensors): instrument + diagnose from this trace FIRST — the sim gate cannot falsify
+  hardware behavior, and fixes belong to the orchestrator directly, not lanes** (learned the
+  hard way: the AirPods P0 took 4 rounds — crash → policy → cache → wrong API property).
 
 ## Ledgers (read to resume)
 
 - **`FEATURES.md`** — cross-app feature source of truth (every feature × {mobile, desktop} ×
   file × status). **Update it in the same commit whenever you add or change a feature.**
+- **`backlog.md`** — THE working ledger: feature decisions, device-test findings/verdicts, fix
+  status, "CONTINUE HERE" resume points. Triage every brain-dump/feedback batch into it and tick
+  items off **in the same session they land** (user hard requirement).
+- **`Skrift_Native/SkriftDesktop/mocks/*.html`** — signed-off design specs (mock-first is locked
+  process for new UI): v5 (desktop shell), significance-circles, name-unlink, name-a-speaker,
+  capture-items, audiobook-capture. A mock the user approved IS the spec — build to it.
+- **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
+  memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →
+  MANDATORY second-agent verify → triage into backlog.md. Crash logs via `idevicecrashreport`.
 - **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity (current focus): full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
 - `MOBILE_NATIVE_HANDOFF.md` → `MOBILE_NATIVE_REWRITE_PLAN.md` — the iOS app (phases, contract, XCUITest harness).
 - `DESKTOP_NATIVE_HANDOFF.md` → `DESKTOP_NATIVE_REWRITE_PLAN.md` — the macOS app. `WALKTHROUGH_BUGS.md` — desktop walkthrough tracker.
@@ -95,8 +114,14 @@ both apps + full history on one branch so cross-app features land atomically.
 ## Open cross-app work
 
 - **Capture items** (share a URL/text/image into Skrift + annotate it): needs BOTH
-  apps. Mobile = a share-extension target + App Group + the `attachments` multipart
-  part (mobile `UploadMetadata` already carries `sharedContent`/`annotationText`).
-  Desktop = `UploadService` currently only ingests audio `files` (always
-  `sourceType:.audio`) — it must accept a non-audio "capture" content type and carry
-  it through pipeline/compile/export. Build as one coordinated commit on `native`.
+  apps. **Design SIGNED OFF** (`mocks/capture-items.html` — share sheet w/ annotation +
+  significance circles, phone + Mac rendering). Mobile = a share-extension target + App
+  Group + the `attachments` multipart part (mobile `UploadMetadata` already carries
+  `sharedContent`/`annotationText`). Desktop = `UploadService` currently only ingests
+  audio `files` — it must accept a non-audio "capture" content type through
+  pipeline/compile/export. No App Store Connect steps needed (automatic signing
+  registers the extension bundle ID + App Group). Build as one coordinated batch.
+- **Capture-screen redesign (audiobooks)** — DESIGN PAUSED by the user: no more code
+  iterations on `CaptureMomentView` until an interaction design/mock session happens.
+- **Unified source taxonomy** — voice memo / URL / PDF / video / audiobook quote /
+  Apple Note: consistent glyphs + labels across both apps (folds into capture items).
