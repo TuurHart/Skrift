@@ -297,6 +297,23 @@ feel, folder import, AirPods re-insert recheck). Original findings below.
   IGNORE remote-play while a recording is active (session priority).
 - Bookmarks: user considered, DECIDED AGAINST (linking back into books = complexity/fragility). Skip.
 
+#### Round-2 re-test — 2026-06-12 morning (user off to work; CONTINUE HERE)
+- **P0 CRASH: first tap of Record crashed the app** (fresh install, round-2 build). Crash log pull attempted
+  to /tmp/skrift-crashes2 (check SkriftMobile-2026-06-12-*.ips; if absent, pull next plug-in via
+  idevicecrashreport). Suspects: instant-record path or the new route-change tap-reinstall init.
+- **P0 STILL BROKEN: AirPods pull-out stops the recording** (started with AirPods → pulled → recording
+  stopped). The tap-reinstall fix did NOT hold on device. NEXT: stop guessing — add DEV-BUILD FILE LOGGING
+  (user explicitly asked): a ring-buffer log file in the app container (os.Logger mirror or simple appender;
+  recording/route/session events), pullable via devicectl like the feedback skill → diagnose from REAL traces.
+- **Capture tool still confusing — STOP REBUILDING (user decision): design pause.** Next session = sit down
+  with the user / produce interaction mocks for the capture-adjust flow BEFORE more code. No more iteration
+  batches on CaptureMomentView until the design is agreed.
+- **Bar at bottom: looks good now** ✓.
+- **Full player (big-thumbnail screen): add swipe-down to close.** Also: user still couldn't change the
+  cover ("still needs to be able to be changed") — Edit-book-details shipped in round 2 under the ⋯ menu;
+  either they tested before finding it or discoverability is poor → check + consider a tap-on-cover edit
+  affordance.
+
 #### (original findings)
 **WORKED:** import (single file + manual title/author confirm) ✓ · play + mini-player + nudged FAB ✓ ·
 capture E2E ✓ · ramble append ✓ · circles + Will-sync line ✓ · sync to dev Mac ✓ · **QUOTE PROTECTION
