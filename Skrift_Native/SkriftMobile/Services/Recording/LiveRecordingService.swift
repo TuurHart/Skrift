@@ -289,7 +289,11 @@ final class LiveRecordingService: ObservableObject {
 
         let engine = AVAudioEngine()
         let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
+        // inputFormat (the HARDWARE side of the node), NOT outputFormat: the
+        // latter is pinned to the engine's render rate and goes stale across
+        // route changes (DevLog round 4 — it sat at 48 kHz forever while the
+        // hardware and inputFormat said 24 kHz).
+        let format = input.inputFormat(forBus: 0)
         // The mic may not be ready right after activation (e.g. a Bluetooth
         // route still settling): a 0 Hz/0 ch format here would make an invalid
         // .m4a AND crash the tap install. Throw instead — `startRetrying`
@@ -361,11 +365,17 @@ final class LiveRecordingService: ObservableObject {
         let session = AVAudioSession.sharedInstance()
         let sessionRate = session.sampleRate
         let sessionChannels = AVAudioChannelCount(max(0, session.inputNumberOfChannels))
-        let tapFormat = input.outputFormat(forBus: 0)
+        // ROUND-4 FIX (DevLog /tmp/devlog3.txt): validate + install with the
+        // node's INPUT format. `outputFormat(forBus: 0)` is the engine-render
+        // side — it stays frozen at the old rate across route flips (even
+        // through engine.reset()) and can NEVER converge to the session's
+        // hardware format; `inputFormat(forBus: 0)` tracked the hardware
+        // correctly on every logged transition.
+        let tapFormat = input.inputFormat(forBus: 0)
         guard Self.canInstallTap(sessionHwRate: sessionRate, sessionHwChannels: sessionChannels,
                                  vendedRate: tapFormat.sampleRate, vendedChannels: tapFormat.channelCount) else {
             DevLog.log("tap install REFUSED (transient — retry/re-arm) — sessionHw=\(Int(sessionRate))Hz/\(sessionChannels)ch"
-                       + " vended=\(Self.describe(tapFormat)) nodeIn=\(Self.describe(input.inputFormat(forBus: 0)))")
+                       + " nodeIn=\(Self.describe(tapFormat)) vendedOut=\(Self.describe(input.outputFormat(forBus: 0)))")
             return false
         }
         // (Per-install:) the converter is created HERE, from THIS tap's fresh
@@ -588,14 +598,17 @@ final class LiveRecordingService: ObservableObject {
         // in-flight write. `installRecordingTap` below re-reads the (now fresh)
         // vended format and re-validates before touching `installTap`.
         let session = AVAudioSession.sharedInstance()
-        let vendedBefore = input.outputFormat(forBus: 0)
+        // ROUND-4 FIX: decide on the node's INPUT format (tracks hardware) —
+        // outputFormat is engine-render-pinned and never converges, so gating
+        // on it kept this loop refusing forever (DevLog round 4).
+        let nodeInBefore = input.inputFormat(forBus: 0)
         let action = Self.rebuildAction(
             sessionHwRate: session.sampleRate,
             sessionHwChannels: AVAudioChannelCount(max(0, session.inputNumberOfChannels)),
-            vendedRate: vendedBefore.sampleRate,
-            vendedChannels: vendedBefore.channelCount)
+            vendedRate: nodeInBefore.sampleRate,
+            vendedChannels: nodeInBefore.channelCount)
         if action == .resetThenRequery {
-            DevLog.log("rebuild attempt \(attempt) — stale vended \(Self.describe(vendedBefore))"
+            DevLog.log("rebuild attempt \(attempt) — stale nodeIn \(Self.describe(nodeInBefore))"
                        + " vs sessionHw=\(Int(session.sampleRate))Hz/\(session.inputNumberOfChannels)ch"
                        + " — engine.reset() to re-query hardware")
             engine.reset()
