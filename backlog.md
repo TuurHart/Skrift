@@ -661,7 +661,7 @@ specced lanes / Opus for taste; verify lane CLAIMS against write-paths. Feedback
    unified into the 3-mode `TranscriptBodyView`; quote-protection intact; inline as sole editor; sim
    gate green; installed to device). See item 1 for the full shape. Device verification owed by user.
 
-#### ⭐ CONTINUE HERE — session wrap 2026-06-12 evening (next chat starts here)
+#### (superseded by the ⭐ block at the bottom) — session wrap 2026-06-12 evening
 STATE: `native` green through `df4850b`. Everything below is committed, sim-gated green (mobile 336 unit +
 33 UI; desktop 223 unit + full build), and the DEV builds are installed: phone = Skrift Dev with capture
 items; Mac dev build in DerivedData (launch on request for the round-trip test). NOT pushed to main; prod
@@ -758,3 +758,51 @@ OUTSTANDING (later, off the board):
   "transcription a bit weird" cold-start (parked unless seen again).
 - Deferred ideas: watched-folder ingest; summary prompt quality pass; tag lemma expansion; north-star
   semantic timeline ("how my thinking evolved").
+
+#### ⭐ CONTINUE HERE — session wrap 2026-06-12 night (the "do all outstanding" batch)
+STATE: `native` green; every gate passed per commit (mobile 352 unit + 38 UI; desktop 231 unit + full
+build). NOT pushed to main; prod untouched. PHONE: has capture items + share-sheet UX fixes + DICTATION
+(installed earlier tonight); the LAST build (vocab + models tab + bug fixes + QoL) is STAGED in
+`build-device/` — phone went unavailable before install. Install when plugged in + unlocked:
+`xcrun devicectl device install app --device 00008110-001208C902EA201E Skrift_Native/SkriftMobile/build-device/Build/Products/Debug-iphoneos/SkriftMobile.app`
+
+SHIPPED THIS SESSION (all sim/headless-verified, commits in order):
+- Share-sheet UX pass (7f76a77+6b95070): keyboard buried Save (captures losable!) / light-on-dark mix /
+  giant TextEditor / gray host backdrop — all fixed; Safari+Photos probes (opt-in) screenshot the flow E2E.
+- Mac capture half verified LIVE (7799848): C3 fixture POST → store → real Gemma enhance-lite → export.
+  New DEBUG flag `-processfile <id> [-exportafter]`. CAUGHT: Obsidian-forbidden filename chars + unquoted
+  YAML title/summary (Gemma colons break Obsidian frontmatter) — both fixed, all exports affected.
+- VOICE DICTATION in the share sheet (user ask): extension records (no model in-process), app transcribes
+  on drain → annotation; sync holds till done; crash/failure recovery; ON THE PHONE already.
+- CUSTOM VOCABULARY (board 2): CTC spot+rescore in BOTH transcribers + Settings editors both apps +
+  word-timings re-alignment; `-runfile -vocab "A,B"`; LIVE-verified (planted "Jacques" replaced, real
+  Jacks untouched). Dev Mac settings carry ["Skrift"]. Lists are per-device v1 (no sync — possible later).
+- MODELS TAB (board 3): Settings → Library → Models (3 models, downloaded state + sizes). Mac mirror later.
+- CONFIRMED BUGS fixed: names AUTO-SYNC after voice enroll (debounced push, no-op unpaired); photo-marker
+  drift (marks anchored to the words they followed); caption colours now TRUTHFUL (solid = rotated
+  committed chunks — a real finalized signal; volatile = live chunk; expect a LARGER lighter tail
+  on device, up to ~25s — that's honest, not a regression).
+- QoL: desktop unlink popover "CHANGE THIS MENTION TO →" (two-Jacks one-tap fix, Sanitiser.relinkOccurrence);
+  karaoke grid spacing matches static text; silent-video failures self-titled. Git housekeeping done
+  (haslett worktree + robustness-cleanup local branch removed — both targeted archived apps only).
+
+DEVICE-TEST LIST (新, on top of the morning list):
+1. Share from Safari with the NEW sheet: type + tap circles + Save WITH the keyboard up; dictate a
+   voice note (first time = mic permission inside the sheet) → open Skrift Dev → annotation fills in.
+2. Custom words: Settings → Capture → Custom words → add "Skrift" → record a memo saying it.
+3. Models tab shows real sizes once models are on the phone.
+4. Voice-enroll someone → names should reach the Mac WITHOUT a manual sync tap (~3s).
+5. Live caption: solid text never changes now; lighter tail is longer than before (honest).
+6. Desktop: click a [[Name]] → "Change this mention to →" the other Jack.
+
+NOT DONE, with reasons:
+- Significance wall / printer pipeline — user said skip.
+- PROD PROMOTION — blocked on the device tests above + the one-time Xcode App-Group signing visit for
+  the Release bundle IDs (CLAUDE.md records the steps).
+- Mac "name a speaker" review UI — mock `name-a-speaker.html` still awaits sign-off (locked process).
+- Drag-to-multi-select on the memos list — interaction design wants a mock first (locked UI process).
+- Record-a-sample voice enroll in Names & voices — conversation-track; needs real-voice device
+  validation; do with the next conversation-mode session.
+- Desktop trash mirror, source-taxonomy unification pass, desktop A-list perf nits (multipart RAM cap,
+  main.sync bridge, desktop real-timings karaoke, parity golden tests) — pre-existing backlog, untouched.
+- Re-ingest ~30 old notes + "transcription a bit weird" — with-user sessions.

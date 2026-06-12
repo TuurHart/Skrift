@@ -18,7 +18,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
 | Record / pause / resume / stop | ✅ | ➖ | `Features/Recording/RecordView.swift` | Pause hides paused interval from elapsed time. **Instant record (2026-06-11): every entry auto-starts** (FAB, + append, Siri/widget — unified path). ✅ 2026-06-12: legacy ready screen no longer flashes — quiet "Starting…" placeholder while auto-start is in flight; mic-button screen survives only as the empty-stop retry surface (+ ~7 s give-up fallback) |
-| Live caption (auto-scroll + color-by-confidence) | ✅ | ➖ | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: native auto-scroll+scrollback; finalized text solid / trailing words lighter (positional **approximation** — FluidAudio exposes no volatile flag); inline tinted `[photo N]` tokens |
+| Live caption (auto-scroll + color-by-confidence) | ✅ | ➖ | `RecordView.swift` (LiveCaption), `TranscriptionService.liveCaptionParts` | ✅ 2026-06-12: colouring now uses the REAL finalized boundary — words in rotated (committed) chunks render solid (they never re-transcribe), the live chunk lighter; replaces the trailing-6 positional approximation that visibly lied. `[photo N]` tokens are ANCHORED to the words they followed at capture (re-located on rewrite, ±12-word window, clamped fallback) — no more drift |
 | Live waveform (40-bar) | ✅ | ➖ | `RecordView.swift:453-480` | |
 | Model preload status | ✅ | n/a | `RecordView.swift:271-292` | ✅ 2026-06-09: in-place "model loading" placeholder in the caption during record-while-loading, cleared once words arrive |
 | Caption polling | ✅ | ➖ | `Services/Recording/LiveRecordingService.swift:231-243` | 0.6s timer |
