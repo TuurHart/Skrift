@@ -575,3 +575,29 @@ recorder so the ramble lands on trimmed audio) and on finish/close; re-derive fr
 audio = exportSpan(bufferAudioURL, firstWord.start→lastWord.end), transcript = C1 blockquote of joined
 sentences, timings = rebased included words → memo + WordTimings sidecar + duration. Plus: memo player
 and AudiobookSession must be mutually exclusive (each pauses the other on play).
+
+#### ⭐ CONTINUE HERE — session wrap 2026-06-12 (context exhausted; next chat starts at this entry)
+STATE: `native` is green + fully landed (audiobook player + Hybrid capture + sentence-trim persistence +
+playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod untouched.
+
+1. **FIRST TASK — KARAOKE on capture memos, STILL BROKEN (regression; fix INLINE as sole editor, no lane —
+   new standing rule: lanes only for batches).** What the user expects (it WORKED before the 2026-06-12
+   styled-quote presentation landed): karaoke ran over the WHOLE memo text — quote AND ramble, one
+   continuous highlight ("it also did karaoke on what the author said — that was really nice"). What broke
+   it: capture memos now render as a styled non-editable CaptureQuoteBlock + separate ramble editor
+   (Features/MemoDetail/MemoDetailView.swift transcriptSection + TranscriptContentView + CaptureQuoteBlock);
+   the karaoke text path is bypassed. The latest lane patch (df8d077) only special-cased the no-ramble case
+   (and reportedly still doesn't work on device). FIX DIRECTION: during PLAYBACK, swap the entire styled
+   rendering for the classic full-text karaoke view (timings sidecar already covers quote words at offset 0
+   + ramble words after — same data the old whole-text karaoke used); restore styled blocks when playback
+   stops. Verify on device WITH a ramble present.
+2. Then user re-tests: trim persistence end-to-end (tap sentence → ramble → saved audio/text/karaoke match).
+3. Owed smalls: reverse playback exclusion (book-start should silence a playing memo — AudiobookSession
+   side, one guarded call); ready-screen flash removal on instant record (logged 2026-06-12 morning, still
+   open); mini-player idle auto-hide + Siri resume = shipped but untested by user.
+4. THE BOARD: **prod promotion** (recommended next — push native→main + Release builds when prod idle, per
+   CLAUDE.md dev/prod rules), capture-items build (mock signed off), vocab build (spike done), significance-
+   wall design session. Capture-screen design pause is LIFTED (hybrid shipped + verified).
+PROCESS (now in skill rules): single bugs = orchestrator edits directly; lanes ONLY for batches; Sonnet for
+specced lanes / Opus for taste; verify lane CLAIMS against write-paths. Feedback loop: "pull my feedback"
+(skill) + devlog.txt for anything hardware-ish.
