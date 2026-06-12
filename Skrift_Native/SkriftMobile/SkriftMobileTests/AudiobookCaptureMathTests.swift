@@ -1,8 +1,10 @@
 import XCTest
 @testable import SkriftMobile
 
-/// Pure capture math: span proposal/window clamping, sentence-snap-outward,
-/// and the C1 blockquote formatting.
+/// Pure capture math: span proposal clamping, sentence-snap-outward, and the
+/// C1 blockquote formatting. `CaptureSpan` proposal / `transcriptionBuffer`
+/// are unchanged; sentence-snap and formatting are unchanged. Tests that
+/// covered the now-retired micro-scrubber window are in `AudiobookScrubberTests`.
 final class AudiobookCaptureMathTests: XCTestCase {
 
     // MARK: - Span proposal clamping
@@ -39,34 +41,7 @@ final class AudiobookCaptureMathTests: XCTestCase {
         XCTAssertLessThanOrEqual(span.start, span.end)
     }
 
-    // MARK: - Micro-scrubber window clamping
-
-    func testWindowAroundMidFile() {
-        let w = CaptureSpan.window(now: 756, duration: 3600)
-        XCTAssertEqual(w.start, 696)
-        XCTAssertEqual(w.end, 771)
-    }
-
-    func testWindowClampsAtFileStart() {
-        let w = CaptureSpan.window(now: 20, duration: 3600)
-        XCTAssertEqual(w.start, 0)
-        XCTAssertEqual(w.end, 35)
-    }
-
-    func testWindowClampsAtFileEnd() {
-        let w = CaptureSpan.window(now: 3595, duration: 3600)
-        XCTAssertEqual(w.start, 3535)
-        XCTAssertEqual(w.end, 3600)
-    }
-
-    func testWindowContainsProposal() {
-        for now in [0.0, 5, 31, 800, 3599] {
-            let span = CaptureSpan.proposal(now: now, duration: 3600)
-            let w = CaptureSpan.window(now: now, duration: 3600)
-            XCTAssertLessThanOrEqual(w.start, span.start, "window must contain the proposal (now=\(now))")
-            XCTAssertGreaterThanOrEqual(w.end, span.end, "window must contain the proposal (now=\(now))")
-        }
-    }
+    // MARK: - Transcription buffer
 
     func testTranscriptionBufferPadsAndClamps() {
         let buffer = CaptureSpan.transcriptionBuffer(
@@ -76,7 +51,7 @@ final class AudiobookCaptureMathTests: XCTestCase {
         XCTAssertEqual(buffer.end, 50)     // 40 + 20 clamps to duration
     }
 
-    // MARK: - Sentence snap (outward on both edges)
+    // MARK: - Sentence snap (outward on both edges, unchanged)
 
     /// "Hello world. Next sentence here. And more." with one word per slot.
     private let words: [WordTiming] = [
@@ -118,15 +93,15 @@ final class AudiobookCaptureMathTests: XCTestCase {
 
     func testSnapHandlesTrailingClosingQuotes() {
         let quoted: [WordTiming] = [
-            WordTiming(word: "“Optimism", start: 0, end: 0.4),
-            WordTiming(word: "wins.”", start: 0.5, end: 0.9),
+            WordTiming(word: "\u{201C}Optimism", start: 0, end: 0.4),
+            WordTiming(word: "wins.\u{201D}", start: 0.5, end: 0.9),
             WordTiming(word: "He", start: 1.0, end: 1.2),
             WordTiming(word: "smiled.", start: 1.3, end: 1.7),
         ]
-        // wins.” must count as a sentence end despite the trailing quote.
+        // wins." must count as a sentence end despite the trailing quote.
         let snapped = SentenceSnap.snap(words: quoted, proposedIn: 0.1, proposedOut: 0.6)
         XCTAssertEqual(snapped?.end, 0.9)
-        XCTAssertEqual(snapped?.text, "“Optimism wins.”")
+        XCTAssertEqual(snapped?.text, "\u{201C}Optimism wins.\u{201D}")
     }
 
     func testSnapEmptyWordsReturnsNil() {
@@ -137,7 +112,7 @@ final class AudiobookCaptureMathTests: XCTestCase {
         XCTAssertTrue(SentenceSnap.isSentenceEnd("done."))
         XCTAssertTrue(SentenceSnap.isSentenceEnd("what?!"))
         XCTAssertTrue(SentenceSnap.isSentenceEnd("wait…"))
-        XCTAssertTrue(SentenceSnap.isSentenceEnd("said.”"))
+        XCTAssertTrue(SentenceSnap.isSentenceEnd("said.\u{201D}"))
         XCTAssertFalse(SentenceSnap.isSentenceEnd("comma,"))
         XCTAssertFalse(SentenceSnap.isSentenceEnd("plain"))
         XCTAssertFalse(SentenceSnap.isSentenceEnd(""))
@@ -196,7 +171,39 @@ final class AudiobookCaptureMathTests: XCTestCase {
         XCTAssertEqual(
             QuoteFormatting.rambleBody(transcript: "> Q.\n\n[[img_001]] thoughts here\n> spoken aside"),
             "thoughts here\n> spoken aside",
-            "only the LEADING block is the quote — later ‘>’ lines are ramble content"
+            "only the LEADING block is the quote — later '>' lines are ramble content"
         )
+    }
+
+    // MARK: - CaptureMath — mark placement (key cross-checks)
+
+    private let testBounds = CaptureSpan.Span(start: 0, end: 3600)
+
+    func testInMarkBiasIsSevenTenthsOfASecond() {
+        XCTAssertEqual(CaptureMath.reactionBias, 0.7,
+                       "bias matches the spec and the mock's `−0.7 s` callout")
+    }
+
+    func testOutMarkMinimumSpanIsOneSecond() {
+        XCTAssertEqual(CaptureMath.minimumSpan, 1)
+    }
+
+    func testNudgeDeltaOfOneSecondIsExact() {
+        // Verify that a chip tap nudges by EXACTLY 1 s (the spec says ±1s).
+        let newIn = CaptureMath.nudgeInMark(current: 100, delta: -1, outMark: 200, bounds: testBounds)
+        XCTAssertEqual(newIn, 99)
+        let newOut = CaptureMath.nudgeOutMark(current: 200, delta: 1, inMark: 100, bounds: testBounds)
+        XCTAssertEqual(newOut, 201)
+    }
+
+    func testReplayWindowLookbackMatchesSpec() {
+        // Spec says "−45 s" on entry.
+        XCTAssertEqual(CaptureSpan.replayLookback, 45,
+                       "the initial strip window must look back exactly 45 s")
+    }
+
+    func testWindowExtensionStepMatchesSpec() {
+        // Spec says ⟲ extends by the same step (45 s).
+        XCTAssertEqual(CaptureSpan.windowExtensionStep, 45)
     }
 }

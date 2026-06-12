@@ -1,201 +1,288 @@
 import XCTest
 @testable import SkriftMobile
 
-/// Pure micro-scrubber math (`CaptureScrub`): drag latching (which handle a
-/// drag moves is decided ONCE, at gesture start), no-cross clamping with the
-/// minimum span, x↔time mapping, and the pannable window (background pan +
-/// handle edge-bump), all inside the file's bounds.
+/// Pure Hybrid capture-adjust math (`CaptureMath`):
+/// - mark placement with reaction bias
+/// - ±1s chip nudging and clamping
+/// - seek targets after chip taps
+/// - strip x↔time mapping
+/// - window extension on ⟲-past-edge
+/// - ⟲5 / 5⟳ skip handling
+/// - `CaptureSpan.replayWindow` initial window
+///
+/// Everything here is host-less (no AVFoundation, no UI).
 final class AudiobookScrubberTests: XCTestCase {
 
     private typealias Span = CaptureSpan.Span
 
     private let bounds = Span(start: 0, end: 3600)
 
-    // MARK: - Latch (the "OUT jumps while dragging toward IN" bug)
+    // MARK: - Mark placement — reaction bias
 
-    func testLatchClaimsFirstHandleAndRefusesTheOther() {
-        var latch = CaptureScrub.Latch()
-        XCTAssertNil(latch.active)
-        XCTAssertTrue(latch.claim(.inMarker), "a free latch is claimed by the first drag")
-        XCTAssertFalse(latch.claim(.outMarker), "a second touch can't steal the drag")
-        XCTAssertTrue(latch.claim(.inMarker), "the owner keeps re-claiming per move")
-        XCTAssertEqual(latch.active, .inMarker)
+    func testInMarkWhilePlayingAppliesBias() {
+        let mark = CaptureMath.placeInMark(playheadTime: 100, isPlaying: true, bounds: bounds)
+        XCTAssertEqual(mark, 100 - CaptureMath.reactionBias, accuracy: 0.001,
+                       "IN while playing: mark lands 0.7 s before the playhead")
     }
 
-    func testLatchReleasesOnlyByOwner() {
-        var latch = CaptureScrub.Latch()
-        XCTAssertTrue(latch.claim(.outMarker))
-        latch.release(.inMarker)   // the losing gesture's stray onEnded
-        XCTAssertEqual(latch.active, .outMarker, "a non-owner release must not free the latch")
-        latch.release(.outMarker)
-        XCTAssertNil(latch.active)
-        XCTAssertTrue(latch.claim(.inMarker), "free again after the owner releases")
+    func testInMarkWhilePausedIsExact() {
+        let mark = CaptureMath.placeInMark(playheadTime: 100, isPlaying: false, bounds: bounds)
+        XCTAssertEqual(mark, 100,
+                       "IN while paused: mark lands exactly at the playhead")
     }
 
-    // MARK: - Handle clamping (no crossing, minimum span, bounds)
-
-    func testDraggedInTowardOutStopsAtMinimumSpan() {
-        let span = Span(start: 100, end: 130)
-        let s = CaptureScrub.dragged(span, handle: .inMarker, to: 129.5, bounds: bounds)
-        XCTAssertEqual(s.start, 129, "IN stops one second before OUT")
-        XCTAssertEqual(s.end, 130, "OUT never moves on an IN drag")
+    func testOutMarkWhilePlayingAppliesBias() {
+        let mark = CaptureMath.placeOutMark(playheadTime: 200, isPlaying: true, inMark: nil, bounds: bounds)
+        XCTAssertEqual(mark, 200 - CaptureMath.reactionBias, accuracy: 0.001)
     }
 
-    func testDraggedOutTowardInStopsAtMinimumSpan() {
-        let span = Span(start: 100, end: 130)
-        let s = CaptureScrub.dragged(span, handle: .outMarker, to: 50, bounds: bounds)
-        XCTAssertEqual(s.end, 101, "OUT stops one second after IN")
-        XCTAssertEqual(s.start, 100, "IN never moves on an OUT drag")
+    func testOutMarkWhilePausedIsExact() {
+        let mark = CaptureMath.placeOutMark(playheadTime: 200, isPlaying: false, inMark: nil, bounds: bounds)
+        XCTAssertEqual(mark, 200)
     }
 
-    func testDraggedClampsToBounds() {
-        let span = Span(start: 100, end: 130)
-        XCTAssertEqual(
-            CaptureScrub.dragged(span, handle: .inMarker, to: -50, bounds: bounds).start, 0
+    func testOutMarkEnforcesMinimumSpanAboveInMark() {
+        // OUT placed at 100 with IN at 100 — must be pushed forward to IN + 1 s.
+        let mark = CaptureMath.placeOutMark(
+            playheadTime: 100, isPlaying: false, inMark: 100, bounds: bounds
         )
-        XCTAssertEqual(
-            CaptureScrub.dragged(span, handle: .outMarker, to: 9999, bounds: bounds).end, 3600
-        )
+        XCTAssertEqual(mark, 101, "OUT ≥ IN + minimumSpan")
     }
 
-    // MARK: - Window-confined drag (round 2: no edge-bump runaway)
-
-    func testWindowConfinedDragPinsAtTheWindowEdge() {
-        // The device finding: dragging OUT past the strip's edge used to
-        // edge-bump the window along and run the span to pause+256 s. Now the
-        // handle pins at the visible window's edge instead.
-        let window = Span(start: 100, end: 175)
-        let span = Span(start: 130, end: 160)
-        let s = CaptureScrub.dragged(
-            span, handle: .outMarker, to: 9999, within: window, bounds: bounds
+    func testOutMarkWhilePlayingEnforcesMinimumSpanAfterBias() {
+        // Playing, playhead at 100.7 → after bias OUT would land at 100 = IN.
+        let mark = CaptureMath.placeOutMark(
+            playheadTime: 100.7, isPlaying: true, inMark: 100, bounds: bounds
         )
-        XCTAssertEqual(s.end, 175, "OUT pins at the window edge, not the file edge")
-        XCTAssertEqual(s.start, 130)
-
-        let s2 = CaptureScrub.dragged(
-            span, handle: .inMarker, to: -9999, within: window, bounds: bounds
-        )
-        XCTAssertEqual(s2.start, 100, "IN pins at the window edge")
-        XCTAssertEqual(s2.end, 160)
+        // 100.7 - 0.7 = 100, which equals IN → must be pushed to 101.
+        XCTAssertGreaterThanOrEqual(mark, 100 + CaptureMath.minimumSpan)
     }
 
-    func testWindowConfinedDragInsideTheWindowIsUnchangedBehavior() {
-        let window = Span(start: 100, end: 175)
-        let span = Span(start: 130, end: 160)
-        let s = CaptureScrub.dragged(
-            span, handle: .inMarker, to: 112, within: window, bounds: bounds
-        )
-        XCTAssertEqual(s, Span(start: 112, end: 160))
+    // MARK: - Clamping to bounds
+
+    func testInMarkClampsToFileStart() {
+        let mark = CaptureMath.placeInMark(playheadTime: 0, isPlaying: true, bounds: bounds)
+        XCTAssertEqual(mark, 0, "bias can't push IN before the file start")
     }
 
-    func testWindowConfinedDragStillRespectsBoundsAndMinimumSpan() {
-        // A window panned to the file's start: the window edge may sit OUTSIDE
-        // the bounds-clamp's reach — bounds still win.
-        let window = Span(start: -10, end: 65)   // degenerate (pan clamps in
-        // practice, but the math must not trust it)
-        let span = Span(start: 5, end: 30)
-        let s = CaptureScrub.dragged(
-            span, handle: .inMarker, to: -9999, within: window, bounds: bounds
-        )
-        XCTAssertEqual(s.start, 0, "bounds outrank the window")
-        // Minimum span survives the window pin too.
-        let tight = CaptureScrub.dragged(
-            Span(start: 100, end: 101), handle: .outMarker, to: 100,
-            within: Span(start: 99, end: 174), bounds: bounds
-        )
-        XCTAssertEqual(tight.end, 101, "OUT never crosses within a window either")
+    func testInMarkClampsToFileEnd() {
+        let mark = CaptureMath.placeInMark(playheadTime: 4000, isPlaying: false, bounds: bounds)
+        XCTAssertEqual(mark, 3600)
     }
 
-    func testDraggedRespectsOffsetBounds() {
-        // A multi-file book's second file: bounds don't start at 0.
+    func testOutMarkClampsToFileEnd() {
+        let mark = CaptureMath.placeOutMark(playheadTime: 9999, isPlaying: false, inMark: nil, bounds: bounds)
+        XCTAssertEqual(mark, 3600)
+    }
+
+    func testMarksWorkOnOffsetBounds() {
+        // Multi-file book: second file starts at 600.
         let fileBounds = Span(start: 600, end: 900)
-        let span = Span(start: 700, end: 730)
-        XCTAssertEqual(
-            CaptureScrub.dragged(span, handle: .inMarker, to: 10, bounds: fileBounds).start, 600,
-            "IN can't leave the file"
-        )
-        XCTAssertEqual(
-            CaptureScrub.dragged(span, handle: .outMarker, to: 2000, bounds: fileBounds).end, 900,
-            "OUT can't leave the file"
-        )
+        let inM = CaptureMath.placeInMark(playheadTime: 595, isPlaying: false, bounds: fileBounds)
+        XCTAssertEqual(inM, 600, "IN can't leave the file")
+        let outM = CaptureMath.placeOutMark(playheadTime: 950, isPlaying: false, inMark: nil, bounds: fileBounds)
+        XCTAssertEqual(outM, 900, "OUT can't leave the file")
     }
 
-    func testDraggedOnTinyFileNeverCrosses() {
-        // File shorter than the minimum span: the guards must not invert.
-        let tiny = Span(start: 0, end: 0.5)
-        let span = Span(start: 0, end: 0.5)
-        let s1 = CaptureScrub.dragged(span, handle: .inMarker, to: 0.4, bounds: tiny)
-        XCTAssertLessThanOrEqual(s1.start, s1.end)
-        let s2 = CaptureScrub.dragged(span, handle: .outMarker, to: 0.1, bounds: tiny)
-        XCTAssertLessThanOrEqual(s2.start, s2.end)
+    // MARK: - ±1s chip nudging
+
+    func testNudgeInBackwardByOneSecond() {
+        let result = CaptureMath.nudgeInMark(current: 100, delta: -1, outMark: 110, bounds: bounds)
+        XCTAssertEqual(result, 99)
     }
 
-    // MARK: - x ↔ time mapping
+    func testNudgeInForwardByOneSecond() {
+        let result = CaptureMath.nudgeInMark(current: 100, delta: 1, outMark: 110, bounds: bounds)
+        XCTAssertEqual(result, 101)
+    }
 
-    func testTimeAtXMapsLinearlyAndUnclamped() {
+    func testNudgeInNeverCrossesOut() {
+        // Pushing IN forward toward OUT − 1 s.
+        let result = CaptureMath.nudgeInMark(current: 109.5, delta: 1, outMark: 110, bounds: bounds)
+        XCTAssertEqual(result, 109, "IN stops at OUT − minimumSpan")
+    }
+
+    func testNudgeInClampsToFileStart() {
+        let result = CaptureMath.nudgeInMark(current: 0.5, delta: -1, outMark: nil, bounds: bounds)
+        XCTAssertEqual(result, 0)
+    }
+
+    func testNudgeOutForwardByOneSecond() {
+        let result = CaptureMath.nudgeOutMark(current: 110, delta: 1, inMark: 100, bounds: bounds)
+        XCTAssertEqual(result, 111)
+    }
+
+    func testNudgeOutBackwardByOneSecond() {
+        let result = CaptureMath.nudgeOutMark(current: 110, delta: -1, inMark: 100, bounds: bounds)
+        XCTAssertEqual(result, 109)
+    }
+
+    func testNudgeOutNeverCrossesIn() {
+        // Pushing OUT backward toward IN + 1 s.
+        let result = CaptureMath.nudgeOutMark(current: 100.5, delta: -1, inMark: 100, bounds: bounds)
+        XCTAssertEqual(result, 101, "OUT stops at IN + minimumSpan")
+    }
+
+    func testNudgeOutClampsToFileEnd() {
+        let result = CaptureMath.nudgeOutMark(current: 3599.5, delta: 1, inMark: nil, bounds: bounds)
+        XCTAssertEqual(result, 3600)
+    }
+
+    // MARK: - Seek targets after chip taps
+
+    func testInChipSeekTargetIsAtTheNewMark() {
+        let target = CaptureMath.inChipSeekTarget(newInMark: 120)
+        XCTAssertEqual(target, 120, "IN chip starts playback from the new in-mark")
+    }
+
+    func testOutChipSeekTargetIsTailLengthBeforeOut() {
+        let target = CaptureMath.outChipSeekTarget(newOutMark: 200, inMark: nil)
+        XCTAssertEqual(target, 200 - CaptureMath.outChipTailLength, accuracy: 0.001)
+    }
+
+    func testOutChipSeekTargetClampsToInMark() {
+        // Short span: outMark is only 2 s after inMark — the tail can't go before inMark.
+        let target = CaptureMath.outChipSeekTarget(newOutMark: 102, inMark: 100)
+        XCTAssertGreaterThanOrEqual(target, 100, "seek never goes before the in-mark")
+    }
+
+    // MARK: - Window extension
+
+    func testExtendWindowLeftByDefaultStep() {
+        let window = Span(start: 100, end: 500)
+        let extended = CaptureMath.extendWindowLeft(window: window, bounds: bounds)
+        XCTAssertEqual(extended.start, 100 - CaptureSpan.windowExtensionStep)
+        XCTAssertEqual(extended.end, 500, "right edge (pause point) is unchanged")
+    }
+
+    func testExtendWindowLeftClampsToFileStart() {
+        let window = Span(start: 20, end: 500)
+        let extended = CaptureMath.extendWindowLeft(window: window, bounds: bounds)
+        XCTAssertEqual(extended.start, 0, "can't extend past the file start")
+    }
+
+    func testExtendWindowLeftOnOffsetBounds() {
+        let fileBounds = Span(start: 600, end: 900)
+        let window = Span(start: 610, end: 810)
+        let extended = CaptureMath.extendWindowLeft(window: window, bounds: fileBounds)
+        XCTAssertEqual(extended.start, 600, "clamped to file start in offset bounds")
+        XCTAssertEqual(extended.end, 810)
+    }
+
+    func testExtendWindowLeftAlreadyAtBoundsStart() {
+        let window = Span(start: 0, end: 500)
+        let extended = CaptureMath.extendWindowLeft(window: window, bounds: bounds)
+        XCTAssertEqual(extended.start, 0, "already at start — no change")
+    }
+
+    // MARK: - Strip x ↔ time mapping
+
+    func testTimeAtXMapsLinearly() {
         let window = Span(start: 100, end: 175)   // 75 s on a 300 pt strip
-        XCTAssertEqual(CaptureScrub.time(atX: 0, stripWidth: 300, window: window), 100)
-        XCTAssertEqual(CaptureScrub.time(atX: 300, stripWidth: 300, window: window), 175)
-        XCTAssertEqual(CaptureScrub.time(atX: 150, stripWidth: 300, window: window), 137.5)
-        // Past the edges it keeps going — that's what drives the edge-bump.
-        XCTAssertEqual(CaptureScrub.time(atX: -40, stripWidth: 300, window: window), 90)
-        XCTAssertEqual(CaptureScrub.time(atX: 340, stripWidth: 300, window: window), 185)
+        XCTAssertEqual(CaptureMath.time(atX: 0, stripWidth: 300, window: window), 100)
+        XCTAssertEqual(CaptureMath.time(atX: 300, stripWidth: 300, window: window), 175)
+        XCTAssertEqual(CaptureMath.time(atX: 150, stripWidth: 300, window: window), 137.5)
     }
 
-    // MARK: - Window panning
-
-    func testPanPreservesLengthAndClampsAtBounds() {
+    func testTimeAtXIsUnclamped() {
         let window = Span(start: 100, end: 175)
-        let left = CaptureScrub.pan(window, by: -50, bounds: bounds)
-        XCTAssertEqual(left.start, 50)
-        XCTAssertEqual(left.length, 75, accuracy: 0.0001)
-
-        let pinnedLeft = CaptureScrub.pan(window, by: -500, bounds: bounds)
-        XCTAssertEqual(pinnedLeft.start, 0)
-        XCTAssertEqual(pinnedLeft.length, 75, accuracy: 0.0001)
-
-        let pinnedRight = CaptureScrub.pan(window, by: 99999, bounds: bounds)
-        XCTAssertEqual(pinnedRight.end, 3600)
-        XCTAssertEqual(pinnedRight.length, 75, accuracy: 0.0001)
+        XCTAssertEqual(CaptureMath.time(atX: -40, stripWidth: 300, window: window), 90,
+                       "past the left edge maps past the window — used for extension detection")
+        XCTAssertEqual(CaptureMath.time(atX: 340, stripWidth: 300, window: window), 185)
     }
 
-    func testPanInsideOffsetBounds() {
+    func testTimeAtXZeroWidthReturnsWindowStart() {
+        let window = Span(start: 100, end: 175)
+        XCTAssertEqual(CaptureMath.time(atX: 50, stripWidth: 0, window: window), 100)
+    }
+
+    func testXPositionRoundTrips() {
+        let window = Span(start: 100, end: 175)
+        let t = 140.0
+        let x = CaptureMath.xPosition(of: t, stripWidth: 300, window: window)
+        let back = CaptureMath.time(atX: x, stripWidth: 300, window: window)
+        XCTAssertEqual(back, t, accuracy: 0.001)
+    }
+
+    // MARK: - ⟲5 / 5⟳ skip handling
+
+    func testSkipForwardMovesPlayhead() {
+        let window = Span(start: 100, end: 200)
+        let (newTime, extend) = CaptureMath.applySkip(
+            playheadTime: 150, delta: 5, window: window, bounds: bounds
+        )
+        XCTAssertEqual(newTime, 155)
+        XCTAssertFalse(extend)
+    }
+
+    func testSkipBackwardMovesPlayhead() {
+        let window = Span(start: 100, end: 200)
+        let (newTime, extend) = CaptureMath.applySkip(
+            playheadTime: 150, delta: -5, window: window, bounds: bounds
+        )
+        XCTAssertEqual(newTime, 145)
+        XCTAssertFalse(extend)
+    }
+
+    func testSkipBackwardPastWindowLeftEdgeSignalsExtension() {
+        let window = Span(start: 100, end: 200)
+        let (newTime, extend) = CaptureMath.applySkip(
+            playheadTime: 102, delta: -5, window: window, bounds: bounds
+        )
+        XCTAssertTrue(extend, "skip past the left edge should signal a window extension")
+        XCTAssertEqual(newTime, window.start, "playhead pins at the window start")
+    }
+
+    func testSkipForwardClampsToBoundsEnd() {
+        let window = Span(start: 3500, end: 3600)
+        let (newTime, extend) = CaptureMath.applySkip(
+            playheadTime: 3598, delta: 5, window: window, bounds: bounds
+        )
+        XCTAssertEqual(newTime, 3600, "forward skip clamps to file end")
+        XCTAssertFalse(extend)
+    }
+
+    func testSkipOnOffsetBoundsDoesNotLeaveFIle() {
         let fileBounds = Span(start: 600, end: 900)
-        let window = Span(start: 700, end: 775)
-        let pinned = CaptureScrub.pan(window, by: -500, bounds: fileBounds)
-        XCTAssertEqual(pinned.start, 600, "the window can't pan before the file")
-        XCTAssertEqual(pinned.length, 75, accuracy: 0.0001)
+        let window = Span(start: 620, end: 900)
+        let (newTime, _) = CaptureMath.applySkip(
+            playheadTime: 898, delta: 5, window: window, bounds: fileBounds
+        )
+        XCTAssertEqual(newTime, 900)
     }
 
-    func testPanWhenBoundsShorterThanWindowCollapsesToBounds() {
-        let tiny = Span(start: 0, end: 40)
-        let window = Span(start: 0, end: 40)
-        let panned = CaptureScrub.pan(window, by: 10, bounds: tiny)
-        XCTAssertEqual(panned, tiny)
+    // MARK: - Replay window (initial strip window)
+
+    func testReplayWindowIsLast45SecondsByDefault() {
+        let w = CaptureSpan.replayWindow(now: 756, in: Span(start: 0, end: 3600))
+        XCTAssertEqual(w.start, 756 - CaptureSpan.replayLookback)
+        XCTAssertEqual(w.end, 756, "right edge is always the pause point")
     }
 
-    func testPannedToIncludeOnlyMovesWhenNeeded() {
-        let window = Span(start: 100, end: 175)
-        // Inside → untouched.
-        XCTAssertEqual(CaptureScrub.panned(toInclude: 150, window: window, bounds: bounds), window)
-        // Below → slides left exactly to the target.
-        let left = CaptureScrub.panned(toInclude: 80, window: window, bounds: bounds)
-        XCTAssertEqual(left.start, 80)
-        XCTAssertEqual(left.length, 75, accuracy: 0.0001)
-        // Above → slides right exactly to the target.
-        let right = CaptureScrub.panned(toInclude: 200, window: window, bounds: bounds)
-        XCTAssertEqual(right.end, 200)
-        XCTAssertEqual(right.length, 75, accuracy: 0.0001)
-        // Target beyond the bounds clamps to the bounds edge.
-        let pinned = CaptureScrub.panned(toInclude: -100, window: window, bounds: bounds)
-        XCTAssertEqual(pinned.start, 0)
+    func testReplayWindowClampsAtFileStart() {
+        let w = CaptureSpan.replayWindow(now: 20, in: Span(start: 0, end: 3600))
+        XCTAssertEqual(w.start, 0, "can't look back before file start")
+        XCTAssertEqual(w.end, 20)
     }
 
-    // MARK: - Bounded proposal / window (multi-file capture confinement)
+    func testReplayWindowOnOffsetBounds() {
+        let fileBounds = Span(start: 600, end: 900)
+        let w = CaptureSpan.replayWindow(now: 620, in: fileBounds)
+        XCTAssertEqual(w.start, 600, "clamped to file start")
+        XCTAssertEqual(w.end, 620)
+    }
+
+    func testReplayWindowRightEdgeIsAlwaysPausePoint() {
+        for now in [0.0, 5, 31, 800, 3599] {
+            let w = CaptureSpan.replayWindow(now: now, in: Span(start: 0, end: 3600))
+            XCTAssertEqual(w.end, now, "right edge = pause point (now=\(now))")
+        }
+    }
+
+    // MARK: - Bounded proposal (multi-file capture confinement, unchanged)
 
     func testBoundedProposalClampsToFileStart() {
         let fileBounds = Span(start: 600, end: 900)
-        // 10 s into the second file: the lookback can't reach the prior file.
         let span = CaptureSpan.proposal(now: 610, in: fileBounds)
         XCTAssertEqual(span.start, 600)
         XCTAssertEqual(span.end, 610)
@@ -205,30 +292,5 @@ final class AudiobookScrubberTests: XCTestCase {
         let span = CaptureSpan.proposal(now: 800, in: Span(start: 600, end: 900))
         XCTAssertEqual(span.start, 770)
         XCTAssertEqual(span.end, 800)
-    }
-
-    func testBoundedProposalAtFileStartOffersMinimalForwardSpan() {
-        let span = CaptureSpan.proposal(now: 600, in: Span(start: 600, end: 900))
-        XCTAssertEqual(span.start, 600)
-        XCTAssertEqual(span.end, 600 + CaptureSpan.minimumSpan)
-    }
-
-    func testBoundedWindowClampsToFile() {
-        let fileBounds = Span(start: 600, end: 900)
-        let w = CaptureSpan.window(now: 620, in: fileBounds)
-        XCTAssertEqual(w.start, 600, "the window never reaches the prior file")
-        XCTAssertEqual(w.end, 635)
-
-        let end = CaptureSpan.window(now: 895, in: fileBounds)
-        XCTAssertEqual(end.end, 900)
-        XCTAssertEqual(end.start, 835)
-    }
-
-    func testUnboundedVariantsStillMatchLegacyBehavior() {
-        // The duration-based entry points delegate to the bounded ones.
-        XCTAssertEqual(CaptureSpan.proposal(now: 756, duration: 3600),
-                       CaptureSpan.proposal(now: 756, in: Span(start: 0, end: 3600)))
-        XCTAssertEqual(CaptureSpan.window(now: 756, duration: 3600),
-                       CaptureSpan.window(now: 756, in: Span(start: 0, end: 3600)))
     }
 }
