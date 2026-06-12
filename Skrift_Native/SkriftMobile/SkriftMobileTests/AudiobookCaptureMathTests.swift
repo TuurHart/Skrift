@@ -71,11 +71,31 @@ final class AudiobookCaptureMathTests: XCTestCase {
         XCTAssertEqual(snapped?.text, "Next sentence here.")
     }
 
-    func testSnapInMovesEarlierNeverLater() {
-        // 0.6 sits inside the FIRST sentence — IN must go back to its start.
+    func testSnapInNearTailForwardSnapsToNextSentence() {
+        // 0.6 sits 0.4 s before the next sentence start (1.0). That is within
+        // the 1.0 s forward-snap threshold — the reaction-bias overshoot
+        // signature — so IN snaps FORWARD to "Next sentence here.".
         let snapped = SentenceSnap.snap(words: words, proposedIn: 0.6, proposedOut: 2.1)
-        XCTAssertEqual(snapped?.start, 0.0)
-        XCTAssertEqual(snapped?.text, "Hello world. Next sentence here.")
+        XCTAssertEqual(snapped?.start, 1.0, "tail of previous sentence: forward snap to next sentence start")
+        XCTAssertEqual(snapped?.text, "Next sentence here.")
+    }
+
+    func testSnapInDeepInsideSentenceSnapsBackward() {
+        // 0.2 sits 0.8 s before the next sentence start (1.0) — within the
+        // 1.0 s forward-snap threshold, so it also snaps forward. But a mark
+        // EARLY (0.1 s) in a sentence lands 0.9 s before the next start and
+        // still forward-snaps. To test genuine backward snap: place the mark
+        // far past any nearby sentence boundary (e.g. 1.6 — 0.9 s into the
+        // second sentence, 0.9 s before sentence 3 at 2.5). Forward snap:
+        // 2.5 − 1.6 = 0.9 s ≤ threshold → snaps FORWARD to sentence 3.
+        // For a genuine backward case use proposedIn 1.8 → next start 2.5 is
+        // 0.7 s away, still within threshold. Try 1.9 → 2.5 − 1.9 = 0.6 ≤ 1.0.
+        // The sentences here are: S0=[0,0.9], S1=[1.0,2.4], S2=[2.5,3.4].
+        // Truly mid-sentence backward: place mark so the NEXT sentence is > 1.0 s away.
+        // proposedIn=1.4 → next start 2.5, distance 1.1 s > threshold → backward to 1.0.
+        let snapped = SentenceSnap.snap(words: words, proposedIn: 1.4, proposedOut: 2.1)
+        XCTAssertEqual(snapped?.start, 1.0, "deep mid-sentence: next start > 1.0 s away, snap backward")
+        XCTAssertEqual(snapped?.text, "Next sentence here.")
     }
 
     func testSnapOutPastLastTerminatorFallsToLastWord() {
@@ -106,6 +126,46 @@ final class AudiobookCaptureMathTests: XCTestCase {
 
     func testSnapEmptyWordsReturnsNil() {
         XCTAssertNil(SentenceSnap.snap(words: [], proposedIn: 0, proposedOut: 5))
+    }
+
+    // MARK: - Nearest-boundary IN snap (item 1)
+    //
+    // Scenario: sentences are "Hello world." (0.0–0.9) and "Next sentence here."
+    // (1.0–2.4). The reaction bias of −0.7 s drops the IN mark at 0.9 − 0.7 = 0.2
+    // into the TAIL of the first sentence. Nearest-boundary detects the next
+    // sentence start (1.0) is only 0.8 s ahead (< 1.0 s threshold) and snaps
+    // FORWARD to sentence 2 instead of backward to sentence 1.
+
+    func testSnapInOvershootForwardToNextSentenceStart() {
+        // Mark at 0.25 — within 1.0 s before the next sentence start at 1.0.
+        // Expected: snaps FORWARD to "Next sentence here." (start = 1.0)
+        let snapped = SentenceSnap.snap(words: words, proposedIn: 0.25, proposedOut: 2.1)
+        XCTAssertEqual(snapped?.start, 1.0, "overshoot forward: IN should snap to the next sentence start")
+        XCTAssertEqual(snapped?.text, "Next sentence here.")
+    }
+
+    func testSnapInGenuineMidSentenceSnapsBackward() {
+        // Mark at 1.2 — well inside "Next sentence here." (1.0–2.4), not in
+        // the forward-snap zone of the following sentence (next start is 2.5,
+        // 1.2 to 2.5 = 1.3 s > threshold). Expected: snaps BACKWARD to 1.0.
+        let snapped = SentenceSnap.snap(words: words, proposedIn: 1.2, proposedOut: 2.1)
+        XCTAssertEqual(snapped?.start, 1.0, "genuine mid-sentence: IN snaps backward (outward)")
+        XCTAssertEqual(snapped?.text, "Next sentence here.")
+    }
+
+    func testSnapInExactBoundaryStaysAtThatSentenceStart() {
+        // Mark exactly at sentence start 1.0 — proposedIn == sentence start.
+        // The next sentence start is 2.5, which is 1.5 s away (> threshold).
+        // Not in the forward zone. Expected: stays at 1.0 (backward snap to self).
+        let snapped = SentenceSnap.snap(words: words, proposedIn: 1.0, proposedOut: 2.1)
+        XCTAssertEqual(snapped?.start, 1.0, "exact boundary: lands on the sentence start itself")
+    }
+
+    func testSnapInJustBeyondThresholdDoesNotForwardSnap() {
+        // Mark at −0.1 — the next sentence start is 1.0, which is 1.1 s away
+        // (> 1.0 s threshold). Expected: no forward snap; falls back to starts[0] = 0.
+        let snapped = SentenceSnap.snap(words: words, proposedIn: -0.1, proposedOut: 0.7)
+        XCTAssertEqual(snapped?.start, 0.0, "just beyond threshold: no forward snap, use starts[0]")
     }
 
     func testIsSentenceEnd() {
@@ -205,5 +265,47 @@ final class AudiobookCaptureMathTests: XCTestCase {
     func testWindowExtensionStepMatchesSpec() {
         // Spec says ⟲ extends by the same step (45 s).
         XCTAssertEqual(CaptureSpan.windowExtensionStep, 45)
+    }
+
+    func testInForwardSnapThresholdMatchesSpec() {
+        // The spec says "within ~1.0s BEFORE a sentence start" — verify the
+        // constant is exactly 1.0 so the forward-snap window is deterministic.
+        XCTAssertEqual(SentenceSnap.inForwardSnapThreshold, 1.0,
+                       "forward-snap threshold must be 1.0 s per spec")
+    }
+
+    // MARK: - buildSentences (QuoteCaptureProcessor helper)
+
+    func testBuildSentencesPartitionsAndMarkIsIn() {
+        // The buffer words span two sentences; snapped span covers the second.
+        // Expected: sentence 0 is NOT in (before snappedStart), sentence 1 IS.
+        let bufWords: [WordTiming] = [
+            WordTiming(word: "First.", start: 0.0, end: 0.5),
+            WordTiming(word: "Second", start: 0.6, end: 0.9),
+            WordTiming(word: "sentence.", start: 1.0, end: 1.4),
+        ]
+        let sentences = QuoteCaptureProcessor.buildSentences(
+            from: bufWords, snappedStart: 0.55, snappedEnd: 1.4
+        )
+        XCTAssertEqual(sentences.count, 2)
+        XCTAssertEqual(sentences[0].text, "First.")
+        XCTAssertFalse(sentences[0].isInInitialSpan,
+                       "sentence before snappedStart should be context-only")
+        XCTAssertEqual(sentences[1].text, "Second sentence.")
+        XCTAssertTrue(sentences[1].isInInitialSpan,
+                      "sentence overlapping the snapped span should start in-quote")
+    }
+
+    func testBuildSentencesEmptyWordsReturnsEmpty() {
+        XCTAssertTrue(
+            QuoteCaptureProcessor.buildSentences(from: [], snappedStart: 0, snappedEnd: 5).isEmpty
+        )
+    }
+
+    func testBuildSentencesSingleSentenceIsAlwaysIn() {
+        let w = [WordTiming(word: "Done.", start: 0, end: 1)]
+        let s = QuoteCaptureProcessor.buildSentences(from: w, snappedStart: 0, snappedEnd: 1)
+        XCTAssertEqual(s.count, 1)
+        XCTAssertTrue(s[0].isInInitialSpan)
     }
 }
