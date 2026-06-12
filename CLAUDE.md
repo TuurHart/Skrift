@@ -113,14 +113,15 @@ both apps + full history on one branch so cross-app features land atomically.
 
 ## Open cross-app work
 
-- **Capture items** (share a URL/text/image into Skrift + annotate it): needs BOTH
-  apps. **Design SIGNED OFF** (`mocks/capture-items.html` — share sheet w/ annotation +
-  significance circles, phone + Mac rendering). Mobile = a share-extension target + App
-  Group + the `attachments` multipart part (mobile `UploadMetadata` already carries
-  `sharedContent`/`annotationText`). Desktop = `UploadService` currently only ingests
-  audio `files` — it must accept a non-audio "capture" content type through
-  pipeline/compile/export. No App Store Connect steps needed (automatic signing
-  registers the extension bundle ID + App Group). Build as one coordinated batch.
+- **Capture items — ✅ BUILT 2026-06-12** (two-lane batch + orchestrator integration;
+  awaiting device verify). Contract = `Skrift_Native/CAPTURE_CONTRACT.md` (C3); design
+  = `mocks/capture-items.html`; capability map = FEATURES.md "Capture items".
+  **Signing lesson:** `xcodebuild -allowProvisioningUpdates` registers bundle IDs but
+  CANNOT add a capability (App Groups) to them — that takes a one-time visit to
+  Xcode's Signing & Capabilities per target (done for the dev IDs 2026-06-12; the
+  Release IDs need the same once, at prod promotion). Also: a `$(VAR)` inside an
+  `.entitlements` file breaks CLI profile matching — keep entitlement values LITERAL,
+  per-config files selected via `CODE_SIGN_ENTITLEMENTS`.
 - **Capture-screen redesign (audiobooks)** — DESIGN PAUSED by the user: no more code
   iterations on `CaptureMomentView` until an interaction design/mock session happens.
 - **Unified source taxonomy** — voice memo / URL / PDF / video / audiobook quote /
