@@ -28,18 +28,21 @@ struct ShareSheetView: View {
     var body: some View {
         // Dark surface card, same style as the mock sheet
         ZStack(alignment: .bottom) {
-            // Scrim behind the sheet
-            Color.black.opacity(0.45)
+            // Backdrop above the card. OPAQUE dark: a translucent scrim would
+            // wash out over the host sheet's light-gray backdrop (we render in
+            // a remote view — the page behind is never visible to us anyway).
+            // Tap = dismiss the keyboard first; only a tap with no keyboard up
+            // cancels (so a stray tap can't eat a typed annotation).
+            Color(red: 0.055, green: 0.059, blue: 0.086)   // #0e0f16
                 .ignoresSafeArea()
-                .onTapGesture { onCancel() }
+                .onTapGesture {
+                    if annotationFocused { annotationFocused = false } else { onCancel() }
+                }
 
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                sheetContent
-            }
-            .ignoresSafeArea(edges: .bottom)
+            sheetContent
         }
         // Prefer dark regardless of system setting — the sheet always uses the dark palette.
+        // (Belt only: the real enforcement is overrideUserInterfaceStyle in ShareViewController.)
         .preferredColorScheme(.dark)
     }
 
@@ -47,8 +50,10 @@ struct ShareSheetView: View {
 
     private var sheetContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            grabHandle
+            // No grab handle of our own: the system share-extension sheet
+            // already draws one — two stacked handles read as broken chrome.
             headerRow
+                .padding(.top, 14)
                 .padding(.bottom, 13)
             previewBlock
                 .padding(.bottom, 11)
@@ -64,30 +69,23 @@ struct ShareSheetView: View {
         }
         .padding(.horizontal, 16)
         .background(
-            // Sheet surface: slightly elevated above the scrim
+            // Sheet surface: slightly elevated above the scrim.
+            // `.container` only — ignoring the whole bottom safe area would
+            // also ignore the KEYBOARD region, leaving the circles + Save
+            // buried under the keyboard while typing (the 2026-06-12 finding).
             Color(red: 0.106, green: 0.110, blue: 0.157)   // #1b1d28 per mock
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea(.container, edges: .bottom)
                 .clipShape(.rect(topLeadingRadius: 22, topTrailingRadius: 22, style: .continuous))
         )
         .overlay(alignment: .top) {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.white.opacity(0.07), lineWidth: 0.5)
-                .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea(.container, edges: .bottom)
         }
         .shadow(color: .black.opacity(0.5), radius: 36, y: -10)
     }
 
     // MARK: - Sub-views
-
-    private var grabHandle: some View {
-        Capsule()
-            .fill(Color.white.opacity(0.18))
-            .frame(width: 36, height: 4)
-            .frame(maxWidth: .infinity)
-            .padding(.top, 11)
-            .padding(.bottom, 12)
-            .accessibilityHidden(true)
-    }
 
     private var headerRow: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -251,11 +249,20 @@ struct ShareSheetView: View {
                 .font(.system(size: 14))
                 .foregroundStyle(Color.skText)
                 .tint(Color.skAccent)
-                .frame(minHeight: 74)
+                // maxHeight matters: an uncapped TextEditor greedily fills the
+                // whole sheet (the giant-white-box 2026-06-12 finding).
+                .frame(minHeight: 74, maxHeight: 110)
                 .scrollContentBackground(.hidden)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .focused($annotationFocused)
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") { annotationFocused = false }
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                }
         }
         .background(
             RoundedRectangle(cornerRadius: 13, style: .continuous)
@@ -272,7 +279,7 @@ struct ShareSheetView: View {
 
     private var saveButton: some View {
         Button { saveTapped() } label: {
-            Text("Save")
+            Text("Save to Skrift")   // mock state-1 label
                 .font(.system(size: 14.5, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
