@@ -37,12 +37,27 @@ enum VaultExporter {
 
         // Convert [[img_NNN]] markers → ![[<title>_NNN.ext]] Obsidian embeds and copy
         // the matched images into the attachments subfolder.
+        // Path layout: audio uploads → `original.m4a` (images/ is the sibling folder).
+        //              captures     → the working folder itself (images/ is inside it).
+        //              So the images base is: captures → pf.path; audio/notes → parent of pf.path.
         var finalMarkdown = markdown
         var imageCount = 0
-        let imagesDir = URL(fileURLWithPath: pf.path).deletingLastPathComponent().appendingPathComponent("images")
+        let workingFolder: URL = {
+            let url = URL(fileURLWithPath: pf.path)
+            return pf.sourceType == .capture ? url : url.deletingLastPathComponent()
+        }()
+        let imagesDir = workingFolder.appendingPathComponent("images")
         if !pf.path.isEmpty, FileManager.default.fileExists(atPath: imagesDir.path) {
             let attDir = vaultURL.appendingPathComponent(attFolder, isDirectory: true)
-            (finalMarkdown, imageCount) = convertImageMarkers(markdown, imagesDir: imagesDir, safe: safe, into: attDir)
+            // For image captures the Compiler already emitted `![[filename]]` — the
+            // `convertImageMarkers` function rewrites `[[img_NNN]]` markers, which
+            // captures don't use. Image captures carry the file under its original name
+            // (sharedContent.fileName) without a marker, so we copy it directly here.
+            if pf.sourceType == .capture {
+                (finalMarkdown, imageCount) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: finalMarkdown)
+            } else {
+                (finalMarkdown, imageCount) = convertImageMarkers(markdown, imagesDir: imagesDir, safe: safe, into: attDir)
+            }
         }
 
         // Apple-Note attachments: copy the note's `Attachments/` into the vault
@@ -111,6 +126,25 @@ enum VaultExporter {
             out = (out as NSString).replacingCharacters(in: range, with: repl)
         }
         return (out, copied)
+    }
+
+    /// Copy images from a capture's `images/` folder to the vault attachments folder.
+    /// Captures use the original filename (from sharedContent.fileName) — no `[[img_NNN]]`
+    /// markers, so we just copy every file in the folder. The Compiler already emitted
+    /// `![[filename]]` in the body; we don't rewrite markdown here.
+    static func copyCaptureFolderImages(imagesDir: URL, into attDir: URL, markdown: String) -> (String, Int) {
+        let fm = FileManager.default
+        let files = ((try? fm.contentsOfDirectory(at: imagesDir, includingPropertiesForKeys: nil)) ?? [])
+            .filter { !$0.lastPathComponent.hasPrefix(".") }
+        guard !files.isEmpty else { return (markdown, 0) }
+        try? fm.createDirectory(at: attDir, withIntermediateDirectories: true)
+        var copied = 0
+        for file in files {
+            let dest = attDir.appendingPathComponent(file.lastPathComponent)
+            try? fm.removeItem(at: dest)
+            if (try? fm.copyItem(at: file, to: dest)) != nil { copied += 1 }
+        }
+        return (markdown, copied)
     }
 
     /// Copy an Apple Note's `Attachments/` files referenced as `![alt](Attachments/x)`
