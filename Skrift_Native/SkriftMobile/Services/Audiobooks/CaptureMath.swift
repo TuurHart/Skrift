@@ -258,14 +258,23 @@ enum SentenceSnap {
     ///   (the original outward behaviour — captures mid-sentence are expected).
     /// - Both paths fall back to `starts[0]` when the mark precedes all words.
     static func inIndex(starts: [Int], words: [WordTiming], proposedIn: TimeInterval) -> Int {
-        // Look for the earliest sentence start that is ahead of the mark by
-        // no more than the forward-snap window.
+        // The backward (outward) candidate: latest sentence start ≤ the mark.
+        let backIdx = starts.last(where: { words[$0].start <= proposedIn }) ?? starts[0]
+        // Forward candidate: earliest sentence start ahead of the mark within
+        // the overshoot window.
         if let forwardIdx = starts.first(where: { words[$0].start > proposedIn
                                                    && words[$0].start - proposedIn <= inForwardSnapThreshold }) {
-            return forwardIdx
+            // Snap forward ONLY when the mark sits in the TAIL of its sentence —
+            // closer to the next boundary than to its own start. The absolute
+            // threshold alone misfires on short sentences (a mark 0.1s into a
+            // 0.9s sentence is "within 1s of the next start", but the user
+            // plainly meant THIS sentence).
+            let intoCurrent = proposedIn - words[backIdx].start
+            let toNext = words[forwardIdx].start - proposedIn
+            if toNext < intoCurrent { return forwardIdx }
         }
-        // Genuine mid-sentence or exact-boundary → snap backward (outward) as before.
-        return starts.last(where: { words[$0].start <= proposedIn }) ?? starts[0]
+        // Genuine mid-sentence or exact-boundary → snap backward (outward).
+        return backIdx
     }
 
     /// Snap `[proposedIn → proposedOut]` outward to whole sentences.
