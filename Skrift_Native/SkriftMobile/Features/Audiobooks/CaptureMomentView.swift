@@ -268,18 +268,25 @@ struct CaptureMomentView: View {
 
     // MARK: - Body
 
+    /// Item 3: fullscreen — no floating card with dead space below. The
+    /// content fills the safe area; the inner padding gives breathing room.
     var body: some View {
-        VStack(spacing: 12) {
-            CapturePausedRow(book: book, pausedAt: now)
+        ZStack(alignment: .top) {
+            Color.skBg.ignoresSafeArea()
+            VStack(spacing: 0) {
+                CapturePausedRow(book: book, pausedAt: now)
+                    .padding(.horizontal, Theme.Space.margin)
+                    .padding(.top, 14)
+                    .padding(.bottom, 12)
 
-            adjustCard
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("capture-moment")
+                adjustContent
+                    .padding(.horizontal, Theme.Space.margin)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("capture-moment")
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            }
         }
-        .padding(.horizontal, Theme.Space.margin)
-        .padding(.top, 14)
         .task { model.prepareAndAutoplay(audioURL: audioURL, bounds: bounds) }
         .task(id: barsKey) { await reloadBars() }
         .onDisappear { model.tearDown() }
@@ -303,9 +310,9 @@ struct CaptureMomentView: View {
         model.bars = result
     }
 
-    // MARK: - Adjust card
+    // MARK: - Adjust content (fullscreen — no card wrapper)
 
-    private var adjustCard: some View {
+    private var adjustContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerRow
                 .padding(.bottom, 10)
@@ -338,7 +345,8 @@ struct CaptureMomentView: View {
                 model.tearDown()
                 onCancel()
             } label: {
-                Text("Cancel · resume")
+                // U+00B7 middle dot via escape
+                Text("Cancel \u{00B7} resume")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.skTextFaint)
                     .frame(maxWidth: .infinity)
@@ -349,8 +357,6 @@ struct CaptureMomentView: View {
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("capture-cancel")
         }
-        .padding(EdgeInsets(top: 14, leading: 13, bottom: 13, trailing: 13))
-        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
     }
 
     // MARK: - Header

@@ -241,11 +241,39 @@ enum SentenceSnap {
         return starts
     }
 
+    /// How far before a sentence start the IN mark may still snap FORWARD to
+    /// it: the reaction-bias overshoot lands ≤ this far before the next
+    /// sentence start when the user marks just after the sentence ended.
+    static let inForwardSnapThreshold: TimeInterval = 1.0
+
+    /// Nearest-boundary snap for the IN edge.
+    ///
+    /// The −0.7 s reaction bias often drops the mark in the tail of the
+    /// PREVIOUS sentence — one sentence earlier than the user intended. The
+    /// nearest-boundary rule resolves this:
+    ///
+    /// - If `proposedIn` lands within `inForwardSnapThreshold` seconds BEFORE
+    ///   a sentence start, snap FORWARD to that sentence start.
+    /// - Otherwise snap BACKWARD to the latest sentence start ≤ proposedIn
+    ///   (the original outward behaviour — captures mid-sentence are expected).
+    /// - Both paths fall back to `starts[0]` when the mark precedes all words.
+    static func inIndex(starts: [Int], words: [WordTiming], proposedIn: TimeInterval) -> Int {
+        // Look for the earliest sentence start that is ahead of the mark by
+        // no more than the forward-snap window.
+        if let forwardIdx = starts.first(where: { words[$0].start > proposedIn
+                                                   && words[$0].start - proposedIn <= inForwardSnapThreshold }) {
+            return forwardIdx
+        }
+        // Genuine mid-sentence or exact-boundary → snap backward (outward) as before.
+        return starts.last(where: { words[$0].start <= proposedIn }) ?? starts[0]
+    }
+
     /// Snap `[proposedIn → proposedOut]` outward to whole sentences.
-    /// - IN lands on the latest sentence start at-or-before `proposedIn`
-    ///   (falling back to the first word when the marker precedes everything).
-    /// - OUT lands on the earliest sentence end at-or-after `proposedOut`
-    ///   (falling back to the last word when the buffer ends mid-sentence).
+    ///
+    /// IN edge: nearest-boundary (see `inIndex`) — forward if the mark is in
+    /// the overshoot zone before the next sentence, backward otherwise.
+    /// OUT edge: earliest sentence end at-or-after `proposedOut` (unchanged).
+    ///
     /// Returns nil for empty word timings (callers keep the raw span).
     static func snap(words: [WordTiming],
                      proposedIn: TimeInterval,
@@ -253,7 +281,7 @@ enum SentenceSnap {
         guard !words.isEmpty else { return nil }
 
         let starts = sentenceStartIndices(words)
-        let inIdx = starts.last(where: { words[$0].start <= proposedIn }) ?? starts[0]
+        let inIdx = inIndex(starts: starts, words: words, proposedIn: proposedIn)
 
         let ends = words.indices.filter { isSentenceEnd(words[$0].word) }
         let outIdx = ends.first(where: { $0 >= inIdx && words[$0].end >= proposedOut })
