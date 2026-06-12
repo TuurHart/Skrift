@@ -5,12 +5,14 @@ import XCTest
 /// Pure-logic coverage for the route-change survival path in
 /// `LiveRecordingService` (the AirPods pull-out P0): the format-change
 /// decision, the tap-install precondition (session-hw vs vended — cross-rate
-/// installs ACCEPTED, per the 2026-06-12 DevLog verdict), the rebuild backoff
-/// + never-give-up re-arm contract, converter selection, conversion
-/// continuity across consecutive buffers, and the cross-feature
-/// `isRecordingActive` contract. The actual engine/route behavior (pull
-/// AirPods → built-in mic, re-insert → AirPods) is device-verified — the
-/// Simulator has neither Bluetooth routes nor the real mic stack.
+/// installs ACCEPTED, per the 2026-06-12 DevLog verdict), the rebuild-action
+/// decision (stale-cache `engine.reset()` vs not-ready backoff — the round-3
+/// refuse-loop deadlock fix), the rebuild backoff + never-give-up re-arm
+/// contract, converter selection, conversion continuity across consecutive
+/// buffers, and the cross-feature `isRecordingActive` contract. The actual
+/// engine/route behavior (pull AirPods → built-in mic, re-insert → AirPods)
+/// is device-verified — the Simulator has neither Bluetooth routes nor the
+/// real mic stack.
 final class LiveRecordingRouteChangeTests: XCTestCase {
 
     private func format(rate: Double, channels: AVAudioChannelCount = 1) -> AVAudioFormat {
@@ -84,12 +86,100 @@ final class LiveRecordingRouteChangeTests: XCTestCase {
     func testRefusesVendedFormatLaggingSessionHardware() {
         // AirPods pulled: the session is already on the 48 kHz built-in mic but
         // the engine still vends the cached 24 kHz AirPods format — install
-        // would capture garbage at the wrong rate. Transient: the engine-
-        // configuration-change observer re-triggers once the format settles.
+        // would capture garbage at the wrong rate. NOT self-settling (round-3
+        // DevLog: the cache stays frozen until `engine.reset()`) — the rebuild
+        // breaks it via `rebuildAction == .resetThenRequery` (tests below);
+        // this validator just keeps refusing the disagreement.
         XCTAssertFalse(LiveRecordingService.canInstallTap(
             sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 24_000, vendedChannels: 1))
         XCTAssertFalse(LiveRecordingService.canInstallTap(
             sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 2))
+    }
+
+    // MARK: - Rebuild action (round-3 DevLog 2026-06-12 09:40: the refuse-loop
+    // DEADLOCK — after a route flip the input node kept vending the old format
+    // across every backoff retry, because AVAudioEngine caches node formats
+    // until `engine.reset()`. The rebuild must reset-then-requery FIRST on
+    // each attempt whenever the live hardware disagrees with the vended
+    // format, and only back off when the hardware itself isn't ready.)
+
+    func testAgreeingFormatsInstallWithoutReset() {
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 1),
+            .install)
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 24_000, sessionHwChannels: 2, vendedRate: 24_000, vendedChannels: 2),
+            .install)
+    }
+
+    func testStaleVendedFormatForcesResetThenRequery() {
+        // The logged round-3 deadlock: route flipped to AirPods (sessionHw
+        // 24 kHz) but the engine froze on the cached built-in 48 kHz across
+        // every retry — must reset, never just back off.
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 24_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 1),
+            .resetThenRequery)
+        // …and the reverse hop (AirPods pulled, cache stuck on 24 kHz).
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 24_000, vendedChannels: 1),
+            .resetThenRequery)
+        // Channel-count disagreement is the same stale cache.
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 2),
+            .resetThenRequery)
+    }
+
+    func testDeadVendedFormatWithLiveHardwareAlsoResets() {
+        // Hardware is up but the node vends 0 Hz/0 ch — a cached-dead format
+        // is just another stale cache; reset re-queries it.
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 0, vendedChannels: 0),
+            .resetThenRequery)
+    }
+
+    func testDeadHardwareBacksOffInsteadOfResetting() {
+        // The genuinely-not-ready case (mid-Bluetooth-handover, no live input):
+        // a reset can't conjure a mic — keep the existing backoff + re-arm.
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 0, sessionHwChannels: 0, vendedRate: 0, vendedChannels: 0),
+            .backoff)
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 0, sessionHwChannels: 0, vendedRate: 48_000, vendedChannels: 1),
+            .backoff)
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 48_000, sessionHwChannels: 0, vendedRate: 48_000, vendedChannels: 1),
+            .backoff)
+    }
+
+    func testInitialStartRaceRecoversViaResetPlusConverter() {
+        // The user's actual failure: record starts on the built-in mic
+        // (48 kHz file), the route flips to AirPods ~1 s later. The rebuild
+        // sees sessionHw=24 kHz vs the frozen vended=48 kHz → reset-then-
+        // requery; the post-reset 24 kHz vended format is accepted and the
+        // per-install converter bridges the 24 kHz tap to the 48 kHz file.
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 24_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 1),
+            .resetThenRequery)
+        XCTAssertTrue(LiveRecordingService.canInstallTap(
+            sessionHwRate: 24_000, sessionHwChannels: 1, vendedRate: 24_000, vendedChannels: 1),
+            "post-reset agreeing format must be installable")
+        XCTAssertNotNil(LiveRecordingService.makeWriteConverter(
+            from: format(rate: 24_000), to: format(rate: 48_000)),
+            "the post-reset cross-rate install must come with a tap→file bridge")
+    }
+
+    func testResetDecisionIsStateless() {
+        // Like canInstallTap, the decision carries no sticky state: any number
+        // of reset-then-requery rounds (or refusals) must not poison the
+        // eventual agreeing install.
+        for _ in 0..<10 {
+            XCTAssertEqual(LiveRecordingService.rebuildAction(
+                sessionHwRate: 24_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 1),
+                .resetThenRequery)
+        }
+        XCTAssertEqual(LiveRecordingService.rebuildAction(
+            sessionHwRate: 24_000, sessionHwChannels: 1, vendedRate: 24_000, vendedChannels: 1),
+            .install)
     }
 
     func testRefusesWhenOnlyVendedSideLooksAlive() {

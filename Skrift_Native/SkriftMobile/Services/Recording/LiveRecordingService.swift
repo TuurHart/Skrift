@@ -344,7 +344,9 @@ final class LiveRecordingService: ObservableObject {
     /// mid-route-transition the node reports 0 Hz/0 ch, or a cached vended
     /// format that still lags the new route. Returns false instead of
     /// installing — callers retry while the route settles
-    /// (`rebuildTapForCurrentRoute`) or throw (`startEngine`).
+    /// (`rebuildTapForCurrentRoute`, which `engine.reset()`s a stale cache
+    /// FIRST so this re-read sees the fresh hardware format) or throw
+    /// (`startEngine`).
     ///
     /// DEAFNESS SAFETY (DevLog verdict 2026-06-12 09:14): the validation must
     /// NOT compare against the FILE's format — a hardware format that differs
@@ -417,8 +419,9 @@ final class LiveRecordingService: ObservableObject {
     /// Three observers, together the NEVER-give-up guarantee: a refused rebuild
     /// only ever waits — it is re-triggered by the next route change, by an
     /// `AVAudioEngineConfigurationChange` (the canonical "the engine's node
-    /// formats changed/settled" signal — fires when the vended input format
-    /// finally catches up with the new route), or by a media-services reset.
+    /// formats changed" signal), or by a media-services reset. (DevLog round 3:
+    /// these are RE-ARM triggers only — a stale vended format never converges
+    /// by waiting; the rebuild itself breaks the cache with `engine.reset()`.)
     private func installRecoveryObservers() {
         guard routeObserver == nil else { return }
         let session = AVAudioSession.sharedInstance()
@@ -501,12 +504,13 @@ final class LiveRecordingService: ObservableObject {
         }
     }
 
-    /// The engine reconfigured itself — its node formats just changed/settled
-    /// (this is the canonical signal that the vended input format caught up
-    /// with a new route). The engine stops itself when this happens. If a
-    /// route-notification rebuild already brought capture back, do nothing;
-    /// otherwise rebuild NOW — this re-arms a recording whose earlier rebuild
-    /// retries exhausted while the node still vended the old route's format.
+    /// The engine reconfigured itself — its node formats just changed. The
+    /// engine stops itself when this happens. If a route-notification rebuild
+    /// already brought capture back, do nothing; otherwise rebuild NOW — this
+    /// re-arms a recording whose earlier rebuild retries exhausted. (The
+    /// rebuild no longer depends on this signal to un-stick a stale vended
+    /// format — it resets the engine's format cache itself; see
+    /// `rebuildTapForCurrentRoute`.)
     private func handleEngineConfigurationChange() {
         guard isRecording, !mock else { return }
         let running = engine?.isRunning == true
@@ -536,11 +540,27 @@ final class LiveRecordingService: ObservableObject {
     /// the engine. Pull AirPods out → capture continues on the built-in mic;
     /// re-insert → capture continues on the AirPods, same `.m4a` throughout.
     ///
-    /// Mid-transition the input format is often not ready yet (0 Hz, or a
-    /// vended format lagging the new hardware) — `installRecordingTap` refuses
-    /// to install then (installing would raise an uncatchable NSException — the
-    /// round-2 P0 crash), and we retry with backoff (~3 s total) while the
-    /// route settles, keeping the recording session alive throughout.
+    /// Two distinct failure modes guard this path — and every attempt handles
+    /// BOTH, reset-then-requery FIRST:
+    /// - **STALE CACHED FORMAT** (DevLog round 3, 2026-06-12 09:40):
+    ///   `AVAudioEngine` caches its nodes' formats until `reset()`, so after a
+    ///   route flip the input node can keep VENDING the old route's format
+    ///   indefinitely (vended=48 kHz frozen vs sessionHw=24 kHz on every
+    ///   retry). Each attempt first compares vended vs the session's live
+    ///   hardware and, on disagreement, calls `engine.reset()` to force a
+    ///   re-query before validating — without the reset the refuse-loop never
+    ///   converged and the recording deadlocked deaf until the user cancelled.
+    ///   This includes the initial start race (record starts on the built-in
+    ///   mic, the route flips to AirPods ~1 s later — the user's actual
+    ///   failure): post-reset the node vends the new 24 kHz hardware format,
+    ///   the install is accepted, and the per-install `AVAudioConverter`
+    ///   bridges the new tap format to the file's fixed write format.
+    /// - **GENUINELY NOT READY** (0 Hz/0 ch session input mid-transition —
+    ///   common right after a Bluetooth route drops): a reset can't conjure a
+    ///   mic; `installRecordingTap` refuses (installing would raise an
+    ///   uncatchable NSException — the round-2 P0 crash) and we retry with
+    ///   backoff (~3 s total) while the route settles, keeping the recording
+    ///   session alive throughout.
     /// Exhausting the backoff is NOT a give-up: the recording stays armed, and
     /// the next route-change / engine-configuration-change / media-services
     /// notification re-triggers this rebuild from attempt 0 (the DevLog-verdict
@@ -558,6 +578,31 @@ final class LiveRecordingService: ObservableObject {
         // The route change may have deactivated the session; reassert it so the
         // new input route is live before we read its format.
         try? AVAudioSession.sharedInstance().setActive(true)
+
+        // STALE-CACHE BREAKER — runs FIRST on every attempt. When the session's
+        // hardware is live but the node still vends a different cached format,
+        // `engine.reset()` forces the engine to re-query the hardware. Safe for
+        // the file writer: the tap is already removed, the engine stopped, and
+        // the writer queue drained above — and the `AVAudioFile` handle is
+        // independent of the engine — so a reset cannot disturb the file or any
+        // in-flight write. `installRecordingTap` below re-reads the (now fresh)
+        // vended format and re-validates before touching `installTap`.
+        let session = AVAudioSession.sharedInstance()
+        let vendedBefore = input.outputFormat(forBus: 0)
+        let action = Self.rebuildAction(
+            sessionHwRate: session.sampleRate,
+            sessionHwChannels: AVAudioChannelCount(max(0, session.inputNumberOfChannels)),
+            vendedRate: vendedBefore.sampleRate,
+            vendedChannels: vendedBefore.channelCount)
+        if action == .resetThenRequery {
+            DevLog.log("rebuild attempt \(attempt) — stale vended \(Self.describe(vendedBefore))"
+                       + " vs sessionHw=\(Int(session.sampleRate))Hz/\(session.inputNumberOfChannels)ch"
+                       + " — engine.reset() to re-query hardware")
+            engine.reset()
+            DevLog.log("post-reset formats — sessionHw=\(Int(session.sampleRate))Hz/\(session.inputNumberOfChannels)ch"
+                       + " vended=\(Self.describe(input.outputFormat(forBus: 0)))"
+                       + " nodeIn=\(Self.describe(input.inputFormat(forBus: 0)))")
+        }
 
         guard installRecordingTap(on: input, file: file) else {
             // Transient no-input gap mid-transition (common right after a
@@ -645,10 +690,48 @@ final class LiveRecordingService: ObservableObject {
     /// requiring "new == old/file format" here refused every cross-rate
     /// rebuild and left recordings permanently deaf on the new route.)
     /// Stateless on purpose — a refusal never poisons later attempts.
+    ///
+    /// NOTE (DevLog round 3): the stale-vended disagreement does NOT settle on
+    /// its own — `AVAudioEngine` caches node formats until `reset()` — so the
+    /// rebuild doesn't wait for it: `rebuildTapForCurrentRoute` sees the
+    /// disagreement via `rebuildAction` and calls `engine.reset()` to force a
+    /// re-query BEFORE this validation runs against the fresh vended format.
     nonisolated static func canInstallTap(sessionHwRate: Double, sessionHwChannels: AVAudioChannelCount,
                                           vendedRate: Double, vendedChannels: AVAudioChannelCount) -> Bool {
         vendedRate > 0 && vendedChannels > 0
             && vendedRate == sessionHwRate && vendedChannels == sessionHwChannels
+    }
+
+    /// What a rebuild attempt should do, given the SESSION's live hardware
+    /// input format vs the engine's vended (possibly cached) input format
+    /// (pure — the deadlock fix for DevLog round 3, 2026-06-12 09:40).
+    enum RebuildAction: Equatable {
+        /// Vended format is real and agrees with the hardware — install now.
+        case install
+        /// The hardware is live but the node vends a DIFFERENT (or dead)
+        /// cached format — the round-3 refuse-loop. `engine.reset()` forces a
+        /// hardware re-query, then validation runs against the fresh format.
+        case resetThenRequery
+        /// The hardware itself isn't ready (0 Hz / 0 ch session input) — a
+        /// reset can't conjure a mic; wait out the backoff, stay armed.
+        case backoff
+    }
+
+    /// Decide the rebuild step. `.resetThenRequery` whenever the session
+    /// hardware looks live but `canInstallTap` would refuse — that disagreement
+    /// is the engine's STALE CACHE, which never converges without `reset()`
+    /// (round-3 deadlock: vended=48 kHz frozen vs sessionHw=24 kHz across every
+    /// backoff retry until the user cancelled). `.backoff` only when the
+    /// hardware itself reports not-ready. Stateless like `canInstallTap` — a
+    /// reset or refusal history never poisons later attempts.
+    nonisolated static func rebuildAction(sessionHwRate: Double, sessionHwChannels: AVAudioChannelCount,
+                                          vendedRate: Double, vendedChannels: AVAudioChannelCount) -> RebuildAction {
+        if canInstallTap(sessionHwRate: sessionHwRate, sessionHwChannels: sessionHwChannels,
+                         vendedRate: vendedRate, vendedChannels: vendedChannels) {
+            return .install
+        }
+        if sessionHwRate > 0, sessionHwChannels > 0 { return .resetThenRequery }
+        return .backoff
     }
 
     /// Backoff schedule for tap-rebuild retries while a new route's input
