@@ -495,3 +495,12 @@ None are release blockers; fix in a follow-up pass.
   health endpoint vs the model idle-unload interplay (phone may see `available=false` after 60s idle).
 - Minor: HEIC→JPG conversion failure falls back silently w/ a possibly-broken md ref (`IngestService.swift:282`);
   snapshot PNG write is `try?`; `SpeakerFusion.foldShortIslands` indexing deserves explicit bounds asserts.
+
+#### DevLog verdict 2026-06-12 09:14 (log in /tmp/devlog.txt — DevLog works perfectly)
+NO crash ✓, echo-filter ✓, re-insert recovery ✓. REMAINING BUG: `canInstallTap` requires hw format ==
+old tap/file format → REFUSES legitimate cross-rate rebuilds (AirPods 24k ↔ built-in 48k), gives up after
+4×250ms permanently → recording goes DEAF on the new route (both the first-record race and the pull-out).
+FIX: tap must install in the CURRENT hw format whenever valid (rate>0,ch>0) — the AVAudioConverter in the
+write path bridges tap→file; only refuse transient invalid/disagreeing formats; retry with backoff ~3s;
+NEVER permanent give-up — re-arm on every later route/config notification + observe
+AVAudioEngineConfigurationChange (the canonical format-changed signal).
