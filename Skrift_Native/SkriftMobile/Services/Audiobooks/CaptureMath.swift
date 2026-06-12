@@ -216,7 +216,9 @@ enum SentenceSnap {
     }
 
     /// Closing punctuation that may trail a terminator (`he said."`).
-    private static let closers = Set<Character>("\"'"')]»")
+    // " ' ” ’ ) ] » — typographic quotes via escapes so the literal can't be
+    // mis-terminated by its own contents.
+    private static let closers = Set<Character>("\"'\u{201D}\u{2019})]»")
     private static let terminators = Set<Character>(".!?…")
 
     /// True when the word ends a sentence: its last character (after stripping
