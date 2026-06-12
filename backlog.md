@@ -504,3 +504,10 @@ FIX: tap must install in the CURRENT hw format whenever valid (rate>0,ch>0) — 
 write path bridges tap→file; only refuse transient invalid/disagreeing formats; retry with backoff ~3s;
 NEVER permanent give-up — re-arm on every later route/config notification + observe
 AVAudioEngineConfigurationChange (the canonical format-changed signal).
+
+#### DevLog round 3 (2026-06-12 09:40, /tmp/devlog2.txt): DEADLOCK ON STALE VENDED FORMAT
+ACCEPT path + echo-filter + start-retry all work. BUG: after a route flip the inputNode keeps VENDING the
+old format (vended=48k vs sessionHw=24k, frozen across every retry) — AVAudioEngine caches node formats
+until `engine.reset()`. The rebuild never calls reset → vended never converges → refuse-loop until user
+cancels. FIX: on vended≠sessionHw in rebuild: removeTap → engine.stop() → **engine.reset()** → re-query
+vended → install (+ reconnect/restart as the start path does). DevLog the reset.
