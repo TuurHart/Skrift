@@ -676,13 +676,41 @@ SHIPPED THIS SESSION:
 - Process: lanes rules.md gained "prove your base" (user-approved); CLAUDE.md records the App-Group CLI
   signing limitation (Xcode one-time visit done for dev IDs; Release IDs owe one at prod promotion).
 
+USER FEEDBACK 2026-06-12 evening: "coming in from Safari was a bit shit" → ✅ REPRODUCED IN SIM + FIXED
+(commits 7f76a77 + 6b95070; full gate green). A Safari-driving XCUITest probe
+(`ShareFlowProbeUITests`, opt-in via TEST_RUNNER_RUN_SHARE_PROBE=1, screenshots to
+/tmp/skrift-share-shots) reproduced the whole flow and caught FOUR stacked share-sheet bugs:
+(1) keyboard buried significance+Save with no dismiss (ignoresSafeArea(.bottom) ate the keyboard
+safe area → .container + keyboard-Done + scrim-tap unfocuses first — Save was literally
+unreachable while typing, captures got lost); (2) light-mode innards on the dark shell
+(preferredColorScheme is a no-op in extension UIHostingControllers → overrideUserInterfaceStyle);
+(3) annotation TextEditor greedily filled the sheet (cap maxHeight 110); (4) the host content-hugs
+the remote view leaving an unpaintable gray sheet backdrop (preferredContentSize 10k + opaque
+#0e0f16 canvas). Sim E2E now verified: share → annotate → rate (works with keyboard up) → Save →
+app inbox drain → capture row → detail (Open ↗ / annotation / Will-sync). SIM GOTCHA learned:
+the share-sheet host caches extension processes per boot — reboot the sim after reinstalling
+or you'll screenshot the stale extension. The fixed dev build is INSTALLED on the iPhone
+(build 2026-06-12 evening, incl. share-sheet fixes); prod untouched.
+
 NEXT-SESSION DEVICE TEST LIST (in rough order):
 1. CAPTURE phone half: Safari → Share → "Skrift Dev" (first time: enable via the share sheet's More/Edit
    row) → annotate + rate → Save → OPEN Skrift Dev (inbox drains on launch/foreground) → capture row +
    detail (Open ↗, editable annotation, no player bar). Also try a TEXT selection share + a PHOTO share.
+   ↳ 2026-06-12 evening: sim-verified incl. the UX fixes above; device re-test still owed (esp. the
+   share-from-Photos / text-selection variants + the first-time enable row).
 2. CAPTURE Mac half: launch the dev desktop app → phone syncs the rated capture → review surface (source
    strip + banner + SHARED CONTENT card + url prop row) → Export to the test vault → check the .md
    (frontmatter url:/source:, pinned block above the annotation).
+   ↳ 2026-06-12 evening: the WHOLE Mac half verified headlessly (commit 7799848) — real POST of the C3
+   fixture → dev server → store row contract-perfect → REAL Gemma enhance-lite (title+summary on the
+   annotation, no copy-edit) → compile → export to the test vault. New DEBUG flag `-processfile <id>
+   [-exportafter]` (RunFile) runs Process+Export headlessly on any stored file — reuse it for future
+   round-trips. CAUGHT + FIXED two export bugs affecting ALL notes: (1) filenames kept Obsidian-forbidden
+   chars (Gemma's "Title: Subtitle" colons); (2) frontmatter title:/summary: unquoted → ': ' in a Gemma
+   title makes Obsidian reject the whole frontmatter — both now sanitised/quoted + tests. What's left for
+   the user here = just the visual review-surface check on a phone-synced capture. NOTE: a probe capture
+   (Stoicism - Wikipedia, from the sim run) lives in the DEV store + an exported probe .md in the test
+   vault — delete on sight if they get in the way. The dev desktop GUI app is currently QUIT.
 3. Trim persistence end-to-end (OWED since the morning): capture sheet → tap a sentence in/out → ramble →
    saved audio/text/karaoke all match the trimmed span.
 4. Reverse exclusion: play a memo in detail → start the audiobook → the memo must pause.
