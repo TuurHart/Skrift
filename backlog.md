@@ -580,17 +580,20 @@ and AudiobookSession must be mutually exclusive (each pauses the other on play).
 STATE: `native` is green + fully landed (audiobook player + Hybrid capture + sentence-trim persistence +
 playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod untouched.
 
-1. **FIRST TASK — KARAOKE on capture memos, STILL BROKEN (regression; fix INLINE as sole editor, no lane —
-   new standing rule: lanes only for batches).** What the user expects (it WORKED before the 2026-06-12
-   styled-quote presentation landed): karaoke ran over the WHOLE memo text — quote AND ramble, one
-   continuous highlight ("it also did karaoke on what the author said — that was really nice"). What broke
-   it: capture memos now render as a styled non-editable CaptureQuoteBlock + separate ramble editor
-   (Features/MemoDetail/MemoDetailView.swift transcriptSection + TranscriptContentView + CaptureQuoteBlock);
-   the karaoke text path is bypassed. The latest lane patch (df8d077) only special-cased the no-ramble case
-   (and reportedly still doesn't work on device). FIX DIRECTION: during PLAYBACK, swap the entire styled
-   rendering for the classic full-text karaoke view (timings sidecar already covers quote words at offset 0
-   + ramble words after — same data the old whole-text karaoke used); restore styled blocks when playback
-   stops. Verify on device WITH a ramble present.
+1. ✅ **BUILT 2026-06-12 (refactor, inline/sole-editor) — KARAOKE on capture memos. AWAITING DEVICE VERIFY.**
+   Done per the 1b mandate: the whole capture render path unified into ONE component —
+   `Features/MemoDetail/TranscriptBodyView.swift`, three explicit modes derived in one place
+   (playing wins → reading while transcribing → editing default). PLAYING = classic full-text karaoke
+   over the WHOLE memo via new `Memo.karaokeText` (quote with "> " markers STRIPPED + ramble, one
+   continuous text, word indices 1:1 with the sidecar from 0); EDITING = styled quote + attribution
+   above the quote-protected ramble editor (raw "> " write-back untouched, tests still green);
+   READING (transcribing) = styled quote + pill, no editor (append-clobber protection kept).
+   DELETED: TranscriptContentView + overrideText/baseWordOffset plumbing + CaptureQuote.spokenWordCount
+   (~215 lines out of MemoDetailView). BONUS FIX: the old "working" karaoke counted the ">" markers as
+   words → captures were silently off-by-N vs the timings; karaokeText fixes the alignment by design.
+   3 dup imageURL(markerIndex:) helpers consolidated onto Memo. Gate: full sim suite green (33 UI +
+   unit bundles, 0 failures); new tests pin karaokeText + mode precedence. Dev build installed on the
+   iPhone. **USER: verify karaoke on a capture WITH a ramble present (and quote-only).**
 2. Then user re-tests: trim persistence end-to-end (tap sentence → ramble → saved audio/text/karaoke match).
 3. Owed smalls: reverse playback exclusion (book-start should silence a playing memo — AudiobookSession
    side, one guarded call); ready-screen flash removal on instant record (logged 2026-06-12 morning, still
@@ -601,11 +604,6 @@ playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod
 PROCESS (now in skill rules): single bugs = orchestrator edits directly; lanes ONLY for batches; Sonnet for
 specced lanes / Opus for taste; verify lane CLAIMS against write-paths. Feedback loop: "pull my feedback"
 (skill) + devlog.txt for anything hardware-ish.
-1b. **USER MANDATE for the karaoke fix: REFACTOR, don't patch.** This area is fix-over-fix (original
-   karaoke → styled-quote block → empty-ramble special case → still broken) and the user's gut says it's
-   a shit show — they're right. Before fixing: READ the whole capture-memo rendering path
-   (MemoDetailView.transcriptSection, TranscriptContentView, CaptureQuoteBlock, karaoke swap-in,
-   overrideText/baseWordOffset plumbing) and SIMPLIFY it into ONE rendering component with three explicit
-   modes — editing / playing (full-text karaoke over quote+ramble) / reading (styled quote + attribution) —
-   instead of stacked special cases. Then karaoke falls out of the design rather than being patched in.
-   Keep the editor quote-protection (raw "> " write-back) intact. Inline, sole-editor, device-verify after.
+1b. ✅ **DONE 2026-06-12 — the refactor mandate was executed as specified** (whole path read first, then
+   unified into the 3-mode `TranscriptBodyView`; quote-protection intact; inline as sole editor; sim
+   gate green; installed to device). See item 1 for the full shape. Device verification owed by user.

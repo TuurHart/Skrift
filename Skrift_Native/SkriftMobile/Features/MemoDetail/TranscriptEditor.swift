@@ -12,9 +12,9 @@ import UIKit
 /// styled quote block above it — and write-back re-prepends the raw "> " lines
 /// verbatim (`CaptureQuote`), so editing can never corrupt the stored quote.
 ///
-/// Shown when paused; during playback the parent swaps in the read-only karaoke
-/// `TranscriptContentView` (highlight + tap-to-seek). The two render identically when
-/// idle, so the swap is seamless.
+/// Shown in `TranscriptBodyView`'s editing mode; playback swaps in its read-only
+/// full-text karaoke view (highlight + tap-to-seek). The two render identically
+/// when idle, so the swap is seamless.
 struct TranscriptEditor: UIViewRepresentable {
     let memo: Memo
     var onCommit: () -> Void
@@ -173,15 +173,9 @@ struct TranscriptEditor: UIViewRepresentable {
             return out as String
         }
 
-        private func imageURL(markerIndex: Int) -> URL? {
-            guard let manifest = memo.metadata?.imageManifest,
-                  markerIndex >= 1, markerIndex <= manifest.count else { return nil }
-            return AppPaths.recordingsDirectory.appendingPathComponent(manifest[markerIndex - 1].filename)
-        }
-
         private func imageAttachment(markerIndex: Int) -> NSTextAttachment {
             let att = NSTextAttachment()
-            if let url = imageURL(markerIndex: markerIndex), let img = MemoImageLoader.thumbnail(at: url, maxWidth: width) {
+            if let url = memo.imageURL(markerIndex: markerIndex), let img = MemoImageLoader.thumbnail(at: url, maxWidth: width) {
                 att.image = img
                 let h = min(width * (img.size.height / max(1, img.size.width)), 320)
                 att.bounds = CGRect(x: 0, y: -4, width: width, height: h)

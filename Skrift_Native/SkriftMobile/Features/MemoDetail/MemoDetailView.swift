@@ -339,8 +339,7 @@ private struct MemoPageView: View {
     /// Resolve a turn's `[[img_NNN]]` marker (1-based) → its photo file (same mapping as
     /// the non-conversation transcript). Lets photos render inline within speaker turns.
     private func turnImageURL(_ n: Int) -> URL? {
-        guard let manifest = memo.metadata?.imageManifest, n >= 1, n <= manifest.count else { return nil }
-        return AppPaths.recordingsDirectory.appendingPathComponent(manifest[n - 1].filename)
+        memo.imageURL(markerIndex: n)
     }
 
     /// Karaoke tap-to-seek: jump playback to the tapped word.
@@ -413,16 +412,10 @@ private struct MemoPageView: View {
 
     // MARK: - Transcript (always editable in place; karaoke on playback)
 
-    /// No Edit button / no separate field. Paused → an inline, always-editable body
-    /// (`TranscriptEditor` — keeps inline photos, writes back + flags
-    /// `transcriptUserEdited` on every change). Playing → the read-only karaoke view
-    /// (highlight + tap-to-seek). Transcribing → its status pill. The editor and the
-    /// idle karaoke view render the same, so play/pause swaps seamlessly.
-    ///
-    /// Audiobook captures (C2 metadata + C1 "> " block) render the quote STYLED —
-    /// accent bar, italics, attribution caption — as a non-editable block above the
-    /// ramble. Presentation only: the stored transcript keeps its raw "> " lines
-    /// (the quote-protected `TranscriptEditor` edits just the ramble below).
+    /// Conversation notes render as speaker-attributed turns (their own karaoke +
+    /// inline editing); everything else — ordinary memos AND audiobook captures —
+    /// goes through `TranscriptBodyView`, ONE component with three explicit modes
+    /// (editing / playing full-text karaoke / reading while transcribing).
     @ViewBuilder private var transcriptSection: some View {
         if let turns = SpeakerTranscript.parse(memo.transcript) {
             // Conversation note → speaker-attributed turns. Tap the NAME to assign/merge;
@@ -437,45 +430,8 @@ private struct MemoPageView: View {
                 onEditText: editTurnText,
                 imageURL: turnImageURL
             )
-        } else if let quote = memo.captureQuote {
-            VStack(alignment: .leading, spacing: 18) {
-                CaptureQuoteBlock(quote: quote.displayText, attribution: memo.quoteAttributionLabel)
-                if player.isPlaying || memo.transcriptStatus == .transcribing {
-                    // Karaoke while playing. The timings sidecar always starts
-                    // at the quote's spoken words (index 0). Two sub-cases:
-                    //
-                    // (a) Quote-only capture (no ramble yet): karaoke the quote
-                    //     text from word 0. The styled CaptureQuoteBlock above
-                    //     is non-interactive, so we add a separate read-only
-                    //     karaoke view below it — same text, live highlighting.
-                    //     This is the primary fix for the "karaoke broken on
-                    //     captures" bug: previously overrideText was empty and
-                    //     TranscriptContentView rendered nothing.
-                    //
-                    // (b) Capture with a ramble: karaoke the ramble only
-                    //     (word index = spokenWordCount so the global sidecar
-                    //     index lands correctly on the ramble words).
-                    if quote.ramble.isEmpty {
-                        TranscriptContentView(
-                            memo: memo, player: player,
-                            overrideText: quote.displayText,
-                            baseWordOffset: 0
-                        )
-                    } else {
-                        TranscriptContentView(
-                            memo: memo, player: player,
-                            overrideText: quote.ramble,
-                            baseWordOffset: quote.spokenWordCount
-                        )
-                    }
-                } else {
-                    TranscriptEditor(memo: memo, onCommit: { repository.save() })
-                }
-            }
-        } else if player.isPlaying || memo.transcriptStatus == .transcribing {
-            TranscriptContentView(memo: memo, player: player)
         } else {
-            TranscriptEditor(memo: memo, onCommit: { repository.save() })
+            TranscriptBodyView(memo: memo, player: player, onCommit: { repository.save() })
         }
     }
 
@@ -493,219 +449,6 @@ private struct MemoPageView: View {
             chips.append(MetaChip(text: period.label, symbol: period.symbol))
         }
         return chips
-    }
-}
-
-// MARK: - Transcript (RAW + inline image markers)
-
-private struct TranscriptContentView: View {
-    let memo: Memo
-    @ObservedObject var player: AudioPlayerModel
-    /// Render this text instead of the whole transcript (capture memos show
-    /// only the ramble here — the styled quote block sits above).
-    var overrideText: String? = nil
-    /// Global word-timing index of the first word in `overrideText` (the
-    /// quote's spoken words precede the ramble's in the karaoke sidecar).
-    var baseWordOffset: Int = 0
-    @State private var timings: [WordTiming] = []
-    @AppStorage("karaokeTapToSeek") private var tapToSeek = false
-
-    private var displayText: String? { overrideText ?? memo.transcript }
-
-    /// Active spoken-word index during playback (nil when paused / no timings) — the
-    /// transcript highlights that word. Word-accurate via the on-device timings.
-    private var activeWord: Int? {
-        guard player.isPlaying, !timings.isEmpty else { return nil }
-        return Karaoke.activeWordIndex(timings, at: player.currentTime)
-    }
-
-    var body: some View {
-        if memo.transcriptStatus == .failed, (memo.transcript ?? "").isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                StatusPill(style: .error, label: "Transcription failed", systemImage: "exclamationmark.triangle.fill")
-                Text("It'll be transcribed on your Mac when you sync — or tap Edit to type it yourself.")
-                    .font(.footnote).foregroundStyle(Color.skTextDim)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 12) {
-                // Show the pill whenever transcribing so the state is visible.
-                if memo.transcriptStatus == .transcribing {
-                    StatusPill(style: .working, label: "Transcribing")
-                }
-                let active = activeWord
-                ForEach(Array(segmentsWithOffsets.enumerated()), id: \.offset) { _, item in
-                    switch item.seg {
-                    case .text(let s):
-                        if tapToSeek {
-                            karaokeWords(s, wordOffset: item.wordOffset, active: active)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        } else {
-                            karaokeText(s, wordOffset: item.wordOffset, active: active)
-                                .font(.system(size: 15.5))
-                                .lineSpacing(4)
-                                .foregroundStyle(Color.skText)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    case .image(let n):
-                        ImageEmbed(url: imageURL(markerIndex: n))
-                    }
-                }
-            }
-            .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
-        }
-    }
-
-    /// Each segment paired with the count of spoken words before it, so karaoke maps
-    /// the global active-word index into the right segment (image markers aren't words).
-    private var segmentsWithOffsets: [(seg: Segment, wordOffset: Int)] {
-        var offset = baseWordOffset
-        var out: [(seg: Segment, wordOffset: Int)] = []
-        for seg in segments {
-            out.append((seg: seg, wordOffset: offset))
-            if case .text(let s) = seg { offset += s.split(whereSeparator: { $0.isWhitespace }).count }
-        }
-        return out
-    }
-
-    /// Render a text segment, highlighting the active word (accent + semibold) via an
-    /// AttributedString. The word index advances per whitespace-delimited run so it
-    /// aligns with the on-device word timings; whitespace/newlines are preserved.
-    private func karaokeText(_ text: String, wordOffset: Int, active: Int?) -> Text {
-        guard let active else { return Text(text) }   // not playing → plain text
-        var attr = AttributedString()
-        var wordIndex = wordOffset
-        var buffer = ""
-        func flush() {
-            guard !buffer.isEmpty else { return }
-            var piece = AttributedString(buffer)
-            // Played words dim, the current word accents, upcoming stay default — so a
-            // glance shows where playback is (matches desktop). NO weight change: bold
-            // widened the word and made the next one jump, so colour only.
-            if wordIndex < active { piece.foregroundColor = .skTextDim }
-            else if wordIndex == active { piece.foregroundColor = .skAccent }
-            attr += piece
-            wordIndex += 1
-            buffer = ""
-        }
-        for ch in text {
-            if ch.isWhitespace { flush(); attr += AttributedString(String(ch)) }
-            else { buffer.append(ch) }
-        }
-        flush()
-        return Text(attr)
-    }
-
-    /// Tap-to-seek mode: each word is its own tappable view (a flowing wrap), so a
-    /// tap jumps playback to that word. Same grey-out colouring. Opt-in (Settings)
-    /// since per-word views lose exact paragraph spacing vs the AttributedString.
-    @ViewBuilder private func karaokeWords(_ text: String, wordOffset: Int, active: Int?) -> some View {
-        let words = text.split(whereSeparator: { $0.isWhitespace }).map(String.init)
-        FlowLayout(spacing: 5, lineSpacing: 6) {
-            ForEach(Array(words.enumerated()), id: \.offset) { i, word in
-                let gi = wordOffset + i
-                Text(word)
-                    .font(.system(size: 15.5))
-                    .foregroundStyle(active.map { gi < $0 ? Color.skTextDim : (gi == $0 ? Color.skAccent : Color.skText) } ?? Color.skText)
-                    .contentShape(Rectangle())
-                    .onTapGesture { seekToWord(gi) }
-            }
-        }
-    }
-
-    private func seekToWord(_ i: Int) {
-        guard i >= 0, i < timings.count else { return }
-        player.seek(to: timings[i].start)
-        if !player.isPlaying { player.play() }
-    }
-
-    private enum Segment { case text(String); case image(Int) }
-
-    private var segments: [Segment] {
-        guard let text = displayText, !text.isEmpty else { return [] }
-        var result: [Segment] = []
-        let ns = text as NSString
-        let regex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
-        var last = 0
-        regex?.enumerateMatches(in: text, range: NSRange(location: 0, length: ns.length)) { match, _, _ in
-            guard let match else { return }
-            if match.range.location > last {
-                let chunk = ns.substring(with: NSRange(location: last, length: match.range.location - last))
-                if !chunk.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { result.append(.text(chunk.trimmingCharacters(in: .whitespacesAndNewlines))) }
-            }
-            let num = Int(ns.substring(with: match.range(at: 1))) ?? 0
-            result.append(.image(num))
-            last = match.range.location + match.range.length
-        }
-        if last < ns.length {
-            let tail = ns.substring(from: last)
-            if !tail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { result.append(.text(tail.trimmingCharacters(in: .whitespacesAndNewlines))) }
-        }
-        return result.isEmpty ? [.text(text)] : result
-    }
-
-    private func imageURL(markerIndex: Int) -> URL? {
-        guard let manifest = memo.metadata?.imageManifest, markerIndex >= 1, markerIndex <= manifest.count else { return nil }
-        return AppPaths.recordingsDirectory.appendingPathComponent(manifest[markerIndex - 1].filename)
-    }
-}
-
-// MARK: - Capture quote block
-
-/// The styled C1 blockquote heading a capture memo's body: an accent quote bar
-/// on the left, italic + slightly dimmed quote text, and a plain-text
-/// attribution caption from the C2 book metadata ("— Author, Book · ch. N" —
-/// the `[[Author]]` wikilink stays Mac-export-side). Non-editable by design:
-/// the ramble below it is the editable part, so the quote never reads as
-/// "recorded twice" plain text.
-private struct CaptureQuoteBlock: View {
-    let quote: String
-    let attribution: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(quote)
-                .font(.system(size: 15.5))
-                .italic()
-                .lineSpacing(4)
-                .foregroundStyle(Color.skText.opacity(0.78))
-            if let attribution {
-                Text(attribution)
-                    .font(.system(size: 12.5, weight: .medium))
-                    .foregroundStyle(Color.skTextDim)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 14)
-        .overlay(alignment: .leading) {
-            Capsule()
-                .fill(Color.skAccent.opacity(0.65))
-                .frame(width: 3)
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("capture-quote-block")
-    }
-}
-
-/// An inline photo from the transcript markers; placeholder if the file is gone
-/// (e.g. seeded demo memos).
-struct ImageEmbed: View {
-    let url: URL?
-
-    var body: some View {
-        Group {
-            if let url, let image = MemoImageLoader.thumbnail(at: url, maxWidth: UIScreen.main.bounds.width) {
-                Image(uiImage: image)
-                    .resizable().scaledToFill()
-            } else {
-                LinearGradient(colors: [Color(hex: 0x2b3350), Color(hex: 0x161a29)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .overlay(Image(systemName: "photo").font(.title).foregroundStyle(Color.skTextFaint))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 160)
-        .clipShape(.rect(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle.sk(14).stroke(Color.skBorder, lineWidth: 1))
     }
 }
 

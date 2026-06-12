@@ -433,29 +433,24 @@ final class AudiobookCaptureMathTests: XCTestCase {
         XCTAssertEqual(rebased.last?.end ?? 0, 3.0 - 1.1, accuracy: 0.001)
     }
 
-    // MARK: - Karaoke word-offset for capture memos
+    // MARK: - Karaoke word alignment for capture memos
 
-    /// The karaoke offset for a capture memo equals the number of whitespace-
-    /// delimited tokens in the quote display text. Verify the formula using
-    /// `CaptureQuote.spokenWordCount`.
-    func testCaptureQuoteSpokenWordCountMatchesWhitespaceSplit() {
-        // "Optimism wins." → 2 tokens
-        let t2 = "> Optimism wins.\n\nRamble here."
-        let q2 = CaptureQuote.split(t2)
-        XCTAssertEqual(q2?.spokenWordCount, 2,
-                       "two-word quote: ramble karaoke must start at index 2")
-
-        // Multi-sentence quote.
-        let t4 = "> One two three.\n>\n> Four.\n\nRamble."
-        let q4 = CaptureQuote.split(t4)
-        // display text = "One two three.\n\nFour." → 4 tokens
-        XCTAssertEqual(q4?.spokenWordCount, 4,
-                       "four-word quote: ramble karaoke must start at index 4")
+    /// Playback karaoke runs over the WHOLE capture (`Memo.karaokeText`): the
+    /// displayed words must whitespace-split to the quote's spoken words first
+    /// (the sidecar holds them from index 0) and the ramble's after — with the
+    /// "> " markers stripped, since they aren't words and would shift the
+    /// highlight off the timings.
+    func testCaptureKaraokeWordsAlignWithTheSidecarLayout() {
+        // Multi-sentence quote with a bare ">" spacer: 4 quote words, 1 ramble word.
+        let split = CaptureQuote.split("> One two three.\n>\n> Four.\n\nRamble.")!
+        let full = split.displayText + "\n\n" + split.ramble
+        let words = full.split(whereSeparator: \.isWhitespace).map(String.init)
+        XCTAssertEqual(words, ["One", "two", "three.", "Four.", "Ramble."])
+        XCTAssertFalse(words.contains(">"))
     }
 
-    /// When there is no ramble, `quote.ramble` is empty and karaoke should fall
-    /// back to showing the quote text itself (overrideText = quote.displayText,
-    /// baseWordOffset = 0). Verify that ramble is empty for a quote-only capture.
+    /// When there is no ramble, `quote.ramble` is empty and karaoke falls back
+    /// to the quote text alone (`karaokeText == displayText`, words from 0).
     func testCaptureQuoteRambleIsEmptyForQuoteOnlyCapture() {
         let quoteOnly = "> Optimism is not the belief things will go well."
         let split = CaptureQuote.split(quoteOnly)

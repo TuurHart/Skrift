@@ -65,11 +65,51 @@ final class QuotePresentationTests: XCTestCase {
         XCTAssertEqual(split?.ramble, "Ramble.")
     }
 
-    func testSpokenWordCountExcludesTheMarkers() {
-        // 3 spoken words across 2 quote lines — the ">" tokens are not words,
-        // so the ramble's karaoke base index is 3.
-        XCTAssertEqual(CaptureQuote.split("> one two\n> three\n\nramble")?.spokenWordCount, 3)
-        XCTAssertEqual(CaptureQuote.split(">First.\n>\n> Second.\n\nR.")?.spokenWordCount, 2)
+    // MARK: - Full-text karaoke (playback runs over quote + ramble)
+
+    func testKaraokeTextRunsOverQuoteAndRamble() {
+        // Playback renders the WHOLE memo as one continuous text: the quote
+        // with its "> " markers stripped, then the ramble — so the highlight
+        // runs straight through both halves of the timings sidecar.
+        let memo = captureMemo(transcript: c1)
+        XCTAssertEqual(
+            memo.karaokeText,
+            "Optimism is not the belief that things will go well,\nbut a way of explaining failure."
+                + "\n\nMy take: failure as input, not verdict.\nSecond ramble line."
+        )
+        XCTAssertFalse(memo.karaokeText!.contains(">"),
+                       "markers are not words — they'd shift the highlight off the sidecar")
+    }
+
+    func testKaraokeTextWordOrderMatchesTheSidecarLayout() {
+        // Sidecar = quote words from index 0, ramble words after — the
+        // displayed words must whitespace-split to exactly that sequence.
+        let memo = captureMemo(transcript: "> one two\n> three\n\nfour five")
+        let words = memo.karaokeText!.split(whereSeparator: \.isWhitespace).map(String.init)
+        XCTAssertEqual(words, ["one", "two", "three", "four", "five"])
+    }
+
+    func testKaraokeTextForAQuoteOnlyCapture() {
+        XCTAssertEqual(captureMemo(transcript: "> Just the quote.").karaokeText, "Just the quote.")
+    }
+
+    func testKaraokeTextForOrdinaryMemosIsTheRawTranscript() {
+        XCTAssertEqual(Memo(transcript: "plain text").karaokeText, "plain text")
+        XCTAssertEqual(Memo(transcript: "> q\n\nr").karaokeText, "> q\n\nr",
+                       "no C2 book metadata → not a capture → transcript as-is")
+        XCTAssertNil(Memo(transcript: nil).karaokeText)
+    }
+
+    // MARK: - Mode derivation (one place: playback > transcribing > editable)
+
+    func testTranscriptBodyModePrecedence() {
+        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: true, status: .transcribing), .playing,
+                       "playback always wins — full-text karaoke")
+        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: true, status: .done), .playing)
+        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: false, status: .transcribing), .reading,
+                       "an in-flight append must NOT show an editor (stale-draft clobber)")
+        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: false, status: .done), .editing)
+        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: false, status: .failed), .editing)
     }
 
     // MARK: - Reassembly (the editor's write-back)
