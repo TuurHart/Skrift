@@ -226,7 +226,7 @@ private struct MemoPageView: View {
     struct AssignTarget: Identifiable { let id = UUID(); let index: Int; let speaker: String }
     @ObservedObject private var diarStatus = DiarizationStatus.shared
     @State private var timings: [WordTiming] = []   // for karaoke highlight in the turn view
-    @AppStorage("karaokeTapToSeek") private var tapToSeek = false
+    @AppStorage("karaokeTapToSeek") private var tapToSeek = true   // default ON — must match TranscriptBodyView
 
     var body: some View {
         ScrollView {

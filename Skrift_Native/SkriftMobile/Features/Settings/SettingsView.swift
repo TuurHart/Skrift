@@ -8,7 +8,7 @@ struct SettingsView: View {
     @AppStorage("liveTranscription") private var liveTranscription = true
     @AppStorage("appTheme") private var appTheme = "dark"
     @AppStorage("weatherAPIKey") private var weatherKey = ""
-    @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = false
+    @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = true
     // Key mirrored by MemoSaver.autoCopySettingKey (default OFF — user-locked).
     @AppStorage("autoCopyTranscript") private var autoCopyTranscript = false
     @State private var connection = MacConnection.load()

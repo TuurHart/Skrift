@@ -114,7 +114,10 @@ private struct KaraokeTranscriptView: View {
     @ObservedObject var player: AudioPlayerModel
     let text: String
     @State private var timings: [WordTiming] = []
-    @AppStorage("karaokeTapToSeek") private var tapToSeek = false
+    // Default ON (2026-06-12, user call): tapping a word during playback should
+    // just work. The Settings toggle remains for opting back into the crisp
+    // single-Text rendering (per-word views shift paragraph spacing slightly).
+    @AppStorage("karaokeTapToSeek") private var tapToSeek = true
 
     /// Active spoken-word index during playback (nil when paused / no timings) —
     /// the transcript highlights that word. Word-accurate via the on-device timings.
