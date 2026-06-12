@@ -301,6 +301,17 @@ feel, folder import, AirPods re-insert recheck). Original findings below.
 - **P0 CRASH: first tap of Record crashed the app** (fresh install, round-2 build). Crash log pull attempted
   to /tmp/skrift-crashes2 (check SkriftMobile-2026-06-12-*.ips; if absent, pull next plug-in via
   idevicecrashreport). Suspects: instant-record path or the new route-change tap-reinstall init.
+- **P0 DIAGNOSED (crash log SkriftMobile-2026-06-12-081100.ips, kept in /tmp/skrift-crashes3): BOTH
+  morning failures are ONE bug — the round-2 route fix itself.** NSException → SIGABRT in
+  `LiveRecordingService.installRecordingTap` ← `rebuildTapForCurrentRoute` ← `handleRouteChange`
+  (AVFAudio InstallTapOnNode raise). First record tap: session-activation fires .categoryChange →
+  rebuild installs a tap with an invalid mid-transition input format (0 Hz/0 ch) or double-installs →
+  abort. AirPods pull: same path = app CRASHED (user read it as "stopped recording"). FIX DIRECTION:
+  (a) ALWAYS removeTap before install; (b) VALIDATE input format (sampleRate>0 && channelCount>0)
+  before installTap — NSExceptions are uncatchable from Swift, preconditions are the only defense;
+  retry on a short delay while the route settles; (c) ignore route events caused by our OWN session
+  activation (.categoryChange at start); (d) build WITH the dev file-logging item so the fix is
+  verified from traces, not vibes.
 - **P0 STILL BROKEN: AirPods pull-out stops the recording** (started with AirPods → pulled → recording
   stopped). The tap-reinstall fix did NOT hold on device. NEXT: stop guessing — add DEV-BUILD FILE LOGGING
   (user explicitly asked): a ring-buffer log file in the app container (os.Logger mirror or simple appender;
