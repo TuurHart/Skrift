@@ -55,9 +55,6 @@ final class LiveRecordingService: ObservableObject {
 
     private let mock: Bool
     private static let waveformBars = 40
-    /// Rebuild attempts per route change while the new route's input format
-    /// settles (0.25 s apart). ~1 s total — a Bluetooth handover gap.
-    private static let maxRebuildAttempts = 4
 
     private var engine: AVAudioEngine?
     private var audioFile: AVAudioFile?
@@ -85,6 +82,12 @@ final class LiveRecordingService: ObservableObject {
     private var displayTimer: Timer?
     private var captionTimer: Timer?
     private var routeObserver: NSObjectProtocol?
+    /// `AVAudioEngineConfigurationChange` — the canonical "the engine's node
+    /// formats changed underneath you" signal. Re-arms a recording whose
+    /// rebuild retries exhausted while the input format was still settling.
+    private var engineConfigObserver: NSObjectProtocol?
+    /// `mediaServicesWereReset` — the audio stack restarted; rebuild too.
+    private var mediaServicesObserver: NSObjectProtocol?
     private var noticeClearTimer: Timer?
     private var segmentStart: Date?
     private var accumulated: TimeInterval = 0
@@ -101,13 +104,15 @@ final class LiveRecordingService: ObservableObject {
 
     deinit {
         // Belt-and-braces teardown for an abnormal dismissal where stop()/cancel()
-        // never ran: kill ALL timers + the route observer directly. (deinit is
-        // nonisolated, so it can't call the @MainActor stopTimers()/
-        // teardownRouteObserver() helpers — inline the same work.)
+        // never ran: kill ALL timers + every recovery observer directly. (deinit
+        // is nonisolated, so it can't call the @MainActor stopTimers()/
+        // teardownRecoveryObservers() helpers — inline the same work.)
         displayTimer?.invalidate()
         captionTimer?.invalidate()
         noticeClearTimer?.invalidate()
         if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
+        if let engineConfigObserver { NotificationCenter.default.removeObserver(engineConfigObserver) }
+        if let mediaServicesObserver { NotificationCenter.default.removeObserver(mediaServicesObserver) }
     }
 
     /// Start, retrying briefly when the audio session is contended. Owned by the
@@ -179,11 +184,22 @@ final class LiveRecordingService: ObservableObject {
 
     func resume() {
         guard isRecording, isPaused else { return }
-        if !mock { try? engine?.start(); DevLog.log("record resume — engineRunning=\(engine?.isRunning == true)") }
         segmentStart = Date()
         isPaused = false
         tapPaused = false
-        if !mock { RecordingActivityManager.shared.resume(elapsed: elapsed) }
+        if !mock {
+            if engine != nil, tapInputUID == nil {
+                // The tap was torn down while paused (a route change mid-pause
+                // whose rebuild couldn't complete) — rebuild for the CURRENT
+                // route instead of starting an engine that captures nothing.
+                DevLog.log("record resume — no live tap, rebuilding for the current route")
+                rebuildTapForCurrentRoute()
+            } else {
+                try? engine?.start()
+            }
+            DevLog.log("record resume — engineRunning=\(engine?.isRunning == true)")
+            RecordingActivityManager.shared.resume(elapsed: elapsed)
+        }
     }
 
     struct Result { let url: URL; let duration: TimeInterval; let liveCaption: String }
@@ -192,7 +208,7 @@ final class LiveRecordingService: ObservableObject {
         guard isRecording else { return nil }
         accumulate()
         stopTimers()
-        teardownRouteObserver()
+        teardownRecoveryObservers()
         var duration = elapsed
         if !mock {
             tapStopped = true
@@ -235,7 +251,7 @@ final class LiveRecordingService: ObservableObject {
     func cancel() {
         guard isRecording else { return }
         stopTimers()
-        teardownRouteObserver()
+        teardownRecoveryObservers()
         if !mock {
             tapStopped = true
             engine?.inputNode.removeTap(onBus: 0)
@@ -301,7 +317,7 @@ final class LiveRecordingService: ObservableObject {
         try engine.start()
         self.engine = engine
         DevLog.log("engine started — input=\(currentInputName()) \(Self.describe(format))")
-        observeRouteChanges()
+        installRecoveryObservers()
     }
 
     /// Install the recording tap in the input node's CURRENT hardware format.
@@ -322,25 +338,41 @@ final class LiveRecordingService: ObservableObject {
     /// `installTap` enforces its preconditions with NSExceptions that Swift
     /// CANNOT catch, so validation here is the only defense. Before installing:
     /// (a) any existing tap is ALWAYS removed (installing over a live tap
-    /// raises), and (b) the input node's current format is validated via
-    /// `canInstallTap` — mid-route-transition the node reports 0 Hz/0 ch, or a
-    /// cached vended format that lags the new hardware; installing with either
-    /// raises. Returns false instead of installing — callers retry while the
-    /// route settles (`rebuildTapForCurrentRoute`) or throw (`startEngine`).
+    /// raises), and (b) the format the tap would install with (the node's
+    /// vended format — exactly what we pass to `installTap`) is validated via
+    /// `canInstallTap` against the SESSION's live hardware format:
+    /// mid-route-transition the node reports 0 Hz/0 ch, or a cached vended
+    /// format that still lags the new route. Returns false instead of
+    /// installing — callers retry while the route settles
+    /// (`rebuildTapForCurrentRoute`) or throw (`startEngine`).
+    ///
+    /// DEAFNESS SAFETY (DevLog verdict 2026-06-12 09:14): the validation must
+    /// NOT compare against the FILE's format — a hardware format that differs
+    /// from the file (AirPods 24 kHz ↔ built-in 48 kHz) is a LEGITIMATE
+    /// cross-rate rebuild, and the converter below bridges it. The earlier
+    /// check effectively demanded "new format == old format" and refused every
+    /// cross-rate rebuild → the recording went deaf on the new route.
     @discardableResult
     private func installRecordingTap(on input: AVAudioInputNode, file: AVAudioFile) -> Bool {
         input.removeTap(onBus: 0)   // (a) never double-install
-        let hwFormat = input.inputFormat(forBus: 0)
+        tapInputUID = nil           // no live tap from here until a successful install
+        let session = AVAudioSession.sharedInstance()
+        let sessionRate = session.sampleRate
+        let sessionChannels = AVAudioChannelCount(max(0, session.inputNumberOfChannels))
         let tapFormat = input.outputFormat(forBus: 0)
-        guard Self.canInstallTap(hwRate: hwFormat.sampleRate, hwChannels: hwFormat.channelCount,
-                                 tapRate: tapFormat.sampleRate, tapChannels: tapFormat.channelCount) else {
-            DevLog.log("tap install REFUSED — hw=\(Self.describe(hwFormat)) tap=\(Self.describe(tapFormat))")
+        guard Self.canInstallTap(sessionHwRate: sessionRate, sessionHwChannels: sessionChannels,
+                                 vendedRate: tapFormat.sampleRate, vendedChannels: tapFormat.channelCount) else {
+            DevLog.log("tap install REFUSED (transient — retry/re-arm) — sessionHw=\(Int(sessionRate))Hz/\(sessionChannels)ch"
+                       + " vended=\(Self.describe(tapFormat)) nodeIn=\(Self.describe(input.inputFormat(forBus: 0)))")
             return false
         }
+        // (Per-install:) the converter is created HERE, from THIS tap's fresh
+        // format, and captured by THIS tap's closure — so every reinstall
+        // bridges its own NEW format to the file's fixed write format.
         let writeFormat = file.processingFormat
         let converter = Self.makeWriteConverter(from: tapFormat, to: writeFormat)
-        DevLog.log("tap install — \(Self.describe(tapFormat)) → file \(Self.describe(writeFormat))"
-                   + (converter == nil ? "" : " (converting)"))
+        DevLog.log("tap install ACCEPTED — \(Self.describe(tapFormat)) → file \(Self.describe(writeFormat))"
+                   + (converter == nil ? " (no conversion)" : " (converting)"))
         input.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
             guard let self, !self.tapPaused, !self.tapStopped,
                   let copy = Self.copyBuffer(buffer) else { return }
@@ -381,15 +413,42 @@ final class LiveRecordingService: ObservableObject {
     /// re-query the new input format, reinstall, and restart — see
     /// `rebuildTapForCurrentRoute`. The session category was set once in
     /// `startEngine`; we don't reconfigure it here.
-    private func observeRouteChanges() {
+    ///
+    /// Three observers, together the NEVER-give-up guarantee: a refused rebuild
+    /// only ever waits — it is re-triggered by the next route change, by an
+    /// `AVAudioEngineConfigurationChange` (the canonical "the engine's node
+    /// formats changed/settled" signal — fires when the vended input format
+    /// finally catches up with the new route), or by a media-services reset.
+    private func installRecoveryObservers() {
         guard routeObserver == nil else { return }
+        let session = AVAudioSession.sharedInstance()
         routeObserver = NotificationCenter.default.addObserver(
             forName: AVAudioSession.routeChangeNotification,
-            object: AVAudioSession.sharedInstance(),
+            object: session,
             queue: .main
         ) { [weak self] note in
             MainActor.assumeIsolated {
                 self?.handleRouteChange(note)
+            }
+        }
+        if let engine {
+            engineConfigObserver = NotificationCenter.default.addObserver(
+                forName: .AVAudioEngineConfigurationChange,
+                object: engine,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.handleEngineConfigurationChange()
+                }
+            }
+        }
+        mediaServicesObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.mediaServicesWereResetNotification,
+            object: session,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.handleMediaServicesReset()
             }
         }
     }
@@ -401,10 +460,12 @@ final class LiveRecordingService: ObservableObject {
         let previous = note.userInfo?[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription
         let session = AVAudioSession.sharedInstance()
         let currentInput = session.currentRoute.inputs.first
-        let hwFormat = engine.map { Self.describe($0.inputNode.inputFormat(forBus: 0)) } ?? "-"
+        let nodeIn = engine.map { Self.describe($0.inputNode.inputFormat(forBus: 0)) } ?? "-"
+        let vended = engine.map { Self.describe($0.inputNode.outputFormat(forBus: 0)) } ?? "-"
         DevLog.log("route change — reason=\(Self.name(reason))"
                    + " prev=\(Self.describe(previous)) now=\(Self.describe(session.currentRoute))"
-                   + " hwFmt=\(hwFormat) engineRunning=\(engine?.isRunning == true)")
+                   + " sessionHw=\(Int(session.sampleRate))Hz/\(session.inputNumberOfChannels)ch"
+                   + " nodeIn=\(nodeIn) vended=\(vended) engineRunning=\(engine?.isRunning == true)")
 
         switch reason {
         case .oldDeviceUnavailable, .newDeviceAvailable, .categoryChange:
@@ -430,11 +491,43 @@ final class LiveRecordingService: ObservableObject {
         default:
             // .routeConfigurationChange/.override etc. can also stop the engine;
             // if capture stalled, rebuild quietly (same stale-format hazard).
+            // This is also a re-arm path: a recording whose rebuild retries
+            // exhausted sits with a stopped engine, so ANY later route
+            // notification lands here and tries again.
             if !isPaused, let engine, !engine.isRunning {
                 DevLog.log("engine stalled by \(Self.name(reason)) — rebuilding")
                 rebuildTapForCurrentRoute()
             }
         }
+    }
+
+    /// The engine reconfigured itself — its node formats just changed/settled
+    /// (this is the canonical signal that the vended input format caught up
+    /// with a new route). The engine stops itself when this happens. If a
+    /// route-notification rebuild already brought capture back, do nothing;
+    /// otherwise rebuild NOW — this re-arms a recording whose earlier rebuild
+    /// retries exhausted while the node still vended the old route's format.
+    private func handleEngineConfigurationChange() {
+        guard isRecording, !mock else { return }
+        let running = engine?.isRunning == true
+        DevLog.log("engine configuration change — engineRunning=\(running) paused=\(isPaused)")
+        if running {
+            DevLog.log("engine configuration change ignored — capture already healthy")
+            return
+        }
+        rebuildTapForCurrentRoute()
+    }
+
+    /// The system audio stack restarted underneath us. Reassert our session
+    /// configuration (a reset wipes it) and rebuild. Best-effort: if the old
+    /// engine can't be restarted the observers stay armed and the file keeps
+    /// everything captured so far.
+    private func handleMediaServicesReset() {
+        guard isRecording, !mock else { return }
+        DevLog.log("media services were RESET — reconfiguring session + rebuilding")
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .defaultToSpeaker])
+        rebuildTapForCurrentRoute()
     }
 
     /// Survive a route change: tear the tap down, re-query the input node's NEW
@@ -446,10 +539,12 @@ final class LiveRecordingService: ObservableObject {
     /// Mid-transition the input format is often not ready yet (0 Hz, or a
     /// vended format lagging the new hardware) — `installRecordingTap` refuses
     /// to install then (installing would raise an uncatchable NSException — the
-    /// round-2 P0 crash), and we retry every 0.25 s for a few attempts while
-    /// the route settles, keeping the recording session alive throughout. A
-    /// final failure still doesn't drop the recording — the file already holds
-    /// what was captured, and the user is shown the notice.
+    /// round-2 P0 crash), and we retry with backoff (~3 s total) while the
+    /// route settles, keeping the recording session alive throughout.
+    /// Exhausting the backoff is NOT a give-up: the recording stays armed, and
+    /// the next route-change / engine-configuration-change / media-services
+    /// notification re-triggers this rebuild from attempt 0 (the DevLog-verdict
+    /// fix — the old hard stop left the recording permanently deaf).
     private func rebuildTapForCurrentRoute(attempt: Int = 0) {
         guard isRecording, let engine, let file = audioFile else { return }
         let input = engine.inputNode
@@ -468,10 +563,10 @@ final class LiveRecordingService: ObservableObject {
             // Transient no-input gap mid-transition (common right after a
             // Bluetooth route drops) — retry shortly; a follow-up route
             // notification usually rebuilds us anyway.
-            if attempt + 1 < Self.maxRebuildAttempts {
-                DevLog.log("rebuild attempt \(attempt) — input not ready, retrying in 250 ms")
+            if let delay = Self.rebuildRetryDelayMs(afterAttempt: attempt) {
+                DevLog.log("rebuild attempt \(attempt) — input not ready, retrying in \(delay) ms")
                 Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(250))
+                    try? await Task.sleep(for: .milliseconds(delay))
                     guard let self, self.isRecording else { return }
                     // A follow-up route notification may have rebuilt us while
                     // this retry was sleeping — don't tear a live engine down.
@@ -482,8 +577,9 @@ final class LiveRecordingService: ObservableObject {
                     self.rebuildTapForCurrentRoute(attempt: attempt + 1)
                 }
             } else {
-                DevLog.log("rebuild gave up after \(attempt + 1) attempts — keeping session alive")
-                showRouteNotice("Lost the mic input — tap Stop to keep what was recorded")
+                DevLog.log("rebuild backoff exhausted after \(attempt + 1) attempts — staying ARMED"
+                           + " (next route/engine-config/media-services notification re-triggers)")
+                showRouteNotice("Waiting for the mic — keeping what's recorded so far")
             }
             return
         }
@@ -496,8 +592,9 @@ final class LiveRecordingService: ObservableObject {
             try engine.start()
             DevLog.log("engine restarted — input=\(currentInputName())")
         } catch {
-            DevLog.log("engine restart FAILED: \(error)")
-            showRouteNotice("Lost the mic input — tap Stop to keep what was recorded")
+            DevLog.log("engine restart FAILED: \(error) — staying ARMED"
+                       + " (next route/engine-config/media-services notification re-triggers)")
+            showRouteNotice("Waiting for the mic — keeping what's recorded so far")
         }
     }
 
@@ -516,27 +613,55 @@ final class LiveRecordingService: ObservableObject {
         }
     }
 
-    private func teardownRouteObserver() {
+    private func teardownRecoveryObservers() {
         if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
         routeObserver = nil
+        if let engineConfigObserver { NotificationCenter.default.removeObserver(engineConfigObserver) }
+        engineConfigObserver = nil
+        if let mediaServicesObserver { NotificationCenter.default.removeObserver(mediaServicesObserver) }
+        mediaServicesObserver = nil
         noticeClearTimer?.invalidate(); noticeClearTimer = nil
         routeNotice = nil
     }
 
-    // MARK: - Tap-install validation (pure; unit-tested)
+    // MARK: - Tap-install validation + rebuild backoff (pure; unit-tested)
 
     /// Decide whether installing the recording tap is SAFE right now.
-    /// `installTap` enforces these as UNCATCHABLE NSExceptions (the round-2
-    /// P0 SIGABRT), so this precondition check is the only defense:
-    /// - the hardware input format must be real (rate > 0, channels > 0) —
-    ///   mid-route-transition the input node reports 0 Hz/0 ch;
-    /// - the node's vended (tap) format must AGREE with the hardware format —
-    ///   right after a route change the cached vended format can lag the new
-    ///   hardware (stale AirPods 24 kHz vs built-in 48 kHz), and installing
-    ///   with a format that mismatches the hardware also raises.
-    nonisolated static func canInstallTap(hwRate: Double, hwChannels: AVAudioChannelCount,
-                                          tapRate: Double, tapChannels: AVAudioChannelCount) -> Bool {
-        hwRate > 0 && hwChannels > 0 && tapRate == hwRate && tapChannels == hwChannels
+    /// `installTap` enforces its preconditions as UNCATCHABLE NSExceptions
+    /// (the round-2 P0 SIGABRT), so this check is the only defense. The tap
+    /// installs in the node's CURRENT vended format whenever that format is
+    /// settled:
+    /// - it must be real (rate > 0, channels > 0) — mid-route-transition the
+    ///   input node reports 0 Hz/0 ch;
+    /// - it must AGREE with the SESSION's live hardware input format — right
+    ///   after a route change the engine's cached vended format can lag the
+    ///   new route (stale AirPods 24 kHz while the session is already on the
+    ///   48 kHz built-in mic); capture at that stale rate would be garbage.
+    ///
+    /// Refuse ONLY those transient states. The FILE's format is deliberately
+    /// NOT consulted: a hardware format differing from the file is the normal
+    /// cross-rate rebuild (AirPods 24 kHz ↔ built-in 48 kHz) and the per-tap
+    /// `AVAudioConverter` bridges tap→file. (DevLog verdict 2026-06-12 09:14:
+    /// requiring "new == old/file format" here refused every cross-rate
+    /// rebuild and left recordings permanently deaf on the new route.)
+    /// Stateless on purpose — a refusal never poisons later attempts.
+    nonisolated static func canInstallTap(sessionHwRate: Double, sessionHwChannels: AVAudioChannelCount,
+                                          vendedRate: Double, vendedChannels: AVAudioChannelCount) -> Bool {
+        vendedRate > 0 && vendedChannels > 0
+            && vendedRate == sessionHwRate && vendedChannels == sessionHwChannels
+    }
+
+    /// Backoff schedule for tap-rebuild retries while a new route's input
+    /// format settles: the delay (ms) to wait after a refused `attempt`
+    /// (0-based), or nil once the schedule is exhausted (~3 s cumulative —
+    /// generous for a Bluetooth handover). Exhaustion is NOT a give-up: the
+    /// recording stays armed and the next route-change /
+    /// engine-configuration-change / media-services notification re-triggers
+    /// the rebuild from attempt 0.
+    nonisolated static func rebuildRetryDelayMs(afterAttempt attempt: Int) -> Int? {
+        let delays = [250, 400, 600, 850, 900]   // ≈3 s total
+        guard attempt >= 0, attempt < delays.count else { return nil }
+        return delays[attempt]
     }
 
     // MARK: - DevLog descriptions

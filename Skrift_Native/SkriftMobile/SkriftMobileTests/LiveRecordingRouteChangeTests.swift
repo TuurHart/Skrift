@@ -4,11 +4,13 @@ import XCTest
 
 /// Pure-logic coverage for the route-change survival path in
 /// `LiveRecordingService` (the AirPods pull-out P0): the format-change
-/// decision, converter selection, conversion continuity across consecutive
-/// buffers, and the cross-feature `isRecordingActive` contract. The actual
-/// engine/route behavior (pull AirPods → built-in mic, re-insert → AirPods)
-/// is device-verified — the Simulator has neither Bluetooth routes nor the
-/// real mic stack.
+/// decision, the tap-install precondition (session-hw vs vended — cross-rate
+/// installs ACCEPTED, per the 2026-06-12 DevLog verdict), the rebuild backoff
+/// + never-give-up re-arm contract, converter selection, conversion
+/// continuity across consecutive buffers, and the cross-feature
+/// `isRecordingActive` contract. The actual engine/route behavior (pull
+/// AirPods → built-in mic, re-insert → AirPods) is device-verified — the
+/// Simulator has neither Bluetooth routes nor the real mic stack.
 final class LiveRecordingRouteChangeTests: XCTestCase {
 
     private func format(rate: Double, channels: AVAudioChannelCount = 1) -> AVAudioFormat {
@@ -36,40 +38,98 @@ final class LiveRecordingRouteChangeTests: XCTestCase {
             from: format(rate: 48_000, channels: 2), to: format(rate: 48_000, channels: 1)))
     }
 
-    // MARK: - Tap-install validation (the round-2 P0: InstallTapOnNode raises
-    // an UNCATCHABLE NSException on an invalid mid-transition format, so this
-    // pure precondition is the only defense)
+    // MARK: - Tap-install validation (round-2 P0: InstallTapOnNode raises an
+    // UNCATCHABLE NSException on an invalid mid-transition format, so this
+    // pure precondition is the only defense. DevLog verdict 2026-06-12 09:14:
+    // the check must compare the vended tap format against the SESSION's live
+    // hardware format and NEVER against the file's — cross-rate rebuilds are
+    // legitimate and the per-tap converter bridges them.)
 
-    func testCanInstallTapWhenFormatsRealAndAgree() {
+    func testAcceptsWhenVendedFormatAgreesWithSessionHardware() {
         XCTAssertTrue(LiveRecordingService.canInstallTap(
-            hwRate: 48_000, hwChannels: 1, tapRate: 48_000, tapChannels: 1))
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 1))
         XCTAssertTrue(LiveRecordingService.canInstallTap(
-            hwRate: 24_000, hwChannels: 2, tapRate: 24_000, tapChannels: 2))
+            sessionHwRate: 24_000, sessionHwChannels: 2, vendedRate: 24_000, vendedChannels: 2))
+    }
+
+    func testAcceptsCrossRateRebuildRegardlessOfFileFormat() {
+        // The DEAF-recording bug: a recording started on AirPods (24 kHz file)
+        // falls back to the built-in mic (48 kHz hardware). The 48 kHz install
+        // MUST be accepted even though it differs from the file's 24 kHz —
+        // the per-install converter bridges tap→file. (The old semantics
+        // effectively demanded new == old/file format, refused this forever,
+        // and the recording went deaf on the new route.)
+        XCTAssertTrue(LiveRecordingService.canInstallTap(
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 1))
+        XCTAssertNotNil(LiveRecordingService.makeWriteConverter(
+            from: format(rate: 48_000), to: format(rate: 24_000)),
+            "the accepted cross-rate install must come with a tap→file bridge")
+        // …and the reverse hop (re-insert: back onto AirPods, 48 kHz file).
+        XCTAssertTrue(LiveRecordingService.canInstallTap(
+            sessionHwRate: 24_000, sessionHwChannels: 1, vendedRate: 24_000, vendedChannels: 1))
+        XCTAssertNotNil(LiveRecordingService.makeWriteConverter(
+            from: format(rate: 24_000), to: format(rate: 48_000)))
     }
 
     func testRefusesZeroedMidTransitionFormat() {
         // What the input node reports mid-route-transition (the crash-log case).
         XCTAssertFalse(LiveRecordingService.canInstallTap(
-            hwRate: 0, hwChannels: 0, tapRate: 0, tapChannels: 0))
+            sessionHwRate: 0, sessionHwChannels: 0, vendedRate: 0, vendedChannels: 0))
         XCTAssertFalse(LiveRecordingService.canInstallTap(
-            hwRate: 0, hwChannels: 1, tapRate: 0, tapChannels: 1))
+            sessionHwRate: 0, sessionHwChannels: 1, vendedRate: 0, vendedChannels: 1))
         XCTAssertFalse(LiveRecordingService.canInstallTap(
-            hwRate: 48_000, hwChannels: 0, tapRate: 48_000, tapChannels: 0))
+            sessionHwRate: 48_000, sessionHwChannels: 0, vendedRate: 48_000, vendedChannels: 0))
     }
 
-    func testRefusesStaleVendedFormatLaggingNewHardware() {
-        // AirPods pulled: hardware is already the 48 kHz built-in mic but the
-        // node still vends the cached 24 kHz AirPods format — installing with
-        // the mismatched format also raises.
+    func testRefusesVendedFormatLaggingSessionHardware() {
+        // AirPods pulled: the session is already on the 48 kHz built-in mic but
+        // the engine still vends the cached 24 kHz AirPods format — install
+        // would capture garbage at the wrong rate. Transient: the engine-
+        // configuration-change observer re-triggers once the format settles.
         XCTAssertFalse(LiveRecordingService.canInstallTap(
-            hwRate: 48_000, hwChannels: 1, tapRate: 24_000, tapChannels: 1))
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 24_000, vendedChannels: 1))
         XCTAssertFalse(LiveRecordingService.canInstallTap(
-            hwRate: 48_000, hwChannels: 1, tapRate: 48_000, tapChannels: 2))
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 2))
     }
 
     func testRefusesWhenOnlyVendedSideLooksAlive() {
+        // A live-looking vended format with a dead session (0 Hz/0 ch, e.g.
+        // input unavailable) is still a transient — refuse.
         XCTAssertFalse(LiveRecordingService.canInstallTap(
-            hwRate: 0, hwChannels: 0, tapRate: 48_000, tapChannels: 1))
+            sessionHwRate: 0, sessionHwChannels: 0, vendedRate: 48_000, vendedChannels: 1))
+    }
+
+    // MARK: - Rebuild backoff + re-arm (never a permanent give-up)
+
+    func testRebuildBackoffSpansAboutThreeSecondsThenExhausts() {
+        var attempt = 0
+        var total = 0
+        var previous = 0
+        while let delay = LiveRecordingService.rebuildRetryDelayMs(afterAttempt: attempt) {
+            XCTAssertGreaterThanOrEqual(delay, previous, "backoff must not shrink")
+            total += delay
+            previous = delay
+            attempt += 1
+            XCTAssertLessThan(attempt, 20, "backoff must exhaust (hand-off to the armed observers)")
+        }
+        XCTAssertGreaterThanOrEqual(attempt, 3, "needs a few in-window retries for a BT handover")
+        XCTAssertTrue((2_500...3_500).contains(total), "total backoff ≈3 s, got \(total) ms")
+    }
+
+    func testExhaustedBackoffIsNotAPermanentGiveUp() {
+        // Past the schedule the delay is nil — the rebuild loop stops, but the
+        // decision logic carries NO sticky failure state: after any number of
+        // refusals, the very same check accepts the moment a later route /
+        // engine-configuration / media-services notification re-triggers a
+        // rebuild with a settled format.
+        XCTAssertNil(LiveRecordingService.rebuildRetryDelayMs(afterAttempt: 99))
+        for _ in 0..<10 {
+            XCTAssertFalse(LiveRecordingService.canInstallTap(
+                sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 24_000, vendedChannels: 1))
+        }
+        XCTAssertTrue(LiveRecordingService.canInstallTap(
+            sessionHwRate: 48_000, sessionHwChannels: 1, vendedRate: 48_000, vendedChannels: 1),
+            "a refusal history must never poison a later valid install")
     }
 
     // MARK: - Converter selection
