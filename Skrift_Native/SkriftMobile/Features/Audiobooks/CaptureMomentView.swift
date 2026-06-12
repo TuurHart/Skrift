@@ -95,8 +95,8 @@ struct CaptureMomentView: View {
         // AirPods off their Mac).
         .task(id: barsKey) {
             // Re-read the waveform whenever the window settles somewhere new
-            // (pan / edge-bump). Reads only the visible slice, off the main
-            // actor; a superseded read is simply replaced by the next.
+            // (pan / pause-point jump). Reads only the visible slice, off the
+            // main actor; a superseded read is simply replaced by the next.
             let w = window
             bars = await SpanWaveform.bars(
                 url: audioURL,
@@ -326,9 +326,9 @@ struct CaptureMomentView: View {
         }
     }
 
-    /// A handle's x on the strip, pinned to the edges when its time has been
-    /// panned out of the window (still grabbable there — dragging edge-bumps
-    /// the window back toward it).
+    /// A handle's x on the strip, pinned (dimmed) at the edges when its time
+    /// has been panned out of the window — still grabbable there: dragging
+    /// moves the marker to the finger, inside the visible window.
     private func xPosition(of t: TimeInterval, width: CGFloat) -> CGFloat {
         let raw = width * CGFloat((t - window.start) / max(0.1, window.length))
         return min(max(0, raw), width)

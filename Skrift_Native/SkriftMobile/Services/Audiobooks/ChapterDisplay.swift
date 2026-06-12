@@ -89,7 +89,8 @@ enum ChapterDisplay {
 
     /// Character-wise longest common prefix of all strings ("" when none).
     static func longestCommonPrefix(_ strings: [String]) -> String {
-        guard var prefix = strings.first.map(Array.init) else { return "" }
+        guard let first = strings.first else { return "" }
+        var prefix = Array(first)
         for s in strings.dropFirst() {
             let chars = Array(s)
             var i = 0
