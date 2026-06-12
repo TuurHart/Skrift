@@ -18,13 +18,19 @@ struct AudiobookMiniPlayerBar: View {
 
     var body: some View {
         if let book = session.book {
+            // Width budget on the smallest target screen (390pt − 2×14 mount
+            // padding = 362pt): lead 12 + cover 48(+4 pad) + 3×40 transport
+            // + 3×4 spacing + spacer ≥4 + Capture pill ~92 (10 ❝ + 5 + ~50
+            // text + 2×12 padding) + 4 + chevron 30 + trail 14 ≈ 340 ≤ 362 —
+            // the pill can NEVER be squeezed into wrapping (and its text is
+            // fixedSize + lineLimit(1) besides).
             HStack(spacing: 4) {
                 Button {
                     showPlayer = true
                 } label: {
                     BookCoverView(book: book, showsPlaceholderTitle: false)
-                        .frame(width: 64, height: 64)
-                        .clipShape(.rect(cornerRadius: 14, style: .continuous))
+                        .frame(width: 48, height: 48)
+                        .clipShape(.rect(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("mini-player-cover")
@@ -52,11 +58,18 @@ struct AudiobookMiniPlayerBar: View {
                     showCapture = true
                 } label: {
                     HStack(spacing: 5) {
-                        Text("❝").font(.system(size: 16, weight: .heavy))
-                        Text("Capture").font(.system(size: 14, weight: .bold))
+                        Text("❝")
+                            .font(.system(size: 14, weight: .heavy))
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                        Text("Capture")
+                            .font(.system(size: 12, weight: .bold))
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
                     }
+                    .fixedSize(horizontal: true, vertical: false)
                     .foregroundStyle(Color.skAccentText)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
                     .background(Color.skAccent.opacity(0.2), in: .capsule)
                 }
                 .accessibilityIdentifier("mini-player-capture")
@@ -66,17 +79,19 @@ struct AudiobookMiniPlayerBar: View {
                     showPlayer = true
                 } label: {
                     Image(systemName: "chevron.up")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.skTextDim)
-                        .frame(width: 34, height: 44)
+                        .frame(width: 30, height: 40)
                 }
                 .accessibilityIdentifier("mini-player-expand")
                 .accessibilityLabel("Expand to the full player")
             }
             .padding(.leading, 12)
             .padding(.trailing, 14)
-            // ~2x the original 54pt (user 2026-06-11: buttons too small to hit).
-            .frame(height: 104)
+            // 72pt: roomier than the original 54 (2026-06-11 "buttons too
+            // small") but nothing like the grotesque 104 that shipped — and
+            // sized by the width arithmetic above, not by feel (2026-06-12).
+            .frame(height: 72)
             .background(.ultraThinMaterial, in: .capsule)
             .overlay(
                 Capsule()
@@ -105,9 +120,9 @@ struct AudiobookMiniPlayerBar: View {
                                  action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(Color.skText)
-                .frame(width: 48, height: 48)
+                .frame(width: 40, height: 40)
                 .contentShape(Circle())
         }
         .accessibilityIdentifier(id)
