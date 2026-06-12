@@ -33,6 +33,21 @@ final class LiveRecordingService: ObservableObject {
     /// + waveform only, transcript comes from the one-shot pass after stop.
     var liveTranscription: Bool
 
+    // MARK: - Cross-feature recording signal
+
+    /// The instance whose recording session is currently live. Weak, so an
+    /// abnormally-dismissed recorder (deinit without stop/cancel) can never
+    /// leave the flag stuck on.
+    private static weak var activeService: LiveRecordingService?
+
+    /// CROSS-LANE CONTRACT — do not rename. True while a recording session is
+    /// live: from `start()` until `stop()`/`cancel()`, **including while
+    /// paused**. Other features yield to an active recording on this signal —
+    /// e.g. `AudiobookSession` ignores remote-play commands (AirPods in-ear
+    /// auto-play) that would otherwise grab the audio session mid-recording.
+    /// MainActor-isolated via the class annotation.
+    static var isRecordingActive: Bool { activeService?.isRecording ?? false }
+
     private let mock: Bool
     private static let waveformBars = 40
 
@@ -128,6 +143,7 @@ final class LiveRecordingService: ObservableObject {
 
         isRecording = true
         isPaused = false
+        Self.activeService = self
         segmentStart = Date()
         startDisplayTimer()
         if !mock { RecordingActivityManager.shared.start() }
@@ -187,6 +203,7 @@ final class LiveRecordingService: ObservableObject {
         }
         isRecording = false
         isPaused = false
+        if Self.activeService === self { Self.activeService = nil }
         let caption = liveCaption
         guard let url = tempURL else { return nil }
         tempURL = nil
@@ -213,6 +230,7 @@ final class LiveRecordingService: ObservableObject {
         tempURL = nil
         isRecording = false
         isPaused = false
+        if Self.activeService === self { Self.activeService = nil }
         elapsed = 0
         level = 0
         waveform = []
@@ -242,35 +260,67 @@ final class LiveRecordingService: ObservableObject {
         let file = try AVAudioFile(forWriting: url, settings: settings)
         self.audioFile = file
 
-        // Real-time audio thread: keep this minimal. Copy the buffer (tap storage
-        // is reused after the callback) and hand the heavy work — AAC encode +
-        // RMS — to the writer queue so it never blocks the render thread.
-        input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
-            guard let self, !self.tapPaused, !self.tapStopped,
-                  let copy = Self.copyBuffer(buffer) else { return }
-            let live = self.tapLive
-            self.writerQueue.async { [weak self] in
-                try? file.write(from: copy)
-                let lvl = Self.rms(copy)
-                Task { @MainActor [weak self] in
-                    guard let self, self.isRecording, !self.isPaused else { return }
-                    self.level = lvl
-                    self.pushWaveform(lvl)
-                }
-                if live { Task { await TranscriptionService.shared.feedStream(copy) } }
-            }
-        }
+        installRecordingTap(on: input, file: file)
         try engine.start()
         self.engine = engine
         observeRouteChanges()
     }
 
-    /// Keep the recording alive across an audio-route change (AirPods pulled out,
-    /// a wired headset unplugged, a Bluetooth device disconnecting). iOS tears the
-    /// route down and pauses the engine; the in-progress `.m4a` + the live tap must
-    /// survive, so we restart the engine on the new route and surface a brief
-    /// notice instead of letting capture die silently. The session category was set
-    /// once in `startEngine`; we don't reconfigure it here.
+    /// Install the recording tap in the input node's CURRENT hardware format.
+    /// The `.m4a` keeps the format it was created with for the whole recording
+    /// (a constant file format is mandatory mid-file), so when the current route's
+    /// mic format differs — e.g. the recording started on AirPods (24 kHz) and
+    /// fell back to the built-in mic (48 kHz) — every buffer is converted to the
+    /// file's write format via an `AVAudioConverter` owned by THIS tap closure.
+    /// The converter persists across callbacks, so sample-rate-conversion state
+    /// stays continuous; in-flight blocks from a previous tap still write
+    /// correctly through their own converter (the writer queue is serial).
+    ///
+    /// Real-time audio thread: keep the tap body minimal. Copy the buffer (tap
+    /// storage is reused after the callback) and hand the heavy work — convert +
+    /// AAC encode + RMS — to the writer queue so it never blocks the render thread.
+    private func installRecordingTap(on input: AVAudioInputNode, file: AVAudioFile) {
+        let tapFormat = input.outputFormat(forBus: 0)
+        let writeFormat = file.processingFormat
+        let converter = Self.makeWriteConverter(from: tapFormat, to: writeFormat)
+        input.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
+            guard let self, !self.tapPaused, !self.tapStopped,
+                  let copy = Self.copyBuffer(buffer) else { return }
+            let live = self.tapLive
+            self.writerQueue.async { [weak self] in
+                let out: AVAudioPCMBuffer
+                if let converter {
+                    guard let converted = Self.convert(copy, with: converter, to: writeFormat) else { return }
+                    out = converted
+                } else {
+                    out = copy
+                }
+                try? file.write(from: out)
+                let lvl = Self.rms(out)
+                Task { @MainActor [weak self] in
+                    guard let self, self.isRecording, !self.isPaused else { return }
+                    self.level = lvl
+                    self.pushWaveform(lvl)
+                }
+                // Feed the stream the WRITE-format buffer, not the raw tap copy:
+                // the live-caption accumulator memcpy-concatenates its buffers
+                // assuming ONE format for the whole stream, so a mid-recording
+                // route change must not leak a different sample rate into it.
+                if live { Task { await TranscriptionService.shared.feedStream(out) } }
+            }
+        }
+    }
+
+    /// Keep the recording alive across an audio-route change (AirPods pulled out
+    /// or re-inserted, a wired headset unplugged, a Bluetooth device dropping).
+    /// iOS tears the route down and stops the engine — AND the input node's
+    /// hardware format usually changes with the route, so merely restarting the
+    /// engine is NOT enough: a tap installed in the old route's format keeps the
+    /// stale format and every `file.write` fails silently from then on (the
+    /// recording "dies"). On every transition we fully tear the tap down,
+    /// re-query the new input format, reinstall, and restart — see
+    /// `rebuildTapForCurrentRoute`. The session category was set once in
+    /// `startEngine`; we don't reconfigure it here.
     private func observeRouteChanges() {
         guard routeObserver == nil else { return }
         routeObserver = NotificationCenter.default.addObserver(
@@ -289,36 +339,75 @@ final class LiveRecordingService: ObservableObject {
         let reasonValue = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
         let reason = reasonValue.flatMap { AVAudioSession.RouteChangeReason(rawValue: $0) }
 
-        // The active input was removed (e.g. an AirPod taken out / a headset
-        // unplugged). iOS pauses the engine; restart it on the fallback route so
-        // capture continues to the same file. Don't restart while paused — `resume()`
-        // will start the engine when the user un-pauses.
         switch reason {
-        case .oldDeviceUnavailable:
-            if !isPaused { restartEngineAfterRouteChange() }
-            showRouteNotice("Input changed — still recording on the built-in mic")
-        case .newDeviceAvailable:
-            if !isPaused { restartEngineAfterRouteChange() }
+        case .oldDeviceUnavailable, .newDeviceAvailable, .categoryChange:
+            // The input device changed (AirPods pulled / re-inserted, headset
+            // unplugged, another component touched the session). The tap MUST be
+            // rebuilt in the new route's format — a restart alone leaves a
+            // stale-format tap whose writes all fail silently. Rebuild even
+            // while paused (so resume() finds a valid tap); the engine itself
+            // only restarts when not paused.
+            rebuildTapForCurrentRoute()
+            showRouteNotice("Input changed — still recording on \(currentInputName())")
         default:
-            // .categoryChange/.routeConfigurationChange etc. can also pause the
-            // engine; make sure it's running again when we're meant to be capturing.
+            // .routeConfigurationChange/.override etc. can also stop the engine;
+            // if capture stalled, rebuild quietly (same stale-format hazard).
             if !isPaused, let engine, !engine.isRunning {
-                restartEngineAfterRouteChange()
+                rebuildTapForCurrentRoute()
             }
         }
     }
 
-    /// Best-effort engine restart after a route change. The tap stays installed on
-    /// the input node, so once the engine runs again buffers flow as before. A
-    /// failure here doesn't drop the recording — the file already holds what was
-    /// captured, and the user is shown the notice.
-    private func restartEngineAfterRouteChange() {
-        guard let engine, !engine.isRunning else { return }
+    /// Survive a route change: tear the tap down, re-query the input node's NEW
+    /// hardware format, reinstall the tap in that format (converting buffers to
+    /// the file's fixed write format — see `installRecordingTap`), and restart
+    /// the engine. Pull AirPods out → capture continues on the built-in mic;
+    /// re-insert → capture continues on the AirPods, same `.m4a` throughout.
+    /// A failure here doesn't drop the recording — the file already holds what
+    /// was captured, and the user is shown the notice.
+    private func rebuildTapForCurrentRoute(retry: Bool = true) {
+        guard isRecording, let engine, let file = audioFile else { return }
+        let input = engine.inputNode
+        input.removeTap(onBus: 0)
+        engine.stop()
+        // Drain in-flight writer blocks from the old tap. Each tap closure owns
+        // the converter for ITS format, so already-queued old-format buffers
+        // still convert + write correctly before the new tap's buffers arrive.
+        writerQueue.sync {}
+
+        // The route change may have deactivated the session; reassert it so the
+        // new input route is live before we read its format.
+        try? AVAudioSession.sharedInstance().setActive(true)
+        let newFormat = input.outputFormat(forBus: 0)
+        guard newFormat.sampleRate > 0, newFormat.channelCount > 0 else {
+            // Transient no-input gap mid-transition (common right after a
+            // Bluetooth route drops) — retry once shortly; the follow-up route
+            // notification usually rebuilds us anyway.
+            if retry {
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard let self, self.isRecording else { return }
+                    self.rebuildTapForCurrentRoute(retry: false)
+                }
+            } else {
+                showRouteNotice("Lost the mic input — tap Stop to keep what was recorded")
+            }
+            return
+        }
+
+        installRecordingTap(on: input, file: file)
+        guard !isPaused else { return }   // resume() starts the engine
         do {
             try engine.start()
         } catch {
             showRouteNotice("Lost the mic input — tap Stop to keep what was recorded")
         }
+    }
+
+    /// Human-readable name of the current input (e.g. "AirPods Pro",
+    /// "iPhone Microphone") for the route notice.
+    private func currentInputName() -> String {
+        AVAudioSession.sharedInstance().currentRoute.inputs.first?.portName ?? "the built-in mic"
     }
 
     /// Surface a transient notice and auto-clear it after a few seconds.
@@ -337,7 +426,52 @@ final class LiveRecordingService: ObservableObject {
         routeNotice = nil
     }
 
-    private static func copyBuffer(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+    // MARK: - Format conversion (pure; unit-tested)
+
+    /// Whether buffers tapped in `tap` format must be converted before writing
+    /// to a file whose processing format is `write`. Field-by-field (not
+    /// `AVAudioFormat ==`) so an irrelevant channel-layout difference can't
+    /// force a needless converter.
+    nonisolated static func needsConversion(from tap: AVAudioFormat, to write: AVAudioFormat) -> Bool {
+        tap.sampleRate != write.sampleRate
+            || tap.channelCount != write.channelCount
+            || tap.commonFormat != write.commonFormat
+            || tap.isInterleaved != write.isInterleaved
+    }
+
+    /// A converter bridging the current route's mic format to the file's fixed
+    /// write format — or nil when the formats already match (the no-overhead
+    /// common case: the route the recording started on).
+    nonisolated static func makeWriteConverter(from tap: AVAudioFormat, to write: AVAudioFormat) -> AVAudioConverter? {
+        guard needsConversion(from: tap, to: write) else { return nil }
+        return AVAudioConverter(from: tap, to: write)
+    }
+
+    /// Convert one owned buffer to `format` using a persistent `converter`
+    /// (its internal resampler state carries across calls, keeping sample-rate
+    /// conversion continuous between buffers). Runs on the writer queue.
+    /// Returns nil when the converter produced nothing (e.g. it's priming).
+    nonisolated static func convert(
+        _ buffer: AVAudioPCMBuffer,
+        with converter: AVAudioConverter,
+        to format: AVAudioFormat
+    ) -> AVAudioPCMBuffer? {
+        let ratio = format.sampleRate / buffer.format.sampleRate
+        let capacity = AVAudioFrameCount((Double(buffer.frameLength) * ratio).rounded(.up)) + 64
+        guard let out = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: max(capacity, 1)) else { return nil }
+        var fed = false
+        var error: NSError?
+        let status = converter.convert(to: out, error: &error) { _, outStatus in
+            if fed { outStatus.pointee = .noDataNow; return nil }
+            fed = true
+            outStatus.pointee = .haveData
+            return buffer
+        }
+        guard status != .error, out.frameLength > 0 else { return nil }
+        return out
+    }
+
+    nonisolated private static func copyBuffer(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
         guard let dst = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else { return nil }
         dst.frameLength = buffer.frameLength
         let channels = Int(buffer.format.channelCount)
@@ -363,7 +497,7 @@ final class LiveRecordingService: ObservableObject {
         }
     }
 
-    private static func rms(_ buffer: AVAudioPCMBuffer) -> Float {
+    nonisolated private static func rms(_ buffer: AVAudioPCMBuffer) -> Float {
         guard let ch = buffer.floatChannelData?[0] else { return 0 }
         let n = Int(buffer.frameLength)
         guard n > 0 else { return 0 }
