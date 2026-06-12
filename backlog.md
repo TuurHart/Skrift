@@ -511,3 +511,10 @@ old format (vended=48k vs sessionHw=24k, frozen across every retry) — AVAudioE
 until `engine.reset()`. The rebuild never calls reset → vended never converges → refuse-loop until user
 cancels. FIX: on vended≠sessionHw in rebuild: removeTap → engine.stop() → **engine.reset()** → re-query
 vended → install (+ reconnect/restart as the start path does). DevLog the reset.
+
+#### DevLog round 4 (09:56, /tmp/devlog3.txt): DIAGNOSIS COMPLETE — WRONG PROPERTY
+Even after engine.reset(), vended (inputNode.outputFormat) stays 48k forever — it's the ENGINE RENDER
+format, not hardware. nodeIn (inputNode.inputFormat) = 24k AGREES with sessionHw on every line. The
+validator demands the un-convergeable property. FIX (orchestrator doing it DIRECTLY, no agent): validate
+nodeIn vs sessionHw; install the tap with format = inputFormat(forBus:0) (or nil); converter bridges to
+file. Drop the vended check entirely.
