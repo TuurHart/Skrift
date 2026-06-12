@@ -524,3 +524,17 @@ Four layers, each peeled by a device trace: crash (NSException on install) → p
 cross-rate) → cache (no engine.reset) → WRONG PROPERTY (validated outputFormat — engine-render-pinned,
 can never converge — instead of inputFormat, which tracked hardware on every logged line). Final fix
 applied by the orchestrator directly. Recording now survives pull-out AND re-insert.
+
+#### Capture redesign — HYBRID SIGNED OFF 2026-06-12 ("everything works quite nicely")
+Spec = `mocks/capture-redesign.html` mode 4 ⭐. One screen, one playhead, play/paused is the only state:
+- ENTRY: auto-replays from −45s at 1.5× immediately (model preload stays). Full transport beneath
+  (⟲5 · ▶/⏸ · 5⟳); rate pill (1×/1.5×/2×) pinned RIGHT of the row, transport stays centered.
+- MARK: two buttons (「 Mark In / Mark Out 」) drop flags AT the playhead — −0.7s reaction bias while
+  playing, exact while paused. Re-tap moves the flag. NO draggable handles, NO window/pan mode, NO gain
+  graph, NO grains (playback IS the audio feedback).
+- FINE-TUNE: ±1s chips per edge; in-chip nudges AND INSTANTLY REPLAYS from the new in-mark (the
+  spam-to-find-start mechanism — MUST work while the span is playing, no pause needed; mock couldn't,
+  code must); out-chips replay only the last ~5s up to the new out.
+- ⟲ past the strip's left edge extends the window arbitrarily far back (clamped to the chapter file).
+- Sentence-snap OUTWARD stays on confirm. ▶ Play span before Continue.
+Replaces CaptureMomentView's interaction wholesale; capture SHEET (quote+ramble) unchanged.
