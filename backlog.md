@@ -551,3 +551,12 @@ Screen matches the mock ✓ (sweep, transport, rate pill, marks, hints). Finding
       inside the sentence. Outward stays for OUT.
   (2) Sentence-level trim on the capture SHEET: render the quote with first/last sentence droppable
       (one tap removes the leading/trailing sentence) — fix-by-reading after the fact, no re-scrub.
+
+#### Capture round 2 — SIGNED OFF 2026-06-12 ("this works great, let's go"); one Sonnet lane
+1. NEAREST-boundary snap at IN: mark in last ~1.0s of the PREVIOUS sentence (bias overshoot) → snap
+   FORWARD to next sentence start; genuinely mid-sentence → snap back as today. OUT stays outward.
+2. SENTENCE-TRIM on the capture sheet (spec = mocks/capture-sheet-trim.html): one grey context sentence
+   each side; tap grey → include (context window slides); tap bright EDGE → drop (middles refuse w/ hint);
+   audio span FOLLOWS included sentences via word timings; transcript = the existing span±buffer (already
+   transcribed — zero wait). Sentence granularity only, no sub-sentence scrubber.
+3. Capture adjust screen FULLSCREEN. 4. Swipe-down closes it.
