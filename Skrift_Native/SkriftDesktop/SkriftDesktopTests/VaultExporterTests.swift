@@ -26,12 +26,32 @@ final class VaultExporterTests: XCTestCase {
 
         XCTAssertEqual(r.markdownURL.lastPathComponent, "My Note.md")
         let md = try String(contentsOf: r.markdownURL, encoding: .utf8)
-        XCTAssertTrue(md.contains("title: My Note"))
+        XCTAssertTrue(md.contains("title: \"My Note\""))
         XCTAssertTrue(md.contains("Body [[Nick Jansen]]."))
 
         let audioDest = vault.appendingPathComponent("Voice Memos/My Note.m4a")
         XCTAssertTrue(FileManager.default.fileExists(atPath: audioDest.path))
         XCTAssertEqual(r.audioURL?.path, audioDest.path)
+    }
+
+    func testExportStripsObsidianForbiddenTitleCharacters() throws {
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: work) }
+        let vault = work.appendingPathComponent("vault")
+
+        // Gemma loves "Title: Subtitle" — Obsidian forbids : (and * " \ / < > | ?,
+        // plus # ^ [ ] which break wikilinks). Slashes keep a word boundary as "-";
+        // the rest strip without leaving doubled spaces.
+        let pf = PipelineFile(id: "1", filename: "x", path: "", size: 0, sourceType: .capture)
+        pf.enhancedTitle = #"A: B / C "D" [E] #F | G?"#
+        pf.transcript = "Body."
+
+        var settings = AppSettings.default
+        settings.noteFolder = vault.path
+
+        let r = try VaultExporter.export(pf, settings: settings)
+        XCTAssertEqual(r.markdownURL.lastPathComponent, "A B - C D E F G.md")
     }
 
     func testExportConvertsAppleNoteAttachments() throws {

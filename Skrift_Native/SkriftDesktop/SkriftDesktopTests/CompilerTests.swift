@@ -18,12 +18,12 @@ final class CompilerTests: XCTestCase {
         pf.significance = 0.7
 
         let md = Compiler.compile(file: pf, author: "Tiuri", date: "2026-06-06")
-        XCTAssertTrue(md.contains("title: My Title"))
+        XCTAssertTrue(md.contains("title: \"My Title\""))
         XCTAssertTrue(md.contains("date: 2026-06-06"))
         XCTAssertTrue(md.contains("author: Tiuri"))
         XCTAssertTrue(md.contains("source: Voice-memo"))
         XCTAssertTrue(md.contains("significance: 0.7"))
-        XCTAssertTrue(md.contains("summary: A short summary."))
+        XCTAssertTrue(md.contains("summary: \"A short summary.\""))
         XCTAssertTrue(md.contains("- work"))
         XCTAssertTrue(md.contains("- ideas"))
         XCTAssertTrue(md.hasSuffix("linked [[Nick Jansen]] copy"))   // sanitised wins

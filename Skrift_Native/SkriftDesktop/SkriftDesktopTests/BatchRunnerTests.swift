@@ -56,7 +56,7 @@ final class BatchRunnerTests: XCTestCase {
         XCTAssertEqual(pf.enhancedSummary, "A summary.")
         XCTAssertEqual(pf.sanitised, "[[Nick Jansen]] and I met today. Nick is great.")  // first→link, rest→short
         let compiled = try XCTUnwrap(pf.compiledText)
-        XCTAssertTrue(compiled.contains("title: A Title"))
+        XCTAssertTrue(compiled.contains("title: \"A Title\""))
         XCTAssertTrue(compiled.hasSuffix("[[Nick Jansen]] and I met today. Nick is great."))
     }
 

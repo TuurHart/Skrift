@@ -26,7 +26,14 @@ enum VaultExporter {
         let markdown = Compiler.compile(file: pf, author: settings.authorName)
         let stem = (pf.filename as NSString).deletingPathExtension
         let base = (pf.enhancedTitle?.isEmpty == false) ? pf.enhancedTitle! : stem
+        // Obsidian forbids * " \ / < > : | ? in note names (cross-platform sync)
+        // and # ^ [ ] break its link syntax. Path separators become "-" (keeps
+        // word boundaries); the rest are stripped, then doubled spaces collapsed
+        // — Gemma loves "Title: Subtitle", which must not become "Title- Subtitle".
         var safe = base.replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+            .filter { !"*\"<>:|?#^[]".contains($0) }
+            .replacingOccurrences(of: "  +", with: " ", options: .regularExpression)
             .trimmingCharacters(in: CharacterSet(charactersIn: " ."))   // avoid "Title..md"
         if safe.isEmpty { safe = "note" }
         // Sensible defaults so images/audio export even when the subfolders aren't

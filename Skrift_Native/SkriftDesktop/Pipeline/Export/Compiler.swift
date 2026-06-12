@@ -105,7 +105,9 @@ enum Compiler {
 
         var y: [String] = [
             "---",
-            "title: \(title)",
+            // Quoted: Gemma titles routinely carry ": " which is invalid in a
+            // plain YAML scalar — Obsidian then rejects the whole frontmatter.
+            "title: \(yamlQuoted(title))",
             "date: \(date)",
             "lastTouched:",
             "author: \(author)",
@@ -142,7 +144,7 @@ enum Compiler {
         y.append("tags:")
         for t in pf.tags { y.append("  - \(t)") }
         y.append(pf.significance != nil ? "significance: \(String(format: "%.1f", pf.significance!))" : "significance:")
-        y.append(summary.isEmpty ? "summary:" : "summary: \(summary)")
+        y.append(summary.isEmpty ? "summary:" : "summary: \(yamlQuoted(summary))")
         y.append("---")
         y.append("")
 
@@ -222,6 +224,13 @@ enum Compiler {
     }
 
     // MARK: Helpers
+
+    /// Double-quote a YAML scalar, escaping embedded `\` and `"`. Plain scalars
+    /// break on ": " (and other indicators) — always-quoting is simpler and safe.
+    private static func yamlQuoted(_ s: String) -> String {
+        "\"" + s.replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    }
 
     private static func firstNonEmpty(_ vals: String?...) -> String? {
         for v in vals {

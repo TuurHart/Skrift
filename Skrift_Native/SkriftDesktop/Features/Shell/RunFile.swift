@@ -1,5 +1,6 @@
 #if DEBUG
 import Foundation
+import SwiftData
 
 /// Headless end-to-end pipeline run. Launched with `-runfile <audioPath>`, builds
 /// a transient PipelineFile, runs the real BatchRunner (FluidAudio + mlx-swift) on
@@ -147,6 +148,44 @@ enum RunFile {
                 }
             } catch {
                 log(">>> ERROR: \(error)")
+            }
+            exit(0)
+        }
+    }
+
+    /// `-processfile <id> [-exportafter]` → run the REAL Process verb (enhance /
+    /// name-link / compile; ASR only for audio sources) over ONE PipelineFile in
+    /// the REAL SwiftData store, optionally export it to the configured vault,
+    /// print the resulting statuses, and exit. Closes the headless loop for
+    /// phone-synced uploads (e.g. C3 captures) without GUI automation.
+    /// QUIT the GUI app first — a second instance races the shared store.
+    nonisolated static func runProcessFileIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-processfile"), i + 1 < args.count else { return }
+        let id = args[i + 1]
+        let doExport = args.contains("-exportafter")
+        Task { @MainActor in
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            let ctx = SharedStore.container.mainContext
+            func fetch() -> PipelineFile? {
+                ((try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []).first { $0.id == id }
+            }
+            guard let before = fetch() else { log(">>> no PipelineFile with id \(id)"); exit(1) }
+            log("== PROCESSFILE \(before.filename) (\(before.sourceType.rawValue)) ==")
+            let coordinator = ProcessingCoordinator()
+            await coordinator.process(fileIDs: [id], context: ctx)
+            if let runErr = coordinator.lastError { log(">>> RUN ERROR: \(runErr)") }
+            guard let pf = fetch() else { log(">>> file vanished mid-run"); exit(1) }
+            log("steps: transcribe=\(pf.transcribeStatus.rawValue) sanitise=\(pf.sanitiseStatus.rawValue) enhance=\(pf.enhanceStatus.rawValue) export=\(pf.exportStatus.rawValue)")
+            log("title: \(pf.enhancedTitle ?? "(nil)")  suggested: \(pf.titleSuggested ?? "(nil)")")
+            log("tags: \(pf.tags)  suggestions: \(pf.tagSuggestions ?? [])")
+            log("summary: \(pf.enhancedSummary ?? "(nil)")")
+            if let err = pf.error { log("error: \(err)") }
+            log(">>> COMPILED (\((pf.compiledText ?? "").count) chars):\n\(pf.compiledText ?? "(nil)")")
+            if doExport {
+                coordinator.export(pf, context: ctx)
+                if let exportErr = coordinator.lastError { log(">>> EXPORT ERROR: \(exportErr)") }
+                log(">>> EXPORTED: \(pf.exported ?? "(nil)")  status=\(pf.exportStatus.rawValue)")
             }
             exit(0)
         }

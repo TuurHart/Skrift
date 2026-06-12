@@ -25,6 +25,7 @@ struct SkriftDesktopApp: App {
         Snapshot.renderIfRequested()
         RunFile.runAudioDateProbeIfRequested()
         RunFile.runVoiceLoopIfRequested()
+        RunFile.runProcessFileIfRequested()
         RunFile.runIfRequested()
         #endif
         // Apply the saved theme to the AppKit layer at launch so EVERY system-drawn
