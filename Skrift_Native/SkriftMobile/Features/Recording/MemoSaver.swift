@@ -142,11 +142,13 @@ struct MemoSaver {
         let recorded = (await Self.embeddedCreationDate(of: asset)) ?? fallbackDate ?? Date()
 
         // Extract the audio track to .m4a. If the asset has no audio (a silent clip)
-        // there's nothing to transcribe — fail gracefully.
+        // there's nothing to transcribe — fail gracefully, and SAY WHY: a bare
+        // Error pill on an empty memo read as a mystery (2026-06-09 audit).
         guard (try? await Self.extractAudio(from: asset, to: dest)) == true else {
             if let memo = repository.memo(id: id) {
                 memo.transcriptStatus = .failed
                 memo.recordedAt = recorded
+                memo.title = "Video had no audio track"
                 repository.save()
             }
             return false

@@ -226,7 +226,9 @@ private struct KaraokeTranscriptView: View {
     @ViewBuilder private func karaokeWords(_ text: String, wordOffset: Int, active: Int?) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(KaraokeWordLayout.lines(of: text, base: wordOffset).enumerated()), id: \.offset) { _, line in
-                FlowLayout(spacing: 5, lineSpacing: 6) {
+                // lineSpacing matches the static text's .lineSpacing(4) so the
+                // layout doesn't visibly spread when playback starts (P2 nit).
+                FlowLayout(spacing: 5, lineSpacing: 4) {
                     ForEach(Array(line.words.enumerated()), id: \.offset) { i, word in
                         let gi = line.offset + i
                         Text(word)

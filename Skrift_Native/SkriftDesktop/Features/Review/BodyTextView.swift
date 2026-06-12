@@ -66,6 +66,9 @@ struct BodyTextView: NSViewRepresentable {
     /// so storage-vs-model offset drift from image attachments can't misapply) or
     /// ALL of that person's links in this note.
     enum UnlinkScope: Equatable {
+        /// "Change to → <person>": this mention re-links to someone else (the
+        /// alias matched the wrong person). Order-based like `.mention`.
+        case change(index: Int, to: String)
         case mention(index: Int)
         case all
     }
@@ -497,10 +500,18 @@ struct BodyTextView: NSViewRepresentable {
             // the plain short-name mentions the Sanitiser already left/demoted.
             let mentionCount = links.count + Sanitiser.plainOccurrences(of: alias, in: text).count
 
+            // "Change to →" candidates: every OTHER live person (the alias may
+            // simply have matched the wrong one — the two-Jacks case).
+            let others = peopleCache
+                .map { NamesMerge.keyName($0.canonical) }
+                .filter { $0.caseInsensitiveCompare(canonical) != .orderedSame }
+                .sorted()
+
             let view = UnlinkPopover(
                 person: canonical, alias: alias,
                 contextBefore: before, contextAfter: after,
                 mentionCount: mentionCount,
+                others: others,
                 onUnlinkMention: { [weak self] in
                     self?.closePopover()
                     self?.parent.onUnlink?(canonical, alias, .mention(index: index))
@@ -508,6 +519,10 @@ struct BodyTextView: NSViewRepresentable {
                 onUnlinkAll: { [weak self] in
                     self?.closePopover()
                     self?.parent.onUnlink?(canonical, alias, .all)
+                },
+                onChangeTo: { [weak self] newPerson in
+                    self?.closePopover()
+                    self?.parent.onUnlink?(canonical, alias, .change(index: index, to: newPerson))
                 },
                 onCancel: { [weak self] in self?.closePopover() })
             let host = NSHostingController(rootView: view)
@@ -644,8 +659,11 @@ struct UnlinkPopover: View {
     let contextBefore: String
     let contextAfter: String
     let mentionCount: Int       // this person's links + plain mentions in the note
+    /// Other live people — "Change to →" candidates (wrong-person fix).
+    var others: [String] = []
     var onUnlinkMention: () -> Void
     var onUnlinkAll: () -> Void
+    var onChangeTo: (String) -> Void = { _ in }
     var onCancel: () -> Void
 
     var body: some View {
@@ -665,6 +683,19 @@ struct UnlinkPopover: View {
                         ? "all \(mentionCount) “\(alias)” mentions stay plain — won’t re-link on reprocess"
                         : "“\(alias)” appears once — won’t re-link on reprocess",
                       action: onUnlinkAll)
+
+            // Wrong-person fix: re-link THIS mention to someone else (per-mention,
+            // like "Unlink this mention" — a body edit, not a Names rule).
+            if !others.isEmpty {
+                Rectangle().fill(Theme.hairline.opacity(0.08)).frame(height: 0.5).padding(.vertical, 6)
+                Text("CHANGE THIS MENTION TO")
+                    .font(.system(size: 8.5, weight: .semibold)).kerning(0.5)
+                    .foregroundStyle(Theme.textMuted)
+                    .padding(.horizontal, 4).padding(.bottom, 2)
+                ForEach(others.prefix(5), id: \.self) { other in
+                    optionRow("[[\(other)]]", nil, action: { onChangeTo(other) })
+                }
+            }
 
             Rectangle().fill(Theme.hairline.opacity(0.08)).frame(height: 0.5).padding(.vertical, 6)
 

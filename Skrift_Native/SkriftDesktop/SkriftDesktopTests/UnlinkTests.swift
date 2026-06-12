@@ -160,4 +160,26 @@ final class UnlinkTests: XCTestCase {
         // Re-sanitising the unlinked body itself must be stable too.
         XCTAssertEqual(Sanitiser.process(text: unlinked, people: people, neverLink: ["Nick Jansen"]).sanitised, unlinked)
     }
+
+    // MARK: - Change to → <other person> (wrong-person fix)
+
+    func testRelinkOccurrenceSwapsOnlyThatMention() {
+        let text = "Met [[Jack Timmons]] today. Later [[Jack Timmons]] called again."
+        let out = Sanitiser.relinkOccurrence(text: text, canonical: "Jack Timmons",
+                                             index: 1, newCanonical: "Jack Hutton")
+        XCTAssertEqual(out, "Met [[Jack Timmons]] today. Later [[Jack Hutton]] called again.")
+    }
+
+    func testRelinkOccurrenceOutOfRangeIsUnchanged() {
+        let text = "Met [[Jack Timmons]] today."
+        XCTAssertEqual(Sanitiser.relinkOccurrence(text: text, canonical: "Jack Timmons",
+                                                  index: 3, newCanonical: "Jack Hutton"), text)
+    }
+
+    func testRelinkOccurrencePreservesPossessiveOutsideBrackets() {
+        let text = "That was [[Jack Timmons]]'s idea."
+        let out = Sanitiser.relinkOccurrence(text: text, canonical: "Jack Timmons",
+                                             index: 0, newCanonical: "Jack Hutton")
+        XCTAssertEqual(out, "That was [[Jack Hutton]]'s idea.")
+    }
 }

@@ -365,6 +365,16 @@ enum Sanitiser {
         return nsReplace(text, links[index].range, with: alias)
     }
 
+    /// "Change to → <other person>": the `index`-th `[[canonical]]` link becomes
+    /// `[[newCanonical]]` — the one-tap fix when the deterministic alias match
+    /// picked the WRONG person (a spoken "Jack" auto-linked to Timmons but meant
+    /// Hutton). Order-based like `unlinkOccurrence`; out-of-range = unchanged.
+    static func relinkOccurrence(text: String, canonical: String, index: Int, newCanonical: String) -> String {
+        let links = linkOccurrences(of: canonical, in: text)
+        guard index >= 0, index < links.count else { return text }
+        return nsReplace(text, links[index].range, with: "[[\(newCanonical)]]")
+    }
+
     /// "Unlink all mentions in this note": EVERY `[[canonical]]` link becomes the
     /// plain `alias`. Plain mentions are already plain and other links (other
     /// people, image markers, place links) are untouched. The caller persists the

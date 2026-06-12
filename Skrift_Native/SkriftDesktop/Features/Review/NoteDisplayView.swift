@@ -116,6 +116,9 @@ struct NoteDisplayView: View {
         case let .mention(index):
             text = Sanitiser.unlinkOccurrence(text: before, canonical: canonical, index: index, alias: alias)
             message = "Unlinked — “\(alias)” is plain text in this note"
+        case let .change(index, newPerson):
+            text = Sanitiser.relinkOccurrence(text: before, canonical: canonical, index: index, newCanonical: newPerson)
+            message = "Changed — this mention now links to \(newPerson)"
         case .all:
             text = Sanitiser.unlinkAll(text: before, canonical: canonical, alias: alias)
             if !file.unlinkedNames.contains(where: { $0.caseInsensitiveCompare(canonical) == .orderedSame }) {
