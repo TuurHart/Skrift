@@ -118,7 +118,7 @@ final class ProcessingCoordinator {
         // Skipped for stubbed engines (UI piloting) — nothing to load.
         if !stubbedEngines {
             let needsAudio = targets.contains {
-                $0.sourceType != .note && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
+                $0.sourceType == .audio && !$0.path.isEmpty && FileManager.default.fileExists(atPath: $0.path)
             }
             // Show the load banner only when the models aren't already resident —
             // ensureLoaded is a no-op when cached, so a "Loading…" flash on every run
@@ -145,7 +145,9 @@ final class ProcessingCoordinator {
 
         for pf in targets {
             runState?.currentTitle = pf.queueTitle
-            let hasAudio = pf.sourceType != .note && !pf.path.isEmpty
+            // Captures: pf.path is the working folder, not an audio file — don't
+            // pass it as an audioURL (BatchRunner ignores it, but nil is cleaner).
+            let hasAudio = pf.sourceType == .audio && !pf.path.isEmpty
                 && FileManager.default.fileExists(atPath: pf.path)
             let audioURL = hasAudio ? URL(fileURLWithPath: pf.path) : nil
             do {
