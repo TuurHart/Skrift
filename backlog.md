@@ -577,7 +577,7 @@ audio = exportSpan(bufferAudioURL, firstWord.start→lastWord.end), transcript =
 sentences, timings = rebased included words → memo + WordTimings sidecar + duration. Plus: memo player
 and AudiobookSession must be mutually exclusive (each pauses the other on play).
 
-#### ⭐ CONTINUE HERE — session wrap 2026-06-12 (context exhausted; next chat starts at this entry)
+#### Session log 2026-06-12 morning (superseded — the ⭐ CONTINUE HERE entry is at the BOTTOM of this file)
 STATE: `native` is green + fully landed (audiobook player + Hybrid capture + sentence-trim persistence +
 playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod untouched.
 
@@ -660,3 +660,62 @@ specced lanes / Opus for taste; verify lane CLAIMS against write-paths. Feedback
 1b. ✅ **DONE 2026-06-12 — the refactor mandate was executed as specified** (whole path read first, then
    unified into the 3-mode `TranscriptBodyView`; quote-protection intact; inline as sole editor; sim
    gate green; installed to device). See item 1 for the full shape. Device verification owed by user.
+
+#### ⭐ CONTINUE HERE — session wrap 2026-06-12 evening (next chat starts here)
+STATE: `native` green through `df4850b`. Everything below is committed, sim-gated green (mobile 336 unit +
+33 UI; desktop 223 unit + full build), and the DEV builds are installed: phone = Skrift Dev with capture
+items; Mac dev build in DerivedData (launch on request for the round-trip test). NOT pushed to main; prod
+untouched. The C3 contract doc is `Skrift_Native/CAPTURE_CONTRACT.md`; capability map in FEATURES.md.
+
+SHIPPED THIS SESSION:
+- ✅ DEVICE-VERIFIED: karaoke refactor (3-mode `TranscriptBodyView`, full-text capture karaoke), tap-to-seek
+  default ON, round-2 presentation (styled quote frame stays live during playback; paragraph-true word grid).
+- 📲 INSTALLED, AWAITING USER TEST: reverse playback exclusion; instant-record "Starting…" placeholder
+  (ready-flash gone); CAPTURE ITEMS both apps (share extension + App Group inbox + share sheet + capture
+  upload + list/detail; desktop ingest/pipeline/compile/export + review surface, snapshot-verified).
+- Process: lanes rules.md gained "prove your base" (user-approved); CLAUDE.md records the App-Group CLI
+  signing limitation (Xcode one-time visit done for dev IDs; Release IDs owe one at prod promotion).
+
+NEXT-SESSION DEVICE TEST LIST (in rough order):
+1. CAPTURE phone half: Safari → Share → "Skrift Dev" (first time: enable via the share sheet's More/Edit
+   row) → annotate + rate → Save → OPEN Skrift Dev (inbox drains on launch/foreground) → capture row +
+   detail (Open ↗, editable annotation, no player bar). Also try a TEXT selection share + a PHOTO share.
+2. CAPTURE Mac half: launch the dev desktop app → phone syncs the rated capture → review surface (source
+   strip + banner + SHARED CONTENT card + url prop row) → Export to the test vault → check the .md
+   (frontmatter url:/source:, pinned block above the annotation).
+3. Trim persistence end-to-end (OWED since the morning): capture sheet → tap a sentence in/out → ramble →
+   saved audio/text/karaoke all match the trimmed span.
+4. Reverse exclusion: play a memo in detail → start the audiobook → the memo must pause.
+5. Instant record: no legacy ready-screen flash — brief "Starting…" then the live caption.
+6. Mini-player 2 h idle auto-hide + Siri "Resume my book in Skrift" (shipped 2026-06-11, never tested).
+7. Karaoke playback spacing nit (P2): confirm the slight vertical spread during playback is acceptable,
+   or ask for the word-grid constant tune (FlowLayout lineSpacing 6 / VStack 8 vs static lineSpacing 4).
+
+THE BOARD (user-locked order):
+1. ✅ Capture items — BUILT, verify above.
+2. CUSTOM VOCABULARY build (spike done 2026-06-11): CTC keyword-spot + rescore in BOTH transcribers +
+   Settings "Custom words" list; one extra ~97.5 MB HF model. Integration pattern documented in the
+   "Feature decisions — LOCKED 2026-06-10" §3 entry above.
+3. MODELS TAB in phone Settings (list on-device models w/ state/size; spec under "Show downloaded models
+   in phone Settings"; Mac mirror later).
+4. PROD PROMOTION LAST: push native→main + Release builds both apps while prod idle. NOTE: Release bundle
+   IDs need the one-time Xcode App-Group signing visit (same two clicks as dev, recorded in CLAUDE.md).
+Significance-wall design session: DEFERRED (user call 2026-06-12).
+
+OUTSTANDING (later, off the board):
+- Confirmed bugs: names DON'T auto-sync after voice enroll (manual sync only); Mac "name a speaker" review
+  UI (backend done, mock `name-a-speaker.html` awaits sign-off) + live enroll→auto-label round-trip;
+  photo `[[img_NNN]]` marker drift (anchor by TIME not word count); confidence colours wrong in practice.
+- Capture-items v1 flags (deliberate, flip on demand): no mic dictation in the sheet (extension memory
+  ceiling); no location/weather on captures; "file" share type has no pinned block; UI-test capture
+  seeding skipped (unit tests cover the logic); real third-party share payloads untested.
+- QoL: drag-multi-select on the memos list (swipe-delete done); record-a-sample voice enroll in Names &
+  voices; desktop unlink popover "Change to → <person>"; karaoke playback-grid spacing tune (P2).
+- Audit nits (non-blocking): desktop — silent sidecar try? writes, 256 MB multipart RAM buffering,
+  main.sync SwiftData bridge, health vs model idle-unload; mobile — recorder deinit hygiene, silent-video
+  import feedback. Desktop handoff A-list overlaps (model-unload idle timer, desktop real-timings karaoke,
+  parity golden tests).
+- With-user sessions: re-ingest ~30 old notes (`~/Desktop/Skrift old notes/`, prod quit, real vault);
+  "transcription a bit weird" cold-start (parked unless seen again).
+- Deferred ideas: watched-folder ingest; summary prompt quality pass; tag lemma expansion; north-star
+  semantic timeline ("how my thinking evolved").
