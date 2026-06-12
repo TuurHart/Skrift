@@ -234,6 +234,8 @@ targets:
       - path: DesignSystem/FlowLayout.swift
       # SharedContent + MemoMetadata types used by the share UI and CaptureInbox.
       - path: Models/MemoMetadata.swift
+      # ISO8601 formatter (same UTC/fractional-seconds format as the Mac contract).
+      - path: Services/ISO8601.swift
     info:
       path: SkriftShare/Info.plist
       properties:
