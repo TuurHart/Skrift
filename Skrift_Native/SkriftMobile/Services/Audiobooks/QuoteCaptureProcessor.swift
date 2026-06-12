@@ -163,9 +163,99 @@ struct QuoteCaptureProcessor {
         return sentences
     }
 
-    /// Export `[start → end]` of `url`'s audio to an .m4a at `dest`
+    // MARK: - Apply trim (sentence-level, from the capture sheet)
+
+    /// The result of `applyTrim` — everything the sheet needs to update the
+    /// memo's audio file, transcript, duration, and word-timings sidecar.
+    struct TrimResult: Sendable {
+        /// New audio (a temp .m4a); caller moves it onto the memo's audio file
+        /// (same filename, atomic replace) and removes this temp on failure.
+        let audioURL: URL
+        /// New C1 blockquote transcript (included sentence text joined and
+        /// wrapped in "> " markers).
+        let transcript: String
+        /// New duration (seconds), equal to `spanEnd - spanStart`.
+        let duration: TimeInterval
+        /// Word timings rebased to the new audio’s t = 0.
+        let wordTimings: [WordTiming]
+    }
+
+    /// Re-derive the memo’s audio, transcript, and word timings from the
+    /// user’s sentence-trim choices.
+    ///
+    /// - Parameters:
+    ///   - output:          The original `QuoteCaptureOutput` from the flow.
+    ///   - included:        One flag per `output.bufferSentences`. Must have
+    ///                      the same count; at least one must be `true`.
+    ///   - initialIncluded: The original flags (`.isInInitialSpan`) used for
+    ///                      the no-op check. When equal to `included`, returns
+    ///                      `nil` — nothing to do.
+    ///
+    /// Reads from `output.bufferAudioURL` (the ±20 s buffer kept
+    /// alive by the capture flow for exactly this purpose).
+    /// `@MainActor` so it can call `exportSpan` (which inherits MainActor
+    /// from the struct). The CPU work is negligible; the actual audio export
+    /// suspends on the background AVAssetExportSession queue.
+    static func applyTrim(
+        output: QuoteCaptureOutput,
+        included: [Bool],
+        initialIncluded: [Bool]
+    ) async throws -> TrimResult? {
+        guard included.count == output.bufferSentences.count else { return nil }
+
+        // No-op when nothing changed from the initial snap.
+        if included == initialIncluded { return nil }
+
+        // Build the active sentence list.
+        let active = zip(output.bufferSentences, included)
+            .filter(\.1).map(\.0)
+        guard !active.isEmpty else { return nil }
+
+        // Audio span in buffer-local time (BufferSentence.start/end are
+        // local to bufferAudioURL, so no offset adjustment needed).
+        let spanStart = active[0].start
+        let spanEnd   = active[active.count - 1].end
+        guard spanEnd > spanStart else { return nil }
+
+        let dest = FileManager.default.temporaryDirectory
+            .appendingPathComponent("trim_\(UUID().uuidString).m4a")
+        try await exportSpan(of: output.bufferAudioURL,
+                             start: spanStart, end: spanEnd, to: dest)
+        let newDuration = max(0, spanEnd - spanStart)
+
+        // Transcript: join included sentence text and wrap in "> " blockquote.
+        let joined = active.map(\.text).joined(separator: " ")
+        let newTranscript = QuoteFormatting.blockquote(joined)
+
+        // Word timings: collect from all included sentences, rebase to t = 0.
+        let allWords = active.flatMap(\.words)
+        let newTimings = allWords.map {
+            WordTiming(word: $0.word,
+                       start: max(0, $0.start - spanStart),
+                       end:   max(0, $0.end   - spanStart))
+        }
+
+        return TrimResult(
+            audioURL:   dest,
+            transcript: newTranscript,
+            duration:   newDuration,
+            wordTimings: newTimings
+        )
+    }
+
+    /// Returns `true` when `included` exactly matches the initial sentence-snap
+    /// state (i.e. trim has not changed). Pure — safe in tests.
+    nonisolated static func isUnchangedTrim(
+        included: [Bool],
+        sentences: [BufferSentence]
+    ) -> Bool {
+        guard included.count == sentences.count else { return true }
+        return zip(included, sentences).allSatisfy { flag, s in flag == s.isInInitialSpan }
+    }
+
+    /// Export `[start → end]` of `url`’s audio to an .m4a at `dest`
     /// (`AVAssetExportSession` with a `timeRange` — the only part of the book
-    /// that's ever read).
+    /// that’s ever read).
     static func exportSpan(of url: URL, start: TimeInterval, end: TimeInterval, to dest: URL) async throws {
         let asset = AVURLAsset(url: url)
         guard end > start,

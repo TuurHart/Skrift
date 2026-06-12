@@ -9,6 +9,13 @@ import SwiftUI
 /// Trim is LOCKED once a ramble exists — the audio span and quote text are
 /// derived from the included sentences, so allowing further trim after a ramble
 /// would make the ramble refer to a different span than the saved audio.
+///
+/// TRIM PERSISTENCE: the sheet's `included` flags write back to the memo at
+/// exactly two moments:
+///   (a) "Record your thoughts" tapped — apply trim first (await), THEN open
+///       the recorder so the ramble appends onto the trimmed audio.
+///   (b) Any finish/close path that keeps the memo — apply if included ≠ initial
+///       and no ramble exists yet (trimLocked guards against post-ramble edits).
 struct CaptureSheetView: View {
     let book: Audiobook
     let output: QuoteCaptureOutput
@@ -32,6 +39,8 @@ struct CaptureSheetView: View {
 
     /// Per-sentence inclusion flags — parallel to `output.bufferSentences`.
     @State private var included: [Bool] = []
+    /// Snapshot of `included` at `.onAppear` — used to detect a no-op trim.
+    @State private var initialIncluded: [Bool] = []
     /// Brief hint shown when the user tries to drop a middle sentence.
     @State private var trimHint: String = ""
     /// Cancellable task that clears `trimHint` after 2.2 s.
@@ -39,6 +48,10 @@ struct CaptureSheetView: View {
     /// True once a ramble has been recorded — trim is locked to prevent the
     /// audio span from diverging from what the user spoke about.
     @State private var trimLocked: Bool = false
+    /// True while an `applyTrim` export is in flight — disables buttons.
+    @State private var applyingTrim = false
+    /// Non-nil while the trim-failed alert is visible.
+    @State private var trimError: String?
 
     var body: some View {
         ZStack {
@@ -53,7 +66,9 @@ struct CaptureSheetView: View {
         .onAppear {
             memo = NotesRepository.shared.memo(id: memoID)
             if included.isEmpty {
-                included = output.bufferSentences.map(\.isInInitialSpan)
+                let flags = output.bufferSentences.map(\.isInInitialSpan)
+                included = flags
+                initialIncluded = flags
             }
         }
         .fullScreenCover(isPresented: $showRamble) {
@@ -63,6 +78,14 @@ struct CaptureSheetView: View {
                 rambleAdded = true
                 trimLocked = true   // lock trim once a ramble lands
             }, appendTo: memoID)
+        }
+        .alert("Couldn't trim capture", isPresented: .init(
+            get: { trimError != nil },
+            set: { if !$0 { trimError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(trimError ?? "")
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("capture-sheet")
@@ -122,22 +145,37 @@ struct CaptureSheetView: View {
             }
 
             Button {
-                onFinish(true)
+                Task { @MainActor in
+                    await applyTrimIfNeeded()
+                    onFinish(true)
+                }
             } label: {
-                Text("Save & keep listening")
-                    .font(.system(size: 13, weight: rambleAdded ? .bold : .semibold))
-                    .foregroundStyle(rambleAdded ? .white : Color.skTextDim)
+                if applyingTrim {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Applying trim\u{2026}")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.skTextDim)
+                    }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(
-                        rambleAdded ? Color.skAccent : .clear,
-                        in: .rect(cornerRadius: 12, style: .continuous)
-                    )
-                    .overlay(
-                        RoundedRectangle.sk(12)
-                            .stroke(rambleAdded ? .clear : Color.skBorder, lineWidth: 1)
-                    )
+                } else {
+                    Text("Save & keep listening")
+                        .font(.system(size: 13, weight: rambleAdded ? .bold : .semibold))
+                        .foregroundStyle(rambleAdded ? .white : Color.skTextDim)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            rambleAdded ? Color.skAccent : .clear,
+                            in: .rect(cornerRadius: 12, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle.sk(12)
+                                .stroke(rambleAdded ? .clear : Color.skBorder, lineWidth: 1)
+                        )
+                }
             }
+            .disabled(applyingTrim)
             .accessibilityIdentifier("capture-save-keep-listening")
             .padding(.bottom, 12)
 
@@ -179,9 +217,14 @@ struct CaptureSheetView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
-                // Once a ramble exists, the close button keeps the memo but
-                // does not resume the book; "Save & keep listening" is the
-                // only path that resumes.
+                // Once a ramble exists the close button KEEPS the memo (the
+                // user spoke — discard would delete it). No trim is needed
+                // here: trim was applied (or was a no-op) before "Record your
+                // thoughts" opened the recorder, and trim is LOCKED once the
+                // ramble lands.
+                //
+                // No ramble → DISCARD: the memo is deleted, so there is
+                // nothing to trim. Skip applyTrimIfNeeded entirely.
                 rambleAdded ? onFinish(false) : onDiscard()
             } label: {
                 Image(systemName: "xmark")
@@ -190,6 +233,7 @@ struct CaptureSheetView: View {
                     .frame(width: 24, height: 24)
                     .background(Color.skElev, in: .circle)
             }
+            .disabled(applyingTrim)
             .accessibilityIdentifier("capture-close")
             .accessibilityLabel(rambleAdded
                 ? "Save and close \u{2014} the book stays paused"
@@ -337,6 +381,71 @@ struct CaptureSheetView: View {
         }
     }
 
+    // MARK: - Apply trim
+
+    /// Apply the current sentence-trim to the memo (audio, transcript, timings).
+    ///
+    /// No-op when trim is locked (a ramble already exists and refers to this
+    /// span), when nothing has changed from the initial snap, or when the buffer
+    /// sentences list is empty (engine returned no timings).
+    ///
+    /// On export failure the error is surfaced as an alert; the memo keeps its
+    /// previous state so no data is lost.
+    @MainActor
+    private func applyTrimIfNeeded() async {
+        // Locked → the ramble already refers to this audio span; never retrim.
+        guard !trimLocked else { return }
+        // Nothing to trim (no buffer sentences → no timings → can't re-export).
+        guard !output.bufferSentences.isEmpty,
+              included.count == output.bufferSentences.count else { return }
+        // No-op when unchanged.
+        guard !QuoteCaptureProcessor.isUnchangedTrim(
+            included: included, sentences: output.bufferSentences) else { return }
+
+        applyingTrim = true
+        defer { applyingTrim = false }
+
+        do {
+            guard let result = try await QuoteCaptureProcessor.applyTrim(
+                output: output,
+                included: included,
+                initialIncluded: initialIncluded
+            ) else { return }   // no-op (shouldn't reach here, but safe)
+
+            // Commit to SwiftData + sidecar atomically.
+            let repository = NotesRepository.shared
+            guard let memo = repository.memo(id: memoID),
+                  let destURL = memo.audioURL else {
+                // Memo vanished — clean up the temp and bail.
+                try? FileManager.default.removeItem(at: result.audioURL)
+                return
+            }
+
+            // Replace the audio file (atomic: remove dest, move temp).
+            try? FileManager.default.removeItem(at: destURL)
+            do {
+                try FileManager.default.moveItem(at: result.audioURL, to: destURL)
+            } catch {
+                print("[Skrift] Trim audio move failed: \(error)")
+                throw QuoteCaptureError.exportFailed
+            }
+
+            memo.transcript = result.transcript
+            memo.duration   = result.duration
+            repository.save()
+
+            // Overwrite the karaoke sidecar with the rebased timings.
+            WordTimingsStore().write(result.wordTimings, for: memoID)
+
+            // Update the initial-included snapshot so a second tap doesn't
+            // re-apply the same trim.
+            initialIncluded = included
+        } catch {
+            trimError = (error as? LocalizedError)?.errorDescription
+                ?? "The trimmed audio could not be exported. The original capture is kept."
+        }
+    }
+
     // MARK: - Derived span & quote text
 
     private var activeSentences: [BufferSentence] {
@@ -382,14 +491,26 @@ struct CaptureSheetView: View {
 
     private var recordButton: some View {
         Button {
-            showRamble = true
+            // Apply trim FIRST (await), THEN open the recorder so the ramble
+            // appends onto the TRIMMED audio.
+            Task { @MainActor in
+                await applyTrimIfNeeded()
+                // Only proceed to recording if trim succeeded (no alert shown).
+                guard trimError == nil else { return }
+                showRamble = true
+            }
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: "mic")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 34, height: 34)
-                    .background(.white.opacity(0.18), in: .circle)
+                if applyingTrim {
+                    ProgressView().controlSize(.small)
+                        .frame(width: 34, height: 34)
+                } else {
+                    Image(systemName: "mic")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 34, height: 34)
+                        .background(.white.opacity(0.18), in: .circle)
+                }
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Record your thoughts")
                         .font(.system(size: 14.5, weight: .bold))
@@ -409,6 +530,7 @@ struct CaptureSheetView: View {
             )
             .shadow(color: Color.skAccent.opacity(0.5), radius: 7, y: 2)
         }
+        .disabled(applyingTrim)
         .accessibilityIdentifier("capture-record-thoughts")
     }
 

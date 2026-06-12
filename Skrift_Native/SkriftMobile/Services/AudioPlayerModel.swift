@@ -48,6 +48,22 @@ final class AudioPlayerModel: NSObject, ObservableObject {
 
     func play() {
         guard let player else { return }
+        // Mutual exclusion: pause the audiobook if it's playing so only one
+        // audio source is active at a time. AudiobookSession uses AVPlayer
+        // (spokenAudio category) and this player uses AVAudioPlayer (playback
+        // category) — they compete for the same non-mixable session, so
+        // whichever starts second would interrupt the first through the OS
+        // interruption mechanism anyway. Pausing explicitly avoids the
+        // AVAudioSession interruption callback path and the half-second
+        // stutter it produces. The reverse direction (book play pausing this
+        // player) is a follow-up: AudiobookSession.play() does NOT currently
+        // pause AudioPlayerModel, so memo-playback → book-start can still
+        // sound simultaneously. That direction requires AudiobookSession to
+        // hold a reference to the active AudioPlayerModel — not done here to
+        // respect the lane boundary (DO NOT TOUCH AudiobookSession.play()).
+        if AudiobookSession.shared.isPlaying {
+            AudiobookSession.shared.pause()
+        }
         activateSession()
         player.rate = rate
         guard player.play() else {
