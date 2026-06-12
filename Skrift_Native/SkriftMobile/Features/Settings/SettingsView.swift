@@ -81,6 +81,12 @@ struct SettingsView: View {
                     }
                     .accessibilityIdentifier("names-link")
                     NavigationLink {
+                        ModelsView()
+                    } label: {
+                        Text("Models")
+                    }
+                    .accessibilityIdentifier("models-link")
+                    NavigationLink {
                         WeatherKeyView(key: $weatherKey)
                     } label: {
                         HStack {

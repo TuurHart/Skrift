@@ -66,6 +66,12 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Inline `[photo N]` token in **live** caption | ✅ | n/a | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: tinted `[photo N]` token inserted inline at the capture point |
 | `[[img]]` → Obsidian embed on export | n/a | ✅ | desktop `Pipeline/Export/VaultExporter.swift:84-114` | |
 
+## Models tab *(on-device model inventory)* — built 2026-06-12
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Settings → Models | ✅ | ➖ | `Services/ModelInventory.swift`, `Features/Settings/ModelsView.swift` | Read-only v1: Transcription (Parakeet v3) / Speaker recognition (diarizer+embedder) / Custom-word spotting (CTC 110M) with downloaded state + size-on-disk + total (FluidAudio cache dirs). Mac mirror = later (board) |
+
 ## Custom vocabulary *(CTC keyword-spot + rescore — fixes mis-heard names)* — built 2026-06-12
 
 | Capability | Mobile | Desktop | Key files | Notes |
