@@ -692,6 +692,17 @@ the share-sheet host caches extension processes per boot — reboot the sim afte
 or you'll screenshot the stale extension. The fixed dev build is INSTALLED on the iPhone
 (build 2026-06-12 evening, incl. share-sheet fixes); prod untouched.
 
+USER FEEDBACK round 2 ("no way to record a voice message from sharing in safari — only type")
+→ ✅ BUILT same evening + INSTALLED on the phone. The mock's mic, deferred-transcription design
+(the v1 "no mic" flag is CLOSED): extension only RECORDS (Parakeet can't fit its ~120 MB memory
+ceiling) → audio rides the App Group inbox → the APP transcribes on drain with the same Parakeet
+engine → appends to the annotation, audio discarded (kept + Error pill on failure, re-kicked every
+drain). Sync holds captures until transcription lands; detail editor swapped out meanwhile (clobber
+window). Sim-verified (recording state + voice-note chip screenshots; 7 new unit tests incl. sync
+gate + crash recovery; full gate green). DEVICE TEST OWED: share → tap mic (first time: mic
+permission prompt INSIDE the share sheet) → talk → Save → open Skrift Dev → watch the annotation
+fill in; then rate + sync → Mac gets the full text. C3 contract untouched (uploads stay text-only).
+
 NEXT-SESSION DEVICE TEST LIST (in rough order):
 1. CAPTURE phone half: Safari → Share → "Skrift Dev" (first time: enable via the share sheet's More/Edit
    row) → annotate + rate → Save → OPEN Skrift Dev (inbox drains on launch/foreground) → capture row +
