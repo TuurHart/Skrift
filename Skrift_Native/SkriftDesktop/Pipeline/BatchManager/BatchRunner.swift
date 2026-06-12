@@ -23,6 +23,14 @@ struct BatchRunner {
     /// Run the pipeline on one file, mutating it in place. `audioURL` is nil for
     /// notes/captures whose transcript is already present.
     func run(_ pf: PipelineFile, audioURL: URL?, imageManifest: [ImageManifestEntry] = []) async throws {
+        // Captures (C3) never transcribe or diarize — their annotation is already text.
+        // Enhancement-lite runs on the annotation: title + tags + summary, NO copy-edit
+        // (the annotation is intentional prose, not speech artifacts). Sanitise runs as normal.
+        if pf.sourceType == .capture {
+            try await runCapture(pf)
+            return
+        }
+
         // 1. Transcribe — skipped when already done (trusted phone transcript / note).
         if pf.transcribeStatus != .done {
             pf.transcribeStatus = .processing
@@ -115,5 +123,63 @@ struct BatchRunner {
 
         // 5. Compile the review draft (body precedence: sanitised → copy-edit → transcript).
         pf.compiledText = Compiler.compile(file: pf, author: settings.authorName)
+    }
+
+    // MARK: Capture pipeline (C3 enhancement-lite)
+
+    /// Enhancement-lite for captures: title + summary + tags on the annotation; NO
+    /// copy-edit (the annotation is written text, not speech); sanitise (name-link) runs.
+    /// Empty annotation: skip all LLM steps, fall back to a title from sharedContent
+    /// (urlTitle → first words of text → image filename — all from the metadata blob).
+    private func runCapture(_ pf: PipelineFile) async throws {
+        // transcribeStatus is already .done from UploadService; never run ASR here.
+        let annotation = (pf.transcript ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let sc = SharedContent.decode(from: pf.audioMetadataJSON)
+        pf.enhanceStatus = .processing
+        let prompts = settings.prompts
+        let repo = settings.enhancementModelRepo
+
+        if annotation.isEmpty {
+            // No annotation → skip all LLM steps; derive a title from sharedContent.
+            pf.enhancedTitle = captureFallbackTitle(sc, existingTitle: pf.enhancedTitle)
+            pf.titleSuggested = pf.enhancedTitle
+        } else {
+            // Run title + summary on the annotation text. NO copy-edit — the annotation
+            // is intentional prose (skip the "remove fillers" pass that only makes sense
+            // for spontaneous speech).
+            let suggestedTitle = try await enhancer.title(annotation, prompts: prompts, modelRepo: repo)
+            pf.titleSuggested = suggestedTitle
+            if (pf.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
+                pf.enhancedTitle = suggestedTitle
+            }
+            pf.enhancedSummary = try await enhancer.summary(annotation, prompts: prompts, modelRepo: repo)
+        }
+
+        // Deterministic tags + name-link run on the annotation directly (no copy-edit layer).
+        if !annotation.isEmpty {
+            let suggestions = TagMatcher.suggest(text: annotation, whitelist: tagWhitelist)
+            pf.tagSuggestions = suggestions.matched + suggestions.spoken
+            let san = Sanitiser.process(text: annotation, people: people)
+            pf.sanitised = san.sanitised
+            pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
+        }
+
+        pf.enhanceStatus = .done
+        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName)
+    }
+
+    /// Title fallback chain for an empty-annotation capture:
+    /// urlTitle → first 8 words of text snippet → image filename → "Capture".
+    /// Only used when the user typed no annotation in the share sheet.
+    static func captureFallbackTitle(_ sc: SharedContent?, existingTitle: String?) -> String {
+        // Honor a title the phone pre-set (unlikely for captures, but consistent).
+        if let t = existingTitle?.trimmingCharacters(in: .whitespaces), !t.isEmpty { return t }
+        if let title = sc?.urlTitle?.trimmingCharacters(in: .whitespaces), !title.isEmpty { return title }
+        if let text = sc?.text?.trimmingCharacters(in: .whitespaces), !text.isEmpty {
+            let words = text.split(separator: " ").prefix(8).joined(separator: " ")
+            return words.isEmpty ? text : words + (text.split(separator: " ").count > 8 ? "…" : "")
+        }
+        if let fileName = sc?.fileName?.trimmingCharacters(in: .whitespaces), !fileName.isEmpty { return fileName }
+        return "Capture"
     }
 }

@@ -23,6 +23,42 @@ struct PhoneMetadata: Codable, Sendable {
     var bookChapter: String?
 }
 
+/// The `sharedContent` object from `PipelineFile.audioMetadataJSON` for C3 captures.
+/// Mirrors mobile's `SharedContent` Codable — field names are intentionally identical.
+/// Decoded on-demand (not stored on PipelineFile — avoids the SwiftData Codable trap).
+struct SharedContent: Codable, Sendable {
+    var type: String          // "url" | "text" | "image" | "file"
+    var url: String?          // url captures
+    var urlTitle: String?     // url captures (from share payload, no network fetch)
+    var urlDescription: String?
+    var text: String?         // text captures (the quoted snippet)
+    var fileName: String?     // image captures (the image part's filename)
+    var mimeType: String?     // image captures
+
+    /// Decode from the raw metadata JSON blob.
+    static func decode(from metadataJSON: Data?) -> SharedContent? {
+        guard let data = metadataJSON else { return nil }
+        // Try Codable first (standard JSON keys), then fall back to manual extraction
+        // (the demo seeds use a raw dict with snake_case `shared_content` key).
+        if let wrapper = try? JSONDecoder().decode(_Wrapper.self, from: data) { return wrapper.sharedContent }
+        if let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+           let sc = (obj["sharedContent"] ?? obj["shared_content"]) as? [String: Any] {
+            return SharedContent(
+                type: sc["type"] as? String ?? "",
+                url: sc["url"] as? String,
+                urlTitle: sc["urlTitle"] as? String,
+                urlDescription: sc["urlDescription"] as? String,
+                text: sc["text"] as? String,
+                fileName: sc["fileName"] as? String,
+                mimeType: sc["mimeType"] as? String
+            )
+        }
+        return nil
+    }
+
+    private struct _Wrapper: Codable { var sharedContent: SharedContent? }
+}
+
 /// Assembles Obsidian-ready markdown (YAML frontmatter + body) from a PipelineFile.
 /// Pure (no IO) → host-testable. Ported from `enhancement.py:compile_file`. Body
 /// precedence: sanitised → enhanced copy-edit → transcript (the name-linked text
@@ -30,11 +66,18 @@ struct PhoneMetadata: Codable, Sendable {
 enum Compiler {
     static func compile(file pf: PipelineFile, author: String, date overrideDate: String? = nil) -> String {
         let meta = pf.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
+        let sc = SharedContent.decode(from: pf.audioMetadataJSON)   // nil for non-captures
+
+        // For captures the annotation body comes from sanitised/transcript only — no copy-edit layer.
         let body = firstNonEmpty(pf.sanitised, pf.enhancedCopyedit, pf.transcript) ?? ""
         let summary = (pf.enhancedSummary ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let rawStem = (pf.filename as NSString).deletingPathExtension
         let title = firstNonEmpty(pf.enhancedTitle, rawStem) ?? rawStem
-        let date = overrideDate ?? meta?.recordedAt.map { String($0.prefix(10)) } ?? ""
+
+        // `date` from the phone's `recordedAt` (captures use this as the share
+        // time); falls back to the raw metadata JSON when PhoneMetadata didn't decode.
+        let recordedAt = meta?.recordedAt ?? rawMetaString(pf, key: "recordedAt")
+        let date = overrideDate ?? recordedAt.map { String($0.prefix(10)) } ?? ""
 
         // Audiobook quote-capture (spec 7): the presence of a book title marks the
         // memo as a capture from an actively-mined audiobook.
@@ -42,14 +85,21 @@ enum Compiler {
         let bookAuthor = trimmedNonEmpty(meta?.bookAuthor)
         let bookChapter = trimmedNonEmpty(meta?.bookChapter)
 
+        // `source:` is type-specific for share captures (C3 contract §compile).
         let source: String
         if bookTitle != nil {
             source = "Audiobook-quote"
         } else {
             switch pf.sourceType {
             case .note: source = "Apple-Note"
-            case .capture: source = "Capture"
             case .audio: source = "Voice-memo"
+            case .capture:
+                switch sc?.type {
+                case "url":   source = "capture-url"
+                case "text":  source = "capture-text"
+                case "image": source = "capture-image"
+                default:      source = "capture"
+                }
             }
         }
 
@@ -66,6 +116,10 @@ enum Compiler {
         if let bookTitle { y.append("book: \"\(bookTitle)\"") }
         if let bookAuthor { y.append("bookAuthor: \"\(bookAuthor)\"") }
         if let bookChapter { y.append("chapter: \"\(bookChapter)\"") }
+        // `url:` key only for url captures (C3 §compile).
+        if pf.sourceType == .capture, let url = sc?.url, !url.isEmpty {
+            y.append("url: \(url)")
+        }
         if let place = meta?.location?.placeName, !place.isEmpty {
             y.append("location: \"\(place)\"")
         } else {
@@ -92,10 +146,17 @@ enum Compiler {
         y.append("---")
         y.append("")
 
+        let frontmatter = y.joined(separator: "\n") + "\n"
+
+        // Captures pin the shared-content block ABOVE the annotation body (C3 §compile).
+        if pf.sourceType == .capture, let sc {
+            return frontmatter + captureSharedBlock(sc) + body
+        }
+        // Audiobook quote memos italicise the quote + add the attribution line.
         let renderedBody = bookTitle.map {
             audiobookBody(body, book: $0, author: bookAuthor, chapter: bookChapter)
         } ?? body
-        return y.joined(separator: "\n") + "\n" + renderedBody
+        return frontmatter + renderedBody
     }
 
     /// Spec 7: the captured quote block renders in ITALICS with the attribution
@@ -128,6 +189,40 @@ enum Compiler {
         return split.ramble.isEmpty ? block : block + "\n\n" + split.ramble
     }
 
+    // MARK: Capture shared-content block
+
+    /// Build the pinned shared-content Markdown block for the three capture types (C3).
+    /// - url:   bold title + full URL on its own line (intact, Obsidian imports as a link).
+    /// - text:  the snippet as a Markdown blockquote.
+    /// - image: `![[filename]]` Obsidian embed (the actual file is copied by VaultExporter).
+    static func captureSharedBlock(_ sc: SharedContent) -> String {
+        var lines: [String] = []
+        switch sc.type {
+        case "url":
+            if let title = sc.urlTitle, !title.isEmpty { lines.append("**\(title)**") }
+            if let url = sc.url, !url.isEmpty { lines.append(url) }
+            if !lines.isEmpty { lines.append("") }   // blank line before body
+        case "text":
+            if let text = sc.text, !text.isEmpty {
+                // Multi-line snippets: prefix each line with "> ".
+                let quoted = text.components(separatedBy: "\n")
+                    .map { "> \($0)" }.joined(separator: "\n")
+                lines.append(quoted)
+                lines.append("")
+            }
+        case "image":
+            if let name = sc.fileName, !name.isEmpty {
+                lines.append("![[" + name + "]]")
+                lines.append("")
+            }
+        default:
+            break
+        }
+        return lines.isEmpty ? "" : lines.joined(separator: "\n")
+    }
+
+    // MARK: Helpers
+
     private static func firstNonEmpty(_ vals: String?...) -> String? {
         for v in vals {
             if let v, !v.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return v }
@@ -143,5 +238,14 @@ enum Compiler {
     /// Whole numbers print without a trailing `.0` (e.g. 21, 1013), fractions keep it.
     private static func fmtNum(_ d: Double) -> String {
         d == d.rounded() ? String(Int(d)) : String(d)
+    }
+
+    /// Extract a top-level string from the raw metadata JSON without Codable (for keys
+    /// PhoneMetadata doesn't have — e.g. `recordedAt` on captures).
+    private static func rawMetaString(_ pf: PipelineFile, key: String) -> String? {
+        guard let data = pf.audioMetadataJSON,
+              let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let v = obj[key] as? String else { return nil }
+        return v
     }
 }

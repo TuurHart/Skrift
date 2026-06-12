@@ -173,3 +173,123 @@ final class CompilerTests: XCTestCase {
         XCTAssertFalse(out.contains("**already italic**"))
     }
 }
+
+// MARK: - C3 Capture compile tests
+
+final class CaptureCompilerTests: XCTestCase {
+
+    private func makeCapture(type: String, sc: [String: Any], annotation: String = "") -> PipelineFile {
+        let pf = PipelineFile(id: "c-\(UUID().uuidString)", filename: "capture_test",
+                              path: "/tmp/cap", size: 0, sourceType: .capture)
+        var meta: [String: Any] = ["sharedContent": sc, "recordedAt": "2026-06-11T14:02:00Z"]
+        if let url = sc["url"] as? String { meta["url"] = url }
+        pf.audioMetadataJSON = try? JSONSerialization.data(withJSONObject: meta)
+        pf.transcript = annotation
+        pf.sanitised = annotation.isEmpty ? nil : annotation
+        return pf
+    }
+
+    // MARK: URL capture
+
+    func testUrlCaptureSourceKey() {
+        let pf = makeCapture(type: "url",
+            sc: ["type": "url", "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
+                 "urlTitle": "Rich text editing in SwiftUI — strategies that work"],
+            annotation: "Try this for the body editor.")
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        XCTAssertTrue(md.contains("source: capture-url"), "source key must be capture-url")
+    }
+
+    func testUrlCaptureFrontmatterUrlKey() {
+        let pf = makeCapture(type: "url",
+            sc: ["type": "url", "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
+                 "urlTitle": "Rich text editing in SwiftUI — strategies that work"],
+            annotation: "A note.")
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        XCTAssertTrue(md.contains("url: https://swiftwithmajid.com/2026/05/rich-text-editing"),
+                      "url: key in frontmatter for url captures")
+    }
+
+    func testUrlCaptureSharedBlockAboveBody() {
+        let pf = makeCapture(type: "url",
+            sc: ["type": "url", "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
+                 "urlTitle": "Rich text editing in SwiftUI — strategies that work"],
+            annotation: "My annotation.")
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        // The shared block must appear BEFORE the annotation.
+        let boldTitle = "**Rich text editing in SwiftUI — strategies that work**"
+        let urlLine = "https://swiftwithmajid.com/2026/05/rich-text-editing"
+        XCTAssertTrue(md.contains(boldTitle), "bold title in shared block")
+        XCTAssertTrue(md.contains(urlLine), "URL line in shared block")
+        let blockRange = md.range(of: boldTitle)!
+        let bodyRange = md.range(of: "My annotation.")!
+        XCTAssertLessThan(blockRange.lowerBound, bodyRange.lowerBound, "shared block before body")
+    }
+
+    func testUrlCaptureNoAudioLine() {
+        let pf = makeCapture(type: "url",
+            sc: ["type": "url", "url": "https://example.com", "urlTitle": "Example"],
+            annotation: "Note.")
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        XCTAssertFalse(md.contains("audio:"), "no audio key for captures")
+    }
+
+    // MARK: Text capture
+
+    func testTextCaptureBlockquote() {
+        let pf = makeCapture(type: "text",
+            sc: ["type": "text", "text": "The key insight is that async/await composes naturally."],
+            annotation: "This is exactly what we saw with the upload flow.")
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        XCTAssertTrue(md.contains("source: capture-text"))
+        XCTAssertTrue(md.contains("> The key insight is that async/await composes naturally."),
+                      "text snippet as blockquote")
+        // blockquote before annotation
+        let bqRange = md.range(of: "> The key insight")!
+        let bodyRange = md.range(of: "This is exactly")!
+        XCTAssertLessThan(bqRange.lowerBound, bodyRange.lowerBound, "blockquote before body")
+    }
+
+    // MARK: Image capture
+
+    func testImageCaptureEmbed() {
+        let pf = makeCapture(type: "image",
+            sc: ["type": "image", "fileName": "whiteboard.jpg", "mimeType": "image/jpeg"],
+            annotation: "The sync flow diagram from Nick's session.")
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-11")
+        XCTAssertTrue(md.contains("source: capture-image"))
+        XCTAssertTrue(md.contains("![[whiteboard.jpg]]"), "image embed in shared block")
+        let embedRange = md.range(of: "![[whiteboard.jpg]]")!
+        let bodyRange = md.range(of: "The sync flow diagram")!
+        XCTAssertLessThan(embedRange.lowerBound, bodyRange.lowerBound, "embed before body")
+    }
+
+    // MARK: captureSharedBlock unit tests
+
+    func testCaptureSharedBlockUrl() {
+        let sc = SharedContent(type: "url",
+                               url: "https://example.com",
+                               urlTitle: "Example Page")
+        let block = Compiler.captureSharedBlock(sc)
+        XCTAssertTrue(block.contains("**Example Page**"))
+        XCTAssertTrue(block.contains("https://example.com"))
+    }
+
+    func testCaptureSharedBlockText() {
+        let sc = SharedContent(type: "text", text: "A quoted snippet.")
+        let block = Compiler.captureSharedBlock(sc)
+        XCTAssertTrue(block.hasPrefix("> A quoted snippet."))
+    }
+
+    func testCaptureSharedBlockImage() {
+        let sc = SharedContent(type: "image", fileName: "photo.jpg")
+        let block = Compiler.captureSharedBlock(sc)
+        XCTAssertTrue(block.contains("![[photo.jpg]]"))
+    }
+
+    func testCaptureSharedBlockUnknownTypeIsEmpty() {
+        let sc = SharedContent(type: "file")
+        let block = Compiler.captureSharedBlock(sc)
+        XCTAssertTrue(block.isEmpty, "unknown type → no pinned block")
+    }
+}

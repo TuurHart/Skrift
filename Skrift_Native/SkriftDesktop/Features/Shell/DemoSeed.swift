@@ -60,17 +60,42 @@ enum DemoSeed {
             AmbiguousOccurrence(alias: "Jack", offset: 180, length: 4, contextBefore: "and then ", contextAfter: " said he'd help", candidates: jackCands),
         ]
 
-        // 2 — Ready shared PDF (phone capture, no audio).
-        let f2 = PipelineFile(id: "demo-2", filename: "Project brief.pdf", sourceType: .capture, uploadedAt: date(2026, 6, 6, 11))
-        f2.transcribeStatus = .skipped; f2.sanitiseStatus = .done; f2.enhanceStatus = .done
-        f2.enhancedTitle = "Project brief.pdf"
-        f2.audioMetadataJSON = meta(["shared_content": ["type": "file"], "source": "phone"])
+        // 2 — Ready url capture (CAPTURE_CONTRACT.md literal fixture, C3).
+        // This is the item shown in the -snapshot-capture flag (mock state 3).
+        let f2 = PipelineFile(id: "demo-capture-url", filename: "capture_2026-06-11",
+                              sourceType: .capture, uploadedAt: date(2026, 6, 11, 14))
+        f2.transcribeStatus = .done; f2.sanitiseStatus = .done; f2.enhanceStatus = .done
+        f2.enhancedTitle = "Rich text editing in SwiftUI"
+        f2.titleSuggested = "Rich text editing in SwiftUI"
+        f2.enhancedSummary = "A note about the desktop body editor — the NSTextView approach Nick suggested for attributed-string round-tripping."
+        // sanitised = annotation with name-link (Nick Jansen linked).
+        f2.sanitised = "Try this for the desktop body editor — the NSTextView part maps onto what [[Nick Jansen]] suggested. Especially the bit on attributed-string round-tripping; check it against our [[link]] styling before committing to the approach."
+        f2.tags = ["swift", "editor"]
+        f2.tagSuggestions = ["nstextview", "reading"]
+        f2.significance = 0.6
+        // Metadata follows the contract fixture exactly (sharedContent camelCase, C3 §fixture).
+        f2.audioMetadataJSON = meta([
+            "sharedContent": [
+                "type": "url",
+                "url": "https://swiftwithmajid.com/2026/05/rich-text-editing",
+                "urlTitle": "Rich text editing in SwiftUI — strategies that work",
+            ],
+            "annotationText": "Try this for the desktop body editor — the NSTextView part maps onto what Nick suggested.",
+            "source": "mobile",
+            "recordedAt": "2026-06-11T14:02:00Z",
+            "significance": 0.6,
+        ])
 
-        // 3 — Exported shared link.
-        let f3 = PipelineFile(id: "demo-3", filename: "shared-link.url", sourceType: .capture, uploadedAt: date(2026, 6, 5, 16))
-        f3.transcribeStatus = .skipped; f3.sanitiseStatus = .done; f3.enhanceStatus = .done; f3.exportStatus = .done
-        f3.enhancedTitle = "SwiftUI rich text — shared link"
-        f3.audioMetadataJSON = meta(["shared_content": ["type": "url"]])
+        // 3 — Exported image capture.
+        let f3 = PipelineFile(id: "demo-capture-img", filename: "capture_2026-06-05",
+                              sourceType: .capture, uploadedAt: date(2026, 6, 5, 16))
+        f3.transcribeStatus = .done; f3.sanitiseStatus = .done; f3.enhanceStatus = .done; f3.exportStatus = .done
+        f3.enhancedTitle = "Whiteboard — sync flow"
+        f3.audioMetadataJSON = meta([
+            "sharedContent": ["type": "image", "fileName": "whiteboard.jpg", "mimeType": "image/jpeg"],
+            "annotationText": "Photo from Nick's session — the arrows are the retry paths.",
+            "source": "mobile",
+        ])
 
         // 4 — Mid-enhancement voice memo.
         let f4 = PipelineFile(id: "demo-4", filename: "Standup notes.m4a", sourceType: .audio, uploadedAt: Date())
