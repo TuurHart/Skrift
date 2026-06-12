@@ -331,6 +331,17 @@ final class AudiobookSession: ObservableObject {
         }
     }
 
+    /// Re-read the loaded book's record after an out-of-band edit ("Edit book
+    /// details"): title/author/cover refresh everywhere the session feeds
+    /// (player, mini-player, lock-screen Now Playing) — playback position and
+    /// transport state stay untouched.
+    func refreshFromStore() {
+        guard let current = book, let refreshed = store.book(id: current.id) else { return }
+        book = refreshed
+        coverImage = store.coverURL(of: refreshed).flatMap { UIImage(contentsOfFile: $0.path) }
+        updateNowPlaying()
+    }
+
     /// Write the resume position through to the library store. Unforced calls
     /// (the playback tick) throttle to one write per 5 s; transport actions
     /// force an immediate write.

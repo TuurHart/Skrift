@@ -76,6 +76,31 @@ final class AudiobookLibraryStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testEditBookDetailsPersistAcrossReload() {
+        // The "Edit book details" save path: update() with changed
+        // title/author/hasCover must round-trip through library.json while
+        // playback state (position/rate) survives untouched.
+        let store = makeStore()
+        let book = Audiobook(audioFilename: "book.m4b", title: "untitled rip",
+                             author: "", duration: 1000)
+        store.add(book)
+        store.updateProgress(id: book.id, position: 420)
+
+        var edited = store.book(id: book.id)!
+        edited.title = "The Beginning of Infinity"
+        edited.author = "David Deutsch"
+        edited.hasCover = true
+        store.update(edited)
+
+        let reloaded = AudiobookLibraryStore(directory: store.directory)
+        let read = reloaded.book(id: book.id)
+        XCTAssertEqual(read?.title, "The Beginning of Infinity")
+        XCTAssertEqual(read?.author, "David Deutsch")
+        XCTAssertEqual(read?.hasCover, true)
+        XCTAssertEqual(read?.position, 420, "an edit must not clobber progress")
+    }
+
+    @MainActor
     func testChapterLookupByPosition() {
         let book = Audiobook(
             audioFilename: "b.m4b", title: "T", author: "A", duration: 300,
