@@ -94,6 +94,8 @@
 	<string>Skrift imports a video you pick, transcribing its audio and tagging the memo with when the video was recorded.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>SkriftAppGroup</key>
+	<string>$(SKRIFT_APP_GROUP)</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

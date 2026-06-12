@@ -46,7 +46,7 @@ final class CaptureUploadTests: XCTestCase {
         XCTAssertEqual(metadata.duration, 0, "duration must be 0 for captures")
         XCTAssertFalse(metadata.transcriptUserEdited, "transcriptUserEdited must be false")
         XCTAssertEqual(metadata.tags, [], "tags must be empty array v1")
-        XCTAssertEqual(metadata.significance, 0.6, accuracy: 0.001)
+        XCTAssertEqual(metadata.significance ?? 0, 0.6, accuracy: 0.001)
 
         let sc = try XCTUnwrap(metadata.sharedContent, "sharedContent must be present for captures")
         XCTAssertEqual(sc.type, .url)

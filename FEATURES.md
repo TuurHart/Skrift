@@ -66,6 +66,19 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Inline `[photo N]` token in **live** caption | ✅ | n/a | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: tinted `[photo N]` token inserted inline at the capture point |
 | `[[img]]` → Obsidian embed on export | n/a | ✅ | desktop `Pipeline/Export/VaultExporter.swift:84-114` | |
 
+## Capture items *(share URL/text/image into Skrift + annotate)* — built 2026-06-12 (C3 contract)
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| C3 wire contract | ✅ | ✅ | `Skrift_Native/CAPTURE_CONTRACT.md` | Discriminator: zero audio `files` parts + `metadata.sharedContent` → capture. Both apps test against the doc's literal fixture. Memo uploads byte-identical |
+| Share extension + sheet | ✅ | n/a | `SkriftShare/` (target), `ShareSheetView`, `SharePayloadLoader` | Mock state 1: preview per type (url card / text quote / image thumb), annotation, significance circles + sync line, Save. NO mic v1 (extension memory ceiling), no FluidAudio/heavy deps in the extension |
+| App Group inbox → Memo | ✅ | n/a | `Services/Capture/CaptureInbox.swift` + `CaptureInboxDrainer` | `group.com.skrift.mobile(.dev)` via `SKRIFT_APP_GROUP` build setting → entitlements + `SkriftAppGroup` Info.plist key BOTH targets (the key must be in the APP's plist too — its absence crashed launch). Drain on launch + foreground; idempotent, delete-after-save |
+| Capture upload (no audio) | ✅ | ✅ | mobile `UploadPayload.buildCapture` + `SyncCoordinator`; desktop `UploadService.ingestCapture` | Same endpoint/gate (significance>0); image rides the existing `images` part + manifest |
+| Pipeline: skip + enhance-lite | n/a | ✅ | `BatchRunner.runCapture`, `captureFallbackTitle` | No ASR/diarize/copy-edit; title+tags+summary+name-link on the annotation; empty annotation → fallback title (urlTitle → text head → filename) |
+| Compile/export | n/a | ✅ | `Compiler.captureSharedBlock`, `VaultExporter.copyCaptureFolderImages` | frontmatter `source: capture-url/text/image` + `url:` key; pinned block (bold title+URL / blockquote / `![[embed]]`) above the annotation body |
+| Review surface (Mac) | n/a | ✅ | `Features/Review/CaptureViews.swift` (source strip, banner, shared-content card), `NoteProperties` url row, `QueueDerivations` glyphs | Mock state 3; verify via `-snapshot-capture <path>` |
+| List/detail (phone) | ✅ | n/a | `MemoDisplay` shareCapture helpers, `MemosListView`, `MemoDetailView` | Mock state 2: glyph rows + domain chip; detail = pinned card (Open ↗) + editable annotation body; player bar/append/split hidden (no audio) |
+
 ## Audiobook quote-capture *(mobile player + capture; desktop pipeline)* — built 2026-06-11
 
 | Capability | Mobile | Desktop | Key files | Notes |

@@ -56,11 +56,13 @@ enum CaptureInbox {
            !id.isEmpty {
             return id
         }
-        // Fallback: the dev group. Should never be reached in a correctly signed
-        // build; it means the Info.plist key is missing or the build setting
-        // wasn't substituted.
-        assertionFailure("SkriftAppGroup missing from Info.plist — check SKRIFT_APP_GROUP build setting")
-        return "group.com.skrift.mobile.dev"
+        // Fallback: derive from the bundle ID's dev/prod split. NO assertionFailure
+        // here — this runs at app LAUNCH (the inbox drain), and a Debug-build trap
+        // on a missing plist key took the whole app down on the simulator (every
+        // UI test failed "app is not running"). A wrong group just means an empty
+        // inbox, which is recoverable; crashing at launch is not.
+        let dev = (Bundle.main.bundleIdentifier ?? "").contains(".dev")
+        return dev ? "group.com.skrift.mobile.dev" : "group.com.skrift.mobile"
     }
 
     // MARK: - Container

@@ -36,6 +36,9 @@ targets:
         # Resolved per-config (SKRIFT_DISPLAY_NAME): "Skrift Dev" in Debug, "Skrift"
         # in Release — so the dev + prod apps are distinguishable on the home screen.
         CFBundleDisplayName: $(SKRIFT_DISPLAY_NAME)
+        # App Group id, readable at runtime (CaptureInbox) — same key as the share
+        # extension's Info.plist, so both processes resolve the identical container.
+        SkriftAppGroup: $(SKRIFT_APP_GROUP)
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         UILaunchScreen: {}

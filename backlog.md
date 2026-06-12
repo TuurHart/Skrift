@@ -614,6 +614,21 @@ playback exclusion all device-installed on Skrift Dev). NOT pushed to main; prod
    (user: "pretty good", moved on): on play the text spreads slightly vertically — the tap-to-seek word
    grid's FlowLayout lineSpacing 6 + per-line VStack spacing 8 vs the static text's lineSpacing 4; tune
    the grid constants to match. USER MOVED ON TO THE BOARD → capture items build started 2026-06-12.
+5. **CAPTURE ITEMS BUILT 2026-06-12 (board item 1) — two Sonnet lanes + orchestrator integration; AWAITING
+   DEVICE VERIFY.** Contract-first: `Skrift_Native/CAPTURE_CONTRACT.md` (C3) pinned the wire seam (no audio
+   part + sharedContent = capture; literal fixture both lanes test against). Lane M = SkriftShare extension
+   target + App Group inbox + share sheet (mock state 1) + capture upload + list/detail (state 2). Lane D =
+   UploadService capture branch + skip/enhance-lite pipeline + compile/export pinned block + review surface
+   (state 3). Integration fixes (orchestrator): 3 one-line compile slips; QueueDerivations read snake_case
+   only (phone sends camelCase); ADDED the mock's shared-content card to the review column (lane built it
+   export-only); **launch crash fixed** — `SkriftAppGroup` Info.plist key was extension-only + CaptureInbox
+   assertionFailure trapped Debug at launch (every UI test "app not running") → key added to the APP plist,
+   fallback derives dev/prod group from the bundle ID instead of trapping. Gates: desktop UnitTests 223/0 +
+   full build + `-snapshot-capture` mock-faithful; mobile full suite green (see commit). V1 flags: no mic in
+   the sheet (memory ceiling), no location/weather on captures, tags/title Mac-suggested only. **USER:
+   share a URL → annotate → rate → Save; check the row/detail; then sync to the dev Mac and check the
+   review surface + export.** Known-untested: real share-sheet payloads from third-party apps (sim tests
+   cover the inbox/upload logic, not the OS share UI).
 2. Then user re-tests: trim persistence end-to-end (tap sentence → ramble → saved audio/text/karaoke match).
 3. Owed smalls — **BUILT 2026-06-12 (this session, pending device verify):**
    - ✅ Reverse playback exclusion BUILT — `AudioPlayerModel.nowPlaying` (static weak) +

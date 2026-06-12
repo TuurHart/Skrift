@@ -57,9 +57,10 @@ struct ShareSheetView: View {
             SignificanceCircles(value: $significance) {}
                 .padding(.bottom, 13)
             saveButton
-                .padding(.bottom, max(UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .first?.windows.first?.safeAreaInsets.bottom ?? 0, 16))
+                // UIApplication.shared is unavailable in app extensions — SwiftUI's
+                // own safe-area handling covers the home-indicator inset; this is
+                // just comfortable breathing room above it.
+                .padding(.bottom, 16)
         }
         .padding(.horizontal, 16)
         .background(
