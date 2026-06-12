@@ -24,6 +24,9 @@ final class LiveRecordingService: ObservableObject {
     @Published private(set) var waveform: [Float] = []
     /// Best-effort live transcript shown caption-first while recording.
     @Published private(set) var liveCaption: String = ""
+    /// How many leading caption words are FINAL (rotated/committed chunks never
+    /// re-transcribe) — the truthful solid-vs-volatile boundary for colouring.
+    @Published private(set) var liveCommittedWordCount: Int = 0
     /// A brief, self-clearing notice surfaced when the audio route changes
     /// mid-recording (e.g. AirPods pulled out) — so the user knows capture may
     /// have hiccuped without the recording being dropped. nil = nothing to show.
@@ -146,6 +149,7 @@ final class LiveRecordingService: ObservableObject {
         level = 0
         waveform = []
         liveCaption = ""
+        liveCommittedWordCount = 0
         let url = AppPaths.recordingsDirectory.appendingPathComponent("rec_tmp_\(UUID().uuidString).m4a")
         tempURL = url
 
@@ -275,6 +279,7 @@ final class LiveRecordingService: ObservableObject {
         level = 0
         waveform = []
         liveCaption = ""
+        liveCommittedWordCount = 0
     }
 
     // MARK: - Real engine
@@ -849,10 +854,14 @@ final class LiveRecordingService: ObservableObject {
             MainActor.assumeIsolated {
                 guard let self, self.isRecording, !self.isPaused else { return }
                 Task {
-                    let caption = await TranscriptionService.shared.liveCaption()
-                    if !caption.isEmpty {
-                        self.liveCaption = caption
-                        RecordingActivityManager.shared.update(caption: caption)
+                    let parts = await TranscriptionService.shared.liveCaptionParts()
+                    if !parts.full.isEmpty {
+                        self.liveCaption = parts.full
+                        // The REAL finalized boundary: rotated (committed) chunks
+                        // never re-transcribe — drives solid-vs-volatile truthfully.
+                        self.liveCommittedWordCount = parts.committed
+                            .split(whereSeparator: { $0.isWhitespace }).count
+                        RecordingActivityManager.shared.update(caption: parts.full)
                     }
                 }
             }

@@ -309,20 +309,32 @@ actor TranscriptionService: Transcriber {
     /// Best-effort full transcript right now: committed chunks + a live
     /// re-transcribe of the accumulated buffer. Overlapping calls short-circuit.
     func liveCaption() async -> String {
+        await liveCaptionParts().full
+    }
+
+    /// The caption split at its REAL finalized boundary: `committed` = rotated
+    /// chunks that will NEVER change again; everything after is the live chunk,
+    /// re-transcribed wholesale each poll (volatile). This is the true signal
+    /// the caption's solid-vs-volatile colouring needs — the old trailing-N-words
+    /// approximation visibly lied ("white text is supposed to be non-changing
+    /// but it also changes", 2026-06-10 device finding).
+    func liveCaptionParts() async -> (full: String, committed: String) {
         await rotateIfNeeded()
-        guard let asr, !streamBuffers.isEmpty else { return committedText() }
-        if snapshotRunning { return committedText() }
+        let committed = committedText()
+        guard let asr, !streamBuffers.isEmpty else { return (committed, committed) }
+        if snapshotRunning { return (committed, committed) }
         snapshotRunning = true
         defer { snapshotRunning = false }
-        guard let merged = Self.concatenate(buffers: streamBuffers) else { return committedText() }
+        guard let merged = Self.concatenate(buffers: streamBuffers) else { return (committed, committed) }
         var state = TdtDecoderState.make()
         do {
             let tail = try await asr.transcribe(merged, decoderState: &state).text
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            if tail.isEmpty { return committedText() }
-            return committedChunks.isEmpty ? tail : committedChunks.joined(separator: " ") + " " + tail
+            if tail.isEmpty { return (committed, committed) }
+            let full = committed.isEmpty ? tail : committed + " " + tail
+            return (full, committed)
         } catch {
-            return committedText()
+            return (committed, committed)
         }
     }
 

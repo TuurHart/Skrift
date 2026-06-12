@@ -26,6 +26,13 @@ enum VoiceEnroller {
             canonical: name,
             embedding: VoiceEmbedding(vector: embedding.map(Double.init), condition: condition, addedAt: ISO8601.now())
         )
+        // Auto-push the new voiceprint to the Mac (debounced, no-op unpaired) —
+        // without this it only synced on a manual sync tap, so cross-device
+        // auto-match silently lacked the voice. Real store only: test enrolls
+        // pass their own.
+        if store === NamesStore.shared {
+            await MainActor.run { NamesAutoSync.kick() }
+        }
         return true
     }
 }

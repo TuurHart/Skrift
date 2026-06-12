@@ -40,7 +40,7 @@ struct RecordView: View {
     /// reorders). Cleared on start.
     @State private var photoMarks: [PhotoMark] = []
 
-    private struct PhotoMark: Equatable { let wordIndex: Int; let number: Int }
+    private struct PhotoMark: Equatable { let wordIndex: Int; let anchor: [String]; let number: Int }
 
     var body: some View {
         ZStack {
@@ -94,8 +94,14 @@ struct RecordView: View {
         // separately). New markers only — never re-add when the count drops to 0 on save.
         .onChange(of: camera.capturedCount) { old, new in
             guard new > old, service.isRecording else { return }
-            let wordIndex = service.liveCaption.split(whereSeparator: { $0.isWhitespace }).count
-            photoMarks.append(PhotoMark(wordIndex: wordIndex, number: new))
+            // Anchor the mark to the words it follows (last ≤3) — the live chunk
+            // re-transcribes wholesale, so a bare index drifts; the anchor words
+            // move with the rewrite and re-locate the mark at render.
+            let captionWords = service.liveCaption
+                .split(whereSeparator: { $0.isWhitespace }).map(String.init)
+            photoMarks.append(PhotoMark(wordIndex: captionWords.count,
+                                        anchor: Array(captionWords.suffix(3)),
+                                        number: new))
         }
         .animation(Theme.Motion.snappy, value: service.routeNotice)
         .task {
@@ -215,7 +221,10 @@ struct RecordView: View {
 
             LiveCaption(
                 text: service.liveCaption,
-                photoMarks: photoMarks.map { (wordIndex: $0.wordIndex, number: $0.number) },
+                photoMarks: photoMarks.map {
+                    LiveCaptionLayout.Mark(wordIndex: $0.wordIndex, number: $0.number, anchor: $0.anchor)
+                },
+                solidWordCount: service.liveCommittedWordCount,
                 modelLoading: !modelStatus.ready && modelStatus.phase != .failed
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -455,25 +464,24 @@ struct RecordView: View {
 
 // MARK: - Pieces
 
-/// Live transcript, scrollable. The finalized body is solid; the trailing few words
-/// render lighter to read as "still settling" (a CONFIDENCE APPROXIMATION — the
-/// FluidAudio live path re-transcribes the whole accumulated buffer each poll and
-/// exposes no per-token finalized/volatile flag, so we approximate volatility by
-/// position: the newest words are the ones most likely to change). Photos captured
-/// mid-record appear as tinted `[photo N]` tokens inline. While the model is still
-/// loading and nothing has been transcribed yet, a placeholder stands in (recording
-/// is already capturing audio — the caption just catches up once the model is ready).
+/// Live transcript, scrollable. The solid body = words in COMMITTED (rotated)
+/// chunks, which never re-transcribe — a real finalized signal, not the old
+/// trailing-N-words approximation that visibly lied (solid words still changed,
+/// 2026-06-10 device finding). Everything in the current live chunk renders
+/// lighter until its rotation locks it in. Photos captured mid-record appear as
+/// tinted `[photo N]` tokens inline. While the model is still loading and
+/// nothing has been transcribed yet, a placeholder stands in (recording is
+/// already capturing audio — the caption just catches up once the model is ready).
 ///
 /// Auto-scroll (F2): sticks to the newest text as words append, but if the user
 /// scrolls up to re-read, auto-stick pauses until they scroll back to the bottom.
 private struct LiveCaption: View {
     let text: String
-    /// (wordIndex, photoNumber) — insert `[photo N]` after that many spoken words.
-    var photoMarks: [(wordIndex: Int, number: Int)] = []
+    /// Markers to splice in — anchored to the words they followed at capture.
+    var photoMarks: [LiveCaptionLayout.Mark] = []
+    /// How many leading words are FINAL (committed chunks) — render solid.
+    var solidWordCount: Int = 0
     var modelLoading = false
-
-    /// How many trailing words to treat as volatile (lighter). Approximation only.
-    private static let volatileWordCount = 6
 
     var body: some View {
         ScrollView(.vertical) {
@@ -516,7 +524,8 @@ private struct LiveCaption: View {
     private var caption: AttributedString {
         var out = AttributedString()
         let segments = LiveCaptionLayout.segments(
-            words: words, photoMarks: photoMarks, trailing: Self.volatileWordCount
+            words: words, photoMarks: photoMarks,
+            firstVolatile: min(max(0, solidWordCount), words.count)
         )
         for segment in segments {
             var run = AttributedString(segment.text)
@@ -557,20 +566,46 @@ enum LiveCaptionLayout {
         let style: Style
     }
 
-    /// Index of the first "volatile" (lighter) word — the trailing `trailing` words.
-    static func volatileStart(wordCount: Int, trailing: Int) -> Int {
-        max(0, wordCount - trailing)
+    /// A `[photo N]` marker captured mid-recording: the caption word count at
+    /// capture + the last few caption words it followed (its ANCHOR). The live
+    /// caption re-transcribes its current chunk wholesale, so the absolute index
+    /// can drift — the anchor words move WITH a rewrite and re-locate the mark.
+    struct Mark: Equatable {
+        let wordIndex: Int
+        let number: Int
+        var anchor: [String] = []
     }
 
     /// Photo markers grouped by the word index they follow (0 = before the first
-    /// word, `wordCount` = after the last). Indices are clamped into `0...wordCount`.
-    static func marksByIndex(_ marks: [(wordIndex: Int, number: Int)], wordCount: Int) -> [Int: [Int]] {
+    /// word, `wordCount` = after the last). Anchored marks re-locate to their
+    /// anchor words; the rest clamp into `0...wordCount`.
+    static func marksByIndex(_ marks: [Mark], words: [String]) -> [Int: [Int]] {
         var out: [Int: [Int]] = [:]
         for mark in marks {
-            let idx = min(max(0, mark.wordIndex), wordCount)
-            out[idx, default: []].append(mark.number)
+            out[resolvedIndex(of: mark, in: words), default: []].append(mark.number)
         }
         return out
+    }
+
+    /// Where a mark sits in the CURRENT caption: find its anchor word sequence
+    /// (normalised — re-transcription adds punctuation/casing) nearest the
+    /// captured index, within a ±12-word window; fall back to the clamped index
+    /// when the anchor was rewritten away.
+    static func resolvedIndex(of mark: Mark, in words: [String]) -> Int {
+        let clamped = min(max(0, mark.wordIndex), words.count)
+        let anchor = mark.anchor.map(normalise)
+        let span = anchor.count
+        guard span > 0, words.count >= span else { return clamped }
+        let normalised = words.map(normalise)
+        let candidates = (span...words.count).sorted { abs($0 - clamped) < abs($1 - clamped) }
+        for end in candidates where abs(end - clamped) <= 12 {
+            if Array(normalised[(end - span)..<end]) == anchor { return end }
+        }
+        return clamped
+    }
+
+    private static func normalise(_ word: String) -> String {
+        word.lowercased().trimmingCharacters(in: .punctuationCharacters)
     }
 
     /// Flatten the caption into style runs: words (each with a trailing space)
@@ -580,10 +615,10 @@ enum LiveCaptionLayout {
     /// the per-word `Text + Text` chain this replaces overflowed the stack
     /// (SwiftUI resolves concatenated Text recursively) on long recordings.
     static func segments(words: [String],
-                         photoMarks: [(wordIndex: Int, number: Int)],
-                         trailing: Int) -> [Segment] {
-        let firstVolatile = volatileStart(wordCount: words.count, trailing: trailing)
-        let marks = marksByIndex(photoMarks, wordCount: words.count)
+                         photoMarks: [Mark],
+                         firstVolatile: Int) -> [Segment] {
+        let firstVolatile = min(max(0, firstVolatile), words.count)
+        let marks = marksByIndex(photoMarks, words: words)
 
         var out: [Segment] = []
         func appendWord(_ text: String, style: Style) {
