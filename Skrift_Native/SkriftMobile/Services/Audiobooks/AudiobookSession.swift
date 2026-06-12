@@ -413,6 +413,32 @@ final class AudiobookSession: ObservableObject {
                 }
             }
         }
+        installRouteObserverIfNeeded()
+    }
+
+    /// Pause when the output route disappears (AirPods pulled out / BT drops) —
+    /// the Apple convention for playback apps. Without this the book keeps
+    /// playing OUT LOUD on the speaker the moment the headphones leave the ear.
+    /// Re-inserting does NOT auto-resume (deliberate: resume is the user's tap
+    /// or the AirPods' own play command, which the remote-command handler takes).
+    private var routeObserver: NSObjectProtocol?
+    private func installRouteObserverIfNeeded() {
+        guard routeObserver == nil else { return }
+        routeObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: nil,
+            queue: .main
+        ) { note in
+            let reason = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt)
+                .flatMap(AVAudioSession.RouteChangeReason.init)
+            guard reason == .oldDeviceUnavailable else { return }
+            Task { @MainActor in
+                if AudiobookSession.shared.isPlaying {
+                    DevLog.log("audiobook pause — output route lost (headphones removed)")
+                    AudiobookSession.shared.pause()
+                }
+            }
+        }
     }
 
     // MARK: - Lock-screen transport (Now Playing + remote commands)
