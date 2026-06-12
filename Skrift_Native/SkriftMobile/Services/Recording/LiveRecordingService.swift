@@ -48,12 +48,26 @@ final class LiveRecordingService: ObservableObject {
     /// MainActor-isolated via the class annotation.
     static var isRecordingActive: Bool { activeService?.isRecording ?? false }
 
+    /// Start failed because the mic input isn't ready (its format is invalid
+    /// or mid-route-transition). `startRetrying` keeps retrying on this —
+    /// installing a tap anyway would raise an uncatchable NSException.
+    enum StartError: Error { case inputFormatNotReady }
+
     private let mock: Bool
     private static let waveformBars = 40
+    /// Rebuild attempts per route change while the new route's input format
+    /// settles (0.25 s apart). ~1 s total — a Bluetooth handover gap.
+    private static let maxRebuildAttempts = 4
 
     private var engine: AVAudioEngine?
     private var audioFile: AVAudioFile?
     private var tempURL: URL?
+    /// UID of the input port the CURRENT tap was built for — used to spot
+    /// route-change notifications that are just echoes of our OWN session
+    /// activation (`.categoryChange` right after `start()`), where nothing
+    /// actually changed underneath us. Rebuilding on those mid-transition
+    /// echoes is what crashed round 2 (P0, 2026-06-12).
+    private var tapInputUID: String?
 
     // Mirrored, audio-thread-readable copies of the gating state. The tap runs
     // on a real-time thread; reading MainActor-isolated @Published vars there
@@ -106,12 +120,17 @@ final class LiveRecordingService: ObservableObject {
         guard !isRecording else { return }
         Task { @MainActor [weak self] in
             if siriGrace { try? await Task.sleep(for: .milliseconds(700)) }
-            for _ in 0..<16 {
+            for attempt in 0..<16 {
                 guard let self, !self.isRecording else { return }
                 do { try self.start(); return }
-                catch { /* session busy (e.g. Siri releasing the mic) — retry */ }
+                catch {
+                    // Session busy (e.g. Siri releasing the mic) or the input
+                    // format isn't ready yet — wait and retry.
+                    DevLog.log("start attempt \(attempt) failed: \(error)")
+                }
                 try? await Task.sleep(for: .milliseconds(300))
             }
+            DevLog.log("start gave up after 16 attempts")
         }
     }
 
@@ -134,6 +153,7 @@ final class LiveRecordingService: ObservableObject {
             mockWords = (LaunchFlags.seedTranscript ?? "").split(separator: " ").map(String.init)
             mockRevealed = 0
         } else {
+            DevLog.log("record start — live=\(liveTranscription)")
             try startEngine(writingTo: url)
             if liveTranscription {
                 Task { await TranscriptionService.shared.beginStream() }
@@ -154,12 +174,12 @@ final class LiveRecordingService: ObservableObject {
         accumulate()
         isPaused = true
         tapPaused = true
-        if !mock { engine?.pause(); RecordingActivityManager.shared.pause() }
+        if !mock { engine?.pause(); RecordingActivityManager.shared.pause(); DevLog.log("record pause") }
     }
 
     func resume() {
         guard isRecording, isPaused else { return }
-        if !mock { try? engine?.start() }
+        if !mock { try? engine?.start(); DevLog.log("record resume — engineRunning=\(engine?.isRunning == true)") }
         segmentStart = Date()
         isPaused = false
         tapPaused = false
@@ -197,9 +217,11 @@ final class LiveRecordingService: ObservableObject {
             audioFile?.close()
             engine = nil
             audioFile = nil
+            tapInputUID = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
             if liveTranscription { Task { await TranscriptionService.shared.endStream() } }
             RecordingActivityManager.shared.end()
+            DevLog.log("record stop — duration=\(String(format: "%.2f", duration))s")
         }
         isRecording = false
         isPaused = false
@@ -222,9 +244,11 @@ final class LiveRecordingService: ObservableObject {
             audioFile?.close()     // finalize before the temp file is deleted below
             engine = nil
             audioFile = nil
+            tapInputUID = nil
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
             if liveTranscription { Task { await TranscriptionService.shared.endStream() } }
             RecordingActivityManager.shared.end()
+            DevLog.log("record cancel")
         }
         if let url = tempURL { try? FileManager.default.removeItem(at: url) }
         tempURL = nil
@@ -250,6 +274,14 @@ final class LiveRecordingService: ObservableObject {
         let engine = AVAudioEngine()
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
+        // The mic may not be ready right after activation (e.g. a Bluetooth
+        // route still settling): a 0 Hz/0 ch format here would make an invalid
+        // .m4a AND crash the tap install. Throw instead — `startRetrying`
+        // retries every 300 ms while the route settles.
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            DevLog.log("start refused — input format not ready (\(Self.describe(format)))")
+            throw StartError.inputFormatNotReady
+        }
 
         let settings: [String: Any] = [
             AVFormatIDKey: kAudioFormatMPEG4AAC,
@@ -260,9 +292,15 @@ final class LiveRecordingService: ObservableObject {
         let file = try AVAudioFile(forWriting: url, settings: settings)
         self.audioFile = file
 
-        installRecordingTap(on: input, file: file)
+        guard installRecordingTap(on: input, file: file) else {
+            // Don't leave the just-created empty .m4a behind across retries.
+            self.audioFile = nil
+            try? FileManager.default.removeItem(at: url)
+            throw StartError.inputFormatNotReady   // startRetrying retries
+        }
         try engine.start()
         self.engine = engine
+        DevLog.log("engine started — input=\(currentInputName()) \(Self.describe(format))")
         observeRouteChanges()
     }
 
@@ -279,10 +317,30 @@ final class LiveRecordingService: ObservableObject {
     /// Real-time audio thread: keep the tap body minimal. Copy the buffer (tap
     /// storage is reused after the callback) and hand the heavy work — convert +
     /// AAC encode + RMS — to the writer queue so it never blocks the render thread.
-    private func installRecordingTap(on input: AVAudioInputNode, file: AVAudioFile) {
+    ///
+    /// CRASH SAFETY (P0, 2026-06-12 — NSException SIGABRT in InstallTapOnNode):
+    /// `installTap` enforces its preconditions with NSExceptions that Swift
+    /// CANNOT catch, so validation here is the only defense. Before installing:
+    /// (a) any existing tap is ALWAYS removed (installing over a live tap
+    /// raises), and (b) the input node's current format is validated via
+    /// `canInstallTap` — mid-route-transition the node reports 0 Hz/0 ch, or a
+    /// cached vended format that lags the new hardware; installing with either
+    /// raises. Returns false instead of installing — callers retry while the
+    /// route settles (`rebuildTapForCurrentRoute`) or throw (`startEngine`).
+    @discardableResult
+    private func installRecordingTap(on input: AVAudioInputNode, file: AVAudioFile) -> Bool {
+        input.removeTap(onBus: 0)   // (a) never double-install
+        let hwFormat = input.inputFormat(forBus: 0)
         let tapFormat = input.outputFormat(forBus: 0)
+        guard Self.canInstallTap(hwRate: hwFormat.sampleRate, hwChannels: hwFormat.channelCount,
+                                 tapRate: tapFormat.sampleRate, tapChannels: tapFormat.channelCount) else {
+            DevLog.log("tap install REFUSED — hw=\(Self.describe(hwFormat)) tap=\(Self.describe(tapFormat))")
+            return false
+        }
         let writeFormat = file.processingFormat
         let converter = Self.makeWriteConverter(from: tapFormat, to: writeFormat)
+        DevLog.log("tap install — \(Self.describe(tapFormat)) → file \(Self.describe(writeFormat))"
+                   + (converter == nil ? "" : " (converting)"))
         input.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
             guard let self, !self.tapPaused, !self.tapStopped,
                   let copy = Self.copyBuffer(buffer) else { return }
@@ -309,6 +367,8 @@ final class LiveRecordingService: ObservableObject {
                 if live { Task { await TranscriptionService.shared.feedStream(out) } }
             }
         }
+        tapInputUID = AVAudioSession.sharedInstance().currentRoute.inputs.first?.uid
+        return true
     }
 
     /// Keep the recording alive across an audio-route change (AirPods pulled out
@@ -338,9 +398,27 @@ final class LiveRecordingService: ObservableObject {
         guard isRecording, !mock else { return }
         let reasonValue = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
         let reason = reasonValue.flatMap { AVAudioSession.RouteChangeReason(rawValue: $0) }
+        let previous = note.userInfo?[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription
+        let session = AVAudioSession.sharedInstance()
+        let currentInput = session.currentRoute.inputs.first
+        let hwFormat = engine.map { Self.describe($0.inputNode.inputFormat(forBus: 0)) } ?? "-"
+        DevLog.log("route change — reason=\(Self.name(reason))"
+                   + " prev=\(Self.describe(previous)) now=\(Self.describe(session.currentRoute))"
+                   + " hwFmt=\(hwFormat) engineRunning=\(engine?.isRunning == true)")
 
         switch reason {
         case .oldDeviceUnavailable, .newDeviceAvailable, .categoryChange:
+            // Ignore the echo of our OWN session activation: start() configures
+            // the category + activates the session, which fires .categoryChange
+            // right after the first tap goes in. The input is unchanged and the
+            // engine is running — there is NOTHING to rebuild, and rebuilding
+            // mid-transition installs on an invalid format = the round-2 P0
+            // crash (NSException SIGABRT on the first record tap).
+            if reason == .categoryChange, currentInput?.uid == tapInputUID,
+               let engine, engine.isRunning {
+                DevLog.log("route change ignored — own session activation, input unchanged")
+                return
+            }
             // The input device changed (AirPods pulled / re-inserted, headset
             // unplugged, another component touched the session). The tap MUST be
             // rebuilt in the new route's format — a restart alone leaves a
@@ -353,6 +431,7 @@ final class LiveRecordingService: ObservableObject {
             // .routeConfigurationChange/.override etc. can also stop the engine;
             // if capture stalled, rebuild quietly (same stale-format hazard).
             if !isPaused, let engine, !engine.isRunning {
+                DevLog.log("engine stalled by \(Self.name(reason)) — rebuilding")
                 rebuildTapForCurrentRoute()
             }
         }
@@ -363,9 +442,15 @@ final class LiveRecordingService: ObservableObject {
     /// the file's fixed write format — see `installRecordingTap`), and restart
     /// the engine. Pull AirPods out → capture continues on the built-in mic;
     /// re-insert → capture continues on the AirPods, same `.m4a` throughout.
-    /// A failure here doesn't drop the recording — the file already holds what
-    /// was captured, and the user is shown the notice.
-    private func rebuildTapForCurrentRoute(retry: Bool = true) {
+    ///
+    /// Mid-transition the input format is often not ready yet (0 Hz, or a
+    /// vended format lagging the new hardware) — `installRecordingTap` refuses
+    /// to install then (installing would raise an uncatchable NSException — the
+    /// round-2 P0 crash), and we retry every 0.25 s for a few attempts while
+    /// the route settles, keeping the recording session alive throughout. A
+    /// final failure still doesn't drop the recording — the file already holds
+    /// what was captured, and the user is shown the notice.
+    private func rebuildTapForCurrentRoute(attempt: Int = 0) {
         guard isRecording, let engine, let file = audioFile else { return }
         let input = engine.inputNode
         input.removeTap(onBus: 0)
@@ -378,28 +463,40 @@ final class LiveRecordingService: ObservableObject {
         // The route change may have deactivated the session; reassert it so the
         // new input route is live before we read its format.
         try? AVAudioSession.sharedInstance().setActive(true)
-        let newFormat = input.outputFormat(forBus: 0)
-        guard newFormat.sampleRate > 0, newFormat.channelCount > 0 else {
+
+        guard installRecordingTap(on: input, file: file) else {
             // Transient no-input gap mid-transition (common right after a
-            // Bluetooth route drops) — retry once shortly; the follow-up route
+            // Bluetooth route drops) — retry shortly; a follow-up route
             // notification usually rebuilds us anyway.
-            if retry {
+            if attempt + 1 < Self.maxRebuildAttempts {
+                DevLog.log("rebuild attempt \(attempt) — input not ready, retrying in 250 ms")
                 Task { @MainActor [weak self] in
-                    try? await Task.sleep(for: .milliseconds(300))
+                    try? await Task.sleep(for: .milliseconds(250))
                     guard let self, self.isRecording else { return }
-                    self.rebuildTapForCurrentRoute(retry: false)
+                    // A follow-up route notification may have rebuilt us while
+                    // this retry was sleeping — don't tear a live engine down.
+                    if !self.isPaused, let engine = self.engine, engine.isRunning {
+                        DevLog.log("rebuild retry skipped — engine already running again")
+                        return
+                    }
+                    self.rebuildTapForCurrentRoute(attempt: attempt + 1)
                 }
             } else {
+                DevLog.log("rebuild gave up after \(attempt + 1) attempts — keeping session alive")
                 showRouteNotice("Lost the mic input — tap Stop to keep what was recorded")
             }
             return
         }
 
-        installRecordingTap(on: input, file: file)
-        guard !isPaused else { return }   // resume() starts the engine
+        guard !isPaused else {
+            DevLog.log("rebuild done while paused — resume() will start the engine")
+            return
+        }
         do {
             try engine.start()
+            DevLog.log("engine restarted — input=\(currentInputName())")
         } catch {
+            DevLog.log("engine restart FAILED: \(error)")
             showRouteNotice("Lost the mic input — tap Stop to keep what was recorded")
         }
     }
@@ -424,6 +521,50 @@ final class LiveRecordingService: ObservableObject {
         routeObserver = nil
         noticeClearTimer?.invalidate(); noticeClearTimer = nil
         routeNotice = nil
+    }
+
+    // MARK: - Tap-install validation (pure; unit-tested)
+
+    /// Decide whether installing the recording tap is SAFE right now.
+    /// `installTap` enforces these as UNCATCHABLE NSExceptions (the round-2
+    /// P0 SIGABRT), so this precondition check is the only defense:
+    /// - the hardware input format must be real (rate > 0, channels > 0) —
+    ///   mid-route-transition the input node reports 0 Hz/0 ch;
+    /// - the node's vended (tap) format must AGREE with the hardware format —
+    ///   right after a route change the cached vended format can lag the new
+    ///   hardware (stale AirPods 24 kHz vs built-in 48 kHz), and installing
+    ///   with a format that mismatches the hardware also raises.
+    nonisolated static func canInstallTap(hwRate: Double, hwChannels: AVAudioChannelCount,
+                                          tapRate: Double, tapChannels: AVAudioChannelCount) -> Bool {
+        hwRate > 0 && hwChannels > 0 && tapRate == hwRate && tapChannels == hwChannels
+    }
+
+    // MARK: - DevLog descriptions
+
+    nonisolated private static func describe(_ format: AVAudioFormat) -> String {
+        "\(Int(format.sampleRate))Hz/\(format.channelCount)ch"
+    }
+
+    nonisolated private static func describe(_ route: AVAudioSessionRouteDescription?) -> String {
+        guard let route else { return "?" }
+        let ins = route.inputs.map(\.portName).joined(separator: "+")
+        let outs = route.outputs.map(\.portName).joined(separator: "+")
+        return "in[\(ins.isEmpty ? "-" : ins)] out[\(outs.isEmpty ? "-" : outs)]"
+    }
+
+    nonisolated private static func name(_ reason: AVAudioSession.RouteChangeReason?) -> String {
+        switch reason {
+        case .newDeviceAvailable: return "newDeviceAvailable"
+        case .oldDeviceUnavailable: return "oldDeviceUnavailable"
+        case .categoryChange: return "categoryChange"
+        case .override: return "override"
+        case .wakeFromSleep: return "wakeFromSleep"
+        case .noSuitableRouteForCategory: return "noSuitableRouteForCategory"
+        case .routeConfigurationChange: return "routeConfigurationChange"
+        case .unknown: return "unknown"
+        case nil: return "nil"
+        @unknown default: return "raw(\(reason.map { String($0.rawValue) } ?? "?"))"
+        }
     }
 
     // MARK: - Format conversion (pure; unit-tested)

@@ -3,7 +3,10 @@ import SwiftUI
 /// The full player (mock state 2 — Bound parity + the one Skrift verb):
 /// cover, chapter line, chapter-scoped scrubber, speed + sleep chips,
 /// ⟲15 / play / 15⟳ transport, and the full-width Capture pill in the thumb
-/// zone. ⌄ collapses back to the list — the mini-player takes over.
+/// zone. ⌄ collapses back to the list — the mini-player takes over. Swiping
+/// DOWN anywhere outside the scrubber also collapses (round-2 re-test ask:
+/// a fullScreenCover doesn't get the sheet's pull-down for free), and tapping
+/// the big cover opens Edit book details (the ⋯ entry was never discovered).
 struct AudiobookPlayerView: View {
     @ObservedObject private var session = AudiobookSession.shared
     @Environment(\.dismiss) private var dismiss
@@ -12,6 +15,8 @@ struct AudiobookPlayerView: View {
     @State private var showEditBook = false
     /// While the finger is on the scrubber: the candidate time (seek on release).
     @State private var scrubTime: TimeInterval?
+    /// Live vertical displacement of the swipe-down-to-dismiss drag.
+    @State private var dragOffset: CGFloat = 0
 
     var body: some View {
         ZStack {
@@ -49,6 +54,13 @@ struct AudiobookPlayerView: View {
                 .frame(width: 264, height: 264)
                 .clipShape(.rect(cornerRadius: 16, style: .continuous))
                 .shadow(color: .black.opacity(0.45), radius: 22, y: 10)
+                // Discoverability (round-2 re-test): the user never found
+                // ⋯ → Edit book details — the cover itself is the obvious
+                // "change this" surface.
+                .onTapGesture { showEditBook = true }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("Edit book details")
+                .accessibilityIdentifier("player-cover-edit")
 
             Group {
                 if let line = book.chapterLine(at: time) {
@@ -92,6 +104,42 @@ struct AudiobookPlayerView: View {
                 .padding(.top, 7)
                 .padding(.bottom, 18)
         }
+        // Empty regions (spacers, padding) must be hit-testable for the
+        // dismiss drag.
+        .contentShape(Rectangle())
+        .offset(y: dragOffset)
+        .gesture(dismissDrag)
+    }
+
+    /// Swipe-down-to-dismiss: the content tracks the finger, then either
+    /// collapses (past the threshold or flicked) or springs back. Only
+    /// downward, vertically-dominant drags move it — horizontal motion stays
+    /// with the scrubber (whose own DragGesture wins inside its frame anyway,
+    /// since a child gesture beats an ancestor's).
+    private var dismissDrag: some Gesture {
+        DragGesture(minimumDistance: 18)
+            .onChanged { value in
+                if value.translation.height > 0,
+                   value.translation.height > abs(value.translation.width) {
+                    dragOffset = value.translation.height
+                } else if value.translation.height <= 0 {
+                    // Dragged back above the start — fully relaxed, no dismiss.
+                    dragOffset = 0
+                }
+            }
+            .onEnded { value in
+                // The flick path still requires the drag to have been tracking
+                // (dragOffset > 0) so a diagonal fling can't dismiss by surprise.
+                if dragOffset > 130 || (dragOffset > 0 && value.predictedEndTranslation.height > 280) {
+                    // Leave the offset in place — the cover's dismissal
+                    // animation takes over; the view is recreated next open.
+                    dismiss()
+                } else {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        dragOffset = 0
+                    }
+                }
+            }
     }
 
     // MARK: - Nav
