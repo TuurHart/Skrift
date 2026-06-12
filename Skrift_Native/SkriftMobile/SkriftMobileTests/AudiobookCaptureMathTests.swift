@@ -137,9 +137,13 @@ final class AudiobookCaptureMathTests: XCTestCase {
     // FORWARD to sentence 2 instead of backward to sentence 1.
 
     func testSnapInOvershootForwardToNextSentenceStart() {
-        // Mark at 0.25 — within 1.0 s before the next sentence start at 1.0.
-        // Expected: snaps FORWARD to "Next sentence here." (start = 1.0)
-        let snapped = SentenceSnap.snap(words: words, proposedIn: 0.25, proposedOut: 2.1)
+        // Mark at 0.85 — the TAIL of "Hello world." (closer to the next
+        // sentence start at 1.0 than to its own start at 0.0): the real
+        // reaction-bias overshoot signature — the user aimed at the NEXT
+        // sentence. Expected: snaps FORWARD to "Next sentence here."
+        // (A mark in the FRONT of a sentence — e.g. 0.1 or 0.25 — means THIS
+        // sentence and snaps backward; see the trailing-quotes test.)
+        let snapped = SentenceSnap.snap(words: words, proposedIn: 0.85, proposedOut: 2.1)
         XCTAssertEqual(snapped?.start, 1.0, "overshoot forward: IN should snap to the next sentence start")
         XCTAssertEqual(snapped?.text, "Next sentence here.")
     }
