@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Capture redesign — 3 concepts</title>
+<style>
+  :root{--bg:#0f1117;--card:#171a23;--elev:#1d2130;--border:#262b3b;--text:#e8eaf2;--dim:#9aa1b5;--faint:#5d6478;
+        --accent:#7c6bf5;--accent-soft:rgba(124,107,245,.16);--green:#3ecf8e;--amber:#e0a13a;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0c10;color:var(--text);font:14px/1.45 -apple-system,system-ui,sans-serif;padding:24px;display:flex;flex-direction:column;align-items:center;gap:18px}
+  h1{font-size:17px} .sub{color:var(--dim);font-size:12.5px;max-width:560px;text-align:center}
+  .modebar{display:flex;gap:8px;background:var(--card);padding:6px;border-radius:12px;border:1px solid var(--border)}
+  .mode{padding:8px 14px;border-radius:8px;color:var(--dim);font-size:12.5px;font-weight:600;cursor:pointer;border:none;background:none}
+  .mode.on{background:var(--accent-soft);color:#c9c1ff}
+  .phone{width:390px;background:var(--bg);border:1px solid var(--border);border-radius:34px;padding:22px 16px 26px;display:none}
+  .phone.on{display:block}
+  .bet{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.8px;text-align:center;margin-bottom:6px}
+  .ttl{font-size:16px;font-weight:700;text-align:center;margin-bottom:2px}
+  .cap{color:var(--dim);font-size:11.5px;text-align:center;margin-bottom:14px}
+  .strip{position:relative;height:64px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:6px}
+  .wave{position:absolute;inset:8px 0;background:repeating-linear-gradient(90deg,#2a3045 0 2px,transparent 2px 5px);opacity:.5;
+        -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%)}
+  .playhead{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.5)}
+  .pausetick{position:absolute;top:0;bottom:0;width:1px;background:var(--amber);opacity:.6}
+  .flag{position:absolute;top:0;bottom:0;width:2px;background:var(--accent)}
+  .flag::after{content:attr(data-l);position:absolute;top:2px;left:3px;font-size:9px;color:#c9c1ff}
+  .span{position:absolute;top:0;bottom:0;background:var(--accent-soft);border-left:1px solid var(--accent);border-right:1px solid var(--accent)}
+  .times{display:flex;justify-content:space-between;color:var(--faint);font-size:10.5px;margin-bottom:12px}
+  .row{display:flex;gap:10px;justify-content:center;align-items:center;margin-bottom:12px}
+  .tbtn{width:46px;height:46px;border-radius:50%;background:var(--elev);border:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer}
+  .tbtn.big{width:58px;height:58px;background:var(--accent);border:none;font-size:18px}
+  .markrow{display:flex;gap:10px;margin-bottom:12px}
+  .mark{flex:1;padding:13px 0;border-radius:12px;border:1px solid var(--accent);background:var(--accent-soft);color:#c9c1ff;font-size:13.5px;font-weight:700;cursor:pointer}
+  .mark.set{background:var(--accent);color:#fff}
+  .bigmark{width:100%;padding:20px 0;border-radius:14px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:12px}
+  .bigmark.done{background:var(--green);color:#08110c}
+  .chips{display:flex;gap:6px;justify-content:center;margin-bottom:12px;min-height:24px}
+  .chip{padding:4px 9px;border-radius:99px;background:var(--elev);border:1px solid var(--border);color:var(--dim);font-size:11px;cursor:pointer}
+  .hint{color:var(--faint);font-size:10.5px;text-align:center;margin-bottom:10px}
+  .cta{display:flex;gap:10px}
+  .ghost{flex:1;padding:12px 0;border-radius:12px;background:var(--elev);border:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer}
+  .primary{flex:1.4;padding:12px 0;border-radius:12px;background:var(--accent);border:none;color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+  .phrases{display:flex;gap:3px;height:64px;align-items:stretch;margin-bottom:6px}
+  .ph{flex:1;background:var(--card);border:1px solid var(--border);border-radius:6px;cursor:pointer;position:relative}
+  .ph.cur{border-color:#fff;animation:pulse 1s infinite}
+  .ph.inspan{background:var(--accent-soft);border-color:var(--accent)}
+  @keyframes pulse{50%{background:#2a3045}}
+  .statusline{color:var(--green);font-size:11px;text-align:center;min-height:16px;margin-bottom:8px}
+</style></head><body>
+<h1>Capture adjust — three interaction concepts</h1>
+<div class="sub">All sound-based, IN/OUT markers, ±1s chips (no dragging), no gain graph. Edges always snap <b>outward to whole sentences</b>. Click around — playheads move, buttons mark.</div>
+<div class="modebar">
+  <button class="mode on" onclick="show(0,this)">1 · Tape deck</button>
+  <button class="mode" onclick="show(1,this)">2 · Two-tap replay</button>
+  <button class="mode" onclick="show(2,this)">3 · Phrase hopper</button>
+</div>
+
+<!-- 1 TAPE DECK -->
+<div class="phone on" id="p0">
+  <div class="bet">The bet: continuous control</div>
+  <div class="ttl">Tape deck</div>
+  <div class="cap">Find the start by listening. Marks drop at the playhead.</div>
+  <div class="strip" onclick="td.scrub(event,this)"><div class="wave"></div>
+    <div class="pausetick" style="left:88%"></div>
+    <div class="span" id="td-span" style="display:none"></div>
+    <div class="flag" id="td-in" data-l="「" style="display:none"></div>
+    <div class="flag" id="td-out" data-l="」" style="display:none"></div>
+    <div class="playhead" id="td-ph" style="left:88%"></div>
+  </div>
+  <div class="times"><span id="td-l">−2:00</span><span>⏸ pause point</span><span>now</span></div>
+  <div class="row">
+    <button class="tbtn" onclick="td.skip(-5)">⟲5</button>
+    <button class="tbtn big" id="td-play" onclick="td.toggle()">▶</button>
+    <button class="tbtn" onclick="td.skip(5)">5⟳</button>
+  </div>
+  <div class="markrow">
+    <button class="mark" id="td-min" onclick="td.mark('in')">「 Mark In</button>
+    <button class="mark" id="td-mout" onclick="td.mark('out')">Mark Out 」</button>
+  </div>
+  <div class="chips" id="td-chips"></div>
+  <div class="hint">Re-tap a Mark button to move that flag here · skip ⟲ past the left edge and the strip extends</div>
+  <div class="statusline" id="td-st"></div>
+  <div class="cta"><button class="ghost" onclick="td.playspan()">▶ Play span</button><button class="primary">Continue →</button></div>
+</div>
+
+<!-- 2 TWO-TAP REPLAY -->
+<div class="phone" id="p1">
+  <div class="bet">The bet: real-time reflex — often done in ~10 s</div>
+  <div class="ttl">Two-tap replay</div>
+  <div class="cap">It replays the last 45 s at 1.5× by itself. Tap when the quote starts; tap when it ends.</div>
+  <div class="strip"><div class="wave"></div>
+    <div class="pausetick" style="left:96%"></div>
+    <div class="span" id="tt-span" style="display:none"></div>
+    <div class="flag" id="tt-in" data-l="「" style="display:none"></div>
+    <div class="flag" id="tt-out" data-l="」" style="display:none"></div>
+    <div class="playhead" id="tt-ph" style="left:0%"></div>
+  </div>
+  <div class="times"><span>−45 s</span><span style="color:var(--accent)" id="tt-speed">replaying · 1.5×</span><span>now</span></div>
+  <button class="bigmark" id="tt-big" onclick="tt.tap()">「&nbsp; Quote starts here</button>
+  <div class="chips" id="tt-chips"></div>
+  <div class="hint">marks land 0.7 s earlier than your tap (reaction bias) · sentence-snap fixes the rest</div>
+  <div class="statusline" id="tt-st"></div>
+  <div class="cta"><button class="ghost" onclick="tt.replay()">↻ Replay pass</button><button class="ghost" onclick="tt.playspan()">▶ Play span</button><button class="primary">Continue →</button></div>
+</div>
+
+<!-- 3 PHRASE HOPPER -->
+<div class="phone" id="p2">
+  <div class="bet">The bet: step by what was said</div>
+  <div class="ttl">Phrase hopper</div>
+  <div class="cap">The audio is pre-chopped at speech pauses (no ML, instant). Each step plays that phrase.</div>
+  <div class="phrases" id="hp-strip"></div>
+  <div class="times"><span>−2:00</span><span id="hp-cur">phrase 9 of 12 · playing…</span><span>now</span></div>
+  <div class="row">
+    <button class="tbtn" style="width:auto;padding:0 16px;border-radius:12px" onclick="hp.step(-1)">⏮ phrase</button>
+    <button class="tbtn" style="width:auto;padding:0 16px;border-radius:12px" onclick="hp.step(1)">phrase ⏭</button>
+  </div>
+  <div class="markrow">
+    <button class="mark" id="hp-min" onclick="hp.mark('in')">Start here 「</button>
+    <button class="mark" id="hp-mout" onclick="hp.mark('out')">」 End here</button>
+  </div>
+  <div class="chips" id="hp-chips"></div>
+  <div class="hint">marks land on phrase boundaries by construction</div>
+  <div class="statusline" id="hp-st"></div>
+  <div class="cta"><button class="ghost" onclick="hp.playspan()">▶ Play span</button><button class="primary">Continue →</button></div>
+</div>
+
+<script>
+function show(i,btn){document.querySelectorAll('.phone').forEach((p,j)=>p.classList.toggle('on',i===j));
+  document.querySelectorAll('.mode').forEach(m=>m.classList.remove('on'));btn.classList.add('on');
+  if(i===1)tt.replay();else tt.stop();}
+const $=id=>document.getElementById(id);
+function chips(el,obj,key){el.innerHTML='';['in','out'].forEach(e=>{if(obj[e]==null)return;
+  ['−1s','+1s'].forEach((t,k)=>{const c=document.createElement('button');c.className='chip';
+    c.textContent=(e==='in'?'「 ':'」 ')+t;c.onclick=()=>{obj[e]+=(k? .8:-.8);obj.render();};el.appendChild(c);});});}
+
+// 1 tape deck — strip = 0..100 (% of 2 min window)
+const td={pos:88,inM:null,outM:null,playing:false,t:null,
+  render(){$('td-ph').style.left=td.pos+'%';
+    ['in','out'].forEach(e=>{const f=$('td-'+(e==='in'?'in':'out'));const v=td[e==='in'?'inM':'outM'];
+      f.style.display=v==null?'none':'block';if(v!=null)f.style.left=v+'%';});
+    $('td-min').classList.toggle('set',td.inM!=null);$('td-mout').classList.toggle('set',td.outM!=null);
+    const s=$('td-span');if(td.inM!=null&&td.outM!=null&&td.outM>td.inM){s.style.display='block';s.style.left=td.inM+'%';s.style.width=(td.outM-td.inM)+'%';
+      $('td-st').textContent='span set · 0:'+String(Math.round((td.outM-td.inM)*1.2)).padStart(2,'0')+' — snaps outward to sentences';}
+    chips($('td-chips'),{in:td.inM,out:td.outM,render:()=>{td.inM=Math.max(0,td.inM);td.render();}},'td');
+    const ch=$('td-chips');ch.innerHTML='';[['in','inM'],['out','outM']].forEach(([lab,key])=>{if(td[key]==null)return;
+      [['−1s',-0.8],['+1s',0.8]].forEach(([t,d])=>{const c=document.createElement('button');c.className='chip';
+        c.textContent=(lab==='in'?'「 ':'」 ')+t;c.onclick=()=>{td[key]=Math.min(100,Math.max(0,td[key]+d));td.render();};ch.appendChild(c);});});},
+  skip(s){td.pos=Math.max(0,Math.min(100,td.pos+s*0.83));if(td.pos===0){$('td-l').textContent='−2:30 (extended)';$('td-st').textContent='strip extended further back';td.pos=12;}td.render();},
+  toggle(){td.playing=!td.playing;$('td-play').textContent=td.playing?'⏸':'▶';
+    clearInterval(td.t);if(td.playing)td.t=setInterval(()=>{td.pos=Math.min(100,td.pos+0.45);td.render();if(td.pos>=100)td.toggle();},100);},
+  mark(e){td[e==='in'?'inM':'outM']=td.pos;td.render();},
+  scrub(ev,el){const r=el.getBoundingClientRect();td.pos=100*(ev.clientX-r.left)/r.width;td.render();},
+  playspan(){if(td.inM==null)return;td.pos=td.inM;td.render();if(!td.playing)td.toggle();}};
+td.render();
+
+// 2 two-tap replay
+const tt={pos:0,inM:null,outM:null,t:null,phase:0,
+  stop(){clearInterval(tt.t);},
+  replay(){tt.stop();tt.pos=0;tt.inM=null;tt.outM=null;tt.phase=0;
+    $('tt-big').className='bigmark';$('tt-big').textContent='「  Quote starts here';$('tt-st').textContent='';$('tt-span').style.display='none';
+    $('tt-in').style.display='none';$('tt-out').style.display='none';$('tt-chips').innerHTML='';$('tt-speed').textContent='replaying · 1.5×';
+    tt.t=setInterval(()=>{tt.pos+=0.55;$('tt-ph').style.left=Math.min(100,tt.pos)+'%';
+      if(tt.pos>=100){tt.stop();$('tt-speed').textContent='pass finished — ↻ to run it again';}},60);},
+  tap(){const at=Math.max(0,tt.pos-1.6); // 0.7s reaction bias (scaled)
+    if(tt.phase===0){tt.inM=at;$('tt-in').style.left=at+'%';$('tt-in').style.display='block';
+      $('tt-big').textContent='Quote ends here  」';tt.phase=1;}
+    else if(tt.phase===1){tt.outM=Math.max(at,tt.inM+2);tt.stop();$('tt-speed').textContent='done';
+      $('tt-out').style.left=tt.outM+'%';$('tt-out').style.display='block';
+      const s=$('tt-span');s.style.display='block';s.style.left=tt.inM+'%';s.style.width=(tt.outM-tt.inM)+'%';
+      $('tt-big').className='bigmark done';$('tt-big').textContent='✓ Span marked — snaps to whole sentences';tt.phase=2;
+      $('tt-st').textContent='two taps · ~8 seconds total';
+      const ch=$('tt-chips');ch.innerHTML='';[['「','inM'],['」','outM']].forEach(([lab,key])=>{
+        [['−1s',-0.8],['+1s',0.8]].forEach(([t,d])=>{const c=document.createElement('button');c.className='chip';
+          c.textContent=lab+' '+t;c.onclick=()=>{tt[key]+=d;$('tt-'+(key==='inM'?'in':'out')).style.left=tt[key]+'%';
+            const s=$('tt-span');s.style.left=tt.inM+'%';s.style.width=(tt.outM-tt.inM)+'%';};ch.appendChild(c);});});}},
+  playspan(){if(tt.inM==null)return;tt.stop();tt.pos=tt.inM;$('tt-ph').style.left=tt.pos+'%';
+    tt.t=setInterval(()=>{tt.pos+=0.55;$('tt-ph').style.left=tt.pos+'%';if(tt.pos>=tt.outM)tt.stop();},60);}};
+
+// 3 phrase hopper
+const hp={cur:8,inP:null,outP:null,w:[5,9,7,12,6,10,8,14,9,7,11,6],
+  build(){const s=$('hp-strip');s.innerHTML='';hp.w.forEach((w,i)=>{const d=document.createElement('div');
+    d.className='ph';d.style.flex=w;d.onclick=()=>{hp.cur=i;hp.render();};s.appendChild(d);});},
+  render(){[...$('hp-strip').children].forEach((d,i)=>{d.className='ph'+(i===hp.cur?' cur':'')+
+      (hp.inP!=null&&hp.outP!=null&&i>=hp.inP&&i<=hp.outP?' inspan':'');});
+    $('hp-cur').textContent='phrase '+(hp.cur+1)+' of 12 · playing…';
+    $('hp-min').classList.toggle('set',hp.inP!=null);$('hp-mout').classList.toggle('set',hp.outP!=null);
+    if(hp.inP!=null&&hp.outP!=null){$('hp-st').textContent='phrases '+(hp.inP+1)+'–'+(hp.outP+1)+' marked · boundaries are natural pauses';
+      const ch=$('hp-chips');ch.innerHTML='';['「 −1s','「 +1s','」 −1s','」 +1s'].forEach(t=>{const c=document.createElement('button');
+        c.className='chip';c.textContent=t;ch.appendChild(c);});}},
+  step(d){hp.cur=Math.max(0,Math.min(11,hp.cur+d));hp.render();},
+  mark(e){if(e==='in')hp.inP=hp.cur;else hp.outP=Math.max(hp.cur,hp.inP??hp.cur);hp.render();},
+  playspan(){if(hp.inP!=null)hp.cur=hp.inP;hp.render();}};
+hp.build();hp.render();
+</script>
+</body></html>
