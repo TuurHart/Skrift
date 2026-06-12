@@ -158,8 +158,11 @@ final class AudiobookSession: ObservableObject {
     func togglePlay() { isPlaying ? pause() : play() }
 
     /// Siri / App Shortcut entry: resume the most recently played book (loads it
-    /// if no session is active) and play. No-op when the library is empty.
+    /// if no session is active) and play. No-op when the library is empty —
+    /// or while a memo recording is live (session priority: starting playback
+    /// would tear the mic's audio session down).
     func resumeLastPlayed() {
+        if LiveRecordingService.isRecordingActive { return }
         if book != nil { play(); return }
         guard let recent = store.sortedByRecent.first else { return }
         open(recent, autoplay: true)
@@ -331,6 +334,17 @@ final class AudiobookSession: ObservableObject {
         }
     }
 
+    /// Re-read the loaded book's record after an out-of-band edit ("Edit book
+    /// details"): title/author/cover refresh everywhere the session feeds
+    /// (player, mini-player, lock-screen Now Playing) — playback position and
+    /// transport state stay untouched.
+    func refreshFromStore() {
+        guard let current = book, let refreshed = store.book(id: current.id) else { return }
+        book = refreshed
+        coverImage = store.coverURL(of: refreshed).flatMap { UIImage(contentsOfFile: $0.path) }
+        updateNowPlaying()
+    }
+
     /// Write the resume position through to the library store. Unforced calls
     /// (the playback tick) throttle to one write per 5 s; transport actions
     /// force an immediate write.
@@ -408,8 +422,19 @@ final class AudiobookSession: ObservableObject {
         commandsConfigured = true
         let center = MPRemoteCommandCenter.shared()
 
+        // SESSION PRIORITY (device finding 2026-06-12): re-inserting AirPods
+        // mid-recording fired the remote PLAY command into this session — the
+        // book started playing over (and killed) the live memo recording.
+        // Remote play (incl. AirPods auto-play and the lock screen) is
+        // ignored while a recording session is live. Pause stays allowed.
+        // `LiveRecordingService.isRecordingActive` is the cross-lane contract
+        // symbol (@MainActor static Bool, true while a recording is live —
+        // including paused), defined by the route-robustness lane.
         center.playCommand.addTarget { _ in
-            Task { @MainActor in AudiobookSession.shared.play() }
+            Task { @MainActor in
+                if LiveRecordingService.isRecordingActive { return }
+                AudiobookSession.shared.play()
+            }
             return .success
         }
         center.pauseCommand.addTarget { _ in
@@ -417,7 +442,12 @@ final class AudiobookSession: ObservableObject {
             return .success
         }
         center.togglePlayPauseCommand.addTarget { _ in
-            Task { @MainActor in AudiobookSession.shared.togglePlay() }
+            Task { @MainActor in
+                let session = AudiobookSession.shared
+                // Only the PLAY direction yields to a live recording.
+                if !session.isPlaying, LiveRecordingService.isRecordingActive { return }
+                session.togglePlay()
+            }
             return .success
         }
         center.skipBackwardCommand.preferredIntervals = [NSNumber(value: Self.skipInterval)]

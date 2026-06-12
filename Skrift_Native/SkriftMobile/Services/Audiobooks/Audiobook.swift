@@ -220,12 +220,23 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         chapterIndex(at: time).map { chapters[$0] }
     }
 
-    /// "Chapter 4 of 18 — Creation" (nil without chapters).
+    /// Reader-facing chapter titles, same order as `chapters`: synthesized
+    /// multi-file chapter names (whole source filenames) get their common
+    /// prefix stripped + numbered remainders prettified ("Chapter 1"); real
+    /// m4b-embedded titles pass through unchanged. Render chapters with THESE
+    /// everywhere (menu, chapter line, capture context) — the attribution
+    /// NUMBER stays the index (`chapterNumberString`).
+    var displayChapterTitles: [String] {
+        ChapterDisplay.displayTitles(chapters.map(\.title))
+    }
+
+    /// "Chapter 4 of 18 — Creation" (nil without chapters). A display title
+    /// that is itself just "Chapter 4" would repeat the index — dropped.
     func chapterLine(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
-        let title = chapters[i].title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = displayChapterTitles[i]
         let base = "Chapter \(i + 1) of \(chapters.count)"
-        return title.isEmpty ? base : base + " — " + title
+        return (title.isEmpty || title == "Chapter \(i + 1)") ? base : base + " — " + title
     }
 
     /// The chapter NUMBER as a string ("4") for the C2 `bookChapter` metadata —
@@ -234,11 +245,12 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         chapterIndex(at: time).map { String($0 + 1) }
     }
 
-    /// "ch. 4 — Creation" for in-app labels (nil without chapters).
+    /// "ch. 4 — Creation" for in-app labels (nil without chapters). Numbered
+    /// display titles ("Chapter 4") collapse to just "ch. 4".
     func shortChapterLabel(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
-        let title = chapters[i].title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return title.isEmpty ? "ch. \(i + 1)" : "ch. \(i + 1) — " + title
+        let title = displayChapterTitles[i]
+        return (title.isEmpty || title == "Chapter \(i + 1)") ? "ch. \(i + 1)" : "ch. \(i + 1) — " + title
     }
 }
 

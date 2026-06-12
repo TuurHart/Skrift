@@ -128,6 +128,23 @@ enum CaptureScrub {
         return s
     }
 
+    /// Window-confined handle drag (capture round 2): the handle moves ONLY
+    /// inside the visible window (∩ bounds) — a finger past the strip's edge
+    /// pins at the edge instead of auto-panning the window along underneath,
+    /// which is how a span ran away to "pause+99s → pause+256s" on device.
+    /// Reaching earlier/later audio is now explicit: pan the window first
+    /// (the span stays anchored to its book positions), then drag the handle.
+    static func dragged(
+        _ span: CaptureSpan.Span,
+        handle: Handle,
+        to raw: TimeInterval,
+        within window: CaptureSpan.Span,
+        bounds: CaptureSpan.Span
+    ) -> CaptureSpan.Span {
+        let pinned = min(max(raw, window.start), window.end)
+        return dragged(span, handle: handle, to: pinned, bounds: bounds)
+    }
+
     /// Pan the window by `delta` seconds (the strip-background drag),
     /// preserving its length, clamped inside `bounds`.
     static func pan(

@@ -71,4 +71,10 @@ enum BookCoverCache {
         cache.setObject(image, forKey: book.id as NSUUID)
         return image
     }
+
+    /// Drop a book's cached cover (after "Edit book details" replaces the
+    /// art on disk) so the next render re-decodes the new file.
+    static func invalidate(_ id: UUID) {
+        cache.removeObject(forKey: id as NSUUID)
+    }
 }

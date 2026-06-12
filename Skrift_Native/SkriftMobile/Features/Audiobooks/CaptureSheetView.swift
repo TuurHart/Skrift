@@ -183,14 +183,21 @@ struct CaptureSheetView: View {
         return parts.joined(separator: " · ")
     }
 
+    /// Long quotes (2+ min spans) must not push the sheet's actions off
+    /// screen: the quote text scrolls inside a bounded block. `ViewThatFits`
+    /// keeps short quotes hugging their content (no dead space) and swaps to
+    /// the bounded ScrollView only when the text overflows the cap.
+    private static let quoteMaxHeight: CGFloat = 168
+
     private var quoteBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("“\(output.quote)”")
-                .font(.system(size: 13.5))
-                .italic()
-                .lineSpacing(4)
-                .foregroundStyle(Color.skText)
-                .accessibilityIdentifier("capture-quote-text")
+            ViewThatFits(in: .vertical) {
+                quoteText
+                ScrollView(.vertical, showsIndicators: true) {
+                    quoteText
+                }
+            }
+            .frame(maxHeight: Self.quoteMaxHeight)
 
             // Plain preview — NO [[..]] on the phone (the Mac writes the
             // wikilink at export; authors never enter the names DB).
@@ -207,6 +214,18 @@ struct CaptureSheetView: View {
                 .frame(width: 2.5)
         }
         .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 0.5))
+    }
+
+    /// The quote itself — one definition, rendered either bare (fits) or
+    /// inside the bounded ScrollView (long capture).
+    private var quoteText: some View {
+        Text("“\(output.quote)”")
+            .font(.system(size: 13.5))
+            .italic()
+            .lineSpacing(4)
+            .foregroundStyle(Color.skText)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("capture-quote-text")
     }
 
     /// "— David Deutsch, *The Beginning of Infinity*, ch. 4" — book title in

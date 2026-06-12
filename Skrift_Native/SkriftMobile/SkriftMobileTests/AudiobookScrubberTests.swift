@@ -58,6 +58,54 @@ final class AudiobookScrubberTests: XCTestCase {
         )
     }
 
+    // MARK: - Window-confined drag (round 2: no edge-bump runaway)
+
+    func testWindowConfinedDragPinsAtTheWindowEdge() {
+        // The device finding: dragging OUT past the strip's edge used to
+        // edge-bump the window along and run the span to pause+256 s. Now the
+        // handle pins at the visible window's edge instead.
+        let window = Span(start: 100, end: 175)
+        let span = Span(start: 130, end: 160)
+        let s = CaptureScrub.dragged(
+            span, handle: .outMarker, to: 9999, within: window, bounds: bounds
+        )
+        XCTAssertEqual(s.end, 175, "OUT pins at the window edge, not the file edge")
+        XCTAssertEqual(s.start, 130)
+
+        let s2 = CaptureScrub.dragged(
+            span, handle: .inMarker, to: -9999, within: window, bounds: bounds
+        )
+        XCTAssertEqual(s2.start, 100, "IN pins at the window edge")
+        XCTAssertEqual(s2.end, 160)
+    }
+
+    func testWindowConfinedDragInsideTheWindowIsUnchangedBehavior() {
+        let window = Span(start: 100, end: 175)
+        let span = Span(start: 130, end: 160)
+        let s = CaptureScrub.dragged(
+            span, handle: .inMarker, to: 112, within: window, bounds: bounds
+        )
+        XCTAssertEqual(s, Span(start: 112, end: 160))
+    }
+
+    func testWindowConfinedDragStillRespectsBoundsAndMinimumSpan() {
+        // A window panned to the file's start: the window edge may sit OUTSIDE
+        // the bounds-clamp's reach — bounds still win.
+        let window = Span(start: -10, end: 65)   // degenerate (pan clamps in
+        // practice, but the math must not trust it)
+        let span = Span(start: 5, end: 30)
+        let s = CaptureScrub.dragged(
+            span, handle: .inMarker, to: -9999, within: window, bounds: bounds
+        )
+        XCTAssertEqual(s.start, 0, "bounds outrank the window")
+        // Minimum span survives the window pin too.
+        let tight = CaptureScrub.dragged(
+            Span(start: 100, end: 101), handle: .outMarker, to: 100,
+            within: Span(start: 99, end: 174), bounds: bounds
+        )
+        XCTAssertEqual(tight.end, 101, "OUT never crosses within a window either")
+    }
+
     func testDraggedRespectsOffsetBounds() {
         // A multi-file book's second file: bounds don't start at 0.
         let fileBounds = Span(start: 600, end: 900)

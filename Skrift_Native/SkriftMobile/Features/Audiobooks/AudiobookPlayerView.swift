@@ -9,6 +9,7 @@ struct AudiobookPlayerView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showCapture = false
+    @State private var showEditBook = false
     /// While the finger is on the scrubber: the candidate time (seek on release).
     @State private var scrubTime: TimeInterval?
 
@@ -24,6 +25,14 @@ struct AudiobookPlayerView: View {
         }
         .fullScreenCover(isPresented: $showCapture) {
             QuoteCaptureFlowView()
+        }
+        .sheet(isPresented: $showEditBook) {
+            // Re-read at presentation — the freshest record, and nothing to
+            // show if the session ended underneath the menu.
+            if let book = session.book {
+                EditBookDetailsView(book: book)
+                    .presentationDetents([.medium])
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("audiobook-player")
@@ -109,19 +118,27 @@ struct AudiobookPlayerView: View {
 
             Menu {
                 if !book.chapters.isEmpty {
+                    // Display titles, not raw chapter names — synthesized
+                    // multi-file chapters carry whole filenames otherwise.
+                    let titles = book.displayChapterTitles
                     Section("Chapters") {
                         ForEach(Array(book.chapters.enumerated()), id: \.offset) { index, chapter in
                             Button {
                                 session.seek(to: chapter.start)
                             } label: {
                                 if book.chapterIndex(at: session.currentTime) == index {
-                                    Label(chapter.title, systemImage: "checkmark")
+                                    Label(titles[index], systemImage: "checkmark")
                                 } else {
-                                    Text(chapter.title)
+                                    Text(titles[index])
                                 }
                             }
                         }
                     }
+                }
+                Button {
+                    showEditBook = true
+                } label: {
+                    Label("Edit book details", systemImage: "pencil")
                 }
                 Button(role: .destructive) {
                     session.endSession()
