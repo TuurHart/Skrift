@@ -2,12 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Same App Group as the host app — required for CaptureInbox to write
-	     into the shared container the app reads on foreground. The $(SKRIFT_APP_GROUP)
-	     build-setting substitution resolves per-config at signing time. -->
+	<!-- App Group shared container — the app and the SkriftShare extension exchange
+	     data through it (CaptureInbox). LITERAL value per config file: a build-setting
+	     variable here broke automatic provisioning on the CLI (the profile matcher
+	     could not resolve $(SKRIFT_APP_group.com.skrift.mobile), so no profile ever "matched"). -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>$(SKRIFT_APP_GROUP)</string>
+		<string>group.com.skrift.mobile</string>
 	</array>
 </dict>
 </plist>

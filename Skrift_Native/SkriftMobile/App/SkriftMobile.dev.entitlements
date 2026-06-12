@@ -5,10 +5,10 @@
 	<!-- App Group shared container — the app and the SkriftShare extension exchange
 	     data through it (CaptureInbox). LITERAL value per config file: a build-setting
 	     variable here broke automatic provisioning on the CLI (the profile matcher
-	     could not resolve $(SKRIFT_APP_group.com.skrift.mobile), so no profile ever "matched"). -->
+	     could not resolve $(SKRIFT_APP_group.com.skrift.mobile.dev), so no profile ever "matched"). -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.skrift.mobile</string>
+		<string>group.com.skrift.mobile.dev</string>
 	</array>
 </dict>
 </plist>

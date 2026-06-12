@@ -126,16 +126,15 @@ targets:
           # This single variable drives both the entitlement and the Info.plist key
           # (SkriftAppGroup) in both the app and the share extension — one place to flip.
           SKRIFT_APP_GROUP: group.com.skrift.mobile.dev
+          # Literal per-config entitlements: a $(VAR) inside the .entitlements file
+          # broke CLI automatic provisioning (profile matcher can't resolve it).
+          CODE_SIGN_ENTITLEMENTS: App/SkriftMobile.dev.entitlements
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile
           SKRIFT_DISPLAY_NAME: Skrift
           ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
           SKRIFT_APP_GROUP: group.com.skrift.mobile
-    entitlements:
-      path: App/SkriftMobile.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - $(SKRIFT_APP_GROUP)
+          CODE_SIGN_ENTITLEMENTS: App/SkriftMobile.entitlements
     dependencies:
       - package: FluidAudio
         product: FluidAudio
@@ -266,14 +265,11 @@ targets:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev.share
           SKRIFT_APP_GROUP: group.com.skrift.mobile.dev
+          CODE_SIGN_ENTITLEMENTS: SkriftShare/SkriftShare.dev.entitlements
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.share
           SKRIFT_APP_GROUP: group.com.skrift.mobile
-    entitlements:
-      path: SkriftShare/SkriftShare.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - $(SKRIFT_APP_GROUP)
+          CODE_SIGN_ENTITLEMENTS: SkriftShare/SkriftShare.entitlements
 
   SkriftMobileTests:
     type: bundle.unit-test
