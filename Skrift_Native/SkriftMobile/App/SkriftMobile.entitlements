@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Group shared container — lets the app and the SkriftShare extension
+	     exchange data through the filesystem (CaptureInbox). The value references
+	     the SKRIFT_APP_GROUP build setting so Debug resolves to the .dev group and
+	     Release resolves to the prod group without separate entitlement files. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(SKRIFT_APP_GROUP)</string>
+	</array>
+</dict>
+</plist>

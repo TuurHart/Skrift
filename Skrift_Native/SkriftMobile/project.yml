@@ -119,10 +119,20 @@ targets:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev
           SKRIFT_DISPLAY_NAME: Skrift Dev
           ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon-Dev   # inverted-color dev icon
+          # App Group: Debug resolves to the .dev group; Release to the prod group.
+          # This single variable drives both the entitlement and the Info.plist key
+          # (SkriftAppGroup) in both the app and the share extension — one place to flip.
+          SKRIFT_APP_GROUP: group.com.skrift.mobile.dev
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile
           SKRIFT_DISPLAY_NAME: Skrift
           ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+          SKRIFT_APP_GROUP: group.com.skrift.mobile
+    entitlements:
+      path: App/SkriftMobile.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - $(SKRIFT_APP_GROUP)
     dependencies:
       - package: FluidAudio
         product: FluidAudio
@@ -133,6 +143,8 @@ targets:
       - target: SkriftShared
         embed: true
       - target: SkriftWidget
+        embed: true
+      - target: SkriftShare
         embed: true
 
   # Shared framework: Live Activity ActivityAttributes (and, in 8b, the App
@@ -198,6 +210,66 @@ targets:
       - target: SkriftShared
         embed: false
 
+  # Share extension: save a URL / text / image into Skrift from any app.
+  # The UI is hosted in a UIHostingController (ShareViewController.swift).
+  # NO heavy package dependencies — the extension has a 120 MB memory ceiling;
+  # FluidAudio/DSWaveformImage/Pow are deliberately excluded.
+  SkriftShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: SkriftShare
+      # Multi-target source membership: CaptureInbox is shared between the app
+      # and the extension (both write/read the App Group container).
+      - path: Services/Capture/CaptureInbox.swift
+      # SignificanceCircles + its dependencies (SignificanceScale in the same
+      # file, DesignSystem colors) are compiled directly into the extension so
+      # it can render the significance control without importing the app target.
+      - path: Features/MemoDetail/SignificanceCircles.swift
+      # DesignSystem (Theme colours, Components) — no UIKit/AppKit-only API here,
+      # so it builds cleanly in the extension process.
+      - path: DesignSystem/Theme.swift
+      - path: DesignSystem/Components.swift
+      - path: DesignSystem/Haptics.swift
+      - path: DesignSystem/FlowLayout.swift
+      # SharedContent + MemoMetadata types used by the share UI and CaptureInbox.
+      - path: Models/MemoMetadata.swift
+    info:
+      path: SkriftShare/Info.plist
+      properties:
+        CFBundleDisplayName: Skrift
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        SkriftAppGroup: $(SKRIFT_APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionActivationRule:
+            NSExtensionActivationSupportsWebURLWithMaxCount: 1
+            NSExtensionActivationSupportsWebPageWithMaxCount: 1
+            NSExtensionActivationSupportsText: true
+            NSExtensionActivationSupportsImageWithMaxCount: 1
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev.share
+          SKRIFT_APP_GROUP: group.com.skrift.mobile.dev
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.share
+          SKRIFT_APP_GROUP: group.com.skrift.mobile
+    entitlements:
+      path: SkriftShare/SkriftShare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - $(SKRIFT_APP_GROUP)
+
   SkriftMobileTests:
     type: bundle.unit-test
     platform: iOS
@@ -235,6 +307,7 @@ schemes:
       targets:
         SkriftShared: all
         SkriftWidget: all
+        SkriftShare: all
         SkriftMobile: all
         SkriftMobileTests: [test]
         SkriftMobileUITests: [test]
