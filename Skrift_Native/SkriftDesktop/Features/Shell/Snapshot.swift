@@ -11,6 +11,7 @@ import AppKit
 ///   -snapshot-wizard <path>     → the first-launch wizard
 ///   -snapshot-run <path>        → the review surface mid-run
 ///   -snapshot-resolver <path>   → the inline resolver pieces
+///   -snapshot-capture <path>    → review surface with the C3 url capture selected
 enum Snapshot {
     nonisolated static func renderIfRequested() {
         let args = ProcessInfo.processInfo.arguments
@@ -23,6 +24,7 @@ enum Snapshot {
         if let p = path("-snapshot-wizard")         { MainActor.assumeIsolated { renderWizard(to: p); exit(0) } }
         if let p = path("-snapshot-run")            { MainActor.assumeIsolated { renderRun(to: p); exit(0) } }
         if let p = path("-snapshot-resolver")       { MainActor.assumeIsolated { renderResolver(to: p); exit(0) } }
+        if let p = path("-snapshot-capture")        { MainActor.assumeIsolated { renderCapture(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot")                { MainActor.assumeIsolated { renderReview(to: p); exit(0) } }
     }
@@ -63,6 +65,28 @@ enum Snapshot {
         .frame(width: 1180, height: 780)
         .background(Theme.bg)
         writePNG(view, to: path)
+    }
+
+    /// C3 capture review: sidebar with the url capture selected + the review pane
+    /// showing the source strip, capture banner, props grid (url row), and body.
+    /// Corresponds to mock state 3 in capture-items.html.
+    /// Triggered by: `-snapshot-capture <path>`
+    @MainActor private static func renderCapture(to path: String, scheme: ColorScheme = .dark) {
+        let files = DemoSeed.snapshotFiles()
+        // The contract url fixture is "demo-capture-url" (see DemoSeed).
+        let captureFile = files.first { $0.id == "demo-capture-url" } ?? files.first
+        let model = AppModel()
+        model.activeID = captureFile?.id
+        if let id = captureFile?.id { model.selection = [id] }
+        let coordinator = ProcessingCoordinator()
+
+        let view = HStack(spacing: 0) {
+            SidebarView(model: model, files: files, coordinator: coordinator, scrollable: false).frame(width: 228)
+            NoteDisplayView(file: captureFile, coordinator: coordinator, scrollable: false).frame(maxWidth: .infinity)
+        }
+        .frame(width: 1180, height: 780)
+        .background(Theme.bg)
+        writePNG(view, to: path, scheme: scheme)
     }
 
     /// R3 inline resolver: the slim banner (mid-progress) + the candidate popover —

@@ -147,6 +147,14 @@ struct NoteProperties: View {
                     Text(row.1).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
                 }
             }
+            // URL row for url captures — link-colored per mock state 3.
+            if let urlVal = captureURLDisplayValue {
+                GridRow {
+                    Text("url").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                    Text(urlVal).font(.system(size: 11)).foregroundStyle(Theme.blue)
+                        .lineLimit(1)
+                }
+            }
         }
     }
 
@@ -168,6 +176,20 @@ struct NoteProperties: View {
         return rows
     }
 
+    /// URL row value for url captures — the host + path without the scheme for
+    /// brevity (mirrors the mock: "swiftwithmajid.com/2026/05/rich-text-editing").
+    private var captureURLDisplayValue: String? {
+        guard file.sourceType == .capture else { return nil }
+        let sc = SharedContent.decode(from: file.audioMetadataJSON)
+        guard sc?.type == "url", let urlStr = sc?.url, !urlStr.isEmpty else { return nil }
+        if let u = URL(string: urlStr) {
+            let host = u.host ?? ""
+            let path = u.path.isEmpty ? "" : u.path
+            return host + path
+        }
+        return urlStr
+    }
+
     private var sourceLabel: String {
         // A book capture syncs as `.audio` (the span IS the memo's audio) — the C2
         // bookTitle is what marks it, so name the book right on the source line.
@@ -175,7 +197,17 @@ struct NoteProperties: View {
         switch file.sourceType {
         case .audio: return "Voice memo"
         case .note: return "Apple Note"
-        case .capture: return "Capture"
+        case .capture:
+            let sc = SharedContent.decode(from: file.audioMetadataJSON)
+            let metaObj = (try? JSONSerialization.jsonObject(with: file.audioMetadataJSON ?? Data())) as? [String: Any]
+            let sourceStr = (metaObj?["source"] as? String).map { " · \($0)" } ?? " · phone"
+            switch sc?.type {
+            case "url":   return "Shared link" + sourceStr
+            case "text":  return "Shared text" + sourceStr
+            case "image": return "Shared image" + sourceStr
+            case "file":  return "Shared file" + sourceStr
+            default:      return "Capture" + sourceStr
+            }
         }
     }
 

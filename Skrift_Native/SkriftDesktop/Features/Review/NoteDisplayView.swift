@@ -63,15 +63,18 @@ struct NoteDisplayView: View {
         }
     }
 
-    /// The centered reading column: resolver banner → properties → summary → body.
-    /// The banner asks "Who is X?" per alias (auto-applies); the body marks the
-    /// mentions and handles the per-occurrence "different people" case (R3).
+    /// The centered reading column: resolver banner → properties → capture banner (if any)
+    /// → summary → body. The resolver banner asks "Who is X?" per alias (auto-applies);
+    /// the capture banner explains what was skipped and what still ran.
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             if let resolver, scrollable, !resolver.isEmpty {
                 InlineResolverBanner(model: resolver)
             }
             NoteProperties(file: file, author: author, interactive: scrollable)
+            if file.sourceType == .capture {
+                CaptureBanner(file: file)
+            }
             if scrollable, file.enhancedSummary != nil {
                 summaryEditor(file)
             } else if let summary = file.enhancedSummary, !summary.isEmpty {
@@ -444,7 +447,12 @@ struct NoteDisplayView: View {
     /// than spanning edge-to-edge.
     private func toolbarBar(_ file: PipelineFile) -> some View {
         let inner = HStack(spacing: 16) {
-            if showsTransport(file) {
+            if file.sourceType == .capture {
+                // Captures have no audio to play — show the source strip instead
+                // (glyph + "Shared link · domain" + Open ↗ button).
+                CaptureSourceStrip(file: file)
+                Spacer()
+            } else if showsTransport(file) {
                 NoteToolbar(audio: audio, durationSeconds: file.durationSeconds)
             } else {
                 Spacer()

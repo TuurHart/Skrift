@@ -102,8 +102,18 @@ struct SidebarView: View {
         let outRoot = AppPaths.audioOutputDirectory.standardizedFileURL.path
         for f in targets {
             if !f.path.isEmpty {
-                let folder = URL(fileURLWithPath: f.path).deletingLastPathComponent()
-                if folder.standardizedFileURL.path.hasPrefix(outRoot), folder.lastPathComponent.contains("_") {
+                // Captures: pf.path IS the working folder ("capture_<UUID>").
+                // Audio/notes: pf.path is a file inside the folder ("original.m4a").
+                let folder: URL
+                if f.sourceType == .capture {
+                    folder = URL(fileURLWithPath: f.path)
+                } else {
+                    folder = URL(fileURLWithPath: f.path).deletingLastPathComponent()
+                }
+                // Only trash if it's inside the output dir and looks like a per-file folder.
+                let folderName = folder.lastPathComponent
+                if folder.standardizedFileURL.path.hasPrefix(outRoot),
+                   folderName.contains("_") || folderName.hasPrefix("capture_") {
                     try? FileManager.default.trashItem(at: folder, resultingItemURL: nil)
                 }
             }
