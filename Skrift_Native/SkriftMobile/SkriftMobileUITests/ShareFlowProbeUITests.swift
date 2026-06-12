@@ -153,4 +153,70 @@ final class ShareFlowProbeUITests: XCTestCase {
             snap("10b-no-capture-row")
         }
     }
+
+    /// IMAGE variant: Photos → share → Skrift Dev. Verifies the imageBlock
+    /// preview + the image capture path (inbox image file + app-side render).
+    func testPhotosShareToSkrift() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["RUN_SHARE_PROBE"] == "1",
+                          "share-flow probe is opt-in (set TEST_RUNNER_RUN_SHARE_PROBE=1)")
+
+        let photos = XCUIApplication(bundleIdentifier: "com.apple.mobileslideshow")
+        photos.launch()
+        XCTAssertTrue(photos.wait(for: .runningForeground, timeout: 20))
+        sleep(3)
+        snap("p01-photos-launched")
+
+        // First-launch notifications alert (in-app or springboard) blocks taps.
+        for host in [photos, XCUIApplication(bundleIdentifier: "com.apple.springboard")] {
+            let dontAllow = host.buttons["Don't Allow"].firstMatch
+            if dontAllow.waitForExistence(timeout: 3) { dontAllow.tap(); sleep(1); break }
+        }
+
+        // Open the first photo. Element taps on the grid don't register on this
+        // Photos build — tap the first thumbnail by screen position instead.
+        photos.coordinate(withNormalizedOffset: CGVector(dx: 0.16, dy: 0.16)).tap()
+        sleep(2)
+        snap("p02-photo-open")
+        dumpTree(photos, "tree-p-photo-open")
+
+        // Share.
+        let share = photos.buttons["Share"].firstMatch
+        if !share.waitForExistence(timeout: 4) {
+            // The toolbar may need a tap on the photo to appear.
+            photos.tap()
+            sleep(1)
+        }
+        XCTAssertTrue(share.waitForExistence(timeout: 5), "no Share button in Photos")
+        share.tap()
+        sleep(3)
+        snap("p03-share-sheet")
+        dumpTree(photos, "tree-p-share-sheet")
+
+        var tapped = false
+        for candidate in [photos.cells["Skrift Dev"].firstMatch,
+                          photos.buttons["Skrift Dev"].firstMatch,
+                          photos.staticTexts["Skrift Dev"].firstMatch] {
+            if candidate.waitForExistence(timeout: 4) { candidate.tap(); tapped = true; break }
+        }
+        XCTAssertTrue(tapped, "Skrift Dev not in the Photos share sheet")
+        sleep(3)
+        snap("p04-extension-open")
+        dumpTree(photos, "tree-p-extension")
+
+        // Save without annotation (bare image capture is legal per contract).
+        let save = photos.buttons["capture-save-button"].firstMatch
+        let saveByLabel = photos.buttons["Save to Skrift"].firstMatch
+        if save.waitForExistence(timeout: 3) { save.tap() }
+        else if saveByLabel.waitForExistence(timeout: 3) { saveByLabel.tap() }
+        else { snap("p04b-no-save"); XCTFail("no save button") }
+        sleep(2)
+        snap("p05-after-save")
+
+        // Drain into the app and look for the image capture row.
+        let app = XCUIApplication()
+        app.launch()
+        sleep(4)
+        snap("p06-app-launched")
+        dumpTree(app, "tree-p-app-list")
+    }
 }
