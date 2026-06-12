@@ -567,3 +567,11 @@ Screen matches the mock ✓ (sweep, transport, rate pill, marks, hints). Finding
    to the final trimmed audio — or the styled-quote rendering path skips karaoke.
 2. MEMO PLAYBACK and the AUDIOBOOK can play SIMULTANEOUSLY (play in a note while the book plays).
    Fix: AudioPlayerModel.play() pauses AudiobookSession (and book play should pause the memo player).
+DIAGNOSIS (orchestrator): the sheet's trim is DISPLAY-ONLY — `included` changes never write back
+(onFinish just closes; no re-derive of memo transcript/audio/timings). Karaoke on captures likely
+collateral (sidecar/rebase or the styled-quote render path skipping karaoke). Fix design: apply trim
+at the two moments that matter — when "Record your thoughts" is tapped (await apply, THEN open the
+recorder so the ramble lands on trimmed audio) and on finish/close; re-derive from included sentences:
+audio = exportSpan(bufferAudioURL, firstWord.start→lastWord.end), transcript = C1 blockquote of joined
+sentences, timings = rebased included words → memo + WordTimings sidecar + duration. Plus: memo player
+and AudiobookSession must be mutually exclusive (each pauses the other on play).
