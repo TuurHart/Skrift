@@ -518,3 +518,9 @@ format, not hardware. nodeIn (inputNode.inputFormat) = 24k AGREES with sessionHw
 validator demands the un-convergeable property. FIX (orchestrator doing it DIRECTLY, no agent): validate
 nodeIn vs sessionHw; install the tap with format = inputFormat(forBus:0) (or nil); converter bridges to
 file. Drop the vended check entirely.
+
+#### ✅ AirPods P0 CLOSED — 2026-06-12, round 4 DEVICE-VERIFIED ("it works!")
+Four layers, each peeled by a device trace: crash (NSException on install) → policy (refused legit
+cross-rate) → cache (no engine.reset) → WRONG PROPERTY (validated outputFormat — engine-render-pinned,
+can never converge — instead of inputFormat, which tracked hardware on every logged line). Final fix
+applied by the orchestrator directly. Recording now survives pull-out AND re-insert.
