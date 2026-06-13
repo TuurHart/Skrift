@@ -59,11 +59,4 @@ final class TextCaptureTests: XCTestCase {
                                                 windowStart: 0, fileOrigin: 0))
     }
 
-    func testCaptureStyleDefaultsToAudio() {
-        UserDefaults.standard.removeObject(forKey: AudiobookCaptureStyle.storageKey)
-        XCTAssertEqual(AudiobookCaptureStyle.current, .audio)
-        UserDefaults.standard.set("text", forKey: AudiobookCaptureStyle.storageKey)
-        XCTAssertEqual(AudiobookCaptureStyle.current, .text)
-        UserDefaults.standard.removeObject(forKey: AudiobookCaptureStyle.storageKey)
-    }
 }

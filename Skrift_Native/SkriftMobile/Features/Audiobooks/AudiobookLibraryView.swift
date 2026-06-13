@@ -162,12 +162,9 @@ struct AudiobookLibraryView: View {
                     }
                     .contextMenu {
                         // Long-press → transcribe straight from the library (no need
-                        // to open the book → ⋯). Text mode only — the sidecar feeds
-                        // text-capture; in Audio mode it would do nothing.
-                        if AudiobookCaptureStyle.current == .text {
-                            Button { transcribeBook = book } label: {
-                                Label("Transcribe book", systemImage: "text.book.closed")
-                            }
+                        // to open the book → ⋯). Feeds read-along + instant capture.
+                        Button { transcribeBook = book } label: {
+                            Label("Transcribe book", systemImage: "text.book.closed")
                         }
                         Button(role: .destructive) { delete(book) } label: {
                             Label("Delete", systemImage: "trash")

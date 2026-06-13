@@ -150,9 +150,7 @@ struct AudiobookPlayerView: View {
     private func menu(_ book: Audiobook) -> some View {
         Menu {
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
-            if AudiobookCaptureStyle.current == .text {
-                Button { showTranscribe = true } label: { Label("Transcribe book", systemImage: "text.book.closed") }
-            }
+            Button { showTranscribe = true } label: { Label("Transcribe book", systemImage: "text.book.closed") }
             Button(role: .destructive) { session.endSession(); dismiss() } label: {
                 Label("End listening session", systemImage: "stop.circle")
             }
@@ -352,12 +350,11 @@ struct AudiobookPlayerView: View {
         coverTint = Color(hue: Double(h), saturation: Double(min(s, 0.55)), brightness: 0.10)
     }
 
-    /// Pre-warm the ASR engine on book-open in Text mode when the current spot
-    /// isn't chunked (so the capture warming screen rarely shows). Skipped when
-    /// chunked (capture is instant) or seeded (sim).
+    /// Pre-warm the ASR engine on book-open when the current spot isn't chunked
+    /// (so the capture warming screen rarely shows). Skipped when chunked (capture
+    /// is instant) or seeded (sim).
     private func prewarmIfUseful() async {
-        guard AudiobookCaptureStyle.current == .text,
-              LaunchFlags.seedTranscript == nil,
+        guard LaunchFlags.seedTranscript == nil,
               let book = session.book else { return }
         let global = session.currentTime
         let fileIndex = book.fileIndex(at: global)

@@ -11,8 +11,6 @@ struct SettingsView: View {
     @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = true
     // Key mirrored by MemoSaver.autoCopySettingKey (default OFF — user-locked).
     @AppStorage("autoCopyTranscript") private var autoCopyTranscript = false
-    // Audiobook quote-capture style — A/B seam (default audio). See AudiobookCaptureStyle.
-    @AppStorage(AudiobookCaptureStyle.storageKey) private var captureStyle = AudiobookCaptureStyle.audio.rawValue
     @State private var connection = MacConnection.load()
     @State private var showFeedback = false
 
@@ -97,21 +95,6 @@ struct SettingsView: View {
                             Text(maskedKey).foregroundStyle(Color.skTextDim)
                         }
                     }
-                }
-
-                // After Library so it never shifts the Names/Models links the
-                // settings UI tests reach without scrolling.
-                Section {
-                    Picker("Quote capture", selection: $captureStyle) {
-                        Text("Audio").tag(AudiobookCaptureStyle.audio.rawValue)
-                        Text("Text").tag(AudiobookCaptureStyle.text.rawValue)
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityIdentifier("setting-capture-style")
-                } header: {
-                    Text("Audiobooks")
-                } footer: {
-                    Text("How you grab a quote while listening. **Audio** — scrub the moment and mark the start/end on the waveform. **Text** — read the last bit and tap the sentences to quote.")
                 }
 
                 Section("Appearance") {

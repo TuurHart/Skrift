@@ -4,8 +4,8 @@ import SwiftUI
 /// or the mini-player the moment Capture fires. The presenter pauses the book
 /// FIRST; this view then owns the rest: it shows the merged note-style capture
 /// screen (`MergedCaptureView`) and resumes the book + dismisses when the capture
-/// finishes or is cancelled. Text capture is the only flow now — the audio
-/// mark-in/out arm is retired.
+/// finishes or is cancelled. Text capture is the only flow — the audio
+/// mark-in/out arm has been retired.
 struct QuoteCaptureFlowView: View {
     @ObservedObject private var session = AudiobookSession.shared
     @Environment(\.dismiss) private var dismiss
@@ -58,50 +58,5 @@ struct QuoteCaptureFlowView: View {
         .onDisappear { BookTranscriptionJob.shared.resumeAfterCapture() }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("quote-capture-flow")
-    }
-}
-
-// MARK: - CapturePausedRow
-
-/// The "book paused" header row shared by the capture stages (mock state 3).
-struct CapturePausedRow: View {
-    let book: Audiobook
-    let pausedAt: TimeInterval
-
-    var body: some View {
-        HStack(spacing: 11) {
-            BookCoverView(book: book)
-                .frame(width: 40, height: 40)
-                .clipShape(.rect(cornerRadius: 8, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(book.title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.skText)
-                    .lineLimit(1)
-                Text(pausedLine)
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(Color.skTextFaint)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text("PAUSED")
-                .font(.system(size: 9.5, weight: .bold))
-                .kerning(0.5)
-                .foregroundStyle(Color.skAmber)
-                .padding(.horizontal, 9).padding(.vertical, 3)
-                .background(Color.skAmber.opacity(0.12), in: .capsule)
-        }
-        .padding(EdgeInsets(top: 9, leading: 11, bottom: 9, trailing: 11))
-        .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
-    }
-
-    private var pausedLine: String {
-        let at = "paused at " + AudiobookTime.clock(pausedAt)
-        if let chapter = book.shortChapterLabel(at: pausedAt) {
-            return chapter + " \u{00B7} " + at
-        }
-        return at
     }
 }

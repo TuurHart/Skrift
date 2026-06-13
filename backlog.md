@@ -1077,11 +1077,15 @@ retired.** Building in 3 gated chunks on `native`:
    note (NO preview; the ramble append is fire-and-forget so it's safe). Routed via a rewritten
    `QuoteCaptureFlowView` (all capture → merged). A bail before recording discards the quote-only memo
    (always-records). Sim green (TEST SUCCEEDED), committed. Old views still present-but-dead (deleted in 3).
-3. ⏳ **Retire audio arm** — delete `CaptureMomentView` / old `CaptureSheetView` / `TextCaptureView` (move
-   the pure `TextCaptureSelection`+`TextCaptureMath` out first) / `AudiobookCaptureStyle` + its Settings
-   toggle; ungate the `.text` checks (Transcribe-book always available in player ⋯ + library long-press;
-   `prewarmIfUseful` always); drop `testCaptureStyleDefaultsToAudio`. Grep-confirm orphaned helpers
-   (`GrainPlayer`/`SpanWaveform`) before deleting.
+3. ✅ **Retire audio arm** — deleted `CaptureMomentView` / old `CaptureSheetView` / `TextCaptureView`
+   (pure `TextCaptureSelection`+`TextCaptureMath` relocated to `Models/TextCaptureSelection.swift`) /
+   `AudiobookCaptureStyle` + its Settings toggle / `CapturePausedRow` / the now-orphaned `GrainPlayer` +
+   `SpanWaveform`. Kept `CaptureMath` (`QuoteCaptureProcessor` still uses it). Ungated the `.text` checks
+   (Transcribe-book always in player ⋯ + library long-press; `prewarmIfUseful` always). Dropped
+   `testCaptureStyleDefaultsToAudio`. Sim gate green (TEST SUCCEEDED), committed.
+
+ALL 3 CHUNKS DONE + sim-green. Device build+install + eyeball (full-screen player, merged capture E2E,
+read-along, ❝ glyph) are the only owed items. `main` untouched / un-pushed.
 DECISIONS (locked w/ user): always records voice (no quote-only save, may revisit); auto-resume + no
 preview; significance on top mirrors the note (verified: note order is title→chips→significance→body).
 Device install + read-along/glyph eyeball still owed (carried from the prior ⭐ block above).
