@@ -879,6 +879,18 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
   warming screen) and at an un-done spot (wave-1 fallback); verify pause-on-unplug/auto-resume + that
   an interrupted job resumes from the last saved chunk.
 
+#### Player redesign DEVICE TEST 2026-06-13 (night) — 2 fixes
+- ✅ **Transcribe sheet showed "Resume transcribing" at 100% done** (device screenshot). Cause: the
+  job clears `activeBookID` on finish → `isThisBook` flips false → the `.finished` control case was
+  skipped → fell to the "Resume" default. Fixed: TranscribeBookView gates the done-state on
+  **progress ≥ 0.999** (lede "Done…", a "Fully transcribed" indicator instead of a button, estimate
+  hidden) — robust for both just-finished and a re-opened already-done book.
+- ✅ **Read-along "text smaller & jumps fast" → Spotify lyrics** (device feedback). Reworked
+  `ReadAlongView` from one re-coloring/reloading paragraph to discrete **lyric LINES**: current line
+  large + bright (21 pt), neighbours dim by distance, **smooth auto-scroll** (centered, animated),
+  soft edge fade, tap-a-line-to-seek. Loads the WHOLE covered prefix once (reloads only on coverage-
+  frontier cross / file change) so scrolling is smooth, not jumpy. Device-owed re-look.
+
 #### Wave-2 DEVICE TEST 2026-06-13 (evening) — vocab + transcribe-book
 - ✅ **Custom vocab WORKS on device now** (user: "customs words are working"). Pre-warm-at-launch was
   the fix, confirmed.

@@ -1,31 +1,34 @@
 import SwiftUI
 
-/// The player's read-along text panel (player redesign — the text-forward hero).
-/// Shows the narration around the playhead from the wave-2 `BookTranscript`
-/// sidecar, the CURRENT sentence lit (past fades, a little upcoming trails).
-/// When the spot isn't transcribed yet it shows the "transcribe to read along"
-/// nudge — which routes to the whole-book transcribe (the growth loop).
+/// The player's read-along panel — Spotify-lyrics style (player redesign +
+/// 2026-06-13 device feedback: "text smaller and jumps fast → make it more like
+/// Spotify lyrics"). Discrete sentence LINES; the current line is large + bright,
+/// neighbours dim by distance; the view auto-scrolls smoothly to keep the
+/// current line centered; edges fade. Tap a line to seek there.
 ///
-/// Disk I/O is kept OFF the 0.5 s playback tick: the sidecar window is loaded
-/// only when the playhead leaves the cached range (or the file changes); the lit
-/// line is recomputed in-memory every update.
+/// Source = the wave-2 `BookTranscript` sidecar. The WHOLE covered prefix of the
+/// current file is loaded once (so scrolling is smooth — no per-tick reload); we
+/// only reload when the playhead crosses the coverage frontier (it may have
+/// grown) or the file changes. Un-chunked spot → the "transcribe to read along"
+/// nudge.
 @MainActor
 final class ReadAlongModel: ObservableObject {
-    enum LineState { case past, current, upcoming }
-    struct Line: Identifiable, Equatable { let id: Int; let text: String; let state: LineState }
-
     @Published private(set) var covered = false
-    @Published private(set) var lines: [Line] = []
+    @Published private(set) var sentences: [BufferSentence] = []   // ALL covered, file-local
+    @Published private(set) var currentIndex = 0
 
     private let store = BookTranscriptStore()
-    private var sentences: [BufferSentence] = []      // loaded window, file-local
     private var loadedFileIndex = -1
-    private var validRange: ClosedRange<TimeInterval>?
+    private var loadedUpTo: TimeInterval = -1
 
     func update(book: Audiobook, fileIndex: Int, fileLocal: TimeInterval, audioURL: URL?) {
-        let stale = fileIndex != loadedFileIndex || !(validRange?.contains(fileLocal) ?? false)
-        if stale { reload(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL) }
-        recompute(fileLocal: fileLocal)
+        if fileIndex != loadedFileIndex || fileLocal > loadedUpTo {
+            reload(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
+        }
+        if !sentences.isEmpty {
+            let idx = sentences.lastIndex(where: { $0.start <= fileLocal }) ?? 0
+            if idx != currentIndex { currentIndex = idx }
+        }
     }
 
     private func reload(book: Audiobook, fileIndex: Int, fileLocal: TimeInterval, audioURL: URL?) {
@@ -33,28 +36,18 @@ final class ReadAlongModel: ObservableObject {
         if let audioURL,
            let ft = store.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),
            ft.isCovered(upTo: fileLocal) {
-            let words = ft.words(inWindow: max(0, fileLocal - 90), end: fileLocal + 60)
-            sentences = QuoteCaptureProcessor.buildSentences(from: words, snappedStart: 0, snappedEnd: 0)
+            sentences = QuoteCaptureProcessor.buildSentences(from: ft.words, snappedStart: 0, snappedEnd: 0)
             covered = !sentences.isEmpty
-            // Cache valid until the playhead passes 30 s ahead of this load (then
-            // reload to pull the next sentences) or scrubs before the window.
-            validRange = covered ? (max(0, fileLocal - 90))...(fileLocal + 30) : nil
+            loadedUpTo = ft.coveredUpTo            // reload when playhead passes the frontier
         } else {
             sentences = []; covered = false
-            // Not transcribed here — re-check every ~3 s so a running bg job that
-            // catches up flips us to read-along without a manual refresh.
-            validRange = (fileLocal - 1)...(fileLocal + 3)
+            loadedUpTo = fileLocal + 2             // re-check ~2 s later (bg job may catch up)
         }
     }
 
-    private func recompute(fileLocal: TimeInterval) {
-        guard !sentences.isEmpty else { lines = []; return }
-        let cur = sentences.lastIndex(where: { $0.start <= fileLocal }) ?? 0
-        let lo = max(0, cur - 1), hi = min(sentences.count - 1, cur + 2)
-        lines = (lo...hi).map { i in
-            Line(id: i, text: sentences[i].text,
-                 state: i < cur ? .past : (i == cur ? .current : .upcoming))
-        }
+    /// File-local start of sentence `i` (for tap-to-seek). nil if out of range.
+    func startOf(_ i: Int) -> TimeInterval? {
+        sentences.indices.contains(i) ? sentences[i].start : nil
     }
 }
 
@@ -67,14 +60,15 @@ struct ReadAlongView: View {
 
     @StateObject private var model = ReadAlongModel()
 
+    /// Fixed so the player layout is stable across states; the lyrics scroll
+    /// internally within it.
+    private let panelHeight: CGFloat = 234
+
     var body: some View {
         Group {
-            if model.covered {
-                readAlong
-            } else {
-                nudge
-            }
+            if model.covered { lyrics } else { nudge }
         }
+        .frame(height: panelHeight)
         .onAppear { refresh() }
         .onChange(of: fileLocal) { _, _ in refresh() }
         .onChange(of: fileIndex) { _, _ in refresh() }
@@ -84,30 +78,54 @@ struct ReadAlongView: View {
         model.update(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
     }
 
-    // MARK: - Read-along (transcribed)
+    // MARK: - Lyrics (transcribed)
 
-    private var readAlong: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            flowing
-            HStack(spacing: 6) {
-                Circle().fill(Color.skAccent).frame(width: 6, height: 6)
-                Text("reading now").font(.system(size: 11)).foregroundStyle(Color.skTextFaint)
+    private var lyrics: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 13) {
+                    Color.clear.frame(height: panelHeight * 0.38)   // lets line 0 center
+                    ForEach(model.sentences.indices, id: \.self) { i in
+                        line(i).id(i)
+                    }
+                    Color.clear.frame(height: panelHeight * 0.5)
+                }
+                .padding(.horizontal, 2)
             }
+            .onChange(of: model.currentIndex) { _, idx in
+                withAnimation(.easeInOut(duration: 0.45)) { proxy.scrollTo(idx, anchor: .center) }
+            }
+            .onAppear { proxy.scrollTo(model.currentIndex, anchor: .center) }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // Spotify-style soft fade at the top/bottom edges.
+        .mask(
+            LinearGradient(stops: [
+                .init(color: .clear, location: 0),
+                .init(color: .black, location: 0.16),
+                .init(color: .black, location: 0.84),
+                .init(color: .clear, location: 1),
+            ], startPoint: .top, endPoint: .bottom)
+        )
         .accessibilityIdentifier("player-readalong")
     }
 
-    /// One flowing block (teleprompter feel): past faint, current lit, upcoming dim.
-    private var flowing: some View {
-        model.lines.reduce(Text("")) { acc, line in
-            let color: Color = line.state == .current ? .skText
-                : (line.state == .past ? .skTextFaint : .skTextDim)
-            return acc + Text(line.text + " ").foregroundColor(color)
-        }
-        .font(.system(size: 17))
-        .lineSpacing(5)
-        .fixedSize(horizontal: false, vertical: true)
+    private func line(_ i: Int) -> some View {
+        let isCurrent = i == model.currentIndex
+        let isPast = i < model.currentIndex
+        return Text(model.sentences[i].text)
+            .font(.system(size: isCurrent ? 21 : 17, weight: isCurrent ? .semibold : .regular))
+            .foregroundStyle(isCurrent ? Color.skText : (isPast ? Color.skTextFaint : Color.skTextDim))
+            .opacity(isCurrent ? 1 : (abs(i - model.currentIndex) == 1 ? 0.75 : 0.45))
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard let local = model.startOf(i) else { return }
+                let origin = book.fileStartTimes.indices.contains(fileIndex) ? book.fileStartTimes[fileIndex] : 0
+                AudiobookSession.shared.seek(to: local + origin)
+                Haptics.tap()
+            }
+            .animation(.easeInOut(duration: 0.3), value: model.currentIndex)
     }
 
     // MARK: - Nudge (not transcribed here)
@@ -128,6 +146,7 @@ struct ReadAlongView: View {
                     .strokeBorder(Color.skBorder, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
             )
         }
+        .frame(maxHeight: .infinity)
         .accessibilityIdentifier("player-readalong-nudge")
     }
 }

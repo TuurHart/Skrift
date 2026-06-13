@@ -62,7 +62,7 @@ struct TranscribeBookView: View {
     // MARK: - Lede (the load-bearing reassurance)
 
     private var lede: some View {
-        Text(job.phase == .finished
+        Text(job.progress >= 0.999
              ? "Done — capture is now instant anywhere in this book."
              : "Keep listening — capture already works for the parts that are done.")
             .font(.system(size: 15, weight: .semibold))
@@ -104,10 +104,11 @@ struct TranscribeBookView: View {
     /// running, "≈ 8 min per hour of audio" otherwise. nil (→ no number shown)
     /// until a per-device rate exists — never a fabricated figure.
     private var estimateText: String? {
-        guard let rtf = job.measuredRTF, rtf > 0 else { return nil }
+        // Nothing to estimate once fully transcribed.
+        guard let rtf = job.measuredRTF, rtf > 0, job.progress < 0.999 else { return nil }
         // "≈ N min left" whenever there's audio still to do (running OR a paused/
         // reopened partial run) — uses the reflected saved progress.
-        if job.progress < 0.999, let eta = job.estimatedRemainingSeconds(for: book), eta > 1 {
+        if let eta = job.estimatedRemainingSeconds(for: book), eta > 1 {
             return "≈ \(Self.shortDuration(eta)) left"
         }
         return String(format: "≈ %.0f min per hour", 60.0 / rtf)
@@ -144,20 +145,29 @@ struct TranscribeBookView: View {
     @ViewBuilder
     private var controls: some View {
         VStack(spacing: 8) {
-            switch job.phase {
-            case .running where isThisBook:
-                secondaryButton("Pause", id: "transcribe-book-pause") { job.pauseByUser() }
-            case .pausedByUser where isThisBook:
-                primaryButton("Resume", id: "transcribe-book-resume") { job.resumeByUser() }
-            case .pausedUnplugged where isThisBook:
-                secondaryButton("Pause", id: "transcribe-book-pause") { job.pauseByUser() }
-            case .finished where isThisBook:
-                EmptyView()
-            default:
-                // idle, finished-for-another-book, or a partial prior run:
-                primaryButton(job.progress > 0.001 && !isThisBook ? "Resume transcribing"
-                              : (job.progress > 0.001 ? "Resume transcribing" : "Start transcribing"),
-                              id: "transcribe-book-start") { job.start(book: book) }
+            if job.progress >= 0.999 {
+                // Fully transcribed — nothing to start/resume (gate on PROGRESS, not
+                // phase/isThisBook: the job clears activeBookID when it finishes, and
+                // a re-opened already-done book is .idle — both must read as "done").
+                HStack(spacing: 7) {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 15))
+                    Text("Fully transcribed").font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(Color.skAccent)
+                .frame(maxWidth: .infinity).padding(.vertical, 13)
+                .accessibilityIdentifier("transcribe-book-done")
+            } else {
+                switch job.phase {
+                case .running where isThisBook:
+                    secondaryButton("Pause", id: "transcribe-book-pause") { job.pauseByUser() }
+                case .pausedByUser where isThisBook:
+                    primaryButton("Resume", id: "transcribe-book-resume") { job.resumeByUser() }
+                case .pausedUnplugged where isThisBook:
+                    secondaryButton("Pause", id: "transcribe-book-pause") { job.pauseByUser() }
+                default:
+                    primaryButton(job.progress > 0.001 ? "Resume transcribing" : "Start transcribing",
+                                  id: "transcribe-book-start") { job.start(book: book) }
+                }
             }
         }
         .padding(.horizontal, Theme.Space.margin)
