@@ -782,7 +782,7 @@ OUTSTANDING (later, off the board):
 - Deferred ideas: watched-folder ingest; summary prompt quality pass; tag lemma expansion; north-star
   semantic timeline ("how my thinking evolved").
 
-#### ⭐ CONTINUE HERE — session wrap 2026-06-12 night (the "do all outstanding" batch)
+#### CONTINUE HERE (SUPERSEDED — see the ⭐ block at the BOTTOM of this file, 2026-06-13 night) — session wrap 2026-06-12 night (the "do all outstanding" batch)
 STATE: `native` green; every gate passed per commit (mobile 352 unit + 38 UI; desktop 231 unit + full
 build). NOT pushed to main; prod untouched. PHONE: has capture items + share-sheet UX fixes + DICTATION
 (installed earlier tonight); the LAST build (vocab + models tab + bug fixes + QoL) is STAGED in
@@ -1000,3 +1000,56 @@ the original words' constrained-CTC scores are too low). cbw stays at FluidAudio
 say "Skrift" once → it should now correct (booster warm at launch). If a SHORT/uncommon word
 (≤3-4 char, e.g. "Rox") still mis-fires on unrelated speech, drop it or add it with an explicit
 alias; report and we tighten further. Note: very short words are inherently spotter-FP-prone.
+
+#### ⭐ CONTINUE HERE — session wrap 2026-06-13 night
+STATE: branch `native`, all committed, **`main` untouched / not pushed, prod untouched**. Mobile dev
+build ("Skrift Dev", `com.skrift.mobile.dev`) **installed on the iPhone 13** (devicectl UUID
+`A9195A77-601A-54C1-B3BD-659FBFE1DC54`). Desktop dev build in `build/` (vocab fix + read-along sync
+harness). Gates per chunk: mobile 396 unit green (the 2 UI fails are the documented permission/
+testmanagerd sim flake on unrelated speaker tests — pass on a stateful sim); desktop 248 unit + full
+`-skipMacroValidation` build.
+
+✅ SHIPPED + DEVICE-CONFIRMED:
+- **Custom vocab fix** (both apps) — pre-warm booster at launch + aliases (`"Canonical: alias"`) +
+  trust guard (drop distant spotter-rescue FPs, sim<0.55). **User confirmed working** ("customs words
+  are working"). Root cause was readiness (per-process booster never warm), not spotter/rescorer.
+  See the `✅ CUSTOM VOCAB` block above + [[project_vocab_booster]].
+
+✅ SHIPPED (mobile, on the phone; real-ASR / read-along behaviour is device-owed to eyeball):
+- **Text-capture WAVE 2** — `BookTranscript` sidecar (per-file JSON, file-local times) + `ChunkFusion`
+  (cut-at-sentence, redo-tail) + `BookTranscriptionJob` (resumable charger job: save-after-complete,
+  pause-on-unplug/auto-resume, yields to capture) + ⋯/long-press "Transcribe book" sheet + instant
+  capture from the sidecar (else wave-1 fallback) + measured per-device speed (no placeholder).
+- **Audiobook player redesign — text-forward A+D hybrid** (signed-off mock
+  `Skrift_Native/SkriftDesktop/mocks/audiobook-player-redesign.html`): warm cover-tint header, 56px
+  cover chip, `Ch N/M` pill, **Spotify-style read-along** (current line lit, smooth auto-scroll, edge
+  fade, tap-line-to-seek), speed/sleep flanking transport, slim **Chapters + Bookmark** row, hero
+  "Capture this". **Bookmarks** (light position markers) + **Chapters/Bookmarks TOC sheet**.
+- **Library long-press → Transcribe book**; **record widget** rebranded red→Skrift purple.
+- **Read-along sync — fully chased down + fixed (Mac harness, real data):**
+  1. timings drift — per-chunk `AVAssetExportSession` on compressed MP3 drifts late, growing to
+     ~+2s deep in a chapter (proven via `-chunksim`); fixed with sample-accurate `AVAudioFile`
+     extraction (`extractPCM`), sidecar schema 1→2 to force re-transcribe of drifted transcripts.
+  2. latency — interpolate the playhead between the 0.5s AVPlayer ticks + advance at line-END.
+  3. stuck-nudge — the player now re-checks coverage every ~1.5s even paused, so a finishing
+     transcribe flips nudge→read-along live (devlog proved the data was fine; it was stale UI state).
+  Desktop harness (`-readalongcheck`, `-chunksim`, `anchorDrift`) committed for reuse.
+
+⏳ STILL OPEN / DEVICE-OWED (next session):
+1. **Read-along end-to-end device eyeball** — relaunch, open a re-transcribed book: does the lit line
+   track the voice the WHOLE chapter (drift fix)? nudge→read-along live mid-transcribe? tap-line seek?
+   If uniformly early/late, tune `ReadAlongView.lead` (currently 0.3s) — one line.
+2. **Vocab short-word FPs** — ≤3-4 char custom words (e.g. "Rox") can mis-fire via the spotter-rescue;
+   watch on device, drop/alias if they mangle speech. (Skrift, 6ch, is safe.)
+3. **Control Center custom Skrift glyph** — needs a simple MONOCHROME logomark (the 3D app icon can't
+   be a CC template); wire when artwork exists. CC control stays `mic.fill` for now.
+4. **Wave-2 deferred** (design doc §9): cross-chapter quotes; auto-transcribe-ahead while playing;
+   **A/B test integrity** for text vs audio capture (assign the arm, pre-transcribe the test book,
+   define the success metric); desktop mirror of wave-2 (mobile-only today).
+5. **Bookmarks**: viewing the list is via Chapters sheet → Bookmarks tab (the Bookmark button only
+   drops). Consider a more direct path if it feels hidden.
+6. Pre-existing untouched: **prod promotion** (one-time Xcode App-Group signing for the Release bundle
+   IDs, then Release build + `native`→`main`); Mac "name a speaker" mock sign-off; drag-multi-select
+   mock; record-a-sample voice enroll (conversation track); desktop A-list perf nits (multipart RAM
+   cap, off-main SwiftData on the Bonjour queue, real word_timings→karaoke, parity golden tests);
+   re-ingest ~30 old notes; "transcription a bit weird" investigation.

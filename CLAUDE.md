@@ -97,14 +97,15 @@ Rules:
   items off **in the same session they land** (user hard requirement).
 - **`Skrift_Native/SkriftDesktop/mocks/*.html`** — signed-off design specs (mock-first is locked
   process for new UI): v5 (desktop shell), significance-circles, name-unlink, name-a-speaker,
-  capture-items, audiobook-capture. A mock the user approved IS the spec — build to it.
+  capture-items, audiobook-capture, text-capture, **audiobook-player-redesign** (text-forward A+D
+  hybrid player, signed off + built 2026-06-13). A mock the user approved IS the spec — build to it.
 - **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
   memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →
   MANDATORY second-agent verify → triage into backlog.md. Crash logs via `idevicecrashreport`.
 - **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity (current focus): full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
 - `MOBILE_NATIVE_HANDOFF.md` → `MOBILE_NATIVE_REWRITE_PLAN.md` — the iOS app (phases, contract, XCUITest harness).
 - `DESKTOP_NATIVE_HANDOFF.md` → `DESKTOP_NATIVE_REWRITE_PLAN.md` — the macOS app. `WALKTHROUGH_BUGS.md` — desktop walkthrough tracker.
-- Memory: `project_native_convergence`, `feedback_vault_privacy`, `feedback_autonomous_execution`, `feedback_native_ui_process`, `feedback_native_ui_verification`.
+- Memory: `project_native_convergence`, `project_vocab_booster`, `feedback_vault_privacy`, `feedback_autonomous_execution`, `feedback_native_ui_process`, `feedback_native_ui_verification`.
 
 ## Branch
 
@@ -113,6 +114,17 @@ both apps + full history on one branch so cross-app features land atomically.
 
 ## Open cross-app work
 
+- **Audiobooks — ✅ BIG 2026-06-13 batch (see `backlog.md` ⭐ CONTINUE HERE + FEATURES.md):**
+  (1) **Custom vocab fixed** both apps — pre-warm booster + aliases + trust guard; device-confirmed
+  working ([[project_vocab_booster]]). (2) **Text-capture WAVE 2** (mobile) — whole-book pre-transcribe:
+  `BookTranscript` sidecar + `ChunkFusion` + resumable `BookTranscriptionJob` + Transcribe-book button +
+  instant sidecar capture. (3) **Player redesign — text-forward A+D hybrid** (mock
+  `mocks/audiobook-player-redesign.html`): Spotify-style read-along, bookmarks, Chapters/Bookmarks
+  sheet, library long-press → transcribe. **Chunk-extraction gotcha (durable):** per-chunk
+  `AVAssetExportSession` on compressed audio drifts time late (grows with seek depth) — use
+  sample-accurate `AVAudioFile` frame reads for any extraction whose word-times must align to the
+  source (proven via the desktop `-chunksim`/`-readalongcheck` harness). Read-along device-eyeball +
+  `lead` tune still owed.
 - **Capture items — ✅ BUILT 2026-06-12** (two-lane batch + orchestrator integration;
   awaiting device verify). Contract = `Skrift_Native/CAPTURE_CONTRACT.md` (C3); design
   = `mocks/capture-items.html`; capability map = FEATURES.md "Capture items".
