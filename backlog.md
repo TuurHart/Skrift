@@ -1033,16 +1033,25 @@ testmanagerd sim flake on unrelated speaker tests — pass on a stateful sim); d
   2. latency — interpolate the playhead between the 0.5s AVPlayer ticks + advance at line-END.
   3. stuck-nudge — the player now re-checks coverage every ~1.5s even paused, so a finishing
      transcribe flips nudge→read-along live (devlog proved the data was fine; it was stale UI state).
+  4. smoothness + lead (device feedback "too early" + "words hustle"): lead 0.3→0.1; lines are now a
+     UNIFORM 18 pt (font-size change can't animate → reflowed/shoved neighbours = the hustle), the
+     current line emphasised by a smooth `scaleEffect(1.08, anchor:.leading)` (transform, no reflow) +
+     brightness. Device re-eyeball owed.
   Desktop harness (`-readalongcheck`, `-chunksim`, `anchorDrift`) committed for reuse.
 
 ⏳ STILL OPEN / DEVICE-OWED (next session):
-1. **Read-along end-to-end device eyeball** — relaunch, open a re-transcribed book: does the lit line
-   track the voice the WHOLE chapter (drift fix)? nudge→read-along live mid-transcribe? tap-line seek?
-   If uniformly early/late, tune `ReadAlongView.lead` (currently 0.3s) — one line.
-2. **Vocab short-word FPs** — ≤3-4 char custom words (e.g. "Rox") can mis-fire via the spotter-rescue;
-   watch on device, drop/alias if they mangle speech. (Skrift, 6ch, is safe.)
-3. **Control Center custom Skrift glyph** — needs a simple MONOCHROME logomark (the 3D app icon can't
-   be a CC template); wire when artwork exists. CC control stays `mic.fill` for now.
+1. **Read-along final eyeball** — drift/latency/stuck-nudge/smoothness/lead all fixed + installed;
+   confirm on a re-transcribed book it tracks the whole chapter, smoothly (no hustle), in-sync (not
+   early). `ReadAlongView.lead` is the dial (now 0.1s) if still slightly off.
+2. **Vocab — RESOLVED on device:** user confirms **both "Rox" and "Skrift" work** as custom words.
+   The short-word-FP worry didn't materialise; keep as a watch-only note, no action.
+3. **Control Center glyph — DECISION PENDING (candidates shown to user):** A `quote.opening` / B
+   `pencil.line` (both SF Symbols, 1-line swap, ship now) vs C custom carved-strokes mark (echoes the
+   app icon, needs a monochrome template asset). HOW (recorded for whoever builds it): SF option =
+   change `Label("Record", systemImage:)` in `SkriftWidget/RecordControlWidget.swift` (+ RecordWidget).
+   Custom = add an asset catalog to the SkriftWidget target, drop a single-colour SVG/PDF as a Symbol
+   Image (or Render-As-Template), reference via `Label{} icon:{ Image("skrift.mark") }`. The 3D app
+   icon itself can't be a CC glyph (CC renders monochrome templates).
 4. **Wave-2 deferred** (design doc §9): cross-chapter quotes; auto-transcribe-ahead while playing;
    **A/B test integrity** for text vs audio capture (assign the arm, pre-transcribe the test book,
    define the success metric); desktop mirror of wave-2 (mobile-only today).
