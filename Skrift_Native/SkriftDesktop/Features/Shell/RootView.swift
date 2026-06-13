@@ -9,15 +9,23 @@ struct RootView: View {
     @State private var coordinator = ProcessingCoordinator()
     @State private var settingsOpen = false
     @State private var showWizard = false
+    @State private var trashOpen = false
     @AppStorage(AppTheme.key) private var appTheme = "dark"
-    @Query(sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
+    // Live queue = NOT trashed (Recently Deleted is its own sheet). The predicate
+    // keeps soft-deleted files out of the sidebar, selection, and active note.
+    @Query(filter: #Predicate<PipelineFile> { $0.deletedAt == nil },
+           sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
+    @Query(filter: #Predicate<PipelineFile> { $0.deletedAt != nil },
+           sort: \PipelineFile.deletedAt, order: .reverse) private var trashedFiles: [PipelineFile]
 
     private var activeFile: PipelineFile? { files.first { $0.id == model.activeID } }
 
     var body: some View {
         HSplitView {
             SidebarView(model: model, files: files, coordinator: coordinator,
-                        onOpenSettings: { settingsOpen = true })
+                        trashedCount: trashedFiles.count,
+                        onOpenSettings: { settingsOpen = true },
+                        onOpenTrash: { trashOpen = true })
                 .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
 
             NoteDisplayView(file: activeFile, coordinator: coordinator)
@@ -31,6 +39,9 @@ struct RootView: View {
         .onChange(of: appTheme) { _, new in AppTheme.applyToApp(new) }
         .sheet(isPresented: $settingsOpen) {
             SettingsView(onClose: { settingsOpen = false })
+        }
+        .sheet(isPresented: $trashOpen) {
+            RecentlyDeletedView(files: trashedFiles, onClose: { trashOpen = false })
         }
         .overlay {
             if showWizard {
@@ -61,6 +72,9 @@ struct RootView: View {
             }
             // Recover any run stranded mid-flight by a previous crash/quit.
             coordinator.reconcileInterruptedRuns(context: ctx)
+            // Purge trash older than the retention window (mirrors the phone's
+            // launch purge) — permanently drops the record + trashes its folder.
+            DesktopTrash.purgeExpired(in: ctx)
         }
         .onChange(of: files.count, initial: true) { _, _ in ensureSelection() }
     }

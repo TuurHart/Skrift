@@ -113,6 +113,21 @@ final class PipelineFile {
     /// land with the upload handler in Phase 2.
     var audioMetadataJSON: Data?
 
+    /// Soft-delete — "Recently Deleted", mirroring the phone + Apple Voice Memos.
+    /// A trashed file (`deletedAt != nil`) is hidden from the sidebar/queue,
+    /// excluded from the phone's `GET /api/files/` list, and never processed; its
+    /// on-disk working folder STAYS so Restore is lossless. The launch purge
+    /// removes the record (+ trashes the folder) once `DesktopTrashPolicy.retention`
+    /// old. Additive + optional → existing stores migrate lightweight.
+    var deletedAt: Date?
+
+    /// Whole days left before the launch purge removes a trashed file for good.
+    func trashDaysRemaining(now: Date = Date()) -> Int {
+        guard let deletedAt else { return DesktopTrashPolicy.retentionDays }
+        let elapsed = now.timeIntervalSince(deletedAt)
+        return max(0, DesktopTrashPolicy.retentionDays - Int(elapsed / 86_400))
+    }
+
     init(
         id: String = UUID().uuidString,
         filename: String = "",

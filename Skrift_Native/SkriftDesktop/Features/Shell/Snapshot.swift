@@ -25,6 +25,7 @@ enum Snapshot {
         if let p = path("-snapshot-run")            { MainActor.assumeIsolated { renderRun(to: p); exit(0) } }
         if let p = path("-snapshot-resolver")       { MainActor.assumeIsolated { renderResolver(to: p); exit(0) } }
         if let p = path("-snapshot-capture")        { MainActor.assumeIsolated { renderCapture(to: p); exit(0) } }
+        if let p = path("-snapshot-trash")          { MainActor.assumeIsolated { renderTrash(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot")                { MainActor.assumeIsolated { renderReview(to: p); exit(0) } }
     }
@@ -86,6 +87,18 @@ enum Snapshot {
         }
         .frame(width: 1180, height: 780)
         .background(Theme.bg)
+        writePNG(view, to: path, scheme: scheme)
+    }
+
+    /// Recently Deleted sheet — a couple of demo files marked trashed with
+    /// staggered ages so the days-remaining countdown shows.
+    @MainActor private static func renderTrash(to path: String, scheme: ColorScheme = .dark) {
+        let files = DemoSeed.snapshotFiles().prefix(3).enumerated().map { i, f -> PipelineFile in
+            f.deletedAt = Date(timeIntervalSinceNow: -Double(i) * 4 * 86_400)   // 0/4/8 days ago
+            return f
+        }
+        let view = RecentlyDeletedView(files: Array(files), interactive: false)
+            .background(Theme.bg)
         writePNG(view, to: path, scheme: scheme)
     }
 

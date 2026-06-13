@@ -72,7 +72,8 @@ final class ProcessingCoordinator {
     #endif
 
     /// A file still needs the auto-run until it reaches Ready (enhance done).
-    func needsProcessing(_ pf: PipelineFile) -> Bool { pf.enhanceStatus != .done }
+    /// A soft-deleted (Recently Deleted) file is never processed.
+    func needsProcessing(_ pf: PipelineFile) -> Bool { pf.deletedAt == nil && pf.enhanceStatus != .done }
 
     /// On launch, recover notes stranded mid-run by a crash/quit (a `.processing`
     /// step with no run actually active) so the queue can pick them up again. A

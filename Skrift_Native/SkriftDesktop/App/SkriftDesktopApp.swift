@@ -52,8 +52,11 @@ struct SkriftDesktopApp: App {
                 return DispatchQueue.main.sync {
                     MainActor.assumeIsolated {
                         let ctx = SharedStore.container.mainContext
-                        let files = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
-                        return (try? JSONEncoder().encode(files.map(\.dto))) ?? Data("[]".utf8)
+                        // Exclude soft-deleted (Recently Deleted) files — the phone
+                        // must not re-see a note the user trashed on the Mac.
+                        let all = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
+                        let live = all.filter { $0.deletedAt == nil }
+                        return (try? JSONEncoder().encode(live.map(\.dto))) ?? Data("[]".utf8)
                     }
                 }
             },

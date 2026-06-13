@@ -9,7 +9,10 @@ struct SidebarView: View {
     @Bindable var model: AppModel
     let files: [PipelineFile]
     @Bindable var coordinator: ProcessingCoordinator
+    /// Count of soft-deleted files — drives the footer "Recently Deleted (N)" row.
+    var trashedCount: Int = 0
     var onOpenSettings: () -> Void = {}
+    var onOpenTrash: () -> Void = {}
     /// Snapshot mode renders the queue without a ScrollView (ImageRenderer can't
     /// lay out scroll contents). The live app keeps `true` for real scrolling.
     var scrollable = true
@@ -95,31 +98,17 @@ struct SidebarView: View {
         }
     }
 
-    /// Delete notes: remove the SwiftData record AND move the on-disk working folder
-    /// to the Trash (recoverable) — so deleting in-app actually frees the disk too.
-    /// Safety: only trashes a per-file working folder inside the output dir.
+    /// Delete notes: SOFT-delete into "Recently Deleted" (mirrors the phone +
+    /// Apple Voice Memos). The record + working folder stay on disk so Restore is
+    /// lossless; the launch purge removes them (and trashes the folder) after the
+    /// retention window. Was a hard `ctx.delete` + immediate folder-trash.
     private func deleteFiles(_ targets: [PipelineFile]) {
-        let outRoot = AppPaths.audioOutputDirectory.standardizedFileURL.path
-        for f in targets {
-            if !f.path.isEmpty {
-                // Captures: pf.path IS the working folder ("capture_<UUID>").
-                // Audio/notes: pf.path is a file inside the folder ("original.m4a").
-                let folder: URL
-                if f.sourceType == .capture {
-                    folder = URL(fileURLWithPath: f.path)
-                } else {
-                    folder = URL(fileURLWithPath: f.path).deletingLastPathComponent()
-                }
-                // Only trash if it's inside the output dir and looks like a per-file folder.
-                let folderName = folder.lastPathComponent
-                if folder.standardizedFileURL.path.hasPrefix(outRoot),
-                   folderName.contains("_") || folderName.hasPrefix("capture_") {
-                    try? FileManager.default.trashItem(at: folder, resultingItemURL: nil)
-                }
-            }
-            ctx.delete(f)
-        }
-        try? ctx.save()
+        // Don't strand the selection/active note on a now-hidden file.
+        let ids = Set(targets.map(\.id))
+        DesktopTrash.softDelete(targets, in: ctx)
+        model.selection.subtract(ids)
+        if let active = model.activeID, ids.contains(active) { model.activeID = nil }
+        coordinator.flash("Moved to Recently Deleted")
     }
 
     // ── Header ──────────────────────────────────────────────
@@ -343,16 +332,44 @@ struct SidebarView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 14) {
-            engineDot("Parakeet")
-            engineDot("Gemma 4")
-            Spacer(minLength: 0)
-        }
-        .help(coordinator.modelsLoaded ? "Models loaded in memory" : "Models load on Process, freed after a minute idle")
-        .padding(.horizontal, 16)
-        .padding(.vertical, 9)
-        .overlay(alignment: .top) {
-            Rectangle().fill(Theme.hairline.opacity(0.06)).frame(height: 0.5)
+        VStack(spacing: 0) {
+            // Recently Deleted — only when the trash is non-empty (Apple Voice
+            // Memos / the phone idiom). Opens the restore sheet.
+            if trashedCount > 0 {
+                Button(action: onOpenTrash) {
+                    HStack(spacing: 7) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(Theme.textSecondary)
+                        Text("Recently Deleted")
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(Theme.textSecondary)
+                        Spacer(minLength: 0)
+                        Text("\(trashedCount)")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.textMuted)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("recently-deleted-button")
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Theme.hairline.opacity(0.06)).frame(height: 0.5)
+                }
+            }
+            HStack(spacing: 14) {
+                engineDot("Parakeet")
+                engineDot("Gemma 4")
+                Spacer(minLength: 0)
+            }
+            .help(coordinator.modelsLoaded ? "Models loaded in memory" : "Models load on Process, freed after a minute idle")
+            .padding(.horizontal, 16)
+            .padding(.vertical, 9)
+            .overlay(alignment: .top) {
+                Rectangle().fill(Theme.hairline.opacity(0.06)).frame(height: 0.5)
+            }
         }
     }
 
