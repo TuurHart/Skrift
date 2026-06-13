@@ -135,6 +135,7 @@ enum RunFile {
                 try await runner.run(pf, audioURL: URL(fileURLWithPath: path))
                 log(String(format: ">>> elapsed: %.1fs", Date().timeIntervalSince(t0)))
                 log(">>> steps: transcribe=\(pf.transcribeStatus.rawValue) enhance=\(pf.enhanceStatus.rawValue)")
+                log(">>> word_timings: \(pf.wordTimings.count) (drives karaoke)")
                 if trustedMobile {
                     // Proof the trust path held: the transcript is byte-for-byte the
                     // phone's (ASR never ran and overwrote it).

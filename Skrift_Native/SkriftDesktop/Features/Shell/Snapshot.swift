@@ -132,8 +132,15 @@ enum Snapshot {
                let tiff = img.tiffRepresentation,
                let rep = NSBitmapImageRep(data: tiff),
                let png = rep.representation(using: .png, properties: [:]) {
-                try? png.write(to: URL(fileURLWithPath: path))
-                FileHandle.standardError.write(Data("snapshot written: \(path)\n".utf8))
+                // Don't claim success on a silent write failure (bad path /
+                // permissions) — the audit nit: the writer used `try?` and then
+                // logged "written" unconditionally, so a missing PNG read as OK.
+                do {
+                    try png.write(to: URL(fileURLWithPath: path))
+                    FileHandle.standardError.write(Data("snapshot written: \(path)\n".utf8))
+                } catch {
+                    FileHandle.standardError.write(Data("snapshot write FAILED: \(path) — \(error)\n".utf8))
+                }
             } else {
                 FileHandle.standardError.write(Data("snapshot render failed\n".utf8))
             }

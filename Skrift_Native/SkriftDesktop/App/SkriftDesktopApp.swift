@@ -44,7 +44,12 @@ struct SkriftDesktopApp: App {
             // sync is deadlock-free: these never run on the main queue. The CPU-heavy
             // multipart parse stays off-main; only the DB touch is marshaled.
             listFilesJSON: {
-                DispatchQueue.main.sync {
+                // ENFORCE the "never on main" invariant the deadlock-freedom of
+                // this `.sync` depends on: if a future refactor ever routes a
+                // handler onto the main queue, this fires a clear crash instead
+                // of a silent deadlock (the comment above was the only guard).
+                dispatchPrecondition(condition: .notOnQueue(.main))
+                return DispatchQueue.main.sync {
                     MainActor.assumeIsolated {
                         let ctx = SharedStore.container.mainContext
                         let files = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
@@ -57,6 +62,7 @@ struct SkriftDesktopApp: App {
                     return .status(400, "Expected multipart/form-data")
                 }
                 let parts = MultipartParser.parse(req.body, boundary: boundary)
+                dispatchPrecondition(condition: .notOnQueue(.main))
                 return DispatchQueue.main.sync {
                     MainActor.assumeIsolated {
                         let ctx = SharedStore.container.mainContext
