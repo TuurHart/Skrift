@@ -890,6 +890,12 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
   large + bright (21 pt), neighbours dim by distance, **smooth auto-scroll** (centered, animated),
   soft edge fade, tap-a-line-to-seek. Loads the WHOLE covered prefix once (reloads only on coverage-
   frontier cross / file change) so scrolling is smooth, not jumpy. Device-owed re-look.
+- ✅ **Read-along "text lags behind voice"** (device feedback) — NOT an offset bug; latency. The
+  AVPlayer playhead (`session.currentTime`) only ticks every 0.5 s, so the lit line was quantized to
+  half-second steps and always trailed. Fixed: `ReadAlongView` now INTERPOLATES the playhead between
+  ticks (anchor + wall-elapsed × `session.rate`) on a 0.1 s timer, plus a small `lead` (0.2 s) for
+  Parakeet-TDT's slightly-late word timings, and a snappier highlight (0.18 s). Lit line now tracks
+  the narrator. `lead` is tunable if it reads early/late on device.
 
 #### Wave-2 DEVICE TEST 2026-06-13 (evening) — vocab + transcribe-book
 - ✅ **Custom vocab WORKS on device now** (user: "customs words are working"). Pre-warm-at-launch was

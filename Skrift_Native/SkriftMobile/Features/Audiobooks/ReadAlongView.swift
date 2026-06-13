@@ -1,16 +1,20 @@
 import SwiftUI
 
-/// The player's read-along panel — Spotify-lyrics style (player redesign +
-/// 2026-06-13 device feedback: "text smaller and jumps fast → make it more like
-/// Spotify lyrics"). Discrete sentence LINES; the current line is large + bright,
-/// neighbours dim by distance; the view auto-scrolls smoothly to keep the
-/// current line centered; edges fade. Tap a line to seek there.
+/// The player's read-along panel — Spotify-lyrics style. Discrete sentence
+/// LINES; the current line is large + bright, neighbours dim by distance; the
+/// view auto-scrolls smoothly to keep the current line centered; edges fade.
+/// Tap a line to seek there.
 ///
-/// Source = the wave-2 `BookTranscript` sidecar. The WHOLE covered prefix of the
-/// current file is loaded once (so scrolling is smooth — no per-tick reload); we
-/// only reload when the playhead crosses the coverage frontier (it may have
-/// grown) or the file changes. Un-chunked spot → the "transcribe to read along"
-/// nudge.
+/// SYNC (2026-06-13 device feedback "text lags behind voice"): the AVPlayer
+/// playhead (`session.currentTime`) only ticks every 0.5 s, so reading the line
+/// straight off it quantizes the highlight to half-second steps and always
+/// trails. We INTERPOLATE between ticks (anchor + wall-elapsed × rate) and
+/// re-evaluate ~10×/s, plus a small `lead` for Parakeet-TDT's slightly-late word
+/// timings — so the lit line tracks the narrator instead of lagging.
+///
+/// Source = the wave-2 `BookTranscript` sidecar; the whole covered prefix of the
+/// file is loaded once (reload only on coverage-frontier cross / file change) so
+/// scrolling is smooth. Un-chunked spot → the "transcribe to read along" nudge.
 @MainActor
 final class ReadAlongModel: ObservableObject {
     @Published private(set) var covered = false
@@ -21,31 +25,31 @@ final class ReadAlongModel: ObservableObject {
     private var loadedFileIndex = -1
     private var loadedUpTo: TimeInterval = -1
 
-    func update(book: Audiobook, fileIndex: Int, fileLocal: TimeInterval, audioURL: URL?) {
-        if fileIndex != loadedFileIndex || fileLocal > loadedUpTo {
-            reload(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
-        }
-        if !sentences.isEmpty {
-            let idx = sentences.lastIndex(where: { $0.start <= fileLocal }) ?? 0
-            if idx != currentIndex { currentIndex = idx }
-        }
-    }
-
-    private func reload(book: Audiobook, fileIndex: Int, fileLocal: TimeInterval, audioURL: URL?) {
+    /// Reload the sentence list if needed (file changed / playhead crossed the
+    /// coverage frontier). Does NOT touch `currentIndex` — that's driven finely
+    /// by `setCurrent`.
+    func reloadIfNeeded(book: Audiobook, fileIndex: Int, fileLocal: TimeInterval, audioURL: URL?) {
+        guard fileIndex != loadedFileIndex || fileLocal > loadedUpTo else { return }
         loadedFileIndex = fileIndex
         if let audioURL,
            let ft = store.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),
            ft.isCovered(upTo: fileLocal) {
             sentences = QuoteCaptureProcessor.buildSentences(from: ft.words, snappedStart: 0, snappedEnd: 0)
             covered = !sentences.isEmpty
-            loadedUpTo = ft.coveredUpTo            // reload when playhead passes the frontier
+            loadedUpTo = ft.coveredUpTo
         } else {
             sentences = []; covered = false
-            loadedUpTo = fileLocal + 2             // re-check ~2 s later (bg job may catch up)
+            loadedUpTo = fileLocal + 2
         }
     }
 
-    /// File-local start of sentence `i` (for tap-to-seek). nil if out of range.
+    /// Set the lit line to the last sentence that has started at `fileLocal`.
+    func setCurrent(fileLocal: TimeInterval) {
+        guard !sentences.isEmpty else { return }
+        let idx = sentences.lastIndex(where: { $0.start <= fileLocal }) ?? 0
+        if idx != currentIndex { currentIndex = idx }
+    }
+
     func startOf(_ i: Int) -> TimeInterval? {
         sentences.indices.contains(i) ? sentences[i].start : nil
     }
@@ -58,24 +62,46 @@ struct ReadAlongView: View {
     let audioURL: URL?
     let onTranscribe: () -> Void
 
+    @ObservedObject private var session = AudiobookSession.shared
     @StateObject private var model = ReadAlongModel()
 
-    /// Fixed so the player layout is stable across states; the lyrics scroll
-    /// internally within it.
+    /// Interpolation anchor: the playhead value (file-local) at the last real
+    /// 0.5 s tick, and the wall-clock when it landed.
+    @State private var anchorLocal: TimeInterval = 0
+    @State private var anchorWall = Date()
+
     private let panelHeight: CGFloat = 234
+    /// Nudge the highlight slightly ahead to cancel TDT's late word timings + the
+    /// render/animation beat, so it reads as in-sync. Tunable.
+    private let lead: TimeInterval = 0.2
+
+    private let tick = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         Group {
             if model.covered { lyrics } else { nudge }
         }
         .frame(height: panelHeight)
-        .onAppear { refresh() }
-        .onChange(of: fileLocal) { _, _ in refresh() }
-        .onChange(of: fileIndex) { _, _ in refresh() }
-    }
-
-    private func refresh() {
-        model.update(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
+        .onAppear {
+            anchorLocal = fileLocal; anchorWall = Date()
+            model.reloadIfNeeded(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
+            model.setCurrent(fileLocal: fileLocal + lead)
+        }
+        // Each real 0.5 s tick (or a scrub) re-anchors the interpolation + checks
+        // whether to reload the covered window.
+        .onChange(of: fileLocal) { _, v in
+            anchorLocal = v; anchorWall = Date()
+            model.reloadIfNeeded(book: book, fileIndex: fileIndex, fileLocal: v, audioURL: audioURL)
+        }
+        .onChange(of: fileIndex) { _, _ in
+            model.reloadIfNeeded(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
+        }
+        // Fine driver: interpolate between ticks so the line tracks the voice.
+        .onReceive(tick) { _ in
+            guard model.covered else { return }
+            let elapsed = session.isPlaying ? min(Date().timeIntervalSince(anchorWall) * session.rate, 0.6) : 0
+            model.setCurrent(fileLocal: anchorLocal + elapsed + lead)
+        }
     }
 
     // MARK: - Lyrics (transcribed)
@@ -84,7 +110,7 @@ struct ReadAlongView: View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(alignment: .leading, spacing: 13) {
-                    Color.clear.frame(height: panelHeight * 0.38)   // lets line 0 center
+                    Color.clear.frame(height: panelHeight * 0.38)
                     ForEach(model.sentences.indices, id: \.self) { i in
                         line(i).id(i)
                     }
@@ -93,11 +119,10 @@ struct ReadAlongView: View {
                 .padding(.horizontal, 2)
             }
             .onChange(of: model.currentIndex) { _, idx in
-                withAnimation(.easeInOut(duration: 0.45)) { proxy.scrollTo(idx, anchor: .center) }
+                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(idx, anchor: .center) }
             }
             .onAppear { proxy.scrollTo(model.currentIndex, anchor: .center) }
         }
-        // Spotify-style soft fade at the top/bottom edges.
         .mask(
             LinearGradient(stops: [
                 .init(color: .clear, location: 0),
@@ -125,7 +150,7 @@ struct ReadAlongView: View {
                 AudiobookSession.shared.seek(to: local + origin)
                 Haptics.tap()
             }
-            .animation(.easeInOut(duration: 0.3), value: model.currentIndex)
+            .animation(.easeInOut(duration: 0.18), value: model.currentIndex)
     }
 
     // MARK: - Nudge (not transcribed here)
