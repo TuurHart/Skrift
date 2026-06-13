@@ -82,10 +82,10 @@ struct ReadAlongView: View {
     @State private var lastRecheck = Date()
 
     private let panelHeight: CGFloat = 234
-    /// How far before the current line's audio END to flip to the next line —
-    /// covers Parakeet's late word-end times + the render beat so it reads as
-    /// in-sync (anticipatory at boundaries, like Spotify). Tunable.
-    private let lead: TimeInterval = 0.3
+    /// How far before the current line's audio END to flip to the next line. Small
+    /// now that the timings are drift-free + interpolated — just covers the render
+    /// beat. 0.3 read "a bit too early" on device; 0.1 sits in-sync. Tunable.
+    private let lead: TimeInterval = 0.1
 
     private let tick = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
@@ -156,10 +156,15 @@ struct ReadAlongView: View {
     private func line(_ i: Int) -> some View {
         let isCurrent = i == model.currentIndex
         let isPast = i < model.currentIndex
+        // UNIFORM font size + weight → the line height never changes, so advancing
+        // the highlight doesn't reflow/shove neighbours (the "words hustle" jump).
+        // Emphasis is a smooth `scaleEffect` (a transform — no layout reflow) +
+        // brightness, both animatable, anchored leading so the text doesn't shift.
         return Text(model.sentences[i].text)
-            .font(.system(size: isCurrent ? 21 : 17, weight: isCurrent ? .semibold : .regular))
+            .font(.system(size: 18, weight: .medium))
             .foregroundStyle(isCurrent ? Color.skText : (isPast ? Color.skTextFaint : Color.skTextDim))
-            .opacity(isCurrent ? 1 : (abs(i - model.currentIndex) == 1 ? 0.75 : 0.45))
+            .opacity(isCurrent ? 1 : (abs(i - model.currentIndex) == 1 ? 0.6 : 0.32))
+            .scaleEffect(isCurrent ? 1.08 : 1.0, anchor: .leading)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
@@ -169,7 +174,7 @@ struct ReadAlongView: View {
                 AudiobookSession.shared.seek(to: local + origin)
                 Haptics.tap()
             }
-            .animation(.easeInOut(duration: 0.18), value: model.currentIndex)
+            .animation(.easeInOut(duration: 0.3), value: model.currentIndex)
     }
 
     // MARK: - Nudge (not transcribed here)
