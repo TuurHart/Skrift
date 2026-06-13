@@ -206,6 +206,45 @@ mid-sentence pre-select rule + drop/affordance/legend (§7), cross-file confinem
   audio first** (`exportSpan` pattern) before the call. Chunk size/overlap must be
   chosen aware of FluidAudio's own internal ~15 s chunking.
 
+## 12. UX-pass v2 (two design critics — resolutions applied to the mock)
+Both critics independently caught the screen-2 purple-button misfire (a "please
+wait" screen whose brightest control launched the whole-book job) and a cluster on
+the Select screen. Rule adopted: **the brightest tappable element on a screen must
+BE its single intended action — never a heavy detour, always present when one
+exists.** Changes baked into `text-capture.html` v2:
+
+- **Select interaction redesigned for discoverability.** Every unselected line is
+  an obvious card with a **`+`**; tapping ANY of them extends the quote to cover it
+  (not just immediate neighbours — kills "didn't know you could tap"). Selected end
+  lines show a **`✕`** to drop (the shrink gesture now has a visible affordance —
+  was cursor-only, invisible on touch). The pre-picked line is **sandwiched**
+  between an add-able line above and the in-progress "playing here" line below (was
+  stranded at the bottom over a dead "…still reading" line). The "…still reading"
+  refusal is gone — the in-progress line is just add-able.
+- **CTA teaches before it ships.** "Use as quote" starts **tonal/outline** and only
+  goes solid-purple **after the first interaction**, so the sentence list wins the
+  hierarchy until you've engaged (defuses confirm-and-leave-never-learning).
+- **Instruction reworded** to match the pre-selected state + name both actions
+  ("We grabbed the line you just heard — tap + to add the ones around it").
+- **Footer de-cluttered:** removed the dead `✎ adjust on audio` link (v1-deferred,
+  and "audio/fine-tune" is the vocab that confused testers); "Hear selection" is a
+  tertiary text link, single primary button.
+- **Place-preservation** reassurance ("● Paused here — your place is saved") now on
+  the Select screen too (was only on Warming).
+- **Warming (screen 2):** stripped to spinner + one line + "place saved"; the
+  whole-book offer is a small **underlined text link at the bottom**, NOT a purple
+  button.
+- **Transcribe (screen 3):** the load-bearing message "**Keep listening — capture
+  already works for the done parts**" is now the prominent lede (was buried under
+  the %); % + bar demoted; explicit "Keep listening" + "Pause" (both secondary
+  grey); "leave any time, keeps running" stated.
+- **Settings (screen 4):** segment now defaults to **Audio** (matches §2; was
+  wrongly showing Text selected). NB the real A/B arm is *assigned*, not this toggle
+  (§11).
+- **No-speech (screen 5):** primary is now **"Pick another moment"** (don't
+  dead-end into the audio mode they may have fled); "use audio capture instead" is
+  the secondary link.
+
 ## 10. Process
 - **Mock first** (locked process), sign-off, then build.
 - **Mobile-first** (the player + capture live on the phone). NB: the capture
