@@ -829,3 +829,35 @@ NOT DONE, with reasons:
 - Desktop trash mirror, source-taxonomy unification pass, desktop A-list perf nits (multipart RAM cap,
   main.sync bridge, desktop real-timings karaoke, parity golden tests) — pre-existing backlog, untouched.
 - Re-ingest ~30 old notes + "transcription a bit weird" — with-user sessions.
+
+#### Text-first audiobook capture — DESIGNED + WAVE 1 BUILT 2026-06-13 (installed on the phone)
+Trigger: real (non-builder) testers couldn't use the shipped Hybrid audio-marking capture
+(didn't get in/out marks, too many buttons, didn't know sentences were tappable). Designed a
+**text-first** alternative WITH the user + 2 verification agents (code-reality + locked-decisions)
++ 2 UX critics (caught the warming-screen purple-button misfire — "brightest element must be the
+one intended action"). Full design + all decisions/nuances: `SkriftDesktop/mocks/text-capture-DESIGN.md`;
+signed-off interactive mock: `mocks/text-capture.html`.
+
+**LOCKED design points:** ships ALONGSIDE audio mode (A/B, Settings → Audiobooks Audio·Text toggle,
+default Audio), surgically removable; the isolation seam is the `QuoteCaptureOutput` (Text mode emits
+a GLOBAL span → SAME processor/sheet/save/sync/export). Tap-+-to-add / ✕-to-drop sentence select;
+last line pre-picked; scroll (no button); "Hear selection" plays the span at 1.5×; warming screen is
+just a wait (whole-book offer is a bottom link, NOT a button); no-speech = tiny "back to book"; no
+false "place saved" reassurance. 35 s = one-time engine WARM-UP (not inference; ~1 s warm/screen).
+Chunking = the path; **resumability locked** (chunk sidecar IS the resume state; discard the in-flight
+half-chunk; pause-on-unplug/auto-resume). Whole-book transcribe = best overnight/plugged; ≈X-min/hr
+estimate is a PLACEHOLDER pending real phone measurement.
+
+**WAVE 1 BUILT (commit + installed):** the toggle, `TextCaptureView` (sentence-select),
+`QuoteCaptureProcessor.transcribeWindowForDisplay`, the router in `QuoteCaptureFlowView` (both modes →
+`confirmCapture(_:span:)`). 343 unit (+7 TextCaptureTests) + 38 UI green. Real transcription is
+device-owed (no audiobook UI harness in the sim).
+**OWED — DEVICE TEST (put it in front of the same testers):** flip Settings → Audiobooks → Text;
+in a book, hit Capture → sentence-select; the two things to watch — (1) does +/✕ read as tappable
+WITHOUT being told? (2) does the pre-pick + sandwich make EXTENDING feel natural, or do they just
+confirm one line? If +/✕ still isn't instant, next lever = a one-time coachmark.
+**WAVE 2 (deferred until the A/B validates the UX):** `BookTranscript` sidecar + chunker (silence-cut +
+overlap + sentence-splice fusion, absolute→file-local times) + resumable overnight transcribe job +
+the transcribe-book button + instant-capture-from-sidecar + pre-warm-on-book-open. Measure the real
+per-hour transcribe speed on the phone to replace the placeholder. Multi-file/chapter-boundary
+confinement is already code-enforced (`QuoteCaptureProcessor:69-76`) — keep it.
