@@ -923,11 +923,13 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
     tracking playback on a transcribed book, nudge on an un-transcribed one, bookmark drop+toast,
     Chapters/Bookmarks sheet jump + swipe-delete.
   - **GATES:** app builds (sim + device) ✓; **396 unit tests green** (incl. 6 bookmark); device build
-    ✓ + INSTALLED. The full XCUITest suite did NOT complete — the host hit load avg ~80-92 (this
-    session's many concurrent builds) and the UI-test RUNNER got SIGTERM'd at launch ("preflight
-    checks failed / Busy" / "signal term"), so 0 UI tests RAN (not assertion failures; no
-    audiobook-player UI tests exist anyway). Re-run `-only-testing:SkriftMobileUITests` once the
-    machine is idle for a clean UI gate (it passed `testLightModeScreens` cleanly earlier post-erase).
+    ✓ + INSTALLED. UI suite (re-run at low load): 36/38 ran-and-passed; the 2 failures
+    (`testEnrolledPersonAutoLabeledOnSplit`, `testSplitSpeakersButtonSplitsIntoTurns` — both
+    speaker-diarization, UNRELATED to the player/library/widget changes) fail on the fresh-erased-sim
+    permission-dialog + onboarding wall (`allow-media`/`allow-location`/`get-started-button`), not an
+    assertion — they passed earlier this session on a stateful sim (412-green). No UI tests exercise
+    the changed audiobook player/library/widget surfaces. (Earlier mass UI failures were the host at
+    load ~80 SIGTERM-ing the runner; resolved once load dropped.)
 - Note: charging-state can lag a second after plugging in mid-run (iOS `batteryStateDidChange`
   latency); self-corrects. Acceptable.
 
