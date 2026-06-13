@@ -43,10 +43,14 @@ final class ReadAlongModel: ObservableObject {
         }
     }
 
-    /// Set the lit line to the last sentence that has started at `fileLocal`.
+    /// Set the lit line. Advance at the END of the current sentence rather than
+    /// the START of the next: the first sentence that hasn't finished yet. So the
+    /// next line lights up the moment the current one's audio ends — riding
+    /// through any inter-sentence pause and not waiting on Parakeet's
+    /// slightly-late next-start time (the "trails the voice" fix, 2026-06-13).
     func setCurrent(fileLocal: TimeInterval) {
         guard !sentences.isEmpty else { return }
-        let idx = sentences.lastIndex(where: { $0.start <= fileLocal }) ?? 0
+        let idx = sentences.firstIndex(where: { fileLocal < $0.end }) ?? (sentences.count - 1)
         if idx != currentIndex { currentIndex = idx }
     }
 
@@ -71,9 +75,10 @@ struct ReadAlongView: View {
     @State private var anchorWall = Date()
 
     private let panelHeight: CGFloat = 234
-    /// Nudge the highlight slightly ahead to cancel TDT's late word timings + the
-    /// render/animation beat, so it reads as in-sync. Tunable.
-    private let lead: TimeInterval = 0.2
+    /// How far before the current line's audio END to flip to the next line —
+    /// covers Parakeet's late word-end times + the render beat so it reads as
+    /// in-sync (anticipatory at boundaries, like Spotify). Tunable.
+    private let lead: TimeInterval = 0.3
 
     private let tick = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
