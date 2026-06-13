@@ -894,8 +894,18 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
   transcribe; instead had to open book → ⋯. Add a context menu (and/or surface it better).
 - ⏳ **UX — Control Center "record" shortcut icon = generic mic; make it the app icon.** Control
   Center widget / App Shortcut glyph. Minor.
-- ⏳ **Audiobook player UI redesign** — user dislikes the current player look; wants references +
-  mockups before any build (mock-first). Researching Audible/Libby/Apple Books/Bound; mockup pass next.
+- ✅ **Audiobook player UI redesign — DESIGN SIGNED OFF 2026-06-13** (grill-me). Spec mock:
+  `Skrift_Native/SkriftDesktop/mocks/audiobook-player-redesign.html`. Direction = **text-forward
+  A+D hybrid**: warm cover-derived tint header; cover demoted to a 56px chip; **live read-along text
+  is the hero**, current line lit (reuse `Karaoke.activeWordIndex` on the sidecar word-timings); `Ch
+  N/M` pill; speed◁ transport ▷sleep; slim **Chapters + Bookmark** icon row above a hero **Capture
+  this** pill. Un-transcribed spot → **"Transcribe this book to read along →" nudge** (routes to
+  `TranscribeBookView` — the player sells the transcribe feature). No read-along on/off toggle (v1).
+  Resolved via grill: feature set = bookmarks + surfaced chapters (NOT AirPlay — Control Center
+  covers it; NOT skip-silence/EQ). **Bookmark = NET-NEW, lightweight:** tap drops a marker (global
+  position + chapter + timestamp), haptic + toast; list in the Chapters sheet under a Bookmarks tab
+  (jump / swipe-delete); Capture stays the rich save. **NEXT = implement** on `AudiobookPlayerView`
+  (+ a TOC/bookmarks sheet, a tiny per-book bookmarks store). Mock-first step done.
 - Note: charging-state can lag a second after plugging in mid-run (iOS `batteryStateDidChange`
   latency); self-corrects. Acceptable.
 

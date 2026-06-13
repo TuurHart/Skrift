@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — audiobook player redesign (text-forward A+D hybrid)</title>
+<style>
+  :root{
+    --bg:#0C0C12; --warm:#16110C; --warmcard:#15120D; --surface:#17171F; --elev:#23232E;
+    --accent:#7E74F0; --text:#F3F3F7; --dim:#9A9AA8; --faint:#6A6A78; --tan:#C9A87C; --cover:#C9B79A;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#050507; color:#E8E8EE; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:28px;}
+  h1{font-size:20px; font-weight:600; margin:0 0 4px;}
+  .sub{color:#8A8A96; margin:0 0 22px; max-width:760px;}
+  .row{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .label{font-size:12px; color:#8A8A96; letter-spacing:.3px;}
+  .phone{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px; overflow:hidden;}
+  .top{display:flex; align-items:center; justify-content:space-between; color:#7E7E8C; margin-bottom:14px;}
+  .nowp{font-size:11px; letter-spacing:1px; color:var(--faint);}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--accent); display:inline-block;}
+  .pill-ch{font-size:11px; color:var(--tan); background:rgba(201,168,124,.14); padding:3px 10px; border-radius:20px;}
+  .scrub{height:3px; background:#24242C; border-radius:2px; position:relative; margin-bottom:7px;}
+  .scrub>.fill{position:absolute; left:0; top:0; height:3px; width:26%; background:var(--accent); border-radius:2px;}
+  .scrub>.knob{position:absolute; left:26%; top:-4px; width:11px; height:11px; background:#fff; border-radius:50%; transform:translateX(-5px);}
+  .times{display:flex; justify-content:space-between; font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums;}
+  .transport{display:flex; align-items:center; justify-content:center; gap:22px;}
+  .play{width:56px; height:56px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px;}
+  .ic{font-size:24px; color:#E8E8EE;}
+  .util{display:flex; justify-content:center; gap:10px;}
+  .util>span{font-size:12px; color:#B8B8C2; background:var(--surface); padding:7px 14px; border-radius:11px;}
+  .cap{background:var(--accent); border-radius:15px; padding:15px; display:flex; align-items:center; justify-content:center; gap:9px; color:#fff; font-weight:500; font-size:15px;}
+  .coverchip{width:56px; height:56px; border-radius:9px; background:var(--cover); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:8px; color:#2C2C2A; font-weight:600; text-align:center;}
+  .notes{max-width:760px; margin-top:30px; color:#B8B8C2; font-size:14px; line-height:1.7;}
+  .notes h2{font-size:16px; color:#E8E8EE; margin:20px 0 6px;}
+  .notes code{background:#1A1A24; padding:1px 6px; border-radius:5px; font-size:13px;}
+  /* tab bar for the sheet */
+  .tabs{display:flex; gap:8px; margin-bottom:14px;}
+  .tabs>span{flex:1; text-align:center; font-size:13px; padding:8px; border-radius:10px;}
+  .tab-on{background:var(--elev); color:var(--text); font-weight:500;}
+  .tab-off{color:var(--dim);}
+  .listrow{display:flex; justify-content:space-between; align-items:center; padding:11px 2px; border-bottom:.5px solid #20202A; font-size:14px;}
+  .listrow .meta{color:var(--faint); font-size:12px; font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+<h1>Skrift — audiobook player redesign</h1>
+<p class="sub">Text-forward (A+D hybrid). Signed off via grill 2026-06-13. The read-along text is the hero; the cover is demoted to a header chip; warm cover-derived tint; one hero <strong>Capture this</strong>. Speed + sleep flank the transport; a slim Chapters + Bookmark row sits above Capture. AirPlay (Control Center covers it) and skip-silence/EQ are out of scope.</p>
+
+<div class="row">
+
+  <!-- STATE 1 — transcribed: read-along -->
+  <div class="col">
+    <div class="label">1 · Transcribed → read-along (default)</div>
+    <div class="phone">
+      <div style="background:var(--warm); padding:14px 18px 16px;">
+        <div class="top"><i style="font-size:20px;">⌄</i><span class="nowp">NOW PLAYING</span><i style="font-size:20px;">⋯</i></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="coverchip">DO THE<br>WORK</div>
+          <div style="min-width:0; flex:1;">
+            <div style="font-size:16px; font-weight:500; color:var(--text);">Do the Work</div>
+            <div style="font-size:12px; color:var(--dim);">Steven Pressfield</div>
+          </div>
+          <span class="pill-ch">Ch 3 / 6</span>
+        </div>
+      </div>
+      <div style="padding:16px 20px 18px;">
+        <div style="font-size:17px; line-height:1.72; margin-bottom:12px;">
+          <span style="color:#3F3F48;">Are you a born writer? </span>
+          <span style="color:#55504A;">Were you put on earth to be a painter, a scientist, an apostle of peace? </span>
+          <span style="color:#F2F2F7;">In the end the question can only be answered by action.</span>
+          <span style="color:#6E6E7A;"> Do it or don't do it.</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; color:#5C5C68; font-size:11px; margin-bottom:16px;"><span class="dot"></span> reading now</div>
+        <div class="scrub"><div class="fill"></div><div class="knob"></div></div>
+        <div class="times" style="margin-bottom:14px;"><span>1:55</span><span>−11:37</span></div>
+        <div class="transport" style="margin-bottom:14px;">
+          <span style="font-size:12px; color:var(--dim); width:22px; text-align:center;">1×</span>
+          <i class="ic">⟲</i><div class="play">▶</div><i class="ic">⟳</i>
+          <i style="font-size:17px; color:var(--dim); width:22px; text-align:center;">☾</i>
+        </div>
+        <div class="util" style="margin-bottom:14px;"><span>≡ Chapters</span><span>🔖 Bookmark</span></div>
+        <div class="cap">❝ Capture this</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 2 — not transcribed: nudge -->
+  <div class="col">
+    <div class="label">2 · Not transcribed → nudge</div>
+    <div class="phone">
+      <div style="background:var(--warm); padding:14px 18px 16px;">
+        <div class="top"><i style="font-size:20px;">⌄</i><span class="nowp">NOW PLAYING</span><i style="font-size:20px;">⋯</i></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="coverchip">DO THE<br>WORK</div>
+          <div style="min-width:0; flex:1;">
+            <div style="font-size:16px; font-weight:500; color:var(--text);">Do the Work</div>
+            <div style="font-size:12px; color:var(--dim);">Steven Pressfield</div>
+          </div>
+          <span class="pill-ch">Ch 3 / 6</span>
+        </div>
+      </div>
+      <div style="padding:16px 20px 18px;">
+        <div style="border:1px dashed #2E2E38; border-radius:14px; padding:20px 16px; text-align:center; margin-bottom:16px;">
+          <div style="font-size:14px; color:var(--dim); margin-bottom:10px;">Transcribe this book to read along<br>and capture from anywhere.</div>
+          <span style="font-size:13px; color:var(--accent); font-weight:500;">Transcribe book →</span>
+        </div>
+        <div class="scrub"><div class="fill"></div><div class="knob"></div></div>
+        <div class="times" style="margin-bottom:14px;"><span>1:55</span><span>−11:37</span></div>
+        <div class="transport" style="margin-bottom:14px;">
+          <span style="font-size:12px; color:var(--dim); width:22px; text-align:center;">1×</span>
+          <i class="ic">⟲</i><div class="play">▶</div><i class="ic">⟳</i>
+          <i style="font-size:17px; color:var(--dim); width:22px; text-align:center;">☾</i>
+        </div>
+        <div class="util" style="margin-bottom:14px;"><span>≡ Chapters</span><span>🔖 Bookmark</span></div>
+        <div class="cap">❝ Capture a quote</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 3 — chapters sheet w/ bookmarks tab -->
+  <div class="col">
+    <div class="label">3 · Chapters / Bookmarks sheet</div>
+    <div class="phone" style="border-radius:24px;">
+      <div style="padding:18px 20px 22px;">
+        <div style="width:36px; height:4px; border-radius:2px; background:#33333D; margin:0 auto 16px;"></div>
+        <div class="tabs"><span class="tab-on">Chapters</span><span class="tab-off">Bookmarks</span></div>
+        <div class="listrow"><span style="color:var(--dim);">01 · Resistance</span><span class="meta">0:00</span></div>
+        <div class="listrow"><span style="color:var(--dim);">02 · The Enemy</span><span class="meta">22:14</span></div>
+        <div class="listrow"><span style="color:var(--text);">✓ 03 · Beginning</span><span class="meta">1:04:00</span></div>
+        <div class="listrow"><span style="color:var(--dim);">04 · Action</span><span class="meta">1:38:20</span></div>
+        <div style="height:18px;"></div>
+        <div class="tabs"><span class="tab-off">Chapters</span><span class="tab-on">Bookmarks</span></div>
+        <div class="listrow"><span style="color:var(--text);">🔖 Ch 3 · "answered by action"</span><span class="meta">1:16:33</span></div>
+        <div class="listrow"><span style="color:var(--text);">🔖 Ch 2 · marker</span><span class="meta">0:41:09</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="notes">
+  <h2>Build notes</h2>
+  <p>• <strong>Read-along text</strong> reads from the wave-2 <code>BookTranscript</code> sidecar for the playhead window; the <strong>current line</strong> uses the existing karaoke highlight (<code>Karaoke.activeWordIndex</code> on the word-timings) lifted from memo detail. Past lines fade, a hint of upcoming text trails. No on/off toggle in v1.</p>
+  <p>• <strong>Nudge</strong> shows when the spot isn't chunked yet → routes to the existing <code>TranscribeBookView</code>. This is the growth loop: the player sells the transcribe feature.</p>
+  <p>• <strong>Capture</strong> stays the bottom hero, label "Capture this" (text shown) / "Capture a quote" (nudge state). Same <code>QuoteCaptureFlowView</code> seam — unchanged.</p>
+  <p>• <strong>Speed</strong> (left) + <strong>sleep</strong> (right) flank the transport; both already wired (<code>AudiobookSession.setRate</code> / <code>setSleep</code>).</p>
+  <p>• <strong>Chapters</strong> promoted out of the ⋯ menu into the slim row → opens the TOC sheet (already have <code>chapters</code> + <code>displayChapterTitles</code> + <code>seek</code>).</p>
+  <p>• <strong>Bookmark</strong> = NET-NEW, lightweight: tap drops a marker (global position + chapter label + timestamp), haptic + toast. List lives in the sheet under a <strong>Bookmarks</strong> tab (jump on tap, swipe-delete). NO audio/text — Capture remains the rich save. Persist next to the library (small JSON, per book).</p>
+  <p>• Out of scope: AirPlay/output button (Control Center + lock screen cover it), skip-silence, EQ/voice-boost.</p>
+</div>
+</body>
+</html>
