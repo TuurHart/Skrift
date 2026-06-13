@@ -750,10 +750,17 @@ OUTSTANDING (later, off the board):
   seeding skipped (unit tests cover the logic); real third-party share payloads untested.
 - QoL: drag-multi-select on the memos list (swipe-delete done); record-a-sample voice enroll in Names &
   voices; desktop unlink popover "Change to → <person>"; karaoke playback-grid spacing tune (P2).
-- Audit nits (non-blocking): desktop — silent sidecar try? writes, 256 MB multipart RAM buffering,
-  main.sync SwiftData bridge, health vs model idle-unload; mobile — recorder deinit hygiene, silent-video
-  import feedback. Desktop handoff A-list overlaps (model-unload idle timer, desktop real-timings karaoke,
-  parity golden tests).
+- ✅ Audit nits — RECONCILED 2026-06-13 (verified each against CURRENT code + live on the fixture; the
+  "open" citations were stale, written mid-desktop-track and never reconciled after the fixes landed):
+  desktop sidecar try? writes (logged), 256 MB cap + early 413 (done), main.sync bridge (marshaled to
+  main + NOW guarded by `dispatchPrecondition(.notOnQueue(.main))`), model idle-unload (real `unload()`
+  fires 60 s idle — proven: idle `/health` returns available:false), real word_timings→karaoke (done,
+  `BatchRunner:40`; runfile logs `word_timings: 90` on the two-Jacks fixture), `/health` truthful
+  (`isModelReadySync`, not hardcoded), parity golden tests (`UnlinkTests`/`CompilerTests` cover it),
+  HEIC→JPG (ImageIO now, fallback recomputes the md ref — old `sips` nit gone), snapshot try? (now
+  logs write FAILED). Mobile — recorder deinit (belt-and-braces inline), silent-video import (titles
+  "Video had no audio track"), photo-marker drift + confidence colours (fixed this wave). Commit dd…
+  (`harden(desktop)`). NOTHING in this list is still open.
 - With-user sessions: re-ingest ~30 old notes (`~/Desktop/Skrift old notes/`, prod quit, real vault);
   "transcription a bit weird" cold-start (parked unless seen again).
 - Deferred ideas: watched-folder ingest; summary prompt quality pass; tag lemma expansion; north-star
