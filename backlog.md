@@ -1095,13 +1095,15 @@ player**, **read-along sync** (`ReadAlongView.lead` 0.1 s is the dial), and the 
 book first (schema-2 sidecar). If read-along reads early/late, say which → tune `lead` (+ desktop
 `-readalongcheck` to separate data-drift from offset).
 
-✅ BUILT 2026-06-14 (gating) — **no back-limit on the build-your-quote selection** (`MergedCaptureView`): an
-"Earlier ↑" control at the top of the list extends the range further back, anchored at the capture point
-(backward only). **Transcribed book** → loads the file's full covered prefix from the sidecar (file-local
-times, safe to query from 0) and reveals **+8** sentences/tap, unlimited to the file start; the default view
-is still the last ~90 s. **Un-chunked spot** → "Earlier" re-transcribes ~60 s more/tap (≈4 sentences), swaps
-in the larger buffer, and remaps `sel` by the delta (re-anchors to the capture line if untouched, to dodge
-seam re-segmentation). Compiles; device-eyeball owed.
+✅ BUILT 2026-06-14 — **bidirectional build-your-quote** (`MergedCaptureView`). FIRST attempt built it the
+WRONG way (an "Earlier ↑" backward-only control) — the user meant "scroll DOWN / select AFTER the tap"
+("i cannot scroll down. only allows selection from before capture point"). Corrected: the tapped line is the
+pre-picked anchor parked in the MIDDLE, with content BEFORE and AFTER — scroll up to quote earlier, down to
+quote later (past the tap; the post-pause audio exists in the file). **Transcribed book** → loads the whole
+covered file from the sidecar (`fileTranscript().words`, file-local times) — no fixed limit either way.
+**Un-chunked spot** → transcribes a window spanning both sides (≈90 s back … ≈45 s forward); beyond that,
+transcribe the book. Free scroll (no load-more buttons — the content's all there). `sel` defaults to the
+tapped line + auto-scrolls to it. Compile + unit gate green; device-eyeball owed.
 
 #### Audit 2026-06-14 — P1 bugs + build-ready features verified against code (read-only agent)
 Most of the old P1 list is ALREADY FIXED (code + a doc comment naming the original bug); device re-verify only:
