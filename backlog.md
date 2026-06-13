@@ -904,8 +904,18 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
   Resolved via grill: feature set = bookmarks + surfaced chapters (NOT AirPlay — Control Center
   covers it; NOT skip-silence/EQ). **Bookmark = NET-NEW, lightweight:** tap drops a marker (global
   position + chapter + timestamp), haptic + toast; list in the Chapters sheet under a Bookmarks tab
-  (jump / swipe-delete); Capture stays the rich save. **NEXT = implement** on `AudiobookPlayerView`
-  (+ a TOC/bookmarks sheet, a tiny per-book bookmarks store). Mock-first step done.
+  (jump / swipe-delete); Capture stays the rich save. Mock-first step done.
+  - ✅ **BUILT 2026-06-13** (autonomous): `Bookmark.swift` (model + `BookmarkStore`, per-book JSON,
+    near-dupe guard, 6 unit tests); `ChaptersBookmarksSheet.swift` (Chapters | Bookmarks tabs);
+    `ReadAlongView.swift` (sidecar-fed read-along, current line lit via cached window + per-tick
+    recompute; nudge when un-chunked → TranscribeBookView); `AudiobookPlayerView` rewritten to the
+    text-forward layout (cover-tint header from `UIImage.averageColor`, 56px cover chip, Ch N/M pill,
+    speed◁/sleep▷ flanking transport, slim Chapters+Bookmark row, hero "Capture this"). Chapters
+    removed from the ⋯ menu (now the sheet + slim row). App builds, bookmark unit tests green.
+  - **DEVICE-OWED:** visual check (no headless iOS screenshot) + the read-along is only real on a
+    transcribed book (sim has no ANE → shows the nudge). Verify: cover-tint band, read-along lit line
+    tracking playback on a transcribed book, nudge on an un-transcribed one, bookmark drop+toast,
+    Chapters/Bookmarks sheet jump + swipe-delete.
 - Note: charging-state can lag a second after plugging in mid-run (iOS `batteryStateDidChange`
   latency); self-corrects. Acceptable.
 

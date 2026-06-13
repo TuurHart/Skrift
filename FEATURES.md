@@ -112,6 +112,17 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | **Wave 2 — pre-warm on book-open** | ✅ | n/a | `AudiobookPlayerView.prewarmIfUseful` | Text mode + un-chunked playhead spot → warm the engine on player-open (background) so the 35 s warming screen rarely shows; skipped when the spot is already chunked (capture is instant, warming would just pin memory). Live capture also pauses the bg job (`QuoteCaptureFlowView`) |
 | **Wave 2 — real per-device speed** | ✅ | n/a | `BookTranscriptionJob` measured RTF (persisted) → `TranscribeBookView` estimate | Job times each chunk → live real-time factor, persisted; the sheet shows "≈ N min left"/"≈ N min per hour" from the MEASUREMENT (placeholder removed; nothing shown until a device rate exists). Per-chunk timing also DevLog'd. Mac `-asrbench`: ~100–134× realtime (inference is tiny vs audio); phone absolute number device-measured |
 
+## Audiobook player — text-forward redesign *(A+D hybrid)* — built 2026-06-13
+
+Signed-off mock: `Skrift_Native/SkriftDesktop/mocks/audiobook-player-redesign.html`.
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Read-along text panel | ✅ | n/a | `Features/Audiobooks/ReadAlongView.swift` (+ `BookTranscriptStore.fileTranscript`) | The hero: narration around the playhead from the wave-2 sidecar, CURRENT sentence lit (past fades, a little upcoming trails). Window cached; lit line recomputed per 0.5 s tick (disk I/O only on window change). Un-chunked spot → "Transcribe to read along" nudge → `TranscribeBookView` (growth loop). Real text device-owed (sim has no ASR) |
+| Player relayout | ✅ | n/a | `Features/Audiobooks/AudiobookPlayerView.swift` | Cover-tint header (`UIImage.averageColor`, darkened to the cover's hue) + 56 px cover chip + `Ch N/M` pill; speed◁ ⟲15 ▶ 15⟳ ▷sleep; slim Chapters + Bookmark row; hero "Capture this". Swipe-down dismiss + capture seam preserved |
+| Bookmarks (lightweight) | ✅ | n/a | `Services/Audiobooks/Bookmark.swift` (`AudiobookBookmark` + `BookmarkStore`) | Tap Bookmark → drops a marker (global position + chapter label + timestamp), haptic + toast, near-dupe guard (±2 s). Per-book `bookmarks.json`, atomic. NOT a rich save — Capture is that. 6 unit tests |
+| Chapters / Bookmarks sheet | ✅ | n/a | `Features/Audiobooks/ChaptersBookmarksSheet.swift` | TOC sheet, Chapters | Bookmarks tabs. Chapters promoted out of the ⋯ menu (couldn't find them there) → tap to seek, current marked. Bookmarks: tap to jump, swipe to delete |
+
 ## Audiobook quote-capture *(mobile player + capture; desktop pipeline)* — built 2026-06-11
 
 | Capability | Mobile | Desktop | Key files | Notes |

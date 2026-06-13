@@ -63,6 +63,12 @@ struct BookTranscriptStore: Sendable {
         try data.write(to: sidecarURL(bookID: bookID, fileIndex: ft.fileIndex), options: .atomic)
     }
 
+    /// The freshest (staleness-checked) file transcript, or nil. Used by the
+    /// player's read-along to query both coverage and the words around the playhead.
+    func fileTranscript(bookID: UUID, fileIndex: Int, audioURL: URL) -> FileTranscript? {
+        load(bookID: bookID, fileIndex: fileIndex, expectedSignature: signature(forFileAt: audioURL))
+    }
+
     // MARK: - Capture read
 
     /// Words in `[start, end]` (FILE-LOCAL) IF the sidecar fully covers the window
