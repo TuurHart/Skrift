@@ -205,6 +205,43 @@ struct QuoteCaptureProcessor {
         )
     }
 
+    /// Wave-2 INSTANT capture: build the output from sidecar sentences (whose
+    /// times are FILE-LOCAL — there is no per-capture window buffer). The quote
+    /// audio is exported straight from the book file (design §2), and
+    /// `bufferAudioURL` self-references the quote temp: text mode skips trim so
+    /// it's never re-read, and the saver MOVES the quote away, so the flow's
+    /// cleanup of that (now-absent) path is a harmless no-op. Crucially we never
+    /// hand the BOOK FILE as `bufferAudioURL` — the flow deletes it on dismiss.
+    func buildOutputFromSidecar(bookAudio: URL, sentences: [BufferSentence],
+                                lo: Int, hi: Int, fileOrigin: TimeInterval) async throws -> QuoteCaptureOutput {
+        guard sentences.indices.contains(lo), sentences.indices.contains(hi), lo <= hi else {
+            throw QuoteCaptureError.noSpeech
+        }
+        let selected = Array(sentences[lo...hi])
+        let selStart = selected[0].start                 // file-local
+        let selEnd = selected[selected.count - 1].end
+        guard selEnd > selStart else { throw QuoteCaptureError.noSpeech }
+
+        let quoteURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quote_\(UUID().uuidString).m4a")
+        try await Self.exportSpan(of: bookAudio, start: selStart, end: selEnd, to: quoteURL)
+
+        let quote = QuoteFormatting.blockquote(selected.map(\.text).joined(separator: " "))
+        let rebased = selected.flatMap(\.words).map {
+            WordTiming(word: $0.word, start: max(0, $0.start - selStart), end: max(0, $0.end - selStart))
+        }
+        return QuoteCaptureOutput(
+            quote: quote,
+            spanStart: selStart + fileOrigin, spanEnd: selEnd + fileOrigin,
+            audioURL: quoteURL,
+            duration: max(0, selEnd - selStart),
+            wordTimings: rebased,
+            bufferSentences: sentences,
+            bufferAudioURL: quoteURL,   // safe: saver moves it, cleanup no-ops (see doc)
+            bufferOffset: 0
+        )
+    }
+
     /// Partition buffer word timings into sentences, marking each as initially
     /// "in" the quote if it overlaps the snapped span.
     nonisolated static func buildSentences(

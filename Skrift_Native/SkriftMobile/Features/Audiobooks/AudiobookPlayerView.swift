@@ -13,6 +13,8 @@ struct AudiobookPlayerView: View {
 
     @State private var showCapture = false
     @State private var showEditBook = false
+    @State private var showTranscribe = false
+    private let transcripts = BookTranscriptStore()
     /// While the finger is on the scrubber: the candidate time (seek on release).
     @State private var scrubTime: TimeInterval?
     /// Live vertical displacement of the swipe-down-to-dismiss drag.
@@ -39,8 +41,36 @@ struct AudiobookPlayerView: View {
                     .presentationDetents([.medium])
             }
         }
+        .sheet(isPresented: $showTranscribe) {
+            if let book = session.book {
+                TranscribeBookView(book: book)
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("audiobook-player")
+        // Pre-warm the ASR engine on book-open in Text mode (design §4) so the
+        // capture warming screen rarely shows — BUT only when the current spot
+        // isn't already chunked (a chunked spot captures with no engine, so
+        // warming would just pin memory for nothing).
+        .task(id: session.book?.id) { await prewarmIfUseful() }
+    }
+
+    /// Warm the engine when an immediate capture here would need it (Text mode,
+    /// un-chunked spot). Best-effort + background; skipped on the seeded sim path.
+    private func prewarmIfUseful() async {
+        guard AudiobookCaptureStyle.current == .text,
+              LaunchFlags.seedTranscript == nil,
+              let book = session.book else { return }
+        let global = session.currentTime
+        let fileIndex = book.fileIndex(at: global)
+        let bounds = book.fileBounds(at: global)
+        let endLocal = min(max(0, global - bounds.start), bounds.length)
+        let startLocal = max(0, endLocal - 90)
+        let audioURL = session.store.audioURL(of: book, fileIndex: fileIndex)
+        let chunked = transcripts.coveredWindowWords(
+            bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, start: startLocal, end: endLocal) != nil
+        guard !chunked else { return }
+        Task { try? await TranscriptionService.shared.ensureLoaded() }
     }
 
     private func content(_ book: Audiobook) -> some View {
@@ -187,6 +217,16 @@ struct AudiobookPlayerView: View {
                     showEditBook = true
                 } label: {
                     Label("Edit book details", systemImage: "pencil")
+                }
+                // Whole-book pre-transcribe → instant text-capture anywhere. Only
+                // useful in Text capture mode (the sidecar feeds it); hidden in
+                // Audio mode so it isn't dead UI.
+                if AudiobookCaptureStyle.current == .text {
+                    Button {
+                        showTranscribe = true
+                    } label: {
+                        Label("Transcribe book", systemImage: "text.book.closed")
+                    }
                 }
                 Button(role: .destructive) {
                     session.endSession()

@@ -75,6 +75,11 @@ struct QuoteCaptureFlowView: View {
             }
         }
         .task {
+            // Yield the engine to this capture: pause any background whole-book
+            // transcribe so an un-chunked (wave-1 fallback) window isn't stuck
+            // behind a chunk. Harmless when the job is idle or the spot is
+            // already chunked (then capture uses no engine). Resumed on dismiss.
+            BookTranscriptionJob.shared.suspendForCapture()
             // Warm the ASR model the moment the capture flow opens — the span
             // transcription after Confirm then takes seconds instead of a
             // cold-start wait. Skipped on the seeded sim/UI-test path.
@@ -82,6 +87,7 @@ struct QuoteCaptureFlowView: View {
                 Task { try? await TranscriptionService.shared.ensureLoaded() }
             }
         }
+        .onDisappear { BookTranscriptionJob.shared.resumeAfterCapture() }
         .alert("Capture failed", isPresented: .init(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
@@ -108,6 +114,7 @@ struct QuoteCaptureFlowView: View {
             TextCaptureView(
                 book: book,
                 audioURL: session.store.audioURL(of: book, fileIndex: fileIndex),
+                fileIndex: fileIndex,
                 pausedAt: pausedAt,
                 fileBounds: fileBounds,
                 onConfirm: { presentSheet(book: book, output: $0, skipTrim: true) },

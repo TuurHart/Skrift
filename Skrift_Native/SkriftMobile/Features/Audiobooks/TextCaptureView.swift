@@ -47,6 +47,8 @@ enum TextCaptureMath {
 struct TextCaptureView: View {
     let book: Audiobook
     let audioURL: URL?
+    /// Which file of the book `pausedAt` falls in — for the sidecar lookup.
+    let fileIndex: Int
     /// GLOBAL playhead (book paused here).
     let pausedAt: TimeInterval
     /// GLOBAL bounds of the file `pausedAt` falls in (origin = `.start`).
@@ -57,12 +59,27 @@ struct TextCaptureView: View {
     let onConfirm: (QuoteCaptureOutput) -> Void
     let onCancel: () -> Void
 
+    /// Where the shown sentences came from. WAVE 2: a pre-transcribed (chunked)
+    /// spot is read from the `BookTranscript` sidecar — INSTANT, no engine; an
+    /// un-chunked spot falls back to the wave-1 live window transcribe.
+    private enum Source {
+        case window(QuoteCaptureProcessor.WindowTranscript)   // wave-1 live buffer
+        case sidecar([BufferSentence])                        // wave-2 from sidecar
+        var sentences: [BufferSentence] {
+            switch self {
+            case .window(let w): return w.sentences
+            case .sidecar(let s): return s
+            }
+        }
+    }
+
     private enum LoadState {
         case loading
-        case ready(QuoteCaptureProcessor.WindowTranscript)
+        case ready(Source)
         case empty
     }
 
+    private let transcripts = BookTranscriptStore()
     @State private var state: LoadState = .loading
     @State private var sel = TextCaptureSelection(lo: 0, hi: 0)
     @State private var touched = false
@@ -82,15 +99,18 @@ struct TextCaptureView: View {
             switch state {
             case .loading:  warming
             case .empty:    emptyState
-            case .ready(let w): selectBody(w)
+            case .ready(let source): selectBody(source)
             }
         }
         .background(Color.skBg.ignoresSafeArea())
         .task { await load() }
         .onDisappear {
-            // Clean the window buffer ONLY if the user left without confirming;
-            // once handed off, the flow owns it (cleans after the sheet).
-            if !handedOff, case .ready(let w) = state { try? FileManager.default.removeItem(at: w.bufferURL) }
+            // Clean the window buffer ONLY if the user left without confirming
+            // AND we transcribed one live (the sidecar path has no buffer); once
+            // handed off, the flow owns it (cleans after the sheet).
+            if !handedOff, case .ready(.window(let w)) = state {
+                try? FileManager.default.removeItem(at: w.bufferURL)
+            }
         }
         .accessibilityIdentifier("text-capture")
     }
@@ -153,7 +173,7 @@ struct TextCaptureView: View {
         .accessibilityIdentifier("text-capture-empty")
     }
 
-    private func selectBody(_ w: QuoteCaptureProcessor.WindowTranscript) -> some View {
+    private func selectBody(_ source: Source) -> some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Build your quote.").font(.system(size: 14.5, weight: .bold)).foregroundStyle(Color.skText)
@@ -170,7 +190,7 @@ struct TextCaptureView: View {
                             .font(.system(size: 10.5)).foregroundStyle(Color.skTextFaint)
                             .frame(maxWidth: .infinity).padding(.vertical, 2)
                             .opacity(windowStartLocal <= 0.5 ? 1 : 0)
-                        ForEach(Array(w.sentences.enumerated()), id: \.offset) { i, s in
+                        ForEach(Array(source.sentences.enumerated()), id: \.offset) { i, s in
                             sentenceRow(i, s.text)
                         }
                     }
@@ -182,7 +202,7 @@ struct TextCaptureView: View {
             Text(toast).font(.system(size: 11.5)).foregroundStyle(toastColor)
                 .frame(maxWidth: .infinity).frame(minHeight: 16).padding(.top, 4)
 
-            footer(w)
+            footer(source)
         }
     }
 
@@ -214,9 +234,9 @@ struct TextCaptureView: View {
         .accessibilityIdentifier("text-capture-sentence-\(i)")
     }
 
-    private func footer(_ w: QuoteCaptureProcessor.WindowTranscript) -> some View {
+    private func footer(_ source: Source) -> some View {
         VStack(spacing: 8) {
-            Button { confirm(w) } label: {
+            Button { confirm(source) } label: {
                 Text("Use as quote (\(sel.count) line\(sel.count > 1 ? "s" : "")) →")
                     .font(.system(size: 14.5, weight: .bold))
                     .foregroundStyle(touched ? .white : Color.skAccent)
@@ -242,14 +262,28 @@ struct TextCaptureView: View {
 
     private func load() async {
         guard let audioURL else { state = .empty; return }
-        guard windowEndLocal - windowStartLocal >= 1 else { state = .empty; return }
+        let winStart = windowStartLocal, winEnd = windowEndLocal
+        guard winEnd - winStart >= 1 else { state = .empty; return }
+
+        // WAVE 2 — INSTANT: if the book has been transcribed up to here, read the
+        // sidecar (no engine, no 35 s warm-up, no contention). Un-chunked spots
+        // fall through to the wave-1 live window transcribe below.
+        if let words = transcripts.coveredWindowWords(
+            bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, start: winStart, end: winEnd) {
+            let sentences = QuoteCaptureProcessor.buildSentences(from: words, snappedStart: 0, snappedEnd: 0)
+            guard !sentences.isEmpty else { state = .empty; return }
+            sel = TextCaptureSelection(lo: sentences.count - 1, hi: sentences.count - 1)
+            state = .ready(.sidecar(sentences))
+            return
+        }
+
         do {
             let w = try await QuoteCaptureProcessor().transcribeWindowForDisplay(
-                bookAudio: audioURL, windowStart: windowStartLocal, windowEnd: windowEndLocal)
+                bookAudio: audioURL, windowStart: winStart, windowEnd: winEnd)
             guard !w.sentences.isEmpty else { state = .empty; return }
             let last = w.sentences.count - 1
             sel = TextCaptureSelection(lo: last, hi: last)   // pre-pick the line you just heard
-            state = .ready(w)
+            state = .ready(.window(w))
         } catch {
             state = .empty
         }
@@ -264,15 +298,26 @@ struct TextCaptureView: View {
         Haptics.tap()
     }
 
-    /// Carve the quote straight from the window the user read (no re-transcribe)
-    /// and hand it to the flow, which goes straight to the ramble (skip trim).
-    private func confirm(_ w: QuoteCaptureProcessor.WindowTranscript) {
+    /// Carve the quote straight from the sentences the user read (no
+    /// re-transcribe) and hand it to the flow, which goes straight to the ramble
+    /// (skip trim). The wave-1 window path carves from its live buffer; the
+    /// wave-2 sidecar path exports the span straight from the book file.
+    private func confirm(_ source: Source) {
         guard !handedOff else { return }
         handedOff = true
         Task {
             do {
-                let output = try await QuoteCaptureProcessor().buildOutput(
-                    from: w, lo: sel.lo, hi: sel.hi, fileOrigin: fileBounds.start)
+                let output: QuoteCaptureOutput
+                switch source {
+                case .window(let w):
+                    output = try await QuoteCaptureProcessor().buildOutput(
+                        from: w, lo: sel.lo, hi: sel.hi, fileOrigin: fileBounds.start)
+                case .sidecar(let sentences):
+                    guard let audioURL else { throw QuoteCaptureError.exportFailed }
+                    output = try await QuoteCaptureProcessor().buildOutputFromSidecar(
+                        bookAudio: audioURL, sentences: sentences, lo: sel.lo, hi: sel.hi,
+                        fileOrigin: fileBounds.start)
+                }
                 onConfirm(output)
             } catch {
                 handedOff = false

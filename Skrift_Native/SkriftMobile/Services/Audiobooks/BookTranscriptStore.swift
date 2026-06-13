@@ -63,6 +63,20 @@ struct BookTranscriptStore: Sendable {
         try data.write(to: sidecarURL(bookID: bookID, fileIndex: ft.fileIndex), options: .atomic)
     }
 
+    // MARK: - Capture read
+
+    /// Words in `[start, end]` (FILE-LOCAL) IF the sidecar fully covers the window
+    /// (`coveredUpTo ≥ end`), else nil → the caller falls back to a live window
+    /// transcribe. Staleness-checked. This is the "instant capture" read — no
+    /// engine, no contention.
+    func coveredWindowWords(bookID: UUID, fileIndex: Int, audioURL: URL,
+                            start: TimeInterval, end: TimeInterval) -> [WordTiming]? {
+        let sig = signature(forFileAt: audioURL)
+        guard let ft = load(bookID: bookID, fileIndex: fileIndex, expectedSignature: sig),
+              ft.isCovered(upTo: end) else { return nil }
+        return ft.words(inWindow: start, end: end)
+    }
+
     // MARK: - Cleanup
 
     /// Remove every transcript sidecar for a book (called when the book is

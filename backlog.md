@@ -867,8 +867,17 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
 - ✅ Resumable job (`BookTranscriptionJob`): sequential per-file chunk loop, save-after-complete =
   resume state (in-flight chunk discarded on interruption), pause-on-unplug + auto-resume on charge,
   foreground Pause/Resume, yields to live capture between chunks. Engine path device-owed.
-- ⏳ ⋯ "Transcribe book" button + progress; instant-capture-from-sidecar + pre-warm-on-open; real
-  per-hour speed measurement (next chunks).
+- ✅ ⋯ "Transcribe book" button + sheet (`TranscribeBookView`, Text mode only): progress + %, Start/
+  Pause/Resume, design §12/§13 copy. Instant-capture-from-sidecar (`TextCaptureView` Source +
+  `buildOutputFromSidecar`; un-chunked → wave-1 fallback). Pre-warm on book-open in Text mode when the
+  spot is un-chunked; live capture pauses the bg job.
+- ✅ Real per-device speed: the job measures its own RTF (persisted) → the sheet shows a measured
+  "≈ N min" estimate (placeholder removed). Mac `-asrbench` = ~100–134× realtime (inference tiny vs
+  audio); the phone's absolute number is device-measured (job DevLogs per-chunk timing).
+- **DEVICE-OWED:** real ASR on the phone (sim has no ANE) — run "Transcribe book" on a real book,
+  watch the progress + the measured min/hr in the devlog, then capture at a done spot (instant, no
+  warming screen) and at an un-done spot (wave-1 fallback); verify pause-on-unplug/auto-resume + that
+  an interrupted job resumes from the last saved chunk.
 
 #### Text-capture round 2 device feedback 2026-06-13 (evening)
 PASSED: text-capture double-select GONE ("I can record my thoughts. Nice."); +/✕ & extend confirmed.

@@ -34,6 +34,16 @@ final class BookTranscriptionJob: ObservableObject {
     @Published private(set) var progress: Double = 0
     /// The book currently being transcribed (nil when idle/finished).
     @Published private(set) var activeBookID: UUID?
+    /// MEASURED throughput — audio-seconds transcribed per wall-second (the
+    /// real-time factor, e.g. 6 = 6× realtime). Updated live as chunks complete
+    /// and persisted, so the transcribe screen shows a REAL per-device estimate
+    /// (never a fabricated number). nil until the first chunk on a device has
+    /// been timed. Meaningless on the seeded sim (no ANE) — device-measured.
+    @Published private(set) var measuredRTF: Double?
+
+    private var runAudioSeconds: TimeInterval = 0
+    private var runComputeSeconds: TimeInterval = 0
+    private static let rtfKey = "bookTranscribeRTF"
 
     /// Per chunk: bigger = less per-chunk overhead, but a longer interruption
     /// loss and a longer wait for a capture that lands mid-chunk. 60 s is a
@@ -54,6 +64,16 @@ final class BookTranscriptionJob: ObservableObject {
         self.library = library
         self.store = store
         self.makeTranscriber = makeTranscriber
+        self.measuredRTF = UserDefaults.standard.object(forKey: Self.rtfKey) as? Double
+    }
+
+    /// Estimated wall-seconds to finish `book` from the current coverage, using
+    /// the measured throughput. nil until a per-device rate exists. The screen
+    /// turns this into "≈ N min left" — a real number, not a placeholder.
+    func estimatedRemainingSeconds(for book: Audiobook) -> TimeInterval? {
+        guard let rtf = measuredRTF, rtf > 0 else { return nil }
+        let remainingAudio = max(0, book.duration * (1 - progress))
+        return remainingAudio / rtf
     }
 
     var isRunningOrPaused: Bool {
@@ -69,6 +89,8 @@ final class BookTranscriptionJob: ObservableObject {
         cancel()
         activeBookID = book.id
         progress = currentProgress(for: book)
+        runAudioSeconds = 0
+        runComputeSeconds = 0
         phase = isPluggedIn ? .running : .pausedUnplugged
         enableBatteryMonitoring()
         let id = book.id
@@ -123,6 +145,7 @@ final class BookTranscriptionJob: ObservableObject {
                 let chunkEnd = min(chunkStart + chunkSeconds, fileDuration)
                 let isFinal = chunkEnd >= fileDuration - 0.05
 
+                let started = Date()
                 guard let kept = await transcribeChunk(
                     transcriber: transcriber, audioURL: audioURL,
                     chunkStart: chunkStart, chunkEnd: chunkEnd, isFinal: isFinal)
@@ -139,6 +162,8 @@ final class BookTranscriptionJob: ObservableObject {
                 ft = ft.appending(kept.kept, upTo: kept.newFrontier)
                 do { try store.save(ft, bookID: bookID) }
                 catch { phase = .failed("save failed: \(error.localizedDescription)"); return }
+                recordThroughput(audioSeconds: chunkEnd - chunkStart,
+                                 computeSeconds: Date().timeIntervalSince(started))
                 publishProgress(book: book, starts: starts)
             }
         }
@@ -204,6 +229,23 @@ final class BookTranscriptionJob: ObservableObject {
             covered += min(c, dur)
         }
         return min(1, covered / total)
+    }
+
+    // MARK: - Throughput (real per-device speed; replaces the placeholder estimate)
+
+    /// Fold one completed chunk's timing into the measured real-time factor and
+    /// persist it. DEBUG-logs the per-chunk + cumulative rate so a device devlog
+    /// pull shows the REAL per-hour transcribe speed (the handoff's measurement).
+    private func recordThroughput(audioSeconds: TimeInterval, computeSeconds: TimeInterval) {
+        guard audioSeconds > 0, computeSeconds > 0.01 else { return }
+        runAudioSeconds += audioSeconds
+        runComputeSeconds += computeSeconds
+        let rtf = runAudioSeconds / runComputeSeconds
+        measuredRTF = rtf
+        UserDefaults.standard.set(rtf, forKey: Self.rtfKey)
+        let minPerHour = rtf > 0 ? 60.0 / rtf : 0   // wall-minutes to transcribe 1 h of audio
+        DevLog.log(String(format: "book-transcribe: chunk %.0fs audio in %.1fs (%.1f× rt) — cumulative %.1f× → ~%.1f min/hr",
+                          audioSeconds, computeSeconds, audioSeconds / computeSeconds, rtf, minPerHour))
     }
 
     // MARK: - Battery (charger job)
