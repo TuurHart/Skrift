@@ -92,25 +92,41 @@ struct QuoteCaptureFlowView: View {
 
     // MARK: - Adjust stage (items 3 + 4: fullscreen, swipe-down)
 
-    /// The adjust screen is fullscreen (item 3) — no floating card with dead
-    /// space below. Swipe-down dismisses it (item 4) using the same gesture
-    /// design as `AudiobookPlayerView.dismissDrag`.
+    /// The adjust screen. The A/B router (design: `mocks/text-capture-DESIGN.md`):
+    /// Text mode shows the sentence-select screen, Audio mode the waveform
+    /// mark-in/out screen. BOTH emit a GLOBAL span into the same `confirmCapture`,
+    /// so the processing → sheet → save → sync → export path is identical.
+    @ViewBuilder
     private func adjustStage(_ book: Audiobook) -> some View {
-        CaptureMomentView(
-            book: book,
-            audioURL: session.store.audioURL(of: book, fileIndex: fileIndex),
-            now: pausedAt,
-            bounds: fileBounds,
-            span: $span,
-            onCancel: {
-                session.play()
-                dismiss()
-            },
-            onConfirm: { confirmCapture(book) }
-        )
-        .contentShape(Rectangle())
-        .offset(y: dragOffset)
-        .gesture(adjustDismissDrag)
+        if AudiobookCaptureStyle.current == .text {
+            // Text mode owns its own dismissal (the ✕ / Back button) and scrolls,
+            // so it is NOT wrapped in the swipe-down drag (which would fight scroll).
+            TextCaptureView(
+                book: book,
+                audioURL: session.store.audioURL(of: book, fileIndex: fileIndex),
+                pausedAt: pausedAt,
+                fileBounds: fileBounds,
+                onConfirm: { confirmCapture(book, span: $0) },
+                onCancel: { session.play(); dismiss() }
+            )
+        } else {
+            // Audio mode (shipped): fullscreen waveform + swipe-down to dismiss.
+            CaptureMomentView(
+                book: book,
+                audioURL: session.store.audioURL(of: book, fileIndex: fileIndex),
+                now: pausedAt,
+                bounds: fileBounds,
+                span: $span,
+                onCancel: {
+                    session.play()
+                    dismiss()
+                },
+                onConfirm: { confirmCapture(book, span: span) }
+            )
+            .contentShape(Rectangle())
+            .offset(y: dragOffset)
+            .gesture(adjustDismissDrag)
+        }
     }
 
     /// Swipe-down-to-dismiss on the adjust screen: vertically-dominant downward
@@ -171,12 +187,15 @@ struct QuoteCaptureFlowView: View {
 
     // MARK: - Actions
 
-    private func confirmCapture(_ book: Audiobook) {
+    /// `confirmSpan` is GLOBAL book time — from the audio mode's marker binding
+    /// or the text mode's selected sentences. Rebased to FILE-LOCAL for the
+    /// processor (which only ever reads the one file the span falls in).
+    private func confirmCapture(_ book: Audiobook, span confirmSpan: CaptureSpan.Span) {
         stage = .processing
         let fileAudio = session.store.audioURL(of: book, fileIndex: fileIndex)
         // The processor works in FILE-LOCAL time.
         let origin = fileBounds.start
-        let localSpan = CaptureSpan.Span(start: span.start - origin, end: span.end - origin)
+        let localSpan = CaptureSpan.Span(start: confirmSpan.start - origin, end: confirmSpan.end - origin)
         Task {
             do {
                 var output = try await QuoteCaptureProcessor().process(

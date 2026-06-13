@@ -133,6 +133,39 @@ struct QuoteCaptureProcessor {
         )
     }
 
+    // MARK: - Text capture: transcribe a window for the sentence-select screen
+
+    /// A transcribed playhead window for `TextCaptureView` — the sentences to
+    /// show + the temp audio kept alive (for the 1.5× preview). Times in
+    /// `sentences` are LOCAL to `bufferURL` (0 = `windowStart`, file-local).
+    struct WindowTranscript: Sendable {
+        var sentences: [BufferSentence]
+        var bufferURL: URL
+        /// File-local start of the window — add to a sentence's local time to get
+        /// file-local time; add the file's global origin for book time.
+        var windowStart: TimeInterval
+    }
+
+    /// Transcribe `[windowStart, windowEnd]` (FILE-LOCAL) of `bookAudio` and
+    /// return its sentences for the text-capture select screen. Reuses the same
+    /// export + transcribe + sentence-partition path as `process`. The caller
+    /// owns `bufferURL`'s lifetime (clean up on dismiss) — it's reused for the
+    /// in-screen preview. The selection the user makes becomes a span the flow
+    /// runs through `process` exactly like the audio mode, so the downstream
+    /// (sheet/save/sync/export) is untouched.
+    func transcribeWindowForDisplay(bookAudio: URL,
+                                    windowStart: TimeInterval,
+                                    windowEnd: TimeInterval) async throws -> WindowTranscript {
+        let bufferURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("textwin_\(UUID().uuidString).m4a")
+        try await Self.exportSpan(of: bookAudio, start: windowStart, end: windowEnd, to: bufferURL)
+        let result = try await transcriber.transcribe(audioURL: bufferURL, imageManifest: [])
+        // No pre-snap — the view pre-selects the last sentence and the user
+        // adjusts; isInInitialSpan is unused here (passed 0,0).
+        let sentences = Self.buildSentences(from: result.wordTimings, snappedStart: 0, snappedEnd: 0)
+        return WindowTranscript(sentences: sentences, bufferURL: bufferURL, windowStart: windowStart)
+    }
+
     /// Partition buffer word timings into sentences, marking each as initially
     /// "in" the quote if it overlaps the snapped span.
     nonisolated static func buildSentences(
