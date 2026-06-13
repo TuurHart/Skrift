@@ -23,6 +23,7 @@ struct SkriftDesktopApp: App {
     init() {
         #if DEBUG
         Snapshot.renderIfRequested()
+        RunFile.runAsrBenchIfRequested()
         RunFile.runAudioDateProbeIfRequested()
         RunFile.runVoiceLoopIfRequested()
         RunFile.runProcessFileIfRequested()
@@ -85,6 +86,18 @@ struct SkriftDesktopApp: App {
         )
         self.syncServer = LocalHTTPServer(handlers: handlers)
         try? syncServer.start()
+
+        // Pre-warm the custom-vocabulary booster at launch when the user has
+        // custom words. The booster is NON-BLOCKING (it skips the first,
+        // model-loading transcribe), so without this the first processed file
+        // goes unboosted while the ~97 MB CTC model loads. The device bug
+        // "custom vocab never corrected" (2026-06-13) was exactly this — the
+        // booster was never warm when transcription ran. Idempotent; off the
+        // main thread; harmless under headless `-runfile` (which prewarms itself).
+        let vocabWords = SettingsStore.shared.load().customWords
+        if !vocabWords.isEmpty {
+            Task.detached(priority: .utility) { await VocabularyBooster.shared.prewarm(words: vocabWords) }
+        }
     }
 
     var body: some Scene {

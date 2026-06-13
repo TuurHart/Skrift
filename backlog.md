@@ -874,3 +874,28 @@ OPEN: (a) old stuck-"Transcribing" memos from the pre-fix build — delete, or a
 reconciler that re-transcribes stuck .transcribing memos (offered). (b) "sentence breaks up
 strangely" in text capture — awaiting the capture-screen screenshot; likely Parakeet punctuation
 (abbreviations like "Dr.") splitting sentences in SentenceSnap.isSentenceEnd.
+
+#### ✅ CUSTOM VOCAB — VERDICT + FIX (2026-06-13, both apps)
+**Devlog verdict = NEITHER spotter nor rescorer; the booster was never READY.** The fresh
+`vocab:` lines (14:26:58) read `not ready (loaded=[], rescorer=false) → bg prepare, unboosted` —
+no `wasModified` line ever appeared, so the boost never reached spot/rescore. Root cause: the
+booster's spotter/rescorer are per-PROCESS in-memory state that resets every launch, and the
+non-blocking design (the queue-jam fix) makes the FIRST transcribe skip while the ~97 MB ctc110m
+loads in the background. The user records ~one memo per launch → it always raced the load → always
+unboosted. "Model downloaded" (Models tab = on-disk) ≠ "booster warm" (in-memory, per-session).
+**Mac ground truth** (`-runfile -vocab` with a synchronous prewarm + booster stderr diagnostic;
+no phone audio needed): once warm, the spotter detects + the rescorer replaces — proven
+(`Jacques: jack` alias surfaced `Jacques` at sim 0.43, below the 0.50 floor, and replaced).
+script→Skrift is an EASIER case (sim 0.667, candidate already surfaces; the audio genuinely says
+"skrift" so the acoustic gate favours it).
+**FIX (committed, both apps):** (1) **pre-warm** the booster at launch when custom words exist →
+the confirmed bug; (2) **aliases** via `"Canonical: alias1, alias2"` → user-controllable widening
+for stubborn mis-hearings; (3) **trust guard** → FluidAudio's spotter-anchored rescue mangles
+ordinary speech once warm (negative-control clip turned `room→Rox`, `its alias.→Tiuri`); the
+booster now drops a boost when EVERY replacement is a distant acoustic-only guess (sim < 0.55 AND
+no alias) → negative control verified CLEAN. cbw tuning was a DEAD END (even cbw=2.0 kept the FPs —
+the original words' constrained-CTC scores are too low). cbw stays at FluidAudio's 4.5.
+**DEVICE RE-TEST (owed — phone was unavailable this session):** with the new build, in Skrift Dev
+say "Skrift" once → it should now correct (booster warm at launch). If a SHORT/uncommon word
+(≤3-4 char, e.g. "Rox") still mis-fires on unrelated speech, drop it or add it with an explicit
+alias; report and we tighten further. Note: very short words are inherently spotter-FP-prone.

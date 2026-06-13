@@ -12,6 +12,40 @@ import SwiftData
 /// We schedule a detached Task, let `init` return so the run loop spins, and
 /// `exit(0)` when finished.
 enum RunFile {
+    /// `-asrbench <audio>` → measure the ASR latency SPLIT (model load/warm-up vs
+    /// per-call inference) so the audiobook-capture design isn't built on guessed
+    /// numbers. Times ensureLoaded() once, then transcribes the file TWICE (first
+    /// warm call vs steady-state). DEBUG only. NOTE: Mac (M-series) magnitudes ≠
+    /// phone (A15) — this measures the SHAPE (load vs inference ratio), which
+    /// transfers; the phone's absolute number needs the same timing via devlog.
+    nonisolated static func runAsrBenchIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-asrbench"), i + 1 < args.count else { return }
+        let path = args[i + 1]
+        Task.detached(priority: .userInitiated) {
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            let url = URL(fileURLWithPath: path)
+            guard FileManager.default.fileExists(atPath: path) else { log("ASRBENCH: file not found"); exit(1) }
+
+            let t0 = Date()
+            try? await TranscriptionService.shared.ensureLoaded()
+            let loadMs = Int(Date().timeIntervalSince(t0) * 1000)
+            log("ASRBENCH load(ensureLoaded, cold)= \(loadMs) ms")
+
+            let t1 = Date()
+            let r1 = try? await TranscriptionService.shared.transcribe(audioURL: url, imageManifest: [])
+            let inf1 = Int(Date().timeIntervalSince(t1) * 1000)
+            log("ASRBENCH inference#1(warm engine)= \(inf1) ms  (\(r1?.wordTimings.count ?? 0) words)")
+
+            let t2 = Date()
+            _ = try? await TranscriptionService.shared.transcribe(audioURL: url, imageManifest: [])
+            let inf2 = Int(Date().timeIntervalSince(t2) * 1000)
+            log("ASRBENCH inference#2(steady)   = \(inf2) ms")
+            log("ASRBENCH audio length ~= read the file; ratio load:inf = \(loadMs):\(inf1)")
+            exit(0)
+        }
+    }
+
     /// `-audiodate <path>` → print the embedded recording date AudioMetadata reads
     /// (verifies the date-backfill works before relying on it). DEBUG only.
     nonisolated static func runAudioDateProbeIfRequested() {
@@ -108,17 +142,27 @@ enum RunFile {
                 log(">>> MODE: trusted-mobile (ASR skipped) — transcript \(text.count) chars")
             }
 
-            // `-vocab Word1,Word2` → persist custom-vocabulary words before the run
-            // (the transcriber reads them from SettingsStore), so the CTC boost
-            // pass can be exercised headlessly. They stay set afterwards — same
-            // store the Settings panel edits.
+            // `-vocab "Word1; Canonical: alias1, alias2; Word3"` → persist custom-
+            // vocabulary words before the run (the transcriber reads them from
+            // SettingsStore), so the CTC boost pass can be exercised headlessly.
+            // Entries split on ';' so an entry's aliases can use ','. They stay set
+            // afterwards — same store the Settings panel edits.
+            //
+            // CRITICAL: the production booster is NON-BLOCKING (it skips the first,
+            // model-loading transcribe). A one-shot `-runfile` only transcribes
+            // once, so without a synchronous prewarm the boost would never run.
+            // We `prewarm` (await) here so this single transcribe IS boosted —
+            // exactly what the device gets once the booster is warm.
             if let vi = args.firstIndex(of: "-vocab"), vi + 1 < args.count {
                 var s = SettingsStore.shared.load()
-                s.customVocabulary = args[vi + 1].split(separator: ",").map {
+                s.customVocabulary = args[vi + 1].split(separator: ";").map {
                     $0.trimmingCharacters(in: .whitespaces)
-                }
+                }.filter { !$0.isEmpty }
                 SettingsStore.shared.save(s)
-                log(">>> VOCAB: \(s.customWords.joined(separator: ", "))")
+                log(">>> VOCAB: \(s.customWords.joined(separator: " | "))")
+                log(">>> VOCAB: prewarming CTC spotter/rescorer (synchronous for the headless run)…")
+                await VocabularyBooster.shared.prewarm(words: s.customWords)
+                log(">>> VOCAB: prewarm done")
             }
 
             let settings = SettingsStore.shared.load()
