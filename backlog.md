@@ -1111,11 +1111,14 @@ Most of the old P1 list is ALREADY FIXED (code + a doc comment naming the origin
   boundary (`RecordView.swift:227` + `TranscriptionService.liveCommittedWordCount`); ✅ video thumbnail BOTH
   apps (mobile `MemoSaver.swift:162`, desktop `IngestService.writeVideoThumbnail` — the "desktop has none"
   note was stale); ✅ Spotify-stops-on-open + paste-scroll-to-top both fixed.
-- ⏳ **REAL open bug — share-a-video from Photos doesn't list Skrift.** The share ext's
-  `NSExtensionActivationRule` (`SkriftShare/Info.plist` + `project.yml:260`) has only WebURL/Text/Image — no
-  Movie key — AND `ShareContentType`/`SharePayloadLoader` have no video case. Fix = add
-  `NSExtensionActivationSupportsMovieWithMaxCount` + a video payload path (extract audio + 1 frame, like the
-  existing PHPicker/Files video import) + inbox→memo. (File "Open in Skrift" for video already works.)
+- ✅ **FIXED 2026-06-14 — share-a-video from Photos.** Added `NSExtensionActivationSupportsMovieWithMaxCount`
+  (`project.yml` → regenerated `SkriftShare/Info.plist`) so Skrift appears in the Photos share sheet for
+  videos; `SharePayloadLoader.loadVideo` copies the movie to the App Group inbox as a `"video"` entry
+  (raw-string type — NO `ShareContentType`/contract change; extension copies the file, never loads it into
+  its memory ceiling) and bypasses the capture sheet (`ShareViewController.completeVideo`); `CaptureInboxDrainer`
+  imports it via `MemoSaver.importVideo` → a normal voice memo (audio + frame thumbnail + transcribe; delete-
+  before-import so a re-drain can't double-import). Compiles (both targets); device-eyeball owed (the Photos
+  share-sheet appearance + the import are device-only).
 - (g) disk-writes `.ips` = profiling, not a clear fix (model downloads + whole-book transcribe = suspects).
 
 Build-ready feature TRUE status (corrects the stale lists above):

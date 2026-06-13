@@ -25,6 +25,27 @@ enum CaptureInboxDrainer {
         for (entry, entryDir) in pending {
             let memoID = entry.id
 
+            // Shared VIDEO → import as a normal voice memo (audio + a frame
+            // thumbnail + transcribe), NOT a capture item. Copy it out of the
+            // inbox, delete the entry FIRST (a re-drain must not double-import —
+            // importVideo mints its OWN memo UUID, so the id-dup guard below
+            // wouldn't catch it), then import from the app-owned temp.
+            if entry.type == "video" {
+                if let src = CaptureInbox.videoURL(for: entry, entryDir: entryDir),
+                   FileManager.default.fileExists(atPath: src.path) {
+                    let ext = src.pathExtension.isEmpty ? "mov" : src.pathExtension
+                    let temp = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("shared_import_\(entry.id.uuidString).\(ext)")
+                    try? FileManager.default.removeItem(at: temp)
+                    let copied = (try? FileManager.default.copyItem(at: src, to: temp)) != nil
+                    CaptureInbox.delete(entryDir: entryDir)
+                    if copied { _ = MemoSaver().importVideo(from: temp) }
+                } else {
+                    CaptureInbox.delete(entryDir: entryDir)
+                }
+                continue
+            }
+
             // Duplicate guard: if we already have this memo, just clean up.
             if repository.memo(id: memoID) != nil {
                 CaptureInbox.delete(entryDir: entryDir)

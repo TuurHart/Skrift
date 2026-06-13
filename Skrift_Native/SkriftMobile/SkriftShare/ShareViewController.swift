@@ -38,10 +38,15 @@ final class ShareViewController: UIViewController {
         // light (white cards on the dark surface).
         overrideUserInterfaceStyle = .dark
 
-        // Load the share payload asynchronously and then present the sheet.
+        // Load the share payload asynchronously and then present the sheet — or,
+        // for a shared video, skip the sheet and import it as a voice memo.
         Task { @MainActor in
             let payload = await SharePayloadLoader.load(from: extensionContext)
-            presentSheet(payload: payload)
+            if payload.isVideo {
+                completeVideo(payload)
+            } else {
+                presentSheet(payload: payload)
+            }
         }
     }
 
@@ -81,6 +86,24 @@ final class ShareViewController: UIViewController {
 
     private func complete(entry: CaptureInboxEntry, imageData: Data?, dictationData: Data?) {
         CaptureInbox.write(entry, imageData: imageData, dictationData: dictationData)
+        extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+    }
+
+    /// A shared video bypasses the annotation sheet: write a "video" inbox entry
+    /// (the movie copied in) and finish. The main app imports it as a normal voice
+    /// memo (audio + a frame thumbnail + transcribe) on its next foreground drain.
+    private func completeVideo(_ payload: SharePayload) {
+        guard let videoURL = payload.videoURL else { cancel(); return }
+        let id = UUID()
+        let ext = videoURL.pathExtension.isEmpty ? "mov" : videoURL.pathExtension
+        let entry = CaptureInboxEntry(
+            id: id, type: "video", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: nil, annotationText: nil,
+            significance: 0, sharedAt: ISO8601.string(from: Date()),
+            videoFileName: "video_\(id.uuidString).\(ext)"
+        )
+        CaptureInbox.write(entry, videoFileURL: videoURL)
+        try? FileManager.default.removeItem(at: videoURL)   // copied into the inbox now
         extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
     }
 

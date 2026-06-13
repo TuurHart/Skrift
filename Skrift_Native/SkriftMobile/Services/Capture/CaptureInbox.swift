@@ -35,6 +35,11 @@ struct CaptureInboxEntry: Codable {
     /// drain and appends the text to `annotationText` (audio discarded after).
     /// Optional so entries written by older builds keep decoding.
     var dictationFileName: String? = nil
+    /// Filename (relative to the entry folder) of a shared VIDEO (a movie shared
+    /// from Photos/Files). The MAIN APP imports it on drain via
+    /// `MemoSaver.importVideo` — it becomes a normal voice memo (audio + a frame
+    /// thumbnail + transcribe), NOT a capture item. Optional so older entries decode.
+    var videoFileName: String? = nil
 }
 
 // MARK: - Inbox
@@ -96,7 +101,8 @@ enum CaptureInbox {
     /// rename) — a crash mid-write leaves the old entry intact or no entry at all,
     /// never a half-written JSON.
     @discardableResult
-    static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil, dictationData: Data? = nil) -> Bool {
+    static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil, dictationData: Data? = nil,
+                      videoFileURL: URL? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
         let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
         do {
@@ -110,6 +116,13 @@ enum CaptureInbox {
             if let dictationData, let name = entry.dictationFileName {
                 let audioURL = entryDir.appendingPathComponent(name)
                 try dictationData.write(to: audioURL, options: .atomic)
+            }
+            // Shared video: COPY the movie file (never load it into memory — a
+            // video can be hundreds of MB, well past the extension's memory ceiling).
+            if let videoFileURL, let name = entry.videoFileName {
+                let destURL = entryDir.appendingPathComponent(name)
+                try? FileManager.default.removeItem(at: destURL)
+                try FileManager.default.copyItem(at: videoFileURL, to: destURL)
             }
             // Atomic JSON write.
             let data = try JSONEncoder().encode(entry)
@@ -152,6 +165,12 @@ enum CaptureInbox {
     /// Resolve the on-disk URL of the dictated voice note, when present.
     static func dictationURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
         guard let name = entry.dictationFileName else { return nil }
+        return entryDir.appendingPathComponent(name)
+    }
+
+    /// Resolve the on-disk URL of a shared video, when present.
+    static func videoURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
+        guard let name = entry.videoFileName else { return nil }
         return entryDir.appendingPathComponent(name)
     }
 

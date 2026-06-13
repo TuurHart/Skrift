@@ -14,6 +14,11 @@ struct SharePayload {
     var imageData: Data?
     var imageFileName: String?
     var mimeType: String?
+    /// A shared movie was detected (Photos/Files). When true the host skips the
+    /// annotation sheet and imports it as a normal voice memo. `videoURL` is the
+    /// extension-temp copy of the movie (nil if the copy failed → host cancels).
+    var isVideo: Bool = false
+    var videoURL: URL?
 }
 
 /// Loads a `SharePayload` from the extension context's input items.
@@ -37,16 +42,51 @@ enum SharePayloadLoader {
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }) {
             return await loadURL(from: provider, item: item)
         }
-        // 2. Image
+        // 2. Video (movie) — shared from Photos/Files. Checked before image so a
+        //    video's poster frame doesn't get mistaken for an image capture.
+        if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier) }) {
+            return await loadVideo(from: provider)
+        }
+        // 3. Image
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }) {
             return await loadImage(from: provider)
         }
-        // 3. Plain text
+        // 4. Plain text
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) }) {
             return await loadText(from: provider)
         }
 
         return SharePayload(type: .text)
+    }
+
+    // MARK: - Video
+
+    /// Copy a shared movie out of the provider's transient storage into our own
+    /// temp (the provided URL is valid only inside the load closure). The host
+    /// writes it to the App Group inbox; the main app imports it on drain. We copy
+    /// the FILE (no in-memory load) so a large movie can't blow the extension's
+    /// memory ceiling. `isVideo` is set even on copy failure so the host cancels
+    /// (rather than showing the annotation sheet for a movie).
+    private static func loadVideo(from provider: NSItemProvider) async -> SharePayload {
+        let typeID = provider.registeredTypeIdentifiers.first {
+            UTType($0)?.conforms(to: .movie) == true
+        } ?? UTType.movie.identifier
+        let tempURL: URL? = await withCheckedContinuation { cont in
+            provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, _ in
+                guard let url else { cont.resume(returning: nil); return }
+                let ext = url.pathExtension.isEmpty ? "mov" : url.pathExtension
+                let dest = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("shared_\(UUID().uuidString).\(ext)")
+                do {
+                    try? FileManager.default.removeItem(at: dest)
+                    try FileManager.default.copyItem(at: url, to: dest)
+                    cont.resume(returning: dest)
+                } catch {
+                    cont.resume(returning: nil)
+                }
+            }
+        }
+        return SharePayload(type: .file, isVideo: true, videoURL: tempURL)
     }
 
     // MARK: - URL

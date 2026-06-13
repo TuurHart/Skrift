@@ -20,43 +20,30 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<!-- App Group container ID, injected from the per-config build setting.
-	     CaptureInbox reads this key at runtime so it resolves the right container
-	     in both app and extension without hard-coding a string. -->
-	<key>SkriftAppGroup</key>
-	<string>$(SKRIFT_APP_GROUP)</string>
-	<!-- Dictation in the share sheet: the extension RECORDS a voice note (the
-	     main app transcribes it on drain — Parakeet can't fit the extension's
-	     memory ceiling). The usage key must live in the EXTENSION bundle. -->
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Skrift records your spoken thoughts about what you're sharing and transcribes them on-device.</string>
 	<key>NSExtension</key>
 	<dict>
-		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.share-services</string>
-		<!-- UIViewController subclass that hosts the SwiftUI share sheet.
-		     Must be the principal class — share extensions use the UIKit
-		     lifecycle, not @main / App protocol. -->
-		<key>NSExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
-		<!-- Activation rule: accept URLs, plain text, and images (max 1 each —
-		     no collection picking v1). MUST live under NSExtensionAttributes —
-		     as a direct NSExtension child iOS finds no rule at all and the
-		     extension never appears in any share sheet (the 2026-06-12 device
-		     finding). No WebPageWithMaxCount: it implies a JS preprocessing
-		     file we don't ship, and we only need the URL item Safari provides. -->
 		<key>NSExtensionAttributes</key>
 		<dict>
 			<key>NSExtensionActivationRule</key>
 			<dict>
-				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+				<integer>1</integer>
+				<key>NSExtensionActivationSupportsMovieWithMaxCount</key>
 				<integer>1</integer>
 				<key>NSExtensionActivationSupportsText</key>
 				<true/>
-				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
 				<integer>1</integer>
 			</dict>
 		</dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.share-services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
 	</dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Skrift records your spoken thoughts about what you're sharing and transcribes them on-device.</string>
+	<key>SkriftAppGroup</key>
+	<string>$(SKRIFT_APP_GROUP)</string>
 </dict>
 </plist>
