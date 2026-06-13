@@ -861,3 +861,16 @@ overlap + sentence-splice fusion, absolute→file-local times) + resumable overn
 the transcribe-book button + instant-capture-from-sidecar + pre-warm-on-book-open. Measure the real
 per-hour transcribe speed on the phone to replace the placeholder. Multi-file/chapter-boundary
 confinement is already code-enforced (`QuoteCaptureProcessor:69-76`) — keep it.
+
+#### Text-capture round 2 device feedback 2026-06-13 (evening)
+PASSED: text-capture double-select GONE ("I can record my thoughts. Nice."); +/✕ & extend confirmed.
+SHIPPED + installed: share-sheet PROMINENT record button (was a missed tiny mic — "why doesn't it
+just have a button to record like the rest of the app"); ShareSheetView reworked (record primary,
+type secondary). Vocab booster INSTRUMENTED with DevLog (spot/rescore outcome + replacements).
+CONFIRMED BUG — custom vocab does NOT correct "Script"→"Skrift" with the model loaded. Next:
+user records one more Skrift memo → pull devlog.txt → the `vocab:` line says whether the SPOTTER
+missed it (phonetic limit) or the RESCORER declined (loosen minSimilarity/cbw). Don't blind-tune.
+OPEN: (a) old stuck-"Transcribing" memos from the pre-fix build — delete, or add a launch
+reconciler that re-transcribes stuck .transcribing memos (offered). (b) "sentence breaks up
+strangely" in text capture — awaiting the capture-screen screenshot; likely Parakeet punctuation
+(abbreviations like "Dr.") splitting sentences in SentenceSnap.isSentenceEnd.
