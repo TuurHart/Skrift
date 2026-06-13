@@ -215,8 +215,8 @@ Signed-off mock: `Skrift_Native/SkriftDesktop/mocks/audiobook-player-redesign.ht
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
 | Live Activity + Dynamic Island (record) | ✅ | n/a | `SkriftWidget/SkriftLiveActivity.swift` | Stop button intent |
-| Start-recording intent (Siri / Control Center) | ✅ | n/a | `App/Intents/StartRecordingIntent.swift` | plain `AppIntent` + `openAppWhenRun` (SIGTRAP-safe) |
-| Lock/Home record widget · `skrift://record` | ✅ | n/a | `SkriftWidget/RecordWidget.swift`, `AppURLHandler.swift:20-22` | |
+| Start-recording intent (Siri / Control Center) | ✅ | n/a | `App/Intents/StartRecordingIntent.swift`, `SkriftWidget/RecordControlWidget.swift` | plain `AppIntent` + `openAppWhenRun` (SIGTRAP-safe). CC tile glyph = `quote.opening` ❝ (2026-06-13 — Skrift-forward, replaced the generic `mic.fill`) |
+| Lock/Home record widget · `skrift://record` | ✅ | n/a | `SkriftWidget/RecordWidget.swift`, `AppURLHandler.swift:20-22` | Glyph = `quote.opening` ❝ across all families (2026-06-13, matches the CC tile) |
 
 ## Metadata / sensors *(mobile)*
 

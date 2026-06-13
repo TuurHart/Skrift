@@ -53,13 +53,13 @@ private struct RecordWidgetView: View {
         case .accessoryCircular:
             ZStack {
                 AccessoryWidgetBackground()
-                Image(systemName: "mic.fill").font(.system(size: 20))
+                Image(systemName: "quote.opening").font(.system(size: 20))
             }
         case .accessoryInline:
-            Label("Record", systemImage: "mic.fill")
+            Label("Record", systemImage: "quote.opening")
         case .accessoryRectangular:
             HStack(spacing: 8) {
-                Image(systemName: "mic.fill").font(.system(size: 18))
+                Image(systemName: "quote.opening").font(.system(size: 18))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Skrift").font(.headline)
                     Text("Tap to record").font(.caption)
@@ -68,7 +68,7 @@ private struct RecordWidgetView: View {
             }
         default:  // .systemSmall (Home Screen)
             VStack(spacing: 8) {
-                Image(systemName: "mic.fill")
+                Image(systemName: "quote.opening")
                     .font(.system(size: 26))
                     .foregroundStyle(.white)
                     .frame(width: 56, height: 56)

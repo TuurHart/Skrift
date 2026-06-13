@@ -10,7 +10,9 @@ struct RecordControlWidget: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: Self.kind) {
             ControlWidgetButton(action: StartRecordingIntent()) {
-                Label("Record", systemImage: "mic.fill")
+                // Skrift-forward glyph (quote.opening ❝) instead of a generic mic —
+                // echoes the app's quote-capture identity. CC renders it monochrome.
+                Label("Record", systemImage: "quote.opening")
             }
         }
         .displayName("Skrift")

@@ -1045,13 +1045,13 @@ testmanagerd sim flake on unrelated speaker tests — pass on a stateful sim); d
    early). `ReadAlongView.lead` is the dial (now 0.1s) if still slightly off.
 2. **Vocab — RESOLVED on device:** user confirms **both "Rox" and "Skrift" work** as custom words.
    The short-word-FP worry didn't materialise; keep as a watch-only note, no action.
-3. **Control Center glyph — DECISION PENDING (candidates shown to user):** A `quote.opening` / B
-   `pencil.line` (both SF Symbols, 1-line swap, ship now) vs C custom carved-strokes mark (echoes the
-   app icon, needs a monochrome template asset). HOW (recorded for whoever builds it): SF option =
-   change `Label("Record", systemImage:)` in `SkriftWidget/RecordControlWidget.swift` (+ RecordWidget).
-   Custom = add an asset catalog to the SkriftWidget target, drop a single-colour SVG/PDF as a Symbol
-   Image (or Render-As-Template), reference via `Label{} icon:{ Image("skrift.mark") }`. The 3D app
-   icon itself can't be a CC glyph (CC renders monochrome templates).
+3. **Control Center glyph — ✅ RESOLVED 2026-06-13: user chose A (`quote.opening` ❝).** Swapped
+   `mic.fill`→`quote.opening` in BOTH `SkriftWidget/RecordControlWidget.swift` (the CC tile) and
+   `SkriftWidget/RecordWidget.swift` (the Lock/Home widget — all four families: circular / inline /
+   rectangular / systemSmall) for one consistent Skrift-forward mark. Sim build+test gate green
+   (38 UI tests, 0 failures) + device build+install kicked off. The ONE thing no gate can prove for a glyph (SF Symbol names are plain
+   strings — a typo renders blank, never a compile error) is that it draws ❝ → quick device eyeball
+   owed. Options B (`pencil.line`) and C (custom carved-strokes template asset) not taken.
 4. **Wave-2 deferred** (design doc §9): cross-chapter quotes; auto-transcribe-ahead while playing;
    **A/B test integrity** for text vs audio capture (assign the arm, pre-transcribe the test book,
    define the success metric); desktop mirror of wave-2 (mobile-only today).
