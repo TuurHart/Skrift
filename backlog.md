@@ -879,6 +879,26 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
   warming screen) and at an un-done spot (wave-1 fallback); verify pause-on-unplug/auto-resume + that
   an interrupted job resumes from the last saved chunk.
 
+#### Wave-2 DEVICE TEST 2026-06-13 (evening) — vocab + transcribe-book
+- ✅ **Custom vocab WORKS on device now** (user: "customs words are working"). Pre-warm-at-launch was
+  the fix, confirmed.
+- ✅ Transcribe-book runs: progress moves, measured estimate shows ("~11-12 min left"), pause-on-
+  unplug → "plug in to continue" → auto-resume on charge all confirmed ("very cool"). Resume after
+  force-quit PRESERVES progress (11% survived) — the sidecar resume state works.
+- ✅ FIXED two device-found bugs (commit): (1) the transcribe sheet showed **0% on reopen** until
+  Start (saved % wasn't displayed — data was fine); now `reflectSavedProgress` seeds the bar/label/
+  estimate from the sidecar on open. (2) **Start while already charging showed "paused, plug in"** —
+  `isPluggedIn` was read before battery monitoring was enabled (→ `.unknown` → false unplugged);
+  monitoring now enabled in `init` + before the read in `start`.
+- ⏳ **UX — library long-press to transcribe:** user expected to long-press a book in the library to
+  transcribe; instead had to open book → ⋯. Add a context menu (and/or surface it better).
+- ⏳ **UX — Control Center "record" shortcut icon = generic mic; make it the app icon.** Control
+  Center widget / App Shortcut glyph. Minor.
+- ⏳ **Audiobook player UI redesign** — user dislikes the current player look; wants references +
+  mockups before any build (mock-first). Researching Audible/Libby/Apple Books/Bound; mockup pass next.
+- Note: charging-state can lag a second after plugging in mid-run (iOS `batteryStateDidChange`
+  latency); self-corrects. Acceptable.
+
 #### Text-capture round 2 device feedback 2026-06-13 (evening)
 PASSED: text-capture double-select GONE ("I can record my thoughts. Nice."); +/✕ & extend confirmed.
 SHIPPED + installed: share-sheet PROMINENT record button (was a missed tiny mic — "why doesn't it

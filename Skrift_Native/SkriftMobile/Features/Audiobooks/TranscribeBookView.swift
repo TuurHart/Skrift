@@ -33,6 +33,9 @@ struct TranscribeBookView: View {
         .background(Color.skBg.ignoresSafeArea())
         .presentationDetents([.medium, .large])
         .accessibilityIdentifier("transcribe-book")
+        // Show the REAL saved % the moment the sheet opens (a partly-transcribed
+        // book reads its frontier from the sidecar) — not 0-until-Start.
+        .task { job.reflectSavedProgress(for: book) }
     }
 
     // MARK: - Header
@@ -102,11 +105,12 @@ struct TranscribeBookView: View {
     /// until a per-device rate exists — never a fabricated figure.
     private var estimateText: String? {
         guard let rtf = job.measuredRTF, rtf > 0 else { return nil }
-        if isThisBook, job.phase == .running, let eta = job.estimatedRemainingSeconds(for: book), eta > 1 {
+        // "≈ N min left" whenever there's audio still to do (running OR a paused/
+        // reopened partial run) — uses the reflected saved progress.
+        if job.progress < 0.999, let eta = job.estimatedRemainingSeconds(for: book), eta > 1 {
             return "≈ \(Self.shortDuration(eta)) left"
         }
-        let minPerHour = 60.0 / rtf
-        return String(format: "≈ %.0f min per hour", minPerHour)
+        return String(format: "≈ %.0f min per hour", 60.0 / rtf)
     }
 
     // MARK: - Guidance

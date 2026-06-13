@@ -65,6 +65,12 @@ final class BookTranscriptionJob: ObservableObject {
         self.store = store
         self.makeTranscriber = makeTranscriber
         self.measuredRTF = UserDefaults.standard.object(forKey: Self.rtfKey) as? Double
+        // Turn battery monitoring on at creation (the sheet/capture flow touch the
+        // singleton well before Start), so `isPluggedIn` reads a REAL state the
+        // first time Start checks it. Reading `batteryState` before monitoring is
+        // enabled returns `.unknown` → a false "unplugged" → "plug in to continue"
+        // even while charging (device-found 2026-06-13).
+        enableBatteryMonitoring()
     }
 
     /// Estimated wall-seconds to finish `book` from the current coverage, using
@@ -87,14 +93,29 @@ final class BookTranscriptionJob: ObservableObject {
     func start(book: Audiobook) {
         if activeBookID == book.id, isRunningOrPaused { return }
         cancel()
+        enableBatteryMonitoring()   // ensure `isPluggedIn` is valid before we read it
         activeBookID = book.id
-        progress = currentProgress(for: book)
+        progress = savedProgress(for: book)
         runAudioSeconds = 0
         runComputeSeconds = 0
         phase = isPluggedIn ? .running : .pausedUnplugged
-        enableBatteryMonitoring()
         let id = book.id
         task = Task { [weak self] in await self?.run(bookID: id) }
+    }
+
+    /// Saved on-disk progress for `book` (sidecar coverage ÷ duration), 0…1.
+    /// Lets the sheet show the REAL % (and the "Resume" label + estimate) the
+    /// moment it opens — before Start — instead of 0.
+    func savedProgress(for book: Audiobook) -> Double {
+        publishValue(book: book, starts: book.fileStartTimes)
+    }
+
+    /// Reflect `book`'s saved progress when idle so the sheet bar/label/estimate
+    /// are correct on open (the resume state was always preserved on disk; this
+    /// just shows it). No-op while a job is live — it owns `progress`.
+    func reflectSavedProgress(for book: Audiobook) {
+        guard !isRunningOrPaused else { return }
+        progress = savedProgress(for: book)
     }
 
     func pauseByUser() { if phase == .running || phase == .pausedUnplugged { phase = .pausedByUser } }
@@ -206,10 +227,6 @@ final class BookTranscriptionJob: ObservableObject {
     }
 
     // MARK: - Progress
-
-    private func currentProgress(for book: Audiobook) -> Double {
-        publishValue(book: book, starts: book.fileStartTimes)
-    }
 
     private func publishProgress(book: Audiobook, starts: [TimeInterval]) {
         progress = publishValue(book: book, starts: starts)
