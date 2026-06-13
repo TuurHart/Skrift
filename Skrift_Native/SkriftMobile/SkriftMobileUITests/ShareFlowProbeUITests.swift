@@ -192,7 +192,7 @@ final class ShareFlowProbeUITests: XCTestCase {
         // Tap the mic (identifier first, accessibility label as fallback —
         // identifiers don't always survive the remote-view proxy).
         var mic: XCUIElement?
-        for candidate in [safari.buttons["capture-dictation-mic"].firstMatch,
+        for candidate in [safari.buttons["capture-dictation-record"].firstMatch,
                           safari.buttons["Dictate"].firstMatch] {
             if candidate.waitForExistence(timeout: 4) { mic = candidate; break }
         }
@@ -217,7 +217,7 @@ final class ShareFlowProbeUITests: XCTestCase {
         // Record ~2s, then stop (the button's label flips while recording).
         sleep(2)
         var stop: XCUIElement?
-        for candidate in [safari.buttons["capture-dictation-mic"].firstMatch,
+        for candidate in [safari.buttons["capture-dictation-record"].firstMatch,
                           safari.buttons["Stop dictation"].firstMatch,
                           safari.buttons["Dictate"].firstMatch] {
             if candidate.waitForExistence(timeout: 3) { stop = candidate; break }

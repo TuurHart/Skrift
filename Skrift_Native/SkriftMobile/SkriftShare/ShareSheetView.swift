@@ -233,125 +233,114 @@ struct ShareSheetView: View {
         .accessibilityIdentifier("capture-image-preview")
     }
 
-    // Annotation TextEditor with a layered placeholder + the dictation mic
-    // (mock state 1: small mic bottom-right of the field — "uses the same
-    // on-device transcriber as memos"; the transcription itself runs in the
-    // main app on drain, the extension only records).
+    // Capture-your-thoughts: a PROMINENT record button (primary — like the
+    // record FAB everywhere else in the app), with the text field secondary
+    // below. The earlier tiny mic-in-the-corner got missed; recording is the
+    // point here ("typing is for caveman" — 2026-06-13 device feedback).
     private var annotationField: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ZStack(alignment: .topLeading) {
-                // TextEditor doesn't support native placeholder before iOS 17 — overlay.
-                if annotationIsEmpty {
-                    Text("Add your thoughts… (optional)")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.skTextFaint)
-                        .padding(.top, 11)
-                        .padding(.leading, 13)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
-                TextEditor(text: $annotation)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.skText)
-                    .tint(Color.skAccent)
-                    // maxHeight matters: an uncapped TextEditor greedily fills the
-                    // whole sheet (the giant-white-box 2026-06-12 finding).
-                    .frame(minHeight: 74, maxHeight: 110)
-                    .scrollContentBackground(.hidden)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .padding(.trailing, 30)   // keep text clear of the mic
-                    .focused($annotationFocused)
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("Done") { annotationFocused = false }
-                                .font(.system(size: 14, weight: .semibold))
-                        }
-                    }
-            }
-            .overlay(alignment: .bottomTrailing) { micButton }
-            .background(
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .fill(Color.skSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
-                            .strokeBorder(
-                                recorder.state == .recording ? Color.red.opacity(0.55)
-                                : annotationFocused ? Color.skAccent.opacity(0.45)
-                                : Color.white.opacity(0.09),
-                                lineWidth: 0.5)
-                    )
-            )
-            .accessibilityIdentifier("capture-annotation-field")
-
-            dictationStatusRow
-        }
-    }
-
-    /// Mic / stop toggle pinned to the field's bottom-right (mock `.annot .mic`).
-    private var micButton: some View {
-        Button { recorder.toggleRecord() } label: {
-            Group {
-                if recorder.state == .recording {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 26, height: 26)
-                        .background(Color.red.opacity(0.85), in: .circle)
-                } else {
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Color.skTextDim)
-                        .frame(width: 26, height: 26)
-                        .background(Color.white.opacity(0.06), in: .circle)
-                }
-            }
-        }
-        .padding(8)
-        .accessibilityLabel(recorder.state == .recording ? "Stop dictation" : "Dictate")
-        .accessibilityIdentifier("capture-dictation-mic")
-    }
-
-    /// One-line status under the field: live elapsed while recording, a
-    /// voice-note chip (with discard) once recorded, a hint when mic denied.
-    @ViewBuilder private var dictationStatusRow: some View {
-        switch recorder.state {
-        case .idle:
-            EmptyView()
-        case .denied:
-            Text("Microphone access is off for Skrift — dictation unavailable.")
-                .font(.system(size: 11))
-                .foregroundStyle(Color.skTextFaint)
-        case .recording:
-            HStack(spacing: 6) {
-                Circle().fill(Color.red).frame(width: 6, height: 6)
-                Text("Recording… \(fmtDuration(recorder.elapsed)) — tap ■ to stop")
+        VStack(alignment: .leading, spacing: 8) {
+            recordButton
+            if recorder.state == .denied {
+                Text("Microphone access is off for Skrift — enable it to record, or type below.")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color.skTextDim)
+                    .foregroundStyle(Color.skTextFaint)
             }
-            .accessibilityIdentifier("capture-dictation-recording")
-        case .recorded(let duration):
-            HStack(spacing: 6) {
-                Image(systemName: "waveform")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.skAccent)
-                Text("Voice note · \(fmtDuration(duration)) — transcribes when you open Skrift")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.skTextDim)
-                    .lineLimit(1)
+            if case .recorded = recorder.state {
                 Button { recorder.discard() } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 13))
+                    Text("Discard voice note")
+                        .font(.system(size: 11.5))
                         .foregroundStyle(Color.skTextFaint)
                 }
-                .accessibilityLabel("Discard voice note")
+                .accessibilityIdentifier("capture-dictation-discard")
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(Color.skAccent.opacity(0.10), in: .capsule)
-            .accessibilityIdentifier("capture-dictation-chip")
+            typeField
         }
+    }
+
+    /// The big record control — idle / recording (live timer) / recorded
+    /// (re-record). Tapping toggles: record → stop → re-record.
+    private var recordButton: some View {
+        Button { recorder.toggleRecord() } label: {
+            HStack(spacing: 9) {
+                Image(systemName: recordIcon).font(.system(size: 15, weight: .bold))
+                Text(recordLabel).font(.system(size: 15, weight: .bold))
+                if case .recorded = recorder.state {
+                    Spacer(minLength: 8)
+                    Text("Re-record").font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .padding(.horizontal, 14)
+            .background(recordColor, in: .rect(cornerRadius: 13, style: .continuous))
+            .shadow(color: recordColor.opacity(0.4), radius: 8, y: 1)
+        }
+        .accessibilityIdentifier("capture-dictation-record")
+        .accessibilityLabel(recordLabel)
+    }
+
+    private var recordIcon: String {
+        switch recorder.state {
+        case .recording: return "stop.fill"
+        case .recorded:  return "checkmark.circle.fill"
+        default:         return "mic.fill"
+        }
+    }
+    private var recordLabel: String {
+        switch recorder.state {
+        case .recording:       return "Stop · \(fmtDuration(recorder.elapsed))"
+        case .recorded(let d): return "Voice note · \(fmtDuration(d))"
+        default:               return "Record your thoughts"
+        }
+    }
+    private var recordColor: Color {
+        switch recorder.state {
+        case .recording: return Color.red.opacity(0.9)
+        case .recorded:  return Color.skAccent.opacity(0.85)
+        default:         return Color.skAccent
+        }
+    }
+
+    /// Secondary "…or type" field — no longer the primary affordance.
+    private var typeField: some View {
+        ZStack(alignment: .topLeading) {
+            if annotationIsEmpty {
+                Text("…or type instead (optional)")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.skTextFaint)
+                    .padding(.top, 9).padding(.leading, 12)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            TextEditor(text: $annotation)
+                .font(.system(size: 14))
+                .foregroundStyle(Color.skText)
+                .tint(Color.skAccent)
+                .frame(minHeight: 54, maxHeight: 96)
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .focused($annotationFocused)
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") { annotationFocused = false }
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.skSurface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(annotationFocused ? Color.skAccent.opacity(0.45) : Color.white.opacity(0.09),
+                                      lineWidth: 0.5)
+                )
+        )
+        .accessibilityIdentifier("capture-annotation-field")
     }
 
     private func fmtDuration(_ t: TimeInterval) -> String {
