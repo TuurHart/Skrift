@@ -856,11 +856,19 @@ device-owed (no audiobook UI harness in the sim).
 in a book, hit Capture → sentence-select; the two things to watch — (1) does +/✕ read as tappable
 WITHOUT being told? (2) does the pre-pick + sandwich make EXTENDING feel natural, or do they just
 confirm one line? If +/✕ still isn't instant, next lever = a one-time coachmark.
-**WAVE 2 (deferred until the A/B validates the UX):** `BookTranscript` sidecar + chunker (silence-cut +
-overlap + sentence-splice fusion, absolute→file-local times) + resumable overnight transcribe job +
-the transcribe-book button + instant-capture-from-sidecar + pre-warm-on-book-open. Measure the real
-per-hour transcribe speed on the phone to replace the placeholder. Multi-file/chapter-boundary
-confinement is already code-enforced (`QuoteCaptureProcessor:69-76`) — keep it.
+**WAVE 2 — BUILDING 2026-06-13 (user greenlit):** `BookTranscript` sidecar + chunker + resumable
+overnight transcribe job + the transcribe-book button + instant-capture-from-sidecar + pre-warm-on-
+book-open. Measure the real per-hour transcribe speed on the phone to replace the placeholder.
+Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureProcessor:69-76`) — kept.
+- ✅ Sidecar (`BookTranscript`/`FileTranscript` + `BookTranscriptStore`, per-file JSON, atomic write,
+  `size:mtime` staleness, file-local word-timings; sentences derived on read via `buildSentences`).
+- ✅ Chunk-seam fusion (`ChunkFusion`): cut at the last complete sentence, re-transcribe the tail next
+  chunk — no split/dup words, uses `SentenceSnap`; run-on/silence fallbacks. Unit-tested.
+- ✅ Resumable job (`BookTranscriptionJob`): sequential per-file chunk loop, save-after-complete =
+  resume state (in-flight chunk discarded on interruption), pause-on-unplug + auto-resume on charge,
+  foreground Pause/Resume, yields to live capture between chunks. Engine path device-owed.
+- ⏳ ⋯ "Transcribe book" button + progress; instant-capture-from-sidecar + pre-warm-on-open; real
+  per-hour speed measurement (next chunks).
 
 #### Text-capture round 2 device feedback 2026-06-13 (evening)
 PASSED: text-capture double-select GONE ("I can record my thoughts. Nice."); +/✕ & extend confirmed.
