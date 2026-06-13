@@ -36,7 +36,10 @@ private struct RecordWidgetView: View {
     @Environment(\.widgetFamily) private var family
 
     private static let skBg = Color(red: 0.059, green: 0.067, blue: 0.090)
-    private static let red = Color(red: 0.937, green: 0.267, blue: 0.267)
+    // Skrift's accent (matches `Theme.skAccent` 0x7c6bf5 / the in-app record
+    // button) so the widget reads as Skrift, not a generic red record dot. The
+    // widget target doesn't compile Theme.swift, so the value is inlined.
+    private static let accent = Color(red: 0.486, green: 0.420, blue: 0.961)
 
     var body: some View {
         content
@@ -69,8 +72,8 @@ private struct RecordWidgetView: View {
                     .font(.system(size: 26))
                     .foregroundStyle(.white)
                     .frame(width: 56, height: 56)
-                    .background(Circle().fill(Self.red))
-                    .shadow(color: Self.red.opacity(0.4), radius: 8, y: 4)
+                    .background(Circle().fill(Self.accent))
+                    .shadow(color: Self.accent.opacity(0.4), radius: 8, y: 4)
                 Text("Record")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)

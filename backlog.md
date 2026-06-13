@@ -890,10 +890,16 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
   estimate from the sidecar on open. (2) **Start while already charging showed "paused, plug in"** —
   `isPluggedIn` was read before battery monitoring was enabled (→ `.unknown` → false unplugged);
   monitoring now enabled in `init` + before the read in `start`.
-- ⏳ **UX — library long-press to transcribe:** user expected to long-press a book in the library to
-  transcribe; instead had to open book → ⋯. Add a context menu (and/or surface it better).
-- ⏳ **UX — Control Center "record" shortcut icon = generic mic; make it the app icon.** Control
-  Center widget / App Shortcut glyph. Minor.
+- ✅ **UX — library long-press to transcribe (BUILT 2026-06-13):** `AudiobookLibraryView` rows got a
+  `.contextMenu` — "Transcribe book" (Text mode) presents `TranscribeBookView` for that book without
+  opening it; + Delete. No need to open book → ⋯.
+- ✅ **UX — Control Center / record-widget icon (BUILT 2026-06-13):** the literal app icon CAN'T be a
+  Control Center glyph (it's a detailed 3-D render; Control Center renders simple MONOCHROME templates
+  → its silhouette is an indistinct blob). Control Center control kept as `mic.fill` (clear record
+  glyph, already labelled "Skrift"). Real fix applied: the Home/Lock **record widget** was a generic
+  RED mic-dot while the in-app record button is `skAccent` purple — rebranded the widget to the Skrift
+  accent (`RecordWidget.accent` = 0x7c6bf5) so it reads as Skrift. A custom monochrome Skrift logomark
+  for Control Center is a later option (needs simple mark artwork, not the 3-D icon).
 - ✅ **Audiobook player UI redesign — DESIGN SIGNED OFF 2026-06-13** (grill-me). Spec mock:
   `Skrift_Native/SkriftDesktop/mocks/audiobook-player-redesign.html`. Direction = **text-forward
   A+D hybrid**: warm cover-derived tint header; cover demoted to a 56px chip; **live read-along text

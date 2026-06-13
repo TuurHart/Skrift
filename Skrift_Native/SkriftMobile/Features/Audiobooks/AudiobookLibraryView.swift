@@ -16,6 +16,9 @@ struct AudiobookLibraryView: View {
     @State private var pendingImport: PendingAudiobookImport?
     @State private var importError: String?
     @State private var showPlayer = false
+    /// Long-press → "Transcribe book" target (presents the transcribe sheet for
+    /// any library book without opening it first).
+    @State private var transcribeBook: Audiobook?
 
     private static let importTypes: [UTType] = {
         var types: [UTType] = [.audio]
@@ -55,6 +58,9 @@ struct AudiobookLibraryView: View {
         }
         .fullScreenCover(isPresented: $showPlayer) {
             AudiobookPlayerView()
+        }
+        .sheet(item: $transcribeBook) { book in
+            TranscribeBookView(book: book)
         }
         .alert("Import failed", isPresented: .init(
             get: { importError != nil },
@@ -151,6 +157,19 @@ struct AudiobookLibraryView: View {
                         Button(role: .destructive) {
                             delete(book)
                         } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .contextMenu {
+                        // Long-press → transcribe straight from the library (no need
+                        // to open the book → ⋯). Text mode only — the sidecar feeds
+                        // text-capture; in Audio mode it would do nothing.
+                        if AudiobookCaptureStyle.current == .text {
+                            Button { transcribeBook = book } label: {
+                                Label("Transcribe book", systemImage: "text.book.closed")
+                            }
+                        }
+                        Button(role: .destructive) { delete(book) } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
