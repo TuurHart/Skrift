@@ -1095,11 +1095,33 @@ player**, **read-along sync** (`ReadAlongView.lead` 0.1 s is the dial), and the 
 book first (schema-2 sidecar). If read-along reads early/late, say which → tune `lead` (+ desktop
 `-readalongcheck` to separate data-drift from offset).
 
-🔜 NEXT — follow-up to the redesign (user-requested 2026-06-13): **no back-limit on the build-your-quote
-selection.** Today `MergedCaptureView` loads only `[pausedAt − 90 s … pausedAt]` (`windowStartLocal`), so a
-passage that started earlier than 90 s ago can't be fully quoted. Want: extend the START edge further back
-with NO cap, anchored at the capture point (the line just heard stays the latest line; backward only — can't
-quote past the playhead). Approach: **transcribed book** → drop the 90 s floor and load the file's covered
-prefix from the sidecar (cheap; LazyVStack, default-scroll to the capture line) back to chapter/file start;
-**un-chunked spot** → keep the live 90 s window as the practical cap (nudge "Transcribe book" for unlimited)
-or add a "load earlier" that transcribes the prior chunk on demand. Ship the sidecar case first.
+✅ BUILT 2026-06-14 (gating) — **no back-limit on the build-your-quote selection** (`MergedCaptureView`): an
+"Earlier ↑" control at the top of the list extends the range further back, anchored at the capture point
+(backward only). **Transcribed book** → loads the file's full covered prefix from the sidecar (file-local
+times, safe to query from 0) and reveals **+8** sentences/tap, unlimited to the file start; the default view
+is still the last ~90 s. **Un-chunked spot** → "Earlier" re-transcribes ~60 s more/tap (≈4 sentences), swaps
+in the larger buffer, and remaps `sel` by the delta (re-anchors to the capture line if untouched, to dodge
+seam re-segmentation). Compiles; device-eyeball owed.
+
+#### Audit 2026-06-14 — P1 bugs + build-ready features verified against code (read-only agent)
+Most of the old P1 list is ALREADY FIXED (code + a doc comment naming the original bug); device re-verify only:
+- ✅ Desktop summary editable (`NoteDisplayView.swift:394`); ✅ name-link first-mention-only
+  (`Sanitiser.swift:81-111`, handles per-turn `**[[Person]]:**`); ✅ desktop Photos-drag ingest
+  (`SidebarView.swift:495-615` FilePromiseDropCatcher); ✅ confidence colours use the real committed-word
+  boundary (`RecordView.swift:227` + `TranscriptionService.liveCommittedWordCount`); ✅ video thumbnail BOTH
+  apps (mobile `MemoSaver.swift:162`, desktop `IngestService.writeVideoThumbnail` — the "desktop has none"
+  note was stale); ✅ Spotify-stops-on-open + paste-scroll-to-top both fixed.
+- ⏳ **REAL open bug — share-a-video from Photos doesn't list Skrift.** The share ext's
+  `NSExtensionActivationRule` (`SkriftShare/Info.plist` + `project.yml:260`) has only WebURL/Text/Image — no
+  Movie key — AND `ShareContentType`/`SharePayloadLoader` have no video case. Fix = add
+  `NSExtensionActivationSupportsMovieWithMaxCount` + a video payload path (extract audio + 1 frame, like the
+  existing PHPicker/Files video import) + inbox→memo. (File "Open in Skrift" for video already works.)
+- (g) disk-writes `.ips` = profiling, not a clear fix (model downloads + whole-book transcribe = suspects).
+
+Build-ready feature TRUE status (corrects the stale lists above):
+- Models/Storage: ✅ MOBILE (`Features/Settings/ModelsView.swift` + `ModelInventory.swift`); ❌ DESKTOP (none).
+- Record-a-voice enroll: ⏳ PLACEHOLDER both apps (`PersonDetailView`/`VoiceEnrollView` doesn't record; enroll only via conversation-naming).
+- Mac "name a speaker" review UI: ⏳ OPEN (backend `DiarizationService.embedSpeaker` ready, called only from the `-voiceloop` harness; no turn-renderer / click-to-name in `Features/Review/`).
+- Drag-multi-select (Photos-style lasso): ⏳ OPEN (native edit-mode drag works only AFTER the Select button; the lasso-replacing-Select wants a mock).
+- In-app feedback → inbox/backlog: ⏳ OPEN (only the email zip; routing today is the external pull-phone-feedback skill).
+- Source taxonomy: ⏳ PARTIAL — glyph/label maps DUPLICATED (`QueueDerivations.swift:61` desktop vs `MemoDisplay.swift:184` mobile), coincidentally in sync, no shared module; no PDF/video first-class type.

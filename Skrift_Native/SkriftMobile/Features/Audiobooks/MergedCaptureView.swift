@@ -11,6 +11,14 @@ import SwiftUI
 /// this works even on an un-chunked spot: it reads the wave-2 sidecar when the
 /// book is transcribed (instant) and otherwise transcribes the ~90 s window live.
 ///
+/// BUILD-YOUR-QUOTE has no fixed back-limit (2026-06-13): the default view is the
+/// last ~90 s, anchored at the line you just heard, and an "Earlier ↑" control
+/// extends the selectable range further back — on a TRANSCRIBED book it reveals 8
+/// more sentences per tap straight from the sidecar (cheap, all the way to the
+/// file start); on an un-transcribed spot it transcribes ~a-minute-more per tap
+/// (≈4 sentences) and remaps the selection. Backward only — you can't quote past
+/// the playhead.
+///
 /// ALWAYS records voice — a quote alone isn't a capture. Tapping "Record your
 /// thoughts" carves the quote from the selection, creates the memo, applies the
 /// significance, then opens the recorder; afterwards the book auto-resumes and
@@ -44,6 +52,12 @@ struct MergedCaptureView: View {
 
     private enum LoadState { case loading, ready(Source), empty }
 
+    /// How many earlier sentences each "Earlier ↑" tap reveals — bigger when the
+    /// book is transcribed (free, from the sidecar), smaller un-transcribed (each
+    /// batch costs a live transcribe).
+    private static let revealBatchTranscribed = 8
+    private static let liveExtendSeconds: TimeInterval = 60   // ≈ 4 sentences per tap
+
     private let transcripts = BookTranscriptStore()
     @ObservedObject private var session = AudiobookSession.shared
     @State private var state: LoadState = .loading
@@ -54,6 +68,14 @@ struct MergedCaptureView: View {
     @State private var toastColor: Color = .skTextDim
     @State private var building = false
     @State private var showRamble = false
+    /// First index of `source.sentences` currently DISPLAYED (the rest, earlier,
+    /// are hidden behind "Earlier ↑"). Defaults to the start of the ~90 s window.
+    @State private var shownFrom = 0
+    /// File-local start the live window currently reaches (live path only) — the
+    /// "Earlier ↑" extends this back and re-transcribes. 0 = at the file start.
+    @State private var liveWindowStart: TimeInterval = 0
+    /// A live "Earlier" re-transcribe is in flight (spinner on the button).
+    @State private var loadingEarlier = false
     /// The memo created when "Record your thoughts" fires (so the ramble appends).
     @State private var createdMemoID: UUID?
     /// The buffer temp to clean up when the flow exits (the ±buffer audio).
@@ -213,12 +235,9 @@ struct MergedCaptureView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 7) {
-                        Text("— start of chapter —")
-                            .font(.system(size: 10.5)).foregroundStyle(Color.skTextFaint)
-                            .frame(maxWidth: .infinity).padding(.vertical, 2)
-                            .opacity(windowStartLocal <= 0.5 ? 1 : 0)
-                        ForEach(Array(source.sentences.enumerated()), id: \.offset) { i, s in
-                            sentenceRow(i, s.text)
+                        topAffordance(source)
+                        ForEach(source.sentences.indices, id: \.self) { i in
+                            if i >= shownFrom { sentenceRow(i, source.sentences[i].text) }
                         }
                         // Plain attribution preview — NO [[..]] on the phone.
                         attributionText
@@ -235,6 +254,43 @@ struct MergedCaptureView: View {
                 .frame(maxWidth: .infinity).frame(minHeight: 16).padding(.top, 2)
         }
         .frame(maxHeight: .infinity)
+    }
+
+    /// The top of the list: an "Earlier ↑" button to extend the selectable range
+    /// further back (no fixed limit), or the "start of chapter" marker once there.
+    @ViewBuilder private func topAffordance(_ source: Source) -> some View {
+        if canLoadEarlier(source) {
+            Button { loadEarlier() } label: {
+                HStack(spacing: 6) {
+                    if loadingEarlier {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "chevron.up").font(.system(size: 11, weight: .semibold))
+                    }
+                    Text(loadingEarlier ? "Getting earlier lines\u{2026}" : "Earlier")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(Color.skAccentText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .overlay(RoundedRectangle.sk(11).stroke(Color.skAccent.opacity(0.4), lineWidth: 1))
+            }
+            .disabled(loadingEarlier)
+            .accessibilityIdentifier("merged-capture-earlier")
+        } else {
+            Text("\u{2014} start of chapter \u{2014}")
+                .font(.system(size: 10.5)).foregroundStyle(Color.skTextFaint)
+                .frame(maxWidth: .infinity).padding(.vertical, 2)
+        }
+    }
+
+    /// Can the range extend further back? Sidecar: more hidden sentences exist.
+    /// Live: the window hasn't reached the file start yet (re-transcribe to go on).
+    private func canLoadEarlier(_ source: Source) -> Bool {
+        switch source {
+        case .sidecar: return shownFrom > 0
+        case .window:  return liveWindowStart > 0.5
+        }
     }
 
     private func sentenceRow(_ i: Int, _ text: String) -> some View {
@@ -317,11 +373,16 @@ struct MergedCaptureView: View {
         guard winEnd - winStart >= 1 else { state = .empty; return }
 
         // WAVE 2 — INSTANT: if the book is transcribed up to here, read the sidecar.
+        // Pull the WHOLE covered prefix (file-local times — safe to query from 0)
+        // so "Earlier ↑" can reveal back to the file start with no re-query; the
+        // default view starts at the ~90 s window.
         if let words = transcripts.coveredWindowWords(
-            bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, start: winStart, end: winEnd) {
+            bookID: book.id, fileIndex: fileIndex, audioURL: audioURL, start: 0, end: winEnd) {
             let sentences = QuoteCaptureProcessor.buildSentences(from: words, snappedStart: 0, snappedEnd: 0)
             guard !sentences.isEmpty else { state = .empty; return }
             sel = TextCaptureSelection(lo: sentences.count - 1, hi: sentences.count - 1)
+            // Default-show the last ~90 s; earlier sentences hide behind "Earlier ↑".
+            shownFrom = sentences.firstIndex(where: { $0.start >= winStart }) ?? 0
             state = .ready(.sidecar(sentences))
             return
         }
@@ -331,9 +392,53 @@ struct MergedCaptureView: View {
                 bookAudio: audioURL, windowStart: winStart, windowEnd: winEnd)
             guard !w.sentences.isEmpty else { state = .empty; return }
             sel = TextCaptureSelection(lo: w.sentences.count - 1, hi: w.sentences.count - 1)
+            liveWindowStart = winStart
+            shownFrom = 0
             state = .ready(.window(w))
         } catch {
             state = .empty
+        }
+    }
+
+    /// Extend the selectable range further back. Sidecar: reveal more already-
+    /// transcribed sentences (instant). Live: transcribe ~a-minute earlier and
+    /// remap the selection (the prior sentences become the tail of the new window).
+    private func loadEarlier() {
+        switch state {
+        case .ready(.sidecar):
+            shownFrom = max(0, shownFrom - Self.revealBatchTranscribed)
+        case .ready(.window(let oldW)):
+            guard liveWindowStart > 0.5, !loadingEarlier, let audioURL else { return }
+            loadingEarlier = true
+            let newStart = max(0, liveWindowStart - Self.liveExtendSeconds)
+            let oldCount = oldW.sentences.count
+            let wasUntouched = !touched
+            Task {
+                do {
+                    let newW = try await QuoteCaptureProcessor().transcribeWindowForDisplay(
+                        bookAudio: audioURL, windowStart: newStart, windowEnd: windowEndLocal)
+                    // The larger window's buffer replaces the old one.
+                    try? FileManager.default.removeItem(at: oldW.bufferURL)
+                    let delta = newW.sentences.count - oldCount
+                    // The prior sentences are the TAIL of the new array — shift the
+                    // selection by how many earlier ones were prepended. If the user
+                    // hadn't adjusted the selection yet, just re-anchor to the last
+                    // line (avoids any seam re-segmentation drift).
+                    if wasUntouched {
+                        sel = TextCaptureSelection(lo: newW.sentences.count - 1, hi: newW.sentences.count - 1)
+                    } else if delta != 0 {
+                        sel = TextCaptureSelection(lo: max(0, sel.lo + delta), hi: max(0, sel.hi + delta))
+                    }
+                    liveWindowStart = newStart
+                    state = .ready(.window(newW))
+                    loadingEarlier = false
+                } catch {
+                    loadingEarlier = false
+                    toast = "Couldn\u{2019}t load earlier — try again"; toastColor = .skAmber
+                }
+            }
+        default:
+            break
         }
     }
 
