@@ -281,3 +281,30 @@ append-after-complete), so a capture never reads a torn chunk.
 - **Mock first** (locked process), sign-off, then build.
 - **Mobile-first** (the player + capture live on the phone). NB: the capture
   design mocks historically live in `Skrift_Native/SkriftDesktop/mocks/`.
+
+## 14. Device walkthrough 2026-06-13 — flow fixes + open items
+PASSED on device: pill fix (new memos land ✓), +/✕ "worked well", pre-pick+extend
+"feels natural", warm capture "really nice", start-of-chapter, Models tab.
+
+FIXED (commit — no double-select + no re-transcribe):
+- **Double sentence-select KILLED.** Text mode no longer re-transcribes on confirm and
+  no longer shows the trim sheet (you already picked sentences). `QuoteCaptureProcessor.
+  buildOutput` carves the quote straight from the window selection; `CaptureSheetView`
+  `skipTrim` renders the quote read-only and opens straight at record-your-thoughts +
+  significance. Audio mode unchanged (keeps trim).
+- **Cut the "Hear selection · 1.5×" preview** — didn't play on device + user lukewarm
+  ("if you can read it, maybe you don't need to hear it"). Text mode is read-not-listen.
+
+OPEN (next):
+- **Share sheet: typing sucks ("typing is for caveman").** Voice dictation ALREADY
+  exists in the share extension (`ShareDictationRecorder`, the mic on the annotation
+  field) but the user went straight to typing and never found it. Fix = DISCOVERABILITY:
+  make voice-record the prominent/primary affordance in the share sheet, typing
+  secondary. (Extension change + device build.)
+- **Custom vocab still spelled "Script", NOT corrected — UNCONFIRMED, not yet a bug.**
+  Both test recordings were still transcribing while the ctc110m model loaded in the
+  background (the new non-blocking behaviour), so NEITHER was boosted. Needs a clean
+  re-test: confirm the custom-word model shows downloaded in Models tab, THEN record
+  saying the word — the 2nd+ recording should correct. If it STILL says "Script" with
+  the model loaded, it's a real booster-efficacy bug (CTC spotter not catching
+  Script→Skrift) to investigate.
