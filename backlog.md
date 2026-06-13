@@ -1070,12 +1070,13 @@ retired.** Building in 3 gated chunks on `native`:
 1. ✅ **Player fills** — `ReadAlongView` flexible-height (geo-relative head/tail spacers, was a fixed 234 pt
    panel) + `AudiobookPlayerView` controls pinned at the bottom (dropped the dead `Spacer`). Sim green
    (38 UI + units, TEST SUCCEEDED). Committed.
-2. ⏳ **Merged capture** — `MergedCaptureView.swift` (NEW): one note-style screen = header (❝ + book·ch) →
+2. ✅ **Merged capture** — `MergedCaptureView.swift` (NEW): one note-style screen = header (❝ + book·ch) →
    the real `SignificanceCircles` card → build-your-quote sentence rows (reuses `TextCaptureSelection`) →
    Record-your-thoughts pinned. On record: build quote from the selection → `saveQuoteCapture` → apply
    significance → `RecordView(appendTo:)` → recorder dismiss auto-resumes the book + lands as the normal
    note (NO preview; the ramble append is fire-and-forget so it's safe). Routed via a rewritten
-   `QuoteCaptureFlowView`. A bail before recording discards the quote-only memo (always-records).
+   `QuoteCaptureFlowView` (all capture → merged). A bail before recording discards the quote-only memo
+   (always-records). Sim green (TEST SUCCEEDED), committed. Old views still present-but-dead (deleted in 3).
 3. ⏳ **Retire audio arm** — delete `CaptureMomentView` / old `CaptureSheetView` / `TextCaptureView` (move
    the pure `TextCaptureSelection`+`TextCaptureMath` out first) / `AudiobookCaptureStyle` + its Settings
    toggle; ungate the `.text` checks (Transcribe-book always available in player ⋯ + library long-press;
