@@ -890,7 +890,19 @@ Multi-file/chapter-boundary confinement is already code-enforced (`QuoteCaptureP
   large + bright (21 pt), neighbours dim by distance, **smooth auto-scroll** (centered, animated),
   soft edge fade, tap-a-line-to-seek. Loads the WHOLE covered prefix once (reloads only on coverage-
   frontier cross / file change) so scrolling is smooth, not jumpy. Device-owed re-look.
-- ✅ **Read-along "text lags behind voice"** (device feedback) — NOT an offset bug; latency. The
+- ✅✅ **ROOT CAUSE of read-along trailing — chunker time-DRIFT (2026-06-13, proven on Mac).** Built a
+  headless harness (`-readalongcheck`, `-chunksim` + `anchorDrift`, desktop `RunFile`): pulled the
+  real book audio + sidecars off the phone, transcribed each chapter WHOLE on the Mac as ground truth,
+  aligned on words unique-in-both. f0 (2 chunks) was clean (±0.08 s); **f2 "Beginning" (14 chunks)
+  drifted monotonically late: thirds +0.40/+0.81/+1.99 s** — so no fixed lead could fix it. `-chunksim`
+  reproduced + isolated the cause: **per-chunk `AVAssetExportSession` extraction from the compressed
+  MP3 isn't time-accurate (error grows with seek position): thirds −0.24/+0.38/+0.96; sample-accurate
+  `AVAudioFile` PCM frame reads = −0.02/−0.02/−0.01 (flat).** FIX (mobile): `BookTranscriptionJob`
+  now extracts chunks via `extractPCM` (AVAudioFile → temp WAV), NOT exportSpan. `FileTranscript`
+  schema 1→2 so the already-drifted sidecars re-transcribe. Quote-audio carving keeps exportSpan (a
+  few-ms shift there is inaudible). Device re-test: re-transcribe "Do the Work", read-along should now
+  ride the voice the whole chapter.
+- ✅ **Read-along "text lags behind voice"** (device feedback) — also addressed the latency layer. The
   AVPlayer playhead (`session.currentTime`) only ticks every 0.5 s, so the lit line was quantized to
   half-second steps and always trailed. Fixed: `ReadAlongView` now INTERPOLATES the playhead between
   ticks (anchor + wall-elapsed × `session.rate`) on a 0.1 s timer, plus a small `lead` (0.2 s) for

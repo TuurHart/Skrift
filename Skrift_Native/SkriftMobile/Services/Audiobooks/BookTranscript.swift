@@ -19,8 +19,11 @@ import Foundation
 /// `coveredUpTo` is the resume frontier — the file-local second the chunker has
 /// transcribed AND saved up to. Words past it don't exist yet.
 struct FileTranscript: Codable, Equatable, Sendable {
-    /// Bumped if the on-disk shape ever changes (forces a re-transcribe).
-    static let currentSchema = 1
+    /// Bumped if the on-disk shape (or how the times are produced) changes —
+    /// older sidecars then read as stale and are re-transcribed. v2 = the
+    /// sample-accurate (drift-free) chunk extraction fix (2026-06-13); v1
+    /// sidecars drift late deep in long chapters, so they must be redone.
+    static let currentSchema = 2
 
     var schema: Int = currentSchema
     /// Which file of the book this covers (`Audiobook.files` index).

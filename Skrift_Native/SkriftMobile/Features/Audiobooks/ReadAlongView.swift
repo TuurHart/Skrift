@@ -97,6 +97,7 @@ struct ReadAlongView: View {
         .onChange(of: fileLocal) { _, v in
             anchorLocal = v; anchorWall = Date()
             model.reloadIfNeeded(book: book, fileIndex: fileIndex, fileLocal: v, audioURL: audioURL)
+            model.setCurrent(fileLocal: v + lead)   // baseline each real tick; the timer refines between
         }
         .onChange(of: fileIndex) { _, _ in
             model.reloadIfNeeded(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)

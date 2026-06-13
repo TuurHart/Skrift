@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import UIKit
 
@@ -202,10 +203,15 @@ final class BookTranscriptionJob: ObservableObject {
                                  chunkStart: TimeInterval, chunkEnd: TimeInterval,
                                  isFinal: Bool) async -> ChunkFusion.Fused? {
         let temp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("bookchunk_\(UUID().uuidString).m4a")
+            .appendingPathComponent("bookchunk_\(UUID().uuidString).wav")
         defer { try? FileManager.default.removeItem(at: temp) }
         do {
-            try await QuoteCaptureProcessor.exportSpan(of: audioURL, start: chunkStart, end: chunkEnd, to: temp)
+            // SAMPLE-ACCURATE extraction (NOT AVAssetExportSession): exporting a
+            // compressed-MP3 timeRange drifts progressively late with seek position
+            // (Mac `-chunksim` proof 2026-06-13: export thirds −0.24/+0.38/+0.96 vs
+            // PCM −0.02/−0.02/−0.01), which made the read-along trail by ~1–2 s deep
+            // in a chapter. AVAudioFile frame reads are drift-free.
+            try Self.extractPCM(of: audioURL, start: chunkStart, end: chunkEnd, to: temp)
             let result = try await transcriber.transcribe(audioURL: temp, imageManifest: [])
             let fileLocal = result.wordTimings.map {
                 WordTiming(word: $0.word, start: $0.start + chunkStart, end: $0.end + chunkStart)
@@ -215,6 +221,24 @@ final class BookTranscriptionJob: ObservableObject {
         } catch {
             return nil
         }
+    }
+
+    /// Sample-accurate extraction of `[start, end]` to a temp WAV via AVAudioFile
+    /// frame reads — drift-free, unlike `AVAssetExportSession` on compressed audio
+    /// (see `transcribeChunk`). FluidAudio transcribes the WAV; word times then
+    /// align to the original file at every seek depth.
+    static func extractPCM(of url: URL, start: TimeInterval, end: TimeInterval, to dst: URL) throws {
+        let file = try AVAudioFile(forReading: url)
+        let sr = file.processingFormat.sampleRate
+        file.framePosition = AVAudioFramePosition(max(0, start) * sr)
+        let frames = AVAudioFrameCount(max(0, end - start) * sr)
+        guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frames) else {
+            throw QuoteCaptureError.exportFailed
+        }
+        try file.read(into: buffer, frameCount: frames)
+        try? FileManager.default.removeItem(at: dst)
+        let out = try AVAudioFile(forWriting: dst, settings: file.processingFormat.settings)
+        try out.write(from: buffer)
     }
 
     /// Block while paused (user or unplugged) or yielding to a capture. Polls
