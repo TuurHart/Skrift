@@ -245,6 +245,38 @@ exists.** Changes baked into `text-capture.html` v2:
   dead-end into the audio mode they may have fled); "use audio capture instead" is
   the secondary link.
 
+## 13. UX-pass v3 (user review) + resumability
+- **Select = scroll, not a button.** Dropped "↑ show earlier lines"; the sentence
+  list just scrolls, earlier lines lazy-load (chunk-fill within the chapter) as you
+  reach the top. Auto-scrolls the pre-picked line into view on open.
+- **"Hear selection" plays the span from its start at 1.5×** (fast review — the
+  whole reason quote-capture beats re-listening).
+- **Removed the "your place is saved" reassurance** (both Warming and Select). The
+  book is merely *paused* — reassuring against a non-threat invents a worry. (This
+  overrides the earlier agent suggestion / §11 line — user's logic is better.)
+- **No-speech (screen 5) minimised.** It is a rare edge (a 2-min window is almost
+  never all music), and "switch to audio capture" was nonsense (audio can't quote
+  music either). Reduced to a tiny fallback: "Nothing to quote here → Back to the
+  book." Not a feature, just graceful handling of an empty/failed window.
+- **Transcribe-book screen** now states the guidance: best overnight + plugged in,
+  a per-hour time estimate (PLACEHOLDER "≈ 8 min/hr" — real per-device speed TBD
+  on the phone, do NOT ship the number unmeasured), and "resumes where it left
+  off."
+
+### Resumability (whole-book transcription) — DECISION
+The chunk sidecar **is** the resume state, because each chunk is saved as it
+finishes. On any interruption (unplugged, app crash, force-quit, OS jetsam):
+- completed+saved chunks survive;
+- the single **in-flight chunk that didn't finish saving is discarded** and
+  re-transcribed from the last saved boundary (idempotent per chunk — user's
+  "delete the last half-chunk and go again");
+- the job is **resumable** on next launch / re-plug;
+- **pause when unplugged, auto-resume on re-plug** (it's the overnight/charger
+  job — don't drain battery silently). A foreground "Pause / Keep listening"
+  control is also offered.
+No partial chunk is ever half-written into the usable transcript (atomic
+append-after-complete), so a capture never reads a torn chunk.
+
 ## 10. Process
 - **Mock first** (locked process), sign-off, then build.
 - **Mobile-first** (the player + capture live on the phone). NB: the capture
