@@ -12,7 +12,10 @@ struct QuoteCaptureFlowView: View {
     private enum Stage {
         case adjust
         case processing
-        case sheet(memoID: UUID, output: QuoteCaptureOutput)
+        /// `skipTrim` = the capture sheet opens straight at record-your-thoughts
+        /// (no sentence-trim step). True for TEXT captures — the user already
+        /// picked whole sentences, so re-trimming is redundant.
+        case sheet(memoID: UUID, output: QuoteCaptureOutput, skipTrim: Bool)
     }
 
     private let book: Audiobook?
@@ -57,11 +60,12 @@ struct QuoteCaptureFlowView: View {
                     adjustStage(book)
                 case .processing:
                     processingStage(book)
-                case .sheet(let memoID, let output):
+                case .sheet(let memoID, let output, let skipTrim):
                     CaptureSheetView(
                         book: book,
                         output: output,
                         memoID: memoID,
+                        skipTrim: skipTrim,
                         onFinish: { resume in finish(resume: resume, output: output) },
                         onDiscard: { discard(memoID: memoID, output: output) }
                     )
@@ -106,7 +110,7 @@ struct QuoteCaptureFlowView: View {
                 audioURL: session.store.audioURL(of: book, fileIndex: fileIndex),
                 pausedAt: pausedAt,
                 fileBounds: fileBounds,
-                onConfirm: { confirmCapture(book, span: $0) },
+                onConfirm: { presentSheet(book: book, output: $0, skipTrim: true) },
                 onCancel: { session.play(); dismiss() }
             )
         } else {
@@ -205,25 +209,34 @@ struct QuoteCaptureFlowView: View {
                 )
                 output.spanStart += origin
                 output.spanEnd += origin
-                guard let memoID = MemoSaver().saveQuoteCapture(
-                    audioTempURL: output.audioURL,
-                    quote: output.quote,
-                    duration: output.duration,
-                    wordTimings: output.wordTimings,
-                    bookTitle: book.title,
-                    bookAuthor: book.author,
-                    bookChapter: book.chapterNumberString(at: output.spanStart)
-                ) else {
-                    cleanupBuffer(output: output)
-                    throw QuoteCaptureError.noSpeech
-                }
-                Haptics.success()
-                stage = .sheet(memoID: memoID, output: output)
+                // Audio mode → the sheet keeps its sentence-trim step.
+                presentSheet(book: book, output: output, skipTrim: false)
             } catch {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 stage = .adjust
             }
         }
+    }
+
+    /// Save the capture memo and open the sheet. Shared by both modes; `skipTrim`
+    /// is true for text captures (no redundant sentence-trim).
+    private func presentSheet(book: Audiobook, output: QuoteCaptureOutput, skipTrim: Bool) {
+        guard let memoID = MemoSaver().saveQuoteCapture(
+            audioTempURL: output.audioURL,
+            quote: output.quote,
+            duration: output.duration,
+            wordTimings: output.wordTimings,
+            bookTitle: book.title,
+            bookAuthor: book.author,
+            bookChapter: book.chapterNumberString(at: output.spanStart)
+        ) else {
+            cleanupBuffer(output: output)
+            errorMessage = QuoteCaptureError.noSpeech.errorDescription
+            stage = .adjust
+            return
+        }
+        Haptics.success()
+        stage = .sheet(memoID: memoID, output: output, skipTrim: skipTrim)
     }
 
     /// Clean up the buffer audio file that the processor left alive for the

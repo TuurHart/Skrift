@@ -20,6 +20,10 @@ struct CaptureSheetView: View {
     let book: Audiobook
     let output: QuoteCaptureOutput
     let memoID: UUID
+    /// Text captures skip the sentence-trim step (the user already picked whole
+    /// sentences in `TextCaptureView`) — the quote shows read-only and the sheet
+    /// opens straight at record-your-thoughts.
+    var skipTrim: Bool = false
     /// Close-and-save. `resume: true` restarts the book ("Save & keep
     /// listening"); `false` keeps it paused (only "Save & keep listening"
     /// restarts the book).
@@ -256,9 +260,9 @@ struct CaptureSheetView: View {
     private var quoteBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
             ViewThatFits(in: .vertical) {
-                sentenceTrimContent
+                quoteContent
                 ScrollView(.vertical, showsIndicators: true) {
-                    sentenceTrimContent
+                    quoteContent
                 }
             }
             .frame(maxHeight: Self.quoteMaxHeight)
@@ -268,7 +272,7 @@ struct CaptureSheetView: View {
                 .font(.system(size: 11.5))
                 .accessibilityIdentifier("capture-attribution")
 
-            if !trimHint.isEmpty {
+            if !skipTrim, !trimHint.isEmpty {
                 Text(trimHint)
                     .font(.system(size: 10.5))
                     .foregroundStyle(Color.skAmber)
@@ -277,7 +281,7 @@ struct CaptureSheetView: View {
                     .accessibilityIdentifier("capture-trim-hint")
             }
 
-            if trimLocked {
+            if !skipTrim, trimLocked {
                 HStack(spacing: 4) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 9))
@@ -318,6 +322,30 @@ struct CaptureSheetView: View {
                     .accessibilityIdentifier("capture-quote-text")
             }
         }
+    }
+
+    /// The quote body: read-only italic text for text captures (already
+    /// sentence-exact), or the tappable sentence-trim strip for audio captures.
+    @ViewBuilder private var quoteContent: some View {
+        if skipTrim {
+            Text(plainQuote)
+                .font(.system(size: 15).italic())
+                .foregroundStyle(Color.skText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("capture-quote-text")
+        } else {
+            sentenceTrimContent
+        }
+    }
+
+    /// The quote text with the leading "> " blockquote markers stripped, joined
+    /// into one paragraph — for the read-only (skip-trim) preview.
+    private var plainQuote: String {
+        output.quote
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.hasPrefix("> ") ? String($0.dropFirst(2)) : String($0) }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// The tappable sentence strip — a VStack of `TrimSentenceButton` rows.
@@ -393,6 +421,8 @@ struct CaptureSheetView: View {
     /// previous state so no data is lost.
     @MainActor
     private func applyTrimIfNeeded() async {
+        // Text captures have no trim step — the quote is already sentence-exact.
+        guard !skipTrim else { return }
         // Locked → the ramble already refers to this audio span; never retrim.
         guard !trimLocked else { return }
         // Nothing to trim (no buffer sentences → no timings → can't re-export).

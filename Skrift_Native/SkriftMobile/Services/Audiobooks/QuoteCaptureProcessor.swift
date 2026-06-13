@@ -166,6 +166,45 @@ struct QuoteCaptureProcessor {
         return WindowTranscript(sentences: sentences, bufferURL: bufferURL, windowStart: windowStart)
     }
 
+    /// Build a capture output DIRECTLY from a text-mode window selection — NO
+    /// re-transcription (the window was already transcribed for display, and the
+    /// user picked whole sentences, so there's nothing to re-snap). Exports the
+    /// selected sentences' span from the window buffer as the quote audio. This is
+    /// why text mode skips the trim sheet: the quote is already sentence-exact.
+    func buildOutput(from window: WindowTranscript, lo: Int, hi: Int,
+                     fileOrigin: TimeInterval) async throws -> QuoteCaptureOutput {
+        guard window.sentences.indices.contains(lo), window.sentences.indices.contains(hi), lo <= hi,
+              let bookSpan = TextCaptureMath.globalSpan(
+                sentences: window.sentences, lo: lo, hi: hi,
+                windowStart: window.windowStart, fileOrigin: fileOrigin)
+        else { throw QuoteCaptureError.noSpeech }
+
+        let selected = Array(window.sentences[lo...hi])
+        let selStart = selected[0].start                 // window-local
+        let selEnd = selected[selected.count - 1].end
+        guard selEnd > selStart else { throw QuoteCaptureError.noSpeech }
+
+        // Quote audio = the selected span carved from the window buffer.
+        let quoteURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quote_\(UUID().uuidString).m4a")
+        try await Self.exportSpan(of: window.bufferURL, start: selStart, end: selEnd, to: quoteURL)
+
+        let quote = QuoteFormatting.blockquote(selected.map(\.text).joined(separator: " "))
+        let rebased = selected.flatMap(\.words).map {
+            WordTiming(word: $0.word, start: max(0, $0.start - selStart), end: max(0, $0.end - selStart))
+        }
+        return QuoteCaptureOutput(
+            quote: quote,
+            spanStart: bookSpan.start, spanEnd: bookSpan.end,
+            audioURL: quoteURL,
+            duration: max(0, selEnd - selStart),
+            wordTimings: rebased,
+            bufferSentences: window.sentences,   // retained; trim is skipped for text captures
+            bufferAudioURL: window.bufferURL,
+            bufferOffset: window.windowStart
+        )
+    }
+
     /// Partition buffer word timings into sentences, marking each as initially
     /// "in" the quote if it overlaps the snapped span.
     nonisolated static func buildSentences(

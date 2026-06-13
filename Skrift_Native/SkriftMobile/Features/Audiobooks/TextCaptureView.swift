@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 // MARK: - Pure selection + span logic (host-testable, no SwiftUI)
 
@@ -52,8 +51,10 @@ struct TextCaptureView: View {
     let pausedAt: TimeInterval
     /// GLOBAL bounds of the file `pausedAt` falls in (origin = `.start`).
     let fileBounds: CaptureSpan.Span
-    /// Called with a GLOBAL span when the user confirms a quote.
-    let onConfirm: (CaptureSpan.Span) -> Void
+    /// Called with the built capture output when the user confirms a quote —
+    /// the quote is carved straight from the window the user read (no
+    /// re-transcription), so the flow goes straight to the ramble (skip trim).
+    let onConfirm: (QuoteCaptureOutput) -> Void
     let onCancel: () -> Void
 
     private enum LoadState {
@@ -67,7 +68,9 @@ struct TextCaptureView: View {
     @State private var touched = false
     @State private var toast = ""
     @State private var toastColor: Color = .skTextDim
-    @State private var previewPlayer: AVAudioPlayer?
+    /// True once an output has been handed to the flow — which then owns the
+    /// window buffer's cleanup. Stops `onDisappear` deleting it out from under it.
+    @State private var handedOff = false
 
     // Window in FILE-LOCAL time: [playhead − 90 s … playhead], clamped to the file.
     private var windowEndLocal: TimeInterval { min(max(0, pausedAt - fileBounds.start), fileBounds.length) }
@@ -85,8 +88,9 @@ struct TextCaptureView: View {
         .background(Color.skBg.ignoresSafeArea())
         .task { await load() }
         .onDisappear {
-            previewPlayer?.stop()
-            if case .ready(let w) = state { try? FileManager.default.removeItem(at: w.bufferURL) }
+            // Clean the window buffer ONLY if the user left without confirming;
+            // once handed off, the flow owns it (cleans after the sheet).
+            if !handedOff, case .ready(let w) = state { try? FileManager.default.removeItem(at: w.bufferURL) }
         }
         .accessibilityIdentifier("text-capture")
     }
@@ -95,7 +99,7 @@ struct TextCaptureView: View {
 
     private var nav: some View {
         HStack(spacing: 10) {
-            Button { previewPlayer?.stop(); onCancel() } label: {
+            Button { onCancel() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Color.skTextDim)
@@ -212,10 +216,6 @@ struct TextCaptureView: View {
 
     private func footer(_ w: QuoteCaptureProcessor.WindowTranscript) -> some View {
         VStack(spacing: 8) {
-            Button { preview(w) } label: {
-                Text("▶ Hear selection · 1.5×").font(.system(size: 12)).foregroundStyle(Color.skAccent)
-            }
-            .accessibilityIdentifier("text-capture-preview")
             Button { confirm(w) } label: {
                 Text("Use as quote (\(sel.count) line\(sel.count > 1 ? "s" : "")) →")
                     .font(.system(size: 14.5, weight: .bold))
@@ -264,32 +264,20 @@ struct TextCaptureView: View {
         Haptics.tap()
     }
 
+    /// Carve the quote straight from the window the user read (no re-transcribe)
+    /// and hand it to the flow, which goes straight to the ramble (skip trim).
     private func confirm(_ w: QuoteCaptureProcessor.WindowTranscript) {
-        guard let span = TextCaptureMath.globalSpan(
-            sentences: w.sentences, lo: sel.lo, hi: sel.hi,
-            windowStart: w.windowStart, fileOrigin: fileBounds.start) else { return }
-        previewPlayer?.stop()
-        onConfirm(span)
-    }
-
-    /// Play the selected span from `bufferURL` at 1.5× (window-local times = buffer-local).
-    private func preview(_ w: QuoteCaptureProcessor.WindowTranscript) {
-        guard sel.lo < w.sentences.count, sel.hi < w.sentences.count else { return }
-        let start = w.sentences[sel.lo].start
-        let end = w.sentences[sel.hi].end
-        do {
-            let p = try AVAudioPlayer(contentsOf: w.bufferURL)
-            p.enableRate = true
-            p.rate = 1.5
-            p.currentTime = start
-            p.prepareToPlay()
-            p.play()
-            previewPlayer = p
-            toast = "▶ playing your \(sel.count)-line selection at 1.5×…"; toastColor = .skAccent
-            let dur = max(0.1, (end - start) / 1.5)
-            DispatchQueue.main.asyncAfter(deadline: .now() + dur) { [weak p] in p?.stop() }
-        } catch {
-            // Preview is non-essential; silently ignore (the quote audio is exact regardless).
+        guard !handedOff else { return }
+        handedOff = true
+        Task {
+            do {
+                let output = try await QuoteCaptureProcessor().buildOutput(
+                    from: w, lo: sel.lo, hi: sel.hi, fileOrigin: fileBounds.start)
+                onConfirm(output)
+            } catch {
+                handedOff = false
+                toast = "Couldn’t build that quote — try a different selection"; toastColor = .skAmber
+            }
         }
     }
 }
