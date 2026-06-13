@@ -40,6 +40,20 @@ struct SkriftApp: App {
                 // we convert them to Memos here and delete the entries after save —
                 // see Services/Capture/CaptureInbox.swift for the crash-safety model.
                 .task { CaptureInboxDrainer.drain(into: repository) }
+                // Pre-warm the custom-vocabulary booster when the user has custom
+                // words, so the FIRST recording this session is boosted. The
+                // booster is non-blocking (it skips the first, model-loading
+                // transcribe) — the device bug "custom vocab never corrected"
+                // (2026-06-13) was that it was never warm when a memo transcribed.
+                // Skipped on the seeded sim/UI-test path (no Neural Engine).
+                .task {
+                    if LaunchFlags.seedTranscript == nil {
+                        let words = CustomVocabularyStore.words()
+                        if !words.isEmpty {
+                            await VocabularyBooster.shared.prewarm(words: words)
+                        }
+                    }
+                }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
                         CaptureInboxDrainer.drain(into: repository)

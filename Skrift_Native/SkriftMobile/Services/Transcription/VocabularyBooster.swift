@@ -87,6 +87,24 @@ actor VocabularyBooster {
             // did the spotter detect the term, and did the rescorer act on it?
             DevLog.log("vocab: words=\(words) minSim=\(cfg.minSimilarity) cbw=\(cfg.cbw) wasModified=\(out.wasModified) replacements=\(out.replacements.map { "\($0.originalWord)→\($0.replacementWord ?? "?")(\($0.shouldReplace))" })")
             guard out.wasModified else { return nil }
+
+            // TRUST GUARD (2026-06-13): drop the boost when EVERY replacement is a
+            // distant acoustic-only guess from FluidAudio's spotter-anchored rescue
+            // (which mangles ordinary speech that contains none of the custom
+            // words — Mac probe turned "room"→"Rox", "its alias."→"Tiuri"). A
+            // replacement is trusted when the original is string-similar to the
+            // canonical (Route-1 grade) or hits a user alias. Keep the boost if ANY
+            // replacement is trusted (favours the user's wanted correction in the
+            // rare mixed case). See `VocabularyTrust`.
+            let anyTrusted = out.replacements.contains { r in
+                guard let canon = r.replacementWord else { return false }
+                let aliases = vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? []
+                return VocabularyTrust.isTrusted(original: r.originalWord, canonical: canon, aliases: aliases)
+            }
+            guard anyTrusted else {
+                DevLog.log("vocab: all replacements untrusted (distant spotter-rescue) → dropped, unboosted")
+                return nil
+            }
             return Boosted(text: out.text,
                            replacementCount: out.replacements.filter(\.shouldReplace).count)
         } catch {
@@ -110,16 +128,30 @@ actor VocabularyBooster {
     }
     private func clearPreparing() { preparing = false }
 
+    /// Proactively load the spotter/rescorer for the current custom-word list so
+    /// the FIRST transcribe is already boosted. The booster is otherwise
+    /// non-blocking and skips the first transcribe while the ~97 MB CTC model
+    /// loads — which is exactly why custom vocab "never corrected" on device
+    /// (2026-06-13): the booster was never warm when a memo transcribed. Called
+    /// fire-and-forget at app launch when the custom-word list is non-empty.
+    func prewarm(words: [String]) async {
+        guard !words.isEmpty else { return }
+        do { try await prepare(words: words); DevLog.log("vocab: prewarm DONE — ready for first transcription") }
+        catch { DevLog.log("vocab: prewarm FAILED \(error)") }
+    }
+
     /// Lazily (re)build the spotter+rescorer when the word list changed.
     private func prepare(words: [String]) async throws {
         guard words != loadedWords || rescorer == nil else { return }
         let models = try await CtcModels.downloadAndLoad(variant: .ctc110m)
         let dir = CtcModels.defaultCacheDirectory(for: .ctc110m)
         let tokenizer = try await CtcTokenizer.load(from: dir)
-        let terms = words.compactMap { w -> CustomVocabularyTerm? in
-            let ids = tokenizer.encode(w)
+        let terms = words.compactMap { entry -> CustomVocabularyTerm? in
+            let parsed = VocabularyTermParsing.parse(entry)
+            let ids = tokenizer.encode(parsed.canonical)
             guard !ids.isEmpty else { return nil }
-            return CustomVocabularyTerm(text: w, weight: nil, aliases: nil,
+            return CustomVocabularyTerm(text: parsed.canonical, weight: nil,
+                                        aliases: parsed.aliases.isEmpty ? nil : parsed.aliases,
                                         tokenIds: nil, ctcTokenIds: ids)
         }
         guard !terms.isEmpty else { throw ASRError.notInitialized }
