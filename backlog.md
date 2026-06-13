@@ -1062,3 +1062,25 @@ testmanagerd sim flake on unrelated speaker tests — pass on a stateful sim); d
    mock; record-a-sample voice enroll (conversation track); desktop A-list perf nits (multipart RAM
    cap, off-main SwiftData on the Bonjour queue, real word_timings→karaoke, parity golden tests);
    re-ingest ~30 old notes; "transcription a bit weird" investigation.
+
+#### ⭐ CONTINUE HERE — capture redesign + full-screen player (2026-06-13, building)
+User signed off the **merged note-style capture screen + full-screen player** (mock
+`mocks/audiobook-capture-merged.html`). **Text capture is now the only flow — the audio mark-in/out arm is
+retired.** Building in 3 gated chunks on `native`:
+1. ✅ **Player fills** — `ReadAlongView` flexible-height (geo-relative head/tail spacers, was a fixed 234 pt
+   panel) + `AudiobookPlayerView` controls pinned at the bottom (dropped the dead `Spacer`). Sim green
+   (38 UI + units, TEST SUCCEEDED). Committed.
+2. ⏳ **Merged capture** — `MergedCaptureView.swift` (NEW): one note-style screen = header (❝ + book·ch) →
+   the real `SignificanceCircles` card → build-your-quote sentence rows (reuses `TextCaptureSelection`) →
+   Record-your-thoughts pinned. On record: build quote from the selection → `saveQuoteCapture` → apply
+   significance → `RecordView(appendTo:)` → recorder dismiss auto-resumes the book + lands as the normal
+   note (NO preview; the ramble append is fire-and-forget so it's safe). Routed via a rewritten
+   `QuoteCaptureFlowView`. A bail before recording discards the quote-only memo (always-records).
+3. ⏳ **Retire audio arm** — delete `CaptureMomentView` / old `CaptureSheetView` / `TextCaptureView` (move
+   the pure `TextCaptureSelection`+`TextCaptureMath` out first) / `AudiobookCaptureStyle` + its Settings
+   toggle; ungate the `.text` checks (Transcribe-book always available in player ⋯ + library long-press;
+   `prewarmIfUseful` always); drop `testCaptureStyleDefaultsToAudio`. Grep-confirm orphaned helpers
+   (`GrainPlayer`/`SpanWaveform`) before deleting.
+DECISIONS (locked w/ user): always records voice (no quote-only save, may revisit); auto-resume + no
+preview; significance on top mirrors the note (verified: note order is title→chips→significance→body).
+Device install + read-along/glyph eyeball still owed (carried from the prior ⭐ block above).

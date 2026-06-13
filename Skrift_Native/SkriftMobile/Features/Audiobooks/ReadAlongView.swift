@@ -81,7 +81,6 @@ struct ReadAlongView: View {
     /// Wall-clock throttle for re-checking coverage while showing the nudge.
     @State private var lastRecheck = Date()
 
-    private let panelHeight: CGFloat = 234
     /// How far before the current line's audio END to flip to the next line. Small
     /// now that the timings are drift-free + interpolated — just covers the render
     /// beat. 0.3 read "a bit too early" on device; 0.1 sits in-sync. Tunable.
@@ -93,7 +92,10 @@ struct ReadAlongView: View {
         Group {
             if model.covered { lyrics } else { nudge }
         }
-        .frame(height: panelHeight)
+        // Fill the vertical space the player hands us (the read-along is the hero,
+        // 2026-06-13) instead of a fixed 234pt panel that left dead space below the
+        // controls. minHeight guards tiny layouts.
+        .frame(minHeight: 180, maxHeight: .infinity)
         .onAppear {
             anchorLocal = fileLocal; anchorWall = Date()
             model.reloadIfNeeded(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
@@ -126,21 +128,26 @@ struct ReadAlongView: View {
     // MARK: - Lyrics (transcribed)
 
     private var lyrics: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 13) {
-                    Color.clear.frame(height: panelHeight * 0.38)
-                    ForEach(model.sentences.indices, id: \.self) { i in
-                        line(i).id(i)
+        // GeometryReader so the head/tail clear-space scales with whatever height
+        // the player gives us (the panel is no longer a fixed 234pt) — the current
+        // line still parks ~40% down and the last line can still scroll to centre.
+        GeometryReader { geo in
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(alignment: .leading, spacing: 13) {
+                        Color.clear.frame(height: geo.size.height * 0.40)
+                        ForEach(model.sentences.indices, id: \.self) { i in
+                            line(i).id(i)
+                        }
+                        Color.clear.frame(height: geo.size.height * 0.58)
                     }
-                    Color.clear.frame(height: panelHeight * 0.5)
+                    .padding(.horizontal, 2)
                 }
-                .padding(.horizontal, 2)
+                .onChange(of: model.currentIndex) { _, idx in
+                    withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(idx, anchor: .center) }
+                }
+                .onAppear { proxy.scrollTo(model.currentIndex, anchor: .center) }
             }
-            .onChange(of: model.currentIndex) { _, idx in
-                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(idx, anchor: .center) }
-            }
-            .onAppear { proxy.scrollTo(model.currentIndex, anchor: .center) }
         }
         .mask(
             LinearGradient(stops: [

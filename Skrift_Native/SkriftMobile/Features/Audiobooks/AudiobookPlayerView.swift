@@ -70,24 +70,28 @@ struct AudiobookPlayerView: View {
         let location = book.fileLocation(at: time)
         return VStack(spacing: 0) {
             header(book)
-            VStack(spacing: 0) {
-                ReadAlongView(
-                    book: book,
-                    fileIndex: location.index,
-                    fileLocal: location.offset,
-                    audioURL: session.store.audioURL(of: book, fileIndex: location.index),
-                    onTranscribe: { showTranscribe = true }
-                )
-                .padding(.bottom, 16)
+            // The read-along is the hero: it fills the space below the header, and
+            // the controls pin to the bottom edge — no dead `Spacer` gap (2026-06-13).
+            ReadAlongView(
+                book: book,
+                fileIndex: location.index,
+                fileLocal: location.offset,
+                audioURL: session.store.audioURL(of: book, fileIndex: location.index),
+                onTranscribe: { showTranscribe = true }
+            )
+            .frame(maxHeight: .infinity)
+            .padding(.horizontal, Theme.Space.margin)
+            .padding(.top, 16)
 
+            VStack(spacing: 0) {
                 scrubber(book, time: time).padding(.bottom, 14)
                 transport.padding(.bottom, 14)
                 utilityRow.padding(.bottom, 14)
                 captureButton
             }
             .padding(.horizontal, Theme.Space.margin)
-            .padding(.top, 16)
-            Spacer(minLength: 8)
+            .padding(.top, 14)
+            .padding(.bottom, 8)
         }
         .contentShape(Rectangle())
         .offset(y: dragOffset)
