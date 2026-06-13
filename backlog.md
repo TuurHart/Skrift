@@ -1094,3 +1094,12 @@ player**, **read-along sync** (`ReadAlongView.lead` 0.1 s is the dial), and the 
 (Capture → significance + build-quote → Record your thoughts → auto-resume into note). Re-transcribe a
 book first (schema-2 sidecar). If read-along reads early/late, say which → tune `lead` (+ desktop
 `-readalongcheck` to separate data-drift from offset).
+
+🔜 NEXT — follow-up to the redesign (user-requested 2026-06-13): **no back-limit on the build-your-quote
+selection.** Today `MergedCaptureView` loads only `[pausedAt − 90 s … pausedAt]` (`windowStartLocal`), so a
+passage that started earlier than 90 s ago can't be fully quoted. Want: extend the START edge further back
+with NO cap, anchored at the capture point (the line just heard stays the latest line; backward only — can't
+quote past the playhead). Approach: **transcribed book** → drop the 90 s floor and load the file's covered
+prefix from the sidecar (cheap; LazyVStack, default-scroll to the capture line) back to chapter/file start;
+**un-chunked spot** → keep the live 90 s window as the practical cap (nudge "Transcribe book" for unlimited)
+or add a "load earlier" that transcribes the prior chunk on demand. Ship the sidecar case first.
