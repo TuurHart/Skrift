@@ -1,4 +1,5 @@
 #if DEBUG
+import AVFoundation
 import Foundation
 import SwiftData
 
@@ -12,6 +13,164 @@ import SwiftData
 /// We schedule a detached Task, let `init` return so the run loop spins, and
 /// `exit(0)` when finished.
 enum RunFile {
+    /// Unique-word-anchor drift of `cand` vs the reference `whole` transcribe.
+    /// Anchors = words appearing exactly once in both, ≥5 chars (unambiguous).
+    nonisolated static func anchorDrift(_ cand: [WordTiming], vs whole: [WordTiming])
+        -> (n: Int, median: Double, mean: Double, startAvg: Double, midAvg: Double, endAvg: Double) {
+        func norm(_ s: String) -> String {
+            String(s.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+        }
+        let cN = cand.map { norm($0.word) }, wN = whole.map { norm($0.word) }
+        var cF: [String: Int] = [:], wF: [String: Int] = [:]
+        for w in cN where !w.isEmpty { cF[w, default: 0] += 1 }
+        for w in wN where !w.isEmpty { wF[w, default: 0] += 1 }
+        var cAt: [String: Int] = [:], wAt: [String: Int] = [:]
+        for (k, w) in cN.enumerated() where cF[w] == 1 && w.count >= 5 { cAt[w] = k }
+        for (k, w) in wN.enumerated() where wF[w] == 1 && w.count >= 5 { wAt[w] = k }
+        var rows: [(d: Double, t: Double)] = []
+        for (w, wi) in wAt { if let ci = cAt[w] { rows.append((cand[ci].start - whole[wi].start, whole[wi].start)) } }
+        rows.sort { $0.t < $1.t }
+        guard rows.count > 6 else { return (rows.count, 0, 0, 0, 0, 0) }
+        let d = rows.map(\.d), s = d.sorted()
+        let t = max(1, rows.count / 3)
+        func avg(_ x: ArraySlice<Double>) -> Double { x.isEmpty ? 0 : x.reduce(0, +) / Double(x.count) }
+        return (rows.count, s[s.count / 2], d.reduce(0, +) / Double(d.count),
+                avg(d[0..<t]), avg(d[t..<2 * t]), avg(d[(2 * t)...]))
+    }
+
+    /// `-chunksim <audio>` → reproduce the read-along drift headlessly + prove the
+    /// fix. Whole-transcribes the file (reference), then re-builds it the
+    /// chunker's way two ways — (A) `AVAssetExportSession` per 60 s span (today's
+    /// `exportSpan`), (B) sample-accurate `AVAudioFile` frame read — and reports
+    /// each one's drift vs whole. If A drifts and B doesn't, the per-chunk
+    /// compressed-seek is the bug and B is the fix. DEBUG only.
+    nonisolated static func runChunkSimIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-chunksim"), i + 1 < args.count else { return }
+        let url = URL(fileURLWithPath: args[i + 1])
+        Task.detached(priority: .userInitiated) {
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            log("== CHUNKSIM \(url.lastPathComponent) ==")
+            let svc = TranscriptionService.shared
+            guard let whole = try? await svc.transcribe(audioURL: url) else { log("whole transcribe failed"); exit(1) }
+            let dur = CMTimeGetSeconds(AVURLAsset(url: url).duration)
+            log(String(format: "duration %.1fs, whole words %d", dur, whole.wordTimings.count))
+
+            func chunked(_ label: String, extract: (Double, Double, URL) async throws -> Void) async -> [WordTiming] {
+                var out: [WordTiming] = []
+                var s = 0.0
+                while s < dur - 0.1 {
+                    let e = min(s + 60, dur)
+                    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("cs_\(UUID().uuidString).wav")
+                    defer { try? FileManager.default.removeItem(at: tmp) }
+                    do {
+                        try await extract(s, e, tmp)
+                        if let r = try? await svc.transcribe(audioURL: tmp) {
+                            out += r.wordTimings.map { WordTiming(word: $0.word, start: $0.start + s, end: $0.end + s) }
+                        }
+                    } catch { log("  [\(label)] chunk \(Int(s))s failed: \(error)") }
+                    s = e
+                }
+                return out
+            }
+
+            // (A) AVAssetExportSession (today's exportSpan).
+            let a = await chunked("export") { st, en, dst in
+                let asset = AVURLAsset(url: url)
+                guard let ex = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else { return }
+                let m4a = dst.deletingPathExtension().appendingPathExtension("m4a")
+                ex.timeRange = CMTimeRange(start: CMTime(seconds: st, preferredTimescale: 600),
+                                           end: CMTime(seconds: en, preferredTimescale: 600))
+                try? FileManager.default.removeItem(at: m4a)
+                try await ex.export(to: m4a, as: .m4a)
+                try? FileManager.default.moveItem(at: m4a, to: dst)
+            }
+            // (B) sample-accurate AVAudioFile frame read.
+            let b = await chunked("pcm") { st, en, dst in
+                let f = try AVAudioFile(forReading: url)
+                let sr = f.processingFormat.sampleRate
+                f.framePosition = AVAudioFramePosition(st * sr)
+                let n = AVAudioFrameCount((en - st) * sr)
+                guard let buf = AVAudioPCMBuffer(pcmFormat: f.processingFormat, frameCapacity: n) else { return }
+                try f.read(into: buf, frameCount: n)
+                let out = try AVAudioFile(forWriting: dst, settings: f.processingFormat.settings)
+                try out.write(from: buf)
+            }
+            let da = anchorDrift(a, vs: whole.wordTimings)
+            let db = anchorDrift(b, vs: whole.wordTimings)
+            log(String(format: "(A) AVAssetExportSession: words=%d anchors=%d  median=%+.3f  thirds %+.2f/%+.2f/%+.2f",
+                       a.count, da.n, da.median, da.startAvg, da.midAvg, da.endAvg))
+            log(String(format: "(B) AVAudioFile PCM:      words=%d anchors=%d  median=%+.3f  thirds %+.2f/%+.2f/%+.2f",
+                       b.count, db.n, db.median, db.startAvg, db.midAvg, db.endAvg))
+            exit(0)
+        }
+    }
+
+    /// `-readalongcheck <audio> <sidecar.json>` → diagnose the player read-along
+    /// sync. Decodes the phone's `BookTranscript` sidecar, transcribes the SAME
+    /// audio WHOLE on the Mac (same Parakeet engine = the reference for whether
+    /// CHUNKING shifted the word times), aligns words, and reports the
+    /// `phone.start − mac.start` offset + drift across the file. median≈0 ⇒ the
+    /// chunker is accurate (any device trailing is playback latency → tune the
+    /// lead); a non-zero/growing offset ⇒ a chunker bug to fix. DEBUG only.
+    nonisolated static func runReadAlongCheckIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-readalongcheck"), i + 2 < args.count else { return }
+        let audioPath = args[i + 1], sidecarPath = args[i + 2]
+        Task.detached(priority: .userInitiated) {
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            struct SW: Codable { let word: String; let start: Double; let end: Double }
+            struct Sidecar: Codable { let words: [SW]; let coveredUpTo: Double }
+            log("== READALONGCHECK \(URL(fileURLWithPath: audioPath).lastPathComponent) ==")
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: sidecarPath)),
+                  let side = try? JSONDecoder().decode(Sidecar.self, from: data) else { log("can't read sidecar"); exit(1) }
+            log("sidecar: \(side.words.count) words, coveredUpTo \(String(format: "%.1f", side.coveredUpTo))s")
+            guard let r = try? await TranscriptionService.shared.transcribe(audioURL: URL(fileURLWithPath: audioPath)) else {
+                log("mac transcribe failed"); exit(1)
+            }
+            let mac = r.wordTimings
+            log("mac whole-transcribe: \(mac.count) words")
+
+            func norm(_ s: String) -> String {
+                String(s.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) })
+            }
+            let macN = mac.map { norm($0.word) }
+            let sideN = side.words.map { norm($0.word) }
+            // Align ONLY on words that appear EXACTLY ONCE in both transcripts and
+            // are ≥5 chars — unambiguous anchors. Greedy matching slips on repeated
+            // common words ("to"/"you") in a long transcript and fabricates offsets.
+            var macFreq: [String: Int] = [:], sideFreq: [String: Int] = [:]
+            for w in macN where !w.isEmpty { macFreq[w, default: 0] += 1 }
+            for w in sideN where !w.isEmpty { sideFreq[w, default: 0] += 1 }
+            var macAt: [String: Int] = [:], sideAt: [String: Int] = [:]
+            for (k, w) in macN.enumerated() where macFreq[w] == 1 && w.count >= 5 { macAt[w] = k }
+            for (k, w) in sideN.enumerated() where sideFreq[w] == 1 && w.count >= 5 { sideAt[w] = k }
+            // (Δ, macStart, word)
+            var rows: [(d: Double, t: Double, word: String, ps: Double)] = []
+            for (w, mi) in macAt { if let si = sideAt[w] {
+                rows.append((side.words[si].start - mac[mi].start, mac[mi].start, mac[mi].word, side.words[si].start))
+            } }
+            rows.sort { $0.t < $1.t }
+            guard rows.count > 10 else { log("too few unique anchors (\(rows.count))"); exit(1) }
+            let diffs = rows.map(\.d)
+            let sorted = diffs.sorted()
+            func pct(_ p: Double) -> Double { sorted[min(sorted.count - 1, max(0, Int(p * Double(sorted.count)))) ] }
+            let mean = diffs.reduce(0, +) / Double(diffs.count)
+            log(String(format: "unique-word anchors: %d", rows.count))
+            log(String(format: "phone.start − mac.start (s):  median=%+.3f  mean=%+.3f  p10=%+.3f  p90=%+.3f  min=%+.3f  max=%+.3f",
+                       pct(0.5), mean, pct(0.1), pct(0.9), sorted.first!, sorted.last!))
+            let t = max(1, rows.count / 3)
+            func avg(_ s: ArraySlice<Double>) -> Double { s.isEmpty ? 0 : s.reduce(0, +) / Double(s.count) }
+            log(String(format: "drift (avg Δ by third):  start=%+.3f  mid=%+.3f  end=%+.3f",
+                       avg(diffs[0..<t]), avg(diffs[t..<2 * t]), avg(diffs[(2 * t)...])))
+            log("anchors across the file:")
+            for (k, r) in rows.enumerated() where k % max(1, rows.count / 12) == 0 {
+                log(String(format: "    %6.1fs  '%@'  mac=%.2f  phone=%.2f  Δ=%+.2f", r.t, r.word, r.t, r.ps, r.d))
+            }
+            exit(0)
+        }
+    }
+
     /// `-asrbench <audio>` → measure the ASR latency SPLIT (model load/warm-up vs
     /// per-call inference) so the audiobook-capture design isn't built on guessed
     /// numbers. Times ensureLoaded() once, then transcribes the file TWICE (first

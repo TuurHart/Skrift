@@ -23,6 +23,8 @@ struct SkriftDesktopApp: App {
     init() {
         #if DEBUG
         Snapshot.renderIfRequested()
+        RunFile.runChunkSimIfRequested()
+        RunFile.runReadAlongCheckIfRequested()
         RunFile.runAsrBenchIfRequested()
         RunFile.runAudioDateProbeIfRequested()
         RunFile.runVoiceLoopIfRequested()
