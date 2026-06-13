@@ -93,6 +93,16 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Review surface (Mac) | n/a | ✅ | `Features/Review/CaptureViews.swift` (source strip, banner, shared-content card), `NoteProperties` url row, `QueueDerivations` glyphs | Mock state 3; verify via `-snapshot-capture <path>` |
 | List/detail (phone) | ✅ | n/a | `MemoDisplay` shareCapture helpers, `MemosListView`, `MemoDetailView` | Mock state 2: glyph rows + domain chip; detail = pinned card (Open ↗) + editable annotation body; player bar/append/split hidden (no audio) |
 
+## Text-first quote capture *(A/B alternative to audio-marking)* — wave 1 built 2026-06-13
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Capture-style toggle (A/B) | ✅ | n/a | `Models/AudiobookCaptureStyle.swift`, Settings → Audiobooks | `@AppStorage` default **.audio** (proven); Text opt-in. The capture flow routes on it |
+| Text sentence-select screen | ✅ | n/a | `Features/Audiobooks/TextCaptureView.swift` (pure `TextCaptureSelection` + `TextCaptureMath.globalSpan`) | Scroll the ~90 s window; tap a grey line's **+** to add / an end line's **✕** to drop; last line pre-picked; CTA tonal-until-touched; 1.5× preview; warming + empty states. Per signed-off mock `text-capture.html` |
+| Window transcribe-for-display | ✅ | n/a | `QuoteCaptureProcessor.transcribeWindowForDisplay` | Exports + transcribes the playhead window → sentences (reuses exportSpan + buildSentences); buffer kept for the preview. Real ASR device-owed |
+| Shared-seam routing | ✅ | n/a | `QuoteCaptureFlowView` (`.adjust` branch; `confirmCapture(_:span:)`) | Both modes emit a GLOBAL span → SAME processor/sheet/save/sync/export. Removing Text later = delete the view + branch + toggle |
+| Whole-book pre-transcribe (wave 2) | ➖ | ➖ | — | `BookTranscript` sidecar + chunker + resumable overnight job + transcribe-button — deferred until the A/B validates the UX (design doc §11–13) |
+
 ## Audiobook quote-capture *(mobile player + capture; desktop pipeline)* — built 2026-06-11
 
 | Capability | Mobile | Desktop | Key files | Notes |
