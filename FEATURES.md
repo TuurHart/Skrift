@@ -52,7 +52,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Status pill (synced/waiting/transcribing) | ✅ | ✅ | `MemosListView.swift`; `Models/MemoDisplay.swift` | ✅ 2026-06-09: significance-0 (phone-only) memos show **no** sync pill; transcribing/error always show; >0 keeps Waiting/Synced |
 | Search / sort / filter | ✅ | ✅ | `MemosListView.swift:290-332` | place / has-photos / unsynced filters |
 | Multi-select + delete + swipe-to-delete | ✅ | ✅ | `MemosListView.swift:100-105, 146-154` | |
-| Trash / Recently Deleted (14-day retention) | ✅ | ➖ | `Models/Memo.swift` (`deletedAt`), `Services/NotesRepository.swift` (`softDelete`/purge), `Features/MemosList/RecentlyDeletedView.swift`, purge hook `App/SkriftApp.swift` | ✅ 2026-06-11: ALL delete paths (list + detail) soft-delete; Restore is lossless (files kept); trashed memos excluded from list/search/sync; startup purge ≥14 days. Desktop mirror = backlog |
+| Trash / Recently Deleted (14-day retention) | ✅ | ✅ | mobile `Models/Memo.swift` (`deletedAt`) + `NotesRepository` + `Features/MemosList/RecentlyDeletedView.swift`; desktop `Models/PipelineFile.swift` (`deletedAt`) + `Pipeline/DesktopTrash.swift` + `Features/Sidebar/RecentlyDeletedView.swift` | ✅ 2026-06-11 mobile; ✅ 2026-06-13 DESKTOP MIRROR: soft-delete keeps the working folder (lossless Restore), 14-day launch purge (`DesktopTrash.purgeExpired`), trashed excluded from sidebar/queue/process AND the phone's `GET /api/files/`; sidebar footer 'Recently Deleted (N)' → restore sheet (Restore / Delete-Now); `-snapshot-trash` verified |
 | Sync button + status banner | ✅ | n/a | `MemosListView.swift:161-216` | |
 
 ## Photos during recording

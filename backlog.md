@@ -239,7 +239,11 @@ retranscribe clears stale segments, list-delete cleans the diar sidecar. Origina
    ~97.5 MB HF model. Build next: Settings "Custom words" list (both apps) + the rescore pass in each
    transcriber.
 4. ✅ **DONE (2026-06-11 batch)** — **Trash / 2-week retention** — all delete paths soft-delete (list +
-   detail), "Recently Deleted" sheet, lossless Restore, startup purge ≥14 days. Desktop mirror = later.
+   detail), "Recently Deleted" sheet, lossless Restore, startup purge ≥14 days. ✅ **DESKTOP MIRROR DONE
+   2026-06-13** (`Pipeline/DesktopTrash.swift` + `PipelineFile.deletedAt` + `Features/Sidebar/RecentlyDeletedView.swift`):
+   soft-delete keeps the working folder (lossless Restore), 14-day launch purge, trashed excluded from
+   sidebar/queue/process + the phone's `GET /api/files/`; sidebar footer "Recently Deleted (N)" → restore
+   sheet; `-snapshot-trash` verified; 236 unit + build green.
 5. ✅ **DONE (2026-06-11 batch)** — **Auto-copy transcript** — opt-in Setting, default OFF; copies on
    transcription success incl. appends.
 6. ✅ **DONE (2026-06-11 batch)** — **Front camera toggle** — flip button in CameraSheet; front hides
@@ -763,6 +767,18 @@ OUTSTANDING (later, off the board):
   (`harden(desktop)`). NOTHING in this list is still open.
 - With-user sessions: re-ingest ~30 old notes (`~/Desktop/Skrift old notes/`, prod quit, real vault);
   "transcription a bit weird" cold-start (parked unless seen again).
+
+#### Session 2026-06-13 — desktop architecture A-list verified-done + Trash mirror built
+- Verified the desktop "A-list" against CURRENT code + live (the backlog/CLAUDE citations were stale):
+  model-unload, real word_timings→karaoke, 256MB cap+413, main-actor SwiftData marshal, truthful /health
+  — ALL already done. Hardened the two genuine remainders: SwiftData-bridge invariant now enforced
+  (`dispatchPrecondition(.notOnQueue(.main))`), snapshot write no longer claims success on failure
+  (commit `2ac3d32`). Audit-nits section reconciled (`4a6a982`).
+- ✅ **Desktop Trash / Recently Deleted** built (commit after `4a6a982`) — see board item 4 above.
+- STILL genuinely open (features needing a pick/mock/user, NOT bugs): Mac "name a speaker" UI (mock
+  awaits sign-off), drag-multi-select (mock first), watched-folder ingest, Backlink Weaver, unified
+  source taxonomy, record-a-sample voice enroll (device voice), re-ingest 30 notes (with user), prod
+  promotion (device tests + Release App-Group Xcode visit). Significance-wall = user-deferred.
 - Deferred ideas: watched-folder ingest; summary prompt quality pass; tag lemma expansion; north-star
   semantic timeline ("how my thinking evolved").
 
