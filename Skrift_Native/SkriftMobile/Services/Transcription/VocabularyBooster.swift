@@ -64,6 +64,7 @@ actor VocabularyBooster {
         guard !words.isEmpty, !tokenTimings.isEmpty, !text.isEmpty else { return nil }
         // Capture local copies — safe across the spot await (actor reentrancy).
         guard let spotter, let vocab, let rescorer, loadedWords == words else {
+            DevLog.log("vocab: not ready (words=\(words), loaded=\(loadedWords), rescorer=\(self.rescorer != nil)) → bg prepare, unboosted")
             kickPrepare(words: words)   // background; never blocks this call
             return nil
         }
@@ -71,7 +72,7 @@ actor VocabularyBooster {
             let samples = try AudioConverter().resampleAudioFile(path: audioURL.path)
             let spot = try await spotter.spotKeywordsWithLogProbs(
                 audioSamples: samples, customVocabulary: vocab, minScore: nil)
-            guard !spot.logProbs.isEmpty else { return nil }
+            guard !spot.logProbs.isEmpty else { DevLog.log("vocab: spot returned no logProbs"); return nil }
 
             let cfg = ContextBiasingConstants.rescorerConfig(forVocabSize: vocab.terms.count)
             let out = rescorer.ctcTokenRescore(
@@ -82,11 +83,14 @@ actor VocabularyBooster {
                 cbw: cfg.cbw,
                 marginSeconds: ContextBiasingConstants.defaultMarginSeconds,
                 minSimilarity: cfg.minSimilarity)
+            // DEBUG trace so a device pull pinpoints WHERE custom-vocab fails:
+            // did the spotter detect the term, and did the rescorer act on it?
+            DevLog.log("vocab: words=\(words) minSim=\(cfg.minSimilarity) cbw=\(cfg.cbw) wasModified=\(out.wasModified) replacements=\(out.replacements.map { "\($0.originalWord)→\($0.replacementWord ?? "?")(\($0.shouldReplace))" })")
             guard out.wasModified else { return nil }
             return Boosted(text: out.text,
                            replacementCount: out.replacements.filter(\.shouldReplace).count)
         } catch {
-            // Offline / first-download failed / spot error → unboosted transcript.
+            DevLog.log("vocab: error \(error)")
             return nil
         }
     }
@@ -97,8 +101,10 @@ actor VocabularyBooster {
     private func kickPrepare(words: [String]) {
         guard !preparing else { return }
         preparing = true
+        DevLog.log("vocab: background prepare started for \(words)")
         Task { [weak self] in
-            try? await self?.prepare(words: words)
+            do { try await self?.prepare(words: words); DevLog.log("vocab: background prepare DONE — ready next transcription") }
+            catch { DevLog.log("vocab: background prepare FAILED \(error)") }
             await self?.clearPreparing()
         }
     }
