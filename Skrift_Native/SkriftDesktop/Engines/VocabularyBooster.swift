@@ -23,15 +23,23 @@ actor VocabularyBooster {
         let replacementCount: Int
     }
 
-    /// Run the rescore pass. nil = no custom words / model unavailable /
+    private var preparing = false
+
+    /// Run the rescore pass. nil = no custom words / model not loaded yet /
     /// no replacements — caller keeps the original transcript.
+    ///
+    /// NEVER blocks the transcription on the model download: boosts only when the
+    /// spotter is already prepared for this word list; otherwise kicks a one-shot
+    /// background load and skips. (A blocking `await prepare` jammed the
+    /// serialized transcription queue — see the mobile booster's 2026-06-13 fix.)
     func boost(text: String, tokenTimings: [TokenTiming], audioURL: URL,
                words: [String]) async -> Boosted? {
         guard !words.isEmpty, !tokenTimings.isEmpty, !text.isEmpty else { return nil }
+        guard let spotter, let vocab, let rescorer, loadedWords == words else {
+            kickPrepare(words: words)
+            return nil
+        }
         do {
-            try await prepare(words: words)
-            guard let spotter, let vocab, let rescorer else { return nil }
-
             let samples = try AudioConverter().resampleAudioFile(path: audioURL.path)
             let spot = try await spotter.spotKeywordsWithLogProbs(
                 audioSamples: samples, customVocabulary: vocab, minScore: nil)
@@ -54,6 +62,19 @@ actor VocabularyBooster {
             return nil
         }
     }
+
+    /// Fire-and-forget background model prep — one at a time, off the
+    /// transcription path. On success `prepare` sets the engines so the next
+    /// `boost` finds them ready.
+    private func kickPrepare(words: [String]) {
+        guard !preparing else { return }
+        preparing = true
+        Task { [weak self] in
+            try? await self?.prepare(words: words)
+            await self?.clearPreparing()
+        }
+    }
+    private func clearPreparing() { preparing = false }
 
     /// Lazily (re)build the spotter+rescorer when the word list changed.
     private func prepare(words: [String]) async throws {

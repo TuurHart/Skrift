@@ -47,15 +47,27 @@ actor VocabularyBooster {
         let replacementCount: Int
     }
 
-    /// Run the rescore pass. nil = no custom words / model unavailable /
+    private var preparing = false
+
+    /// Run the rescore pass. nil = no custom words / model not loaded yet /
     /// no replacements — caller keeps the original transcript.
+    ///
+    /// CRITICAL: this NEVER blocks the transcription on the model download. It
+    /// boosts only when the spotter is already prepared for this exact word
+    /// list; otherwise it kicks a one-shot BACKGROUND load and returns nil (this
+    /// transcription stays unboosted; the next one boosts once the ~97 MB model
+    /// is resident). A blocking `await prepare` here jammed the whole serialized
+    /// transcription queue when the download was slow/failing — every memo stuck
+    /// "Transcribing" (2026-06-13).
     func boost(text: String, tokenTimings: [TokenTiming], audioURL: URL) async -> Boosted? {
         let words = CustomVocabularyStore.words()
         guard !words.isEmpty, !tokenTimings.isEmpty, !text.isEmpty else { return nil }
+        // Capture local copies — safe across the spot await (actor reentrancy).
+        guard let spotter, let vocab, let rescorer, loadedWords == words else {
+            kickPrepare(words: words)   // background; never blocks this call
+            return nil
+        }
         do {
-            try await prepare(words: words)
-            guard let spotter, let vocab, let rescorer else { return nil }
-
             let samples = try AudioConverter().resampleAudioFile(path: audioURL.path)
             let spot = try await spotter.spotKeywordsWithLogProbs(
                 audioSamples: samples, customVocabulary: vocab, minScore: nil)
@@ -78,6 +90,19 @@ actor VocabularyBooster {
             return nil
         }
     }
+
+    /// Fire-and-forget background model prep — one at a time, off the
+    /// transcription path. On success `prepare` sets spotter/vocab/rescorer, so
+    /// the NEXT `boost` finds them ready.
+    private func kickPrepare(words: [String]) {
+        guard !preparing else { return }
+        preparing = true
+        Task { [weak self] in
+            try? await self?.prepare(words: words)
+            await self?.clearPreparing()
+        }
+    }
+    private func clearPreparing() { preparing = false }
 
     /// Lazily (re)build the spotter+rescorer when the word list changed.
     private func prepare(words: [String]) async throws {
