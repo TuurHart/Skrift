@@ -1063,10 +1063,10 @@ testmanagerd sim flake on unrelated speaker tests — pass on a stateful sim); d
    cap, off-main SwiftData on the Bonjour queue, real word_timings→karaoke, parity golden tests);
    re-ingest ~30 old notes; "transcription a bit weird" investigation.
 
-#### ⭐ CONTINUE HERE — capture redesign + full-screen player (2026-06-13, building)
+#### ⭐ CONTINUE HERE — capture redesign + full-screen player (2026-06-13, DONE — installed, eyeball owed)
 User signed off the **merged note-style capture screen + full-screen player** (mock
 `mocks/audiobook-capture-merged.html`). **Text capture is now the only flow — the audio mark-in/out arm is
-retired.** Building in 3 gated chunks on `native`:
+retired.** Built in 3 gated chunks on `native` (all committed + sim-green + on the dev phone):
 1. ✅ **Player fills** — `ReadAlongView` flexible-height (geo-relative head/tail spacers, was a fixed 234 pt
    panel) + `AudiobookPlayerView` controls pinned at the bottom (dropped the dead `Spacer`). Sim green
    (38 UI + units, TEST SUCCEEDED). Committed.
@@ -1084,8 +1084,13 @@ retired.** Building in 3 gated chunks on `native`:
    (Transcribe-book always in player ⋯ + library long-press; `prewarmIfUseful` always). Dropped
    `testCaptureStyleDefaultsToAudio`. Sim gate green (TEST SUCCEEDED), committed.
 
-ALL 3 CHUNKS DONE + sim-green. Device build+install + eyeball (full-screen player, merged capture E2E,
-read-along, ❝ glyph) are the only owed items. `main` untouched / un-pushed.
+ALL 3 CHUNKS DONE + sim-green + **DEVICE-INSTALLED** on the iPhone 13 (`com.skrift.mobile.dev`, devicectl
+UUID `A9195A77-601A-54C1-B3BD-659FBFE1DC54`). `main` untouched / un-pushed. Commits: glyph `806645b`,
+player-fills `605efec`, merged-capture `24d6e85`, retire-audio `6a08df7`.
 DECISIONS (locked w/ user): always records voice (no quote-only save, may revisit); auto-resume + no
 preview; significance on top mirrors the note (verified: note order is title→chips→significance→body).
-Device install + read-along/glyph eyeball still owed (carried from the prior ⭐ block above).
+⏳ OWED (device-only — sim has no ASR): eyeball the **❝ glyph** (CC + Lock/Home widget), the **full-screen
+player**, **read-along sync** (`ReadAlongView.lead` 0.1 s is the dial), and the **merged capture E2E**
+(Capture → significance + build-quote → Record your thoughts → auto-resume into note). Re-transcribe a
+book first (schema-2 sidecar). If read-along reads early/late, say which → tune `lead` (+ desktop
+`-readalongcheck` to separate data-drift from offset).
