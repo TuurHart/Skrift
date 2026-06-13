@@ -11,12 +11,12 @@ import SwiftUI
 /// this works even on an un-chunked spot: it reads the wave-2 sidecar when the
 /// book is transcribed (instant) and otherwise transcribes the window live.
 ///
-/// BUILD-YOUR-QUOTE is BIDIRECTIONAL (2026-06-14): the line you just heard is the
-/// pre-picked anchor, parked in the MIDDLE with content BEFORE and AFTER it — scroll
-/// UP to quote earlier, DOWN to quote later (you can extend past the tap; the audio
-/// after it exists, the book is just paused). A transcribed book loads its whole
-/// covered prefix+forward from the sidecar (no fixed limit); an un-chunked spot
-/// transcribes a window spanning both sides of the tap (≈90 s back … ≈45 s forward).
+/// BUILD-YOUR-QUOTE is bidirectional but BOUNDED (2026-06-14): the line you just
+/// heard is the pre-picked anchor, parked in the MIDDLE, with the ~90 s you heard
+/// BEFORE it and a few lines AFTER it — scroll up to quote earlier, down to quote
+/// a little later (past the tap; the post-pause audio exists, the book is paused).
+/// The forward reach is capped (8 lines on a transcribed book, 4 on an un-chunked
+/// spot) — no infinite scroll.
 ///
 /// ALWAYS records voice — a quote alone isn't a capture. Tapping "Record your
 /// thoughts" carves the quote from the selection, creates the memo, applies the
@@ -51,9 +51,12 @@ struct MergedCaptureView: View {
 
     private enum LoadState { case loading, ready(Source), empty }
 
-    /// How far PAST the tap an un-chunked window transcribes (so you can still
-    /// select a little after the point). A transcribed book has no such limit —
-    /// the sidecar already covers forward.
+    /// How many lines past the tap are selectable — bigger when transcribed (free
+    /// from the sidecar), smaller un-chunked (each costs live transcription).
+    private static let forwardTranscribed = 8
+    private static let forwardLive = 4
+    /// Seconds past the tap the live window transcribes — enough to surface
+    /// `forwardLive` sentences (clamped to the file end).
     private static let liveForwardSeconds: TimeInterval = 45
 
     private let transcripts = BookTranscriptStore()
@@ -66,6 +69,10 @@ struct MergedCaptureView: View {
     @State private var toastColor: Color = .skTextDim
     @State private var building = false
     @State private var showRamble = false
+    /// Bounds of the DISPLAYED slice into `source.sentences` (the rest, further out,
+    /// stay hidden — no infinite scroll). `sel` still indexes the full array.
+    @State private var displayLo = 0
+    @State private var displayHi = 0
     /// The memo created when "Record your thoughts" fires (so the ramble appends).
     @State private var createdMemoID: UUID?
     /// The buffer temp to clean up when the flow exits (the ±buffer audio).
@@ -216,7 +223,7 @@ struct MergedCaptureView: View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Build your quote.").font(.system(size: 14.5, weight: .bold)).foregroundStyle(Color.skText)
-                Text("The line you just heard is highlighted — scroll up or down and tap to add the lines around it.")
+                Text("The line you just heard is highlighted — tap the lines around it to add them.")
                     .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -230,8 +237,12 @@ struct MergedCaptureView: View {
                                 .font(.system(size: 10.5)).foregroundStyle(Color.skTextFaint)
                                 .frame(maxWidth: .infinity).padding(.vertical, 2)
                         }
+                        // Only the bounded slice is shown (no infinite scroll); `sel`
+                        // still indexes the full array, so the build path is unchanged.
                         ForEach(source.sentences.indices, id: \.self) { i in
-                            sentenceRow(i, source.sentences[i].text)
+                            if i >= displayLo && i <= displayHi {
+                                sentenceRow(i, source.sentences[i].text)
+                            }
                         }
                         // Plain attribution preview — NO [[..]] on the phone.
                         attributionText
@@ -242,7 +253,7 @@ struct MergedCaptureView: View {
                     .padding(.horizontal, 14).padding(.vertical, 6)
                 }
                 // Park the anchor (the line just heard) in the middle so there's
-                // visible context above (earlier) AND below (later) to scroll into.
+                // visible context above (earlier) AND below (later).
                 .onAppear { withAnimation { proxy.scrollTo(sel.hi, anchor: .center) } }
             }
 
@@ -252,13 +263,13 @@ struct MergedCaptureView: View {
         .frame(maxHeight: .infinity)
     }
 
-    /// True when the loaded content reaches the file/chapter start (so the "start
-    /// of chapter" marker is honest). Sidecar times are file-local; the live
-    /// window's are window-local, so use `windowStartLocal` for it.
+    /// True when the displayed slice reaches the file/chapter start (so the "start
+    /// of chapter" marker is honest). Sidecar: the slice begins at index 0. Live:
+    /// the window itself begins at the file start.
     private func reachesFileStart(_ source: Source) -> Bool {
         switch source {
-        case .sidecar(let s): return (s.first?.start ?? 99) < 1.5
-        case .window:         return windowStartLocal < 0.5
+        case .sidecar: return displayLo == 0
+        case .window:  return windowStartLocal < 0.5
         }
     }
 
@@ -341,23 +352,24 @@ struct MergedCaptureView: View {
         let winStart = windowStartLocal, winEnd = windowEndLocal
         guard winEnd - winStart >= 1 else { state = .empty; return }
 
-        // Transcribed book: load the WHOLE covered file (file-local times) so the
-        // tapped line sits in the middle with content BEFORE and AFTER — scroll up
-        // to quote earlier, down to quote later. Sidecar = instant, no engine.
+        // Transcribed book: load the covered file (file-local times); the tapped
+        // line sits in the middle. Show the ~90 s before it + up to 8 lines after
+        // (the rest stay hidden — no infinite scroll). Sidecar = instant.
         if let ft = transcripts.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),
            ft.isCovered(upTo: winEnd) {
-            let sentences = QuoteCaptureProcessor.buildSentences(from: ft.words, snappedStart: 0, snappedEnd: 0)
-            guard !sentences.isEmpty else { state = .empty; return }
-            // Pre-pick the line being read at the tap (last sentence starting ≤ it).
-            let idx = sentences.lastIndex(where: { $0.start <= winEnd }) ?? (sentences.count - 1)
-            sel = TextCaptureSelection(lo: idx, hi: idx)
-            state = .ready(.sidecar(sentences))
+            let all = QuoteCaptureProcessor.buildSentences(from: ft.words, snappedStart: 0, snappedEnd: 0)
+            guard !all.isEmpty else { state = .empty; return }
+            let capIdx = all.lastIndex(where: { $0.start <= winEnd }) ?? (all.count - 1)
+            sel = TextCaptureSelection(lo: capIdx, hi: capIdx)
+            displayLo = all.firstIndex(where: { $0.start >= winStart }) ?? 0
+            displayHi = min(all.count - 1, capIdx + Self.forwardTranscribed)
+            state = .ready(.sidecar(all))
             return
         }
 
-        // Un-chunked spot: transcribe a window spanning BOTH sides of the tap
-        // (≈90 s back … ≈45 s forward, clamped) so a little can be selected past
-        // the point too. Beyond this, transcribe the book for the full range.
+        // Un-chunked spot: transcribe a window spanning both sides of the tap
+        // (~90 s back … ~45 s forward, clamped); show the ~90 s before + up to 4
+        // lines after. Beyond that, transcribe the book.
         let fwdEnd = min(fileBounds.length, winEnd + Self.liveForwardSeconds)
         do {
             let w = try await QuoteCaptureProcessor().transcribeWindowForDisplay(
@@ -365,8 +377,10 @@ struct MergedCaptureView: View {
             guard !w.sentences.isEmpty else { state = .empty; return }
             // The tap sits at (winEnd − winStart) in the window's local time.
             let capLocal = winEnd - winStart
-            let idx = w.sentences.lastIndex(where: { $0.start <= capLocal }) ?? (w.sentences.count - 1)
-            sel = TextCaptureSelection(lo: idx, hi: idx)
+            let capIdx = w.sentences.lastIndex(where: { $0.start <= capLocal }) ?? (w.sentences.count - 1)
+            sel = TextCaptureSelection(lo: capIdx, hi: capIdx)
+            displayLo = 0
+            displayHi = min(w.sentences.count - 1, capIdx + Self.forwardLive)
             state = .ready(.window(w))
         } catch {
             state = .empty

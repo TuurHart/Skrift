@@ -1095,15 +1095,15 @@ player**, **read-along sync** (`ReadAlongView.lead` 0.1 s is the dial), and the 
 book first (schema-2 sidecar). If read-along reads early/late, say which → tune `lead` (+ desktop
 `-readalongcheck` to separate data-drift from offset).
 
-✅ BUILT 2026-06-14 — **bidirectional build-your-quote** (`MergedCaptureView`). FIRST attempt built it the
-WRONG way (an "Earlier ↑" backward-only control) — the user meant "scroll DOWN / select AFTER the tap"
-("i cannot scroll down. only allows selection from before capture point"). Corrected: the tapped line is the
-pre-picked anchor parked in the MIDDLE, with content BEFORE and AFTER — scroll up to quote earlier, down to
-quote later (past the tap; the post-pause audio exists in the file). **Transcribed book** → loads the whole
-covered file from the sidecar (`fileTranscript().words`, file-local times) — no fixed limit either way.
-**Un-chunked spot** → transcribes a window spanning both sides (≈90 s back … ≈45 s forward); beyond that,
-transcribe the book. Free scroll (no load-more buttons — the content's all there). `sel` defaults to the
-tapped line + auto-scrolls to it. Compile + unit gate green; device-eyeball owed.
+✅ BUILT 2026-06-14 — **bidirectional + bounded build-your-quote** (`MergedCaptureView`). Took two
+corrections to land the shape: (1) first attempt went BACKWARD-only (an "Earlier ↑" control) — the user
+meant scroll DOWN / select AFTER the tap ("i cannot scroll down. only allows selection from before capture
+point"); (2) the fix then over-shot to load the whole file = INFINITE scroll — user: "8 is plenty". FINAL:
+the tapped line is the pre-picked anchor in the MIDDLE; the displayed slice = the ~90 s heard BEFORE it +
+up to **8** lines AFTER (transcribed) / **4** (un-chunked) — scroll up earlier, down a little later, NO
+infinite. Transcribed → sidecar (`fileTranscript().words`, file-local); un-chunked → transcribe ≈90 s back
+… ≈45 s forward. `sel` indexes the full array; only the bounded slice (`displayLo…displayHi`) renders;
+auto-scrolls to the tapped line. Compile + unit gate green; device-eyeball owed.
 
 #### Audit 2026-06-14 — P1 bugs + build-ready features verified against code (read-only agent)
 Most of the old P1 list is ALREADY FIXED (code + a doc comment naming the original bug); device re-verify only:
