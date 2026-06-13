@@ -29,7 +29,12 @@ final class ReadAlongModel: ObservableObject {
     /// coverage frontier). Does NOT touch `currentIndex` — that's driven finely
     /// by `setCurrent`.
     func reloadIfNeeded(book: Audiobook, fileIndex: Int, fileLocal: TimeInterval, audioURL: URL?) {
-        guard fileIndex != loadedFileIndex || fileLocal > loadedUpTo else { return }
+        // Re-run on a file change, when the playhead crosses the loaded frontier,
+        // OR whenever we're NOT covered — so a transcribe that finishes while the
+        // player sits paused on the nudge flips to read-along on the next re-check
+        // (the view drives that on a wall-clock timer), instead of waiting for
+        // playback to advance past a threshold (device bug 2026-06-13).
+        guard fileIndex != loadedFileIndex || fileLocal > loadedUpTo || !covered else { return }
         loadedFileIndex = fileIndex
         if let audioURL,
            let ft = store.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),
@@ -73,6 +78,8 @@ struct ReadAlongView: View {
     /// 0.5 s tick, and the wall-clock when it landed.
     @State private var anchorLocal: TimeInterval = 0
     @State private var anchorWall = Date()
+    /// Wall-clock throttle for re-checking coverage while showing the nudge.
+    @State private var lastRecheck = Date()
 
     private let panelHeight: CGFloat = 234
     /// How far before the current line's audio END to flip to the next line —
@@ -104,9 +111,15 @@ struct ReadAlongView: View {
         }
         // Fine driver: interpolate between ticks so the line tracks the voice.
         .onReceive(tick) { _ in
-            guard model.covered else { return }
-            let elapsed = session.isPlaying ? min(Date().timeIntervalSince(anchorWall) * session.rate, 0.6) : 0
-            model.setCurrent(fileLocal: anchorLocal + elapsed + lead)
+            if model.covered {
+                let elapsed = session.isPlaying ? min(Date().timeIntervalSince(anchorWall) * session.rate, 0.6) : 0
+                model.setCurrent(fileLocal: anchorLocal + elapsed + lead)
+            } else if Date().timeIntervalSince(lastRecheck) > 1.5 {
+                // Still on the nudge — re-check coverage every ~1.5 s (even paused)
+                // so a transcribe finishing in the background flips us to read-along.
+                lastRecheck = Date()
+                model.reloadIfNeeded(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
+            }
         }
     }
 
