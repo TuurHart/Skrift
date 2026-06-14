@@ -1119,8 +1119,19 @@ Most of the old P1 list is ALREADY FIXED (code + a doc comment naming the origin
   (raw-string type — NO `ShareContentType`/contract change; extension copies the file, never loads it into
   its memory ceiling) and bypasses the capture sheet (`ShareViewController.completeVideo`); `CaptureInboxDrainer`
   imports it via `MemoSaver.importVideo` → a normal voice memo (audio + frame thumbnail + transcribe; delete-
-  before-import so a re-drain can't double-import). Compiles (both targets); device-eyeball owed (the Photos
-  share-sheet appearance + the import are device-only).
+  before-import so a re-drain can't double-import). Compiles (both targets), installed on the dev phone.
+  ⚠️ **DEVICE BUG 2026-06-14 eve — INVESTIGATE TOMORROW (user: "seemed flaky").** Repro: share a video →
+  it preps → the share UI closes (no confirm = expected for the bypass) → open Skrift → the memo appears
+  briefly, flashes `transcribing`, then **VANISHES**. STATIC READ rules out the obvious causes: (1) nothing
+  auto-deletes a non-trashed memo (`purgeExpiredTrash` only touches `deletedAt`-set / ≥14-day memos; there's
+  NO purge of empty/transcribing memos); (2) the extract-failure path does NOT delete — `MemoSaver.processVideo`
+  marks the memo `.failed` + title "Video had no audio track" and keeps it. So a true vanish is runtime/
+  device-specific (AVFoundation reading the App-Group→temp copy, a drain timing thing, or security-scope on
+  the shared file — note the leaked app-temp `shared_import_<id>` too). PLAN: add `DevLog` to the
+  drain→importVideo→processVideo path (entry found · temp path · importVideo memoID · extractAudio result ·
+  final transcriptStatus · any delete), repro on device, pull `Documents/devlog.txt` — share-ext + AVFoundation
+  + device-only, the sim can't repro (CLAUDE.md: instrument + diagnose from the trace FIRST). The bidirectional+
+  bounded capture (8/4) is the OTHER thing on the phone from tonight; eyeball both.
 - (g) disk-writes `.ips` = profiling, not a clear fix (model downloads + whole-book transcribe = suspects).
 
 Build-ready feature TRUE status (corrects the stale lists above):
