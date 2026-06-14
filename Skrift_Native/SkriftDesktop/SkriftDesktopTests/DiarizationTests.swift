@@ -248,6 +248,23 @@ final class DiarizationTests: XCTestCase {
         XCTAssertTrue(unlinked.hasPrefix("We are Tuur and [[Tiuri Hartog|Tuur]] rocks"), "got: \(unlinked)")
     }
 
+    /// `Sanitiser.linkTarget` strips the Obsidian alias-display pipe — the shared contract
+    /// every pipe-aware link-identity site keys on: `BodyTextView.person(matchingCore:)`,
+    /// `InlineResolverModel.isInFlightCandidate`, and `linkOccurrences(of:)`. (A direct
+    /// `isInFlightCandidate` test would need the `Features/` target, which the host-less
+    /// `UnitTests` bundle deliberately excludes — this pins the underlying logic those
+    /// sites delegate to, so `core: "Sam Smith|Sammy"` resolves to candidate "Sam Smith".)
+    func testLinkTargetStripsAliasDisplayPipe() {
+        XCTAssertEqual(Sanitiser.linkTarget("Sam Smith|Sammy"), "Sam Smith")
+        XCTAssertEqual(Sanitiser.linkTarget("Tiuri Hartog|Tuur"), "Tiuri Hartog")
+        XCTAssertEqual(Sanitiser.linkTarget("Sam Smith"), "Sam Smith")          // bare → unchanged
+        XCTAssertEqual(Sanitiser.linkTarget("  Sam Smith | Sammy  "), "Sam Smith")  // trimmed
+        XCTAssertEqual(Sanitiser.linkTarget("Sam|Smith|Jr"), "Sam")             // first pipe only
+        // The exact identity check isInFlightCandidate performs: linkTarget(core) vs keyName(canonical).
+        XCTAssertEqual(Sanitiser.linkTarget("Sam Smith|Sammy"),
+                       NamesMerge.keyName("[[Sam Smith]]"))
+    }
+
     func testRunLeavesMonologueUntouched() async throws {
         let pf = PipelineFile(id: "c4", filename: "m.m4a", path: "/tmp/c4", size: 0, sourceType: .audio)
         let oneSpeaker = StubDiarizer(output: DiarizationOutput(
