@@ -52,8 +52,12 @@ struct BatchRunner {
            !SpeakerTranscript.isAttributed(pf.transcript),
            let out = try? await diarizer.diarize(audioURL: audioURL),
            Set(out.segments.map(\.speaker)).count >= 2 {
+            // Emit PLAIN speaker labels (matched person's name or "Speaker N"), like the
+            // phone — `processConversation` (below) owns all `[[ ]]` linking + the
+            // first-mention-canonical/rest-short header policy, so both the phone-synced
+            // and Mac-diarized paths render identically.
             pf.transcript = SpeakerFusion.attributedTranscript(words: pf.wordTimings, segments: out.segments) { slot in
-                out.slotNames[slot].map { "[[\($0)]]" } ?? "Speaker \(slot + 1)"
+                out.slotNames[slot] ?? "Speaker \(slot + 1)"
             }
             // Retain the diarization so a speaker's voice can be enrolled later from the
             // review screen (slice their audio by these segments → embedSpeaker) without
@@ -114,8 +118,13 @@ struct BatchRunner {
         pf.tagSuggestions = suggestions.matched + suggestions.spoken
 
         // 4. Name-link — last deterministic step, non-blocking. The note's persisted
-        // "unlink all mentions" choices keep those people plain on a re-run.
-        let san = Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
+        // "unlink all mentions" choices keep those people plain on a re-run. A
+        // conversation uses the turn-aware linker (merge same-speaker turns, first
+        // header → [[Canonical]] / rest short, inline mentions → [[Canonical|spoken]]);
+        // a monologue uses the ordinary first-mention linker.
+        let san = isConversation
+            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames))
+            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
         pf.sanitised = san.sanitised
         pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
 

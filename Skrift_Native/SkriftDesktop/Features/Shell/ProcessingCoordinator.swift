@@ -291,13 +291,21 @@ final class ProcessingCoordinator {
                 pf.titleSuggested = t
                 pf.enhancedTitle = t   // redo title → adopt the fresh one
             case .copyEdit:
-                let c = try await enhancer.copyEdit(transcript, prompts: settings.prompts, modelRepo: repo)
+                // A speaker-attributed (conversation) transcript SKIPS copy-edit — the
+                // LLM strips its `**Name:**` turn prefixes (same guard as BatchRunner).
+                // Keep it verbatim and only re-link names.
+                let isConversation = SpeakerTranscript.isAttributed(transcript)
+                let c = isConversation
+                    ? transcript
+                    : try await enhancer.copyEdit(transcript, prompts: settings.prompts, modelRepo: repo)
                 pf.enhancedCopyedit = c
                 // re-link names on the fresh copy-edit so the body stays consistent
                 // (honoring the note's persisted "unlink all mentions" choices)
                 let working = c.isEmpty ? transcript : c
-                let san = Sanitiser.process(text: working, people: NamesStore.shared.livePeople(),
-                                            neverLink: Set(pf.unlinkedNames))
+                let people = NamesStore.shared.livePeople()
+                let san = isConversation
+                    ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames))
+                    : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
                 pf.sanitised = san.sanitised
                 pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
             case .summary:

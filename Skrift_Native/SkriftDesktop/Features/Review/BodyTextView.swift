@@ -383,9 +383,11 @@ struct BodyTextView: NSViewRepresentable {
         }
 
         /// The cached live person whose canonical key equals a link's core
-        /// (case-insensitive), or nil for non-person links (places, etc.).
+        /// (case-insensitive), or nil for non-person links (places, etc.). Tolerates an
+        /// Obsidian alias-display core (`Tiuri Hartog|Tuur`) by matching its target part,
+        /// so a `[[Canonical|spoken]]` mention stays clickable for unlink/relink.
         private func person(matchingCore core: String) -> Person? {
-            let key = core.trimmingCharacters(in: .whitespaces)
+            let key = Sanitiser.linkTarget(core)
             guard !key.isEmpty else { return nil }
             return peopleCache.first {
                 NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces)

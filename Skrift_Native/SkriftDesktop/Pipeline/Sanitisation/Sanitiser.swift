@@ -114,6 +114,153 @@ enum Sanitiser {
         return Result(sanitised: text, ambiguous: ambiguous)
     }
 
+    // MARK: - Conversation-aware name-linking (speaker-attributed transcripts)
+
+    /// Name-linking for a `**Name:**`-turn conversation — distinct from `process`
+    /// (monologue) because turn HEADERS and INLINE speech want different treatment:
+    ///
+    /// - **Same-speaker merge** (#3): consecutive turns by the same resolved speaker are
+    ///   merged into one, repairing diarization fragmentation.
+    /// - **Headers** (#2): a speaker's FIRST turn header becomes a full `[[Canonical]]`
+    ///   link; later headers become the plain short name (`**Tuur:**`). Unmatched
+    ///   ("Speaker N") / unknown / ambiguous headers stay plain.
+    /// - **Inline mentions** (#1): every unambiguous alias spoken inside a turn is linked
+    ///   with Obsidian alias-display `[[Canonical|spoken]]`, so the SPOKEN word survives
+    ///   (a plain `[[Canonical]]` only when the spoken surface already equals the
+    ///   canonical). Ambiguous aliases stay plain and are recorded for the resolver.
+    ///
+    /// Falls back to `process` when the text isn't actually attributed.
+    static func processConversation(text inputText: String, people: [Person], neverLink: Set<String> = []) -> Result {
+        guard let parsed = SpeakerTranscript.parse(inputText) else {
+            return process(text: inputText, people: people, neverLink: neverLink)
+        }
+        let skip = Set(neverLink.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
+        let live = people.filter {
+            !$0.isDeleted && !skip.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
+        }
+
+        var aliasMap: [String: [Person]] = [:]
+        for p in live {
+            for a in p.aliases {
+                let al = a.trimmingCharacters(in: .whitespaces).lowercased()
+                if !al.isEmpty { aliasMap[al, default: []].append(p) }
+            }
+        }
+        let ambiguousAliases = Set(aliasMap.filter { $0.value.count >= 2 }.keys)
+
+        // Resolve a header label to a UNIQUE live person — by canonical key (the phone
+        // sends a matched speaker's full canonical, e.g. "Tiuri Hartog") OR an
+        // unambiguous alias. nil = "Speaker N" / unknown / ambiguous → header left plain.
+        func resolveHeader(_ rawName: String) -> Person? {
+            let key = rawName.trimmingCharacters(in: .whitespaces).lowercased()
+            guard !key.isEmpty else { return nil }
+            if let p = live.first(where: {
+                NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() == key
+            }) { return p }
+            if !ambiguousAliases.contains(key), let cands = aliasMap[key], cands.count == 1 { return cands[0] }
+            return nil
+        }
+        func identity(person: Person?, rawName: String) -> String {
+            person.map { NamesMerge.keyName($0.canonical).lowercased() } ?? "raw:" + rawName.lowercased()
+        }
+
+        // Merge consecutive turns by the same resolved speaker (#3).
+        struct MTurn { let person: Person?; let rawName: String; var text: String }
+        var merged: [MTurn] = []
+        for turn in parsed {
+            let person = resolveHeader(turn.name)
+            let id = identity(person: person, rawName: turn.name)
+            if let last = merged.last, identity(person: last.person, rawName: last.rawName) == id {
+                let sep = (merged[merged.count - 1].text.isEmpty || turn.text.isEmpty) ? "" : " "
+                merged[merged.count - 1].text += sep + turn.text
+            } else {
+                merged.append(MTurn(person: person, rawName: turn.name, text: turn.text))
+            }
+        }
+
+        // Render headers (first canonical / later short / plain) + alias-display bodies.
+        var seen = Set<String>()
+        var lines: [String] = []
+        for m in merged {
+            let header: String
+            if let p = m.person {
+                let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+                if seen.insert(canonKey.lowercased()).inserted {
+                    header = "[[\(canonKey)]]"                  // first mention → full link
+                } else {
+                    let short = shortName(for: p)
+                    header = short.isEmpty ? canonKey : short   // later → plain short name
+                }
+            } else {
+                header = m.rawName                              // Speaker N / unknown → plain
+            }
+            let body = linkInline(m.text, live: live, ambiguousAliases: ambiguousAliases)
+            lines.append("**\(header):** \(body)")
+        }
+        let finalText = lines.joined(separator: "\n\n")
+        let ambiguous = ambiguousOccurrences(in: finalText, aliasMap: aliasMap, ambiguousAliases: ambiguousAliases)
+        return Result(sanitised: finalText, ambiguous: ambiguous)
+    }
+
+    /// Link every UNAMBIGUOUS alias mention inline with Obsidian alias-display
+    /// `[[Canonical|spoken]]` (bare `[[Canonical]]` when the spoken surface already equals
+    /// the canonical). Possessive sits OUTSIDE the brackets; matches already inside a link
+    /// are skipped. Ambiguous aliases are left plain (resolved at review).
+    private static func linkInline(_ inputText: String, live: [Person], ambiguousAliases: Set<String>) -> String {
+        var text = inputText
+        for p in live.sorted(by: { NamesMerge.keyName($0.canonical).lowercased() < NamesMerge.keyName($1.canonical).lowercased() }) {
+            let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+            let aliases = p.aliases
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty && !ambiguousAliases.contains($0.lowercased()) }
+            guard !aliases.isEmpty else { continue }
+            for alias in aliases {
+                guard let rx = wordRegex(alias) else { continue }
+                for m in rx.matches(in: text, range: fullRange(text)).reversed() {
+                    // The match spans the alias + any trailing possessive; the possessive
+                    // stays OUTSIDE the brackets, so isolate the alias surface to display.
+                    let poss = m.range(withName: "poss")
+                    let aliasLen = (poss.location != NSNotFound && poss.length > 0) ? m.range.length - poss.length : m.range.length
+                    let aliasRange = NSRange(location: m.range.location, length: aliasLen)
+                    if avoidInside && !notInsideLink(text, aliasRange.location) { continue }
+                    let spoken = nsSub(text, aliasRange.location, aliasRange.location + aliasRange.length)
+                    let display = spoken.caseInsensitiveCompare(canonKey) == .orderedSame
+                        ? "[[\(canonKey)]]"
+                        : "[[\(canonKey)|\(spoken)]]"
+                    text = nsReplace(text, aliasRange, with: display + possText(m, in: text))
+                }
+            }
+        }
+        return text
+    }
+
+    /// Ambiguous-alias occurrences (plain whole-word mentions of an alias that maps to 2+
+    /// people, not inside a link) over `text`, with offsets into `text` — the same
+    /// detection `process` uses, factored out so the conversation path records them
+    /// against the FINAL rendered body.
+    private static func ambiguousOccurrences(in text: String, aliasMap: [String: [Person]], ambiguousAliases: Set<String>) -> [AmbiguousOccurrence] {
+        var ambiguous: [AmbiguousOccurrence] = []
+        for alias in ambiguousAliases.sorted() {
+            let candidates = aliasMap[alias] ?? []
+            guard let rx = wordRegex(alias) else { continue }
+            for m in rx.matches(in: text, range: fullRange(text)) {
+                let loc = m.range.location
+                if avoidInside && !notInsideLink(text, loc) { continue }
+                ambiguous.append(AmbiguousOccurrence(
+                    alias: alias,
+                    offset: loc,
+                    length: m.range.length,
+                    contextBefore: nsSub(text, max(0, loc - 40), loc),
+                    contextAfter: nsSub(text, loc + m.range.length, min(nsLen(text), loc + m.range.length + 40)),
+                    candidates: candidates.map {
+                        NameCandidate(id: $0.canonical, canonical: $0.canonical, short: shortName(for: $0))
+                    }
+                ))
+            }
+        }
+        return ambiguous
+    }
+
     /// Apply review-time choices for ambiguous aliases to the (already sanitised)
     /// body. Each decision: alias + canonical (+ optional short). First remaining
     /// plain occurrence → `[[Canonical]]`, rest → short. Ported from
@@ -133,8 +280,9 @@ enum Sanitiser {
                 .filter { !avoidInside || notInsideLink(text, $0.range.location) }
             guard !eligible.isEmpty else { continue }
             // The body may already carry the canonical link (turn headers / a
-            // pre-linked mention) — then every plain occurrence is a LATER mention.
-            let alreadyLinked = !occurrences(of: linkText, in: text).isEmpty
+            // pre-linked mention, bare OR `[[Canonical|alias]]`) — then every plain
+            // occurrence is a LATER mention.
+            let alreadyLinked = hasCanonicalLink(core, in: text)
             for (i, m) in eligible.enumerated().reversed() {
                 let replacement = ((i == 0 && !alreadyLinked) ? linkText : short) + possText(m, in: text)
                 text = nsReplace(text, m.range, with: replacement)
@@ -170,9 +318,9 @@ enum Sanitiser {
                 let core = NamesMerge.keyName(linkText)
                 let short = (choices[i].short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
                     ?? (core.split(separator: " ").first.map(String.init) ?? a)
-                // A canonical the body already links (e.g. a turn header) counts as
-                // introduced — its plain mentions all get the short name.
-                let isFirst = !introduced.contains(core) && occurrences(of: linkText, in: text).isEmpty
+                // A canonical the body already links (e.g. a turn header, bare or
+                // `[[Canonical|alias]]`) counts as introduced — plain mentions get the short name.
+                let isFirst = !introduced.contains(core) && !hasCanonicalLink(core, in: text)
                 introduced.insert(core)
                 replacements.append((m.range, (isFirst ? linkText : short) + possText(m, in: text)))
             }
@@ -288,7 +436,7 @@ enum Sanitiser {
                     let core = NamesMerge.keyName(linkText)
                     let short = (shortRaw?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
                         ?? (core.split(separator: " ").first.map(String.init) ?? occ.alias)
-                    let isFirst = !introduced.contains(core) && occurrences(of: linkText, in: inputText).isEmpty
+                    let isFirst = !introduced.contains(core) && !hasCanonicalLink(core, in: inputText)
                     introduced.insert(core)
                     emitted = (isFirst ? linkText : short) + possText(occ.match, in: inputText)
                 }
@@ -350,8 +498,29 @@ enum Sanitiser {
         let key = NamesMerge.keyName(canonical).trimmingCharacters(in: .whitespaces)
         guard !key.isEmpty else { return [] }
         return linkOccurrences(in: text).filter {
-            $0.core.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(key) == .orderedSame
+            linkTarget($0.core).caseInsensitiveCompare(key) == .orderedSame
         }
+    }
+
+    /// The canonical TARGET of a link's inner text — the part before an Obsidian
+    /// alias-display pipe (`Tiuri Hartog|Tuur` → `Tiuri Hartog`), trimmed. So a
+    /// `[[Canonical|spoken]]` alias-display link still resolves to its person for
+    /// unlink/relink/highlight (the spoken word is display-only).
+    static func linkTarget(_ core: String) -> String {
+        (core.split(separator: "|", maxSplits: 1).first.map(String.init) ?? core)
+            .trimmingCharacters(in: .whitespaces)
+    }
+
+    /// True when `text` already carries a `[[canonKey]]` OR `[[canonKey|display]]` link
+    /// (case-insensitive) — the pipe-tolerant replacement for a literal `[[Canonical]]`
+    /// substring search, so the alias-display form is recognised as an existing mention.
+    private static func hasCanonicalLink(_ canonKey: String, in text: String) -> Bool {
+        let key = NamesMerge.keyName(canonKey).trimmingCharacters(in: .whitespaces)
+        guard !key.isEmpty,
+              let rx = try? NSRegularExpression(
+                pattern: "\\[\\[\(NSRegularExpression.escapedPattern(for: key))(\\|[^\\]]*)?\\]\\]",
+                options: [.caseInsensitive]) else { return false }
+        return rx.firstMatch(in: text, range: fullRange(text)) != nil
     }
 
     /// "Unlink this mention": the `index`-th `[[canonical]]` link (reading order)
@@ -362,7 +531,17 @@ enum Sanitiser {
     static func unlinkOccurrence(text: String, canonical: String, index: Int, alias: String) -> String {
         let links = linkOccurrences(of: canonical, in: text)
         guard index >= 0, index < links.count else { return text }
-        return nsReplace(text, links[index].range, with: alias)
+        return nsReplace(text, links[index].range, with: linkDisplay(links[index].core) ?? alias)
+    }
+
+    /// The display half of an alias-display link's core (`Tiuri Hartog|Tuur` → `Tuur`),
+    /// i.e. the actual SPOKEN word — what an unlink should restore. nil for a bare
+    /// `[[Canonical]]` link (no pipe), where the caller's `alias` fallback applies.
+    private static func linkDisplay(_ core: String) -> String? {
+        let parts = core.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2 else { return nil }
+        let display = parts[1].trimmingCharacters(in: .whitespaces)
+        return display.isEmpty ? nil : display
     }
 
     /// "Change to → <other person>": the `index`-th `[[canonical]]` link becomes
@@ -372,7 +551,10 @@ enum Sanitiser {
     static func relinkOccurrence(text: String, canonical: String, index: Int, newCanonical: String) -> String {
         let links = linkOccurrences(of: canonical, in: text)
         guard index >= 0, index < links.count else { return text }
-        return nsReplace(text, links[index].range, with: "[[\(newCanonical)]]")
+        // Preserve an alias-display spoken word across the re-link (`[[Wrong|Tuur]]` →
+        // `[[Right|Tuur]]`); a bare link stays bare.
+        let repl = linkDisplay(links[index].core).map { "[[\(newCanonical)|\($0)]]" } ?? "[[\(newCanonical)]]"
+        return nsReplace(text, links[index].range, with: repl)
     }
 
     /// "Unlink all mentions in this note": EVERY `[[canonical]]` link becomes the
@@ -383,7 +565,7 @@ enum Sanitiser {
     static func unlinkAll(text: String, canonical: String, alias: String) -> String {
         var out = text
         for link in linkOccurrences(of: canonical, in: text).reversed() {
-            out = nsReplace(out, link.range, with: alias)
+            out = nsReplace(out, link.range, with: linkDisplay(link.core) ?? alias)
         }
         return out
     }

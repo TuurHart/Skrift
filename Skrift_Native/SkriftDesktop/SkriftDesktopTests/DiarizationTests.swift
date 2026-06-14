@@ -106,7 +106,10 @@ final class DiarizationTests: XCTestCase {
                                  people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
         try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c1.m4a"))
         let t = try XCTUnwrap(pf.transcript)
-        XCTAssertTrue(t.contains("**[[Tiuri Hartog]]:** one two"), "matched speaker → canonical link turn; got: \(t)")
+        // The raw transcript carries PLAIN speaker labels; `[[ ]]` linking is the
+        // sanitise step's job (processConversation), so both the phone-synced and
+        // Mac-diarized paths render identically.
+        XCTAssertTrue(t.contains("**Tiuri Hartog:** one two"), "matched speaker → plain name turn; got: \(t)")
         XCTAssertTrue(t.contains("**Speaker 2:** three four"), "unmatched speaker → Speaker N; got: \(t)")
     }
 
@@ -135,14 +138,101 @@ final class DiarizationTests: XCTestCase {
     func testConversationSkipsCopyEditSoTurnsSurviveExport() async throws {
         // A label-stripping copy-edit must NOT be applied to a diarized conversation —
         // otherwise the **Speaker N:**/**[[Person]]:** turns vanish from the exported note.
+        let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog"], short: "Tiuri", lastModifiedAt: "x")
         let pf = PipelineFile(id: "c5", filename: "m.m4a", path: "/tmp/c5", size: 0, sourceType: .audio)
         let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: StrippingEnhancer(), settings: .default,
-                                 people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
+                                 people: [tiuri], tagWhitelist: [], diarizer: twoSpeakerStub(named: [0: "Tiuri Hartog"]))
         try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c5.m4a"))
         XCTAssertEqual(pf.enhancedCopyedit, pf.transcript, "copy-edit must be skipped for a conversation")
         let s = try XCTUnwrap(pf.sanitised)
         XCTAssertTrue(s.contains("**Speaker 2:**"), "speaker turns must survive into the body; got: \(s)")
-        XCTAssertTrue(s.contains("**[[Tiuri Hartog]]:**"), "matched speaker link must survive; got: \(s)")
+        // The matched speaker's FIRST header → full [[Canonical]] link (rest would demote).
+        XCTAssertTrue(s.contains("**[[Tiuri Hartog]]:**"), "matched speaker first header → canonical link; got: \(s)")
+    }
+
+    // MARK: Conversation name-linking (processConversation)
+
+    /// #2 + #3 + #1: first header → [[Canonical]], later same-speaker turns MERGE,
+    /// inline spoken alias → [[Canonical|spoken]] (spoken word preserved, every mention).
+    func testProcessConversationHeadersMergeAndAliasDisplay() {
+        let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog", "Tuur"], short: "Tuur", lastModifiedAt: "x")
+        let roksana = Person(canonical: "[[Roksana Gurova]]", aliases: ["Roksana Gurova", "Roks"], short: "Roksana", lastModifiedAt: "x")
+        let input = """
+        **Roksana Gurova:** Hey it is Roks here
+
+        **Tiuri Hartog:** We are Tuur and
+
+        **Tiuri Hartog:** Tuur rocks
+        """
+        let r = Sanitiser.processConversation(text: input, people: [roksana, tiuri])
+        let lines = r.sanitised.components(separatedBy: "\n\n")
+        // Two adjacent Tiuri turns merged into one.
+        XCTAssertEqual(lines.count, 2, "consecutive same-speaker turns merge; got: \(r.sanitised)")
+        // Header: first mention full canonical link.
+        XCTAssertTrue(lines[0].hasPrefix("**[[Roksana Gurova]]:**"), "first header → full canonical; got: \(lines[0])")
+        XCTAssertTrue(lines[1].hasPrefix("**[[Tiuri Hartog]]:**"), "first header → full canonical; got: \(lines[1])")
+        // Inline spoken word preserved via alias-display, EVERY mention.
+        XCTAssertTrue(lines[1].contains("[[Tiuri Hartog|Tuur]] and [[Tiuri Hartog|Tuur]] rocks"),
+                      "inline 'Tuur' → alias-display, every mention; got: \(lines[1])")
+        XCTAssertTrue(lines[0].contains("[[Roksana Gurova|Roks]]"), "inline 'Roks' → alias-display; got: \(lines[0])")
+    }
+
+    /// A speaker's SECOND turn header is the plain short name (no link); only the first links.
+    func testProcessConversationLaterHeaderIsPlainShort() {
+        let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog"], short: "Tuur", lastModifiedAt: "x")
+        let input = "**Tiuri Hartog:** one\n\n**Roksana:** two\n\n**Tiuri Hartog:** three"
+        let roksana = Person(canonical: "[[Roksana]]", aliases: ["Roksana"], lastModifiedAt: "x")
+        let lines = Sanitiser.processConversation(text: input, people: [tiuri, roksana]).sanitised
+            .components(separatedBy: "\n\n")
+        XCTAssertEqual(lines.count, 3)
+        XCTAssertTrue(lines[0].hasPrefix("**[[Tiuri Hartog]]:**"), "first → canonical; got: \(lines[0])")
+        XCTAssertTrue(lines[2].hasPrefix("**Tuur:**"), "later → plain short, no link; got: \(lines[2])")
+        XCTAssertFalse(lines[2].contains("[["), "later header must NOT be linked; got: \(lines[2])")
+    }
+
+    /// An unmatched "Speaker N" header stays plain; an ambiguous inline alias stays plain + recorded.
+    func testProcessConversationLeavesSpeakerNAndAmbiguousPlain() {
+        let jackH = Person(canonical: "[[Jack Hutton]]", aliases: ["Jack"], lastModifiedAt: "x")
+        let jackT = Person(canonical: "[[Jack Timmons]]", aliases: ["Jack"], lastModifiedAt: "x")
+        let input = "**Speaker 1:** I saw Jack today\n\n**Speaker 2:** which Jack"
+        let r = Sanitiser.processConversation(text: input, people: [jackH, jackT])
+        XCTAssertTrue(r.sanitised.contains("**Speaker 1:**"), "unmatched header stays plain")
+        XCTAssertFalse(r.sanitised.contains("[[Jack"), "ambiguous 'Jack' left plain; got: \(r.sanitised)")
+        XCTAssertEqual(r.ambiguous.count, 2, "both ambiguous 'Jack' mentions recorded; got: \(r.ambiguous)")
+    }
+
+    /// Re-processing an already-linked conversation is idempotent (no double-linking).
+    func testProcessConversationIdempotent() {
+        let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog", "Tuur"], short: "Tuur", lastModifiedAt: "x")
+        let input = "**Tiuri Hartog:** We are Tuur\n\n**Roksana:** ok"
+        let roksana = Person(canonical: "[[Roksana]]", aliases: ["Roksana"], lastModifiedAt: "x")
+        let once = Sanitiser.processConversation(text: input, people: [tiuri, roksana]).sanitised
+        let twice = Sanitiser.processConversation(text: once, people: [tiuri, roksana]).sanitised
+        XCTAssertEqual(once, twice, "re-processing must be idempotent; once=\(once)")
+    }
+
+    func testMergeAdjacentTurnsCollapsesSameSpeaker() {
+        let input = "**Tiuri:** But what\n\n**Tiuri:** we're actually doing is\n\n**Roksana:** ok"
+        XCTAssertEqual(SpeakerTranscript.mergeAdjacentTurns(input),
+                       "**Tiuri:** But what we're actually doing is\n\n**Roksana:** ok")
+    }
+
+    /// isAttributed must NOT fire on a hand-formatted body with bold inline labels.
+    func testIsAttributedIgnoresInlineBoldLabels() {
+        XCTAssertFalse(SpeakerTranscript.isAttributed("Here are my notes. **Pros:** fast. **Cons:** pricey."),
+                       "inline **Pros:**/**Cons:** is not a conversation")
+        XCTAssertFalse(SpeakerTranscript.isAttributed("**Pros:** a\n\n**Pros:** b"),
+                       "repeated identical labels are not ≥2 distinct speakers")
+    }
+
+    /// Pipe-display alias links stay resolvable for unlink/relink/highlight.
+    func testLinkOccurrencesAndUnlinkArePipeAware() {
+        let text = "We are [[Tiuri Hartog|Tuur]] and [[Tiuri Hartog|Tuur]] rocks"
+        let links = Sanitiser.linkOccurrences(of: "[[Tiuri Hartog]]", in: text)
+        XCTAssertEqual(links.count, 2, "alias-display links must resolve to their canonical")
+        // Unlink restores the SPOKEN word (the display half), not a generic short name.
+        let unlinked = Sanitiser.unlinkOccurrence(text: text, canonical: "[[Tiuri Hartog]]", index: 0, alias: "Tiuri")
+        XCTAssertTrue(unlinked.hasPrefix("We are Tuur and [[Tiuri Hartog|Tuur]] rocks"), "got: \(unlinked)")
     }
 
     func testRunLeavesMonologueUntouched() async throws {

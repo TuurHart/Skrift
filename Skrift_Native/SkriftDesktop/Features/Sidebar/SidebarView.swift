@@ -449,13 +449,24 @@ struct SidebarView: View {
             if coordinator.needsProcessing(f) {
                 Button("Process") { Task { await coordinator.process(fileIDs: [f.id], context: ctx) } }
             }
-            if f.steps.transcribe == .done && f.sourceType != .note {
+            // Re-transcribe re-runs ASR from the audio, which would DESTROY a
+            // speaker-attributed transcript's turns (the phone never uploads the
+            // diarization segments/word-timings — the `**Name:**` text is the only
+            // copy). Hidden for diarized conversations (user decision); they re-enhance
+            // via Redo instead, which keeps the transcript verbatim.
+            if f.steps.transcribe == .done && f.sourceType != .note
+                && !SpeakerTranscript.isAttributed(f.transcript) {
                 Button("Re-transcribe") { Task { await coordinator.retranscribe(f, context: ctx) } }
             }
             if f.steps.enhance == .done {
+                let isConversation = SpeakerTranscript.isAttributed(f.transcript)
                 Menu("Redo") {
                     Button("Title") { Task { await coordinator.redo(.title, for: f, context: ctx) } }
-                    Button("Copy-edit") { Task { await coordinator.redo(.copyEdit, for: f, context: ctx) } }
+                    // Copy-edit strips the `**Name:**` turn prefixes from a conversation
+                    // — hidden for diarized memos (they stay verbatim, like the phone).
+                    if !isConversation {
+                        Button("Copy-edit") { Task { await coordinator.redo(.copyEdit, for: f, context: ctx) } }
+                    }
                     Button("Summary") { Task { await coordinator.redo(.summary, for: f, context: ctx) } }
                 }
                 Button(f.steps.export == .done ? "Re-export to Obsidian" : "Export to Obsidian") { coordinator.export(f, context: ctx) }

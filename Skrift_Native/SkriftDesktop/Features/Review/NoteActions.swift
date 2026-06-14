@@ -12,6 +12,9 @@ struct NoteActions: View {
     private var exported: Bool { file.steps.export == .done }
     private var isAppleNote: Bool { file.sourceType == .note }
     private var transcribeDone: Bool { file.steps.transcribe == .done }
+    /// A speaker-attributed (conversation) transcript — its `**Name:**` turns are the
+    /// ONLY copy of the diarization (the phone never uploads segments/word-timings).
+    private var isConversation: Bool { SpeakerTranscript.isAttributed(file.transcript) }
 
     private var primaryLabel: String {
         if !enhanceDone { return "Process" }
@@ -23,7 +26,9 @@ struct NoteActions: View {
             && !(file.enhancedCopyedit ?? "").isEmpty
             && !(file.enhancedSummary ?? "").isEmpty
     }
-    private var canRetranscribe: Bool { transcribeDone && !isAppleNote }
+    // Re-transcribe re-runs ASR and would destroy a conversation's speaker turns
+    // (only copy lives in the transcript text) — disabled for diarized memos.
+    private var canRetranscribe: Bool { transcribeDone && !isAppleNote && !isConversation }
     private var hasOverflow: Bool { canRetranscribe || hasParts }
 
     private func primaryAction() {
@@ -55,7 +60,11 @@ struct NoteActions: View {
                     }
                     if hasParts {
                         Button("Redo title") { Task { await coordinator.redo(.title, for: file, context: ctx) } }
-                        Button("Redo copy-edit") { Task { await coordinator.redo(.copyEdit, for: file, context: ctx) } }
+                        // Copy-edit strips a conversation's `**Name:**` turn prefixes —
+                        // hidden for diarized memos (they stay verbatim, like the phone).
+                        if !isConversation {
+                            Button("Redo copy-edit") { Task { await coordinator.redo(.copyEdit, for: file, context: ctx) } }
+                        }
                         Button("Redo summary") { Task { await coordinator.redo(.summary, for: file, context: ctx) } }
                     }
                 } label: {

@@ -22,13 +22,63 @@ protocol Diarizing: Sendable {
     func diarize(audioURL: URL) async throws -> DiarizationOutput
 }
 
-/// Detects whether a transcript is already speaker-attributed (`**Name:**` turns), so the
-/// Mac doesn't re-diarize a conversation the phone already split.
+/// Detects + parses a speaker-attributed (`**Name:**` turns) transcript, so the Mac
+/// doesn't re-diarize a conversation the phone already split, and so name-linking can
+/// treat turn headers distinctly from inline speech. Mirrors the phone's
+/// `SpeakerTranscript` (SkriftMobile/Features/MemoDetail/SpeakerTurnsView.swift).
 enum SpeakerTranscript {
-    /// True when `transcript` has ≥2 `**Name:**` turn prefixes.
-    static func isAttributed(_ transcript: String?) -> Bool {
+    struct Turn: Equatable { let name: String; let text: String }
+
+    /// A turn header — a bold `**Name:**` anchored to the START of a line/paragraph.
+    /// The line anchor (`(?m)^`) is deliberate: a hand-typed/LLM-formatted inline
+    /// `**Pros:**` mid-sentence (e.g. an Apple Note) must NOT read as a speaker turn
+    /// (the 2026-06-14 false-positive that skipped copy-edit on plain notes).
+    private static let headerPattern = #"(?m)^[ \t]*\*\*([^*\n]+?):\*\*[ \t]*"#
+
+    /// The `**Name:**` turns, or nil when fewer than 2 headers — `name` has the `[[ ]]`
+    /// stripped (so `[[Tiuri Hartog]]` and a plain `Tiuri Hartog` header read the same).
+    static func parse(_ transcript: String?) -> [Turn]? {
         guard let t = transcript,
-              let re = try? NSRegularExpression(pattern: #"\*\*([^*\n]+?):\*\*[ \t]*"#) else { return false }
-        return re.numberOfMatches(in: t, range: NSRange(location: 0, length: (t as NSString).length)) >= 2
+              let re = try? NSRegularExpression(pattern: headerPattern) else { return nil }
+        let ns = t as NSString
+        let matches = re.matches(in: t, range: NSRange(location: 0, length: ns.length))
+        guard matches.count >= 2 else { return nil }
+        var turns: [Turn] = []
+        for (i, m) in matches.enumerated() {
+            let rawName = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
+            let name = rawName.replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
+            let textStart = m.range.location + m.range.length
+            let textEnd = (i + 1 < matches.count) ? matches[i + 1].range.location : ns.length
+            let text = ns.substring(with: NSRange(location: textStart, length: textEnd - textStart))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            turns.append(Turn(name: name, text: text))
+        }
+        return turns
+    }
+
+    /// True when `transcript` is a conversation: ≥2 turn headers AND ≥2 DISTINCT speaker
+    /// labels (a list with repeated `**Pros:**`/`**Pros:**` headers, or a single speaker,
+    /// is not a conversation → it still gets copy-edit + ordinary name-linking).
+    static func isAttributed(_ transcript: String?) -> Bool {
+        guard let turns = parse(transcript) else { return false }
+        return Set(turns.map(\.name)).count >= 2
+    }
+
+    /// Collapse consecutive turns by the SAME speaker label into one (joining bodies with
+    /// a space) — repairs diarization fragmentation where one speaker's run was split into
+    /// several tiny `**Name:**` turns. Re-emits the `**Name:** text` Markdown verbatim
+    /// (no name-linking). Non-attributed text is returned unchanged.
+    static func mergeAdjacentTurns(_ transcript: String) -> String {
+        guard let turns = parse(transcript) else { return transcript }
+        var merged: [(name: String, text: String)] = []
+        for t in turns {
+            if let last = merged.last, last.name == t.name {
+                let sep = (merged[merged.count - 1].text.isEmpty || t.text.isEmpty) ? "" : " "
+                merged[merged.count - 1].text += sep + t.text
+            } else {
+                merged.append((t.name, t.text))
+            }
+        }
+        return merged.map { "**\($0.name):** \($0.text)" }.joined(separator: "\n\n")
     }
 }

@@ -2,6 +2,32 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ CONTINUE HERE — Conversation pipeline bug-hunt (2026-06-14)
+
+WILD trace of the whole conversation/diarization → name-linking → Obsidian-export pipeline
+(prompt `CONVERSATION_BUGHUNT_PROMPT.md`). 11 bugs confirmed (adversarially verified). **User
+decisions LOCKED** (don't re-ask):
+1. **Inline name mentions → `[[Canonical|spoken]]`** alias-display, EVERY mention (spoken word preserved).
+2. **Turn headers →** FIRST mention full `[[Canonical]]`, every later turn by that speaker plain short `**Tuur:**` (no link).
+3. **Merge consecutive same-speaker turns** = YES.
+4. **Re-transcribe a diarized memo** = DISABLE (hidden for attributed transcripts).
+
+**DONE (desktop, gated: 255 UnitTests + full `-skipMacroValidation` build green):**
+- `Sanitiser.processConversation` — turn-aware linker (merge → first-canonical/rest-short headers → inline alias-display). `process` (monologue) unchanged.
+- Pipe-aware link identity everywhere: `Sanitiser.linkTarget`/`hasCanonicalLink`/`linkDisplay`; `BodyTextView.person(matchingCore:)`; resolver first-mention checks (`applyResolvedNames`/`applyResolvedOccurrences`/`applyPartialOccurrences`); unlink/relink restore the SPOKEN word. (The forward-looking "pipe breaks the resolver" trap is closed.)
+- `SpeakerTranscript.parse`/`mergeAdjacentTurns` ported to desktop; `isAttributed` line-anchored + ≥2-distinct-speakers (kills the `**Pros:**`/`**Cons:**` false-positive that skipped copy-edit on plain notes).
+- `BatchRunner`: conversations → `processConversation`; Mac-diarize path emits PLAIN headers (linking unified at sanitise).
+- Re-transcribe + Redo-copy-edit hidden for diarized memos (`NoteActions`, `SidebarView`); `ProcessingCoordinator.redo(.copyEdit)` keeps conversations verbatim.
+
+**DONE (mobile):** `MemoSaver.diarizeIntoTurns` marks `transcriptUserEdited = true` (a low-ASR-confidence
+conversation is no longer silently re-ASR'd → turns destroyed at Mac ingest); SpeakerFusion hardened
+(stronger smoothing, nearest-BOUNDARY gap metric, post-fusion same-speaker merge).
+
+**Owed / watch:** #4 mid-sentence mis-attribution is *improved* (boundary metric + stronger smoothing +
+merge) but bounded by Sortformer quality — manual reassign stays the backstop; device-eyeball a real
+Tiuri+Roksana take. Phone diarization segments/word-timings still aren't uploaded → Mac can't enroll a
+voice from a phone-diarized memo (separate deferred item; doesn't block this fix).
+
 ## North star — "see how my thinking evolved over time"
 The eventual reason the app exists. When I add a note about a realization, surface related notes from across the years and lay them on a timeline ("you had a similar thought in 2019, it shifted in 2021, here's where you are now").
 - **Backbone (reachable now, offline):** semantic search across the whole vault using local embedding models; retrieve + rank related notes; timeline UI. Mostly engineering, not model-limited.
