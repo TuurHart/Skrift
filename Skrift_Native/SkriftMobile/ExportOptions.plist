@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- TestFlight export, replicating glot-study/echo. Auto-uploads to App Store
+     Connect (destination=upload) → available to INTERNAL testers immediately
+     (no App Store review). Pair with an ASC API key on the export command:
+       -authenticationKeyPath ~/.asc-api/key.p8
+       -authenticationKeyID <KEY_ID>
+       -authenticationKeyIssuerID <ISSUER_ID>
+     Build + upload (Release = com.skrift.mobile):
+       cd Skrift_Native/SkriftMobile && xcodegen generate
+       xcodebuild archive -project SkriftMobile.xcodeproj -scheme SkriftMobile \
+         -configuration Release -derivedDataPath build-archive \
+         -archivePath build-archive/SkriftMobile.xcarchive \
+         -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS CODE_SIGN_STYLE=Automatic
+       xcodebuild -exportArchive -archivePath build-archive/SkriftMobile.xcarchive \
+         -exportOptionsPlist ExportOptions.plist -exportPath build-archive/export \
+         -authenticationKeyPath ~/.asc-api/key.p8 -authenticationKeyID <KEY_ID> \
+         -authenticationKeyIssuerID <ISSUER_ID>
+     PREREQS (one-time): App-Group capability on the Release IDs (com.skrift.mobile,
+     .share, .widget) via Xcode Signing & Capabilities; an ASC app record for
+     com.skrift.mobile; the ASC API key on disk. -->
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store-connect</string>
+    <key>destination</key>
+    <string>upload</string>
+    <key>teamID</key>
+    <string>9W82X49JZS</string>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>manageAppVersionAndBuildNumber</key>
+    <true/>
+</dict>
+</plist>
