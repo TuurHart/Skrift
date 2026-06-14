@@ -32,12 +32,18 @@ struct BatchRunner {
         }
 
         // 1. Transcribe — skipped when already done (trusted phone transcript / note).
+        // `didTranscribe` = the Mac ran its OWN ASR this run (so the word-timings are the
+        // Mac's). A trusted phone memo skips this → didTranscribe stays false even though
+        // pf.wordTimings may be present (the phone now uploads them for karaoke), which is
+        // exactly what gates the re-diarize below off a phone transcript.
+        var didTranscribe = false
         if pf.transcribeStatus != .done {
             pf.transcribeStatus = .processing
             if let audioURL {
                 let result = try await transcriber.transcribe(audioURL: audioURL, imageManifest: imageManifest)
                 pf.transcript = result.text
                 pf.wordTimings = result.wordTimings   // persist for karaoke (was discarded)
+                didTranscribe = true
             }
             pf.transcribeStatus = .done
         }
@@ -47,7 +53,7 @@ struct BatchRunner {
         // `**[[Person]]:**` (matched) / `**Speaker N:**` turns. A monologue (<2 speakers)
         // is left as plain prose. The Sanitiser then links any remaining plain aliases;
         // matched speakers already carry the canonical `[[ ]]` so they're skipped.
-        if let diarizer, settings.conversationModeEnabled, let audioURL,
+        if let diarizer, settings.conversationModeEnabled, let audioURL, didTranscribe,
            !(pf.transcript ?? "").isEmpty, !pf.wordTimings.isEmpty,
            !SpeakerTranscript.isAttributed(pf.transcript),
            let out = try? await diarizer.diarize(audioURL: audioURL),

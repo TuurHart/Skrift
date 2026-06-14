@@ -41,6 +41,28 @@ final class UploadPayloadTests: XCTestCase {
     }
 
     @MainActor
+    func testWordTimingsAndDiarPartsIncludedWhenPresent() {
+        let memo = Memo(audioFilename: "memo_c.m4a", transcript: "**Tuur:** hi", transcriptStatus: .done, transcriptConfidence: 0.9)
+        let wt = Data(#"[{"word":"hi","start":0,"end":0.5}]"#.utf8)
+        let diar = Data(#"{"segments":[{"speaker":0,"start":0,"end":1}],"slotNames":{"0":"Tuur"}}"#.utf8)
+        let text = String(decoding: UploadPayload.build(
+            memo: memo, audioData: Data("A".utf8), photos: [],
+            wordTimingsJSON: wt, diarizationJSON: diar).body, as: UTF8.self)
+        XCTAssertTrue(text.contains(#"name="wordTimings""#), "word-timings part attached")
+        XCTAssertTrue(text.contains(#"name="diar""#), "diarization part attached")
+        XCTAssertFalse(text.contains("sanitised"))
+    }
+
+    @MainActor
+    func testWordTimingsAndDiarPartsOmittedWhenAbsent() {
+        // No sidecars → byte-compatible with older builds (no new parts).
+        let memo = Memo(audioFilename: "memo_p.m4a", transcript: "hi", transcriptStatus: .done, transcriptConfidence: 0.9)
+        let text = String(decoding: UploadPayload.build(memo: memo, audioData: Data("A".utf8), photos: []).body, as: UTF8.self)
+        XCTAssertFalse(text.contains(#"name="wordTimings""#))
+        XCTAssertFalse(text.contains(#"name="diar""#))
+    }
+
+    @MainActor
     func testTitleRidesInMetadataWhenSet() {
         let titled = Memo(audioFilename: "m.m4a", title: "Harbor renovation ideas", transcriptStatus: .pending)
         let withTitle = String(decoding: UploadPayload.build(memo: titled, audioData: Data("A".utf8), photos: []).body, as: UTF8.self)

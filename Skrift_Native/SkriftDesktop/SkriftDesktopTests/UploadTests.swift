@@ -79,6 +79,46 @@ final class UploadServiceTests: XCTestCase {
         XCTAssertEqual(try ctx.fetch(FetchDescriptor<PipelineFile>()).count, 1)
     }
 
+    func testIngestReadsWordTimingsAndDiarizationSidecar() throws {
+        let svc = UploadService(outputDir: tempDir())
+        let ctx = try memoryContext()
+        let words = Data(#"[{"word":"hi","start":0.0,"end":0.5},{"word":"there","start":0.5,"end":1.0}]"#.utf8)
+        let diar = Data(#"{"segments":[{"speaker":0,"start":0.0,"end":1.0},{"speaker":1,"start":1.0,"end":2.0}],"slotNames":{"0":"Tiuri Hartog"}}"#.utf8)
+        let parts = [
+            MultipartPart(name: "files", filename: "memo_conv.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
+            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
+                          data: Data(#"{"transcriptConfidence":0.9,"source":"mobile"}"#.utf8)),
+            MultipartPart(name: "transcript", filename: nil, contentType: nil,
+                          data: Data("**Tiuri Hartog:** hi\n\n**Speaker 2:** there".utf8)),
+            MultipartPart(name: "wordTimings", filename: nil, contentType: "application/json", data: words),
+            MultipartPart(name: "diar", filename: nil, contentType: "application/json", data: diar),
+        ]
+        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        // Word-timings drive Mac karaoke on a trusted memo it never re-transcribes.
+        XCTAssertEqual(pf.wordTimings.map(\.word), ["hi", "there"])
+        // Diarization segments retained for voice enrollment + mirrored to the sidecar.
+        XCTAssertEqual(Set(pf.diarizationSegments.map(\.speaker)), [0, 1])
+        let folder = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
+        let loaded = try XCTUnwrap(DiarizationSidecar().load(in: folder, id: pf.id))
+        XCTAssertEqual(loaded.slotNames["0"], "Tiuri Hartog")
+    }
+
+    func testIngestWithoutNewPartsStaysByteCompatible() throws {
+        // An older phone build (no wordTimings/diar parts) ingests exactly as before.
+        let svc = UploadService(outputDir: tempDir())
+        let ctx = try memoryContext()
+        let parts = [
+            MultipartPart(name: "files", filename: "memo_old.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
+            MultipartPart(name: "metadata", filename: nil, contentType: "application/json",
+                          data: Data(#"{"transcriptConfidence":0.9}"#.utf8)),
+            MultipartPart(name: "transcript", filename: nil, contentType: nil, data: Data("hello".utf8)),
+        ]
+        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        XCTAssertEqual(pf.transcript, "hello")
+        XCTAssertTrue(pf.wordTimings.isEmpty)
+        XCTAssertTrue(pf.diarizationSegments.isEmpty)
+    }
+
     func testIngestUntrustedTranscriptIsDropped() throws {
         let svc = UploadService(outputDir: tempDir())
         let ctx = try memoryContext()

@@ -18,7 +18,14 @@ enum UploadPayload {
 
     // MARK: - Standard memo (audio present) — shape unchanged
 
-    static func build(memo: Memo, audioData: Data, photos: [(filename: String, data: Data)]) -> (body: Data, contentType: String) {
+    /// `wordTimingsJSON` / `diarizationJSON` are the phone's per-memo sidecars
+    /// (`wt_<id>.json` = `[WordTiming]`, `diar_<id>.json` = `DiarizationData`), passed
+    /// through verbatim as OPTIONAL additive parts. Absent on a memo without them and on
+    /// older builds → the multipart stays byte-compatible (the Mac ignores missing parts).
+    /// They let the Mac drive karaoke/read-along + enroll a speaker's voice from a
+    /// phone-diarized conversation without re-transcribing.
+    static func build(memo: Memo, audioData: Data, photos: [(filename: String, data: Data)],
+                      wordTimingsJSON: Data? = nil, diarizationJSON: Data? = nil) -> (body: Data, contentType: String) {
         var builder = MultipartBuilder()
 
         let audioName = memo.audioFilename.isEmpty ? "memo_\(memo.id.uuidString).m4a" : memo.audioFilename
@@ -31,6 +38,14 @@ enum UploadPayload {
         // have a completed transcript and let the Mac decide.
         if memo.transcriptStatus == .done, let transcript = memo.transcript, !transcript.isEmpty {
             builder.addField(name: "transcript", value: Data(transcript.utf8))
+        }
+
+        // Optional additive sidecar parts (see the doc above). Never `sanitised`.
+        if let wt = wordTimingsJSON, !wt.isEmpty {
+            builder.addField(name: "wordTimings", value: wt, contentType: "application/json")
+        }
+        if let dz = diarizationJSON, !dz.isEmpty {
+            builder.addField(name: "diar", value: dz, contentType: "application/json")
         }
 
         for photo in photos {

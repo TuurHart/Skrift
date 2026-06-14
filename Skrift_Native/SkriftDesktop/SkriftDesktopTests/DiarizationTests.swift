@@ -135,6 +135,23 @@ final class DiarizationTests: XCTestCase {
         XCTAssertFalse((pf.transcript ?? "").contains("Should Not Appear"))
     }
 
+    func testTrustedPhoneTranscriptWithWordTimingsIsNotReDiarized() async throws {
+        // A trusted phone memo (transcribe already .done) now carries the phone's
+        // word-timings (for Mac karaoke). That must NOT trigger the Mac re-diarize —
+        // re-diarize runs ONLY when the Mac transcribed this run (didTranscribe), not
+        // merely because word-timings are present.
+        let pf = PipelineFile(id: "c6", filename: "m.m4a", path: "/tmp/c6", size: 0, sourceType: .audio)
+        pf.transcript = "just a plain phone monologue about the weather today"
+        pf.transcribeStatus = .done
+        pf.wordTimings = [WordTiming(word: "just", start: 0, end: 0.5),
+                          WordTiming(word: "weather", start: 0.5, end: 1.0)]
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: .default,
+                                 people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [:]))
+        try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/c6.m4a"))
+        XCTAssertEqual(pf.transcript, "just a plain phone monologue about the weather today",
+                       "trusted phone transcript must not be re-diarized; got: \(pf.transcript ?? "")")
+    }
+
     func testConversationSkipsCopyEditSoTurnsSurviveExport() async throws {
         // A label-stripping copy-edit must NOT be applied to a diarized conversation —
         // otherwise the **Speaker N:**/**[[Person]]:** turns vanish from the exported note.

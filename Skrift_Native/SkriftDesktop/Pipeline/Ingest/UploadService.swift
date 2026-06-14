@@ -78,6 +78,22 @@ struct UploadService: Sendable {
             if let transcript, trusted {
                 pf.transcript = transcript
                 pf.transcribeStatus = .done
+
+                // Optional ADDITIVE parts (older builds omit them — byte-compatible):
+                // `wordTimings` (the phone's ASR word-timings) drives Mac karaoke/read-along
+                // on a trusted memo the Mac never re-transcribes; `diar` (the phone's
+                // diarization sidecar) lets the Mac enroll a speaker's voice from a
+                // phone-diarized conversation WITHOUT re-diarizing. Both only meaningful
+                // for a trusted transcript (the Mac would otherwise re-ASR + re-diarize).
+                if let wt = parts.first(where: { $0.name == "wordTimings" && $0.filename == nil }),
+                   let words = try? JSONDecoder().decode([WordTiming].self, from: wt.data) {
+                    pf.wordTimings = words
+                }
+                if let dz = parts.first(where: { $0.name == "diar" && $0.filename == nil }),
+                   let data = try? JSONDecoder().decode(DiarizationData.self, from: dz.data) {
+                    pf.diarizationSegments = data.segments
+                    DiarizationSidecar().write(data, in: folder, id: id)   // portable + enroll copy
+                }
             }
 
             try saveImages(imageParts, manifest: manifest, into: folder)

@@ -44,10 +44,16 @@ struct SyncCoordinator {
                 guard memo.transcriptStatus == .done else { continue }
                 payload = UploadPayload.buildCapture(memo: memo, photos: loadPhotos(for: memo))
             } else {
-                // Standard audio memo path (byte-identical to pre-capture behaviour).
+                // Standard audio memo path. Attach the per-memo word-timings + (for a
+                // diarized conversation) the diarization sidecar as OPTIONAL parts, so the
+                // Mac can drive karaoke/read-along + enroll a speaker's voice without
+                // re-transcribing. Absent when the memo has neither (byte-compatible).
                 guard let audioURL = memo.audioURL,
                       let audioData = try? Data(contentsOf: audioURL) else { continue }
-                payload = UploadPayload.build(memo: memo, audioData: audioData, photos: loadPhotos(for: memo))
+                let wtJSON = WordTimingsStore().load(for: memo.id).flatMap { try? JSONEncoder().encode($0) }
+                let diarJSON = DiarizationStore().load(for: memo.id).flatMap { try? JSONEncoder().encode($0) }
+                payload = UploadPayload.build(memo: memo, audioData: audioData, photos: loadPhotos(for: memo),
+                                              wordTimingsJSON: wtJSON, diarizationJSON: diarJSON)
             }
 
             do {
