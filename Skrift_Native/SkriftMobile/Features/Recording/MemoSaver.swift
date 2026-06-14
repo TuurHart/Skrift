@@ -115,6 +115,7 @@ struct MemoSaver {
             syncStatus: .waiting,
             transcriptStatus: .transcribing
         ))
+        DevLog.log("importVideo: placeholder memo \(id) inserted; source=\(source.lastPathComponent)")
         Task { await processVideo(id: id, source: source, fallbackDate: creationDate) }
         return id
     }
@@ -135,6 +136,7 @@ struct MemoSaver {
         // Files shared from outside the sandbox arrive security-scoped.
         let scoped = source.startAccessingSecurityScopedResource()
         defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+        DevLog.log("processVideo[\(id)] start; scoped=\(scoped) srcExists=\(FileManager.default.fileExists(atPath: source.path))")
 
         let asset = AVURLAsset(url: source)
 
@@ -144,7 +146,11 @@ struct MemoSaver {
         // Extract the audio track to .m4a. If the asset has no audio (a silent clip)
         // there's nothing to transcribe — fail gracefully, and SAY WHY: a bare
         // Error pill on an empty memo read as a mystery (2026-06-09 audit).
-        guard (try? await Self.extractAudio(from: asset, to: dest)) == true else {
+        let extracted: Bool
+        do { extracted = try await Self.extractAudio(from: asset, to: dest) }
+        catch { DevLog.log("processVideo[\(id)] extractAudio threw: \(error)"); extracted = false }
+        guard extracted else {
+            DevLog.log("processVideo[\(id)] extract failed → .failed; memo present=\(repository.memo(id: id) != nil)")
             if let memo = repository.memo(id: id) {
                 memo.transcriptStatus = .failed
                 memo.recordedAt = recorded
@@ -153,11 +159,13 @@ struct MemoSaver {
             }
             return false
         }
+        DevLog.log("processVideo[\(id)] audio extracted ok")
 
         var duration: TimeInterval = 0
         if let f = try? AVAudioFile(forReading: dest) {
             duration = Double(f.length) / f.fileFormat.sampleRate
         }
+        DevLog.log("processVideo[\(id)] duration=\(duration); grabbing frame")
 
         // One representative frame → photo_<id>_001.jpg → [[img_001]] at offset 0.
         var manifest: [ImageManifestEntry] = []
@@ -169,14 +177,20 @@ struct MemoSaver {
                 manifest.append(ImageManifestEntry(filename: photoName, offsetSeconds: 0))
             }
         }
+        DevLog.log("processVideo[\(id)] frame done; manifest=\(manifest.count)")
 
-        guard let memo = repository.memo(id: id) else { return true }
+        guard let memo = repository.memo(id: id) else {
+            DevLog.log("processVideo[\(id)] memo GONE after extract (something deleted it)")
+            return true
+        }
         memo.recordedAt = recorded
         memo.duration = duration
         if !manifest.isEmpty { memo.metadata = MemoMetadata(imageManifest: manifest) }
         repository.save()
+        DevLog.log("processVideo[\(id)] memo updated; recordedAt=\(recorded) now=\(Date()) → transcribe")
 
         await runTranscription(id: id)
+        DevLog.log("processVideo[\(id)] done; final status=\(repository.memo(id: id).map { "\($0.transcriptStatus)" } ?? "GONE")")
         return true
     }
 

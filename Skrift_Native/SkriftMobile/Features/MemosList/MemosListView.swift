@@ -33,6 +33,7 @@ struct MemosListView: View {
     @State private var showRecord = false
     @State private var lastHandledStart = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
+    @ObservedObject private var memoOpen = MemoOpenBridge.shared
     @State private var showSettings = false
     @State private var showSortFilter = false
     @State private var showTrash = false
@@ -92,10 +93,12 @@ struct MemosListView: View {
                 RecordView(onSaved: { newID in path = [newID] })
             }
             .onChange(of: intentBridge.startRequestID) { handleStartRequest() }
+            .onChange(of: memoOpen.requestID) { handleOpenRequest() }
             // Also catch a request that fired during a COLD launch (App Intent /
-            // widget / deep link) BEFORE this view subscribed — onChange alone
-            // misses it, which left Siri/widget "opens but doesn't record".
-            .onAppear { handleStartRequest() }
+            // widget / deep link / shared video) BEFORE this view subscribed —
+            // onChange alone misses it, which left Siri/widget "opens but doesn't
+            // record" and a shared video not opening on a cold launch.
+            .onAppear { handleStartRequest(); handleOpenRequest() }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
@@ -352,6 +355,13 @@ struct MemosListView: View {
         // Just present — RecordView consumes the bridge's pending start once it's
         // foreground-active (no stale-flag propagation through the cover).
         showRecord = true
+    }
+
+    /// A shared video imported on foreground → open it. It relocates to the
+    /// video's filming date, so it'd otherwise vanish from the top of the list;
+    /// resetting the path to it (like the record-saved path) lands the user on it.
+    private func handleOpenRequest() {
+        if let id = memoOpen.consume() { path = [id] }
     }
 
     private var recordFAB: some View {

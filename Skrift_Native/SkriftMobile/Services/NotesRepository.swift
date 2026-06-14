@@ -57,6 +57,7 @@ final class NotesRepository {
     /// so Restore is lossless; the startup purge removes them after
     /// `TrashPolicy.retention`. `date` is injectable for tests.
     func softDelete(_ memo: Memo, at date: Date = Date()) {
+        DevLog.log("softDelete memo \(memo.id) status=\(memo.transcriptStatus)")
         memo.deletedAt = date
         save()
     }
@@ -72,6 +73,7 @@ final class NotesRepository {
     /// Delete-Now in Recently Deleted and the startup purge. (MemoDetailView's
     /// delete mirrors the same cleanup inline.)
     func permanentlyDelete(_ memo: Memo) {
+        DevLog.log("permanentlyDelete memo \(memo.id) status=\(memo.transcriptStatus)")
         if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
         memo.metadata?.imageManifest?.forEach {
             try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
@@ -98,6 +100,7 @@ final class NotesRepository {
     /// themselves — MemoDetailView's delete path). Prefer `softDelete` for user
     /// deletes and `permanentlyDelete` when files should go too.
     func delete(_ memo: Memo) {
+        DevLog.log("delete(row) memo \(memo.id) status=\(memo.transcriptStatus)")
         context.delete(memo)
         save()
     }

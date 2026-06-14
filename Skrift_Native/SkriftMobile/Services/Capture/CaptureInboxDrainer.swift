@@ -31,16 +31,24 @@ enum CaptureInboxDrainer {
             // importVideo mints its OWN memo UUID, so the id-dup guard below
             // wouldn't catch it), then import from the app-owned temp.
             if entry.type == "video" {
-                if let src = CaptureInbox.videoURL(for: entry, entryDir: entryDir),
-                   FileManager.default.fileExists(atPath: src.path) {
+                let src0 = CaptureInbox.videoURL(for: entry, entryDir: entryDir)
+                DevLog.log("drain: video entry \(entry.id); src present=\(src0.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)")
+                if let src = src0, FileManager.default.fileExists(atPath: src.path) {
                     let ext = src.pathExtension.isEmpty ? "mov" : src.pathExtension
                     let temp = FileManager.default.temporaryDirectory
                         .appendingPathComponent("shared_import_\(entry.id.uuidString).\(ext)")
                     try? FileManager.default.removeItem(at: temp)
                     let copied = (try? FileManager.default.copyItem(at: src, to: temp)) != nil
+                    DevLog.log("drain: video copied=\(copied) → \(temp.lastPathComponent); deleting entry + importing")
                     CaptureInbox.delete(entryDir: entryDir)
-                    if copied { _ = MemoSaver().importVideo(from: temp) }
+                    // Land the user on the imported memo: it relocates to the
+                    // video's filming date, so otherwise it "vanishes" from the
+                    // top of the list (user-confirmed via DevLog 2026-06-14).
+                    if copied, let mid = MemoSaver().importVideo(from: temp) {
+                        MemoOpenBridge.shared.open(mid)
+                    }
                 } else {
+                    DevLog.log("drain: video entry \(entry.id) — no src file, discarding")
                     CaptureInbox.delete(entryDir: entryDir)
                 }
                 continue

@@ -1120,9 +1120,19 @@ Most of the old P1 list is ALREADY FIXED (code + a doc comment naming the origin
   its memory ceiling) and bypasses the capture sheet (`ShareViewController.completeVideo`); `CaptureInboxDrainer`
   imports it via `MemoSaver.importVideo` → a normal voice memo (audio + frame thumbnail + transcribe; delete-
   before-import so a re-drain can't double-import). Compiles (both targets), installed on the dev phone.
-  ⚠️ **DEVICE BUG 2026-06-14 eve — INVESTIGATE TOMORROW (user: "seemed flaky").** Repro: share a video →
-  it preps → the share UI closes (no confirm = expected for the bypass) → open Skrift → the memo appears
-  briefly, flashes `transcribing`, then **VANISHES**. STATIC READ rules out the obvious causes: (1) nothing
+  ✅ **DIAGNOSED + FIXED 2026-06-14 (DevLog device trace).** It was NOT a delete or a crash — the memo
+  **relocates**. `importVideo` inserts it at `recordedAt = now` (top of the list, where you see it), then
+  `processVideo` rewrites `recordedAt` to the video's EMBEDDED filming date (trace: `recordedAt=2026-06-11`
+  vs `now=2026-06-14`) — intended ("sort by when it happened") — so it jumps from the top down to its real
+  date and "vanishes" from where you're watching. The trace proved the relay + extract + thumbnail +
+  transcribe all COMPLETE (`done; final status=done`); none of the three delete-vectors fired. FIX (user
+  picked "keep the date, open it on import"): `MemoOpenBridge` (mirrors `RecordingIntentBridge`) — the drain
+  calls `open(memoID)` after a shared-video import; `MemosListView` consumes it (`.onChange` + `.onAppear`
+  for cold-launch-from-share) and sets `path = [id]`, landing the user ON the memo regardless of where it
+  sorts. The `DevLog` markers along drain→importVideo→processVideo + the delete vectors are kept (DEBUG-only).
+  Original symptom below.
+  ⓘ Earlier repro note: share a video → it preps → share UI closes (no confirm = expected) → open Skrift →
+  memo appears, flashes `transcribing`, then **VANISHES** (= relocates, per above). STATIC READ rules out the obvious causes: (1) nothing
   auto-deletes a non-trashed memo (`purgeExpiredTrash` only touches `deletedAt`-set / ≥14-day memos; there's
   NO purge of empty/transcribing memos); (2) the extract-failure path does NOT delete — `MemoSaver.processVideo`
   marks the memo `.failed` + title "Video had no audio track" and keeps it. So a true vanish is runtime/
