@@ -27,26 +27,26 @@ conversation is no longer silently re-ASR'd → turns destroyed at Mac ingest); 
 merge) but bounded by Sortformer quality — manual reassign stays the backstop; device-eyeball a real
 Tiuri+Roksana take.
 
-**Follow-ups found by the adjacent-surface hunt (2026-06-14, triaged — NOT yet done):**
-- ✅ FIXED same session: HIGH — Apple Note with ≥2 line-start bold headings was misclassified as a
-  conversation → preamble DELETED on export. Gated conversation routing on `sourceType == .audio` +
-  `processConversation` preserves the preamble (commit `8c5d9b6`).
-- **[bug, edge] Phone: two distinct same-named speakers collapse.** `MemoDetailView.renameSpeaker`/`learnVoice`
-  key on the header STRING, no stable slot id — naming two speakers identically relabels/merges both and
-  enrolls an arbitrary slot's voice. Real but narrow (two same-named people in one convo). Fix = thread a
-  stable slot id through the phone turn UI. Moderate refactor.
-- **[polish, review-only] Desktop review shows literal `**Name:**`** on turn headers (NSTextView is
-  `isRichText=false`; only `[[ ]]` cores get accent color, `**` are inert). Export is correct (Obsidian
-  renders bold). Fix = style the `**Name:**` header run in `BodyTextView.restyle` + `NoteBody.styled`
-  (keep markers in the model for export). UI styling → eyeball/mock-first.
-- **[feature] Upload phone diarization segments + word-timings** (additive optional multipart) → unlocks
-  Mac voice-enrollment from a phone-diarized memo + Mac karaoke alignment. Cross-app.
+**Follow-ups found by the adjacent-surface hunt (2026-06-14) + the 2026-06-15 batch:**
+- ✅ HIGH — Apple Note with ≥2 line-start bold headings misclassified as a conversation → preamble DELETED
+  on export. Gated conversation routing on `sourceType == .audio` + preamble preserved (`8c5d9b6`).
+- ✅ **Phone same-named-speaker collapse + wrong-voice enroll** — slot-aware rename/enroll via a per-turn
+  `turnSlots` map (read fresh from the sidecar at tap), name-based fallback (`580acdc`, `083f223`).
+- ✅ **Desktop review bold turn headers** — `**Name:**` renders bold (name) + dimmed `**`, kept in the
+  model for export (`cbdb893`). NOTE: still styles ANY line-start `**word:**` (incl. a plain note's
+  `**Pros:**`) — defensible markdown-bold, left as-is. Fully HIDING the `**` (vs dimming) is owed
+  (NSTextView can't be snapshot-verified → mock-first); the read-only `BodyText.styled` path is unstyled.
+- ✅ **Upload phone diarization segments + word-timings** (additive optional `wordTimings`/`diar` parts) →
+  Mac karaoke + voice-enroll-from-phone unlocked; byte-compatible (`50bce3a`).
+- ✅ **Transcribe a book off-charger** (`3920214`); **audiobook read-along sentence split → NLTokenizer**
+  (`0a80da0`).
 - **[feature, owed] Desktop "name a speaker" review affordance** — backend (`embedSpeaker`/`addVoiceEmbedding`)
-  built + proven, no UI yet. Mock-first.
-- **[low/latent] Phone `SpeakerTranscript.parse` not pipe-aware** (renders `Canonical|spoken` if a Mac
-  alias-display header ever round-trips back — doesn't today); speaker name containing `*` breaks the Mac
-  header regex (names ~never have `*`); monologue `process()` skips demotion when the short name is empty
-  (whitespace-only canonical). All never-happens-today edges — fix opportunistically.
+  built + proven; the phone now uploads the segments it needs (`diar` part). UI still owed → mock-first.
+  When wired, it must re-validate the uploaded `turnSlots.count` against the transcript before trusting it
+  (the phone nils a stale map on rename, but a Mac consumer should guard too).
+- **[low/latent] Phone `SpeakerTranscript.parse` not pipe-aware** (a Mac `[[Canonical|spoken]]` header
+  doesn't round-trip to the phone today); speaker name containing `*` breaks the Mac header regex (~never);
+  monologue `process()` skips demotion when short is empty (whitespace canonical). Fix opportunistically.
 
 ## North star — "see how my thinking evolved over time"
 The eventual reason the app exists. When I add a note about a realization, surface related notes from across the years and lay them on a timeline ("you had a similar thought in 2019, it shifted in 2021, here's where you are now").
