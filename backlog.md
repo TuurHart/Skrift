@@ -25,8 +25,28 @@ conversation is no longer silently re-ASR'd → turns destroyed at Mac ingest); 
 
 **Owed / watch:** #4 mid-sentence mis-attribution is *improved* (boundary metric + stronger smoothing +
 merge) but bounded by Sortformer quality — manual reassign stays the backstop; device-eyeball a real
-Tiuri+Roksana take. Phone diarization segments/word-timings still aren't uploaded → Mac can't enroll a
-voice from a phone-diarized memo (separate deferred item; doesn't block this fix).
+Tiuri+Roksana take.
+
+**Follow-ups found by the adjacent-surface hunt (2026-06-14, triaged — NOT yet done):**
+- ✅ FIXED same session: HIGH — Apple Note with ≥2 line-start bold headings was misclassified as a
+  conversation → preamble DELETED on export. Gated conversation routing on `sourceType == .audio` +
+  `processConversation` preserves the preamble (commit `8c5d9b6`).
+- **[bug, edge] Phone: two distinct same-named speakers collapse.** `MemoDetailView.renameSpeaker`/`learnVoice`
+  key on the header STRING, no stable slot id — naming two speakers identically relabels/merges both and
+  enrolls an arbitrary slot's voice. Real but narrow (two same-named people in one convo). Fix = thread a
+  stable slot id through the phone turn UI. Moderate refactor.
+- **[polish, review-only] Desktop review shows literal `**Name:**`** on turn headers (NSTextView is
+  `isRichText=false`; only `[[ ]]` cores get accent color, `**` are inert). Export is correct (Obsidian
+  renders bold). Fix = style the `**Name:**` header run in `BodyTextView.restyle` + `NoteBody.styled`
+  (keep markers in the model for export). UI styling → eyeball/mock-first.
+- **[feature] Upload phone diarization segments + word-timings** (additive optional multipart) → unlocks
+  Mac voice-enrollment from a phone-diarized memo + Mac karaoke alignment. Cross-app.
+- **[feature, owed] Desktop "name a speaker" review affordance** — backend (`embedSpeaker`/`addVoiceEmbedding`)
+  built + proven, no UI yet. Mock-first.
+- **[low/latent] Phone `SpeakerTranscript.parse` not pipe-aware** (renders `Canonical|spoken` if a Mac
+  alias-display header ever round-trips back — doesn't today); speaker name containing `*` breaks the Mac
+  header regex (names ~never have `*`); monologue `process()` skips demotion when the short name is empty
+  (whitespace-only canonical). All never-happens-today edges — fix opportunistically.
 
 ## North star — "see how my thinking evolved over time"
 The eventual reason the app exists. When I add a note about a realization, surface related notes from across the years and lay them on a timeline ("you had a similar thought in 2019, it shifted in 2021, here's where you are now").
