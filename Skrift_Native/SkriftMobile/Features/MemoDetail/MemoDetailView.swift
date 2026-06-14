@@ -228,14 +228,15 @@ private struct MemoPageView: View {
     @State private var showAddTag = false
     @State private var newTag = ""
     @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
-    /// Per-turn diarization slot map (turn i → slot), loaded from the diar sidecar. Lets a
-    /// rename/enroll target ONE speaker when two slots share a name. Empty / stale (after a
-    /// structural edit) → the name-based fallback applies.
-    @State private var turnSlots: [Int] = []
 
     /// A tapped speaker turn: its position (for per-line merge), label (for whole-speaker
-    /// naming), and diarization slot (so a same-named twin isn't relabeled/enrolled too).
-    struct AssignTarget: Identifiable { let id = UUID(); let index: Int; let speaker: String; let slot: Int? }
+    /// naming), the diarization slot (so a same-named twin isn't relabeled/enrolled too),
+    /// and the per-turn slot map it was validated against. Both are resolved by reading the
+    /// diar sidecar FRESH at tap time (not a cached copy) so an in-place re-diarize ("Split
+    /// speakers", which renumbers slots under the same memo id) can't leave a stale map.
+    struct AssignTarget: Identifiable {
+        let id = UUID(); let index: Int; let speaker: String; let slot: Int?; let turnSlots: [Int]
+    }
     @ObservedObject private var diarStatus = DiarizationStatus.shared
     @State private var timings: [WordTiming] = []   // for karaoke highlight in the turn view
     @AppStorage("karaokeTapToSeek") private var tapToSeek = true   // default ON — must match TranscriptBodyView
@@ -315,10 +316,7 @@ private struct MemoPageView: View {
         // already has its own interactive dismiss; this covers scrolling the OUTER
         // page when the title/transcript field has focus).
         .scrollDismissesKeyboard(.interactively)
-        .task(id: memo.id) {
-            timings = WordTimingsStore().load(for: memo.id) ?? []
-            turnSlots = DiarizationStore().load(for: memo.id)?.turnSlots ?? []
-        }
+        .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
         .alert("Add tag", isPresented: $showAddTag) {
             TextField("tag", text: $newTag)
             Button("Add", action: addTag)
@@ -332,20 +330,22 @@ private struct MemoPageView: View {
                 speaker: target.speaker,
                 otherSpeakers: SpeakerTranscript.speakers(in: memo.transcript).filter { $0 != target.speaker },
                 people: NamesStore.shared.livePeople(),
-                onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), enroll: true, slot: target.slot) },
+                onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), enroll: true, slot: target.slot, turnSlots: target.turnSlots) },
                 onMergeInto: { mergeTurn(at: target.index, into: $0) },
-                onNewName: { assign(target.speaker, to: $0, enroll: true, slot: target.slot) }
+                onNewName: { assign(target.speaker, to: $0, enroll: true, slot: target.slot, turnSlots: target.turnSlots) }
             )
         }
     }
 
     private func startAssigning(_ index: Int, _ speaker: String) {
-        // Resolve the tapped turn's diarization slot — only trusted when the per-turn map
-        // still lines up with the current turns (no structural edit since diarize). Stale
-        // → nil → the assign falls back to name-based relabeling.
+        // Read the per-turn slot map FRESH from the sidecar (an in-place re-diarize may
+        // have renumbered slots under the same memo id). Only trusted when it still lines
+        // up with the current turns (no structural edit since diarize). Stale/absent →
+        // nil slot → the assign falls back to name-based relabeling.
+        let slots = DiarizationStore().load(for: memo.id)?.turnSlots ?? []
         let count = SpeakerTranscript.parse(memo.transcript)?.count ?? 0
-        let slot = (turnSlots.count == count && index >= 0 && index < turnSlots.count) ? turnSlots[index] : nil
-        assignTarget = AssignTarget(index: index, speaker: speaker, slot: slot)
+        let slot = (slots.count == count && index >= 0 && index < slots.count) ? slots[index] : nil
+        assignTarget = AssignTarget(index: index, speaker: speaker, slot: slot, turnSlots: slots)
     }
 
     /// Merge ONLY the tapped turn into another speaker (per-line) + re-fuse — fixes a
@@ -383,7 +383,7 @@ private struct MemoPageView: View {
     /// adjacent same-speaker turns (so a merged blip folds into its neighbour), and — when
     /// assigning to a real person (not merging into another Speaker N) — learn the
     /// voiceprint under `new` so future recordings auto-label them (syncs → "Voice enrolled").
-    private func assign(_ old: String, to newName: String, enroll: Bool, slot: Int?) {
+    private func assign(_ old: String, to newName: String, enroll: Bool, slot: Int?, turnSlots: [Int]) {
         let new = newName.trimmingCharacters(in: .whitespaces)
         guard let transcript = memo.transcript, !new.isEmpty, new != old else { return }
         // Slot-aware when the per-turn slot map still lines up — relabels ONLY this
@@ -410,8 +410,10 @@ private struct MemoPageView: View {
         // Prefer the EXACT slot the user tapped (correct even when two slots share the
         // name — the wrong-voiceprint bug); fall back to the first slot named `old`.
         guard let slot = slot ?? data.slotNames.first(where: { $0.value == old }).flatMap({ Int($0.key) }) else { return }
-        // Keep the sidecar's slot name current so a later re-enroll finds this slot.
-        var updated = data; updated.slotNames[String(slot)] = new
+        // Keep the sidecar's slot name current so a later re-enroll finds this slot, and
+        // DROP turnSlots — the rename just merged turns, so the diarize-time map no longer
+        // matches the transcript (a stale map must not be persisted or uploaded).
+        var updated = data; updated.slotNames[String(slot)] = new; updated.turnSlots = nil
         DiarizationStore().write(updated, for: memoID)
 
         await MainActor.run { DiarizationStatus.shared.begin(memoID, phase: .enrolling) }
