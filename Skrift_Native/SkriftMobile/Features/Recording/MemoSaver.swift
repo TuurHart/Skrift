@@ -431,6 +431,7 @@ struct MemoSaver {
         memo.transcript = existing.isEmpty ? newText : existing + "\n\n" + newText
         memo.transcriptUserEdited = true   // Mac trusts the combined transcript as-is
         memo.transcriptStatus = .done
+        memo.markEdited()
 
         // Shift the new clip's word timings past the prior audio + append to the sidecar.
         if !newTimings.isEmpty {

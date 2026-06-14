@@ -401,7 +401,7 @@ private struct MemoPageView: View {
     }
 
     private var titleBinding: Binding<String> {
-        Binding(get: { memo.title ?? "" }, set: { memo.title = $0.isEmpty ? nil : $0 })
+        Binding(get: { memo.title ?? "" }, set: { memo.title = $0.isEmpty ? nil : $0; memo.markEdited() })
     }
 
     private var titlePrompt: Text {
@@ -425,11 +425,13 @@ private struct MemoPageView: View {
         newTag = ""
         guard !t.isEmpty, !memo.tags.contains(t) else { return }
         memo.tags.append(t)
+        memo.markEdited()
         repository.save()
     }
 
     private func removeTag(_ tag: String) {
         memo.tags.removeAll { $0 == tag }
+        memo.markEdited()
         repository.save()
     }
 
@@ -454,7 +456,7 @@ private struct MemoPageView: View {
                 imageURL: turnImageURL
             )
         } else {
-            TranscriptBodyView(memo: memo, player: player, onCommit: { repository.save() })
+            TranscriptBodyView(memo: memo, player: player, onCommit: { memo.markEdited(); repository.save() })
         }
     }
 

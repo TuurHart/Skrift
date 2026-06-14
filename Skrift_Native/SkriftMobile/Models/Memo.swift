@@ -71,6 +71,17 @@ final class Memo {
     /// nil default → lightweight SwiftData migration (safe for prod data).
     var deletedAt: Date? = nil
 
+    /// When the memo entered Skrift (recorded / imported / shared). DISTINCT from
+    /// `recordedAt` (when the CONTENT happened — e.g. a shared video keeps its
+    /// filming date in `recordedAt`). ADDITIVE, nil default → lightweight migration;
+    /// legacy memos (nil) fall back to `recordedAt` via `addedAt`.
+    var createdAt: Date? = nil
+
+    /// Last content edit (title / transcript / tags / append / trim). nil until
+    /// first edited → falls back to `createdAt`/`recordedAt` via `lastEditedAt`.
+    /// ADDITIVE, nil default → lightweight migration.
+    var editedAt: Date? = nil
+
     /// Contextual capture payload + shared content, persisted as JSON blobs —
     /// NOT direct SwiftData Codable-struct attributes. SwiftData's internal decode
     /// of a nested-optional Codable struct traps at runtime (EXC_BREAKPOINT) the
@@ -96,6 +107,8 @@ final class Memo {
         transcriptMarkersInjected: Bool = false,
         significance: Double = 0,
         deletedAt: Date? = nil,
+        createdAt: Date? = Date(),
+        editedAt: Date? = nil,
         metadata: MemoMetadata? = nil,
         sharedContent: SharedContent? = nil,
         annotationText: String? = nil
@@ -114,6 +127,8 @@ final class Memo {
         self.transcriptMarkersInjected = transcriptMarkersInjected
         self.significance = significance
         self.deletedAt = deletedAt
+        self.createdAt = createdAt
+        self.editedAt = editedAt
         self.metadataData = Self.encodeJSON(metadata)
         self.sharedContentData = Self.encodeJSON(sharedContent)
         self.annotationText = annotationText
@@ -123,6 +138,18 @@ final class Memo {
     var audioURL: URL? {
         audioFilename.isEmpty ? nil : AppPaths.recordingsDirectory.appendingPathComponent(audioFilename)
     }
+
+    /// When the memo entered Skrift — legacy memos (nil `createdAt`) fall back to
+    /// `recordedAt`. The "Recently added" sort key.
+    var addedAt: Date { createdAt ?? recordedAt }
+
+    /// Last content edit — never-edited memos fall back to added/recorded. The
+    /// "Recently edited" sort key.
+    var lastEditedAt: Date { editedAt ?? createdAt ?? recordedAt }
+
+    /// Bump the edited timestamp. Call from content-edit sites (title, transcript,
+    /// tags, append, trim) — NOT from sync-status / significance changes.
+    func markEdited(_ date: Date = Date()) { editedAt = date }
 
     var metadata: MemoMetadata? {
         get { Self.decodeJSON(metadataData) }

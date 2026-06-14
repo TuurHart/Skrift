@@ -1151,3 +1151,16 @@ Build-ready feature TRUE status (corrects the stale lists above):
 - Drag-multi-select (Photos-style lasso): ⏳ OPEN (native edit-mode drag works only AFTER the Select button; the lasso-replacing-Select wants a mock).
 - In-app feedback → inbox/backlog: ⏳ OPEN (only the email zip; routing today is the external pull-phone-feedback skill).
 - Source taxonomy: ⏳ PARTIAL — glyph/label maps DUPLICATED (`QueueDerivations.swift:61` desktop vs `MemoDisplay.swift:184` mobile), coincidentally in sync, no shared module; no PDF/video first-class type.
+
+#### ✅ Memo sort/filter by date (recorded / added / edited) — built 2026-06-14
+From the share-video discussion (user: "the date of recording just stays true"). `Memo` gains `createdAt`
+(when it entered Skrift) + `editedAt` (bumped on title/transcript/tags/append edits via `markEdited()`) —
+both nil-default, so legacy memos fall back to `recordedAt` (NO migration/backfill). Sort sheet:
+**Recently added (NEW DEFAULT)** / Recently edited / Recently recorded / Oldest / Longest; the day-headers
+follow the active sort (`groupDate`). Filter gains a **date range** on Recorded OR Added (from/to,
+inclusive). `recordedAt` stays the content's TRUE date — so a shared video keeps its filming date but
+sorts to the TOP under "added": this (not the open-on-import patch) is the real resolution of the "video
+vanishes" report — both shipped, belt-and-suspenders. Compile + unit gate green; device-eyeball owed (the
+date-range pickers + the edited-sort over real edits). Not added to the Mac upload contract (local-only).
+Deferred edit-sites: conversation-turn text edits + C3 annotation don't bump `editedAt` yet (fall back to
+`createdAt` — fine; add if it matters).

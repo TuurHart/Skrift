@@ -3,9 +3,18 @@ import SwiftData
 import UIKit
 
 enum MemoSort: String, CaseIterable, Identifiable {
-    case recent = "Most recent"
+    case added = "Recently added"
+    case edited = "Recently edited"
+    case recent = "Recently recorded"
     case oldest = "Oldest first"
     case longest = "Longest first"
+    var id: String { rawValue }
+}
+
+/// Which date a date-range filter applies to.
+enum MemoDateField: String, CaseIterable, Identifiable {
+    case recorded = "Recorded"
+    case added = "Added"
     var id: String { rawValue }
 }
 
@@ -13,7 +22,11 @@ struct MemoFilter: Equatable {
     var unsyncedOnly = false
     var hasPhotosOnly = false
     var place: String?
-    var isActive: Bool { unsyncedOnly || hasPhotosOnly || place != nil }
+    /// Optional date-range filter, applied to either the recorded or added date.
+    var dateField: MemoDateField = .recorded
+    var from: Date?
+    var to: Date?
+    var isActive: Bool { unsyncedOnly || hasPhotosOnly || place != nil || from != nil || to != nil }
 }
 
 /// The memos surface (mockup3): full-text search, day-group cards with honest
@@ -42,7 +55,7 @@ struct MemosListView: View {
     /// feature). Drives the conditional mini-player + the toolbar live dot.
     @ObservedObject private var audiobookSession = AudiobookSession.shared
     @State private var search = ""
-    @State private var sort: MemoSort = .recent
+    @State private var sort: MemoSort = .added
     @State private var filter = MemoFilter()
     @State private var editMode: EditMode = .inactive
     @State private var selected: Set<UUID> = []
@@ -443,7 +456,7 @@ struct MemosListView: View {
         var order: [String] = []
         var bucket: [String: [Memo]] = [:]
         for memo in filtered {
-            let key = MemoDate.group(memo.recordedAt)
+            let key = MemoDate.group(groupDate(memo))
             if bucket[key] == nil { order.append(key); bucket[key] = [] }
             bucket[key]?.append(memo)
         }
@@ -471,14 +484,34 @@ struct MemosListView: View {
         if filter.unsyncedOnly && memo.syncStatus == .synced { return false }
         if filter.hasPhotosOnly && (memo.metadata?.imageManifest?.isEmpty ?? true) { return false }
         if let place = filter.place, memo.metadata?.location?.placeName != place { return false }
+        if filter.from != nil || filter.to != nil {
+            let cal = Calendar.current
+            let d = filter.dateField == .added ? memo.addedAt : memo.recordedAt
+            if let from = filter.from, d < cal.startOfDay(for: from) { return false }
+            if let to = filter.to,
+               let end = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: to)),
+               d >= end { return false }   // inclusive of the whole 'to' day
+        }
         return true
     }
 
     private func sortComparator(_ a: Memo, _ b: Memo) -> Bool {
         switch sort {
+        case .added:  return a.addedAt > b.addedAt
+        case .edited: return a.lastEditedAt > b.lastEditedAt
         case .recent: return a.recordedAt > b.recordedAt
         case .oldest: return a.recordedAt < b.recordedAt
         case .longest: return a.duration > b.duration
+        }
+    }
+
+    /// The date a memo is grouped under (day-headers), matching the active sort so
+    /// the headers and the order agree.
+    private func groupDate(_ memo: Memo) -> Date {
+        switch sort {
+        case .added:  return memo.addedAt
+        case .edited: return memo.lastEditedAt
+        default:      return memo.recordedAt   // recent / oldest (longest = single group)
         }
     }
 }
@@ -764,6 +797,22 @@ private struct SortFilterSheet: View {
     let places: [String]
     @Environment(\.dismiss) private var dismiss
 
+    // Optional-date bindings: a toggle enables the bound (today by default), the
+    // DatePicker then adjusts it; toggling off clears back to nil (no filter).
+    private var fromEnabled: Binding<Bool> {
+        Binding(get: { filter.from != nil },
+                set: { filter.from = $0 ? Calendar.current.startOfDay(for: Date()) : nil })
+    }
+    private var toEnabled: Binding<Bool> {
+        Binding(get: { filter.to != nil }, set: { filter.to = $0 ? Date() : nil })
+    }
+    private var fromBinding: Binding<Date> {
+        Binding(get: { filter.from ?? Date() }, set: { filter.from = $0 })
+    }
+    private var toBinding: Binding<Date> {
+        Binding(get: { filter.to ?? Date() }, set: { filter.to = $0 })
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -784,6 +833,27 @@ private struct SortFilterSheet: View {
                             ForEach(places, id: \.self) { Text($0).tag(String?.some($0)) }
                         }
                     }
+                }
+                Section {
+                    Picker("Date field", selection: $filter.dateField) {
+                        ForEach(MemoDateField.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("filter-date-field")
+                    Toggle("From", isOn: fromEnabled)
+                    if filter.from != nil {
+                        DatePicker("From date", selection: fromBinding, displayedComponents: .date)
+                            .labelsHidden()
+                    }
+                    Toggle("To", isOn: toEnabled)
+                    if filter.to != nil {
+                        DatePicker("To date", selection: toBinding, displayedComponents: .date)
+                            .labelsHidden()
+                    }
+                } header: {
+                    Text("Date")
+                } footer: {
+                    Text("Filter by when each memo was \(filter.dateField == .added ? "added to Skrift" : "recorded").")
                 }
                 if filter.isActive {
                     Button("Clear filters", role: .destructive) { filter = MemoFilter() }
