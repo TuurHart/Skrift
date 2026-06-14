@@ -76,6 +76,11 @@ struct BodyTextView: NSViewRepresentable {
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
     fileprivate static let markerRegex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
     fileprivate static let linkRegex = try? NSRegularExpression(pattern: #"\[\[[^\]]+\]\]"#)
+    // A speaker turn header at the START of a line: `**Name:**` → group 1 the leading
+    // `**`, group 2 the bolded `Name:`, group 3 the trailing `**`. Lets the review body
+    // render a conversation as bold speaker labels instead of raw markdown asterisks.
+    fileprivate static let turnHeaderRegex = try? NSRegularExpression(
+        pattern: #"(?m)^[ \t]*(\*\*)([^*\n]+?:)(\*\*)"#)
     // Quote presentation (the mock's `.quoteblock`): text indented clear of the bar,
     // caption a step smaller in the secondary color.
     fileprivate static let quoteIndent: CGFloat = 14
@@ -345,6 +350,19 @@ struct BodyTextView: NSViewRepresentable {
                                 range: m.range)
                         }
                     }
+                }
+            }
+            // Bold the `**Name:**` turn headers so a conversation reads as speaker
+            // labels, not raw markdown. The `**` delimiters STAY in the model (export
+            // keeps the markdown + a hand edit round-trips) but are dimmed to recede;
+            // the name — and any `[[link]]` accent already applied inside it — goes bold.
+            if let hrx = BodyTextView.turnHeaderRegex {
+                let boldName = NSFontManager.shared.convert(BodyTextView.bodyFont, toHaveTrait: .boldFontMask)
+                let faint = NSColor(Theme.textPrimary).withAlphaComponent(0.22)
+                for m in hrx.matches(in: storage.string, range: full) {
+                    storage.addAttribute(.font, value: boldName, range: m.range(at: 2))
+                    storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 1))
+                    storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 3))
                 }
             }
             markAmbiguous(storage, renderValid: renderValid)
