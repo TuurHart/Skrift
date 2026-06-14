@@ -6,6 +6,11 @@ import Foundation
 struct DiarizationData: Codable {
     var segments: [DiarizedSegment]
     var slotNames: [String: String]   // slot index (as string) → current display name
+    /// The diarization SLOT of each turn in transcript order (turn i → slot). Lets a
+    /// rename/enroll target ONE speaker even when two slots share a display name (e.g.
+    /// the same voice split into two slots, both auto-labelled "Tiuri"). Optional +
+    /// `encodeIfPresent` → byte-compatible with older sidecars/uploads (decodes nil).
+    var turnSlots: [Int]? = nil
 }
 
 struct DiarizationStore {

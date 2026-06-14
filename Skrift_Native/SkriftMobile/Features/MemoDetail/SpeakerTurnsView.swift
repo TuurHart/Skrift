@@ -76,6 +76,21 @@ enum SpeakerTranscript {
         }
         return merged.map { "**\($0.name):** \($0.text)" }.joined(separator: "\n\n")
     }
+
+    /// Rename every turn belonging to diarization SLOT `slot` (NOT every turn that happens
+    /// to share the old display name), then merge adjacent same-speaker turns. `turnSlots`
+    /// is the per-turn slot map (turn i → slot) persisted at diarize time. Returns nil when
+    /// the map doesn't line up with the current turns (a structural edit since diarize) so
+    /// the caller can fall back to name-based relabeling. This is what lets two speakers
+    /// that share a name (e.g. one voice split into two slots, both "Tiuri") be renamed /
+    /// enrolled independently.
+    static func relabelSlot(_ transcript: String?, turnSlots: [Int], slot: Int, to newName: String) -> String? {
+        guard let turns = parse(transcript), turnSlots.count == turns.count else { return nil }
+        let rebuilt = turns.enumerated()
+            .map { i, t in "**\(turnSlots[i] == slot ? newName : t.name):** \(t.text)" }
+            .joined(separator: "\n\n")
+        return mergeAdjacentTurns(rebuilt)
+    }
 }
 
 struct SpeakerTurnsView: View {

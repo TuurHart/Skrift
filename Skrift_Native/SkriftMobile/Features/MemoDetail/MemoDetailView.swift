@@ -228,9 +228,14 @@ private struct MemoPageView: View {
     @State private var showAddTag = false
     @State private var newTag = ""
     @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
+    /// Per-turn diarization slot map (turn i → slot), loaded from the diar sidecar. Lets a
+    /// rename/enroll target ONE speaker when two slots share a name. Empty / stale (after a
+    /// structural edit) → the name-based fallback applies.
+    @State private var turnSlots: [Int] = []
 
-    /// A tapped speaker turn: its position (for per-line merge) + label (for whole-speaker naming).
-    struct AssignTarget: Identifiable { let id = UUID(); let index: Int; let speaker: String }
+    /// A tapped speaker turn: its position (for per-line merge), label (for whole-speaker
+    /// naming), and diarization slot (so a same-named twin isn't relabeled/enrolled too).
+    struct AssignTarget: Identifiable { let id = UUID(); let index: Int; let speaker: String; let slot: Int? }
     @ObservedObject private var diarStatus = DiarizationStatus.shared
     @State private var timings: [WordTiming] = []   // for karaoke highlight in the turn view
     @AppStorage("karaokeTapToSeek") private var tapToSeek = true   // default ON — must match TranscriptBodyView
@@ -310,7 +315,10 @@ private struct MemoPageView: View {
         // already has its own interactive dismiss; this covers scrolling the OUTER
         // page when the title/transcript field has focus).
         .scrollDismissesKeyboard(.interactively)
-        .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
+        .task(id: memo.id) {
+            timings = WordTimingsStore().load(for: memo.id) ?? []
+            turnSlots = DiarizationStore().load(for: memo.id)?.turnSlots ?? []
+        }
         .alert("Add tag", isPresented: $showAddTag) {
             TextField("tag", text: $newTag)
             Button("Add", action: addTag)
@@ -324,15 +332,20 @@ private struct MemoPageView: View {
                 speaker: target.speaker,
                 otherSpeakers: SpeakerTranscript.speakers(in: memo.transcript).filter { $0 != target.speaker },
                 people: NamesStore.shared.livePeople(),
-                onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), enroll: true) },
+                onAssignPerson: { assign(target.speaker, to: NamesDisplay.name($0), enroll: true, slot: target.slot) },
                 onMergeInto: { mergeTurn(at: target.index, into: $0) },
-                onNewName: { assign(target.speaker, to: $0, enroll: true) }
+                onNewName: { assign(target.speaker, to: $0, enroll: true, slot: target.slot) }
             )
         }
     }
 
     private func startAssigning(_ index: Int, _ speaker: String) {
-        assignTarget = AssignTarget(index: index, speaker: speaker)
+        // Resolve the tapped turn's diarization slot — only trusted when the per-turn map
+        // still lines up with the current turns (no structural edit since diarize). Stale
+        // → nil → the assign falls back to name-based relabeling.
+        let count = SpeakerTranscript.parse(memo.transcript)?.count ?? 0
+        let slot = (turnSlots.count == count && index >= 0 && index < turnSlots.count) ? turnSlots[index] : nil
+        assignTarget = AssignTarget(index: index, speaker: speaker, slot: slot)
     }
 
     /// Merge ONLY the tapped turn into another speaker (per-line) + re-fuse — fixes a
@@ -370,26 +383,35 @@ private struct MemoPageView: View {
     /// adjacent same-speaker turns (so a merged blip folds into its neighbour), and — when
     /// assigning to a real person (not merging into another Speaker N) — learn the
     /// voiceprint under `new` so future recordings auto-label them (syncs → "Voice enrolled").
-    private func assign(_ old: String, to newName: String, enroll: Bool) {
+    private func assign(_ old: String, to newName: String, enroll: Bool, slot: Int?) {
         let new = newName.trimmingCharacters(in: .whitespaces)
         guard let transcript = memo.transcript, !new.isEmpty, new != old else { return }
-        let relabeled = transcript.replacingOccurrences(of: "**\(old):**", with: "**\(new):**")
-        memo.transcript = SpeakerTranscript.mergeAdjacentTurns(relabeled)
+        // Slot-aware when the per-turn slot map still lines up — relabels ONLY this
+        // speaker's slot, so a same-named twin (one voice split into two slots, both
+        // "Tiuri") is left alone. Otherwise relabel every `**old:**` header (the prior
+        // behaviour) — correct when the name is unique.
+        if let slot, let bySlot = SpeakerTranscript.relabelSlot(transcript, turnSlots: turnSlots, slot: slot, to: new) {
+            memo.transcript = bySlot
+        } else {
+            let relabeled = transcript.replacingOccurrences(of: "**\(old):**", with: "**\(new):**")
+            memo.transcript = SpeakerTranscript.mergeAdjacentTurns(relabeled)
+        }
         memo.transcriptUserEdited = true
         repository.save()
         if enroll {
-            Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new) }
+            Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new, slot: slot) }
         }
     }
 
     /// Extract `old`'s audio from the diar sidecar, embed it, and store the voiceprint
     /// under `new`. `static` so it isn't tied to the transient (paged) view's lifetime.
-    private static func learnVoice(memoID: UUID, audioURL: URL?, old: String, new: String) async {
-        guard let audioURL, let data = DiarizationStore().load(for: memoID),
-              let slotStr = data.slotNames.first(where: { $0.value == old })?.key,
-              let slot = Int(slotStr) else { return }
+    private static func learnVoice(memoID: UUID, audioURL: URL?, old: String, new: String, slot: Int?) async {
+        guard let audioURL, let data = DiarizationStore().load(for: memoID) else { return }
+        // Prefer the EXACT slot the user tapped (correct even when two slots share the
+        // name — the wrong-voiceprint bug); fall back to the first slot named `old`.
+        guard let slot = slot ?? data.slotNames.first(where: { $0.value == old }).flatMap({ Int($0.key) }) else { return }
         // Keep the sidecar's slot name current so a later re-enroll finds this slot.
-        var updated = data; updated.slotNames[slotStr] = new
+        var updated = data; updated.slotNames[String(slot)] = new
         DiarizationStore().write(updated, for: memoID)
 
         await MainActor.run { DiarizationStatus.shared.begin(memoID, phase: .enrolling) }

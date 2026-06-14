@@ -39,7 +39,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Tags add/remove | ✅ | ✅ | mobile `MemoDetailView.swift:201-217`; desktop `NoteProperties.swift:120` | |
 | Copy transcript / delete | ✅ | ✅ | `MemoDetailView.swift`; list row swipe/long-press `MemosListView.swift` | 2026-06-11: copy also via row swipe-action + context menu (list-delete now cleans the diar sidecar) |
 | Editable summary (review) | n/a | ✅ | desktop `Features/Review/NoteProperties.swift` | 2026-06-11: summary editable like title/tags; export recompiles |
-| Speaker turns + name-a-speaker | ✅ | ✅ | mobile `MemoDetail/SpeakerTurnsView.swift`; desktop `Features/Review/InlineResolver.swift` | Mobile inline relabel; desktop ambiguous-name resolver (per-alias + per-occurrence) |
+| Speaker turns + name-a-speaker | ✅ | ✅ | mobile `MemoDetail/SpeakerTurnsView.swift` (`relabelSlot`) + `DiarizationStore` (`turnSlots`); desktop `Features/Review/InlineResolver.swift` | Mobile inline relabel; desktop ambiguous-name resolver (per-alias + per-occurrence). ✅ 2026-06-15: rename/enroll are **slot-aware** — a per-turn slot map (`turnSlots` in the diar sidecar) means naming one of two same-named speakers (one voice split into two slots) renames + enrolls ONLY that slot, not its twin (was: relabeled both + enrolled an arbitrary slot's audio). Falls back to name-based after a structural edit |
 | Context chips (place/weather/time) | ✅ | ✅ | `MemoDetailView.swift:343-357`; desktop frontmatter | |
 | Horizontal paging between memos | ✅ | n/a | `MemoDetailView.swift:31-56` | |
 

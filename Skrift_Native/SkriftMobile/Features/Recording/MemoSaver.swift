@@ -614,9 +614,13 @@ struct MemoSaver {
         memo.transcriptUserEdited = true
         memo.markEdited()   // structural change → bump the Recently-edited sort, like append
         repository.save()
-        // Persist segments + per-slot names so naming can extract a speaker's audio.
+        // Persist segments + per-slot names so naming can extract a speaker's audio,
+        // plus the per-turn slot map (turn i → slot) so a rename/enroll targets ONE
+        // speaker even when two slots share a name. turns() with the default minTurnWords
+        // matches the order attributedTranscript emitted above, so the indices line up.
         var names: [String: String] = [:]
         for seg in out.segments { names[String(seg.speaker)] = out.slotNames[seg.speaker] ?? "Speaker \(seg.speaker + 1)" }
-        DiarizationStore().write(DiarizationData(segments: out.segments, slotNames: names), for: id)
+        let turnSlots = SpeakerFusion.turns(words: words, segments: out.segments).map(\.speaker)
+        DiarizationStore().write(DiarizationData(segments: out.segments, slotNames: names, turnSlots: turnSlots), for: id)
     }
 }

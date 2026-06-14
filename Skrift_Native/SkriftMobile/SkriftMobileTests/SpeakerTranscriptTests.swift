@@ -59,6 +59,44 @@ final class SpeakerTranscriptTests: XCTestCase {
         XCTAssertNil(SpeakerTranscript.setText("plain prose", turnAt: 0, to: "x"))
     }
 
+    /// Slot-aware rename: two turns share the display name "Tiuri" but are DIFFERENT slots
+    /// (one voice split into two). Renaming slot 1 must move ONLY slot 1's turn — slot 0's
+    /// "Tiuri" stays (the same-name-collapse bug). turnSlots = [0, 1, 2].
+    func testRelabelSlotRenamesOnlyThatSlot() {
+        let t = "**Tiuri:** hi\n\n**Tiuri:** there\n\n**Roksana:** ok"
+        XCTAssertEqual(SpeakerTranscript.relabelSlot(t, turnSlots: [0, 1, 2], slot: 1, to: "Sam"),
+                       "**Tiuri:** hi\n\n**Sam:** there\n\n**Roksana:** ok")
+    }
+
+    /// Renaming a slot to a name an adjacent turn already has merges them (the desired
+    /// "these two slots are actually the same person" outcome).
+    func testRelabelSlotMergesWhenItMakesAdjacentSameSpeaker() {
+        let t = "**A:** one\n\n**B:** two\n\n**A:** three"
+        XCTAssertEqual(SpeakerTranscript.relabelSlot(t, turnSlots: [0, 1, 0], slot: 1, to: "A"),
+                       "**A:** one two three")
+    }
+
+    /// A stale slot map (count ≠ current turns, e.g. after a structural edit) returns nil
+    /// so the caller falls back to name-based relabeling.
+    func testRelabelSlotNilOnStaleMap() {
+        XCTAssertNil(SpeakerTranscript.relabelSlot("**A:** x\n\n**B:** y", turnSlots: [0], slot: 0, to: "Z"))
+        XCTAssertNil(SpeakerTranscript.relabelSlot("plain prose", turnSlots: [0], slot: 0, to: "Z"))
+    }
+
+    /// `turnSlots` round-trips through the diar sidecar JSON, and is absent (nil) on an
+    /// older sidecar — byte-compatible (encodeIfPresent).
+    func testDiarizationDataTurnSlotsRoundTripAndOptional() throws {
+        let data = DiarizationData(segments: [DiarizedSegment(speaker: 0, start: 0, end: 1)],
+                                   slotNames: ["0": "Tiuri"], turnSlots: [0, 1, 0])
+        let decoded = try JSONDecoder().decode(DiarizationData.self, from: JSONEncoder().encode(data))
+        XCTAssertEqual(decoded.turnSlots, [0, 1, 0])
+        // Older sidecar without the key decodes to nil + omits it on re-encode.
+        let legacy = Data(#"{"segments":[],"slotNames":{}}"#.utf8)
+        let old = try JSONDecoder().decode(DiarizationData.self, from: legacy)
+        XCTAssertNil(old.turnSlots)
+        XCTAssertFalse(String(decoding: try JSONEncoder().encode(old), as: UTF8.self).contains("turnSlots"))
+    }
+
     /// Inline photos coexist with turns: an `[[img_NNN]]` marker stays inside the turn it
     /// was spoken in, and isn't counted as a spoken word (so karaoke stays aligned).
     func testImageMarkerStaysInTurnAndIsntASpokenWord() {

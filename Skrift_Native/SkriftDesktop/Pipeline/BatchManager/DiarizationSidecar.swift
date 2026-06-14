@@ -17,10 +17,16 @@ struct DiarizationData: Codable, Equatable {
     var segments: [DiarizedSegment]
     /// Slot index (as a string, mirroring the phone's JSON keys) → current display name.
     var slotNames: [String: String]
+    /// The diarization SLOT of each turn in transcript order (turn i → slot) — the phone
+    /// populates this so a rename/enroll can target one speaker even when two slots share
+    /// a name. Carried through the upload + sidecar verbatim. Optional (encodeIfPresent) →
+    /// byte-compatible with older sidecars/uploads.
+    var turnSlots: [Int]? = nil
 
-    init(segments: [DiarizedSegment], slotNames: [String: String]) {
+    init(segments: [DiarizedSegment], slotNames: [String: String], turnSlots: [Int]? = nil) {
         self.segments = segments
         self.slotNames = slotNames
+        self.turnSlots = turnSlots
     }
 
     /// Build from a `DiarizationOutput` — converts the `[Int: String]` slot map to the
@@ -28,6 +34,7 @@ struct DiarizationData: Codable, Equatable {
     init(_ output: DiarizationOutput) {
         self.segments = output.segments
         self.slotNames = Dictionary(uniqueKeysWithValues: output.slotNames.map { (String($0.key), $0.value) })
+        self.turnSlots = nil
     }
 }
 
