@@ -203,7 +203,9 @@ final class InlineResolverModel {
     /// so the unlink popover must not offer it.
     func isInFlightCandidate(core: String) -> Bool {
         guard snapshot != nil else { return false }
-        let key = NamesMerge.keyName(core).trimmingCharacters(in: .whitespaces)
+        // `core` may be an alias-display link's inner text (`Canonical|spoken`) — match
+        // on the canonical target before the pipe.
+        let key = Sanitiser.linkTarget(core).trimmingCharacters(in: .whitespaces)
         guard !key.isEmpty else { return false }
         for (alias, d) in occDecisions where !d.isEmpty {
             guard isEscalated(alias) else { continue }

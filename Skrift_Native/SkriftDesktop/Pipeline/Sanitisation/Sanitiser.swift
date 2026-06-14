@@ -217,17 +217,19 @@ enum Sanitiser {
             for alias in aliases {
                 guard let rx = wordRegex(alias) else { continue }
                 for m in rx.matches(in: text, range: fullRange(text)).reversed() {
-                    // The match spans the alias + any trailing possessive; the possessive
-                    // stays OUTSIDE the brackets, so isolate the alias surface to display.
+                    // The match spans the alias + any trailing possessive; isolate the
+                    // alias surface for the DISPLAY half, but replace the FULL match range
+                    // (alias + possessive) and re-append the possessive OUTSIDE the brackets
+                    // — replacing only the alias sub-range would leave the original "'s"
+                    // behind and produce a doubled "'s's".
                     let poss = m.range(withName: "poss")
                     let aliasLen = (poss.location != NSNotFound && poss.length > 0) ? m.range.length - poss.length : m.range.length
-                    let aliasRange = NSRange(location: m.range.location, length: aliasLen)
-                    if avoidInside && !notInsideLink(text, aliasRange.location) { continue }
-                    let spoken = nsSub(text, aliasRange.location, aliasRange.location + aliasRange.length)
+                    if avoidInside && !notInsideLink(text, m.range.location) { continue }
+                    let spoken = nsSub(text, m.range.location, m.range.location + aliasLen)
                     let display = spoken.caseInsensitiveCompare(canonKey) == .orderedSame
                         ? "[[\(canonKey)]]"
                         : "[[\(canonKey)|\(spoken)]]"
-                    text = nsReplace(text, aliasRange, with: display + possText(m, in: text))
+                    text = nsReplace(text, m.range, with: display + possText(m, in: text))
                 }
             }
         }

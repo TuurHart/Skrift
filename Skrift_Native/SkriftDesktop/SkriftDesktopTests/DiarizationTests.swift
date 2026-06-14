@@ -177,6 +177,19 @@ final class DiarizationTests: XCTestCase {
         XCTAssertTrue(lines[0].contains("[[Roksana Gurova|Roks]]"), "inline 'Roks' → alias-display; got: \(lines[0])")
     }
 
+    /// An inline alias mention with a trailing possessive renders ONE `'s`, outside the
+    /// brackets — never a doubled `'s's` (the alias-display replace must cover the full
+    /// match incl. the possessive, not just the alias surface).
+    func testProcessConversationInlinePossessiveSingleApostrophe() {
+        let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tuur"], short: "Tuur", lastModifiedAt: "x")
+        let bob = Person(canonical: "[[Bob]]", aliases: ["Bob"], lastModifiedAt: "x")
+        let s = Sanitiser.processConversation(
+            text: "**Bob:** I read Tuur's book\n\n**Tiuri Hartog:** thanks",
+            people: [tiuri, bob]).sanitised
+        XCTAssertTrue(s.contains("[[Tiuri Hartog|Tuur]]'s book"), "single possessive outside brackets; got: \(s)")
+        XCTAssertFalse(s.contains("'s's"), "no doubled possessive; got: \(s)")
+    }
+
     /// A speaker's SECOND turn header is the plain short name (no link); only the first links.
     func testProcessConversationLaterHeaderIsPlainShort() {
         let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog"], short: "Tuur", lastModifiedAt: "x")

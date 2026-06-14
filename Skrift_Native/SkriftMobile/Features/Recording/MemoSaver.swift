@@ -612,6 +612,7 @@ struct MemoSaver {
         // re-transcribed on the Mac (turns destroyed) — same rationale as the quote
         // capture / appended-recording paths above.
         memo.transcriptUserEdited = true
+        memo.markEdited()   // structural change → bump the Recently-edited sort, like append
         repository.save()
         // Persist segments + per-slot names so naming can extract a speaker's audio.
         var names: [String: String] = [:]
