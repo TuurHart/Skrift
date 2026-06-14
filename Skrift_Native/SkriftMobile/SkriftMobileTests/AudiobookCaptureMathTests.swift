@@ -124,6 +124,16 @@ final class AudiobookCaptureMathTests: XCTestCase {
         XCTAssertEqual(snapped?.text, "\u{201C}Optimism wins.\u{201D}")
     }
 
+    func testSentenceStartIndicesDoesNotSplitOnAbbreviationsOrDecimals() {
+        // "Mr. Smith paid 3.14 dollars. Then he left." → split ONLY after "dollars."
+        // (→ "Then" at index 5), never at "Mr." or "3.14". The old terminal-"." rule
+        // broke at "Mr." (the "sentences break in weird spots" report); NLTokenizer doesn't.
+        let words = ["Mr.", "Smith", "paid", "3.14", "dollars.", "Then", "he", "left."]
+            .enumerated().map { WordTiming(word: $0.element, start: Double($0.offset), end: Double($0.offset) + 0.5) }
+        let starts = SentenceSnap.sentenceStartIndices(words)
+        XCTAssertEqual(starts, [0, 5], "got \(starts)")
+    }
+
     func testSnapEmptyWordsReturnsNil() {
         XCTAssertNil(SentenceSnap.snap(words: [], proposedIn: 0, proposedOut: 5))
     }
