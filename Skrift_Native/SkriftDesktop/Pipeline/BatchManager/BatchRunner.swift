@@ -88,7 +88,11 @@ struct BatchRunner {
         // with the phone, which never copy-edits — so the turns survive into the export.
         // Title/summary still run (they read fine on the turns), and name-linking below
         // still links any plain names spoken inside the turns.
-        let isConversation = SpeakerTranscript.isAttributed(transcript)
+        // ONLY an audio memo can be a diarized conversation — an Apple Note that happens
+        // to contain ≥2 line-start bold headings (**Introduction:** / **Conclusion:**)
+        // must NOT be routed to the turn linker (it would drop the note's preamble and
+        // skip copy-edit). Notes/captures always take the monologue path.
+        let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(transcript)
         var copyedit = isConversation
             ? transcript
             : try await enhancer.copyEdit(transcript, prompts: prompts, modelRepo: repo)

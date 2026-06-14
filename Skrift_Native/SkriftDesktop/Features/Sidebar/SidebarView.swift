@@ -459,7 +459,7 @@ struct SidebarView: View {
                 Button("Re-transcribe") { Task { await coordinator.retranscribe(f, context: ctx) } }
             }
             if f.steps.enhance == .done {
-                let isConversation = SpeakerTranscript.isAttributed(f.transcript)
+                let isConversation = f.sourceType == .audio && SpeakerTranscript.isAttributed(f.transcript)
                 Menu("Redo") {
                     Button("Title") { Task { await coordinator.redo(.title, for: f, context: ctx) } }
                     // Copy-edit strips the `**Name:**` turn prefixes from a conversation

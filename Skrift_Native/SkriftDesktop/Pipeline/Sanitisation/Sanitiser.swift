@@ -131,9 +131,11 @@ enum Sanitiser {
     ///
     /// Falls back to `process` when the text isn't actually attributed.
     static func processConversation(text inputText: String, people: [Person], neverLink: Set<String> = []) -> Result {
-        guard let parsed = SpeakerTranscript.parse(inputText) else {
+        guard let parsedWP = SpeakerTranscript.parseWithPreamble(inputText) else {
             return process(text: inputText, people: people, neverLink: neverLink)
         }
+        let parsed = parsedWP.turns
+        let preamble = parsedWP.preamble
         let skip = Set(neverLink.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
         let live = people.filter {
             !$0.isDeleted && !skip.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
@@ -197,7 +199,12 @@ enum Sanitiser {
             let body = linkInline(m.text, live: live, ambiguousAliases: ambiguousAliases)
             lines.append("**\(header):** \(body)")
         }
-        let finalText = lines.joined(separator: "\n\n")
+        // Preserve any leading text before the first turn header (e.g. an early image
+        // marker) — name-linked like the body, prepended as its own block. Never dropped.
+        var blocks: [String] = []
+        if !preamble.isEmpty { blocks.append(linkInline(preamble, live: live, ambiguousAliases: ambiguousAliases)) }
+        blocks.append(contentsOf: lines)
+        let finalText = blocks.joined(separator: "\n\n")
         let ambiguous = ambiguousOccurrences(in: finalText, aliasMap: aliasMap, ambiguousAliases: ambiguousAliases)
         return Result(sanitised: finalText, ambiguous: ambiguous)
     }

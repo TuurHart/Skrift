@@ -293,8 +293,8 @@ final class ProcessingCoordinator {
             case .copyEdit:
                 // A speaker-attributed (conversation) transcript SKIPS copy-edit — the
                 // LLM strips its `**Name:**` turn prefixes (same guard as BatchRunner).
-                // Keep it verbatim and only re-link names.
-                let isConversation = SpeakerTranscript.isAttributed(transcript)
+                // Only an AUDIO memo can be a conversation (a note with bold headings is not).
+                let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(transcript)
                 let c = isConversation
                     ? transcript
                     : try await enhancer.copyEdit(transcript, prompts: settings.prompts, modelRepo: repo)

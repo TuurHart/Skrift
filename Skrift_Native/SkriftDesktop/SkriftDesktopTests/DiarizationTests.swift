@@ -224,6 +224,32 @@ final class DiarizationTests: XCTestCase {
         XCTAssertEqual(once, twice, "re-processing must be idempotent; once=\(once)")
     }
 
+    /// Leading text before the first turn header (e.g. an early `[[img_001]]` photo) must
+    /// be PRESERVED, not dropped by turn reassembly.
+    func testProcessConversationPreservesLeadingPreamble() {
+        let input = "[[img_001]]\n\n**Tuur:** hello\n\n**Roksana:** hi"
+        let s = Sanitiser.processConversation(text: input, people: []).sanitised
+        XCTAssertTrue(s.hasPrefix("[[img_001]]"), "leading marker preserved; got: \(s)")
+        XCTAssertTrue(s.contains("**Tuur:** hello") && s.contains("**Roksana:** hi"), "turns intact; got: \(s)")
+    }
+
+    /// REGRESSION: an Apple Note with ≥2 line-start bold headings must NOT be routed to the
+    /// conversation linker (which would drop the note's preamble + skip copy-edit). Only
+    /// audio memos can be conversations.
+    func testAppleNoteWithBoldHeadingsKeepsPreambleAndIsNotConversation() async throws {
+        let note = "Intro text before any heading.\n\n**Introduction:**\nhi\n\n**Conclusion:**\nbye"
+        let pf = PipelineFile(id: "note1", filename: "note.md", path: "/tmp/note1", size: 0, sourceType: .note)
+        pf.transcript = note
+        pf.transcribeStatus = .done
+        let runner = BatchRunner(transcriber: FourWordTranscriber(), enhancer: Echo(), settings: .default,
+                                 people: [], tagWhitelist: [], diarizer: twoSpeakerStub(named: [:]))
+        try await runner.run(pf, audioURL: nil)
+        let s = try XCTUnwrap(pf.sanitised)
+        XCTAssertTrue(s.contains("Intro text before any heading."), "note preamble must survive; got: \(s)")
+        XCTAssertTrue(s.contains("**Introduction:**") && s.contains("**Conclusion:**"),
+                      "headings stay as written (monologue path); got: \(s)")
+    }
+
     func testMergeAdjacentTurnsCollapsesSameSpeaker() {
         let input = "**Tiuri:** But what\n\n**Tiuri:** we're actually doing is\n\n**Roksana:** ok"
         XCTAssertEqual(SpeakerTranscript.mergeAdjacentTurns(input),

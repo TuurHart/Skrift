@@ -56,6 +56,19 @@ enum SpeakerTranscript {
         return turns
     }
 
+    /// The turns PLUS any leading text before the first turn header — e.g. an early
+    /// `[[img_NNN]]` photo marker the phone inserted before the first spoken word.
+    /// Lets the conversation linker PRESERVE that preamble instead of dropping it (turn
+    /// reassembly otherwise keeps only the `**Name:**` blocks). nil when not ≥2 turns.
+    static func parseWithPreamble(_ transcript: String?) -> (preamble: String, turns: [Turn])? {
+        guard let t = transcript, let turns = parse(t),
+              let re = try? NSRegularExpression(pattern: headerPattern) else { return nil }
+        let ns = t as NSString
+        let firstLoc = re.firstMatch(in: t, range: NSRange(location: 0, length: ns.length))?.range.location ?? 0
+        let preamble = ns.substring(to: firstLoc).trimmingCharacters(in: .whitespacesAndNewlines)
+        return (preamble, turns)
+    }
+
     /// True when `transcript` is a conversation: ≥2 turn headers AND ≥2 DISTINCT speaker
     /// labels (a list with repeated `**Pros:**`/`**Pros:**` headers, or a single speaker,
     /// is not a conversation → it still gets copy-edit + ordinary name-linking).

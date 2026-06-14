@@ -14,7 +14,8 @@ struct NoteActions: View {
     private var transcribeDone: Bool { file.steps.transcribe == .done }
     /// A speaker-attributed (conversation) transcript — its `**Name:**` turns are the
     /// ONLY copy of the diarization (the phone never uploads segments/word-timings).
-    private var isConversation: Bool { SpeakerTranscript.isAttributed(file.transcript) }
+    /// Only an audio memo can be a conversation (a note with bold headings is not).
+    private var isConversation: Bool { file.sourceType == .audio && SpeakerTranscript.isAttributed(file.transcript) }
 
     private var primaryLabel: String {
         if !enhanceDone { return "Process" }
