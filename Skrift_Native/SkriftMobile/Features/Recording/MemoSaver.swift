@@ -606,6 +606,12 @@ struct MemoSaver {
         }
         memo.transcript = attributed
         memo.transcriptStatus = .done
+        // Diarization is a deliberate, structural transformation the Mac MUST preserve —
+        // mark it user-edited so it's trusted regardless of the original ASR confidence.
+        // Otherwise a noisy multi-speaker take with confidence < 0.7 gets silently
+        // re-transcribed on the Mac (turns destroyed) — same rationale as the quote
+        // capture / appended-recording paths above.
+        memo.transcriptUserEdited = true
         repository.save()
         // Persist segments + per-slot names so naming can extract a speaker's audio.
         var names: [String: String] = [:]

@@ -18,7 +18,7 @@ struct DiarizedSegment: Sendable, Equatable, Codable {
 enum SpeakerFusion {
     struct Turn: Equatable { let speaker: Int; let text: String }
 
-    static func turns(words: [WordTiming], segments: [DiarizedSegment], minTurnWords: Int = 2) -> [Turn] {
+    static func turns(words: [WordTiming], segments: [DiarizedSegment], minTurnWords: Int = 3) -> [Turn] {
         guard !words.isEmpty, !segments.isEmpty else { return [] }
         let segs = segments.sorted { $0.start < $1.start }
         var labels = words.map { speaker(at: ($0.start + $0.end) / 2, segs: segs) }
@@ -39,7 +39,7 @@ enum SpeakerFusion {
     /// The `**Name:** text` Markdown (turns joined by blank lines). `name` maps a speaker
     /// slot to a display name (an assigned person, else "Speaker N").
     static func attributedTranscript(
-        words: [WordTiming], segments: [DiarizedSegment], minTurnWords: Int = 2,
+        words: [WordTiming], segments: [DiarizedSegment], minTurnWords: Int = 3,
         name: (Int) -> String = { "Speaker \($0 + 1)" }
     ) -> String {
         turns(words: words, segments: segments, minTurnWords: minTurnWords)
@@ -49,7 +49,16 @@ enum SpeakerFusion {
 
     private static func speaker(at t: Double, segs: [DiarizedSegment]) -> Int {
         if let s = segs.first(where: { t >= $0.start && t <= $0.end }) { return s.speaker }
-        return segs.min(by: { abs(($0.start + $0.end) / 2 - t) < abs(($1.start + $1.end) / 2 - t) })?.speaker ?? 0
+        // Gap fallback: the segment with the NEAREST BOUNDARY, not the nearest midpoint —
+        // a long segment's midpoint can sit farther from the gap than a short neighbour's,
+        // so a word at speaker A's trailing edge was being snapped to a shorter speaker B.
+        return segs.min(by: { boundaryDistance($0, t) < boundaryDistance($1, t) })?.speaker ?? 0
+    }
+
+    /// Distance from time `t` to the nearer edge of a segment (0 if inside).
+    private static func boundaryDistance(_ seg: DiarizedSegment, _ t: Double) -> Double {
+        if t >= seg.start && t <= seg.end { return 0 }
+        return min(abs(seg.start - t), abs(seg.end - t))
     }
 
     /// Fold a tiny island (≤ `maxIslandWords`) flanked by DIFFERENT speakers into whichever
