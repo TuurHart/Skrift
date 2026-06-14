@@ -12,8 +12,11 @@ import UIKit
 ///   interruption (cancel, unplug, app kill, jetsam) the in-flight chunk was
 ///   never saved, so on resume it re-transcribes from the last saved frontier —
 ///   "discard the half-chunk and go again." Idempotent per chunk.
-/// - **Charger job.** Pauses when unplugged, auto-resumes when charging again;
-///   a foreground Pause / Resume is also offered. Best left plugged in overnight.
+/// - **Runs on battery.** Transcribes plugged in OR on battery; it only auto-pauses
+///   to conserve — when Low Power Mode is on (the user's explicit "save battery"
+///   signal) or the charge drops below `lowBatteryPauseLevel` — and auto-resumes when
+///   charging again or the condition clears. A foreground Pause / Resume is also
+///   offered. Still best overnight on a charger for a full book.
 /// - **Never blocks live capture.** Between chunks the loop yields to an active
 ///   capture (`suspendForCapture`), and a chunked spot needs no engine at all,
 ///   so a pre-transcribed book never contends.
@@ -24,7 +27,7 @@ final class BookTranscriptionJob: ObservableObject {
     enum Phase: Equatable {
         case idle
         case running
-        case pausedUnplugged          // auto-paused: on battery
+        case pausedUnplugged          // auto-paused to conserve: Low Power Mode or low battery
         case pausedByUser
         case finished
         case failed(String)
@@ -58,6 +61,8 @@ final class BookTranscriptionJob: ObservableObject {
     private var task: Task<Void, Never>?
     private var suspendedForCapture = false
     private var batteryObserver: NSObjectProtocol?
+    private var levelObserver: NSObjectProtocol?
+    private var powerModeObserver: NSObjectProtocol?
 
     init(library: AudiobookLibraryStore = .shared,
          store: BookTranscriptStore = BookTranscriptStore(),
@@ -67,10 +72,9 @@ final class BookTranscriptionJob: ObservableObject {
         self.makeTranscriber = makeTranscriber
         self.measuredRTF = UserDefaults.standard.object(forKey: Self.rtfKey) as? Double
         // Turn battery monitoring on at creation (the sheet/capture flow touch the
-        // singleton well before Start), so `isPluggedIn` reads a REAL state the
-        // first time Start checks it. Reading `batteryState` before monitoring is
-        // enabled returns `.unknown` → a false "unplugged" → "plug in to continue"
-        // even while charging (device-found 2026-06-13).
+        // singleton well before Start), so the power policy reads a REAL state the
+        // first time Start checks it. Reading `batteryState`/`batteryLevel` before
+        // monitoring is enabled returns `.unknown`/`-1` (device-found 2026-06-13).
         enableBatteryMonitoring()
     }
 
@@ -99,7 +103,7 @@ final class BookTranscriptionJob: ObservableObject {
         progress = savedProgress(for: book)
         runAudioSeconds = 0
         runComputeSeconds = 0
-        phase = isPluggedIn ? .running : .pausedUnplugged
+        phase = shouldConserve ? .pausedUnplugged : .running   // runs on battery unless conserving
         let id = book.id
         task = Task { [weak self] in await self?.run(bookID: id) }
     }
@@ -123,7 +127,7 @@ final class BookTranscriptionJob: ObservableObject {
 
     func resumeByUser() {
         guard phase == .pausedByUser else { return }
-        phase = isPluggedIn ? .running : .pausedUnplugged
+        phase = shouldConserve ? .pausedUnplugged : .running
     }
 
     func cancel() {
@@ -289,27 +293,49 @@ final class BookTranscriptionJob: ObservableObject {
                           audioSeconds, computeSeconds, audioSeconds / computeSeconds, rtf, minPerHour))
     }
 
-    // MARK: - Battery (charger job)
+    // MARK: - Power policy (runs on battery; pauses only to conserve)
+
+    /// Below this charge (and not charging) the job auto-pauses to avoid draining the
+    /// phone flat. While paused it draws nothing, so the level won't keep falling →
+    /// no flapping; charging resumes it immediately.
+    private static let lowBatteryPauseLevel: Float = 0.20
 
     private var isPluggedIn: Bool {
         let s = UIDevice.current.batteryState
         return s == .charging || s == .full
     }
 
+    /// True when we should pause to conserve: ON BATTERY and either Low Power Mode is
+    /// on (the user's explicit save-battery signal) or the charge is low. Plugged in →
+    /// never conserves.
+    private var shouldConserve: Bool {
+        guard !isPluggedIn else { return false }
+        if ProcessInfo.processInfo.isLowPowerModeEnabled { return true }
+        let level = UIDevice.current.batteryLevel   // -1 when monitoring is off (we enable it)
+        return level >= 0 && level < Self.lowBatteryPauseLevel
+    }
+
     private func enableBatteryMonitoring() {
         UIDevice.current.isBatteryMonitoringEnabled = true
         guard batteryObserver == nil else { return }
-        batteryObserver = NotificationCenter.default.addObserver(
-            forName: UIDevice.batteryStateDidChangeNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.batteryChanged() }
+        let recheck: @Sendable (Notification) -> Void = { [weak self] _ in
+            Task { @MainActor in self?.powerStateChanged() }
         }
+        batteryObserver = NotificationCenter.default.addObserver(
+            forName: UIDevice.batteryStateDidChangeNotification, object: nil, queue: .main, using: recheck)
+        levelObserver = NotificationCenter.default.addObserver(
+            forName: UIDevice.batteryLevelDidChangeNotification, object: nil, queue: .main, using: recheck)
+        powerModeObserver = NotificationCenter.default.addObserver(
+            forName: .NSProcessInfoPowerStateDidChange, object: nil, queue: .main, using: recheck)
     }
 
-    private func batteryChanged() {
+    /// Re-evaluate run/pause when power conditions change (charge, level, Low Power
+    /// Mode). Only moves between `.running` and the auto-pause — never overrides a user
+    /// pause or a terminal phase.
+    private func powerStateChanged() {
         switch phase {
-        case .running where !isPluggedIn:        phase = .pausedUnplugged
-        case .pausedUnplugged where isPluggedIn:  phase = .running
+        case .running where shouldConserve:          phase = .pausedUnplugged
+        case .pausedUnplugged where !shouldConserve: phase = .running
         default: break
         }
     }

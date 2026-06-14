@@ -5,8 +5,8 @@ import SwiftUI
 /// estimate (the job measures its own throughput — no placeholder). Copy per
 /// design `text-capture-DESIGN.md` §12/§13: the load-bearing reassurance
 /// ("keep listening — capture already works for the done parts") is the lede;
-/// the bar + % are secondary; "best overnight, plugged in", "resumes if
-/// interrupted", "leave any time — keeps running".
+/// the bar + % are secondary; "runs on battery (best overnight on a charger)",
+/// "resumes if interrupted", "leave any time — keeps running".
 struct TranscribeBookView: View {
     let book: Audiobook
     @ObservedObject private var job = BookTranscriptionJob.shared
@@ -118,11 +118,11 @@ struct TranscribeBookView: View {
 
     private var guidance: some View {
         VStack(alignment: .leading, spacing: 9) {
-            row("bolt.fill", "Best overnight, plugged in.")
+            row("bolt.fill", "Runs on battery — best overnight on a charger for a full book.")
             row("arrow.clockwise", "Resumes where it left off if interrupted.")
             row("rectangle.portrait.and.arrow.right", "Leave any time — it keeps running.")
             if job.phase == .pausedUnplugged {
-                row("powerplug", "Paused — plug in to continue. Resumes automatically.", tint: .skAmber)
+                row("battery.25", "Paused to save battery (low charge or Low Power Mode). Resumes automatically.", tint: .skAmber)
             }
             if case .failed(let why) = job.phase {
                 row("exclamationmark.triangle", "Stopped: \(why)", tint: .skAmber)
