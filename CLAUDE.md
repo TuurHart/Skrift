@@ -109,8 +109,12 @@ Rules:
 
 ## Branch
 
-Converged onto **`native`** (merged `mobile-native` + `desktop-native`, 2026-06-07):
-both apps + full history on one branch so cross-app features land atomically.
+**Work on `main`.** As of **2026-06-14**, `main` IS the trunk: the `native` branch — itself
+the 2026-06-07 convergence of `mobile-native` + `desktop-native` — was fast-forwarded into
+`main` (clean, 215 commits) and pushed, so we now live on `main`. Both apps + full history on
+one branch so cross-app features land atomically. The old `native` branch still exists as a
+safety net but is no longer the working branch (delete it once comfortable). Older pre-converge
+branches (`mobile-native`, `desktop-native`, `feature/photo-capture`, …) are stale leftovers.
 
 ## Open cross-app work
 

@@ -12,7 +12,10 @@ device-install, report. Don't push to `main` (prod untouched). Mock-first only f
 3. `FEATURES.md` — every feature × {mobile,desktop} × file × status (kept current per-commit).
 
 ## STATE (2026-06-14)
-Branch `native`, **all committed, `main` untouched/un-pushed, prod untouched**. The mobile **dev** build
+**Work on `main` now** — `native` was fast-forwarded into `main` (clean, 215 commits) + pushed
+2026-06-14; we live on `main`, `native` kept as a stale safety net. **All committed.** The
+**prod Mac app** (`/Applications/Skrift.app`) is still the **Jun-9 build** until rebuilt (it's
+behind: missing the desktop vocab fix + Trash/Recently-Deleted). The mobile **dev** build
 ("Skrift Dev", `com.skrift.mobile.dev`) is installed on the **iPhone 13** (devicectl UUID
 `A9195A77-601A-54C1-B3BD-659FBFE1DC54`). Gate = `xcodebuild test` on the iPhone 17 sim — but an earlier
 `simctl erase` wiped the sim's onboarding/permissions, so the **UI** suite cross-fails on a fresh sim;
