@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# ⚠️ KNOWN LIMITATION (proven 2026-06-14): the API-key -exportArchive below FAILS the
+#    first upload — "Cloud signing permission error / No profiles for com.skrift.mobile*
+#    were found": the ASC API key's role can't mint Apple's cloud distribution profiles.
+#    Until App Store provisioning profiles exist for ALL 3 bundle IDs, upload via the
+#    Xcode Organizer GUI instead (it uses the full Apple ID, which CAN cloud-sign):
+#      open build-archive/SkriftMobile.xcarchive
+#      → Distribute App → TestFlight Internal Only → Automatically manage signing → Upload
+#    That auto-creates the profiles; after they exist this script works with manual signing
+#    (see glot-echo's ExportOptionsManual.plist). Details: NEXT_CHAT_HANDOFF.md "TestFlight".
+#
 # One-shot TestFlight upload for Skrift — internal testers, NO App Store review.
 # Replicates glot-study/echo: xcodebuild archive (Release) → -exportArchive with
 # ExportOptions.plist (method=app-store-connect, destination=upload → auto-uploads)

@@ -47,22 +47,29 @@ re-stated. Real ASR / read-along / share behaviour are device-owed (sim has no A
 (`ReadAlongView.lead` 0.1 s dial), merged capture E2E, the bidirectional/bounded selection, share-video
 open-on-import, and the new date sorts + date filter (esp. the pickers + the edited-sort over real edits).
 
-## TestFlight (NEW ask 2026-06-14 — internal testers, NO review)
-Method = how glot-study/echo does it (same team **9W82X49JZS**): `xcodebuild archive` (Release) →
-`xcodebuild -exportArchive` with **`Skrift_Native/SkriftMobile/ExportOptions.plist`** (already created:
-`method=app-store-connect`, `destination=upload` → auto-uploads to TestFlight) + an **ASC API key**
-(`-authenticationKeyPath ~/.asc-api/key.p8 -authenticationKeyID <KEY_ID> -authenticationKeyIssuerID <ISSUER>`).
-Internal testing = immediate, no Apple review. Exact commands are in `ExportOptions.plist`'s comment.
+## TestFlight — ✅ FIRST BUILD UPLOADED 2026-06-14 (0.1.0 (1), internal testing)
+Build **0.1.0 (1)** `com.skrift.mobile` **Uploaded to Apple ~10:35** (internal testers, no review).
+Credentials (all the user's, from glot-echo, same team **9W82X49JZS**): ASC key
+`~/.appstoreconnect/private_keys/AuthKey_H3KF723D6Y.p8` (key id `H3KF723D6Y`, issuer
+`3eb0862f-0eef-4f03-b387-1cfd34e8ff34`); Apple **Distribution** cert `DD79A418…C8F07703` in the keychain.
 
-**BLOCKED on 3 prereqs (credential/portal/Xcode — not code; user must provide/do):**
-1. **ASC API key not on disk** — `~/.asc-api/` is absent. Reuse the glot-echo key (same team) or download
-   one (ASC → Users & Access → Integrations → Keys); place the `.p8` + note its key ID + issuer ID.
-2. **App-Group capability on the Release bundle IDs** (`com.skrift.mobile`, `.share`, `.widget`) — one-time
-   Xcode Signing & Capabilities visit (the dev IDs got it 2026-06-12; `-allowProvisioningUpdates` can't).
-3. **ASC app record** for `com.skrift.mobile` (create it — immediate, not review).
-Release archive attempt logged in the session (run id `bjksgvzfi`) to confirm the precise signing blocker.
-Once 1–3 are in place it's the two commands above (I can run them). NOTE: TestFlight ships the **Release**
-(`com.skrift.mobile`) build — that's the first time prod signing is exercised (prod data still untouched).
+**DURABLE GOTCHA — the CLI API-key export does NOT work for the first upload.** `xcodebuild -exportArchive`
+with the ASC API key (even with `-allowProvisioningUpdates`) fails: **"Cloud signing permission error" → "No
+profiles for com.skrift.mobile{,.share,.widget} were found"** — the API key's role can't mint Apple's
+cloud-managed distribution cert/profiles (glot-echo hit the identical wall — see its `ExportOptionsManual.plist`).
+**WORKING PATH = Xcode Organizer GUI** (uses the full Apple ID session, which *has* cloud-signing permission):
+`open Skrift_Native/SkriftMobile/build-archive/SkriftMobile.xcarchive` → **Distribute App → TestFlight Internal
+Only → Automatically manage signing → Upload**. Xcode auto-creates the 3 distribution profiles + uploads.
+(`testflight.sh` / `ExportOptions.plist` only work once those App Store profiles exist — then manual-sign like
+glot-echo's `ExportOptionsManual.plist`. Until then: re-archive + GUI-distribute.)
+
+Set up this session: ASC app record for `com.skrift.mobile` (user); internal tester group + self invited
+(user); `ITSAppUsesNonExemptEncryption=false` in `project.yml` (kills the per-build "Missing Compliance"
+prompt — Skrift is offline + standard crypto, exempt). **OWED:** if ASC prompts export-compliance on build 1,
+answer "only exempt encryption", then it installs via the TestFlight app. **Next build:** bump `CFBundleVersion`,
+re-archive, GUI-distribute (steps above). NOTE: build 1 ships the **un-device-eyeballed** features (❝ glyph /
+full-screen player / merged capture / date sorts) — fine for solo internal testing; don't widen to external
+testers until they're verified on the phone.
 
 ## Pre-existing backlog (untouched) — see `backlog.md`
 Prod promotion (push `native`→`main`); Mac "name a speaker" UI (backend ready); record-a-voice enroll
