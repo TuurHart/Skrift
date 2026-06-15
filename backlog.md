@@ -214,15 +214,22 @@ From a desktop review session (screenshots in chat). Mix of bugs, features, and 
 - **Right-click → "Add new person" should open the Names settings tab** so you can fill in the rest (aliases,
   short, voice) instead of creating a bare name. Ties into the Names-UX redesign + the relink question.
 
-**DESIGN (brainstorm — DON'T build until decided)**
-- **Naming/linking model rethink.** Today: auto-link EVERY known alias (first mention → `[[Canonical]]`,
-  rest short), opt-OUT via unlink. User wants OPT-IN: "sometimes I just mention a name; I want to choose
-  whether the note is ABOUT that person — that decides if it links." Candidate models: (A) keep auto+unlink;
-  (B) per-note "About: [people]" set — only people the note is about get linked, detected mentions surface as
-  suggestions; (C) per-mention click-to-link. Gates the relink bug + the right-click flow above.
-- **Names settings fields unclear.** The list has full-name / aliases / short with thin labels. Clarify what
-  each does (alias = spoken trigger word; short = inline display name) + inline help/examples; possibly a
-  per-person detail editor instead of 3 cramped inline fields.
+**DESIGN — LOCKED 2026-06-15 (mock `mocks/opt-in-naming.html`, awaiting final sign-off → then build)**
+Opt-in naming model. Detected names render PLAIN; a "People in this note" chip bar lets you tap the people
+the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED rules:
+- **One note, one link** — FIRST mention → `[[Canonical|short]]`, every later mention stays PLAIN alias
+  (no link littering). The `people:` list carries the graph. (Changes today's conversation linker, which links
+  EVERY inline mention → first-only.)
+- **No pre-linking** — always start unlinked; user taps the chip. No auto-suggest.
+- **Conversations: auto-link the matched speaker** (clearly a subject) — SAME one-link rule (first
+  turn-header/mention canonical, rest plain).
+- **Mac-only picking for now** — phone "pick people" parked (user working that side separately). Fits the
+  phone-sends-RAW / Mac-links contract.
+- **Open note only** — adding a person re-scans the OPEN note so they appear as a chip; NO global re-scan.
+  (This is how the "added Bruno, text didn't relink" #4 + right-click #3 get resolved — deliberate tap, not auto.)
+- **Names settings redesign** — replace the 3 cramped inline columns with a clean LIST (avatar · full name ·
+  "aka" alias summary · voice) → tap a row → a labeled detail editor (Full name / Aliases / Short / Voice);
+  the SAME editor opens from right-click "Add as a person" in a note. One editor, two doors.
 
 ## Sync says "connected" but memos stay "Waiting" (2026-06-15)
 

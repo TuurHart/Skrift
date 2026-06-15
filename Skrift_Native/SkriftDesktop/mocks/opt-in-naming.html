@@ -16,6 +16,19 @@
   .note p{margin:0 0 11px}
   .link{color:var(--acc);font-weight:600}
   .plain-name{border-bottom:1.5px dotted rgb(var(--bd)/.22)}      /* a detected-but-unlinked mention */
+  .repeat{color:var(--t2)}                                        /* a 2nd+ mention of a LINKED person — stays plain */
+  .nlist .nrow{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;
+    border:.5px solid transparent}
+  .nlist .nrow:hover{background:rgb(var(--bd)/.04);border-color:rgb(var(--bd)/.08)}
+  .nlist .nrow.sel{background:rgb(var(--accent)/.10);border-color:rgb(var(--accent)/.25)}
+  .av{width:30px;height:30px;border-radius:50%;background:rgb(var(--accent)/.18);color:var(--acc);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .nrow .nm{font-size:13px;color:var(--t1);font-weight:600}
+  .nrow .sub{font-size:11px;color:var(--t3)}
+  .nrow .vchip{margin-left:auto;font-size:10.5px;color:var(--green);font-weight:600}
+  .nrow .vchip.off{color:var(--t3)}
+  .decisions{background:rgb(var(--green)/.06);border:.5px solid rgb(var(--green)/.2);border-radius:10px;padding:12px 14px}
+  .decisions li{margin:0 0 6px;color:var(--t2)} .decisions b{color:var(--t1)}
 
   /* People bar */
   .people{background:var(--surface);border:.5px solid rgb(var(--bd)/.1);border-radius:11px;padding:11px 12px;margin:0 0 16px}
@@ -90,11 +103,14 @@ Everyone else stays plain text. This makes links mean "this note is about them,"
     <div class="note">
       <p>Pizza update on <span class="link">[[Hendri Van Niekerk|Henry]]</span>'s thirty-fifth birthday.
       The dough was proofing warm so it went floppy…</p>
-      <p>Earlier <span class="plain-name">Bruno</span> dropped off the baking tray.</p>
+      <p>I reckon <span class="repeat">Henry</span> will still like it — and earlier
+      <span class="plain-name">Bruno</span> dropped off the baking tray.</p>
     </div>
     <div class="yaml"><span class="k">people:</span> <span class="v">[[Hendri Van Niekerk]]</span></div>
-    <div class="ann">Every "Henry/Hendri" mention links to the canonical (display = their short). Bruno stays
-      plain — this note isn't about Bruno. Tapping the chip off un-links + removes from <code>people:</code>.</div>
+    <div class="ann"><b>One note, one link.</b> Only the FIRST "Henry" → <span class="link">[[…|Henry]]</span>;
+      every later "Henry" stays plain (the <span class="repeat">grey-tinted</span> one) — no clutter. The
+      <code>people:</code> list still carries the graph connection. Bruno stays plain — this note isn't
+      about Bruno. Tapping the chip off un-links + removes from <code>people:</code>.</div>
   </div>
 
 </div>
@@ -128,17 +144,29 @@ Everyone else stays plain text. This makes links mean "this note is about them,"
   </div>
 
   <div class="pane" style="width:380px">
-    <div class="cap">Open questions for you</div>
-    <div class="note" style="font-size:12.5px;color:var(--t2)">
-      <p>• <b>Auto-suggest a default?</b> Should a clearly-dominant subject (mentioned a lot) be pre-linked,
-      or always start fully unlinked?</p>
-      <p>• <b>Sync direction:</b> the phone sends RAW transcript + the Mac links. Do you also want to pick
-      "people" on the phone, or is linking a Mac-only review step?</p>
-      <p>• <b>Conversations:</b> a diarized chat's <i>speakers</i> — auto-link the matched speaker (they're
-      clearly "about" the convo), or also opt-in?</p>
-      <p>• <b>Existing notes:</b> re-scan all notes for a newly-added person, or only offer it on the open note?</p>
+    <div class="cap">4 · Settings → Names — same editor, reached from here too</div>
+    <div class="nlist">
+      <div class="nrow sel"><div class="av">BA</div><div><div class="nm">Bruno Aragorn</div><div class="sub">aka Bruno, Bru</div></div><div class="vchip">〰 Voice</div></div>
+      <div class="nrow"><div class="av">HV</div><div><div class="nm">Hendri Van Niekerk</div><div class="sub">aka Henry, Hendri</div></div><div class="vchip">〰 Voice</div></div>
+      <div class="nrow"><div class="av">TH</div><div><div class="nm">Tiuri Hartog</div><div class="sub">aka Tuur, Thierry…</div></div><div class="vchip">〰 Voice</div></div>
+      <div class="nrow"><div class="av">SP</div><div><div class="nm">Sebastiaan Paap</div><div class="sub">aka sepp</div></div><div class="vchip off">no voice</div></div>
+      <div class="nrow" style="color:var(--acc)"><div class="av" style="background:rgb(var(--accent)/.1)">＋</div><div class="nm" style="color:var(--acc)">Add person…</div></div>
     </div>
+    <div class="ann">A clean LIST (avatar · full name · "aka" alias summary · voice) instead of three cramped
+      inline columns. <b>Tap a row → the panel-3 editor.</b> Right-click a word in a note opens that same
+      editor pre-filled. One editor, two doors.</div>
   </div>
+</div>
+
+<div class="pane" style="width:auto;max-width:900px;margin-top:24px">
+  <div class="cap">Locked 2026-06-15</div>
+  <ul class="decisions" style="list-style:none;padding:14px 16px;margin:0">
+    <li>✅ <b>One note, one link</b> — first mention canonical (shown as the short name), the rest plain alias. No littering.</li>
+    <li>✅ <b>No pre-linking</b> — always start unlinked; you tap the chip.</li>
+    <li>✅ <b>Conversations: auto-link the matched speaker</b> — same one-link rule (first turn/mention canonical, rest plain).</li>
+    <li>✅ <b>Mac-only picking</b> for now — phone "pick people" parked (you're working that side separately).</li>
+    <li>✅ <b>Open note only</b> — adding a person re-scans the OPEN note (so they appear as a chip); no global re-scan.</li>
+  </ul>
 </div>
 
 </body></html>
