@@ -118,7 +118,12 @@ struct BatchRunner {
         if (pf.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
             pf.enhancedTitle = suggestedTitle
         }
-        pf.enhancedSummary = try await enhancer.summary(transcript, prompts: prompts, modelRepo: repo)
+        // Skip the summary on SHORT notes (user 2026-06-15) — a brief memo doesn't need
+        // one. A manual "Redo summary" still generates it regardless (deliberate override).
+        let bodyWordCount = transcript.split(whereSeparator: \.isWhitespace).count
+        pf.enhancedSummary = bodyWordCount >= settings.effectiveSummaryMinWords
+            ? try await enhancer.summary(transcript, prompts: prompts, modelRepo: repo)
+            : ""
 
         // Deterministic steps work on the cleaned copy-edit (fall back to transcript).
         let working = copyedit.isEmpty ? transcript : copyedit

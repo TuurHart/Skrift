@@ -77,6 +77,20 @@ enum SpeakerTranscript {
         return Set(turns.map(\.name)).count >= 2
     }
 
+    /// FLATTEN a speaker-attributed transcript back to plain monologue prose: drop every
+    /// `**Name:**` header and join the turn bodies with blank lines, preserving any leading
+    /// preamble (e.g. an early `[[img_NNN]]` marker). Used by the desktop "Flatten to
+    /// monologue" action to UNDO a wrong auto-split. Returns the input unchanged when it
+    /// isn't attributed (so the caller can no-op safely).
+    static func flattened(_ transcript: String?) -> String? {
+        guard let transcript else { return nil }
+        guard let parsed = parseWithPreamble(transcript) else { return transcript }   // not a conversation
+        var parts: [String] = []
+        if !parsed.preamble.isEmpty { parts.append(parsed.preamble) }
+        parts.append(contentsOf: parsed.turns.map(\.text).filter { !$0.isEmpty })
+        return parts.joined(separator: "\n\n")
+    }
+
     /// Collapse consecutive turns by the SAME speaker label into one (joining bodies with
     /// a space) — repairs diarization fragmentation where one speaker's run was split into
     /// several tiny `**Name:**` turns. Re-emits the `**Name:** text` Markdown verbatim

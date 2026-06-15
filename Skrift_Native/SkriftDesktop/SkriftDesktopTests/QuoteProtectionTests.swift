@@ -130,8 +130,9 @@ final class QuoteProtectionTests: XCTestCase {
 
     func testRunFallsBackToUneditedTranscriptOnMutatedQuote() async throws {
         let pf = captureFile()
+        var settings = AppSettings.default; settings.summaryMinWords = 0   // keep the summary for this short capture
         let runner = BatchRunner(transcriber: FailingTranscriber(), enhancer: ManglingEnhancer(),
-                                 settings: .default, people: [], tagWhitelist: [])
+                                 settings: settings, people: [], tagWhitelist: [])
         try await runner.run(pf, audioURL: nil)
 
         XCTAssertEqual(pf.enhancedCopyedit, capture, "skip-all: the fully-unedited body")

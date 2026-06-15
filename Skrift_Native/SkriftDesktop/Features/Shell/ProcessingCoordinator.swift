@@ -256,6 +256,31 @@ final class ProcessingCoordinator {
         await process(fileIDs: [pf.id], context: context)
     }
 
+    /// "Flatten to monologue": UNDO a wrong speaker split (Sortformer over-split a
+    /// single-speaker note into `**Speaker 1/2:**`). Drops the turn headers → plain prose,
+    /// clears the diarization, then RE-ENHANCES as a monologue (copy-edit + title + summary +
+    /// ordinary name-link + recompile). The WORDS are fine, so transcribe is NOT re-run — no
+    /// re-ASR. (Conversation mode is off by default now, so `process` won't re-diarize.)
+    func flattenToMonologue(_ pf: PipelineFile, context: ModelContext) async {
+        guard !isRunning else { lastError = "A run is already going — wait for it to finish."; return }
+        guard SpeakerTranscript.isAttributed(pf.transcript),
+              let flat = SpeakerTranscript.flattened(pf.transcript) else { return }
+        pf.transcript = flat
+        pf.diarizationSegments = []
+        if !pf.path.isEmpty {
+            DiarizationSidecar().delete(in: DiarizationSidecar.workingFolder(for: pf), id: pf.id)
+        }
+        pf.sanitised = nil
+        pf.ambiguousNames = nil
+        pf.enhancedCopyedit = nil
+        pf.enhancedSummary = nil
+        pf.compiledText = nil
+        pf.sanitiseStatus = .pending
+        pf.enhanceStatus = .pending
+        try? context.save()
+        await process(fileIDs: [pf.id], context: context)   // re-enhance the flat prose as a monologue
+    }
+
     /// Re-run a single LLM step on the RAW transcript and recompile (the ⋯ menu's
     /// "Redo title / copy-edit / summary"). Loads the enhancement model first.
     func redo(_ step: RedoStep, for pf: PipelineFile, context: ModelContext) async {

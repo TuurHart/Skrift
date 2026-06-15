@@ -39,10 +39,11 @@ final class BatchRunnerTests: XCTestCase {
 
     func testFullRunPopulatesAllStepsAndLinksNames() async throws {
         let pf = PipelineFile(id: "1", filename: "memo.m4a", path: "/tmp/x", size: 0, sourceType: .audio)
+        var settings = AppSettings.default; settings.summaryMinWords = 0   // keep the summary for this short test note
         let runner = BatchRunner(
             transcriber: StubTranscriber(text: "Nick and I met today. Nick is great."),
             enhancer: EchoEnhancer(),
-            settings: .default,
+            settings: settings,
             people: [Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"], short: "Nick", lastModifiedAt: "2026-01-01T00:00:00.000Z")],
             tagWhitelist: []
         )
@@ -58,6 +59,18 @@ final class BatchRunnerTests: XCTestCase {
         let compiled = try XCTUnwrap(pf.compiledText)
         XCTAssertTrue(compiled.contains("title: \"A Title\""))
         XCTAssertTrue(compiled.hasSuffix("[[Nick Jansen]] and I met today. Nick is great."))
+    }
+
+    /// A short note (< summaryMinWords, default 75) SKIPS the Gemma summary (user 2026-06-15);
+    /// the other steps still run.
+    func testShortNoteSkipsSummary() async throws {
+        let pf = PipelineFile(id: "short", filename: "m.m4a", path: "/tmp/x", size: 0, sourceType: .audio)
+        let runner = BatchRunner(transcriber: StubTranscriber(text: "Quick reminder to call the plumber."),
+                                 enhancer: EchoEnhancer(), settings: .default, people: [], tagWhitelist: [])
+        try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/x.m4a"))
+        XCTAssertEqual(pf.enhancedSummary, "", "a short note skips the summary")
+        XCTAssertEqual(pf.enhancedTitle, "A Title", "title still generated")
+        XCTAssertEqual(pf.enhanceStatus, .done)
     }
 
     func testPresetTitleIsPreservedAsLLMBecomesSuggestion() async throws {

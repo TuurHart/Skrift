@@ -194,22 +194,23 @@ The eventual reason the app exists. When I add a note about a realization, surfa
 From a desktop review session (screenshots in chat). Mix of bugs, features, and 2 design topics:
 
 **BUGS**
-- **Desktop wrongly diarized MONOLOGUES into Speaker 1/2** (pizza + wall-inspection notes, transcribed on
-  desktop). Root cause: `BatchRunner` gates diarization on the GLOBAL `settings.conversationModeEnabled` —
-  when on, EVERY Mac-transcribed memo is diarized, and Sortformer over-split these single-speaker notes
-  (≥2 speakers ⇒ turns). Worse, **Re-transcribe is HIDDEN for attributed transcripts** (`NoteActions`/
-  `SidebarView`), so the user is STUCK with the wrong split. Need: (a) desktop conversation mode should NOT
-  be a blunt global auto-diarize — per-note opt-in (or off by default), and (b) a "flatten to monologue"
-  action (merge turns → plain prose; cheap, keeps the correct words) AND/OR "re-transcribe as single speaker"
-  for already-diarized notes. Mac has the audio, so re-ASR is possible.
+- ✅ **Desktop wrongly diarized MONOLOGUES — FIXED 2026-06-15 (off-by-default + Flatten).** Root cause: the
+  GLOBAL `settings.conversationModeEnabled` defaulted ON, so EVERY Mac transcription was diarized + Sortformer
+  over-split single-speaker notes. Fixes: (a) `conversationMode ?? false` (default OFF — no more auto-split);
+  (b) **"Flatten to monologue"** review-menu action (`ProcessingCoordinator.flattenToMonologue` +
+  `SpeakerTranscript.flattened`) — strips `**Speaker N:**` headers → prose, clears diarization, re-enhances as
+  a monologue (no re-ASR). 268 UnitTests + build green. ⏳ REMAINING (fast-follow): **per-note "Split speakers"**
+  (on-demand opt-in diarize on desktop) — needs the diarizer wired into a per-note `ProcessingCoordinator`
+  action (mirror the BatchRunner diarize block); deferred to keep this change low-risk. Capability isn't lost
+  (phone diarizes conversations; the global flag still works if turned on).
 - **Adding a new person doesn't relink existing note text.** Added "Bruno Aragorn" (alias "Bruno") in Names;
   the note's "Bruno" stayed plain (not `[[Bruno Aragorn]]`). Name-linking (Sanitiser) ran before the person
   existed; nothing re-links on add. Fix is entangled with the naming-model decision below (#design).
 
 **FEATURES**
-- **Summary only when the body is long enough.** Skip the Gemma summary for short notes (a 2-line memo
-  doesn't need a summary). Add a min-length gate in the enhancement/summary step (threshold TBD ~word/char
-  count; make it a setting). Independent of the rest.
+- ✅ **Summary only when the body is long enough — DONE 2026-06-15.** `BatchRunner` skips the Gemma summary when
+  the body has < `AppSettings.summaryMinWords` words (default 75; a real setting, tunable). A manual "Redo
+  summary" still forces it. Unit-tested (`testShortNoteSkipsSummary`).
 - **Right-click → "Add new person" should open the Names settings tab** so you can fill in the rest (aliases,
   short, voice) instead of creating a bare name. Ties into the Names-UX redesign + the relink question.
 

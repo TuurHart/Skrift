@@ -21,13 +21,20 @@ struct AppSettings: Codable, Equatable, Sendable {
     // Conversation mode: when on, the Mac diarizes a recording it transcribes itself (an
     // import, or a phone upload that wasn't already split), re-emitting multi-speaker
     // transcripts as `**[[Person]]:**` / `**Speaker N:**` turns (matched against synced
-    // voiceprints). A single-speaker recording is left as plain prose. Mirrors the phone's
-    // conversation toggle. Optional so an existing settings.json (written before this
-    // field) still decodes (synthesized Decodable throws on a missing NON-optional key) —
-    // a nil legacy value reads as ON via `conversationModeEnabled`.
-    var conversationMode: Bool? = true
-    /// Effective flag (nil legacy → on).
-    var conversationModeEnabled: Bool { conversationMode ?? true }
+    // voiceprints). A single-speaker recording is left as plain prose. Optional so an
+    // existing settings.json (written before this field) still decodes.
+    // ⚠️ DEFAULT OFF (user call 2026-06-15): an always-on global auto-diarize ran Sortformer
+    // over EVERY Mac transcription and over-split monologues into "Speaker 1/2". Diarization
+    // is now a deliberate PER-NOTE action ("Split speakers" in the review menu); this global
+    // flag only matters for the unattended batch run, and stays off unless explicitly enabled.
+    var conversationMode: Bool? = nil
+    /// Effective flag (nil → OFF; auto-diarize on batch-process only when explicitly on).
+    var conversationModeEnabled: Bool { conversationMode ?? false }
+
+    /// Skip the Gemma summary for notes shorter than this many words (user 2026-06-15 —
+    /// short memos don't need one). Optional for legacy decode; nil → 75.
+    var summaryMinWords: Int? = nil
+    var effectiveSummaryMinWords: Int { summaryMinWords ?? 75 }
 
     // Custom-vocabulary boost (CTC spot + rescore after ASR — `VocabularyBooster`):
     // words Parakeet routinely mis-hears, spelled as they should be written.

@@ -526,6 +526,12 @@ struct SidebarView: View {
                 && !SpeakerTranscript.isAttributed(f.transcript) {
                 Button("Re-transcribe") { Task { await coordinator.retranscribe(f, context: ctx) } }
             }
+            // A wrongly-split monologue (Sortformer over-split) → flatten the `**Speaker N:**`
+            // turns back to prose and re-enhance as a monologue (no re-ASR). Only for an
+            // attributed AUDIO memo (a hand-formatted note with bold headings isn't one).
+            if f.sourceType == .audio && SpeakerTranscript.isAttributed(f.transcript) {
+                Button("Flatten to monologue") { Task { await coordinator.flattenToMonologue(f, context: ctx) } }
+            }
             if f.steps.enhance == .done {
                 let isConversation = f.sourceType == .audio && SpeakerTranscript.isAttributed(f.transcript)
                 Menu("Redo") {
