@@ -26,6 +26,16 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     var bookAuthor: String?
     var bookChapter: String?
 
+    /// How the memo entered Skrift, when it's NOT an ordinary voice recording —
+    /// the first marker of the deferred "unified source taxonomy" (voice memo /
+    /// URL / PDF / video / audiobook quote / Apple Note). Currently set to
+    /// `Source.video` for a video import (audio + 1 frame) so the list row can
+    /// show a source glyph. ADDITIVE + optional — nil on every ordinary memo, so
+    /// the Mac contract stays byte-compatible. A FREE-FORM string (not an enum)
+    /// on purpose: a value written by a newer build must never fail to decode on
+    /// an older one (which a missing enum case would).
+    var sourceType: String?
+
     init(
         capturedAt: String? = nil,
         location: LocationInfo? = nil,
@@ -39,7 +49,8 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         imageManifest: [ImageManifestEntry]? = nil,
         bookTitle: String? = nil,
         bookAuthor: String? = nil,
-        bookChapter: String? = nil
+        bookChapter: String? = nil,
+        sourceType: String? = nil
     ) {
         self.capturedAt = capturedAt
         self.location = location
@@ -54,6 +65,13 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         self.bookTitle = bookTitle
         self.bookAuthor = bookAuthor
         self.bookChapter = bookChapter
+        self.sourceType = sourceType
+    }
+
+    /// Known `sourceType` values — the first entries of the deferred unified
+    /// source taxonomy. Stored as strings (see `sourceType` above).
+    enum Source {
+        static let video = "video"
     }
 }
 

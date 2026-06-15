@@ -155,6 +155,9 @@ struct MemoSaver {
                 memo.transcriptStatus = .failed
                 memo.recordedAt = recorded
                 memo.title = "Video had no audio track"
+                var meta = memo.metadata ?? MemoMetadata()
+                meta.sourceType = MemoMetadata.Source.video   // still a video → keep the source glyph
+                memo.metadata = meta
                 repository.save()
             }
             return false
@@ -185,7 +188,13 @@ struct MemoSaver {
         }
         memo.recordedAt = recorded
         memo.duration = duration
-        if !manifest.isEmpty { memo.metadata = MemoMetadata(imageManifest: manifest) }
+        // Mark the source as video (the first entry of the unified source taxonomy)
+        // so the list row shows a video glyph — set ALWAYS, even when no frame was
+        // grabbed (a silent/odd clip), preserving the frame manifest when present.
+        var meta = memo.metadata ?? MemoMetadata()
+        meta.sourceType = MemoMetadata.Source.video
+        if !manifest.isEmpty { meta.imageManifest = manifest }
+        memo.metadata = meta
         repository.save()
         DevLog.log("processVideo[\(id)] memo updated; recordedAt=\(recorded) now=\(Date()) → transcribe")
 

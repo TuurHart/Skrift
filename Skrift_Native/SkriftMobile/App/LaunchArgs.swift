@@ -37,6 +37,10 @@ enum LaunchFlags {
     /// Seed ONE memo whose transcript is a `**Name:**` conversation, to verify the real
     /// detail view renders speaker turns (`SpeakerTurnsView`).
     static var seedConversationMemo: Bool { args.boolFlag("-seedConversationMemo") }
+    /// Seed ONE video-import memo with a real LANDSCAPE (16:9) frame thumbnail (a
+    /// centered circle — distorts to an ellipse if the thumbnail squishes aspect),
+    /// so a UI test can screenshot-verify the video source glyph + thumbnail aspect.
+    static var seedVideoMemo: Bool { args.boolFlag("-seedVideoMemo") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Wipe the local names.json at launch so a conversation/voice test starts from a
     /// known-empty names slate (names.json persists across sim runs, unlike the SwiftData

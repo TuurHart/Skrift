@@ -553,6 +553,10 @@ private struct MemoCard: View {
             // (mock state 5; detected via the C2 book metadata).
             } else if memo.isBookCapture {
                 bookGlyph
+            // Video imports wear a video glyph (the trailing frame thumbnail means
+            // "has an image"; this leading glyph means "source: video").
+            } else if memo.isVideoImport {
+                videoGlyph
             }
 
             VStack(alignment: .leading, spacing: 0) {
@@ -707,6 +711,20 @@ private struct MemoCard: View {
             .accessibilityIdentifier("capture-row-glyph")
     }
 
+    /// Leading source icon for video imports (a neutral film glyph, matching the
+    /// share-capture source-glyph family — same 32×32 rounded-rect).
+    private var videoGlyph: some View {
+        RoundedRectangle.sk(10)
+            .fill(Color.skElev)
+            .frame(width: 32, height: 32)
+            .overlay(
+                Image(systemName: "video.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.skTextDim)
+            )
+            .accessibilityIdentifier("video-row-glyph")
+    }
+
     /// Leading source icon for audiobook capture rows (accent-tinted book, per
     /// the mock's `.mrow.cap .ic`).
     private var bookGlyph: some View {
@@ -754,6 +772,10 @@ private struct MemoCard: View {
         if let book = memo.bookCaptionLabel {
             out.append(Chip(text: book, symbol: "book.closed.fill"))
         }
+        // Video imports lead the meta line with a "Video" source chip.
+        if memo.isVideoImport {
+            out.append(Chip(text: "Video", symbol: "video.fill"))
+        }
         out.append(Chip(text: memo.durationLabel, symbol: nil))
         if let place = memo.metadata?.location?.placeName, !place.isEmpty {
             out.append(Chip(text: place, symbol: "mappin.circle.fill"))
@@ -769,8 +791,16 @@ private struct MemoCard: View {
         !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
     private var snippet: String {
-        if let line = memo.firstTranscriptLine { return memo.transcript ?? line }
-        return "Voice memo"
+        guard let line = memo.firstTranscriptLine else { return "Voice memo" }
+        guard let transcript = memo.transcript else { return line }
+        // Show the (2-line) transcript, but strip `[[img_NNN]]` markers so the raw
+        // marker never reads as the row text — a VIDEO import always opens with
+        // `[[img_001]]` (the frame), which otherwise filled the whole snippet.
+        let cleaned = transcript
+            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? line : cleaned
     }
     /// Secondary line for titled rows: the transcript's first line, markers stripped.
     /// Nil when there's no transcript yet (the title alone carries the row).

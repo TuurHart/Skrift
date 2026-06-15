@@ -13,10 +13,23 @@ Sharing a video from Photos → Skrift creates a memo, but THREE issues (device-
    guarded `!hasAudio` so an append never interrupts active playback (`reloadIfAudioMissing`). Format ruled out by
    a test: the extracted m4a loads in `AVAudioPlayer` with a real duration. (NOTE: `DevLog` is `#if DEBUG`-only,
    so the TestFlight/Release container has no `devlog.txt` — the pull can't work; diagnosed from code + sim.)
-2. **Thumbnail aspect ratio off** — the grabbed landscape frame is squished into a square in the Memos list row.
-   Fix the list thumbnail rendering (aspect-fill + clip, not stretch) — `MemosListView` row image.
-3. **No video/source glyph** — the memo doesn't show it came from a video. Add a video glyph (folds into the
-   deferred "Unified source taxonomy": voice memo / URL / PDF / video / audiobook quote / Apple Note).
+2. ✅ **Thumbnail aspect — INVESTIGATED + the real wart FIXED 2026-06-15.** The thumbnail does NOT squish:
+   every display path already aspect-fills + clips (`photoThumb` 48×48 + the detail `ImageEmbed`), and the
+   saved frame preserves aspect. PROVEN with `-seedVideoMemo` (a landscape 16:9 frame with a centered CIRCLE —
+   it stays a perfect circle, not an ellipse, in BOTH the row thumb and the detail embed; screenshots
+   `/tmp/skrift-video-shots`). The square thumb is a conventional center-crop, not a distortion. **What WAS
+   broken (and is the likely culprit of the "looks wrong" screenshot): the untitled-row SNIPPET leaked the raw
+   `[[img_001]]` marker** — a video transcript always opens with the frame marker, so it filled the whole snippet
+   line. Fixed `MemoCard.snippet` to strip `[[img_NNN]]` markers (titled rows already used the marker-stripped
+   `firstTranscriptLine`). (If the user's device frame genuinely distorts, suspect an anamorphic/non-square-PAR
+   source — `representativeFrame` doesn't PAR-correct; unconfirmed, no repro.)
+3. ✅ **Video/source glyph — ADDED 2026-06-15.** A video import is neither a share-capture (it HAS audio) nor a
+   book-capture, so it had no source marker. Added `MemoMetadata.sourceType` (free-form String, additive/optional,
+   value `"video"` via `MemoMetadata.Source.video`; set in `MemoSaver.processVideo` incl. the no-audio-track
+   path) → `Memo.isVideoImport` → a `video.fill` leading glyph + a "Video" chip in the list row AND the detail
+   header chips. **Mobile-only: NOT added to `UploadMetadata`** (the Mac contract is unchanged — the glyph is a
+   phone concern; the full taxonomy on the Mac is still the deferred cross-app item). First entry of the deferred
+   "Unified source taxonomy" (voice memo / URL / PDF / video / audiobook quote / Apple Note).
 
 Foundation: read `MemoSaver.swift` (importVideo/processVideo/extractAudio/representativeFrame), the Memos list
 row, the Memo-detail player. Gate: iPhone 17 sim build + device-eyeball (it's a device/share-extension flow).

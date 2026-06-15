@@ -33,6 +33,14 @@ extension Memo {
         return String(format: "%d:%02d", total / 60, total % 60)
     }
 
+    /// True when this memo was imported from a VIDEO (audio extracted + one frame).
+    /// Drives the video source glyph in the list row + the "Video" chip in detail.
+    /// A video import is an ordinary audio memo otherwise (not a share/book capture),
+    /// so it needs its own source marker (`metadata.sourceType`).
+    var isVideoImport: Bool {
+        metadata?.sourceType == MemoMetadata.Source.video
+    }
+
     /// Whole days until the startup purge permanently removes this trashed memo
     /// (ceiling — a memo deleted an hour ago shows the full 14). 0 = expires on
     /// the next purge. Nil when the memo isn't in the trash. `now` injectable

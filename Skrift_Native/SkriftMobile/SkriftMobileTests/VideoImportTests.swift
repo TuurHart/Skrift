@@ -84,6 +84,9 @@ final class VideoImportTests: XCTestCase {
         // One frame thumbnail captured + manifested.
         XCTAssertEqual(memo?.metadata?.imageManifest?.count, 1)
         XCTAssertEqual(memo?.metadata?.imageManifest?.first?.filename, "photo_\(id.uuidString)_001.jpg")
+        // Marked as a VIDEO source → the list row shows the video glyph.
+        XCTAssertEqual(memo?.metadata?.sourceType, MemoMetadata.Source.video)
+        XCTAssertTrue(memo?.isVideoImport ?? false)
         let frame = AppPaths.recordingsDirectory.appendingPathComponent("photo_\(id.uuidString)_001.jpg")
         XCTAssertTrue(FileManager.default.fileExists(atPath: frame.path), "frame thumbnail not written")
         // Embedded recording date used (not import time).

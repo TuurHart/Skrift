@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import UIKit
 
 /// Test-only data seeder for the XCUITest harness. Gated on launch flags and
 /// idempotent (skips if memos already exist). **Not for production.**
@@ -9,8 +10,56 @@ enum DemoDataSeeder {
         guard repo.allMemos().isEmpty else { return }
         if LaunchFlags.seedLongMemo { repo.insert(longMemo()); return }
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
+        if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
         guard LaunchFlags.seedDemoMemos else { return }
         for memo in demoMemos() { repo.insert(memo) }
+    }
+
+    /// One VIDEO-import memo with a REAL landscape (16:9) frame written to the
+    /// recordings dir, so the video source glyph + the thumbnail's aspect handling
+    /// are screenshot-verifiable. The frame draws a centered circle: under correct
+    /// aspect-fill it stays circular (cropped), under a squish it becomes an
+    /// ellipse — a decisive visual diagnostic for the "landscape → square" bug.
+    static func videoMemo() -> Memo {
+        let id = UUID()
+        let photoName = "photo_\(id.uuidString)_001.jpg"
+        writeLandscapeDiagnosticFrame(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName))
+        return Memo(
+            id: id,
+            audioFilename: "memo_\(id.uuidString).m4a",
+            duration: 42,
+            recordedAt: Date().addingTimeInterval(-5_400),
+            syncStatus: .waiting,
+            transcript: "[[img_001]]\n\nAdvice to my future self, recorded as a video on the balcony.",
+            transcriptStatus: .done,
+            transcriptConfidence: 0.9,
+            metadata: MemoMetadata(
+                imageManifest: [ImageManifestEntry(filename: photoName, offsetSeconds: 0)],
+                sourceType: MemoMetadata.Source.video
+            )
+        )
+    }
+
+    /// Draw a 1600×900 (16:9) JPEG: a centered circle + corner ticks, so any
+    /// horizontal squish reads as an obvious ellipse in the thumbnail/embed.
+    private static func writeLandscapeDiagnosticFrame(to url: URL) {
+        let size = CGSize(width: 1600, height: 900)
+        let image = UIGraphicsImageRenderer(size: size).image { ctx in
+            let cg = ctx.cgContext
+            cg.setFillColor(UIColor(red: 0.10, green: 0.16, blue: 0.22, alpha: 1).cgColor)
+            cg.fill(CGRect(origin: .zero, size: size))
+            // Centered circle — diameter 760, fits the center-crop square.
+            let d: CGFloat = 760
+            cg.setStrokeColor(UIColor.white.cgColor)
+            cg.setLineWidth(28)
+            cg.strokeEllipse(in: CGRect(x: (size.width - d) / 2, y: (size.height - d) / 2, width: d, height: d))
+            // Corner ticks so left/right cropping (vs squishing) is also visible.
+            cg.setFillColor(UIColor.systemTeal.cgColor)
+            for x in [CGFloat(40), size.width - 120] {
+                cg.fill(CGRect(x: x, y: 40, width: 80, height: 80))
+            }
+        }
+        try? image.jpegData(compressionQuality: 0.9)?.write(to: url)
     }
 
     /// A speaker-attributed (`**Name:**`) conversation memo — one tagged speaker + one
