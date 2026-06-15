@@ -40,10 +40,20 @@ Tiuri+Roksana take.
   Mac karaoke + voice-enroll-from-phone unlocked; byte-compatible (`50bce3a`).
 - ✅ **Transcribe a book off-charger** (`3920214`); **audiobook read-along sentence split → NLTokenizer**
   (`0a80da0`).
-- **[feature, owed] Desktop "name a speaker" review affordance** — backend (`embedSpeaker`/`addVoiceEmbedding`)
-  built + proven; the phone now uploads the segments it needs (`diar` part). UI still owed → mock-first.
-  When wired, it must re-validate the uploaded `turnSlots.count` against the transcript before trusting it
-  (the phone nils a stale map on rename, but a Mac consumer should guard too).
+- ✅ **Custom-vocab over-correction** (device garble "Tuur Skrift Tiuri Tuur…") — trust guard tightened from
+  "keep if ANY replacement trusted" to "keep ONLY if EVERY applied replacement trusted" (both apps,
+  `VocabularyBooster`; `1170369`). One distant spotter-rescue now drops the whole boost → clean unboosted.
+  Precise minSim/cbw tuning still FluidAudio-internal + device-only (DevLog + env knobs to sweep).
+- ✅ **Book transcribe in the background** (overnight/charging) — `BookBackgroundScheduler` BGProcessingTask
+  (`ade5dde`); benign failure (resumes from saved chunk). **DEVICE-TEST OWED** (no overnight run on the sim).
+- **[feature, owed — THE remaining build] Desktop "name a speaker" review affordance.** Mock SIGNED OFF
+  (`mocks/name-a-speaker.html`, 3 states: diarized turn cards → click "Speaker 2" → people-picker popover →
+  relinked `[[Roksana]]` + "voice learned"). Backend (`embedSpeaker`/`addVoiceEmbedding`) built + proven; the
+  phone now uploads the `diar` segments the Mac needs. Scope = Phase-7-size: a SwiftUI speaker-turns card view
+  for conversation memos in `NoteBody`/`NoteDisplayView` (today the body is the flat `BodyTextView` NSTextView),
+  the picker popover, and tap→relabel-all-that-speaker's-turns + `embedSpeaker`→`addVoiceEmbedding` wiring;
+  snapshot-verify via `-snapshot`. Best built ON a device-verified conversation pipeline (rebuild + test the Mac
+  Dev build first). When wired, re-validate the uploaded `turnSlots.count` vs the transcript before trusting it.
 - **[low/latent] Phone `SpeakerTranscript.parse` not pipe-aware** (a Mac `[[Canonical|spoken]]` header
   doesn't round-trip to the phone today); speaker name containing `*` breaks the Mac header regex (~never);
   monologue `process()` skips demotion when short is empty (whitespace canonical). Fix opportunistically.
