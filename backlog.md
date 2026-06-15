@@ -2,6 +2,43 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
+
+NEW DIRECTION: ship **SkriftMobile to the App Store as a standalone audiobook + notetaking app** that
+works fully **without a Mac**. Full plan (phases 0–11, portability map, device/LLM matrix + Polish
+spike, CloudKit/Obsidian sync architecture, competitor steal-list) lives in `STANDALONE_PLAN.md`.
+Branch **`standalone`**. **Plan awaiting user sign-off before building.**
+
+**LOCKED decisions:** $0.69 one-time, **NO IAP** (→ no cloud LLM cost, all on-device); **full-vision
+v1**; internal sync = **CloudKit** (SwiftData CloudKit mode, NOT iCloud-Drive file sync → no
+`filename 2.md` conflicts); Obsidian export = **one-way create-only publish** into a user-picked
+vault folder (security-scoped bookmark, `Skrift/` subfolder, per-memo file ownership); on-device
+**Polish = a gated spike** (lean Gemma, test on the real iPhone 13, ship only if it clears a hard
+memory+quality bar, else no-polish); **three coexisting modes** (standalone / standalone+Obsidian /
+paired-with-Mac) over one source of truth — Mac stays byte-compatible + opt-in.
+
+**Build order:** Phase 0 `SkriftPipelineKit` (shared pure stages) → 1 CloudKit sync → 2 Export/Obsidian
+publish → 3 de-Mac the UX  *(= standalone-capable core / earliest-shippable gate)*  → 4 Polish (spike
+first) → 5 Organization (pins/folders/nested tags/smart folders) → 6 Commonplace Book + Daily Review
++ quote cards (the differentiator) → 7 People & backlinks → 8 Journal/map/On-This-Day + semantic
+search → 9 audiobook player polish → 10 Apple Watch capture → 11 App Store readiness.
+
+**Decisions (resolved 2026-06-15):** (1) on-device name-linking = **YES** (phone still sends RAW; Mac
+re-links identically via shared code → no double-link; alias-edit UI on phone mirrors Mac); (2) audio
+sync = **CKAsset** (real audio on all devices); (3) Tier-C model = **opt-in** picker in Models tab,
+default set by the spike; (4) min iOS = **26**; (6) Apple Watch = **deferred** (fast-follow). **STILL
+OPEN: (5) folders model** — app-native vs Obsidian-subfolder — user thinking; don't build Phase 5 yet
+(doesn't block 0–4). **Cross-app no-drift principle locked:** shared `SkriftPipelineKit` code + the
+contract fixtures are the single source; deterministic re-derivation, never a one-sided "done" flag.
+**Next after sign-off:** Phase 0 (`SkriftPipelineKit`) + schedule the Phase-4a model spike on the real
+iPhone 13 (independent, longest-pole).
+
+**Mock batch 1 (2026-06-15)** — 4 HTML mocks in `SkriftDesktop/mocks/standalone-*.html`. Status:
+`models-polish` ⏸ **PARKED** (Polish behavior locked = title+summary+copy-edit mirroring Mac; held on
+the mobile title-presentation UI — desktop's Suggested/From-recording chooser is wrong for a phone;
+VERIFIED the Mac never syncs polished text back to the phone, so non-AI devices = raw). `export-obsidian`,
+`onboarding`, `commonplace-book` await the user's reaction to their flagged design decisions.
+
 ## ✅ MOSTLY DONE — Video-from-Photos import bugs (reported 2026-06-15; fixed 2026-06-15)
 
 All three symptoms addressed + sim-verified (394 unit tests green; `VideoMemoUITests` green; row + detail
@@ -151,6 +188,40 @@ need marking which aliases are "display" vs "mishear".
 The eventual reason the app exists. When I add a note about a realization, surface related notes from across the years and lay them on a timeline ("you had a similar thought in 2019, it shifted in 2021, here's where you are now").
 - **Backbone (reachable now, offline):** semantic search across the whole vault using local embedding models; retrieve + rank related notes; timeline UI. Mostly engineering, not model-limited.
 - **Harder part (deferred):** having a local LLM *narrate* the evolution well — same quality ceiling as the stale-summary problem. Defer until local models are good enough.
+
+## ⭐ Brain-dump 2026-06-15 (naming model + desktop diarization + summary gate) — triaged, brainstorm pending
+
+From a desktop review session (screenshots in chat). Mix of bugs, features, and 2 design topics:
+
+**BUGS**
+- **Desktop wrongly diarized MONOLOGUES into Speaker 1/2** (pizza + wall-inspection notes, transcribed on
+  desktop). Root cause: `BatchRunner` gates diarization on the GLOBAL `settings.conversationModeEnabled` —
+  when on, EVERY Mac-transcribed memo is diarized, and Sortformer over-split these single-speaker notes
+  (≥2 speakers ⇒ turns). Worse, **Re-transcribe is HIDDEN for attributed transcripts** (`NoteActions`/
+  `SidebarView`), so the user is STUCK with the wrong split. Need: (a) desktop conversation mode should NOT
+  be a blunt global auto-diarize — per-note opt-in (or off by default), and (b) a "flatten to monologue"
+  action (merge turns → plain prose; cheap, keeps the correct words) AND/OR "re-transcribe as single speaker"
+  for already-diarized notes. Mac has the audio, so re-ASR is possible.
+- **Adding a new person doesn't relink existing note text.** Added "Bruno Aragorn" (alias "Bruno") in Names;
+  the note's "Bruno" stayed plain (not `[[Bruno Aragorn]]`). Name-linking (Sanitiser) ran before the person
+  existed; nothing re-links on add. Fix is entangled with the naming-model decision below (#design).
+
+**FEATURES**
+- **Summary only when the body is long enough.** Skip the Gemma summary for short notes (a 2-line memo
+  doesn't need a summary). Add a min-length gate in the enhancement/summary step (threshold TBD ~word/char
+  count; make it a setting). Independent of the rest.
+- **Right-click → "Add new person" should open the Names settings tab** so you can fill in the rest (aliases,
+  short, voice) instead of creating a bare name. Ties into the Names-UX redesign + the relink question.
+
+**DESIGN (brainstorm — DON'T build until decided)**
+- **Naming/linking model rethink.** Today: auto-link EVERY known alias (first mention → `[[Canonical]]`,
+  rest short), opt-OUT via unlink. User wants OPT-IN: "sometimes I just mention a name; I want to choose
+  whether the note is ABOUT that person — that decides if it links." Candidate models: (A) keep auto+unlink;
+  (B) per-note "About: [people]" set — only people the note is about get linked, detected mentions surface as
+  suggestions; (C) per-mention click-to-link. Gates the relink bug + the right-click flow above.
+- **Names settings fields unclear.** The list has full-name / aliases / short with thin labels. Clarify what
+  each does (alias = spoken trigger word; short = inline display name) + inline help/examples; possibly a
+  per-person detail editor instead of 3 cramped inline fields.
 
 ## Sync says "connected" but memos stay "Waiting" (2026-06-15)
 
