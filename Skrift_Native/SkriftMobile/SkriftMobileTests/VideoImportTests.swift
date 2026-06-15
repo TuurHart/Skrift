@@ -91,6 +91,13 @@ final class VideoImportTests: XCTestCase {
         // Transcript landed (with the [[img_001]] marker from the manifest).
         XCTAssertEqual(memo?.transcriptStatus, .done)
         XCTAssertTrue(memo?.transcript?.contains("[[img_001]]") ?? false)
+
+        // The extracted m4a must be playable by the DETAIL player (AVAudioPlayer),
+        // not just readable by the transcriber — the "video transcribes fine but
+        // Play does nothing" bug. A loadable player with a real duration proves the
+        // export format is fine, so the no-playback bug was purely load TIMING.
+        let player = try AVAudioPlayer(contentsOf: audio)
+        XCTAssertGreaterThan(player.duration, 0, "extracted audio not playable")
     }
 
     // MARK: - Synthetic video generator

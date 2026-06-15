@@ -144,6 +144,14 @@ struct MemoDetailView: View {
             guard let newID else { return }
             player.load(memos.first { $0.id == newID }?.audioURL)
         }
+        // A VIDEO import inserts the memo and opens this screen BEFORE its audio
+        // has been extracted (extraction is async), so the initial load() hit a
+        // file that didn't exist yet and left the player with no audio — tapping
+        // Play then did nothing. When extraction lands (the duration fills in, then
+        // transcription finishes) reload so Play works. Guarded on !hasAudio so a
+        // normal append — which also moves the duration — never interrupts playback.
+        .onChange(of: currentMemo?.duration) { _, _ in reloadIfAudioMissing() }
+        .onChange(of: currentMemo?.transcriptStatus) { _, _ in reloadIfAudioMissing() }
         .onDisappear { player.stopAndClear(); repository.save() }
     }
 
@@ -195,6 +203,14 @@ struct MemoDetailView: View {
     private func copyTranscript() {
         guard let text = currentMemo?.transcript, !text.isEmpty else { return }
         UIPasteboard.general.string = text
+    }
+
+    /// Re-point the player at the current memo's audio if an earlier `load()` failed
+    /// because the file wasn't on disk yet (the async video-import extraction case).
+    /// A no-op once audio is loaded, so it never disturbs active playback.
+    private func reloadIfAudioMissing() {
+        guard !player.hasAudio else { return }
+        player.load(currentMemo?.audioURL)
     }
 
     /// Split the current memo into speakers (Auto, or force `count`). Re-runs diarization

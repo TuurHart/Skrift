@@ -65,4 +65,28 @@ final class AudioPlayerModelTests: XCTestCase {
         XCTAssertFalse(model.hasAudio)
         XCTAssertEqual(model.duration, 0)
     }
+
+    /// Bug: a VIDEO import opens Memo detail BEFORE its audio is extracted, so the
+    /// first load() sees no file and the player stays disabled. The detail view then
+    /// re-calls load() with the SAME url once the file lands — this must NOT be
+    /// short-circuited by the "already loaded this url" guard (a failed load leaves
+    /// no url cached), so the player recovers and Play works.
+    @MainActor
+    func testReloadSameURLRecoversAfterFileAppears() throws {
+        let pending = FileManager.default.temporaryDirectory
+            .appendingPathComponent("apm_pending_\(UUID().uuidString).caf")
+        defer { try? FileManager.default.removeItem(at: pending) }
+
+        let model = AudioPlayerModel()
+        // Detail opens while extraction is still running — file absent.
+        model.load(pending)
+        XCTAssertFalse(model.hasAudio, "no audio while the file doesn't exist yet")
+
+        // Extraction finishes — the audio file appears at the same url.
+        try Self.writeSilence(to: pending)
+        model.load(pending)   // the reloadIfAudioMissing() path
+        XCTAssertTrue(model.hasAudio, "player recovers once the extracted audio lands")
+        XCTAssertGreaterThan(model.duration, 0)
+        model.stopAndClear()
+    }
 }

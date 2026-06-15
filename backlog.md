@@ -5,13 +5,14 @@ Deferred ideas and features, captured during the 2026-06 overhaul planning so th
 ## ⭐ NEXT TASK — Video-from-Photos import bugs (reported 2026-06-15, on TestFlight build)
 
 Sharing a video from Photos → Skrift creates a memo, but THREE issues (device-reported, screenshots in chat):
-1. **No audio playback.** The memo transcribes fine (so audio extraction produced a playable file for ASR),
-   but tapping play in Memo detail does nothing / no audio. Trace the video path: `MemoSaver.importVideo` →
-   `processVideo` → `extractAudio` (AVAssetExportSession audio-only → `memo_<id>.m4a`) and the detail PLAYER's
-   `audioURL`/AVPlayer. Likely the extracted m4a is fine for Parakeet but the player can't play it (format/route)
-   OR the player points at the wrong file. **Pull `devlog.txt` from the phone first** (DevLog already traces
-   importVideo) to see if extraction succeeded + what the player loads. Repro is the SHARED-from-Photos path
-   (NSExtensionActivationSupportsMovieWithMaxCount → "video" inbox entry → CaptureInboxDrainer → importVideo).
+1. ✅ **No audio playback — FIXED 2026-06-15.** Root cause was load TIMING, not format: a shared-video import
+   inserts the memo and OPENS Memo detail immediately (`MemoOpenBridge`) while `processVideo`/`extractAudio`
+   still runs async, so the detail player's first `load()` hit a not-yet-existent `memo_<id>.m4a` (`hasAudio=false`)
+   and never re-fired (a normal recording/audio-import writes its file synchronously before insert, so they were
+   unaffected). Fix: `MemoDetailView` reloads the player on `currentMemo.duration` / `transcriptStatus` change,
+   guarded `!hasAudio` so an append never interrupts active playback (`reloadIfAudioMissing`). Format ruled out by
+   a test: the extracted m4a loads in `AVAudioPlayer` with a real duration. (NOTE: `DevLog` is `#if DEBUG`-only,
+   so the TestFlight/Release container has no `devlog.txt` — the pull can't work; diagnosed from code + sim.)
 2. **Thumbnail aspect ratio off** — the grabbed landscape frame is squished into a square in the Memos list row.
    Fix the list thumbnail rendering (aspect-fill + clip, not stretch) — `MemosListView` row image.
 3. **No video/source glyph** — the memo doesn't show it came from a video. Add a video glyph (folds into the
