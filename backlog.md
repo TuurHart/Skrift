@@ -48,18 +48,20 @@ Tiuri+Roksana take.
   doesn't round-trip to the phone today); speaker name containing `*` breaks the Mac header regex (~never);
   monologue `process()` skips demotion when short is empty (whitespace canonical). Fix opportunistically.
 
-## ⚠️ Custom words don't persist on device (TestFlight) — needs an on-device repro
+## ✅ RESOLVED — Custom words didn't persist on TestFlight (App Groups (Release) not registered)
 
 User reported (2026-06-15, TestFlight build 1): add words in Settings → Capture → Custom words, leave +
-return → list empty. **The store code is correct** — `CustomVocabularyStore` (`Services/Transcription/VocabularyBooster.swift`)
-uses `UserDefaults.standard` with one matching key (`customVocabularyWords`) for both `save`/`words`; that
-persists across launches. Added a defensive `.onAppear` reload in `CustomWordsView` (`a8d8ab7`) for the most
-likely cause (kept-alive view showing stale `@State`). **Do NOT "fix" by switching to an app-group suite** —
-the Release/TestFlight bundle id (`com.skrift.mobile`) has NO App Group capability yet (capture-items note
-above), so an app-group suite would silently fail to persist in Release, making it WORSE. If it still
-repros after the `.onAppear` fix, instrument `save`/`words` with `DevLog` + pull the trace to see whether the
-write lands. NOTE: this also gates the "fix misheard names with custom vocab" workflow — until it persists,
-the booster has nothing to boost.
+return → list empty. **Worked in Dev, failed in TestFlight, same Swift code** → a Release signing/entitlement
+issue, NOT the store (`CustomVocabularyStore`, `Services/Transcription/VocabularyBooster.swift`, plain
+`UserDefaults.standard`, correct). **ROOT CAUSE:** the Release entitlements (`App/SkriftMobile.entitlements`)
+DECLARE `group.com.skrift.mobile`, but the App Groups capability was only registered on the `.dev` app ids
+(2026-06-12) — the Release id never got it (the "App Groups at prod promotion" step CLAUDE.md anticipated).
+A declared-but-unprovisioned app-group entitlement leaves the Release build in an invalid-entitlement state
+that silently breaks `UserDefaults` persistence. **FIX (device-confirmed working):** user checked
+`group.com.skrift.mobile` under **App Groups (Release)** in Xcode Signing & Capabilities for the SkriftMobile
+(+ SkriftShare + SkriftWidget) targets, re-archived → TestFlight. Custom words now persist. → also unblocks
+capture/share-into-Skrift in prod (same App Group). Kept the defensive `.onAppear` reload (`a8d8ab7`).
+LESSON → [[project_testflight]]. **Do NOT** move the store to an app-group suite — fix the provisioning.
 
 ## Name-link display = SHORT name (revised 2026-06-15)
 User clarified: misheard names ("tyr"/"cherry"/"thierry" for "Tuur") must be NORMALISED, not preserved
