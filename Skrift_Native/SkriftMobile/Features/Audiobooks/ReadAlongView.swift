@@ -141,7 +141,8 @@ struct ReadAlongView: View {
                         }
                         Color.clear.frame(height: geo.size.height * 0.58)
                     }
-                    .padding(.horizontal, 2)
+                    // Headroom so the current line's scale-up can't clip at the right edge.
+                    .padding(.horizontal, 18)
                 }
                 .onChange(of: model.currentIndex) { _, idx in
                     withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(idx, anchor: .center) }
@@ -167,11 +168,15 @@ struct ReadAlongView: View {
         // the highlight doesn't reflow/shove neighbours (the "words hustle" jump).
         // Emphasis is a smooth `scaleEffect` (a transform — no layout reflow) +
         // brightness, both animatable, anchored leading so the text doesn't shift.
+        // Scale kept SUBTLE (1.04) + the panel reserves 18pt side padding, so a
+        // near-full-width current line can't grow past the right edge and clip
+        // (the "goes out of bounds" report). The brightness/opacity contrast carries
+        // most of the "current line pops" feel; the scale is just a gentle lift.
         return Text(model.sentences[i].text)
             .font(.system(size: 18, weight: .medium))
             .foregroundStyle(isCurrent ? Color.skText : (isPast ? Color.skTextFaint : Color.skTextDim))
             .opacity(isCurrent ? 1 : (abs(i - model.currentIndex) == 1 ? 0.6 : 0.32))
-            .scaleEffect(isCurrent ? 1.08 : 1.0, anchor: .leading)
+            .scaleEffect(isCurrent ? 1.04 : 1.0, anchor: .leading)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
