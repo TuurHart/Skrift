@@ -1,0 +1,144 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Opt-in naming — mock</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5; --amber:#f59e0b; --green:#34d399; --bd:255 255 255;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:28px 24px 80px;font-size:13px;line-height:1.55}
+  h1{font-size:15px;font-weight:700;margin:0 0 4px}
+  .lede{color:var(--t2);max-width:760px;margin:0 0 22px}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .pane{background:var(--bg);border:.5px solid rgb(var(--bd)/.1);border-radius:14px;padding:18px 18px 22px;width:430px}
+  .cap{font-size:11px;letter-spacing:.5px;color:var(--t3);font-weight:700;text-transform:uppercase;margin:0 0 10px}
+  .note{color:var(--t1);font-size:13.5px}
+  .note p{margin:0 0 11px}
+  .link{color:var(--acc);font-weight:600}
+  .plain-name{border-bottom:1.5px dotted rgb(var(--bd)/.22)}      /* a detected-but-unlinked mention */
+
+  /* People bar */
+  .people{background:var(--surface);border:.5px solid rgb(var(--bd)/.1);border-radius:11px;padding:11px 12px;margin:0 0 16px}
+  .people .hdr{display:flex;align-items:center;gap:7px;color:var(--t2);font-size:11.5px;margin:0 0 9px}
+  .people .hdr b{color:var(--t1)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:8px;font-size:12px;cursor:pointer;
+    background:rgb(var(--bd)/.05);border:.5px solid rgb(var(--bd)/.08);color:var(--t2)}
+  .chip .plus{font-size:13px;line-height:1;color:var(--t3)}
+  .chip.on{background:rgb(var(--accent)/.16);border-color:rgb(var(--accent)/.4);color:var(--acc);font-weight:600}
+  .chip.on .plus{color:var(--acc)}
+  .chip.add{border-style:dashed;color:var(--t3)}
+  .yaml{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--t2);
+    background:#000;border:.5px solid rgb(var(--bd)/.08);border-radius:8px;padding:9px 11px;margin:14px 0 0}
+  .yaml .k{color:var(--t3)} .yaml .v{color:var(--acc)}
+  .note-meta{display:flex;gap:8px;align-items:center;color:var(--t3);font-size:11.5px;margin:0 0 14px}
+  .arrow{color:var(--t3);font-size:30px;align-self:center;padding-top:120px}
+
+  /* Names editor */
+  .field{margin:0 0 13px}
+  .field label{display:block;color:var(--t1);font-size:12.5px;font-weight:600;margin:0 0 3px}
+  .field .help{color:var(--t3);font-size:11px;margin:0 0 6px}
+  .field input{width:100%;background:var(--elev);border:.5px solid rgb(var(--bd)/.1);border-radius:8px;
+    padding:8px 10px;color:var(--t1);font-size:13px;font-family:inherit}
+  .field .demo{color:var(--t2)} .field .demo b{color:var(--acc)}
+  .voice{display:flex;align-items:center;gap:8px;color:var(--green);font-size:12.5px;font-weight:600;margin:2px 0 0}
+  .note small{color:var(--t3)}
+  .ann{color:var(--amber);font-size:11px;margin:6px 0 0}
+</style></head><body>
+
+<h1>Opt-in naming — proposal (sign-off mock)</h1>
+<p class="lede">Decided 2026-06-15: names are <b>not</b> auto-linked. A note declares the people it's
+<i>about</i>; only those get <span class="link">[[linked]]</span> and land in a <code>people:</code> list.
+Everyone else stays plain text. This makes links mean "this note is about them," not "this word was said."</p>
+
+<div class="row">
+
+  <!-- STATE 1: detected, nothing linked yet -->
+  <div class="pane">
+    <div class="cap">1 · After processing — nothing linked yet</div>
+    <div class="people">
+      <div class="hdr">👤 <b>People in this note</b> · tap to link the ones it's about</div>
+      <div class="chips">
+        <span class="chip"><span class="plus">＋</span> Hendri</span>
+        <span class="chip"><span class="plus">＋</span> Bruno</span>
+        <span class="chip add">＋ Someone else…</span>
+      </div>
+    </div>
+    <div class="note-meta">Fri, 1 May 2026 · 🎙 Voice memo</div>
+    <div class="note">
+      <p>Pizza update on <span class="plain-name">Henry</span>'s thirty-fifth birthday. The dough was
+      proofing warm so it went floppy…</p>
+      <p>Earlier <span class="plain-name">Bruno</span> dropped off the baking tray.</p>
+    </div>
+    <div class="ann">Detected mentions are underlined-dotted = recognised, but plain text. No link yet.</div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- STATE 2: linked Hendri only -->
+  <div class="pane">
+    <div class="cap">2 · Tapped "Hendri" → this note is about them</div>
+    <div class="people">
+      <div class="hdr">👤 <b>People in this note</b></div>
+      <div class="chips">
+        <span class="chip on">✓ Hendri Van Niekerk</span>
+        <span class="chip"><span class="plus">＋</span> Bruno</span>
+        <span class="chip add">＋ Someone else…</span>
+      </div>
+    </div>
+    <div class="note-meta">Fri, 1 May 2026 · 🎙 Voice memo</div>
+    <div class="note">
+      <p>Pizza update on <span class="link">[[Hendri Van Niekerk|Henry]]</span>'s thirty-fifth birthday.
+      The dough was proofing warm so it went floppy…</p>
+      <p>Earlier <span class="plain-name">Bruno</span> dropped off the baking tray.</p>
+    </div>
+    <div class="yaml"><span class="k">people:</span> <span class="v">[[Hendri Van Niekerk]]</span></div>
+    <div class="ann">Every "Henry/Hendri" mention links to the canonical (display = their short). Bruno stays
+      plain — this note isn't about Bruno. Tapping the chip off un-links + removes from <code>people:</code>.</div>
+  </div>
+
+</div>
+
+<div class="row" style="margin-top:26px">
+  <!-- STATE 3: Names person editor (right-click "Add person" opens this) -->
+  <div class="pane" style="width:380px">
+    <div class="cap">3 · Person editor — right-click a word → "Add as a person" opens this</div>
+    <div class="field">
+      <label>Full name</label>
+      <div class="help">The Obsidian note title. Becomes the <span class="link">[[link]]</span> target.</div>
+      <input value="Bruno Aragorn">
+    </div>
+    <div class="field">
+      <label>Aliases</label>
+      <div class="help">Spoken words (comma-separated) that should be RECOGNISED as this person.</div>
+      <input value="Bruno, Bru">
+      <div class="demo" style="font-size:11px;margin-top:5px">saying "Bruno" → recognised as <b>Bruno Aragorn</b></div>
+    </div>
+    <div class="field">
+      <label>Short name</label>
+      <div class="help">How the inline link reads: <span class="link">[[Bruno Aragorn|Bruno]]</span>.</div>
+      <input value="Bruno">
+    </div>
+    <div class="field">
+      <label>Voice</label>
+      <div class="voice">〰 Voice enrolled</div>
+    </div>
+    <div class="ann">After saving a NEW person, the note re-scans → they appear as a chip in the People bar
+      (state 1) so you can choose to link them. (Fixes "added Bruno, text didn't update".)</div>
+  </div>
+
+  <div class="pane" style="width:380px">
+    <div class="cap">Open questions for you</div>
+    <div class="note" style="font-size:12.5px;color:var(--t2)">
+      <p>• <b>Auto-suggest a default?</b> Should a clearly-dominant subject (mentioned a lot) be pre-linked,
+      or always start fully unlinked?</p>
+      <p>• <b>Sync direction:</b> the phone sends RAW transcript + the Mac links. Do you also want to pick
+      "people" on the phone, or is linking a Mac-only review step?</p>
+      <p>• <b>Conversations:</b> a diarized chat's <i>speakers</i> — auto-link the matched speaker (they're
+      clearly "about" the convo), or also opt-in?</p>
+      <p>• <b>Existing notes:</b> re-scan all notes for a newly-added person, or only offer it on the open note?</p>
+    </div>
+  </div>
+</div>
+
+</body></html>
