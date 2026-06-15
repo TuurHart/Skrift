@@ -135,12 +135,12 @@ The desktop↔mobile split is overwhelmingly INTENTIONAL (phone records/captures
 enhances/exports). The audit (verified each `FEATURES.md` row against real code in both apps + a completeness
 critic) found exactly **two real functional gaps** to bridge; everything else is by-design or already parity:
 
-1. **HIGH — Desktop list has no text search + no sort.** Mobile has full text search + 5 sort modes +
-   multi-axis filters; the Mac sidebar has only a 3-way `QueueFilter` (All / Needs Work / Done). The Mac is the
-   triage hub where memos pile up before export, so this bites as the queue grows. **Bridge:** add a search
-   field + sort enum mirroring mobile's `MemoSort`/`MemoFilter`. Files: desktop `AppModel.swift`
-   (`QueueFilter`, `matchesFilter`) + `Features/Sidebar/SidebarView.swift`; ref mobile `MemosListView.swift`
-   (`matchesSearch`, `MemoSort`, `SortFilterSheet`). Effort: medium.
+1. ✅ **DONE 2026-06-15 — Desktop list search + sort.** Added to the Mac sidebar: a text-search field
+   (title/transcript/summary), a Newest/Oldest/Title sort cycle, and a "No matches" empty state, on top of the
+   existing 3-way `QueueFilter`. `AppModel.matchesSearch`/`SidebarSort`/`visible` + `SidebarView.searchField`/
+   `sortControl`/`noMatches`. Live-verified via `SidebarSearchSortUITests` (the sidebar can't be `-snapshot`'d —
+   ImageRenderer can't render its `FilePromiseDropCatcher`/`dropDestination`; macOS XCUITest needs Automation
+   permission enabled). Sort is a cycle BUTTON (not a Menu) on purpose — a Menu also breaks ImageRenderer.
 2. **MEDIUM (low-ish lift) — Mobile direct "Add voice" enrollment is a stub.** Enrolling a voiceprint via
    CONVERSATION speaker-naming is fully real (`VoiceEnroller.enroll`); only the direct "Add voice" button in
    Names→PersonDetail is a placeholder ("Got it"). **Bridge:** wire `VoiceEnrollView` to a short recorder →

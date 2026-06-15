@@ -18,7 +18,7 @@ struct SidebarView: View {
     var scrollable = true
     @Environment(\.modelContext) private var ctx
 
-    private var filtered: [PipelineFile] { files.filter { model.matchesFilter($0) } }
+    private var filtered: [PipelineFile] { model.visible(files) }
     private var orderedIDs: [String] { filtered.map(\.id) }
     private var readyCount: Int { files.filter { $0.queueStatus == .ready }.count }
     private var queuedCount: Int { files.filter { $0.queueStatus == .queued }.count }
@@ -136,6 +136,8 @@ struct SidebarView: View {
                 processButton
             }
 
+            searchField
+
             filterChips
         }
         .padding(.horizontal, 12)
@@ -200,6 +202,32 @@ struct SidebarView: View {
         .buttonStyle(.plain)
     }
 
+    /// Free-text search over the queue (title / transcript / summary). Mirrors the
+    /// phone's search field — the Mac is the triage hub, so finding a memo by content
+    /// matters most here.
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+            TextField("Search memos", text: $model.searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.textPrimary)
+                .accessibilityIdentifier("sidebar.search")
+            if !model.searchText.isEmpty {
+                Button { model.searchText = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
+        .overlay(RoundedRectangle(cornerRadius: 7).stroke(Theme.hairline.opacity(0.08), lineWidth: 0.5))
+    }
+
     private var filterChips: some View {
         HStack(spacing: 5) {
             ForEach(QueueFilter.allCases, id: \.self) { f in
@@ -216,7 +244,27 @@ struct SidebarView: View {
                     .onTapGesture { model.filter = f }
             }
             Spacer(minLength: 0)
+            sortControl
         }
+    }
+
+    /// Queue ordering, trailing the filter chips. A compact cycle button (Newest →
+    /// Oldest → Title) rather than a Menu: a Menu can't render in `ImageRenderer`
+    /// (the snapshot harness) and poisoned the whole sidebar render — a plain
+    /// Button+Text renders cleanly and is the same chip idiom as the filters.
+    private var sortControl: some View {
+        Button { model.sort = model.sort.next } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.up.arrow.down").font(.system(size: 9, weight: .semibold))
+                Text(model.sort.short).font(.system(size: 10.5, weight: .medium))
+            }
+            .foregroundStyle(Theme.textSecondary)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .help("Sort: \(model.sort.rawValue) — tap to change")
+        .accessibilityIdentifier("sidebar.sort")
     }
 
     // ── Triage line — what needs ME right now ───────────────
@@ -240,6 +288,8 @@ struct SidebarView: View {
     @ViewBuilder private var queue: some View {
         if files.isEmpty {
             emptyQueue
+        } else if filtered.isEmpty {
+            noMatches
         } else {
             // Plain VStack (not Lazy) is fine for a personal-scale vault; revisit
             // windowing (List / lazy) only if a very large queue shows scroll jank.
@@ -259,6 +309,24 @@ struct SidebarView: View {
                 VStack(spacing: 0) { content; Spacer(minLength: 0) }
             }
         }
+    }
+
+    /// Search/filter excluded every memo (the queue itself isn't empty). Mirrors
+    /// the phone's "No matches" so a too-narrow query never reads as "no memos".
+    private var noMatches: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 22)).foregroundStyle(Theme.textMuted.opacity(0.5))
+            Text("No matches").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
+            if !model.searchText.isEmpty {
+                Text("Nothing matches “\(model.searchText)”.")
+                    .font(.system(size: 11.5)).foregroundStyle(Theme.textMuted)
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 24)
+        .accessibilityIdentifier("sidebar.no-matches")
     }
 
     /// First-run guidance when there are no notes yet (P2a).
