@@ -43,7 +43,18 @@ Sharing a video from Photos → Skrift creates a memo, but THREE issues (device-
    line. Fixed `MemoCard.snippet` to strip `[[img_NNN]]` markers (titled rows already used the marker-stripped
    `firstTranscriptLine`). (If the user's device frame genuinely distorts, suspect an anamorphic/non-square-PAR
    source — `representativeFrame` doesn't PAR-correct; unconfirmed, no repro.)
-3. ✅ **Video/source glyph — ADDED 2026-06-15.** A video import is neither a share-capture (it HAS audio) nor a
+3b. ✅ **Source glyph BRIDGED TO DESKTOP + date fix — 2026-06-15 (device-reported follow-up).** The Mac still
+   showed a synced video as mic + "Voice memo" (the marker was mobile-only) AND showed today's date instead of the
+   video's filming date. Fixes: (a) phone uploads `sourceType` (additive `UploadMetadata` field); the Mac reads it
+   → `PipelineFile.mediaSource` → a **unified `sourceDescriptor`** in `QueueDerivations` that drives BOTH the
+   sidebar glyph AND the detail "source" label (so glyph+label always correspond) across the whole taxonomy
+   (Voice memo/Video/Audiobook quote/Link/Image/Text/File/Apple Note); `IngestService.ingestVideo` sets the same
+   marker for Mac-side video imports; `NoteProperties`/`NoteDisplayView` source labels now use it. (b) `UploadService`
+   uses the phone's `recordedAt` for `pf.uploadedAt` (was upload-time → a Photos video showed "today"). Unit-tested
+   (`UploadServiceTests.testIngestVideoUsesRecordedDateAndMarksSource`); 265 desktop UnitTests + full build green.
+   NOTE: an ALREADY-synced video won't retroactively fix (ingested pre-fix) — re-sync to see it; the sidebar glyph
+   can't be `-snapshot`'d (ImageRenderer/drop-catcher) so eyeball on the Mac.
+3. ✅ **Video/source glyph (mobile) — ADDED 2026-06-15.** A video import is neither a share-capture (it HAS audio) nor a
    book-capture, so it had no source marker. Added `MemoMetadata.sourceType` (free-form String, additive/optional,
    value `"video"` via `MemoMetadata.Source.video`; set in `MemoSaver.processVideo` incl. the no-audio-track
    path) → `Memo.isVideoImport` → a `video.fill` leading glyph + a "Video" chip in the list row AND the detail

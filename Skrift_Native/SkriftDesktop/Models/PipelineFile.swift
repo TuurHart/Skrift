@@ -57,6 +57,11 @@ final class PipelineFile {
     var path: String = ""
     var size: Int = 0
     var sourceType: SourceType = SourceType.audio
+    /// Finer-grained source marker WITHIN an audio memo (which is processed as
+    /// audio either way) — the unified source taxonomy: `"video"` for a video
+    /// import (phone-uploaded or desktop-ingested). Drives the source glyph +
+    /// label. ADDITIVE, nil default → lightweight SwiftData migration.
+    var mediaSource: String? = nil
 
     // Step state as individual enum columns (safe; ProcessingSteps struct is NOT
     // a stored attribute — see the gotcha note above).

@@ -106,6 +106,11 @@ struct UploadMetadata: Codable {
     var bookTitle: String?
     var bookAuthor: String?
     var bookChapter: String?
+    /// How the memo entered Skrift when it's NOT a plain recording — the unified
+    /// source taxonomy marker ("video" today). Additive/optional → byte-compatible
+    /// (absent on older builds + plain voice memos). The Mac uses it for the source
+    /// glyph + label.
+    var sourceType: String?
     var tags: [String]
     var source: String
     /// Optional phone-set title. The Mac may use it in its title chooser instead
@@ -138,6 +143,7 @@ struct UploadMetadata: Codable {
         bookTitle = meta?.bookTitle
         bookAuthor = meta?.bookAuthor
         bookChapter = meta?.bookChapter
+        sourceType = meta?.sourceType
         tags = memo.tags
         source = "mobile"
         let trimmedTitle = memo.title?.trimmingCharacters(in: .whitespacesAndNewlines)

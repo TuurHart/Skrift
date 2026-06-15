@@ -62,6 +62,17 @@ struct UploadService: Sendable {
             let pf = PipelineFile(id: id, filename: filename, path: original.path,
                                   size: size, sourceType: .audio)
             if let metaData = metadataPart?.data { pf.audioMetadataJSON = metaData }   // verbatim passthrough
+            // Use the phone's CONTENT date (recordedAt), not the upload time — a video
+            // imported from Photos keeps its filming date (e.g. yesterday), so the Mac
+            // must show that, not "today". (The phone's extracted m4a has no embedded
+            // date to backfill from, so this is the only correct source.)
+            if let rec = (meta?["recordedAt"] as? String).flatMap(ISO8601.date(from:)) {
+                pf.uploadedAt = rec
+            }
+            // Unified source taxonomy marker (e.g. "video") → source glyph + label.
+            if let src = (meta?["sourceType"] as? String)?.trimmingCharacters(in: .whitespaces), !src.isEmpty {
+                pf.mediaSource = src
+            }
             // Phone may send an optional user-set `title` — honor it (BatchRunner
             // won't clobber a pre-set enhancedTitle; the LLM title becomes the suggestion).
             if let title = (meta?["title"] as? String)?.trimmingCharacters(in: .whitespaces), !title.isEmpty {

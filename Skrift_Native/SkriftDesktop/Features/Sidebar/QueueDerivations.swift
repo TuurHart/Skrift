@@ -58,23 +58,33 @@ extension PipelineFile {
         return sc["type"] as? String
     }
 
-    /// SF Symbol for the row's source glyph.
-    var sourceSymbol: String {
-        // An audiobook quote capture wears the book glyph (same symbol as the
-        // phone's memo rows). It syncs as `sourceType: .audio` — the captured span
-        // IS the memo's audio — so the type alone can't tell it from a voice memo;
-        // the C2 `bookTitle` in the metadata blob is the discriminator.
-        if bookCapture != nil { return "book.closed.fill" }
+    /// SF Symbol for the row's source glyph — the unified source taxonomy. Pairs
+    /// with `sourceTypeLabel` (same `sourceDescriptor`) so the sidebar glyph and the
+    /// detail "source" line ALWAYS correspond.
+    var sourceSymbol: String { sourceDescriptor.glyph }
+
+    /// Human label for the detail "source" field — the SAME descriptor as the row
+    /// glyph, so glyph and label can never disagree (e.g. a video shows the film
+    /// glyph + "Video", not the mic + "Voice memo").
+    var sourceTypeLabel: String { sourceDescriptor.label }
+
+    /// Single source of truth for (glyph, label). Discriminators, in priority:
+    /// audiobook quote (C2 `bookTitle` blob) → video (`mediaSource`) → the base
+    /// `sourceType`/`sharedContentType`. A book capture + a video both sync as
+    /// `.audio`, so type alone can't tell them apart — the markers do.
+    private var sourceDescriptor: (glyph: String, label: String) {
+        if bookCapture != nil { return ("book.closed.fill", "Audiobook quote") }
+        if mediaSource == "video" { return ("video.fill", "Video") }
         switch sourceType {
-        case .note:  return "note.text"
-        case .audio: return "mic.fill"
+        case .note:  return ("note.text", "Apple Note")
+        case .audio: return ("mic.fill", "Voice memo")
         case .capture:
             switch sharedContentType {
-            case "url":   return "link"
-            case "image": return "photo"
-            case "file":  return "doc"
-            case "text":  return "text.quote"
-            default:      return "square.and.arrow.down"
+            case "url":   return ("link", "Link")
+            case "image": return ("photo", "Image")
+            case "text":  return ("text.quote", "Text")
+            case "file":  return ("doc", "File")
+            default:      return ("square.and.arrow.down", "Capture")
             }
         }
     }

@@ -162,6 +162,24 @@ final class UploadServiceTests: XCTestCase {
         let pf2 = try XCTUnwrap(svc.ingest(parts: bare, into: ctx).first)
         XCTAssertNil(pf2.significance)
     }
+
+    /// A phone VIDEO import: keep the video's CONTENT date (`recordedAt`), NOT the
+    /// upload time (the extracted m4a has no embedded date to backfill), and carry
+    /// the `"video"` source marker so the Mac shows the video glyph + "Video" label.
+    func testIngestVideoUsesRecordedDateAndMarksSource() throws {
+        let svc = UploadService(outputDir: tempDir())
+        let ctx = try memoryContext()
+        let metaJSON = #"{"transcriptConfidence":0.9,"recordedAt":"2026-06-14T17:44:01.000Z","sourceType":"video"}"#
+        let parts = [
+            MultipartPart(name: "files", filename: "memo_vid.m4a", contentType: "audio/mp4", data: Data("AUDIO".utf8)),
+            MultipartPart(name: "metadata", filename: nil, contentType: "application/json", data: Data(metaJSON.utf8)),
+        ]
+        let pf = try XCTUnwrap(svc.ingest(parts: parts, into: ctx).first)
+        XCTAssertEqual(pf.mediaSource, "video", "video marker drives the source glyph + label")
+        let expected = try XCTUnwrap(ISO8601.date(from: "2026-06-14T17:44:01.000Z"))
+        XCTAssertEqual(pf.uploadedAt.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 1.0,
+                       "the phone's recordedAt (content date) must win over the upload time")
+    }
 }
 
 // MARK: - C3 Capture ingest tests

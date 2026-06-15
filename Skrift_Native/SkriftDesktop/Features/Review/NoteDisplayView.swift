@@ -439,11 +439,9 @@ struct NoteDisplayView: View {
     }
 
     private func sourceLabel(_ file: PipelineFile) -> String {
-        switch file.sourceType {
-        case .audio: return "Voice memo"
-        case .note: return "Apple Note"
-        case .capture: return "Capture"
-        }
+        // Unified source taxonomy (mic / video / book / link / image / text / file /
+        // Apple Note) — shares `sourceTypeLabel` with the sidebar glyph so they match.
+        file.sourceTypeLabel
     }
 
     /// The pinned transport + actions bar, given a Liquid Glass treatment so it reads

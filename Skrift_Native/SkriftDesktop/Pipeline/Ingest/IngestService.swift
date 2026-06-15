@@ -112,6 +112,7 @@ struct IngestService: Sendable {
         // so the title isn't "original" and it's recognizable in the queue.
         let pf = PipelineFile(id: id, filename: filename, path: dest.path, size: size,
                               sourceType: .audio, uploadedAt: recorded)
+        pf.mediaSource = "video"   // unified source taxonomy → video glyph + label
         context.insert(pf)
         return pf
     }

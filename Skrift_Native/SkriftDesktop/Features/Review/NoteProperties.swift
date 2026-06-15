@@ -191,24 +191,18 @@ struct NoteProperties: View {
     }
 
     private var sourceLabel: String {
-        // A book capture syncs as `.audio` (the span IS the memo's audio) — the C2
-        // bookTitle is what marks it, so name the book right on the source line.
-        if let book = file.bookCapture { return "Audiobook quote · \(book.title)" }
-        switch file.sourceType {
-        case .audio: return "Voice memo"
-        case .note: return "Apple Note"
-        case .capture:
-            let sc = SharedContent.decode(from: file.audioMetadataJSON)
+        // The unified source taxonomy label — SAME descriptor as the sidebar glyph
+        // (`file.sourceTypeLabel`: Voice memo / Video / Audiobook quote / Link /
+        // Image / Text / File / Apple Note) — plus the extras this surface shows:
+        // the book title for an audiobook quote, and the provenance for a capture.
+        let base = file.sourceTypeLabel
+        if let book = file.bookCapture { return "\(base) · \(book.title)" }
+        if file.sourceType == .capture {
             let metaObj = (try? JSONSerialization.jsonObject(with: file.audioMetadataJSON ?? Data())) as? [String: Any]
             let sourceStr = (metaObj?["source"] as? String).map { " · \($0)" } ?? " · phone"
-            switch sc?.type {
-            case "url":   return "Shared link" + sourceStr
-            case "text":  return "Shared text" + sourceStr
-            case "image": return "Shared image" + sourceStr
-            case "file":  return "Shared file" + sourceStr
-            default:      return "Capture" + sourceStr
-            }
+            return base + sourceStr
         }
+        return base
     }
 
     private var divider: some View {
