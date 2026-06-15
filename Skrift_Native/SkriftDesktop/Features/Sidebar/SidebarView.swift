@@ -552,7 +552,7 @@ struct SidebarView: View {
             }
             Menu("Copy") {
                 Button("Transcript") { copyText(f.transcript ?? "") }
-                Button("Markdown") { copyText(f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName)) }
+                Button("Markdown") { copyText(f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName, knownPeople: NamesStore.shared.livePeople())) }
             }
             Divider()
             Button("Delete", role: .destructive) { deleteFiles([f]) }

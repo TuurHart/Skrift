@@ -23,7 +23,9 @@ enum VaultExporter {
         let vaultURL = URL(fileURLWithPath: vault)
         try FileManager.default.createDirectory(at: vaultURL, withIntermediateDirectories: true)
 
-        let markdown = Compiler.compile(file: pf, author: settings.authorName)
+        // Filter `people:` to actual persons at export — the vault output is the one that
+        // must be clean (no place/embed links leaking into the people graph).
+        let markdown = Compiler.compile(file: pf, author: settings.authorName, knownPeople: NamesStore.shared.livePeople())
         let stem = (pf.filename as NSString).deletingPathExtension
         let base = (pf.enhancedTitle?.isEmpty == false) ? pf.enhancedTitle! : stem
         // Obsidian forbids * " \ / < > : | ? in note names (cross-platform sync)

@@ -149,7 +149,7 @@ struct BatchRunner {
         pf.enhanceStatus = .done
 
         // 5. Compile the review draft (body precedence: sanitised → copy-edit → transcript).
-        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName)
+        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
     }
 
     // MARK: Capture pipeline (C3 enhancement-lite)
@@ -193,7 +193,7 @@ struct BatchRunner {
         }
 
         pf.enhanceStatus = .done
-        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName)
+        pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: people)
     }
 
     /// Title fallback chain for an empty-annotation capture:

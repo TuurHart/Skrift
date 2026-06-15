@@ -262,9 +262,15 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
      voiceprints) + `coordinator.resanitiseForNames(open note only)` so the new person shows as a chip — no global
      re-scan. `NamesStore.delete` tombstones. Snapshot-verified (`-snapshot-names` panel 4, `-snapshot-person-editor`
      panel 3) + 3 upsert/delete/rename unit tests.
-  **ALL 5 BUILD STEPS DONE 2026-06-15.** Gates each chunk: UnitTests 285 green (+18 over baseline) + full
+  **ALL 5 BUILD STEPS DONE 2026-06-15.** Gates each chunk: UnitTests 288 green (+21 over baseline) + full
   `-skipMacroValidation` build green. Review UI eyeballed via dedicated PNG snapshots (chip bar 3 states, names list,
   person editor) — all match the mock. Deploy desktop per [[feedback_desktop_dev_deploy]] (owed, prod idle).
+  **Adversarial review pass (4-dimension workflow + verify) → 4 real fixes:** (1) `processConversation` ambiguity was
+  computed over the WHOLE names DB, not the in-play (about ∪ speakers) set → tapping one of two same-alias people now
+  links inline (matches `process`); (2) `people:` now filters to KNOWN PERSONS + skips `![[embeds]]` (a place/embed in
+  an Apple-Note/capture body no longer pollutes the people graph) — `Compiler.compile(knownPeople:)` threaded through
+  all production call sites incl. export; (3) `NamesStore.upsert` MERGES on an add-name collision instead of clobbering
+  an existing person's aliases/voice; (4) `linkInline` demotes to the canonical when a person has no short. +3 tests.
 
 ## Sync says "connected" but memos stay "Waiting" (2026-06-15)
 

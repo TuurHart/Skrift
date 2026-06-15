@@ -42,6 +42,17 @@ final class CompilerTests: XCTestCase {
                       "distinct canonicals in reading order, img marker excluded; got: \(md)")
     }
 
+    func testPeopleFilteredToKnownPersonsAndSkipsEmbeds() {
+        // Body carries a PERSON link, a PLACE link, and an image EMBED. people: must list
+        // only the known person — the place + embed are excluded.
+        let pf = makeFile()
+        pf.sanitised = "Met [[Nick Jansen]] at [[Hotel Du Vin]]. ![[photo.jpg]]"
+        let people = [Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"], short: "Nick", lastModifiedAt: "x")]
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01", knownPeople: people)
+        let peopleLine = md.split(separator: "\n").first { $0.hasPrefix("people:") }.map(String.init) ?? ""
+        XCTAssertEqual(peopleLine, "people: [[Nick Jansen]]", "only the known person; place + embed excluded")
+    }
+
     func testPeopleEmptyWhenNobodyLinked() {
         let pf = makeFile()
         pf.sanitised = "A plain note about Henry and Bruno, nobody linked."

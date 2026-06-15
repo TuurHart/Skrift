@@ -129,12 +129,22 @@ final class NamesStore {
     /// `writeWithSmartBumps` (which also carries forward voiceprints the editor doesn't round-trip).
     func upsert(_ person: Person, replacing originalCanonical: String?) {
         var people = livePeople()
-        let newKey = NamesMerge.keyName(person.canonical).trimmingCharacters(in: .whitespaces).lowercased()
-        let origKey = originalCanonical.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() } ?? newKey
-        if let i = people.firstIndex(where: { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() == origKey }) {
+        func key(_ c: String) -> String { NamesMerge.keyName(c).trimmingCharacters(in: .whitespaces).lowercased() }
+        let newKey = key(person.canonical)
+        if let orig = originalCanonical, let i = people.firstIndex(where: { key($0.canonical) == key(orig) }) {
+            // An EDIT (incl. rename): full replace, so removing an alias actually takes effect.
             people[i] = person
-        } else if let i = people.firstIndex(where: { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() == newKey }) {
-            people[i] = person
+        } else if let i = people.firstIndex(where: { key($0.canonical) == newKey }) {
+            // ADD whose name collides with an existing person → MERGE rather than clobber:
+            // union the new aliases in, keep the existing short/voice when the add didn't set
+            // them. (A deliberate edit goes through the `replacing` branch above and replaces.)
+            var merged = people[i]
+            for a in person.aliases where !merged.aliases.contains(where: { $0.caseInsensitiveCompare(a) == .orderedSame }) {
+                merged.aliases.append(a)
+            }
+            if let s = person.short, !s.isEmpty { merged.short = s }
+            merged.voiceEmbeddings = person.voiceEmbeddings ?? merged.voiceEmbeddings
+            people[i] = merged
         } else {
             people.append(person)
         }

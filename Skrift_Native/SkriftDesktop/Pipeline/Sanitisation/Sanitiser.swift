@@ -205,6 +205,25 @@ enum Sanitiser {
             Set($0.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
         }
 
+        // Inline ambiguity is computed over the people "in play" for THIS note — the gated
+        // about-set PLUS the matched speakers — NOT the whole DB. So tapping ONE of two
+        // people who share an alias links them inline (the alias is unambiguous in play),
+        // exactly like `process` does; tapping BOTH (or two speakers sharing an alias) keeps
+        // it plain for the resolver. nil aboutPeople = ungated → ambiguity over all live.
+        let speakerKeys = Set(merged.compactMap { $0.person.map { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() } })
+        let inPlay: [Person] = inlineLinkable.map { about in
+            live.filter { let k = NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased()
+                          return about.contains(k) || speakerKeys.contains(k) }
+        } ?? live
+        var inPlayAliasMap: [String: [Person]] = [:]
+        for p in inPlay {
+            for a in p.aliases {
+                let al = a.trimmingCharacters(in: .whitespaces).lowercased()
+                if !al.isEmpty { inPlayAliasMap[al, default: []].append(p) }
+            }
+        }
+        let inlineAmbiguous = Set(inPlayAliasMap.filter { $0.value.count >= 2 }.keys)
+
         // PASS 1 — headers claim their speaker first: a speaker's FIRST turn header carries
         // the canonical `[[Name]]` link, later headers (and every inline mention) demote to
         // the short name. This makes the labelled attribution the one link per speaker, so
@@ -231,16 +250,18 @@ enum Sanitiser {
         // marker) is preserved as its own block, never dropped.
         var blocks: [String] = []
         if !preamble.isEmpty {
-            blocks.append(linkInline(preamble, live: live, ambiguousAliases: ambiguousAliases,
+            blocks.append(linkInline(preamble, live: live, ambiguousAliases: inlineAmbiguous,
                                      linkable: inlineLinkable, seen: &seen))
         }
         for (i, m) in merged.enumerated() {
-            let body = linkInline(m.text, live: live, ambiguousAliases: ambiguousAliases,
+            let body = linkInline(m.text, live: live, ambiguousAliases: inlineAmbiguous,
                                   linkable: inlineLinkable, seen: &seen)
             blocks.append("**\(headers[i]):** \(body)")
         }
         let finalText = blocks.joined(separator: "\n\n")
-        let ambiguous = ambiguousOccurrences(in: finalText, aliasMap: aliasMap, ambiguousAliases: ambiguousAliases)
+        // Record ambiguous occurrences over the in-play set (matches the inline gating) — a
+        // genuinely ambiguous alias among the note's people surfaces for the resolver.
+        let ambiguous = ambiguousOccurrences(in: finalText, aliasMap: inPlayAliasMap, ambiguousAliases: inlineAmbiguous)
         return Result(sanitised: finalText, ambiguous: ambiguous)
     }
 
@@ -348,12 +369,15 @@ enum Sanitiser {
                 text = nsReplace(text, first.range, with: display + first.poss)
                 seen.insert(keyLower)
             }
-            // Remaining mentions (and EVERY mention of an already-linked person) → the short.
-            guard !short.isEmpty else { continue }
+            // Remaining mentions (and EVERY mention of an already-linked person) → the short
+            // name, falling back to the canonical when no short is defined (so the contract
+            // "every later mention demotes" holds even for a single-token name).
+            let demotion = short.isEmpty ? canonKey : short
+            guard !demotion.isEmpty else { continue }
             for rx in patterns {
                 for m in rx.matches(in: text, range: fullRange(text)).reversed() {
                     if avoidInside && !notInsideLink(text, m.range.location) { continue }
-                    text = nsReplace(text, m.range, with: short + possText(m, in: text))
+                    text = nsReplace(text, m.range, with: demotion + possText(m, in: text))
                 }
             }
         }

@@ -304,6 +304,22 @@ final class SanitiserTests: XCTestCase {
         XCTAssertEqual(tapped, "**[[Tiuri Hartog]]:** I saw [[Bruno Aragorn|Bruno]] today\n\n**Speaker 2:** cool")
     }
 
+    func testConversationTapOneOfTwoSameAliasLinksInline() {
+        // Two people share "Jack" in a conversation (unmatched Speaker-N headers). Ambiguity is
+        // computed over the IN-PLAY set, so tapping ONE links inline (like the monologue path).
+        let jackH = person("[[Jack Hutton]]", ["Jack"], short: "Jack")
+        let jackT = person("[[Jack Timmons]]", ["Jack"], short: "Jack")
+        let input = "**Speaker 1:** I saw Jack today\n\n**Speaker 2:** which Jack"
+        let one = Sanitiser.processConversation(text: input, people: [jackH, jackT], aboutPeople: ["[[Jack Hutton]]"]).sanitised
+        XCTAssertTrue(one.contains("[[Jack Hutton|Jack]]"), "tapping one of two same-alias links it inline; got: \(one)")
+        XCTAssertFalse(one.contains("[[Jack Timmons"), "the un-tapped twin never links; got: \(one)")
+        // Tapping BOTH keeps "Jack" ambiguous → plain + recorded for the resolver.
+        let both = Sanitiser.processConversation(text: input, people: [jackH, jackT],
+                                                 aboutPeople: ["[[Jack Hutton]]", "[[Jack Timmons]]"])
+        XCTAssertFalse(both.sanitised.contains("[["), "both tapped → ambiguous → plain; got: \(both.sanitised)")
+        XCTAssertEqual(both.ambiguous.count, 2)
+    }
+
     // MARK: Chip-bar detection helpers (detectedPeople / matchedSpeakers)
 
     func testDetectedPeopleInReadingOrderExcludesUnmentioned() {

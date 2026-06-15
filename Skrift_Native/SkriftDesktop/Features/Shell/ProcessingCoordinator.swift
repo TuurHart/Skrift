@@ -336,7 +336,7 @@ final class ProcessingCoordinator {
             case .summary:
                 pf.enhancedSummary = try await enhancer.summary(transcript, prompts: settings.prompts, modelRepo: repo)
             }
-            pf.compiledText = Compiler.compile(file: pf, author: settings.authorName)
+            pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: NamesStore.shared.livePeople())
             pf.lastActivityAt = Date()
             try? context.save()
         } catch {
@@ -381,7 +381,7 @@ final class ProcessingCoordinator {
             : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), aboutPeople: Set(pf.aboutPeople))
         pf.sanitised = san.sanitised
         pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
-        pf.compiledText = Compiler.compile(file: pf, author: SettingsStore.shared.load().authorName)
+        pf.compiledText = Compiler.compile(file: pf, author: SettingsStore.shared.load().authorName, knownPeople: people)
         if let context { pf.lastActivityAt = Date(); try? context.save() }
     }
 }

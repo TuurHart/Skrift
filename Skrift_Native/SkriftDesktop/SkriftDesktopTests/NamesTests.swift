@@ -211,6 +211,22 @@ final class NamesStoreTests: XCTestCase {
         XCTAssertEqual(live[0].voiceEmbeddings?.count, 1, "voiceprints carried across the rename")
     }
 
+    func testUpsertAddCollisionMergesNoClobber() {
+        let store = tempStore()
+        _ = store.save(NamesData(lastModifiedAt: ISO8601.now(), people: [
+            Person(canonical: "[[Bruno Aragorn]]", aliases: ["Bruno"], short: "Bruno",
+                   voiceEmbeddings: [VoiceEmbedding(vector: [0.1])], lastModifiedAt: "2026-06-01T00:00:00.000Z")
+        ]))
+        // "Add person" with the SAME name + a new alias, no short/voice (replacing: nil) → MERGE,
+        // not clobber: union aliases, keep the existing short + voiceprint.
+        store.upsert(Person(canonical: "[[Bruno Aragorn]]", aliases: ["Bru"], short: nil, lastModifiedAt: ""), replacing: nil)
+        let bruno = store.livePeople().first { $0.displayName == "Bruno Aragorn" }
+        XCTAssertEqual(store.livePeople().count, 1, "no duplicate row")
+        XCTAssertEqual(Set(bruno?.aliases ?? []), ["Bruno", "Bru"], "aliases unioned")
+        XCTAssertEqual(bruno?.short, "Bruno", "existing short kept")
+        XCTAssertEqual(bruno?.voiceEmbeddings?.count, 1, "voiceprint kept")
+    }
+
     func testDeleteTombstonesOnePerson() {
         let store = tempStore()
         store.upsert(Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"], lastModifiedAt: ""), replacing: nil)

@@ -141,7 +141,7 @@ struct NoteDisplayView: View {
         }
         guard text != before || file.unlinkedNames != beforeUnlinked else { return }
         setBody(text, on: file)
-        file.compiledText = Compiler.compile(file: file, author: author)
+        file.compiledText = Compiler.compile(file: file, author: author, knownPeople: NamesStore.shared.livePeople())
         file.lastActivityAt = Date()
         try? ctx.save()
         unlinkUndo = UnlinkUndo(message: message, body: before, unlinkedNames: beforeUnlinked)
@@ -152,7 +152,7 @@ struct NoteDisplayView: View {
         guard let undo = unlinkUndo else { return }
         setBody(undo.body, on: file)
         file.unlinkedNames = undo.unlinkedNames
-        file.compiledText = Compiler.compile(file: file, author: author)
+        file.compiledText = Compiler.compile(file: file, author: author, knownPeople: NamesStore.shared.livePeople())
         file.lastActivityAt = Date()
         try? ctx.save()
         unlinkUndo = nil
@@ -347,7 +347,7 @@ struct NoteDisplayView: View {
         let remaining = (file.ambiguousNames ?? []).filter { $0.alias.lowercased() != alias.lowercased() }
         file.ambiguousNames = remaining.isEmpty ? nil : remaining
         file.sanitiseStatus = .done
-        file.compiledText = Compiler.compile(file: file, author: author)
+        file.compiledText = Compiler.compile(file: file, author: author, knownPeople: NamesStore.shared.livePeople())
         file.lastActivityAt = Date()
         try? ctx.save()
         m.removeAlias(alias)

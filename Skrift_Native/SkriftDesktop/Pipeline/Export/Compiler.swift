@@ -64,7 +64,11 @@ struct SharedContent: Codable, Sendable {
 /// precedence: sanitised → enhanced copy-edit → transcript (the name-linked text
 /// wins, since it's what exports). The vault write/copy is the Export step (Phase 8).
 enum Compiler {
-    static func compile(file pf: PipelineFile, author: String, date overrideDate: String? = nil) -> String {
+    /// `knownPeople` (the live names DB) filters the `people:` list to actual persons —
+    /// excluding non-person wiki-links (places like `[[Hotel Du Vin]]`, manual links) that a
+    /// transcript/Apple-Note body may carry. nil = no filter (engine tests / minor call sites).
+    static func compile(file pf: PipelineFile, author: String, date overrideDate: String? = nil,
+                        knownPeople: [Person]? = nil) -> String {
         let meta = pf.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
         let sc = SharedContent.decode(from: pf.audioMetadataJSON)   // nil for non-captures
 
@@ -122,7 +126,7 @@ enum Compiler {
         // canonical wiki-links present in the body. Empty until the user taps a chip (or a
         // conversation auto-links its matched speakers). Carries the graph connection that
         // the body's one-note-one-link rule deliberately keeps to a single link per person.
-        let peopleLinks = peopleLinks(in: body)
+        let peopleLinks = peopleLinks(in: body, knownPeople: knownPeople)
         y.append(peopleLinks.isEmpty ? "people:"
                  : "people: " + peopleLinks.map { "[[\($0)]]" }.joined(separator: ", "))
         // Book frontmatter (C2 → spec 7). `bookAuthor:` not `author:` — that key is
@@ -243,12 +247,24 @@ enum Compiler {
     /// before any `|spoken` alias-display), and de-duplicates case-insensitively in reading
     /// order. Derived from the rendered body so it can never drift from what's actually
     /// linked (one-note-one-link → one entry per person, conversations include matched speakers).
-    static func peopleLinks(in body: String) -> [String] {
+    ///
+    /// Image EMBEDS (`![[file]]`) are skipped (the `[[ ]]` is an embed, not a link), and when
+    /// `knownPeople` is supplied the list is filtered to PERSONS — so a transcript/Apple-Note
+    /// body carrying a place link (`[[Hotel Du Vin]]`) or other non-person wiki-link never
+    /// lands in `people:`. nil `knownPeople` = no filter (engine-level callers/tests).
+    static func peopleLinks(in body: String, knownPeople: [Person]? = nil) -> [String] {
+        let ns = body as NSString
+        let allow: Set<String>? = knownPeople.map {
+            Set($0.filter { !$0.isDeleted }.map { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() })
+        }
         var seen = Set<String>()
         var out: [String] = []
         for link in Sanitiser.linkOccurrences(in: body) {
+            // Skip an Obsidian image embed: a `[[ ]]` immediately preceded by `!`.
+            if link.range.location > 0, ns.substring(with: NSRange(location: link.range.location - 1, length: 1)) == "!" { continue }
             let target = Sanitiser.linkTarget(link.core)
-            guard !target.isEmpty, seen.insert(target.lowercased()).inserted else { continue }
+            let key = target.lowercased()
+            guard !target.isEmpty, allow?.contains(key) ?? true, seen.insert(key).inserted else { continue }
             out.append(target)
         }
         return out
