@@ -209,10 +209,14 @@ enum Sanitiser {
         return Result(sanitised: finalText, ambiguous: ambiguous)
     }
 
-    /// Link every UNAMBIGUOUS alias mention inline with Obsidian alias-display
-    /// `[[Canonical|spoken]]` (bare `[[Canonical]]` when the spoken surface already equals
-    /// the canonical). Possessive sits OUTSIDE the brackets; matches already inside a link
-    /// are skipped. Ambiguous aliases are left plain (resolved at review).
+    /// Link every UNAMBIGUOUS alias mention inline, DISPLAYING the person's short name
+    /// (Obsidian alias-display `[[Canonical|short]]`, or bare `[[Canonical]]` when the
+    /// short equals the canonical). The display is the short — NOT the transcribed surface
+    /// — so a misheard name ("tyr"/"cherry" for "Tuur") is normalised to the correct
+    /// short instead of preserved verbatim; the link still targets the canonical. The whole
+    /// match (alias + any trailing possessive) is replaced and the possessive re-appended
+    /// OUTSIDE the brackets. Matches already inside a link are skipped; ambiguous aliases
+    /// are left plain (resolved at review).
     private static func linkInline(_ inputText: String, live: [Person], ambiguousAliases: Set<String>) -> String {
         var text = inputText
         for p in live.sorted(by: { NamesMerge.keyName($0.canonical).lowercased() < NamesMerge.keyName($1.canonical).lowercased() }) {
@@ -221,21 +225,16 @@ enum Sanitiser {
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty && !ambiguousAliases.contains($0.lowercased()) }
             guard !aliases.isEmpty else { continue }
+            // The display is the person's short name — fixed per person, independent of
+            // what was transcribed — so every matched form normalises to it.
+            let short = shortName(for: p)
+            let display = (short.isEmpty || short.caseInsensitiveCompare(canonKey) == .orderedSame)
+                ? "[[\(canonKey)]]"
+                : "[[\(canonKey)|\(short)]]"
             for alias in aliases {
                 guard let rx = wordRegex(alias) else { continue }
                 for m in rx.matches(in: text, range: fullRange(text)).reversed() {
-                    // The match spans the alias + any trailing possessive; isolate the
-                    // alias surface for the DISPLAY half, but replace the FULL match range
-                    // (alias + possessive) and re-append the possessive OUTSIDE the brackets
-                    // — replacing only the alias sub-range would leave the original "'s"
-                    // behind and produce a doubled "'s's".
-                    let poss = m.range(withName: "poss")
-                    let aliasLen = (poss.location != NSNotFound && poss.length > 0) ? m.range.length - poss.length : m.range.length
                     if avoidInside && !notInsideLink(text, m.range.location) { continue }
-                    let spoken = nsSub(text, m.range.location, m.range.location + aliasLen)
-                    let display = spoken.caseInsensitiveCompare(canonKey) == .orderedSame
-                        ? "[[\(canonKey)]]"
-                        : "[[\(canonKey)|\(spoken)]]"
                     text = nsReplace(text, m.range, with: display + possText(m, in: text))
                 }
             }

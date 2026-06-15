@@ -188,10 +188,24 @@ final class DiarizationTests: XCTestCase {
         // Header: first mention full canonical link.
         XCTAssertTrue(lines[0].hasPrefix("**[[Roksana Gurova]]:**"), "first header → full canonical; got: \(lines[0])")
         XCTAssertTrue(lines[1].hasPrefix("**[[Tiuri Hartog]]:**"), "first header → full canonical; got: \(lines[1])")
-        // Inline spoken word preserved via alias-display, EVERY mention.
+        // Inline mentions → alias-display showing the SHORT name, EVERY mention. "Tuur"
+        // is the short so it shows "Tuur"; "Roks" normalises to the short "Roksana".
         XCTAssertTrue(lines[1].contains("[[Tiuri Hartog|Tuur]] and [[Tiuri Hartog|Tuur]] rocks"),
-                      "inline 'Tuur' → alias-display, every mention; got: \(lines[1])")
-        XCTAssertTrue(lines[0].contains("[[Roksana Gurova|Roks]]"), "inline 'Roks' → alias-display; got: \(lines[0])")
+                      "inline → [[Canonical|short]], every mention; got: \(lines[1])")
+        XCTAssertTrue(lines[0].contains("[[Roksana Gurova|Roksana]]"),
+                      "inline 'Roks' normalises to the short 'Roksana'; got: \(lines[0])")
+    }
+
+    /// A MISHEARD inline name (an alias the ASR produced for the person) is normalised to
+    /// the correct short name, not preserved verbatim — the spoken word was wrong.
+    func testProcessConversationNormalisesMisheardInlineName() {
+        let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tuur", "Cherry", "Thierry"], short: "Tuur", lastModifiedAt: "x")
+        let roksana = Person(canonical: "[[Roksana]]", aliases: ["Roksana"], lastModifiedAt: "x")
+        let input = "**Roksana:** I saw Cherry and Thierry today\n\n**Tuur:** that's me"
+        let s = Sanitiser.processConversation(text: input, people: [tiuri, roksana]).sanitised
+        XCTAssertTrue(s.contains("[[Tiuri Hartog|Tuur]] and [[Tiuri Hartog|Tuur]]"),
+                      "misheard 'Cherry'/'Thierry' both normalise to the short 'Tuur'; got: \(s)")
+        XCTAssertFalse(s.contains("Cherry") || s.contains("Thierry"), "the misheard surfaces are gone; got: \(s)")
     }
 
     /// An inline alias mention with a trailing possessive renders ONE `'s`, outside the
