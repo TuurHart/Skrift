@@ -129,6 +129,31 @@ The eventual reason the app exists. When I add a note about a realization, surfa
 - **Backbone (reachable now, offline):** semantic search across the whole vault using local embedding models; retrieve + rank related notes; timeline UI. Mostly engineering, not model-limited.
 - **Harder part (deferred):** having a local LLM *narrate* the evolution well — same quality ceiling as the stale-summary problem. Defer until local models are good enough.
 
+## Cross-app parity gaps (audited 2026-06-15 — 9-agent verify-vs-code sweep)
+
+The desktop↔mobile split is overwhelmingly INTENTIONAL (phone records/captures → Mac processes/links/
+enhances/exports). The audit (verified each `FEATURES.md` row against real code in both apps + a completeness
+critic) found exactly **two real functional gaps** to bridge; everything else is by-design or already parity:
+
+1. **HIGH — Desktop list has no text search + no sort.** Mobile has full text search + 5 sort modes +
+   multi-axis filters; the Mac sidebar has only a 3-way `QueueFilter` (All / Needs Work / Done). The Mac is the
+   triage hub where memos pile up before export, so this bites as the queue grows. **Bridge:** add a search
+   field + sort enum mirroring mobile's `MemoSort`/`MemoFilter`. Files: desktop `AppModel.swift`
+   (`QueueFilter`, `matchesFilter`) + `Features/Sidebar/SidebarView.swift`; ref mobile `MemosListView.swift`
+   (`matchesSearch`, `MemoSort`, `SortFilterSheet`). Effort: medium.
+2. **MEDIUM (low-ish lift) — Mobile direct "Add voice" enrollment is a stub.** Enrolling a voiceprint via
+   CONVERSATION speaker-naming is fully real (`VoiceEnroller.enroll`); only the direct "Add voice" button in
+   Names→PersonDetail is a placeholder ("Got it"). **Bridge:** wire `VoiceEnrollView` to a short recorder →
+   `SpeakerEmbedder` → `NamesStore.addVoiceEmbedding` → sync — reusing the exact pipeline the conversation path
+   already calls. Files: `Features/Names/PersonDetailView.swift` (`VoiceEnrollView`), `Services/Diarization/VoiceEnroller.swift`.
+
+Deferred-by-choice (intentional, not gaps; do only if symmetry wanted): desktop **Models tab** mirror
+(`FEATURES.md` "Mac mirror = later"); **custom-vocab word-list sync** (per-device by design — the only
+intentional contract data-exclusion); desktop **Send-feedback** port; desktop **auto-copy transcript**.
+Doc drift fixed in the same pass (`FEATURES.md`): capture-items `➖/➖`→`✅/✅` (was the worst — implied a
+shipped feature was unbuilt), diarize/voice-match/persist-segments/bold-headers mobile statuses corrected,
+search/sort desktop `✅`→`🟡`.
+
 ## Other deferred items
 - **Watched-folder ingest** — point Skrift at a folder (e.g. the Mac Voice Memos export) for zero-friction auto-ingest. (The overhaul keeps ingest simple: drag/picker + phone sync.)
 - **Summary prompt quality** — summaries read stale / not in my voice. Dedicated prompt-tuning pass once the rest is stable.
