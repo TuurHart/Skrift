@@ -4,6 +4,7 @@
 build/
 build-device/
 build-archive/
+build-archive-dd/
 DerivedData/
 .DS_Store
 *.xcuserstate

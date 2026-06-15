@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — standalone onboarding &amp; Settings</title>
+<style>
+  :root{
+    --bg:#0C0C12; --warm:#16110C; --warmcard:#15120D; --surface:#17171F; --elev:#23232E;
+    --accent:#7E74F0; --text:#F3F3F7; --dim:#9A9AA8; --faint:#6A6A78; --tan:#C9A87C;
+    --green:#5BD6A4; --border:#22222C;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#050507; color:#E8E8EE; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:28px;}
+  h1{font-size:20px; font-weight:600; margin:0 0 4px;}
+  .sub{color:#8A8A96; margin:0 0 22px; max-width:780px;}
+  .row{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .label{font-size:12px; color:#8A8A96; letter-spacing:.3px; max-width:322px; text-align:center;}
+  .phone{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px; overflow:hidden;}
+  /* shared bits */
+  .logo{width:58px; height:58px; border-radius:15px; background:linear-gradient(135deg,#7E74F0,#9d8bff); display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:900; color:#fff;}
+  .ob-h{font-size:23px; font-weight:700; color:var(--text); line-height:1.25; margin:18px 0 8px;}
+  .ob-p{font-size:13.5px; color:var(--dim); margin:0;}
+  .micwrap{display:flex; align-items:center; justify-content:center; margin:34px 0 30px;}
+  .mic{width:118px; height:118px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:46px; color:#fff;}
+  .mic-ring{position:absolute; width:160px; height:160px; border-radius:50%; border:1px solid rgba(126,116,240,.28);}
+  .mic-ring2{position:absolute; width:200px; height:200px; border-radius:50%; border:1px solid rgba(126,116,240,.14);}
+  .dots{display:flex; gap:7px; justify-content:center; margin:0 0 18px;}
+  .dots>i{width:7px; height:7px; border-radius:50%; background:#2C2C36; display:inline-block;}
+  .dots>i.on{background:var(--accent); width:20px; border-radius:4px;}
+  .cta{background:var(--accent); border-radius:14px; padding:15px; text-align:center; color:#fff; font-weight:700; font-size:16px;}
+  .cta-ghost{text-align:center; color:var(--dim); font-size:13.5px; padding:14px 0 2px;}
+  /* privacy/download */
+  .privrow{display:flex; gap:12px; align-items:flex-start; padding:13px 0; border-top:.5px solid var(--border);}
+  .privrow .gi{width:30px; flex-shrink:0; font-size:18px; color:var(--accent); text-align:center; padding-top:1px;}
+  .privrow .pt{font-size:13.5px; color:var(--text); font-weight:500;}
+  .privrow .ps{font-size:12px; color:var(--faint); margin-top:1px;}
+  .dlcard{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:15px 15px 16px; margin-top:6px;}
+  .dlhead{display:flex; align-items:center; gap:10px; margin-bottom:11px;}
+  .dlglyph{width:34px; height:34px; border-radius:10px; background:rgba(126,116,240,.16); display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:17px;}
+  .dlt{font-size:13.5px; color:var(--text); font-weight:600;}
+  .dls{font-size:11.5px; color:var(--faint);}
+  .bar{height:6px; background:#23232E; border-radius:3px; overflow:hidden;}
+  .bar>i{display:block; height:6px; width:62%; background:var(--accent); border-radius:3px;}
+  .bar-meta{display:flex; justify-content:space-between; font-size:11px; color:var(--dim); margin-top:7px; font-variant-numeric:tabular-nums;}
+  /* sync */
+  .toggle-row{display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:14px 15px;}
+  .tg-ic{width:34px; height:34px; border-radius:10px; background:rgba(91,214,164,.14); display:flex; align-items:center; justify-content:center; color:var(--green); font-size:17px;}
+  .tg-t{font-size:13.5px; color:var(--text); font-weight:500;}
+  .tg-s{font-size:11.5px; color:var(--faint); margin-top:1px;}
+  .switch{width:42px; height:25px; border-radius:13px; background:var(--green); position:relative; flex-shrink:0;}
+  .switch>i{position:absolute; top:2.5px; right:2.5px; width:20px; height:20px; border-radius:50%; background:#fff;}
+  .switch.off{background:#2E2E38;}
+  .switch.off>i{right:auto; left:2.5px;}
+  .devicepill{display:flex; gap:8px; justify-content:center; margin:16px 0 4px;}
+  .devicepill>span{font-size:11.5px; color:var(--dim); background:var(--surface); border:1px solid var(--border); padding:6px 12px; border-radius:20px; display:flex; align-items:center; gap:6px;}
+  .demoted{margin-top:18px; padding-top:14px; border-top:.5px solid var(--border); text-align:center;}
+  .demoted .dl{font-size:12.5px; color:var(--faint);}
+  .demoted .dl b{color:var(--dim); font-weight:600;}
+  /* settings list */
+  .nav{display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px;}
+  .nav .tt{font-size:18px; font-weight:700; color:var(--text);}
+  .nav .x{color:var(--accent); font-size:14px;}
+  .grp{font-size:11.5px; letter-spacing:.6px; color:var(--faint); text-transform:uppercase; padding:14px 18px 6px;}
+  .seclist{background:var(--surface); border-top:.5px solid var(--border); border-bottom:.5px solid var(--border);}
+  .sr{display:flex; align-items:center; gap:11px; padding:12px 16px; border-bottom:.5px solid var(--border);}
+  .sr:last-child{border-bottom:none;}
+  .sr .si{width:27px; height:27px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;}
+  .sr .nm{font-size:14px; color:var(--text); flex:1;}
+  .sr .val{font-size:13px; color:var(--dim); font-variant-numeric:tabular-nums;}
+  .sr .chev{color:var(--faint); font-size:14px;}
+  .sw{width:38px; height:23px; border-radius:12px; position:relative; flex-shrink:0;}
+  .sw.on{background:var(--green);} .sw.off{background:#2E2E38;}
+  .sw>i{position:absolute; top:2.5px; width:18px; height:18px; border-radius:50%; background:#fff;}
+  .sw.on>i{right:2.5px;} .sw.off>i{left:2.5px;}
+  .adv{font-size:11px; color:var(--faint); padding:7px 18px 2px;}
+  /* contrast (today) */
+  .today{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px; overflow:hidden; opacity:.96;}
+  .strike{position:relative;}
+  .flag{display:inline-block; font-size:10px; padding:1px 6px; border-radius:5px; margin-left:6px; vertical-align:1px;}
+  .flag-old{background:rgba(226,75,74,.16); color:#E2706F;}
+  .flag-new{background:rgba(91,214,164,.16); color:var(--green);}
+  /* notes */
+  .notes{max-width:820px; margin-top:34px; color:#B8B8C2; font-size:14px; line-height:1.7;}
+  .notes h2{font-size:16px; color:#E8E8EE; margin:22px 0 6px;}
+  .notes code{background:#1A1A24; padding:1px 6px; border-radius:5px; font-size:12.5px;}
+  .ico-cap{background:rgba(126,116,240,.16); color:var(--accent);}
+  .ico-play{background:rgba(201,168,124,.16); color:var(--tan);}
+  .ico-lib{background:rgba(91,214,164,.14); color:var(--green);}
+  .ico-sync{background:rgba(126,116,240,.16); color:var(--accent);}
+  .ico-look{background:rgba(154,154,168,.14); color:var(--dim);}
+  .ico-misc{background:rgba(154,154,168,.14); color:var(--dim);}
+  .ico-mac{background:rgba(154,154,168,.12); color:var(--faint);}
+</style>
+</head>
+<body>
+<h1>Skrift — standalone onboarding &amp; Settings (Phase 3)</h1>
+<p class="sub">De-Mac the first run: the phone is the whole app — record + transcribe on-device, sync your own devices over iCloud, Mac is an opt-in power-up. Three onboarding states + the reorganized Settings IA, with today's Mac-first order shown for contrast. Service layer unchanged — Mac surfaces gate behind <code>MacConnection.load() != nil</code> / an opt-in flag.</p>
+
+<div class="row">
+
+  <!-- STATE 1 — value prop -->
+  <div class="col">
+    <div class="label">1 · Value prop — record anywhere</div>
+    <div class="phone">
+      <div style="padding:28px 24px 22px; min-height:556px; display:flex; flex-direction:column;">
+        <div class="logo">S</div>
+        <div class="ob-h">Record anywhere.<br>Transcribed on your&nbsp;iPhone.</div>
+        <p class="ob-p">Voice memos, audiobook quotes, and notes — turned into searchable text the moment you stop talking.</p>
+        <div class="micwrap" style="position:relative; flex:1;">
+          <div class="mic-ring2"></div><div class="mic-ring"></div>
+          <div class="mic">🎙️</div>
+        </div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+        <div class="cta">Continue</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 2 — private + engine download -->
+  <div class="col">
+    <div class="label">2 · Private + one-time engine download</div>
+    <div class="phone">
+      <div style="padding:26px 22px 22px; min-height:556px; display:flex; flex-direction:column;">
+        <div class="logo" style="background:linear-gradient(135deg,#5BD6A4,#3fae84); font-size:26px;">🔒</div>
+        <div class="ob-h">Everything runs on your device.</div>
+        <p class="ob-p">Nothing leaves your phone. No accounts, no servers — your recordings and transcripts stay with you.</p>
+
+        <div style="margin-top:18px;">
+          <div class="privrow" style="border-top:none;">
+            <div class="gi">🧠</div>
+            <div><div class="pt">On-device transcription</div><div class="ps">Parakeet runs on the Neural Engine — offline</div></div>
+          </div>
+          <div class="privrow">
+            <div class="gi">👁️‍🗨️</div>
+            <div><div class="pt">No tracking, no cloud reads</div><div class="ps">We never see your notes</div></div>
+          </div>
+        </div>
+
+        <div class="dlcard">
+          <div class="dlhead">
+            <div class="dlglyph">⬇︎</div>
+            <div style="flex:1;">
+              <div class="dlt">Transcription engine</div>
+              <div class="dls">One-time · ~600 MB · Wi-Fi recommended</div>
+            </div>
+          </div>
+          <div class="bar"><i></i></div>
+          <div class="bar-meta"><span>Downloading… 62%</span><span>372 / 600 MB</span></div>
+        </div>
+
+        <div style="flex:1;"></div>
+        <div class="dots"><i></i><i class="on"></i><i></i></div>
+        <div class="cta" style="background:#23232E; color:var(--dim);">Continue when ready</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 3 — sync, Mac demoted -->
+  <div class="col">
+    <div class="label">3 · Sync your devices — Mac demoted</div>
+    <div class="phone">
+      <div style="padding:26px 22px 22px; min-height:556px; display:flex; flex-direction:column;">
+        <div class="logo" style="font-size:24px;">☁︎</div>
+        <div class="ob-h">Your notes, on all<br>your devices.</div>
+        <p class="ob-p">iCloud keeps every memo, quote, and audiobook position in sync across your iPhone and iPad — privately.</p>
+
+        <div class="toggle-row" style="margin-top:20px;">
+          <div class="tg-ic">☁︎</div>
+          <div style="flex:1;">
+            <div class="tg-t">Sync across my devices</div>
+            <div class="tg-s">iCloud · end-to-end, your account</div>
+          </div>
+          <div class="switch"><i></i></div>
+        </div>
+
+        <div class="devicepill">
+          <span>📱 iPhone 13</span>
+          <span>＋ iPad</span>
+        </div>
+
+        <div style="flex:1;"></div>
+
+        <div class="demoted">
+          <div class="dl">Have a Mac running Skrift?<br><b>Connect a Mac (optional)</b> ›</div>
+        </div>
+
+        <div class="dots" style="margin-top:18px;"><i></i><i></i><i class="on"></i></div>
+        <div class="cta">Start using Skrift</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h1 style="margin-top:40px;">Settings — new standalone IA vs today</h1>
+<p class="sub">Capture-first ordering. iCloud sync is the headline; "Connect a Mac" is tucked under an <strong>Advanced</strong> row in Sync, not its own first section.</p>
+
+<div class="row">
+
+  <!-- NEW Settings IA -->
+  <div class="col">
+    <div class="label">4 · Settings — reorganized (standalone)</div>
+    <div class="phone">
+      <div class="nav"><span class="x">‹ Memos</span><span class="tt">Settings</span><span class="x" style="opacity:0;">‹</span></div>
+
+      <div class="grp">Capture</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-cap">⌨︎</div><div class="nm">Live transcription</div><div class="sw on"><i></i></div></div>
+        <div class="sr"><div class="si ico-cap">✦</div><div class="nm">Custom words</div><div class="val">Tuur, Roksana · 7</div><div class="chev">›</div></div>
+      </div>
+
+      <div class="grp">Playback</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-play">⤳</div><div class="nm">Tap words to seek</div><div class="sw on"><i></i></div></div>
+      </div>
+
+      <div class="grp">Library</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-lib">👥</div><div class="nm">Names &amp; voices</div><div class="val">2</div><div class="chev">›</div></div>
+        <div class="sr"><div class="si ico-lib">▤</div><div class="nm">Models</div><div class="val">On-device</div><div class="chev">›</div></div>
+        <div class="sr"><div class="si ico-lib">⤓</div><div class="nm">Export</div><div class="val">Markdown</div><div class="chev">›</div></div>
+      </div>
+
+      <div class="grp">Sync</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-sync">☁︎</div><div class="nm">iCloud — across devices</div><div class="sw on"><i></i></div></div>
+        <div class="sr"><div class="si ico-mac">🖥️</div><div class="nm" style="color:var(--dim);">Advanced</div><div class="val">Connect a Mac</div><div class="chev">›</div></div>
+      </div>
+
+      <div class="grp">Appearance</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-look">◐</div><div class="nm">Theme</div><div class="val">Dark</div><div class="chev">›</div></div>
+      </div>
+
+      <div class="grp" style="padding-bottom:0;">&nbsp;</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-misc">✉︎</div><div class="nm">Send feedback</div><div class="chev">›</div></div>
+        <div class="sr"><div class="si ico-misc">ⓘ</div><div class="nm">About</div><div class="val">0.2.0</div><div class="chev">›</div></div>
+      </div>
+      <div style="height:18px;"></div>
+    </div>
+  </div>
+
+  <!-- TODAY Settings (contrast) -->
+  <div class="col">
+    <div class="label">Contrast · today — Mac is the FIRST section</div>
+    <div class="today">
+      <div class="nav"><span class="x">‹ Memos</span><span class="tt">Settings</span><span class="x" style="opacity:0;">‹</span></div>
+
+      <div class="grp">Mac <span class="flag flag-old">first today</span></div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-mac">🖥️</div><div class="nm">Connection</div><div class="val" style="color:var(--green);">● Mac mini</div></div>
+        <div class="sr"><div class="si ico-mac">⌁</div><div class="nm">Pair a Mac</div><div class="chev">›</div></div>
+      </div>
+
+      <div class="grp">Capture</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-cap">⌨︎</div><div class="nm">Live transcription</div><div class="sw on"><i></i></div></div>
+        <div class="sr"><div class="si ico-cap">⧉</div><div class="nm">Copy transcript to clipboard</div><div class="sw off"><i></i></div></div>
+        <div class="sr"><div class="si ico-cap">✦</div><div class="nm">Custom words</div><div class="val">7</div><div class="chev">›</div></div>
+      </div>
+
+      <div class="grp">Playback</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-play">⤳</div><div class="nm">Tap words to seek</div><div class="sw on"><i></i></div></div>
+      </div>
+
+      <div class="grp">Library</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-lib">👥</div><div class="nm">Names &amp; voices</div><div class="chev">›</div></div>
+        <div class="sr"><div class="si ico-lib">▤</div><div class="nm">Models</div><div class="chev">›</div></div>
+      </div>
+
+      <div class="grp">Theme</div>
+      <div class="seclist">
+        <div class="sr"><div class="si ico-look">◐</div><div class="nm">Theme</div><div class="val">Dark</div><div class="chev">›</div></div>
+      </div>
+      <div style="height:18px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="notes">
+  <h2>Build notes</h2>
+  <p>• <strong>Today's flaws this redesigns.</strong> The shipped <code>OnboardingView.swift:28</code> tagline reads "Record voice memos, transcribed on-device, <em>synced to your Mac</em>" and the very first run shows a <strong>Pair-a-Mac step</strong> with a live <code>discovery.start()</code> Bonjour scan (<code>:39-47, 145-150</code>) sitting between media and model permissions — a Mac-less buyer is told they need hardware they don't have. <code>SettingsView.swift:46-76</code> opens with a <strong>"Mac" section first</strong>. Both communicate "this is a Mac accessory," which is wrong for a $0.69 standalone app.</p>
+  <p>• <strong>State 1 (value prop)</strong> leads with the on-device promise — "Record anywhere. Transcribed on your iPhone." No Mac, no accounts, no jargon. The mic hero matches the app's accent (<code>#7E74F0</code>); the 3-dot pager sets a 3-step expectation.</p>
+  <p>• <strong>State 2 (private + engine)</strong> makes "nothing leaves your phone" the headline (the privacy story IS the no-cloud-LLM tradeoff from the plan's locked decisions). The one-time engine download reuses the existing <code>ModelLoadStatus.downloadProgress</code> + <code>TranscriptionService.ensureLoaded()</code> seam already wired in onboarding — only the copy and ~600 MB / Wi-Fi framing change (today it says "494 MB"; bump to the real bundled total). Non-blocking: "Continue when ready", same best-effort pattern as today.</p>
+  <p>• <strong>State 3 (sync)</strong> promotes the NET-NEW Phase-1 CloudKit toggle ("Sync across my devices", default on, degrades to local if iCloud is off) to the hero, and <strong>demotes the Mac</strong> to a small "Connect a Mac (optional) ›" link below — clearly secondary, no auto Bonjour scan on this screen. The scan only starts if the user taps through (gate <code>discovery.start()</code> behind the opt-in, not <code>onAppear</code>).</p>
+  <p>• <strong>Settings IA (state 4)</strong> reorders to <strong>Capture · Playback · Library (Names &amp; voices · Models · Export) · Sync · Appearance · Feedback · About</strong>. The Mac is no longer a top-level section — it lives as an <strong>Advanced → Connect a Mac</strong> row <em>inside</em> Sync. New rows vs today: <strong>Export</strong> (Phase 2 — default format / vault folder / include-audio), <strong>iCloud</strong> toggle (Phase 1), and the alias-management entry folds into <strong>Names &amp; voices</strong> (Phase 2, mirroring the Mac).</p>
+  <p>• <strong>Code seams (service layer unchanged).</strong> Everything gates on existing config: <code>MacConnection.load() != nil</code> or a stored opt-in flag. <code>MacTransportFactory.make()</code> (<code>Services/Sync/MacTransport.swift:82-97</code>) already returns Disconnected when unpaired — no transport change. UI gating only: <code>OnboardingView.swift:28/39-47/145-150</code> (tagline + pair card + scan), <code>SettingsView.swift:46-76</code> (Mac section → Advanced row), <code>MemosListView.swift:294-303</code> sync button + <code>:338-339</code> "Pair a Mac" banner hidden unless paired.</p>
+  <p>• <strong>Real grounding.</strong> Custom words show real names <code>Tuur, Roksana</code>; the engine is Parakeet on the ANE; Models reads the existing read-only inventory (<code>ModelInventory.swift</code>), extended to managed in Phase 4. Out of scope here: the Models picker UI and the Export action sheet get their own mocks (plan §"UI surfaces needing mocks").</p>
+  <p>• <strong>Decisions to weigh in on:</strong> (a) sync screen copy — "iCloud" vs the friendlier "across my devices" as the primary label; (b) whether "Connect a Mac" lives under an <em>Advanced</em> row in Sync (shown) or as its own dimmed bottom section; (c) should State 2 hard-<em>require</em> the engine before "Start" (no transcription without it) or let users proceed and download lazily on first record.</p>
+</div>
+</body>
+</html>

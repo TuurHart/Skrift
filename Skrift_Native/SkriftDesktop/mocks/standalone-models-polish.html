@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — on-device models &amp; Polish (mirrors desktop)</title>
+<style>
+  :root{
+    --bg:#0C0C12; --warm:#16110C; --surface:#17171F; --elev:#23232E; --elev2:#2B2B38;
+    --accent:#7E74F0; --text:#F3F3F7; --dim:#9A9AA8; --faint:#6A6A78; --tan:#C9A87C; --cover:#C9B79A;
+    --green:#5DCAA5; --amber:#EF9F27; --red:#E24B4A;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#050507; color:#E8E8EE; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:28px;}
+  h1{font-size:20px; font-weight:600; margin:0 0 4px;}
+  .sub{color:#8A8A96; margin:0 0 8px; max-width:860px;}
+  .sub b{color:#C7C7D2;}
+  .grouphead{font-size:13px; color:#C7C7D2; font-weight:600; letter-spacing:.4px; margin:30px 0 14px; padding-bottom:7px; border-bottom:.5px solid #1C1C26;}
+  .row{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .label{font-size:12px; color:#8A8A96; letter-spacing:.3px; text-align:center; max-width:322px;}
+  .phone{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px; overflow:hidden;}
+  .navbar{display:flex; align-items:center; justify-content:space-between; padding:15px 18px 8px; color:var(--dim);}
+  .navbar .ttl{font-size:16px; font-weight:600; color:var(--text);}
+  .navbar .back{font-size:15px; color:var(--accent);}
+  .navbar i{font-size:18px;}
+  .body{padding:8px 15px 20px;}
+  .secthead{font-size:11px; letter-spacing:.7px; color:var(--faint); text-transform:uppercase; margin:16px 6px 9px;}
+  /* model card list */
+  .card{background:var(--surface); border-radius:15px; overflow:hidden;}
+  .mrow{display:flex; align-items:flex-start; gap:12px; padding:13px 14px; border-bottom:.5px solid #1E1E27;}
+  .mrow:last-child{border-bottom:none;}
+  .glyph{width:32px; height:32px; border-radius:9px; background:var(--elev); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:15px;}
+  .mname{font-size:14.5px; font-weight:500; color:var(--text);}
+  .mdetail{font-size:11.5px; color:var(--dim); line-height:1.45; margin-top:3px;}
+  .right{margin-left:auto; display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; padding-left:6px;}
+  .size{font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .pill{font-size:10px; padding:3px 9px; border-radius:20px; white-space:nowrap; font-weight:500;}
+  .p-on{color:var(--green); background:rgba(93,202,165,.14);}
+  .p-dim{color:var(--faint); background:rgba(106,106,120,.16);}
+  .p-acc{color:var(--accent); background:rgba(126,116,240,.16);}
+  .p-amber{color:var(--amber); background:rgba(239,159,39,.14);}
+  .check{color:var(--green); font-size:13px;}
+  .foot{font-size:11px; color:var(--faint); line-height:1.5; margin:11px 6px 0;}
+  .btn-line{font-size:13px; color:var(--accent); font-weight:500;}
+  /* polish-row comparison cards */
+  .cmp{width:300px; background:var(--surface); border-radius:14px; padding:4px 14px;}
+  .cmphead{font-size:11px; color:var(--faint); letter-spacing:.4px; padding:11px 0 4px;}
+  /* memo detail */
+  .chip{display:inline-flex; align-items:center; gap:5px; font-size:10.5px; padding:3px 9px; border-radius:20px; background:rgba(126,116,240,.16); color:var(--accent); font-weight:500;}
+  .titlecards{display:flex; gap:9px; margin:4px 0 6px;}
+  .tcard{flex:1; border:1px solid #262630; border-radius:12px; padding:10px 11px;}
+  .tcard.sel{border-color:rgba(126,116,240,.6); background:rgba(126,116,240,.10);}
+  .tk{font-size:9.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--faint); display:flex; align-items:center; gap:5px; margin-bottom:5px;}
+  .tcard.sel .tk{color:var(--accent);}
+  .tv{font-size:13px; color:var(--text); line-height:1.3;}
+  .tdim .tv{color:var(--dim);}
+  .summary{display:flex; gap:9px; margin:12px 0 4px;}
+  .sbar{width:2px; border-radius:2px; background:rgba(126,116,240,.45); flex-shrink:0;}
+  .stext{font-size:13px; font-style:italic; color:#C9C9D4; line-height:1.5;}
+  .bodytext{font-size:14px; line-height:1.6; color:#E3E3EA; margin-top:14px;}
+  .lnk{color:var(--accent);}
+  .raw .bodytext{color:#B9B9C4;}
+  .fill{color:var(--faint);}
+  /* overflow menu */
+  .menu{background:var(--elev); border-radius:13px; overflow:hidden; width:230px; box-shadow:0 10px 34px rgba(0,0,0,.5);}
+  .mi{padding:11px 14px; font-size:14px; color:var(--text); border-bottom:.5px solid #33333F; display:flex; justify-content:space-between; align-items:center;}
+  .mi:last-child{border-bottom:none;}
+  .mi.off{color:var(--faint);}
+  .mi i{font-size:14px; color:var(--dim);}
+  .scrim{background:rgba(0,0,0,.5); padding:14px; display:flex; justify-content:flex-end;}
+  .notes{max-width:860px; margin-top:34px; color:#B8B8C2; font-size:14px; line-height:1.72;}
+  .notes h2{font-size:16px; color:#E8E8EE; margin:22px 0 7px;}
+  .notes code{background:#1A1A24; padding:1px 6px; border-radius:5px; font-size:12.5px;}
+  .notes b{color:#DADAE2;}
+  .warnbox{border:1px solid rgba(239,159,39,.4); background:rgba(239,159,39,.07); border-radius:13px; padding:12px 13px; margin-bottom:10px;}
+</style>
+</head>
+<body>
+<h1>Skrift — on-device models &amp; Polish</h1>
+<p class="sub"><b>Refined to mirror the Mac.</b> No invented "modes," no raw/polished toggle — Polish is exactly the desktop's <b>copy-edit + title + summary</b> (same prompts), surfaced the same way: best-body precedence + a ⋯ Redo menu + a Suggested/From-recording title chooser + an editable summary. The <b>Models tab builds on today's real inventory</b> (Transcription / Speaker recognition / Custom-word spotting) and adds a device-gated <b>Polish</b> row. Each phone shows ONE picker — the comparison below is just to show the gating.</p>
+
+<div class="grouphead">A · Settings → Models (the real on-device inventory + Polish)</div>
+<div class="row">
+
+  <!-- STATE 1 — iPhone 13 Models tab -->
+  <div class="col">
+    <div class="label">1 · iPhone 13 — Models tab (Polish not available on this chip)</div>
+    <div class="phone">
+      <div class="navbar"><span class="back">‹ Settings</span><span class="ttl">Models</span><i style="opacity:0;">⋯</i></div>
+      <div class="body">
+        <div class="secthead">On device</div>
+        <div class="card">
+          <div class="mrow">
+            <div class="glyph" style="color:var(--accent);">𝄞</div>
+            <div style="min-width:0;"><div class="mname">Transcription</div><div class="mdetail">Parakeet TDT 0.6B v3 — turns your voice into text, on-device.</div></div>
+            <div class="right"><span class="size">612 MB</span><span class="check">✓</span></div>
+          </div>
+          <div class="mrow">
+            <div class="glyph" style="color:#8FA9F0;">👥</div>
+            <div style="min-width:0;"><div class="mname">Speaker recognition</div><div class="mdetail">Diarizer + voice embedder — tells speakers apart and matches enrolled voices.</div></div>
+            <div class="right"><span class="size">88 MB</span><span class="check">✓</span></div>
+          </div>
+          <div class="mrow">
+            <div class="glyph" style="color:var(--tan);">🔍</div>
+            <div style="min-width:0;"><div class="mname">Custom-word spotting</div><div class="mdetail">CTC 110M — corrects near-misses on your custom words. Downloads on first use.</div></div>
+            <div class="right"><span class="pill p-dim">Not downloaded</span></div>
+          </div>
+        </div>
+
+        <div class="secthead">Polish — cleanup, title &amp; summary</div>
+        <div class="card">
+          <div class="mrow">
+            <div class="glyph" style="color:var(--faint);">✦</div>
+            <div style="min-width:0;"><div class="mname" style="color:var(--dim);">Not available on this device</div><div class="mdetail">Needs iPhone&nbsp;15&nbsp;Pro or newer. You can still Polish by <b style="color:var(--accent);">pairing a Mac</b> — it does the cleanup and syncs back.</div></div>
+            <div class="right"><span class="pill p-dim">Off</span></div>
+          </div>
+        </div>
+        <div class="foot">Total: 700 MB · Models run fully on-device — nothing leaves your phone.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 2 — polish row per device (compact comparison) -->
+  <div class="col">
+    <div class="label">2 · The Polish row adapts to the device<br>(everything else is identical)</div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div class="cmp">
+        <div class="cmphead">iPhone 13 / 14 / 15 (A15–A16)</div>
+        <div class="mrow" style="padding-left:0; padding-right:0;">
+          <div class="glyph" style="color:var(--faint);">✦</div>
+          <div style="min-width:0;"><div class="mname" style="color:var(--dim);">Not available</div><div class="mdetail">Polish on a paired Mac instead.</div></div>
+          <div class="right"><span class="pill p-dim">Off</span></div>
+        </div>
+      </div>
+      <div class="cmp">
+        <div class="cmphead">iPhone 15 Pro+ / 16 / 17 (Apple Intelligence)</div>
+        <div class="mrow" style="padding-left:0; padding-right:0;">
+          <div class="glyph" style="color:var(--accent);">✦</div>
+          <div style="min-width:0;"><div class="mname">Apple Intelligence</div><div class="mdetail">Built-in · runs on the Neural Engine · no download.</div></div>
+          <div class="right"><span class="pill p-on">On</span></div>
+        </div>
+      </div>
+      <div class="cmp">
+        <div class="cmphead">iPad (M-series)</div>
+        <div class="mrow" style="padding-bottom:7px; padding-left:0; padding-right:0;">
+          <div class="glyph" style="color:var(--accent);">✦</div>
+          <div style="min-width:0;"><div class="mname">Apple Intelligence</div><div class="mdetail">Built-in · default.</div></div>
+          <div class="right"><span class="pill p-on">On</span></div>
+        </div>
+        <div class="mrow" style="padding-top:9px; border-top:.5px solid #1E1E27; padding-left:0; padding-right:0;">
+          <div class="glyph" style="color:var(--dim);">⤓</div>
+          <div style="min-width:0;"><div class="mname" style="font-size:13.5px;">Larger model (optional)</div><div class="mdetail">Gemma — more headroom on iPad. Opt-in download.</div></div>
+          <div class="right"><span class="btn-line">Download</span></div>
+        </div>
+      </div>
+      <div class="label" style="margin-top:2px; max-width:300px;">Model choice is <b style="color:#C7C7D2;">provisional</b> — the on-device spike on a real iPhone 13 decides whether any bundled model is good enough; if not, the honest state is "Not available, use a Mac."</div>
+    </div>
+  </div>
+</div>
+
+<div class="grouphead">B · Polish on a memo — mirrors the Mac exactly (copy-edit + title + summary)</div>
+<div class="row">
+
+  <!-- STATE 3 — polished memo -->
+  <div class="col">
+    <div class="label">3 · Polished (15 Pro+ or Mac-paired) — best body shown; ⋯ to redo</div>
+    <div class="phone">
+      <div class="navbar"><span class="back">‹</span><span class="chip">✦ Polished · on-device</span><i>⋯</i></div>
+      <div class="body">
+        <div class="secthead">Title</div>
+        <div class="titlecards">
+          <div class="tcard sel"><div class="tk">✦ Suggested</div><div class="tv">Rethinking the Obsidian export flow</div></div>
+          <div class="tcard tdim"><div class="tk">〜 From recording</div><div class="tv">New Recording 7</div></div>
+        </div>
+        <div class="summary">
+          <div class="sbar"></div>
+          <div class="stext">Reflecting on whether the phone should publish to Obsidian directly instead of routing through the Mac — leaning toward a one-way publish so it works without a laptop.</div>
+        </div>
+        <div class="bodytext">
+          I keep coming back to the export problem. Right now everything has to go through the Mac, but <span class="lnk">[[Roksana]]</span> pointed out that most people won't have one. So the cleaner path is to publish straight from the phone into the vault folder, and let the Mac stay an optional power-up.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 3b — overflow menu -->
+  <div class="col">
+    <div class="label">3b · ⋯ Redo menu (same actions as the Mac)</div>
+    <div class="phone">
+      <div class="navbar"><span class="back">‹</span><span class="chip">✦ Polished · on-device</span><i>⋯</i></div>
+      <div style="height:150px; background:linear-gradient(#0C0C12,#0e0e15);"></div>
+      <div class="scrim">
+        <div class="menu">
+          <div class="mi">Redo title <i>✦</i></div>
+          <div class="mi">Redo copy-edit <i>✦</i></div>
+          <div class="mi">Redo summary <i>✦</i></div>
+          <div class="mi">Re-transcribe <i>𝄞</i></div>
+          <div class="mi">Copy transcript <i>⧉</i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 4 — no-polish device -->
+  <div class="col">
+    <div class="label">4 · No-polish device — clean raw transcript (current behavior)</div>
+    <div class="phone raw">
+      <div class="navbar"><span class="back">‹</span><span class="ttl" style="font-size:15px;">New Recording 7</span><i>⋯</i></div>
+      <div class="body">
+        <div class="bodytext" style="margin-top:8px;">
+          <span class="fill">Um, </span>so I keep coming back to the<span class="fill">, the</span> export problem<span class="fill">, right?</span> <span class="fill">Like</span> right now everything has to go through the Mac but<span class="fill">, uh,</span> Roksana<span class="fill"> —</span> she pointed out that<span class="fill">, you know,</span> most people won't have one. <span class="fill">So basically</span> the cleaner path<span class="fill">, I think,</span> is to <span class="fill">just</span> publish straight from the phone into the vault folder<span class="fill">, yeah.</span>
+        </div>
+        <div style="margin-top:18px; border:1px dashed #262630; border-radius:12px; padding:13px; font-size:12px; color:var(--dim); text-align:center;">
+          Polished cleanup, a suggested title &amp; a summary appear on <b style="color:#C7C7D2;">iPhone&nbsp;15&nbsp;Pro+</b> or when <b style="color:#C7C7D2;">paired with a Mac</b>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <h2>Build notes — this MIRRORS the desktop; it does not invent</h2>
+  <p>• <b>Same three operations as the Mac:</b> <code>copyEdit</code> + <code>title</code> + <code>summary</code> (<code>EnhancementService.swift</code>), using the <b>same prompt templates</b> (<code>AppSettings.Prompts</code> — EN/NL preserved, no translation, fillers removed, no rewriting). No "Note / Bullets / Email / To-do" modes — that was an invention and is dropped.</p>
+  <p>• <b>No raw/polished toggle.</b> The Mac review shows the best body by precedence (<code>sanitised → enhancedCopyedit → transcript</code>) — there is no toggle, so the phone does the same: the polished body just <i>is</i> the body. The raw text is still the source of truth under the hood (and still what's sent to a paired Mac); "redo/re-transcribe" recovers it.</p>
+  <p>• <b>⋯ Redo menu</b> = the Mac's <code>NoteActions</code>: Redo title / Redo copy-edit / Redo summary / Re-transcribe (copy-edit + re-transcribe hide for diarized conversations, as on the Mac).</p>
+  <p>• <b>Title chooser</b> = the Mac's <code>NoteProperties</code> two-card "Suggested (✦) vs From recording (〜)"; <b>summary</b> = the Mac's editable italic + accent-bar field. Both editable, autosave.</p>
+  <p>• <b>Models tab</b> extends today's read-only <code>ModelInventory</code> (Transcription / Speaker recognition / Custom-word spotting, with real labels + size-on-disk) into a managed view, and adds the <b>Polish</b> row.</p>
+  <h2>Why the ranking, not "Qwen ≈ Apple"</h2>
+  <p>Polish quality, best→worst: <b>Mac Gemma E4B</b> (paired) &gt; <b>Apple Intelligence</b> (~3B, on the Neural Engine, free, zero added app-memory — but only 15 Pro+/M-series) &gt; a <b>small bundled model</b> (1–2B, noticeably worse) &gt; <b>no-polish</b>. The small model is a <b>last resort</b> for chips that can't run Apple Intelligence and aren't paired to a Mac — it is <b>not</b> "as good," so on a 15 Pro you'd never download one (Apple's is already there, free, better). Whether a bundled model ships at all (and which) is decided by the <b>iPhone-13 spike</b>; until then the iPhone-13 Polish row reads "Not available — use a Mac," per "better no model than an unreliable one."</p>
+</div>
+</body>
+</html>

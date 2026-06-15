@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — export & Obsidian publish (standalone)</title>
+<style>
+  :root{
+    --bg:#0C0C12; --warm:#16110C; --warmcard:#15120D; --surface:#17171F; --elev:#23232E;
+    --accent:#7E74F0; --text:#F3F3F7; --dim:#9A9AA8; --faint:#6A6A78; --tan:#C9A87C; --cover:#C9B79A;
+    --green:#5BC98B; --obsidian:#9D7BF0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#050507; color:#E8E8EE; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:28px;}
+  h1{font-size:20px; font-weight:600; margin:0 0 4px;}
+  .sub{color:#8A8A96; margin:0 0 22px; max-width:820px;}
+  .row{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .label{font-size:12px; color:#8A8A96; letter-spacing:.3px; text-align:center; max-width:322px;}
+  .phone{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px; overflow:hidden; position:relative;}
+  .top{display:flex; align-items:center; justify-content:space-between; color:#7E7E8C; margin-bottom:14px;}
+  .nav{display:flex; align-items:center; justify-content:space-between; padding:14px 18px 10px; color:var(--accent); font-size:15px;}
+  .nav .title{color:var(--text); font-size:13px; font-weight:600; letter-spacing:.2px;}
+  .ic{font-size:20px;}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--accent); display:inline-block;}
+  .dim{color:var(--dim);} .faint{color:var(--faint);}
+  /* metadata + source chips */
+  .chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{font-size:11px; color:var(--dim); background:var(--surface); padding:4px 9px; border-radius:20px; display:flex; align-items:center; gap:5px; white-space:nowrap;}
+  .chip.src{color:var(--tan); background:rgba(201,168,124,.12);}
+  /* significance dots */
+  .sig{display:flex; gap:5px; align-items:center;}
+  .sig i{width:9px; height:9px; border-radius:50%; background:#2B2B36; display:inline-block;}
+  .sig i.on{background:var(--accent);}
+  /* play bar */
+  .scrub{height:3px; background:#24242C; border-radius:2px; position:relative; margin:10px 0 7px;}
+  .scrub>.fill{position:absolute; left:0; top:0; height:3px; width:34%; background:var(--accent); border-radius:2px;}
+  .scrub>.knob{position:absolute; left:34%; top:-4px; width:11px; height:11px; background:#fff; border-radius:50%; transform:translateX(-5px);}
+  .times{display:flex; justify-content:space-between; font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums;}
+  .playbar{display:flex; align-items:center; gap:14px; justify-content:center; margin-top:10px;}
+  .play{width:44px; height:44px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; font-size:17px;}
+  /* action sheet (confirmationDialog) */
+  .scrim{position:absolute; inset:0; background:rgba(2,2,5,.55);}
+  .sheet{position:absolute; left:8px; right:8px; bottom:8px; display:flex; flex-direction:column; gap:8px;}
+  .sheet .group{background:#1C1C26; border-radius:14px; overflow:hidden;}
+  .sheet .item{padding:15px 16px; font-size:17px; color:var(--accent); text-align:center; border-bottom:.5px solid #2A2A34; display:flex; align-items:center; justify-content:center; gap:9px;}
+  .sheet .item:last-child{border-bottom:none;}
+  .sheet .item.head{color:var(--faint); font-size:12px; padding:12px 16px;}
+  .sheet .item.hero{color:#fff; background:linear-gradient(0deg,rgba(126,116,240,.22),rgba(126,116,240,.22)); font-weight:600;}
+  .sheet .item.hero .ob{color:var(--obsidian);}
+  .sheet .cancel{padding:16px; font-size:17px; color:var(--accent); text-align:center; background:#1C1C26; border-radius:14px; font-weight:600;}
+  /* sheet pulled up from bottom (vault flow / settings) */
+  .modal{position:absolute; left:0; right:0; bottom:0; top:46px; background:#101018; border-radius:20px 20px 0 0; padding:20px 20px 22px; overflow:hidden;}
+  .grab{width:36px; height:4px; border-radius:2px; background:#33333D; margin:0 auto 16px;}
+  .h2{font-size:19px; font-weight:600; color:var(--text); margin:2px 0 6px;}
+  .lead{font-size:14px; color:var(--dim); line-height:1.55; margin-bottom:16px;}
+  .vaultcard{background:var(--surface); border-radius:14px; padding:14px; margin-bottom:14px;}
+  .tree{font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--dim);}
+  .tree .skr{color:var(--accent);}
+  .tree .mine{color:#4A4A55;}
+  .btn{background:var(--accent); color:#fff; border-radius:13px; padding:14px; text-align:center; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .btn.ghost{background:var(--surface); color:var(--text); font-weight:500;}
+  .privacy{display:flex; gap:9px; align-items:flex-start; font-size:12px; color:var(--faint); margin-top:14px; line-height:1.5;}
+  .privacy .lk{color:var(--green); font-size:14px; flex-shrink:0;}
+  /* settings rows */
+  .sect{font-size:12px; color:var(--faint); letter-spacing:.4px; text-transform:uppercase; margin:18px 4px 8px;}
+  .listcard{background:var(--surface); border-radius:14px; overflow:hidden;}
+  .srow{display:flex; align-items:center; justify-content:space-between; padding:14px 15px; border-bottom:.5px solid #20202A; font-size:15px; color:var(--text); gap:12px;}
+  .srow:last-child{border-bottom:none;}
+  .srow .val{color:var(--dim); font-size:14px; display:flex; align-items:center; gap:6px; text-align:right;}
+  .srow .val .path{font:12px ui-monospace,Menlo,monospace; color:var(--accent);}
+  .toggle{width:42px; height:26px; border-radius:14px; background:var(--accent); position:relative; flex-shrink:0;}
+  .toggle::after{content:""; position:absolute; right:3px; top:3px; width:20px; height:20px; border-radius:50%; background:#fff;}
+  .seg{display:flex; background:#101018; border-radius:9px; padding:3px; gap:3px; margin-top:9px;}
+  .seg>span{flex:1; text-align:center; font-size:12px; padding:7px 4px; border-radius:7px; color:var(--dim);}
+  .seg>span.on{background:var(--elev); color:var(--text); font-weight:500;}
+  .stack{flex-direction:column; align-items:stretch; gap:9px;}
+  /* memos list rows */
+  .listhdr{padding:6px 16px 4px; font-size:12px; color:var(--faint); letter-spacing:.3px;}
+  .mrow{display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:.5px solid #16161E;}
+  .check{width:22px; height:22px; border-radius:50%; border:2px solid #38384A; flex-shrink:0;}
+  .check.on{border-color:var(--accent); background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px;}
+  .glyph{width:30px; height:30px; border-radius:8px; background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--dim); flex-shrink:0;}
+  .glyph.book{color:var(--tan); background:rgba(201,168,124,.12);}
+  .mtitle{font-size:14px; color:var(--text); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .msnip{font-size:12px; color:var(--faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px;}
+  .mtime{font-size:11px; color:var(--faint); flex-shrink:0;}
+  .bottombar{position:absolute; left:0; right:0; bottom:0; background:rgba(16,16,24,.96); border-top:.5px solid #22222C; display:flex; padding:14px 18px 20px; gap:14px;}
+  .bottombar .ba{flex:1; text-align:center; font-size:15px; color:var(--accent); font-weight:600; display:flex; align-items:center; justify-content:center; gap:7px;}
+  .bottombar .ba.del{color:#E5604B;}
+  .toast{position:absolute; left:24px; right:24px; bottom:86px; background:#1E2A22; border:.5px solid rgba(91,201,139,.4); border-radius:13px; padding:13px 15px; display:flex; align-items:center; gap:10px; font-size:13px; color:#CFEFD9;}
+  .toast .ck{color:var(--green); font-size:16px;}
+  /* link styling in transcript */
+  .lk2{color:var(--accent);}
+  .notes{max-width:840px; margin-top:34px; color:#B8B8C2; font-size:14px; line-height:1.7;}
+  .notes h2{font-size:16px; color:#E8E8EE; margin:22px 0 6px;}
+  .notes code{background:#1A1A24; padding:1px 6px; border-radius:5px; font-size:13px;}
+  .notes li{margin-bottom:7px;}
+</style>
+</head>
+<body>
+<h1>Skrift — export &amp; Obsidian publish (standalone)</h1>
+<p class="sub">Phase 2 of the standalone push: close the "the only way out is copy-to-clipboard" gap. Every memo becomes shareable + exportable (Markdown / PDF / plain text / audio), and a one-way <strong>Obsidian publisher</strong> writes name-linked notes into a Skrift-owned subfolder — never touching the user's own vault. Name-links <span class="lk2">[[Tuur]]</span> are produced on-device by the ported <code>Sanitiser</code>. Dark by default; matches the audiobook-player-redesign design language.</p>
+
+<div class="row">
+
+  <!-- STATE 1 — Memo detail → Share/Export confirmationDialog -->
+  <div class="col">
+    <div class="label">1 · Memo detail → Share / Export sheet (⋯ confirmationDialog)</div>
+    <div class="phone">
+      <div class="nav"><span>‹ Memos</span><span class="title">Voice memo</span><span class="ic" style="color:var(--accent);">⋯</span></div>
+      <div style="padding:0 18px 16px;">
+        <div style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:8px;">Coffee with Tuur — the book idea</div>
+        <div class="chips" style="margin-bottom:10px;">
+          <span class="chip src">🎙 Voice memo</span>
+          <span class="chip">📍 De Pijp</span>
+          <span class="chip">⛅ 14°</span>
+          <span class="chip">🕘 Sat 09:12</span>
+        </div>
+        <div class="sig" style="margin-bottom:12px;">
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i>
+          <span style="font-size:11px; color:var(--dim); margin-left:6px;">Important · 6</span>
+        </div>
+        <div style="font-size:14px; line-height:1.6; color:#D6D6DE;">
+          Sat with <span class="lk2">[[Tuur]]</span> at the café and we finally pinned down the
+          shape of the book. <span class="lk2">[[Roksana]]</span> wants the commonplace angle up
+          front. The thread is resistance — exactly what Pressfield keeps…
+        </div>
+        <div class="scrub"><div class="fill"></div><div class="knob"></div></div>
+        <div class="times"><span>1:14</span><span>−2:31</span></div>
+        <div class="playbar">
+          <i class="ic dim">⟲</i><div class="play">▶</div><i class="ic dim">⟳</i>
+        </div>
+      </div>
+      <!-- confirmationDialog open -->
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="group">
+          <div class="item head">Coffee with Tuur — the book idea</div>
+          <div class="item">􀈂 Share…</div>
+          <div class="item">􀈷 Export as Markdown</div>
+          <div class="item">􀉅 Export as PDF</div>
+          <div class="item">􀉃 Export as Plain text</div>
+          <div class="item">􀫀 Export audio (.m4a)</div>
+          <div class="item hero"><span class="ob">◈</span> Export to Obsidian</div>
+        </div>
+        <div class="cancel">Cancel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 2 — First-run choose Obsidian vault -->
+  <div class="col">
+    <div class="label">2 · First-run "Choose your Obsidian vault"</div>
+    <div class="phone">
+      <div style="height:100%; min-height:660px; position:relative;">
+        <div class="modal">
+          <div class="grab"></div>
+          <div style="font-size:30px; margin-bottom:10px;">◈</div>
+          <div class="h2">Publish to Obsidian</div>
+          <div class="lead">
+            Pick your Obsidian vault folder. Skrift writes <strong>only</strong> into a dedicated
+            <code>Skrift/</code> subfolder inside it — your own notes are never read or touched.
+          </div>
+          <div class="vaultcard">
+            <div style="font-size:12px; color:var(--faint); margin-bottom:8px;">What Skrift will create</div>
+            <div class="tree">
+MyVault/<br>
+&nbsp;&nbsp;<span class="mine">Daily/ &nbsp;&nbsp;&nbsp;&nbsp;← yours, untouched</span><br>
+&nbsp;&nbsp;<span class="mine">People/ &nbsp;&nbsp;&nbsp;← yours, untouched</span><br>
+&nbsp;&nbsp;<span class="skr">Skrift/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="skr">Voice Memos/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="skr">Audiobook Quotes/</span>
+            </div>
+          </div>
+          <div class="btn">📁 Choose folder…</div>
+          <div class="privacy">
+            <span class="lk">􀎡</span>
+            <span>Skrift gets a <strong>read-write handle to the <code>Skrift/</code> folder only</strong>
+            (a security-scoped bookmark). It never scans the rest of your vault — that's a hard rule.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 3 — Settings → Export section -->
+  <div class="col">
+    <div class="label">3 · Settings → Export section</div>
+    <div class="phone">
+      <div class="nav"><span>‹ Settings</span><span class="title">Export</span><span style="width:20px;"></span></div>
+      <div style="padding:0 14px 18px;">
+
+        <div class="sect">Format &amp; destination</div>
+        <div class="listcard">
+          <div class="srow"><span>Default format</span><span class="val">Markdown ›</span></div>
+          <div class="srow">
+            <span>Obsidian vault</span>
+            <span class="val"><span class="path">…/MyVault → Skrift/</span> ›</span>
+          </div>
+          <div class="srow"><span>Include audio</span><span class="toggle"></span></div>
+        </div>
+
+        <div class="sect">Publish</div>
+        <div class="listcard">
+          <div class="srow stack" style="align-items:stretch;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span>What gets published</span>
+            </div>
+            <div class="seg">
+              <span>All memos</span>
+              <span class="on">Only important (&gt; 0)</span>
+            </div>
+            <div style="font-size:11px; color:var(--faint); line-height:1.45; margin-top:2px;">
+              Only memos you've marked important (significance &gt; 0) are written to the vault.
+              Everything still syncs across your own devices.
+            </div>
+          </div>
+        </div>
+
+        <div class="sect">Names &amp; links</div>
+        <div class="listcard">
+          <div class="srow">
+            <span style="display:flex; flex-direction:column; gap:2px;">
+              On-device name-linking
+              <span style="font-size:11px; color:var(--faint);">Turns "Tuur" into <span class="lk2">[[Tuur]]</span></span>
+            </span>
+            <span class="toggle"></span>
+          </div>
+          <div class="srow"><span>Aliases &amp; voices</span><span class="val">3 people ›</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 4 — Batch export from multi-select list -->
+  <div class="col">
+    <div class="label">4 · Batch export — multi-select + success toast</div>
+    <div class="phone">
+      <div class="nav"><span style="color:var(--accent);">Cancel</span><span class="title">4 selected</span><span style="color:var(--accent);">Select all</span></div>
+      <div style="position:relative; min-height:600px;">
+        <div class="listhdr">Today</div>
+
+        <div class="mrow">
+          <div class="check on">✓</div>
+          <div class="glyph">🎙</div>
+          <div style="min-width:0; flex:1;"><div class="mtitle">Coffee with Tuur — the book idea</div><div class="msnip">Sat with [[Tuur]] at the café and we…</div></div>
+          <div class="mtime">09:12</div>
+        </div>
+
+        <div class="mrow">
+          <div class="check on">✓</div>
+          <div class="glyph book">❝</div>
+          <div style="min-width:0; flex:1;"><div class="mtitle"><i>"The most important thing is to start."</i></div><div class="msnip">Do the Work · Ch 3 · Pressfield</div></div>
+          <div class="mtime">08:40</div>
+        </div>
+
+        <div class="mrow">
+          <div class="check on">✓</div>
+          <div class="glyph">📹</div>
+          <div style="min-width:0; flex:1;"><div class="mtitle">Studio walkthrough</div><div class="msnip">Video · the shelf layout next to the…</div></div>
+          <div class="mtime">Yest</div>
+        </div>
+
+        <div class="listhdr" style="padding-top:12px;">Thursday</div>
+
+        <div class="mrow">
+          <div class="check on">✓</div>
+          <div class="glyph">🔗</div>
+          <div style="min-width:0; flex:1;"><div class="mtitle">Readwise — spaced repetition</div><div class="msnip">readwise.io · why daily review beats…</div></div>
+          <div class="mtime">Thu</div>
+        </div>
+
+        <div class="mrow">
+          <div class="check"></div>
+          <div class="glyph">🎙</div>
+          <div style="min-width:0; flex:1;"><div class="mtitle">Groceries + dentist Tuesday</div><div class="msnip">don't forget the appointment at…</div></div>
+          <div class="mtime">Thu</div>
+        </div>
+
+        <!-- success toast -->
+        <div class="toast"><span class="ck">✓</span> Exported 4 notes → Obsidian</div>
+
+        <!-- bottom action bar -->
+        <div class="bottombar">
+          <div class="ba">􀈂 Export</div>
+          <div class="ba del">􀈑 Delete</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="notes">
+  <h2>Build notes</h2>
+  <p>Phase 2 of <code>STANDALONE_PLAN.md</code> — "the #1 table-stakes." One source of truth
+  (CloudKit-mirrored SwiftData) fans out, read-only, to an Obsidian sink. These four states are the
+  net-new UI; everything below is the real code seam each one binds to.</p>
+
+  <h2>The export engine</h2>
+  <ul>
+    <li><strong>New <code>Services/Export/MemoExporter.swift</code></strong> — turns a <code>Memo</code>
+    into <code>{Markdown (Obsidian frontmatter, [[img_NNN]]→embed), plain txt, PDF, quote-card image,
+    audio .m4a}</code>, reusing the Phase-0 <code>Compiler</code> through a neutral input DTO (so the Mac
+    and the phone compile byte-identically) + <code>ImageMarkerReinsert</code>. State 1's sheet is the
+    surface; the <em>highlighted</em> "Export to Obsidian" routes through the publisher, the rest hit the
+    OS share/save path.</li>
+    <li><strong><code>ShareLink</code> into <code>MemoDetailView.swift:128-133</code></strong> — the ⋯
+    <code>confirmationDialog</code> (already there for Copy/Delete) gains Share… + the four export verbs.
+    "Share…" is a real <code>ShareLink</code> exporting the chosen representation; native iOS, no custom
+    sheet chrome.</li>
+  </ul>
+
+  <h2>The Obsidian publisher (one-way, create-only)</h2>
+  <ul>
+    <li><strong>New <code>ObsidianPublisher</code></strong> — State 2 is its first-run. User picks the
+    vault folder once → we persist a <strong>security-scoped bookmark</strong> (precedent already in the
+    app: <code>MemoSaver.swift:61</code>, <code>AudiobookImporter.swift:99</code>); stale bookmarks
+    re-prompt. We ALWAYS write under a dedicated <code>&lt;vault&gt;/Skrift/</code> subfolder
+    (<code>Skrift/Voice Memos/</code>, <code>Skrift/Audiobook Quotes/</code>) — Skrift owns it, never reads
+    the rest of the vault. The privacy line in State 2 is load-bearing copy, not decoration: the bookmark
+    is scoped to <code>Skrift/</code>, satisfying the repo's hard "never point at the vault" rule.</li>
+    <li><strong>Per-memo export identity</strong> on <code>Memo</code> (additive/defaulted → clean for
+    CloudKit + SwiftData): <code>exportRelativePath: String?</code>, <code>exportedContentHash: String?</code>,
+    <code>exportedAt: Date?</code>. The <em>sticky path</em> means a re-export overwrites only its own file
+    (single owner per file = no <code>filename 2.md</code> conflict copy). The <em>content-hash</em> makes
+    re-publish idempotent — unchanged memos are skipped, so we don't churn iCloud.</li>
+    <li><strong>Atomic + <code>NSFileCoordinator</code> writes</strong> — Obsidian / iCloud never observe a
+    half-written <code>.md</code>.</li>
+    <li><strong>New <code>PublishCoordinator</code></strong> (peer to <code>SyncCoordinator</code>) fans the
+    store out to whichever sinks are configured. State 4's batch "Export" enumerates the selection through
+    it; the toast reports how many notes landed.</li>
+  </ul>
+
+  <h2>On-device name-linking — the <code>[[Name]]</code> in every state</h2>
+  <ul>
+    <li>The <span class="lk2">[[Tuur]]</span> / <span class="lk2">[[Roksana]]</span> links in States 1 &amp; 4
+    are produced <strong>on-device by the ported <code>Sanitiser</code></strong> (Phase 0,
+    <code>SkriftPipelineKit</code>) running over the local <code>names.json</code> automatically after
+    transcription — no extra UI for the linking itself, exactly like the Mac. So the phone's display AND its
+    standalone Obsidian export both carry real wiki-links.</li>
+    <li><strong>The phone still sends RAW to the Mac</strong> (contract spine unchanged). Linking is
+    deterministic over the synced names DB, so the Mac re-links the same RAW with the same shared code →
+    identical links, no double-linking, no skip-signal to miss. State 3's "Aliases &amp; voices" row is the
+    new alias-management surface (Phase 2, mirroring the Mac) — it syncs via the existing NamesData LWW.</li>
+  </ul>
+
+  <h2>Settings &amp; significance (State 3)</h2>
+  <ul>
+    <li>New <strong>Settings → Export section</strong>: Default format · Obsidian vault (shows
+    <code>…/MyVault → Skrift/</code>) · Include audio · the publish segmented control.</li>
+    <li><strong>Significance is reframed as importance/pin</strong> (field + contract name kept for
+    byte-compatibility). It no longer gates "does it leave the device" globally — it's a <em>per-sink</em>
+    filter. <strong>CloudKit ignores it</strong> (every memo, incl. significance 0, syncs to your own
+    devices). The "Only important (&gt; 0)" segment is the Obsidian publish filter; the Mac transport keeps
+    today's <code>&gt; 0</code> flag-to-send unchanged. State 1's memo shows 6/10 dots → it's in the
+    "important" set.</li>
+  </ul>
+
+  <h2>Source taxonomy (State 4 glyphs)</h2>
+  <p>Reuses the unified source taxonomy already shipped: 🎙 voice memo (<code>mic.fill</code>), ❝ audiobook
+  quote (book glyph + italic quote lead), 📹 video (<code>video.fill</code> — <code>Memo.isVideoImport</code>),
+  🔗 shared URL. Same glyph + label across the row and detail; the batch bar exports whatever's selected
+  regardless of source.</p>
+
+  <h2>Decisions to weigh in on</h2>
+  <ul>
+    <li><strong>Default publish scope</strong> — State 3 defaults to "Only important (&gt; 0)" to keep the
+    vault tidy and mirror today's Mac-sync gate. Should the standalone default instead be "All memos" (since
+    CloudKit already holds everything and the <code>Skrift/</code> folder is isolated)?</li>
+    <li><strong>Paired-mode export ownership</strong> — when a Mac is paired it has the <em>enhanced</em>
+    text, so the plan defaults Obsidian export to the Mac and turns the phone's publish off (two writers
+    shouldn't race one note). Per-memo file ownership + content-hash make a stray double-write harmless, so
+    this could also be a user toggle rather than an automatic switch — which do you want as the default?</li>
+    <li><strong>Quote-card image export</strong> — <code>MemoExporter</code> can also render the Phase-6
+    shareable quote card. Should it appear in this sheet now (as "Export as image"), or wait for the
+    Commonplace Book phase where the card UI properly lives?</li>
+  </ul>
+</div>
+</body>
+</html>

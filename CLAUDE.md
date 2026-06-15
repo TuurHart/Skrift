@@ -102,7 +102,12 @@ Rules:
 - **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
   memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →
   MANDATORY second-agent verify → triage into backlog.md. Crash logs via `idevicecrashreport`.
-- **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity (current focus): full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
+- **`STANDALONE_PLAN.md`** — ⭐ **CURRENT DIRECTION (2026-06-15):** ship SkriftMobile to the App Store
+  as a standalone audiobook+notetaking app (no Mac required). Locked: **$0.69, no IAP**; full-vision v1;
+  **CloudKit** internal sync (not iCloud-Drive); one-way Obsidian publish; on-device Polish as a **gated
+  spike**; Mac+Obsidian = optional sinks over one source of truth. Phases 0–11 + portability map +
+  device/LLM matrix. Branch **`standalone`**. Track in `backlog.md` "⭐ Standalone App Store push".
+- **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity: full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
 - `MOBILE_NATIVE_HANDOFF.md` → `MOBILE_NATIVE_REWRITE_PLAN.md` — the iOS app (phases, contract, XCUITest harness).
 - `DESKTOP_NATIVE_HANDOFF.md` → `DESKTOP_NATIVE_REWRITE_PLAN.md` — the macOS app. `WALKTHROUGH_BUGS.md` — desktop walkthrough tracker.
 - Memory: `project_native_convergence`, `project_vocab_booster`, `feedback_vault_privacy`, `feedback_autonomous_execution`, `feedback_native_ui_process`, `feedback_native_ui_verification`.

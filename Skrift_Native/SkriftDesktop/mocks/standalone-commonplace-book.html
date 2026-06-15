@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — Commonplace Book (Highlights · Daily Review · quote cards)</title>
+<style>
+  :root{
+    --bg:#0C0C12; --warm:#16110C; --warmcard:#15120D; --surface:#17171F; --elev:#23232E;
+    --accent:#7E74F0; --text:#F3F3F7; --dim:#9A9AA8; --faint:#6A6A78; --tan:#C9A87C; --cover:#C9B79A;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#050507; color:#E8E8EE; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:28px;}
+  h1{font-size:20px; font-weight:600; margin:0 0 4px;}
+  .sub{color:#8A8A96; margin:0 0 22px; max-width:820px;}
+  .row{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .label{font-size:12px; color:#8A8A96; letter-spacing:.3px; text-align:center; max-width:322px;}
+  .phone{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px; overflow:hidden;}
+  .dim{color:var(--dim);} .faint{color:var(--faint);}
+
+  /* header / nav */
+  .statusbar{display:flex; justify-content:space-between; padding:9px 20px 2px; font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums;}
+  .screen-head{padding:8px 18px 4px;}
+  .screen-title{font-size:24px; font-weight:700; letter-spacing:-.4px; color:var(--text);}
+  .seg{display:flex; gap:4px; background:var(--surface); border-radius:11px; padding:3px; margin:12px 18px 6px;}
+  .seg>span{flex:1; text-align:center; font-size:12px; padding:7px 0; border-radius:9px; color:var(--dim);}
+  .seg .on{background:var(--elev); color:var(--text); font-weight:600;}
+
+  /* tab bar */
+  .tabbar{display:flex; justify-content:space-around; padding:9px 6px 12px; border-top:.5px solid #1C1C26; background:#0A0A10;}
+  .tabbar .t{display:flex; flex-direction:column; align-items:center; gap:3px; font-size:9.5px; color:var(--faint); width:60px;}
+  .tabbar .t i{font-size:19px; font-style:normal;}
+  .tabbar .t.on{color:var(--accent);}
+
+  /* highlight card */
+  .feed{padding:6px 16px 4px;}
+  .booklead{display:flex; align-items:center; gap:9px; margin:14px 2px 9px;}
+  .booklead .coverchip{width:30px; height:40px; border-radius:4px; background:var(--cover); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:6px; color:#2C2C2A; font-weight:700; text-align:center; line-height:1.1;}
+  .booklead .bt{font-size:13px; font-weight:600; color:var(--text);}
+  .booklead .ba{font-size:11px; color:var(--dim);}
+  .booklead .count{margin-left:auto; font-size:11px; color:var(--faint);}
+
+  .hcard{background:var(--surface); border-radius:15px; padding:14px 15px 13px; margin-bottom:11px;}
+  .quote{border-left:2.5px solid var(--accent); padding-left:12px; font-style:italic; font-size:14.5px; line-height:1.55; color:#E8E8EE;}
+  .quote.tan{border-left-color:var(--tan);}
+  .anno{display:flex; gap:8px; margin-top:11px; padding-top:11px; border-top:.5px solid #22222C;}
+  .anno .mic{color:var(--accent); font-size:13px; flex-shrink:0; margin-top:1px;}
+  .anno .txt{font-size:13px; color:#C2C2CC; line-height:1.5;}
+  .hmeta{display:flex; align-items:center; gap:8px; margin-top:11px; font-size:11px; color:var(--faint);}
+  .src{display:inline-flex; align-items:center; gap:4px; color:var(--tan); font-size:11px;}
+  .src.mic{color:var(--accent);}
+  .src.vid{color:#7FB2E6;}
+  .dots{display:inline-flex; gap:2.5px; margin-left:auto;}
+  .dots i{width:6px; height:6px; border-radius:50%; background:#2C2C36; display:inline-block;}
+  .dots i.f{background:var(--accent);}
+  .dots i.f.tan{background:var(--tan);}
+  .chip{font-size:10.5px; color:var(--dim); background:var(--elev); padding:2px 8px; border-radius:9px;}
+
+  /* daily review */
+  .review-prog{display:flex; align-items:center; gap:8px; padding:0 20px;}
+  .review-prog .bar{flex:1; height:3px; background:#22222C; border-radius:2px; position:relative;}
+  .review-prog .bar>span{position:absolute; left:0; top:0; height:3px; width:33%; background:var(--accent); border-radius:2px;}
+  .bigquote{font-size:21px; line-height:1.5; font-weight:500; color:#F2F2F7; letter-spacing:-.2px;}
+  .bigquote .accentbar{}
+  .review-foot{display:flex; gap:12px; padding:0 20px 4px;}
+  .btn-next{flex:1; background:var(--accent); color:#fff; border-radius:13px; padding:14px; text-align:center; font-weight:600; font-size:15px;}
+  .btn-ghost{background:var(--surface); color:var(--dim); border-radius:13px; padding:14px 18px; text-align:center; font-size:15px;}
+  .ondevice{display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--faint); background:#101018; padding:5px 11px; border-radius:20px;}
+
+  /* quote card (shareable) */
+  .qcard{width:282px; border-radius:18px; padding:30px 26px; background:linear-gradient(160deg,#2A2018 0%,#1C1610 55%,#15110C 100%); box-shadow:inset 0 0 0 1px rgba(201,168,124,.12);}
+  .qcard .ornament{font-size:30px; color:var(--tan); opacity:.55; line-height:0; height:18px;}
+  .qcard .body{font-size:19px; line-height:1.46; font-weight:500; color:#F4ECE0; letter-spacing:-.2px; margin:18px 0 22px; font-style:italic;}
+  .qcard .attr{font-size:12.5px; color:var(--tan); letter-spacing:.2px;}
+  .qcard .attr b{color:#EFE3D2; font-weight:600; font-style:italic;}
+  .qcard .rule{height:.5px; background:rgba(201,168,124,.22); margin:18px 0 14px;}
+  .qcard .wm{display:flex; align-items:center; gap:6px; font-size:11px; color:rgba(201,168,124,.7); letter-spacing:.6px;}
+  .qcard .wm .mark{width:14px; height:14px; border-radius:4px; background:var(--accent); display:inline-block;}
+  .sharesheet{width:282px; background:#1C1C22; border-radius:16px 16px 0 0; margin-top:-12px; padding:14px 16px 16px;}
+  .sharesheet .icons{display:flex; gap:14px; padding:6px 2px 12px; border-bottom:.5px solid #2A2A34;}
+  .sharesheet .ai{display:flex; flex-direction:column; align-items:center; gap:5px; font-size:9.5px; color:var(--dim); width:52px;}
+  .sharesheet .ai .glyph{width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:19px;}
+  .sharesheet .act{font-size:14px; color:var(--text); padding:11px 4px; display:flex; justify-content:space-between;}
+
+  .notes{max-width:820px; margin-top:34px; color:#B8B8C2; font-size:14px; line-height:1.7;}
+  .notes h2{font-size:16px; color:#E8E8EE; margin:22px 0 6px;}
+  .notes code{background:#1A1A24; padding:1px 6px; border-radius:5px; font-size:13px;}
+  .notes li{margin-bottom:7px;}
+</style>
+</head>
+<body>
+<h1>Skrift — Commonplace Book (Highlights · Daily Review · quote cards)</h1>
+<p class="sub">Phase 6, the headline differentiator. Captured quotes + significant memos collapse into ONE searchable feed grouped by book/source, each carrying the user's voice-ramble as its annotation. A Readwise-style on-device Daily Review resurfaces one highlight at a time. And an <code>ImageRenderer</code> quote card turns any highlight into a share-ready, cover-tinted image — the App-Store virality lever. Dark by default; matches the audiobook-player-redesign tokens verbatim.</p>
+
+<div class="row">
+
+  <!-- STATE 1 — Highlights feed -->
+  <div class="col">
+    <div class="label">1 · Highlights feed — quotes + significant memos, grouped by source</div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>􀙇 􀛨 100%</span></div>
+      <div class="screen-head"><div class="screen-title">Highlights</div></div>
+      <div class="seg"><span>Memos</span><span class="on">Highlights</span><span>People</span></div>
+
+      <div class="feed">
+        <!-- group: Do the Work -->
+        <div class="booklead">
+          <div class="coverchip">DO THE<br>WORK</div>
+          <div>
+            <div class="bt">Do the Work</div>
+            <div class="ba">Steven Pressfield</div>
+          </div>
+          <div class="count">4 highlights</div>
+        </div>
+
+        <div class="hcard">
+          <div class="quote">"In the end the question can only be answered by action. Do it or don't do it."</div>
+          <div class="anno">
+            <span class="mic">􀊰</span>
+            <span class="txt">This is the whole book in two sentences. I keep waiting to feel ready before I ship Skrift — that's the resistance talking.</span>
+          </div>
+          <div class="hmeta">
+            <span class="src">􀉝 Do the Work · ch. 3</span>
+            <span class="dots"><i class="f tan"></i><i class="f tan"></i><i class="f tan"></i><i class="f tan"></i><i class="f tan"></i><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+        </div>
+
+        <div class="hcard">
+          <div class="quote">"Resistance is experienced as fear; the degree of fear equates to the strength of Resistance."</div>
+          <div class="anno">
+            <span class="mic">􀊰</span>
+            <span class="txt">Roksana said the same thing about her thesis. The scariest task is the right one.</span>
+          </div>
+          <div class="hmeta">
+            <span class="src">􀉝 Do the Work · ch. 1</span>
+            <span class="dots"><i class="f tan"></i><i class="f tan"></i><i class="f tan"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+        </div>
+
+        <!-- group: voice memo highlight mixed in -->
+        <div class="booklead">
+          <div class="coverchip" style="background:#3A3550; color:#E8E8EE;">􀊰</div>
+          <div>
+            <div class="bt">Voice memos</div>
+            <div class="ba">significant captures</div>
+          </div>
+          <div class="count">2 highlights</div>
+        </div>
+
+        <div class="hcard">
+          <div class="quote">"The CloudKit source-of-truth idea is the thing that makes this not-a-fork — same architecture whether you lean phone or Mac."</div>
+          <div class="anno">
+            <span class="mic">􀊰</span>
+            <span class="txt">Walking back from the studio, working it out loud with Tuur.</span>
+          </div>
+          <div class="hmeta">
+            <span class="src mic">􀊰 Voice memo</span>
+            <span class="chip">􀙭 Vondelpark</span>
+            <span class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i><i></i></span>
+          </div>
+        </div>
+
+        <div class="hcard">
+          <div class="quote">"Ship the no-polish path first — better no model than an unreliable one. Honesty is the feature."</div>
+          <div class="anno">
+            <span class="mic">􀊰</span>
+            <span class="txt">From the walkthrough video — the bit where I almost talked myself out of it.</span>
+          </div>
+          <div class="hmeta">
+            <span class="src vid">􀎶 Video</span>
+            <span class="chip">􀇕 13°C · evening</span>
+            <span class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <div class="t"><i>􀒷</i>Memos</div>
+        <div class="t on"><i>􀋵</i>Highlights</div>
+        <div class="t"><i>􀉭</i>People</div>
+        <div class="t"><i>􀌜</i>Books</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 2 — Daily Review -->
+  <div class="col">
+    <div class="label">2 · Daily Review — one resurfaced highlight, spaced-repetition</div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>􀙇 􀛨 100%</span></div>
+      <div class="screen-head" style="display:flex; align-items:baseline; gap:8px;">
+        <div class="screen-title" style="font-size:21px;">Today's review</div>
+        <span style="font-size:13px; color:var(--accent); font-weight:600;">· 3</span>
+        <span style="margin-left:auto; font-size:12px; color:var(--faint);">1 / 3</span>
+      </div>
+      <div class="review-prog" style="margin-top:6px;"><div class="bar"><span></span></div></div>
+
+      <div style="padding:34px 22px 8px;">
+        <div style="border-left:3px solid var(--tan); padding-left:16px;">
+          <div class="bigquote">"Start before you're ready. Don't prepare. Begin."</div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:11px; margin-top:30px;">
+          <div class="coverchip" style="width:38px; height:50px; border-radius:5px;">DO THE<br>WORK</div>
+          <div>
+            <div style="font-size:14px; font-weight:600; color:var(--text);">Do the Work</div>
+            <div style="font-size:12px; color:var(--dim);">Steven Pressfield · ch. 4</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; padding:12px 14px; background:var(--surface); border-radius:13px;">
+          <div style="display:flex; gap:8px;">
+            <span style="color:var(--accent); font-size:13px;">􀊰</span>
+            <span style="font-size:13px; color:#C2C2CC; line-height:1.5;">My note: I save this and never act on it. Reading it again — same friction, four months on.</span>
+          </div>
+        </div>
+
+        <div style="margin-top:18px; font-size:12px; color:var(--faint);">􀐫 captured 4 months ago · Feb 2026</div>
+      </div>
+
+      <div style="text-align:center; margin:16px 0 14px;">
+        <span class="ondevice">􀎡 Resurfaced on your device — nothing leaves your phone</span>
+      </div>
+
+      <div class="review-foot" style="padding-bottom:18px;">
+        <div class="btn-ghost">Done for today</div>
+        <div class="btn-next">Next  􀰑</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE 3 — Shareable quote card -->
+  <div class="col">
+    <div class="label">3 · Shareable quote card — ImageRenderer · cover-tinted · App-Store asset</div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>􀙇 􀛨 100%</span></div>
+      <div style="padding:10px 18px 4px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; color:var(--dim); font-size:13px;">
+          <span>Cancel</span>
+          <span style="color:var(--text); font-weight:600;">Share highlight</span>
+          <span style="color:var(--accent); font-weight:600;">Save</span>
+        </div>
+      </div>
+
+      <div style="padding:22px 16px 0; display:flex; flex-direction:column; align-items:center;">
+        <!-- the rendered card -->
+        <div class="qcard">
+          <div class="ornament">❝</div>
+          <div class="body">In the end the question can only be answered by action. Do it or don't do it.</div>
+          <div class="attr"><b>Steven Pressfield</b><br>Do the Work · ch. 3</div>
+          <div class="rule"></div>
+          <div class="wm"><span class="mark"></span> SKRIFT</div>
+        </div>
+
+        <!-- iOS share sheet hint -->
+        <div class="sharesheet">
+          <div class="icons">
+            <div class="ai"><div class="glyph" style="background:#25D366; color:#fff;">􀙄</div>Messages</div>
+            <div class="ai"><div class="glyph" style="background:#0A0A0A; color:#fff; box-shadow:inset 0 0 0 1px #333;">X</div>X</div>
+            <div class="ai"><div class="glyph" style="background:linear-gradient(135deg,#FEDA77,#DD2A7B,#8134AF);">􀎸</div>Stories</div>
+            <div class="ai"><div class="glyph" style="background:var(--elev); color:var(--dim);">􀈂</div>Save</div>
+          </div>
+          <div class="act"><span>Copy image</span><span style="color:var(--dim);">􀫊</span></div>
+          <div class="act" style="border-top:.5px solid #2A2A34;"><span>Add to Notes</span><span style="color:var(--dim);">􀉭</span></div>
+        </div>
+      </div>
+
+      <div style="text-align:center; padding:10px 0 14px; font-size:11px; color:var(--faint);">Tint sampled from the cover · 1080×1080 PNG</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="notes">
+  <h2>Build notes</h2>
+
+  <p><strong>The data already exists.</strong> Every quote-capture is already a memo carrying <code>bookTitle</code> / <code>bookAuthor</code> / <code>bookChapter</code> (the C2 contract in <code>MemoMetadata</code> / <code>UploadPayload</code>) plus the voice ramble as the body — captured via <code>MergedCaptureView</code> → <code>RecordView(appendTo:)</code>. Significance is the existing 10-circle scale (<code>SignificanceCircles.swift</code> / <code>SignificanceScale</code>). Source glyphs (mic / video / book-quote / link) and the place/weather/time context chips are the same taxonomy already drawn in <code>MemoDisplay</code> + <code>MemoDetailView:343-357</code>. So Phase 6 is almost entirely a <em>new read-surface over the store we already have</em> — no new capture, no new sync field.</p>
+
+  <h2>What's net-new</h2>
+  <ul>
+    <li><strong>Highlights view</strong> — a third top segment (Memos · Highlights · People) backed by a SwiftData query for <code>source == .audiobookQuote || significance &gt; 0</code>, grouped by <code>bookTitle</code> (then by source for the voice/video highlights). The quote renders with the existing accent-left-bar treatment (<code>CaptureQuote</code> / <code>CaptureQuoteFrame</code>) and the ramble shows beneath as the annotation, lifting the same italic-quote + mic-prefix layout from <code>TranscriptBodyView</code>. Searchable + taggable via the existing <code>MemoFilter</code> machinery — no new index.</li>
+    <li><strong>Daily Review resurfacing</strong> — a small on-device spaced-repetition scheduler (last-seen + interval per highlight, persisted next to the memo; SM-2-lite, no ML). Surfaces N/day, one card at a time, "captured N ago" computed from <code>recordedAt</code>. Pure presentation — <strong>nothing leaves the phone</strong> (the reassurance copy is load-bearing for the privacy story and the App-Store label). This is the north-star "watch my thinking evolve" hook in embryo.</li>
+    <li><strong>Quote card via <code>ImageRenderer</code></strong> — a SwiftUI view rendered to a 1080×1080 PNG. The warm tint is <code>UIImage.averageColor</code> on the cover (we already compute exactly this for the player header tint in <code>AudiobookPlayerView</code>), darkened to the cover's hue — same trick, new consumer. Wordmark + author/book/chapter from the memo's book metadata. Handed straight to a <code>ShareLink</code> / activity sheet (the same seam Phase 2 adds to <code>MemoDetailView:128-133</code>).</li>
+  </ul>
+
+  <h2>Real code seams this touches</h2>
+  <ul>
+    <li><strong>Per-source Markdown export folds into Phase 2.</strong> Readwise-style per-book highlight <code>.md</code> (append-update, not duplicate) is just <code>MemoExporter</code> + <code>ObsidianPublisher</code> grouped by book — one file per source under <code>&lt;vault&gt;/Skrift/Audiobook Quotes/</code>, sticky <code>exportRelativePath</code> + <code>exportedContentHash</code> so re-export overwrites its own file (no conflict copy). No new export engine.</li>
+    <li><strong>Quote bytes stay protected.</strong> The quote text comes from the same quote-protected body the pipeline already guards (<code>QuoteProtection</code>); the card + the highlight feed render the quote verbatim, never the polished ramble's words inside the <code>&gt; </code> block.</li>
+    <li><strong>CloudKit-clean.</strong> The review schedule fields are additive/defaulted on <code>Memo</code> (lastReviewedAt / reviewInterval) → mirror to CloudKit with no migration, like the Phase-1/2 export-identity fields.</li>
+    <li><strong>No Mac required.</strong> The whole surface reads the on-device store; if a Mac is paired it changes nothing here (Highlights is a sink-agnostic read).</li>
+  </ul>
+
+  <h2>Design decisions to weigh in on</h2>
+  <ul>
+    <li><strong>Nav placement:</strong> mock shows BOTH a top segmented control (Memos · Highlights · People) <em>and</em> a 4-item bottom tab bar (Memos · Highlights · People · Books). Pick one — running both is redundant. My lean: <strong>bottom tab bar</strong> as the app's primary IA (it scales to Books + future People/Journal), drop the segmented control. Flagged for your call.</li>
+    <li><strong>Daily Review default count + cadence:</strong> mocked at 3/day. Is daily resurfacing opt-in (a Settings toggle + notification) or always-on with a soft badge? Readwise pushes daily; Apple-Store-friendly default might be quieter.</li>
+    <li><strong>Quote-card tint source:</strong> book quotes get the cover-derived warm tint (shown). What tints a <em>voice-memo</em> highlight card with no cover — the accent purple, or a tint derived from the place/weather chip? Mocked the book card since it's the marketing hero.</li>
+  </ul>
+</div>
+</body>
+</html>
