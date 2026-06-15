@@ -21,7 +21,19 @@ Sharing a video from Photos → Skrift creates a memo, but THREE issues (device-
    guarded `!hasAudio` so an append never interrupts active playback (`reloadIfAudioMissing`). Format ruled out by
    a test: the extracted m4a loads in `AVAudioPlayer` with a real duration. (NOTE: `DevLog` is `#if DEBUG`-only,
    so the TestFlight/Release container has no `devlog.txt` — the pull can't work; diagnosed from code + sim.)
-2. ✅ **Thumbnail aspect — INVESTIGATED + the real wart FIXED 2026-06-15.** The thumbnail does NOT squish:
+2. ✅ **Thumbnail/inline-image aspect — FIXED 2026-06-15 (device-confirmed the real cause was PORTRAIT).**
+   UPDATE after device-eyeball: the distortion IS real for **portrait** video frames (the user's clip was a
+   1080×1920 portrait). Root cause: `TranscriptEditor.imageAttachment` set the inline image's `NSTextAttachment`
+   bounds to FULL width × a height capped at 320 — and `NSTextAttachment` scales the image to FILL bounds
+   (no aspect preservation), so a tall portrait frame (aspect-height 613 > 320 cap) got crammed into a
+   full-width × 320 box → **stretched wide** ("wider than it needs to be"). Fixed: when the height cap engages,
+   shrink the WIDTH to keep the image's aspect. Pulled the actual device JPEG (1080×1920, PAR 1:1, person
+   correctly proportioned) → confirmed extraction is fine; it was purely the editor's display sizing. The
+   `-seedVideoMemo` frame is now PORTRAIT (circle stays round with the fix; was a wide ellipse before).
+   (Original landscape-only investigation below was incomplete — landscape frames never hit the 320 cap, so
+   they never distorted; that's why the synthetic landscape seed looked fine.)
+   The 48×48 row thumb (`scaledToFill`+clip) and playing-mode `ImageEmbed` were already aspect-correct.
+   ORIGINAL (landscape) finding — the row thumbnail does NOT squish:
    every display path already aspect-fills + clips (`photoThumb` 48×48 + the detail `ImageEmbed`), and the
    saved frame preserves aspect. PROVEN with `-seedVideoMemo` (a landscape 16:9 frame with a centered CIRCLE —
    it stays a perfect circle, not an ellipse, in BOTH the row thumb and the detail embed; screenshots

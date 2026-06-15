@@ -177,8 +177,18 @@ struct TranscriptEditor: UIViewRepresentable {
             let att = NSTextAttachment()
             if let url = memo.imageURL(markerIndex: markerIndex), let img = MemoImageLoader.thumbnail(at: url, maxWidth: width) {
                 att.image = img
-                let h = min(width * (img.size.height / max(1, img.size.width)), 320)
-                att.bounds = CGRect(x: 0, y: -4, width: width, height: h)
+                // NSTextAttachment scales the image to FILL `bounds` (it does NOT
+                // preserve aspect), so the bounds MUST match the image's aspect or it
+                // distorts. Fit within full width × a 320-pt height cap; when a tall/
+                // PORTRAIT frame would exceed the cap, shrink the WIDTH to keep aspect
+                // (was: width pinned full + height capped → portrait video frames came
+                // out stretched wide — device bug 2026-06-15).
+                let aspect = img.size.width / max(1, img.size.height)   // w / h
+                let maxHeight: CGFloat = 320
+                var w = width
+                var h = width / max(0.01, aspect)
+                if h > maxHeight { h = maxHeight; w = maxHeight * aspect }
+                att.bounds = CGRect(x: 0, y: -4, width: w, height: h)
             } else {
                 att.image = Self.placeholder(width: width)
                 att.bounds = CGRect(x: 0, y: -4, width: width, height: 150)

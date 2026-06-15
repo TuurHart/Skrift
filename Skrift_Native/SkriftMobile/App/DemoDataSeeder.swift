@@ -15,15 +15,16 @@ enum DemoDataSeeder {
         for memo in demoMemos() { repo.insert(memo) }
     }
 
-    /// One VIDEO-import memo with a REAL landscape (16:9) frame written to the
-    /// recordings dir, so the video source glyph + the thumbnail's aspect handling
-    /// are screenshot-verifiable. The frame draws a centered circle: under correct
-    /// aspect-fill it stays circular (cropped), under a squish it becomes an
-    /// ellipse — a decisive visual diagnostic for the "landscape → square" bug.
+    /// One VIDEO-import memo with a REAL PORTRAIT (9:16, 1080×1920 — like an iPhone
+    /// clip) frame written to the recordings dir, so the video source glyph + the
+    /// inline-image aspect handling are screenshot-verifiable. The frame draws a
+    /// centered circle: a correct aspect-preserving render keeps it circular, a
+    /// stretch (the device "wider than it needs to be" bug, when the editor capped
+    /// the height but pinned full width) turns it into a wide ellipse.
     static func videoMemo() -> Memo {
         let id = UUID()
         let photoName = "photo_\(id.uuidString)_001.jpg"
-        writeLandscapeDiagnosticFrame(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName))
+        writePortraitDiagnosticFrame(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName))
         return Memo(
             id: id,
             audioFilename: "memo_\(id.uuidString).m4a",
@@ -40,10 +41,10 @@ enum DemoDataSeeder {
         )
     }
 
-    /// Draw a 1600×900 (16:9) JPEG: a centered circle + corner ticks, so any
-    /// horizontal squish reads as an obvious ellipse in the thumbnail/embed.
-    private static func writeLandscapeDiagnosticFrame(to url: URL) {
-        let size = CGSize(width: 1600, height: 900)
+    /// Draw a 1080×1920 (9:16 portrait) JPEG: a centered circle + corner ticks, so any
+    /// horizontal stretch reads as an obvious wide ellipse in the thumbnail/embed.
+    private static func writePortraitDiagnosticFrame(to url: URL) {
+        let size = CGSize(width: 1080, height: 1920)
         let image = UIGraphicsImageRenderer(size: size).image { ctx in
             let cg = ctx.cgContext
             cg.setFillColor(UIColor(red: 0.10, green: 0.16, blue: 0.22, alpha: 1).cgColor)
