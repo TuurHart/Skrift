@@ -2,7 +2,15 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
-## ⭐ NEXT TASK — Video-from-Photos import bugs (reported 2026-06-15, on TestFlight build)
+## ✅ MOSTLY DONE — Video-from-Photos import bugs (reported 2026-06-15; fixed 2026-06-15)
+
+All three symptoms addressed + sim-verified (394 unit tests green; `VideoMemoUITests` green; row + detail
+screenshots in `/tmp/skrift-video-shots`). Commits `d98b6fe` (playback) + `e2108dd` (glyph + snippet).
+**Owed:** DEVICE-EYEBALL — the Dev build ("Skrift Dev", `com.skrift.mobile.dev`) is installed on the iPhone 13;
+share a real video from Photos → confirm it PLAYS, shows the video glyph, and the thumbnail looks right. After
+testing, pull `Documents/devlog.txt` from `com.skrift.mobile.dev` (DEBUG → DevLog works there) for the
+`importVideo`/`processVideo` trace. ALSO STILL OWED (separate): re-test capture/share-into-Skrift on the
+Release/TestFlight build now that App Groups (Release) is registered — a Release-build/device step.
 
 Sharing a video from Photos → Skrift creates a memo, but THREE issues (device-reported, screenshots in chat):
 1. ✅ **No audio playback — FIXED 2026-06-15.** Root cause was load TIMING, not format: a shared-video import
