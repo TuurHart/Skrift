@@ -144,7 +144,7 @@ Signed-off mock: `Skrift_Native/SkriftDesktop/mocks/audiobook-player-redesign.ht
 |---|---|---|---|---|
 | Names list + add/edit/delete | ✅ | ✅ | mobile `Features/Names/NamesListView.swift`; desktop `Features/Settings/SettingsView.swift:93-129` | |
 | Names LWW sync (union voiceEmbeddings) | ✅ | ✅ | `Models/NamesData.swift:147-177` (desktop) | byte-compatible both apps |
-| Voiceprint enrollment | 🟡 | ✅ | mobile `Features/Names/PersonDetailView.swift` (`VoiceEnrollView`) + `Services/Diarization/VoiceEnroller.swift` | **Mobile = PARTIAL (BRIDGE gap):** enrollment via conversation speaker-naming is fully REAL (`VoiceEnroller.enroll` → wespeaker embed → `NamesStore.addVoiceEmbedding` → sync); only the DIRECT "Add voice" button in Names→PersonDetail is still a placeholder ("Got it", no record→embed) |
+| Voiceprint enrollment | ✅ | ✅ | mobile `Features/Names/PersonDetailView.swift` (`VoiceEnrollView`) + `Services/Diarization/VoiceEnroller.swift` | ✅ 2026-06-15 mobile BRIDGED: the DIRECT "Add voice" button now records a short on-device sample (`FeedbackRecorder` → `AudioConverter` 16 kHz → `VoiceEnroller.enroll` → embed + store + sync) — the SAME pipeline as conversation speaker-naming (was a "Got it" placeholder). ≥3 s guard (`minSamples` 32 000 = 2 s); audio discarded after embedding. UI-probe-verified (`VoiceEnrollUITests`, screenshot `/tmp/skrift-enroll-shots`) |
 | Voice match (cosine, thr 0.5) | ✅ | ✅ | mobile `Services/Diarization/VoiceMatcher.swift`; desktop `Pipeline/Diarization/VoiceMatcher.swift` | Full on-device identify loop on both |
 
 ## Diarization / conversation mode

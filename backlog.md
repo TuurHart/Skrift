@@ -141,11 +141,13 @@ critic) found exactly **two real functional gaps** to bridge; everything else is
    `sortControl`/`noMatches`. Live-verified via `SidebarSearchSortUITests` (the sidebar can't be `-snapshot`'d —
    ImageRenderer can't render its `FilePromiseDropCatcher`/`dropDestination`; macOS XCUITest needs Automation
    permission enabled). Sort is a cycle BUTTON (not a Menu) on purpose — a Menu also breaks ImageRenderer.
-2. **MEDIUM (low-ish lift) — Mobile direct "Add voice" enrollment is a stub.** Enrolling a voiceprint via
-   CONVERSATION speaker-naming is fully real (`VoiceEnroller.enroll`); only the direct "Add voice" button in
-   Names→PersonDetail is a placeholder ("Got it"). **Bridge:** wire `VoiceEnrollView` to a short recorder →
-   `SpeakerEmbedder` → `NamesStore.addVoiceEmbedding` → sync — reusing the exact pipeline the conversation path
-   already calls. Files: `Features/Names/PersonDetailView.swift` (`VoiceEnrollView`), `Services/Diarization/VoiceEnroller.swift`.
+2. ✅ **DONE 2026-06-15 — Mobile direct "Add voice" enrollment.** `VoiceEnrollView` now records a short
+   on-device sample (`FeedbackRecorder` → FluidAudio `AudioConverter` 16 kHz → `VoiceEnroller.enroll` → embed +
+   `NamesStore.addVoiceEmbedding` + sync) — the SAME pipeline the conversation speaker-naming path already used
+   (was a "Got it" placeholder). ≥3 s guard (`SpeakerEmbedder.minSamples` 32 000 = 2 s); audio discarded after
+   embedding. UI-probe-verified (`VoiceEnrollUITests` on the iPhone 17 sim — seeded "Bob Smith" → Add voice →
+   real recorder renders; screenshot `/tmp/skrift-enroll-shots`). On the sim the SeededEmbedder stands in for the
+   ANE; device-eyeball owed for a real wespeaker embedding.
 
 Deferred-by-choice (intentional, not gaps; do only if symmetry wanted): desktop **Models tab** mirror
 (`FEATURES.md` "Mac mirror = later"); **custom-vocab word-list sync** (per-device by design — the only
