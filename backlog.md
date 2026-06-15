@@ -231,6 +231,24 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
   "aka" alias summary · voice) → tap a row → a labeled detail editor (Full name / Aliases / Short / Voice);
   the SAME editor opens from right-click "Add as a person" in a note. One editor, two doors.
 
+  **BUILD STEPS (mock SIGNED OFF 2026-06-15 — verified what's NEW vs EXISTING against the code):**
+  EXISTING, do NOT touch: monologue `Sanitiser.process` is ALREADY first-only (first→`[[Canonical]]`, rest→plain
+  short); conversation turn HEADERS already first-only. NEW work only:
+  1. **Opt-in gating (the core).** Add `aboutPeople: [String]` (canonical keys) to `PipelineFile` (additive).
+     `Sanitiser.process` + `processConversation` take an `aboutPeople` set and link ONLY those people; everyone
+     else stays plain. Default empty → a freshly-processed note links NOBODY until the user taps (no pre-link).
+     `BatchRunner` passes `pf.aboutPeople`. Keep `unlinkedNames` working.
+  2. **Conversation inline → first-only.** `Sanitiser.linkInline` currently links EVERY inline body mention;
+     make it first-only per person (track `seen`, like the header path). Monologue + headers already are.
+  3. **Review "People in this note" chip bar** (`NoteDisplayView`/`NoteProperties`): detected alias-matches as
+     chips (plain by default); tap → add canonical to `pf.aboutPeople` → re-sanitise + recompile live; tap-off
+     removes. Conversations: AUTO-add the matched speaker to `aboutPeople` (auto-link matched speakers).
+  4. **`people:` frontmatter** — `Compiler` emits `people: [[A]], [[B]]` from `aboutPeople`.
+  5. **Names settings redesign** — list (rows → detail editor) replacing the 3-column inline; right-click
+     "Add as a person" opens the same editor; on add, re-scan the OPEN note only (new chip), no global re-scan.
+  Gate: `xcodebuild test -scheme UnitTests` + full `-skipMacroValidation` build; verify the Sanitiser via a
+  host-less test (opt-in: only `aboutPeople` link; first-only inline). Deploy desktop per [[feedback_desktop_dev_deploy]].
+
 ## Sync says "connected" but memos stay "Waiting" (2026-06-15)
 
 Device-reported: Dev mobile → Dev Mac, Settings shows connected, memos keep saying Waiting.
