@@ -26,7 +26,28 @@ final class CompilerTests: XCTestCase {
         XCTAssertTrue(md.contains("summary: \"A short summary.\""))
         XCTAssertTrue(md.contains("- work"))
         XCTAssertTrue(md.contains("- ideas"))
+        XCTAssertTrue(md.contains("people: [[Nick Jansen]]"))   // opt-in: the linked person
         XCTAssertTrue(md.hasSuffix("linked [[Nick Jansen]] copy"))   // sanitised wins
+    }
+
+    // MARK: people: frontmatter (opt-in naming) — derived from the body's linked canonicals
+
+    func testPeopleListFromBodyLinks() {
+        // Distinct canonicals in reading order; alias-display links resolve to the canonical;
+        // a repeated person appears once; `[[img_NNN]]` markers are excluded.
+        let pf = makeFile()
+        pf.sanitised = "[[img_001]] [[Hendri Van Niekerk]] met [[Bruno Aragorn|Bruno]], then [[Hendri Van Niekerk|Henry]] again."
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        XCTAssertTrue(md.contains("people: [[Hendri Van Niekerk]], [[Bruno Aragorn]]"),
+                      "distinct canonicals in reading order, img marker excluded; got: \(md)")
+    }
+
+    func testPeopleEmptyWhenNobodyLinked() {
+        let pf = makeFile()
+        pf.sanitised = "A plain note about Henry and Bruno, nobody linked."
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-01-01")
+        XCTAssertTrue(md.contains("\npeople:\n"), "empty people key when no links; got: \(md)")
+        XCTAssertFalse(md.contains("people: [["), "no people values on an unlinked note")
     }
 
     /// A video import (sourceType .audio + mediaSource "video") must export

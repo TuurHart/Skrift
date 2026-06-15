@@ -246,7 +246,10 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
   3. **Review "People in this note" chip bar** (`NoteDisplayView`/`NoteProperties`): detected alias-matches as
      chips (plain by default); tap → add canonical to `pf.aboutPeople` → re-sanitise + recompile live; tap-off
      removes. Conversations: AUTO-add the matched speaker to `aboutPeople` (auto-link matched speakers).
-  4. **`people:` frontmatter** — `Compiler` emits `people: [[A]], [[B]]` from `aboutPeople`.
+  4. ✅ **`people:` frontmatter — DONE 2026-06-15 (chunk 2).** `Compiler.peopleLinks(in: body)` emits
+     `people: [[A]], [[B]]` from the body's DISTINCT linked canonicals (reading order; img markers excluded;
+     alias-display resolved to canonical). Derived from the rendered body (not `aboutPeople`) so it can't drift
+     and auto-includes conversation matched speakers. Empty `people:` when nobody linked. +2 CompilerTests; gates green.
   5. **Names settings redesign** — list (rows → detail editor) replacing the 3-column inline; right-click
      "Add as a person" opens the same editor; on add, re-scan the OPEN note only (new chip), no global re-scan.
   Gate: `xcodebuild test -scheme UnitTests` + full `-skipMacroValidation` build; verify the Sanitiser via a

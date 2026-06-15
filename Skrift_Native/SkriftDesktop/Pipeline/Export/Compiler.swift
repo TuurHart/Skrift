@@ -118,6 +118,13 @@ enum Compiler {
             "author: \(author)",
             "source: \(source)",
         ]
+        // People this note is ABOUT (opt-in naming, mocks/opt-in-naming.html): the distinct
+        // canonical wiki-links present in the body. Empty until the user taps a chip (or a
+        // conversation auto-links its matched speakers). Carries the graph connection that
+        // the body's one-note-one-link rule deliberately keeps to a single link per person.
+        let peopleLinks = peopleLinks(in: body)
+        y.append(peopleLinks.isEmpty ? "people:"
+                 : "people: " + peopleLinks.map { "[[\($0)]]" }.joined(separator: ", "))
         // Book frontmatter (C2 → spec 7). `bookAuthor:` not `author:` — that key is
         // the note's author (the user) above. Values quoted: titles carry colons.
         if let bookTitle { y.append("book: \"\(bookTitle)\"") }
@@ -229,6 +236,23 @@ enum Compiler {
     }
 
     // MARK: Helpers
+
+    /// The DISTINCT canonical names this note links — the `people:` graph list for the
+    /// opt-in naming model. Reads the body's `[[Name]]` wiki-links (`[[img_NNN]]` markers
+    /// already excluded by `linkOccurrences`), takes each link's canonical TARGET (the part
+    /// before any `|spoken` alias-display), and de-duplicates case-insensitively in reading
+    /// order. Derived from the rendered body so it can never drift from what's actually
+    /// linked (one-note-one-link → one entry per person, conversations include matched speakers).
+    static func peopleLinks(in body: String) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for link in Sanitiser.linkOccurrences(in: body) {
+            let target = Sanitiser.linkTarget(link.core)
+            guard !target.isEmpty, seen.insert(target.lowercased()).inserted else { continue }
+            out.append(target)
+        }
+        return out
+    }
 
     /// Double-quote a YAML scalar, escaping embedded `\` and `"`. Plain scalars
     /// break on ": " (and other indicators) — always-quoting is simpler and safe.
