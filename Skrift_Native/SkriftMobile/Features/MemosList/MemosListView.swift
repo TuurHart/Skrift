@@ -557,6 +557,10 @@ private struct MemoCard: View {
             // "has an image"; this leading glyph means "source: video").
             } else if memo.isVideoImport {
                 videoGlyph
+            // Plain voice memos (the default) wear a mic — so EVERY row carries a
+            // source glyph, matching the Mac's sidebar (user call 2026-06-15).
+            } else {
+                voiceGlyph
             }
 
             VStack(alignment: .leading, spacing: 0) {
@@ -709,6 +713,20 @@ private struct MemoCard: View {
                     .foregroundStyle(Color.skTextDim)
             )
             .accessibilityIdentifier("capture-row-glyph")
+    }
+
+    /// Leading source icon for plain voice memos (the default) — a neutral mic, so
+    /// every row carries a source glyph like the Mac sidebar.
+    private var voiceGlyph: some View {
+        RoundedRectangle.sk(10)
+            .fill(Color.skElev)
+            .frame(width: 32, height: 32)
+            .overlay(
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.skTextDim)
+            )
+            .accessibilityIdentifier("voice-row-glyph")
     }
 
     /// Leading source icon for video imports (a neutral film glyph, matching the
