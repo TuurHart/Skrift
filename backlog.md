@@ -48,6 +48,28 @@ Tiuri+Roksana take.
   doesn't round-trip to the phone today); speaker name containing `*` breaks the Mac header regex (~never);
   monologue `process()` skips demotion when short is empty (whitespace canonical). Fix opportunistically.
 
+## ⚠️ Custom words don't persist on device (TestFlight) — needs an on-device repro
+
+User reported (2026-06-15, TestFlight build 1): add words in Settings → Capture → Custom words, leave +
+return → list empty. **The store code is correct** — `CustomVocabularyStore` (`Services/Transcription/VocabularyBooster.swift`)
+uses `UserDefaults.standard` with one matching key (`customVocabularyWords`) for both `save`/`words`; that
+persists across launches. Added a defensive `.onAppear` reload in `CustomWordsView` (`a8d8ab7`) for the most
+likely cause (kept-alive view showing stale `@State`). **Do NOT "fix" by switching to an app-group suite** —
+the Release/TestFlight bundle id (`com.skrift.mobile`) has NO App Group capability yet (capture-items note
+above), so an app-group suite would silently fail to persist in Release, making it WORSE. If it still
+repros after the `.onAppear` fix, instrument `save`/`words` with `DevLog` + pull the trace to see whether the
+write lands. NOTE: this also gates the "fix misheard names with custom vocab" workflow — until it persists,
+the booster has nothing to boost.
+
+## Name-link display = SHORT name (revised 2026-06-15)
+User clarified: misheard names ("tyr"/"cherry"/"thierry" for "Tuur") must be NORMALISED, not preserved
+verbatim. Inline conversation links now render `[[Canonical|short]]` (the person's short, e.g. "Tuur") for
+every matched alias (`7a7bf8c`). A mishear only normalises if it's a registered alias of the person — add
+via the desktop right-click **"Add '<word>' as → an alias of <person>"** (`BodyTextView` context menu →
+`NoteDisplayView.addAlias` → `NamesStore.writeWithSmartBumps`), or fix at the source with custom vocab.
+Open question if the user wants it: preserve GENUINE alternate nicknames (vs normalise everything) — would
+need marking which aliases are "display" vs "mishear".
+
 ## North star — "see how my thinking evolved over time"
 The eventual reason the app exists. When I add a note about a realization, surface related notes from across the years and lay them on a timeline ("you had a similar thought in 2019, it shifted in 2021, here's where you are now").
 - **Backbone (reachable now, offline):** semantic search across the whole vault using local embedding models; retrieve + rank related notes; timeline UI. Mostly engineering, not model-limited.
