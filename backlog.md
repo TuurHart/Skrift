@@ -243,9 +243,13 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
      speaker's single link is their turn header; later inline mentions demote to the short. Matched speakers auto-link
      regardless of `aboutPeople`. Gate: UnitTests 277 green (9 new: opt-in monologue/conversation, first-only inline,
      two-Jacks tap-one/tap-both) + full `-skipMacroValidation` build green. Conversation tests rewritten to one-link rule.
-  3. **Review "People in this note" chip bar** (`NoteDisplayView`/`NoteProperties`): detected alias-matches as
-     chips (plain by default); tap → add canonical to `pf.aboutPeople` → re-sanitise + recompile live; tap-off
-     removes. Conversations: AUTO-add the matched speaker to `aboutPeople` (auto-link matched speakers).
+  3. ✅ **Review "People in this note" chip bar — DONE 2026-06-15 (chunk 3).** `Features/Review/PeopleChipBar.swift`
+     in `NoteDisplayView.column` after `NoteProperties`. `Sanitiser.detectedPeople` → chips (plain/OFF by default);
+     tap → `ProcessingCoordinator.toggleAbout` flips `pf.aboutPeople` + `resanitiseForNames` (re-link the body LIVE,
+     deterministic no-LLM, recompile, save). ON = full name + accent ✓; OFF = `＋ short`. Conversations: matched
+     speakers (`Sanitiser.matchedSpeakers`) render LOCKED-ON (auto-linked in their header, can't toggle off) — that's
+     how "auto-link matched speaker" + the `people:` list land without seeding `aboutPeople`. Snapshot-verified all
+     3 states (`-snapshot-people` PNG, matches mock); 3 detection unit tests. ("Someone else…" add-chip → chunk 4.)
   4. ✅ **`people:` frontmatter — DONE 2026-06-15 (chunk 2).** `Compiler.peopleLinks(in: body)` emits
      `people: [[A]], [[B]]` from the body's DISTINCT linked canonicals (reading order; img markers excluded;
      alias-display resolved to canonical). Derived from the rendered body (not `aboutPeople`) so it can't drift

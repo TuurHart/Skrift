@@ -244,6 +244,60 @@ enum Sanitiser {
         return Result(sanitised: finalText, ambiguous: ambiguous)
     }
 
+    // MARK: - Opt-in naming detection (the review "People in this note" chip bar)
+
+    /// People whose alias appears (whole-word, case-insensitive) in `text` — the candidates
+    /// for the review "People in this note" chip bar (mocks/opt-in-naming.html). Detection
+    /// is ambiguity-agnostic (two people sharing an alias are BOTH candidates) and ignores
+    /// the opt-in gate; it matches anywhere, including inside `**Name:**` turn headers (the
+    /// raw pre-link text). Returned in order of FIRST mention so the chips read as the note
+    /// does. Deleted people are excluded.
+    static func detectedPeople(in text: String, people: [Person]) -> [Person] {
+        var firstAt: [Int: Int] = [:]
+        for (i, p) in people.enumerated() where !p.isDeleted {
+            var earliest = Int.max
+            for a in p.aliases {
+                let alias = a.trimmingCharacters(in: .whitespaces)
+                guard !alias.isEmpty, let rx = wordRegex(alias),
+                      let m = rx.firstMatch(in: text, range: fullRange(text)) else { continue }
+                earliest = min(earliest, m.range.location)
+            }
+            if earliest != Int.max { firstAt[i] = earliest }
+        }
+        return firstAt.keys.sorted { firstAt[$0]! < firstAt[$1]! }.map { people[$0] }
+    }
+
+    /// Canonical keys (lowercased, bracket-stripped) of the people resolved as TURN SPEAKERS
+    /// in a `**Name:**` conversation — the speakers `processConversation` auto-links in their
+    /// header regardless of the opt-in gate. Empty when `text` isn't an attributed
+    /// conversation. Lets the chip bar render speaker chips as locked-on ("always linked").
+    /// Mirrors `processConversation`'s header resolution (canonical key OR unambiguous alias).
+    static func matchedSpeakers(in text: String, people: [Person]) -> Set<String> {
+        guard let turns = SpeakerTranscript.parse(text) else { return [] }
+        let live = people.filter { !$0.isDeleted }
+        var aliasMap: [String: [Person]] = [:]
+        for p in live {
+            for a in p.aliases {
+                let al = a.trimmingCharacters(in: .whitespaces).lowercased()
+                if !al.isEmpty { aliasMap[al, default: []].append(p) }
+            }
+        }
+        let ambiguous = Set(aliasMap.filter { $0.value.count >= 2 }.keys)
+        var out = Set<String>()
+        for t in turns {
+            let key = t.name.trimmingCharacters(in: .whitespaces).lowercased()
+            guard !key.isEmpty else { continue }
+            if let p = live.first(where: {
+                NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() == key
+            }) {
+                out.insert(NamesMerge.keyName(p.canonical).lowercased())
+            } else if !ambiguous.contains(key), let c = aliasMap[key], c.count == 1 {
+                out.insert(NamesMerge.keyName(c[0].canonical).lowercased())
+            }
+        }
+        return out
+    }
+
     /// Link inline alias mentions, FIRST-ONLY per person ("one note, one link"). For each
     /// person not yet linked anywhere in the conversation (`seen`), their FIRST eligible
     /// mention becomes the Obsidian alias-display link `[[Canonical|short]]` (or bare

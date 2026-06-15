@@ -72,6 +72,9 @@ struct NoteDisplayView: View {
                 InlineResolverBanner(model: resolver)
             }
             NoteProperties(file: file, author: author, interactive: scrollable)
+            // Opt-in naming: detected people as chips — tap to mark who the note is about
+            // (links them + adds to `people:`). Conversations show their speakers locked-on.
+            PeopleChipBar(file: file, coordinator: coordinator, interactive: scrollable)
             if file.sourceType == .capture {
                 CaptureBanner(file: file)
                 // The shared thing itself, pinned above the annotation body —

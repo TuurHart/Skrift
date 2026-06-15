@@ -303,4 +303,30 @@ final class SanitiserTests: XCTestCase {
                                                    aboutPeople: ["[[Bruno Aragorn]]"]).sanitised
         XCTAssertEqual(tapped, "**[[Tiuri Hartog]]:** I saw [[Bruno Aragorn|Bruno]] today\n\n**Speaker 2:** cool")
     }
+
+    // MARK: Chip-bar detection helpers (detectedPeople / matchedSpeakers)
+
+    func testDetectedPeopleInReadingOrderExcludesUnmentioned() {
+        let people = [
+            person("[[Bruno Aragorn]]", ["Bruno"], short: "Bruno"),
+            person("[[Hendri Van Niekerk]]", ["Hendri", "Henry"], short: "Hendri"),
+            person("[[Nobody Here]]", ["Zztop"]),
+        ]
+        let detected = Sanitiser.detectedPeople(in: "Henry met Bruno today.", people: people)
+        // Reading order (Henry before Bruno); the unmentioned person is excluded.
+        XCTAssertEqual(detected.map(\.canonical), ["[[Hendri Van Niekerk]]", "[[Bruno Aragorn]]"])
+    }
+
+    func testMatchedSpeakersResolvesTurnSpeakersOnly() {
+        let tiuri = person("[[Tiuri Hartog]]", ["Tiuri Hartog", "Tuur"], short: "Tuur")
+        let bruno = person("[[Bruno Aragorn]]", ["Bruno"], short: "Bruno")
+        let input = "**Tiuri Hartog:** hi Bruno\n\n**Speaker 2:** hey"
+        // Tiuri is a turn speaker → matched; Bruno is only mentioned inline; Speaker 2 unmatched.
+        XCTAssertEqual(Sanitiser.matchedSpeakers(in: input, people: [tiuri, bruno]), ["tiuri hartog"])
+    }
+
+    func testMatchedSpeakersEmptyForMonologue() {
+        let tiuri = person("[[Tiuri Hartog]]", ["Tuur"], short: "Tuur")
+        XCTAssertTrue(Sanitiser.matchedSpeakers(in: "Just Tuur talking.", people: [tiuri]).isEmpty)
+    }
 }

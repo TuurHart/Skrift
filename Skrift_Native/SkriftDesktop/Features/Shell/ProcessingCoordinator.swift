@@ -343,4 +343,45 @@ final class ProcessingCoordinator {
             lastError = "Redo failed: \(error.localizedDescription)"
         }
     }
+
+    // MARK: Opt-in naming — review "People in this note" chip bar
+
+    /// Toggle whether this note is ABOUT `canonical` (chip tap, mocks/opt-in-naming.html) and
+    /// re-link the body LIVE — deterministic, NO LLM. Adds/removes the canonical on
+    /// `pf.aboutPeople`, then re-sanitises from the pristine working text with the updated set.
+    func toggleAbout(_ canonical: String, for pf: PipelineFile, context: ModelContext) {
+        let canon = NamesMerge.normaliseCanonical(canonical)
+        let key = NamesMerge.keyName(canon).lowercased()
+        guard !key.isEmpty else { return }
+        var about = pf.aboutPeople
+        if let idx = about.firstIndex(where: { NamesMerge.keyName($0).lowercased() == key }) {
+            about.remove(at: idx)
+        } else {
+            about.append(canon)
+        }
+        pf.aboutPeople = about
+        resanitiseForNames(pf)
+        pf.lastActivityAt = Date()
+        try? context.save()
+    }
+
+    /// Re-run the deterministic name-link + recompile on the PRISTINE working text (copy-edit
+    /// → transcript) with the note's current `aboutPeople` + `unlinkedNames` — no LLM. Used by
+    /// the chip-bar toggle and to re-scan the OPEN note after a names edit (so a newly-added
+    /// person appears as a chip). Conversations take the turn-aware linker (matched speakers
+    /// auto-link). Rebuilding from `working` means in-flight per-occurrence resolver picks are
+    /// reset — the chip bar is the primary naming surface; the ambiguous resolver is secondary.
+    func resanitiseForNames(_ pf: PipelineFile, context: ModelContext? = nil) {
+        let working = pf.enhancedCopyedit ?? pf.transcript ?? ""
+        guard !working.isEmpty else { return }
+        let people = NamesStore.shared.livePeople()
+        let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(working)
+        let san = isConversation
+            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), aboutPeople: Set(pf.aboutPeople))
+            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), aboutPeople: Set(pf.aboutPeople))
+        pf.sanitised = san.sanitised
+        pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
+        pf.compiledText = Compiler.compile(file: pf, author: SettingsStore.shared.load().authorName)
+        if let context { pf.lastActivityAt = Date(); try? context.save() }
+    }
 }
