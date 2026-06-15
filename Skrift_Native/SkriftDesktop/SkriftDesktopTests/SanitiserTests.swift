@@ -212,4 +212,95 @@ final class SanitiserTests: XCTestCase {
         XCTAssertEqual(out, "**[[Jack Hutton]]:** hi\n\nMet Jack later.")
         XCTAssertEqual(out.components(separatedBy: "[[Jack Hutton]]").count - 1, 1)
     }
+
+    // MARK: Opt-in naming gate (mocks/opt-in-naming.html) — link ONLY the people the note
+    // is marked ABOUT; everyone else stays plain. `aboutPeople: nil` = ungated (link all).
+
+    func testOptInLinksOnlyAboutPeople() {
+        let people = [
+            person("[[Nick Jansen]]", ["Nick"], short: "Nick"),
+            person("[[Sam Roe]]", ["Sam"], short: "Sam"),
+        ]
+        let r = Sanitiser.process(text: "Nick met Sam today.", people: people,
+                                  aboutPeople: ["[[Nick Jansen]]"])
+        // Only Nick (the about-person) links; Sam stays plain text.
+        XCTAssertEqual(r.sanitised, "[[Nick Jansen]] met Sam today.")
+        XCTAssertTrue(r.ambiguous.isEmpty)
+    }
+
+    func testOptInEmptySetLinksNobody() {
+        let people = [
+            person("[[Nick Jansen]]", ["Nick"], short: "Nick"),
+            person("[[Sam Roe]]", ["Sam"], short: "Sam"),
+        ]
+        let r = Sanitiser.process(text: "Nick met Sam today.", people: people, aboutPeople: [])
+        XCTAssertEqual(r.sanitised, "Nick met Sam today.", "empty aboutPeople → nobody linked")
+        XCTAssertTrue(r.ambiguous.isEmpty, "no ambiguity recorded for a note about nobody")
+    }
+
+    func testOptInNilGateLinksAll() {
+        // nil = ungated (the matching engine's raw behavior) — both people link.
+        let people = [
+            person("[[Nick Jansen]]", ["Nick"], short: "Nick"),
+            person("[[Sam Roe]]", ["Sam"], short: "Sam"),
+        ]
+        let r = Sanitiser.process(text: "Nick met Sam today.", people: people)
+        XCTAssertEqual(r.sanitised, "[[Nick Jansen]] met [[Sam Roe]] today.")
+    }
+
+    func testOptInTappingOneOfTwoSameAliasLinksIt() {
+        // Two people share the alias "Sam". Marking the note about ONE of them makes that
+        // alias unambiguous within the gated set → it links (first→canonical, rest→short).
+        let people = [
+            person("[[Sam Smith]]", ["Sam"], short: "Sam"),
+            person("[[Sam Jones]]", ["Sam"], short: "Sam"),
+        ]
+        let r = Sanitiser.process(text: "I saw Sam today, then Sam left.", people: people,
+                                  aboutPeople: ["[[Sam Smith]]"])
+        XCTAssertEqual(r.sanitised, "I saw [[Sam Smith]] today, then Sam left.")
+        XCTAssertTrue(r.ambiguous.isEmpty, "unambiguous within the gated set")
+    }
+
+    func testOptInTappingBothSameAliasRecordsAmbiguous() {
+        // Marking the note about BOTH same-alias people keeps "Sam" ambiguous → plain + recorded.
+        let people = [
+            person("[[Sam Smith]]", ["Sam"], short: "Sam"),
+            person("[[Sam Jones]]", ["Sam"], short: "Sam"),
+        ]
+        let r = Sanitiser.process(text: "I saw Sam today.", people: people,
+                                  aboutPeople: ["[[Sam Smith]]", "[[Sam Jones]]"])
+        XCTAssertEqual(r.sanitised, "I saw Sam today.", "ambiguous within the gated set → plain")
+        XCTAssertEqual(r.ambiguous.count, 1)
+        XCTAssertEqual(r.ambiguous.first?.candidates.count, 2)
+    }
+
+    // MARK: Conversation inline — FIRST-ONLY per person + opt-in gating
+
+    func testConversationInlineFirstOnlyForAboutPerson() {
+        // A non-speaker the note is about, mentioned twice inline across turns: only the
+        // FIRST mention links; the second demotes to the short ("one note, one link").
+        let bruno = person("[[Bruno Aragorn]]", ["Bruno"], short: "Bruno")
+        let input = "**Speaker 1:** I saw Bruno today\n\n**Speaker 2:** Bruno again?"
+        let s = Sanitiser.processConversation(text: input, people: [bruno],
+                                              aboutPeople: ["[[Bruno Aragorn]]"]).sanitised
+        XCTAssertEqual(s, "**Speaker 1:** I saw [[Bruno Aragorn|Bruno]] today\n\n**Speaker 2:** Bruno again?")
+        XCTAssertEqual(s.components(separatedBy: "[[").count - 1, 1, "exactly one inline link")
+    }
+
+    func testConversationInlineGatedNonAboutStaysPlainSpeakerAutoLinks() {
+        // The matched SPEAKER auto-links in their header regardless of aboutPeople; a
+        // non-about person mentioned inline stays plain until tapped.
+        let tiuri = person("[[Tiuri Hartog]]", ["Tiuri Hartog", "Tuur"], short: "Tuur")
+        let bruno = person("[[Bruno Aragorn]]", ["Bruno"], short: "Bruno")
+        let input = "**Tiuri Hartog:** I saw Bruno today\n\n**Speaker 2:** cool"
+
+        // aboutPeople empty: Tiuri (speaker) links in the header; Bruno stays plain.
+        let plain = Sanitiser.processConversation(text: input, people: [tiuri, bruno], aboutPeople: []).sanitised
+        XCTAssertEqual(plain, "**[[Tiuri Hartog]]:** I saw Bruno today\n\n**Speaker 2:** cool")
+
+        // Tap Bruno: his first inline mention now links too.
+        let tapped = Sanitiser.processConversation(text: input, people: [tiuri, bruno],
+                                                   aboutPeople: ["[[Bruno Aragorn]]"]).sanitised
+        XCTAssertEqual(tapped, "**[[Tiuri Hartog]]:** I saw [[Bruno Aragorn|Bruno]] today\n\n**Speaker 2:** cool")
+    }
 }

@@ -234,12 +234,15 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
   **BUILD STEPS (mock SIGNED OFF 2026-06-15 — verified what's NEW vs EXISTING against the code):**
   EXISTING, do NOT touch: monologue `Sanitiser.process` is ALREADY first-only (first→`[[Canonical]]`, rest→plain
   short); conversation turn HEADERS already first-only. NEW work only:
-  1. **Opt-in gating (the core).** Add `aboutPeople: [String]` (canonical keys) to `PipelineFile` (additive).
-     `Sanitiser.process` + `processConversation` take an `aboutPeople` set and link ONLY those people; everyone
-     else stays plain. Default empty → a freshly-processed note links NOBODY until the user taps (no pre-link).
-     `BatchRunner` passes `pf.aboutPeople`. Keep `unlinkedNames` working.
-  2. **Conversation inline → first-only.** `Sanitiser.linkInline` currently links EVERY inline body mention;
-     make it first-only per person (track `seen`, like the header path). Monologue + headers already are.
+  1. ✅ **Opt-in gating (the core) — DONE 2026-06-15 (chunk 1).** `PipelineFile.aboutPeople: [String]` (additive).
+     `Sanitiser.process`/`processConversation` take `aboutPeople: Set<String>?` (`gated` helper) — link ONLY those
+     people; everyone else plain. EMPTY → links nobody; `nil` = ungated (engine tests). `BatchRunner` (both audio +
+     capture paths) + `ProcessingCoordinator` (redo copy-edit) pass `Set(pf.aboutPeople)`. `unlinkedNames` still works.
+  2. ✅ **Conversation inline → first-only — DONE 2026-06-15 (chunk 1).** `linkInline` now first-only per person with a
+     SHARED `seen` across headers + bodies (two-pass: headers claim speakers, then bodies in document order). A
+     speaker's single link is their turn header; later inline mentions demote to the short. Matched speakers auto-link
+     regardless of `aboutPeople`. Gate: UnitTests 277 green (9 new: opt-in monologue/conversation, first-only inline,
+     two-Jacks tap-one/tap-both) + full `-skipMacroValidation` build green. Conversation tests rewritten to one-link rule.
   3. **Review "People in this note" chip bar** (`NoteDisplayView`/`NoteProperties`): detected alias-matches as
      chips (plain by default); tap → add canonical to `pf.aboutPeople` → re-sanitise + recompile live; tap-off
      removes. Conversations: AUTO-add the matched speaker to `aboutPeople` (auto-link matched speakers).

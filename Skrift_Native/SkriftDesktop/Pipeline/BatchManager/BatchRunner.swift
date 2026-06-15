@@ -137,9 +137,12 @@ struct BatchRunner {
         // conversation uses the turn-aware linker (merge same-speaker turns, first
         // header → [[Canonical]] / rest short, inline mentions → [[Canonical|spoken]]);
         // a monologue uses the ordinary first-mention linker.
+        // Opt-in naming: link ONLY the people the note is marked about (empty on a fresh
+        // note → nobody, until the user taps a chip). Conversations still auto-link their
+        // matched speakers (handled inside processConversation, independent of this set).
         let san = isConversation
-            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames))
-            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
+            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), aboutPeople: Set(pf.aboutPeople))
+            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), aboutPeople: Set(pf.aboutPeople))
         pf.sanitised = san.sanitised
         pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
 
@@ -183,7 +186,8 @@ struct BatchRunner {
         if !annotation.isEmpty {
             let suggestions = TagMatcher.suggest(text: annotation, whitelist: tagWhitelist)
             pf.tagSuggestions = suggestions.matched + suggestions.spoken
-            let san = Sanitiser.process(text: annotation, people: people)
+            // Opt-in naming applies to captures too — nobody linked until tapped.
+            let san = Sanitiser.process(text: annotation, people: people, neverLink: Set(pf.unlinkedNames), aboutPeople: Set(pf.aboutPeople))
             pf.sanitised = san.sanitised
             pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
         }

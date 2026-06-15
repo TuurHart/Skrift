@@ -39,6 +39,7 @@ final class BatchRunnerTests: XCTestCase {
 
     func testFullRunPopulatesAllStepsAndLinksNames() async throws {
         let pf = PipelineFile(id: "1", filename: "memo.m4a", path: "/tmp/x", size: 0, sourceType: .audio)
+        pf.aboutPeople = ["[[Nick Jansen]]"]   // opt-in: the note is about Nick → he links
         var settings = AppSettings.default; settings.summaryMinWords = 0   // keep the summary for this short test note
         let runner = BatchRunner(
             transcriber: StubTranscriber(text: "Nick and I met today. Nick is great."),
@@ -59,6 +60,22 @@ final class BatchRunnerTests: XCTestCase {
         let compiled = try XCTUnwrap(pf.compiledText)
         XCTAssertTrue(compiled.contains("title: \"A Title\""))
         XCTAssertTrue(compiled.hasSuffix("[[Nick Jansen]] and I met today. Nick is great."))
+    }
+
+    /// Opt-in naming: a freshly-processed note (empty `aboutPeople`) links NOBODY — the
+    /// person is detected but stays plain until the user taps their chip in review.
+    func testFullRunDefaultLinksNobody() async throws {
+        let pf = PipelineFile(id: "nolink", filename: "memo.m4a", path: "/tmp/x", size: 0, sourceType: .audio)
+        let runner = BatchRunner(
+            transcriber: StubTranscriber(text: "Nick and I met today. Nick is great."),
+            enhancer: EchoEnhancer(),
+            settings: .default,
+            people: [Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"], short: "Nick", lastModifiedAt: "2026-01-01T00:00:00.000Z")],
+            tagWhitelist: []
+        )
+        try await runner.run(pf, audioURL: URL(fileURLWithPath: "/tmp/x.m4a"))
+        XCTAssertEqual(pf.sanitised, "Nick and I met today. Nick is great.", "no aboutPeople → nobody linked")
+        XCTAssertFalse((pf.sanitised ?? "").contains("[["), "no links on a fresh note")
     }
 
     /// A short note (< summaryMinWords, default 75) SKIPS the Gemma summary (user 2026-06-15);
@@ -172,16 +189,27 @@ final class CaptureRunnerTests: XCTestCase {
         XCTAssertEqual(pf.enhanceStatus, .done)
     }
 
-    /// Title + summary + name-link run on the annotation.
+    /// Title + summary + name-link run on the annotation. Opt-in: name-linking only fires
+    /// for a person the capture is marked about (`aboutPeople`); a fresh capture links nobody.
     func testCaptureTitleAndNameLink() async throws {
         let nick = Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"],
                           short: "Nick", lastModifiedAt: "2026-01-01T00:00:00.000Z")
         let pf = makeCapture(annotation: "Nick said this is a good approach.")
+        pf.aboutPeople = ["[[Nick Jansen]]"]
         try await makeRunner(people: [nick]).run(pf, audioURL: nil)
         XCTAssertEqual(pf.enhancedTitle, "A Title", "title LLM ran")
         XCTAssertNotNil(pf.enhancedSummary, "summary LLM ran")
-        // EchoEnhancer returns the annotation unchanged; Sanitiser links the name.
+        // EchoEnhancer returns the annotation unchanged; Sanitiser links the about-person.
         XCTAssertTrue((pf.sanitised ?? "").contains("[[Nick Jansen]]"), "name-linked")
+    }
+
+    /// Opt-in default: a capture with no `aboutPeople` links nobody.
+    func testCaptureDefaultLinksNobody() async throws {
+        let nick = Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"],
+                          short: "Nick", lastModifiedAt: "2026-01-01T00:00:00.000Z")
+        let pf = makeCapture(annotation: "Nick said this is a good approach.")
+        try await makeRunner(people: [nick]).run(pf, audioURL: nil)
+        XCTAssertFalse((pf.sanitised ?? "").contains("[["), "no aboutPeople → nobody linked")
     }
 
     // MARK: Empty annotation — LLM skipped, title from sharedContent

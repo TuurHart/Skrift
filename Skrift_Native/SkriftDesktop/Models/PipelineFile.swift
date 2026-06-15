@@ -84,6 +84,16 @@ final class PipelineFile {
     /// them HERE — the person stays in the names DB and links normally elsewhere.
     /// Primitive `[String]` is safe to store directly (see the gotcha above).
     var unlinkedNames: [String] = []
+    /// Opt-in naming (mocks/opt-in-naming.html): the canonical `[[Name]]` keys the user
+    /// marked this note as being ABOUT. Only these people are name-linked in the body;
+    /// every other detected mention stays plain text. EMPTY by default → a freshly-
+    /// processed note links NOBODY until the user taps a chip in the review "People in
+    /// this note" bar (no pre-linking). Fed to `Sanitiser.process` /
+    /// `processConversation(aboutPeople:)` by `BatchRunner` + `ProcessingCoordinator`.
+    /// Conversations additionally auto-link their MATCHED SPEAKERS regardless (they're
+    /// definitionally subjects), so this set carries the extra inline-mentioned people
+    /// the user opts in. Primitive `[String]` is safe to store directly (see the gotcha).
+    var aboutPeople: [String] = []
     /// `[WordTiming]` stored as a JSON blob (the per-file `word_timings.json`
     /// equivalent) — drives the karaoke highlight. Set by the transcribe step.
     var wordTimingsJSON: Data?

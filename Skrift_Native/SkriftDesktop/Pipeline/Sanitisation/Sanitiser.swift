@@ -30,15 +30,27 @@ enum Sanitiser {
     /// matched case-insensitively). Such a person is treated as absent from the names
     /// DB for THIS note: never linked, never demoted to the short name, and never
     /// offered as an ambiguity candidate — so re-processing can't re-link them here.
-    static func process(text inputText: String, people: [Person], neverLink: Set<String> = []) -> Result {
+    ///
+    /// `aboutPeople` is the OPT-IN naming gate (mocks/opt-in-naming.html): when non-nil,
+    /// only the people whose canonical key it lists are linked — everyone else stays
+    /// plain. An EMPTY set links NOBODY (a fresh note before the user taps any chip).
+    /// `nil` = ungated: link every matching person (the matching engine's raw behavior,
+    /// exercised by engine-level tests). The product callers (`BatchRunner` /
+    /// `ProcessingCoordinator`) ALWAYS pass the note's `aboutPeople`, so the product
+    /// never auto-links. The gate is applied BEFORE ambiguity is computed, so tapping
+    /// ONE of two people who share an alias links them (the alias is unambiguous within
+    /// the gated set), while tapping BOTH records the alias as ambiguous for the resolver.
+    static func process(text inputText: String, people: [Person], neverLink: Set<String> = [], aboutPeople: Set<String>? = nil) -> Result {
         var text = inputText
         let skip = Set(neverLink.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
         let live = people.filter {
             !$0.isDeleted && !skip.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
         }
+        // Opt-in gate: link only the people the note is about (nil = ungated = all).
+        let linkable = gated(live, by: aboutPeople)
 
         var aliasMap: [String: [Person]] = [:]
-        for p in live {
+        for p in linkable {
             for a in p.aliases {
                 let al = a.trimmingCharacters(in: .whitespaces).lowercased()
                 if !al.isEmpty { aliasMap[al, default: []].append(p) }
@@ -68,7 +80,7 @@ enum Sanitiser {
         }
 
         // Link unambiguous aliases, person by person (sorted by canonical).
-        for p in live.sorted(by: { NamesMerge.keyName($0.canonical).lowercased() < NamesMerge.keyName($1.canonical).lowercased() }) {
+        for p in linkable.sorted(by: { NamesMerge.keyName($0.canonical).lowercased() < NamesMerge.keyName($1.canonical).lowercased() }) {
             let aliases = p.aliases
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty && !ambiguousAliases.contains($0.lowercased()) }
@@ -124,15 +136,19 @@ enum Sanitiser {
     /// - **Headers** (#2): a speaker's FIRST turn header becomes a full `[[Canonical]]`
     ///   link; later headers become the plain short name (`**Tuur:**`). Unmatched
     ///   ("Speaker N") / unknown / ambiguous headers stay plain.
-    /// - **Inline mentions** (#1): every unambiguous alias spoken inside a turn is linked
-    ///   with Obsidian alias-display `[[Canonical|spoken]]`, so the SPOKEN word survives
-    ///   (a plain `[[Canonical]]` only when the spoken surface already equals the
-    ///   canonical). Ambiguous aliases stay plain and are recorded for the resolver.
+    /// - **Inline mentions** (#1): FIRST-ONLY per person ("one note, one link"). A person's
+    ///   first not-yet-linked mention becomes the Obsidian alias-display `[[Canonical|short]]`
+    ///   (or bare `[[Canonical]]` when the short equals the canonical); every later mention —
+    ///   and every mention of a speaker already linked in their header — demotes to the plain
+    ///   short name. Ambiguous aliases stay plain and are recorded for the resolver.
     ///
-    /// Falls back to `process` when the text isn't actually attributed.
-    static func processConversation(text inputText: String, people: [Person], neverLink: Set<String> = []) -> Result {
+    /// `aboutPeople` is the opt-in gate: only matched SPEAKERS (auto-linked in their header)
+    /// and the people whose canonical it lists earn inline links; everyone else stays plain.
+    /// `nil` = ungated (link every unambiguous mention, still first-only). Falls back to
+    /// `process` when the text isn't actually attributed.
+    static func processConversation(text inputText: String, people: [Person], neverLink: Set<String> = [], aboutPeople: Set<String>? = nil) -> Result {
         guard let parsedWP = SpeakerTranscript.parseWithPreamble(inputText) else {
-            return process(text: inputText, people: people, neverLink: neverLink)
+            return process(text: inputText, people: people, neverLink: neverLink, aboutPeople: aboutPeople)
         }
         let parsed = parsedWP.turns
         let preamble = parsedWP.preamble
@@ -141,6 +157,8 @@ enum Sanitiser {
             !$0.isDeleted && !skip.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
         }
 
+        // FULL alias map (over all live people) — resolves matched-speaker headers, which
+        // auto-link regardless of the opt-in gate (a speaker is definitionally a subject).
         var aliasMap: [String: [Person]] = [:]
         for p in live {
             for a in p.aliases {
@@ -180,47 +198,73 @@ enum Sanitiser {
             }
         }
 
-        // Render headers (first canonical / later short / plain) + alias-display bodies.
+        // Opt-in gate for INLINE mentions: only an about-person earns a NEW inline link
+        // (matched speakers are linked in their header → tracked in `seen` → their inline
+        // mentions demote to the short name regardless of this set). nil = ungated.
+        let inlineLinkable: Set<String>? = aboutPeople.map {
+            Set($0.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
+        }
+
+        // PASS 1 — headers claim their speaker first: a speaker's FIRST turn header carries
+        // the canonical `[[Name]]` link, later headers (and every inline mention) demote to
+        // the short name. This makes the labelled attribution the one link per speaker, so
+        // it can't be lost to an earlier inline name-drop ("one note, one link").
         var seen = Set<String>()
-        var lines: [String] = []
+        var headers: [String] = []
         for m in merged {
-            let header: String
             if let p = m.person {
                 let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
                 if seen.insert(canonKey.lowercased()).inserted {
-                    header = "[[\(canonKey)]]"                  // first mention → full link
+                    headers.append("[[\(canonKey)]]")               // first mention → full link
                 } else {
                     let short = shortName(for: p)
-                    header = short.isEmpty ? canonKey : short   // later → plain short name
+                    headers.append(short.isEmpty ? canonKey : short) // later → plain short name
                 }
             } else {
-                header = m.rawName                              // Speaker N / unknown → plain
+                headers.append(m.rawName)                            // Speaker N / unknown → plain
             }
-            let body = linkInline(m.text, live: live, ambiguousAliases: ambiguousAliases)
-            lines.append("**\(header):** \(body)")
         }
-        // Preserve any leading text before the first turn header (e.g. an early image
-        // marker) — name-linked like the body, prepended as its own block. Never dropped.
+
+        // PASS 2 — bodies in document order (the leading preamble first, then each turn),
+        // sharing `seen`: each person's FIRST not-yet-linked inline mention → the
+        // alias-display link, the rest → the short name. The preamble (e.g. an early image
+        // marker) is preserved as its own block, never dropped.
         var blocks: [String] = []
-        if !preamble.isEmpty { blocks.append(linkInline(preamble, live: live, ambiguousAliases: ambiguousAliases)) }
-        blocks.append(contentsOf: lines)
+        if !preamble.isEmpty {
+            blocks.append(linkInline(preamble, live: live, ambiguousAliases: ambiguousAliases,
+                                     linkable: inlineLinkable, seen: &seen))
+        }
+        for (i, m) in merged.enumerated() {
+            let body = linkInline(m.text, live: live, ambiguousAliases: ambiguousAliases,
+                                  linkable: inlineLinkable, seen: &seen)
+            blocks.append("**\(headers[i]):** \(body)")
+        }
         let finalText = blocks.joined(separator: "\n\n")
         let ambiguous = ambiguousOccurrences(in: finalText, aliasMap: aliasMap, ambiguousAliases: ambiguousAliases)
         return Result(sanitised: finalText, ambiguous: ambiguous)
     }
 
-    /// Link every UNAMBIGUOUS alias mention inline, DISPLAYING the person's short name
-    /// (Obsidian alias-display `[[Canonical|short]]`, or bare `[[Canonical]]` when the
-    /// short equals the canonical). The display is the short — NOT the transcribed surface
-    /// — so a misheard name ("tyr"/"cherry" for "Tuur") is normalised to the correct
-    /// short instead of preserved verbatim; the link still targets the canonical. The whole
-    /// match (alias + any trailing possessive) is replaced and the possessive re-appended
-    /// OUTSIDE the brackets. Matches already inside a link are skipped; ambiguous aliases
-    /// are left plain (resolved at review).
-    private static func linkInline(_ inputText: String, live: [Person], ambiguousAliases: Set<String>) -> String {
+    /// Link inline alias mentions, FIRST-ONLY per person ("one note, one link"). For each
+    /// person not yet linked anywhere in the conversation (`seen`), their FIRST eligible
+    /// mention becomes the Obsidian alias-display link `[[Canonical|short]]` (or bare
+    /// `[[Canonical]]` when the short equals the canonical) and every LATER mention — plus
+    /// every mention of an already-linked person (a matched speaker linked in their header,
+    /// or a person linked in an earlier turn) — demotes to the plain short name. The display
+    /// is the short, NOT the transcribed surface, so a misheard name ("cherry"/"thierry" for
+    /// "Tuur") normalises to the correct short. The whole match (alias + trailing possessive)
+    /// is replaced and the possessive re-appended OUTSIDE the brackets.
+    ///
+    /// `linkable` is the opt-in gate (nil = ungated): a person NOT already linked may earn a
+    /// NEW inline link only when their canonical is in this set. A person already in `seen` is
+    /// demoted to the short regardless (their link lives elsewhere). Ambiguous aliases and
+    /// matches already inside a link are left untouched. `seen` is shared across the whole
+    /// document (headers + every body) and updated in place, so each person links exactly once.
+    private static func linkInline(_ inputText: String, live: [Person], ambiguousAliases: Set<String>,
+                                   linkable: Set<String>?, seen: inout Set<String>) -> String {
         var text = inputText
         for p in live.sorted(by: { NamesMerge.keyName($0.canonical).lowercased() < NamesMerge.keyName($1.canonical).lowercased() }) {
             let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+            let keyLower = canonKey.lowercased()
             let aliases = p.aliases
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty && !ambiguousAliases.contains($0.lowercased()) }
@@ -231,11 +275,31 @@ enum Sanitiser {
             let display = (short.isEmpty || short.caseInsensitiveCompare(canonKey) == .orderedSame)
                 ? "[[\(canonKey)]]"
                 : "[[\(canonKey)|\(short)]]"
-            for alias in aliases {
-                guard let rx = wordRegex(alias) else { continue }
+            let patterns = aliases.compactMap { wordRegex($0) }
+
+            if !seen.contains(keyLower) {
+                // Not linked yet. The opt-in gate decides whether they may link here at all;
+                // a non-about, non-speaker person stays entirely plain.
+                guard linkable?.contains(keyLower) ?? true else { continue }
+                // First eligible mention across the person's aliases → the alias-display link.
+                var earliest: (range: NSRange, poss: String)?
+                for rx in patterns {
+                    guard let m = rx.firstMatch(in: text, range: fullRange(text)) else { continue }
+                    if avoidInside && !notInsideLink(text, m.range.location) { continue }
+                    if earliest == nil || m.range.location < earliest!.range.location {
+                        earliest = (m.range, possText(m, in: text))
+                    }
+                }
+                guard let first = earliest else { continue }    // no eligible mention in this block
+                text = nsReplace(text, first.range, with: display + first.poss)
+                seen.insert(keyLower)
+            }
+            // Remaining mentions (and EVERY mention of an already-linked person) → the short.
+            guard !short.isEmpty else { continue }
+            for rx in patterns {
                 for m in rx.matches(in: text, range: fullRange(text)).reversed() {
                     if avoidInside && !notInsideLink(text, m.range.location) { continue }
-                    text = nsReplace(text, m.range, with: display + possText(m, in: text))
+                    text = nsReplace(text, m.range, with: short + possText(m, in: text))
                 }
             }
         }
@@ -588,6 +652,18 @@ enum Sanitiser {
     }
 
     // MARK: - Helpers
+
+    /// Apply the opt-in naming gate: `nil` returns `live` unchanged (ungated); a set
+    /// keeps only the people whose canonical key it contains (matched case-insensitively,
+    /// bracket-tolerant). An empty set → nobody. The single source of the gate logic for
+    /// both `process` and `processConversation`.
+    private static func gated(_ live: [Person], by aboutPeople: Set<String>?) -> [Person] {
+        guard let aboutPeople else { return live }
+        let about = Set(aboutPeople.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
+        return live.filter {
+            about.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
+        }
+    }
 
     private static func shortName(for p: Person) -> String {
         let override = (p.short ?? "").trimmingCharacters(in: .whitespaces)

@@ -329,8 +329,8 @@ final class ProcessingCoordinator {
                 let working = c.isEmpty ? transcript : c
                 let people = NamesStore.shared.livePeople()
                 let san = isConversation
-                    ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames))
-                    : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
+                    ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), aboutPeople: Set(pf.aboutPeople))
+                    : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), aboutPeople: Set(pf.aboutPeople))
                 pf.sanitised = san.sanitised
                 pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
             case .summary:

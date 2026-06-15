@@ -209,21 +209,23 @@ final class DiarizationTests: XCTestCase {
 
         let lines = out.components(separatedBy: "\n\n")
         XCTAssertEqual(lines.count, 3, "two fragmented Tiuri turns merged → 3 turns; got: \(out)")
-        // First mention of each speaker = full [[Canonical]] header.
-        XCTAssertTrue(lines[0].hasPrefix("**[[Tiuri Hartog]]:** We are [[Tiuri Hartog|Tuur]] and [[Tiuri Hartog|Tuur]] rocks."),
-                      "merge + first-canonical header + inline short-display; got: \(lines[0])")
-        XCTAssertTrue(lines[1].hasPrefix("**[[Roksana Gurova]]:**"), "Roksana first header → canonical; got: \(lines[1])")
-        XCTAssertTrue(lines[1].contains("[[Roksana Gurova|Roksana]]") && lines[1].contains("[[Tiuri Hartog|Tuur]]"),
-                      "cross-speaker inline mentions both linked to their short; got: \(lines[1])")
-        // Tiuri's LATER turn header = plain short (no link); inline "Roks" → short link.
-        XCTAssertEqual(lines[2], "**Tuur:** Likewise, [[Roksana Gurova|Roksana]].",
-                       "later header plain short + inline 'Roks'→short link; got: \(lines[2])")
+        // ONE NOTE, ONE LINK: each speaker's FIRST turn header is their single canonical
+        // link; every later mention (header OR inline) demotes to the plain short name.
+        XCTAssertEqual(lines[0], "**[[Tiuri Hartog]]:** We are Tuur and Tuur rocks.",
+                       "merge + first-canonical header; inline self-mentions → plain short; got: \(lines[0])")
+        XCTAssertEqual(lines[1], "**[[Roksana Gurova]]:** Hey it's Roksana here. Nice to meet you, Tuur.",
+                       "Roksana first header → canonical; inline 'Roks'→'Roksana', 'Tuur'→short (already linked); got: \(lines[1])")
+        XCTAssertEqual(lines[2], "**Tuur:** Likewise, Roksana.",
+                       "later header plain short; inline 'Roks'→'Roksana' (already linked); got: \(lines[2])")
+        // Exactly two links in the whole conversation — one per speaker.
+        XCTAssertEqual(out.components(separatedBy: "[[").count - 1, 2, "one link per person; got: \(out)")
     }
 
     // MARK: Conversation name-linking (processConversation)
 
-    /// #2 + #3 + #1: first header → [[Canonical]], later same-speaker turns MERGE,
-    /// inline spoken alias → [[Canonical|spoken]] (spoken word preserved, every mention).
+    /// #2 + #3 + #1: first header → [[Canonical]], later same-speaker turns MERGE, inline
+    /// mentions of an already-linked speaker → plain short (one note, one link). The short
+    /// still NORMALISES the surface ("Roks" → the short "Roksana").
     func testProcessConversationHeadersMergeAndAliasDisplay() {
         let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog", "Tuur"], short: "Tuur", lastModifiedAt: "x")
         let roksana = Person(canonical: "[[Roksana Gurova]]", aliases: ["Roksana Gurova", "Roks"], short: "Roksana", lastModifiedAt: "x")
@@ -238,37 +240,41 @@ final class DiarizationTests: XCTestCase {
         let lines = r.sanitised.components(separatedBy: "\n\n")
         // Two adjacent Tiuri turns merged into one.
         XCTAssertEqual(lines.count, 2, "consecutive same-speaker turns merge; got: \(r.sanitised)")
-        // Header: first mention full canonical link.
-        XCTAssertTrue(lines[0].hasPrefix("**[[Roksana Gurova]]:**"), "first header → full canonical; got: \(lines[0])")
-        XCTAssertTrue(lines[1].hasPrefix("**[[Tiuri Hartog]]:**"), "first header → full canonical; got: \(lines[1])")
-        // Inline mentions → alias-display showing the SHORT name, EVERY mention. "Tuur"
-        // is the short so it shows "Tuur"; "Roks" normalises to the short "Roksana".
-        XCTAssertTrue(lines[1].contains("[[Tiuri Hartog|Tuur]] and [[Tiuri Hartog|Tuur]] rocks"),
-                      "inline → [[Canonical|short]], every mention; got: \(lines[1])")
-        XCTAssertTrue(lines[0].contains("[[Roksana Gurova|Roksana]]"),
-                      "inline 'Roks' normalises to the short 'Roksana'; got: \(lines[0])")
+        // Each speaker's FIRST header is their single canonical link.
+        XCTAssertEqual(lines[0], "**[[Roksana Gurova]]:** Hey it is Roksana here",
+                       "first header → canonical; inline 'Roks' (already linked) → short 'Roksana'; got: \(lines[0])")
+        XCTAssertEqual(lines[1], "**[[Tiuri Hartog]]:** We are Tuur and Tuur rocks",
+                       "first header → canonical; inline self-mentions (already linked) → short 'Tuur'; got: \(lines[1])")
+        // No inline links: both speakers were already linked in their header.
+        XCTAssertEqual(r.sanitised.components(separatedBy: "[[").count - 1, 2, "one link per speaker; got: \(r.sanitised)")
     }
 
     /// A MISHEARD inline name (an alias the ASR produced for the person) is normalised to
-    /// the correct short name, not preserved verbatim — the spoken word was wrong.
+    /// the correct short name, not preserved verbatim — the spoken word was wrong. Tiuri
+    /// IS a speaker here, so his single link is his turn header; the misheard inline
+    /// mentions in Roksana's turn demote to the short "Tuur" (one note, one link).
     func testProcessConversationNormalisesMisheardInlineName() {
         let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tuur", "Cherry", "Thierry"], short: "Tuur", lastModifiedAt: "x")
         let roksana = Person(canonical: "[[Roksana]]", aliases: ["Roksana"], lastModifiedAt: "x")
         let input = "**Roksana:** I saw Cherry and Thierry today\n\n**Tuur:** that's me"
         let s = Sanitiser.processConversation(text: input, people: [tiuri, roksana]).sanitised
-        XCTAssertTrue(s.contains("[[Tiuri Hartog|Tuur]] and [[Tiuri Hartog|Tuur]]"),
+        XCTAssertTrue(s.contains("I saw Tuur and Tuur today"),
                       "misheard 'Cherry'/'Thierry' both normalise to the short 'Tuur'; got: \(s)")
         XCTAssertFalse(s.contains("Cherry") || s.contains("Thierry"), "the misheard surfaces are gone; got: \(s)")
+        // Tiuri's single link is his turn header — exactly one [[Tiuri Hartog]] link.
+        XCTAssertEqual(s.components(separatedBy: "[[Tiuri Hartog]]").count - 1, 1, "one link for Tiuri (the header); got: \(s)")
     }
 
-    /// An inline alias mention with a trailing possessive renders ONE `'s`, outside the
-    /// brackets — never a doubled `'s's` (the alias-display replace must cover the full
-    /// match incl. the possessive, not just the alias surface).
+    /// An inline alias mention that EARNS the link (a non-speaker mentioned inline, here
+    /// Tiuri spoken about by Bob) with a trailing possessive renders ONE `'s`, OUTSIDE the
+    /// brackets — never a doubled `'s's` (the alias-display replace covers the full match
+    /// incl. the possessive, not just the alias surface).
     func testProcessConversationInlinePossessiveSingleApostrophe() {
         let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tuur"], short: "Tuur", lastModifiedAt: "x")
         let bob = Person(canonical: "[[Bob]]", aliases: ["Bob"], lastModifiedAt: "x")
+        // Tiuri is NOT a speaker → his first inline mention is the link (with possessive).
         let s = Sanitiser.processConversation(
-            text: "**Bob:** I read Tuur's book\n\n**Tiuri Hartog:** thanks",
+            text: "**Bob:** I read Tuur's book\n\n**Speaker 2:** thanks",
             people: [tiuri, bob]).sanitised
         XCTAssertTrue(s.contains("[[Tiuri Hartog|Tuur]]'s book"), "single possessive outside brackets; got: \(s)")
         XCTAssertFalse(s.contains("'s's"), "no doubled possessive; got: \(s)")
