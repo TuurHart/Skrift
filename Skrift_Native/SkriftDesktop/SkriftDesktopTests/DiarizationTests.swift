@@ -167,6 +167,43 @@ final class DiarizationTests: XCTestCase {
         XCTAssertTrue(s.contains("**[[Tiuri Hartog]]:**"), "matched speaker first header → canonical link; got: \(s)")
     }
 
+    // MARK: Conversation export PROOF (realistic two-speaker memo end-to-end)
+
+    /// End-to-end proof of the conversation name-linking the user asked to see: a
+    /// realistic phone-diarized two-speaker transcript → `processConversation` → the
+    /// exported Markdown body. Demonstrates ALL the fixes at once + prints the result.
+    func testConversationExportProof() {
+        let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog", "Tuur", "Tiuri"],
+                           short: "Tuur", lastModifiedAt: "x")
+        let roksana = Person(canonical: "[[Roksana Gurova]]", aliases: ["Roksana Gurova", "Roksana", "Roks"],
+                             short: "Roksana", lastModifiedAt: "x")
+        // What the phone uploads: `**Name:** text` turns, with Tiuri FRAGMENTED into two
+        // consecutive turns + a mishear ("Cherry" never enrolled, so it stays plain).
+        let input = """
+        **Tiuri Hartog:** We are Tuur and
+
+        **Tiuri Hartog:** Tuur rocks.
+
+        **Roksana Gurova:** Hey it's Roks here. Nice to meet you, Tuur.
+
+        **Tiuri Hartog:** Likewise, Roks.
+        """
+        let out = Sanitiser.processConversation(text: input, people: [tiuri, roksana]).sanitised
+        print("\n===== CONVERSATION EXPORT PROOF =====\n\(out)\n===== END PROOF =====\n")
+
+        let lines = out.components(separatedBy: "\n\n")
+        XCTAssertEqual(lines.count, 3, "two fragmented Tiuri turns merged → 3 turns; got: \(out)")
+        // First mention of each speaker = full [[Canonical]] header.
+        XCTAssertTrue(lines[0].hasPrefix("**[[Tiuri Hartog]]:** We are [[Tiuri Hartog|Tuur]] and [[Tiuri Hartog|Tuur]] rocks."),
+                      "merge + first-canonical header + inline short-display; got: \(lines[0])")
+        XCTAssertTrue(lines[1].hasPrefix("**[[Roksana Gurova]]:**"), "Roksana first header → canonical; got: \(lines[1])")
+        XCTAssertTrue(lines[1].contains("[[Roksana Gurova|Roksana]]") && lines[1].contains("[[Tiuri Hartog|Tuur]]"),
+                      "cross-speaker inline mentions both linked to their short; got: \(lines[1])")
+        // Tiuri's LATER turn header = plain short (no link); inline "Roks" → short link.
+        XCTAssertEqual(lines[2], "**Tuur:** Likewise, [[Roksana Gurova|Roksana]].",
+                       "later header plain short + inline 'Roks'→short link; got: \(lines[2])")
+    }
+
     // MARK: Conversation name-linking (processConversation)
 
     /// #2 + #3 + #1: first header → [[Canonical]], later same-speaker turns MERGE,
