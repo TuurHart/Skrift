@@ -88,21 +88,24 @@ actor VocabularyBooster {
             DevLog.log("vocab: words=\(words) minSim=\(cfg.minSimilarity) cbw=\(cfg.cbw) wasModified=\(out.wasModified) replacements=\(out.replacements.map { "\($0.originalWord)→\($0.replacementWord ?? "?")(\($0.shouldReplace))" })")
             guard out.wasModified else { return nil }
 
-            // TRUST GUARD (2026-06-13): drop the boost when EVERY replacement is a
-            // distant acoustic-only guess from FluidAudio's spotter-anchored rescue
-            // (which mangles ordinary speech that contains none of the custom
-            // words — Mac probe turned "room"→"Rox", "its alias."→"Tiuri"). A
-            // replacement is trusted when the original is string-similar to the
-            // canonical (Route-1 grade) or hits a user alias. Keep the boost if ANY
-            // replacement is trusted (favours the user's wanted correction in the
-            // rare mixed case). See `VocabularyTrust`.
-            let anyTrusted = out.replacements.contains { r in
-                guard let canon = r.replacementWord else { return false }
-                let aliases = vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? []
-                return VocabularyTrust.isTrusted(original: r.originalWord, canonical: canon, aliases: aliases)
-            }
-            guard anyTrusted else {
-                DevLog.log("vocab: all replacements untrusted (distant spotter-rescue) → dropped, unboosted")
+            // TRUST GUARD (tightened 2026-06-15 — device-hit garbling): keep the boost
+            // ONLY when EVERY applied replacement is trusted (original string-similar to
+            // its canonical, or an alias hit). A single distant spotter-rescue (e.g.
+            // "hello"→"Tuur") now drops the WHOLE boost → the clean unboosted transcript,
+            // instead of emitting a mangled mix. Short custom names (Tuur, Tiuri) over-fire
+            // FluidAudio's spotter-anchored rescue; the old "keep if ANY trusted" let those
+            // through whenever one real custom word was also present (the user's
+            // "Tuur Skrift Tiuri Tuur…" repro). A genuine correction IS trusted, so clean
+            // boosts are untouched; add a mishear as an alias to make its rescue trusted.
+            let applied: [(original: String, canonical: String, aliases: [String])] = out.replacements
+                .filter(\.shouldReplace)
+                .compactMap { r in
+                    guard let canon = r.replacementWord else { return nil }
+                    let aliases = vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? []
+                    return (r.originalWord, canon, aliases)
+                }
+            guard Self.allReplacementsTrusted(applied) else {
+                DevLog.log("vocab: not every applied replacement trusted → dropped, unboosted (applied=\(applied.map { "\($0.original)→\($0.canonical)" }))")
                 return nil
             }
             return Boosted(text: out.text,
@@ -111,6 +114,15 @@ actor VocabularyBooster {
             DevLog.log("vocab: error \(error)")
             return nil
         }
+    }
+
+    /// The boost guard, factored out + pure so it's unit-testable: keep a boost ONLY when
+    /// there's ≥1 applied replacement and EVERY one is trusted (the original is string-
+    /// similar to its canonical, or hits a user alias — `VocabularyTrust`). One distant
+    /// spotter-rescue makes this false → the whole boost is dropped (clean unboosted text).
+    nonisolated static func allReplacementsTrusted(_ applied: [(original: String, canonical: String, aliases: [String])]) -> Bool {
+        guard !applied.isEmpty else { return false }
+        return applied.allSatisfy { VocabularyTrust.isTrusted(original: $0.original, canonical: $0.canonical, aliases: $0.aliases) }
     }
 
     /// Fire-and-forget background model prep — one at a time, off the

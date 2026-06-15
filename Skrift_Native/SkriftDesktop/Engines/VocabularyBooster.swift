@@ -76,18 +76,25 @@ actor VocabularyBooster {
 
             // TRUST GUARD (2026-06-13): drop the boost when EVERY replacement is a
             // distant acoustic-only guess from FluidAudio's spotter-anchored rescue
-            // (which mangles ordinary speech that contains none of the custom
-            // words). A replacement is trusted when the original is string-similar
-            // to the canonical (Route-1 grade) or hits a user alias. See
-            // `VocabularyTrust`. We keep the boost if ANY replacement is trusted —
-            // erring toward the user's wanted correction in the rare mixed case.
-            let anyTrusted = out.replacements.contains { r in
-                guard let canon = r.replacementWord else { return false }
-                let aliases = vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? []
-                return VocabularyTrust.isTrusted(original: r.originalWord, canonical: canon, aliases: aliases)
+            // (which mangles ordinary speech that contains none of the custom words).
+            // TIGHTENED 2026-06-15 (parity with mobile, device-hit garbling): keep the
+            // boost ONLY when EVERY applied replacement is trusted (original string-similar
+            // to its canonical, or an alias hit — `VocabularyTrust`). One distant rescue
+            // (e.g. "hello"→"Tuur") drops the WHOLE boost → the clean unboosted transcript,
+            // instead of a mangled mix. The old "keep if ANY trusted" let an over-firing
+            // spotter through whenever one real custom word was also present.
+            let applied: [(original: String, canonical: String, aliases: [String])] = out.replacements
+                .filter(\.shouldReplace)
+                .compactMap { r in
+                    guard let canon = r.replacementWord else { return nil }
+                    let aliases = vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? []
+                    return (r.originalWord, canon, aliases)
+                }
+            let allTrusted = !applied.isEmpty && applied.allSatisfy {
+                VocabularyTrust.isTrusted(original: $0.original, canonical: $0.canonical, aliases: $0.aliases)
             }
-            guard anyTrusted else {
-                VocabLog.log("vocab: all replacements untrusted (distant spotter-rescue) → dropped, unboosted")
+            guard allTrusted else {
+                VocabLog.log("vocab: not every applied replacement trusted → dropped, unboosted")
                 return nil
             }
             return Boosted(text: out.text,
