@@ -13,10 +13,31 @@ struct SettingsView: View {
     @AppStorage("autoCopyTranscript") private var autoCopyTranscript = false
     @State private var connection = MacConnection.load()
     @State private var showFeedback = false
+    /// Live reachability of the paired Mac: nil = checking, true = server answered
+    /// /health, false = paired but unreachable. The green dot used to show whenever
+    /// a pairing was merely SAVED — it lied when the Mac was off / on another
+    /// network / a stale port, so memos sat "Waiting" while Settings said connected.
+    @State private var reachable: Bool?
 
     private var customWordsCount: String {
         let n = CustomVocabularyStore.words().count
         return n == 0 ? "None" : "\(n)"
+    }
+
+    private var connectionColor: Color {
+        switch reachable {
+        case .some(true):  return .skGreen
+        case .some(false): return .skRed
+        case .none:        return .skTextFaint
+        }
+    }
+
+    /// Ping the paired Mac's /health so the dot reflects REAL reachability, not just
+    /// "a pairing is saved". Re-run on appear (covers returning from Pair-a-Mac).
+    private func checkReachability() async {
+        guard let connection else { reachable = nil; return }
+        reachable = nil
+        reachable = await URLSessionMacTransport(connection: connection).health()
     }
 
     var body: some View {
@@ -28,12 +49,23 @@ struct SettingsView: View {
                         Spacer()
                         if let connection {
                             HStack(spacing: 7) {
-                                Circle().fill(Color.skGreen).frame(width: 9, height: 9).shadow(color: .skGreen, radius: 4)
-                                Text(connection.host).foregroundStyle(Color.skTextDim)
+                                if reachable == nil {
+                                    ProgressView().controlSize(.mini)
+                                } else {
+                                    Circle().fill(connectionColor).frame(width: 9, height: 9)
+                                        .shadow(color: connectionColor, radius: 4)
+                                }
+                                Text(reachable == false ? "\(connection.host) · unreachable" : connection.host)
+                                    .foregroundStyle(Color.skTextDim)
                             }
+                            .accessibilityIdentifier("mac-connection-status")
                         } else {
                             Text("Not connected").foregroundStyle(Color.skTextFaint)
                         }
+                    }
+                    if reachable == false {
+                        Text("Paired, but the Mac isn't answering. Check it's awake, on the same Wi-Fi, and running Skrift — then re-pair if its address changed.")
+                            .font(.footnote).foregroundStyle(Color.skTextDim)
                     }
                     NavigationLink {
                         PairMacView()
@@ -125,6 +157,10 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showFeedback) { FeedbackCaptureView() }
             .onAppear { connection = MacConnection.load() }
+            // Live health probe so the dot tells the truth (green only when the Mac
+            // actually answers). Re-runs when the saved host/port changes (e.g. after
+            // re-pairing in Pair-a-Mac).
+            .task(id: connection.map { "\($0.host):\($0.port)" }) { await checkReachability() }
         }
     }
 

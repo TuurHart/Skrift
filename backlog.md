@@ -141,6 +141,27 @@ The eventual reason the app exists. When I add a note about a realization, surfa
 - **Backbone (reachable now, offline):** semantic search across the whole vault using local embedding models; retrieve + rank related notes; timeline UI. Mostly engineering, not model-limited.
 - **Harder part (deferred):** having a local LLM *narrate* the evolution well — same quality ceiling as the stale-summary problem. Defer until local models are good enough.
 
+## Sync says "connected" but memos stay "Waiting" (2026-06-15)
+
+Device-reported: Dev mobile → Dev Mac, Settings shows connected, memos keep saying Waiting.
+**Diagnosis (from pulling the phone's prefs + Mac `lsof`):**
+- The Settings green "Connection" dot showed **whenever a pairing was merely SAVED** (`MacConnection.load() != nil`)
+  — NO live check. So it claimed "connected" even when the Mac was off / on another Wi-Fi / a stale port.
+- The sync path had **zero logging** (a silent `catch {}` left memos Waiting) → undiagnosable.
+- The user's Mac was running **TWO `Skrift Dev` instances** (PID from Xcode DerivedData on `:8000` + a 2nd from
+  `/Applications`). Two instances share one bundle id → one SwiftData store → writes contend. GET health/files
+  (reads) answered 200, but the upload **POST (write)** is the likely casualty → the phone leaves the memo Waiting.
+  (CLAUDE.md already warns: "quit the running app first — a 2nd instance races the shared SwiftData store.")
+**Fixes (committed):**
+- Settings dot is now a **live `/health` probe** — green only when the Mac actually answers; amber + "unreachable"
+  + a hint when paired-but-not-answering (`SettingsView.checkReachability`).
+- **Sync is now DevLog-traced** (`SyncCoordinator` + `URLSessionMacTransport`): target host:port, eligible count,
+  each `POST …/upload → HTTP <code>` (or the error), final `newlySynced`. Pull `devlog.txt` after a sync tap.
+**Owed / user action:** quit the duplicate `Skrift Dev` Mac instance (keep ONE), ensure the phone is on the same
+Wi-Fi (Mac is `192.168.50.111:8000`), then tap Sync — read the `sync:` trace to confirm. Possible follow-ups:
+single-instance lock on the Mac; auto re-resolve the Bonjour host/port at sync when the saved one is unreachable
+(self-heal a changed Dev port); manual-sync is by design (no auto-sync).
+
 ## Cross-app parity gaps (audited 2026-06-15 — 9-agent verify-vs-code sweep)
 
 The desktop↔mobile split is overwhelmingly INTENTIONAL (phone records/captures → Mac processes/links/

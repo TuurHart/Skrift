@@ -31,9 +31,14 @@ struct URLSessionMacTransport: MacTransport {
         req.timeoutInterval = 60
         req.setValue(contentType, forHTTPHeaderField: "Content-Type")
         req.httpBody = body
-        let (_, resp) = try await session.data(for: req)
-        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
+        do {
+            let (_, resp) = try await session.data(for: req)
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+            DevLog.log("sync: POST \(url.absoluteString) (\(body.count)B) → HTTP \(code)")
+            guard (200..<300).contains(code) else { throw URLError(.badServerResponse) }
+        } catch {
+            DevLog.log("sync: POST \(url.absoluteString) FAILED → \(error)")
+            throw error
         }
     }
 
@@ -41,12 +46,19 @@ struct URLSessionMacTransport: MacTransport {
         guard let url = connection.filesURL else { return [] }
         var req = URLRequest(url: url)
         req.timeoutInterval = 10
-        let (data, resp) = try await session.data(for: req)
-        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
+        do {
+            let (data, resp) = try await session.data(for: req)
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+            guard (200..<300).contains(code) else {
+                DevLog.log("sync: GET \(url.absoluteString) → HTTP \(code)")
+                throw URLError(.badServerResponse)
+            }
+            let objects = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] ?? []
+            return objects.compactMap { $0["filename"] as? String }
+        } catch {
+            DevLog.log("sync: GET \(url.absoluteString) FAILED → \(error)")
+            throw error
         }
-        let objects = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] ?? []
-        return objects.compactMap { $0["filename"] as? String }
     }
 }
 

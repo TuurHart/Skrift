@@ -21,6 +21,10 @@ struct SyncCoordinator {
             _ = await NamesSync(store: .shared, transport: namesTransport).run()
         }
 
+        let eligible = repository.allMemos().filter { $0.syncStatus == .waiting && $0.significance > 0 }.count
+        let paired = MacConnection.load()
+        DevLog.log("sync: start — paired=\(paired.map { "\($0.host):\($0.port)" } ?? "none") eligible(waiting & sig>0)=\(eligible)")
+
         if let filenames = try? await macTransport.listFilenames(), !filenames.isEmpty {
             let known = Set(filenames)
             for memo in repository.allMemos() where memo.syncStatus == .waiting && known.contains(memo.audioFilename) {
@@ -62,9 +66,11 @@ struct SyncCoordinator {
                 repository.save()
                 newlySynced += 1
             } catch {
-                // leave waiting; retried next sync
+                // leave waiting; retried next sync (the transport already DevLog'd the why)
+                DevLog.log("sync: memo \(memo.id) stays waiting — upload failed")
             }
         }
+        DevLog.log("sync: done — newlySynced=\(newlySynced)")
         return newlySynced
     }
 
