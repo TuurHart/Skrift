@@ -55,10 +55,12 @@ struct BodyTextView: NSViewRepresentable {
     var refresh: Int = 0
 
     /// How far through the body's words to brighten (0…1) + a click-a-word → seek
-    /// callback (arg = the clicked word's 0…1 position).
+    /// callback (arg = the clicked word's INDEX, so the caller can seek to that word's
+    /// REAL start time from the word-timings — an index-proportional seek lands on the
+    /// wrong word when speech is uneven, e.g. a silent intro).
     struct KaraokePlayback {
         var fraction: Double
-        var seek: (Double) -> Void
+        var seekWord: (Int) -> Void
     }
 
     /// Unlink scope picked in the linked-mention popover: ONE mention (the i-th
@@ -461,7 +463,7 @@ struct BodyTextView: NSViewRepresentable {
             if let k = parent.karaoke, let storage = tv.textStorage {
                 let words = Coordinator.wordRanges(storage.string)
                 if let wi = words.firstIndex(where: { NSLocationInRange(idx, $0) || idx == NSMaxRange($0) }) {
-                    k.seek(words.count > 1 ? Double(wi) / Double(words.count - 1) : 0)
+                    k.seekWord(wi)   // caller maps the index → that word's real start time
                     return true
                 }
                 return false

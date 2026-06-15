@@ -119,13 +119,25 @@ struct NoteBody: View {
     }
 
     /// Karaoke state for the editor: how far through the words to brighten, and a
-    /// click-a-word → seek callback (proportional to the audio, approximate — matches
-    /// the documented behavior).
+    /// click-a-word → seek callback. Clicking word N seeks to that word's REAL start
+    /// time from the word-timings (the highlight uses the same timings, so click and
+    /// highlight agree). Falls back to an index-proportional position only when timings
+    /// are absent / the body word count drifts from the timings (e.g. demo notes).
     private var karaokePlayback: BodyTextView.KaraokePlayback {
+        let timings = file.wordTimings
+        let duration = effectiveDuration
         let frac = BodyText.karaokeFraction(
-            currentTime: audio.currentTime, duration: effectiveDuration, timings: file.wordTimings)
-        return .init(fraction: frac) { wordFraction in
-            audio.seek(to: wordFraction * effectiveDuration)
+            currentTime: audio.currentTime, duration: duration, timings: timings)
+        return .init(fraction: frac) { wordIndex in
+            let target: Double
+            if wordIndex >= 0, wordIndex < timings.count {
+                target = timings[wordIndex].start
+            } else if timings.count > 1 {
+                target = duration * Double(wordIndex) / Double(timings.count - 1)
+            } else {
+                target = 0
+            }
+            audio.seek(to: max(0, min(target, duration)))
         }
     }
 
