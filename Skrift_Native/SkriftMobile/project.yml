@@ -71,6 +71,11 @@ targets:
         # the Live Activity stays meaningful.
         UIBackgroundModes:
           - audio
+          - processing          # BGProcessingTask: continue a whole-book transcribe overnight
+        # Whole-book transcription can resume in the background (best overnight on a
+        # charger). App-internal id (not the bundle id) so it's identical Debug/Release.
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.skrift.booktranscribe
         # Share-to-import: appear in the Share Sheet / "Open in" for audio files
         # (WhatsApp / Voice Memos exports → a Skrift memo). iOS routes the file
         # URL through .onOpenURL → AppURLHandler → MemoSaver.importAudio.

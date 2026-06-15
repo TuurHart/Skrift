@@ -22,6 +22,10 @@ struct SkriftApp: App {
         StartRecordingIntent.performer = { await MainActor.run { RecordingIntentBridge.shared.requestStart() } }
         ResumeAudiobookIntent.performer = { await MainActor.run { AudiobookSession.shared.resumeLastPlayed() } }
         StopRecordingIntent.performer = { await MainActor.run { RecordingIntentBridge.shared.requestStop() } }
+
+        // Register the whole-book background-transcribe handler before the scene
+        // connects (BGTaskScheduler requires registration at launch).
+        BookBackgroundScheduler.register()
     }
 
     var body: some Scene {
@@ -57,6 +61,10 @@ struct SkriftApp: App {
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
                         CaptureInboxDrainer.drain(into: repository)
+                    } else if newPhase == .background {
+                        // If a whole-book transcribe is in flight, ask iOS to let it
+                        // continue in the background (best overnight on a charger).
+                        BookBackgroundScheduler.scheduleIfNeeded()
                     }
                 }
         }
