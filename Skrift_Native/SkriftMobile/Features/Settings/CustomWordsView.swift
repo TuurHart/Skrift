@@ -45,6 +45,10 @@ struct CustomWordsView: View {
         }
         .navigationTitle("Custom words")
         .navigationBarTitleDisplayMode(.inline)
+        // Re-read from the store on every appearance — the `@State` initial value is only
+        // evaluated once, so if this view is kept alive and revisited it would otherwise
+        // show stale state. (The store itself uses UserDefaults.standard and persists.)
+        .onAppear { words = CustomVocabularyStore.words() }
     }
 
     private func addWord() {
