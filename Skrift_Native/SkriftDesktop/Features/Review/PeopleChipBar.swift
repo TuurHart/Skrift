@@ -12,6 +12,8 @@ struct PeopleChipBar: View {
     var interactive = true
     /// Live app: the names DB. Tests/snapshots inject a known list. nil = the shared store.
     var peopleOverride: [Person]? = nil
+    /// "Someone else…" — open the person editor for a name the note doesn't mention. nil hides it.
+    var onAddPerson: (() -> Void)? = nil
     @Environment(\.modelContext) private var ctx
 
     /// One chip's resolved state.
@@ -61,6 +63,7 @@ struct PeopleChipBar: View {
                 header(anyOn: items.contains { $0.isOn })
                 FlowLayout(spacing: 7, lineSpacing: 7) {
                     ForEach(items) { chipView($0) }
+                    if interactive, let onAddPerson { addChip(onAddPerson) }
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 11)
@@ -103,6 +106,23 @@ struct PeopleChipBar: View {
         .disabled(!interactive || chip.isSpeaker)
         .help(chip.isSpeaker ? "Speaker — always linked"
               : (chip.isOn ? "Linked — this note is about \(chip.full)" : "Tap to link \(chip.full)"))
+    }
+
+    /// The dashed "Someone else…" chip — opens the editor for a name not yet mentioned.
+    private func addChip(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: "plus").font(.system(size: 9, weight: .bold))
+                Text("Someone else…").font(.system(size: 12))
+            }
+            .foregroundStyle(Theme.textMuted)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(style: StrokeStyle(lineWidth: 0.6, dash: [3, 2]))
+                .foregroundStyle(Theme.hairline.opacity(0.22)))
+        }
+        .buttonStyle(.plain)
+        .help("Add a person this note is about who isn’t detected")
     }
 
     /// The off-state label — the person's short name, falling back to the first word.

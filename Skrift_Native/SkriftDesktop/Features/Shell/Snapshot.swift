@@ -27,6 +27,8 @@ enum Snapshot {
         if let p = path("-snapshot-capture")        { MainActor.assumeIsolated { renderCapture(to: p); exit(0) } }
         if let p = path("-snapshot-trash")          { MainActor.assumeIsolated { renderTrash(to: p); exit(0) } }
         if let p = path("-snapshot-people")         { MainActor.assumeIsolated { renderPeople(to: p); exit(0) } }
+        if let p = path("-snapshot-names")          { MainActor.assumeIsolated { renderNames(to: p); exit(0) } }
+        if let p = path("-snapshot-person-editor")  { MainActor.assumeIsolated { renderPersonEditor(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot")                { MainActor.assumeIsolated { renderReview(to: p); exit(0) } }
     }
@@ -154,8 +156,8 @@ enum Snapshot {
         func labeled(_ title: String, _ file: PipelineFile) -> some View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(title).font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.textMuted)
-                PeopleChipBar(file: file, coordinator: coord, interactive: false,
-                              peopleOverride: [hendri, bruno, tiuri])
+                PeopleChipBar(file: file, coordinator: coord, interactive: true,
+                              peopleOverride: [hendri, bruno, tiuri], onAddPerson: {})
             }
         }
         let view = VStack(alignment: .leading, spacing: 22) {
@@ -167,6 +169,36 @@ enum Snapshot {
         .padding(28)
         .frame(width: 480, height: 420, alignment: .topLeading)
         .background(Theme.bg)
+        writePNG(view, to: path)
+    }
+
+    /// Settings → Names list redesign (mocks/opt-in-naming.html panel 4): avatar · full name
+    /// · "aka" aliases · voice chip rows + the "Add person…" row, with INJECTED people.
+    /// Triggered by: `-snapshot-names <path>`.
+    @MainActor private static func renderNames(to path: String) {
+        let people = [
+            Person(canonical: "[[Bruno Aragorn]]", aliases: ["Bruno", "Bru"], short: "Bruno",
+                   voiceEmbeddings: [VoiceEmbedding(vector: [1])], lastModifiedAt: "x"),
+            Person(canonical: "[[Hendri Van Niekerk]]", aliases: ["Henry", "Hendri"], short: "Hendri",
+                   voiceEmbeddings: [VoiceEmbedding(vector: [1])], lastModifiedAt: "x"),
+            Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tuur", "Thierry"], short: "Tuur",
+                   voiceEmbeddings: [VoiceEmbedding(vector: [1])], lastModifiedAt: "x"),
+            Person(canonical: "[[Sebastiaan Paap]]", aliases: ["sepp"], short: "Sep", lastModifiedAt: "x"),
+        ]
+        let view = SettingsView(interactive: false, peopleOverride: people)
+            .background(Theme.bg)
+        writePNG(view, to: path)
+    }
+
+    /// The shared person editor (mocks/opt-in-naming.html panel 3) — labeled fields,
+    /// alias-recognition demo, link-display hint, voice state. Triggered by:
+    /// `-snapshot-person-editor <path>`.
+    @MainActor private static func renderPersonEditor(to path: String) {
+        let bruno = Person(canonical: "[[Bruno Aragorn]]", aliases: ["Bruno", "Bru"], short: "Bruno",
+                           voiceEmbeddings: [VoiceEmbedding(vector: [1])], lastModifiedAt: "x")
+        let view = PersonEditor(request: PersonEditorRequest(person: bruno),
+                                onSave: { _, _ in }, onDelete: { _ in }, onClose: {}, interactive: false)
+            .background(Theme.bg)
         writePNG(view, to: path)
     }
 

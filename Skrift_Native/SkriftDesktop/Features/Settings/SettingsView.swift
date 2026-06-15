@@ -8,35 +8,17 @@ import AppKit
 struct SettingsView: View {
     var onClose: () -> Void = {}
     var interactive = true
+    /// Snapshot/test injection of the names list (default nil → the shared store).
+    var peopleOverride: [Person]? = nil
 
     @AppStorage(AppTheme.key) private var appTheme = "dark"
     @State private var settings = SettingsStore.shared.load()
     @State private var people: [Person] = NamesStore.shared.livePeople()
-    @State private var editablePeople: [EditablePerson] = []
-    @State private var namesDirty = false
     @State private var nameQuery = ""
     @State private var newCustomWord = ""
-
-    /// Stable-identity editor row (Person has no id; its canonical changes mid-edit).
-    struct EditablePerson: Identifiable {
-        let id = UUID()
-        var canonical: String   // display form (no [[ ]])
-        var aliases: String     // comma-separated
-        var short: String
-        var lastModifiedAt: String
-        var enrolled: Bool      // has ≥1 synced voiceprint (Conversation mode can recognise them)
-        init(_ p: Person) {
-            canonical = NamesMerge.keyName(p.canonical)
-            aliases = p.aliases.joined(separator: ", ")
-            short = p.short ?? ""
-            lastModifiedAt = p.lastModifiedAt
-            enrolled = !(p.voiceEmbeddings?.isEmpty ?? true)
-        }
-        init() { canonical = ""; aliases = ""; short = ""; lastModifiedAt = ""; enrolled = false }
-        func matches(_ q: String) -> Bool {
-            canonical.localizedCaseInsensitiveContains(q) || aliases.localizedCaseInsensitiveContains(q)
-        }
-    }
+    /// Drives the shared person editor sheet (mocks/opt-in-naming.html panel 3): nil = closed,
+    /// `.person == nil` = adding, else editing that row.
+    @State private var editorRequest: PersonEditorRequest?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,9 +35,38 @@ struct SettingsView: View {
         .frame(width: 560, height: interactive ? 660 : nil)   // snapshot sizes to full content
         .background(Theme.bg)
         .onChange(of: settings) { _, new in SettingsStore.shared.save(new) }
-        .task { editablePeople = people.map(EditablePerson.init)
-            .sorted { $0.canonical.localizedCaseInsensitiveCompare($1.canonical) == .orderedAscending } }
+        .task { reloadNames() }
+        .sheet(item: $editorRequest) { req in
+            PersonEditor(request: req,
+                         onSave: { original, person in
+                             NamesStore.shared.upsert(person, replacing: original)
+                             reloadNames()
+                         },
+                         onDelete: { canonical in
+                             NamesStore.shared.delete(canonical: canonical)
+                             reloadNames()
+                         },
+                         onClose: { editorRequest = nil })
+        }
         .accessibilityIdentifier("settings.root")
+    }
+
+    /// Reload the names list from the store, sorted by full name.
+    private func reloadNames() {
+        people = NamesStore.shared.livePeople().sorted {
+            NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(NamesMerge.keyName($1.canonical)) == .orderedAscending
+        }
+    }
+
+    /// The list source — injected people (snapshot/test) or the loaded store.
+    private var displayPeople: [Person] { peopleOverride ?? people }
+
+    private var visiblePeople: [Person] {
+        let people = displayPeople
+        return nameQuery.isEmpty ? people : people.filter {
+            NamesMerge.keyName($0.canonical).localizedCaseInsensitiveContains(nameQuery)
+                || $0.aliases.contains { $0.localizedCaseInsensitiveContains(nameQuery) }
+        }
     }
 
     private var sections: some View {
@@ -92,42 +103,43 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 customWordsEditor
             }
-            section("Names · \(interactive ? editablePeople.count : people.count)") {
-                if interactive {
-                    Text("Aliases (comma-separated) are the spoken nicknames that link to a person; the full name becomes the [[link]].")
-                        .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if editablePeople.count > 5 {
-                        RingedField(placeholder: "Filter names…", text: $nameQuery)
-                    }
-                    ForEach($editablePeople) { $ep in
-                        if nameQuery.isEmpty || ep.matches(nameQuery) {
-                            nameEditRow($ep)
-                        }
-                    }
-                    HStack {
-                        Button { editablePeople.append(EditablePerson()); namesDirty = true } label: {
-                            Label("Add person", systemImage: "plus")
-                                .font(.system(size: 12)).foregroundStyle(Theme.accent)
-                        }
-                        .buttonStyle(.plain)
-                        Spacer()
-                        Button("Save names") { saveNames() }
-                            .buttonStyle(.plain)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(namesDirty ? .white : Theme.textMuted)
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(namesDirty ? Theme.accent : Theme.hairline.opacity(0.06),
-                                        in: RoundedRectangle(cornerRadius: 7))
-                            .disabled(!namesDirty)
-                    }
-                    .padding(.top, 4)
-                } else if people.isEmpty {
-                    Text("No people yet — names link automatically once added.")
+            section("Names · \(displayPeople.count)") {
+                Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                if interactive && displayPeople.count > 6 {
+                    RingedField(placeholder: "Filter names…", text: $nameQuery)
+                }
+                if displayPeople.isEmpty {
+                    Text("No people yet — add the ones your notes are about.")
                         .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
                 } else {
-                    ForEach(people, id: \.canonical) { person in nameRow(person) }
+                    ForEach(visiblePeople, id: \.canonical) { person in
+                        if interactive {
+                            Button { editorRequest = PersonEditorRequest(person: person) } label: { nameListRow(person) }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("settings.name.\(NamesMerge.keyName(person.canonical))")
+                        } else {
+                            nameListRow(person)
+                        }
+                    }
                 }
+                Group {
+                    Button { editorRequest = PersonEditorRequest() } label: {
+                        HStack(spacing: 9) {
+                            ZStack {
+                                Circle().fill(Theme.accent.opacity(0.10)).frame(width: 30, height: 30)
+                                Image(systemName: "plus").font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.accent)
+                            }
+                            Text("Add person…").font(.system(size: 12.5, weight: .medium)).foregroundStyle(Theme.accent)
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.name.add")
+                }
+                .disabled(!interactive)   // rendered in snapshots too, only live taps act
             }
         }
         .padding(20)
@@ -237,59 +249,34 @@ struct SettingsView: View {
         }
     }
 
-    private func nameEditRow(_ ep: Binding<EditablePerson>) -> some View {
-        HStack(spacing: 8) {
-            // Boxed, primary-text fields (ST2: the bare dim fields were hard to read) + focus rings.
-            RingedField(placeholder: "Full name", text: Binding(
-                get: { ep.wrappedValue.canonical },
-                set: { ep.wrappedValue.canonical = $0; namesDirty = true }))
-            RingedField(placeholder: "aliases, comma-separated", text: Binding(
-                get: { ep.wrappedValue.aliases },
-                set: { ep.wrappedValue.aliases = $0; namesDirty = true }), font: .system(size: 11))
-            // The display "nickname": what mentions AFTER the first linked one render
-            // as (e.g. Jack Hutton → "Jank"). Empty = first word of the full name.
-            RingedField(placeholder: "short", text: Binding(
-                get: { ep.wrappedValue.short },
-                set: { ep.wrappedValue.short = $0; namesDirty = true }), font: .system(size: 11))
-                .frame(width: 96)
-            voiceTag(ep.wrappedValue.enrolled)
-            Button {
-                editablePeople.removeAll { $0.id == ep.wrappedValue.id }; namesDirty = true
-            } label: {
-                Image(systemName: "trash").font(.system(size: 12)).foregroundStyle(Theme.textMuted)
-                    .frame(width: 22, height: 22).contentShape(Rectangle())
+    /// A names LIST row (mocks/opt-in-naming.html panel 4): avatar initials · full name ·
+    /// "aka" alias summary · voice chip. Tapping it (interactive) opens the detail editor.
+    private func nameListRow(_ person: Person) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle().fill(Theme.accent.opacity(0.16)).frame(width: 30, height: 30)
+                Text(Self.initials(person.displayName))
+                    .font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.accent)
             }
-            .buttonStyle(.plain)
-        }
-        .padding(.vertical, 4)
-    }
-
-    private func saveNames() {
-        let now = ISO8601.now()
-        let result = editablePeople.compactMap { ep -> Person? in
-            let canon = NamesMerge.normaliseCanonical(ep.canonical.trimmingCharacters(in: .whitespaces))
-            guard !NamesMerge.keyName(canon).isEmpty else { return nil }
-            let aliases = ep.aliases.split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-            let short = ep.short.trimmingCharacters(in: .whitespaces)
-            return Person(canonical: canon, aliases: aliases, short: short.isEmpty ? nil : short,
-                          lastModifiedAt: ep.lastModifiedAt.isEmpty ? now : ep.lastModifiedAt)
-        }
-        _ = NamesStore.shared.writeWithSmartBumps(result)
-        people = NamesStore.shared.livePeople()
-        namesDirty = false
-    }
-
-    private func nameRow(_ person: Person) -> some View {
-        return HStack(spacing: 8) {
-            Text(person.displayName).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.textPrimary)
-            if !person.aliases.isEmpty {
-                Text(person.aliases.joined(separator: ", ")).font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(person.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.textPrimary)
+                if !person.aliases.isEmpty {
+                    Text("aka " + person.aliases.joined(separator: ", "))
+                        .font(.system(size: 11)).foregroundStyle(Theme.textMuted).lineLimit(1)
+                }
             }
-            Spacer()
+            Spacer(minLength: 8)
             voiceTag(!(person.voiceEmbeddings?.isEmpty ?? true))
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 5).padding(.horizontal, 4)
+        .contentShape(Rectangle())
+    }
+
+    /// One- or two-letter avatar initials from a full name.
+    private static func initials(_ name: String) -> String {
+        let words = name.split(separator: " ").prefix(2)
+        let s = words.compactMap { $0.first.map(String.init) }.joined().uppercased()
+        return s.isEmpty ? "?" : s
     }
 
     /// Voice-enrollment indicator (parity with the phone's Names & voices). Green

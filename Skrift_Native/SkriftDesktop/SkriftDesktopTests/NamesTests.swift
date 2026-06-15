@@ -182,6 +182,43 @@ final class NamesStoreTests: XCTestCase {
         XCTAssertEqual(pruned, 1)
         XCTAssertEqual(Set(store.load().people.map(\.canonical)), ["[[Recent]]", "[[Live]]"])
     }
+
+    // MARK: Detail-editor store ops (upsert / delete — opt-in naming chunk 4)
+
+    func testUpsertAddsThenUpdatesWithoutDuplicating() {
+        let store = tempStore()
+        store.upsert(Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"], short: "Nick", lastModifiedAt: ""), replacing: nil)
+        XCTAssertEqual(store.livePeople().map(\.canonical), ["[[Nick Jansen]]"])
+        // Same canonical → replaces in place (no duplicate row).
+        store.upsert(Person(canonical: "[[Nick Jansen]]", aliases: ["Nick", "Nicky"], short: "Nick", lastModifiedAt: ""),
+                     replacing: "[[Nick Jansen]]")
+        XCTAssertEqual(store.livePeople().count, 1)
+        XCTAssertEqual(store.livePeople()[0].aliases, ["Nick", "Nicky"])
+    }
+
+    func testUpsertRenameReplacesOldAndCarriesVoice() {
+        let store = tempStore()
+        _ = store.save(NamesData(lastModifiedAt: ISO8601.now(), people: [
+            Person(canonical: "[[Nik]]", aliases: ["Nick"], short: "Nick",
+                   voiceEmbeddings: [VoiceEmbedding(vector: [0.1, 0.2])], lastModifiedAt: "2026-06-01T00:00:00.000Z")
+        ]))
+        // Rename the full name, carrying the voiceprints (as PersonEditor does).
+        store.upsert(Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"], short: "Nick",
+                            voiceEmbeddings: [VoiceEmbedding(vector: [0.1, 0.2])], lastModifiedAt: ""),
+                     replacing: "[[Nik]]")
+        let live = store.livePeople()
+        XCTAssertEqual(live.map(\.canonical), ["[[Nick Jansen]]"], "renamed entry replaces the old one, no dup")
+        XCTAssertEqual(live[0].voiceEmbeddings?.count, 1, "voiceprints carried across the rename")
+    }
+
+    func testDeleteTombstonesOnePerson() {
+        let store = tempStore()
+        store.upsert(Person(canonical: "[[Nick Jansen]]", aliases: ["Nick"], lastModifiedAt: ""), replacing: nil)
+        store.upsert(Person(canonical: "[[Jane Doe]]", aliases: ["Jane"], lastModifiedAt: ""), replacing: nil)
+        store.delete(canonical: "[[Jane Doe]]")
+        XCTAssertEqual(store.livePeople().map(\.canonical), ["[[Nick Jansen]]"])
+        XCTAssertEqual(store.load().people.first { $0.canonical == "[[Jane Doe]]" }?.isDeleted, true)
+    }
 }
 
 /// Regression: a real legacy names.json (no top-level / per-entry lastModifiedAt)

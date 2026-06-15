@@ -20,6 +20,9 @@ struct NoteDisplayView: View {
     /// Pre-unlink snapshot backing the inline undo toast (mocks/name-unlink.html).
     /// Stays until dismissed/undone; cleared on note switch.
     @State private var unlinkUndo: UnlinkUndo?
+    /// Drives the shared person editor sheet (mocks/opt-in-naming.html) — opened by the
+    /// body's right-click "A new person…" (pre-filled) or the chip bar's "Someone else…".
+    @State private var editorRequest: PersonEditorRequest?
 
     /// What "Undo" restores after an unlink: the exact pre-unlink body + the note's
     /// persisted no-relink list as it was.
@@ -36,6 +39,11 @@ struct NoteDisplayView: View {
                     .task(id: file.id) { audio.load(path: file.path) }
                     .onChange(of: file.id, initial: true) { _, _ in syncResolver(file); unlinkUndo = nil }
                     .onChange(of: file.ambiguousNames?.count ?? 0, initial: true) { _, _ in syncResolver(file) }
+                    .sheet(item: $editorRequest) { req in
+                        PersonEditor(request: req,
+                                     onSave: { original, person in savePerson(original, person, for: file) },
+                                     onClose: { editorRequest = nil })
+                    }
             } else {
                 emptyState
             }
@@ -74,7 +82,9 @@ struct NoteDisplayView: View {
             NoteProperties(file: file, author: author, interactive: scrollable)
             // Opt-in naming: detected people as chips — tap to mark who the note is about
             // (links them + adds to `people:`). Conversations show their speakers locked-on.
-            PeopleChipBar(file: file, coordinator: coordinator, interactive: scrollable)
+            // "Someone else…" opens the person editor for a name the note doesn't mention yet.
+            PeopleChipBar(file: file, coordinator: coordinator, interactive: scrollable,
+                          onAddPerson: scrollable ? { editorRequest = PersonEditorRequest() } : nil)
             if file.sourceType == .capture {
                 CaptureBanner(file: file)
                 // The shared thing itself, pinned above the annotation body —
@@ -352,20 +362,29 @@ struct NoteDisplayView: View {
         }
     }
 
-    /// Add a body text selection to the names DB — the reliable, user-driven way to
-    /// grow the names graph (you pick the exact words; no flaky auto-detection).
+    /// Right-click "A new person…" → open the shared editor (mocks/opt-in-naming.html panel 3)
+    /// pre-filled with the selected words as both the full name and the first alias, so you
+    /// can fill in the rest before saving — instead of silently creating a bare name.
     private func addName(_ text: String) {
-        let canon = NamesMerge.normaliseCanonical(text)
-        let key = NamesMerge.keyName(canon)
-        guard !key.isEmpty else { return }
-        var people = NamesStore.shared.livePeople()
-        if people.contains(where: { NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(key) == .orderedSame }) {
-            coordinator.flash("“\(key)” is already in your names")
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        // Already a known person? Just confirm it; no need to re-add.
+        if NamesStore.shared.livePeople().contains(where: {
+            NamesMerge.keyName($0.canonical).localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+                || $0.aliases.contains { $0.localizedCaseInsensitiveCompare(trimmed) == .orderedSame }
+        }) {
+            coordinator.flash("“\(trimmed)” is already in your names")
             return
         }
-        people.append(Person(canonical: canon, aliases: [text], short: nil, lastModifiedAt: ISO8601.now()))
-        _ = NamesStore.shared.writeWithSmartBumps(people)
-        coordinator.flash("Added “\(key)” to names")
+        editorRequest = PersonEditorRequest(prefillName: trimmed, prefillAlias: trimmed)
+    }
+
+    /// Persist a person from the editor and RE-SCAN the open note (no global re-scan) so a
+    /// newly-added person appears as a chip in the People bar (mocks/opt-in-naming.html).
+    private func savePerson(_ original: String?, _ person: Person, for file: PipelineFile) {
+        NamesStore.shared.upsert(person, replacing: original)
+        coordinator.resanitiseForNames(file, context: ctx)
+        coordinator.flash("Saved “\(NamesMerge.keyName(person.canonical))” — it’ll show as a chip if mentioned")
     }
 
     /// Add a body selection as an ALIAS of an existing person (right-click → "Add … as

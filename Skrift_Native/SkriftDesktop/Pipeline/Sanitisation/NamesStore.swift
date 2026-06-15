@@ -122,6 +122,35 @@ final class NamesStore {
         _ = save(data)
     }
 
+    /// Insert or update ONE person from the detail editor (mocks/opt-in-naming.html panel 3),
+    /// matching the existing entry by `replacing` — the ORIGINAL canonical — so a renamed full
+    /// name REPLACES the old entry instead of duplicating it. Falls back to matching the new
+    /// canonical (a no-rename edit) or appending (a brand-new person). Persists + syncs via
+    /// `writeWithSmartBumps` (which also carries forward voiceprints the editor doesn't round-trip).
+    func upsert(_ person: Person, replacing originalCanonical: String?) {
+        var people = livePeople()
+        let newKey = NamesMerge.keyName(person.canonical).trimmingCharacters(in: .whitespaces).lowercased()
+        let origKey = originalCanonical.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() } ?? newKey
+        if let i = people.firstIndex(where: { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() == origKey }) {
+            people[i] = person
+        } else if let i = people.firstIndex(where: { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() == newKey }) {
+            people[i] = person
+        } else {
+            people.append(person)
+        }
+        _ = writeWithSmartBumps(people)
+    }
+
+    /// Tombstone ONE person (detail editor "Delete"). `writeWithSmartBumps` tombstones the
+    /// removed canonical (kept for LWW sync) and preserves everyone else.
+    func delete(canonical: String) {
+        let key = NamesMerge.keyName(canonical).trimmingCharacters(in: .whitespaces).lowercased()
+        let remaining = livePeople().filter {
+            NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() != key
+        }
+        _ = writeWithSmartBumps(remaining)
+    }
+
     /// Drop tombstones older than `maxAgeDays`. Returns the count pruned.
     @discardableResult
     func pruneOldTombstones(maxAgeDays: Int = 90) -> Int {

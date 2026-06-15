@@ -180,7 +180,7 @@ struct BodyTextView: NSViewRepresentable {
             let parentItem = NSMenuItem(title: "Add “\(sel)” as…", action: nil, keyEquivalent: "")
             let sub = NSMenu()
 
-            let newItem = NSMenuItem(title: "A new name", action: #selector(addNewNameAction(_:)), keyEquivalent: "")
+            let newItem = NSMenuItem(title: "A new person…", action: #selector(addNewNameAction(_:)), keyEquivalent: "")
             newItem.target = self; newItem.representedObject = sel
             sub.addItem(newItem)
 

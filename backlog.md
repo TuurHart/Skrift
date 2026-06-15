@@ -254,10 +254,17 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
      `people: [[A]], [[B]]` from the body's DISTINCT linked canonicals (reading order; img markers excluded;
      alias-display resolved to canonical). Derived from the rendered body (not `aboutPeople`) so it can't drift
      and auto-includes conversation matched speakers. Empty `people:` when nobody linked. +2 CompilerTests; gates green.
-  5. **Names settings redesign** — list (rows → detail editor) replacing the 3-column inline; right-click
-     "Add as a person" opens the same editor; on add, re-scan the OPEN note only (new chip), no global re-scan.
-  Gate: `xcodebuild test -scheme UnitTests` + full `-skipMacroValidation` build; verify the Sanitiser via a
-  host-less test (opt-in: only `aboutPeople` link; first-only inline). Deploy desktop per [[feedback_desktop_dev_deploy]].
+  5. ✅ **Names settings redesign — DONE 2026-06-15 (chunk 4).** `Features/Settings/PersonEditor.swift` (shared,
+     labeled detail editor: Full name / Aliases + recognition demo / Short + link-display hint / Voice). `SettingsView`
+     Names section is now a clean LIST (`nameListRow`: avatar · full name · "aka" aliases · voice) → tap a row → the
+     editor; "Add person…" row → new. The SAME editor opens from a note's right-click "A new person…" (`addName` →
+     pre-filled) + the chip bar's "Someone else…"; on save → `NamesStore.upsert(replacing:)` (rename-safe, carries
+     voiceprints) + `coordinator.resanitiseForNames(open note only)` so the new person shows as a chip — no global
+     re-scan. `NamesStore.delete` tombstones. Snapshot-verified (`-snapshot-names` panel 4, `-snapshot-person-editor`
+     panel 3) + 3 upsert/delete/rename unit tests.
+  **ALL 5 BUILD STEPS DONE 2026-06-15.** Gates each chunk: UnitTests 285 green (+18 over baseline) + full
+  `-skipMacroValidation` build green. Review UI eyeballed via dedicated PNG snapshots (chip bar 3 states, names list,
+  person editor) — all match the mock. Deploy desktop per [[feedback_desktop_dev_deploy]] (owed, prod idle).
 
 ## Sync says "connected" but memos stay "Waiting" (2026-06-15)
 
