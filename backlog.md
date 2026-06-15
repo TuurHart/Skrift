@@ -2,6 +2,26 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ NEXT TASK — Video-from-Photos import bugs (reported 2026-06-15, on TestFlight build)
+
+Sharing a video from Photos → Skrift creates a memo, but THREE issues (device-reported, screenshots in chat):
+1. **No audio playback.** The memo transcribes fine (so audio extraction produced a playable file for ASR),
+   but tapping play in Memo detail does nothing / no audio. Trace the video path: `MemoSaver.importVideo` →
+   `processVideo` → `extractAudio` (AVAssetExportSession audio-only → `memo_<id>.m4a`) and the detail PLAYER's
+   `audioURL`/AVPlayer. Likely the extracted m4a is fine for Parakeet but the player can't play it (format/route)
+   OR the player points at the wrong file. **Pull `devlog.txt` from the phone first** (DevLog already traces
+   importVideo) to see if extraction succeeded + what the player loads. Repro is the SHARED-from-Photos path
+   (NSExtensionActivationSupportsMovieWithMaxCount → "video" inbox entry → CaptureInboxDrainer → importVideo).
+2. **Thumbnail aspect ratio off** — the grabbed landscape frame is squished into a square in the Memos list row.
+   Fix the list thumbnail rendering (aspect-fill + clip, not stretch) — `MemosListView` row image.
+3. **No video/source glyph** — the memo doesn't show it came from a video. Add a video glyph (folds into the
+   deferred "Unified source taxonomy": voice memo / URL / PDF / video / audiobook quote / Apple Note).
+
+Foundation: read `MemoSaver.swift` (importVideo/processVideo/extractAudio/representativeFrame), the Memos list
+row, the Memo-detail player. Gate: iPhone 17 sim build + device-eyeball (it's a device/share-extension flow).
+NOTE: also re-test capture/share-into-Skrift generally now that App Groups (Release) is registered (it was
+likely broken in prod before — same fix that revived custom-words persistence).
+
 ## ⭐ CONTINUE HERE — Conversation pipeline bug-hunt (2026-06-14)
 
 WILD trace of the whole conversation/diarization → name-linking → Obsidian-export pipeline
