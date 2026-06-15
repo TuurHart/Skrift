@@ -29,6 +29,17 @@ final class CompilerTests: XCTestCase {
         XCTAssertTrue(md.hasSuffix("linked [[Nick Jansen]] copy"))   // sanitised wins
     }
 
+    /// A video import (sourceType .audio + mediaSource "video") must export
+    /// `source: Video` in the frontmatter — not "Voice-memo".
+    func testVideoSourceFrontmatter() {
+        let pf = makeFile()
+        pf.mediaSource = "video"
+        pf.transcript = "advice to my future self"
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-06-14")
+        XCTAssertTrue(md.contains("source: Video"), "video import should export source: Video")
+        XCTAssertFalse(md.contains("source: Voice-memo"))
+    }
+
     func testBodyFallsBackToCopyedit() {
         let pf = makeFile()
         pf.transcript = "raw"

@@ -205,7 +205,7 @@ Signed-off mock: `Skrift_Native/SkriftDesktop/mocks/audiobook-player-redesign.ht
 | Unlink a `[[Name]]` (click a linked mention) | ➖ | ✅ | `Features/Review/BodyTextView.swift` (popover), `NoteDisplayView.swift` (apply + undo toast), `Sanitiser.swift` (`unlinkOccurrence`/`unlinkAll`/`process(neverLink:)`) | Per signed-off `mocks/name-unlink.html`: exactly TWO scopes — this mention → plain alias as spoken (possessive kept; alias-display restores the SPOKEN word), or all mentions in this note (persists on `PipelineFile.unlinkedNames` so reprocess won't re-link). Inline undo toast stays until dismissed |
 | Deterministic tags (NLTagger lemma + spoken #) | ➖ | ✅ | `Pipeline/Tags/TagMatcher.swift` | |
 | Vault tag scan (privacy: app-only) | ➖ | ✅ | `Pipeline/Tags/VaultTagScanner.swift:13-72` | |
-| Compile Obsidian markdown (YAML frontmatter) | ➖ | ✅ | `Pipeline/Export/Compiler.swift:24-87` | title/date/author/source/location/weather/tags/significance/summary |
+| Compile Obsidian markdown (YAML frontmatter) | ➖ | ✅ | `Pipeline/Export/Compiler.swift:24-87` | title/date/author/source/location/weather/tags/significance/summary ✅ 2026-06-15: `source:` reflects the true origin — Video / Voice-memo / Apple-Note / Audiobook-quote / capture-url|text|image|file (was: a video exported as Voice-memo). |
 | Export to vault + **copy audio** (per-note toggle) | ➖ | ✅ | `Pipeline/Export/VaultExporter.swift:20-79`; toggle `NoteProperties.swift:127-140` | `includeAudioInExport` (default on) → copies `.m4a` to audio subfolder |
 
 ## Settings / onboarding

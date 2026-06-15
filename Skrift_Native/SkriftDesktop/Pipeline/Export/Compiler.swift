@@ -85,10 +85,14 @@ enum Compiler {
         let bookAuthor = trimmedNonEmpty(meta?.bookAuthor)
         let bookChapter = trimmedNonEmpty(meta?.bookChapter)
 
-        // `source:` is type-specific for share captures (C3 contract §compile).
+        // `source:` reflects the memo's true origin (matches the sidebar glyph +
+        // detail "source" label). A video import + an audiobook quote both ride
+        // `sourceType: .audio`, so the markers (`bookTitle`, `mediaSource`) win first.
         let source: String
         if bookTitle != nil {
             source = "Audiobook-quote"
+        } else if pf.mediaSource == "video" {
+            source = "Video"
         } else {
             switch pf.sourceType {
             case .note: source = "Apple-Note"
@@ -98,6 +102,7 @@ enum Compiler {
                 case "url":   source = "capture-url"
                 case "text":  source = "capture-text"
                 case "image": source = "capture-image"
+                case "file":  source = "capture-file"
                 default:      source = "capture"
                 }
             }
