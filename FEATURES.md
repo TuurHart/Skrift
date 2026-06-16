@@ -70,7 +70,7 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
-| Settings → Models | ✅ | ➖ | `Services/ModelInventory.swift`, `Features/Settings/ModelsView.swift` | Read-only v1: Transcription (Parakeet v3) / Speaker recognition (diarizer+embedder) / Custom-word spotting (CTC 110M) with downloaded state + size-on-disk + total (FluidAudio cache dirs). Mac mirror = later (board) |
+| Settings → Models | ✅ | ➖ | `Services/ModelInventory.swift`, `Features/Settings/ModelsView.swift` | Transcription (Parakeet v3) / Speaker recognition (diarizer+embedder) / Custom-word spotting (CTC 110M) with downloaded state + size-on-disk + total (FluidAudio cache dirs). ✅ 2026-06-16: the **Transcription** row now offers a manual **Download** (live progress via `ModelLoadStatus`) when not on disk + retry on failure — recovers a user who skipped the model step in onboarding (was: stuck, no transcription, no way to fetch). Other models keep "Not downloaded" (genuine fetch-on-demand). Mac mirror = later (board) |
 
 ## Custom vocabulary *(CTC keyword-spot + rescore — fixes mis-heard names)* — built 2026-06-12, efficacy-fixed 2026-06-13
 

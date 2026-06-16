@@ -128,6 +128,15 @@ final class SettingsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Speaker recognition"].exists)
         XCTAssertTrue(app.staticTexts["Custom-word spotting"].exists)
 
+        // The sim never downloads the ~600 MB model, so the transcription row is
+        // always in the not-downloaded state — which must offer a manual Download
+        // (the fix for skipping the model step in onboarding). NOT tapped here:
+        // tapping kicks off the real FluidAudio download.
+        // (The row-level accessibilityIdentifier propagates to the child button,
+        // so query by label.)
+        XCTAssertTrue(app.buttons["Download"].waitForExistence(timeout: 3),
+                      "transcription model has no manual Download — a user who skipped onboarding is stuck")
+
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "models-tab"; shot.lifetime = .keepAlways; add(shot)
     }
