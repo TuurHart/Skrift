@@ -151,6 +151,42 @@ final class NamesStore {
         _ = writeWithSmartBumps(people)
     }
 
+    /// Seed the roster from `People/` note titles (chunk 2, NAMING_MODEL.md decision 5).
+    /// Each NEW title (no live entry matching its canonical key) becomes a Person whose
+    /// canonical = the title — so the exported `[[ ]]` body link resolves to the note
+    /// exactly (decision 1) — with derived aliases: the FULL title (always a safe,
+    /// distinctive match) plus its first-name token (so opt-out auto-links a bare "Hendri",
+    /// risk-tiering willing). An EXISTING person is left untouched: their aliases / short /
+    /// voiceprints / grown matching state are the DB's, not the note's. Existence-checked by
+    /// canonical key (case-insensitive) so re-seeding is idempotent and can't mint a
+    /// duplicate. Persists + syncs the new entries via `writeWithSmartBumps`. Returns the
+    /// count added. PRIVACY: titles only, app code, no AI (the scanner reads filenames).
+    @discardableResult
+    func seedRoster(titles: [String]) -> Int {
+        let existing = livePeople()
+        func key(_ c: String) -> String { NamesMerge.keyName(c).trimmingCharacters(in: .whitespaces).lowercased() }
+        var have = Set(existing.map { key($0.canonical) })
+        var added: [Person] = []
+        let now = ISO8601.now()
+        for raw in titles {
+            let title = raw.trimmingCharacters(in: .whitespaces)
+            let k = title.lowercased()
+            guard !title.isEmpty, !have.contains(k) else { continue }
+            have.insert(k)
+            // Aliases: the full title, plus the first-name token when the title is multi-word.
+            var aliases = [title]
+            if let first = title.split(whereSeparator: \.isWhitespace).first.map(String.init),
+               first.caseInsensitiveCompare(title) != .orderedSame {
+                aliases.append(first)
+            }
+            added.append(Person(canonical: NamesMerge.normaliseCanonical(title),
+                                 aliases: aliases, short: nil, lastModifiedAt: now))
+        }
+        guard !added.isEmpty else { return 0 }
+        _ = writeWithSmartBumps(existing + added)
+        return added.count
+    }
+
     /// Tombstone ONE person (detail editor "Delete"). `writeWithSmartBumps` tombstones the
     /// removed canonical (kept for LWW sync) and preserves everyone else.
     func delete(canonical: String) {

@@ -238,8 +238,14 @@ are the price of getting it right:
      rewritten opt-in→opt-out + risk-tier + quote-span; **288 UnitTests green + full app build
      green**. (`PipelineFile.aboutPeople` field + the now-inert chip bar/resolver wiring are
      deleted in chunk 3.)
-   - **Chunk 2 — Roster seeding.** App code reads `People/` note titles → the portable names DB
-     (canonical = title); aliases live in the DB. Tests. (Privacy: titles only, app code, no AI.)
+   - ✅ **Chunk 2 — Roster seeding. DONE 2026-06-16.** New `PeopleFolderScanner.titles(vaultRoot:)`
+     lists `<vault>/People/*.md` FILENAMES (top-level, no recurse, no contents, no AI — privacy);
+     `NamesStore.seedRoster(titles:)` upserts each NEW title as a Person (canonical = title so the
+     `[[ ]]` link resolves; aliases = full title + first-name token so opt-out can auto-link a bare
+     "Hendri"), existence-checked (idempotent, never clobbers an existing person's aliases /
+     voiceprints / grown state), synced via `writeWithSmartBumps`. Wired into
+     `ProcessingCoordinator.process` (seed off the main actor before the runner reads the roster).
+     7 host-less tests; **295 UnitTests green + full app build green**.
    - **Chunk 3 — Delete.** `PeopleChipBar`; `InlineResolverModel` / `applyPartialOccurrences` /
      resolver banner; unwire from `NoteDisplayView`/`BodyTextView`. Data-model flip (drop
      `aboutPeople`; use `unlinkedNames` exclude + an ambiguity-pick record). Build green.

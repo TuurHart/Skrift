@@ -105,6 +105,16 @@ final class ProcessingCoordinator {
         let tagWhitelist: [String] = vaultRoot.isEmpty ? [] : await Task.detached(priority: .utility) {
             VaultTagScanner.scan(root: URL(fileURLWithPath: vaultRoot))
         }.value
+        // Seed the roster from the vault's People/ note titles (NAMING_MODEL.md decision 5):
+        // the optional Obsidian seed for the portable names DB, so opt-out auto-links people
+        // the user already keeps a note for. Privacy: titles only, app code, no AI — the
+        // scanner lists filenames off the main actor and never reads a note's body.
+        if !vaultRoot.isEmpty {
+            let titles = await Task.detached(priority: .utility) {
+                PeopleFolderScanner.titles(vaultRoot: URL(fileURLWithPath: vaultRoot))
+            }.value
+            NamesStore.shared.seedRoster(titles: titles)
+        }
         let runner = BatchRunner(
             transcriber: transcriber,
             enhancer: enhancer,

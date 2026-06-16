@@ -294,7 +294,14 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
     leading YAML / fenced+inline code / audiobook-quote spans (build-guard). Callers updated; opt-in tests
     rewritten opt-out + risk-tier + quote-span. **Gate: 288 UnitTests green + full app build green.** The
     `pf.aboutPeople` field + chip-bar/resolver wiring are now INERT — deleted in chunk 3.
-  - ⏭ **Next: Chunk 2 — roster seeding from `People/` note titles → the portable names DB.**
+  - ✅ **Chunk 2 — Roster seeding from `People/` titles.** New `PeopleFolderScanner` lists
+    `<vault>/People/*.md` filenames (privacy: titles only, no contents, no AI); `NamesStore.seedRoster`
+    upserts each new title (canonical = title; aliases = full title + first-name token), idempotent +
+    non-clobbering + synced. Seeded before each processing run. **Gate: 295 UnitTests green + full app
+    build green.**
+  - ⏭ **Next: Chunk 3 — DELETE PeopleChipBar + InlineResolver(Model/banner/applyPartialOccurrences),
+    unwire from NoteDisplayView/BodyTextView; flip the data model (drop `aboutPeople` → `unlinkedNames`
+    exclude + an ambiguity-pick record). Build green.**
   The grill detail below is kept as the audit trail.
   --- (original re-open framing, now resolved by NAMING_MODEL.md) ---
   User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question
