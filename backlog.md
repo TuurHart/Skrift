@@ -284,8 +284,18 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
   full/distinctive names, dotted-suggest common-word/ambiguous ones via a stoplist), aliases live in the PORTABLE DB
   (not the Obsidian note — phone may not use Obsidian), one-keystroke fuzzy add-picker; REJECTED the new-person hint
   (even deterministic). Plus NON-NEGOTIABLE build-guards (FP guards, skip audiobook-quote spans, re-scan on roster
-  collision, frontmatter-canonical lockstep, fuzzy-vs-strict golden-set, date-sorted person view). **Next: MOCK the
-  dotted-prose + popover UX → then build.** The grill detail below is kept as the audit trail.
+  collision, frontmatter-canonical lockstep, fuzzy-vs-strict golden-set, date-sorted person view).
+  **BUILD (2026-06-16, on `main`):**
+  - ✅ **Chunk 1 — Sanitiser → opt-out + risk-tiering.** `aboutPeople` include-gate + `gated` DROPPED;
+    `Sanitiser.process`/`processConversation` now link ALL known people by default (first mention,
+    `unlinkedNames`-pruned). Risk-tiered via new `NameStoplist.swift`: full/distinctive names auto-commit;
+    common-word / ≤2-char / ambiguous names → dotted **suggestions** in `Result.ambiguous`
+    (`candidates.count` 1 = common-word, ≥2 = ambiguous), capitalization-guarded. `nonProseRanges` skips
+    leading YAML / fenced+inline code / audiobook-quote spans (build-guard). Callers updated; opt-in tests
+    rewritten opt-out + risk-tier + quote-span. **Gate: 288 UnitTests green + full app build green.** The
+    `pf.aboutPeople` field + chip-bar/resolver wiring are now INERT — deleted in chunk 3.
+  - ⏭ **Next: Chunk 2 — roster seeding from `People/` note titles → the portable names DB.**
+  The grill detail below is kept as the audit trail.
   --- (original re-open framing, now resolved by NAMING_MODEL.md) ---
   User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question
   whether the entire naming/sanitising approach is the right shape. Next session = re-derive it from the

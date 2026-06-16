@@ -1,12 +1,22 @@
 import Foundation
 
-/// Name-linking — the LAST deterministic pipeline step, non-blocking. Unambiguous
-/// aliases auto-link (first mention → `[[Canonical]]`, rest → short name); an alias
-/// that maps to 2+ people is left plain and recorded as an `AmbiguousOccurrence`
-/// for the review-time resolver. Pure (text + people → text + ambiguities), so it
+/// Name-linking — the LAST deterministic pipeline step, non-blocking. OPT-OUT
+/// (NAMING_MODEL.md decision 4): every known person is a subject by default, so a
+/// person's FIRST mention auto-links (`[[Canonical]]`, rest → short name) — but
+/// RISK-TIERED, because opt-out auto-*writes* links to the exported file. Only a
+/// SAFE match auto-commits (a full name, or a distinctive first name); an FP-prone
+/// match (common-word / too-short single name — `NameStoplist`) or an ambiguous one
+/// (an alias shared by 2+ roster people) is left plain and recorded as a *suggested*
+/// `AmbiguousOccurrence` (carried in `Result.ambiguous`) so review can render it
+/// dotted and commit it on click. Pure (text + people → text + suggestions), so it
 /// host-tests without a backend. Ported from `backend/services/sanitisation.py`.
 /// Fixed settings match DEFAULT_SETTINGS.sanitisation (whole_word, mode=first,
 /// avoid_inside_links, preserve_possessive, wiki style).
+///
+/// Non-prose spans are skipped when scanning (NON-NEGOTIABLE build-guard): existing
+/// `[[ ]]` links, a leading YAML block, fenced/inline code, and a verbatim
+/// audiobook-quote span (a name inside a quoted book passage is NOT "about" that
+/// roster person) — see `nonProseRanges`.
 ///
 /// First-mention-only holds even when the INPUT already carries canonical links:
 /// Mac-diarized conversations arrive with `**[[Person]]:**` on EVERY turn header
@@ -15,6 +25,10 @@ import Foundation
 /// no new link is introduced for that person. Only links matching a known person's
 /// canonical are touched (`[[img_NNN]]` markers / place links pass through).
 enum Sanitiser {
+    /// `ambiguous` is the *suggested* tier: recognised-but-not-auto-linked
+    /// occurrences the review surface renders dotted (commit on click). It carries
+    /// BOTH the ambiguous case (an alias shared by 2+ people → `candidates.count >= 2`)
+    /// AND the common-word case (an FP-prone single name → `candidates.count == 1`).
     struct Result: Equatable, Sendable {
         let sanitised: String
         let ambiguous: [AmbiguousOccurrence]
@@ -29,28 +43,17 @@ enum Sanitiser {
     /// choices (`PipelineFile.unlinkedNames`, canonical keys — bare or `[[bracketed]]`,
     /// matched case-insensitively). Such a person is treated as absent from the names
     /// DB for THIS note: never linked, never demoted to the short name, and never
-    /// offered as an ambiguity candidate — so re-processing can't re-link them here.
-    ///
-    /// `aboutPeople` is the OPT-IN naming gate (mocks/opt-in-naming.html): when non-nil,
-    /// only the people whose canonical key it lists are linked — everyone else stays
-    /// plain. An EMPTY set links NOBODY (a fresh note before the user taps any chip).
-    /// `nil` = ungated: link every matching person (the matching engine's raw behavior,
-    /// exercised by engine-level tests). The product callers (`BatchRunner` /
-    /// `ProcessingCoordinator`) ALWAYS pass the note's `aboutPeople`, so the product
-    /// never auto-links. The gate is applied BEFORE ambiguity is computed, so tapping
-    /// ONE of two people who share an alias links them (the alias is unambiguous within
-    /// the gated set), while tapping BOTH records the alias as ambiguous for the resolver.
-    static func process(text inputText: String, people: [Person], neverLink: Set<String> = [], aboutPeople: Set<String>? = nil) -> Result {
+    /// offered as a suggestion — so re-processing can't re-link them here. (This is the
+    /// OPT-OUT prune path: the user demotes a stray subject, it stays demoted.)
+    static func process(text inputText: String, people: [Person], neverLink: Set<String> = []) -> Result {
         var text = inputText
         let skip = Set(neverLink.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
         let live = people.filter {
             !$0.isDeleted && !skip.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
         }
-        // Opt-in gate: link only the people the note is about (nil = ungated = all).
-        let linkable = gated(live, by: aboutPeople)
 
         var aliasMap: [String: [Person]] = [:]
-        for p in linkable {
+        for p in live {
             for a in p.aliases {
                 let al = a.trimmingCharacters(in: .whitespaces).lowercased()
                 if !al.isEmpty { aliasMap[al, default: []].append(p) }
@@ -58,72 +61,68 @@ enum Sanitiser {
         }
         let ambiguousAliases = Set(aliasMap.filter { $0.value.count >= 2 }.keys)
 
-        // Record ambiguous occurrences (left unlinked, resolved at review).
-        var ambiguous: [AmbiguousOccurrence] = []
-        for alias in ambiguousAliases.sorted() {
-            let candidates = aliasMap[alias] ?? []
-            guard let rx = wordRegex(alias) else { continue }
-            for m in rx.matches(in: text, range: fullRange(text)) {
-                let loc = m.range.location
-                if avoidInside && !notInsideLink(text, loc) { continue }
-                ambiguous.append(AmbiguousOccurrence(
-                    alias: alias,
-                    offset: loc,
-                    length: m.range.length,
-                    contextBefore: nsSub(text, max(0, loc - 40), loc),
-                    contextAfter: nsSub(text, loc + m.range.length, min(nsLen(text), loc + m.range.length + 40)),
-                    candidates: candidates.map {
-                        NameCandidate(id: $0.canonical, canonical: $0.canonical, short: shortName(for: $0))
-                    }
-                ))
-            }
-        }
-
-        // Link unambiguous aliases, person by person (sorted by canonical).
-        for p in linkable.sorted(by: { NamesMerge.keyName($0.canonical).lowercased() < NamesMerge.keyName($1.canonical).lowercased() }) {
-            let aliases = p.aliases
+        // Auto-link SAFE subjects, person by person (sorted by canonical). A person's
+        // FIRST mention via a SAFE alias (unambiguous + not FP-prone) becomes the one
+        // `[[Canonical]]` link; every later mention of any of their unambiguous aliases
+        // demotes to the short name (normalisation). A person reachable only via an
+        // ambiguous or FP-prone alias is left plain for the suggestion pass below.
+        var linkedKeys = Set<String>()
+        for p in live.sorted(by: { NamesMerge.keyName($0.canonical).lowercased() < NamesMerge.keyName($1.canonical).lowercased() }) {
+            let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
+            let short = shortName(for: p)
+            let unambiguous = p.aliases
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty && !ambiguousAliases.contains($0.lowercased()) }
-            guard !aliases.isEmpty else { continue }
-
-            let linkText = "[[\(NamesMerge.keyName(p.canonical))]]"
-            let short = shortName(for: p)
-            let patterns = aliases.compactMap { wordRegex($0) }
+            let linkAliases = unambiguous.filter { !NameStoplist.isFpProne($0) }
+            let linkText = "[[\(canonKey)]]"
 
             // When the text ALREADY carries this person's canonical link (e.g. every
             // diarized turn header), that earliest link IS the first mention: demote
-            // the later copies to the short name and add no new link. Otherwise the
-            // first eligible occurrence across the person's aliases becomes the link.
+            // the later copies to the short name and add no new link.
             let existingLinks = occurrences(of: linkText, in: text)
-            if existingLinks.isEmpty {
+            var isLinked = false
+            if !existingLinks.isEmpty {
+                isLinked = true
+                if !short.isEmpty {
+                    for r in existingLinks.dropFirst().reversed() { text = nsReplace(text, r, with: short) }
+                }
+            } else if !linkAliases.isEmpty {
+                // First eligible SAFE mention across the person's distinctive aliases.
+                let prot = nonProseRanges(in: text)
                 var earliest: (range: NSRange, poss: String)?
-                for rx in patterns {
-                    guard let m = rx.firstMatch(in: text, range: fullRange(text)) else { continue }
-                    if avoidInside && !notInsideLink(text, m.range.location) { continue }
-                    if earliest == nil || m.range.location < earliest!.range.location {
-                        earliest = (m.range, possText(m, in: text))
+                for rx in linkAliases.compactMap({ wordRegex($0) }) {
+                    // First ELIGIBLE match of this alias (skipping any inside a link / non-prose
+                    // span — e.g. a leading audiobook quote), then take the earliest across aliases.
+                    for m in rx.matches(in: text, range: fullRange(text)) where eligible(text, m.range.location, prot) {
+                        if earliest == nil || m.range.location < earliest!.range.location {
+                            earliest = (m.range, possText(m, in: text))
+                        }
+                        break
                     }
                 }
-                guard let first = earliest else { continue }
-                text = nsReplace(text, first.range, with: linkText + first.poss)
-            } else if !short.isEmpty {
-                for r in existingLinks.dropFirst().reversed() {
-                    text = nsReplace(text, r, with: short)
+                if let first = earliest {
+                    text = nsReplace(text, first.range, with: linkText + first.poss)
+                    isLinked = true
                 }
             }
+            if isLinked { linkedKeys.insert(canonKey.lowercased()) }
 
-            // Remaining mentions of any alias → the short name (skip inside links).
-            guard !short.isEmpty else { continue }
-            for rx in patterns {
-                let matches = rx.matches(in: text, range: fullRange(text))
-                for m in matches.reversed() {
-                    if avoidInside && !notInsideLink(text, m.range.location) { continue }
+            // Remaining mentions of any unambiguous alias → the short name (only once
+            // the person is linked; an unlinked person stays as spoken so the
+            // suggestion pass can offer them). Skips links + non-prose spans.
+            guard isLinked, !short.isEmpty else { continue }
+            let prot = nonProseRanges(in: text)
+            for rx in unambiguous.compactMap({ wordRegex($0) }) {
+                for m in rx.matches(in: text, range: fullRange(text)).reversed() {
+                    if !eligible(text, m.range.location, prot) { continue }
                     text = nsReplace(text, m.range, with: short + possText(m, in: text))
                 }
             }
         }
 
-        return Result(sanitised: text, ambiguous: ambiguous)
+        let suggested = suggestedOccurrences(in: text, aliasMap: aliasMap,
+                                             ambiguousAliases: ambiguousAliases, linkedKeys: linkedKeys)
+        return Result(sanitised: text, ambiguous: suggested)
     }
 
     // MARK: - Conversation-aware name-linking (speaker-attributed transcripts)
@@ -142,13 +141,14 @@ enum Sanitiser {
     ///   and every mention of a speaker already linked in their header — demotes to the plain
     ///   short name. Ambiguous aliases stay plain and are recorded for the resolver.
     ///
-    /// `aboutPeople` is the opt-in gate: only matched SPEAKERS (auto-linked in their header)
-    /// and the people whose canonical it lists earn inline links; everyone else stays plain.
-    /// `nil` = ungated (link every unambiguous mention, still first-only). Falls back to
-    /// `process` when the text isn't actually attributed.
-    static func processConversation(text inputText: String, people: [Person], neverLink: Set<String> = [], aboutPeople: Set<String>? = nil) -> Result {
+    /// OPT-OUT (decision 4): matched SPEAKERS auto-link in their header (a speaker is
+    /// definitionally a subject) and every known person's first inline mention auto-links
+    /// too — risk-tiered, so only a SAFE alias commits; FP-prone / ambiguous ones stay
+    /// plain and are recorded as suggestions. Falls back to `process` (monologue) when the
+    /// text isn't actually attributed.
+    static func processConversation(text inputText: String, people: [Person], neverLink: Set<String> = []) -> Result {
         guard let parsedWP = SpeakerTranscript.parseWithPreamble(inputText) else {
-            return process(text: inputText, people: people, neverLink: neverLink, aboutPeople: aboutPeople)
+            return process(text: inputText, people: people, neverLink: neverLink)
         }
         let parsed = parsedWP.turns
         let preamble = parsedWP.preamble
@@ -157,8 +157,8 @@ enum Sanitiser {
             !$0.isDeleted && !skip.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
         }
 
-        // FULL alias map (over all live people) — resolves matched-speaker headers, which
-        // auto-link regardless of the opt-in gate (a speaker is definitionally a subject).
+        // Alias map over all live people — resolves matched-speaker headers and inline
+        // mentions, and flags aliases shared by 2+ people as ambiguous (→ suggested).
         var aliasMap: [String: [Person]] = [:]
         for p in live {
             for a in p.aliases {
@@ -198,32 +198,6 @@ enum Sanitiser {
             }
         }
 
-        // Opt-in gate for INLINE mentions: only an about-person earns a NEW inline link
-        // (matched speakers are linked in their header → tracked in `seen` → their inline
-        // mentions demote to the short name regardless of this set). nil = ungated.
-        let inlineLinkable: Set<String>? = aboutPeople.map {
-            Set($0.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
-        }
-
-        // Inline ambiguity is computed over the people "in play" for THIS note — the gated
-        // about-set PLUS the matched speakers — NOT the whole DB. So tapping ONE of two
-        // people who share an alias links them inline (the alias is unambiguous in play),
-        // exactly like `process` does; tapping BOTH (or two speakers sharing an alias) keeps
-        // it plain for the resolver. nil aboutPeople = ungated → ambiguity over all live.
-        let speakerKeys = Set(merged.compactMap { $0.person.map { NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() } })
-        let inPlay: [Person] = inlineLinkable.map { about in
-            live.filter { let k = NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased()
-                          return about.contains(k) || speakerKeys.contains(k) }
-        } ?? live
-        var inPlayAliasMap: [String: [Person]] = [:]
-        for p in inPlay {
-            for a in p.aliases {
-                let al = a.trimmingCharacters(in: .whitespaces).lowercased()
-                if !al.isEmpty { inPlayAliasMap[al, default: []].append(p) }
-            }
-        }
-        let inlineAmbiguous = Set(inPlayAliasMap.filter { $0.value.count >= 2 }.keys)
-
         // PASS 1 — headers claim their speaker first: a speaker's FIRST turn header carries
         // the canonical `[[Name]]` link, later headers (and every inline mention) demote to
         // the short name. This makes the labelled attribution the one link per speaker, so
@@ -245,24 +219,24 @@ enum Sanitiser {
         }
 
         // PASS 2 — bodies in document order (the leading preamble first, then each turn),
-        // sharing `seen`: each person's FIRST not-yet-linked inline mention → the
+        // sharing `seen`: each person's FIRST not-yet-linked SAFE inline mention → the
         // alias-display link, the rest → the short name. The preamble (e.g. an early image
         // marker) is preserved as its own block, never dropped.
         var blocks: [String] = []
         if !preamble.isEmpty {
-            blocks.append(linkInline(preamble, live: live, ambiguousAliases: inlineAmbiguous,
-                                     linkable: inlineLinkable, seen: &seen))
+            blocks.append(linkInline(preamble, live: live, ambiguousAliases: ambiguousAliases, seen: &seen))
         }
         for (i, m) in merged.enumerated() {
-            let body = linkInline(m.text, live: live, ambiguousAliases: inlineAmbiguous,
-                                  linkable: inlineLinkable, seen: &seen)
+            let body = linkInline(m.text, live: live, ambiguousAliases: ambiguousAliases, seen: &seen)
             blocks.append("**\(headers[i]):** \(body)")
         }
         let finalText = blocks.joined(separator: "\n\n")
-        // Record ambiguous occurrences over the in-play set (matches the inline gating) — a
-        // genuinely ambiguous alias among the note's people surfaces for the resolver.
-        let ambiguous = ambiguousOccurrences(in: finalText, aliasMap: inPlayAliasMap, ambiguousAliases: inlineAmbiguous)
-        return Result(sanitised: finalText, ambiguous: ambiguous)
+        // Suggested occurrences over the FINAL body: ambiguous aliases (any case) + FP-prone
+        // single names of UNLINKED people (capitalized only). `seen` = everyone linked
+        // (matched speakers + first-mention inline links) so they're never re-suggested.
+        let suggested = suggestedOccurrences(in: finalText, aliasMap: aliasMap,
+                                             ambiguousAliases: ambiguousAliases, linkedKeys: seen)
+        return Result(sanitised: finalText, ambiguous: suggested)
     }
 
     // MARK: - Opt-in naming detection (the review "People in this note" chip bar)
@@ -319,53 +293,57 @@ enum Sanitiser {
         return out
     }
 
-    /// Link inline alias mentions, FIRST-ONLY per person ("one note, one link"). For each
-    /// person not yet linked anywhere in the conversation (`seen`), their FIRST eligible
-    /// mention becomes the Obsidian alias-display link `[[Canonical|short]]` (or bare
-    /// `[[Canonical]]` when the short equals the canonical) and every LATER mention — plus
-    /// every mention of an already-linked person (a matched speaker linked in their header,
-    /// or a person linked in an earlier turn) — demotes to the plain short name. The display
-    /// is the short, NOT the transcribed surface, so a misheard name ("cherry"/"thierry" for
-    /// "Tuur") normalises to the correct short. The whole match (alias + trailing possessive)
-    /// is replaced and the possessive re-appended OUTSIDE the brackets.
+    /// Link inline alias mentions, FIRST-ONLY per person ("one note, one link"), OPT-OUT +
+    /// risk-tiered. For each person not yet linked anywhere in the conversation (`seen`),
+    /// their FIRST eligible SAFE mention (a distinctive, unambiguous alias) becomes the
+    /// Obsidian alias-display link `[[Canonical|short]]` (or bare `[[Canonical]]` when the
+    /// short equals the canonical); every LATER mention — plus every mention of an
+    /// already-linked person (a matched speaker linked in their header, or a person linked
+    /// in an earlier turn) — demotes to the plain short name. A person reachable here only
+    /// via an FP-prone alias (common word / too short) or an ambiguous one is NOT linked and
+    /// NOT demoted — left as spoken so the suggestion pass can offer them. The display is the
+    /// short, NOT the transcribed surface, so a misheard name ("cherry"/"thierry" for "Tuur")
+    /// normalises to the correct short. The whole match (alias + trailing possessive) is
+    /// replaced and the possessive re-appended OUTSIDE the brackets.
     ///
-    /// `linkable` is the opt-in gate (nil = ungated): a person NOT already linked may earn a
-    /// NEW inline link only when their canonical is in this set. A person already in `seen` is
-    /// demoted to the short regardless (their link lives elsewhere). Ambiguous aliases and
-    /// matches already inside a link are left untouched. `seen` is shared across the whole
-    /// document (headers + every body) and updated in place, so each person links exactly once.
+    /// `seen` is shared across the whole document (headers + every body) and updated in
+    /// place, so each person links exactly once. Ambiguous aliases, FP-prone first mentions,
+    /// non-prose spans, and matches already inside a link are left untouched.
     private static func linkInline(_ inputText: String, live: [Person], ambiguousAliases: Set<String>,
-                                   linkable: Set<String>?, seen: inout Set<String>) -> String {
+                                   seen: inout Set<String>) -> String {
         var text = inputText
         for p in live.sorted(by: { NamesMerge.keyName($0.canonical).lowercased() < NamesMerge.keyName($1.canonical).lowercased() }) {
             let canonKey = NamesMerge.keyName(p.canonical).trimmingCharacters(in: .whitespaces)
             let keyLower = canonKey.lowercased()
-            let aliases = p.aliases
+            let unambiguous = p.aliases
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty && !ambiguousAliases.contains($0.lowercased()) }
-            guard !aliases.isEmpty else { continue }
+            guard !unambiguous.isEmpty else { continue }
             // The display is the person's short name — fixed per person, independent of
             // what was transcribed — so every matched form normalises to it.
             let short = shortName(for: p)
             let display = (short.isEmpty || short.caseInsensitiveCompare(canonKey) == .orderedSame)
                 ? "[[\(canonKey)]]"
                 : "[[\(canonKey)|\(short)]]"
-            let patterns = aliases.compactMap { wordRegex($0) }
 
             if !seen.contains(keyLower) {
-                // Not linked yet. The opt-in gate decides whether they may link here at all;
-                // a non-about, non-speaker person stays entirely plain.
-                guard linkable?.contains(keyLower) ?? true else { continue }
-                // First eligible mention across the person's aliases → the alias-display link.
+                // Not linked yet. Only a distinctive (non-FP-prone) alias may auto-commit a
+                // NEW inline link; a common-word/too-short-only person stays plain (suggested).
+                let linkAliases = unambiguous.filter { !NameStoplist.isFpProne($0) }
+                guard !linkAliases.isEmpty else { continue }
+                let prot = nonProseRanges(in: text)
                 var earliest: (range: NSRange, poss: String)?
-                for rx in patterns {
-                    guard let m = rx.firstMatch(in: text, range: fullRange(text)) else { continue }
-                    if avoidInside && !notInsideLink(text, m.range.location) { continue }
-                    if earliest == nil || m.range.location < earliest!.range.location {
-                        earliest = (m.range, possText(m, in: text))
+                for rx in linkAliases.compactMap({ wordRegex($0) }) {
+                    // First ELIGIBLE match of this alias (skipping any inside a link / non-prose
+                    // span — e.g. a leading audiobook quote), then take the earliest across aliases.
+                    for m in rx.matches(in: text, range: fullRange(text)) where eligible(text, m.range.location, prot) {
+                        if earliest == nil || m.range.location < earliest!.range.location {
+                            earliest = (m.range, possText(m, in: text))
+                        }
+                        break
                     }
                 }
-                guard let first = earliest else { continue }    // no eligible mention in this block
+                guard let first = earliest else { continue }    // no SAFE mention in this block
                 text = nsReplace(text, first.range, with: display + first.poss)
                 seen.insert(keyLower)
             }
@@ -374,9 +352,10 @@ enum Sanitiser {
             // "every later mention demotes" holds even for a single-token name).
             let demotion = short.isEmpty ? canonKey : short
             guard !demotion.isEmpty else { continue }
-            for rx in patterns {
+            let prot = nonProseRanges(in: text)
+            for rx in unambiguous.compactMap({ wordRegex($0) }) {
                 for m in rx.matches(in: text, range: fullRange(text)).reversed() {
-                    if avoidInside && !notInsideLink(text, m.range.location) { continue }
+                    if !eligible(text, m.range.location, prot) { continue }
                     text = nsReplace(text, m.range, with: demotion + possText(m, in: text))
                 }
             }
@@ -384,19 +363,25 @@ enum Sanitiser {
         return text
     }
 
-    /// Ambiguous-alias occurrences (plain whole-word mentions of an alias that maps to 2+
-    /// people, not inside a link) over `text`, with offsets into `text` — the same
-    /// detection `process` uses, factored out so the conversation path records them
-    /// against the FINAL rendered body.
-    private static func ambiguousOccurrences(in text: String, aliasMap: [String: [Person]], ambiguousAliases: Set<String>) -> [AmbiguousOccurrence] {
-        var ambiguous: [AmbiguousOccurrence] = []
-        for alias in ambiguousAliases.sorted() {
-            let candidates = aliasMap[alias] ?? []
-            guard let rx = wordRegex(alias) else { continue }
+    /// The *suggested* tier (NAMING_MODEL.md): recognised-but-not-auto-linked occurrences the
+    /// review surface renders dotted (commit on click), recorded over the FINAL text so
+    /// offsets/contexts match what renders. Two kinds, both skipping existing links +
+    /// non-prose spans:
+    ///   (a) AMBIGUOUS aliases (shared by 2+ roster people) — every plain occurrence, any case;
+    ///   (b) FP-PRONE single-candidate aliases (common word / too short — `NameStoplist`) whose
+    ///       person did NOT auto-link — only CAPITALIZED occurrences (the capitalization
+    ///       FP-guard keeps "I will call" plain while surfacing "Will came over").
+    private static func suggestedOccurrences(in text: String, aliasMap: [String: [Person]],
+                                             ambiguousAliases: Set<String>, linkedKeys: Set<String>) -> [AmbiguousOccurrence] {
+        let prot = nonProseRanges(in: text)
+        var out: [AmbiguousOccurrence] = []
+        func record(alias: String, candidates: [Person], capitalizedOnly: Bool) {
+            guard let rx = wordRegex(alias) else { return }
             for m in rx.matches(in: text, range: fullRange(text)) {
                 let loc = m.range.location
-                if avoidInside && !notInsideLink(text, loc) { continue }
-                ambiguous.append(AmbiguousOccurrence(
+                if !eligible(text, loc, prot) { continue }
+                if capitalizedOnly, !startsUppercase(text, at: loc) { continue }
+                out.append(AmbiguousOccurrence(
                     alias: alias,
                     offset: loc,
                     length: m.range.length,
@@ -408,7 +393,18 @@ enum Sanitiser {
                 ))
             }
         }
-        return ambiguous
+        // (a) ambiguous — sorted for determinism.
+        for alias in ambiguousAliases.sorted() {
+            record(alias: alias, candidates: aliasMap[alias] ?? [], capitalizedOnly: false)
+        }
+        // (b) common-word / too-short single names whose person didn't auto-link.
+        for alias in aliasMap.keys.sorted() where !ambiguousAliases.contains(alias) {
+            guard NameStoplist.isFpProne(alias), let people = aliasMap[alias], people.count == 1 else { continue }
+            let key = NamesMerge.keyName(people[0].canonical).trimmingCharacters(in: .whitespaces).lowercased()
+            guard !linkedKeys.contains(key) else { continue }
+            record(alias: alias, candidates: people, capitalizedOnly: true)
+        }
+        return out
     }
 
     /// Apply review-time choices for ambiguous aliases to the (already sanitised)
@@ -731,16 +727,54 @@ enum Sanitiser {
 
     // MARK: - Helpers
 
-    /// Apply the opt-in naming gate: `nil` returns `live` unchanged (ungated); a set
-    /// keeps only the people whose canonical key it contains (matched case-insensitively,
-    /// bracket-tolerant). An empty set → nobody. The single source of the gate logic for
-    /// both `process` and `processConversation`.
-    private static func gated(_ live: [Person], by aboutPeople: Set<String>?) -> [Person] {
-        guard let aboutPeople else { return live }
-        let about = Set(aboutPeople.map { NamesMerge.keyName($0).trimmingCharacters(in: .whitespaces).lowercased() })
-        return live.filter {
-            about.contains(NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased())
+    /// A match location is eligible for linking/suggesting when it's neither inside an
+    /// existing `[[ ]]` link nor inside a non-prose span. The single gate both `process`
+    /// paths + `suggestedOccurrences` use.
+    private static func eligible(_ text: String, _ loc: Int, _ protectedRanges: [NSRange]) -> Bool {
+        guard !avoidInside || notInsideLink(text, loc) else { return false }
+        return !protectedRanges.contains { NSLocationInRange(loc, $0) }
+    }
+
+    /// Non-prose spans a name scan must SKIP (NON-NEGOTIABLE build-guard): a leading YAML
+    /// frontmatter block, fenced ```` ``` ```` code blocks, inline `code`, and a leading
+    /// audiobook-quote block (a name inside a quoted book passage is NOT "about" that roster
+    /// person — matters for the quote-capture feature). Existing `[[ ]]` links are handled
+    /// separately (`notInsideLink`). Ranges are over `text` AS GIVEN — recompute after the
+    /// text mutates (linking shifts later offsets). Almost always empty for ordinary memos.
+    static func nonProseRanges(in text: String) -> [NSRange] {
+        let ns = text as NSString
+        var ranges: [NSRange] = []
+        // Leading YAML frontmatter: "---\n … \n---" anchored at offset 0. (The pipeline body
+        // never carries frontmatter — the Compiler adds it later — but an Apple-Note import
+        // might; cheap belt-and-suspenders.)
+        if text.hasPrefix("---\n") {
+            let close = ns.range(of: "\n---", options: [], range: NSRange(location: 3, length: ns.length - 3)).location
+            if close != NSNotFound {
+                // Extend to the end of the closing delimiter line.
+                let after = close + 4
+                let lineEnd = ns.range(of: "\n", options: [], range: NSRange(location: after, length: max(0, ns.length - after))).location
+                let end = lineEnd == NSNotFound ? ns.length : lineEnd
+                ranges.append(NSRange(location: 0, length: end))
+            }
         }
+        // Leading audiobook-quote block (consecutive ">"-prefixed lines from offset 0).
+        if let split = QuoteProtection.splitLeadingQuote(text) {
+            ranges.append(NSRange(location: 0, length: (split.quote as NSString).length))
+        }
+        // Fenced code blocks, then inline code.
+        for pattern in ["```[\\s\\S]*?```", "`[^`\\n]+`"] {
+            guard let rx = try? NSRegularExpression(pattern: pattern) else { continue }
+            for m in rx.matches(in: text, range: fullRange(text)) { ranges.append(m.range) }
+        }
+        return ranges
+    }
+
+    /// True when the character at `loc` starts with an uppercase letter — the secondary
+    /// capitalization FP-guard for common-word suggestions ("Will" the name vs "will" the verb).
+    private static func startsUppercase(_ text: String, at loc: Int) -> Bool {
+        let ns = text as NSString
+        guard loc >= 0, loc < ns.length else { return false }
+        return ns.substring(with: NSRange(location: loc, length: 1)).first?.isUppercase ?? false
     }
 
     private static func shortName(for p: Person) -> String {

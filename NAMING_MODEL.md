@@ -225,10 +225,19 @@ are the price of getting it right:
 3. **BUILD** — ordered, gated chunks (UnitTests + `-skipMacroValidation` build per chunk; commit
    per chunk updating FEATURES.md + backlog.md + this doc's status). Read "Migration" before
    deleting:
-   - **Chunk 1 — Sanitiser → opt-out + risk-tiering.** Drop the `aboutPeople` include-gate; link
-     ALL known people by default (first mention), pruned by `unlinkedNames` (exclude); auto-commit
-     full/distinctive names, downgrade common-word + ambiguous names to *suggested* via a
-     **stoplist**; apply the FP guards + skip audiobook-quote/YAML/code spans. Host-less tests.
+   - ✅ **Chunk 1 — Sanitiser → opt-out + risk-tiering. DONE 2026-06-16.** Dropped the
+     `aboutPeople` include-gate from `Sanitiser.process`/`processConversation` (+ the `gated`
+     helper); known people now auto-link by DEFAULT (first mention), pruned by `unlinkedNames`.
+     Risk-tiered: a full name OR a distinctive first name auto-commits; a common-word
+     (`NameStoplist`) or ≤2-char single name, OR an alias shared by 2+ people, is downgraded to a
+     **suggested** `AmbiguousOccurrence` (carried in `Result.ambiguous`, `candidates.count == 1`
+     for common-word / `>= 2` for ambiguous). Capitalization FP-guard on common-word suggestions
+     ("I will call" stays plain; "Will came over" suggests). `nonProseRanges` skips a leading
+     YAML block / fenced+inline code / a verbatim audiobook-quote span. New `NameStoplist.swift`;
+     callers (`BatchRunner`, `ProcessingCoordinator`) drop the `aboutPeople:` arg. Host-less tests
+     rewritten opt-in→opt-out + risk-tier + quote-span; **288 UnitTests green + full app build
+     green**. (`PipelineFile.aboutPeople` field + the now-inert chip bar/resolver wiring are
+     deleted in chunk 3.)
    - **Chunk 2 — Roster seeding.** App code reads `People/` note titles → the portable names DB
      (canonical = title); aliases live in the DB. Tests. (Privacy: titles only, app code, no AI.)
    - **Chunk 3 — Delete.** `PeopleChipBar`; `InlineResolverModel` / `applyPartialOccurrences` /
