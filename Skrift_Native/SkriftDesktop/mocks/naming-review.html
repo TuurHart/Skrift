@@ -1,0 +1,145 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Naming review — opt-out (signed off 2026-06-16)</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --link:#9d8ff7; --suggest:#bda481; --suggestline:#ab9676;
+    --green:#34d399; --amber:#f59e0b; --bd:255 255 255;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:28px 24px 80px;font-size:13px;line-height:1.55}
+  h1{font-size:15px;font-weight:700;margin:0 0 4px}
+  .lede{color:var(--t2);max-width:780px;margin:0 0 22px}
+  .lede b{color:var(--t1)}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .pane{background:var(--bg);border:.5px solid rgb(var(--bd)/.1);border-radius:14px;padding:18px 20px 20px;width:430px}
+  .cap{font-size:11px;letter-spacing:.5px;color:var(--t3);font-weight:700;text-transform:uppercase;margin:0 0 12px}
+  .crumb{color:var(--t3);font-size:11.5px;margin:0 0 13px}
+  .body{color:var(--t1);font-size:14px;line-height:1.9}
+
+  /* the three tiers — the locked visual language */
+  .nm-link{color:var(--link);border-radius:3px;padding:0 1px;cursor:pointer}
+  .nm-link:hover{background:rgb(var(--accent)/.20)}
+  .nm-sug{color:var(--suggest);border-bottom:1.6px dotted var(--suggestline);border-radius:3px;padding:0 1px 1px;cursor:pointer}
+  .nm-sug:hover{background:rgb(var(--accent)/.10)}
+
+  .legend{display:flex;gap:15px;flex-wrap:wrap;border-top:.5px solid rgb(var(--bd)/.07);margin-top:16px;padding-top:11px;font-size:11px;color:var(--t2)}
+  .yaml{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--t2);
+    background:#000;border:.5px solid rgb(var(--bd)/.08);border-radius:8px;padding:9px 11px;margin:14px 0 0}
+  .yaml .k{color:var(--t3)} .yaml .v{color:var(--link)}
+
+  /* popover */
+  .pop{background:var(--elev);border:.5px solid rgb(var(--bd)/.13);border-radius:11px;padding:11px 12px;max-width:300px}
+  .pop .hd{color:var(--t3);font-size:11px;margin:0 0 8px 2px}
+  .prow{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:7px;cursor:pointer;color:var(--t1);font-size:12.5px}
+  .prow:hover{background:rgb(var(--bd)/.05)}
+  .prow.sec{color:var(--t2)}
+  .av{width:22px;height:22px;border-radius:50%;background:rgb(var(--accent)/.2);color:var(--link);
+    display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+  .sep{border-top:.5px solid rgb(var(--bd)/.08);margin:6px 0}
+  .ann{color:var(--amber);font-size:11px;margin:10px 0 0}
+  .gloss{color:var(--t2);font-size:11.5px;margin:9px 0 0;line-height:1.5}
+
+  .decisions{background:rgb(var(--green)/.06);border:.5px solid rgb(var(--green)/.2);border-radius:10px;padding:6px 16px}
+  .decisions li{margin:8px 0;color:var(--t2)} .decisions b{color:var(--t1)}
+  .kill{background:rgb(220 80 80/.07);border:.5px solid rgb(220 80 80/.22);border-radius:10px;padding:6px 16px}
+  .kill li{margin:7px 0;color:var(--t2)} .kill b{color:#f0a0a0}
+</style></head><body>
+
+<h1>Naming review — opt-out model (signed off 2026-06-16)</h1>
+<p class="lede"><b>Supersedes <code>opt-in-naming.html</code>.</b> Names are recognised against the user's
+known roster and the note's subjects are linked <b>by default</b> (opt-out); you prune the side-mentions.
+The whole interaction lives <b>in the prose</b> — three tiers + a click-popover. No chip bar, no pending bar.
+Deterministic + LLM-free (phone-portable). Full rationale + build-guards: <code>NAMING_MODEL.md</code>.</p>
+
+<div class="row">
+
+  <!-- STATE 1 -->
+  <div class="pane">
+    <div class="cap">1 · After processing — calm prose</div>
+    <div class="crumb">🎙 Voice memo · Fri 1 May 2026</div>
+    <div class="body">
+      Long studio session. <span class="nm-link">Hendri</span> showed up early and we nailed the mix with
+      <span class="nm-link">Bruno</span>, then <span class="nm-sug">Jack</span> swung by with notes — sharp as
+      ever. Hendri reckons we're close to done. I'll send <span class="nm-sug">Rose</span> the stems tonight;
+      Mariam wants in on the next one.
+    </div>
+    <div class="legend">
+      <span><span class="nm-link" style="cursor:default">linked</span> &nbsp;auto · first mention only</span>
+      <span><span class="nm-sug" style="cursor:default">suggested</span> &nbsp;click to confirm</span>
+      <span><span style="color:var(--t1)">plain</span> &nbsp;word · unknown · a repeat</span>
+      <span style="color:var(--t3)">— hover a name to act</span>
+    </div>
+    <div class="yaml"><span class="k">on export →</span> people: <span class="v">[[Hendri van Niekerk]], [[Bruno Aragorn]]</span> <span class="k">(+ Jack/Rose once confirmed)</span></div>
+    <div class="gloss"><b style="color:var(--t1)">Hendri</b> + <b style="color:var(--t1)">Bruno</b> auto-link
+      (distinctive, multiple subjects per note is normal). The second “Hendri” is plain — first-mention-only.
+      <b style="color:var(--t1)">Jack</b> is suggested (two Jacks share the name); <b style="color:var(--t1)">Rose</b>
+      is suggested (common word → never auto-written). “I’ll” keeps <b style="color:var(--t1)">will</b> plain even
+      though a “Will” is on the roster (stoplist). <b style="color:var(--t1)">Mariam</b> is unknown → plain (no hint).</div>
+  </div>
+
+  <!-- STATE 2 -->
+  <div class="pane">
+    <div class="cap">2 · Click a suggested name → which person?</div>
+    <div class="body" style="margin-bottom:14px">…then <span class="nm-sug" style="background:rgb(var(--accent)/.10)">Jack</span> swung by…</div>
+    <div class="pop">
+      <div class="hd">Which Jack? · 2 people share this name</div>
+      <div class="prow"><span class="av">JH</span> Jack Hutton</div>
+      <div class="prow"><span class="av">JT</span> Jack Tanner</div>
+      <div class="sep"></div>
+      <div class="prow sec">＋ New person…</div>
+      <div class="prow sec">Leave as plain text</div>
+    </div>
+    <div class="ann">Pick once → applies to the whole note. A rarer second Jack in the same note: click <i>that</i>
+      mention and pick the other. (No per-occurrence resolver.)</div>
+  </div>
+
+</div>
+
+<div class="row" style="margin-top:24px">
+
+  <!-- STATE 3 -->
+  <div class="pane">
+    <div class="cap">3 · Click a linked name → prune / fix</div>
+    <div class="body" style="margin-bottom:14px"><span class="nm-link" style="background:rgb(var(--accent)/.20)">Hendri</span> showed up early…</div>
+    <div class="pop">
+      <div style="display:flex;align-items:center;gap:8px;margin:0 0 9px 2px">
+        <span class="av">HN</span>
+        <div><div style="color:var(--green);font-size:10.5px;font-weight:700">✓ this note is about</div>
+        <div style="color:var(--link);font-size:12.5px;font-weight:600">Hendri van Niekerk</div></div>
+      </div>
+      <div class="prow">🔗︎ Unlink — just a side-mention</div>
+      <div class="prow">⇄ Change person…</div>
+      <div class="prow">↗ Open Hendri’s note</div>
+    </div>
+    <div class="ann">“Unlink” is the everyday opt-out gesture (demote a side-mention). The unlinked name stays a
+      dotted suggestion — re-promotable. “Change person” fixes a wrong match.</div>
+  </div>
+
+  <!-- model summary -->
+  <div class="pane" style="width:430px">
+    <div class="cap">The model, in one breath</div>
+    <ul class="decisions" style="list-style:none;padding:8px 16px;margin:0">
+      <li>✅ <b>Job:</b> one note per person; subjects collect as dated backlinks → a decades-long timeline.</li>
+      <li>✅ <b>Opt-out:</b> known people auto-link (first mention); you prune side-mentions.</li>
+      <li>✅ <b>Risk-tiered:</b> full/distinctive names auto-commit; common-word + ambiguous names → suggested.</li>
+      <li>✅ <b>Roster</b> = Skrift’s portable names DB (seeded from <code>People/</code> on Mac; canonical = note title).</li>
+      <li>✅ <b>New people:</b> manual, one-keystroke add. No NER, no LLM. “Never misses KNOWN people.”</li>
+      <li>✅ <b>Output:</b> one body link (the snippet) + <code>people:</code> frontmatter (durable + queryable).</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="pane" style="width:auto;max-width:900px;margin-top:24px">
+  <div class="cap">What this DELETES from the shipped opt-in build (chunks 1–5)</div>
+  <ul class="kill" style="list-style:none;padding:8px 16px;margin:0">
+    <li>❌ <b>The chip bar</b> (PeopleChipBar) — interaction moves into the prose.</li>
+    <li>❌ <b>The per-occurrence resolver</b> (InlineResolverModel / applyPartialOccurrences / banner) — click the odd mention instead.</li>
+    <li>❌ <b>The opt-in <code>aboutPeople</code> include-list</b> — flips to opt-out, reusing the existing <code>unlinkedNames</code> exclude-list.</li>
+    <li>❌ <b>Any LLM</b> in the naming path — pure deterministic matching.</li>
+    <li>➕ Add: opt-out default · risk-tier stoplist · <code>People/</code> roster seeding · the prose popover (reuses unlink/relink).</li>
+  </ul>
+</div>
+
+</body></html>

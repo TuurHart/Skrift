@@ -118,6 +118,24 @@ Two **separable** jobs we had been conflating (this split is the key insight):
 
 ---
 
+## UX + visual language — SIGNED OFF 2026-06-16 (`mocks/naming-review.html`)
+
+The whole interaction lives **in the prose** — no chip bar, no pending bar. Three tiers, plus a
+click-popover. Iterated in chat to sign-off; the mock is the spec.
+- **Linked** (committed subject): solid accent text `#9d8ff7`, **no background**, highlight only
+  on hover. First mention only — repeats render plain.
+- **Suggested** (recognised but pending: common-word names + ambiguous twins): soft tan
+  `#bda481` text + dotted underline `#ab9676`. The color *is* the "needs a decision" cue (that's
+  why the pending-count bar was dropped — deemed extra fluff).
+- **Plain**: default text — dictionary words (stoplisted), unknown people, and repeat mentions.
+- **Click a suggested name** → popover: pick which person · new person… · leave as plain text.
+- **Click a linked name** → popover: unlink (the everyday "just a side-mention" prune) · change
+  person (fix a wrong match) · open their note. An unlinked name stays a dotted suggestion
+  (re-promotable).
+- Hover lifts a name (faint accent bg) to invite the click.
+- *Rejected during sign-off:* the filled-highlight link style (too heavy — "sea of links"), the
+  pending-count bar (extra chrome), bright/saturated amber for suggested (too flashy).
+
 ## Migration from what shipped (chunks 1–5)
 
 - **DELETE:** `PeopleChipBar`; the `InlineResolverModel` / `applyPartialOccurrences` /
