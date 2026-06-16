@@ -372,4 +372,21 @@ final class ProcessingCoordinator {
         pf.compiledText = Compiler.compile(file: pf, author: SettingsStore.shared.load().authorName, knownPeople: people)
         if let context { pf.lastActivityAt = Date(); try? context.save() }
     }
+
+    /// Roster-collision re-scan (NAMING_MODEL.md build-guard): after a names change, if a name
+    /// went from one owner to a same-name collision, re-derive every already-processed memo that
+    /// auto-linked it — its now-ambiguous `[[link]]` falls back to a dotted suggestion to re-pick
+    /// — and flag the count so the silent mis-resolution can't slip by. `previousPeople` is the
+    /// live roster snapshot taken BEFORE the change.
+    func rescanRoster(previousPeople old: [Person], context: ModelContext) {
+        let new = NamesStore.shared.livePeople()
+        let collided = RosterAudit.newlyAmbiguous(old: old, new: new)
+        guard !collided.isEmpty else { return }
+        let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        let affected = RosterAudit.affectedFiles(all, newlyAmbiguous: collided, people: new)
+        guard !affected.isEmpty else { return }
+        for f in affected { resanitiseForNames(f) }
+        try? context.save()
+        flash("\(affected.count) note\(affected.count == 1 ? "" : "s") now share a name — re-check the dotted names")
+    }
 }

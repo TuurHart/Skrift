@@ -215,12 +215,15 @@ struct NoteDisplayView: View {
         editorRequest = PersonEditorRequest(prefillName: trimmed, prefillAlias: trimmed)
     }
 
-    /// Persist a person from the editor and RE-SCAN the open note (no global re-scan) so a
-    /// newly-added person appears as a chip in the People bar (mocks/opt-in-naming.html).
+    /// Persist a person from the editor, re-derive the OPEN note (so a newly-added person
+    /// auto-links / surfaces), and re-scan EVERY processed memo for a fresh same-name
+    /// collision the add may have introduced (NAMING_MODEL.md build-guard).
     private func savePerson(_ original: String?, _ person: Person, for file: PipelineFile) {
+        let before = NamesStore.shared.livePeople()
         NamesStore.shared.upsert(person, replacing: original)
         coordinator.resanitiseForNames(file, context: ctx)
-        coordinator.flash("Saved “\(NamesMerge.keyName(person.canonical))” — it’ll show as a chip if mentioned")
+        coordinator.rescanRoster(previousPeople: before, context: ctx)
+        coordinator.flash("Saved “\(NamesMerge.keyName(person.canonical))”")
     }
 
     /// Add a body selection as an ALIAS of an existing person (right-click → "Add … as

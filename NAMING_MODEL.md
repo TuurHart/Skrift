@@ -273,5 +273,19 @@ are the price of getting it right:
      `resanitiseForNames` re-derive + an undo toast (re-derive from the snapshotted override sets).
      5 new engine tests; **278 UnitTests green + full app build green**; visual language verified vs
      the mock via the new `-snapshot-naming` PNG. Live in-NSTextView body eyeball owed after deploy.
-   - **Chunk 5 — Robustness.** Re-scan/flag pass when a 2nd same-name person joins the roster;
-     matcher fuzzy-vs-strict tuning + a parity golden-set; finalize the remaining build-guards.
+   - ✅ **Chunk 5 — Robustness. DONE 2026-06-16.** `RosterAudit.swift` (`newlyAmbiguous(old:new:)`
+     + `affectedFiles`) + `ProcessingCoordinator.rescanRoster`, wired into `savePerson`: adding a
+     SECOND same-name person re-derives every already-processed memo that auto-linked that name
+     (its now-ambiguous `[[link]]` → a dotted suggestion) and flashes the count — the build-guard
+     against silent mis-resolution. Matcher fuzzy-vs-strict: kept STRICT (whole-word + capitalization,
+     no edit-distance) — the boost spells known names right and fuzzy-vs-FP is the LLM trap we
+     exclude; the tuning knobs are `NameStoplist` + the min-length. `NamingGoldenTests` pins the
+     load-bearing tiering (the mock example + prune/pick round-trip); `RosterAuditTests` covers the
+     re-scan. **286 UnitTests green + full app build green.**
+
+**Build-guard status (2026-06-16):** common-word/short-name FP guards ✅ (`NameStoplist` + capitalization);
+skip non-prose spans ✅ (`nonProseRanges`: YAML/code/audiobook-quote); retroactive re-scan on roster
+collision ✅ (`RosterAudit`/`rescanRoster`); `people:` frontmatter canonical + body in lockstep ✅
+(`Compiler.peopleLinks` derives it from the rendered body); fuzzy-vs-strict ✅ (kept strict + golden-set);
+own-the-files ✅ (real `[[ ]]` + frontmatter to disk, no live plugin). DEFERRED (Obsidian-side, not Skrift):
+the date-sorted person *view* — Skrift writes `date:` + backlinks, the timeline is the user's Dataview/Bases query.

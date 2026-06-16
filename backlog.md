@@ -314,8 +314,18 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
     `LinkedNamePopover` (state 3). `NoteDisplayView` wires each decision → set-mutation +
     `resanitiseForNames` + undo toast. **Gate: 278 UnitTests green + full app build green; visual
     verified vs the mock via `-snapshot-naming`.** OWED: live in-NSTextView body eyeball after deploy.
-  - ⏭ **Next: Chunk 5 — robustness: re-scan/flag when a 2nd same-name person joins the roster;
-    matcher fuzzy-vs-strict tuning + a parity golden-set; finalize remaining build-guards.**
+  - ✅ **Chunk 5 — Robustness.** `RosterAudit` (`newlyAmbiguous`/`affectedFiles`) +
+    `ProcessingCoordinator.rescanRoster` wired into `savePerson`: a fresh same-name collision
+    re-derives every memo that auto-linked that name (→ dotted suggestion) + flashes the count.
+    Matcher kept STRICT (whole-word + capitalization, no edit-distance fuzz — boost + manual-add
+    cover mangles); `NamingGoldenTests` pins the tiering + prune/pick round-trip. Build-guards
+    finalized (FP guards / non-prose skip / re-scan / frontmatter-lockstep / own-the-files ✅;
+    date-sorted person view = Obsidian-side, deferred). **Gate: 286 UnitTests green + full app build green.**
+  ✅✅ **ALL 5 CHUNKS DONE (2026-06-16).** The opt-out naming model is built, gated, committed on
+    `main` (chunks 1–5: `67de42f`, `6d458e8`, `8ae5f4f`+`d7852c3`, `19979f8`, + chunk 5). Deployed to
+    `/Applications/Skrift Dev.app`. OWED: live in-NSTextView body eyeball (process a memo with known
+    people in Skrift Dev). NOTE: a parallel session committed mobile work onto `main` mid-build (see
+    `feedback_parallel_orchestration`) — recovered cleanly.
   The grill detail below is kept as the audit trail.
   --- (original re-open framing, now resolved by NAMING_MODEL.md) ---
   User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question
