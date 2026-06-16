@@ -2,8 +2,9 @@
 
 **Re-derived from first principles in a grill session 2026-06-16.** This SUPERSEDES the
 opt-in approach (`mocks/opt-in-naming.html` + the shipped chunks 1–5, commits
-`4bb3839..83b7ce0`). Read this before touching names/sanitising. Status: design locked;
-research sanity-check in flight; mock + build next.
+`4bb3839..83b7ce0`). Read this before touching names/sanitising. Status: **design locked +
+research-validated (2026-06-16)** — prior-art sanity-check done (verdict: "sound as-is, build
+it"); refinements + build-guards folded in below. **Mock next, then build.**
 
 ---
 
@@ -24,9 +25,11 @@ Two **separable** jobs we had been conflating (this split is the key insight):
 
 ## Locked decisions (with the WHY — do not re-litigate)
 
-1. **Aggregate via Obsidian backlinks** to one-note-per-person. **Canonical = the user's
-   `People/` note title** — if it doesn't match exactly, the link is dead and the person
-   silently drops off their own timeline.
+1. **Aggregate via Obsidian backlinks** to one-note-per-person. The **canonical lives in
+   Skrift's portable names DB** (see decision 5); when exporting to an Obsidian vault it must
+   **match the `People/` note title exactly** — otherwise the link is dead and the person
+   silently drops off their own timeline. (On an Obsidian-less phone there's no `People/` note;
+   the DB canonical stands alone.)
 2. **Keep one inline body link per subject (the FIRST mention).** Reason: a *body* link makes
    Obsidian's backlink pane show the actual **sentence** ("…the dough Jack proofed went
    floppy…") — you read the arc on the person's note without opening anything. First-mention-
@@ -41,12 +44,35 @@ Two **separable** jobs we had been conflating (this split is the key insight):
    unrecoverable, a **stray** link is a two-second prune. Opt-in (start blank, tap to add)
    taxes every memo and silently drops the ones you forget. The asymmetry points one way.
    *(This flips the shipped opt-in model.)*
-5. **Recognition = KNOWN-ROSTER ONLY (option A). No NER, no LLM detection.** The roster is
-   **seeded from the `People/` folder** by simple app code (note titles only — privacy-safe).
-   Genuinely-new people are added **manually by right-click** during review. User's call:
-   "I read the note I'm working on, so I'll right-click a new person — not a big issue." The
-   roster is **incomplete and grows for life**; the user *accepts* the manual-catch
-   responsibility rather than trust auto-detection.
+   **— RISK-TIERED auto-write (adopted 2026-06-16 after research; the one place the ecosystem
+   diverges from us — no other tool auto-*writes* links, they auto-*suggest* and commit on
+   click).** So opt-out auto-*commits* only the SAFE matches and downgrades the FP-prone subset
+   to dotted-suggested (commit on click):
+   - **Auto-commit:** a full name, OR a distinctive first name (not a dictionary word, not
+     shared by 2+ roster people). This is the common case — "Hendri", "Bruno", "Mariam", most
+     "Jack"s still link with zero clicks; opt-out's benefit is preserved.
+   - **Dotted-suggest (click to commit):** a first name that's also a common word
+     (Will, Mark, Rose, Grace, Hope, Drew, Bill…), OR a name shared by 2+ roster people (the
+     ambiguous Jacks — already decision 9).
+   - **Left plain:** a common word that isn't a person here ("I **will** call"). A stoplist /
+     dictionary check is what catches Will/Rose-type names. This defuses the #1 documented
+     failure of deterministic matching (common-word false positives), which opt-out *amplifies*
+     because it writes to the file. It's a scalpel on the default, not a reversal.
+5. **Recognition = KNOWN-ROSTER ONLY (option A). No NER, no LLM detection.** The roster +
+   aliases live in **Skrift's OWN portable names DB** — the source of truth, because it must
+   work **phone + Mac, with or without Obsidian** (the standalone direction; the phone may have
+   no vault). The `People/` folder is an **optional Obsidian seed/sink**: on a Mac with a vault
+   Skrift can import its note titles to bootstrap the roster (app code, titles only —
+   privacy-safe) and can mirror aliases into the note's `aliases:` frontmatter as a courtesy,
+   but the **DB is the home, the note is not**. Genuinely-new people are added **manually by
+   right-click** during review (make it a one-keystroke fuzzy picker, not a heavy menu — and
+   run the existence-check so manual-add can't mint a duplicate of someone already in the
+   roster). User's call: "I read the note I'm working on, so I'll right-click a new person."
+   The roster is **incomplete and grows for life**; the user *accepts* the manual-catch
+   responsibility. **REJECTED 2026-06-16 (do not build):** an auto "new person?" hint — even a
+   deterministic capitalized-token-not-in-roster one — because ASR casing on speech is shaky
+   (noisy/weak) and the user wants pure-manual. Documented boundary: the system **"never misses
+   KNOWN people"**; it does NOT claim to catch unknown/new people — that's accepted.
 6. **NO LLM anywhere in the naming path. Pure deterministic string-matching.** Reason: it must
    be **portable to the phone** (the standalone direction). An LLM chains naming to the Mac /
    a big on-device model; deterministic code runs anywhere. Parakeet's custom-vocab boost
@@ -74,12 +100,17 @@ Two **separable** jobs we had been conflating (this split is the key insight):
 
 ## The model, end to end (all deterministic, LLM-free)
 
-1. **Roster.** App code reads `People/` note titles → the known cast. Canonical = title.
+1. **Roster.** Lives in Skrift's **portable names DB** (phone + Mac). On a Mac with a vault,
+   app code can seed it from `People/` note titles; the DB canonical must match the vault title
+   so links resolve. Aliases live in the DB (mirrored to the note's `aliases:` on Obsidian
+   export, as a courtesy).
 2. **Transcribe.** Parakeet, vocab-boosted with the roster → most names already correct.
-3. **Recognise** known names by alias-match (DB holds nicknames/mishears → canonical).
-4. **Opt-out link.** Each known *unambiguous* person's **first** mention → `[[Person|name]]`
-   (one snippet on their note); later mentions normalise to plain correct text. Ambiguous →
-   dotted, pending a click. Everything else stays plain.
+3. **Recognise** known names by deterministic alias-match (DB holds nicknames/mishears →
+   canonical; needs *some* fuzzy/phonetic tolerance for ASR mangling — see build-guards).
+4. **Opt-out link, risk-tiered.** A known person's **first** mention auto-commits to
+   `[[Person|name]]` (one snippet on their note) **only if SAFE** (full name / distinctive
+   first name); FP-prone names (common-word or shared) go **dotted-suggested** instead; later
+   mentions normalise to plain correct text; everything else stays plain.
 5. **Review by reading.** Highlighted/dotted names in the prose; click → popover to keep /
    unlink (side-mention, → exclude list) / change / add-new / leave-plain.
 6. **Export.** Body = one link per subject (the snippets) + `people:` frontmatter (durable +
@@ -95,9 +126,11 @@ Two **separable** jobs we had been conflating (this split is the key insight):
 - **KEEP / REPURPOSE:** the deterministic alias-match `Sanitiser`; `Compiler` `people:`; the
   click-a-name popover (`unlinkOccurrence` / `relinkOccurrence` already do link/unlink/change);
   the dotted recognised-but-unlinked state (was in the original mock); normalisation.
-- **ADD:** opt-out default (link-all-known, prune via exclude-list); **`People/`-folder roster
-  seeding** (canonical = title); optionally feed that roster into the Parakeet vocab boost
-  (closed loop: same roster → correct transcription → deterministic match).
+- **ADD:** opt-out default (link-all-known, prune via exclude-list); **risk-tiering** of
+  auto-write (full/distinctive → commit; common-word/ambiguous → dotted-suggest) backed by a
+  small **dictionary/stoplist** FP-guard; **roster seeding** into the portable DB (from
+  `People/` titles on Mac); optionally feed that roster into the Parakeet vocab boost (closed
+  loop: same roster → correct transcription → deterministic match).
 
 Net: this is mostly **deletion + flipping a default**, not new building.
 
@@ -109,21 +142,68 @@ Net: this is mostly **deletion + flipping a default**, not new building.
 
 ---
 
+## Build-time guards (from the 2026-06-16 prior-art sanity-check — NON-NEGOTIABLE)
+
+The research verdict was "sound as-is, build it" — every core choice is validated by mature
+tools (backlink-timeline = Granola/Reflect/Roam; first-mention-only = Capacities + Wikipedia
+MOS:OVERLINK; known-roster/no-NER/manual-add = Obsidian Entity Notes / obsidian-people-link /
+Virtual Linker; killing the per-occurrence resolver = UNANIMOUS, no tool ships one;
+roster-only matching structurally dodges Tana's #1 pain, duplicate person-nodes). These guards
+are the price of getting it right:
+
+- **Common-word / short-name FP guards (the #1 documented failure; opt-out amplifies it):**
+  whole-word + capitalization match; roster-scoped only; **prefer multi-token full-name over a
+  bare first name**; never auto-commit a single name that's a dictionary word or collides with
+  2+ roster entries → those go dotted-suggested (decision 4 tiering). (Our own vocab-booster
+  memory already flags ≤3–4-char names as FP-prone — same hazard here.)
+- **Skip non-prose spans when scanning:** existing links, YAML, code blocks, and **verbatim
+  audiobook-quote spans** — a name inside a quoted book passage is NOT "about" that roster
+  person. (Matters for the quote-capture feature.)
+- **Retroactive re-scan on roster collision:** the day a SECOND same-name person is added,
+  every previously auto-linked first-`[[Jack]]` memo is now mis-resolved and nothing warns you.
+  Plan a re-scan/flag pass over already-exported notes — the per-note ambiguity-pick record
+  only helps NEW processing.
+- **`people:` frontmatter is the canonical record:** keep it and the body link in lockstep on
+  every keep/prune/change/normalize, update BOTH atomically on rename/merge, and NEVER let the
+  timeline depend on the fragile body link surviving an edit (chunk-fusion / same-speaker-merge
+  can delete the sentence holding the sole link).
+- **Fuzzy-vs-strict is the central engineering tension:** the "ASR boost already spells names
+  right" premise is optimistic (Whisper-class is weak on proper nouns; boost budget ~224
+  tokens, caps a lifelong roster). The matcher needs *some* edit-distance/phonetic tolerance to
+  catch a mangled name — but fuzzy-enough-to-catch vs strict-enough-to-avoid-common-word-FPs is
+  the hard part the rest of the field offloads to an LLM (which we've excluded). **Budget a
+  parity golden-set** for the matcher; keep normalization conservative (reuse the existing
+  sim<0.55 drop-rule) so it never "corrects" a different word into a roster name.
+- **Aggregation view:** every backlink needs a reliable **date**, and the decades-long person
+  page needs a **date-sorted / filterable** view from day one (long backlink walls get
+  unscrollable — a known Logseq-at-scale complaint), the Dataview/Bases analogue of Tana's
+  "LINKS TO + sort by date".
+- **Frame it honestly in docs/UI:** "**never misses KNOWN people**" — NOT "catches all
+  people". Recall of unknown names is structurally capped at roster + ASR boost.
+- **Own the files, never depend on a live plugin** to render the timeline (Obsidian's Virtual
+  Linker broke on a 2025 API change and had to be forked). Skrift writes real `[[ ]]` +
+  frontmatter to disk → the timeline survives without any runtime plugin.
+
+---
+
 ## Deferred / explicitly out of scope
 - **Skrift creating or enriching person notes** (`firstMentioned`, profiles, `confidence`) —
   a separate "people CRM" track. For now Skrift only *links*; the user maintains `People/`
   notes by hand. Unresolved links still aggregate via backlinks, so the timeline works without
   it.
 - **Phone-side picking UI** — build Mac-first, but the model is deliberately portable.
-- **NER / LLM "nudge" for unknown people** — rejected (pure manual).
+- **Any auto "new person?" hint for unknown people** — rejected 2026-06-16, INCLUDING the
+  deterministic capitalized-token-not-in-roster version (not just the LLM one). Pure manual.
 - **Tag normalisation** (e.g. "filosofaties") — a parallel issue, not this.
 
 ---
 
 ## Next steps
-1. **Research sanity-check (in flight):** how Tana / Reflect / Logseq / Roam / Obsidian
-   people-plugins handle "auto-link known people, prune the rest, capture new ones manually" —
-   purely to catch an obviously-simpler pattern. Won't change the locked decisions unless it
-   surfaces something compelling.
-2. **Mock** the dotted-prose + click-popover UX (that's the whole UX now).
-3. **Build** (mostly the deletions + the default flip + roster seeding).
+1. ✅ **Research sanity-check DONE (2026-06-16).** Verdict: sound as-is. Refinements adopted —
+   risk-tiered opt-out (decision 4), aliases live in the portable DB not the note (decision 5),
+   one-keystroke fuzzy add-picker. Rejected — the new-person hint (decision 5). Build-guards
+   captured above.
+2. **Mock** the dotted-prose + click-popover UX (that's the whole UX now) — the risk tiers
+   visible (committed vs dotted-suggested vs plain), the popover (keep / unlink / change / add),
+   and the re-promotable dotted state. Mock-first is the locked process for new desktop UI.
+3. **Build** — mostly deletions + the default flip + roster seeding + the FP-guard stoplist.

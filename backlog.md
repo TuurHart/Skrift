@@ -279,8 +279,13 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
   new people added manually (no NER/LLM — must stay phone-portable); keep ONE body link (first mention) for the backlink
   **snippet** + keep `people:` frontmatter; **KILL** the chip bar + the per-occurrence resolver; click-a-name-in-the-prose
   popover replaces the chip bar; mistranscribed known names normalise (dotted + revertible). It's mostly DELETION + a
-  default-flip, not new building. **Status: research sanity-check IN FLIGHT → then mock the dotted-prose+popover UX →
-  then build.** The grill detail below is kept as the audit trail.
+  default-flip, not new building. **Status (2026-06-16): design LOCKED + research-validated** (prior-art pass verdict =
+  "sound as-is, build it"). Refinements folded into `NAMING_MODEL.md`: risk-tiered opt-out (auto-commit
+  full/distinctive names, dotted-suggest common-word/ambiguous ones via a stoplist), aliases live in the PORTABLE DB
+  (not the Obsidian note — phone may not use Obsidian), one-keystroke fuzzy add-picker; REJECTED the new-person hint
+  (even deterministic). Plus NON-NEGOTIABLE build-guards (FP guards, skip audiobook-quote spans, re-scan on roster
+  collision, frontmatter-canonical lockstep, fuzzy-vs-strict golden-set, date-sorted person view). **Next: MOCK the
+  dotted-prose + popover UX → then build.** The grill detail below is kept as the audit trail.
   --- (original re-open framing, now resolved by NAMING_MODEL.md) ---
   User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question
   whether the entire naming/sanitising approach is the right shape. Next session = re-derive it from the
