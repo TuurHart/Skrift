@@ -272,7 +272,16 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
   all production call sites incl. export; (3) `NamesStore.upsert` MERGES on an add-name collision instead of clobbering
   an existing person's aliases/voice; (4) `linkInline` demotes to the canonical when a person has no short. +3 tests.
 
-  ⭐ **CONTINUE HERE (2026-06-16) — RE-OPEN THE WHOLE NAMING/SANITISING SOLUTION FROM FIRST PRINCIPLES.**
+  ⭐ **CONTINUE HERE (2026-06-16) — naming/sanitising RE-DERIVED FROM FIRST PRINCIPLES → ✅ DESIGN LOCKED in `NAMING_MODEL.md`.**
+  A deep `/grill-me` session resolved the WHOLE solution from the job-to-be-done. **Read `NAMING_MODEL.md`** — it's the
+  authoritative spec (supersedes `mocks/opt-in-naming.html` + shipped chunks 1–5). Headline: flip opt-in → **OPT-OUT**
+  (auto-link known people, prune side-characters); recognition = **known-roster-only seeded from the `People/` folder**,
+  new people added manually (no NER/LLM — must stay phone-portable); keep ONE body link (first mention) for the backlink
+  **snippet** + keep `people:` frontmatter; **KILL** the chip bar + the per-occurrence resolver; click-a-name-in-the-prose
+  popover replaces the chip bar; mistranscribed known names normalise (dotted + revertible). It's mostly DELETION + a
+  default-flip, not new building. **Status: research sanity-check IN FLIGHT → then mock the dotted-prose+popover UX →
+  then build.** The grill detail below is kept as the audit trail.
+  --- (original re-open framing, now resolved by NAMING_MODEL.md) ---
   User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question
   whether the entire naming/sanitising approach is the right shape. Next session = re-derive it from the
   job-to-be-done, NOT patch the chip. We may delete/replace large parts of what we just built — that's on the table.
