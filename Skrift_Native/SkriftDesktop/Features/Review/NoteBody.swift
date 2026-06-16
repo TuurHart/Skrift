@@ -16,9 +16,12 @@ struct NoteBody: View {
     var onAddName: (String) -> Void = { _ in }
     /// Add the selection as an alias of an existing person (word, canonical).
     var onAddAlias: (String, String) -> Void = { _, _ in }
-    /// Click an already-linked `[[Name]]` → unlink popover (passed through to the
-    /// editor; nil = linked names aren't clickable).
-    var onUnlink: ((String, String, BodyTextView.UnlinkScope) -> Void)? = nil
+    /// Naming-review callbacks (mocks/naming-review.html); nil on read-only hosts.
+    var onSuggestionPick: ((String, String) -> Void)? = nil
+    var onSuggestionPlain: ((String) -> Void)? = nil
+    var onLinkedUnlink: ((String) -> Void)? = nil
+    var onLinkedChange: ((String, String) -> Void)? = nil
+    var onOpenNote: ((String) -> Void)? = nil
 
     private static let bodyFont = Font.system(size: 16)
     private static let bodyLineSpacing: CGFloat = 6
@@ -106,7 +109,12 @@ struct NoteBody: View {
         // (recolor the same view + click a word to seek — no reflow, no renderer swap).
         BodyTextView(
             text: bodyBinding, imageURL: imageURL, onAddName: onAddName, onAddAlias: onAddAlias,
-            onUnlink: karaokeActive ? nil : onUnlink,
+            suggested: karaokeActive ? [] : (file.ambiguousNames ?? []),
+            onSuggestionPick: karaokeActive ? nil : onSuggestionPick,
+            onSuggestionPlain: karaokeActive ? nil : onSuggestionPlain,
+            onLinkedUnlink: karaokeActive ? nil : onLinkedUnlink,
+            onLinkedChange: karaokeActive ? nil : onLinkedChange,
+            onOpenNote: karaokeActive ? nil : onOpenNote,
             karaoke: karaokeActive ? karaokePlayback : nil,
             quoteAttribution: file.bookCapture?.attribution
         )

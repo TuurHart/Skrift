@@ -337,8 +337,8 @@ final class ProcessingCoordinator {
                 let working = c.isEmpty ? transcript : c
                 let people = NamesStore.shared.livePeople()
                 let san = isConversation
-                    ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames))
-                    : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
+                    ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
+                    : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
                 pf.sanitised = san.sanitised
                 pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
             case .summary:
@@ -365,8 +365,8 @@ final class ProcessingCoordinator {
         let people = NamesStore.shared.livePeople()
         let isConversation = pf.sourceType == .audio && SpeakerTranscript.isAttributed(working)
         let san = isConversation
-            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames))
-            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
+            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
+            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
         pf.sanitised = san.sanitised
         pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
         pf.compiledText = Compiler.compile(file: pf, author: SettingsStore.shared.load().authorName, knownPeople: people)

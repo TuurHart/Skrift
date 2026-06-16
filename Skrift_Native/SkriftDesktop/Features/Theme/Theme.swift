@@ -25,6 +25,11 @@ enum Theme {
     static let violet      = dyn(108,  92, 224,  167, 139, 250)   // sanitise
     static let destructive = dyn(220,  38,  38,  239,  68,  68)
 
+    // Naming review tiers (mocks/naming-review.html)  light            dark
+    static let nameLink        = dyn(108,  92, 224,  157, 143, 247)  // linked subject (#9d8ff7 dark)
+    static let nameSuggest     = dyn(150, 110,  48,  189, 164, 129)  // dotted suggestion text (#bda481 dark)
+    static let nameSuggestLine = dyn(150, 110,  48,  171, 150, 118)  // dotted underline (#ab9676 dark)
+
     /// Hairline base — a faint dark line on light, a faint white line on dark.
     /// Used with `.opacity()` for borders / overlay tints (mirrors the web
     /// `--color-border` alpha-modifier pattern).

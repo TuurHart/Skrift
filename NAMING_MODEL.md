@@ -260,9 +260,18 @@ are the price of getting it right:
      dropped the `-snapshot-resolver`/`-snapshot-people` snapshot modes. Deleted/updated the resolver
      tests. **Gate: 273 UnitTests green + full app build green.** (Suggested-tier rendering + the
      which-person popover are chunk 4.)
-   - **Chunk 4 — In-prose UX (the heavy one).** Render the three tiers in the body
-     (linked solid `#9d8ff7` / suggested tan `#bda481` dotted / plain) + the click-popover
-     (which-person · unlink · change · new), reusing `unlinkOccurrence`/`relinkOccurrence`. Build
-     to `mocks/naming-review.html`. Verify via `-snapshot` (inject people) / UITest / deploy-eyeball.
+   - ✅ **Chunk 4 — In-prose UX. DONE 2026-06-16.** ENGINE: `process`/`processConversation` now take
+     `namePicks` (alias→canonical FORCE-LINK, bypassing FP-prone+ambiguity+prune; `""` = SILENCE →
+     plain) and `neverLink` was refined to PRUNE→SUGGEST (a pruned person isn't auto-linked but stays
+     a dotted, re-promotable suggestion). The interacting overrides are pre-computed in a shared
+     `Overrides` struct (linkable aliasMap + forced + silenced + prunedAliasMap). UI (`BodyTextView`,
+     NSTextView): three tiers — person `[[links]]` solid `Theme.nameLink` (#9d8ff7), `suggested`
+     occurrences tan `Theme.nameSuggest` + dotted underline (mapped model→storage past image
+     markers), plain default — plus two click-popovers: `SuggestionPopover` (which-person / New
+     person… / Leave as plain text — state 2) and `LinkedNamePopover` (Unlink side-mention / Change
+     person… / Open note — state 3). `NoteDisplayView` wires each decision to a set-mutation +
+     `resanitiseForNames` re-derive + an undo toast (re-derive from the snapshotted override sets).
+     5 new engine tests; **278 UnitTests green + full app build green**; visual language verified vs
+     the mock via the new `-snapshot-naming` PNG. Live in-NSTextView body eyeball owed after deploy.
    - **Chunk 5 — Robustness.** Re-scan/flag pass when a 2nd same-name person joins the roster;
      matcher fuzzy-vs-strict tuning + a parity golden-set; finalize the remaining build-guards.

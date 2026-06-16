@@ -92,18 +92,23 @@ final class UnlinkTests: XCTestCase {
         XCTAssertEqual(Sanitiser.spokenAlias(for: person("[[Cher]]", [])), "Cher")
     }
 
-    // MARK: - neverLink: re-processing must NOT re-link an unlinked-all person
+    // MARK: - neverLink (PRUNE): re-processing must NOT auto-RE-LINK an unlinked person,
+    // but the OPT-OUT model keeps them a dotted, re-promotable SUGGESTION
+    // (mocks/naming-review.html state 3: "the unlinked name stays a dotted suggestion").
 
-    func testProcessNeverLinkSkipsLinkingDemotionAndAmbiguity() {
+    func testProcessNeverLinkSkipsLinkingAndDemotionButSuggests() {
         let people = [person("[[Nick Jansen]]", ["Nick", "Nicky"], short: "Nick")]
         let raw = "Nick went out. Later Nicky came back."
         // Sanity: without neverLink the person links as usual.
         XCTAssertEqual(Sanitiser.process(text: raw, people: people).sanitised,
                        "[[Nick Jansen]] went out. Later Nick came back.")
-        // With the persisted choice: untouched — no link, no Nicky→Nick demotion.
+        // Pruned: the body stays exactly as spoken — no link, no Nicky→Nick demotion …
         let r = Sanitiser.process(text: raw, people: people, neverLink: ["Nick Jansen"])
         XCTAssertEqual(r.sanitised, raw)
-        XCTAssertTrue(r.ambiguous.isEmpty)
+        // … but the mentions are recorded as dotted suggestions (re-promotable), one per
+        // matched alias occurrence (Nick + Nicky), all pointing at the single candidate.
+        XCTAssertFalse(r.ambiguous.isEmpty, "pruned name stays a dotted suggestion")
+        XCTAssertTrue(r.ambiguous.allSatisfy { $0.candidates.map(\.canonical) == ["[[Nick Jansen]]"] })
     }
 
     func testProcessNeverLinkAcceptsBracketedKeyAndAnyCase() {

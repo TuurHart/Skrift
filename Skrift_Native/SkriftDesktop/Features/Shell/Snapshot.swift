@@ -10,6 +10,7 @@ import AppKit
 ///   -snapshot-settings-light p  → the Settings panel in LIGHT
 ///   -snapshot-wizard <path>     → the first-launch wizard
 ///   -snapshot-run <path>        → the review surface mid-run
+///   -snapshot-naming <path>     → the opt-out naming tiers + popovers (mocks/naming-review.html)
 ///   -snapshot-capture <path>    → review surface with the C3 url capture selected
 enum Snapshot {
     nonisolated static func renderIfRequested() {
@@ -22,6 +23,7 @@ enum Snapshot {
         if let p = path("-snapshot-settings")       { MainActor.assumeIsolated { renderSettings(to: p); exit(0) } }
         if let p = path("-snapshot-wizard")         { MainActor.assumeIsolated { renderWizard(to: p); exit(0) } }
         if let p = path("-snapshot-run")            { MainActor.assumeIsolated { renderRun(to: p); exit(0) } }
+        if let p = path("-snapshot-naming")         { MainActor.assumeIsolated { renderNaming(to: p); exit(0) } }
         if let p = path("-snapshot-capture")        { MainActor.assumeIsolated { renderCapture(to: p); exit(0) } }
         if let p = path("-snapshot-trash")          { MainActor.assumeIsolated { renderTrash(to: p); exit(0) } }
         if let p = path("-snapshot-names")          { MainActor.assumeIsolated { renderNames(to: p); exit(0) } }
@@ -64,6 +66,62 @@ enum Snapshot {
             NoteDisplayView(file: files.first, coordinator: coordinator, scrollable: false).frame(maxWidth: .infinity)
         }
         .frame(width: 1180, height: 780)
+        .background(Theme.bg)
+        writePNG(view, to: path)
+    }
+
+    /// Opt-out naming review (mocks/naming-review.html) — the SIGNED-OFF visual language:
+    /// the three prose tiers (linked #9d8ff7 / suggested tan dotted / plain) + the two
+    /// click-popovers. Pure SwiftUI (the live in-NSTextView body is verified by deploy-eyeball,
+    /// like the old resolver). Triggered by: `-snapshot-naming <path>`.
+    @MainActor private static func renderNaming(to path: String) {
+        // State 1 — calm prose (the mock's example sentence): linked names solid #9d8ff7,
+        // suggested names tan + dotted, the rest plain (a repeat, a stoplisted word, an unknown).
+        func nm(_ s: String, _ c: Color) -> Text { Text(s).foregroundColor(c) }
+        func sug(_ s: String) -> Text {
+            Text(s).foregroundColor(Theme.nameSuggest)
+                .underline(true, pattern: .dot, color: Theme.nameSuggestLine)
+        }
+        let prose = nm("Hendri", Theme.nameLink) + Text(" showed up early and we nailed the mix with ")
+            + nm("Bruno", Theme.nameLink) + Text(", then ") + sug("Jack") + Text(" swung by with notes — sharp as ever. Hendri reckons we're close to done. I'll send ")
+            + sug("Rose") + Text(" the stems tonight; Mariam wants in on the next one.")
+
+        let jack = [NameCandidate(id: "[[Jack Hutton]]", canonical: "[[Jack Hutton]]", short: "Jack"),
+                    NameCandidate(id: "[[Jack Tanner]]", canonical: "[[Jack Tanner]]", short: "Jack")]
+
+        func cap(_ t: String) -> some View {
+            Text(t).font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.textMuted)
+        }
+        let view = VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 7) {
+                cap("1 · AFTER PROCESSING — CALM PROSE")
+                prose.font(.system(size: 15)).lineSpacing(6).foregroundColor(Theme.textPrimary)
+                    .frame(maxWidth: 520, alignment: .leading)
+                HStack(spacing: 16) {
+                    (Text("linked").foregroundColor(Theme.nameLink) + Text(" auto · first mention")).font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                    (sug("suggested") + Text(" click to confirm")).font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                    (Text("plain").foregroundColor(Theme.textPrimary) + Text(" word · unknown · repeat")).font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                }
+            }
+            HStack(alignment: .top, spacing: 24) {
+                VStack(alignment: .leading, spacing: 7) {
+                    cap("2 · CLICK A SUGGESTED NAME")
+                    SuggestionPopover(spoken: "Jack", candidates: jack, onPick: { _ in }, onNew: {}, onPlain: {})
+                        .clipShape(RoundedRectangle(cornerRadius: 11))
+                        .overlay(RoundedRectangle(cornerRadius: 11).stroke(Theme.hairline.opacity(0.12), lineWidth: 0.5))
+                }
+                VStack(alignment: .leading, spacing: 7) {
+                    cap("3 · CLICK A LINKED NAME")
+                    LinkedNamePopover(person: "Hendri van Niekerk", others: ["Bruno Aragorn", "Mariam Khan"],
+                                      canOpen: true, onUnlink: {}, onChange: { _ in }, onOpen: {})
+                        .clipShape(RoundedRectangle(cornerRadius: 11))
+                        .overlay(RoundedRectangle(cornerRadius: 11).stroke(Theme.hairline.opacity(0.12), lineWidth: 0.5))
+                }
+            }
+            Spacer()
+        }
+        .padding(34)
+        .frame(width: 880, height: 560, alignment: .topLeading)
         .background(Theme.bg)
         writePNG(view, to: path)
     }

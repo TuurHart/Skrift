@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// The review surface (right pane): breadcrumb → pinned toolbar bar (transport +
 /// actions) → scrollable note content. The properties block, resolver, and the
@@ -13,19 +14,19 @@ struct NoteDisplayView: View {
     @Environment(\.modelContext) private var ctx
     @State private var audio = AudioController()
     @State private var author = SettingsStore.shared.load().authorName
-    /// Pre-unlink snapshot backing the inline undo toast (mocks/name-unlink.html).
-    /// Stays until dismissed/undone; cleared on note switch.
-    @State private var unlinkUndo: UnlinkUndo?
+    /// Pre-action snapshot backing the inline undo toast. The OPT-OUT body is a pure function
+    /// of the note's override sets, so undo just restores them + re-derives. Stays until
+    /// dismissed/undone; cleared on note switch.
+    @State private var namingUndo: NamingUndo?
     /// Drives the shared person editor sheet (mocks/opt-in-naming.html) — opened by the
-    /// body's right-click "A new person…" (pre-filled) or the chip bar's "Someone else…".
+    /// body's right-click "A new person…" / the suggestion popover's "New person…".
     @State private var editorRequest: PersonEditorRequest?
 
-    /// What "Undo" restores after an unlink: the exact pre-unlink body + the note's
-    /// persisted no-relink list as it was.
-    struct UnlinkUndo {
+    /// What "Undo" restores after a naming action: the note's override sets as they were.
+    struct NamingUndo {
         var message: String
-        var body: String
         var unlinkedNames: [String]
+        var namePicks: [String: String]
     }
 
     var body: some View {
@@ -33,7 +34,7 @@ struct NoteDisplayView: View {
             if let file {
                 content(file)
                     .task(id: file.id) { audio.load(path: file.path) }
-                    .onChange(of: file.id, initial: true) { _, _ in unlinkUndo = nil }
+                    .onChange(of: file.id, initial: true) { _, _ in namingUndo = nil }
                     .sheet(item: $editorRequest) { req in
                         PersonEditor(request: req,
                                      onSave: { original, person in savePerson(original, person, for: file) },
@@ -67,8 +68,9 @@ struct NoteDisplayView: View {
     }
 
     /// The centered reading column: properties → capture banner (if any) → summary →
-    /// body. (OPT-OUT naming lives in the prose — names auto-link and you prune by
-    /// clicking; the in-prose three-tier rendering + which-person popover land in chunk 4.)
+    /// body. OPT-OUT naming lives in the prose (mocks/naming-review.html) — names auto-link,
+    /// dotted suggestions + linked names are clicked to decide; every decision mutates the
+    /// note's override sets and re-derives the body deterministically (no LLM).
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             NoteProperties(file: file, author: author, interactive: scrollable)
@@ -83,90 +85,108 @@ struct NoteDisplayView: View {
             } else if let summary = file.enhancedSummary, !summary.isEmpty {
                 summaryAside(summary)
             }
-            if let undo = unlinkUndo, scrollable {
-                unlinkUndoToast(undo, file)
+            if let undo = namingUndo, scrollable {
+                namingUndoToast(undo, file)
             }
             NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias,
-                     onUnlink: scrollable ? unlinkHandler(file) : nil)
+                     onSuggestionPick: scrollable ? { a, c in pickName(file, alias: a, canonical: c) } : nil,
+                     onSuggestionPlain: scrollable ? { a in plainName(file, alias: a) } : nil,
+                     onLinkedUnlink: scrollable ? { c in unlinkName(file, canonical: c) } : nil,
+                     onLinkedChange: scrollable ? { a, c in changeName(file, alias: a, newCanonical: c) } : nil,
+                     onOpenNote: scrollable ? { c in openNote(c) } : nil)
         }
     }
 
-    // ── Unlink a [[Name]] (mocks/name-unlink.html) ──────────────────────────────
+    // ── In-prose naming decisions (mocks/naming-review.html) ─────────────────────
+    // Every action mutates the note's override sets (`unlinkedNames` prune + `namePicks`
+    // which-person/silence), then re-derives the body via the deterministic Sanitiser.
 
-    /// The body's unlink callback, bound to the active note.
-    private func unlinkHandler(_ file: PipelineFile) -> (String, String, BodyTextView.UnlinkScope) -> Void {
-        { canonical, alias, scope in
-            applyUnlink(file, canonical: canonical, alias: alias, scope: scope)
+    /// Snapshot the override sets, run `mutate`, re-derive + save, and arm the undo toast.
+    private func applyNaming(_ file: PipelineFile, _ message: String, _ mutate: () -> Void) {
+        let undo = NamingUndo(message: message, unlinkedNames: file.unlinkedNames, namePicks: file.namePicks)
+        mutate()
+        coordinator.resanitiseForNames(file, context: ctx)
+        namingUndo = undo
+    }
+
+    /// Suggestion popover → "which person?" / common-word confirm: FORCE-LINK the alias.
+    private func pickName(_ file: PipelineFile, alias: String, canonical: String) {
+        let key = alias.lowercased()
+        let canon = NamesMerge.normaliseCanonical(canonical)
+        applyNaming(file, "Linked “\(alias)” → \(NamesMerge.keyName(canon))") {
+            var picks = file.namePicks; picks[key] = canon; file.namePicks = picks
+            // Re-promote: clear any prune of the chosen person so it links.
+            file.unlinkedNames.removeAll { $0.caseInsensitiveCompare(canon) == .orderedSame
+                || NamesMerge.keyName($0).caseInsensitiveCompare(NamesMerge.keyName(canon)) == .orderedSame }
         }
     }
 
-    /// Apply a scope picked in the body's unlink popover. ONE mention → the i-th
-    /// `[[link]]` of that person becomes the plain alias as spoken (a body edit,
-    /// like any hand edit). ALL mentions → every link of theirs goes plain AND the
-    /// canonical is persisted on the file so re-processing won't re-link it here.
-    /// Either way the pre-unlink state is kept for the undo toast.
-    private func applyUnlink(_ file: PipelineFile, canonical: String, alias: String,
-                             scope: BodyTextView.UnlinkScope) {
-        let before = file.bestBodyText
-        let beforeUnlinked = file.unlinkedNames
-        let text: String
-        let message: String
-        switch scope {
-        case let .mention(index):
-            text = Sanitiser.unlinkOccurrence(text: before, canonical: canonical, index: index, alias: alias)
-            message = "Unlinked — “\(alias)” is plain text in this note"
-        case let .change(index, newPerson):
-            text = Sanitiser.relinkOccurrence(text: before, canonical: canonical, index: index, newCanonical: newPerson)
-            message = "Changed — this mention now links to \(newPerson)"
-        case .all:
-            text = Sanitiser.unlinkAll(text: before, canonical: canonical, alias: alias)
-            if !file.unlinkedNames.contains(where: { $0.caseInsensitiveCompare(canonical) == .orderedSame }) {
-                file.unlinkedNames.append(canonical)
+    /// Suggestion popover → "Leave as plain text": SILENCE the alias (renders plain).
+    private func plainName(_ file: PipelineFile, alias: String) {
+        let key = alias.lowercased()
+        applyNaming(file, "“\(alias)” left as plain text") {
+            var picks = file.namePicks; picks[key] = ""; file.namePicks = picks
+        }
+    }
+
+    /// Linked popover → "Unlink — side-mention": PRUNE the person (→ dotted suggestion).
+    private func unlinkName(_ file: PipelineFile, canonical: String) {
+        let canon = NamesMerge.normaliseCanonical(canonical)
+        let key = NamesMerge.keyName(canon).lowercased()
+        applyNaming(file, "Unlinked \(NamesMerge.keyName(canon)) — now a side-mention") {
+            if !file.unlinkedNames.contains(where: { NamesMerge.keyName($0).lowercased() == key }) {
+                file.unlinkedNames.append(canon)
             }
-            message = "Unlinked \(canonical) everywhere in this note — won’t re-link on reprocess"
+            // Drop any pick that re-promoted them (so the prune takes effect).
+            file.namePicks = file.namePicks.filter { NamesMerge.keyName($0.value).lowercased() != key }
         }
-        guard text != before || file.unlinkedNames != beforeUnlinked else { return }
-        setBody(text, on: file)
-        file.compiledText = Compiler.compile(file: file, author: author, knownPeople: NamesStore.shared.livePeople())
-        file.lastActivityAt = Date()
-        try? ctx.save()
-        unlinkUndo = UnlinkUndo(message: message, body: before, unlinkedNames: beforeUnlinked)
     }
 
-    /// Undo the last unlink: restore the exact pre-unlink body + no-relink list.
-    private func undoUnlink(_ file: PipelineFile) {
-        guard let undo = unlinkUndo else { return }
-        setBody(undo.body, on: file)
+    /// Linked popover → "Change person…": FORCE-LINK the alias to a different person.
+    private func changeName(_ file: PipelineFile, alias: String, newCanonical: String) {
+        let key = alias.lowercased()
+        let canon = NamesMerge.normaliseCanonical(newCanonical)
+        applyNaming(file, "Changed “\(alias)” → \(NamesMerge.keyName(canon))") {
+            var picks = file.namePicks; picks[key] = canon; file.namePicks = picks
+        }
+    }
+
+    /// Linked popover → "Open their note": reveal the `People/<name>.md` file (best-effort).
+    private func openNote(_ canonical: String) {
+        let name = NamesMerge.keyName(canonical)
+        let vault = SettingsStore.shared.load().noteFolder
+        guard !vault.isEmpty else { coordinator.flash("Set a vault in Settings to open notes"); return }
+        let url = URL(fileURLWithPath: vault).appendingPathComponent("People").appendingPathComponent("\(name).md")
+        if FileManager.default.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } else {
+            coordinator.flash("No People/\(name).md note in your vault yet")
+        }
+    }
+
+    /// Undo the last naming action: restore the override sets + re-derive.
+    private func undoNaming(_ file: PipelineFile) {
+        guard let undo = namingUndo else { return }
         file.unlinkedNames = undo.unlinkedNames
-        file.compiledText = Compiler.compile(file: file, author: author, knownPeople: NamesStore.shared.livePeople())
-        file.lastActivityAt = Date()
-        try? ctx.save()
-        unlinkUndo = nil
+        file.namePicks = undo.namePicks
+        coordinator.resanitiseForNames(file, context: ctx)
+        namingUndo = nil
     }
 
-    /// Write the body back through the SAME precedence the editor binding uses
-    /// (sanitised → copy-edit → transcript), so unlink/undo edit what's shown.
-    private func setBody(_ text: String, on file: PipelineFile) {
-        if file.sanitised != nil { file.sanitised = text }
-        else if file.enhancedCopyedit != nil { file.enhancedCopyedit = text }
-        else { file.transcript = text }
-    }
-
-    /// The inline undo toast — sits above the body (per the mock) and STAYS until
-    /// undone or dismissed (an unlink shouldn't quietly become permanent).
-    private func unlinkUndoToast(_ undo: UnlinkUndo, _ file: PipelineFile) -> some View {
+    /// The inline undo toast — sits above the body and STAYS until undone or dismissed.
+    private func namingUndoToast(_ undo: NamingUndo, _ file: PipelineFile) -> some View {
         HStack(spacing: 10) {
             Text(undo.message)
                 .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
-            Button { undoUnlink(file) } label: {
+            Button { undoNaming(file) } label: {
                 Text("Undo").font(.system(size: 11.5)).foregroundStyle(Theme.accent)
                     .padding(.horizontal, 10).padding(.vertical, 3)
                     .overlay(Capsule().stroke(Theme.accent.opacity(0.35), lineWidth: 0.5))
             }
             .buttonStyle(.plain)
-            Button { unlinkUndo = nil } label: {
+            Button { namingUndo = nil } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 9, weight: .semibold)).foregroundStyle(Theme.textMuted)
             }

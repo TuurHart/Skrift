@@ -201,4 +201,55 @@ final class SanitiserTests: XCTestCase {
         XCTAssertEqual(r.ambiguous.first?.candidates.count, 2)
     }
 
+    // MARK: namePicks (chunk 4) — the review popover's per-note "which person?" overrides:
+    // a canonical FORCE-LINKS the alias (bypassing FP-prone + ambiguity + a prune); "" SILENCES.
+
+    func testNamePickForceLinksAmbiguous() {
+        // "which Jack?" → Hutton: the picked alias links Hutton, later mentions short, no ambiguity.
+        let people = [
+            person("[[Jack Hutton]]", ["Jack"], short: "Jack"),
+            person("[[Jack Timmons]]", ["Jack"], short: "Jack"),
+        ]
+        let r = Sanitiser.process(text: "Met Jack, then Jack again.", people: people,
+                                  namePicks: ["jack": "[[Jack Hutton]]"])
+        XCTAssertEqual(r.sanitised, "Met [[Jack Hutton]], then Jack again.")
+        XCTAssertTrue(r.ambiguous.isEmpty, "the pick resolved the ambiguity")
+    }
+
+    func testNamePickForceLinksCommonWord() {
+        // Confirming a common-word suggestion ("Will" → Will Smith) force-links it.
+        let people = [person("[[Will Smith]]", ["Will"], short: "Will")]
+        let r = Sanitiser.process(text: "Will called me back.", people: people,
+                                  namePicks: ["will": "[[Will Smith]]"])
+        XCTAssertEqual(r.sanitised, "[[Will Smith]] called me back.")
+        XCTAssertTrue(r.ambiguous.isEmpty)
+    }
+
+    func testNamePickEmptyCanonicalSilences() {
+        // "Leave as plain text": the alias renders plain — neither linked nor suggested.
+        let people = [person("[[Will Smith]]", ["Will"], short: "Will")]
+        let r = Sanitiser.process(text: "Will called me back.", people: people,
+                                  namePicks: ["will": ""])
+        XCTAssertEqual(r.sanitised, "Will called me back.")
+        XCTAssertTrue(r.ambiguous.isEmpty, "silenced → not even suggested")
+    }
+
+    func testPrunedDistinctiveNameStaysSuggestion() {
+        // Unlink (prune) a distinctive auto-linked name → it stays a dotted suggestion.
+        let people = [person("[[Hendri van Niekerk]]", ["Hendri"], short: "Hendri")]
+        let r = Sanitiser.process(text: "I met Hendri today.", people: people, neverLink: ["Hendri van Niekerk"])
+        XCTAssertEqual(r.sanitised, "I met Hendri today.", "not auto-linked")
+        XCTAssertEqual(r.ambiguous.count, 1, "kept as a dotted suggestion (re-promotable)")
+        XCTAssertEqual(r.ambiguous.first?.candidates.map(\.canonical), ["[[Hendri van Niekerk]]"])
+    }
+
+    func testNamePickOverridesPrune() {
+        // Re-promote a pruned name by picking it — the pick wins over the prune.
+        let people = [person("[[Hendri van Niekerk]]", ["Hendri"], short: "Hendri")]
+        let r = Sanitiser.process(text: "I met Hendri today.", people: people,
+                                  neverLink: ["Hendri van Niekerk"],
+                                  namePicks: ["hendri": "[[Hendri van Niekerk]]"])
+        XCTAssertEqual(r.sanitised, "I met [[Hendri van Niekerk]] today.")
+        XCTAssertTrue(r.ambiguous.isEmpty)
+    }
 }

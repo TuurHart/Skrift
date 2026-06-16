@@ -141,8 +141,8 @@ struct BatchRunner {
         // mention, risk-tiered — FP-prone/ambiguous names surface as dotted suggestions);
         // the user prunes stray subjects via `unlinkedNames`.
         let san = isConversation
-            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames))
-            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames))
+            ? Sanitiser.processConversation(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
+            : Sanitiser.process(text: working, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
         pf.sanitised = san.sanitised
         pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
 
@@ -187,7 +187,7 @@ struct BatchRunner {
             let suggestions = TagMatcher.suggest(text: annotation, whitelist: tagWhitelist)
             pf.tagSuggestions = suggestions.matched + suggestions.spoken
             // Opt-out naming applies to captures too — known people auto-link by default.
-            let san = Sanitiser.process(text: annotation, people: people, neverLink: Set(pf.unlinkedNames))
+            let san = Sanitiser.process(text: annotation, people: people, neverLink: Set(pf.unlinkedNames), namePicks: pf.namePicks)
             pf.sanitised = san.sanitised
             pf.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
         }

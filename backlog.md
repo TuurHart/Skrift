@@ -307,10 +307,15 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
     Data-model: dropped `PipelineFile.aboutPeople`, added the `namePicks` ambiguity-pick record;
     removed `toggleAbout` + the `-snapshot-resolver`/`-snapshot-people` modes. **Gate: 273 UnitTests
     green + full app build green.**
-  - ⏭ **Next: Chunk 4 (the heavy one) — in-prose 3-tier rendering (linked `#9d8ff7` / suggested tan
-    `#bda481` dotted / plain) in `BodyTextView` + the click-popover (which-person · unlink · change ·
-    new), reusing `unlinkOccurrence`/`relinkOccurrence` + the new `namePicks` engine consumption.
-    Build to `mocks/naming-review.html`; verify via a new `-snapshot` mode + deploy-eyeball.**
+  - ✅ **Chunk 4 (the heavy one) — in-prose 3-tier UX.** ENGINE: `namePicks` (force-link / `""`
+    silence) + `neverLink` refined to PRUNE→SUGGEST (unlinked name stays dotted + re-promotable),
+    via a shared `Overrides` struct. UI (`BodyTextView` NSTextView): linked #9d8ff7 / suggested tan
+    dotted / plain, model→storage offset-mapped past image markers; `SuggestionPopover` (state 2) +
+    `LinkedNamePopover` (state 3). `NoteDisplayView` wires each decision → set-mutation +
+    `resanitiseForNames` + undo toast. **Gate: 278 UnitTests green + full app build green; visual
+    verified vs the mock via `-snapshot-naming`.** OWED: live in-NSTextView body eyeball after deploy.
+  - ⏭ **Next: Chunk 5 — robustness: re-scan/flag when a 2nd same-name person joins the roster;
+    matcher fuzzy-vs-strict tuning + a parity golden-set; finalize remaining build-guards.**
   The grill detail below is kept as the audit trail.
   --- (original re-open framing, now resolved by NAMING_MODEL.md) ---
   User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question
