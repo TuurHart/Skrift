@@ -158,14 +158,16 @@ enum Sanitiser {
             let linkAliases = unambiguous.filter { !NameStoplist.isFpProne($0) || ov.forced[$0.lowercased()] != nil }
             let linkText = "[[\(canonKey)]]"
 
-            // The text may ALREADY carry this person's canonical link (e.g. a diarized turn
-            // header): that earliest link IS the first mention — demote the later copies.
-            let existingLinks = occurrences(of: linkText, in: text)
+            // The text may ALREADY carry this person's canonical link — bare `[[Name]]` OR the
+            // alias-display `[[Name|short]]` form (a diarized turn header / a re-derived body):
+            // that earliest link IS the first mention — demote the later copies to the short name.
+            // Pipe-tolerant (`linkOccurrences`) so a `[[Name|short]]` can't slip past and earn a 2nd link.
+            let existingLinks = linkOccurrences(of: canonKey, in: text)
             var isLinked = false
             if !existingLinks.isEmpty {
                 isLinked = true
                 if !short.isEmpty {
-                    for r in existingLinks.dropFirst().reversed() { text = nsReplace(text, r, with: short) }
+                    for link in existingLinks.dropFirst().reversed() { text = nsReplace(text, link.range, with: short) }
                 }
             } else if !linkAliases.isEmpty {
                 let prot = nonProseRanges(in: text)
@@ -624,22 +626,6 @@ enum Sanitiser {
         let r = m.range(withName: "poss")
         guard r.location != NSNotFound, r.length > 0 else { return "" }
         return nsSub(text, r.location, r.location + r.length)
-    }
-
-    /// Literal occurrences of `needle` in `text` (ascending NSRanges) — used to spot
-    /// canonical links the text already carries.
-    private static func occurrences(of needle: String, in text: String) -> [NSRange] {
-        guard !needle.isEmpty else { return [] }
-        let ns = text as NSString
-        var out: [NSRange] = []
-        var from = 0
-        while from < ns.length {
-            let r = ns.range(of: needle, options: [], range: NSRange(location: from, length: ns.length - from))
-            if r.location == NSNotFound { break }
-            out.append(r)
-            from = r.location + r.length
-        }
-        return out
     }
 
     private static func notInsideLink(_ s: String, _ start: Int) -> Bool {

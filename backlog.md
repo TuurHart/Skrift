@@ -329,10 +329,11 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
     mobile work onto `main` mid-build (see `feedback_parallel_orchestration`) — recovered cleanly.
 
   **Naming — open questions (post-build review, 2026-06-16; answers logged, none blocking):**
-  - Q1 (latent, not live): monologue `process` detects an existing link via a LITERAL `[[Canonical]]`
-    substring (`occurrences(of:)`), not pipe-tolerant. Not reachable today (monologue emits BARE links;
-    piped links only come from `processConversation`, which routes by `isAttributed`; re-derive uses the
-    pristine working text, never the sanitised body). Cheap hardening: swap to `hasCanonicalLink`. ⏳ tiny.
+  - ✅ Q1 DONE (`commit below`): monologue `process` existing-link check is now PIPE-TOLERANT —
+    swapped the literal `occurrences(of: "[[Name]]")` for `linkOccurrences(of: canonKey)` (matches bare
+    AND `[[Name|short]]`), so a piped link can never slip past into a 2nd link; removed the now-dead
+    literal `occurrences` helper. Regression test `testExistingPipedLinkSuppressesSecondLink`. (Was
+    latent-not-live; folded in as cheap insurance per the user.)
   - Q2 (edge): `nonProseRanges` skips only a LEADING audiobook quote (contract C1 guarantees `> ` at
     offset 0). A mid-body `>` blockquote (only from a hand-authored Apple-Note import) isn't protected →
     names inside auto-link. Optional: skip ALL `>`-line runs, not just leading. ⏳ optional.
@@ -347,9 +348,9 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
   - Q6 (intent): the capitalization guard fires a dotted suggestion on a sentence-initial stoplisted word
     that's also a roster name ("Will you…"). ACCEPTED noise — it's a dotted SUGGESTION (no link written,
     one-click dismiss). A following-token/POS check is possible but adds heuristic FP risk; hold unless annoying.
-  - Q7 (real friction): a FREQUENT person whose name is on the stoplist (Mark/Rose/Max…) is dotted-suggested
-    EVERY memo, never auto-linked (note-level `namePicks` don't carry across memos). ⏳ FOLLOW-UP: a per-Person
-    "treat as distinctive" override (opt out of the stoplist guard) → auto-commit that name, accepting the word-FP.
+  - Q7 (real friction) — DECIDED 2026-06-16: NOT NOW (user). A FREQUENT person whose name is on the stoplist
+    (Mark/Rose/Max…) is dotted-suggested every memo (click-to-confirm), never auto-linked. The fix if it ever
+    bites: a per-Person "treat as distinctive" override (opt out of the stoplist guard). Parked, not built.
   - Q8 (scale): the auto-link pass is O(people × aliases) whole-word regex + recomputes `nonProseRanges`
     per person (link-find + demote). Fine at hundreds; at thousands (lifelong/phone roster) it adds up,
     worse in `rescanRoster` over many files. ⏳ FOLLOW-UP if it slows: one alternation-regex/Aho-Corasick

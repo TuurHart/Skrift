@@ -96,6 +96,15 @@ final class SanitiserTests: XCTestCase {
         XCTAssertEqual(r.sanitised, "[[Nick Jansen]] is here. Nick waves.")
     }
 
+    func testExistingPipedLinkSuppressesSecondLink() {
+        // Hardening (Q1): a body that already carries the ALIAS-DISPLAY `[[Canonical|short]]`
+        // form (not just bare) is recognized too, so `process` never adds a 2nd link past it.
+        let people = [person("[[Nick Jansen]]", ["Nick", "Nicky"], short: "Nick")]
+        let r = Sanitiser.process(text: "[[Nick Jansen|Nick]] is here. Nicky waves.", people: people)
+        XCTAssertEqual(r.sanitised, "[[Nick Jansen|Nick]] is here. Nick waves.")
+        XCTAssertEqual(r.sanitised.components(separatedBy: "[[Nick Jansen").count - 1, 1, "still exactly one link")
+    }
+
     func testRepeatedNonPersonLinksUntouched() {
         // Repeated links that aren't people (image markers, place links) never demote.
         let people = [person("[[Nick Jansen]]", ["Nicky"], short: "Nick")]
