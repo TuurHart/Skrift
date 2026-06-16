@@ -322,10 +322,38 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
     finalized (FP guards / non-prose skip / re-scan / frontmatter-lockstep / own-the-files ✅;
     date-sorted person view = Obsidian-side, deferred). **Gate: 286 UnitTests green + full app build green.**
   ✅✅ **ALL 5 CHUNKS DONE (2026-06-16).** The opt-out naming model is built, gated, committed on
-    `main` (chunks 1–5: `67de42f`, `6d458e8`, `8ae5f4f`+`d7852c3`, `19979f8`, + chunk 5). Deployed to
-    `/Applications/Skrift Dev.app`. OWED: live in-NSTextView body eyeball (process a memo with known
-    people in Skrift Dev). NOTE: a parallel session committed mobile work onto `main` mid-build (see
-    `feedback_parallel_orchestration`) — recovered cleanly.
+    `main` (chunks 1–5: `67de42f`, `6d458e8`, `8ae5f4f`+`d7852c3`, `19979f8`, + chunk 5; fixes `3fc55a1`
+    change-person force-link + `ba1c779` change-person scoped to same-name). Deployed to
+    `/Applications/Skrift Dev.app`; `-naming-demo` flag seeds a self-consistent live example.
+    Device-eyeballed by the user (change-person bug found + fixed). NOTE: a parallel session committed
+    mobile work onto `main` mid-build (see `feedback_parallel_orchestration`) — recovered cleanly.
+
+  **Naming — open questions (post-build review, 2026-06-16; answers logged, none blocking):**
+  - Q1 (latent, not live): monologue `process` detects an existing link via a LITERAL `[[Canonical]]`
+    substring (`occurrences(of:)`), not pipe-tolerant. Not reachable today (monologue emits BARE links;
+    piped links only come from `processConversation`, which routes by `isAttributed`; re-derive uses the
+    pristine working text, never the sanitised body). Cheap hardening: swap to `hasCanonicalLink`. ⏳ tiny.
+  - Q2 (edge): `nonProseRanges` skips only a LEADING audiobook quote (contract C1 guarantees `> ` at
+    offset 0). A mid-body `>` blockquote (only from a hand-authored Apple-Note import) isn't protected →
+    names inside auto-link. Optional: skip ALL `>`-line runs, not just leading. ⏳ optional.
+  - Q3/Q4 (real limitation): `rescanRoster` re-derives the IN-APP `f.sanitised`/`ambiguousNames` + flashes;
+    it does NOT rewrite already-EXPORTED vault `.md` (the user re-Exports). `affectedFiles` scans body
+    links (`people:` is derived from them in lockstep, so they match). Per-note `namePicks` ARE preserved
+    through the re-derive. ⏳ FOLLOW-UP: auto-re-export affected exported notes + also scan `people:` as a
+    belt-and-suspenders.
+  - Q5 (intent): `minAutoCommitLength = 3` → ≤2-char names suggest, 3+ auto-commit. INTENTIONAL — 3-char
+    given names (Sam/Tom/Ben/Kim/Jan) are distinctive under whole-word+capitalization; the vocab-booster's
+    ≤3–4-char flag was about FUZZY transcription spotting, not exact naming. One-line bumpable if FPs show.
+  - Q6 (intent): the capitalization guard fires a dotted suggestion on a sentence-initial stoplisted word
+    that's also a roster name ("Will you…"). ACCEPTED noise — it's a dotted SUGGESTION (no link written,
+    one-click dismiss). A following-token/POS check is possible but adds heuristic FP risk; hold unless annoying.
+  - Q7 (real friction): a FREQUENT person whose name is on the stoplist (Mark/Rose/Max…) is dotted-suggested
+    EVERY memo, never auto-linked (note-level `namePicks` don't carry across memos). ⏳ FOLLOW-UP: a per-Person
+    "treat as distinctive" override (opt out of the stoplist guard) → auto-commit that name, accepting the word-FP.
+  - Q8 (scale): the auto-link pass is O(people × aliases) whole-word regex + recomputes `nonProseRanges`
+    per person (link-find + demote). Fine at hundreds; at thousands (lifelong/phone roster) it adds up,
+    worse in `rescanRoster` over many files. ⏳ FOLLOW-UP if it slows: one alternation-regex/Aho-Corasick
+    candidate pass + compute `nonProseRanges` ONCE per `process` (edits are localized).
   The grill detail below is kept as the audit trail.
   --- (original re-open framing, now resolved by NAMING_MODEL.md) ---
   User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question
