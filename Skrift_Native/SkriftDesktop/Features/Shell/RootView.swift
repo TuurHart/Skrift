@@ -63,8 +63,19 @@ struct RootView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: coordinator.toast)
         .task {
-            // Real app starts empty; `-demo` populates with sample notes for dev/demo.
-            if ProcessInfo.processInfo.arguments.contains("-demo") {
+            // Real app starts empty; `-demo` populates with sample notes for dev/demo,
+            // `-naming-demo` (DEBUG) seeds one self-consistent naming-review example.
+            let args = ProcessInfo.processInfo.arguments
+            #if DEBUG
+            let namingDemo = args.contains("-naming-demo")
+            #else
+            let namingDemo = false
+            #endif
+            if namingDemo {
+                #if DEBUG
+                DemoSeed.seedNamingDemo(ctx)
+                #endif
+            } else if args.contains("-demo") {
                 DemoSeed.seedIfEmpty(ctx)
             } else {
                 let s = SettingsStore.shared.load()

@@ -16,6 +16,49 @@ enum DemoSeed {
     /// Detached demo objects (no ModelContext) for headless `ImageRenderer` snapshots.
     static func snapshotFiles() -> [PipelineFile] { demoFiles() }
 
+    #if DEBUG
+    /// `-naming-demo`: a focused, self-consistent example for eyeballing the opt-out naming
+    /// review (mocks/naming-review.html) in the LIVE NSTextView. Non-destructively upserts a
+    /// small test roster into the dev names DB (so person links color + the popovers populate),
+    /// then seeds ONE memo whose body is run through the REAL `Sanitiser` — so the linked /
+    /// suggested / plain tiers + the `ambiguousNames` offsets are guaranteed consistent. Dev
+    /// data only; the 6 test people are deletable in Settings → Names.
+    @MainActor
+    static func seedNamingDemo(_ ctx: ModelContext) {
+        let roster: [(String, [String], String)] = [
+            ("[[Hendri van Niekerk]]", ["Hendri"], "Hendri"),
+            ("[[Bruno Aragorn]]", ["Bruno"], "Bruno"),
+            ("[[Jack Hutton]]", ["Jack"], "Jack"),     // two Jacks → "Jack" is ambiguous
+            ("[[Jack Tanner]]", ["Jack"], "Jack"),
+            ("[[Rose Baker]]", ["Rose"], "Rose"),       // common word → suggested
+            ("[[Will Smith]]", ["Will"], "Will"),       // common word → "will" stays plain
+        ]
+        for (c, a, s) in roster {
+            NamesStore.shared.upsert(Person(canonical: c, aliases: a, short: s, lastModifiedAt: ISO8601.now()), replacing: nil)
+        }
+        let existing = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        guard !existing.contains(where: { $0.id == "naming-demo" }) else { return }
+
+        let text = "Long studio session today. Hendri showed up early and we nailed the mix with Bruno. Then Jack swung by with notes — sharp as ever. Hendri reckons we're close to done. I'll send Rose the stems tonight, and I will double-check the levels. Mariam wants in on the next one."
+        let f = PipelineFile(id: "naming-demo", filename: "Naming demo.m4a", sourceType: .audio, uploadedAt: Date())
+        f.transcript = text
+        f.enhancedCopyedit = text
+        f.enhancedTitle = "Naming review demo"
+        f.titleSuggested = f.enhancedTitle
+        f.enhancedSummary = "Tap a tan dotted name (Jack / Rose) to pick a person; click a purple linked name (Hendri / Bruno) to unlink or change it."
+        let san = Sanitiser.process(text: text, people: NamesStore.shared.livePeople())
+        f.sanitised = san.sanitised
+        f.ambiguousNames = san.ambiguous.isEmpty ? nil : san.ambiguous
+        f.transcribeStatus = .done; f.sanitiseStatus = .done; f.enhanceStatus = .done
+        f.tags = ["demo"]
+        f.compiledText = Compiler.compile(file: f, author: SettingsStore.shared.load().authorName,
+                                          knownPeople: NamesStore.shared.livePeople())
+        f.audioMetadataJSON = meta(["duration": "00:01:30"])
+        ctx.insert(f)
+        try? ctx.save()
+    }
+    #endif
+
     private static func date(_ y: Int, _ mo: Int, _ d: Int, _ h: Int = 12) -> Date {
         var c = DateComponents(); c.year = y; c.month = mo; c.day = d; c.hour = h
         return Calendar.current.date(from: c) ?? Date()
