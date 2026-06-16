@@ -219,9 +219,24 @@ are the price of getting it right:
 ## Next steps
 1. ✅ **Research sanity-check DONE (2026-06-16).** Verdict: sound as-is. Refinements adopted —
    risk-tiered opt-out (decision 4), aliases live in the portable DB not the note (decision 5),
-   one-keystroke fuzzy add-picker. Rejected — the new-person hint (decision 5). Build-guards
-   captured above.
-2. **Mock** the dotted-prose + click-popover UX (that's the whole UX now) — the risk tiers
-   visible (committed vs dotted-suggested vs plain), the popover (keep / unlink / change / add),
-   and the re-promotable dotted state. Mock-first is the locked process for new desktop UI.
-3. **Build** — mostly deletions + the default flip + roster seeding + the FP-guard stoplist.
+   one-keystroke fuzzy add-picker. Rejected — the new-person hint (decision 5).
+2. ✅ **Mock signed off (2026-06-16) → `mocks/naming-review.html`.** Visual language locked
+   (see the UX section above).
+3. **BUILD** — ordered, gated chunks (UnitTests + `-skipMacroValidation` build per chunk; commit
+   per chunk updating FEATURES.md + backlog.md + this doc's status). Read "Migration" before
+   deleting:
+   - **Chunk 1 — Sanitiser → opt-out + risk-tiering.** Drop the `aboutPeople` include-gate; link
+     ALL known people by default (first mention), pruned by `unlinkedNames` (exclude); auto-commit
+     full/distinctive names, downgrade common-word + ambiguous names to *suggested* via a
+     **stoplist**; apply the FP guards + skip audiobook-quote/YAML/code spans. Host-less tests.
+   - **Chunk 2 — Roster seeding.** App code reads `People/` note titles → the portable names DB
+     (canonical = title); aliases live in the DB. Tests. (Privacy: titles only, app code, no AI.)
+   - **Chunk 3 — Delete.** `PeopleChipBar`; `InlineResolverModel` / `applyPartialOccurrences` /
+     resolver banner; unwire from `NoteDisplayView`/`BodyTextView`. Data-model flip (drop
+     `aboutPeople`; use `unlinkedNames` exclude + an ambiguity-pick record). Build green.
+   - **Chunk 4 — In-prose UX (the heavy one).** Render the three tiers in the body
+     (linked solid `#9d8ff7` / suggested tan `#bda481` dotted / plain) + the click-popover
+     (which-person · unlink · change · new), reusing `unlinkOccurrence`/`relinkOccurrence`. Build
+     to `mocks/naming-review.html`. Verify via `-snapshot` (inject people) / UITest / deploy-eyeball.
+   - **Chunk 5 — Robustness.** Re-scan/flag pass when a 2nd same-name person joins the roster;
+     matcher fuzzy-vs-strict tuning + a parity golden-set; finalize the remaining build-guards.
