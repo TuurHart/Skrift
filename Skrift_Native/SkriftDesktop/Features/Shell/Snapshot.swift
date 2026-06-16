@@ -10,7 +10,6 @@ import AppKit
 ///   -snapshot-settings-light p  → the Settings panel in LIGHT
 ///   -snapshot-wizard <path>     → the first-launch wizard
 ///   -snapshot-run <path>        → the review surface mid-run
-///   -snapshot-resolver <path>   → the inline resolver pieces
 ///   -snapshot-capture <path>    → review surface with the C3 url capture selected
 enum Snapshot {
     nonisolated static func renderIfRequested() {
@@ -23,10 +22,8 @@ enum Snapshot {
         if let p = path("-snapshot-settings")       { MainActor.assumeIsolated { renderSettings(to: p); exit(0) } }
         if let p = path("-snapshot-wizard")         { MainActor.assumeIsolated { renderWizard(to: p); exit(0) } }
         if let p = path("-snapshot-run")            { MainActor.assumeIsolated { renderRun(to: p); exit(0) } }
-        if let p = path("-snapshot-resolver")       { MainActor.assumeIsolated { renderResolver(to: p); exit(0) } }
         if let p = path("-snapshot-capture")        { MainActor.assumeIsolated { renderCapture(to: p); exit(0) } }
         if let p = path("-snapshot-trash")          { MainActor.assumeIsolated { renderTrash(to: p); exit(0) } }
-        if let p = path("-snapshot-people")         { MainActor.assumeIsolated { renderPeople(to: p); exit(0) } }
         if let p = path("-snapshot-names")          { MainActor.assumeIsolated { renderNames(to: p); exit(0) } }
         if let p = path("-snapshot-person-editor")  { MainActor.assumeIsolated { renderPersonEditor(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
@@ -105,72 +102,6 @@ enum Snapshot {
         writePNG(view, to: path, scheme: scheme)
     }
 
-    /// R3 inline resolver: the slim banner (mid-progress) + the candidate popover —
-    /// the SwiftUI pieces ImageRenderer can draw. The inline body marks + click flow
-    /// live in NSTextView/NSPopover (verified by live-driving, not snapshots).
-    @MainActor private static func renderResolver(to path: String) {
-        let amb = DemoSeed.snapshotFiles().first?.ambiguousNames ?? []
-        let model = InlineResolverModel(fileID: "demo-1", ambiguous: amb)
-        model.escalated.insert("jack")   // one alias row (Sam) + one escalated row (Jack)
-        model.jumpHandler = {}
-        let cands = model.candidates(for: "Sam")
-        let view = VStack(alignment: .leading, spacing: 26) {
-            InlineResolverBanner(model: model)
-            ResolverPopover(mode: .alias, alias: "Sam", contextBefore: "If ", contextAfter: " can test it next week",
-                            candidates: cands, current: nil, onPick: { _ in }, onEscalate: {})
-                .clipShape(RoundedRectangle(cornerRadius: 11))
-                .overlay(RoundedRectangle(cornerRadius: 11).stroke(Theme.hairline.opacity(0.12), lineWidth: 0.5))
-            Spacer()
-        }
-        .padding(40)
-        .frame(width: 760, height: 480, alignment: .topLeading)
-        .background(Theme.bg)
-        writePNG(view, to: path)
-    }
-
-    /// Opt-in naming "People in this note" chip bar (mocks/opt-in-naming.html) in its three
-    /// states, with INJECTED people so it's deterministic (independent of the on-disk names).
-    /// Triggered by: `-snapshot-people <path>`.
-    @MainActor private static func renderPeople(to path: String) {
-        let hendri = Person(canonical: "[[Hendri Van Niekerk]]", aliases: ["Hendri", "Henry"], short: "Hendri", lastModifiedAt: "x")
-        let bruno = Person(canonical: "[[Bruno Aragorn]]", aliases: ["Bruno"], short: "Bruno", lastModifiedAt: "x")
-        let tiuri = Person(canonical: "[[Tiuri Hartog]]", aliases: ["Tiuri Hartog", "Tuur"], short: "Tuur", lastModifiedAt: "x")
-        let coord = ProcessingCoordinator()
-
-        // State 1 — fresh note, nothing linked: both detected chips OFF.
-        let fresh = PipelineFile(id: "s1", filename: "memo.m4a", sourceType: .audio)
-        fresh.enhancedCopyedit = "Pizza update on Henry's birthday. Earlier Bruno dropped off the tray."
-        fresh.sanitised = fresh.enhancedCopyedit
-
-        // State 2 — tapped Hendri: he's linked (ON, full name), Bruno still OFF.
-        let tapped = PipelineFile(id: "s2", filename: "memo.m4a", sourceType: .audio)
-        tapped.enhancedCopyedit = "Pizza update on Henry's birthday. Earlier Bruno dropped off the tray."
-        tapped.aboutPeople = ["[[Hendri Van Niekerk]]"]
-        tapped.sanitised = "Pizza update on [[Hendri Van Niekerk|Henry]]'s birthday. Earlier Bruno dropped off the tray."
-
-        // State 3 — conversation: the matched speaker (Tiuri) is a locked-on chip.
-        let convo = PipelineFile(id: "s3", filename: "memo.m4a", sourceType: .audio)
-        convo.enhancedCopyedit = "**Tiuri Hartog:** I saw Bruno today\n\n**Speaker 2:** cool"
-        convo.sanitised = "**[[Tiuri Hartog]]:** I saw Bruno today\n\n**Speaker 2:** cool"
-
-        func labeled(_ title: String, _ file: PipelineFile) -> some View {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title).font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.textMuted)
-                PeopleChipBar(file: file, coordinator: coord, interactive: true,
-                              peopleOverride: [hendri, bruno, tiuri], onAddPerson: {})
-            }
-        }
-        let view = VStack(alignment: .leading, spacing: 22) {
-            labeled("1 · Fresh — nothing linked", fresh)
-            labeled("2 · Tapped Hendri — linked + Bruno still off", tapped)
-            labeled("3 · Conversation — matched speaker locked-on", convo)
-            Spacer()
-        }
-        .padding(28)
-        .frame(width: 480, height: 420, alignment: .topLeading)
-        .background(Theme.bg)
-        writePNG(view, to: path)
-    }
 
     /// Settings → Names list redesign (mocks/opt-in-naming.html panel 4): avatar · full name
     /// · "aka" aliases · voice chip rows + the "Add person…" row, with INJECTED people.

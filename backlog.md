@@ -299,9 +299,18 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
     upserts each new title (canonical = title; aliases = full title + first-name token), idempotent +
     non-clobbering + synced. Seeded before each processing run. **Gate: 295 UnitTests green + full app
     build green.**
-  - ⏭ **Next: Chunk 3 — DELETE PeopleChipBar + InlineResolver(Model/banner/applyPartialOccurrences),
-    unwire from NoteDisplayView/BodyTextView; flip the data model (drop `aboutPeople` → `unlinkedNames`
-    exclude + an ambiguity-pick record). Build green.**
+  - ✅ **Chunk 3 — Delete + data-model flip.** Deleted `PeopleChipBar.swift` + `InlineResolver.swift`
+    (model/banner/`ResolverPopover`) + the per-occurrence Sanitiser engine (`applyResolved*` /
+    `applyPartialOccurrences` / `PartialChoice`/`PartialApplyResult` / `plainSlotMap` / `detectedPeople`
+    / `matchedSpeakers`; kept `plainOccurrences` for the unlink popover). Unwired from
+    `NoteDisplayView` + `BodyTextView` (the click-a-linked-name **unlink/change popover stays**).
+    Data-model: dropped `PipelineFile.aboutPeople`, added the `namePicks` ambiguity-pick record;
+    removed `toggleAbout` + the `-snapshot-resolver`/`-snapshot-people` modes. **Gate: 273 UnitTests
+    green + full app build green.**
+  - ⏭ **Next: Chunk 4 (the heavy one) — in-prose 3-tier rendering (linked `#9d8ff7` / suggested tan
+    `#bda481` dotted / plain) in `BodyTextView` + the click-popover (which-person · unlink · change ·
+    new), reusing `unlinkOccurrence`/`relinkOccurrence` + the new `namePicks` engine consumption.
+    Build to `mocks/naming-review.html`; verify via a new `-snapshot` mode + deploy-eyeball.**
   The grill detail below is kept as the audit trail.
   --- (original re-open framing, now resolved by NAMING_MODEL.md) ---
   User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question

@@ -13,10 +13,6 @@ struct NoteDisplayView: View {
     @Environment(\.modelContext) private var ctx
     @State private var audio = AudioController()
     @State private var author = SettingsStore.shared.load().authorName
-    /// Inline name-disambiguation state (R3). Created when the active note has
-    /// ambiguous names; preserved across re-renders (holds in-progress choices);
-    /// cleared on note switch or once resolution is applied.
-    @State private var resolver: InlineResolverModel?
     /// Pre-unlink snapshot backing the inline undo toast (mocks/name-unlink.html).
     /// Stays until dismissed/undone; cleared on note switch.
     @State private var unlinkUndo: UnlinkUndo?
@@ -37,8 +33,7 @@ struct NoteDisplayView: View {
             if let file {
                 content(file)
                     .task(id: file.id) { audio.load(path: file.path) }
-                    .onChange(of: file.id, initial: true) { _, _ in syncResolver(file); unlinkUndo = nil }
-                    .onChange(of: file.ambiguousNames?.count ?? 0, initial: true) { _, _ in syncResolver(file) }
+                    .onChange(of: file.id, initial: true) { _, _ in unlinkUndo = nil }
                     .sheet(item: $editorRequest) { req in
                         PersonEditor(request: req,
                                      onSave: { original, person in savePerson(original, person, for: file) },
@@ -71,20 +66,12 @@ struct NoteDisplayView: View {
         }
     }
 
-    /// The centered reading column: resolver banner → properties → capture banner (if any)
-    /// → summary → body. The resolver banner asks "Who is X?" per alias (auto-applies);
-    /// the capture banner explains what was skipped and what still ran.
+    /// The centered reading column: properties → capture banner (if any) → summary →
+    /// body. (OPT-OUT naming lives in the prose — names auto-link and you prune by
+    /// clicking; the in-prose three-tier rendering + which-person popover land in chunk 4.)
     private func column(_ file: PipelineFile) -> some View {
         VStack(alignment: .leading, spacing: 24) {
-            if let resolver, scrollable, !resolver.isEmpty {
-                InlineResolverBanner(model: resolver)
-            }
             NoteProperties(file: file, author: author, interactive: scrollable)
-            // Opt-in naming: detected people as chips — tap to mark who the note is about
-            // (links them + adds to `people:`). Conversations show their speakers locked-on.
-            // "Someone else…" opens the person editor for a name the note doesn't mention yet.
-            PeopleChipBar(file: file, coordinator: coordinator, interactive: scrollable,
-                          onAddPerson: scrollable ? { editorRequest = PersonEditorRequest() } : nil)
             if file.sourceType == .capture {
                 CaptureBanner(file: file)
                 // The shared thing itself, pinned above the annotation body —
@@ -100,7 +87,6 @@ struct NoteDisplayView: View {
                 unlinkUndoToast(undo, file)
             }
             NoteBody(file: file, audio: audio, interactive: scrollable, onAddName: addName, onAddAlias: addAlias,
-                     resolver: scrollable ? resolver : nil,
                      onUnlink: scrollable ? unlinkHandler(file) : nil)
         }
     }
@@ -190,176 +176,6 @@ struct NoteDisplayView: View {
         .padding(.horizontal, 13).padding(.vertical, 8)
         .background(Theme.hairline.opacity(0.04), in: RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline.opacity(0.10), lineWidth: 0.5))
-    }
-
-    /// (Re)create the inline resolver model for the active note + wire its actions.
-    /// Kept while the same note still has ambiguous names (in-progress choices survive
-    /// re-renders); recreated on note switch; cleared once all names are resolved.
-    /// Leaving a note mid per-occurrence resolution ABANDONS the in-flight picks:
-    /// the pristine snapshot is restored (guarded — only while the body is still the
-    /// resolver's own render), so `ambiguousNames` and the body stay consistent.
-    private func syncResolver(_ file: PipelineFile) {
-        let amb = file.ambiguousNames ?? []
-        if amb.isEmpty {
-            if let old = resolver {
-                old.onAbandonPartial?()   // switched away, or ambiguity cleared externally
-                resolver = nil
-            }
-        } else if resolver?.fileID != file.id {
-            resolver?.onAbandonPartial?()  // leaving a partially-resolved note
-            let m = InlineResolverModel(fileID: file.id, ambiguous: amb)
-            wireResolver(m, file)
-            resolver = m
-        }
-    }
-
-    private func wireResolver(_ m: InlineResolverModel, _ file: PipelineFile) {
-        m.onResolveAlias = { [weak m] alias, choice in
-            guard let m else { return }
-            resolveAlias(file, m, alias: alias, choice: choice)
-        }
-        m.onEscalate = { [weak m] alias in
-            guard let m else { return }
-            let k = alias.lowercased()
-            m.escalated.insert(k)
-            // Count against the baseline the choices will key on (the pristine
-            // snapshot while another alias is mid-flight, else the body as shown).
-            let base = (m.lastRendered == file.bestBodyText ? m.snapshot : nil) ?? file.bestBodyText
-            m.setOccurrenceTotal(Sanitiser.plainOccurrences(of: m.display(k), in: base).count, for: k)
-            m.styleVersion += 1
-        }
-        m.onDeescalate = { [weak m] alias in
-            guard let m else { return }
-            let k = alias.lowercased()
-            m.escalated.remove(k)
-            m.clearDecisions(for: k)
-            if m.snapshot != nil {
-                if m.lastRendered != file.bestBodyText {
-                    m.clearPartial()   // stale (hand edit) — leave the body as the user left it
-                } else if m.hasPartialDecisions {
-                    rerenderPartial(file, m)   // other aliases keep their in-flight render
-                } else if let snap = m.snapshot {
-                    setBody(snap, on: file)    // nothing left in flight → pristine body back
-                    m.clearPartial()
-                }
-            }
-            m.styleVersion += 1
-        }
-        m.onDecideOccurrence = { [weak m] alias, plainIndex, choice in
-            guard let m else { return }
-            decideOccurrence(file, m, alias: alias, plainIndex: plainIndex, choice: choice)
-        }
-        // Restore the pristine body when an in-flight partial render is abandoned
-        // (note switch / external clear) — only while the body is still OUR render,
-        // so a reprocess/hand-edit is never clobbered.
-        m.onAbandonPartial = { [weak m] in
-            guard let m, let snap = m.snapshot, let rendered = m.lastRendered,
-                  snap != rendered, file.bestBodyText == rendered else { return }
-            setBody(snap, on: file)
-            try? ctx.save()
-        }
-    }
-
-    /// "Who is X?" answered with one person (or plain) → apply to EVERY mention at
-    /// once (first → `[[Canonical]]`, rest → the alias) and clear the alias. Applies
-    /// against the pristine snapshot while another alias is mid per-occurrence
-    /// resolution (the displayed body carries that alias's uncommitted render).
-    private func resolveAlias(_ file: PipelineFile, _ m: InlineResolverModel, alias: String, choice: ResolverChoice) {
-        let body = (m.lastRendered == file.bestBodyText ? m.snapshot : nil) ?? file.bestBodyText
-        let text: String
-        switch choice {
-        case let .person(c):
-            text = Sanitiser.applyResolvedNames(text: body, decisions: [(alias: m.display(alias), canonical: c.canonical, short: c.short)])
-        case .plain:
-            text = body   // leave every mention plain
-        }
-        commitResolution(file, m, alias: alias, text: text)
-    }
-
-    /// Escalated ("different people"): ONE per-occurrence pick. Applies instantly —
-    /// the body re-renders from the pristine snapshot + every choice so far (the
-    /// chosen mention links/shortens on the spot, undecided ones stay highlighted,
-    /// document-order first-mention wins even when assigned out of order) — and the
-    /// alias commits once all its mentions are decided.
-    private func decideOccurrence(_ file: PipelineFile, _ m: InlineResolverModel,
-                                  alias: String, plainIndex: Int, choice: ResolverChoice) {
-        let body = file.bestBodyText
-        if m.lastRendered != body {
-            // First pick — or a hand edit invalidated the in-flight render: re-base
-            // on the body as it stands (previous picks are already part of it).
-            m.beginPartial(body: body)
-        }
-        guard let snapIdx = m.snapshotIndex(alias: alias, plainIndex: plainIndex) else { return }
-        m.setChoice(alias: alias, snapshotIndex: snapIdx, choice: choice)
-        rerenderPartial(file, m)
-        maybeCompleteAlias(file, m, alias: alias)
-    }
-
-    /// Recompute the displayed body from the pristine snapshot + ALL in-flight
-    /// choices (every escalated alias composes over the one snapshot). View-owned:
-    /// no `ambiguousNames` trim, no recompile, no explicit save — that's the
-    /// commit's job once an alias completes.
-    private func rerenderPartial(_ file: PipelineFile, _ m: InlineResolverModel) {
-        guard let snapshot = m.snapshot else { return }
-        var byAlias: [String: [Sanitiser.PartialChoice]] = [:]
-        for key in m.aliasOrder where m.isEscalated(key) {
-            let total = m.occTotals[key] ?? 0
-            guard total > 0 else { continue }
-            let d = m.decisions(for: key)
-            byAlias[key] = (0..<total).map { i in
-                switch d[i] {
-                case .none: return .undecided
-                case .some(.plain): return .plain
-                case let .some(.person(c)): return .person(canonical: c.canonical, short: c.short)
-                }
-            }
-        }
-        let render = Sanitiser.applyPartialOccurrences(text: snapshot, byAlias: byAlias)
-        if render.text != file.bestBodyText { setBody(render.text, on: file) }
-        m.setRender(text: render.text, ranges: render.ranges)
-        m.styleVersion += 1
-    }
-
-    /// Once every mention of an escalated alias has a choice, commit it: apply the
-    /// per-occurrence choices to the SNAPSHOT (distinct people stay distinct) and
-    /// clear the alias — exactly the pre-instant-apply completion.
-    private func maybeCompleteAlias(_ file: PipelineFile, _ m: InlineResolverModel, alias: String) {
-        guard let snapshot = m.snapshot else { return }
-        let key = alias.lowercased()
-        let total = m.occTotals[key] ?? 0
-        let d = m.decisions(for: key)
-        guard total > 0, (0..<total).allSatisfy({ d[$0] != nil }) else { return }
-        let ordered: [(canonical: String?, short: String?)] = (0..<total).map { i in
-            if case let .person(c) = d[i] { return (c.canonical, c.short) }
-            return (nil, nil)
-        }
-        let text = Sanitiser.applyResolvedOccurrences(text: snapshot, byAlias: [m.display(key): ordered])
-        commitResolution(file, m, alias: alias, text: text)
-    }
-
-    /// Persist a resolved alias: update the body, trim it from `ambiguousNames`, drop
-    /// it from the live model, recompile. When none remain, dismiss the resolver.
-    /// Another alias's in-flight picks are RE-BASED onto the committed text (their
-    /// index-keyed choices survive the position shifts) and re-rendered on top.
-    private func commitResolution(_ file: PipelineFile, _ m: InlineResolverModel, alias: String, text: String) {
-        let inFlightValid = m.lastRendered == nil || m.lastRendered == file.bestBodyText
-        file.sanitised = text
-        let remaining = (file.ambiguousNames ?? []).filter { $0.alias.lowercased() != alias.lowercased() }
-        file.ambiguousNames = remaining.isEmpty ? nil : remaining
-        file.sanitiseStatus = .done
-        file.compiledText = Compiler.compile(file: file, author: author, knownPeople: NamesStore.shared.livePeople())
-        file.lastActivityAt = Date()
-        try? ctx.save()
-        m.removeAlias(alias)
-        if m.isEmpty {
-            resolver = nil
-        } else if inFlightValid && m.hasPartialDecisions {
-            m.rebase(snapshot: text)
-            rerenderPartial(file, m)   // remaining in-flight picks ride on the committed text
-        } else {
-            m.clearPartial()
-            m.styleVersion += 1
-        }
     }
 
     /// Right-click "A new person…" → open the shared editor (mocks/opt-in-naming.html panel 3)

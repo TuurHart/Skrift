@@ -230,9 +230,7 @@ final class ProcessingCoordinator {
         Task { try? await Task.sleep(for: .seconds(3.5)); if toastToken == t { toast = nil } }
     }
 
-    // (Review-time ambiguous-name resolution now lives in NoteDisplayView — it
-    // applies each alias the moment you choose, via Sanitiser.applyResolvedNames /
-    // applyResolvedOccurrences. No batch step here.)
+    // (Review-time name decisions live in the body popover — chunk 4. No batch step here.)
 
     // ── ⋯ overflow actions: re-transcribe + per-step redo ──
     enum RedoStep { case title, copyEdit, summary }
@@ -354,33 +352,13 @@ final class ProcessingCoordinator {
         }
     }
 
-    // MARK: Opt-in naming — review "People in this note" chip bar
+    // MARK: Opt-out naming — re-link the open note
 
-    /// Toggle whether this note is ABOUT `canonical` (chip tap, mocks/opt-in-naming.html) and
-    /// re-link the body LIVE — deterministic, NO LLM. Adds/removes the canonical on
-    /// `pf.aboutPeople`, then re-sanitises from the pristine working text with the updated set.
-    func toggleAbout(_ canonical: String, for pf: PipelineFile, context: ModelContext) {
-        let canon = NamesMerge.normaliseCanonical(canonical)
-        let key = NamesMerge.keyName(canon).lowercased()
-        guard !key.isEmpty else { return }
-        var about = pf.aboutPeople
-        if let idx = about.firstIndex(where: { NamesMerge.keyName($0).lowercased() == key }) {
-            about.remove(at: idx)
-        } else {
-            about.append(canon)
-        }
-        pf.aboutPeople = about
-        resanitiseForNames(pf)
-        pf.lastActivityAt = Date()
-        try? context.save()
-    }
-
-    /// Re-run the deterministic name-link + recompile on the PRISTINE working text (copy-edit
-    /// → transcript) with the note's current `aboutPeople` + `unlinkedNames` — no LLM. Used by
-    /// the chip-bar toggle and to re-scan the OPEN note after a names edit (so a newly-added
-    /// person appears as a chip). Conversations take the turn-aware linker (matched speakers
-    /// auto-link). Rebuilding from `working` means in-flight per-occurrence resolver picks are
-    /// reset — the chip bar is the primary naming surface; the ambiguous resolver is secondary.
+    /// Re-run the deterministic OPT-OUT name-link + recompile on the PRISTINE working text
+    /// (copy-edit → transcript) with the note's current `unlinkedNames` — no LLM. Used to
+    /// re-scan the OPEN note after a names edit (so a newly-added person auto-links) and after
+    /// a review name decision. Conversations take the turn-aware linker (matched speakers
+    /// auto-link). (Chunk 4 threads the note's `namePicks` through here.)
     func resanitiseForNames(_ pf: PipelineFile, context: ModelContext? = nil) {
         let working = pf.enhancedCopyedit ?? pf.transcript ?? ""
         guard !working.isEmpty else { return }

@@ -239,60 +239,6 @@ enum Sanitiser {
         return Result(sanitised: finalText, ambiguous: suggested)
     }
 
-    // MARK: - Opt-in naming detection (the review "People in this note" chip bar)
-
-    /// People whose alias appears (whole-word, case-insensitive) in `text` — the candidates
-    /// for the review "People in this note" chip bar (mocks/opt-in-naming.html). Detection
-    /// is ambiguity-agnostic (two people sharing an alias are BOTH candidates) and ignores
-    /// the opt-in gate; it matches anywhere, including inside `**Name:**` turn headers (the
-    /// raw pre-link text). Returned in order of FIRST mention so the chips read as the note
-    /// does. Deleted people are excluded.
-    static func detectedPeople(in text: String, people: [Person]) -> [Person] {
-        var firstAt: [Int: Int] = [:]
-        for (i, p) in people.enumerated() where !p.isDeleted {
-            var earliest = Int.max
-            for a in p.aliases {
-                let alias = a.trimmingCharacters(in: .whitespaces)
-                guard !alias.isEmpty, let rx = wordRegex(alias),
-                      let m = rx.firstMatch(in: text, range: fullRange(text)) else { continue }
-                earliest = min(earliest, m.range.location)
-            }
-            if earliest != Int.max { firstAt[i] = earliest }
-        }
-        return firstAt.keys.sorted { firstAt[$0]! < firstAt[$1]! }.map { people[$0] }
-    }
-
-    /// Canonical keys (lowercased, bracket-stripped) of the people resolved as TURN SPEAKERS
-    /// in a `**Name:**` conversation — the speakers `processConversation` auto-links in their
-    /// header regardless of the opt-in gate. Empty when `text` isn't an attributed
-    /// conversation. Lets the chip bar render speaker chips as locked-on ("always linked").
-    /// Mirrors `processConversation`'s header resolution (canonical key OR unambiguous alias).
-    static func matchedSpeakers(in text: String, people: [Person]) -> Set<String> {
-        guard let turns = SpeakerTranscript.parse(text) else { return [] }
-        let live = people.filter { !$0.isDeleted }
-        var aliasMap: [String: [Person]] = [:]
-        for p in live {
-            for a in p.aliases {
-                let al = a.trimmingCharacters(in: .whitespaces).lowercased()
-                if !al.isEmpty { aliasMap[al, default: []].append(p) }
-            }
-        }
-        let ambiguous = Set(aliasMap.filter { $0.value.count >= 2 }.keys)
-        var out = Set<String>()
-        for t in turns {
-            let key = t.name.trimmingCharacters(in: .whitespaces).lowercased()
-            guard !key.isEmpty else { continue }
-            if let p = live.first(where: {
-                NamesMerge.keyName($0.canonical).trimmingCharacters(in: .whitespaces).lowercased() == key
-            }) {
-                out.insert(NamesMerge.keyName(p.canonical).lowercased())
-            } else if !ambiguous.contains(key), let c = aliasMap[key], c.count == 1 {
-                out.insert(NamesMerge.keyName(c[0].canonical).lowercased())
-            }
-        }
-        return out
-    }
-
     /// Link inline alias mentions, FIRST-ONLY per person ("one note, one link"), OPT-OUT +
     /// risk-tiered. For each person not yet linked anywhere in the conversation (`seen`),
     /// their FIRST eligible SAFE mention (a distinctive, unambiguous alias) becomes the
@@ -407,209 +353,16 @@ enum Sanitiser {
         return out
     }
 
-    /// Apply review-time choices for ambiguous aliases to the (already sanitised)
-    /// body. Each decision: alias + canonical (+ optional short). First remaining
-    /// plain occurrence → `[[Canonical]]`, rest → short. Ported from
-    /// `apply_resolved_names`.
-    static func applyResolvedNames(text inputText: String, decisions: [(alias: String, canonical: String, short: String?)]) -> String {
-        var text = inputText
-        for d in decisions {
-            let alias = d.alias.trimmingCharacters(in: .whitespaces)
-            let canon = d.canonical.trimmingCharacters(in: .whitespaces)
-            guard !alias.isEmpty, !canon.isEmpty, let rx = wordRegex(alias) else { continue }
-            let linkText = (canon.hasPrefix("[[") && canon.hasSuffix("]]")) ? canon : "[[\(canon)]]"
-            let core = NamesMerge.keyName(linkText)
-            let short = (d.short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
-                ?? (core.split(separator: " ").first.map(String.init) ?? alias)
-
-            let eligible = rx.matches(in: text, range: fullRange(text))
-                .filter { !avoidInside || notInsideLink(text, $0.range.location) }
-            guard !eligible.isEmpty else { continue }
-            // The body may already carry the canonical link (turn headers / a
-            // pre-linked mention, bare OR `[[Canonical|alias]]`) — then every plain
-            // occurrence is a LATER mention.
-            let alreadyLinked = hasCanonicalLink(core, in: text)
-            for (i, m) in eligible.enumerated().reversed() {
-                let replacement = ((i == 0 && !alreadyLinked) ? linkText : short) + possText(m, in: text)
-                text = nsReplace(text, m.range, with: replacement)
-            }
-        }
-        return text
-    }
-
-    /// Apply per-occurrence review choices — distinct people for distinct mentions of
-    /// the SAME alias (the "two Jacks" case). `byAlias[alias]` is the ordered list of
-    /// choices, one per plain occurrence (canonical nil = leave plain). For each alias
-    /// the first mention of a given canonical becomes `[[Canonical]]`, later mentions of
-    /// that same canonical become its short name. Order-based against the current body,
-    /// so it's robust to earlier offset shifts.
-    static func applyResolvedOccurrences(text inputText: String,
-                                         byAlias: [String: [(canonical: String?, short: String?)]]) -> String {
-        var text = inputText
-        for (alias, choices) in byAlias {
-            let a = alias.trimmingCharacters(in: .whitespaces)
-            guard !a.isEmpty, let rx = wordRegex(a) else { continue }
-            let eligible = rx.matches(in: text, range: fullRange(text))
-                .filter { !avoidInside || notInsideLink(text, $0.range.location) }
-            guard !eligible.isEmpty else { continue }
-
-            // Forward pass: decide each occurrence's replacement (first-link per canonical).
-            var introduced = Set<String>()
-            var replacements: [(range: NSRange, repl: String)] = []
-            for (i, m) in eligible.enumerated() {
-                guard i < choices.count, let canonRaw = choices[i].canonical else { continue }  // plain → skip
-                let canon = canonRaw.trimmingCharacters(in: .whitespaces)
-                guard !canon.isEmpty else { continue }
-                let linkText = (canon.hasPrefix("[[") && canon.hasSuffix("]]")) ? canon : "[[\(canon)]]"
-                let core = NamesMerge.keyName(linkText)
-                let short = (choices[i].short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
-                    ?? (core.split(separator: " ").first.map(String.init) ?? a)
-                // A canonical the body already links (e.g. a turn header, bare or
-                // `[[Canonical|alias]]`) counts as introduced — plain mentions get the short name.
-                let isFirst = !introduced.contains(core) && !hasCanonicalLink(core, in: text)
-                introduced.insert(core)
-                replacements.append((m.range, (isFirst ? linkText : short) + possText(m, in: text)))
-            }
-            // Apply in reverse so earlier ranges stay valid.
-            for r in replacements.sorted(by: { $0.range.location > $1.range.location }) {
-                text = nsReplace(text, r.range, with: r.repl)
-            }
-        }
-        return text
-    }
-
     /// Plain (not-inside-`[[ ]]`) whole-word occurrences of `alias` in `text`, in
-    /// reading order — the clickable ambiguous mentions for the inline resolver UI.
-    /// Uses the SAME matching as `process`/`applyResolvedOccurrences` (whole-word,
-    /// possessive-aware, link-skipping), so the i-th occurrence here is the i-th
-    /// `eligible` match there → the UI's per-occurrence choices line up exactly with
-    /// the order-based apply. Each range covers the alias (+ any trailing `'s`).
+    /// reading order. Used by the unlink popover to count a person's plain mentions
+    /// (the short-name forms the Sanitiser already left/demoted). Each range covers
+    /// the alias (+ any trailing `'s`); skips matches inside an existing link.
     static func plainOccurrences(of alias: String, in text: String) -> [NSRange] {
         let a = alias.trimmingCharacters(in: .whitespaces)
         guard !a.isEmpty, let rx = wordRegex(a) else { return [] }
         return rx.matches(in: text, range: fullRange(text))
             .map { $0.range }
             .filter { !avoidInside || notInsideLink(text, $0.location) }
-    }
-
-    // MARK: - Partial (in-flight) per-occurrence apply — the instant-apply resolver
-
-    /// One occurrence's in-flight choice while the user is still clicking mentions
-    /// (the "different people" flow). `.undecided` keeps the mention verbatim (it
-    /// stays plain + highlighted); `.plain` keeps it verbatim too (deliberately left
-    /// as text); `.person` links/shortens it like `applyResolvedOccurrences` would.
-    enum PartialChoice: Equatable, Sendable {
-        case undecided
-        case plain
-        case person(canonical: String, short: String?)
-    }
-
-    /// `applyPartialOccurrences` output: the rendered text + where every input
-    /// occurrence landed in it. `ranges[alias][i]` is the rendered NSRange of the
-    /// i-th plain occurrence of that alias in the INPUT text (the same enumeration
-    /// as `plainOccurrences`), covering whatever it became — verbatim alias,
-    /// `[[Canonical]]`, or the short name (possessive included).
-    struct PartialApplyResult: Equatable {
-        var text: String
-        var ranges: [String: [NSRange]]
-    }
-
-    /// Render an IN-FLIGHT per-occurrence resolution: like
-    /// `applyResolvedOccurrences`, but undecided occurrences stay verbatim, and the
-    /// result maps every occurrence to its rendered position. The whole document is
-    /// recomputed from the pristine input on every call, so first-mention-gets-
-    /// `[[Canonical]]` is decided by DOCUMENT order over the choices made SO FAR —
-    /// assigning a later mention first links it immediately, and assigning an
-    /// earlier mention to the same person afterwards moves the link there and
-    /// demotes the later one to the short name in the same pass.
-    ///
-    /// All aliases are processed in ONE document-order walk (a global
-    /// first-link-per-canonical set), with the same emit rules as
-    /// `applyResolvedOccurrences`: a canonical the input already links anywhere
-    /// counts as introduced; missing/extra choices beyond an alias's occurrence
-    /// count are treated as `.undecided`/ignored. Overlapping matches across
-    /// aliases (one alias inside another) keep the earlier match; the loser gets a
-    /// zero-length range so the per-alias arrays stay parallel.
-    static func applyPartialOccurrences(text inputText: String,
-                                        byAlias: [String: [PartialChoice]]) -> PartialApplyResult {
-        let ns = inputText as NSString
-
-        struct Occ {
-            let alias: String
-            let index: Int
-            let match: NSTextCheckingResult
-            let choice: PartialChoice
-        }
-        var all: [Occ] = []
-        var rangesByAlias: [String: [NSRange]] = [:]
-        for (alias, choices) in byAlias {
-            let a = alias.trimmingCharacters(in: .whitespaces)
-            guard !a.isEmpty, let rx = wordRegex(a) else { rangesByAlias[alias] = []; continue }
-            let eligible = rx.matches(in: inputText, range: fullRange(inputText))
-                .filter { !avoidInside || notInsideLink(inputText, $0.range.location) }
-            rangesByAlias[alias] = Array(repeating: NSRange(location: NSNotFound, length: 0), count: eligible.count)
-            for (i, m) in eligible.enumerated() {
-                all.append(Occ(alias: alias, index: i, match: m,
-                               choice: i < choices.count ? choices[i] : .undecided))
-            }
-        }
-        all.sort { $0.match.range.location < $1.match.range.location }
-
-        var introduced = Set<String>()
-        var out = ""
-        var outLen = 0   // utf16 length of `out`, tracked incrementally
-        var cursor = 0
-        for occ in all {
-            let r = occ.match.range
-            guard r.location >= cursor else {
-                // Overlap (e.g. alias "Jack" inside alias "Jack Hutton") — the
-                // earlier match consumed this span; keep the arrays parallel.
-                rangesByAlias[occ.alias]?[occ.index] = NSRange(location: outLen, length: 0)
-                continue
-            }
-            out += ns.substring(with: NSRange(location: cursor, length: r.location - cursor))
-            outLen += r.location - cursor
-            let emitted: String
-            switch occ.choice {
-            case .undecided, .plain:
-                emitted = ns.substring(with: r)   // verbatim, possessive included
-            case let .person(canonRaw, shortRaw):
-                let canon = canonRaw.trimmingCharacters(in: .whitespaces)
-                if canon.isEmpty {
-                    emitted = ns.substring(with: r)
-                } else {
-                    let linkText = (canon.hasPrefix("[[") && canon.hasSuffix("]]")) ? canon : "[[\(canon)]]"
-                    let core = NamesMerge.keyName(linkText)
-                    let short = (shortRaw?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
-                        ?? (core.split(separator: " ").first.map(String.init) ?? occ.alias)
-                    let isFirst = !introduced.contains(core) && !hasCanonicalLink(core, in: inputText)
-                    introduced.insert(core)
-                    emitted = (isFirst ? linkText : short) + possText(occ.match, in: inputText)
-                }
-            }
-            let emittedLen = (emitted as NSString).length
-            rangesByAlias[occ.alias]?[occ.index] = NSRange(location: outLen, length: emittedLen)
-            out += emitted
-            outLen += emittedLen
-            cursor = NSMaxRange(r)
-        }
-        out += ns.substring(from: cursor)
-        return PartialApplyResult(text: out, ranges: rangesByAlias)
-    }
-
-    /// Map the RENDERED text's plain alias occurrences back to their pristine
-    /// occurrence indices: entry k = the index (into `occurrenceRanges`, i.e. the
-    /// pristine enumeration) of the occurrence whose rendered range overlaps the
-    /// k-th plain occurrence of `alias` in `rendered`; -1 = foreign text no
-    /// occurrence produced. This is how a DEMOTED short name that still reads as
-    /// the alias (the two-Jacks case: short "Jack" == alias "Jack") stays
-    /// attributable to the right choice after the body re-renders around it.
-    static func plainSlotMap(alias: String, rendered: String, occurrenceRanges: [NSRange]) -> [Int] {
-        plainOccurrences(of: alias, in: rendered).map { r in
-            occurrenceRanges.firstIndex {
-                $0.location != NSNotFound && NSIntersectionRange($0, r).length > 0
-            } ?? -1
-        }
     }
 
     // MARK: - Unlinking (review-time "unlink a [[Name]]" — mocks/name-unlink.html)
@@ -638,8 +391,8 @@ enum Sanitiser {
 
     /// One person's `[[canonical]]` links in `text` (core match is case-insensitive,
     /// brackets/whitespace tolerated on `canonical`), in reading order. The i-th
-    /// entry here is what `unlinkOccurrence(index: i)` replaces — the same
-    /// order-based contract as `plainOccurrences`/`applyResolvedOccurrences`.
+    /// entry here is what `unlinkOccurrence(index: i)` / `relinkOccurrence(index: i)`
+    /// replaces — order-based, so storage-offset drift can't misapply.
     static func linkOccurrences(of canonical: String, in text: String) -> [BodyLink] {
         let key = NamesMerge.keyName(canonical).trimmingCharacters(in: .whitespaces)
         guard !key.isEmpty else { return [] }

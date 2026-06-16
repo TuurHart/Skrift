@@ -84,16 +84,15 @@ final class PipelineFile {
     /// them HERE — the person stays in the names DB and links normally elsewhere.
     /// Primitive `[String]` is safe to store directly (see the gotcha above).
     var unlinkedNames: [String] = []
-    /// Opt-in naming (mocks/opt-in-naming.html): the canonical `[[Name]]` keys the user
-    /// marked this note as being ABOUT. Only these people are name-linked in the body;
-    /// every other detected mention stays plain text. EMPTY by default → a freshly-
-    /// processed note links NOBODY until the user taps a chip in the review "People in
-    /// this note" bar (no pre-linking). Fed to `Sanitiser.process` /
-    /// `processConversation(aboutPeople:)` by `BatchRunner` + `ProcessingCoordinator`.
-    /// Conversations additionally auto-link their MATCHED SPEAKERS regardless (they're
-    /// definitionally subjects), so this set carries the extra inline-mentioned people
-    /// the user opts in. Primitive `[String]` is safe to store directly (see the gotcha).
-    var aboutPeople: [String] = []
+    /// Per-note "which person?" picks (NAMING_MODEL.md decision 9 — the ambiguity-pick
+    /// record): alias (lowercased) → the chosen person's canonical `[[Name]]`. Set when the
+    /// user resolves a dotted SUGGESTION in review — an ambiguous twin ("which Jack?") or a
+    /// common-word confirmation ("Will" → Will Smith) — so the deterministic re-link
+    /// force-links that alias to that person for THIS note and a re-process remembers the
+    /// choice (decision 9: note-level pick). Stored as a JSON blob (a dictionary traps
+    /// SwiftData — see the gotcha above); empty by default. Consumed by the Sanitiser in
+    /// chunk 4 (the in-prose popover writes it). Replaced the opt-in `aboutPeople` include-list.
+    var namePicksJSON: Data?
     /// `[WordTiming]` stored as a JSON blob (the per-file `word_timings.json`
     /// equivalent) — drives the karaoke highlight. Set by the transcribe step.
     var wordTimingsJSON: Data?
@@ -173,10 +172,19 @@ final class PipelineFile {
         }
     }
 
-    /// Decoded ambiguous-name occurrences (backed by `ambiguousNamesJSON`).
+    /// Decoded ambiguous-name occurrences (backed by `ambiguousNamesJSON`). In the OPT-OUT
+    /// model these are the *suggested* tier — recognised-but-not-auto-linked occurrences
+    /// (ambiguous twins + common-word names) the review surface renders dotted (chunk 4).
     var ambiguousNames: [AmbiguousOccurrence]? {
         get { ambiguousNamesJSON.flatMap { try? JSONDecoder().decode([AmbiguousOccurrence].self, from: $0) } }
         set { ambiguousNamesJSON = newValue.flatMap { try? JSONEncoder().encode($0) } }
+    }
+
+    /// Decoded per-note "which person?" picks (backed by `namePicksJSON`) — alias
+    /// (lowercased) → chosen canonical `[[Name]]`. The ambiguity-pick record (decision 9).
+    var namePicks: [String: String] {
+        get { namePicksJSON.flatMap { try? JSONDecoder().decode([String: String].self, from: $0) } ?? [:] }
+        set { namePicksJSON = newValue.isEmpty ? nil : (try? JSONEncoder().encode(newValue)) }
     }
 
     /// Per-word transcript timings (backed by `wordTimingsJSON`) — drives karaoke.

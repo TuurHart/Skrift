@@ -246,9 +246,20 @@ are the price of getting it right:
      voiceprints / grown state), synced via `writeWithSmartBumps`. Wired into
      `ProcessingCoordinator.process` (seed off the main actor before the runner reads the roster).
      7 host-less tests; **295 UnitTests green + full app build green**.
-   - **Chunk 3 — Delete.** `PeopleChipBar`; `InlineResolverModel` / `applyPartialOccurrences` /
-     resolver banner; unwire from `NoteDisplayView`/`BodyTextView`. Data-model flip (drop
-     `aboutPeople`; use `unlinkedNames` exclude + an ambiguity-pick record). Build green.
+   - ✅ **Chunk 3 — Delete + data-model flip. DONE 2026-06-16.** Deleted `PeopleChipBar.swift` +
+     `InlineResolver.swift` (`InlineResolverModel` / banner / `ResolverPopover`) and the per-occurrence
+     Sanitiser engine (`applyResolvedNames` / `applyResolvedOccurrences` / `applyPartialOccurrences` /
+     `PartialChoice` / `PartialApplyResult` / `plainSlotMap` / `detectedPeople` / `matchedSpeakers` —
+     kept `plainOccurrences` for the unlink popover's mention count). Unwired the resolver + chip bar
+     from `NoteDisplayView` (dropped `resolver` state + `syncResolver`/`wireResolver`/`resolveAlias`/
+     `decideOccurrence`/`rerenderPartial`/`maybeCompleteAlias`/`commitResolution`) and `BodyTextView`
+     (dropped the `resolver`/`refresh` params + ambiguous marking/click + jump) — the click-a-linked-
+     name **unlink popover stays** (`unlinkOccurrence`/`relinkOccurrence`/`unlinkAll`). Data-model flip:
+     dropped `PipelineFile.aboutPeople`, added the `namePicks` ambiguity-pick record (`namePicksJSON`
+     + accessor, consumed by the Sanitiser in chunk 4); removed `ProcessingCoordinator.toggleAbout`;
+     dropped the `-snapshot-resolver`/`-snapshot-people` snapshot modes. Deleted/updated the resolver
+     tests. **Gate: 273 UnitTests green + full app build green.** (Suggested-tier rendering + the
+     which-person popover are chunk 4.)
    - **Chunk 4 — In-prose UX (the heavy one).** Render the three tiers in the body
      (linked solid `#9d8ff7` / suggested tan `#bda481` dotted / plain) + the click-popover
      (which-person · unlink · change · new), reusing `unlinkOccurrence`/`relinkOccurrence`. Build

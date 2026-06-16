@@ -16,9 +16,6 @@ struct NoteBody: View {
     var onAddName: (String) -> Void = { _ in }
     /// Add the selection as an alias of an existing person (word, canonical).
     var onAddAlias: (String, String) -> Void = { _, _ in }
-    /// Inline name-disambiguation state, present only while the note has ambiguous
-    /// names. Passed into the editor so mentions are marked + clickable in place (R3).
-    var resolver: InlineResolverModel? = nil
     /// Click an already-linked `[[Name]]` → unlink popover (passed through to the
     /// editor; nil = linked names aren't clickable).
     var onUnlink: ((String, String, BodyTextView.UnlinkScope) -> Void)? = nil
@@ -105,15 +102,13 @@ struct NoteBody: View {
 
     private var editor: some View {
         // NSTextView bridge: self-sizing + live [[link]] accent styling + inline
-        // image thumbnails + inline name resolution (R3) + in-place karaoke (recolor
-        // the same view + click a word to seek — no reflow, no renderer swap).
+        // image thumbnails + the click-a-linked-name unlink popover + in-place karaoke
+        // (recolor the same view + click a word to seek — no reflow, no renderer swap).
         BodyTextView(
             text: bodyBinding, imageURL: imageURL, onAddName: onAddName, onAddAlias: onAddAlias,
-            resolver: karaokeActive ? nil : resolver,
             onUnlink: karaokeActive ? nil : onUnlink,
             karaoke: karaokeActive ? karaokePlayback : nil,
-            quoteAttribution: file.bookCapture?.attribution,
-            refresh: resolver?.styleVersion ?? 0
+            quoteAttribution: file.bookCapture?.attribution
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }

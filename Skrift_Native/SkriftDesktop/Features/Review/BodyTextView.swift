@@ -2,29 +2,20 @@ import SwiftUI
 import AppKit
 import ImageIO
 
-/// Editable note body with live `[[wiki link]]` accent styling, inline image
-/// thumbnails for `[[img_NNN]]` markers, AND R3 inline name disambiguation — an
-/// NSTextView bridge (SwiftUI's TextEditor can't do any of these). Self-sizing (no
-/// internal scroll; the surrounding SwiftUI ScrollView scrolls). The MODEL string
-/// always keeps the literal `[[img_NNN]]` markers + `[[brackets]]` (WYSIWYG to the
-/// exported markdown); the text view shows a thumbnail in the marker's place via a
-/// custom attachment, and the marker is reconstructed from that attachment whenever
-/// the user edits.
-///
-/// R3: when a `resolver` is attached (the note has ambiguous names), each plain
-/// mention of an ambiguous alias is marked (dotted accent underline + tint) and
-/// single-clicking it opens a candidate popover anchored at the word. Resolution is
-/// per-occurrence by nature — two friends named "Jack" are set independently — and
-/// in the escalated ("different people") flow every pick applies INSTANTLY: the
-/// body re-renders from the resolver's pristine snapshot + choices so far, so the
-/// clicked mention becomes its `[[link]]`/short name on the spot while undecided
-/// mentions stay highlighted. Mentions are identified by occurrence ORDER (the k-th
-/// plain mention), never by storage offsets (image attachments shift those).
+/// Editable note body with live `[[wiki link]]` accent styling + inline image
+/// thumbnails for `[[img_NNN]]` markers — an NSTextView bridge (SwiftUI's TextEditor
+/// can't do either). Self-sizing (no internal scroll; the surrounding SwiftUI
+/// ScrollView scrolls). The MODEL string always keeps the literal `[[img_NNN]]`
+/// markers + `[[brackets]]` (WYSIWYG to the exported markdown); the text view shows a
+/// thumbnail in the marker's place via a custom attachment, and the marker is
+/// reconstructed from that attachment whenever the user edits.
 ///
 /// Unlink (mocks/name-unlink.html): when `onUnlink` is wired, an already-linked
-/// `[[Name]]` whose core matches a live person is also clickable — same popover
-/// idiom — offering "unlink this mention" (→ the plain alias as spoken) or "unlink
-/// all mentions in this note" (also persisted so re-processing won't re-link).
+/// `[[Name]]` whose core matches a live person is clickable — single-click opens a
+/// popover offering "unlink this mention" (→ the plain alias as spoken), "unlink all
+/// mentions in this note" (persisted so re-processing won't re-link), or "change to →
+/// <person>". (The in-prose three-tier suggested rendering + which-person popover land
+/// in chunk 4 — see NAMING_MODEL.md / mocks/naming-review.html.)
 struct BodyTextView: NSViewRepresentable {
     @Binding var text: String
     /// Resolves an image marker number (`[[img_NNN]]`) to its file URL. Defaults to
@@ -34,8 +25,6 @@ struct BodyTextView: NSViewRepresentable {
     var onAddName: (String) -> Void = { _ in }
     /// Right-click a selection → "Add … as → alias of <existing person>" (word, canonical).
     var onAddAlias: (String, String) -> Void = { _, _ in }
-    /// Inline name-disambiguation state, or nil when the note has no ambiguous names.
-    var resolver: InlineResolverModel? = nil
     /// Click an already-linked `[[Name]]` → the unlink popover; the chosen scope is
     /// reported with the person's bare canonical + the plain alias to restore.
     /// nil = linked names aren't clickable (read-only hosts).
@@ -50,9 +39,6 @@ struct BodyTextView: NSViewRepresentable {
     /// storage, the model keeps the raw "> " lines verbatim, and editing can't
     /// corrupt either. nil = not a book capture → no quote styling.
     var quoteAttribution: String? = nil
-    /// A re-render trigger (the resolver's styleVersion) — bumping it re-styles the
-    /// ambiguous marks on escalate/de-escalate, which the view doesn't otherwise observe.
-    var refresh: Int = 0
 
     /// How far through the body's words to brighten (0…1) + a click-a-word → seek
     /// callback (arg = the clicked word's INDEX, so the caller can seek to that word's
@@ -107,23 +93,22 @@ struct BodyTextView: NSViewRepresentable {
         tv.isHorizontallyResizable = false
         tv.textContainer?.widthTracksTextView = true
         tv.allowsUndo = true
-        // Single-click on an ambiguous mention → resolve it (suppress cursor placement).
+        // Single-click on a linked `[[Name]]` → unlink popover (suppress cursor placement);
+        // during karaoke a click seeks instead.
         tv.onSingleClickAt = { [weak coordinator = context.coordinator, weak tv] idx in
             guard let coordinator, let tv else { return false }
             return coordinator.handleClick(idx, tv)
         }
         tv.quoteAttribution = quoteAttribution
         context.coordinator.render(tv, model: text)
-        context.coordinator.registerJump(tv)
         return tv
     }
 
     func updateNSView(_ tv: SelfSizingTextView, context: Context) {
-        // SwiftUI REUSES this NSView across note switches, so refresh the
-        // coordinator's parent — otherwise its `text` binding write-back, `imageURL`
-        // resolver, and `resolver` model stay bound to the first note shown.
+        // SwiftUI REUSES this NSView across note switches, so refresh the coordinator's
+        // parent — otherwise its `text` binding write-back + `imageURL` resolver + `onUnlink`
+        // callback stay bound to the first note shown.
         context.coordinator.parent = self
-        context.coordinator.registerJump(tv)
         if tv.quoteAttribution != quoteAttribution {
             tv.quoteAttribution = quoteAttribution   // note switch capture ↔ plain
             tv.invalidateIntrinsicContentSize()
@@ -142,8 +127,7 @@ struct BodyTextView: NSViewRepresentable {
             context.coordinator.applyKaraoke(tv, fraction: k.fraction)
         } else {
             if !tv.isEditable { tv.isEditable = true }
-            // render() already restyled; otherwise the resolver/decisions or text may
-            // have changed (or we're leaving karaoke) — restyle in place.
+            // render() already restyled; otherwise we're leaving karaoke — restyle in place.
             if !textChanged { context.coordinator.restyle(tv) }
         }
     }
@@ -321,12 +305,6 @@ struct BodyTextView: NSViewRepresentable {
         func restyle(_ tv: SelfSizingTextView) {
             guard let storage = tv.textStorage else { return }
             lastKaraoke = nil   // normal styling applied → next karaoke entry must recolor
-            // In-flight per-occurrence choices are trusted only while the displayed
-            // text IS the resolver's own render — a hand edit mid-flight makes the
-            // index-keyed choices stale, so marks fall back to undecided until the
-            // next pick re-bases. (Compared on the MODEL string: attachments
-            // collapse markers in the storage string.)
-            let renderValid = parent.resolver.map { $0.renderMatches(model: modelString(tv)) } ?? false
             let full = NSRange(location: 0, length: storage.length)
             storage.beginEditing()
             storage.addAttribute(.foregroundColor, value: NSColor(Theme.textPrimary), range: full)
@@ -339,13 +317,10 @@ struct BodyTextView: NSViewRepresentable {
                 for m in rx.matches(in: storage.string, range: full) {
                     storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: m.range)
                     // A linked person is clickable (unlink popover) — say so on hover.
-                    // Except a link the in-flight resolver just rendered: it isn't
-                    // committed yet (clicks are suppressed too — see handleClick).
                     if parent.onUnlink != nil, m.range.length > 4 {
                         let core = (storage.string as NSString)
                             .substring(with: NSRange(location: m.range.location + 2, length: m.range.length - 4))
-                        if parent.resolver?.isInFlightCandidate(core: core) != true,
-                           let p = person(matchingCore: core) {
+                        if let p = person(matchingCore: core) {
                             storage.addAttribute(
                                 .toolTip,
                                 value: "Linked to \(NamesMerge.keyName(p.canonical)) — click to unlink",
@@ -367,7 +342,6 @@ struct BodyTextView: NSViewRepresentable {
                     storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 3))
                 }
             }
-            markAmbiguous(storage, renderValid: renderValid)
             storage.endEditing()
             // The bar + caption are drawn outside the glyph rects (in the reserved
             // paragraph spacing), which an in-place edit doesn't invalidate.
@@ -415,49 +389,11 @@ struct BodyTextView: NSViewRepresentable {
             }
         }
 
-        /// Mark each plain ambiguous mention so it clearly reads as "needs you":
-        /// accent text + an accent highlight + a solid accent underline. In a
-        /// per-occurrence ("different people") alias, a chosen mention shows its
-        /// person (calmer tint + who-tooltip); a leave-plain mention shows normal.
-        /// Choice lookup is by occurrence ORDER (the k-th plain mention), not
-        /// offsets, so the storage string (image markers collapsed to attachment
-        /// chars) can't drift the in-flight choices.
-        private func markAmbiguous(_ storage: NSTextStorage, renderValid: Bool) {
-            guard let resolver = parent.resolver else { return }
-            let text = storage.string
-            let accent = NSColor(Theme.accent)
-            let undecidedBG = accent.withAlphaComponent(0.22)
-            let decidedBG = accent.withAlphaComponent(0.10)
-            let underline = accent.withAlphaComponent(0.9)
-            for alias in resolver.candidatesByAlias.keys {
-                let escalated = resolver.isEscalated(alias)
-                for (k, range) in Sanitiser.plainOccurrences(of: alias, in: text).enumerated()
-                where NSMaxRange(range) <= storage.length {
-                    let choice = (escalated && renderValid)
-                        ? resolver.choiceAtPlainIndex(alias: alias, plainIndex: k) : nil
-                    switch choice {
-                    case .some(.person(let c)):
-                        storage.addAttribute(.foregroundColor, value: accent, range: range)
-                        storage.addAttribute(.backgroundColor, value: decidedBG, range: range)
-                        storage.addAttribute(.toolTip, value: clean(c.canonical), range: range)
-                    case .some(.plain):
-                        break   // chosen as plain → render as normal text
-                    case .none:   // undecided — make it obvious
-                        storage.addAttribute(.foregroundColor, value: accent, range: range)
-                        storage.addAttribute(.backgroundColor, value: undecidedBG, range: range)
-                        storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
-                        storage.addAttribute(.underlineColor, value: underline, range: range)
-                    }
-                }
-            }
-        }
-
-        // MARK: - Inline resolver interaction
+        // MARK: - Click interaction (karaoke seek + unlink popover)
 
         /// A single click at character `idx`. During karaoke it seeks the audio to the
-        /// clicked word; otherwise an ambiguous mention opens the candidate popover and
-        /// an already-linked `[[Name]]` opens the unlink popover. Returns true when
-        /// handled (suppresses cursor placement).
+        /// clicked word; otherwise an already-linked `[[Name]]` opens the unlink popover.
+        /// Returns true when handled (suppresses cursor placement).
         func handleClick(_ idx: Int, _ tv: SelfSizingTextView) -> Bool {
             // Karaoke: click a word → seek there (the old behavior the user missed).
             if let k = parent.karaoke, let storage = tv.textStorage {
@@ -470,28 +406,12 @@ struct BodyTextView: NSViewRepresentable {
             }
             guard let storage = tv.textStorage else { return false }
             let text = storage.string
-            // Ambiguous plain mention → resolver popover (R3). The mention is
-            // identified by its plain-occurrence INDEX (order-based, like the
-            // apply), so storage offsets never key anything.
-            if let resolver = parent.resolver {
-                for alias in resolver.candidatesByAlias.keys {
-                    for (k, range) in Sanitiser.plainOccurrences(of: alias, in: text).enumerated()
-                    where NSLocationInRange(idx, range) || idx == NSMaxRange(range) {
-                        showPopover(aliasLower: alias, plainIndex: k, range: range, tv: tv, resolver: resolver, text: text)
-                        return true
-                    }
-                }
-            }
             // Already-linked [[Name]] → unlink popover (mocks/name-unlink.html). A
             // fresh names read per click — one-shot, and the render-time cache could
             // be stale after a right-click "Add as name".
             if parent.onUnlink != nil {
                 for link in Sanitiser.linkOccurrences(in: text)
                 where NSLocationInRange(idx, link.range) || idx == NSMaxRange(link.range) {
-                    // A link the in-flight resolver just rendered isn't committed
-                    // yet (it may still demote/move as more mentions are assigned)
-                    // — not unlinkable until its alias completes.
-                    if parent.resolver?.isInFlightCandidate(core: link.core) == true { return false }
                     peopleCache = NamesStore.shared.livePeople()
                     guard let p = person(matchingCore: link.core) else { return false }   // place link etc. → caret as usual
                     showUnlinkPopover(link: link, person: p, tv: tv, text: text)
@@ -501,10 +421,9 @@ struct BodyTextView: NSViewRepresentable {
             return false
         }
 
-        /// The unlink popover at a clicked `[[Name]]` — same NSPopover idiom as the
-        /// resolver. The chosen scope is order-based (the i-th link of this person in
-        /// reading order) so the apply against the MODEL text can't drift when image
-        /// attachments shorten the storage string.
+        /// The unlink popover at a clicked `[[Name]]`. The chosen scope is order-based
+        /// (the i-th link of this person in reading order) so the apply against the MODEL
+        /// text can't drift when image attachments shorten the storage string.
         private func showUnlinkPopover(link: Sanitiser.BodyLink, person p: Person,
                                        tv: SelfSizingTextView, text: String) {
             activePopover?.performClose(nil)
@@ -556,76 +475,7 @@ struct BodyTextView: NSViewRepresentable {
             pop.show(relativeTo: boundingRect(link.range, in: tv), of: tv, preferredEdge: .maxY)
         }
 
-        private func showPopover(aliasLower: String, plainIndex: Int, range: NSRange, tv: SelfSizingTextView,
-                                 resolver: InlineResolverModel, text: String) {
-            activePopover?.performClose(nil)
-            let ns = text as NSString
-            let beforeLen = min(38, range.location)
-            let before = ns.substring(with: NSRange(location: range.location - beforeLen, length: beforeLen))
-            let afterStart = NSMaxRange(range)
-            let after = ns.substring(with: NSRange(location: afterStart, length: min(38, ns.length - afterStart)))
-            let display = resolver.display(aliasLower)
-            let cands = resolver.candidates(for: aliasLower)
-            let escalated = resolver.isEscalated(aliasLower)
-            let renderValid = resolver.renderMatches(model: modelString(tv))
-
-            let view = ResolverPopover(
-                mode: escalated ? .occurrence : .alias,
-                alias: display, contextBefore: before, contextAfter: after,
-                candidates: cands,
-                current: (escalated && renderValid)
-                    ? resolver.choiceAtPlainIndex(alias: aliasLower, plainIndex: plainIndex) : nil,
-                onPick: { [weak self, weak tv] choice in
-                    self?.closePopover()
-                    if escalated { resolver.onDecideOccurrence?(aliasLower, plainIndex, choice) }
-                    else { resolver.onResolveAlias?(aliasLower, choice) }
-                    if let tv { self?.restyle(tv) }
-                },
-                onEscalate: { [weak self, weak tv] in
-                    self?.closePopover()
-                    resolver.onEscalate?(aliasLower)
-                    if let tv { self?.restyle(tv) }
-                })
-            let host = NSHostingController(rootView: view)
-            host.sizingOptions = [.preferredContentSize]
-            let pop = NSPopover()
-            pop.contentViewController = host
-            pop.behavior = .transient
-            activePopover = pop
-            pop.show(relativeTo: boundingRect(range, in: tv), of: tv, preferredEdge: .maxY)
-        }
-
         private func closePopover() { activePopover?.performClose(nil); activePopover = nil }
-
-        /// Hook the banner's "jump to next" up to this text view: scroll the first
-        /// still-undecided mention of an ESCALATED alias into view + open it. Deferred
-        /// so we never mutate the @Observable model mid SwiftUI update.
-        func registerJump(_ tv: SelfSizingTextView) {
-            guard let resolver = parent.resolver, resolver.jumpHandler == nil else { return }
-            DispatchQueue.main.async { [weak self, weak tv] in
-                guard let self, let tv, let resolver = self.parent.resolver, resolver.jumpHandler == nil else { return }
-                resolver.jumpHandler = self.makeJump(tv)
-            }
-        }
-
-        private func makeJump(_ tv: SelfSizingTextView) -> () -> Void {
-            { [weak self, weak tv] in
-                guard let self, let tv, let resolver = self.parent.resolver, let storage = tv.textStorage else { return }
-                let text = storage.string
-                let renderValid = resolver.renderMatches(model: self.modelString(tv))
-                var first: (alias: String, index: Int, range: NSRange)?
-                for alias in resolver.candidatesByAlias.keys where resolver.isEscalated(alias) {
-                    for (k, range) in Sanitiser.plainOccurrences(of: alias, in: text).enumerated()
-                    where !(renderValid && resolver.choiceAtPlainIndex(alias: alias, plainIndex: k) != nil) {
-                        if first == nil || range.location < first!.range.location { first = (alias, k, range) }
-                    }
-                }
-                guard let next = first else { return }
-                tv.scrollRangeToVisible(next.range)
-                self.showPopover(aliasLower: next.alias, plainIndex: next.index, range: next.range,
-                                 tv: tv, resolver: resolver, text: text)
-            }
-        }
 
         private func boundingRect(_ range: NSRange, in tv: SelfSizingTextView) -> NSRect {
             guard let lm = tv.layoutManager, let tc = tv.textContainer else { return .zero }
@@ -634,10 +484,6 @@ struct BodyTextView: NSViewRepresentable {
             r.origin.x += tv.textContainerOrigin.x
             r.origin.y += tv.textContainerOrigin.y
             return r
-        }
-
-        private func clean(_ canonical: String) -> String {
-            canonical.replacingOccurrences(of: "[[", with: "").replacingOccurrences(of: "]]", with: "")
         }
 
         /// Reconstruct the model string: image attachments → `[[img_NNN]]`, rest verbatim.
@@ -670,11 +516,11 @@ struct BodyTextView: NSViewRepresentable {
     }
 }
 
-/// Popover shown at a clicked, already-linked `[[Name]]` — the unlink counterpart
-/// of `ResolverPopover`, per the signed-off mock (mocks/name-unlink.html). Exactly
-/// TWO scopes + cancel: this mention → the plain alias as spoken; all mentions in
-/// this note → also persisted so re-processing won't re-link. (A "never link
-/// anywhere" scope was deliberately left out — that's a Names-level rule.)
+/// Popover shown at a clicked, already-linked `[[Name]]`, per the signed-off mock
+/// (mocks/name-unlink.html). Scopes + cancel: this mention → the plain alias as spoken;
+/// all mentions in this note → also persisted so re-processing won't re-link; change to →
+/// another person. (A "never link anywhere" scope was deliberately left out — that's a
+/// Names-level rule.)
 struct UnlinkPopover: View {
     let person: String          // bare canonical, e.g. "Nick Jansen"
     let alias: String           // plain replacement as spoken, e.g. "Nick"

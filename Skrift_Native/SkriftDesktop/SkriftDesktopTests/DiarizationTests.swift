@@ -366,17 +366,15 @@ final class DiarizationTests: XCTestCase {
 
     /// `Sanitiser.linkTarget` strips the Obsidian alias-display pipe — the shared contract
     /// every pipe-aware link-identity site keys on: `BodyTextView.person(matchingCore:)`,
-    /// `InlineResolverModel.isInFlightCandidate`, and `linkOccurrences(of:)`. (A direct
-    /// `isInFlightCandidate` test would need the `Features/` target, which the host-less
-    /// `UnitTests` bundle deliberately excludes — this pins the underlying logic those
-    /// sites delegate to, so `core: "Sam Smith|Sammy"` resolves to candidate "Sam Smith".)
+    /// the unlink/relink popover, and `linkOccurrences(of:)`. So a `[[Canonical|spoken]]`
+    /// mention still resolves to its person: `core: "Sam Smith|Sammy"` → "Sam Smith".
     func testLinkTargetStripsAliasDisplayPipe() {
         XCTAssertEqual(Sanitiser.linkTarget("Sam Smith|Sammy"), "Sam Smith")
         XCTAssertEqual(Sanitiser.linkTarget("Tiuri Hartog|Tuur"), "Tiuri Hartog")
         XCTAssertEqual(Sanitiser.linkTarget("Sam Smith"), "Sam Smith")          // bare → unchanged
         XCTAssertEqual(Sanitiser.linkTarget("  Sam Smith | Sammy  "), "Sam Smith")  // trimmed
         XCTAssertEqual(Sanitiser.linkTarget("Sam|Smith|Jr"), "Sam")             // first pipe only
-        // The exact identity check isInFlightCandidate performs: linkTarget(core) vs keyName(canonical).
+        // The identity check link-identity sites perform: linkTarget(core) vs keyName(canonical).
         XCTAssertEqual(Sanitiser.linkTarget("Sam Smith|Sammy"),
                        NamesMerge.keyName("[[Sam Smith]]"))
     }
