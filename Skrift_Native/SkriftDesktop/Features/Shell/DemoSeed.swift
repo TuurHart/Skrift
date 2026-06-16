@@ -36,8 +36,9 @@ enum DemoSeed {
         for (c, a, s) in roster {
             NamesStore.shared.upsert(Person(canonical: c, aliases: a, short: s, lastModifiedAt: ISO8601.now()), replacing: nil)
         }
+        // Reset on every launch so the demo always starts pristine (clears prior picks).
         let existing = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        guard !existing.contains(where: { $0.id == "naming-demo" }) else { return }
+        for old in existing where old.id == "naming-demo" { ctx.delete(old) }
 
         let text = "Long studio session today. Hendri showed up early and we nailed the mix with Bruno. Then Jack swung by with notes — sharp as ever. Hendri reckons we're close to done. I'll send Rose the stems tonight, and I will double-check the levels. Mariam wants in on the next one."
         let f = PipelineFile(id: "naming-demo", filename: "Naming demo.m4a", sourceType: .audio, uploadedAt: Date())

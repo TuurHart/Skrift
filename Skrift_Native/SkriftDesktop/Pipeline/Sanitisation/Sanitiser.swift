@@ -111,12 +111,20 @@ enum Sanitiser {
         }
 
         /// The aliases of `p` that map to `p` in the linkable aliasMap (their own, owned,
-        /// non-silenced aliases — what the auto-link pass may use).
+        /// non-silenced aliases) PLUS any force-picked alias assigned to `p` — what the
+        /// auto-link pass may use. The forced part is the "change person" case: a spoken
+        /// "Hendri" force-linked to Will Smith must link even though "Hendri" isn't one of
+        /// Will's declared aliases (without this it silently fell through to plain text).
         func ownedAliases(of p: Person) -> [String] {
             let k = Overrides.key(p)
-            return p.aliases.map { $0.trimmingCharacters(in: .whitespaces) }.filter { alias in
+            var out = p.aliases.map { $0.trimmingCharacters(in: .whitespaces) }.filter { alias in
                 !alias.isEmpty && (aliasMap[alias.lowercased()]?.contains { Overrides.key($0) == k } ?? false)
             }
+            for (al, owner) in forced where Overrides.key(owner) == k
+                && !out.contains(where: { $0.lowercased() == al }) {
+                out.append(al)
+            }
+            return out
         }
     }
 

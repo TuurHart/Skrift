@@ -151,14 +151,16 @@ struct NoteDisplayView: View {
         }
     }
 
-    /// Linked popover → "Open their note": reveal the `People/<name>.md` file (best-effort).
+    /// Linked popover → "Open their note": open the `People/<name>.md` file in the user's
+    /// default Markdown handler (Obsidian, for most). Flashes when there's no vault or no
+    /// such note yet (e.g. a freshly-invented person hasn't got a People/ note).
     private func openNote(_ canonical: String) {
         let name = NamesMerge.keyName(canonical)
         let vault = SettingsStore.shared.load().noteFolder
         guard !vault.isEmpty else { coordinator.flash("Set a vault in Settings to open notes"); return }
         let url = URL(fileURLWithPath: vault).appendingPathComponent("People").appendingPathComponent("\(name).md")
         if FileManager.default.fileExists(atPath: url.path) {
-            NSWorkspace.shared.activateFileViewerSelecting([url])
+            NSWorkspace.shared.open(url)
         } else {
             coordinator.flash("No People/\(name).md note in your vault yet")
         }

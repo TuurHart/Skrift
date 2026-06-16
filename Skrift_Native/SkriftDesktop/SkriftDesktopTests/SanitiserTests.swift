@@ -243,6 +243,20 @@ final class SanitiserTests: XCTestCase {
         XCTAssertEqual(r.ambiguous.first?.candidates.map(\.canonical), ["[[Hendri van Niekerk]]"])
     }
 
+    func testNamePickToPersonWhoDoesNotOwnTheAlias() {
+        // "Change person": force-link the spoken "Hendri" to Will Smith, whose OWN aliases
+        // don't include "Hendri". The mention must link to Will Smith — not fall through to
+        // plain text (the chunk-4 bug: a forced alias the target didn't declare was dropped).
+        let people = [
+            person("[[Hendri van Niekerk]]", ["Hendri"], short: "Hendri"),
+            person("[[Will Smith]]", ["Will"], short: "Will"),
+        ]
+        let r = Sanitiser.process(text: "Hendri showed up early.", people: people,
+                                  namePicks: ["hendri": "[[Will Smith]]"])
+        XCTAssertEqual(r.sanitised, "[[Will Smith]] showed up early.")
+        XCTAssertTrue(r.ambiguous.isEmpty)
+    }
+
     func testNamePickOverridesPrune() {
         // Re-promote a pruned name by picking it — the pick wins over the prune.
         let people = [person("[[Hendri van Niekerk]]", ["Hendri"], short: "Hendri")]
