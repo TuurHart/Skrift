@@ -131,7 +131,11 @@ click-popover. Iterated in chat to sign-off; the mock is the spec.
 - **Click a suggested name** → popover: pick which person · new person… · leave as plain text.
 - **Click a linked name** → popover: unlink (the everyday "just a side-mention" prune) · change
   person (fix a wrong match) · open their note. An unlinked name stays a dotted suggestion
-  (re-promotable).
+  (re-promotable). **Refined 2026-06-16 (user-confirmed):** "change person" lists ONLY people who
+  SHARE the name (the wrong-Jack → right-Jack fix) and is HIDDEN for a distinctive name with no
+  twin — an auto-linked distinctive name can't be the wrong person (there's only one), so offering
+  to switch it to an unrelated person was nonsensical. "Open note" opens `People/<name>.md` in the
+  default Markdown app (Obsidian).
 - Hover lifts a name (faint accent bg) to invite the click.
 - *Rejected during sign-off:* the filled-highlight link style (too heavy — "sea of links"), the
   pending-count bar (extra chrome), bright/saturated amber for suggested (too flashy).

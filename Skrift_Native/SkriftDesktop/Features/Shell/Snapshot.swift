@@ -112,7 +112,9 @@ enum Snapshot {
                 }
                 VStack(alignment: .leading, spacing: 7) {
                     cap("3 · CLICK A LINKED NAME")
-                    LinkedNamePopover(person: "Hendri van Niekerk", others: ["Bruno Aragorn", "Mariam Khan"],
+                    // "Change person" lists only SAME-NAME people (the wrong-Jack → right-Jack
+                    // fix); a distinctive name has none, so the row hides. Shown here for a Jack.
+                    LinkedNamePopover(person: "Jack Hutton", others: ["Jack Tanner"],
                                       canOpen: true, onUnlink: {}, onChange: { _ in }, onOpen: {})
                         .clipShape(RoundedRectangle(cornerRadius: 11))
                         .overlay(RoundedRectangle(cornerRadius: 11).stroke(Theme.hairline.opacity(0.12), lineWidth: 0.5))

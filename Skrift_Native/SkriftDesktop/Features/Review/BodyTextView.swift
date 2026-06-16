@@ -500,9 +500,17 @@ struct BodyTextView: NSViewRepresentable {
             // `[[Canonical|spoken]]` link, else the person's spoken short.
             let parts = link.core.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
             let alias = parts.count == 2 ? parts[1].trimmingCharacters(in: .whitespaces) : Sanitiser.spokenAlias(for: p)
+            // "Change person" only makes sense among people who SHARE this name (the twins) —
+            // the wrong-Jack → right-Jack fix. A distinctive name has no twin, so the list is
+            // empty and the LinkedNamePopover hides the row entirely. Switching to an unrelated
+            // person was nonsensical (and confusing), so it's gone.
+            let myAliases = Set(p.aliases.map { $0.trimmingCharacters(in: .whitespaces).lowercased() })
             let others = peopleCache
+                .filter { other in
+                    NamesMerge.keyName(other.canonical).caseInsensitiveCompare(canonical) != .orderedSame
+                        && other.aliases.contains { myAliases.contains($0.trimmingCharacters(in: .whitespaces).lowercased()) }
+                }
                 .map { NamesMerge.keyName($0.canonical) }
-                .filter { $0.caseInsensitiveCompare(canonical) != .orderedSame }
                 .sorted()
             presentPopover(LinkedNamePopover(
                 person: canonical,
