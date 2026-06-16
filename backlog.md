@@ -272,26 +272,31 @@ the note is ABOUT → those link + go in a `people:` frontmatter list. LOCKED ru
   all production call sites incl. export; (3) `NamesStore.upsert` MERGES on an add-name collision instead of clobbering
   an existing person's aliases/voice; (4) `linkInline` demotes to the canonical when a person has no short. +3 tests.
 
-  ⭐ **CONTINUE HERE (2026-06-16) — UNRESOLVED: same-name people in the chip bar (the "two Jacks" gap).**
-  Device finding (user, live Dev app): a note about TWO friends both named "Jack" shows **two identical `+ Jack`
-  chips** (each renders the person's *short*, which collides) — indistinguishable. Deeper than a label bug:
-  - The chip-bar MODEL is "this note is about person X → link X everywhere (one-note-one-link)". Two same-named
-    friends is the OPPOSITE — different mentions = different people = the **per-occurrence resolver's** job
-    (`Sanitiser.applyResolvedOccurrences` + `Features/Review/InlineResolver.swift`, already built). The two UIs now
-    OVERLAP for same-name people and neither clearly owns it.
-  - **Opt-in interaction we missed:** under the new gate a freshly-processed note records NO ambiguity (empty
-    `aboutPeople` → nothing computed), so the per-occurrence resolver **no longer auto-appears** for two-Jacks the
-    way it did under the old auto-link build. (The purple highlights in the user's screenshot were STALE resolver
-    state from a pre-opt-in process; a fresh re-process clears them, leaving just the two chips.)
-  - The signed-off mock (`mocks/opt-in-naming.html`) only covered DISTINCT names (Hendri/Bruno) → same-name handling
-    is genuinely unspecified.
-  **Decision LEANING (NOT locked — to be stress-tested):** "Disambiguate chip labels (full names) + tapping a
-  same-name chip hands off to the per-occurrence resolver." User wants to NOT just build this — first:
-  **(1) a deep `/grill-me` session** to resolve the design properly; **(2) research agents** to hunt for SIMPLER /
-  better prior-art solutions (how do other tools disambiguate same-name entities inline / pick "which X" cheaply?).
-  THEN decide → mock → build. Nothing built for this yet; opt-in chunks 1–5 above are unaffected + shipped on `main`.
-  Resume: re-read this block + `mocks/opt-in-naming.html` + `PeopleChipBar.swift`/`InlineResolver.swift`, then run
-  `/grill-me` on the same-name design and spin up research agents.
+  ⭐ **CONTINUE HERE (2026-06-16) — RE-OPEN THE WHOLE NAMING/SANITISING SOLUTION FROM FIRST PRINCIPLES.**
+  User's call (do NOT narrow this to a bug fix): the "two Jacks" friction is a SYMPTOM that made the user question
+  whether the entire naming/sanitising approach is the right shape. Next session = re-derive it from the
+  job-to-be-done, NOT patch the chip. We may delete/replace large parts of what we just built — that's on the table.
+  - **The trigger (symptom, evidence — not the task):** a note about two friends both named "Jack" shows two
+    identical `+ Jack` chips; the chip MODEL ("note is about person X → link X everywhere, one-note-one-link")
+    conflicts with the per-occurrence reality (different mentions = different people = the existing
+    `Sanitiser.applyResolvedOccurrences`/`InlineResolver` resolver). The opt-in gate also stopped the resolver from
+    auto-appearing on fresh notes. The signed-off mock only covered DISTINCT names → same-name is unspecified.
+  - **First-principles questions to grill (the real agenda):**
+    1. What JOB does name-linking actually do for the user in the vault? (find "all notes about X" / a people graph /
+       …?) Everything else is downstream of this.
+    2. Do we even need INLINE `[[links]]`, or does the `people:` frontmatter list ALONE deliver the job? (The mock
+       itself says "the people: list carries the graph connection" → the inline first-canonical/rest-alias machinery,
+       per-occurrence resolver, unlink/relink, alias-display may all be solving a non-problem.)
+    3. Is the names DB + alias normalisation pulling its weight, or accidental complexity from "ASR mishears names"?
+    4. Two-Jacks / per-occurrence disambiguation: real recurring need or over-engineered edge?
+    5. Right layer & time for linking: Mac pipeline now vs tap-on-phone vs let Obsidian resolve at read-time.
+  - **Process for next session (user-locked):** (1) deep `/grill-me` on the WHOLE solution (Claude interviews the user
+    relentlessly to reach shared understanding); (2) research agents to hunt SIMPLER / better prior-art solutions
+    (how do other tools link/disambiguate same-name entities — Obsidian plugins, Roam, Logseq, Tana, Reflect, etc.);
+    THEN decide → mock → build. Re-read this block + `mocks/opt-in-naming.html` first.
+  - **What's already SHIPPED (unaffected, on `main`, may be partly reverted after the rethink):** opt-in chunks 1–5
+    (Sanitiser `aboutPeople` gate, first-only inline, `people:` frontmatter, chip bar, Names list→detail editor) +
+    the adversarial-review fixes. All gated/tested/deployed; see the BUILD STEPS + review block above.
 
 ## Sync says "connected" but memos stay "Waiting" (2026-06-15)
 
