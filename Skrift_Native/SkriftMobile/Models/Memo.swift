@@ -31,7 +31,13 @@ final class Memo {
     /// Stable identity. Audio filenames embed it (`memo_{uuid}.m4a`) and the Mac
     /// reconciles uploads by filename — so this UUID is the contract spine. Never
     /// regenerate it for an existing memo.
-    @Attribute(.unique) var id: UUID = UUID()
+    ///
+    /// NOT `@Attribute(.unique)`: CloudKit-backed SwiftData (standalone Phase 1 internal
+    /// sync) forbids unique constraints. Uniqueness is an app-level invariant instead —
+    /// we never regenerate an id, and the only re-insert path (the capture-inbox drainer)
+    /// already dedups via `NotesRepository.memo(id:)` before inserting (so dropping the
+    /// constraint changes no behavior). All other inserts mint a fresh UUID.
+    var id: UUID = UUID()
 
     /// Audio is stored by filename and resolved against the recordings dir at
     /// runtime — an absolute URL would break across reinstalls (the app-container

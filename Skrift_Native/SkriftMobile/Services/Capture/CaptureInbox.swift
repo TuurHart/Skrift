@@ -179,8 +179,9 @@ enum CaptureInbox {
     /// Remove an entry directory (JSON + image if any) from the inbox.
     /// Called only after the Memo has been successfully inserted into SwiftData —
     /// order matters for crash safety: drain is idempotent, so a missed delete
-    /// just re-creates the memo on next foreground (which NotesRepository handles
-    /// by UUID uniqueness — `@Attribute(.unique)` on `Memo.id`).
+    /// just re-creates the memo on next foreground (which the drainer dedups via an
+    /// explicit `NotesRepository.memo(id:)` check before inserting — `Memo.id` is no
+    /// longer `@Attribute(.unique)`, dropped for CloudKit-backed SwiftData; see Memo.swift).
     static func delete(entryDir: URL) {
         try? FileManager.default.removeItem(at: entryDir)
     }

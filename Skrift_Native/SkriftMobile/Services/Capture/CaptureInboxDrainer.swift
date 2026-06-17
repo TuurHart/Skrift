@@ -5,9 +5,11 @@ import SwiftData
 /// Memo objects.
 ///
 /// **Crash-safety:** entries are deleted ONLY after the Memo is saved. If the process
-/// dies between the save and the delete, the next drain re-creates the Memo. SwiftData's
-/// `@Attribute(.unique)` on `Memo.id` lets us detect duplicates: when a memo with the
-/// same UUID already exists we skip the insert and just delete the inbox entry.
+/// dies between the save and the delete, the next drain re-creates the Memo. We dedup
+/// with an explicit `repository.memo(id:)` check before inserting (below): when a memo
+/// with the same UUID already exists we skip the insert and just delete the inbox entry.
+/// (`Memo.id` is no longer `@Attribute(.unique)` — dropped for CloudKit-backed SwiftData
+/// in standalone Phase 1; this explicit check is now the sole dedup.)
 ///
 /// **Thread model:** must be called from the `@MainActor` (SkriftApp, scenePhase, .task).
 /// All SwiftData writes require the main context.
