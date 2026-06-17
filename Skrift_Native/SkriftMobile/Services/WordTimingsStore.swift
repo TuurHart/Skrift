@@ -6,8 +6,12 @@ import Foundation
 struct WordTimingsStore {
     var directory: URL = AppPaths.recordingsDirectory
 
+    /// The sidecar filename for a memo. Single source of the name — `AssetMaterializer`
+    /// (Phase 1d) uses it to sync the sidecar across devices, so the two can't drift.
+    static func filename(for id: UUID) -> String { "wt_\(id.uuidString).json" }
+
     private func fileURL(_ id: UUID) -> URL {
-        directory.appendingPathComponent("wt_\(id.uuidString).json")
+        directory.appendingPathComponent(Self.filename(for: id))
     }
 
     func write(_ timings: [WordTiming], for id: UUID) {

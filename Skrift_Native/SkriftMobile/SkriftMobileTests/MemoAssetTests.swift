@@ -181,4 +181,51 @@ final class MemoAssetTests: XCTestCase {
         XCTAssertTrue(repo.assets(forMemo: id).isEmpty)
         XCTAssertTrue(repo.allAssets().isEmpty)
     }
+
+    // MARK: - Sidecars (word-timings + diarization — Phase 1d)
+
+    func testCaptureIncludesWordTimingsAndDiarizationSidecars() {
+        let repo = NotesRepository(inMemory: true)
+        let id = UUID()
+        let audio = "memo_\(id.uuidString).m4a"
+        let wt = WordTimingsStore.filename(for: id)
+        let diar = DiarizationStore.filename(for: id)
+        defer { cleanup([audio, wt, diar]) }
+        write(audio, Data("AUDIO".utf8))
+        WordTimingsStore().write([WordTiming(word: "hi", start: 0, end: 0.4)], for: id)
+        DiarizationStore().write(DiarizationData(segments: [], slotNames: ["0": "Tiuri"]), for: id)
+        repo.insert(Memo(id: id, audioFilename: audio))
+
+        AssetMaterializer.captureMissing(repo)
+
+        let kinds = Set(repo.assets(forMemo: id).map(\.kind))
+        XCTAssertEqual(kinds, [MemoAsset.Kind.audio, MemoAsset.Kind.wordTimings, MemoAsset.Kind.diarization])
+    }
+
+    /// Device A captures the sidecars; device B (files gone) materializes them, and the
+    /// real stores read the data back — proving karaoke + speaker labels survive the trip.
+    func testRoundTripSidecarsRestoreThroughTheirStores() {
+        let repo = NotesRepository(inMemory: true)
+        let id = UUID()
+        let audio = "memo_\(id.uuidString).m4a"
+        let wt = WordTimingsStore.filename(for: id)
+        let diar = DiarizationStore.filename(for: id)
+        defer { cleanup([audio, wt, diar]) }
+        write(audio, Data("AUDIO".utf8))
+        let timings = [WordTiming(word: "harbor", start: 0.1, end: 0.6),
+                       WordTiming(word: "dawn", start: 0.6, end: 1.0)]
+        WordTimingsStore().write(timings, for: id)
+        DiarizationStore().write(DiarizationData(segments: [], slotNames: ["0": "Tiuri", "1": "Jack"]), for: id)
+        repo.insert(Memo(id: id, audioFilename: audio))
+        AssetMaterializer.captureMissing(repo)        // device A
+
+        // Device B: assets synced, sidecar files absent.
+        cleanup([wt, diar])
+        XCTAssertNil(WordTimingsStore().load(for: id))
+
+        AssetMaterializer.materializeMissing(repo)    // device B
+
+        XCTAssertEqual(WordTimingsStore().load(for: id)?.map(\.word), ["harbor", "dawn"])
+        XCTAssertEqual(DiarizationStore().load(for: id)?.slotNames["1"], "Jack")
+    }
 }

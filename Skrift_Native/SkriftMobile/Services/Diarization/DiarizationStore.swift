@@ -15,7 +15,10 @@ struct DiarizationData: Codable {
 
 struct DiarizationStore {
     var directory: URL = AppPaths.recordingsDirectory
-    private func url(for id: UUID) -> URL { directory.appendingPathComponent("diar_\(id.uuidString).json") }
+    /// The sidecar filename for a memo. Single source of the name — `AssetMaterializer`
+    /// (Phase 1d) uses it to sync the sidecar across devices, so the two can't drift.
+    static func filename(for id: UUID) -> String { "diar_\(id.uuidString).json" }
+    private func url(for id: UUID) -> URL { directory.appendingPathComponent(Self.filename(for: id)) }
 
     func write(_ data: DiarizationData, for id: UUID) { try? JSONEncoder().encode(data).write(to: url(for: id)) }
     func load(for id: UUID) -> DiarizationData? {

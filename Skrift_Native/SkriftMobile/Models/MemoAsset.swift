@@ -58,10 +58,14 @@ final class MemoAsset {
         self.createdAt = createdAt
     }
 
-    /// Known `kind` values. Stored as strings (see `kind`). Extensible — word-timing /
-    /// diarization sidecars could become assets later without a schema change.
+    /// Known `kind` values. Stored as strings (see `kind`) — adding a kind needs no
+    /// schema change. `wordTimings`/`diarization` are the per-memo JSON sidecars
+    /// (Phase 1d) so karaoke/read-along + speaker labels survive the trip to another
+    /// device.
     enum Kind {
         static let audio = "audio"
         static let photo = "photo"
+        static let wordTimings = "wordTimings"
+        static let diarization = "diarization"
     }
 }

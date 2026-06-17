@@ -95,6 +95,14 @@ enum AssetMaterializer {
             if captureFile(entry.filename, kind: MemoAsset.Kind.photo, memoID: memo.id,
                            existing: existing, repository: repository) { dirty = true }
         }
+        // Per-memo JSON sidecars (Phase 1d): word-timings (karaoke/read-along) +
+        // diarization (speaker turns/names). Small, in the same recordings dir, keyed
+        // by memo id. Absent on most memos → captureFile no-ops. byteCount staleness
+        // also refreshes them after an append (new timings) or a speaker rename.
+        if captureFile(WordTimingsStore.filename(for: memo.id), kind: MemoAsset.Kind.wordTimings,
+                       memoID: memo.id, existing: existing, repository: repository) { dirty = true }
+        if captureFile(DiarizationStore.filename(for: memo.id), kind: MemoAsset.Kind.diarization,
+                       memoID: memo.id, existing: existing, repository: repository) { dirty = true }
         return dirty
     }
 
