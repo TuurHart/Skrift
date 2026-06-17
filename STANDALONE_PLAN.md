@@ -158,15 +158,72 @@ Build order = top to bottom; **commit per chunk, verify each chunk** (iPhone 17 
 DEV build on the real 13 for hardware/memory/ASR). Phases 0–3 = the **standalone-capable core**
 (the "earliest-shippable" gate, if we ever ship before the full vision). 4–11 = the full-vision pile.
 
-### Phase 0 — `SkriftPipelineKit` shared package  · effort M · foundational
-Extract pure stages into one package used by both apps; retire the `NamesData` duplication.
-- Share: `Sanitiser` (+ `AmbiguousOccurrence`/`NameCandidate`), `Compiler` (behind a neutral input
-  DTO — drop the `PipelineFile` param), `QuoteProtection`, `ImageMarkerReinsert`, `TagMatcher`,
-  value types (`Person`/`NamesMerge`/`SpeakerTranscript`). Unify `NamesMerge.keyName` visibility
-  (mobile `:93` is `private`, desktop is internal).
-- Keep OUT: `VaultExporter` (filesystem), MLX `EnhancementService` engine (behind `Enhancing`).
-- **Gate:** desktop `UnitTests` + full build green; mobile build green; a golden test asserting
-  `Compiler` output is byte-identical to today on a known fixture.
+### Phase 0 — shared naming engine (`Skrift_Native/Shared/Naming/`)  · ✅ DONE 2026-06-17
+
+**✅ DONE 2026-06-17** — commits `ea3eeed` (0a) · `faece91` (0b) · `71cd8d2` (0c), branch `standalone`.
+**Mechanism = shared source folder, NOT an SPM package** (decided from the data: ~50 files consume these
+types, so a folder — one physical copy compiled into each app's own module — gives the identical "single
+source, can't drift" guarantee with **zero** `import`/access churn; keep-it-simple). `Skrift_Native/Shared/
+Naming/` now holds: `NamesData` (Person/NamesMerge/VoiceEmbedding), `NameMatch` (AmbiguousOccurrence/
+NameCandidate), `NameStoplist`, `QuoteProtection`, `Sanitiser` — wired via each `project.yml` into the
+mobile app target + the desktop app & host-less test bundle. **Stayed desktop-side** (not needed for the
+phone's linking): `RosterAudit` (`affectedFiles` is `PipelineFile`-bound), `NamesStore`, `PeopleFolderScanner`.
+**Mobile `SpeakerTranscript`** gained the line-anchored `headerPattern` + `parseWithPreamble` (aligned to
+desktop so the shared engine's conversation parse is identical). **Gate met:** desktop UnitTests 288 +
+mobile SkriftMobileTests 400 green; canonical byte-identical to both pre-move originals; a mobile
+`SanitiserSmokeTests` proves the engine *executes* on iOS. **`Compiler`/DTO extraction deferred to Phase 2.**
+
+_Original plan (for reference):_
+
+Extract the **post-rework deterministic name-linking engine** (`NAMING_MODEL.md`, 2026-06-16) + the
+shared value types into one Swift package both apps compile — the "single source, can't drift"
+guarantee, which also retires the verbatim `NamesData.swift` duplication. **Re-scoped 2026-06-16**
+after a phone audit: the engine is what just changed *and* what the phone needs first; `Compiler`/DTO
+extraction moves to **Phase 2** (build it when on-device export actually needs it, not before).
+
+Phone reality (audit): the phone does **zero** on-device linking today (sends RAW) but already carries
+the name *data* — `Person`/`NamesData` byte-identical to desktop, `NamesStore` (local `names.json`, no
+vault), and `SpeakerTranscript.parse`. So Phase 0 *gives it the engine for the first time*; the gap is
+tiny.
+
+- **Into the package:**
+  - **Value types** — `Person` + `VoiceEmbedding` + `NamesMerge` (make `keyName` non-`private`);
+    `SpeakerTranscript` (PURE `parse` + `parseWithPreamble` + `mergeAdjacentTurns`, split out of the
+    phone's UI-coupled `SpeakerTurnsView` + the desktop's `Diarizing`); `AmbiguousOccurrence` +
+    `NameCandidate` (today in desktop `PipelineFile.swift:24-39`).
+  - **Engine** — `Sanitiser` (`process` + `processConversation` + `Overrides` + unlink/relink), the
+    opt-out/risk-tier guards `NameStoplist` + `RosterAudit`, and `QuoteProtection` (its
+    `splitLeadingQuote` is used by `Sanitiser.nonProseRanges`).
+  - **Tests** — `SanitiserTests`, `RosterAuditTests`, `NamingGoldenTests`, the relevant `NamesTests`.
+- **Phone deltas to close (small — substrate exists):** (a) `NamesMerge.keyName` `private`→accessible
+  (`SkriftMobile/Models/NamesData.swift:93`); (b) add `SpeakerTranscript.parseWithPreamble` (phone has
+  `parse` only); (c) slim `SkriftMobile/Models/NamesData.swift` to import the shared `Person`/`NamesMerge`
+  (verify field-identical first, then unify — strictly *better* for the byte-compat contract).
+- **Keep OUT / not Phase 0:** `Compiler` + DTO (→ Phase 2), `TagMatcher` (→ later), `VaultExporter`
+  (Mac-only FS), MLX `EnhancementService` (behind `Enhancing`, → Phase 4), `People/`-folder roster
+  seeding (Mac-vault-only — the phone's roster is just `names.json`).
+- **Scope guardrail (engine-only):** Phase 0 makes the engine *compile + test green* on both apps. It
+  does NOT add `Memo` fields (`namePicks`/`unlinkedNames`/`sanitised`/`ambiguousNames`), NOT wire the
+  engine into the phone's flow, NOT touch the sync contract, NOT build link UI. Wiring + the `Memo`
+  fields + the 3-tier dotted/linked review UI land in **Phase 2** (mock first).
+- **Gate:** desktop `UnitTests` + full `-skipMacroValidation` build green; mobile `xcodebuild test`
+  (iPhone 17 sim) green; package tests green; a golden test pinning `Sanitiser` output byte-identical
+  to today on a known fixture (zero behavior change for the Mac).
+
+### Design system — `SkriftDesignKit` (tokens, not a library)  *(Phase 2; user-confirmed 2026-06-17)*
+
+Cross-app **UI** consistency uses the same "single source" idea as the code — but at the **token** level,
+NOT a full component library. A small SPM package **`SkriftDesignKit`** holds shared design tokens (colors
+incl. the naming tiers `nameLink`/`nameSuggest`, type scale, spacing, significance colors) + a few
+genuinely-portable SwiftUI components (e.g. `SignificanceCircles`, tier-colored name text). Both apps read
+from it → the phone's naming-review UI *looks like* the Mac's even though its layout adapts to the small
+screen. Platform-divergent surfaces (the `NSTextView` body editor, popover-vs-sheet, hover-vs-touch) stay
+per-app but draw from the tokens. Introduced when the first cross-app UI lands (**Phase 2** — export sheet /
+naming review); the **phone naming-review mock is a Phase 2 mock**, adapted from the Mac's `naming-review.html`.
+A full unify-every-screen library is rejected (high churn, diminishing returns) — the package is only for the
+small new design-system code where a module actually pays off. (Note: a real SPM *package* fits here — few
+consumers, new code — unlike the naming engine, where the ~50-consumer surface made a shared folder the right
+call.)
 
 ### Phase 1 — CloudKit internal sync ("my notes on all my devices")  · effort L
 - `Models/Memo.swift:34` — **drop `@Attribute(.unique)` from `id`** (CloudKit forbids it); keep the
