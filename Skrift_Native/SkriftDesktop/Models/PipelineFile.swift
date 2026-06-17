@@ -20,23 +20,10 @@ enum SourceType: String, Codable, Sendable {
     case audio, note, capture
 }
 
-/// A candidate person for an ambiguous alias (alias maps to 2+ people).
-struct NameCandidate: Codable, Equatable, Sendable {
-    var id: String
-    var canonical: String
-    var short: String
-}
-
-/// An ambiguous alias occurrence carried on the note and resolved at review
-/// (non-blocking sanitise). Mirrors the backend `ambiguous_names` entries.
-struct AmbiguousOccurrence: Codable, Equatable, Sendable {
-    var alias: String
-    var offset: Int
-    var length: Int
-    var contextBefore: String
-    var contextAfter: String
-    var candidates: [NameCandidate]
-}
+// `NameCandidate` + `AmbiguousOccurrence` (the Sanitiser's suggested-tier result type)
+// moved to the shared cross-app source `Skrift_Native/Shared/Naming/NameMatch.swift` in
+// standalone Phase 0, so the phone compiles the same name-linking engine (it has no
+// `PipelineFile`). Both apps reference them via their `project.yml` Shared/Naming source.
 
 /// The ingest-queue item — the desktop's processing entity (the Mac equivalent of
 /// the phone's `Memo`, but richer because it carries full pipeline state). Ported

@@ -7,10 +7,17 @@ import SwiftUI
 enum SpeakerTranscript {
     struct Turn: Identifiable, Equatable { let id = UUID(); let name: String; let text: String }
 
+    /// A turn header — a bold `**Name:**` anchored to the START of a line. The `(?m)^`
+    /// anchor is deliberate: a mid-sentence `**Pros:**` (e.g. a hand-typed list) must NOT
+    /// read as a speaker turn (the 2026-06-14 false-positive). Shared VERBATIM with the
+    /// desktop `SpeakerTranscript.headerPattern` so the shared `Sanitiser`'s conversation
+    /// parsing is identical on phone and Mac (no drift).
+    private static let headerPattern = #"(?m)^[ \t]*\*\*([^*\n]+?):\*\*[ \t]*"#
+
     /// Turns if `transcript` is a `**Name:**` conversation (≥2 turns), else nil.
     static func parse(_ transcript: String?) -> [Turn]? {
         guard let t = transcript,
-              let re = try? NSRegularExpression(pattern: #"\*\*([^*\n]+?):\*\*[ \t]*"#) else { return nil }
+              let re = try? NSRegularExpression(pattern: headerPattern) else { return nil }
         let ns = t as NSString
         let matches = re.matches(in: t, range: NSRange(location: 0, length: ns.length))
         guard matches.count >= 2 else { return nil }
@@ -25,6 +32,20 @@ enum SpeakerTranscript {
             turns.append(Turn(name: name, text: text))
         }
         return turns
+    }
+
+    /// The turns PLUS any leading text before the first turn header (e.g. an early
+    /// `[[img_NNN]]` photo marker the phone inserted before the first spoken word). Lets
+    /// the shared conversation linker PRESERVE that preamble instead of dropping it. nil
+    /// when not ≥2 turns. Mirrors the desktop `SpeakerTranscript.parseWithPreamble` — the
+    /// method the shared `Sanitiser.processConversation` calls.
+    static func parseWithPreamble(_ transcript: String?) -> (preamble: String, turns: [Turn])? {
+        guard let t = transcript, let turns = parse(t),
+              let re = try? NSRegularExpression(pattern: headerPattern) else { return nil }
+        let ns = t as NSString
+        let firstLoc = re.firstMatch(in: t, range: NSRange(location: 0, length: ns.length))?.range.location ?? 0
+        let preamble = ns.substring(to: firstLoc).trimmingCharacters(in: .whitespacesAndNewlines)
+        return (preamble, turns)
     }
 
     /// "Speaker N" is the un-named placeholder (offer to tag it); a real name isn't.
