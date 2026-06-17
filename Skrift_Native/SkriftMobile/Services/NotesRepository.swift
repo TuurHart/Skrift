@@ -12,7 +12,25 @@ final class NotesRepository {
 
     init(inMemory: Bool) {
         let schema = Schema([Memo.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
+        // CloudKit-backed (standalone Phase 1 internal sync): SwiftData mirrors the Memo
+        // store to the user's PRIVATE CloudKit database, so notes sync across THEIR own
+        // devices (iPhone↔iPad) with no Mac and no iCloud-Drive conflict-copy files.
+        // Per-config container id matches the per-config entitlement (dev vs prod); the
+        // container is registered once in Xcode → Signing & Capabilities. Audio/photos
+        // stay device-local in this chunk (the Memo ROW syncs); CKAsset media sync is next.
+        //
+        // CloudKit is forced OFF for the in-memory path AND under XCTest, so the UI/unit
+        // suites stay offline + deterministic and never touch a CloudKit container.
+        #if DEBUG
+        let cloudContainer = "iCloud.com.skrift.mobile.dev"
+        #else
+        let cloudContainer = "iCloud.com.skrift.mobile"
+        #endif
+        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let cloudKit: ModelConfiguration.CloudKitDatabase = (inMemory || isTesting)
+            ? .none : .private(cloudContainer)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory,
+                                        cloudKitDatabase: cloudKit)
         do {
             container = try ModelContainer(for: schema, configurations: config)
         } catch {

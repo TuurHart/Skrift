@@ -10,5 +10,17 @@
 	<array>
 		<string>group.com.skrift.mobile</string>
 	</array>
+	<!-- iCloud / CloudKit — standalone Phase 1 internal sync (SwiftData cloudKitDatabase →
+	     NSPersistentCloudKitContainer). LITERAL per config (the $(VAR) provisioning trap).
+	     The container must be registered ONCE in Xcode → Signing & Capabilities (iCloud →
+	     CloudKit → add this container) — done at prod promotion, like App Groups. -->
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.com.skrift.mobile</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
 </dict>
 </plist>
