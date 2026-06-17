@@ -11,7 +11,7 @@ final class NotesRepository {
     var context: ModelContext { container.mainContext }
 
     init(inMemory: Bool) {
-        let schema = Schema([Memo.self, MemoAsset.self, NamesRecord.self])
+        let schema = Schema([Memo.self, MemoAsset.self, NamesRecord.self, VocabularyRecord.self])
         // CloudKit-backed (standalone Phase 1 internal sync): SwiftData mirrors the Memo
         // store to the user's PRIVATE CloudKit database, so notes sync across THEIR own
         // devices (iPhone↔iPad) with no Mac and no iCloud-Drive conflict-copy files.
@@ -140,6 +140,12 @@ final class NotesRepository {
     /// devices each created one before syncing (`NamesCloudSync` collapses them).
     func allNamesRecords() -> [NamesRecord] {
         (try? context.fetch(FetchDescriptor<NamesRecord>())) ?? []
+    }
+
+    /// The custom-vocabulary carrier rows (Phase 1f). Normally 0 or 1;
+    /// `VocabularyCloudSync` collapses any duplicates.
+    func allVocabularyRecords() -> [VocabularyRecord] {
+        (try? context.fetch(FetchDescriptor<VocabularyRecord>())) ?? []
     }
 
     /// Startup purge: permanently delete every memo trashed at least

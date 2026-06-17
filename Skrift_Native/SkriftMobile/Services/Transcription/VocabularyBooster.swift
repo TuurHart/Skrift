@@ -5,21 +5,41 @@ import FluidAudio
 
 /// The user's custom vocabulary ("Skrift", names of products, jargon …) —
 /// words Parakeet routinely mis-hears. Settings → Transcription → Custom words.
-/// Per-device v1 (no phone↔Mac sync; the Mac keeps its own list).
+/// Stays a per-device UserDefaults list for the booster's synchronous (off-main)
+/// reads; `VocabularyCloudSync` syncs it across the user's devices (Phase 1f) via a
+/// CloudKit carrier, LWW by `modifiedAt` so a delete on one device propagates.
 enum CustomVocabularyStore {
     static let defaultsKey = "customVocabularyWords"
+    static let modifiedAtKey = "customVocabularyWordsModifiedAt"
 
     static func words(defaults: UserDefaults = .standard) -> [String] {
         (defaults.array(forKey: defaultsKey) as? [String]) ?? []
     }
 
+    /// When the list was last edited on THIS device — the LWW key for sync.
+    /// `.distantPast` until first edited (so a synced list always wins a fresh device).
+    static func modifiedAt(defaults: UserDefaults = .standard) -> Date {
+        (defaults.object(forKey: modifiedAtKey) as? Date) ?? .distantPast
+    }
+
     static func save(_ words: [String], defaults: UserDefaults = .standard) {
-        // Trimmed, de-duplicated (case-insensitive), order-preserving.
+        defaults.set(clean(words), forKey: defaultsKey)
+        defaults.set(Date(), forKey: modifiedAtKey)   // user edit → bump for LWW
+    }
+
+    /// Adopt a list that arrived from another device — writes the words AND the
+    /// remote `modifiedAt` (does NOT bump to now, so the timestamps stay comparable).
+    static func adoptSynced(_ words: [String], modifiedAt: Date, defaults: UserDefaults = .standard) {
+        defaults.set(clean(words), forKey: defaultsKey)
+        defaults.set(modifiedAt, forKey: modifiedAtKey)
+    }
+
+    /// Trimmed, de-duplicated (case-insensitive), order-preserving.
+    private static func clean(_ words: [String]) -> [String] {
         var seen = Set<String>()
-        let clean = words
+        return words
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
-        defaults.set(clean, forKey: defaultsKey)
     }
 }
 
