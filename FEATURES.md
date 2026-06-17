@@ -172,6 +172,16 @@ Signed-off mock: `Skrift_Native/SkriftDesktop/mocks/audiobook-player-redesign.ht
 | Bonjour discovery / advertise | ✅ | ✅ | mobile `Features/Settings/PairMacView.swift`; desktop `Server/SyncServer.swift:51-64` | Desktop advertises unique host name; phone resolves IPv4 |
 | Health endpoint | ✅ | ✅ | `SyncHandlers.swift:50-53` | reports FluidAudio "parakeet" availability |
 
+## Internal sync — CloudKit *(standalone, device↔device — `STANDALONE_PLAN.md` Phase 1)*
+
+Mirrors the SwiftData store to the user's PRIVATE CloudKit database so notes sync across **their own** devices (iPhone↔iPad) with **no Mac** and no iCloud-Drive `filename 2.md` conflicts. Independent of (and coexists with) the Mac Bonjour/HTTP contract above. Desktop = ➖ by design for now (the Mac uses `PipelineFile`, not `Memo`; making it a CloudKit client of the Memo store is a deferred decision).
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Memo row sync (text + metadata) | ✅ | ➖ | `Services/NotesRepository.swift` (`cloudKitDatabase: .private(<per-config container>)`); `Models/Memo.swift` (no `@Attribute(.unique)`) | ✅ 2026-06-17 Phase 1a/1b, **device-verified** (memo recorded on iPhone → iPad, no Mac). `id` is app-level-unique (CloudKit forbids unique constraints); CloudKit forced `.none` under `-inMemoryStore` + XCTest so the suites stay offline. iCloud capability + container `iCloud.com.skrift.mobile{.dev}` added once in Xcode (per-config) |
+| Media sync (recording `.m4a` + photos → CKAsset) | ✅ | ➖ | `Models/MemoAsset.swift`; `Services/AssetMaterializer.swift`; `App/SkriftApp.swift` (launch + foreground sweep); `MemoSaver.save()` (immediate capture) | ✅ 2026-06-17 Phase 1c (sim-green, **device-verify owed**). `@Model MemoAsset {memoID, kind, filename, byteCount, blob: Data}` — plain `Data` (NO `.externalStorage`: CloudKit rejects it; auto-promotes `Data >~1 MB` to CKAsset). `AssetMaterializer` is idempotent both ways: **materialize** (synced blob → `recordings/<filename>` so filename-based code is unchanged) + **capture** (disk → asset, incl. migrating pre-1c memos + refresh-on-append via `byteCount`). Asset rows deleted with the memo in `permanentlyDelete`. 9 `MemoAssetTests` |
+| Audiobook state sync (library / resume / bookmarks) | ➖ | ➖ | `Services/Audiobooks/Audiobook.swift` (`AudiobookLibraryStore` — JSON today) | ⏳ NEXT (Phase 1, final sub-step): migrate audiobook *state* (`library.json`, resume position, rate, bookmarks, `BookTranscript`) → SwiftData `@Model`s for CloudKit. Audio stays **device-local** ("books never sync" quota invariant); each device keeps its own copy |
+
 ## Ingest / import
 
 | Capability | Mobile | Desktop | Key files | Notes |

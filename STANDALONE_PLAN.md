@@ -423,6 +423,33 @@ placeholder (Phase 1); pins (Phase 5).
 
 ---
 
+## ⭐ RESUME — 2026-06-17 (Phase 1 nearly done; pick up at audiobook-state)
+
+**Done + on `main` (local, unpushed; worktree merged in + removed — everything's on `main`):**
+- **Phase 0** — shared naming engine in `Skrift_Native/Shared/Naming/` (`NamesData`/`NameMatch`/`NameStoplist`/`QuoteProtection`/`Sanitiser`), compiled into BOTH apps via each `project.yml` (shared SOURCE FOLDER, not an SPM package). Both green: desktop UnitTests 288 + mobile SkriftMobileTests 400; engine runs on iOS (`SanitiserSmokeTests`). Commits `ea3eeed`/`faece91`/`71cd8d2`/`ebea0b6`.
+- **Phase 1a** (`9764183`) — dropped `@Attribute(.unique)` on `Memo.id` (CloudKit forbids it); app-level dedup (the capture drainer's existing `memo(id:)` check).
+- **Phase 1b** (`345ea0a`) — `cloudKitDatabase: .private(<per-config container>)` on `NotesRepository` (forced `.none` under inMemory + XCTest so the sim stays offline); iCloud entitlement (literal per config: `iCloud.com.skrift.mobile.dev` / `.mobile`). **DEVICE-VERIFIED: a memo recorded on the iPhone synced to the iPad via CloudKit, no Mac.** Manual Xcode step done: iCloud→CloudKit capability + container added (the CLI can't add a capability).
+- **Icons** (`a184d2b`) — one universal icon per config (prod `icon-light`, dev `dev-icon-light`); dropped the light/dark variants (killed the 4-icon mess).
+- **Phase 1c — audio/photos → CKAsset** (`c5824eb` 1c-i model/schema · `ec10bf5` 1c-ii materializer/wiring/tests). The recording `.m4a` + photos now sync as CloudKit-mirrored blobs, not just the `Memo` row. `@Model MemoAsset {memoID, kind, filename, byteCount, blob: Data}` — **plain `Data`, NO `@Attribute(.externalStorage)`** (NSPersistentCloudKitContainer rejects external binary storage on a synced attr and would `fatalError` at init; CloudKit auto-promotes `Data >~1 MB` to a CKAsset). Loose `memoID` FK (no `@Relationship` → dodges CloudKit's optional/inverse rules); blob lives in a separate row so the memos-list/search queries never fault it. `AssetMaterializer` (idempotent, both directions, run on launch + `scenePhase==.active`): **materialize** (synced blob → `recordings/<filename>`, never clobbers) so `Memo.audioURL`/photo-load/playback/export are UNCHANGED + **capture** (disk → asset, incl. migrating pre-1c memos + refresh-on-append via `byteCount`); immediate per-memo capture in `MemoSaver.save()`. Asset rows deleted with the memo in `permanentlyDelete`. **Gate: 409/409 `SkriftMobileTests` green** (400 + 9 new `MemoAssetTests`). **⚠️ DEVICE-VERIFY OWED** (see handoff below).
+
+> **Pre-existing UI-test breakage (NOT from this work):** 10 of 40 `SkriftMobileUITests` fail on the current Xcode/iOS-26 sim — confirmed pre-existing on clean `main` by stash-and-rerun (mostly seeded demo memos not exposing transcript text to XCUITest — likely an iOS-26 `TextEditor` `.value` accessibility change). The **unit suite is the gate** (matches how 1a/1b were gated: "SkriftMobileTests 400"). Flagged as a separate background task.
+
+**📱 DEVICE-VERIFY HANDOFF (Phase 1c — your step):**
+1. Build + install the **DEV** build on BOTH the iPhone 13 and the iPad (Xcode Cmd-R, or CLI device build — same iCloud account on both, iCloud Drive on).
+2. **First run does the CloudKit schema step automatically:** the dev container (`iCloud.com.skrift.mobile.dev`) auto-creates the new `MemoAsset` record type on first save (dev env auto-schema — no Dashboard visit needed for DEV; PROD needs a "Deploy Schema Changes" in CloudKit Dashboard at promotion, like the Memo type).
+3. Record a memo **with a photo** on the iPhone. Wait for CloudKit (seconds–minutes; foreground both apps to nudge the sweep — `AssetMaterializer.run` fires on launch + every foreground).
+4. On the iPad: the memo row appears (1b, known good), then the **audio becomes playable + the photo renders** once the CKAsset materializes (1c). Expect "row first, media a beat later."
+5. Pull the DEV `devlog.txt` to confirm: look for `asset: captured audio …` on the iPhone and `asset: materialized audio …` on the iPad.
+- If audio never crosses: check the iPad's iCloud account/storage, that both run the **dev** bundle id, and that the `MemoAsset` type exists in the dev CloudKit Dashboard. (CKAsset upload can lag on a cold first sync.)
+
+**NEXT — finish Phase 1: audiobook-state → SwiftData** (the last Phase-1 sub-step). Today audiobook state is a JSON store (`AudiobookLibraryStore` → `audiobooks/library.json`, an `ObservableObject` with `@Published books`) + bookmark/`BookTranscript` sidecars, consumed across ~8 views. Migrate the *state* — library entries, resume `position`, `playbackRate`, `lastPlayedAt`, bookmarks, the `BookTranscript` sidecar — to CloudKit-synced SwiftData `@Model`s so "start on iPhone, resume on iPad" works. **Audio stays device-local** (`Audiobook.swift:12` "books never sync" quota invariant — each device holds its own copy; do NOT make book audio a `MemoAsset`/CKAsset). This is the SAME row-sync mechanism as 1a/1b (already device-verified) — NOT the CKAsset mechanism — so it isn't blocked on the 1c device-verify, but it's a sizable migration (rewire the `@Published`-store consumers to `@Query`/`@Model`) → its own focused chunk, mock-free (no new UI). Keep `-inMemoryStore` → CloudKit `.none` for tests.
+
+**Then:** Phase 2 (export/Obsidian) → Phase 3 (de-Mac UX) = *standalone-capable core* → **Mac → CloudKit client** (read the `Memo` store from CloudKit, enhance/link/export, write the polished result BACK so it syncs to the phone; replaces Bonjour/HTTP + solves "Mac polish doesn't return"; the Mac uses `PipelineFile`≠`Memo` so it's a real change — user-greenlit, AFTER Phases 1–3) → roadmap Phases 4–11.
+
+**Build/deploy (user-locked):** dev = CLI `xcodebuild` (automated sim loop) / Xcode Cmd-R (manual device); **prod = Xcode Organizer** (incl. desktop); capabilities ALWAYS Xcode. `main` is local-ahead of origin — push when ready. Full context in the `project_standalone_app_store` memory.
+
+---
+
 ## Decisions (resolved 2026-06-15) + still-open
 
 **RESOLVED:**
