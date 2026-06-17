@@ -50,6 +50,10 @@ struct SkriftApp: App {
                 // migrating pre-1c memos). Idempotent; mirrors the inbox drainer's
                 // launch + foreground cadence below.
                 .task { AssetMaterializer.run(repository) }
+                // Reconcile the names/people DB across devices (Phase 1e): merge the
+                // CloudKit-synced carrier with the local names.json via the same
+                // NamesMerge the Mac sync uses. Idempotent; launch + foreground.
+                .task { NamesCloudSync.run(repository) }
                 // Recover any recording orphaned mid-transcription by a process
                 // kill: a fire-and-forget transcription Task can't survive app
                 // suspension, so a cold-launch auto-record stopped before the
@@ -80,6 +84,7 @@ struct SkriftApp: App {
                     if newPhase == .active {
                         CaptureInboxDrainer.drain(into: repository)
                         AssetMaterializer.run(repository)
+                        NamesCloudSync.run(repository)
                     } else if newPhase == .background {
                         // If a whole-book transcribe is in flight, ask iOS to let it
                         // continue in the background (best overnight on a charger).
