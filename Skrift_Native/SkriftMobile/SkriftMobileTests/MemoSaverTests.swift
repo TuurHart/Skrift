@@ -164,6 +164,85 @@ final class MemoSaverTests: XCTestCase {
         XCTAssertEqual(memo?.transcriptStatus, .done)
     }
 
+    // MARK: - Stuck-transcription recovery (2026-06-16 device bug)
+
+    /// A recording orphaned at `.transcribing` by a process kill — a cold-launch
+    /// auto-record stopped before the model loaded, then the app was suspended,
+    /// so the fire-and-forget transcription Task died — is re-transcribed by the
+    /// launch sweep, never left as a permanent spinner.
+    @MainActor
+    func testRecoverReTranscribesStuckRecording() async {
+        let repo = NotesRepository(inMemory: true)
+        try? FileManager.default.createDirectory(at: AppPaths.recordingsDirectory, withIntermediateDirectories: true)
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+        FileManager.default.createFile(atPath: AppPaths.recordingsDirectory.appendingPathComponent(filename).path,
+                                       contents: Data("AUDIO".utf8))
+        repo.insert(Memo(id: id, audioFilename: filename, duration: 13, recordedAt: Date(),
+                         transcript: nil, transcriptStatus: .transcribing))
+
+        await makeRecoverySaver(repo: repo, text: "recovered transcript").recoverStuckTranscriptions()
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.transcriptStatus, .done)
+        XCTAssertEqual(memo?.transcript, "recovered transcript")
+        try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(filename))
+    }
+
+    /// The sweep is scoped to PLAIN recordings: capture dictations (empty
+    /// `audioFilename` — `CaptureDictation.resumePending` owns those) and
+    /// audiobook captures (`isBookCapture`, own transcribe-at-create path) must
+    /// be left untouched even when stuck, while a plain stuck memo IS recovered.
+    @MainActor
+    func testRecoverSkipsCaptureDictationsAndBookCaptures() async {
+        let repo = NotesRepository(inMemory: true)
+        try? FileManager.default.createDirectory(at: AppPaths.recordingsDirectory, withIntermediateDirectories: true)
+
+        // (a) capture dictation — empty audioFilename, stuck
+        let dictationID = UUID()
+        repo.insert(Memo(id: dictationID, audioFilename: "", duration: 0, recordedAt: Date(),
+                         transcriptStatus: .transcribing))
+
+        // (b) audiobook capture — book metadata + audio present, stuck
+        let bookID = UUID()
+        let bookFile = "memo_\(bookID.uuidString).m4a"
+        FileManager.default.createFile(atPath: AppPaths.recordingsDirectory.appendingPathComponent(bookFile).path,
+                                       contents: Data("AUDIO".utf8))
+        var bookMeta = MemoMetadata()
+        bookMeta.bookTitle = "Meditations"
+        repo.insert(Memo(id: bookID, audioFilename: bookFile, duration: 5, recordedAt: Date(),
+                         transcriptStatus: .transcribing, metadata: bookMeta))
+
+        // (c) plain recording — stuck, SHOULD be recovered
+        let plainID = UUID()
+        let plainFile = "memo_\(plainID.uuidString).m4a"
+        FileManager.default.createFile(atPath: AppPaths.recordingsDirectory.appendingPathComponent(plainFile).path,
+                                       contents: Data("AUDIO".utf8))
+        repo.insert(Memo(id: plainID, audioFilename: plainFile, duration: 4, recordedAt: Date(),
+                         transcriptStatus: .transcribing))
+
+        await makeRecoverySaver(repo: repo, text: "plain recovered").recoverStuckTranscriptions()
+
+        XCTAssertEqual(repo.memo(id: dictationID)?.transcriptStatus, .transcribing, "capture dictation left for CaptureDictation.resumePending")
+        XCTAssertEqual(repo.memo(id: bookID)?.transcriptStatus, .transcribing, "audiobook capture left for its own path")
+        XCTAssertEqual(repo.memo(id: plainID)?.transcriptStatus, .done, "plain stuck recording recovered")
+        XCTAssertEqual(repo.memo(id: plainID)?.transcript, "plain recovered")
+
+        for f in [bookFile, plainFile] {
+            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(f))
+        }
+    }
+
+    @MainActor
+    private func makeRecoverySaver(repo: NotesRepository, text: String) -> MemoSaver {
+        MemoSaver(
+            repository: repo,
+            transcriber: SeededTranscriber(text: text),
+            wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService())
+    }
+
     // MARK: - Append helpers
 
     /// Insert a base memo (with placeholder audio on disk) the appends target.

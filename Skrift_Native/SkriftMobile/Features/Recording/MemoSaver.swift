@@ -583,6 +583,40 @@ struct MemoSaver {
         }
     }
 
+    /// Re-transcribe recordings orphaned at `.transcribing` by a process kill.
+    /// A recording's transcription runs in a fire-and-forget `Task` (see `save`)
+    /// that CANNOT survive app suspension/termination — e.g. a cold-launch
+    /// auto-record (widget/Siri) stopped before the ASR model finished loading,
+    /// then the app was backgrounded: the `Task` dies and the memo is stranded
+    /// as `.transcribing` forever — a perpetual "Transcribing" spinner with no
+    /// retry (the 2026-06-16 device bug: "the last message is stuck … not
+    /// transcribing at all"). No transcription `Task` survives a relaunch, so at
+    /// launch ANY memo still `.transcribing` is orphaned by definition and safe
+    /// to re-run. Called once per launch from `SkriftApp`.
+    ///
+    /// Scoped to PLAIN audio memos (recordings + audio/video imports) — exactly
+    /// what `runTranscription` owns. Capture *dictations* (empty `audioFilename`,
+    /// audio in the pending dir) are recovered by `CaptureDictation.resumePending`;
+    /// audiobook *captures* (`isBookCapture`) transcribe at creation and resume
+    /// via `BookTranscriptionJob` — both excluded so this never clobbers them.
+    /// Runs sequentially: one model-bound transcription at a time.
+    func recoverStuckTranscriptions() async {
+        let stuck = repository.allMemos().filter { memo in
+            memo.transcriptStatus == .transcribing
+                && !memo.audioFilename.isEmpty
+                && !memo.isBookCapture
+                && FileManager.default.fileExists(
+                    atPath: AppPaths.recordingsDirectory
+                        .appendingPathComponent(memo.audioFilename).path)
+        }
+        guard !stuck.isEmpty else { return }
+        DevLog.log("recover: \(stuck.count) memo(s) stuck in .transcribing — re-running")
+        for memo in stuck {
+            DevLog.log("recover stuck transcription — memo \(memo.id)")
+            await runTranscription(id: memo.id)
+        }
+    }
+
     /// Split an already-saved memo into speakers (the detail's "Split speakers" button):
     /// load its audio + word-timings and re-emit the transcript as speaker turns.
     /// `targetSpeakers` forces exactly N voices (nil = Auto). ≥2 speakers → turns;

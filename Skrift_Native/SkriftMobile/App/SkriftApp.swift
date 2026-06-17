@@ -44,6 +44,18 @@ struct SkriftApp: App {
                 // we convert them to Memos here and delete the entries after save —
                 // see Services/Capture/CaptureInbox.swift for the crash-safety model.
                 .task { CaptureInboxDrainer.drain(into: repository) }
+                // Recover any recording orphaned mid-transcription by a process
+                // kill: a fire-and-forget transcription Task can't survive app
+                // suspension, so a cold-launch auto-record stopped before the
+                // model loaded (then backgrounded) strands the memo at
+                // `.transcribing` forever (2026-06-16 device bug). Any memo still
+                // `.transcribing` at launch is orphaned by definition — re-run it.
+                // Skipped on the seeded sim/UI-test path (no Neural Engine).
+                .task {
+                    if LaunchFlags.seedTranscript == nil {
+                        await MemoSaver().recoverStuckTranscriptions()
+                    }
+                }
                 // Pre-warm the custom-vocabulary booster when the user has custom
                 // words, so the FIRST recording this session is boosted. The
                 // booster is non-blocking (it skips the first, model-loading

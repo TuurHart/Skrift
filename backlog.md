@@ -113,17 +113,23 @@ to be a **stale orphan** frozen at 06-12. The bug report was recovered NOT from 
 `wt_<uuid>.json` word-timing sidecars in the private container's `Documents/recordings` (AFC-readable) and
 reconstructing the transcript. Raw audio also pulled to `/tmp/skrift-pull/memo_FE3DD029*.m4a`.
 
-### P0/P1 — 🐛 BUG: a recording can get STUCK and never transcribe (no retry)
-Confirmed from independent evidence, not just the report:
-- The **06-16 23:30 recording (13.48s)** stopped (`record stop — duration=13.48s` in devlog) but **never
-  transcribed** — the next devlog line is just a prewarm, there is **no `vocab: words=…` completion** for it,
-  and it has **no `wt_<uuid>.json` sidecar** on disk (every transcribed memo has one; this one doesn't).
-- The user noticed at 00:07/00:08 (06-17): *"the last message that I sent is **stuck weirdly** … it hasn't
-  transcribed and **it's not transcribing at all**. So we need to run a reset button or automatic reset."*
-- This rhymes with the 06-10 P0 append/transcription-silent-no-op family (`MemoSaver.appendRecordingAsync` /
-  one-shot transcribe path). Fix: a memo whose transcription never started/finished must (a) surface a
-  retry-able **Error/stuck state** instead of sitting silent, and (b) offer a **manual "transcribe/reset"**
-  affordance. REPRODUCE the 13s-recording-then-stuck case first.
+### P0/P1 — 🐛 BUG: a recording can get STUCK and never transcribe (no retry) — ✅ FIXED 2026-06-17 (auto-recovery; awaiting device re-test)
+**Root cause (confirmed from independent evidence):** `runTranscription` runs in a fire-and-forget `Task`
+that can't survive app suspension. The **06-16 23:30 recording (13.48s)** was a **cold-launch auto-record**
+(devlog: launch + `record start` at the same instant, 23:30:23 — widget/Siri/deep-link), so the ASR model
+wasn't loaded; after `record stop — duration=13.48s` the transcribe `await`s the model load, the app was
+backgrounded (late night), the `Task` died → memo stranded at `.transcribing` forever (perpetual spinner =
+*"not transcribing at all"*). Proof it never completed: **no `vocab: words=…` line and no `wt_<uuid>.json`
+sidecar** for it (every transcribed memo has both). The user asked for *"a reset button or automatic reset."*
+
+**Fix (user chose auto-recovery only — no new UI):** `MemoSaver.recoverStuckTranscriptions()`, called once
+per launch from `SkriftApp` (`.task`, skipped on the seeded sim path). No transcription `Task` survives a
+relaunch, so any memo still `.transcribing` at launch is orphaned by definition → re-run `runTranscription`.
+Scoped to plain recordings/imports: `transcriptStatus == .transcribing && !audioFilename.isEmpty &&
+!isBookCapture && <audio file exists>` — capture dictations stay owned by `CaptureDictation.resumePending`,
+audiobook captures by `BookTranscriptionJob`. 2 unit tests added; **12/12 MemoSaverTests green on the iPhone 17
+sim.** **OWED:** promote to TestFlight → the existing stuck prod memo recovers on next launch (user will
+confirm); device-eyeball a fresh cold-launch-auto-record → kill → relaunch cycle.
 
 ### Feature — ✨ toggle to disable live transcription for long / battery-saving recordings
 From the same 56s memo: *"it should be possible to have a button (maybe top-right) that **turns off live
