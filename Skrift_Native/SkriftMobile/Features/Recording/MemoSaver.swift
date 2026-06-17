@@ -40,6 +40,10 @@ struct MemoSaver {
         let id = persist(tempURL: tempURL, duration: duration, photos: photos, provisional: provisionalTranscript)
         Task { await applyMetadata(id: id, pre: capturedMetadata) }
         Task { await runTranscription(id: id) }
+        // Capture the recording (+ any photos) as CloudKit-mirrored MemoAssets right
+        // away (Phase 1c) so a fresh memo syncs its media without waiting for the next
+        // foreground sweep. Off the synchronous return path so navigation isn't blocked.
+        Task { AssetMaterializer.capture(memoID: id, repository: repository) }
         return id
     }
 

@@ -44,6 +44,12 @@ struct SkriftApp: App {
                 // we convert them to Memos here and delete the entries after save —
                 // see Services/Capture/CaptureInbox.swift for the crash-safety model.
                 .task { CaptureInboxDrainer.drain(into: repository) }
+                // Reconcile CloudKit-mirrored media (Phase 1c): write any synced
+                // MemoAsset blobs that arrived from another device to disk, and
+                // capture any local audio/photos that have no asset yet (incl.
+                // migrating pre-1c memos). Idempotent; mirrors the inbox drainer's
+                // launch + foreground cadence below.
+                .task { AssetMaterializer.run(repository) }
                 // Recover any recording orphaned mid-transcription by a process
                 // kill: a fire-and-forget transcription Task can't survive app
                 // suspension, so a cold-launch auto-record stopped before the
@@ -73,6 +79,7 @@ struct SkriftApp: App {
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
                         CaptureInboxDrainer.drain(into: repository)
+                        AssetMaterializer.run(repository)
                     } else if newPhase == .background {
                         // If a whole-book transcribe is in flight, ask iOS to let it
                         // continue in the background (best overnight on a charger).
