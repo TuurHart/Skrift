@@ -23,11 +23,15 @@ first) → 5 Organization (pins/folders/nested tags/smart folders) → 6 Commonp
 + quote cards (the differentiator) → 7 People & backlinks → 8 Journal/map/On-This-Day + semantic
 search → 9 audiobook player polish → 10 Apple Watch capture → 11 App Store readiness.
 
-**⭐ PROGRESS (2026-06-17) — all on `main`, local/unpushed (branch `standalone` fast-forwarded in + removed):**
+**⭐ PROGRESS (2026-06-18) — all on `main`, local/unpushed (branch `standalone` fast-forwarded in + removed):**
 - ✅ **Phase 0** — shared naming engine in `Skrift_Native/Shared/Naming/` (shared SOURCE FOLDER, not SPM). Both apps green.
 - ✅ **Phase 1a/1b** — Memo-row CloudKit sync; **device-verified** (iPhone→iPad, no Mac). iCloud capability + per-config container added in Xcode.
-- ✅ **Phase 1c** — audio/photos → CKAsset (`c5824eb`+`ec10bf5`). `MemoAsset` blob model (plain `Data`, no `.externalStorage` — CloudKit auto-CKAsset) + idempotent `AssetMaterializer` (materialize synced blobs → disk so filename code is unchanged; capture disk → asset incl. pre-1c migration + append-refresh). **409/409 unit tests green. DEVICE-VERIFY OWED** — instructions in `STANDALONE_PLAN.md` "DEVICE-VERIFY HANDOFF". ⚠️ separately: 10/40 UI tests are pre-existing-broken on the iOS-26 sim (confirmed on clean `main`) — flagged as a background task; unit suite is the gate.
-- ⏳ **NEXT (finishes Phase 1): audiobook-state → SwiftData** — migrate `AudiobookLibraryStore` (JSON `library.json`) + bookmarks + `BookTranscript` to CloudKit-synced `@Model`s (library/resume/rate/bookmarks sync; **book AUDIO stays device-local** — "books never sync"). Same row-sync mechanism as 1a/1b (not blocked on the 1c device-verify); sizable consumer rewire → own chunk.
+- ✅ **Phase 1c** — Memo audio/photos → CKAsset (`c5824eb`+`ec10bf5`). `MemoAsset` blob model (plain `Data`, no `.externalStorage` — CloudKit auto-CKAsset) + idempotent `AssetMaterializer`. **DEVICE-VERIFIED 2026-06-18** (image+audio iPhone→iPad).
+- ✅ **Phase 1d** — word-timings + diarization sidecars sync (`026d4ca`) — new `MemoAsset` kinds → karaoke/speaker labels cross devices.
+- ✅ **Phase 1e** — names + enrolled voices sync (`5ca7c1e`) — `NamesRecord` carrier + `NamesMerge` (LWW + voiceEmbedding union); `names.json`/Mac contract untouched.
+- ✅ **Phase 1f** — custom vocabulary sync (`fddf690`) — `VocabularyRecord` carrier, LWW-by-modifiedAt (delete propagates).
+- **Test gate: 420/420 `SkriftMobileTests` green.** ⚠️ 1d/1e/1f device-verify rides along with any DEV reinstall. ⚠️ separately: 10/40 UI tests pre-existing-broken on the iOS-26 sim (confirmed on clean `main`) — background task; **unit suite is the gate**.
+- ⏳ **NEXT — Phase 1g+1h = per-book audiobook sync (ONE feature, mock-first).** ⭐ Design pivot (2026-06-18): resume-anywhere needs a SHARED book `id`, but each device mints its own UUID at import → state-only sync is useless and syncing all entries litters the other device with un-playable "phantom" books. So: **per-book opt-in** — books stay local by default (`AudiobookLibraryStore`/`library.json` untouched, no risky migration); flipping "Sync this book" gives THAT book a CloudKit `@Model` (entry+position+rate+bookmarks) **and** its audio as CKAssets (reuse the 1c `AssetMaterializer`). Additive + opt-in = low risk. UI (toggle + download-progress) → **mock first**. Full design in `STANDALONE_PLAN.md` RESUME. Then Phase 2 (export/Obsidian + unify Compiler/TagMatcher/DTOs), Phase 3 (de-Mac UX), then Mac→CloudKit (option A).
 
 **Decisions (resolved 2026-06-15):** (1) on-device name-linking = **YES** (phone still sends RAW; Mac
 re-links identically via shared code → no double-link; alias-edit UI on phone mirrors Mac); (2) audio
