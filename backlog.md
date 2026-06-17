@@ -104,6 +104,46 @@ row, the Memo-detail player. Gate: iPhone 17 sim build + device-eyeball (it's a 
 NOTE: also re-test capture/share-into-Skrift generally now that App Groups (Release) is registered (it was
 likely broken in prod before — same fix that revived custom-words persistence).
 
+## Device-testing feedback — 2026-06-17 (1 bug-report memo recovered + a data-integrity finding)
+
+Pulled from the dev phone (`com.skrift.mobile.dev`). **Two USB caveats this round** (see "Data-integrity
+finding" below): devicectl's CoreDevice **service tunnel was down** (error 1011 — only cached `info details`
+worked; every file/app/group call failed), and the per-app store reachable over AFC house-arrest turned out
+to be a **stale orphan** frozen at 06-12. The bug report was recovered NOT from the store but by reading the
+`wt_<uuid>.json` word-timing sidecars in the private container's `Documents/recordings` (AFC-readable) and
+reconstructing the transcript. Raw audio also pulled to `/tmp/skrift-pull/memo_FE3DD029*.m4a`.
+
+### P0/P1 — 🐛 BUG: a recording can get STUCK and never transcribe (no retry)
+Confirmed from independent evidence, not just the report:
+- The **06-16 23:30 recording (13.48s)** stopped (`record stop — duration=13.48s` in devlog) but **never
+  transcribed** — the next devlog line is just a prewarm, there is **no `vocab: words=…` completion** for it,
+  and it has **no `wt_<uuid>.json` sidecar** on disk (every transcribed memo has one; this one doesn't).
+- The user noticed at 00:07/00:08 (06-17): *"the last message that I sent is **stuck weirdly** … it hasn't
+  transcribed and **it's not transcribing at all**. So we need to run a reset button or automatic reset."*
+- This rhymes with the 06-10 P0 append/transcription-silent-no-op family (`MemoSaver.appendRecordingAsync` /
+  one-shot transcribe path). Fix: a memo whose transcription never started/finished must (a) surface a
+  retry-able **Error/stuck state** instead of sitting silent, and (b) offer a **manual "transcribe/reset"**
+  affordance. REPRODUCE the 13s-recording-then-stuck case first.
+
+### Feature — ✨ toggle to disable live transcription for long / battery-saving recordings
+From the same 56s memo: *"it should be possible to have a button (maybe top-right) that **turns off live
+transcription** in case you want to go for a **long recording that needs to use less battery** — where you
+just record it once and transcribe it afterwards."* I.e. a record-now / transcribe-later mode. Pairs well
+with the stuck-transcription fix (manual "transcribe now" becomes the deferred-transcribe trigger too).
+
+### ⚠️ Data-integrity finding — live SwiftData store is NOT in the per-app container anymore
+The store AFC house-arrest reaches (`com.skrift.mobile.dev` → `Library/Application Support/default.store`) is
+a **stale orphan**: frozen at 2026-06-12 (mtime + max `ZRECORDEDAT`), 16 memos still marked not-deleted even
+though the devlog shows a bulk soft-delete of ~18 of them on **06-15** and recordings on 06-16/17 — none of
+which are in that file. The **prod** per-app store has no `ZMEMO` table at all. **Strong hypothesis:** when
+App Groups landed (~06-12, capture items/widgets) the live store moved into the **App Group container**
+(`group.com.skrift.mobile.dev`), orphaning the per-app store. AFC house-arrest **cannot** read App Group
+containers — only `devicectl --domain-type appGroupDataContainer` can (and that needs the service tunnel up).
+**TODO:** (1) confirm the live store path once the devicectl tunnel is back; (2) if confirmed, **update the
+`pull-phone-feedback` skill** — it currently points at the now-orphaned `Library/Application Support/default.store`;
+(3) the word-timing sidecar recovery trick (`wt_<uuid>.json` → join `word`s) is a reliable AFC-only fallback
+worth baking into the skill.
+
 ## ⭐ CONTINUE HERE — Conversation pipeline bug-hunt (2026-06-14)
 
 WILD trace of the whole conversation/diarization → name-linking → Obsidian-export pipeline
