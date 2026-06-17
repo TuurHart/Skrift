@@ -30,6 +30,9 @@ targets:
       - path: Services
       - path: Features
       - path: DesignSystem
+      # Shared cross-app source (one physical copy → no phone↔Mac drift). Naming
+      # types (Person/NamesMerge/NamesData) live here; engine + more land in Phase 0.
+      - path: ../Shared/Naming
     info:
       path: App/Info.plist
       properties:

@@ -1,10 +1,20 @@
 import Foundation
 
+// Contract-critical names types — the SHARED canonical source compiled into BOTH
+// native apps. This file lives in `Skrift_Native/Shared/Naming/` and is referenced
+// by SkriftMobile AND SkriftDesktop via each `project.yml`'s `sources:`, so there is
+// exactly ONE physical copy: the on-disk schema + JSON encoding can never drift
+// between the phone and the Mac (it round-trips byte-for-byte through the sync
+// contract). It compiles into each app's OWN module (no separate Swift package), so
+// existing call sites need no `import`. (Was hand-duplicated per app until the
+// standalone Phase 0, 2026-06-17 — that duplication was a latent drift risk, now
+// collapsed to this one source.)
+
 /// A speaker voice profile for diarization. Multi-embedding, NEVER averaged —
 /// matching is max-cosine over the list (AirPods vs phone mic stay distinct).
 /// `vector` is `[Double]` to match the RN `number[]` and survive JSON round-trips
 /// exactly (so a re-sync never treats the same embedding as new). Synced verbatim
-/// with the Mac (opaque pass-through there).
+/// across phone↔Mac (opaque pass-through on both sides).
 struct VoiceEmbedding: Codable, Equatable, Sendable {
     var vector: [Double]
     var condition: String? = nil
@@ -78,6 +88,24 @@ struct Person: Codable, Equatable, Sendable {
 struct NamesData: Codable, Equatable, Sendable {
     var lastModifiedAt: String
     var people: [Person]
+
+    init(lastModifiedAt: String, people: [Person]) {
+        self.lastModifiedAt = lastModifiedAt
+        self.people = people
+    }
+
+    enum CodingKeys: String, CodingKey { case lastModifiedAt, people }
+
+    /// Tolerant decode: legacy `names.json` files (pre-timestamped schema) omit
+    /// the top-level `lastModifiedAt`. Default it instead of failing the whole
+    /// decode — otherwise `NamesStore.load()` silently swallows the error and
+    /// reads ZERO people, so name-linking quietly does nothing on real data.
+    /// (The Python backend migrates these on read; this mirrors that leniency.)
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        lastModifiedAt = (try? c.decode(String.self, forKey: .lastModifiedAt)) ?? ""
+        people = (try? c.decode([Person].self, forKey: .people)) ?? []
+    }
 }
 
 /// Pure, deterministic names-merge logic (no IO / network), ported from the RN
@@ -90,7 +118,7 @@ enum NamesMerge {
         return s.isEmpty ? "" : "[[\(s)]]"
     }
 
-    private static func keyName(_ canonical: String) -> String {
+    static func keyName(_ canonical: String) -> String {
         (canonical.hasPrefix("[[") && canonical.hasSuffix("]]"))
             ? String(canonical.dropFirst(2).dropLast(2)) : canonical
     }
