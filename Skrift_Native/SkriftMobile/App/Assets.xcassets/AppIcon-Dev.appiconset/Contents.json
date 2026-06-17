@@ -1,26 +1,14 @@
 {
-  "images": [
+  "images" : [
     {
-      "filename": "dev-icon-light-1024.png",
-      "idiom": "universal",
-      "platform": "ios",
-      "size": "1024x1024"
-    },
-    {
-      "appearances": [
-        {
-          "appearance": "luminosity",
-          "value": "dark"
-        }
-      ],
-      "filename": "dev-icon-dark-1024.png",
-      "idiom": "universal",
-      "platform": "ios",
-      "size": "1024x1024"
+      "filename" : "dev-icon-light-1024.png",
+      "idiom" : "universal",
+      "platform" : "ios",
+      "size" : "1024x1024"
     }
   ],
-  "info": {
-    "author": "xcode",
-    "version": 1
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
   }
 }
