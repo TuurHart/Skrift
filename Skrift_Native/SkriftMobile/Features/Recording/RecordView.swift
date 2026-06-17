@@ -140,8 +140,12 @@ struct RecordView: View {
             // transcription for a long, battery-saving recording" affordance).
             // Sticky via @AppStorage; applies mid-recording too.
             Button(action: toggleLiveTranscription) {
-                Image(systemName: liveTranscription ? "captions.bubble.fill" : "captions.bubble.slash")
-                    .font(.system(size: 13, weight: .semibold))
+                // `text.bubble.fill` (on) / `text.bubble` (off) — both are valid
+                // SF Symbols on every iOS; state is shown by fill + colour, NOT a
+                // `.slash` variant (captions.bubble.slash doesn't exist on iOS 26,
+                // so it rendered as an EMPTY button — device-reported 2026-06-17).
+                Image(systemName: liveTranscription ? "text.bubble.fill" : "text.bubble")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(liveTranscription ? Color.skAccent : Color.skTextDim)
                     .frame(width: 32, height: 32)
                     .background(Color.skSurface, in: .circle)
@@ -300,7 +304,7 @@ struct RecordView: View {
     private var liveOffPlaceholder: some View {
         VStack(spacing: 10) {
             Spacer()
-            Image(systemName: "captions.bubble.slash")
+            Image(systemName: "text.bubble")
                 .font(.system(size: 34, weight: .regular))
                 .foregroundStyle(Color.skTextFaint)
             Text("Live transcription off")
