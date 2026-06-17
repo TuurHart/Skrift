@@ -131,11 +131,17 @@ audiobook captures by `BookTranscriptionJob`. 2 unit tests added; **12/12 MemoSa
 sim.** **OWED:** promote to TestFlight → the existing stuck prod memo recovers on next launch (user will
 confirm); device-eyeball a fresh cold-launch-auto-record → kill → relaunch cycle.
 
-### Feature — ✨ toggle to disable live transcription for long / battery-saving recordings
+### Feature — ✨ toggle to disable live transcription for long / battery-saving recordings — ✅ BUILT 2026-06-17 (awaiting device-eyeball)
 From the same 56s memo: *"it should be possible to have a button (maybe top-right) that **turns off live
 transcription** in case you want to go for a **long recording that needs to use less battery** — where you
-just record it once and transcribe it afterwards."* I.e. a record-now / transcribe-later mode. Pairs well
-with the stuck-transcription fix (manual "transcribe now" becomes the deferred-transcribe trigger too).
+just record it once and transcribe it afterwards."* The engine already supported `liveTranscription`
+(off = record + waveform only, one-shot transcribe after stop) but it was only a buried Settings toggle.
+**Built:** a top-right `captions.bubble`/`.slash` toggle on the record screen (`RecordView.topBar`,
+`live-transcription-toggle`), bound to the same persisted `@AppStorage("liveTranscription")` as Settings
+(sticky), applying mid-recording via `LiveRecordingService.setLiveTranscription` (tears the live stream
+down / brings it up; keeps recording + waveform + `.m4a` write). Off-state shows a "Live transcription off
+— transcribed when you stop" placeholder. 2 service unit tests; full app compiles; **37/37 tests green on
+the iPhone 17 sim.** OWED: device-eyeball the toggle + off-placeholder + a real long-recording battery run.
 
 ### ⚠️ Data-integrity finding — live SwiftData store is NOT in the per-app container anymore
 The store AFC house-arrest reaches (`com.skrift.mobile.dev` → `Library/Application Support/default.store`) is

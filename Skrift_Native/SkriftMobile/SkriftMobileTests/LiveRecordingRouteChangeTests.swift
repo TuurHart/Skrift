@@ -317,4 +317,30 @@ final class LiveRecordingRouteChangeTests: XCTestCase {
         service = nil
         XCTAssertFalse(LiveRecordingService.isRecordingActive)
     }
+
+    // MARK: - Live-transcription toggle (the device-requested battery-saving
+    // "turn off live transcription for a long recording" affordance).
+
+    @MainActor
+    func testInitHonorsInjectedLiveTranscriptionPreference() {
+        XCTAssertFalse(LiveRecordingService(mock: true, liveTranscription: false).liveTranscription)
+        XCTAssertTrue(LiveRecordingService(mock: true, liveTranscription: true).liveTranscription)
+    }
+
+    @MainActor
+    func testSetLiveTranscriptionFlipsTheFlagMidRecording() throws {
+        let service = LiveRecordingService(mock: true, liveTranscription: true)
+        try service.start()
+        XCTAssertTrue(service.liveTranscription)
+
+        service.setLiveTranscription(false)   // "this'll be long — kill the caption"
+        XCTAssertFalse(service.liveTranscription)
+
+        service.setLiveTranscription(true)
+        XCTAssertTrue(service.liveTranscription)
+
+        // No-op when unchanged (must not throw / flip).
+        service.setLiveTranscription(true)
+        XCTAssertTrue(service.liveTranscription)
+    }
 }

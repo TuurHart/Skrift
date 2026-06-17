@@ -39,6 +39,12 @@ struct RecordView: View {
     /// renderer clamps each marker to the current word count (never crashes / never
     /// reorders). Cleared on start.
     @State private var photoMarks: [PhotoMark] = []
+    /// Live captioning on/off — the same persisted preference as Settings →
+    /// "Live transcription". The record-screen toggle flips it for the current
+    /// recording AND remembers it (sticky), so a run of long battery-saving
+    /// recordings doesn't need re-toggling each time. The engine reads this at
+    /// `start()`; the toggle also applies it mid-recording via `setLiveTranscription`.
+    @AppStorage("liveTranscription") private var liveTranscription = true
 
     private struct PhotoMark: Equatable { let wordIndex: Int; let anchor: [String]; let number: Int }
 
@@ -130,11 +136,30 @@ struct RecordView: View {
             .accessibilityIdentifier("cancel-record")
 
             Spacer()
-            // (Conversation mode is no longer a pre-record toggle — split into speakers
-            //  after the fact from the memo, where you can also force the speaker count.)
+            // Live-transcription toggle (the device-requested "turn off live
+            // transcription for a long, battery-saving recording" affordance).
+            // Sticky via @AppStorage; applies mid-recording too.
+            Button(action: toggleLiveTranscription) {
+                Image(systemName: liveTranscription ? "captions.bubble.fill" : "captions.bubble.slash")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(liveTranscription ? Color.skAccent : Color.skTextDim)
+                    .frame(width: 32, height: 32)
+                    .background(Color.skSurface, in: .circle)
+                    .overlay(Circle().stroke(Color.skBorder, lineWidth: 1))
+            }
+            .accessibilityIdentifier("live-transcription-toggle")
+            .accessibilityLabel(liveTranscription ? "Live transcription on" : "Live transcription off")
         }
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 8)
+    }
+
+    /// Flip live captioning for this recording (and remember it). When recording,
+    /// `setLiveTranscription` tears the live stream down / brings it up; otherwise
+    /// the engine picks up the new value at `start()`.
+    private func toggleLiveTranscription() {
+        liveTranscription.toggle()
+        service.setLiveTranscription(liveTranscription)
     }
 
     // MARK: - Starting (instant record in flight)
@@ -219,17 +244,23 @@ struct RecordView: View {
             .foregroundStyle(Color.skTextDim)
             .padding(.top, 18)
 
-            LiveCaption(
-                text: service.liveCaption,
-                photoMarks: photoMarks.map {
-                    LiveCaptionLayout.Mark(wordIndex: $0.wordIndex, number: $0.number, anchor: $0.anchor)
-                },
-                solidWordCount: service.liveCommittedWordCount,
-                modelLoading: !modelStatus.ready && modelStatus.phase != .failed
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(.top, 18)
-            .accessibilityIdentifier("live-caption")
+            if service.liveTranscription {
+                LiveCaption(
+                    text: service.liveCaption,
+                    photoMarks: photoMarks.map {
+                        LiveCaptionLayout.Mark(wordIndex: $0.wordIndex, number: $0.number, anchor: $0.anchor)
+                    },
+                    solidWordCount: service.liveCommittedWordCount,
+                    modelLoading: !modelStatus.ready && modelStatus.phase != .failed
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.top, 18)
+                .accessibilityIdentifier("live-caption")
+            } else {
+                liveOffPlaceholder
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 18)
+            }
 
             if let notice = service.routeNotice {
                 HStack(spacing: 6) {
@@ -262,6 +293,27 @@ struct RecordView: View {
                 .padding(.bottom, 30)
         }
         .padding(.horizontal, Theme.Space.margin)
+    }
+
+    /// Shown in place of the live caption when live transcription is off — makes
+    /// the battery-saving mode legible (it's not broken; it transcribes on stop).
+    private var liveOffPlaceholder: some View {
+        VStack(spacing: 10) {
+            Spacer()
+            Image(systemName: "captions.bubble.slash")
+                .font(.system(size: 34, weight: .regular))
+                .foregroundStyle(Color.skTextFaint)
+            Text("Live transcription off")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.skText)
+            Text("Saving battery — this recording is transcribed when you stop.")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.skTextDim)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Spacer()
+        }
+        .accessibilityIdentifier("live-caption-off")
     }
 
     private var controls: some View {

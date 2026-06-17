@@ -178,6 +178,30 @@ final class LiveRecordingService: ObservableObject {
         if !mock { RecordingActivityManager.shared.start() }
     }
 
+    /// Flip live captioning ON/OFF — the record-screen top-right toggle, mirrored
+    /// by the Settings "Live transcription" preference. OFF keeps recording, the
+    /// waveform, and the `.m4a` write going but stops feeding the live caption
+    /// stream: for a long, battery-saving recording that's transcribed in ONE
+    /// pass after stop (the authoritative one-shot transcribe runs regardless of
+    /// this flag). Safe mid-recording — OFF tears the stream down, ON begins it
+    /// from the current point (the caption picks up from here, not the start).
+    func setLiveTranscription(_ on: Bool) {
+        guard liveTranscription != on else { return }
+        liveTranscription = on
+        tapLive = on
+        guard isRecording, !mock else { return }
+        if on {
+            liveCommittedWordCount = 0
+            Task { await TranscriptionService.shared.beginStream() }
+            startCaptionPolling()
+        } else {
+            captionTimer?.invalidate(); captionTimer = nil
+            liveCaption = ""
+            liveCommittedWordCount = 0
+            Task { await TranscriptionService.shared.endStream() }
+        }
+    }
+
     func pause() {
         guard isRecording, !isPaused else { return }
         accumulate()
