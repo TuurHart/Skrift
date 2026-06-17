@@ -11,13 +11,14 @@ final class NotesRepository {
     var context: ModelContext { container.mainContext }
 
     init(inMemory: Bool) {
-        let schema = Schema([Memo.self])
+        let schema = Schema([Memo.self, MemoAsset.self])
         // CloudKit-backed (standalone Phase 1 internal sync): SwiftData mirrors the Memo
         // store to the user's PRIVATE CloudKit database, so notes sync across THEIR own
         // devices (iPhone↔iPad) with no Mac and no iCloud-Drive conflict-copy files.
         // Per-config container id matches the per-config entitlement (dev vs prod); the
-        // container is registered once in Xcode → Signing & Capabilities. Audio/photos
-        // stay device-local in this chunk (the Memo ROW syncs); CKAsset media sync is next.
+        // container is registered once in Xcode → Signing & Capabilities. `MemoAsset`
+        // (Phase 1c) carries the recording `.m4a` + photos as CloudKit-mirrored blobs so
+        // the actual media crosses devices too, not just the Memo row.
         //
         // CloudKit is forced OFF for the in-memory path AND under XCTest, so the UI/unit
         // suites stay offline + deterministic and never touch a CloudKit container.
@@ -98,8 +99,39 @@ final class NotesRepository {
         }
         WordTimingsStore().delete(for: memo.id)
         DiarizationStore().delete(for: memo.id)
+        // Drop the CloudKit-mirrored media blobs too (Phase 1c) — otherwise the
+        // CKAssets outlive the memo and re-materialize orphaned audio on other devices.
+        deleteAssets(forMemo: memo.id)
         context.delete(memo)
         save()
+    }
+
+    // MARK: - Media assets (CloudKit blobs — Phase 1c)
+
+    /// Every `MemoAsset` row (audio + photo blobs across all memos).
+    func allAssets() -> [MemoAsset] {
+        (try? context.fetch(FetchDescriptor<MemoAsset>())) ?? []
+    }
+
+    /// The asset rows owned by one memo.
+    func assets(forMemo id: UUID) -> [MemoAsset] {
+        let descriptor = FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == id })
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    /// Delete a memo's asset rows. Caller saves (`permanentlyDelete` does).
+    func deleteAssets(forMemo id: UUID) {
+        for asset in assets(forMemo: id) { context.delete(asset) }
+    }
+
+    /// Every memo INCLUDING the trash — the asset-capture sweep mirrors files for
+    /// trashed memos too (their files live on disk until the purge, and restore must
+    /// be lossless across devices). Newest first, like `allMemos()`.
+    func allMemosIncludingTrashed() -> [Memo] {
+        let descriptor = FetchDescriptor<Memo>(
+            sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]
+        )
+        return (try? context.fetch(descriptor)) ?? []
     }
 
     /// Startup purge: permanently delete every memo trashed at least
