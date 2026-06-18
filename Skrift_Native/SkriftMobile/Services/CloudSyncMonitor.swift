@@ -20,9 +20,17 @@ final class CloudSyncMonitor: ObservableObject {
     static let shared = CloudSyncMonitor()
 
     @Published private(set) var isSyncing = false
+    /// Books the user just opted into sync — shown as "Uploading…" on their row until
+    /// the CloudKit export settles (cleared when `isSyncing` debounces off). Honest
+    /// per-book feedback without a fake % (CloudKit exposes no upload percentage).
+    @Published private(set) var uploadingBookIDs: Set<UUID> = []
 
     private var inFlight: Set<UUID> = []
     private var hideTask: Task<Void, Never>?
+
+    /// Called when a book is opted into sync, so its row shows "Uploading…" while the
+    /// CKAsset export is in flight.
+    func markUploading(_ bookID: UUID) { uploadingBookIDs.insert(bookID) }
 
     private init() {
         NotificationCenter.default.addObserver(
@@ -50,6 +58,8 @@ final class CloudSyncMonitor: ObservableObject {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
                 self?.isSyncing = false
+                // The export settled → those books are uploaded.
+                self?.uploadingBookIDs = []
             }
         } else {
             hideTask?.cancel()

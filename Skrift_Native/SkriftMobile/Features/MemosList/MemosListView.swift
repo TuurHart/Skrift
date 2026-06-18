@@ -227,10 +227,11 @@ struct MemosListView: View {
                 AudiobookCloudSync.reconcile(repository: repository)
                 try? await Task.sleep(for: .milliseconds(400))
             }
-            // CloudKit sync indicator: a FLOATING capsule (overlay → takes no layout
-            // space, so it never pushes the notes down) that fades in/out. The monitor
-            // debounces the signal, so it won't flicker during CloudKit's event bursts.
-            .overlay(alignment: .top) {
+            // CloudKit sync indicator: a floating capsule anchored at the BOTTOM (over
+            // the list's empty tail, never over the notes at the top — the earlier
+            // top-overlay covered the first row), fading in/out. The monitor debounces
+            // the signal so it doesn't flicker during CloudKit's event bursts.
+            .overlay(alignment: .bottom) {
                 if cloudSync.isSyncing {
                     HStack(spacing: 7) {
                         ProgressView().controlSize(.mini)
@@ -241,7 +242,7 @@ struct MemosListView: View {
                     .padding(.vertical, 7)
                     .background(Capsule().fill(Color.skElev))
                     .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
-                    .padding(.top, 6)
+                    .padding(.bottom, 14)
                     .transition(.opacity)
                     .accessibilityIdentifier("cloud-sync-indicator")
                 }

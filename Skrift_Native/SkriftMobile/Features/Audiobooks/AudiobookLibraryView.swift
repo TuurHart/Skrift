@@ -199,24 +199,8 @@ struct AudiobookLibraryView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        // Same floating "Syncing with iCloud…" pill as the Memos list — so opting a
-        // book in (or a book downloading on the receiver) shows iCloud is working,
-        // since CloudKit gives no per-file upload %.
-        .overlay(alignment: .top) {
-            if cloudSync.isSyncing {
-                HStack(spacing: 7) {
-                    ProgressView().controlSize(.mini)
-                    Text("Syncing with iCloud…").font(.caption)
-                }
-                .foregroundStyle(Color.skTextDim)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(Capsule().fill(Color.skElev))
-                .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
-                .padding(.top, 6)
-                .transition(.opacity)
-            }
-        }
+        // Sync feedback lives ON each book row (uploading/downloading bar) — no floating
+        // pill here, so nothing overlaps the titles.
         .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
     }
 
@@ -230,17 +214,18 @@ struct AudiobookLibraryView: View {
             .accessibilityIdentifier("library-empty-hint")
     }
 
-    enum BookSyncState { case synced, downloading, downloadAvailable }
+    enum BookSyncState { case uploading, downloading, downloadAvailable, synced }
 
-    /// Per-book sync state for the row glyph. nil = local-only (no record). `synced` =
-    /// opted in + the audio is on THIS device. `downloadAvailable` = synced but the
-    /// user freed this device's copy (won't auto-redownload). `downloading` = synced,
-    /// audio not here yet + actively materializing (the receiving device). CloudKit
-    /// gives no upload %, so this is an honest state, not a fake bar. Reads
-    /// `syncToggleTick` so the row re-renders after the long-press toggle.
+    /// Per-book sync state, shown ON the row. nil = local-only (no record). `uploading`
+    /// = just opted in, CKAsset export in flight (source). `downloading` = synced, audio
+    /// not here yet + materializing (receiver). `downloadAvailable` = synced but the
+    /// user freed this device's copy. `synced` = opted in + audio is here. CloudKit
+    /// exposes no upload %, so uploading/downloading render an honest INDETERMINATE bar,
+    /// not a fake percentage. Reads `syncToggleTick` so the row re-renders after toggles.
     private func bookSyncState(_ book: Audiobook) -> BookSyncState? {
         _ = syncToggleTick
         guard AudiobookCloudSync.isSynced(bookID: book.id) else { return nil }
+        if cloudSync.uploadingBookIDs.contains(book.id) { return .uploading }
         let folder = store.folder(for: book.id)
         let present = !book.files.isEmpty && book.files.allSatisfy {
             FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
@@ -251,6 +236,7 @@ struct AudiobookLibraryView: View {
 
     private func row(_ book: Audiobook) -> some View {
         let isCurrent = session.book?.id == book.id
+        let syncState = bookSyncState(book)
         return Button {
             session.open(book)
             showPlayer = true
@@ -267,23 +253,21 @@ struct AudiobookLibraryView: View {
                             .font(.system(size: 13.5, weight: .semibold))
                             .foregroundStyle(Color.skText)
                             .lineLimit(1)
-                        // Per-book sync state (Phase 1h): a checkmark when the audio is
-                        // here, or a download spinner while it's still arriving.
-                        switch bookSyncState(book) {
+                        // Per-book sync glyph (Phase 1h): ✓ when the audio is here, or a
+                        // download cloud when it's freed on this device. Uploading /
+                        // downloading show as a bar on the progress line below instead.
+                        switch syncState {
                         case .synced:
                             Image(systemName: "checkmark.icloud")
                                 .font(.system(size: 10))
                                 .foregroundStyle(Color.skTextDim)
                                 .accessibilityLabel("Synced to your devices")
-                        case .downloading:
-                            ProgressView().controlSize(.mini)
-                                .accessibilityLabel("Downloading to this device")
                         case .downloadAvailable:
                             Image(systemName: "icloud.and.arrow.down")
                                 .font(.system(size: 10))
                                 .foregroundStyle(Color.skTextDim)
                                 .accessibilityLabel("Synced — download to this device")
-                        case .none:
+                        case .uploading, .downloading, .none:
                             EmptyView()
                         }
                     }
@@ -291,18 +275,34 @@ struct AudiobookLibraryView: View {
                         .font(.system(size: 11.5))
                         .foregroundStyle(Color.skTextDim)
                         .lineLimit(1)
-                    HStack(spacing: 7) {
-                        ProgressView(value: book.progress)
-                            .progressViewStyle(.linear)
-                            .tint(Color.skAccent.opacity(0.65))
-                            .frame(maxWidth: 110)
-                            .scaleEffect(x: 1, y: 0.7, anchor: .center)
-                        Text(AudiobookTime.clock(book.timeLeft) + " left")
-                            .font(.system(size: 10.5))
-                            .monospacedDigit()
-                            .foregroundStyle(Color.skTextFaint)
+                    if syncState == .uploading || syncState == .downloading {
+                        // In-flight sync: an INDETERMINATE bar on the book itself (no
+                        // fake %, since CloudKit gives none) + a clear label.
+                        HStack(spacing: 7) {
+                            ProgressView()
+                                .progressViewStyle(.linear)
+                                .tint(Color.skAccent)
+                                .frame(maxWidth: 110)
+                                .scaleEffect(x: 1, y: 0.7, anchor: .center)
+                            Text(syncState == .uploading ? "Uploading audio…" : "Downloading…")
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(Color.skAccentText)
+                        }
+                        .padding(.top, 3)
+                    } else {
+                        HStack(spacing: 7) {
+                            ProgressView(value: book.progress)
+                                .progressViewStyle(.linear)
+                                .tint(Color.skAccent.opacity(0.65))
+                                .frame(maxWidth: 110)
+                                .scaleEffect(x: 1, y: 0.7, anchor: .center)
+                            Text(AudiobookTime.clock(book.timeLeft) + " left")
+                                .font(.system(size: 10.5))
+                                .monospacedDigit()
+                                .foregroundStyle(Color.skTextFaint)
+                        }
+                        .padding(.top, 3)
                     }
-                    .padding(.top, 3)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 

@@ -22,6 +22,7 @@ enum AudiobookCloudSync {
               let blob = try? JSONEncoder().encode(book) else { return }
         repository.context.insert(AudiobookSyncRecord(bookID: book.id, blob: blob))
         repository.save()
+        CloudSyncMonitor.shared.markUploading(book.id)   // row shows "Uploading…" until it settles
     }
 
     /// Stop syncing (unshare): drop the carrier + CKAssets — frees iCloud. Every
