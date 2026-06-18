@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 struct AudiobookLibraryView: View {
     @ObservedObject private var store = AudiobookLibraryStore.shared
     @ObservedObject private var session = AudiobookSession.shared
+    @ObservedObject private var cloudSync = CloudSyncMonitor.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var showImporter = false
@@ -198,6 +199,25 @@ struct AudiobookLibraryView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        // Same floating "Syncing with iCloud…" pill as the Memos list — so opting a
+        // book in (or a book downloading on the receiver) shows iCloud is working,
+        // since CloudKit gives no per-file upload %.
+        .overlay(alignment: .top) {
+            if cloudSync.isSyncing {
+                HStack(spacing: 7) {
+                    ProgressView().controlSize(.mini)
+                    Text("Syncing with iCloud…").font(.caption)
+                }
+                .foregroundStyle(Color.skTextDim)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(Color.skElev))
+                .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
+                .padding(.top, 6)
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
     }
 
     private var emptyHint: some View {
@@ -210,11 +230,21 @@ struct AudiobookLibraryView: View {
             .accessibilityIdentifier("library-empty-hint")
     }
 
-    /// Whether the book is opted into cross-device sync. Reads `syncToggleTick` so the
-    /// row re-renders when the long-press toggle flips it (sync state lives in the repo).
-    private func isBookSynced(_ book: Audiobook) -> Bool {
+    enum BookSyncState { case synced, downloading }
+
+    /// Per-book sync state for the row glyph. nil = local-only (no record). `synced` =
+    /// opted in + the audio is on THIS device. `downloading` = opted in but the audio
+    /// hasn't materialized here yet (the receiving device, mid-CKAsset-download).
+    /// CloudKit gives no upload %, so this is an honest state, not a fake bar. Reads
+    /// `syncToggleTick` so the row re-renders after the long-press toggle.
+    private func bookSyncState(_ book: Audiobook) -> BookSyncState? {
         _ = syncToggleTick
-        return AudiobookCloudSync.isSynced(bookID: book.id)
+        guard AudiobookCloudSync.isSynced(bookID: book.id) else { return nil }
+        let folder = store.folder(for: book.id)
+        let present = !book.files.isEmpty && book.files.allSatisfy {
+            FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
+        }
+        return present ? .synced : .downloading
     }
 
     private func row(_ book: Audiobook) -> some View {
@@ -235,13 +265,19 @@ struct AudiobookLibraryView: View {
                             .font(.system(size: 13.5, weight: .semibold))
                             .foregroundStyle(Color.skText)
                             .lineLimit(1)
-                        // Synced to the user's devices (Phase 1h). `isBookSynced` reads
-                        // syncToggleTick so this re-renders after the long-press toggle.
-                        if isBookSynced(book) {
+                        // Per-book sync state (Phase 1h): a checkmark when the audio is
+                        // here, or a download spinner while it's still arriving.
+                        switch bookSyncState(book) {
+                        case .synced:
                             Image(systemName: "checkmark.icloud")
                                 .font(.system(size: 10))
                                 .foregroundStyle(Color.skTextDim)
                                 .accessibilityLabel("Synced to your devices")
+                        case .downloading:
+                            ProgressView().controlSize(.mini)
+                                .accessibilityLabel("Downloading to this device")
+                        case .none:
+                            EmptyView()
                         }
                     }
                     Text(book.author)

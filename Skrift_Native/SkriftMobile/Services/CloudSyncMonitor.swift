@@ -61,6 +61,10 @@ final class CloudSyncMonitor: ObservableObject {
             AssetMaterializer.run(.shared)
             NamesCloudSync.run(.shared)
             VocabularyCloudSync.run(.shared)
+            // A synced audiobook that just arrived materializes here too (hands-off
+            // receive — no manual pull). Capture is byteCount-guarded, so this is cheap
+            // on the source after its first upload; the receiver writes the audio in.
+            AudiobookCloudSync.reconcile()
         }
     }
 }
