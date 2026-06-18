@@ -18,8 +18,13 @@ enum VocabularyCloudSync {
 
         let records = repository.allVocabularyRecords()
         guard let newest = records.max(by: { $0.modifiedAt < $1.modifiedAt }) else {
-            // First sync: push the local list up so existing vocab isn't lost. Stamp a
-            // real date locally too, so we don't re-push it as "newer" every launch.
+            // No carrier yet. Push the local list up so existing vocab isn't lost —
+            // BUT a fresh device that has NEVER edited its list (empty + distantPast)
+            // must NOT create an empty carrier stamped "now": with whole-list LWW that
+            // empty-@-now would clobber another device's real words once it syncs. Wait
+            // to RECEIVE instead. (A genuine "I deleted all my words" has localTS !=
+            // distantPast, so it still propagates the deletion.)
+            guard !localWords.isEmpty || localTS != .distantPast else { return }
             let ts = localTS == .distantPast ? Date() : localTS
             repository.context.insert(VocabularyRecord(words: localWords, modifiedAt: ts))
             if localTS == .distantPast { CustomVocabularyStore.adoptSynced(localWords, modifiedAt: ts, defaults: defaults) }

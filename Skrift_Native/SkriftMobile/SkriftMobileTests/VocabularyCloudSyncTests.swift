@@ -67,4 +67,40 @@ final class VocabularyCloudSyncTests: XCTestCase {
         XCTAssertEqual(repo.allVocabularyRecords().count, 1, "duplicate carriers collapse")
         XCTAssertEqual(CustomVocabularyStore.words(defaults: defaults), ["newest"], "newest carrier wins")
     }
+
+    // MARK: - Empty-carrier clobber guard (regression)
+
+    /// A fresh device (no words, never edited) must NOT create an empty carrier — an
+    /// empty-@-now would LWW-clobber another device's real words once it syncs.
+    func testFreshDeviceDoesNotCreateEmptyCarrier() {
+        let repo = NotesRepository(inMemory: true)   // no words saved, no carrier
+        VocabularyCloudSync.run(repo, defaults: defaults)
+        XCTAssertTrue(repo.allVocabularyRecords().isEmpty, "fresh device must wait to receive, not push empty")
+    }
+
+    /// The fresh device then RECEIVES another device's words and adopts them without
+    /// wiping the incoming carrier — the scenario that was losing the phone's words.
+    func testFreshDeviceAdoptsIncomingWordsWithoutClobber() {
+        let repo = NotesRepository(inMemory: true)   // local: empty + distantPast
+        repo.context.insert(VocabularyRecord(words: ["Skrift", "Parakeet"], modifiedAt: Date()))
+        repo.save()
+
+        VocabularyCloudSync.run(repo, defaults: defaults)
+
+        XCTAssertEqual(CustomVocabularyStore.words(defaults: defaults), ["Skrift", "Parakeet"])
+        XCTAssertEqual(repo.allVocabularyRecords().count, 1)
+        XCTAssertEqual(repo.allVocabularyRecords().first?.words, ["Skrift", "Parakeet"], "incoming words not clobbered")
+    }
+
+    /// But a genuine "I deleted all my words" (empty list that WAS edited) still
+    /// propagates the deletion up.
+    func testDeletedAllWordsStillPropagates() {
+        let repo = NotesRepository(inMemory: true)
+        CustomVocabularyStore.save([], defaults: defaults)   // edited → empty, ts = now
+
+        VocabularyCloudSync.run(repo, defaults: defaults)
+
+        XCTAssertEqual(repo.allVocabularyRecords().count, 1, "a deliberate empty list still syncs the deletion")
+        XCTAssertEqual(repo.allVocabularyRecords().first?.words, [])
+    }
 }
