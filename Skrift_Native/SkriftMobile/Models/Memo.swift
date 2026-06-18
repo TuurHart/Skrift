@@ -98,6 +98,13 @@ final class Memo {
     private var sharedContentData: Data?
     var annotationText: String?
 
+    /// The install that RECORDED this memo (`DeviceID.current`). With CloudKit a memo
+    /// can arrive on another device still `.transcribing`; the receiver must NOT
+    /// re-transcribe it (the recording device owns that, and the transcript will sync)
+    /// — `recoverStuckTranscriptions` skips memos another device recorded. Additive,
+    /// nil default → legacy/local memos (nil) stay recoverable. Syncs as a plain field.
+    var recordingDeviceID: String? = nil
+
     init(
         id: UUID = UUID(),
         audioFilename: String = "",
@@ -117,7 +124,8 @@ final class Memo {
         editedAt: Date? = nil,
         metadata: MemoMetadata? = nil,
         sharedContent: SharedContent? = nil,
-        annotationText: String? = nil
+        annotationText: String? = nil,
+        recordingDeviceID: String? = DeviceID.current()
     ) {
         self.id = id
         self.audioFilename = audioFilename
@@ -138,6 +146,7 @@ final class Memo {
         self.metadataData = Self.encodeJSON(metadata)
         self.sharedContentData = Self.encodeJSON(sharedContent)
         self.annotationText = annotationText
+        self.recordingDeviceID = recordingDeviceID
     }
 
     /// Resolved on-disk audio location, or nil for memos without audio.

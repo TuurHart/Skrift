@@ -604,11 +604,20 @@ struct MemoSaver {
     /// audiobook *captures* (`isBookCapture`) transcribe at creation and resume
     /// via `BookTranscriptionJob` — both excluded so this never clobbers them.
     /// Runs sequentially: one model-bound transcription at a time.
+    /// Whether THIS device should recover a stuck memo: only ones it recorded
+    /// (`recordingDeviceID == current`) or legacy/local memos with no id. A memo that
+    /// arrived from another device still `.transcribing` is owned by THAT device — the
+    /// transcript will sync once it finishes; re-transcribing here would race/clobber.
+    nonisolated static func ownsForRecovery(_ recordingDeviceID: String?, thisDevice: String = DeviceID.current()) -> Bool {
+        recordingDeviceID == nil || recordingDeviceID == thisDevice
+    }
+
     func recoverStuckTranscriptions() async {
         let stuck = repository.allMemos().filter { memo in
             memo.transcriptStatus == .transcribing
                 && !memo.audioFilename.isEmpty
                 && !memo.isBookCapture
+                && Self.ownsForRecovery(memo.recordingDeviceID)
                 && FileManager.default.fileExists(
                     atPath: AppPaths.recordingsDirectory
                         .appendingPathComponent(memo.audioFilename).path)
