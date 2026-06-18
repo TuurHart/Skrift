@@ -25,12 +25,39 @@ final class CloudSyncMonitor: ObservableObject {
     /// per-book feedback without a fake % (CloudKit exposes no upload percentage).
     @Published private(set) var uploadingBookIDs: Set<UUID> = []
 
+    /// REAL per-book audiobook-audio transfer progress (raw-CloudKit path): direction
+    /// + a 0–1 byte-weighted fraction, published live from
+    /// `CKModifyRecordsOperation`/`CKFetchRecordsOperation` progress so the library row
+    /// shows a DETERMINATE "Uploading audio · 38%" / "Downloading… · 61%" bar — the
+    /// thing SwiftData's auto-mirror couldn't give. Cleared when the transfer settles.
+    @Published private(set) var bookTransfers: [UUID: AudiobookTransfer] = [:]
+
+    struct AudiobookTransfer: Equatable {
+        enum Direction { case up, down }
+        var direction: Direction
+        var fraction: Double
+    }
+
     private var inFlight: Set<UUID> = []
     private var hideTask: Task<Void, Never>?
 
     /// Called when a book is opted into sync, so its row shows "Uploading…" while the
     /// CKAsset export is in flight.
     func markUploading(_ bookID: UUID) { uploadingBookIDs.insert(bookID) }
+
+    /// Publish live per-book audio transfer progress (raw-CloudKit upload/download).
+    /// Main-actor isolated; the transport hops here from its (possibly off-main)
+    /// progress callbacks.
+    func setBookTransfer(_ bookID: UUID, direction: AudiobookTransfer.Direction, fraction: Double) {
+        bookTransfers[bookID] = AudiobookTransfer(direction: direction, fraction: min(1, max(0, fraction)))
+    }
+
+    /// Transfer finished (or was cancelled) — drop the row's determinate bar so it
+    /// settles to its synced/resume state.
+    func clearBookTransfer(_ bookID: UUID) {
+        bookTransfers[bookID] = nil
+        uploadingBookIDs.remove(bookID)
+    }
 
     private init() {
         NotificationCenter.default.addObserver(
