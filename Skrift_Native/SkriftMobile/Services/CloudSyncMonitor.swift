@@ -22,6 +22,7 @@ final class CloudSyncMonitor: ObservableObject {
     @Published private(set) var isSyncing = false
 
     private var inFlight: Set<UUID> = []
+    private var hideTask: Task<Void, Never>?
 
     private init() {
         NotificationCenter.default.addObserver(
@@ -40,7 +41,21 @@ final class CloudSyncMonitor: ObservableObject {
 
     private func apply(id: UUID, ended: Bool, importDone: Bool) {
         if ended { inFlight.remove(id) } else { inFlight.insert(id) }
-        isSyncing = !inFlight.isEmpty
+        if inFlight.isEmpty {
+            // Debounce the hide: CloudKit fires import/export events in quick bursts,
+            // so a brief gap between them shouldn't flicker the indicator off. Only
+            // hide after ~1s of quiet; new activity cancels the pending hide.
+            hideTask?.cancel()
+            hideTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                self?.isSyncing = false
+            }
+        } else {
+            hideTask?.cancel()
+            hideTask = nil
+            isSyncing = true
+        }
         if importDone {
             // Blobs/rows just arrived — write them to disk + converge names/vocab now.
             AssetMaterializer.run(.shared)

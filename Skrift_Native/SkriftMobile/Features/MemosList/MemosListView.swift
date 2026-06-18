@@ -140,21 +140,6 @@ struct MemosListView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 6)
 
-            // Device↔device CloudKit sync in flight: a quiet strip so a memo (and
-            // its audio/photos) arriving from another device doesn't look stuck.
-            if cloudSync.isSyncing {
-                HStack(spacing: 7) {
-                    ProgressView().controlSize(.mini)
-                    Text("Syncing with iCloud…")
-                        .font(.caption).foregroundStyle(Color.skTextDim)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 6)
-                .transition(.opacity)
-                .accessibilityIdentifier("cloud-sync-indicator")
-            }
-
             // Native List → reliable swipe-to-delete (.swipeActions) + native
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
@@ -242,6 +227,26 @@ struct MemosListView: View {
                 AudiobookCloudSync.reconcile(repository: repository)
                 try? await Task.sleep(for: .milliseconds(400))
             }
+            // CloudKit sync indicator: a FLOATING capsule (overlay → takes no layout
+            // space, so it never pushes the notes down) that fades in/out. The monitor
+            // debounces the signal, so it won't flicker during CloudKit's event bursts.
+            .overlay(alignment: .top) {
+                if cloudSync.isSyncing {
+                    HStack(spacing: 7) {
+                        ProgressView().controlSize(.mini)
+                        Text("Syncing with iCloud…").font(.caption)
+                    }
+                    .foregroundStyle(Color.skTextDim)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Capsule().fill(Color.skElev))
+                    .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
+                    .padding(.top, 6)
+                    .transition(.opacity)
+                    .accessibilityIdentifier("cloud-sync-indicator")
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
         }
     }
 
