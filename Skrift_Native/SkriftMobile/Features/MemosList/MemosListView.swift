@@ -325,16 +325,22 @@ struct MemosListView: View {
                 Button { showSettings = true } label: { Image(systemName: "gearshape") }
                     .accessibilityIdentifier("settings-button")
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(action: runSync) {
-                    if syncing {
-                        ProgressView().controlSize(.small).tint(.skAccent)
-                    } else {
-                        Image(systemName: "arrow.triangle.2.circlepath")
+            // The manual ⟳ is the MAC (Bonjour) sync — only meaningful when a Mac is
+            // actually paired. Standalone/CloudKit-first devices sync automatically
+            // (push) + via pull-to-refresh, so hide it unless a Mac is paired (Phase 3
+            // "de-Mac"). Returns when a Mac is paired again.
+            if MacConnection.load() != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: runSync) {
+                        if syncing {
+                            ProgressView().controlSize(.small).tint(.skAccent)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                        }
                     }
+                    .disabled(syncing)
+                    .accessibilityIdentifier("sync-button")
                 }
-                .disabled(syncing)
-                .accessibilityIdentifier("sync-button")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSortFilter = true } label: {
