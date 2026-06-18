@@ -11,7 +11,8 @@ final class NotesRepository {
     var context: ModelContext { container.mainContext }
 
     init(inMemory: Bool) {
-        let schema = Schema([Memo.self, MemoAsset.self, NamesRecord.self, VocabularyRecord.self])
+        let schema = Schema([Memo.self, MemoAsset.self, NamesRecord.self, VocabularyRecord.self,
+                             AudiobookSyncRecord.self, AudiobookAsset.self])
         // CloudKit-backed (standalone Phase 1 internal sync): SwiftData mirrors the Memo
         // store to the user's PRIVATE CloudKit database, so notes sync across THEIR own
         // devices (iPhone↔iPad) with no Mac and no iCloud-Drive conflict-copy files.
@@ -156,6 +157,31 @@ final class NotesRepository {
     /// `VocabularyCloudSync` collapses any duplicates.
     func allVocabularyRecords() -> [VocabularyRecord] {
         (try? context.fetch(FetchDescriptor<VocabularyRecord>())) ?? []
+    }
+
+    // MARK: - Audiobook sync (per-book opt-in — Phase 1g/1h)
+
+    /// Every opted-in audiobook's sync carrier.
+    func allAudiobookRecords() -> [AudiobookSyncRecord] {
+        (try? context.fetch(FetchDescriptor<AudiobookSyncRecord>())) ?? []
+    }
+
+    func audiobookRecord(bookID: UUID) -> AudiobookSyncRecord? {
+        let d = FetchDescriptor<AudiobookSyncRecord>(predicate: #Predicate { $0.bookID == bookID })
+        return try? context.fetch(d).first
+    }
+
+    func audiobookAssets(bookID: UUID) -> [AudiobookAsset] {
+        let d = FetchDescriptor<AudiobookAsset>(predicate: #Predicate { $0.bookID == bookID })
+        return (try? context.fetch(d)) ?? []
+    }
+
+    /// Stop syncing a book: drop its carrier + audio CKAssets (frees iCloud). Local
+    /// audio files are left on disk by the caller (unshare keeps local copies).
+    func deleteAudiobookSync(bookID: UUID) {
+        audiobookRecord(bookID: bookID).map { context.delete($0) }
+        for asset in audiobookAssets(bookID: bookID) { context.delete(asset) }
+        save()
     }
 
     /// Startup purge: permanently delete every memo trashed at least
