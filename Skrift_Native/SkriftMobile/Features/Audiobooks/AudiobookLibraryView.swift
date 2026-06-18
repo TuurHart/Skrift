@@ -131,6 +131,17 @@ struct AudiobookLibraryView: View {
                     .padding(.horizontal, 10).padding(.vertical, 4)
                     .background(Color.skElev, in: .rect(cornerRadius: 8, style: .continuous))
                 Spacer()
+                // The mock's header "Syncing…" chip — in the header row, so it never
+                // overlaps a book title (the per-book bar shows what's in flight).
+                if cloudSync.isSyncing {
+                    HStack(spacing: 5) {
+                        ProgressView().controlSize(.mini)
+                        Text("Syncing…").font(.system(size: 10.5))
+                    }
+                    .foregroundStyle(Color.skAccentText)
+                    .padding(.trailing, 8)
+                    .transition(.opacity)
+                }
                 Text(countLine)
                     .font(.system(size: 10.5))
                     .foregroundStyle(Color.skTextFaint)
@@ -140,6 +151,7 @@ struct AudiobookLibraryView: View {
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 6)
         .padding(.bottom, 12)
+        .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
     }
 
     private var countLine: String {
