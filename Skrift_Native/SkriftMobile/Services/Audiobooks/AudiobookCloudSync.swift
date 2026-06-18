@@ -27,8 +27,11 @@ enum AudiobookCloudSync {
     /// Stop syncing (unshare): drop the carrier + CKAssets — frees iCloud. Every
     /// device keeps the audio it already downloaded (the file stays on disk; the book
     /// reverts to local-only).
-    static func disableSync(bookID: UUID, repository: NotesRepository = .shared) {
+    static func disableSync(bookID: UUID, repository: NotesRepository = .shared, defaults: UserDefaults = .standard) {
         repository.deleteAudiobookSync(bookID: bookID)
+        // Clear any per-device "download removed" marker so a later re-sync starts fresh.
+        var s = removedDownloads(defaults); s.remove(bookID.uuidString)
+        defaults.set(Array(s), forKey: removedDownloadsKey)
     }
 
     /// A book is "synced" exactly when a carrier exists — the toggle's state, no flag.
@@ -36,13 +39,57 @@ enum AudiobookCloudSync {
         repository.audiobookRecord(bookID: bookID) != nil
     }
 
+    // MARK: - Per-device "Remove download" (Apple Books model)
+
+    /// Books whose audio the user freed on THIS device — a per-device choice, NOT
+    /// synced. They stay synced (the record is kept) but won't auto-redownload here
+    /// until asked, so you can reclaim space on one device without unsharing.
+    private static let removedDownloadsKey = "audiobookRemovedDownloads"
+
+    static func removedDownloads(_ defaults: UserDefaults = .standard) -> Set<String> {
+        Set((defaults.array(forKey: removedDownloadsKey) as? [String]) ?? [])
+    }
+
+    static func isDownloadRemoved(bookID: UUID, defaults: UserDefaults = .standard) -> Bool {
+        removedDownloads(defaults).contains(bookID.uuidString)
+    }
+
+    /// Free a SYNCED book's local audio on this device (keeps the record → still synced,
+    /// re-downloadable). Guarded to synced books so it can never delete a local-only
+    /// book's only copy.
+    static func removeDownload(bookID: UUID, library: AudiobookLibraryStore = .shared,
+                               repository: NotesRepository = .shared, defaults: UserDefaults = .standard) {
+        guard isSynced(bookID: bookID, repository: repository) else { return }
+        if let book = library.book(id: bookID) {
+            let folder = library.folder(for: bookID)
+            for name in syncedFilenames(book) {
+                try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
+            }
+        }
+        var s = removedDownloads(defaults); s.insert(bookID.uuidString)
+        defaults.set(Array(s), forKey: removedDownloadsKey)
+    }
+
+    /// Re-download a freed book on this device: clear the marker + materialize now.
+    static func restoreDownload(bookID: UUID, library: AudiobookLibraryStore = .shared,
+                                repository: NotesRepository = .shared, defaults: UserDefaults = .standard) {
+        var s = removedDownloads(defaults); s.remove(bookID.uuidString)
+        defaults.set(Array(s), forKey: removedDownloadsKey)
+        materializeAudio(bookID: bookID, library: library, repository: repository)
+    }
+
     // MARK: - Reconcile (both directions, idempotent)
 
-    static func reconcile(library: AudiobookLibraryStore = .shared, repository: NotesRepository = .shared) {
-        // RECEIVE: each synced record → materialize its audio + ensure a local entry.
+    static func reconcile(library: AudiobookLibraryStore = .shared, repository: NotesRepository = .shared,
+                          defaults: UserDefaults = .standard) {
+        // RECEIVE: each synced record → materialize its audio (unless its download was
+        // freed on THIS device) + ensure a local entry (so it shows even when not here).
+        let removed = removedDownloads(defaults)
         for record in repository.allAudiobookRecords() {
             guard let remote = try? JSONDecoder().decode(Audiobook.self, from: record.blob) else { continue }
-            materializeAudio(bookID: remote.id, library: library, repository: repository)
+            if !removed.contains(remote.id.uuidString) {
+                materializeAudio(bookID: remote.id, library: library, repository: repository)
+            }
             if let local = library.book(id: remote.id) {
                 // LWW by lastPlayedAt — adopt the remote resume position/rate if newer.
                 if (remote.lastPlayedAt ?? .distantPast) > (local.lastPlayedAt ?? .distantPast) {

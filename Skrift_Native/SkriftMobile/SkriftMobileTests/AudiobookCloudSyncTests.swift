@@ -12,17 +12,22 @@ final class AudiobookCloudSyncTests: XCTestCase {
 
     private var dirA: URL!, dirB: URL!
     private var libA: AudiobookLibraryStore!, libB: AudiobookLibraryStore!
+    private var suiteName: String!
+    private var defaults: UserDefaults!
 
     override func setUpWithError() throws {
         dirA = FileManager.default.temporaryDirectory.appendingPathComponent("abA_\(UUID().uuidString)")
         dirB = FileManager.default.temporaryDirectory.appendingPathComponent("abB_\(UUID().uuidString)")
         libA = AudiobookLibraryStore(directory: dirA)
         libB = AudiobookLibraryStore(directory: dirB)
+        suiteName = "abtest_\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: suiteName)
     }
 
     override func tearDownWithError() throws {
         try? FileManager.default.removeItem(at: dirA)
         try? FileManager.default.removeItem(at: dirB)
+        defaults.removePersistentDomain(forName: suiteName)
     }
 
     @discardableResult
@@ -107,5 +112,54 @@ final class AudiobookCloudSyncTests: XCTestCase {
         // Local audio + the library entry stay (unshare keeps local copies).
         XCTAssertTrue(FileManager.default.fileExists(atPath: libA.folder(for: book.id).appendingPathComponent("p.m4a").path))
         XCTAssertNotNil(libA.book(id: book.id))
+    }
+
+    // MARK: - Per-device Remove download (Apple Books model)
+
+    func testRemoveDownloadFreesAudioButKeepsItSynced() {
+        let repo = NotesRepository(inMemory: true)
+        let book = addBook(to: libA, file: "p.m4a")
+        AudiobookCloudSync.enableSync(book: book, repository: repo)
+        AudiobookCloudSync.reconcile(library: libA, repository: repo)
+        let audio = libA.folder(for: book.id).appendingPathComponent("p.m4a")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: audio.path))
+
+        AudiobookCloudSync.removeDownload(bookID: book.id, library: libA, repository: repo, defaults: defaults)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path), "local audio freed")
+        XCTAssertTrue(AudiobookCloudSync.isSynced(bookID: book.id, repository: repo), "still synced (record kept)")
+        XCTAssertTrue(AudiobookCloudSync.isDownloadRemoved(bookID: book.id, defaults: defaults))
+        // The CKAsset is kept (re-downloadable) — only the local copy was freed.
+        XCTAssertEqual(repo.audiobookAssets(bookID: book.id).count, 1)
+    }
+
+    func testReconcileDoesNotRedownloadARemovedBook() {
+        let repo = NotesRepository(inMemory: true)
+        let book = addBook(to: libA, file: "p.m4a")
+        AudiobookCloudSync.enableSync(book: book, repository: repo)
+        AudiobookCloudSync.reconcile(library: libA, repository: repo, defaults: defaults)
+        AudiobookCloudSync.removeDownload(bookID: book.id, library: libA, repository: repo, defaults: defaults)
+        let audio = libA.folder(for: book.id).appendingPathComponent("p.m4a")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path))
+
+        AudiobookCloudSync.reconcile(library: libA, repository: repo, defaults: defaults)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path),
+                       "a book whose download was freed here is not auto-re-downloaded")
+    }
+
+    func testRestoreDownloadRematerializes() {
+        let repo = NotesRepository(inMemory: true)
+        let book = addBook(to: libA, file: "p.m4a")
+        AudiobookCloudSync.enableSync(book: book, repository: repo)
+        AudiobookCloudSync.reconcile(library: libA, repository: repo)   // capture the asset
+        AudiobookCloudSync.removeDownload(bookID: book.id, library: libA, repository: repo, defaults: defaults)
+        let audio = libA.folder(for: book.id).appendingPathComponent("p.m4a")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path))
+
+        AudiobookCloudSync.restoreDownload(bookID: book.id, library: libA, repository: repo, defaults: defaults)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: audio.path), "re-downloaded from the kept CKAsset")
+        XCTAssertFalse(AudiobookCloudSync.isDownloadRemoved(bookID: book.id, defaults: defaults))
     }
 }
