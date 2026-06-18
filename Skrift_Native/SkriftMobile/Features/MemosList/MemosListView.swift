@@ -224,7 +224,7 @@ struct MemosListView: View {
                 AssetMaterializer.run(repository)
                 NamesCloudSync.run(repository)
                 VocabularyCloudSync.run(repository)
-                AudiobookCloudSync.reconcile(repository: repository)
+                await AudiobookCloudSync.reconcile(repository: repository)
                 try? await Task.sleep(for: .milliseconds(400))
             }
             // CloudKit sync indicator: a floating capsule anchored at the BOTTOM (over

@@ -18,7 +18,9 @@ struct SyncedAudiobooksView: View {
     }
 
     private func sizeBytes(_ book: Audiobook) -> Int {
-        repository.audiobookAssets(bookID: book.id).reduce(0) { $0 + $1.byteCount }
+        // Audio is no longer mirrored as a SwiftData blob — report THIS device's local
+        // footprint (the receiver shows it once the download lands).
+        AudiobookCloudSync.localSize(of: book, library: store)
     }
     private func fmt(_ bytes: Int) -> String {
         ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
@@ -57,7 +59,7 @@ struct SyncedAudiobooksView: View {
             Spacer()
             Menu {
                 if removed {
-                    Button { AudiobookCloudSync.restoreDownload(bookID: book.id); tick += 1 } label: {
+                    Button { Task { await AudiobookCloudSync.restoreDownload(bookID: book.id); tick += 1 } } label: {
                         Label("Download to this device", systemImage: "icloud.and.arrow.down")
                     }
                 } else {
@@ -65,7 +67,7 @@ struct SyncedAudiobooksView: View {
                         Label("Remove download", systemImage: "arrow.down.circle.dotted")
                     }
                 }
-                Button(role: .destructive) { AudiobookCloudSync.disableSync(bookID: book.id); tick += 1 } label: {
+                Button(role: .destructive) { Task { await AudiobookCloudSync.disableSync(bookID: book.id); tick += 1 } } label: {
                     Label("Stop syncing", systemImage: "icloud.slash")
                 }
             } label: {

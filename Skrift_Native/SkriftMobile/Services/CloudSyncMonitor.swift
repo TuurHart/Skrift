@@ -99,9 +99,10 @@ final class CloudSyncMonitor: ObservableObject {
             NamesCloudSync.run(.shared)
             VocabularyCloudSync.run(.shared)
             // A synced audiobook that just arrived materializes here too (hands-off
-            // receive — no manual pull). Capture is byteCount-guarded, so this is cheap
-            // on the source after its first upload; the receiver writes the audio in.
-            AudiobookCloudSync.reconcile()
+            // receive — no manual pull): the carrier's audioUploadedAt push triggers
+            // this import, and reconcile fetches the audio by id. No-op when nothing's
+            // synced; async (raw-CloudKit transfer) so it runs in a detached Task.
+            Task { await AudiobookCloudSync.reconcile() }
         }
     }
 }

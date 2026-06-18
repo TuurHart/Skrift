@@ -153,11 +153,14 @@ struct AudiobookPlayerView: View {
             Button { showTranscribe = true } label: { Label("Transcribe book", systemImage: "text.book.closed") }
             // Per-book sync (Phase 1h) — same toggle as the library long-press.
             if AudiobookCloudSync.isSynced(bookID: book.id) {
-                Button { AudiobookCloudSync.disableSync(bookID: book.id) } label: {
+                Button { Task { await AudiobookCloudSync.disableSync(bookID: book.id) } } label: {
                     Label("Stop syncing to my devices", systemImage: "icloud.slash")
                 }
             } else {
-                Button { AudiobookCloudSync.enableSync(book: book); AudiobookCloudSync.reconcile() } label: {
+                Button {
+                    AudiobookCloudSync.enableSync(book: book)
+                    Task { await AudiobookCloudSync.reconcile() }
+                } label: {
                     Label("Sync this book to my devices", systemImage: "icloud.and.arrow.up")
                 }
             }

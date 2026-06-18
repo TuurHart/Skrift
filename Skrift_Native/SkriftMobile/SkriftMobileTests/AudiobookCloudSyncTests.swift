@@ -5,8 +5,9 @@ import SwiftData
 /// Phase 1g/1h: per-book audiobook sync. Books are local-only until opted in; then
 /// the entry + audio sync so the book appears + resumes on another device. Modelled
 /// as two `AudiobookLibraryStore`s (device A / device B, separate temp folders)
-/// sharing one in-memory repository (the stand-in for CloudKit). Audio of a
-/// non-opted book never becomes an asset.
+/// sharing one in-memory repository (the SwiftData carrier / "state cloud") AND one
+/// `InMemoryAudiobookTransport` (the raw-CloudKit "audio cloud"). Audio of a
+/// non-opted book never reaches the transport.
 @MainActor
 final class AudiobookCloudSyncTests: XCTestCase {
 
@@ -14,6 +15,7 @@ final class AudiobookCloudSyncTests: XCTestCase {
     private var libA: AudiobookLibraryStore!, libB: AudiobookLibraryStore!
     private var suiteName: String!
     private var defaults: UserDefaults!
+    private var transport: InMemoryAudiobookTransport!
 
     override func setUpWithError() throws {
         dirA = FileManager.default.temporaryDirectory.appendingPathComponent("abA_\(UUID().uuidString)")
@@ -22,6 +24,7 @@ final class AudiobookCloudSyncTests: XCTestCase {
         libB = AudiobookLibraryStore(directory: dirB)
         suiteName = "abtest_\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)
+        transport = InMemoryAudiobookTransport()
     }
 
     override func tearDownWithError() throws {
@@ -55,36 +58,37 @@ final class AudiobookCloudSyncTests: XCTestCase {
         XCTAssertEqual(repo.allAudiobookRecords().count, 1)
     }
 
-    func testReconcileCapturesAudioOfSyncedBookOnly() {
+    func testReconcileUploadsAudioOfSyncedBookOnly() async {
         let repo = NotesRepository(inMemory: true)
         let synced = addBook(to: libA, file: "p.m4a")
         addBook(to: libA, file: "q.m4a")   // a second book, NOT opted in
         AudiobookCloudSync.enableSync(book: synced, repository: repo)
 
-        AudiobookCloudSync.reconcile(library: libA, repository: repo)
+        await AudiobookCloudSync.reconcile(library: libA, repository: repo, transport: transport)
 
-        XCTAssertEqual(repo.audiobookAssets(bookID: synced.id).map(\.filename), ["p.m4a"])
-        XCTAssertEqual(repo.audiobookAssets(bookID: synced.id).first?.blob, Data("AUDIO-BYTES".utf8))
-        // The non-opted book's audio never leaves the device.
-        XCTAssertTrue(repo.allAudiobookRecords().count == 1)
+        // Exactly the opted-in book's single file reached the "audio cloud".
+        XCTAssertEqual(transport.count, 1)
+        XCTAssertEqual(repo.allAudiobookRecords().count, 1)
+        // The source stamped audioUploadedAt (upload-once guard + receiver trigger).
+        XCTAssertNotNil(repo.audiobookRecord(bookID: synced.id)?.audioUploadedAt)
     }
 
     /// The headline: a book opted in on A appears on B and its audio materializes.
-    func testReconcileMaterializesBookOnReceiver() {
+    func testReconcileMaterializesBookOnReceiver() async {
         let repo = NotesRepository(inMemory: true)
         let book = addBook(to: libA, file: "p.m4a")
         AudiobookCloudSync.enableSync(book: book, repository: repo)
-        AudiobookCloudSync.reconcile(library: libA, repository: repo)   // device A: capture
+        await AudiobookCloudSync.reconcile(library: libA, repository: repo, transport: transport)   // device A: upload
 
         XCTAssertNil(libB.book(id: book.id))
-        AudiobookCloudSync.reconcile(library: libB, repository: repo)   // device B: receive
+        await AudiobookCloudSync.reconcile(library: libB, repository: repo, transport: transport)   // device B: receive
 
         XCTAssertNotNil(libB.book(id: book.id), "synced book appears in the receiver's library")
         let materialized = libB.folder(for: book.id).appendingPathComponent("p.m4a")
         XCTAssertEqual(try? Data(contentsOf: materialized), Data("AUDIO-BYTES".utf8), "audio materialized on B")
     }
 
-    func testPositionSyncsLWWByLastPlayed() {
+    func testPositionSyncsLWWByLastPlayed() async {
         let repo = NotesRepository(inMemory: true)
         let id = UUID()
         // A is further along + recently played; the record carries position 200.
@@ -93,22 +97,22 @@ final class AudiobookCloudSyncTests: XCTestCase {
         // B has the same book but older/behind.
         addBook(to: libB, id: id, position: 50, lastPlayed: .distantPast)
 
-        AudiobookCloudSync.reconcile(library: libB, repository: repo)
+        await AudiobookCloudSync.reconcile(library: libB, repository: repo, transport: transport)
 
         XCTAssertEqual(libB.book(id: id)?.position, 200, "B adopts A's newer resume position")
     }
 
-    func testDisableDropsRecordAndAssetsButKeepsLocalAudio() {
+    func testDisableDropsRecordAndCloudAudioButKeepsLocalAudio() async {
         let repo = NotesRepository(inMemory: true)
         let book = addBook(to: libA, file: "p.m4a")
         AudiobookCloudSync.enableSync(book: book, repository: repo)
-        AudiobookCloudSync.reconcile(library: libA, repository: repo)
-        XCTAssertEqual(repo.audiobookAssets(bookID: book.id).count, 1)
+        await AudiobookCloudSync.reconcile(library: libA, repository: repo, transport: transport)
+        XCTAssertEqual(transport.count, 1)
 
-        AudiobookCloudSync.disableSync(bookID: book.id, repository: repo)
+        await AudiobookCloudSync.disableSync(bookID: book.id, repository: repo, defaults: defaults, transport: transport)
 
         XCTAssertFalse(AudiobookCloudSync.isSynced(bookID: book.id, repository: repo))
-        XCTAssertTrue(repo.audiobookAssets(bookID: book.id).isEmpty)
+        XCTAssertEqual(transport.count, 0, "cloud audio records dropped (frees iCloud)")
         // Local audio + the library entry stay (unshare keeps local copies).
         XCTAssertTrue(FileManager.default.fileExists(atPath: libA.folder(for: book.id).appendingPathComponent("p.m4a").path))
         XCTAssertNotNil(libA.book(id: book.id))
@@ -116,11 +120,11 @@ final class AudiobookCloudSyncTests: XCTestCase {
 
     // MARK: - Per-device Remove download (Apple Books model)
 
-    func testRemoveDownloadFreesAudioButKeepsItSynced() {
+    func testRemoveDownloadFreesAudioButKeepsItSynced() async {
         let repo = NotesRepository(inMemory: true)
         let book = addBook(to: libA, file: "p.m4a")
         AudiobookCloudSync.enableSync(book: book, repository: repo)
-        AudiobookCloudSync.reconcile(library: libA, repository: repo)
+        await AudiobookCloudSync.reconcile(library: libA, repository: repo, transport: transport)
         let audio = libA.folder(for: book.id).appendingPathComponent("p.m4a")
         XCTAssertTrue(FileManager.default.fileExists(atPath: audio.path))
 
@@ -129,37 +133,38 @@ final class AudiobookCloudSyncTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path), "local audio freed")
         XCTAssertTrue(AudiobookCloudSync.isSynced(bookID: book.id, repository: repo), "still synced (record kept)")
         XCTAssertTrue(AudiobookCloudSync.isDownloadRemoved(bookID: book.id, defaults: defaults))
-        // The CKAsset is kept (re-downloadable) — only the local copy was freed.
-        XCTAssertEqual(repo.audiobookAssets(bookID: book.id).count, 1)
+        // The cloud record is kept (re-downloadable) — only the local copy was freed.
+        XCTAssertEqual(transport.count, 1)
     }
 
-    func testReconcileDoesNotRedownloadARemovedBook() {
+    func testReconcileDoesNotRedownloadARemovedBook() async {
         let repo = NotesRepository(inMemory: true)
         let book = addBook(to: libA, file: "p.m4a")
         AudiobookCloudSync.enableSync(book: book, repository: repo)
-        AudiobookCloudSync.reconcile(library: libA, repository: repo, defaults: defaults)
+        await AudiobookCloudSync.reconcile(library: libA, repository: repo, defaults: defaults, transport: transport)
         AudiobookCloudSync.removeDownload(bookID: book.id, library: libA, repository: repo, defaults: defaults)
         let audio = libA.folder(for: book.id).appendingPathComponent("p.m4a")
         XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path))
 
-        AudiobookCloudSync.reconcile(library: libA, repository: repo, defaults: defaults)
+        await AudiobookCloudSync.reconcile(library: libA, repository: repo, defaults: defaults, transport: transport)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path),
                        "a book whose download was freed here is not auto-re-downloaded")
     }
 
-    func testRestoreDownloadRematerializes() {
+    func testRestoreDownloadRematerializes() async {
         let repo = NotesRepository(inMemory: true)
         let book = addBook(to: libA, file: "p.m4a")
         AudiobookCloudSync.enableSync(book: book, repository: repo)
-        AudiobookCloudSync.reconcile(library: libA, repository: repo)   // capture the asset
+        await AudiobookCloudSync.reconcile(library: libA, repository: repo, transport: transport)   // upload the audio
         AudiobookCloudSync.removeDownload(bookID: book.id, library: libA, repository: repo, defaults: defaults)
         let audio = libA.folder(for: book.id).appendingPathComponent("p.m4a")
         XCTAssertFalse(FileManager.default.fileExists(atPath: audio.path))
 
-        AudiobookCloudSync.restoreDownload(bookID: book.id, library: libA, repository: repo, defaults: defaults)
+        await AudiobookCloudSync.restoreDownload(bookID: book.id, library: libA, repository: repo,
+                                                 defaults: defaults, transport: transport)
 
-        XCTAssertTrue(FileManager.default.fileExists(atPath: audio.path), "re-downloaded from the kept CKAsset")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: audio.path), "re-downloaded from the kept cloud record")
         XCTAssertFalse(AudiobookCloudSync.isDownloadRemoved(bookID: book.id, defaults: defaults))
     }
 }

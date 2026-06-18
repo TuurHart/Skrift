@@ -20,20 +20,29 @@ final class AudiobookSyncRecord {
     /// JSON-encoded `Audiobook` (the synced state).
     var blob: Data = Data()
     var modifiedAt: Date = Date()
+    /// Set on the SOURCE device once its audio finished uploading to raw CloudKit.
+    /// Doubles as the upload-once guard AND the receiver's pull trigger: this is a
+    /// real change to a synced @Model, so it exports + pushes (Core Data's zone DOES
+    /// push), and the peer's import nudges `reconcile` to fetch the audio by id — no
+    /// separate CKQuerySubscription needed (the default zone wouldn't push one anyway).
+    var audioUploadedAt: Date? = nil
 
-    init(bookID: UUID, blob: Data, modifiedAt: Date = Date()) {
+    init(bookID: UUID, blob: Data, modifiedAt: Date = Date(), audioUploadedAt: Date? = nil) {
         self.bookID = bookID
         self.blob = blob
         self.modifiedAt = modifiedAt
+        self.audioUploadedAt = audioUploadedAt
     }
 }
 
-/// One audio file (or `cover.jpg`) of a synced audiobook, mirrored as a CloudKit
-/// blob → CKAsset — the same pattern as `MemoAsset` (plain `Data`, no
-/// `.externalStorage`; CloudKit auto-promotes `Data >~1 MB`). `AudiobookCloudSync`
-/// materializes these back into the book's folder (`Documents/audiobooks/<bookID>/`)
-/// on the receiving device. Only exists for books the user opted to sync — the big
-/// files never leave the device for a local-only book.
+/// LEGACY — superseded by the raw-CloudKit `AudiobookAudioTransport`. Audiobook audio
+/// no longer rides a SwiftData `Data` blob (which gave only an INDETERMINATE bar,
+/// since `NSPersistentCloudKitContainer` exposes no upload %); it now transfers as raw
+/// `CKRecord` + `CKAsset(fileURL:)` for a REAL per-book transfer percentage. This
+/// `@Model` is intentionally RETAINED (no longer written) — dropping a synced @Model
+/// risks a load `fatalError` against the already-deployed dev CloudKit schema, and
+/// keeping it is additive-safe. Remove it at prod promotion with a CloudKit dev-env
+/// reset. `deleteAudiobookSync` still purges any stale rows from build (11).
 @Model
 final class AudiobookAsset {
     var bookID: UUID = UUID()
