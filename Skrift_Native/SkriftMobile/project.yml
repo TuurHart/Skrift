@@ -20,6 +20,15 @@ packages:
     url: https://github.com/EmergeTools/Pow.git
     from: "1.0.0"
 
+# Signing: bake the dev team into the project so `xcodegen generate` never drops it.
+# Without this, every regeneration reset DEVELOPMENT_TEAM to None and the app + its
+# extensions (SkriftWidget/SkriftShare) needed manual re-signing in Xcode each time.
+# Top-level → applies to ALL targets + BOTH configs (the dev/prod bundle-id + App
+# Group + entitlement split stays per-config in each target below).
+settings:
+  base:
+    DEVELOPMENT_TEAM: 9W82X49JZS
+
 targets:
   SkriftMobile:
     type: application
