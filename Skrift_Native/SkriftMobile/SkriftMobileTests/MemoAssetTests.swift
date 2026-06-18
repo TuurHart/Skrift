@@ -228,4 +228,24 @@ final class MemoAssetTests: XCTestCase {
         XCTAssertEqual(WordTimingsStore().load(for: id)?.map(\.word), ["harbor", "dawn"])
         XCTAssertEqual(DiarizationStore().load(for: id)?.slotNames["1"], "Jack")
     }
+
+    // MARK: - Sync visibility (Phase 1 — "Downloading from iCloud…")
+
+    func testMediaSyncStateThreeWay() {
+        XCTAssertEqual(MediaSyncState.of(filePresent: true,  hasAsset: true),  .present)
+        XCTAssertEqual(MediaSyncState.of(filePresent: true,  hasAsset: false), .present)
+        XCTAssertEqual(MediaSyncState.of(filePresent: false, hasAsset: true),  .downloading)
+        XCTAssertEqual(MediaSyncState.of(filePresent: false, hasAsset: false), .missing)
+    }
+
+    func testHasAssetReflectsCarrierPresence() {
+        let repo = NotesRepository(inMemory: true)
+        let id = UUID()
+        let photo = "photo_\(id.uuidString)_001.jpg"
+        XCTAssertFalse(repo.hasAsset(filename: photo))
+        XCTAssertFalse(repo.hasAsset(filename: ""))
+        repo.context.insert(MemoAsset(memoID: id, kind: MemoAsset.Kind.photo, filename: photo, blob: Data("X".utf8)))
+        repo.save()
+        XCTAssertTrue(repo.hasAsset(filename: photo), "a synced asset with no local file yet → downloading state")
+    }
 }

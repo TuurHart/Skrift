@@ -124,6 +124,16 @@ final class NotesRepository {
         for asset in assets(forMemo: id) { context.delete(asset) }
     }
 
+    /// True when a synced `MemoAsset` exists for `filename` — i.e. the media is
+    /// expected (downloading / pending materialization) even if its file isn't on
+    /// disk yet. Drives the "Downloading from iCloud…" placeholder.
+    func hasAsset(filename: String) -> Bool {
+        guard !filename.isEmpty else { return false }
+        var d = FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.filename == filename })
+        d.fetchLimit = 1
+        return (try? context.fetchCount(d)) ?? 0 > 0
+    }
+
     /// Every memo INCLUDING the trash — the asset-capture sweep mirrors files for
     /// trashed memos too (their files live on disk until the purge, and restore must
     /// be lossless across devices). Newest first, like `allMemos()`.

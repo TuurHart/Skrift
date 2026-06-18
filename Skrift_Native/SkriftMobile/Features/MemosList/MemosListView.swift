@@ -54,6 +54,9 @@ struct MemosListView: View {
     /// C3 contract: the audiobook session singleton (defined by the Audiobooks
     /// feature). Drives the conditional mini-player + the toolbar live dot.
     @ObservedObject private var audiobookSession = AudiobookSession.shared
+    /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
+    /// strip below the search field. Distinct from the Mac `syncBanner` above.
+    @ObservedObject private var cloudSync = CloudSyncMonitor.shared
     @State private var search = ""
     @State private var sort: MemoSort = .added
     @State private var filter = MemoFilter()
@@ -136,6 +139,21 @@ struct MemosListView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
                 .padding(.bottom, 6)
+
+            // Device↔device CloudKit sync in flight: a quiet strip so a memo (and
+            // its audio/photos) arriving from another device doesn't look stuck.
+            if cloudSync.isSyncing {
+                HStack(spacing: 7) {
+                    ProgressView().controlSize(.mini)
+                    Text("Syncing with iCloud…")
+                        .font(.caption).foregroundStyle(Color.skTextDim)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 6)
+                .transition(.opacity)
+                .accessibilityIdentifier("cloud-sync-indicator")
+            }
 
             // Native List → reliable swipe-to-delete (.swipeActions) + native
             // multi-select (EditMode + selection binding, incl. drag-over-rows).

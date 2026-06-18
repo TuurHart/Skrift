@@ -355,13 +355,31 @@ enum KaraokeWordLayout {
 /// (e.g. seeded demo memos).
 struct ImageEmbed: View {
     let url: URL?
+    // Observe CloudKit sync: when an import completes the monitor materializes the
+    // photo + re-publishes, so this view re-renders and swaps the "Downloading…"
+    // placeholder for the real image without needing a foreground cycle.
+    @ObservedObject private var sync = CloudSyncMonitor.shared
 
     var body: some View {
-        Group {
-            if let url, let image = MemoImageLoader.thumbnail(at: url, maxWidth: UIScreen.main.bounds.width) {
-                Image(uiImage: image)
+        let image = url.flatMap { MemoImageLoader.thumbnail(at: $0, maxWidth: UIScreen.main.bounds.width) }
+        let state = MediaSyncState.of(
+            filePresent: image != nil,
+            hasAsset: url.map { NotesRepository.shared.hasAsset(filename: $0.lastPathComponent) } ?? false)
+        return Group {
+            switch state {
+            case .present:
+                Image(uiImage: image!)
                     .resizable().scaledToFill()
-            } else {
+            case .downloading:
+                LinearGradient(colors: [Color(hex: 0x2b3350), Color(hex: 0x161a29)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .overlay(
+                        VStack(spacing: 8) {
+                            ProgressView().tint(Color.skTextFaint)
+                            Text("Downloading from iCloud…")
+                                .font(.caption).foregroundStyle(Color.skTextFaint)
+                        })
+            case .missing:
                 LinearGradient(colors: [Color(hex: 0x2b3350), Color(hex: 0x161a29)],
                                startPoint: .topLeading, endPoint: .bottomTrailing)
                     .overlay(Image(systemName: "photo").font(.title).foregroundStyle(Color.skTextFaint))
