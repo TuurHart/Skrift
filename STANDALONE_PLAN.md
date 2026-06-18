@@ -423,40 +423,46 @@ placeholder (Phase 1); pins (Phase 5).
 
 ---
 
-## ⭐⭐ RESUME — 2026-06-18 EOD (read THIS first) — next: raw-CloudKit audiobook % + size sheet
+## ⭐⭐ RESUME — 2026-06-19 (read THIS first) — next: Phase 3 de-Mac (Importance label nod) → Phase 2 export
 
-**Installable now: build (11)** on `main` (local, **unpushed** — 37 commits ahead; push only when asked).
-Phase 1 sync is COMPLETE + the per-book audiobook sync feature is in. Install (11) on both devices to use.
-**Done this session:** memo media→CKAsset (1c, **device-verified**); sidecars (1d); names+voices (1e); custom
-vocab (1f); **CloudKit push** (device-verified fast sync — Push capability added in Xcode, `aps-environment`
-committed) + pull-to-refresh; real version-in-About (bump `CFBundleVersion` per install, at **(11)**);
-floating+debounced "Syncing…" indicators; double-transcription guard (`Memo.recordingDeviceID`+`DeviceID`);
-Settings "iCloud sync" line; de-Mac toolbar gate; **`DEVELOPMENT_TEAM` baked into `project.yml`** (no more
-re-signing); **per-book audiobook sync** (toggle in library long-press + player ⋯, per-book row bar + states,
-header "Syncing…" chip, hands-off receive, Remove download (Apple Books) + Settings "Synced audiobooks").
-**435/435 SkriftMobileTests green.**
+**Installable now: build (12)** on `main` (local, **unpushed** — push only when asked). Phase 1 sync is COMPLETE +
+per-book audiobook sync now does a **REAL upload/download %**. Install (12) on both devices to use. (Build number
+moved into `project.yml` → `xcodegen generate` no longer resets it.)
 
-**⭐ NEXT (GREENLIT — do first): raw-CloudKit audiobook AUDIO transfer for a REAL upload/download % + the
-"Turn it on" size sheet.** VERIFIED (with sources): SwiftData/`NSPersistentCloudKitContainer` auto-mirror exposes
-**no** upload % (its `eventChangedNotification` is start/done only) — that's why today's bar is indeterminate. **Raw
-CloudKit DOES:** `CKModifyRecordsOperation.perRecordProgressBlock` (upload) + `CKFetchRecordsOperation.perRecordProgressBlock`
-(download) give a 0–1 fraction per record, incl. `CKAsset`. Plan:
-- Keep `AudiobookSyncRecord` (entry/state) + memos/names/vocab/sidecars on SwiftData mirroring (no % needed).
-- **Replace `AudiobookAsset`** (the SwiftData `Data`-blob mirror of audio) with a **raw-CloudKit transfer**: a `CKRecord`
-  (e.g. type `AudiobookAudio`, recordName `<bookID>/<filename>`) carrying `CKAsset(fileURL:)` per audio file + cover, in
-  the private DB; upload via `CKModifyRecordsOperation` (perRecordProgressBlock → real %), download via
-  `CKFetchRecordsOperation`/`CKQueryOperation` (perRecordProgressBlock → real %), `CKQuerySubscription` so the receiver pulls.
-- `AudiobookCloudSync`: capture→raw upload (progress); materialize→raw download (progress). Publish per-book progress
-  (0–1) → the row bar becomes **DETERMINATE** (the mock's real "· 38%"). **BONUS:** `CKAsset(fileURL:)` streams the file
-  off-main → this ALSO fixes the off-main large-book capture (task #18) — they converge; no more `Data(contentsOf:)` on main.
-- **"Turn it on" sheet** (mock's screen 1): cover + title + **size** (sum of local audio file sizes — on-device, no CloudKit)
-  + "uses iCloud storage" note + Sync / Stop-syncing button; present from the library long-press + player ⋯ (replaces the
-  direct menu toggle). Effort: **L** (a real raw-CloudKit transfer layer).
+**✅ Done 2026-06-19 — raw-CloudKit audiobook AUDIO transfer (REAL %) + the "Turn it on" size sheet** (commits
+`974abfd`/`08adbf5`/`a353a49`/`d012353`/`e16531c`; 435/435 unit). Audio left the SwiftData `AudiobookAsset` blob (which
+gave NO % — confirmed: `NSPersistentCloudKitContainer.eventChangedNotification` is start/done only) for a **raw-CloudKit
+transfer**: `AudiobookAudioTransport` → `CloudKitAudiobookTransport` writes `AudiobookAudio` `CKRecord` + `CKAsset(fileURL:)`
+to the private-DB **default zone**; `CKModifyRecordsOperation`/`CKFetchRecordsOperation` `perRecordProgressBlock` → a
+byte-weighted **DETERMINATE** per-book bar ("Uploading audio · 38%" / "Downloading · 61%"). Fetched by exact recordID
+(`ab_<bookID>_<index>`/`_cover` — ASCII/slash-free) → **no queryable index**. **No `CKQuerySubscription`** (verified: it
+wouldn't fire for the default zone anyway): the source stamps `audioUploadedAt` on the carrier when upload completes →
+that @Model change pushes (Core Data's zone DOES push) → the receiver's import nudges `reconcile` to fetch by id. The
+**"Turn it on" sheet** (`AudiobookSyncSheet`, mock screen 1) replaces the bare menu toggle in BOTH the library long-press
+and player ⋯: cover + title + on-device size + the switch + a live % card + iCloud note. **BONUS done:** `CKAsset(fileURL:)`
+streams off-disk → no `Data(contentsOf:)` on main for large books (task #18 converged). Wi-Fi default
+(`allowsCellularAccess=false`). `AudiobookAsset` @Model **retained-but-dead** (dropping a synced @Model risks a load
+`fatalError` vs the deployed dev schema — remove at prod promotion with a CloudKit **dev-env reset**). Design was
+**adversarially verified vs current Apple docs** (4-claim workflow: coexistence with NSPersistentCloudKitContainer,
+fetch-by-id/no-index, perRecordProgressBlock + CKAsset(fileURL:), drop-@Model + re-push trigger).
 
-**Other open threads:** (a) significance → "Importance"/pin reframe (rest of Phase 3 de-Mac) — **NEEDS a label nod from the
-user**; (b) Phase 2 export/Obsidian + unify Compiler/TagMatcher/DTOs; (c) Mac→CloudKit (option A); (d) 10 pre-existing
-iOS-26 `SkriftMobileUITests` failures (background-task chip). **Build/deploy unchanged:** dev = Xcode Cmd-R / CLI; prod =
-Xcode Organizer; capabilities via Xcode.
+**⚠️ DEVICE-VERIFY OWED (the user's step):** real iCloud — install (12) on iPhone + iPad, opt a book in on the iPhone via
+the new sheet, watch the **% climb** on its row, then watch it **download on the iPad with a %** and become playable +
+resume in place. The `AudiobookAudio` record type auto-creates in the DEV CloudKit env (no Dashboard step); at prod
+promotion it must be **Deployed** (and the dead `CD_AudiobookAsset` type removed via a dev-env reset). Both devices must
+run the **dev** bundle + same iCloud account; real-CloudKit push doesn't work on the simulator.
+
+**Earlier this session (build 11→12 base):** memo media→CKAsset (1c, **device-verified**); sidecars (1d); names+voices (1e);
+custom vocab (1f); **CloudKit push** (device-verified fast sync) + pull-to-refresh; real version-in-About; floating+debounced
+"Syncing…" indicators; double-transcription guard; Settings "iCloud sync" line; de-Mac toolbar gate; `DEVELOPMENT_TEAM` in
+`project.yml`; the first cut of per-book audiobook sync (toggle/row states/Settings/Remove-download).
+
+**⭐ NEXT:** (a) rest of **Phase 3 de-Mac** — significance → **"Importance"/pin** reframe (**NEEDS a label nod from the
+user** before building) + onboarding/Settings Mac-demote; (b) **Phase 2** export/Obsidian + unify Compiler/TagMatcher/DTOs
+into `Shared/`; (c) **Mac → CloudKit** (option A); (d) the 10 pre-existing iOS-26 `SkriftMobileUITests` failures. **Also
+deferred (folds into 1h):** the cellular **"Ready to sync · N MB"** tap-to-pull affordance (`NWPathMonitor`) — today the
+transfer is Wi-Fi-only by hard default. **Build/deploy unchanged:** dev = Xcode Cmd-R / CLI; prod = Xcode Organizer;
+capabilities via Xcode.
 
 ---
 
