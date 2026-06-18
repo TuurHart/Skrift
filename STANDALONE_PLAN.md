@@ -447,7 +447,15 @@ placeholder (Phase 1); pins (Phase 5).
 5. Pull the DEV `devlog.txt` to confirm: look for `asset: captured audio …` on the iPhone and `asset: materialized audio …` on the iPad.
 - If audio never crosses: check the iPad's iCloud account/storage, that both run the **dev** bundle id, and that the `MemoAsset` type exists in the dev CloudKit Dashboard. (CKAsset upload can lag on a cold first sync.)
 
-**NEXT — Phase 1g+1h: per-book audiobook sync (do them as ONE feature, mock-first).**
+**ALSO DONE 2026-06-18 (this session):**
+- **Sync visibility** (`d49333b`, 425 green) — `CloudSyncMonitor` watches `NSPersistentCloudKitContainer.eventChangedNotification` → a "Syncing with iCloud…" strip under the Memos search + a "Downloading from iCloud…" image state (`ImageEmbed`/`MediaSyncState`/`hasAsset`); on import-complete it runs the materialize/merge sweeps so media/names/vocab land **without a foreground cycle**. Closes the "is it stuck?" gap.
+- **Vocab clobber fix** (`70a1058`) — a fresh, never-edited device no longer pushes an empty list that could LWW-wipe another device's words.
+
+**NEXT — Phase 1h-ii: the per-book audiobook sync UI** (the engine below is BUILT).
+
+✅ **Engine DONE 2026-06-18** (`b0c7e41`, 430 green, 5 `AudiobookCloudSyncTests`): `AudiobookSyncRecord` + `AudiobookAsset` @Models + `AudiobookCloudSync` (enableSync / disableSync / reconcile — capture audio→CKAssets, materialize on receiver + add the library entry, position LWW by `lastPlayedAt`, unshare keeps local audio). Reconciles against the untouched `AudiobookLibraryStore`. **Callable-only / NOT auto-wired** (inert until the UI + network policy land — no surprise uploads). The mock is **APPROVED + LOCKED** (`mocks/standalone-audiobook-sync.html`, decisions 1–4 resolved 2026-06-18).
+
+**Remaining (1h-ii UI + wiring):** "Sync this book" toggle in BOTH the library long-press menu + player ⋯; per-book row states (uploading/downloading/synced glyphs); Settings "Synced audiobooks" section (count/total/per-book remove, >1 GB heads-up); per-device "Remove download" (Apple Books model); **Wi-Fi-only auto upload/download with a cellular "ready to sync" tap** (needs `NWPathMonitor`); wire `AudiobookCloudSync.reconcile` into the launch/foreground/`CloudSyncMonitor` sweeps + call enable/disable from the toggle. This is where **device verification matters** (real iCloud uploads of large files).
 
 ⭐ **Design insight (worked out 2026-06-18, supersedes the old "migrate the whole library" plan):** resume-anywhere needs the two devices to share the **same book `id`**. But each device mints a fresh UUID at import, so two independently-imported copies of the same book can NEVER match on `id` — meaning state-only sync (1g) of locally-imported books is useless on its own, and syncing every library entry would litter the other device with **un-playable "phantom" books** (entry present, audio absent). So 1g and 1h collapse into a single **per-book opt-in** feature:
 - Books are **local-only by default** — the existing `AudiobookLibraryStore` (`library.json`) stays the source of truth, **untouched** (no risky whole-library migration of the user's real books).
