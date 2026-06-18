@@ -146,7 +146,17 @@ struct SettingsView: View {
                 }
 
                 Section("About") {
-                    HStack { Text("Version"); Spacer(); Text("0.1.0").foregroundStyle(Color.skTextDim) }
+                    // Read from the bundle (was hardcoded "0.1.0" → never reflected the
+                    // actual build). Shows "0.1.0 (5)" so you can confirm which build a
+                    // device is running — bump CFBundleVersion per install to tell them apart.
+                    HStack {
+                        Text("Version"); Spacer()
+                        Text({
+                            let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+                            let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+                            return "\(v) (\(b))"
+                        }()).foregroundStyle(Color.skTextDim)
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
