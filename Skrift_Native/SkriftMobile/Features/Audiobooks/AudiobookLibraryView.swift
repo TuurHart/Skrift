@@ -230,12 +230,13 @@ struct AudiobookLibraryView: View {
             .accessibilityIdentifier("library-empty-hint")
     }
 
-    enum BookSyncState { case synced, downloading }
+    enum BookSyncState { case synced, downloading, downloadAvailable }
 
     /// Per-book sync state for the row glyph. nil = local-only (no record). `synced` =
-    /// opted in + the audio is on THIS device. `downloading` = opted in but the audio
-    /// hasn't materialized here yet (the receiving device, mid-CKAsset-download).
-    /// CloudKit gives no upload %, so this is an honest state, not a fake bar. Reads
+    /// opted in + the audio is on THIS device. `downloadAvailable` = synced but the
+    /// user freed this device's copy (won't auto-redownload). `downloading` = synced,
+    /// audio not here yet + actively materializing (the receiving device). CloudKit
+    /// gives no upload %, so this is an honest state, not a fake bar. Reads
     /// `syncToggleTick` so the row re-renders after the long-press toggle.
     private func bookSyncState(_ book: Audiobook) -> BookSyncState? {
         _ = syncToggleTick
@@ -244,7 +245,8 @@ struct AudiobookLibraryView: View {
         let present = !book.files.isEmpty && book.files.allSatisfy {
             FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
         }
-        return present ? .synced : .downloading
+        if present { return .synced }
+        return AudiobookCloudSync.isDownloadRemoved(bookID: book.id) ? .downloadAvailable : .downloading
     }
 
     private func row(_ book: Audiobook) -> some View {
@@ -276,6 +278,11 @@ struct AudiobookLibraryView: View {
                         case .downloading:
                             ProgressView().controlSize(.mini)
                                 .accessibilityLabel("Downloading to this device")
+                        case .downloadAvailable:
+                            Image(systemName: "icloud.and.arrow.down")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Color.skTextDim)
+                                .accessibilityLabel("Synced — download to this device")
                         case .none:
                             EmptyView()
                         }

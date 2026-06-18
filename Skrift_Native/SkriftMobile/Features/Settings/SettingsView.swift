@@ -60,8 +60,14 @@ struct SettingsView: View {
                         }
                     }
                     .accessibilityIdentifier("icloud-status")
+
+                    NavigationLink {
+                        SyncedAudiobooksView()
+                    } label: {
+                        Label("Synced audiobooks", systemImage: "books.vertical")
+                    }
                 } footer: {
-                    Text("Your memos, names, and custom words sync across your devices via iCloud.")
+                    Text("Your memos, names, and custom words sync across your devices via iCloud. Audiobooks sync per-book — turn one on from its long-press menu.")
                 }
 
                 Section("Mac") {
