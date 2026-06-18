@@ -186,16 +186,17 @@ are cheap and always sync once a book is on; the audio (large) syncs only for bo
     <li><b>Toggle = per book.</b> Library long-press <em>or</em> player ⋯ → “Sync this book to my devices”. Turning it on creates a CloudKit-synced record for that book (id, title, author, chapters, duration, <b>position, rate, bookmarks</b>) and uploads its audio files as CKAssets (reuses the Phase-1c <code>AssetMaterializer</code>).</li>
     <li><b>Why per-book (not all books):</b> each device mints its own book <code>id</code> at import, so two independently-imported copies can never match for resume-sync — and syncing every entry would litter the other device with un-playable “phantom” books. Opting a book in gives it ONE shared id across devices.</li>
     <li><b>Source device:</b> shows “Uploading audio · N%”, then a teal “Synced” once done. A subtle “Syncing…” chip in the Library header while any upload/download is in flight.</li>
-    <li><b>Receiver device:</b> the book appears with a download glyph → “Downloading to play here · N%”. Position + bookmarks are already there (cheap), so when audio lands it opens right where you left off. Auto-download on Wi-Fi (tap to start on cellular).</li>
-    <li><b>Turning it off:</b> stops syncing that book and (optionally) frees the downloaded audio on other devices; the book stays local on the device you turned it off from. <em>(Confirm: free space on the other devices, or just stop future sync?)</em></li>
+    <li><b>Receiver device:</b> the book appears with a download glyph → “Downloading to play here · N%”. Position + bookmarks are already there (cheap), so when audio lands it opens right where you left off. <b>Wi-Fi → auto-download; cellular → don’t auto-pull</b> but show a “Ready to sync · 240 MB” affordance to tap-to-download on data. Upload follows the same policy (no silent 240 MB push over cellular).</li>
+    <li><b>Two concepts (the Apple Books model — locked for v1):</b> (1) the <b>Sync toggle</b> = is this book in your cross-device library? Off (from any device) <b>unshares for all</b>: removes the cloud entry + uploaded audio (frees iCloud) — but <b>never deletes audio already on a device’s disk</b> (it reverts to local-only there; a device that only had the cloud entry just loses the entry). (2) a per-device <b>“Remove download”</b> = free space on THIS device while the book stays synced (re-download later) — Books/Podcasts’ download-vs-library split.</li>
+    <li><b>Storage:</b> the toggle shows the per-book size (“240 MB”); Settings gets a <b>“Synced audiobooks”</b> section — count + total (e.g. “3 books · 1.2 GB”) + per-book remove, and a gentle heads-up for a very large book (&gt;1 GB). We show OUR usage only (CloudKit doesn’t expose the iCloud quota) + a “Manage in iCloud Settings” link — no “of X GB” claim.</li>
     <li><b>BookTranscript</b> (whole-book read-along text) stays device-local — its signature is the device’s own file size/mtime, so it re-derives per device.</li>
   </ul>
-  <h3>Open questions for sign-off</h3>
+  <h3>Resolved — locked 2026-06-18</h3>
   <ul>
-    <li>Toggle home: library long-press menu, the player ⋯ menu, or both? (mock shows a sheet that either can present)</li>
-    <li>Auto-download policy on the receiver: Wi-Fi-only auto, or always ask first?</li>
-    <li>“Turn off” = stop syncing only, or also delete the downloaded copy elsewhere?</li>
-    <li>Show the per-book size (e.g. “240 MB”) + a running “Synced books: 1.2 GB of iCloud” total in Settings?</li>
+    <li><b>Toggle home:</b> BOTH — library long-press menu + player ⋯ (same sheet from either).</li>
+    <li><b>Auto-download:</b> Wi-Fi auto; cellular shows “ready to sync”, tap to download on data (same for upload).</li>
+    <li><b>Turn off:</b> Apple Books model — global unshare keeps local copies; plus a per-device “Remove download” in v1.</li>
+    <li><b>Storage:</b> per-book size on the toggle + a Settings “Synced audiobooks” section (count/total/per-book remove, &gt;1 GB heads-up); no iCloud-quota claim.</li>
   </ul>
   <p style="color:#6A6A78">Palette + phone frame match <code>audiobook-player-redesign.html</code>. Glyphs are placeholders for SF Symbols (<code>arrow.clockwise</code>, <code>icloud.and.arrow.up/down</code>, <code>checkmark.icloud</code>).</p>
 </div>
