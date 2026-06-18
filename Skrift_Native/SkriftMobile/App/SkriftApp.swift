@@ -60,6 +60,10 @@ struct SkriftApp: App {
                 .task { NamesCloudSync.run(repository) }
                 // Sync the custom-vocabulary list across devices (Phase 1f), LWW.
                 .task { VocabularyCloudSync.run(repository) }
+                // Reconcile opted-in audiobooks (Phase 1h): upload a freshly-synced
+                // book's audio + pull any that arrived from another device (raw-CloudKit
+                // transfer). No-op when nothing's synced. Idempotent; launch + foreground.
+                .task { await AudiobookCloudSync.reconcile(repository: repository) }
                 // Recover any recording orphaned mid-transcription by a process
                 // kill: a fire-and-forget transcription Task can't survive app
                 // suspension, so a cold-launch auto-record stopped before the
@@ -92,6 +96,7 @@ struct SkriftApp: App {
                         AssetMaterializer.run(repository)
                         NamesCloudSync.run(repository)
                         VocabularyCloudSync.run(repository)
+                        Task { await AudiobookCloudSync.reconcile(repository: repository) }
                     } else if newPhase == .background {
                         // If a whole-book transcribe is in flight, ask iOS to let it
                         // continue in the background (best overnight on a charger).
