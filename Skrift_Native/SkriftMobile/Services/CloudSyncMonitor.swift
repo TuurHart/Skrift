@@ -20,10 +20,6 @@ final class CloudSyncMonitor: ObservableObject {
     static let shared = CloudSyncMonitor()
 
     @Published private(set) var isSyncing = false
-    /// Books the user just opted into sync — shown as "Uploading…" on their row until
-    /// the CloudKit export settles (cleared when `isSyncing` debounces off). Honest
-    /// per-book feedback without a fake % (CloudKit exposes no upload percentage).
-    @Published private(set) var uploadingBookIDs: Set<UUID> = []
 
     /// REAL per-book audiobook-audio transfer progress (raw-CloudKit path): direction
     /// + a 0–1 byte-weighted fraction, published live from
@@ -38,12 +34,13 @@ final class CloudSyncMonitor: ObservableObject {
         var fraction: Double
     }
 
+    /// True while ANY audiobook audio is uploading/downloading — the raw transfer does
+    /// NOT fire `eventChangedNotification` (that's only the SwiftData mirror), so the
+    /// Library's "Syncing…" header chip checks this alongside `isSyncing`.
+    var isTransferringBooks: Bool { !bookTransfers.isEmpty }
+
     private var inFlight: Set<UUID> = []
     private var hideTask: Task<Void, Never>?
-
-    /// Called when a book is opted into sync, so its row shows "Uploading…" while the
-    /// CKAsset export is in flight.
-    func markUploading(_ bookID: UUID) { uploadingBookIDs.insert(bookID) }
 
     /// Publish live per-book audio transfer progress (raw-CloudKit upload/download).
     /// Main-actor isolated; the transport hops here from its (possibly off-main)
@@ -56,7 +53,6 @@ final class CloudSyncMonitor: ObservableObject {
     /// settles to its synced/resume state.
     func clearBookTransfer(_ bookID: UUID) {
         bookTransfers[bookID] = nil
-        uploadingBookIDs.remove(bookID)
     }
 
     private init() {
@@ -85,8 +81,6 @@ final class CloudSyncMonitor: ObservableObject {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
                 self?.isSyncing = false
-                // The export settled → those books are uploaded.
-                self?.uploadingBookIDs = []
             }
         } else {
             hideTask?.cancel()

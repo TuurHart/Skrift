@@ -132,8 +132,10 @@ struct AudiobookLibraryView: View {
                     .background(Color.skElev, in: .rect(cornerRadius: 8, style: .continuous))
                 Spacer()
                 // The mock's header "Syncing…" chip — in the header row, so it never
-                // overlaps a book title (the per-book bar shows what's in flight).
-                if cloudSync.isSyncing {
+                // overlaps a book title (the per-book bar shows what's in flight). Shows
+                // for the SwiftData mirror AND a raw audiobook-audio transfer (which
+                // doesn't fire eventChangedNotification).
+                if cloudSync.isSyncing || cloudSync.isTransferringBooks {
                     HStack(spacing: 5) {
                         ProgressView().controlSize(.mini)
                         Text("Syncing…").font(.system(size: 10.5))
@@ -233,21 +235,31 @@ struct AudiobookLibraryView: View {
     enum BookSyncState { case uploading, downloading, downloadAvailable, synced }
 
     /// Per-book sync state, shown ON the row. nil = local-only (no record). `uploading`
-    /// = just opted in, CKAsset export in flight (source). `downloading` = synced, audio
-    /// not here yet + materializing (receiver). `downloadAvailable` = synced but the
-    /// user freed this device's copy. `synced` = opted in + audio is here. CloudKit
-    /// exposes no upload %, so uploading/downloading render an honest INDETERMINATE bar,
-    /// not a fake percentage. Reads `syncToggleTick` so the row re-renders after toggles.
+    /// = audio export in flight (source). `downloading` = synced, audio not here yet +
+    /// materializing (receiver). `downloadAvailable` = synced but the user freed this
+    /// device's copy. `synced` = opted in + audio is here. The raw-CloudKit transport
+    /// publishes a REAL % into `cloudSync.bookTransfers`, so uploading/downloading now
+    /// render a DETERMINATE bar. Reads `syncToggleTick` so the row re-renders after toggles.
     private func bookSyncState(_ book: Audiobook) -> BookSyncState? {
         _ = syncToggleTick
         guard AudiobookCloudSync.isSynced(bookID: book.id) else { return nil }
-        if cloudSync.uploadingBookIDs.contains(book.id) { return .uploading }
+        if let transfer = cloudSync.bookTransfers[book.id] {
+            return transfer.direction == .up ? .uploading : .downloading
+        }
         let folder = store.folder(for: book.id)
         let present = !book.files.isEmpty && book.files.allSatisfy {
             FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
         }
         if present { return .synced }
         return AudiobookCloudSync.isDownloadRemoved(bookID: book.id) ? .downloadAvailable : .downloading
+    }
+
+    /// The mock's row label: "Uploading audio · 38%" / "Downloading · 61%" (the % drops
+    /// out in the brief pre-first-byte window so we never show a misleading "0%").
+    private func transferLabel(uploading: Bool, pct: Int?) -> String {
+        let verb = uploading ? "Uploading audio" : "Downloading"
+        guard let pct else { return uploading ? "Uploading audio…" : "Downloading…" }
+        return "\(verb) · \(pct)%"
     }
 
     private func row(_ book: Audiobook) -> some View {
@@ -292,16 +304,27 @@ struct AudiobookLibraryView: View {
                         .foregroundStyle(Color.skTextDim)
                         .lineLimit(1)
                     if syncState == .uploading || syncState == .downloading {
-                        // In-flight sync: an INDETERMINATE bar on the book itself (no
-                        // fake %, since CloudKit gives none) + a clear label.
+                        // In-flight sync: a DETERMINATE bar on the book itself, fed by the
+                        // raw-CloudKit transport's real per-record progress. Falls back to
+                        // indeterminate only in the brief window before the first byte (a
+                        // received phantom waiting on the source's audioUploadedAt push).
+                        let transfer = cloudSync.bookTransfers[book.id]
+                        let pct = transfer.map { Int(($0.fraction * 100).rounded()) }
                         HStack(spacing: 7) {
-                            ProgressView()
-                                .progressViewStyle(.linear)
-                                .tint(Color.skAccent)
-                                .frame(maxWidth: 110)
-                                .scaleEffect(x: 1, y: 0.7, anchor: .center)
-                            Text(syncState == .uploading ? "Uploading audio…" : "Downloading…")
+                            Group {
+                                if let fraction = transfer?.fraction {
+                                    ProgressView(value: fraction)
+                                } else {
+                                    ProgressView()
+                                }
+                            }
+                            .progressViewStyle(.linear)
+                            .tint(Color.skAccent)
+                            .frame(maxWidth: 110)
+                            .scaleEffect(x: 1, y: 0.7, anchor: .center)
+                            Text(transferLabel(uploading: syncState == .uploading, pct: pct))
                                 .font(.system(size: 10.5))
+                                .monospacedDigit()
                                 .foregroundStyle(Color.skAccentText)
                         }
                         .padding(.top, 3)
