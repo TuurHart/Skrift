@@ -423,7 +423,42 @@ placeholder (Phase 1); pins (Phase 5).
 
 ---
 
-## ⭐ RESUME — 2026-06-18 (1c–1f done; pick up at per-book audiobook sync)
+## ⭐⭐ RESUME — 2026-06-18 EOD (read THIS first) — next: raw-CloudKit audiobook % + size sheet
+
+**Installable now: build (11)** on `main` (local, **unpushed** — 37 commits ahead; push only when asked).
+Phase 1 sync is COMPLETE + the per-book audiobook sync feature is in. Install (11) on both devices to use.
+**Done this session:** memo media→CKAsset (1c, **device-verified**); sidecars (1d); names+voices (1e); custom
+vocab (1f); **CloudKit push** (device-verified fast sync — Push capability added in Xcode, `aps-environment`
+committed) + pull-to-refresh; real version-in-About (bump `CFBundleVersion` per install, at **(11)**);
+floating+debounced "Syncing…" indicators; double-transcription guard (`Memo.recordingDeviceID`+`DeviceID`);
+Settings "iCloud sync" line; de-Mac toolbar gate; **`DEVELOPMENT_TEAM` baked into `project.yml`** (no more
+re-signing); **per-book audiobook sync** (toggle in library long-press + player ⋯, per-book row bar + states,
+header "Syncing…" chip, hands-off receive, Remove download (Apple Books) + Settings "Synced audiobooks").
+**435/435 SkriftMobileTests green.**
+
+**⭐ NEXT (GREENLIT — do first): raw-CloudKit audiobook AUDIO transfer for a REAL upload/download % + the
+"Turn it on" size sheet.** VERIFIED (with sources): SwiftData/`NSPersistentCloudKitContainer` auto-mirror exposes
+**no** upload % (its `eventChangedNotification` is start/done only) — that's why today's bar is indeterminate. **Raw
+CloudKit DOES:** `CKModifyRecordsOperation.perRecordProgressBlock` (upload) + `CKFetchRecordsOperation.perRecordProgressBlock`
+(download) give a 0–1 fraction per record, incl. `CKAsset`. Plan:
+- Keep `AudiobookSyncRecord` (entry/state) + memos/names/vocab/sidecars on SwiftData mirroring (no % needed).
+- **Replace `AudiobookAsset`** (the SwiftData `Data`-blob mirror of audio) with a **raw-CloudKit transfer**: a `CKRecord`
+  (e.g. type `AudiobookAudio`, recordName `<bookID>/<filename>`) carrying `CKAsset(fileURL:)` per audio file + cover, in
+  the private DB; upload via `CKModifyRecordsOperation` (perRecordProgressBlock → real %), download via
+  `CKFetchRecordsOperation`/`CKQueryOperation` (perRecordProgressBlock → real %), `CKQuerySubscription` so the receiver pulls.
+- `AudiobookCloudSync`: capture→raw upload (progress); materialize→raw download (progress). Publish per-book progress
+  (0–1) → the row bar becomes **DETERMINATE** (the mock's real "· 38%"). **BONUS:** `CKAsset(fileURL:)` streams the file
+  off-main → this ALSO fixes the off-main large-book capture (task #18) — they converge; no more `Data(contentsOf:)` on main.
+- **"Turn it on" sheet** (mock's screen 1): cover + title + **size** (sum of local audio file sizes — on-device, no CloudKit)
+  + "uses iCloud storage" note + Sync / Stop-syncing button; present from the library long-press + player ⋯ (replaces the
+  direct menu toggle). Effort: **L** (a real raw-CloudKit transfer layer).
+
+**Other open threads:** (a) significance → "Importance"/pin reframe (rest of Phase 3 de-Mac) — **NEEDS a label nod from the
+user**; (b) Phase 2 export/Obsidian + unify Compiler/TagMatcher/DTOs; (c) Mac→CloudKit (option A); (d) 10 pre-existing
+iOS-26 `SkriftMobileUITests` failures (background-task chip). **Build/deploy unchanged:** dev = Xcode Cmd-R / CLI; prod =
+Xcode Organizer; capabilities via Xcode.
+
+---
 
 **Done + on `main` (local, unpushed; worktree merged in + removed — everything's on `main`):**
 - **Phase 0** — shared naming engine in `Skrift_Native/Shared/Naming/` (`NamesData`/`NameMatch`/`NameStoplist`/`QuoteProtection`/`Sanitiser`), compiled into BOTH apps via each `project.yml` (shared SOURCE FOLDER, not an SPM package). Both green: desktop UnitTests 288 + mobile SkriftMobileTests 400; engine runs on iOS (`SanitiserSmokeTests`). Commits `ea3eeed`/`faece91`/`71cd8d2`/`ebea0b6`.
