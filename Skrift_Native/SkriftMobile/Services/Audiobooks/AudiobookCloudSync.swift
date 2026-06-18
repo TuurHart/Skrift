@@ -41,7 +41,7 @@ enum AudiobookCloudSync {
               let blob = try? JSONEncoder().encode(book) else { return }
         repository.context.insert(AudiobookSyncRecord(bookID: book.id, blob: blob))
         repository.save()
-        CloudSyncMonitor.shared.setBookTransfer(book.id, direction: .up, fraction: 0)
+        _ = CloudSyncMonitor.shared.beginBookTransfer(book.id, direction: .up)   // immediate feedback until reconcile's upload starts
     }
 
     /// Stop syncing (unshare): drop the carrier + delete the CloudKit audio records —
@@ -61,7 +61,7 @@ enum AudiobookCloudSync {
         repository.deleteAudiobookSync(bookID: bookID)   // drops carrier (+ any legacy AudiobookAsset rows)
         var s = removedDownloads(defaults); s.remove(bookID.uuidString)
         defaults.set(Array(s), forKey: removedDownloadsKey)
-        CloudSyncMonitor.shared.clearBookTransfer(bookID)
+        CloudSyncMonitor.shared.cancelBookTransfer(bookID)   // supersede any in-flight transfer's late callbacks
         if !names.isEmpty {
             let t = transport ?? makeTransport()
             try? await t.delete(recordNames: names)
@@ -122,8 +122,27 @@ enum AudiobookCloudSync {
 
     // MARK: - Reconcile (both directions, idempotent)
 
+    /// Single-flight guard. `reconcile` fires from ≥5 places (launch, foreground,
+    /// pull-to-refresh, import-done, the toggle); each is async + suspends at every
+    /// upload/download `await`, so without this two runs could interleave and
+    /// double-upload the same book or race the carrier writes. Concurrent callers
+    /// coalesce into one trailing re-run (picking up the latest store state).
+    private static var isReconciling = false
+    private static var rerunRequested = false
+
     static func reconcile(library: AudiobookLibraryStore = .shared, repository: NotesRepository = .shared,
                           defaults: UserDefaults = .standard, transport: AudiobookAudioTransport? = nil) async {
+        if isReconciling { rerunRequested = true; return }
+        isReconciling = true
+        defer { isReconciling = false }
+        repeat {
+            rerunRequested = false
+            await reconcileOnce(library: library, repository: repository, defaults: defaults, transport: transport)
+        } while rerunRequested
+    }
+
+    private static func reconcileOnce(library: AudiobookLibraryStore, repository: NotesRepository,
+                                      defaults: UserDefaults, transport: AudiobookAudioTransport?) async {
         let records = repository.allAudiobookRecords()
         guard !records.isEmpty else { return }   // nothing synced → fully inert (no CloudKit touched)
         let transport = transport ?? makeTransport()
@@ -171,7 +190,7 @@ enum AudiobookCloudSync {
                     FileManager.default.fileExists(atPath: $0.fileURL.path)
                 }
                 if !parts.isEmpty {
-                    await uploadBook(local, parts: parts, transport: transport, record: record, repository: repository)
+                    await uploadBook(local, parts: parts, transport: transport, repository: repository)
                 }
             }
         }
@@ -181,34 +200,38 @@ enum AudiobookCloudSync {
     // MARK: - Transfers (publish live progress to the row)
 
     private static func uploadBook(_ book: Audiobook, parts: [AudiobookAudioPart],
-                                   transport: AudiobookAudioTransport, record: AudiobookSyncRecord,
-                                   repository: NotesRepository) async {
+                                   transport: AudiobookAudioTransport, repository: NotesRepository) async {
         let bookID = book.id
-        CloudSyncMonitor.shared.setBookTransfer(bookID, direction: .up, fraction: 0)
+        let epoch = CloudSyncMonitor.shared.beginBookTransfer(bookID, direction: .up)
         do {
             try await transport.upload(parts) { fraction in
-                Task { @MainActor in CloudSyncMonitor.shared.setBookTransfer(bookID, direction: .up, fraction: fraction) }
+                Task { @MainActor in CloudSyncMonitor.shared.updateBookTransfer(bookID, epoch: epoch, fraction: fraction) }
             }
-            record.audioUploadedAt = Date()   // upload-once guard + receiver pull trigger
-            repository.save()
+            // Re-fetch the carrier AFTER the await: the user may have hit "Stop syncing"
+            // mid-upload, which deletes it — writing the captured (now-deleted) @Model
+            // would trap. If it's gone, the unshare wins; just drop the stamp.
+            if let live = repository.audiobookRecord(bookID: bookID) {
+                live.audioUploadedAt = Date()   // upload-once guard + receiver pull trigger
+                repository.save()
+            }
         } catch {
             DevLog.log("audiobook upload failed \(bookID): \(error)")   // stays nil → retried next reconcile
         }
-        CloudSyncMonitor.shared.clearBookTransfer(bookID)
+        CloudSyncMonitor.shared.endBookTransfer(bookID, epoch: epoch)
     }
 
     private static func downloadBook(_ book: Audiobook, refs: [AudiobookAudioRef],
                                      folder: URL, transport: AudiobookAudioTransport) async {
         let bookID = book.id
-        CloudSyncMonitor.shared.setBookTransfer(bookID, direction: .down, fraction: 0)
+        let epoch = CloudSyncMonitor.shared.beginBookTransfer(bookID, direction: .down)
         do {
             try await transport.download(refs, into: folder) { fraction in
-                Task { @MainActor in CloudSyncMonitor.shared.setBookTransfer(bookID, direction: .down, fraction: fraction) }
+                Task { @MainActor in CloudSyncMonitor.shared.updateBookTransfer(bookID, epoch: epoch, fraction: fraction) }
             }
         } catch {
             DevLog.log("audiobook download failed \(bookID): \(error)")
         }
-        CloudSyncMonitor.shared.clearBookTransfer(bookID)
+        CloudSyncMonitor.shared.endBookTransfer(bookID, epoch: epoch)
     }
 
     // MARK: - Sizes (local files — the size sheet + Settings "Synced audiobooks")

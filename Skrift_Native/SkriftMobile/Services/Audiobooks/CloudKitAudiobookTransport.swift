@@ -107,16 +107,26 @@ final class CloudKitAudiobookTransport: AudiobookAudioTransport {
             progress(min(1, agg))
         }
         // Copy each asset into place AS SOON AS it lands — CloudKit reclaims the
-        // staging area, so a deferred copy can lose the file. This runs off-main.
+        // staging area, so a deferred copy can lose the file. This runs off-main and
+        // can race main-actor folder ops (removeDownload / a fileExists probe), so
+        // stage to a temp sibling then put it in place ATOMICALLY (rename / replace) —
+        // a concurrent reader sees either the old file or the complete new one, never
+        // a half-written one.
         op.perRecordResultBlock = { recordID, result in
             guard case .success(let record) = result,
                   let asset = record["asset"] as? CKAsset, let staged = asset.fileURL else { return }
             let filename = filenameByName[recordID.recordName] ?? recordID.recordName
             let dest = destFolder.appendingPathComponent(filename)
-            try? FileManager.default.removeItem(at: dest)
+            let tmp = destFolder.appendingPathComponent(".\(UUID().uuidString).part")
             do {
-                try FileManager.default.copyItem(at: staged, to: dest)
+                try FileManager.default.copyItem(at: staged, to: tmp)
+                if FileManager.default.fileExists(atPath: dest.path) {
+                    _ = try FileManager.default.replaceItemAt(dest, withItemAt: tmp)
+                } else {
+                    try FileManager.default.moveItem(at: tmp, to: dest)
+                }
             } catch {
+                try? FileManager.default.removeItem(at: tmp)
                 DevLog.log("audiobook asset copy failed \(filename): \(error)")
             }
         }
@@ -124,8 +134,15 @@ final class CloudKitAudiobookTransport: AudiobookAudioTransport {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             op.fetchRecordsResultBlock = { result in
                 switch result {
-                case .success: cont.resume()
-                case .failure(let error): cont.resume(throwing: error)
+                case .success:
+                    cont.resume()
+                case .failure(let error):
+                    // Records that DID arrive were already copied per-record above. If
+                    // the only failures are absent records (a part the source never
+                    // uploaded / unshared), treat it as done rather than throwing away
+                    // the successful copies + retrying forever.
+                    if Self.isOnlyUnknownItem(error) { cont.resume() }
+                    else { cont.resume(throwing: error) }
                 }
             }
             database.add(op)

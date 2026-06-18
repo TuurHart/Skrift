@@ -41,17 +41,45 @@ final class CloudSyncMonitor: ObservableObject {
 
     private var inFlight: Set<UUID> = []
     private var hideTask: Task<Void, Never>?
+    /// Per-book transfer epoch. CloudKit's progress callbacks fire off-main + out of
+    /// order, so each is dispatched as an unstructured MainActor Task — a LATE one
+    /// could otherwise re-populate `bookTransfers` after the transfer was cleared,
+    /// leaving the row stuck mid-bar. Every transfer gets a token; only writes bearing
+    /// the CURRENT token apply, so stale/superseded callbacks are dropped.
+    private var transferEpoch: [UUID: Int] = [:]
+    private var epochSeq = 0
 
-    /// Publish live per-book audio transfer progress (raw-CloudKit upload/download).
-    /// Main-actor isolated; the transport hops here from its (possibly off-main)
-    /// progress callbacks.
-    func setBookTransfer(_ bookID: UUID, direction: AudiobookTransfer.Direction, fraction: Double) {
-        bookTransfers[bookID] = AudiobookTransfer(direction: direction, fraction: min(1, max(0, fraction)))
+    /// Begin a transfer; returns its epoch token. Resets the row to 0 in the given
+    /// direction and supersedes any prior transfer for the book.
+    func beginBookTransfer(_ bookID: UUID, direction: AudiobookTransfer.Direction) -> Int {
+        epochSeq += 1
+        transferEpoch[bookID] = epochSeq
+        bookTransfers[bookID] = AudiobookTransfer(direction: direction, fraction: 0)
+        return epochSeq
     }
 
-    /// Transfer finished (or was cancelled) — drop the row's determinate bar so it
-    /// settles to its synced/resume state.
-    func clearBookTransfer(_ bookID: UUID) {
+    /// Live progress for an in-flight transfer — applied only if `epoch` is still the
+    /// book's current token (so a late callback from a finished/superseded transfer is
+    /// ignored). The transport hops here from its (possibly off-main) callbacks.
+    func updateBookTransfer(_ bookID: UUID, epoch: Int, fraction: Double) {
+        guard transferEpoch[bookID] == epoch, var transfer = bookTransfers[bookID] else { return }
+        transfer.fraction = min(1, max(0, fraction))
+        bookTransfers[bookID] = transfer
+    }
+
+    /// Transfer finished — drop the row's determinate bar (only if this epoch is still
+    /// current) so it settles to its synced/resume state. Clears the token so any
+    /// straggler `updateBookTransfer` for this epoch is dropped.
+    func endBookTransfer(_ bookID: UUID, epoch: Int) {
+        guard transferEpoch[bookID] == epoch else { return }
+        transferEpoch[bookID] = nil
+        bookTransfers[bookID] = nil
+    }
+
+    /// Force-cancel any in-flight transfer for a book (e.g. the user unshared it):
+    /// supersede the token so late callbacks are dropped, and clear the bar.
+    func cancelBookTransfer(_ bookID: UUID) {
+        transferEpoch[bookID] = nil
         bookTransfers[bookID] = nil
     }
 
