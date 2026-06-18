@@ -61,6 +61,51 @@ the mobile title-presentation UI — desktop's Suggested/From-recording chooser 
 VERIFIED the Mac never syncs polished text back to the phone, so non-AI devices = raw). `export-obsidian`,
 `onboarding`, `commonplace-book` await the user's reaction to their flagged design decisions.
 
+## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; DESIGN/MOCK FIRST, build later)
+
+The player is becoming a **read-AND-listen** surface (e-reader-like), not just a capture tool, so it
+needs a reading-experience pass. **Process: NO building yet — talk it through → render HTML mocks
+(`mocks/audiobook-player-*.html`) → user points/critiques → then build.** Research how good e-readers /
+audiobook apps do this (Mobbin: Kindle, Apple Books, Audible, Libby, Spotify audiobooks, Snipd/Airr,
+Readwise Reader, Speechify/Voice Dream; our north star = Bound). Mock against the existing redesign
+(`mocks/audiobook-player-redesign.html`) — keep what works, evolve it.
+
+1. **Compress the header (Henry).** Kill the "NOW PLAYING" label — it's wasted space. Pull the cover +
+   title + author + current-chapter UP into ONE compact top bar (where NOW PLAYING is now), keeping the
+   collapse chevron + ⋯ menu. Frees vertical room for the text. *(Quick, high-value; probably the first
+   mock.)*
+2. **More real estate for the text + a readable "rest."** Today the read-along lights the current line
+   ("rotating bit") and the rest is faint. Keep the current-line/word highlight, but make the
+   surrounding text more legible + give the text region more of the screen so you can **read ahead/behind
+   like a page** (not a teleprompter). Idea: gentler dimming/higher contrast on non-current text +
+   free-scroll with a "snap back to the playing position" affordance + auto-scroll that keeps the current
+   line in view. Pairs with #1 + #6 (both free up space).
+3. **Font-size control.** A font button — big-A/small-A (Aa) toggle or a stepper/slider, in a small
+   text-settings sheet (e-reader pattern: Aa → font size, later line-spacing + light/sepia/dark reading
+   theme). Put the Aa in the utility row (by speed/sleep) or ⋯. Persist per-app (`@AppStorage`). Start
+   minimal = font size only; line-spacing/theme are easy follow-ons.
+4. **Bookmark UX — make it book-like + fix the model.** In a real book a bookmark sits ON a page. Plan:
+   a bookmark icon adds a **margin marker to the LEFT of the text** that scrolls/moves WITH the text, so
+   you can scroll and see "this bit is bookmarked"; the bookmark list jumps to it. **Fix the current
+   confusion:** the TOC sheet has Chapters + Bookmarks tabs where the *Bookmarks* tab ADDS a bookmark but
+   *Chapters* NAVIGATES — inconsistent. Decouple **add bookmark** (an action/toggle at the current
+   position) from **browse** (the sheet = navigation only; tap a chapter OR a bookmark → jump). Verify
+   our `Bookmark` store positions map cleanly to text lines/offsets for the margin marker.
+5. **Floating play button (consistency).** The memo-detail screen has a floating play button; the
+   audiobook player should match it instead of the current inline transport. Care needed: the player has
+   more controls (scrubber/skip/speed) than a memo — decide what floats (play/pause) vs stays.
+6. **"Capture this" → smaller "Add note."** It's a big prominent pill (made sense when capture was THE
+   point); now that it's also reading, it eats real estate. Rename **"Capture this" → "Add note"** (or
+   "Take note"), shrink it, maybe relocate (freedom — e.g. a compact icon+label in the utility row).
+   Keep it reachable; just not dominant. Research how note/highlight-capture apps place this (Snipd/Airr
+   highlight button, Readwise).
+
+**e-reader "what makes it good" (to fold into the mocks):** generous margins + line spacing, adjustable
+font/size/theme, chrome that fades while reading, tap-zones, clear progress + chapter context,
+distraction-free; for read-along specifically: highlight that doesn't fight readability + auto-scroll
+with manual override + an easy "back to playing position." Owner action tomorrow: pull specific Mobbin
+refs while building the mocks.
+
 ## ✅ MOSTLY DONE — Video-from-Photos import bugs (reported 2026-06-15; fixed 2026-06-15)
 
 All three symptoms addressed + sim-verified (394 unit tests green; `VideoMemoUITests` green; row + detail
