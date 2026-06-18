@@ -23,6 +23,8 @@ struct AudiobookLibraryView: View {
     /// Bumped when a book's sync toggle flips, so the row's cloud glyph re-renders
     /// (sync state lives in the repository, not in `store.books`).
     @State private var syncToggleTick = 0
+    /// Long-press → the "Turn it on" sync sheet (mock screen 1) for this book.
+    @State private var syncSheetBook: Audiobook?
 
     private static let importTypes: [UTType] = {
         var types: [UTType] = [.audio]
@@ -65,6 +67,9 @@ struct AudiobookLibraryView: View {
         }
         .sheet(item: $transcribeBook) { book in
             TranscribeBookView(book: book)
+        }
+        .sheet(item: $syncSheetBook, onDismiss: { syncToggleTick += 1 }) { book in
+            AudiobookSyncSheet(book: book)
         }
         .alert("Import failed", isPresented: .init(
             get: { importError != nil },
@@ -184,22 +189,12 @@ struct AudiobookLibraryView: View {
                         Button { transcribeBook = book } label: {
                             Label("Transcribe book", systemImage: "text.book.closed")
                         }
-                        // Per-book sync (Phase 1h): opt this book into cross-device
-                        // sync — its state + audio ride CloudKit so it resumes on your
-                        // other devices. The upload runs via the reconcile (pull-to-
-                        // refresh / launch); flipping it on kicks one off immediately.
-                        if AudiobookCloudSync.isSynced(bookID: book.id) {
-                            Button { Task { await AudiobookCloudSync.disableSync(bookID: book.id); syncToggleTick += 1 } } label: {
-                                Label("Stop syncing to my devices", systemImage: "icloud.slash")
-                            }
-                        } else {
-                            Button {
-                                AudiobookCloudSync.enableSync(book: book)
-                                syncToggleTick += 1
-                                Task { await AudiobookCloudSync.reconcile() }
-                            } label: {
-                                Label("Sync this book to my devices", systemImage: "icloud.and.arrow.up")
-                            }
+                        // Per-book sync (Phase 1h): open the "Turn it on" sheet (cover +
+                        // size + the toggle + a live transfer %). The sheet owns the
+                        // enable/disable + iCloud-storage explainer (mock screen 1).
+                        Button { syncSheetBook = book } label: {
+                            Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
+                                  systemImage: "icloud")
                         }
                         Button(role: .destructive) { delete(book) } label: {
                             Label("Delete", systemImage: "trash")

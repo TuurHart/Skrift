@@ -15,6 +15,7 @@ struct AudiobookPlayerView: View {
     @State private var showCapture = false
     @State private var showEditBook = false
     @State private var showTranscribe = false
+    @State private var showSyncSheet = false
     @State private var showTOC = false
     @State private var tocInitialTab: ChaptersBookmarksSheet.Tab = .chapters
     @State private var scrubTime: TimeInterval?
@@ -50,6 +51,9 @@ struct AudiobookPlayerView: View {
         }
         .sheet(isPresented: $showTranscribe) {
             if let book = session.book { TranscribeBookView(book: book) }
+        }
+        .sheet(isPresented: $showSyncSheet) {
+            if let book = session.book { AudiobookSyncSheet(book: book) }
         }
         .sheet(isPresented: $showTOC) {
             if let book = session.book {
@@ -151,18 +155,10 @@ struct AudiobookPlayerView: View {
         Menu {
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
             Button { showTranscribe = true } label: { Label("Transcribe book", systemImage: "text.book.closed") }
-            // Per-book sync (Phase 1h) — same toggle as the library long-press.
-            if AudiobookCloudSync.isSynced(bookID: book.id) {
-                Button { Task { await AudiobookCloudSync.disableSync(bookID: book.id) } } label: {
-                    Label("Stop syncing to my devices", systemImage: "icloud.slash")
-                }
-            } else {
-                Button {
-                    AudiobookCloudSync.enableSync(book: book)
-                    Task { await AudiobookCloudSync.reconcile() }
-                } label: {
-                    Label("Sync this book to my devices", systemImage: "icloud.and.arrow.up")
-                }
+            // Per-book sync (Phase 1h) — same "Turn it on" sheet as the library long-press.
+            Button { showSyncSheet = true } label: {
+                Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
+                      systemImage: "icloud")
             }
             Button(role: .destructive) { session.endSession(); dismiss() } label: {
                 Label("End listening session", systemImage: "stop.circle")
