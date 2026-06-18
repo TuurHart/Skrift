@@ -18,6 +18,8 @@ struct SettingsView: View {
     /// a pairing was merely SAVED — it lied when the Mac was off / on another
     /// network / a stale port, so memos sat "Waiting" while Settings said connected.
     @State private var reachable: Bool?
+    /// Global CloudKit (device↔device) sync activity → the honest "iCloud" status row.
+    @ObservedObject private var cloudSync = CloudSyncMonitor.shared
 
     private var customWordsCount: String {
         let n = CustomVocabularyStore.words().count
@@ -43,6 +45,25 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // The honest GLOBAL sync state (no per-note badge — CloudKit doesn't
+                // expose reliable per-row status). "Syncing…" while in flight, else
+                // "Up to date".
+                Section {
+                    HStack {
+                        Label("iCloud sync", systemImage: "icloud")
+                        Spacer()
+                        if cloudSync.isSyncing {
+                            ProgressView().controlSize(.mini)
+                            Text("Syncing…").foregroundStyle(Color.skTextDim)
+                        } else {
+                            Text("Up to date").foregroundStyle(Color.skTextDim)
+                        }
+                    }
+                    .accessibilityIdentifier("icloud-status")
+                } footer: {
+                    Text("Your memos, names, and custom words sync across your devices via iCloud.")
+                }
+
                 Section("Mac") {
                     HStack {
                         Text("Connection")
