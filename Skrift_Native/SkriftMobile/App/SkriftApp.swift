@@ -1,9 +1,13 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 @main
 struct SkriftApp: App {
     private let repository: NotesRepository
+    // Registers for remote notifications so CloudKit's silent pushes wake the app and
+    // NSPersistentCloudKitContainer syncs in seconds (even backgrounded) — see AppDelegate.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @AppStorage("appTheme") private var appTheme = "dark"
 
     init() {
@@ -134,5 +138,22 @@ struct RootView: View {
         if LaunchFlags.forceOnboarding { return true }
         if LaunchFlags.inMemoryStore { return false }   // UI tests auto-skip
         return !UserDefaults.standard.bool(forKey: "onboardingComplete")
+    }
+}
+
+/// Registers for remote notifications at launch so CloudKit's silent pushes (standalone
+/// Phase 1) wake the app and `NSPersistentCloudKitContainer` syncs within seconds —
+/// even backgrounded — instead of on its lazy periodic schedule. The container creates
+/// the CloudKit subscription itself; this just gets the app delivered the pushes.
+///
+/// Requires the **Push Notifications** capability (added once in Xcode → Signing &
+/// Capabilities, which also writes `aps-environment` to the entitlements) + the
+/// `remote-notification` background mode (project.yml). On the Simulator registration
+/// no-ops; no effect until the capability is present, so this is safe to ship now.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        UIApplication.shared.registerForRemoteNotifications()
+        return true
     }
 }

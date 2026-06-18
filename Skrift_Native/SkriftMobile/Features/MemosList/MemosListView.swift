@@ -231,6 +231,17 @@ struct MemosListView: View {
             .scrollContentBackground(.hidden)
             .environment(\.editMode, $editMode)
             .accessibilityIdentifier("memos-list")
+            // Pull-to-refresh: a manual nudge for "show me what synced" — runs the
+            // materialize/merge sweeps so any rows/blobs that arrived from another
+            // device land now (CloudKit's own server pull stays system-scheduled, but
+            // push makes that prompt anyway). Clearer than the Mac sync button.
+            .refreshable {
+                AssetMaterializer.run(repository)
+                NamesCloudSync.run(repository)
+                VocabularyCloudSync.run(repository)
+                AudiobookCloudSync.reconcile(repository: repository)
+                try? await Task.sleep(for: .milliseconds(400))
+            }
         }
     }
 

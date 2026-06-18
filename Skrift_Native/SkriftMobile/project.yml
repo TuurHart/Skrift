@@ -84,6 +84,7 @@ targets:
         UIBackgroundModes:
           - audio
           - processing          # BGProcessingTask: continue a whole-book transcribe overnight
+          - remote-notification # CloudKit silent push → sync in seconds, even backgrounded
         # Whole-book transcription can resume in the background (best overnight on a
         # charger). App-internal id (not the bundle id) so it's identical Debug/Release.
         BGTaskSchedulerPermittedIdentifiers:
