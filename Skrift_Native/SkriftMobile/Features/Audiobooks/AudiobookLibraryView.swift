@@ -19,6 +19,9 @@ struct AudiobookLibraryView: View {
     /// Long-press → "Transcribe book" target (presents the transcribe sheet for
     /// any library book without opening it first).
     @State private var transcribeBook: Audiobook?
+    /// Bumped when a book's sync toggle flips, so the row's cloud glyph re-renders
+    /// (sync state lives in the repository, not in `store.books`).
+    @State private var syncToggleTick = 0
 
     private static let importTypes: [UTType] = {
         var types: [UTType] = [.audio]
@@ -166,6 +169,19 @@ struct AudiobookLibraryView: View {
                         Button { transcribeBook = book } label: {
                             Label("Transcribe book", systemImage: "text.book.closed")
                         }
+                        // Per-book sync (Phase 1h): opt this book into cross-device
+                        // sync — its state + audio ride CloudKit so it resumes on your
+                        // other devices. The upload runs via the reconcile (pull-to-
+                        // refresh / launch); flipping it on kicks one off immediately.
+                        if AudiobookCloudSync.isSynced(bookID: book.id) {
+                            Button { AudiobookCloudSync.disableSync(bookID: book.id); syncToggleTick += 1 } label: {
+                                Label("Stop syncing to my devices", systemImage: "icloud.slash")
+                            }
+                        } else {
+                            Button { AudiobookCloudSync.enableSync(book: book); AudiobookCloudSync.reconcile(); syncToggleTick += 1 } label: {
+                                Label("Sync this book to my devices", systemImage: "icloud.and.arrow.up")
+                            }
+                        }
                         Button(role: .destructive) { delete(book) } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -194,6 +210,13 @@ struct AudiobookLibraryView: View {
             .accessibilityIdentifier("library-empty-hint")
     }
 
+    /// Whether the book is opted into cross-device sync. Reads `syncToggleTick` so the
+    /// row re-renders when the long-press toggle flips it (sync state lives in the repo).
+    private func isBookSynced(_ book: Audiobook) -> Bool {
+        _ = syncToggleTick
+        return AudiobookCloudSync.isSynced(bookID: book.id)
+    }
+
     private func row(_ book: Audiobook) -> some View {
         let isCurrent = session.book?.id == book.id
         return Button {
@@ -207,10 +230,20 @@ struct AudiobookLibraryView: View {
                     .shadow(color: .black.opacity(0.3), radius: 5, y: 2)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(book.title)
-                        .font(.system(size: 13.5, weight: .semibold))
-                        .foregroundStyle(Color.skText)
-                        .lineLimit(1)
+                    HStack(spacing: 5) {
+                        Text(book.title)
+                            .font(.system(size: 13.5, weight: .semibold))
+                            .foregroundStyle(Color.skText)
+                            .lineLimit(1)
+                        // Synced to the user's devices (Phase 1h). `isBookSynced` reads
+                        // syncToggleTick so this re-renders after the long-press toggle.
+                        if isBookSynced(book) {
+                            Image(systemName: "checkmark.icloud")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Color.skTextDim)
+                                .accessibilityLabel("Synced to your devices")
+                        }
+                    }
                     Text(book.author)
                         .font(.system(size: 11.5))
                         .foregroundStyle(Color.skTextDim)
