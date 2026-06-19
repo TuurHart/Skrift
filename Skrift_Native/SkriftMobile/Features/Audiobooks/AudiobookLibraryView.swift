@@ -24,6 +24,9 @@ struct AudiobookLibraryView: View {
     @State private var syncToggleTick = 0
     /// Long-press → the "Turn it on" sync sheet (mock screen 1) for this book.
     @State private var syncSheetBook: Audiobook?
+    /// Delete needs a confirm (device feedback: one swipe = gone). Holds the book
+    /// awaiting confirmation; the dialog is sync-aware (mock screen 7).
+    @State private var pendingDelete: Audiobook?
 
     private static let importTypes: [UTType] = {
         var types: [UTType] = [.audio]
@@ -77,6 +80,36 @@ struct AudiobookLibraryView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importError ?? "")
+        }
+        .confirmationDialog(
+            pendingDelete.map { "Remove \u{201C}\($0.title)\u{201D}?" } ?? "",
+            isPresented: Binding(get: { pendingDelete != nil },
+                                 set: { if !$0 { pendingDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingDelete
+        ) { book in
+            if AudiobookCloudSync.isSynced(bookID: book.id) {
+                // Synced → two destructive choices (mock screen 7).
+                Button("Remove from all devices", role: .destructive) {
+                    Task { await AudiobookCloudSync.disableSync(bookID: book.id); delete(book) }
+                }
+                // Demoted/neutral: free this device's copy but keep it synced + on
+                // your other devices (Apple Books model). Stays in the library as
+                // download-available, not deleted.
+                Button("Remove from this iPhone only") {
+                    AudiobookCloudSync.removeDownload(bookID: book.id)
+                    syncToggleTick += 1
+                }
+            } else {
+                Button("Remove", role: .destructive) { delete(book) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { book in
+            if AudiobookCloudSync.isSynced(bookID: book.id) {
+                Text("It's synced to your devices. Removing everywhere deletes the audio + read-along text from all of them. Your bookmarks and captured notes are kept.")
+            } else {
+                Text("This removes the book and its audio from this iPhone. Your bookmarks and captured notes are kept.")
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("audiobook-library")
@@ -166,7 +199,7 @@ struct AudiobookLibraryView: View {
                     .listRowInsets(EdgeInsets(top: 4, leading: Theme.Space.margin, bottom: 4, trailing: Theme.Space.margin))
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
-                            delete(book)
+                            pendingDelete = book
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -184,7 +217,7 @@ struct AudiobookLibraryView: View {
                             Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
                                   systemImage: "icloud")
                         }
-                        Button(role: .destructive) { delete(book) } label: {
+                        Button(role: .destructive) { pendingDelete = book } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
