@@ -20,6 +20,10 @@ final class ReadAlongModel: ObservableObject {
     @Published private(set) var covered = false
     @Published private(set) var sentences: [BufferSentence] = []   // ALL covered, file-local
     @Published private(set) var currentIndex = 0
+    /// Index of the word being spoken WITHIN the current sentence (nil = none yet).
+    /// Drives the current-word weight+underline. Published only when it changes, so
+    /// the read-along doesn't re-render at the 10 Hz interpolation rate.
+    @Published private(set) var currentWordIndex: Int?
 
     private let store = BookTranscriptStore()
     private var loadedFileIndex = -1
@@ -57,6 +61,9 @@ final class ReadAlongModel: ObservableObject {
         guard !sentences.isEmpty else { return }
         let idx = sentences.firstIndex(where: { fileLocal < $0.end }) ?? (sentences.count - 1)
         if idx != currentIndex { currentIndex = idx }
+        // The active word inside the current sentence (for the weight+underline).
+        let wi = Karaoke.activeWordIndex(sentences[idx].words, at: fileLocal)
+        if wi != currentWordIndex { currentWordIndex = wi }
     }
 
     func startOf(_ i: Int) -> TimeInterval? {
@@ -70,9 +77,34 @@ struct ReadAlongView: View {
     let fileLocal: TimeInterval
     let audioURL: URL?
     let onTranscribe: () -> Void
+    /// Called when the reader detects an interactive (user) scroll — the parent
+    /// uses it to recede the player chrome ("more page" while reading).
+    var onUserScroll: () -> Void = {}
 
     @ObservedObject private var session = AudiobookSession.shared
     @StateObject private var model = ReadAlongModel()
+
+    /// Auto-scroll follows the playhead until the user scrolls away; then a
+    /// transient "Back to playing" pill restores it. (Spotify-lyrics / Snipd.)
+    @State private var following = true
+
+    // Reading-mode palette (mock's locked 3-step attention ramp): past dim, now
+    // brightest, ahead still legible so you can read ahead like a page. The light/
+    // sepia reading themes are a chunk-5 fast-follow.
+    private static let readPast = Color(hex: 0x6E6E7E)
+    private static let readNow = Color(hex: 0xF4F4F8)
+    private static let readAhead = Color(hex: 0xA6A6B6)
+    /// The current-word cue is a thin accent underline, NOT a filled box (a box
+    /// broke reading flow — mock critique).
+    private static let wordUnderline = Color.skAccent
+
+    /// Reading type — chunk-5 wires these to the "Aa" @AppStorage settings.
+    private let readingFontSize: CGFloat = 17
+    private let readingLineSpacing: CGFloat = 8
+    /// Pin the now-line to the upper third (mock): text scrolls UP under it.
+    private let nowAnchor = UnitPoint(x: 0.5, y: 0.34)
+    /// Reading column cap (~60–68ch) so text never runs full-bleed on iPad.
+    private let columnMax: CGFloat = 660
 
     /// Interpolation anchor: the playhead value (file-local) at the last real
     /// 0.5 s tick, and the wall-clock when it landed.
@@ -125,58 +157,80 @@ struct ReadAlongView: View {
         }
     }
 
-    // MARK: - Lyrics (transcribed)
+    // MARK: - Lyrics (transcribed) — e-reader "page", now-line pinned upper-third
 
     private var lyrics: some View {
-        // GeometryReader so the head/tail clear-space scales with whatever height
-        // the player gives us (the panel is no longer a fixed 234pt) — the current
-        // line still parks ~40% down and the last line can still scroll to centre.
+        // GeometryReader so the head/tail clear-space scales with the height the
+        // player hands us; the now-line parks ~⅓ down (the focus band) and text
+        // scrolls up under it like a page.
         GeometryReader { geo in
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(alignment: .leading, spacing: 13) {
-                        Color.clear.frame(height: geo.size.height * 0.40)
+                    LazyVStack(alignment: .leading, spacing: readingLineSpacing) {
+                        Color.clear.frame(height: geo.size.height * nowAnchor.y)
                         ForEach(model.sentences.indices, id: \.self) { i in
                             line(i).id(i)
                         }
-                        Color.clear.frame(height: geo.size.height * 0.58)
+                        Color.clear.frame(height: geo.size.height * 0.66)
                     }
-                    // Headroom so the current line's scale-up can't clip at the right edge.
-                    .padding(.horizontal, 18)
+                    .frame(maxWidth: columnMax)        // reading column cap (~60–68ch)
+                    .frame(maxWidth: .infinity)         // centre the column (iPad)
+                    .padding(.horizontal, 4)
                 }
+                // Follow the playhead — but only while the user hasn't scrolled away.
                 .onChange(of: model.currentIndex) { _, idx in
-                    withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(idx, anchor: .center) }
+                    guard following else { return }
+                    withAnimation(.easeInOut(duration: 0.4)) { proxy.scrollTo(idx, anchor: nowAnchor) }
                 }
-                .onAppear { proxy.scrollTo(model.currentIndex, anchor: .center) }
+                // An interactive (user) scroll breaks follow → show "Back to playing"
+                // + tell the parent to recede chrome. Programmatic auto-scroll reports
+                // .animating, not .interacting, so it never trips this.
+                .onScrollPhaseChange { _, newPhase in
+                    if newPhase == .interacting, following {
+                        following = false
+                        onUserScroll()
+                    }
+                }
+                .onAppear { proxy.scrollTo(model.currentIndex, anchor: nowAnchor) }
+                .overlay(alignment: .bottom) {
+                    if !following {
+                        backToPlaying {
+                            withAnimation(.easeInOut(duration: 0.3)) { following = true }
+                            withAnimation(.easeInOut(duration: 0.4)) {
+                                proxy.scrollTo(model.currentIndex, anchor: nowAnchor)
+                            }
+                        }
+                        .padding(.bottom, 12)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+                .animation(.easeInOut(duration: 0.25), value: following)
             }
         }
         .mask(
             LinearGradient(stops: [
                 .init(color: .clear, location: 0),
-                .init(color: .black, location: 0.16),
-                .init(color: .black, location: 0.84),
+                .init(color: .black, location: 0.12),
+                .init(color: .black, location: 0.88),
                 .init(color: .clear, location: 1),
             ], startPoint: .top, endPoint: .bottom)
         )
         .accessibilityIdentifier("player-readalong")
     }
 
+    /// One sentence-line. Flat 3-step colour ramp (past/now/ahead) — no per-line
+    /// scale (that read teleprompter-y); the now-line pops via brightness + the
+    /// current-word weight+underline. Uniform font/weight keeps the line height
+    /// stable so advancing never reflows neighbours.
     private func line(_ i: Int) -> some View {
         let isCurrent = i == model.currentIndex
         let isPast = i < model.currentIndex
-        // UNIFORM font size + weight → the line height never changes, so advancing
-        // the highlight doesn't reflow/shove neighbours (the "words hustle" jump).
-        // Emphasis is a smooth `scaleEffect` (a transform — no layout reflow) +
-        // brightness, both animatable, anchored leading so the text doesn't shift.
-        // Scale kept SUBTLE (1.04) + the panel reserves 18pt side padding, so a
-        // near-full-width current line can't grow past the right edge and clip
-        // (the "goes out of bounds" report). The brightness/opacity contrast carries
-        // most of the "current line pops" feel; the scale is just a gentle lift.
-        return Text(model.sentences[i].text)
-            .font(.system(size: 18, weight: .medium))
-            .foregroundStyle(isCurrent ? Color.skText : (isPast ? Color.skTextFaint : Color.skTextDim))
-            .opacity(isCurrent ? 1 : (abs(i - model.currentIndex) == 1 ? 0.6 : 0.32))
-            .scaleEffect(isCurrent ? 1.04 : 1.0, anchor: .leading)
+        let text: Text = isCurrent
+            ? currentLineText(model.sentences[i])
+            : Text(model.sentences[i].text).foregroundColor(isPast ? Self.readPast : Self.readAhead)
+        return text
+            .font(.system(size: readingFontSize, weight: .regular))
+            .lineSpacing(readingLineSpacing)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
@@ -184,9 +238,41 @@ struct ReadAlongView: View {
                 guard let local = model.startOf(i) else { return }
                 let origin = book.fileStartTimes.indices.contains(fileIndex) ? book.fileStartTimes[fileIndex] : 0
                 AudiobookSession.shared.seek(to: local + origin)
+                following = true            // a deliberate jump → resume follow
                 Haptics.tap()
             }
-            .animation(.easeInOut(duration: 0.3), value: model.currentIndex)
+            .animation(.easeInOut(duration: 0.25), value: model.currentIndex)
+    }
+
+    /// The now-line, rendered word-by-word so the active word gets weight + a thin
+    /// accent underline (mock: NOT a filled box). Words rejoin with single spaces —
+    /// the same join `buildSentences` uses, so the text is byte-identical.
+    private func currentLineText(_ s: BufferSentence) -> Text {
+        var result = Text("")
+        for (i, w) in s.words.enumerated() {
+            var piece = Text(w.word)
+            if i == model.currentWordIndex {
+                piece = piece.fontWeight(.semibold).underline(true, color: Self.wordUnderline)
+            }
+            result = result + piece
+            if i < s.words.count - 1 { result = result + Text(" ") }
+        }
+        return result.foregroundColor(Self.readNow)
+    }
+
+    /// The transient pill that floats up when you scroll away from the now-line.
+    private func backToPlaying(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.down").font(.system(size: 11, weight: .semibold))
+                Text("Back to playing").font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14).padding(.vertical, 7)
+            .background(Color.skAccent, in: .capsule)
+            .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
+        }
+        .accessibilityIdentifier("player-back-to-playing")
     }
 
     // MARK: - Nudge (not transcribed here)

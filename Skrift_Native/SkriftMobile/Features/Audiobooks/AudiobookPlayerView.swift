@@ -22,6 +22,15 @@ struct AudiobookPlayerView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var coverTint: Color?
     @State private var toast: String?
+    /// Reading mode: chrome recedes after idle / on scroll so the page owns the
+    /// screen; tap to bring it back. Never recedes while paused.
+    @State private var chromeUp = true
+    /// Bumped on every interaction to restart the idle-recede countdown.
+    @State private var idleToken = 0
+
+    /// ~3.5 s of no interaction while playing → recede (mock: "~3–4s idle").
+    private static let idleRecede: UInt64 = 3_500_000_000
+    private static let chromeFade = Animation.easeInOut(duration: 0.25)
 
     private let transcripts = BookTranscriptStore()
     private let bookmarks = BookmarkStore()
@@ -67,39 +76,112 @@ struct AudiobookPlayerView: View {
             loadCoverTint()
             await prewarmIfUseful()
         }
+        // Idle-recede countdown. Restarts whenever the key changes (an interaction
+        // bumps idleToken; play/pause flips; chrome shown). Only counts down while
+        // chrome is up AND playing — so a paused reader keeps its controls.
+        .task(id: IdleKey(token: idleToken, up: chromeUp, playing: session.isPlaying)) {
+            guard chromeUp, session.isPlaying else { return }
+            try? await Task.sleep(nanoseconds: Self.idleRecede)
+            guard !Task.isCancelled, session.isPlaying, chromeUp else { return }
+            withAnimation(Self.chromeFade) { chromeUp = false }
+        }
+        // Pausing always brings the chrome back (and the idle task above won't
+        // recede it again until playback resumes).
+        .onChange(of: session.isPlaying) { _, playing in
+            if !playing { withAnimation(Self.chromeFade) { chromeUp = true } }
+        }
+    }
+
+    /// Composite key so `.task(id:)` restarts the idle countdown on any of these.
+    private struct IdleKey: Equatable { let token: Int; let up: Bool; let playing: Bool }
+
+    private func noteInteraction() { idleToken += 1 }
+
+    /// Tap the page: show chrome if hidden, hide it if shown (manual override).
+    private func toggleChrome() {
+        withAnimation(Self.chromeFade) { chromeUp.toggle() }
+        if chromeUp { noteInteraction() }
+    }
+
+    /// A reader scroll recedes chrome — but only while playing (paused = reading,
+    /// keep controls reachable, per "never while paused").
+    private func recedeOnScroll() {
+        guard session.isPlaying, chromeUp else { return }
+        withAnimation(Self.chromeFade) { chromeUp = false }
     }
 
     private func content(_ book: Audiobook) -> some View {
         let time = scrubTime ?? session.currentTime
         let location = book.fileLocation(at: time)
-        return VStack(spacing: 0) {
-            header(book)
-            // The read-along is the hero: it fills the space below the header, and
-            // the controls pin to the bottom edge — no dead `Spacer` gap (2026-06-13).
-            ReadAlongView(
-                book: book,
-                fileIndex: location.index,
-                fileLocal: location.offset,
-                audioURL: session.store.audioURL(of: book, fileIndex: location.index),
-                onTranscribe: { showTranscribe = true }
-            )
-            .frame(maxHeight: .infinity)
-            .padding(.horizontal, Theme.Space.margin)
-            .padding(.top, 16)
-
+        return ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                scrubber(book, time: time).padding(.bottom, 14)
-                transport.padding(.bottom, 14)
-                utilityRow.padding(.bottom, 14)
-                captureButton
+                // Chrome up → the full header; receded → a faint one-line mini-header
+                // (book · chapter · remaining), so the page owns the screen.
+                if chromeUp { header(book) } else { miniHeader(book, time: time) }
+
+                // The read-along is the hero: it fills the space below the header. A
+                // user scroll recedes the chrome ("more page" while reading).
+                ReadAlongView(
+                    book: book,
+                    fileIndex: location.index,
+                    fileLocal: location.offset,
+                    audioURL: session.store.audioURL(of: book, fileIndex: location.index),
+                    onTranscribe: { showTranscribe = true },
+                    onUserScroll: { recedeOnScroll() }
+                )
+                .frame(maxHeight: .infinity)
+                .padding(.horizontal, Theme.Space.margin)
+                .padding(.top, chromeUp ? 16 : 8)
+
+                if chromeUp {
+                    VStack(spacing: 0) {
+                        scrubber(book, time: time).padding(.bottom, 14)
+                        transport.padding(.bottom, 14)
+                        utilityRow.padding(.bottom, 14)
+                        captureButton
+                    }
+                    .padding(.horizontal, Theme.Space.margin)
+                    .padding(.top, 14)
+                    .padding(.bottom, 8)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
             }
-            .padding(.horizontal, Theme.Space.margin)
-            .padding(.top, 14)
-            .padding(.bottom, 8)
+
+            // Receded → the one saturated hero floats bottom-right (memo-detail
+            // consistency); skip ±15/30 only flank it when controls are up.
+            if !chromeUp {
+                playSphere(size: 52)
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 18)
+                    .transition(.opacity)
+            }
         }
         .contentShape(Rectangle())
+        // Tap the page to show/hide chrome (does not intercept line-tap-to-seek or
+        // the transport buttons — those handle their own taps).
+        .onTapGesture { toggleChrome() }
         .offset(y: dragOffset)
         .gesture(dismissDrag)
+    }
+
+    // MARK: - Receded mini-header (reading mode)
+
+    /// The whisper-faint one-liner shown when chrome recedes: "Sapiens · Ch 4" left,
+    /// chapter-remaining right (mock screen 3 `.minihdr`).
+    private func miniHeader(_ book: Audiobook, time: TimeInterval) -> some View {
+        let scope = scopeBounds(book, time: time)
+        let chapter = book.chapterIndex(at: time).map { "Ch \($0 + 1)" }
+        let left = [book.title, chapter].compactMap { $0 }.joined(separator: " · ")
+        return HStack {
+            Text(left).lineLimit(1)
+            Spacer(minLength: 8)
+            Text("−" + AudiobookTime.clock(scope.end - time)).monospacedDigit()
+        }
+        .font(.system(size: 10.5, weight: .medium))
+        .foregroundStyle(Color.skTextFaint)
+        .padding(.horizontal, Theme.Space.margin)
+        .padding(.top, 12).padding(.bottom, 2)
+        .transition(.opacity)
     }
 
     // MARK: - Header (one slim bar: chevron · cover · title/author · chapter · ⋯)
@@ -186,7 +268,10 @@ struct AudiobookPlayerView: View {
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
-                        .onChanged { v in scrubTime = scope.start + min(1, max(0, v.location.x / geo.size.width)) * length }
+                        .onChanged { v in
+                            noteInteraction()
+                            scrubTime = scope.start + min(1, max(0, v.location.x / geo.size.width)) * length
+                        }
                         .onEnded { _ in if let t = scrubTime { session.seek(to: t) }; scrubTime = nil }
                 )
             }
@@ -213,7 +298,7 @@ struct AudiobookPlayerView: View {
     /// mode float and the memo-detail floating play use). Centred in the transport
     /// when controls are up; floats bottom-right when chrome recedes (chunk 4).
     private func playSphere(size: CGFloat) -> some View {
-        Button { session.togglePlay() } label: {
+        Button { noteInteraction(); session.togglePlay() } label: {
             ZStack {
                 Circle()
                     .fill(
