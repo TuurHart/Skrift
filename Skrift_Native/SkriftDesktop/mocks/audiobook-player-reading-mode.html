@@ -36,15 +36,17 @@
   .stat{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);padding:13px 22px 4px;}
   .stat .num{color:var(--faint);}
   .body{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;}
-  .player-body{background:linear-gradient(180deg,#2A2418 0%, var(--bg) 44%);}
+  .player-body{background:linear-gradient(180deg,#1b1812 0%, var(--bg) 30%);}
 
   /* ── covers (real-object framing; seeded gradient fallback) ── */
+  /* covers = real-object tiles; placeholder = a clean centered monogram (no cramped
+     wrapping title text), since production shows real artwork */
   .cover{border-radius:var(--r-cover);box-shadow:var(--sh-cover);flex-shrink:0;position:relative;overflow:hidden;
-         display:flex;align-items:flex-end;padding:5px;font-size:7px;font-weight:700;letter-spacing:.3px;}
-  .cover::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.10),transparent 32%);}
-  .c-sap{background:linear-gradient(135deg,#caa46a,#6f4f27);color:#2c2113;}
-  .c-atom{background:linear-gradient(135deg,#4a4466,#211d30);color:#cdc7e6;}
-  .c-med{background:linear-gradient(135deg,#5b7186,#27333f);color:#dce6ee;}
+         display:flex;align-items:center;justify-content:center;font-weight:800;}
+  .cover::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12),transparent 34%);}
+  .c-sap{background:linear-gradient(140deg,#caa46a,#6f4f27);color:rgba(38,28,15,.5);}
+  .c-atom{background:linear-gradient(140deg,#4a4466,#211d30);color:rgba(205,199,230,.42);}
+  .c-med{background:linear-gradient(140deg,#5b7186,#27333f);color:rgba(220,230,238,.42);}
 
   /* ── tab bar ── */
   .tabbar{display:grid;grid-template-columns:repeat(4,1fr);background:#0d0d15;padding:8px 4px 16px;
@@ -58,7 +60,7 @@
   .scr{flex:1;overflow:hidden;padding:4px 20px;}
   .h2{font-size:24px;font-weight:800;letter-spacing:-.4px;margin:10px 0 14px;}
   .lbook{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:.5px solid var(--line);}
-  .cover.lib{width:48px;height:48px;font-size:7px;}
+  .cover.lib{width:48px;height:48px;font-size:18px;}
   .lmeta{flex:1;min-width:0;} .lt{font-size:13.5px;color:var(--text);font-weight:500;}
   .la{font-size:11.5px;color:var(--dim);margin-top:1px;}
   .lrow2{display:flex;align-items:center;gap:8px;margin-top:7px;}
@@ -69,11 +71,11 @@
 
   /* ── player header ── */
   .phdr{display:flex;align-items:center;gap:10px;padding:12px 20px 8px;}
-  .phdr .cover{width:34px;height:34px;font-size:5.5px;padding:3px;}
+  .phdr .cover{width:34px;height:34px;font-size:13px;}
   .phdr .tt{flex:1;min-width:0;}
   .phdr .tt b{font-size:15px;font-weight:600;letter-spacing:-.2px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .phdr .tt span{font-size:12px;color:var(--dim);}
-  .chip-ch{font-size:9.5px;color:var(--amber);background:rgba(224,163,60,.10);padding:3px 8px;border-radius:10px;white-space:nowrap;}
+  .chip-ch{font-size:9.5px;color:var(--accent2);background:rgba(126,116,240,.13);padding:3px 8px;border-radius:10px;white-space:nowrap;}
   .ico{color:var(--dim);}
 
   /* ── reader ── */
@@ -108,7 +110,7 @@
   .transport{padding:0 20px 12px;}
   .scrub{height:4px;background:var(--track);border-radius:2px;position:relative;margin-bottom:6px;}
   .scrub>i{position:absolute;left:0;top:0;height:4px;width:34%;background:var(--accent-muted);border-radius:2px;}
-  .scrub>b{position:absolute;left:34%;top:-3px;width:10px;height:10px;border-radius:50%;background:#fff;transform:translateX(-50%);box-shadow:0 1px 3px rgba(0,0,0,.5);}
+  .scrub>b{position:absolute;left:34%;top:-4px;width:12px;height:12px;border-radius:50%;background:#fff;transform:translateX(-50%);box-shadow:0 0 0 3px rgba(126,116,240,.30),0 1px 3px rgba(0,0,0,.5);}
   .times{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);margin-bottom:12px;}
   .controls{display:flex;align-items:center;justify-content:center;gap:18px;}
   .play{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -116,16 +118,15 @@
         box-shadow:0 6px 14px -4px rgba(126,116,240,.7);}
   .skip{color:var(--text);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:44px;min-height:44px;justify-content:center;}
 
-  /* ── utility row: icon-only quiet controls (room to breathe) + a roomy accent Note chip ── */
-  .util{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 8px;}
-  .ucluster{display:flex;gap:20px;align-items:center;}
-  .ucl{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--dim);}
-  .ucl svg{width:22px;height:22px;}
-  .ucl .aa{font:700 16px -apple-system;color:var(--dim);}
-  .ucl .sp{font:700 12.5px -apple-system;color:var(--dim);}
-  .notechip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#d6d1f0;
-            background:rgba(126,116,240,.18);padding:10px 16px;border-radius:var(--r-chip);box-shadow:var(--sh-chip);}
-  .notechip svg{width:15px;height:15px;}
+  /* ── utility row: centered, Add-note as the hero in the middle, 2 quiet icons each side ── */
+  .util{display:flex;align-items:center;justify-content:center;gap:13px;padding:12px 16px 8px;}
+  .ucl{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--dim);}
+  .ucl svg{width:21px;height:21px;}
+  .ucl .aa{font:600 16px/1 -apple-system;color:var(--dim);}
+  .ucl .sp{font:600 13px/1 -apple-system;color:var(--dim);}
+  .notechip{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:13px;font-weight:600;color:#d6d1f0;
+            background:rgba(126,116,240,.18);padding:9px 14px;border-radius:var(--r-chip);box-shadow:var(--sh-chip);}
+  .notechip svg{width:16px;height:16px;}
 
   /* reading-mode floats */
   .minihdr{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 2px;font-size:10.5px;color:var(--faint);font-weight:500;letter-spacing:.3px;}
@@ -146,7 +147,7 @@
   .stepper .lbl{font-size:12px;color:var(--dim);}
   .aab{display:flex;align-items:center;gap:13px;}
   .ab{width:42px;height:42px;border-radius:11px;background:var(--elev);display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-chip);}
-  .ab.s{font:600 13px -apple-system;} .ab.l{font:700 22px -apple-system;}
+  .ab.s{font:600 13px -apple-system;} .ab.l{font:600 22px -apple-system;}
   .seg{display:flex;background:var(--track);border-radius:11px;padding:3px;margin-bottom:14px;}
   .seg div{flex:1;text-align:center;font-size:12px;padding:8px;border-radius:9px;color:var(--dim);}
   .seg div.on{background:#2f2f3c;color:var(--text);box-shadow:var(--sh-chip);}
@@ -171,7 +172,7 @@
   .confirm h3{margin:0 0 4px;font-size:16px;}
   .confirm p{margin:0 0 16px;font-size:12.5px;color:var(--dim);line-height:1.5;}
   .btn{display:block;width:100%;text-align:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:9px;}
-  .btn.del{background:#3a1d22;color:#ff8080;} .btn.del2{background:transparent;color:#ff8080;border:1px solid #4a2a30;}
+  .btn.del{background:#3a1d22;color:#ff8080;} .btn.del2{background:var(--elev);color:var(--dim);box-shadow:var(--sh-chip);}
   .btn.cancel{background:var(--elev);color:var(--text);box-shadow:var(--sh-chip);}
 
   .es{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 34px;gap:7px;}
@@ -205,9 +206,9 @@
       <div class="body">
         <div class="scr">
           <div class="h2">Library</div>
-          <div class="lbook"><div class="cover lib c-sap">SAPIENS</div><div class="lmeta"><div class="lt">Sapiens</div><div class="la">Yuval Noah Harari</div><div class="lrow2"><div class="lbar"><i style="width:38%"></i></div><span class="lleft num">7h 12m left</span></div></div></div>
-          <div class="lbook"><div class="cover lib c-atom">ATOMIC<br>HABITS</div><div class="lmeta"><div class="lt">Atomic Habits</div><div class="la">James Clear</div><div class="lrow2"><div class="lbar"><i style="width:71%"></i></div><span class="lglyph"><svg viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M4 19.5V6a2 2 0 0 1 2-2h11v16H6a2 2 0 0 0-2 1.5z"/></svg>read-along</span></div></div></div>
-          <div class="lbook"><div class="cover lib c-med">MEDi<br>TATIONS</div><div class="lmeta"><div class="lt">Meditations</div><div class="la">Marcus Aurelius</div><div class="lrow2"><div class="lbar"><i style="width:12%"></i></div><span class="lleft num">on this iPhone</span></div></div></div>
+          <div class="lbook"><div class="cover lib c-sap">S</div><div class="lmeta"><div class="lt">Sapiens</div><div class="la">Yuval Noah Harari</div><div class="lrow2"><div class="lbar"><i style="width:38%"></i></div><span class="lleft num">7h 12m left</span></div></div></div>
+          <div class="lbook"><div class="cover lib c-atom">A</div><div class="lmeta"><div class="lt">Atomic Habits</div><div class="la">James Clear</div><div class="lrow2"><div class="lbar"><i style="width:71%"></i></div><span class="lglyph"><svg viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M4 19.5V6a2 2 0 0 1 2-2h11v16H6a2 2 0 0 0-2 1.5z"/></svg>read-along</span></div></div></div>
+          <div class="lbook"><div class="cover lib c-med">M</div><div class="lmeta"><div class="lt">Meditations</div><div class="la">Marcus Aurelius</div><div class="lrow2"><div class="lbar"><i style="width:12%"></i></div><span class="lleft num">on this iPhone</span></div></div></div>
         </div>
         <div class="tabbar">
           <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Notes</div>
@@ -248,13 +249,11 @@
           </div>
         </div>
         <div class="util">
-          <div class="ucluster">
-            <div class="ucl"><span class="aa">Aa</span></div>
-            <div class="ucl"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
-            <div class="ucl"><span class="sp num">1.5×</span></div>
-            <div class="ucl"><svg viewBox="0 0 24 24"><path d="M20 14.5A7.5 7.5 0 0 1 9.5 4 6.5 6.5 0 1 0 20 14.5z"/></svg></div>
-          </div>
+          <div class="ucl"><span class="aa">Aa</span></div>
+          <div class="ucl"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
           <div class="notechip"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add note</div>
+          <div class="ucl"><span class="sp num">1.5×</span></div>
+          <div class="ucl"><svg viewBox="0 0 24 24"><path d="M20 14.5A7.5 7.5 0 0 1 9.5 4 6.5 6.5 0 1 0 20 14.5z"/></svg></div>
         </div>
       </div>
     </div>
@@ -269,8 +268,6 @@
       <div class="body player-body">
         <div class="minihdr"><span>Sapiens · Ch 4</span><span class="num">−21:13</span></div>
         <div class="reader" style="padding-top:6px;">
-          <div class="focusband" style="top:74px;"></div>
-          <div class="linetint" style="top:128px;"></div>
           <svg class="bkmark" style="top:131px" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z" fill="currentColor" stroke="none"/></svg>
           <div class="ptext" style="font-size:16px;line-height:1.72;">
             <p><span class="past">Fire gave us power. The campfire became a place of warmth and protection against predators, and the first humans to master it gained an edge that echoed for a hundred thousand years.</span> <span class="now">But the important thing about fire was that <span class="w">it</span></span> <span class="ahead">set humans on a path toward cooking — flames did some of the digestive work a stomach would do, letting our guts shrink and our brains grow. No other animal cooks, and none rivalled us once we did.</span></p>
@@ -280,7 +277,7 @@
         <div class="floatplay"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#fff;stroke:none"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></div>
       </div>
     </div>
-    <p class="hint">Now-line = a faint NEUTRAL focus band (no colored tick) · a bookmark glyph in the margin + line-tint = “this bit is saved” · “Back to playing” is transient (only after you scroll away).</p>
+    <p class="hint">A bookmark glyph in the margin beside the saved line (no horizontal bands) · the bright now-line shows your spot · “Back to playing” is transient (only after you scroll away).</p>
   </div>
 
   <!-- 4 · AUTO-RECEDE transition + Aa -->
@@ -313,7 +310,7 @@
       <div class="body player-body">
         <div class="phdr"><svg viewBox="0 0 24 24" class="ico" style="width:18px;height:18px"><path d="M6 9l6 6 6-6"/></svg><div class="cover c-atom">A</div><div class="tt"><b>Atomic Habits</b><span>James Clear</span></div></div>
         <div class="rstate">
-          <svg viewBox="0 0 24 24" class="gl"><path d="M4 19.5V6a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 1.5z"/><path d="M9 8h7M9 12h7"/></svg>
+          <div class="cover c-atom" style="width:64px;height:64px;font-size:24px;margin-bottom:6px;box-shadow:0 6px 18px rgba(0,0,0,.5),var(--sh-cover);">A</div>
           <h4>Listen now, read along later</h4>
           <p>Transcribe this book on-device to follow the words as they’re read. Runs while you listen — a few minutes.</p>
           <div class="cta"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#fff"><path d="M12 5v14M5 12h14"/></svg>Transcribe for read-along</div>
@@ -359,7 +356,7 @@
         </div>
         <div class="scrim">
           <div class="confirm">
-            <div class="cv-row"><div class="cover lib c-sap" style="width:40px;height:40px">SAP</div><div><h3 style="margin-bottom:2px">Remove “Sapiens”?</h3></div></div>
+            <div class="cv-row"><div class="cover lib c-sap" style="width:40px;height:40px;font-size:16px">S</div><div><h3 style="margin-bottom:2px">Remove “Sapiens”?</h3></div></div>
             <p>It’s synced to your devices. Removing everywhere deletes the audio + read-along text from all of them. Your <b>bookmarks and captured notes are kept.</b></p>
             <div class="btn del">Remove from all devices</div>
             <div class="btn del2">Remove from this iPhone only</div>
