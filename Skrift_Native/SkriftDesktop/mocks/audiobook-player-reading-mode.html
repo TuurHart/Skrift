@@ -83,16 +83,15 @@
   .past{color:var(--read-past);} .now{color:var(--read-now);} .ahead{color:var(--read-ahead);}
   .now .w{color:var(--read-now);font-weight:600;box-shadow:inset 0 -0.09em 0 rgba(126,116,240,.95);}
 
-  /* reading-mode: pinned now-line + focus band */
-  .focusband{position:absolute;left:0;right:0;height:30px;background:linear-gradient(90deg,transparent,rgba(126,116,240,.05) 12%,rgba(126,116,240,.05) 88%,transparent);}
-  .focustick{position:absolute;left:0;width:3px;height:30px;background:var(--accent);border-radius:0 2px 2px 0;opacity:.55;}
+  /* reading-mode: pinned now-line — a whisper-faint NEUTRAL band (no colored tick,
+     so it never competes with the accent bookmark marker) */
+  .focusband{position:absolute;left:0;right:0;height:30px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.025) 14%,rgba(255,255,255,.025) 86%,transparent);}
 
-  /* margin ribbon — hangs from top, flush, swallowtail, line tint */
-  .linetint{position:absolute;left:0;right:0;height:26px;background:rgba(126,116,240,.08);}
-  .ribbon{position:absolute;left:0;top:0;width:7px;height:34px;background:var(--accent);
-          box-shadow:1px 0 4px rgba(0,0,0,.35);}
-  .ribbon::after{content:"";position:absolute;bottom:-1px;left:0;width:7px;height:6px;
-                 background:var(--accent);clip-path:polygon(0 0,100% 0,100% 100%,50% 55%,0 100%);}
+  /* margin bookmark — a real bookmark GLYPH in the gutter beside the saved line,
+     not a bar; + a faint full-line tint so "this bit is saved" reads */
+  .linetint{position:absolute;left:0;right:0;height:26px;background:rgba(126,116,240,.09);}
+  .bkmark{position:absolute;left:3px;width:13px;height:16px;color:var(--accent);
+          filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}
 
   /* empty / progress reader states */
   .rstate{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 30px;gap:8px;}
@@ -117,14 +116,16 @@
         box-shadow:0 6px 14px -4px rgba(126,116,240,.7);}
   .skip{color:var(--text);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:44px;min-height:44px;justify-content:center;}
 
-  /* ── utility row: quiet cluster + accent Note chip ── */
-  .util{display:flex;align-items:center;justify-content:space-between;padding:10px 20px 6px;}
-  .ucluster{display:flex;gap:18px;}
-  .ub{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;color:var(--dim);min-width:30px;}
-  .ub svg{width:21px;height:21px;}
-  .ub .aa{font:700 14px -apple-system;color:var(--dim);}
-  .notechip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#cfcae8;
-            background:rgba(126,116,240,.16);padding:8px 13px;border-radius:var(--r-chip);box-shadow:var(--sh-chip);}
+  /* ── utility row: icon-only quiet controls (room to breathe) + a roomy accent Note chip ── */
+  .util{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 8px;}
+  .ucluster{display:flex;gap:20px;align-items:center;}
+  .ucl{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--dim);}
+  .ucl svg{width:22px;height:22px;}
+  .ucl .aa{font:700 16px -apple-system;color:var(--dim);}
+  .ucl .sp{font:700 12.5px -apple-system;color:var(--dim);}
+  .notechip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#d6d1f0;
+            background:rgba(126,116,240,.18);padding:10px 16px;border-radius:var(--r-chip);box-shadow:var(--sh-chip);}
+  .notechip svg{width:15px;height:15px;}
 
   /* reading-mode floats */
   .minihdr{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 2px;font-size:10.5px;color:var(--faint);font-weight:500;letter-spacing:.3px;}
@@ -210,7 +211,7 @@
         </div>
         <div class="tabbar">
           <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Notes</div>
-          <div class="tab on"><svg viewBox="0 0 24 24"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z" fill="rgba(126,116,240,.16)"/><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/></svg>Library</div>
+          <div class="tab on"><svg viewBox="0 0 24 24"><path d="M12 6.6C10.3 5.4 7.8 4.8 5 4.8c-.8 0-1.6.1-2.3.2v13.2c.7-.1 1.5-.2 2.3-.2 2.8 0 5.3.6 7 1.8 1.7-1.2 4.2-1.8 7-1.8.8 0 1.6.1 2.3.2V5c-.7-.1-1.5-.2-2.3-.2-2.8 0-5.3.6-7 1.8z" fill="rgba(126,116,240,.16)"/><path d="M12 6.6v13.2"/></svg>Library</div>
           <div class="tab soon"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Highlights</div>
           <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>Settings</div>
         </div>
@@ -248,16 +249,16 @@
         </div>
         <div class="util">
           <div class="ucluster">
-            <div class="ub"><span class="aa">Aa</span>Text</div>
-            <div class="ub"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Mark</div>
-            <div class="ub"><span class="aa num">1.5×</span>Speed</div>
-            <div class="ub"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2 2"/></svg>Sleep</div>
+            <div class="ucl"><span class="aa">Aa</span></div>
+            <div class="ucl"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
+            <div class="ucl"><span class="sp num">1.5×</span></div>
+            <div class="ucl"><svg viewBox="0 0 24 24"><path d="M20 14.5A7.5 7.5 0 0 1 9.5 4 6.5 6.5 0 1 0 20 14.5z"/></svg></div>
           </div>
-          <div class="notechip"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>Add note</div>
+          <div class="notechip"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add note</div>
         </div>
       </div>
     </div>
-    <p class="hint">Cover-tint ambiance bleeds down the page · one 20px edge · tabular numerals · page ≈ 72% of height.</p>
+    <p class="hint">Cover-tint ambiance bleeds down the page · one 20px edge · tabular numerals · icon-only utilities give the Add-note chip room.</p>
   </div>
 
   <!-- 3 · READING MODE -->
@@ -268,9 +269,9 @@
       <div class="body player-body">
         <div class="minihdr"><span>Sapiens · Ch 4</span><span class="num">−21:13</span></div>
         <div class="reader" style="padding-top:6px;">
-          <div class="linetint" style="top:130px;"></div>
-          <div class="ribbon" style="top:118px;"></div>
-          <div class="focusband" style="top:74px;"></div><div class="focustick" style="top:74px;"></div>
+          <div class="focusband" style="top:74px;"></div>
+          <div class="linetint" style="top:128px;"></div>
+          <svg class="bkmark" style="top:131px" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z" fill="currentColor" stroke="none"/></svg>
           <div class="ptext" style="font-size:16px;line-height:1.72;">
             <p><span class="past">Fire gave us power. The campfire became a place of warmth and protection against predators, and the first humans to master it gained an edge that echoed for a hundred thousand years.</span> <span class="now">But the important thing about fire was that <span class="w">it</span></span> <span class="ahead">set humans on a path toward cooking — flames did some of the digestive work a stomach would do, letting our guts shrink and our brains grow. No other animal cooks, and none rivalled us once we did.</span></p>
           </div>
@@ -279,7 +280,7 @@
         <div class="floatplay"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#fff;stroke:none"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></div>
       </div>
     </div>
-    <p class="hint">Now-line pinned upper-third (focus band) · ribbon hangs from top, flush, + 8% line-tint · “Back to playing” is transient (only after you scroll away).</p>
+    <p class="hint">Now-line = a faint NEUTRAL focus band (no colored tick) · a bookmark glyph in the margin + line-tint = “this bit is saved” · “Back to playing” is transient (only after you scroll away).</p>
   </div>
 
   <!-- 4 · AUTO-RECEDE transition + Aa -->
