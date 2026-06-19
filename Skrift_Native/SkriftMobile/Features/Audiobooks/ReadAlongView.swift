@@ -98,9 +98,11 @@ struct ReadAlongView: View {
     /// broke reading flow — mock critique).
     private static let wordUnderline = Color.skAccent
 
-    /// Reading type — chunk-5 wires these to the "Aa" @AppStorage settings.
-    private let readingFontSize: CGFloat = 17
-    private let readingLineSpacing: CGFloat = 8
+    /// Reading type — driven by the "Aa" settings (persisted app-wide).
+    @AppStorage(ReadingPrefs.fontSizeKey) private var fontSizePref = ReadingPrefs.defaultFontSize
+    @AppStorage(ReadingPrefs.lineHeightKey) private var lineHeightPref = ReadingPrefs.defaultLineHeight
+    private var readingFontSize: CGFloat { CGFloat(fontSizePref) }
+    private var readingLineSpacing: CGFloat { ReadingPrefs.extraLeading(fontSize: fontSizePref, lineHeight: lineHeightPref) }
     /// Pin the now-line to the upper third (mock): text scrolls UP under it.
     private let nowAnchor = UnitPoint(x: 0.5, y: 0.34)
     /// Reading column cap (~60–68ch) so text never runs full-bleed on iPad.

@@ -17,6 +17,7 @@ struct AudiobookPlayerView: View {
     @State private var showTranscribe = false
     @State private var showSyncSheet = false
     @State private var showTOC = false
+    @State private var showTextSettings = false
     @State private var tocInitialTab: ChaptersBookmarksSheet.Tab = .chapters
     @State private var scrubTime: TimeInterval?
     @State private var dragOffset: CGFloat = 0
@@ -70,6 +71,7 @@ struct AudiobookPlayerView: View {
                     .presentationDetents([.medium, .large])
             }
         }
+        .sheet(isPresented: $showTextSettings) { TextSettingsSheet() }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("audiobook-player")
         .task(id: session.book?.id) {
@@ -375,6 +377,14 @@ struct AudiobookPlayerView: View {
 
     private var utilityRow: some View {
         HStack(spacing: 10) {
+            Button { showTextSettings = true } label: {
+                Text("Aa").font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.skTextDim)
+                    .padding(.horizontal, 14).padding(.vertical, 7)
+                    .background(Color.skElev, in: .rect(cornerRadius: 11, style: .continuous))
+            }
+            .accessibilityIdentifier("player-text-settings")
+            .accessibilityLabel("Text size and spacing")
             utilChip("Chapters", icon: "list.bullet", id: "player-chapters") {
                 tocInitialTab = .chapters; showTOC = true
             }
