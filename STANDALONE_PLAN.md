@@ -295,6 +295,14 @@ needs no change — `MacTransportFactory` already no-ops when unpaired):
 - Significance UI — relabel as importance/pin (see significance reframe below).
 - New standalone onboarding: on-device record+transcribe value prop → "Sync across devices (iCloud)"
   → optional Mac.
+- **Navigation / IA decision (NEW, folded in 2026-06-19 from device testing).** Today the audiobook
+  Library is a top-bar button opening a `.sheet` (`MemosListView:130`) — it feels secondary (pull-to-
+  refresh just dismisses it) yet the vision treats notes AND books as co-equal ("second brain +
+  audiobook commonplace book"). Decide the home: a **tab bar** (Notes · Library · Highlights · Settings)
+  is the natural fix — makes both first-class, kills the dismiss-on-pulldown bug, and is where the
+  Phase-6 Highlights tab lives anyway. Mock-first; this is foundational and overlaps Phase 6. (Detail +
+  the smaller library bugs — one-swipe delete needs a confirm — in `backlog.md` "Audiobook player
+  reading-experience redesign".)
 
 ### Phase 4 — On-device Polish (GATED by spike)  · effort L · highest risk · needs Phase 0
 **4a — SPIKE FIRST (the gate).** Throwaway harness (or hidden DEBUG screen): load **Parakeet first**
@@ -365,11 +373,18 @@ enrollment — near-free given the substrate already exists.
 on-device text embeddings (`NLContextualEmbedding`) — the north-star backbone, offline-reachable.
 
 ### Phase 9 — Audiobook player polish  · effort M  *(steal: Audible, Apple Books, Spotify)*
-Sleep timer incl. **end-of-chapter** + fade; per-book speed memory; skip-silence / volume-boost;
-**annotatable bookmarks** (note on a marker); chapter list w/ durations + read-state;
-**skip-back-on-resume** (rewind 5–30 s); tap-a-word-to-seek in read-along (have the core);
-"Clips" (export quote-audio as `.m4a` / video card); position + bookmark handoff across your own
-devices (CloudKit state from Phase 1).
+**9a — Reading-experience redesign (NEW, the 2026-06-19 feedback batch; mock-first — see `backlog.md`
+"Audiobook player reading-experience redesign").** Organizing idea = **"reading mode": less chrome, more
+page.** Compress the header (drop "NOW PLAYING"); accent-the-now-don't-hide-the-rest read-along with free
+scroll + "back to playing" + more text real estate; adjustable font size (+ line-spacing/theme later);
+margin-marker bookmarks + fix the Chapters/Bookmarks model (add = action, sheet = browse-only); floating
+play button (consistency w/ the memo); shrink + rename "Capture this" → "Add note". *(The cheap, IA-
+adjacent wins overlap Phase 3's navigation decision — see there.)*
+**9b — Player polish (original):** Sleep timer incl. **end-of-chapter** + fade; per-book speed memory;
+skip-silence / volume-boost; **annotatable bookmarks** (note on a marker); chapter list w/ durations +
+read-state; **skip-back-on-resume** (rewind 5–30 s); tap-a-word-to-seek in read-along (have the core);
+"Clips" (export quote-audio as `.m4a` / video card); position + bookmark handoff across your own devices
+(CloudKit state from Phase 1).
 
 ### Phase 10 — Capture reach  · effort L  *(steal: Just Press Record, AudioPen)*
 **Apple Watch one-tap capture** app (record → transcribe-or-defer → sync to phone; scope = JPR-minimal,
