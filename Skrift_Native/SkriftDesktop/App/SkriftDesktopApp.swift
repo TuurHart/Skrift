@@ -26,6 +26,7 @@ struct SkriftDesktopApp: App {
         RunFile.runChunkSimIfRequested()
         RunFile.runReadAlongCheckIfRequested()
         RunFile.runAsrBenchIfRequested()
+        RunFile.runAsrSweepIfRequested()
         RunFile.runAudioDateProbeIfRequested()
         RunFile.runVoiceLoopIfRequested()
         RunFile.runProcessFileIfRequested()

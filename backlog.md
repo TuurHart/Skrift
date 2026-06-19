@@ -85,10 +85,17 @@ this breadcrumb so the dedicated session starts fast.
 - ✅ **Play button "looked like a sphere"** → flat accent circle + soft glow (`2cc0412`).
 - ✅ **Per-word karaoke underline disliked + made the now-line "jump over"** → dropped the per-word weight/underline;
   current sentence is just bright white (3-step ramp stays at the sentence level). Also kills the semibold reflow (`2cc0412`).
-- ✅ **Transcription "differ" should've been "different"** → flipped FluidAudio v3 multilingual knobs
-  `ASRConfig(melChunkContext:false, dualDecodeArbitration:true)` (FluidAudio's own recommended NL/EN long-form config;
-  drops the English-prior clip + de-dups chunk seams; ~1.1–1.5× decode, fine for background). **DEVICE-VERIFY owed** on
-  the clip that clipped. FluidAudio is pinned **v0.15.2 / parakeet-tdt-0.6b-v3** (newer than CLAUDE.md's "main").
+- ⚠️ **Transcription "differ" should've been "different"** → first tried `ASRConfig(melChunkContext:false,
+  dualDecodeArbitration:true)` (FluidAudio's doc-recommended NL/EN config) but **A/B-TESTED it and REVERTED** — on a real
+  chapter ("Do the Work" Intro, clean English) the desktop `-asrsweep` harness showed `melChunkContext:false` actually
+  **introduced** a chunk-seam word duplication ("emotional emotional") and `dualDecode` was ~2× slower with no win; the
+  default (A) was cleanest. So mel=on (default) is genuinely better for English seams (that's what PR #264 fixed). The
+  "differ" miss is likely a **Dutch/NL-accent English-prior** issue this clean-English clip didn't reproduce — **NEEDS a
+  Dutch/NL-accented test clip** to evaluate mel=off (which trades English-seam quality for less English-prior drift), or
+  a more targeted fix (60s-chunk overlap carry-over in `BookTranscriptionJob`; or a `.dutch` language hint for NL content).
+  **Tooling built (kept):** desktop `RunFile.runAsrSweepIfRequested` (`-asrsweep <audio> [-truth <txt>]`) sweeps
+  A/B/C/D configs + WER, pinned to the phone's exact FluidAudio commit `7f963cd` (v0.15.2 / parakeet-tdt-0.6b-v3, both
+  apps pin branch `main` → drift risk, should pin a fixed version). NEXT: pull a Dutch clip + re-sweep + fold in paragraphing.
 - ✅ **iPad cold-launch didn't restore the phone's chapter-2 position** (live sync worked, fresh launch didn't) → real
   two-part race: `open()` read the local library.json position + raced the CloudKit import, and the iPad's first tick
   then LWW-poisoned the phone's update. Fixed: `open()` adopts a strictly-newer carrier position (writes it back), and

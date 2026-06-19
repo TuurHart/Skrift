@@ -1,5 +1,7 @@
 #if DEBUG
 import AVFoundation
+import CoreML
+import FluidAudio
 import Foundation
 import SwiftData
 
@@ -268,6 +270,95 @@ enum RunFile {
     private static func restore(_ backup: Data?, _ url: URL, _ log: (String) -> Void) {
         if let backup { try? backup.write(to: url) } else { try? FileManager.default.removeItem(at: url) }
         log(">>> dev names store restored")
+    }
+
+    /// `-asrsweep <audio> [-truth <txt>]` → transcribe the SAME file under several
+    /// FluidAudio v3 configs and print them side by side, so we can SEE whether
+    /// `melChunkContext`/`dualDecodeArbitration` actually change words (e.g.
+    /// "differ"→"different"). Same FluidAudio commit the phone runs (7f963cd), so
+    /// it's a faithful proxy. Optional `-truth <txt>` adds a word-error-rate vs the
+    /// book text; otherwise we just read the outputs. DEBUG only.
+    nonisolated static func runAsrSweepIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-asrsweep"), i + 1 < args.count else { return }
+        let url = URL(fileURLWithPath: args[i + 1])
+        var truth: String?
+        if let ti = args.firstIndex(of: "-truth"), ti + 1 < args.count {
+            truth = try? String(contentsOfFile: args[ti + 1], encoding: .utf8)
+        }
+        Task.detached(priority: .userInitiated) {
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            log("== ASRSWEEP \(url.lastPathComponent) ==")
+            guard FileManager.default.fileExists(atPath: url.path) else { log("audio not found"); exit(1) }
+
+            let cfg = MLModelConfiguration()
+            cfg.computeUnits = .cpuAndNeuralEngine
+            let loaded: AsrModels
+            do { loaded = try await AsrModels.downloadAndLoad(configuration: cfg, version: .v3) }
+            catch { log("model load failed: \(error)"); exit(1) }
+
+            let variants: [(String, ASRConfig)] = [
+                ("A  mel=on  dual=off   (OLD default)",      ASRConfig()),
+                ("B  mel=off dual=off",                      ASRConfig(melChunkContext: false)),
+                ("C  mel=off dual=on    (NEW — shipped)",    ASRConfig(melChunkContext: false, dualDecodeArbitration: true)),
+                ("D  mel=on  dual=on",                        ASRConfig(melChunkContext: true,  dualDecodeArbitration: true)),
+            ]
+            var outputs: [(name: String, text: String, ms: Int)] = []
+            for (name, c) in variants {
+                do {
+                    let m = AsrManager(config: c)
+                    try await m.loadModels(loaded)
+                    var state = TdtDecoderState.make()
+                    let t0 = Date()
+                    let r = try await m.transcribe(url, decoderState: &state)
+                    let ms = Int(Date().timeIntervalSince(t0) * 1000)
+                    await m.cleanup()
+                    outputs.append((name, r.text.trimmingCharacters(in: .whitespacesAndNewlines), ms))
+                } catch {
+                    log("[\(name)] failed: \(error)")
+                    outputs.append((name, "(failed)", 0))
+                }
+            }
+
+            for o in outputs {
+                log("\n──────── \(o.name)   [\(o.ms) ms, \(wordCount(o.text)) words] ────────")
+                log(o.text)
+                if let truth { log(String(format: ">> WER vs book text: %.1f%%", 100 * wer(ref: truth, hyp: o.text))) }
+            }
+            // Divergence of each variant vs the OLD default (A), so it's obvious how
+            // much each knob actually changed.
+            if let base = outputs.first(where: { $0.name.hasPrefix("A") }) {
+                log("\n──────── divergence vs A (OLD) ────────")
+                for o in outputs where !o.name.hasPrefix("A") {
+                    log(String(format: "  %@ : %.1f%% words differ from A", String(o.name.prefix(1)), 100 * wer(ref: base.text, hyp: o.text)))
+                }
+            }
+            exit(0)
+        }
+    }
+
+    private static func wordCount(_ s: String) -> Int {
+        s.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
+    }
+
+    /// Word-level error rate (Levenshtein over normalised words) ÷ reference length.
+    nonisolated static func wer(ref: String, hyp: String) -> Double {
+        func toks(_ s: String) -> [String] {
+            s.lowercased().split { !($0.isLetter || $0.isNumber) }.map(String.init)
+        }
+        let r = toks(ref), h = toks(hyp)
+        guard !r.isEmpty else { return h.isEmpty ? 0 : 1 }
+        var prev = Array(0...h.count)
+        var cur = [Int](repeating: 0, count: h.count + 1)
+        for i in 1...r.count {
+            cur[0] = i
+            for j in 1...h.count {
+                cur[j] = r[i - 1] == h[j - 1] ? prev[j - 1]
+                    : 1 + min(prev[j - 1], min(prev[j], cur[j - 1]))
+            }
+            swap(&prev, &cur)
+        }
+        return Double(prev[h.count]) / Double(r.count)
     }
 
     nonisolated static func runIfRequested() {
