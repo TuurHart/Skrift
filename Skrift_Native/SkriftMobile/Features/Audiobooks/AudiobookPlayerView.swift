@@ -160,7 +160,7 @@ struct AudiobookPlayerView: View {
             // Receded → the one saturated hero floats bottom-right (memo-detail
             // consistency); skip ±15/30 only flank it when controls are up.
             if !chromeUp {
-                playSphere(size: 52)
+                playButton(size: 52)
                     .padding(.trailing, 18)
                     .padding(.bottom, 18)
                     .transition(.opacity)
@@ -308,26 +308,18 @@ struct AudiobookPlayerView: View {
         return (chapter.start, min(book.duration, chapter.start + max(0.1, chapter.duration)))
     }
 
-    // MARK: - Play (the one saturated hero — gradient sphere + glow)
+    // MARK: - Play (flat accent circle — matches the memo-detail floating play)
 
-    /// The play/pause control as a gradient sphere with a soft accent glow — the
-    /// single saturated hero (mock "accent discipline"; the same look the reading-
-    /// mode float and the memo-detail floating play use). Centred in the transport
-    /// when controls are up; floats bottom-right when chrome recedes (chunk 4).
-    private func playSphere(size: CGFloat) -> some View {
+    /// The play/pause control: a clean flat accent circle (no gradient sphere — the
+    /// user found the sphere look off), with a soft glow. Centred in the transport
+    /// when controls are up; floats bottom-right when chrome recedes.
+    private func playButton(size: CGFloat) -> some View {
         Button { noteInteraction(); session.togglePlay() } label: {
             ZStack {
                 Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.skAccentText,
-                                     Color.skAccent,
-                                     Color.skAccent.mix(with: .black, by: 0.22)],
-                            center: UnitPoint(x: 0.3, y: 0.25),
-                            startRadius: 1, endRadius: size * 0.95)
-                    )
+                    .fill(Color.skAccent)
                     .frame(width: size, height: size)
-                    .shadow(color: Color.skAccent.opacity(0.6), radius: 12, y: 6)
+                    .shadow(color: Color.skAccent.opacity(0.35), radius: 8, y: 3)
                 Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: size * 0.4)).foregroundStyle(.white)
             }
@@ -346,7 +338,7 @@ struct AudiobookPlayerView: View {
             }
             .accessibilityIdentifier("player-back-15").accessibilityLabel("Back 15 seconds")
             Spacer().frame(width: 28)
-            playSphere(size: 56)
+            playButton(size: 56)
             Spacer().frame(width: 28)
             Button { noteInteraction(); session.skip(AudiobookSession.skipForward) } label: {
                 Image(systemName: "goforward.30").font(.system(size: 27, weight: .light)).foregroundStyle(Color.skText)

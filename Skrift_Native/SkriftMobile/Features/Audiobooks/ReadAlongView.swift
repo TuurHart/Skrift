@@ -20,10 +20,6 @@ final class ReadAlongModel: ObservableObject {
     @Published private(set) var covered = false
     @Published private(set) var sentences: [BufferSentence] = []   // ALL covered, file-local
     @Published private(set) var currentIndex = 0
-    /// Index of the word being spoken WITHIN the current sentence (nil = none yet).
-    /// Drives the current-word weight+underline. Published only when it changes, so
-    /// the read-along doesn't re-render at the 10 Hz interpolation rate.
-    @Published private(set) var currentWordIndex: Int?
 
     private let store = BookTranscriptStore()
     private var loadedFileIndex = -1
@@ -61,9 +57,6 @@ final class ReadAlongModel: ObservableObject {
         guard !sentences.isEmpty else { return }
         let idx = sentences.firstIndex(where: { fileLocal < $0.end }) ?? (sentences.count - 1)
         if idx != currentIndex { currentIndex = idx }
-        // The active word inside the current sentence (for the weight+underline).
-        let wi = Karaoke.activeWordIndex(sentences[idx].words, at: fileLocal)
-        if wi != currentWordIndex { currentWordIndex = wi }
     }
 
     func startOf(_ i: Int) -> TimeInterval? {
@@ -98,9 +91,6 @@ struct ReadAlongView: View {
     private static let readPast = Color(hex: 0x6E6E7E)
     private static let readNow = Color(hex: 0xF4F4F8)
     private static let readAhead = Color(hex: 0xA6A6B6)
-    /// The current-word cue is a thin accent underline, NOT a filled box (a box
-    /// broke reading flow — mock critique).
-    private static let wordUnderline = Color.skAccent
 
     /// Reading type — driven by the "Aa" settings (persisted app-wide).
     @AppStorage(ReadingPrefs.fontSizeKey) private var fontSizePref = ReadingPrefs.defaultFontSize
@@ -233,16 +223,16 @@ struct ReadAlongView: View {
         .accessibilityIdentifier("player-readalong")
     }
 
-    /// One sentence-line. Flat 3-step colour ramp (past/now/ahead) — no per-line
-    /// scale (that read teleprompter-y); the now-line pops via brightness + the
-    /// current-word weight+underline. Uniform font/weight keeps the line height
-    /// stable so advancing never reflows neighbours.
+    /// One sentence-line. Flat 3-step colour ramp (past dim / now bright-white /
+    /// ahead). Uniform font + weight throughout — no per-word weight (it re-wrapped
+    /// the line as the bold word advanced) and no scale; the now-line pops purely on
+    /// brightness, which the user preferred. The bright sentence still advances with
+    /// the voice (sentence-level), just without the per-word follow.
     private func line(_ i: Int, marked: Bool) -> some View {
         let isCurrent = i == model.currentIndex
         let isPast = i < model.currentIndex
-        let text: Text = isCurrent
-            ? currentLineText(model.sentences[i])
-            : Text(model.sentences[i].text).foregroundColor(isPast ? Self.readPast : Self.readAhead)
+        let text = Text(model.sentences[i].text)
+            .foregroundColor(isCurrent ? Self.readNow : (isPast ? Self.readPast : Self.readAhead))
         return text
             .font(.system(size: readingFontSize, weight: .regular))
             .lineSpacing(readingLineSpacing)
@@ -282,22 +272,6 @@ struct ReadAlongView: View {
             if let idx = model.sentences.firstIndex(where: { loc.offset < $0.end }) { set.insert(idx) }
         }
         return set
-    }
-
-    /// The now-line, rendered word-by-word so the active word gets weight + a thin
-    /// accent underline (mock: NOT a filled box). Words rejoin with single spaces —
-    /// the same join `buildSentences` uses, so the text is byte-identical.
-    private func currentLineText(_ s: BufferSentence) -> Text {
-        var result = Text("")
-        for (i, w) in s.words.enumerated() {
-            var piece = Text(w.word)
-            if i == model.currentWordIndex {
-                piece = piece.fontWeight(.semibold).underline(true, color: Self.wordUnderline)
-            }
-            result = result + piece
-            if i < s.words.count - 1 { result = result + Text(" ") }
-        }
-        return result.foregroundColor(Self.readNow)
     }
 
     /// The transient pill that floats up when you scroll away from the now-line.
