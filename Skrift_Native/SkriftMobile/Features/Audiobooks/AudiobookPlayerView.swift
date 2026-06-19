@@ -28,7 +28,7 @@ struct AudiobookPlayerView: View {
 
     var body: some View {
         ZStack {
-            Color.skBg.ignoresSafeArea()
+            bodyBackground.ignoresSafeArea()
             if let book = session.book {
                 content(book)
             } else {
@@ -102,48 +102,46 @@ struct AudiobookPlayerView: View {
         .gesture(dismissDrag)
     }
 
-    // MARK: - Header (warm tint band, cover chip, title, chapter pill)
+    // MARK: - Header (one slim bar: chevron · cover · title/author · chapter · ⋯)
 
+    /// Reading-mode header: "less chrome, more page" — one compact row (no "NOW
+    /// PLAYING" label, cover demoted to a 34pt chip), sitting on the cover-tint
+    /// ambiance instead of its own opaque band. Mock screen 2 `.phdr`.
     private func header(_ book: Audiobook) -> some View {
-        VStack(spacing: 14) {
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.down").font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.skTextDim).frame(width: 30, height: 30)
-                }
-                .accessibilityIdentifier("player-collapse")
-                .accessibilityLabel("Collapse — the mini-player takes over")
-                Spacer()
-                Text("NOW PLAYING").font(.system(size: 10.5, weight: .medium)).kerning(0.8)
-                    .foregroundStyle(Color.skTextFaint)
-                Spacer()
-                menu(book)
+        HStack(spacing: 10) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.down").font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.skTextDim).frame(width: 30, height: 30)
+            }
+            .accessibilityIdentifier("player-collapse")
+            .accessibilityLabel("Collapse — the mini-player takes over")
+
+            BookCoverView(book: book)
+                .frame(width: 34, height: 34)
+                .clipShape(.rect(cornerRadius: 7, style: .continuous))
+                .onTapGesture { showEditBook = true }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("Edit book details")
+                .accessibilityIdentifier("player-cover-edit")
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(book.title).font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.skText).lineLimit(1)
+                Text(book.author).font(.system(size: 12)).foregroundStyle(Color.skTextDim).lineLimit(1)
             }
 
-            HStack(spacing: 12) {
-                BookCoverView(book: book)
-                    .frame(width: 56, height: 56)
-                    .clipShape(.rect(cornerRadius: 9, style: .continuous))
-                    .onTapGesture { showEditBook = true }
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityLabel("Edit book details")
-                    .accessibilityIdentifier("player-cover-edit")
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(book.title).font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.skText).lineLimit(1)
-                    Text(book.author).font(.system(size: 12)).foregroundStyle(Color.skTextDim).lineLimit(1)
-                }
-                Spacer(minLength: 6)
-                if let pill = chapterPill(book) {
-                    Text(pill).font(.system(size: 11)).foregroundStyle(Color.skAmber)
-                        .padding(.horizontal, 10).padding(.vertical, 3)
-                        .background(Color.skAmber.opacity(0.14), in: .capsule)
-                }
+            Spacer(minLength: 6)
+
+            if let pill = chapterPill(book) {
+                Text(pill).font(.system(size: 9.5, weight: .medium)).monospacedDigit()
+                    .foregroundStyle(Color.skAccentText)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color.skAccent.opacity(0.13), in: .capsule)
             }
+            menu(book)
         }
         .padding(.horizontal, Theme.Space.margin)
-        .padding(.top, 10).padding(.bottom, 16)
-        .background((coverTint ?? Color.skSurface).ignoresSafeArea(edges: .top))
+        .padding(.top, 8).padding(.bottom, 6)
     }
 
     private func chapterPill(_ book: Audiobook) -> String? {
@@ -208,7 +206,35 @@ struct AudiobookPlayerView: View {
         return (chapter.start, min(book.duration, chapter.start + max(0.1, chapter.duration)))
     }
 
-    // MARK: - Transport (speed ◁ ⟲15 ▶ 15⟳ ▷ sleep)
+    // MARK: - Play (the one saturated hero — gradient sphere + glow)
+
+    /// The play/pause control as a gradient sphere with a soft accent glow — the
+    /// single saturated hero (mock "accent discipline"; the same look the reading-
+    /// mode float and the memo-detail floating play use). Centred in the transport
+    /// when controls are up; floats bottom-right when chrome recedes (chunk 4).
+    private func playSphere(size: CGFloat) -> some View {
+        Button { session.togglePlay() } label: {
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.skAccentText,
+                                     Color.skAccent,
+                                     Color.skAccent.mix(with: .black, by: 0.22)],
+                            center: UnitPoint(x: 0.3, y: 0.25),
+                            startRadius: 1, endRadius: size * 0.95)
+                    )
+                    .frame(width: size, height: size)
+                    .shadow(color: Color.skAccent.opacity(0.6), radius: 12, y: 6)
+                Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: size * 0.4)).foregroundStyle(.white)
+            }
+        }
+        .accessibilityIdentifier("player-play")
+        .accessibilityLabel(session.isPlaying ? "Pause" : "Play")
+    }
+
+    // MARK: - Transport (speed ◁ ⟲15 ▶ 30⟳ ▷ sleep)
 
     private var transport: some View {
         HStack(spacing: 0) {
@@ -229,24 +255,17 @@ struct AudiobookPlayerView: View {
             .accessibilityIdentifier("player-speed")
 
             Spacer()
-            Button { session.skip(-AudiobookSession.skipInterval) } label: {
+            Button { session.skip(-AudiobookSession.skipBack) } label: {
                 Image(systemName: "gobackward.15").font(.system(size: 26, weight: .light)).foregroundStyle(Color.skText)
             }
             .accessibilityIdentifier("player-back-15").accessibilityLabel("Back 15 seconds")
-            Spacer().frame(width: 26)
-            Button { session.togglePlay() } label: {
-                ZStack {
-                    Circle().fill(Color.skAccent).frame(width: 60, height: 60)
-                    Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 23)).foregroundStyle(.white)
-                }
+            Spacer().frame(width: 22)
+            playSphere(size: 56)
+            Spacer().frame(width: 22)
+            Button { session.skip(AudiobookSession.skipForward) } label: {
+                Image(systemName: "goforward.30").font(.system(size: 26, weight: .light)).foregroundStyle(Color.skText)
             }
-            .accessibilityIdentifier("player-play").accessibilityLabel(session.isPlaying ? "Pause" : "Play")
-            Spacer().frame(width: 26)
-            Button { session.skip(AudiobookSession.skipInterval) } label: {
-                Image(systemName: "goforward.15").font(.system(size: 26, weight: .light)).foregroundStyle(Color.skText)
-            }
-            .accessibilityIdentifier("player-forward-15").accessibilityLabel("Forward 15 seconds")
+            .accessibilityIdentifier("player-forward-30").accessibilityLabel("Forward 30 seconds")
             Spacer()
 
             Menu {
@@ -347,6 +366,19 @@ struct AudiobookPlayerView: View {
     }
 
     // MARK: - Cover tint + pre-warm
+
+    /// Cover-tint ambiance: the warm dominant cover hue bleeds down from the top
+    /// and fades to the app background by ~⅓ of the way down (mock: the player-body
+    /// gradient — "the warm cover-derived gradient bleeds down the whole player").
+    /// Falls back to a flat background when there's no cover.
+    private var bodyBackground: some View {
+        LinearGradient(
+            stops: [
+                .init(color: coverTint ?? .skBg, location: 0),
+                .init(color: .skBg, location: 0.34),
+            ],
+            startPoint: .top, endPoint: .bottom)
+    }
 
     private func loadCoverTint() {
         guard let book = session.book,

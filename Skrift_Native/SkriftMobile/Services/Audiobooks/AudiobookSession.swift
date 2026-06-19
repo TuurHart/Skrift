@@ -32,6 +32,11 @@ final class AudiobookSession: ObservableObject {
     // nonisolated: plain Sendable constants — referenced from non-main contexts
     // (remote-command handler closures) without an actor hop.
     nonisolated static let rates: [Double] = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
+    /// Asymmetric skip (mock/spec: back 15 to re-hear, forward 30 to skip ahead).
+    nonisolated static let skipBack: TimeInterval = 15
+    nonisolated static let skipForward: TimeInterval = 30
+    /// The compact mini-player keeps a symmetric 15s skip (it's a quick re-listen,
+    /// not the redesigned full-player transport).
     nonisolated static let skipInterval: TimeInterval = 15
 
     let store: AudiobookLibraryStore
@@ -479,14 +484,14 @@ final class AudiobookSession: ObservableObject {
             }
             return .success
         }
-        center.skipBackwardCommand.preferredIntervals = [NSNumber(value: Self.skipInterval)]
+        center.skipBackwardCommand.preferredIntervals = [NSNumber(value: Self.skipBack)]
         center.skipBackwardCommand.addTarget { _ in
-            Task { @MainActor in AudiobookSession.shared.skip(-Self.skipInterval) }
+            Task { @MainActor in AudiobookSession.shared.skip(-Self.skipBack) }
             return .success
         }
-        center.skipForwardCommand.preferredIntervals = [NSNumber(value: Self.skipInterval)]
+        center.skipForwardCommand.preferredIntervals = [NSNumber(value: Self.skipForward)]
         center.skipForwardCommand.addTarget { _ in
-            Task { @MainActor in AudiobookSession.shared.skip(Self.skipInterval) }
+            Task { @MainActor in AudiobookSession.shared.skip(Self.skipForward) }
             return .success
         }
         center.changePlaybackPositionCommand.addTarget { event in
