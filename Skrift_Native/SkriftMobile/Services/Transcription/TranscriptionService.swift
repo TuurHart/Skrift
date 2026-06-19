@@ -96,15 +96,17 @@ actor TranscriptionService: Transcriber {
                     }
                 }
             )
-            // Default config. We A/B-tested the FluidAudio "v3 multilingual" knobs
-            // (`melChunkContext:false`, `dualDecodeArbitration:true`) on a real
-            // chapter via the desktop `-asrsweep` harness: on clean English,
-            // melChunkContext=false actually INTRODUCED a chunk-seam word duplication
-            // ("emotional emotional") and dualDecode was ~2× slower with no win — so
-            // the doc-recommended config regressed here. Keep the default until we
-            // test on Dutch/NL-accented audio (the actual "differ→different" failure
-            // mode this clip didn't reproduce). See backlog "Transcription accuracy".
-            let manager = AsrManager(config: .default)
+            // melChunkContext: false — the v3 multilingual long-form fix. A/B-tested
+            // via the desktop `-asrsweep` harness on REAL audio: on Dutch (a 3-min
+            // spoken-Wikipedia clip) the default (mel=on) drifts to its English prior
+            // and garbles non-English — wrong years ("1666"/"twaalftig" for 1986/1283),
+            // mangled place-names ("Morenaars Graaf"/"Out-Alblas" for Molenaarsgraaf/
+            // Oud-Alblas); mel=off decodes them correctly. The cost is small on pure
+            // English (an occasional chunk-seam word dup) and it's FASTER (skips the
+            // mel prepend) — a clear win for NL/EN-mixed use. dualDecodeArbitration
+            // left OFF: it was byte-identical to mel=off alone but ~2.7× slower in
+            // both tests. See backlog "Transcription accuracy".
+            let manager = AsrManager(config: ASRConfig(melChunkContext: false))
             try await manager.loadModels(loaded)
             self.models = loaded
             self.asr = manager

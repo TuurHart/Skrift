@@ -85,17 +85,19 @@ this breadcrumb so the dedicated session starts fast.
 - ✅ **Play button "looked like a sphere"** → flat accent circle + soft glow (`2cc0412`).
 - ✅ **Per-word karaoke underline disliked + made the now-line "jump over"** → dropped the per-word weight/underline;
   current sentence is just bright white (3-step ramp stays at the sentence level). Also kills the semibold reflow (`2cc0412`).
-- ⚠️ **Transcription "differ" should've been "different"** → first tried `ASRConfig(melChunkContext:false,
-  dualDecodeArbitration:true)` (FluidAudio's doc-recommended NL/EN config) but **A/B-TESTED it and REVERTED** — on a real
-  chapter ("Do the Work" Intro, clean English) the desktop `-asrsweep` harness showed `melChunkContext:false` actually
-  **introduced** a chunk-seam word duplication ("emotional emotional") and `dualDecode` was ~2× slower with no win; the
-  default (A) was cleanest. So mel=on (default) is genuinely better for English seams (that's what PR #264 fixed). The
-  "differ" miss is likely a **Dutch/NL-accent English-prior** issue this clean-English clip didn't reproduce — **NEEDS a
-  Dutch/NL-accented test clip** to evaluate mel=off (which trades English-seam quality for less English-prior drift), or
-  a more targeted fix (60s-chunk overlap carry-over in `BookTranscriptionJob`; or a `.dutch` language hint for NL content).
-  **Tooling built (kept):** desktop `RunFile.runAsrSweepIfRequested` (`-asrsweep <audio> [-truth <txt>]`) sweeps
-  A/B/C/D configs + WER, pinned to the phone's exact FluidAudio commit `7f963cd` (v0.15.2 / parakeet-tdt-0.6b-v3, both
-  apps pin branch `main` → drift risk, should pin a fixed version). NEXT: pull a Dutch clip + re-sweep + fold in paragraphing.
+- ✅ **Transcription accuracy → SHIPPED `ASRConfig(melChunkContext: false)` (dual OFF)** after a two-language A/B sweep
+  (desktop `-asrsweep`, pinned to the phone's FluidAudio commit `7f963cd` / v0.15.2 / parakeet-tdt-0.6b-v3):
+  - **English-only clip** ("Do the Work" Intro): mel=off introduced one chunk-seam dup ("emotional emotional"); mel=on
+    (default) cleaner. (First pass wrongly concluded "revert" from THIS clip alone.)
+  - **Dutch clip** (3-min CC-BY-SA spoken-Wikipedia "Wijngaarden"): mel=on **drifts to its English prior** and garbles
+    non-English — wrong years (1666/"twaalftig"/"veertien" vs correct 1986/1283/1451), mangled place-names ("Morenaars
+    Graaf"/"Out-Alblas" → Molenaarsgraaf/Oud-Alblas), "Corneus Johan" → "Cornelius Johann". **mel=off fixes all of these.**
+  - Verdict for NL/EN-mixed use: mel=off is the clear win (big Dutch accuracy gain; minor English seam cost; and it's
+    FASTER — skips the mel prepend). **dualDecodeArbitration left OFF** — byte-identical to mel=off alone but ~2.7× slower
+    in both tests (its probe kept choosing the warmup-free path). One flag, trivially reversible.
+  - Tooling kept: `-asrsweep <audio> [-truth]` (+ `-paragraph <audio>`). Both apps still pin FluidAudio to branch `main`
+    → should pin a fixed version (drift risk). The garbled proper-nouns the v3 model just doesn't know (e.g. "Gods schok
+    oem") are model limits, not config — out of scope.
 - ✅ **iPad cold-launch didn't restore the phone's chapter-2 position** (live sync worked, fresh launch didn't) → real
   two-part race: `open()` read the local library.json position + raced the CloudKit import, and the iPad's first tick
   then LWW-poisoned the phone's update. Fixed: `open()` adopts a strictly-newer carrier position (writes it back), and
