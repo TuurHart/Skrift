@@ -51,15 +51,15 @@ final class SignificanceCirclesTests: XCTestCase {
     func testTierBoundaries() {
         for step in 1...3 { XCTAssertEqual(SignificanceScale.tierName(forStep: step), "Passing") }
         for step in 4...6 { XCTAssertEqual(SignificanceScale.tierName(forStep: step), "Useful") }
-        for step in 7...10 { XCTAssertEqual(SignificanceScale.tierName(forStep: step), "Significant") }
+        for step in 7...10 { XCTAssertEqual(SignificanceScale.tierName(forStep: step), "Important") }
     }
 
     func testLiveLabel() {
         XCTAssertEqual(SignificanceScale.label(forStep: 0), "Not rated")
         XCTAssertEqual(SignificanceScale.label(forStep: 3), "0.3 · Passing")
         XCTAssertEqual(SignificanceScale.label(forStep: 5), "0.5 · Useful")
-        XCTAssertEqual(SignificanceScale.label(forStep: 7), "0.7 · Significant")
-        XCTAssertEqual(SignificanceScale.label(forStep: 10), "1.0 · Significant")
+        XCTAssertEqual(SignificanceScale.label(forStep: 7), "0.7 · Important")
+        XCTAssertEqual(SignificanceScale.label(forStep: 10), "1.0 · Important")
     }
 
     // MARK: refine wall (0.8+)

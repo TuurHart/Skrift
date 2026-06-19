@@ -2,11 +2,12 @@ import SwiftUI
 
 // MARK: - Scale (pure logic, unit-tested)
 
-/// The 10-step significance scale behind the circle control
+/// The 10-step importance scale behind the circle control
 /// (`mocks/significance-circles.html`). One circle = 0.1; tier boundaries are
-/// 0.4 / 0.7 (Passing · Useful · Significant) and 0.8+ is past the **refine
+/// 0.4 / 0.7 (Passing · Useful · Important) and 0.8+ is past the **refine
 /// wall** — those notes get a refine pass on the Mac. Kept separate from the
-/// view so the mapping/copy is testable without UIKit.
+/// view so the mapping/copy is testable without UIKit. (User-facing label is
+/// "Importance"; the internal symbols stay `Significance*` / `significance`.)
 enum SignificanceScale {
     static let stepCount = 10
     /// First step past the refine wall: 0.8+ notes get a refine pass.
@@ -31,11 +32,13 @@ enum SignificanceScale {
     static func isRefine(step: Int) -> Bool { step >= refineStep }
 
     /// Tier name for a set step (1…10). Boundaries 0.4 / 0.7 per the mock.
+    /// User-facing label is "Importance" (Phase-3 relabel of "significance"); the
+    /// top tier reads "Important" to match. Internal symbols stay `Significance*`.
     static func tierName(forStep step: Int) -> String {
-        step >= 7 ? "Significant" : step >= 4 ? "Useful" : "Passing"
+        step >= 7 ? "Important" : step >= 4 ? "Useful" : "Passing"
     }
 
-    /// The live value label: "Not rated" / "0.5 · Useful" / "1.0 · Significant".
+    /// The live value label: "Not rated" / "0.5 · Useful" / "1.0 · Important".
     static func label(forStep step: Int) -> String {
         guard step > 0 else { return "Not rated" }
         return (step == stepCount ? "1.0" : "0.\(step)") + " · " + tierName(forStep: step)
@@ -115,7 +118,7 @@ struct SignificanceCircles: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("Significance")
+            Text("Importance")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color.skTextFaint)
             Spacer(minLength: 8)
@@ -168,7 +171,7 @@ struct SignificanceCircles: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("significance-circle-\(i)")
-        .accessibilityLabel("Significance \(SignificanceScale.label(forStep: i))")
+        .accessibilityLabel("Importance \(SignificanceScale.label(forStep: i))")
         .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
@@ -201,7 +204,7 @@ struct SignificanceCircles: View {
         HStack(spacing: Self.gap) {
             tierLabel("PASSING", width: Self.smallCluster, active: step >= 1 && step <= 3, warm: false)
             tierLabel("USEFUL", width: Self.smallCluster, active: step >= 4 && step <= 6, warm: false)
-            tierLabel("SIGNIFICANT", width: Self.largeCluster, active: step >= 7, warm: isRefine)
+            tierLabel("IMPORTANT", width: Self.largeCluster, active: step >= 7, warm: isRefine)
         }
         .animation(Theme.Motion.snappy, value: step)
         .accessibilityHidden(true)   // decorative — each circle already says its tier
