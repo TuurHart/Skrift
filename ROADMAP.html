@@ -99,7 +99,7 @@
 
   <div class="focus">
     <div class="dot"></div>
-    <div><b>You are here →</b> Phase&nbsp;1 + the <b>audiobook deep-dive detour</b> are done (build&nbsp;13: per-book sync with a real %, and cover/transcript/position/speed all crossing devices). <b>Next (fresh session):</b> build the full audiobook <b>reading-mode redesign + tab-bar IA</b> (mock signed off) — then merge back to <b>Phase&nbsp;2 Export</b>, the ship-blocker.</div>
+    <div><b>You are here →</b> Phase&nbsp;1 + the whole <b>audiobook deep-dive detour</b> are done — including the <b>reading-mode redesign + tab-bar IA</b> (build&nbsp;14: TabView nav, e-reader reading mode, "Aa" text settings, book-like bookmarks, Add-note chip, sync-aware delete-confirm). <b>Next:</b> merge back to <b>Phase&nbsp;2 Export &amp; Obsidian publish</b>, the ship-blocker.</div>
   </div>
 
   <div class="legend">
@@ -136,8 +136,8 @@ const MILESTONES = [
 const PHASES = [
   { id:"P0",  ms:"Foundation",      title:"Shared naming engine",        status:"done", eff:"M", done:"Jun 17", deps:[],            note:"One name-linking engine both apps compile — no drift." },
   { id:"P1",  ms:"Foundation",      title:"CloudKit sync (your devices)", status:"done", eff:"L", done:"Jun 19", deps:["P0"],         note:"Memos + media + names + vocab. (Audiobook sync was a detour — see below.) Build 13." },
-  { id:"P2",  ms:"Standalone core", title:"Export & Obsidian publish",    status:"next", eff:"L",            deps:["P0"],            note:"#1 gap — today a phone-only note can only escape via copy-paste. Resumes after the redesign detour." },
-  { id:"P3",  ms:"Standalone core", title:"De-Mac the UX",                status:"inprogress", eff:"M",      deps:["P1"],            note:"Toolbar gate done. Onboarding + Importance reframe left (tab-bar IA is being done in the redesign detour)." },
+  { id:"P2",  ms:"Standalone core", title:"Export & Obsidian publish",    status:"next", eff:"L",            deps:["P0"],            note:"#1 gap — today a phone-only note can only escape via copy-paste. Up next now the redesign detour is done." },
+  { id:"P3",  ms:"Standalone core", title:"De-Mac the UX",                status:"inprogress", eff:"M",      deps:["P1"],            note:"Toolbar gate + tab-bar IA + 'Importance' label all done (redesign detour). Onboarding/Settings demote left." },
   { id:"Mac", ms:"Standalone core", title:"Mac rejoins via CloudKit",     status:"future", eff:"L",          deps:["P1","P2","P3"],  note:"Mac reads the notes store, enhances, writes the polished result back → syncs to the phone." },
   { id:"P4",  ms:"Differentiator",  title:"On-device Polish (spike-gated)",status:"future", eff:"L", risk:true, deps:["P0"],         note:"Cleanup/title/summary on-device. Longest pole — run the spike on the iPhone 13 early; ships no-polish if it fails." },
   { id:"P6",  ms:"Differentiator",  title:"Commonplace Book + quote cards",status:"future", eff:"L",          deps:["P2"],           note:"Highlights feed + Daily Review + shareable quote cards. The headline + App-Store marketing." },
@@ -156,7 +156,7 @@ const DETOURS = [
     nodes: [
       { id:"D1", title:"Per-book audiobook sync + real %", status:"done", eff:"L", done:"Jun 19", deps:[],     note:"Raw-CloudKit CKAsset transfer → a determinate upload/download bar + the 'Turn it on' size sheet." },
       { id:"D2", title:"Everything syncs",                 status:"done", eff:"M", done:"Jun 19", deps:["D1"], note:"Cover + read-along transcript + resume-position + speed, all across devices." },
-      { id:"D3", title:"Player reading-mode redesign",     status:"next", eff:"L",                deps:["D2"], note:"e-reader 'reading mode' + tab-bar IA + book-like bookmarks. Mock SIGNED OFF; build next (fresh session)." },
+      { id:"D3", title:"Player reading-mode redesign",     status:"done", eff:"L", done:"Jun 19", deps:["D2"], note:"BUILT (build 14): tab-bar IA, e-reader reading mode (auto-recede, pinned now-line, word emphasis), Aa size/spacing, book-like bookmarks + margin glyph, Add-note chip, sync-aware delete-confirm." },
     ],
   },
 ];

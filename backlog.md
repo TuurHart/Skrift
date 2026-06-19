@@ -79,7 +79,18 @@ principle so it can't drift. **Usefulness for the agent:** additive — a curate
 orientation ("why does X exist / what was tried before"); git + the ledgers stay the primary source. Leave
 this breadcrumb so the dedicated session starts fast.
 
-## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; ✅ MOCK SIGNED OFF 2026-06-19)
+## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; ✅ MOCK SIGNED OFF + ✅ BUILT 2026-06-19)
+
+✅ **BUILT 2026-06-19 (build 14, 439/439 SkriftMobileTests green; 8 commit-per-chunk steps `7d31b60`→`4bcca6e`).**
+All 8 chunks landed to the mock: **(1)** tab-bar shell (`AppTabView`; Library/Settings out of the pull-to-refresh-eating
+`.sheet`s) · **(2)** "significance"→**"Importance"** (control unchanged; internal symbols/`Memo.significance`/test-IDs/
+contract key untouched) · **(3)** one-bar header + cover-tint ambiance + gradient play sphere + skip back-15/forward-30 ·
+**(4)** reading mode (auto-recede never-while-paused, 3-step past/now/ahead ramp, current-WORD weight+underline, now-line
+pinned upper-third, free-scroll + "Back to playing", column cap) · **(5)** "Aa" size+spacing persisted (themes dimmed,
+fast-follow) · **(6)** bookmark "Mark" toggle + browse-only sheet + margin glyph · **(7)** "Add note" accent chip +
+utility reflow (speed/sleep in) + read-along states (nudge / live transcribing-% / empty) · **(8)** sync-aware library
+delete-confirm. **Tab bar verified on the iPhone 17 sim; player screens 3–7 owe a device eyeball (USER step — needs a
+real book + transcript). Owed: light/sepia themes; a global cross-tab mini-player. NEXT → Phase 2 Export.**
 
 ✅ **Mock SIGNED OFF 2026-06-19** = `mocks/audiobook-player-reading-mode.html` (v4 — mock-first, refined via two
 design-critique workflows + a rendered-pixel agent review; commits `92aee15`→`1700d4e`). **It IS the spec — build to

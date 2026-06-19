@@ -438,15 +438,30 @@ placeholder (Phase 1); pins (Phase 5).
 
 ---
 
-## ⭐⭐ RESUME — 2026-06-19 (read THIS first) — next: BUILD the audiobook reading-mode redesign (fresh session)
+## ⭐⭐ RESUME — 2026-06-19 (read THIS first) — next: Phase 2 — Export & Obsidian publish
 
-**▶ NEXT = build the full audiobook player reading-mode redesign + tab-bar IA — in a FRESH session.** The mock is
-SIGNED OFF (`mocks/audiobook-player-reading-mode.html`); the build is large (~8–12 commit-per-chunk steps, est.
-~0.5–1M tokens = a few context windows, so it won't fit one chat — but each chunk commits + the spec lives in the
-mock/ledgers, so resuming is clean). **The ready-to-paste resume prompt is `AUDIOBOOK_REDESIGN_PROMPT.md`.** User
-chose to build the WHOLE redesign now (not the scoped slice), THEN pivot to Phase 2 Export. Chunk order: 1 tab-bar
-shell · 2 Importance relabel · 3 player header+cover-tint+floating play · 4 reading mode (auto-recede/now-line/
-free-scroll) · 5 Aa text settings · 6 bookmark model · 7 Add-note chip + read-along states · 8 library delete-confirm.
+**✅ DONE 2026-06-19 — the full audiobook player reading-mode redesign + tab-bar IA is BUILT** (build 14, 439/439
+SkriftMobileTests green; 8 commit-per-chunk steps `7d31b60`→`4bcca6e`, all to the signed-off mock
+`mocks/audiobook-player-reading-mode.html`). Chunks: **1** tab-bar shell (`AppTabView` — Notes·Library·Highlights(soon)·
+Settings; the audiobook Library + Settings stopped being `.sheet`s, so a sheet's swipe-down no longer eats pull-to-
+refresh) · **2** "significance"→**"Importance"** (visible copy only; `Memo.significance` attr, `significance-*` test
+IDs, the contract JSON key all untouched) · **3** one-bar header + cover-tint ambiance + gradient play sphere + skip
+back-15/forward-30 · **4** reading mode (auto-recede ~3.5s idle/on-scroll/never-while-paused/~250ms; 3-step past/now/
+ahead ramp; current-WORD weight+underline via model `currentWordIndex`; now-line pinned upper-third; free-scroll +
+"Back to playing"; column cap ~660pt; the device-tuned interpolation untouched) · **5** "Aa" size+spacing persisted
+(`ReadingPrefs` @AppStorage; light/sepia themes dimmed = fast-follow) · **6** bookmark "Mark" toggle + browse-only
+sheet + margin glyph anchored to the line · **7** "Add note" centred accent chip + utility reflow (speed/sleep moved
+off the transport) + read-along states (nudge / live transcribing-% / empty) · **8** sync-aware library delete-confirm.
+**Tab bar visually verified on the iPhone 17 sim; player screens 3–7 owe a device eyeball — the USER's step** (needs a
+real book + transcript; the sim has no ASR). **Owed fast-follows:** light/sepia reading themes; a global cross-tab
+mini-player (today it's Notes-tab-only). Files: `Features/Root/AppTabView.swift` (new), `App/SkriftApp.swift`,
+`Features/MemosList/MemosListView.swift`, `Features/Settings/SettingsView.swift`, `Features/MemoDetail/
+SignificanceCircles.swift`, `Features/Audiobooks/{AudiobookPlayerView,ReadAlongView,TextSettingsSheet(new),
+ChaptersBookmarksSheet,AudiobookLibraryView}.swift`, `Services/Audiobooks/AudiobookSession.swift`. (`main`, local —
+unpushed; build number now 14 in `project.yml`.)
+
+**▶ NEXT = Phase 2 — Export & Obsidian publish** (the ship-blocker: today a phone-only note can only escape via copy-
+paste). Then P3 de-Mac finish (onboarding/Settings demote) + Mac→CloudKit (option A).
 
 **Installable now: build (13)** on `main` (local, **unpushed** — push only when asked). Phase 1 sync is COMPLETE +
 per-book audiobook sync does a **REAL upload/download %** + cover/transcript/position/rate all cross devices. Install
