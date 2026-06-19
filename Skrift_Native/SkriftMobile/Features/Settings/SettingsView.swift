@@ -10,6 +10,10 @@ struct SettingsView: View {
     @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = true
     // Key mirrored by MemoSaver.autoCopySettingKey (default OFF — user-locked).
     @AppStorage("autoCopyTranscript") private var autoCopyTranscript = false
+    // Key = TranscriptionService.multilingualKey. false = English (v3 default, cleanest
+    // English); true = Multilingual (mel-off, fixes non-English drift). TranscriptionService
+    // rebuilds the model when this flips.
+    @AppStorage("transcriptionMultilingual") private var transcriptionMultilingual = false
     @State private var connection = MacConnection.load()
     @State private var showFeedback = false
     /// Live reachability of the paired Mac: nil = checking, true = server answered
@@ -106,6 +110,11 @@ struct SettingsView: View {
                         .accessibilityIdentifier("setting-live-transcription")
                     Toggle("Copy transcript to clipboard", isOn: $autoCopyTranscript)
                         .accessibilityIdentifier("setting-auto-copy-transcript")
+                    Picker("Language", selection: $transcriptionMultilingual) {
+                        Text("English").tag(false)
+                        Text("Multilingual").tag(true)
+                    }
+                    .accessibilityIdentifier("setting-transcription-language")
                     NavigationLink {
                         CustomWordsView()
                     } label: {
@@ -119,7 +128,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Capture")
                 } footer: {
-                    Text("When a transcription finishes, the final transcript is copied to the clipboard automatically. Custom words teach the transcriber names it mis-hears (like “Skrift”).")
+                    Text("Language: keep English for the cleanest English; switch to Multilingual when recording Dutch or other languages (it stops the model drifting to English on non-English speech). When a transcription finishes, the final transcript is copied to the clipboard automatically. Custom words teach the transcriber names it mis-hears (like “Skrift”).")
                 }
 
                 Section {

@@ -92,9 +92,12 @@ this breadcrumb so the dedicated session starts fast.
   - **Dutch clip** (3-min CC-BY-SA spoken-Wikipedia "Wijngaarden"): mel=on **drifts to its English prior** and garbles
     non-English — wrong years (1666/"twaalftig"/"veertien" vs correct 1986/1283/1451), mangled place-names ("Morenaars
     Graaf"/"Out-Alblas" → Molenaarsgraaf/Oud-Alblas), "Corneus Johan" → "Cornelius Johann". **mel=off fixes all of these.**
-  - Verdict for NL/EN-mixed use: mel=off is the clear win (big Dutch accuracy gain; minor English seam cost; and it's
-    FASTER — skips the mel prepend). **dualDecodeArbitration left OFF** — byte-identical to mel=off alone but ~2.7× slower
-    in both tests (its probe kept choosing the warmup-free path). One flag, trivially reversible.
+  - Verdict for NL/EN-mixed use: mel=off is the clear win on non-English (big accuracy gain, faster) but has a minor
+    English seam cost — and the user is MOSTLY English. **Resolution: a Settings toggle** ("Language: English ↔
+    Multilingual", `transcriptionMultilingual` @AppStorage, default **English** = mel-on = the v3 default).
+    `TranscriptionService.ensureLoaded` reads it + REBUILDS the model when it flips. Multilingual = mel-off, which is
+    **language-agnostic** — helps any non-English language v3 supports (German/French/Spanish/…), not just Dutch.
+    **dualDecodeArbitration left OFF** — byte-identical to mel=off alone but ~2.7× slower in both tests.
   - Tooling kept: `-asrsweep <audio> [-truth]` (+ `-paragraph <audio>`). Both apps still pin FluidAudio to branch `main`
     → should pin a fixed version (drift risk). The garbled proper-nouns the v3 model just doesn't know (e.g. "Gods schok
     oem") are model limits, not config — out of scope.

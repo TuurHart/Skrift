@@ -41,6 +41,12 @@ actor TranscriptionService: Transcriber {
     private var loadTask: Task<Void, Error>?
     private var isTranscribing = false
     private var memoryObserver: NSObjectProtocol?
+    /// The language mode (`transcriptionMultilingual`) the loaded manager was built
+    /// with, so `ensureLoaded` rebuilds when the user flips the Settings toggle.
+    private var loadedMultilingual = false
+    /// @AppStorage key for the English ↔ Multilingual transcription toggle. Default
+    /// false = English (the v3 default). Read here; written by Settings.
+    static let multilingualKey = "transcriptionMultilingual"
 
     // Live streaming session state (record-screen captions). See the
     // "Live streaming" section below.
@@ -70,7 +76,13 @@ actor TranscriptionService: Transcriber {
 
     func ensureLoaded() async throws {
         installMemoryObserverIfNeeded()
-        if asr != nil { return }
+        // Transcription mode (Settings): English (the v3 default, clean English seams)
+        // vs Multilingual (melChunkContext off — stops the v3 decoder drifting to its
+        // English prior on non-English audio). Default = English. Flipping it drops
+        // the loaded manager so the next transcribe rebuilds with the right config.
+        let multilingual = UserDefaults.standard.bool(forKey: Self.multilingualKey)
+        if asr != nil, multilingual == loadedMultilingual { return }
+        if asr != nil { asr = nil; models = nil }   // mode changed → rebuild below
         if let loadTask {
             try await loadTask.value
             return
@@ -96,20 +108,19 @@ actor TranscriptionService: Transcriber {
                     }
                 }
             )
-            // melChunkContext: false — the v3 multilingual long-form fix. A/B-tested
-            // via the desktop `-asrsweep` harness on REAL audio: on Dutch (a 3-min
+            // Language mode (A/B-tested via the desktop `-asrsweep` harness on real
+            // audio): Multilingual sets melChunkContext:false — on Dutch (a 3-min
             // spoken-Wikipedia clip) the default (mel=on) drifts to its English prior
-            // and garbles non-English — wrong years ("1666"/"twaalftig" for 1986/1283),
-            // mangled place-names ("Morenaars Graaf"/"Out-Alblas" for Molenaarsgraaf/
-            // Oud-Alblas); mel=off decodes them correctly. The cost is small on pure
-            // English (an occasional chunk-seam word dup) and it's FASTER (skips the
-            // mel prepend) — a clear win for NL/EN-mixed use. dualDecodeArbitration
-            // left OFF: it was byte-identical to mel=off alone but ~2.7× slower in
-            // both tests. See backlog "Transcription accuracy".
-            let manager = AsrManager(config: ASRConfig(melChunkContext: false))
+            // and garbles non-English (wrong years 1666/"twaalftig" vs 1986/1283,
+            // mangled place-names), which mel=off fixes; it's language-agnostic so it
+            // helps any non-English language v3 supports. The cost is a small English
+            // chunk-seam dup, so English mode keeps mel=on (the v3 default). dualDecode
+            // stays off (byte-identical but ~2.7× slower in both tests).
+            let manager = AsrManager(config: ASRConfig(melChunkContext: !multilingual))
             try await manager.loadModels(loaded)
             self.models = loaded
             self.asr = manager
+            self.loadedMultilingual = multilingual
             await MainActor.run { ModelLoadStatus.shared.set(.ready) }
         }
         loadTask = task
