@@ -65,6 +65,19 @@ the mobile title-presentation UI — desktop's Suggested/From-recording chooser 
 VERIFIED the Mac never syncs polished text back to the phone, so non-AI devices = raw). `export-obsidian`,
 `onboarding`, `commonplace-book` await the user's reaction to their flagged design decisions.
 
+## 🗺️ Roadmap history backfill (idea 2026-06-19; SEPARATE SESSION)
+
+`ROADMAP.html` is forward-looking (phases → ship). User wants to also fold in the **full past** —
+"insane amounts" of history from the very start of Skrift — as a backward-looking timeline. Doable + its
+own session. **Raw material (no vault — privacy):** `git log` back to the start (the spine), `archive/`
+(old Electron/Python/RN apps preserved intact) + `archive/CLAUDE-electron-python.md` (pre-convergence
+project doc), the memory files, the handoff docs (`*_HANDOFF.md`), `FEATURES.md`. **Shape:** mine into a
+structured `HISTORY` array (date · era · what shipped · pointer to commit/doc) → render as a "past" view —
+either a history lane flowing left into the future tree (one page) or a sibling timeline. Same data-driven
+principle so it can't drift. **Usefulness for the agent:** additive — a curated structured index = fast
+orientation ("why does X exist / what was tried before"); git + the ledgers stay the primary source. Leave
+this breadcrumb so the dedicated session starts fast.
+
 ## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; DESIGN/MOCK FIRST, build later)
 
 The player is becoming a **read-AND-listen** surface (e-reader-like), not just a capture tool, so it
