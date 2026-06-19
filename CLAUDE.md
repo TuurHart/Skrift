@@ -109,14 +109,21 @@ Rules:
   **CloudKit** internal sync (not iCloud-Drive); one-way Obsidian publish; on-device Polish as a **gated
   spike**; Mac+Obsidian = optional sinks over one source of truth. Phases 0–11 + portability map +
   device/LLM matrix. Branch **`standalone`**. Track in `backlog.md` "⭐ Standalone App Store push".
-- **`ROADMAP.html`** — ⭐ the **visual roadmap** (Civ-tech-tree: a main spine left→right + **detour**
-  branches that fork off and merge back, "how the app got made"). Deployed as a claude.ai Artifact at
+- **`ROADMAP.html`** — ⭐ the **interactive visual roadmap** ("metro-tree": one line left→right that runs
+  **green** while done, **branches** off for detours & merges back, then fans into the planned tracks;
+  far left = the native-rewrite **history** convergence). **Pan/zoom**, hover a card to reveal just its
+  dependency lines, and **click any card to react** (👍/👎/🤔 + a note) — big phases list their individual
+  **ideas** to react to. Comments persist in `localStorage`; **Export** → hand the JSON back → it's committed
+  to **`roadmap-comments.json`** and pasted into the file's `BAKED_COMMENTS` (defaults on next rebuild).
+  Deployed as a claude.ai Artifact at
   **`https://claude.ai/code/artifact/64e6c806-d042-4d60-aa64-351142d61cbb`** — to redeploy to the SAME
   url from a new chat, pass it to the Artifact tool's `url` param (a fresh session otherwise mints a new
-  one). **Source of truth = the markdown ledgers**; this is a GENERATED
-  VIEW from the `PHASES`/`DETOURS` arrays at the top of the file. **UPDATE CONTRACT (do this so the
-  picture never drifts):** whenever a phase/detour changes status, edit those arrays AND the markdown in
-  the same pass, then redeploy the Artifact. `git log ROADMAP.html` = the project history.
+  one). **Source of truth = the markdown ledgers**; this is a GENERATED VIEW from the
+  `PHASES`/`DETOURS`/`HISTORY`/`IDEAS` arrays at the top of the file (layout auto-computes from each node's
+  `track` + `order` — to move a node, change those two numbers). **UPDATE CONTRACT (do this so the picture
+  never drifts):** whenever a phase/detour/idea changes status, edit those arrays AND the markdown in the
+  same pass, then redeploy the Artifact. The A/B/C/D design-exploration mocks live in `roadmap-mocks/`.
+  `git log ROADMAP.html` = the project history.
 - **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity: full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
 - `MOBILE_NATIVE_HANDOFF.md` → `MOBILE_NATIVE_REWRITE_PLAN.md` — the iOS app (phases, contract, XCUITest harness).
 - `DESKTOP_NATIVE_HANDOFF.md` → `DESKTOP_NATIVE_REWRITE_PLAN.md` — the macOS app. `WALKTHROUGH_BUGS.md` — desktop walkthrough tracker.

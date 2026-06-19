@@ -79,6 +79,13 @@ principle so it can't drift. **Usefulness for the agent:** additive — a curate
 orientation ("why does X exist / what was tried before"); git + the ledgers stay the primary source. Leave
 this breadcrumb so the dedicated session starts fast.
 
+**UPDATE 2026-06-19:** the roadmap was rebuilt into an interactive metro-tree and now seeds this with a
+**light history nod** — a `HISTORY` array (currently `mobile-native` + `desktop-native` converging into the
+spine at P0) renders on the far left, flowing into the forward tree on one page. The full backfill = expand
+that same `HISTORY` array (mine git/`archive/`/ledgers into dated eras) — the data-driven hook already exists,
+so the dedicated session just fills it in. (User, when choosing the rebuild: "a dream, not structurally
+directed yet" — so kept light for now, designed to grow.)
+
 ## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; ✅ MOCK SIGNED OFF + ✅ BUILT 2026-06-19)
 
 ### Device feedback — build 14 run (2026-06-19, triaged same session)

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roadmap mock B — metro map</title>
+<style>
+  :root{
+    --bg:#0a0a14; --ink:#EDEDF3; --dim:#9A9AA8; --faint:#5c5c69;
+    --line:#7E74F0; --line-done:#5DCAA5; --detour:#E0A33C;
+    --done:#5DCAA5; --amber:#E0A33C; --next:#7E74F0; --future:#3a3a4a;
+    --like:#5DCAA5; --dislike:#E0653C; --think:#5BA3F0; --risk:#E0653C;
+    --card:#15151f; --cardline:#262633;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;overflow:hidden;}
+  body{background:radial-gradient(140% 110% at 15% -10%, #13132a 0%, var(--bg) 60%);
+       color:var(--ink); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+  header{position:fixed;top:0;left:0;right:0;z-index:50;padding:16px 22px 12px;
+         background:linear-gradient(180deg,rgba(10,10,20,.95),rgba(10,10,20,.4) 75%,transparent);}
+  h1{font-size:18px;font-weight:700;margin:0;letter-spacing:-.2px;}
+  h1 .style{color:#b7afff;font-weight:600;}
+  .sub{color:var(--dim);font-size:12.5px;margin:3px 0 0;}
+  .legend{display:flex;gap:15px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--dim);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .summary{position:fixed;top:16px;right:22px;z-index:60;display:flex;gap:14px;font-size:12px;color:var(--dim);
+           background:rgba(20,20,29,.8);border:1px solid #242432;border-radius:11px;padding:8px 14px;}
+  .summary b{color:var(--ink);}
+
+  .band{position:absolute;top:150px;height:470px;border-radius:18px;}
+  .band .blab{position:absolute;top:14px;left:18px;font-size:11px;font-weight:700;letter-spacing:.9px;
+              text-transform:uppercase;color:var(--faint);}
+  .band .bwhen{position:absolute;top:31px;left:18px;font-size:10px;color:var(--line);opacity:.7;font-weight:600;}
+
+  svg{position:absolute;inset:0;z-index:2;}
+  .station{position:absolute;z-index:4;width:170px;transform:translateX(-50%);text-align:center;}
+  .station .label{font-size:12.5px;font-weight:600;line-height:1.25;}
+  .station .id{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.4px;}
+  .station .note{font-size:10.5px;color:var(--dim);line-height:1.4;margin-top:3px;}
+  .station.above .stack{margin-bottom:30px;}
+  .station.below .stack{margin-top:30px;}
+
+  .dot{width:22px;height:22px;border-radius:50%;border:3px solid var(--future);background:var(--bg);
+       position:absolute;left:50%;transform:translateX(-50%);z-index:5;}
+  .dot.done{background:var(--done);border-color:var(--done);}
+  .dot.inprogress{background:var(--amber);border-color:var(--amber);box-shadow:0 0 16px -2px var(--amber);}
+  .dot.next{background:var(--next);border-color:#bcb4ff;width:28px;height:28px;box-shadow:0 0 24px -2px var(--next);}
+  .dot.detour{border-color:var(--detour);background:var(--detour);}
+
+  .badge{position:absolute;left:calc(50% + 12px);width:24px;height:24px;border-radius:50%;
+         background:var(--card);border:1px solid var(--cardline);display:flex;align-items:center;
+         justify-content:center;font-size:12px;z-index:7;box-shadow:0 3px 9px rgba(0,0,0,.5);}
+  .halo{position:absolute;left:50%;width:46px;height:46px;border-radius:50%;transform:translate(-50%,-12px);z-index:3;}
+  .halo.like{box-shadow:0 0 0 2px var(--like),0 0 26px -2px var(--like);}
+  .halo.think{box-shadow:0 0 0 2px var(--think),0 0 26px -2px var(--think);}
+
+  .pop{position:absolute;width:262px;background:#13131c;border:1px solid #2c2c3c;border-radius:14px;
+       padding:14px;z-index:30;box-shadow:0 20px 60px -12px rgba(0,0,0,.85);}
+  .pop .ph{font-size:10px;color:var(--faint);font-weight:700;letter-spacing:.4px;}
+  .pop .pt{font-size:13.5px;font-weight:600;margin:2px 0 11px;}
+  .reacts{display:flex;gap:8px;margin-bottom:11px;}
+  .rbtn{flex:1;border:1px solid #2c2c3c;background:#1a1a24;border-radius:10px;padding:8px 0;font-size:17px;text-align:center;}
+  .rbtn.on.think{border-color:var(--think);background:rgba(91,163,240,.16);}
+  .pop textarea{width:100%;height:54px;resize:none;background:#0e0e16;border:1px solid #2c2c3c;border-radius:10px;color:var(--ink);font:12px/1.45 inherit;padding:8px 9px;}
+  .pop .prow{display:flex;justify-content:space-between;margin-top:10px;}
+  .pop .lnk{font-size:11px;color:var(--faint);}
+  .pop .done{font-size:11.5px;color:var(--next);font-weight:700;}
+
+  .controls{position:fixed;bottom:18px;right:18px;display:flex;gap:8px;z-index:60;}
+  .ctl{width:38px;height:38px;border-radius:10px;background:#14141d;border:1px solid #2a2a38;color:var(--ink);font-size:17px;display:flex;align-items:center;justify-content:center;}
+  .hint{position:fixed;bottom:22px;left:22px;z-index:60;font-size:11px;color:var(--faint);}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Skrift — the road to the App Store &nbsp;<span class="style">· style B: metro map</span></h1>
+    <p class="sub">The main <b style="color:#b7afff">line</b> runs left → right toward shipping. The <b style="color:var(--detour)">amber branch</b> is the audiobook detour — it forks off and rejoins. Each station is a phase you can react to.</p>
+    <div class="legend">
+      <span><i class="dot" style="position:static;width:13px;height:13px;border-width:3px;background:var(--done);border-color:var(--done)"></i> Done</span>
+      <span><i class="dot" style="position:static;width:13px;height:13px;background:var(--amber);border-color:var(--amber)"></i> In progress</span>
+      <span><i class="dot" style="position:static;width:13px;height:13px;background:var(--next);border-color:#bcb4ff"></i> Next</span>
+      <span><i class="dot" style="position:static;width:13px;height:13px;background:var(--bg);border-color:var(--future)"></i> Ahead</span>
+      <span style="margin-left:6px;color:var(--like)">👍 like</span><span style="color:var(--dislike)">👎 not&nbsp;this</span><span style="color:var(--think)">🤔 think</span>
+    </div>
+  </header>
+  <div class="summary"><span>🗨 <b>2</b> commented</span><span>👍 <b>1</b></span><span>🤔 <b>1</b></span></div>
+
+  <div id="stage"></div>
+
+  <div class="hint">Scroll to zoom · drag to pan · click a station to react</div>
+  <div class="controls"><div class="ctl">−</div><div class="ctl" style="width:auto;padding:0 12px;font-size:12px;font-weight:600">100%</div><div class="ctl">+</div><div class="ctl">⛶</div></div>
+
+<script>
+const stage=document.getElementById("stage");
+const NS="http://www.w3.org/2000/svg";
+const Y=380, DY=560; // main line y, detour line y
+// milestone bands
+const BANDS=[
+  {k:"Foundation",w:"done",x:40,wd:300},
+  {k:"Standalone core",w:"earliest shippable",x:360,wd:430},
+  {k:"Differentiator",w:"worth $0.69",x:810,wd:300},
+  {k:"Enrichment",w:"depth",x:1130,wd:300},
+  {k:"Ship",w:"App Store",x:1450,wd:170},
+];
+BANDS.forEach((b,i)=>{
+  const d=document.createElement("div");d.className="band";
+  d.style.left=b.x+"px";d.style.width=b.wd+"px";
+  d.style.background=i%2? "rgba(255,255,255,.018)":"rgba(255,255,255,.035)";
+  d.innerHTML=`<div class="blab">${b.k}</div><div class="bwhen">${b.w}</div>`;stage.appendChild(d);
+});
+
+// main line stations (x, label position above/below)
+const MAIN=[
+  {id:"P0", x:120,  t:"Shared naming engine", s:"done", pos:"above", n:"Both apps, one engine"},
+  {id:"P1", x:270,  t:"CloudKit sync", s:"done", pos:"below", n:"Notes on all your devices"},
+  {id:"P2", x:470,  t:"Export & Obsidian", s:"next", pos:"above", n:"#1 gap — ship-blocker"},
+  {id:"P3", x:640,  t:"De-Mac the UX", s:"inprogress", pos:"below", n:"Standalone-first"},
+  {id:"P4", x:880,  t:"On-device Polish", s:"future", pos:"above", n:"Spike-gated · risk", react:"think"},
+  {id:"P6", x:1010, t:"Commonplace Book", s:"future", pos:"below", n:"Highlights + quote cards"},
+  {id:"P5", x:1190, t:"Organization", s:"future", pos:"above", n:"Pins · tags · folders"},
+  {id:"P8", x:1330, t:"Journal & search", s:"future", pos:"below", n:"On This Day · semantic"},
+  {id:"P11",x:1520, t:"App Store", s:"future", pos:"above", n:"Ship it"},
+];
+// detour stations
+const DET=[
+  {id:"D1",x:330,t:"Audiobook sync %",s:"done"},
+  {id:"D2",x:430,t:"Everything syncs",s:"done"},
+  {id:"D3",x:540,t:"Reading-mode redesign",s:"done", react:"like"},
+];
+
+const svg=document.createElementNS(NS,"svg");svg.setAttribute("width","1680");svg.setAttribute("height","760");stage.appendChild(svg);
+function seg(x1,y1,x2,y2,col,w,dash){const p=document.createElementNS(NS,"path");
+  const mx=(x1+x2)/2;p.setAttribute("d",`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+  p.setAttribute("stroke",col);p.setAttribute("stroke-width",w);p.setAttribute("fill","none");p.setAttribute("stroke-linecap","round");
+  if(dash)p.setAttribute("stroke-dasharray","2 9");svg.appendChild(p);}
+// main line: done segment (P0→P2 area green-ish) then purple onward
+seg(120,Y,470,Y,"#5DCAA5","9");           // done portion
+seg(470,Y,1520,Y,"#7E74F0","9");          // ahead portion
+// detour branch off P1(270) down to D-line, across, back up to P2(470)
+seg(270,Y,330,DY,"#E0A33C","6");
+seg(330,DY,540,DY,"#E0A33C","6");
+seg(540,DY,470,Y,"#E0A33C","6");
+
+function station(p,lineY){
+  const wrap=document.createElement("div");wrap.className="station "+(p.pos||"below");
+  wrap.style.left=p.x+"px";wrap.style.top=lineY+"px";
+  const dot=`<div class="dot ${p.s} ${p.detour?'detour':''}" style="top:-11px"></div>`;
+  const halo=p.react?`<div class="halo ${p.react}"></div>`:``;
+  const badge=p.react?`<div class="badge" style="top:-20px">${p.react==='like'?'👍':p.react==='dislike'?'👎':'🤔'}</div>`:``;
+  const lab=`<div class="stack"><div class="id">${p.id}</div><div class="label">${p.t}</div><div class="note">${p.n||''}</div></div>`;
+  wrap.innerHTML = p.pos==="above" ? lab+halo+dot+badge : halo+dot+badge+lab;
+  stage.appendChild(wrap);return wrap;
+}
+MAIN.forEach(p=>station(p,Y));
+DET.forEach(p=>{p.detour=true;p.pos="below";station(p,DY);});
+
+// popover open on P4 (think)
+const pop=document.createElement("div");pop.className="pop";pop.style.left="880px";pop.style.top="200px";
+pop.innerHTML=`<div class="ph">P4 · AHEAD · RISK</div><div class="pt">On-device Polish</div>
+  <div class="reacts"><div class="rbtn">👍</div><div class="rbtn">👎</div><div class="rbtn on think">🤔</div></div>
+  <textarea>Run the iPhone-13 spike before committing. If jetsam, ship no-polish.</textarea>
+  <div class="prow"><span class="lnk">Remove</span><span class="done">Done ✓</span></div>`;
+stage.appendChild(pop);
+</script>
+</body>
+</html>

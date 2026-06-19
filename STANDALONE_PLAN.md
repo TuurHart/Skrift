@@ -466,7 +466,13 @@ paste). Then P3 de-Mac finish (onboarding/Settings demote) + Mac→CloudKit (opt
 **Installable now: build (13)** on `main` (local, **unpushed** — push only when asked). Phase 1 sync is COMPLETE +
 per-book audiobook sync does a **REAL upload/download %** + cover/transcript/position/rate all cross devices. Install
 (13) on both devices to use. (Build number lives in `project.yml` → `xcodegen generate` no longer resets it.)
-**Visual roadmap = `ROADMAP.html`** (Artifact; now shows the audiobook deep-dive as a DETOUR that merges back to P2).
+**Visual roadmap = `ROADMAP.html`** (Artifact) — rebuilt 2026-06-19 into an **interactive "metro-tree"**: one line
+left→right (green=done) that branches for the audiobook detour & merges back, then fans into the planned tracks; far
+left shows the native-rewrite history converging. **Pan/zoom + hover-for-deps + click-a-card-to-react** (👍/👎/🤔 +
+note, persisted in localStorage; phases list their individual **ideas** to react to). Comments round-trip via **Export
+→ `roadmap-comments.json` → `BAKED_COMMENTS`**. Generated from `PHASES`/`DETOURS`/`HISTORY`/`IDEAS` (layout auto-computes
+from `track`+`order`); update those arrays + the markdown together, then redeploy to the same Artifact URL. Design
+mocks (A tech-tree / B metro / C board / D chosen hybrid) in `roadmap-mocks/`.
 
 **✅ Done 2026-06-19 — raw-CloudKit audiobook AUDIO transfer (REAL %) + the "Turn it on" size sheet** (commits
 `974abfd`/`08adbf5`/`a353a49`/`d012353`/`e16531c`; 435/435 unit). Audio left the SwiftData `AudiobookAsset` blob (which

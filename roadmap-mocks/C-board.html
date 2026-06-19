@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roadmap mock C — fast-comment board</title>
+<style>
+  :root{
+    --bg:#0c0c14; --panel:#13131c; --card:#181820; --card2:#14141c; --line:#262633; --line2:#2e2e3c;
+    --accent:#7E74F0; --done:#5DCAA5; --amber:#E0A33C; --next:#7E74F0; --risk:#E0653C; --detour:#C9A24A;
+    --ink:#EDEDF3; --dim:#9A9AA8; --faint:#62626f;
+    --like:#5DCAA5; --dislike:#E0653C; --think:#5BA3F0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{background:var(--bg);color:var(--ink);font:13.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden;}
+
+  .top{display:flex;align-items:center;gap:18px;padding:15px 22px;border-bottom:1px solid var(--line);background:var(--panel);}
+  h1{font-size:17px;font-weight:700;margin:0;letter-spacing:-.2px;white-space:nowrap;}
+  h1 .style{color:#b7afff;font-weight:600;}
+  .filters{display:flex;gap:7px;}
+  .fchip{font-size:11.5px;padding:5px 12px;border-radius:20px;border:1px solid var(--line2);color:var(--dim);background:transparent;}
+  .fchip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .sum{margin-left:auto;display:flex;gap:16px;font-size:12px;color:var(--dim);align-items:center;}
+  .sum b{color:var(--ink);}
+  .ebtn{font-size:11.5px;padding:6px 13px;border-radius:9px;border:1px solid var(--line2);color:var(--ink);background:var(--card);font-weight:600;}
+
+  .board{display:flex;gap:16px;padding:18px 22px;height:calc(100% - 60px);overflow-x:auto;}
+  .lane{flex:0 0 296px;display:flex;flex-direction:column;min-height:0;}
+  .lhdr{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 11px;}
+  .lhdr .lk{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);}
+  .lhdr .lw{font-size:10px;color:var(--accent);opacity:.75;font-weight:600;}
+  .lhdr .cnt{font-size:11px;color:var(--faint);}
+  .lanebody{overflow-y:auto;padding:2px;display:flex;flex-direction:column;gap:11px;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 13px;position:relative;}
+  .card .top1{display:flex;align-items:center;gap:8px;}
+  .card .id{font-size:10px;font-weight:700;color:var(--faint);letter-spacing:.4px;}
+  .tag{font-size:8.5px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:20px;text-transform:uppercase;margin-left:auto;}
+  .tag.s-done{background:rgba(93,202,165,.12);color:var(--done);}
+  .tag.s-inprogress{background:rgba(224,163,60,.12);color:var(--amber);}
+  .tag.s-next{background:rgba(126,116,240,.16);color:var(--accent);}
+  .tag.s-future{background:#1c1c28;color:var(--faint);}
+  .tag.s-deferred{background:#1c1c28;color:var(--faint);}
+  .tag.risk{background:rgba(224,101,60,.14);color:var(--risk);margin-left:6px;}
+  .card .t{font-size:13.5px;font-weight:600;margin:6px 0 4px;line-height:1.3;}
+  .card .n{font-size:11.5px;color:var(--dim);line-height:1.45;}
+
+  .card.done{border-left:3px solid var(--done);}
+  .card.inprogress{border-left:3px solid var(--amber);box-shadow:0 0 22px -12px var(--amber);}
+  .card.next{border-left:3px solid var(--next);box-shadow:0 0 24px -10px var(--accent);}
+  .card.future{border-left:3px solid #303040;}
+  .card.deferred{opacity:.6;border-left:3px solid #303040;}
+
+  .react{display:flex;gap:6px;margin-top:10px;align-items:center;}
+  .rb{width:30px;height:28px;border-radius:8px;border:1px solid var(--line2);background:var(--card2);font-size:14px;display:flex;align-items:center;justify-content:center;}
+  .rb.on.like{border-color:var(--like);background:rgba(93,202,165,.16);}
+  .rb.on.dislike{border-color:var(--dislike);background:rgba(224,101,60,.16);}
+  .rb.on.think{border-color:var(--think);background:rgba(91,163,240,.16);}
+  .react .note-i{flex:1;font-size:11px;color:var(--faint);text-align:right;}
+
+  .notebox{margin-top:9px;background:var(--card2);border:1px solid var(--line2);border-radius:9px;padding:8px 9px;font-size:11.5px;line-height:1.45;color:#cfcfe0;}
+  .notebox .who{font-size:9.5px;color:var(--faint);font-weight:700;letter-spacing:.3px;margin-bottom:3px;text-transform:uppercase;}
+
+  /* idea sub-cards */
+  .idea{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+  .idea .t{font-size:12px;font-weight:600;margin:0;}
+  .idea .react{margin-top:7px;}
+  .idea .rb{width:26px;height:24px;font-size:12px;}
+  .ideas-h{font-size:9.5px;color:var(--faint);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin:2px 2px -2px;}
+
+  .editing{box-shadow:0 0 0 2px var(--accent);}
+  .editbox{margin-top:9px;}
+  .editbox textarea{width:100%;height:54px;resize:none;background:#0e0e16;border:1px solid var(--line2);border-radius:9px;color:var(--ink);font:11.5px/1.45 inherit;padding:8px 9px;}
+  .editbox .prow{display:flex;justify-content:space-between;margin-top:7px;}
+  .editbox .lnk{font-size:11px;color:var(--faint);}
+  .editbox .save{font-size:11px;color:var(--accent);font-weight:700;}
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>Skrift roadmap &nbsp;<span class="style">· style C: fast-comment board</span></h1>
+    <div class="filters">
+      <span class="fchip on">All</span><span class="fchip">Next</span><span class="fchip">Commented</span><span class="fchip">👍 Liked</span>
+    </div>
+    <div class="sum">
+      <span>🗨 <b>4</b> commented</span><span>👍 <b>2</b></span><span>👎 <b>1</b></span><span>🤔 <b>1</b></span>
+      <button class="ebtn">⤓ Export</button><button class="ebtn">⤒ Import</button>
+    </div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+<script>
+const LANES=[
+  {k:"Foundation",w:"done"},
+  {k:"Standalone core",w:"earliest shippable"},
+  {k:"Differentiator",w:"worth $0.69"},
+  {k:"Enrichment",w:"depth"},
+  {k:"Ship",w:"App Store"},
+];
+const CARDS={
+  "Foundation":[
+    {id:"P0",t:"Shared naming engine",s:"done",n:"One name-linking engine both apps compile."},
+    {id:"P1",t:"CloudKit sync",s:"done",n:"Memos + media + names + vocab across your devices.",react:"like",note:"Solid. Glad this is done — everything else rides on it."},
+    {id:"--D",t:"Audiobook deep-dive (detour)",s:"done",n:"Per-book sync %, everything-syncs, reading-mode redesign.",detour:true},
+  ],
+  "Standalone core":[
+    {id:"P2",t:"Export & Obsidian publish",s:"next",n:"#1 gap — a phone-only note can only escape via copy-paste.",editing:true},
+    {id:"P3",t:"De-Mac the UX",s:"inprogress",n:"Tab-bar IA + 'Importance' label done. Onboarding/Settings left."},
+    {id:"Mac",t:"Mac rejoins via CloudKit",s:"future",n:"Mac reads the store, enhances, writes the result back."},
+  ],
+  "Differentiator":[
+    {id:"P4",t:"On-device Polish",s:"future",risk:true,n:"Cleanup/title/summary on-device. Spike-gated.",react:"think",note:"Spike on the iPhone 13 first."},
+    {id:"P6",t:"Commonplace Book + quote cards",s:"future",n:"The headline differentiator.",
+      ideas:[
+        {id:"P6a",t:"Highlights tab (quotes feed)",react:"like"},
+        {id:"P6b",t:"Shareable quote cards"},
+        {id:"P6c",t:"Daily Review (resurfacing)"},
+        {id:"P6d",t:"Per-source highlight export",react:"dislike"},
+      ]},
+  ],
+  "Enrichment":[
+    {id:"P5",t:"Organization",s:"future",n:"Pins, nested tags, smart folders.",
+      ideas:[{id:"P5a",t:"Pins"},{id:"P5b",t:"Nested tags (tap-to-filter)"},{id:"P5c",t:"Smart folders"}]},
+    {id:"P7",t:"People & backlinks",s:"future",n:"Person pages, linked/unlinked mentions."},
+    {id:"P8",t:"Journal / On-This-Day / search",s:"future",n:"On This Day, map, semantic related notes.",
+      ideas:[{id:"P8a",t:"On This Day"},{id:"P8b",t:"Map view"},{id:"P8c",t:"Semantic search"}]},
+  ],
+  "Ship":[
+    {id:"P9b",t:"Audiobook player polish",s:"future",n:"Sleep timer, clips, annotatable bookmarks."},
+    {id:"P11",t:"App Store readiness",s:"future",n:"Price tier, privacy label, screenshots, review prep."},
+    {id:"P10",t:"Apple Watch capture",s:"deferred",n:"Fast-follow — its own target."},
+  ],
+};
+const SLAB={done:"Done",inprogress:"In progress",next:"Next",future:"Ahead",deferred:"Deferred"};
+const EMO={like:"👍",dislike:"👎",think:"🤔"};
+const board=document.getElementById("board");
+
+function reactRow(react,small){
+  const cls=small?'':'';
+  return `<div class="react">
+    <div class="rb like ${react==='like'?'on':''}">👍</div>
+    <div class="rb dislike ${react==='dislike'?'on':''}">👎</div>
+    <div class="rb think ${react==='think'?'on':''}">🤔</div>
+    ${!small?`<span class="note-i">${react?'reacted':'tap to react'}</span>`:''}
+  </div>`;
+}
+
+LANES.forEach(L=>{
+  const lane=document.createElement("div");lane.className="lane";
+  const cards=CARDS[L.k]||[];
+  lane.innerHTML=`<div class="lhdr"><div><div class="lk">${L.k}</div><div class="lw">${L.w}</div></div><div class="cnt">${cards.length}</div></div>`;
+  const body=document.createElement("div");body.className="lanebody";
+  cards.forEach(c=>{
+    const card=document.createElement("div");
+    card.className="card "+(c.detour?'done':c.s)+(c.editing?' editing':'');
+    let inner=`<div class="top1"><span class="id">${c.id.replace('--','')}</span>`+
+      (c.detour?`<span class="tag s-done" style="color:var(--detour);background:var(--detourbg,rgba(201,162,74,.12))">Detour ✓</span>`
+                :`<span class="tag s-${c.s}">${SLAB[c.s]}</span>`)+
+      (c.risk?`<span class="tag risk">Risk</span>`:``)+
+      `</div><div class="t">${c.t}</div><div class="n">${c.n||''}</div>`;
+    if(c.editing){
+      inner+=`<div class="react"><div class="rb like on">👍</div><div class="rb dislike">👎</div><div class="rb think">🤔</div></div>
+        <div class="editbox"><textarea>Do this first. Plain .md + Obsidian frontmatter, [[img]] embeds.</textarea>
+        <div class="prow"><span class="lnk">Remove</span><span class="save">Save ✓</span></div></div>`;
+    } else {
+      inner+=reactRow(c.react);
+      if(c.note) inner+=`<div class="notebox"><div class="who">your note</div>${c.note}</div>`;
+    }
+    if(c.ideas){
+      inner+=`<div class="ideas-h">Ideas to react to</div>`;
+      c.ideas.forEach(i=>{
+        inner+=`<div class="idea" style="margin-top:7px"><div class="top1"><span class="id">${i.id}</span>`+
+          (i.react?`<span class="tag" style="margin-left:auto;background:rgba(${i.react==='like'?'93,202,165':i.react==='dislike'?'224,101,60':'91,163,240'},.14)">${EMO[i.react]}</span>`:'')+
+          `</div><div class="t">${i.t}</div>${reactRow(i.react,true)}</div>`;
+      });
+    }
+    card.innerHTML=inner;
+    body.appendChild(card);
+  });
+  lane.appendChild(body);board.appendChild(lane);
+});
+</script>
+</body>
+</html>
