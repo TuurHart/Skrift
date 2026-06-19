@@ -7,12 +7,12 @@
 <style>
   :root{
     --bg:#070710; --panel:#0E0E18; --surface:#17171F; --line:#23232E;
-    --accent:#7E74F0; --accent-dim:#4a4490;
+    --accent:#7E74F0; --accent2:#9a92f7; --accent-dim:#4a4490;
     --done:#5DCAA5; --donebg:rgba(93,202,165,.10);
     --amber:#E0A33C; --amberbg:rgba(224,163,60,.10);
     --next:#7E74F0; --nextbg:rgba(126,116,240,.13);
     --text:#EDEDF3; --dim:#9A9AA8; --faint:#62626f;
-    --risk:#E0653C;
+    --risk:#E0653C; --detour:#C9A24A; --detourbg:rgba(201,162,74,.09);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;overflow-x:hidden;}
@@ -20,11 +20,11 @@
        color:var(--text); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
        padding:24px 20px 60px; min-height:100vh;}
   h1{font-size:21px;font-weight:700;margin:0 0 3px;letter-spacing:-.2px;}
-  .sub{color:var(--dim);margin:0 0 4px;font-size:13px;max-width:760px;}
+  .sub{color:var(--dim);margin:0 0 4px;font-size:13px;max-width:820px;}
   .stamp{color:var(--faint);font-size:11.5px;margin:0 0 16px;}
 
   .focus{display:flex;gap:11px;align-items:flex-start;background:var(--nextbg);
-         border:1px solid var(--accent-dim);border-radius:13px;padding:12px 15px;margin:0 0 20px;max-width:860px;}
+         border:1px solid var(--accent-dim);border-radius:13px;padding:12px 15px;margin:0 0 20px;max-width:880px;}
   .focus .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;
               box-shadow:0 0 0 4px rgba(126,116,240,.18);}
   .focus b{color:var(--text);font-weight:600;}
@@ -36,7 +36,8 @@
 
   /* horizontal scroll container — body never scrolls sideways */
   .scroll{overflow-x:auto;overflow-y:hidden;padding:6px 2px 18px;-webkit-overflow-scrolling:touch;}
-  .tree{position:relative;display:inline-flex;gap:0;min-width:max-content;}
+  .tree{position:relative;display:inline-flex;flex-direction:column;align-items:flex-start;min-width:max-content;}
+  .cols{display:inline-flex;gap:0;}
   .col{width:226px;flex-shrink:0;padding:0 13px;position:relative;}
   .col + .col{border-left:1px dashed #1c1c2a;}
   .col h2{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
@@ -74,18 +75,31 @@
   .tag.s-deferred{background:#1c1c28;color:var(--faint);}
   .tag.risk{background:rgba(224,101,60,.13);color:var(--risk);}
 
+  /* ── detours: branches off the main spine that merge back ── */
+  .detours{margin-top:6px;padding-top:14px;width:100%;border-top:1px dashed #242436;}
+  .detour-h{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--detour);margin:0 0 2px;}
+  .detour-sub{font-size:11px;color:var(--faint);margin:0 0 14px;}
+  .detour{margin:0 0 6px 30px;}
+  .dlabel{font-size:11px;color:var(--detour);font-weight:600;margin:0 0 9px;display:flex;align-items:center;gap:6px;}
+  .dlabel .arc{font-size:13px;}
+  .drow{display:inline-flex;gap:14px;}
+  .drow .node{width:232px;flex-shrink:0;margin-bottom:0;}
+  .node.dt{border-style:dashed;border-color:var(--detour-dim,#5a4a28);background:linear-gradient(var(--detourbg),var(--surface));}
+  .node.dt.done{border-color:rgba(93,202,165,.4);}
+  .node.dt .id{color:var(--detour);}
+  .tag.s-detour{background:var(--detourbg);color:var(--detour);}
+
   svg.edges{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;overflow:visible;}
-  .milestone-foot{font-size:10px;color:var(--faint);margin-top:2px;}
 </style>
 </head>
 <body>
   <h1>Skrift — the road to the App Store</h1>
-  <p class="sub">Standalone audiobook + note-taking app, no Mac required. Left → right = the path to shipping. Nodes light up as they land; locked nodes are still ahead. Lines are dependencies.</p>
+  <p class="sub">Standalone audiobook + note-taking app, no Mac required. The top row is the main spine, left → right toward shipping (lines = dependencies). The branches below are <b>detours</b> — side-quests that forked off the main path and merged back — so you can see how the app actually got made.</p>
   <p class="stamp" id="stamp"></p>
 
   <div class="focus">
     <div class="dot"></div>
-    <div><b>You are here →</b> Phase&nbsp;1 sync is COMPLETE (build&nbsp;13 — audiobook cover, read-along transcript, resume-position + speed all cross devices). Next: the Phase&nbsp;3 navigation slice (tab-bar IA + cheap audiobook wins: delete-confirm, header compress, font size) — <b>then pivot to Phase&nbsp;2 Export</b>, the real ship-blocker.</div>
+    <div><b>You are here →</b> Phase&nbsp;1 + the <b>audiobook deep-dive detour</b> are done (build&nbsp;13: per-book sync with a real %, and cover/transcript/position/speed all crossing devices). <b>Next (fresh session):</b> build the full audiobook <b>reading-mode redesign + tab-bar IA</b> (mock signed off) — then merge back to <b>Phase&nbsp;2 Export</b>, the ship-blocker.</div>
   </div>
 
   <div class="legend">
@@ -94,11 +108,19 @@
     <span><i class="chip" style="background:var(--accent)"></i> Next / unlockable</span>
     <span><i class="chip" style="background:#2a2a38"></i> Ahead (locked)</span>
     <span><i class="chip" style="background:#2a2a38;border:1px dashed #555"></i> Deferred</span>
+    <span><i class="chip" style="background:var(--detour);border-radius:2px"></i> Detour (branch &amp; merge)</span>
     <span><i class="chip" style="background:var(--risk)"></i> Highest risk</span>
   </div>
 
   <div class="scroll">
-    <div class="tree" id="tree"><svg class="edges" id="edges"></svg></div>
+    <div class="tree" id="tree">
+      <svg class="edges" id="edges"></svg>
+      <div class="cols" id="cols"></div>
+      <div class="detours" id="detours">
+        <p class="detour-h">Detours — how it actually got made</p>
+        <p class="detour-sub">Side-quests that branched off the main spine and merged back in.</p>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -113,76 +135,116 @@ const MILESTONES = [
 ];
 const PHASES = [
   { id:"P0",  ms:"Foundation",      title:"Shared naming engine",        status:"done", eff:"M", done:"Jun 17", deps:[],            note:"One name-linking engine both apps compile — no drift." },
-  { id:"P1",  ms:"Foundation",      title:"CloudKit sync (your devices)", status:"done", eff:"L", done:"Jun 19", deps:["P0"],         note:"Memos + media + names + vocab + audiobooks (real %, cover + transcript + position/rate). Build 13." },
-  { id:"P2",  ms:"Standalone core", title:"Export & Obsidian publish",    status:"next", eff:"L",            deps:["P0"],            note:"#1 gap — today a phone-only note can only escape via copy-paste." },
-  { id:"P3",  ms:"Standalone core", title:"De-Mac the UX + tab-bar IA",   status:"inprogress", eff:"M",      deps:["P1"],            note:"Toolbar gate done. Onboarding, Importance reframe, navigation (tabs) left — the current slice." },
+  { id:"P1",  ms:"Foundation",      title:"CloudKit sync (your devices)", status:"done", eff:"L", done:"Jun 19", deps:["P0"],         note:"Memos + media + names + vocab. (Audiobook sync was a detour — see below.) Build 13." },
+  { id:"P2",  ms:"Standalone core", title:"Export & Obsidian publish",    status:"next", eff:"L",            deps:["P0"],            note:"#1 gap — today a phone-only note can only escape via copy-paste. Resumes after the redesign detour." },
+  { id:"P3",  ms:"Standalone core", title:"De-Mac the UX",                status:"inprogress", eff:"M",      deps:["P1"],            note:"Toolbar gate done. Onboarding + Importance reframe left (tab-bar IA is being done in the redesign detour)." },
   { id:"Mac", ms:"Standalone core", title:"Mac rejoins via CloudKit",     status:"future", eff:"L",          deps:["P1","P2","P3"],  note:"Mac reads the notes store, enhances, writes the polished result back → syncs to the phone." },
   { id:"P4",  ms:"Differentiator",  title:"On-device Polish (spike-gated)",status:"future", eff:"L", risk:true, deps:["P0"],         note:"Cleanup/title/summary on-device. Longest pole — run the spike on the iPhone 13 early; ships no-polish if it fails." },
   { id:"P6",  ms:"Differentiator",  title:"Commonplace Book + quote cards",status:"future", eff:"L",          deps:["P2"],           note:"Highlights feed + Daily Review + shareable quote cards. The headline + App-Store marketing." },
   { id:"P5",  ms:"Enrichment",      title:"Organization",                 status:"future", eff:"M",           deps:["P3"],           note:"Pins, nested tags, smart folders. (Folders model still open.)" },
-  { id:"P9a", ms:"Enrichment",      title:"Audiobook reading experience", status:"future", eff:"M",           deps:["P3"],           note:"'Reading mode': less chrome, more page. Cheap wins fold into the current slice; mock-first." },
   { id:"P7",  ms:"Enrichment",      title:"People & backlinks",           status:"future", eff:"M",           deps:["P0"],           note:"Person pages, linked/unlinked mentions." },
   { id:"P8",  ms:"Enrichment",      title:"Journal / On-This-Day / search",status:"future", eff:"L",          deps:["P1"],           note:"On This Day, map, semantic 'related notes' (on-device embeddings)." },
-  { id:"P9b", ms:"Enrichment",      title:"Audiobook player polish",      status:"future", eff:"M",           deps:["P9a"],          note:"Sleep timer, clips, annotatable bookmarks, skip-silence." },
+  { id:"P9b", ms:"Enrichment",      title:"Audiobook player polish",      status:"future", eff:"M",           deps:["D3"],           note:"Sleep timer, clips, annotatable bookmarks, skip-silence — after the reading-mode redesign." },
   { id:"P11", ms:"Ship",            title:"App Store readiness",          status:"future", eff:"M",           deps:["P2","P3"],      note:"Price tier, privacy label, screenshots, onboarding, review prep." },
   { id:"P10", ms:"Ship",            title:"Apple Watch capture",          status:"deferred", eff:"L",         deps:["P1"],           note:"Fast-follow — its own target + review." },
+];
+// Detours: branch off `branchFrom` (a main node) and merge back into `mergeTo`.
+const DETOURS = [
+  {
+    name: "Audiobook deep-dive", when: "Jun 18–19, while in Phase 1",
+    branchFrom: "P1", mergeTo: "P2",
+    nodes: [
+      { id:"D1", title:"Per-book audiobook sync + real %", status:"done", eff:"L", done:"Jun 19", deps:[],     note:"Raw-CloudKit CKAsset transfer → a determinate upload/download bar + the 'Turn it on' size sheet." },
+      { id:"D2", title:"Everything syncs",                 status:"done", eff:"M", done:"Jun 19", deps:["D1"], note:"Cover + read-along transcript + resume-position + speed, all across devices." },
+      { id:"D3", title:"Player reading-mode redesign",     status:"next", eff:"L",                deps:["D2"], note:"e-reader 'reading mode' + tab-bar IA + book-like bookmarks. Mock SIGNED OFF; build next (fresh session)." },
+    ],
+  },
 ];
 // ───────────────────────────────────────────────────────────────────────────────
 
 const STATUS_LABEL = {done:"Done", inprogress:"In progress", next:"Next", future:"Ahead", deferred:"Deferred"};
 document.getElementById("stamp").textContent = "Last updated " + LAST_UPDATED + " · canonical detail lives in STANDALONE_PLAN.md + backlog.md";
 
-const tree = document.getElementById("tree");
 const nodeEls = {};
+function buildNode(p, extraClass){
+  const el = document.createElement("div");
+  el.className = "node " + p.status + (extraClass ? " " + extraClass : "");
+  el.innerHTML =
+    `<div class="id">${p.id}</div>` +
+    `<div class="t">${p.title}</div>` +
+    `<div class="n">${p.note || ""}</div>` +
+    `<div class="meta">` +
+      `<span class="tag s-${extraClass === 'dt' && p.status==='next' ? 'detour' : p.status}">${STATUS_LABEL[p.status]}</span>` +
+      (p.risk ? `<span class="tag risk">Risk</span>` : ``) +
+      (p.done ? `<span class="date">✓ ${p.done}</span>` : `<span class="eff">${p.eff}</span>`) +
+    `</div>`;
+  nodeEls[p.id] = el;
+  return el;
+}
+
+// main spine
+const colsEl = document.getElementById("cols");
 MILESTONES.forEach(m => {
   const col = document.createElement("div");
   col.className = "col";
   col.innerHTML = `<h2>${m.key}</h2><div class="when">${m.when}</div>`;
-  PHASES.filter(p => p.ms === m.key).forEach(p => {
-    const el = document.createElement("div");
-    el.className = "node " + p.status;
-    el.innerHTML =
-      `<div class="id">${p.id}</div>` +
-      `<div class="t">${p.title}</div>` +
-      `<div class="n">${p.note || ""}</div>` +
-      `<div class="meta">` +
-        `<span class="tag s-${p.status}">${STATUS_LABEL[p.status]}</span>` +
-        (p.risk ? `<span class="tag risk">Risk</span>` : ``) +
-        (p.done ? `<span class="date">✓ ${p.done}</span>` : `<span class="eff">${p.eff}</span>`) +
-      `</div>`;
-    col.appendChild(el);
-    nodeEls[p.id] = el;
-  });
-  tree.appendChild(col);
+  PHASES.filter(p => p.ms === m.key).forEach(p => col.appendChild(buildNode(p)));
+  colsEl.appendChild(col);
 });
 
+// detour lane
+const detoursEl = document.getElementById("detours");
+DETOURS.forEach(d => {
+  const wrap = document.createElement("div");
+  wrap.className = "detour";
+  wrap.innerHTML = `<div class="dlabel"><span class="arc">↳</span> ${d.name} · <span style="color:var(--faint);font-weight:500">${d.when} · merges back into ${d.mergeTo}</span></div>`;
+  const row = document.createElement("div");
+  row.className = "drow";
+  d.nodes.forEach(p => row.appendChild(buildNode(p, "dt")));
+  wrap.appendChild(row);
+  detoursEl.appendChild(wrap);
+});
+
+// edges
 const svg = document.getElementById("edges");
 const SVGNS = "http://www.w3.org/2000/svg";
+function edge(aId, bId, opts){
+  const a = nodeEls[aId], b = nodeEls[bId];
+  if (!a || !b) return;
+  const base = tree.getBoundingClientRect();
+  const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  // connect from a's right (or bottom for a downward branch) to b's left/top
+  const downward = (rb.top - ra.top) > 60;
+  let x1, y1, x2, y2;
+  if (downward) { x1 = ra.left - base.left + ra.width/2; y1 = ra.bottom - base.top;
+                  x2 = rb.left - base.left + rb.width/2; y2 = rb.top - base.top; }
+  else { x1 = ra.right - base.left; y1 = ra.top - base.top + ra.height/2;
+         x2 = rb.left - base.left;  y2 = rb.top - base.top + rb.height/2; }
+  const p = document.createElementNS(SVGNS, "path");
+  const cx = downward ? 0 : Math.max(34,(x2-x1)*0.5), cy = downward ? Math.max(34,(y2-y1)*0.5) : 0;
+  p.setAttribute("d", `M ${x1} ${y1} C ${x1+cx} ${y1+cy}, ${x2-cx} ${y2-cy}, ${x2} ${y2}`);
+  p.setAttribute("stroke", opts.color); p.setAttribute("stroke-width", opts.w || "1.6");
+  p.setAttribute("fill", "none");
+  if (opts.dash) p.setAttribute("stroke-dasharray", "4 4");
+  svg.appendChild(p);
+  const dot = document.createElementNS(SVGNS, "circle");
+  dot.setAttribute("cx", x2); dot.setAttribute("cy", y2); dot.setAttribute("r", "2.4");
+  dot.setAttribute("fill", opts.color);
+  svg.appendChild(dot);
+}
+const tree = document.getElementById("tree");
+function live(id){ const e = nodeEls[id]; return e && (e.classList.contains("next")||e.classList.contains("inprogress")||e.classList.contains("done")); }
 function drawEdges(){
   while (svg.firstChild) svg.removeChild(svg.firstChild);
-  const base = tree.getBoundingClientRect();
-  svg.setAttribute("width", tree.scrollWidth);
-  svg.setAttribute("height", tree.scrollHeight);
-  PHASES.forEach(p => {
-    (p.deps || []).forEach(dep => {
-      const a = nodeEls[dep], b = nodeEls[p.id];
-      if (!a || !b) return;
-      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-      const x1 = ra.right - base.left, y1 = ra.top - base.top + ra.height/2;
-      const x2 = rb.left - base.left,  y2 = rb.top - base.top + rb.height/2;
-      const dx = Math.max(34, (x2 - x1) * 0.5);
-      const path = document.createElementNS(SVGNS, "path");
-      path.setAttribute("d", `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`);
-      const live = (b.classList.contains("next") || b.classList.contains("inprogress") || b.classList.contains("done"));
-      path.setAttribute("stroke", live ? "rgba(126,116,240,.55)" : "rgba(126,116,240,.16)");
-      path.setAttribute("stroke-width", "1.6");
-      path.setAttribute("fill", "none");
-      svg.appendChild(path);
-      const dot = document.createElementNS(SVGNS, "circle");
-      dot.setAttribute("cx", x2); dot.setAttribute("cy", y2); dot.setAttribute("r", "2.4");
-      dot.setAttribute("fill", live ? "rgba(126,116,240,.7)" : "rgba(126,116,240,.22)");
-      svg.appendChild(dot);
-    });
+  svg.setAttribute("width", tree.scrollWidth); svg.setAttribute("height", tree.scrollHeight);
+  // main deps
+  PHASES.forEach(p => (p.deps||[]).forEach(dep =>
+    edge(dep, p.id, { color: live(p.id) ? "rgba(126,116,240,.55)" : "rgba(126,116,240,.16)" })));
+  // detour internal deps + fork + merge (golden, dashed for fork/merge)
+  DETOURS.forEach(d => {
+    d.nodes.forEach(p => (p.deps||[]).forEach(dep => edge(dep, p.id, { color:"rgba(201,162,74,.5)" })));
+    edge(d.branchFrom, d.nodes[0].id, { color:"rgba(201,162,74,.7)", dash:true });            // fork off the spine
+    edge(d.nodes[d.nodes.length-1].id, d.mergeTo, { color:"rgba(201,162,74,.7)", dash:true }); // merge back
   });
 }
 drawEdges();
