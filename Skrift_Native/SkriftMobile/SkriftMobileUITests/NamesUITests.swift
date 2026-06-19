@@ -17,7 +17,7 @@ final class NamesUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        app.buttons["settings-button"].tap()
+        app.tabBars.buttons["Settings"].tap()
         let namesLink = app.descendants(matching: .any).matching(identifier: "names-link").firstMatch
         XCTAssertTrue(namesLink.waitForExistence(timeout: 15))
         namesLink.tap()
@@ -48,7 +48,7 @@ final class NamesUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        app.buttons["settings-button"].tap()
+        app.tabBars.buttons["Settings"].tap()
         let namesLink = app.descendants(matching: .any).matching(identifier: "names-link").firstMatch
         XCTAssertTrue(namesLink.waitForExistence(timeout: 10))
         namesLink.tap()

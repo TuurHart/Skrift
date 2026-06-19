@@ -16,7 +16,7 @@ final class SettingsUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        app.buttons["settings-button"].tap()
+        app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.staticTexts["Live transcription"].waitForExistence(timeout: 5), "capture toggle missing")
 
         let pair = app.descendants(matching: .any).matching(identifier: "pair-mac-link").firstMatch
@@ -55,7 +55,7 @@ final class SettingsUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        app.buttons["settings-button"].tap()
+        app.tabBars.buttons["Settings"].tap()
         let pair = app.descendants(matching: .any).matching(identifier: "pair-mac-link").firstMatch
         XCTAssertTrue(pair.waitForExistence(timeout: 5))
         pair.tap()
@@ -91,7 +91,7 @@ final class SettingsUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        app.buttons["settings-button"].tap()
+        app.tabBars.buttons["Settings"].tap()
         let feedback = app.buttons["send-feedback-button"]
         // Settings grew (Playback section) — scroll to reveal the feedback row if needed.
         if !feedback.waitForExistence(timeout: 3) { app.swipeUp(); app.swipeUp() }
@@ -119,7 +119,7 @@ final class SettingsUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        app.buttons["settings-button"].tap()
+        app.tabBars.buttons["Settings"].tap()
         let link = app.descendants(matching: .any).matching(identifier: "models-link").firstMatch
         XCTAssertTrue(link.waitForExistence(timeout: 5), "Models link missing")
         link.tap()
@@ -151,7 +151,7 @@ final class SettingsUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        app.buttons["settings-button"].tap()
+        app.tabBars.buttons["Settings"].tap()
         let link = app.descendants(matching: .any).matching(identifier: "custom-words-link").firstMatch
         XCTAssertTrue(link.waitForExistence(timeout: 5), "Custom words link missing")
         link.tap()

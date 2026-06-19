@@ -31,11 +31,11 @@ final class AppearanceUITests: XCTestCase {
         snap(app, "light-1-memos-list")
 
         // Settings (form rows/controls on light).
-        app.buttons["settings-button"].tap()
+        app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.buttons["pair-mac-link"].waitForExistence(timeout: 5))
         snap(app, "light-2-settings")
-        // Dismiss the sheet.
-        app.swipeDown(velocity: .fast)
+        // Back to the memos list (Settings is a root tab now, not a sheet).
+        app.tabBars.buttons["Notes"].tap()
 
         // Memo detail (cards, transcript, significance slider, glass player bar).
         let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch

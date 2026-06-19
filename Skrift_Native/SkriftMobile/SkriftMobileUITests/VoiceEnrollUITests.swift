@@ -27,7 +27,7 @@ final class VoiceEnrollUITests: XCTestCase {
             app.descendants(matching: .any).matching(identifier: id).firstMatch
         }
 
-        el("settings-button").tap()
+        app.tabBars.buttons["Settings"].tap()
         let names = el("names-link")
         XCTAssertTrue(names.waitForExistence(timeout: 8), "Names link missing in Settings")
         names.tap()
