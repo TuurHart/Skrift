@@ -109,6 +109,12 @@ Rules:
   **CloudKit** internal sync (not iCloud-Drive); one-way Obsidian publish; on-device Polish as a **gated
   spike**; Mac+Obsidian = optional sinks over one source of truth. Phases 0–11 + portability map +
   device/LLM matrix. Branch **`standalone`**. Track in `backlog.md` "⭐ Standalone App Store push".
+- **`ROADMAP.html`** — ⭐ the **visual roadmap** (Civ-tech-tree: a main spine left→right + **detour**
+  branches that fork off and merge back, "how the app got made"). Deployed as a claude.ai Artifact
+  (redeploy to the SAME url on update). **Source of truth = the markdown ledgers**; this is a GENERATED
+  VIEW from the `PHASES`/`DETOURS` arrays at the top of the file. **UPDATE CONTRACT (do this so the
+  picture never drifts):** whenever a phase/detour changes status, edit those arrays AND the markdown in
+  the same pass, then redeploy the Artifact. `git log ROADMAP.html` = the project history.
 - **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity: full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
 - `MOBILE_NATIVE_HANDOFF.md` → `MOBILE_NATIVE_REWRITE_PLAN.md` — the iOS app (phases, contract, XCUITest harness).
 - `DESKTOP_NATIVE_HANDOFF.md` → `DESKTOP_NATIVE_REWRITE_PLAN.md` — the macOS app. `WALKTHROUGH_BUGS.md` — desktop walkthrough tracker.

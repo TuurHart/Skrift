@@ -438,11 +438,20 @@ placeholder (Phase 1); pins (Phase 5).
 
 ---
 
-## ⭐⭐ RESUME — 2026-06-19 (read THIS first) — next: Phase 3 de-Mac (Importance label nod) → Phase 2 export
+## ⭐⭐ RESUME — 2026-06-19 (read THIS first) — next: BUILD the audiobook reading-mode redesign (fresh session)
 
-**Installable now: build (12)** on `main` (local, **unpushed** — push only when asked). Phase 1 sync is COMPLETE +
-per-book audiobook sync now does a **REAL upload/download %**. Install (12) on both devices to use. (Build number
-moved into `project.yml` → `xcodegen generate` no longer resets it.)
+**▶ NEXT = build the full audiobook player reading-mode redesign + tab-bar IA — in a FRESH session.** The mock is
+SIGNED OFF (`mocks/audiobook-player-reading-mode.html`); the build is large (~8–12 commit-per-chunk steps, est.
+~0.5–1M tokens = a few context windows, so it won't fit one chat — but each chunk commits + the spec lives in the
+mock/ledgers, so resuming is clean). **The ready-to-paste resume prompt is `AUDIOBOOK_REDESIGN_PROMPT.md`.** User
+chose to build the WHOLE redesign now (not the scoped slice), THEN pivot to Phase 2 Export. Chunk order: 1 tab-bar
+shell · 2 Importance relabel · 3 player header+cover-tint+floating play · 4 reading mode (auto-recede/now-line/
+free-scroll) · 5 Aa text settings · 6 bookmark model · 7 Add-note chip + read-along states · 8 library delete-confirm.
+
+**Installable now: build (13)** on `main` (local, **unpushed** — push only when asked). Phase 1 sync is COMPLETE +
+per-book audiobook sync does a **REAL upload/download %** + cover/transcript/position/rate all cross devices. Install
+(13) on both devices to use. (Build number lives in `project.yml` → `xcodegen generate` no longer resets it.)
+**Visual roadmap = `ROADMAP.html`** (Artifact; now shows the audiobook deep-dive as a DETOUR that merges back to P2).
 
 **✅ Done 2026-06-19 — raw-CloudKit audiobook AUDIO transfer (REAL %) + the "Turn it on" size sheet** (commits
 `974abfd`/`08adbf5`/`a353a49`/`d012353`/`e16531c`; 435/435 unit). Audio left the SwiftData `AudiobookAsset` blob (which
