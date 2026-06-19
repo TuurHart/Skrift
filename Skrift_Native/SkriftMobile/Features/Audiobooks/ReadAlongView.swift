@@ -85,6 +85,7 @@ struct ReadAlongView: View {
     var onUserScroll: () -> Void = {}
 
     @ObservedObject private var session = AudiobookSession.shared
+    @ObservedObject private var transcribeJob = BookTranscriptionJob.shared
     @StateObject private var model = ReadAlongModel()
 
     /// Auto-scroll follows the playhead until the user scrolls away; then a
@@ -308,25 +309,67 @@ struct ReadAlongView: View {
         .accessibilityIdentifier("player-back-to-playing")
     }
 
-    // MARK: - Nudge (not transcribed here)
+    // MARK: - Read-along states (no text here yet)
 
+    /// Two states when the current spot isn't covered: a live "Transcribing… N%"
+    /// while a whole-book transcribe runs, otherwise the "read along later" nudge.
+    @ViewBuilder
     private var nudge: some View {
-        Button(action: onTranscribe) {
-            VStack(spacing: 10) {
-                Text("Transcribe this book to read along\nand capture from anywhere.")
-                    .font(.system(size: 13.5)).foregroundStyle(Color.skTextDim)
-                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                Text("Transcribe book →")
-                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skAccent)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 20).padding(.horizontal, 16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.skBorder, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-            )
+        if transcribeJob.activeBookID == book.id, transcribeJob.isRunningOrPaused {
+            transcribingState
+        } else {
+            notTranscribedState
         }
-        .frame(maxHeight: .infinity)
-        .accessibilityIdentifier("player-readalong-nudge")
+    }
+
+    /// Mock screen 5 — audio works without text; transcribe on-device to read along.
+    private var notTranscribedState: some View {
+        VStack(spacing: 8) {
+            BookCoverView(book: book)
+                .frame(width: 64, height: 64)
+                .clipShape(.rect(cornerRadius: 8, style: .continuous))
+                .shadow(color: .black.opacity(0.4), radius: 6, y: 3)
+                .padding(.bottom, 4)
+            Text("Listen now, read along later")
+                .font(.system(size: 16, weight: .semibold)).foregroundStyle(Color.skText)
+            Text("Transcribe this book on-device to follow the words as they're read. Runs while you listen — a few minutes.")
+                .font(.system(size: 12.5)).foregroundStyle(Color.skTextDim)
+                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            Button(action: onTranscribe) {
+                HStack(spacing: 7) {
+                    Image(systemName: "text.book.closed").font(.system(size: 13, weight: .semibold))
+                    Text("Transcribe for read-along").font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Color.skAccent, in: .capsule)
+                .shadow(color: Color.skAccent.opacity(0.4), radius: 10, y: 4)
+            }
+            .padding(.top, 6)
+            .accessibilityIdentifier("player-readalong-nudge")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 30)
+    }
+
+    /// Live progress while a whole-book transcribe runs (mock: "Transcribing… 38%").
+    private var transcribingState: some View {
+        VStack(spacing: 12) {
+            BookCoverView(book: book)
+                .frame(width: 64, height: 64)
+                .clipShape(.rect(cornerRadius: 8, style: .continuous))
+                .padding(.bottom, 2)
+            Text("Transcribing for read-along")
+                .font(.system(size: 16, weight: .semibold)).foregroundStyle(Color.skText)
+            ProgressView(value: max(0, min(1, transcribeJob.progress)))
+                .tint(Color.skAccent).frame(maxWidth: 220)
+            Text("\(Int((transcribeJob.progress * 100).rounded()))%")
+                .font(.system(size: 13, weight: .semibold)).monospacedDigit().foregroundStyle(Color.skAccent)
+            Text("Keep listening — the page catches up as it goes.")
+                .font(.system(size: 12)).foregroundStyle(Color.skTextDim).multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 30)
+        .accessibilityIdentifier("player-readalong-transcribing")
     }
 }

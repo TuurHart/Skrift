@@ -143,13 +143,12 @@ struct AudiobookPlayerView: View {
                 if chromeUp {
                     VStack(spacing: 0) {
                         scrubber(book, time: time).padding(.bottom, 14)
-                        transport.padding(.bottom, 14)
-                        utilityRow.padding(.bottom, 14)
-                        captureButton
+                        transport.padding(.bottom, 16)
+                        utilityRow
                     }
                     .padding(.horizontal, Theme.Space.margin)
                     .padding(.top, 14)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 10)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
@@ -222,10 +221,16 @@ struct AudiobookPlayerView: View {
             Spacer(minLength: 6)
 
             if let pill = chapterPill(book) {
-                Text(pill).font(.system(size: 9.5, weight: .medium)).monospacedDigit()
-                    .foregroundStyle(Color.skAccentText)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.skAccent.opacity(0.13), in: .capsule)
+                // The chapter pill opens the Chapters/Bookmarks browse sheet (it left
+                // the utility row to make room for Add note; also in the ⋯ menu).
+                Button { tocInitialTab = .chapters; showTOC = true } label: {
+                    Text(pill).font(.system(size: 9.5, weight: .medium)).monospacedDigit()
+                        .foregroundStyle(Color.skAccentText)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.skAccent.opacity(0.13), in: .capsule)
+                }
+                .accessibilityIdentifier("player-chapters")
+                .accessibilityLabel("Chapters and bookmarks")
             }
             menu(book)
         }
@@ -240,6 +245,7 @@ struct AudiobookPlayerView: View {
 
     private func menu(_ book: Audiobook) -> some View {
         Menu {
+            Button { tocInitialTab = .chapters; showTOC = true } label: { Label("Chapters & bookmarks", systemImage: "list.bullet") }
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
             Button { showTranscribe = true } label: { Label("Transcribe book", systemImage: "text.book.closed") }
             // Per-book sync (Phase 1h) — same "Turn it on" sheet as the library long-press.
@@ -326,51 +332,23 @@ struct AudiobookPlayerView: View {
         .accessibilityLabel(session.isPlaying ? "Pause" : "Play")
     }
 
-    // MARK: - Transport (speed ◁ ⟲15 ▶ 30⟳ ▷ sleep)
+    // MARK: - Transport (just ⟲15 ▶ 30⟳ — speed + sleep moved to the utility row)
 
     private var transport: some View {
         HStack(spacing: 0) {
-            Menu {
-                ForEach(AudiobookSession.rates, id: \.self) { r in
-                    Button { session.setRate(r) } label: {
-                        if session.rate == r {
-                            Label(Self.rateLabel(r), systemImage: "checkmark")
-                        } else {
-                            Text(Self.rateLabel(r))
-                        }
-                    }
-                }
-            } label: {
-                Text(Self.rateLabel(session.rate)).font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.skTextDim).frame(width: 44)
-            }
-            .accessibilityIdentifier("player-speed")
-
             Spacer()
             Button { session.skip(-AudiobookSession.skipBack) } label: {
-                Image(systemName: "gobackward.15").font(.system(size: 26, weight: .light)).foregroundStyle(Color.skText)
+                Image(systemName: "gobackward.15").font(.system(size: 27, weight: .light)).foregroundStyle(Color.skText)
             }
             .accessibilityIdentifier("player-back-15").accessibilityLabel("Back 15 seconds")
-            Spacer().frame(width: 22)
+            Spacer().frame(width: 28)
             playSphere(size: 56)
-            Spacer().frame(width: 22)
+            Spacer().frame(width: 28)
             Button { session.skip(AudiobookSession.skipForward) } label: {
-                Image(systemName: "goforward.30").font(.system(size: 26, weight: .light)).foregroundStyle(Color.skText)
+                Image(systemName: "goforward.30").font(.system(size: 27, weight: .light)).foregroundStyle(Color.skText)
             }
             .accessibilityIdentifier("player-forward-30").accessibilityLabel("Forward 30 seconds")
             Spacer()
-
-            Menu {
-                Button("Off") { session.setSleep(.off) }
-                ForEach([5, 15, 30, 45, 60], id: \.self) { m in Button("\(m) minutes") { session.setSleep(.minutes(m)) } }
-                if session.book?.chapters.isEmpty == false { Button("End of chapter") { session.setSleep(.endOfChapter) } }
-            } label: {
-                let sleepOn = session.sleepUntil != nil || session.sleepAtChapterEnd
-                Image(systemName: sleepOn ? "moon.fill" : "moon")
-                    .font(.system(size: 17)).foregroundStyle(sleepOn ? Color.skAccent : Color.skTextDim)
-                    .frame(width: 44)
-            }
-            .accessibilityIdentifier("player-sleep")
         }
     }
 
@@ -378,43 +356,91 @@ struct AudiobookPlayerView: View {
         r == r.rounded() ? String(format: "%.0f×", r) : String(format: "%g×", r)
     }
 
-    // MARK: - Slim utility row (Chapters · Bookmark)
+    // MARK: - Utility row (Aa · Mark · [Add note] · speed · sleep)
 
+    /// Centred cluster with "Add note" as the accent hero in the middle and quiet
+    /// icon-only utilities flanking it (mock screen 2 `.util`).
     private var utilityRow: some View {
-        HStack(spacing: 10) {
-            Button { showTextSettings = true } label: {
-                Text("Aa").font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.skTextDim)
-                    .padding(.horizontal, 14).padding(.vertical, 7)
-                    .background(Color.skElev, in: .rect(cornerRadius: 11, style: .continuous))
-            }
-            .accessibilityIdentifier("player-text-settings")
-            .accessibilityLabel("Text size and spacing")
-            utilChip("Chapters", icon: "list.bullet", id: "player-chapters") {
-                tocInitialTab = .chapters; showTOC = true
-            }
-            // ADD is an ACTION here (mock: "Mark"); the Chapters/Bookmarks sheet is
-            // browse-only. Toggles a mark at the current spot; fills when you're on one.
-            let marked = isCurrentSpotMarked
-            utilChip(marked ? "Marked" : "Mark",
-                     icon: marked ? "bookmark.fill" : "bookmark",
-                     id: "player-bookmark",
-                     tint: marked ? Color.skAccent : Color.skTextDim) { toggleMark() }
+        HStack(spacing: 14) {
+            Spacer(minLength: 0)
+            textSettingsButton
+            markButton
+            addNoteChip
+            speedMenu
+            sleepMenu
+            Spacer(minLength: 0)
         }
     }
 
-    private func utilChip(_ title: String, icon: String, id: String,
-                          tint: Color = Color.skTextDim, _ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 5) {
-                Image(systemName: icon).font(.system(size: 13))
-                Text(title).font(.system(size: 12, weight: .medium))
-            }
-            .foregroundStyle(tint)
-            .padding(.horizontal, 14).padding(.vertical, 7)
-            .background(Color.skElev, in: .rect(cornerRadius: 11, style: .continuous))
+    private var textSettingsButton: some View {
+        Button { showTextSettings = true } label: {
+            Text("Aa").font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.skTextDim).frame(width: 34, height: 32)
         }
-        .accessibilityIdentifier(id)
+        .accessibilityIdentifier("player-text-settings")
+        .accessibilityLabel("Text size and spacing")
+    }
+
+    /// ADD is an ACTION here (mock: the bookmark glyph = "Mark"); the Chapters/
+    /// Bookmarks sheet is browse-only. Toggles a mark at the current spot; fills
+    /// + tints accent when the playhead is on one.
+    private var markButton: some View {
+        let marked = isCurrentSpotMarked
+        return Button { toggleMark() } label: {
+            Image(systemName: marked ? "bookmark.fill" : "bookmark")
+                .font(.system(size: 19))
+                .foregroundStyle(marked ? Color.skAccent : Color.skTextDim)
+                .frame(width: 34, height: 32)
+        }
+        .accessibilityIdentifier("player-bookmark")
+        .accessibilityLabel(marked ? "Remove mark" : "Mark this spot")
+    }
+
+    /// The hero: capture a quote + your voice ramble from what you just heard.
+    private var addNoteChip: some View {
+        Button { noteInteraction(); session.pause(); showCapture = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "plus").font(.system(size: 14, weight: .semibold))
+                Text("Add note").font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(Color.skAccentText)
+            .padding(.horizontal, 15).padding(.vertical, 9)
+            .background(Color.skAccent.opacity(0.18), in: .capsule)
+            .overlay(Capsule().strokeBorder(Color.skAccent.opacity(0.25), lineWidth: 0.5))
+        }
+        .accessibilityIdentifier("player-capture")
+        .accessibilityLabel("Add a note — capture a quote from what you just heard")
+    }
+
+    private var speedMenu: some View {
+        Menu {
+            ForEach(AudiobookSession.rates, id: \.self) { r in
+                Button { session.setRate(r) } label: {
+                    if session.rate == r { Label(Self.rateLabel(r), systemImage: "checkmark") }
+                    else { Text(Self.rateLabel(r)) }
+                }
+            }
+        } label: {
+            Text(Self.rateLabel(session.rate)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
+                .foregroundStyle(Color.skTextDim).frame(width: 38, height: 32)
+        }
+        .accessibilityIdentifier("player-speed")
+        .accessibilityLabel("Playback speed")
+    }
+
+    private var sleepMenu: some View {
+        Menu {
+            Button("Off") { session.setSleep(.off) }
+            ForEach([5, 15, 30, 45, 60], id: \.self) { m in Button("\(m) minutes") { session.setSleep(.minutes(m)) } }
+            if session.book?.chapters.isEmpty == false { Button("End of chapter") { session.setSleep(.endOfChapter) } }
+        } label: {
+            let sleepOn = session.sleepUntil != nil || session.sleepAtChapterEnd
+            Image(systemName: sleepOn ? "moon.fill" : "moon")
+                .font(.system(size: 17)).foregroundStyle(sleepOn ? Color.skAccent : Color.skTextDim)
+                .frame(width: 34, height: 32)
+        }
+        .accessibilityIdentifier("player-sleep")
+        .accessibilityLabel("Sleep timer")
     }
 
     /// True when the playhead sits on a saved mark (within the dedupe window).
@@ -447,23 +473,6 @@ struct AudiobookPlayerView: View {
             try? await Task.sleep(nanoseconds: 1_600_000_000)
             withAnimation(.easeIn(duration: 0.3)) { toast = nil }
         }
-    }
-
-    // MARK: - Capture (hero)
-
-    private var captureButton: some View {
-        Button {
-            session.pause(); showCapture = true
-        } label: {
-            HStack(spacing: 9) {
-                Text("❝").font(.system(size: 18, weight: .heavy))
-                Text("Capture this").font(.system(size: 15, weight: .bold))
-            }
-            .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 14)
-            .background(Color.skAccent, in: .rect(cornerRadius: 15, style: .continuous))
-        }
-        .accessibilityIdentifier("player-capture")
-        .accessibilityLabel("Capture a quote from what you just heard")
     }
 
     // MARK: - Swipe-down to dismiss
