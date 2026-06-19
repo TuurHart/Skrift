@@ -85,7 +85,7 @@
 
   <div class="focus">
     <div class="dot"></div>
-    <div><b>You are here →</b> finishing Phase&nbsp;1 ("everything syncs": book cover + read-along transcript + resume-position across devices, build&nbsp;13), then the Phase&nbsp;3 navigation slice (tab-bar IA + cheap audiobook wins: delete-confirm, header compress, font size) — <b>then pivot to Phase&nbsp;2 Export</b>, the real ship-blocker.</div>
+    <div><b>You are here →</b> Phase&nbsp;1 sync is COMPLETE (build&nbsp;13 — audiobook cover, read-along transcript, resume-position + speed all cross devices). Next: the Phase&nbsp;3 navigation slice (tab-bar IA + cheap audiobook wins: delete-confirm, header compress, font size) — <b>then pivot to Phase&nbsp;2 Export</b>, the real ship-blocker.</div>
   </div>
 
   <div class="legend">
@@ -113,7 +113,7 @@ const MILESTONES = [
 ];
 const PHASES = [
   { id:"P0",  ms:"Foundation",      title:"Shared naming engine",        status:"done", eff:"M", done:"Jun 17", deps:[],            note:"One name-linking engine both apps compile — no drift." },
-  { id:"P1",  ms:"Foundation",      title:"CloudKit sync (your devices)", status:"done", eff:"L", done:"Jun 19", deps:["P0"],         note:"Memos + media + names + vocab + audiobooks (real %). Cover/transcript finish in flight." },
+  { id:"P1",  ms:"Foundation",      title:"CloudKit sync (your devices)", status:"done", eff:"L", done:"Jun 19", deps:["P0"],         note:"Memos + media + names + vocab + audiobooks (real %, cover + transcript + position/rate). Build 13." },
   { id:"P2",  ms:"Standalone core", title:"Export & Obsidian publish",    status:"next", eff:"L",            deps:["P0"],            note:"#1 gap — today a phone-only note can only escape via copy-paste." },
   { id:"P3",  ms:"Standalone core", title:"De-Mac the UX + tab-bar IA",   status:"inprogress", eff:"M",      deps:["P1"],            note:"Toolbar gate done. Onboarding, Importance reframe, navigation (tabs) left — the current slice." },
   { id:"Mac", ms:"Standalone core", title:"Mac rejoins via CloudKit",     status:"future", eff:"L",          deps:["P1","P2","P3"],  note:"Mac reads the notes store, enhances, writes the polished result back → syncs to the phone." },
