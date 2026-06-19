@@ -124,7 +124,13 @@ final class CloudSyncMonitor: ObservableObject {
             // receive — no manual pull): the carrier's audioUploadedAt push triggers
             // this import, and reconcile fetches the audio by id. No-op when nothing's
             // synced; async (raw-CloudKit transfer) so it runs in a detached Task.
-            Task { await AudiobookCloudSync.reconcile() }
+            // Then adopt a newer resume position into an already-open (paused) session
+            // — fixes the cold-launch case where you opened the book before its newer
+            // position finished importing.
+            Task {
+                await AudiobookCloudSync.reconcile()
+                await MainActor.run { AudiobookSession.shared.adoptSyncedPosition() }
+            }
         }
     }
 }

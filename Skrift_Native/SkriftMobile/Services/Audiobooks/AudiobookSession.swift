@@ -76,9 +76,17 @@ final class AudiobookSession: ObservableObject {
         persistProgress(force: true)   // the outgoing book keeps its position
         closePlayer()
 
-        let resume = min(newBook.position, newBook.duration)
-        let location = newBook.fileLocation(at: resume)
-        let url = store.audioURL(of: newBook, fileIndex: location.index)
+        // Cross-device resume: a CloudKit carrier may hold a further-along position
+        // from another device that hasn't reconciled into library.json yet. Adopt it
+        // when it's newer (and write it back so the store + future opens agree), so
+        // opening on the iPad lands where you left off on the phone — even before
+        // reconcile runs. A late-arriving newer position is handled by
+        // adoptSyncedPosition() on CloudKit import.
+        let startBook = newerSyncedBook(than: newBook) ?? newBook
+        if startBook.modifiedAt > newBook.modifiedAt { store.update(startBook) }   // converge library.json
+        let resume = min(startBook.position, startBook.duration)
+        let location = startBook.fileLocation(at: resume)
+        let url = store.audioURL(of: startBook, fileIndex: location.index)
         guard FileManager.default.fileExists(atPath: url.path) else {
             print("[Skrift] Audiobook audio missing: \(url.lastPathComponent)")
             return
@@ -89,8 +97,8 @@ final class AudiobookSession: ObservableObject {
         player = avPlayer
         currentFileIndex = location.index
         observeItemEnd(of: item)
-        book = newBook
-        rate = newBook.playbackRate
+        book = startBook
+        rate = startBook.playbackRate
         currentTime = resume
         coverImage = store.coverURL(of: newBook).flatMap { UIImage(contentsOfFile: $0.path) }
         seek(to: currentTime)
@@ -101,6 +109,31 @@ final class AudiobookSession: ObservableObject {
         installInterruptionObserverIfNeeded()
         updateNowPlaying()
         if autoplay { play() }
+    }
+
+    /// The CloudKit carrier's `Audiobook` if it holds a STRICTLY newer state than
+    /// `local` (a further-along resume position from another device). Pure — the
+    /// caller decides whether to write it back. nil if absent / not newer.
+    private func newerSyncedBook(than local: Audiobook) -> Audiobook? {
+        guard let rec = NotesRepository.shared.audiobookRecord(bookID: local.id),
+              let synced = try? JSONDecoder().decode(Audiobook.self, from: rec.blob),
+              synced.modifiedAt > local.modifiedAt else { return nil }
+        return synced
+    }
+
+    /// Jump to a newer resume position that arrived from another device AFTER the
+    /// book was opened — the cold-launch case where the CloudKit import lands a few
+    /// seconds after you tapped the book. No-op while playing or when the delta is
+    /// tiny, so we never yank you mid-listen. Called from `CloudSyncMonitor` on a
+    /// CloudKit import.
+    func adoptSyncedPosition() {
+        guard let b = book, !isPlaying,
+              let synced = newerSyncedBook(than: b),
+              abs(synced.position - currentTime) > 5 else { return }
+        store.update(synced)
+        book = synced
+        rate = synced.playbackRate
+        seek(to: min(synced.position, synced.duration))
     }
 
     /// End the listening session: persist progress, release the player + audio

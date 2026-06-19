@@ -96,7 +96,15 @@ actor TranscriptionService: Transcriber {
                     }
                 }
             )
-            let manager = AsrManager(config: .default)
+            // v3 multilingual long-form config (FluidAudio's own recommendation for
+            // NL/EN-mixed audio, AsrTypes.swift): melChunkContext:false drops the
+            // English-prior drift that clips words like "different"→"differ" on
+            // Dutch-accented speech; dualDecodeArbitration:true removes mid-word
+            // duplicates / dropped clauses at chunk seams. ~1.1–1.5× decode time —
+            // invisible for background audiobook transcription, fine for one-shot
+            // memos. Everything else stays default. (Device-verify the accuracy win.)
+            let manager = AsrManager(config: ASRConfig(melChunkContext: false,
+                                                       dualDecodeArbitration: true))
             try await manager.loadModels(loaded)
             self.models = loaded
             self.asr = manager

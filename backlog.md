@@ -81,6 +81,29 @@ this breadcrumb so the dedicated session starts fast.
 
 ## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; ✅ MOCK SIGNED OFF + ✅ BUILT 2026-06-19)
 
+### Device feedback — build 14 run (2026-06-19, triaged same session)
+- ✅ **Play button "looked like a sphere"** → flat accent circle + soft glow (`2cc0412`).
+- ✅ **Per-word karaoke underline disliked + made the now-line "jump over"** → dropped the per-word weight/underline;
+  current sentence is just bright white (3-step ramp stays at the sentence level). Also kills the semibold reflow (`2cc0412`).
+- ✅ **Transcription "differ" should've been "different"** → flipped FluidAudio v3 multilingual knobs
+  `ASRConfig(melChunkContext:false, dualDecodeArbitration:true)` (FluidAudio's own recommended NL/EN long-form config;
+  drops the English-prior clip + de-dups chunk seams; ~1.1–1.5× decode, fine for background). **DEVICE-VERIFY owed** on
+  the clip that clipped. FluidAudio is pinned **v0.15.2 / parakeet-tdt-0.6b-v3** (newer than CLAUDE.md's "main").
+- ✅ **iPad cold-launch didn't restore the phone's chapter-2 position** (live sync worked, fresh launch didn't) → real
+  two-part race: `open()` read the local library.json position + raced the CloudKit import, and the iPad's first tick
+  then LWW-poisoned the phone's update. Fixed: `open()` adopts a strictly-newer carrier position (writes it back), and
+  `CloudSyncMonitor` re-seeks an open+paused session when a late import lands (`adoptSyncedPosition`). **DEVICE-VERIFY owed.**
+- ✅ **Speed menu "froze first tap, fast second" — expected?** YES, benign: one-time process-wide cost of the FIRST
+  SwiftUI `Menu` presentation (the `setRate` path is constant-cost). No fix. (Latent: `AudiobookLibraryStore.persist()`
+  does a synchronous main-thread JSON write on every rate/progress change — move off-main someday; not the cause.)
+- 👍 **Liked:** auto-recede chrome (read uninterrupted, pause appears when idle) · letter sizing.
+- ⏳ **PROPOSED — paragraphing** (user asked "better paragraphing?"): today the transcript is one wall of text. Parakeet
+  v3 already emits sentence punctuation → a deterministic post-process can split on sentence-final punctuation / long
+  word-time gaps (>~0.7s, we have wordTimings) into `\n\n` blocks. Biggest readability win; newlines are contract-safe.
+  NOT built yet — needs a call on where to apply (display vs stored vs sent-to-Mac). FluidAudio also ships an unused
+  `TextNormalizer`/ITN (spoken→written numbers/dates) + a language hint (`.dutch`/`.english`, single-language so risky
+  for EN/NL mix) — both deferred. Build paragraphing next on the user's go-ahead.
+
 ✅ **BUILT 2026-06-19 (build 14, 439/439 SkriftMobileTests green; 8 commit-per-chunk steps `7d31b60`→`4bcca6e`).**
 All 8 chunks landed to the mock: **(1)** tab-bar shell (`AppTabView`; Library/Settings out of the pull-to-refresh-eating
 `.sheet`s) · **(2)** "significance"→**"Importance"** (control unchanged; internal symbols/`Memo.significance`/test-IDs/
