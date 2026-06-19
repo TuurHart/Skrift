@@ -79,7 +79,20 @@ principle so it can't drift. **Usefulness for the agent:** additive — a curate
 orientation ("why does X exist / what was tried before"); git + the ledgers stay the primary source. Leave
 this breadcrumb so the dedicated session starts fast.
 
-## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; DESIGN/MOCK FIRST, build later)
+## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; ✅ MOCK SIGNED OFF 2026-06-19)
+
+✅ **Mock SIGNED OFF 2026-06-19** = `mocks/audiobook-player-reading-mode.html` (v4 — mock-first, refined via two
+design-critique workflows + a rendered-pixel agent review; commits `92aee15`→`1700d4e`). **It IS the spec — build to
+it.** **LOCKED:** tab-bar IA (Notes·Library·Highlights(soon)·Settings) · "significance"→**"Importance"** (graded,
+renamed) · **Add-note** = centered accent chip in the utility row · **reading mode** = auto-recede after ~3–4s idle +
+on scroll, tap to show, never while paused, ~250ms crossfade · now-line pinned upper-third + margin **bookmark glyph**
+(add = action, sheet = browse-only) · "Aa" text settings (size + spacing v1, themes fast-follow) · floating play ·
+cover-tint ambiance + monogram cover fallback · device-frame kept (vs siblings' bezel-less cards — flagged, user OK).
+**Defaults on the 2 leftovers:** (a) delete keeps BOTH "Remove from all devices" (=disableSync) + "Remove from this
+iPhone only" (=removeDownload, neutral) for a synced book; local-only = plain "Remove". (b) reading column capped
+~60–68ch (no full-bleed on iPad). **SCOPE:** the mock is the FULL Phase-9a redesign; the near-term *slice* = tab-bar IA
++ cheap wins (delete-confirm, header compress, Importance, font size) → then Phase 2 Export; deeper reading-mode /
+bookmark-model = Phase 9a proper.
 
 The player is becoming a **read-AND-listen** surface (e-reader-like), not just a capture tool, so it
 needs a reading-experience pass. **Process: NO building yet — talk it through → render HTML mocks
