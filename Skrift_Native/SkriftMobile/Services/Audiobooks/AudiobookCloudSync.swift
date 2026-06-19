@@ -154,8 +154,9 @@ enum AudiobookCloudSync {
         for record in records {
             guard let remote = try? JSONDecoder().decode(Audiobook.self, from: record.blob) else { continue }
             if let local = library.book(id: remote.id) {
-                // LWW by lastPlayedAt — adopt the remote resume position/rate if newer.
-                if (remote.lastPlayedAt ?? .distantPast) > (local.lastPlayedAt ?? .distantPast) {
+                // LWW by modifiedAt — adopt the remote position/rate/etc. if newer.
+                // (modifiedAt, not lastPlayedAt, so a speed-only change also wins.)
+                if remote.modifiedAt > local.modifiedAt {
                     library.update(remote)
                 }
             } else {
@@ -179,7 +180,7 @@ enum AudiobookCloudSync {
         for record in records {
             guard let local = library.book(id: record.bookID) else { continue }
             let recorded = try? JSONDecoder().decode(Audiobook.self, from: record.blob)
-            if (local.lastPlayedAt ?? .distantPast) > (recorded?.lastPlayedAt ?? .distantPast),
+            if local.modifiedAt > (recorded?.modifiedAt ?? .distantPast),
                let blob = try? JSONEncoder().encode(local) {
                 record.blob = blob
                 record.modifiedAt = Date()
@@ -231,6 +232,10 @@ enum AudiobookCloudSync {
         } catch {
             DevLog.log("audiobook download failed \(bookID): \(error)")
         }
+        // The cover file may have just landed — drop its cached placeholder so the row
+        // redraws the real art (the cache never stores nil, so this only matters for a
+        // re-download, but it's cheap insurance). endBookTransfer's publish re-renders.
+        BookCoverCache.invalidate(bookID)
         CloudSyncMonitor.shared.endBookTransfer(bookID, epoch: epoch)
     }
 

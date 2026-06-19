@@ -35,9 +35,11 @@ final class AudiobookCloudSyncTests: XCTestCase {
 
     @discardableResult
     private func addBook(to library: AudiobookLibraryStore, id: UUID = UUID(), file: String = "part1.m4a",
-                         position: TimeInterval = 0, lastPlayed: Date? = nil, withFile: Bool = true) -> Audiobook {
+                         position: TimeInterval = 0, lastPlayed: Date? = nil, withFile: Bool = true,
+                         modifiedAt: Date? = nil) -> Audiobook {
         let book = Audiobook(id: id, audioFilename: file, title: "Sapiens", author: "Harari",
-                             duration: 300, lastPlayedAt: lastPlayed, position: position)
+                             duration: 300, lastPlayedAt: lastPlayed, position: position,
+                             modifiedAt: modifiedAt ?? lastPlayed ?? .distantPast)
         library.add(book)
         if withFile {
             let folder = library.folder(for: id)
@@ -88,10 +90,10 @@ final class AudiobookCloudSyncTests: XCTestCase {
         XCTAssertEqual(try? Data(contentsOf: materialized), Data("AUDIO-BYTES".utf8), "audio materialized on B")
     }
 
-    func testPositionSyncsLWWByLastPlayed() async {
+    func testPositionSyncsLWWByModifiedAt() async {
         let repo = NotesRepository(inMemory: true)
         let id = UUID()
-        // A is further along + recently played; the record carries position 200.
+        // A is further along + modified recently; the record carries position 200.
         let advanced = addBook(to: libA, id: id, position: 200, lastPlayed: Date())
         AudiobookCloudSync.enableSync(book: advanced, repository: repo)
         // B has the same book but older/behind.
@@ -100,6 +102,23 @@ final class AudiobookCloudSyncTests: XCTestCase {
         await AudiobookCloudSync.reconcile(library: libB, repository: repo, transport: transport)
 
         XCTAssertEqual(libB.book(id: id)?.position, 200, "B adopts A's newer resume position")
+    }
+
+    /// A speed change with NO playback (so `lastPlayedAt` is unchanged) must still sync
+    /// — the reason LWW keys on `modifiedAt`, not `lastPlayedAt` (#8/#13).
+    func testRateSyncsViaModifiedAt() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = UUID()
+        // A: change the speed via the store path (bumps modifiedAt, leaves lastPlayedAt nil).
+        addBook(to: libA, id: id, lastPlayed: nil)
+        libA.updateRate(id: id, rate: 1.5)
+        AudiobookCloudSync.enableSync(book: libA.book(id: id)!, repository: repo)
+        // B is behind (older modifiedAt, default rate).
+        addBook(to: libB, id: id, lastPlayed: .distantPast)
+
+        await AudiobookCloudSync.reconcile(library: libB, repository: repo, transport: transport)
+
+        XCTAssertEqual(libB.book(id: id)?.playbackRate, 1.5, "B adopts A's newer playback rate (no playback needed)")
     }
 
     func testDisableDropsRecordAndCloudAudioButKeepsLocalAudio() async {

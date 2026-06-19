@@ -37,6 +37,10 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     var position: TimeInterval
     /// Per-book playback speed (Bound keeps speed per book too).
     var playbackRate: Double
+    /// Last time ANY synced field changed (position, rate, …) — the cross-device LWW
+    /// key. Distinct from `lastPlayedAt` (which is purely the "recently played" sort),
+    /// so a speed change with no playback still syncs without reordering the library.
+    var modifiedAt: Date
 
     /// Legacy convenience: the first (for single-file books, only) file.
     var audioFilename: String { files.first ?? "" }
@@ -53,7 +57,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         importedAt: Date = Date(),
         lastPlayedAt: Date? = nil,
         position: TimeInterval = 0,
-        playbackRate: Double = 1.0
+        playbackRate: Double = 1.0,
+        modifiedAt: Date = Date()
     ) {
         self.id = id
         self.files = files
@@ -67,6 +72,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         self.lastPlayedAt = lastPlayedAt
         self.position = position
         self.playbackRate = playbackRate
+        self.modifiedAt = modifiedAt
     }
 
     /// Single-file convenience (the pre-multi-file shape; tests + the .m4b
@@ -82,7 +88,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         importedAt: Date = Date(),
         lastPlayedAt: Date? = nil,
         position: TimeInterval = 0,
-        playbackRate: Double = 1.0
+        playbackRate: Double = 1.0,
+        modifiedAt: Date = Date()
     ) {
         self.init(
             id: id,
@@ -96,7 +103,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
             importedAt: importedAt,
             lastPlayedAt: lastPlayedAt,
             position: position,
-            playbackRate: playbackRate
+            playbackRate: playbackRate,
+            modifiedAt: modifiedAt
         )
     }
 
@@ -104,7 +112,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, files, fileDurations, audioFilename, title, author, duration
-        case chapters, hasCover, importedAt, lastPlayedAt, position, playbackRate
+        case chapters, hasCover, importedAt, lastPlayedAt, position, playbackRate, modifiedAt
     }
 
     /// Decodes both shapes: new records carry `files` + `fileDurations`;
@@ -123,6 +131,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         lastPlayedAt = try c.decodeIfPresent(Date.self, forKey: .lastPlayedAt)
         position = try c.decode(TimeInterval.self, forKey: .position)
         playbackRate = try c.decode(Double.self, forKey: .playbackRate)
+        // Additive (pre-modifiedAt records): fall back to lastPlayedAt, else importedAt.
+        modifiedAt = try c.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? (lastPlayedAt ?? importedAt)
 
         if let multi = try c.decodeIfPresent([String].self, forKey: .files), !multi.isEmpty {
             files = multi
@@ -155,6 +165,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         try c.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)
         try c.encode(position, forKey: .position)
         try c.encode(playbackRate, forKey: .playbackRate)
+        try c.encode(modifiedAt, forKey: .modifiedAt)
     }
 
     var timeLeft: TimeInterval { max(0, duration - position) }
@@ -353,12 +364,14 @@ final class AudiobookLibraryStore: ObservableObject {
         guard let i = books.firstIndex(where: { $0.id == id }) else { return }
         books[i].position = max(0, position)
         books[i].lastPlayedAt = playedAt
+        books[i].modifiedAt = playedAt   // sync LWW key
         persist()
     }
 
     func updateRate(id: UUID, rate: Double) {
         guard let i = books.firstIndex(where: { $0.id == id }) else { return }
         books[i].playbackRate = rate
+        books[i].modifiedAt = Date()      // a speed change syncs without bumping the recents sort
         persist()
     }
 

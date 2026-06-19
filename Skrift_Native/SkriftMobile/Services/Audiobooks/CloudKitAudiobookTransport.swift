@@ -55,6 +55,13 @@ final class CloudKitAudiobookTransport: AudiobookAudioTransport {
         op.configuration = configuration()
         op.savePolicy = .allKeys      // a re-upload overwrites cleanly
         op.isAtomic = false
+        // Surface a per-record failure (e.g. a silently-dropped cover) instead of it
+        // vanishing into a non-atomic batch that still reports overall success.
+        op.perRecordSaveBlock = { recordID, result in
+            if case .failure(let error) = result {
+                DevLog.log("audiobook upload record \(recordID.recordName) failed: \(error)")
+            }
+        }
 
         // perRecordProgressBlock isn't guaranteed serial across records → guard the
         // shared fraction map with a lock (the "SwiftData off a socket queue" hazard).
@@ -113,21 +120,25 @@ final class CloudKitAudiobookTransport: AudiobookAudioTransport {
         // a concurrent reader sees either the old file or the complete new one, never
         // a half-written one.
         op.perRecordResultBlock = { recordID, result in
-            guard case .success(let record) = result,
-                  let asset = record["asset"] as? CKAsset, let staged = asset.fileURL else { return }
-            let filename = filenameByName[recordID.recordName] ?? recordID.recordName
-            let dest = destFolder.appendingPathComponent(filename)
-            let tmp = destFolder.appendingPathComponent(".\(UUID().uuidString).part")
-            do {
-                try FileManager.default.copyItem(at: staged, to: tmp)
-                if FileManager.default.fileExists(atPath: dest.path) {
-                    _ = try FileManager.default.replaceItemAt(dest, withItemAt: tmp)
-                } else {
-                    try FileManager.default.moveItem(at: tmp, to: dest)
+            switch result {
+            case .failure(let error):
+                DevLog.log("audiobook download record \(recordID.recordName) failed: \(error)")
+            case .success(let record):
+                guard let asset = record["asset"] as? CKAsset, let staged = asset.fileURL else { return }
+                let filename = filenameByName[recordID.recordName] ?? recordID.recordName
+                let dest = destFolder.appendingPathComponent(filename)
+                let tmp = destFolder.appendingPathComponent(".\(UUID().uuidString).part")
+                do {
+                    try FileManager.default.copyItem(at: staged, to: tmp)
+                    if FileManager.default.fileExists(atPath: dest.path) {
+                        _ = try FileManager.default.replaceItemAt(dest, withItemAt: tmp)
+                    } else {
+                        try FileManager.default.moveItem(at: tmp, to: dest)
+                    }
+                } catch {
+                    try? FileManager.default.removeItem(at: tmp)
+                    DevLog.log("audiobook asset copy failed \(filename): \(error)")
                 }
-            } catch {
-                try? FileManager.default.removeItem(at: tmp)
-                DevLog.log("audiobook asset copy failed \(filename): \(error)")
             }
         }
 
