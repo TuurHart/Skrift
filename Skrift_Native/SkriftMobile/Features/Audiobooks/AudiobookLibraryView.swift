@@ -10,7 +10,6 @@ struct AudiobookLibraryView: View {
     @ObservedObject private var store = AudiobookLibraryStore.shared
     @ObservedObject private var session = AudiobookSession.shared
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
-    @Environment(\.dismiss) private var dismiss
 
     @State private var showImporter = false
     @State private var importing = false
@@ -86,20 +85,9 @@ struct AudiobookLibraryView: View {
     // MARK: - Chrome
 
     private var topBar: some View {
+        // Library is a root tab now (AppTabView) — no back button; just the import
+        // action, right-aligned over the big "Library" header below.
         HStack {
-            Button {
-                dismiss()
-            } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text("Memos")
-                        .font(.system(size: 15, weight: .medium))
-                }
-                .foregroundStyle(Color.skAccentText)
-            }
-            .accessibilityIdentifier("library-back")
-
             Spacer()
 
             Button {

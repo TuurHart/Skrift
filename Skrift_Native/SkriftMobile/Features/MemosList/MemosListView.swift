@@ -47,10 +47,8 @@ struct MemosListView: View {
     @State private var lastHandledStart = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @ObservedObject private var memoOpen = MemoOpenBridge.shared
-    @State private var showSettings = false
     @State private var showSortFilter = false
     @State private var showTrash = false
-    @State private var showAudiobooks = false
     /// C3 contract: the audiobook session singleton (defined by the Audiobooks
     /// feature). Drives the conditional mini-player + the toolbar live dot.
     @ObservedObject private var audiobookSession = AudiobookSession.shared
@@ -115,19 +113,13 @@ struct MemosListView: View {
             // onChange alone misses it, which left Siri/widget "opens but doesn't
             // record" and a shared video not opening on a cold launch.
             .onAppear { handleStartRequest(); handleOpenRequest() }
-            .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
             }
-            // A sheet (like Settings) rather than a push: the stack's path is
-            // typed [UUID] for memo detail, which a non-memo destination can't
-            // join.
+            // A sheet rather than a push: the stack's path is typed [UUID] for
+            // memo detail, which a non-memo destination can't join. (Settings +
+            // the audiobook Library moved out to root tabs — see AppTabView.)
             .sheet(isPresented: $showTrash) { RecentlyDeletedView() }
-            // The audiobook library (spec point 9: "Library behind a book
-            // toolbar icon on the memos list"). A sheet for the same typed-path
-            // reason as Trash. The view lives in Features/Audiobooks (cross-
-            // lane contract — defined by the audiobook-mobile lane).
-            .sheet(isPresented: $showAudiobooks) { AudiobookLibraryView() }
         }
     }
 
@@ -306,26 +298,9 @@ struct MemosListView: View {
             .accessibilityIdentifier("select-button")
         }
         if !editMode.isEditing {
-            ToolbarItem(placement: .topBarTrailing) {
-                // The Audiobooks library entry; the green dot mirrors the mock's
-                // "live" badge while a book session is active.
-                Button { showAudiobooks = true } label: {
-                    Image(systemName: "book.closed")
-                        .overlay(alignment: .topTrailing) {
-                            if audiobookSession.isActive {
-                                Circle()
-                                    .fill(Color.skGreen)
-                                    .frame(width: 7, height: 7)
-                                    .offset(x: 3, y: -2)
-                            }
-                        }
-                }
-                .accessibilityIdentifier("audiobooks-button")
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showSettings = true } label: { Image(systemName: "gearshape") }
-                    .accessibilityIdentifier("settings-button")
-            }
+            // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
+            // 2026-06-19) — co-equal with Notes, so a sheet's swipe-to-dismiss no
+            // longer steals pull-to-refresh.
             // The manual ⟳ is the MAC (Bonjour) sync — only meaningful when a Mac is
             // actually paired. Standalone/CloudKit-first devices sync automatically
             // (push) + via pull-to-refresh, so hide it unless a Mac is paired (Phase 3

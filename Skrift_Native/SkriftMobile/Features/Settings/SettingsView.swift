@@ -4,7 +4,6 @@ import SwiftUI
 /// (Names & voices, weather key), theme, version. Presented as a sheet from the
 /// Memos toolbar; Names + Pair-a-Mac push within its own stack.
 struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @AppStorage("liveTranscription") private var liveTranscription = true
     @AppStorage("appTheme") private var appTheme = "dark"
     @AppStorage("weatherAPIKey") private var weatherKey = ""
@@ -189,9 +188,8 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .background(Color.skBg.ignoresSafeArea())
             .navigationTitle("Settings")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-            }
+            // No "Done": Settings is a root tab now (AppTabView), not a presented
+            // sheet — there's nothing to dismiss.
             .sheet(isPresented: $showFeedback) { FeedbackCaptureView() }
             .onAppear { connection = MacConnection.load() }
             // Live health probe so the dot tells the truth (green only when the Mac

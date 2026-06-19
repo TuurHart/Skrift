@@ -119,9 +119,10 @@ struct SkriftApp: App {
     }
 }
 
-/// App shell. The mockups are a NavigationStack flow rooted at Memos (no tab
-/// bar): Record presents over it, Memo detail pushes from a card, Settings /
-/// Names push from there. First launch shows onboarding.
+/// App shell. The root is a tab bar (audiobook reading-mode redesign 2026-06-19):
+/// Notes · Library · Highlights(soon) · Settings — see `AppTabView`. Record
+/// presents over the Notes tab, Memo detail pushes from a card. First launch shows
+/// onboarding.
 struct RootView: View {
     @State private var needsOnboarding = RootView.shouldOnboard()
 
@@ -134,7 +135,7 @@ struct RootView: View {
                 withAnimation(Theme.Motion.spring) { needsOnboarding = false }
             }
         } else {
-            MemosListView()
+            AppTabView()
         }
     }
 
