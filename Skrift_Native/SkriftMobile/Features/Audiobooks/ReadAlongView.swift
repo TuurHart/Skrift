@@ -149,6 +149,12 @@ struct ReadAlongView: View {
         .onChange(of: fileIndex) { _, _ in
             model.reloadIfNeeded(book: book, fileIndex: fileIndex, fileLocal: fileLocal, audioURL: audioURL)
         }
+        // Re-anchor the moment playback resumes: otherwise the next 0.1 s tick
+        // interpolates from a stale anchor and the word overshoots (up to the 0.6 s
+        // clamp × rate) until the next real 0.5 s tick lands.
+        .onChange(of: session.isPlaying) { _, playing in
+            if playing { anchorLocal = fileLocal; anchorWall = Date() }
+        }
         // Fine driver: interpolate between ticks so the line tracks the voice.
         .onReceive(tick) { _ in
             if model.covered {

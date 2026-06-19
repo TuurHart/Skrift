@@ -91,12 +91,19 @@ struct AudiobookLibraryView: View {
             if AudiobookCloudSync.isSynced(bookID: book.id) {
                 // Synced → two destructive choices (mock screen 7).
                 Button("Remove from all devices", role: .destructive) {
-                    Task { await AudiobookCloudSync.disableSync(bookID: book.id); delete(book) }
+                    // Remove locally FIRST so the row + playback commit immediately
+                    // (the cloud delete can be a multi-second round-trip); the carrier
+                    // survives store.remove, so disableSync still finds the cloud
+                    // records to delete.
+                    delete(book)
+                    Task { await AudiobookCloudSync.disableSync(bookID: book.id) }
                 }
                 // Demoted/neutral: free this device's copy but keep it synced + on
                 // your other devices (Apple Books model). Stays in the library as
-                // download-available, not deleted.
+                // download-available, not deleted. End the session first if this is
+                // the playing book — its audio is about to vanish from disk.
                 Button("Remove from this iPhone only") {
+                    if session.book?.id == book.id { session.endSession() }
                     AudiobookCloudSync.removeDownload(bookID: book.id)
                     syncToggleTick += 1
                 }

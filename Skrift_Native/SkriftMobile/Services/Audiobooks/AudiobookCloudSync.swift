@@ -95,6 +95,9 @@ enum AudiobookCloudSync {
     static func removeDownload(bookID: UUID, library: AudiobookLibraryStore = .shared,
                                repository: NotesRepository = .shared, defaults: UserDefaults = .standard) {
         guard isSynced(bookID: bookID, repository: repository) else { return }
+        // Supersede any in-flight download's late callbacks (same reason disableSync
+        // does) so a pull racing this can't re-materialize the files we just freed.
+        CloudSyncMonitor.shared.cancelBookTransfer(bookID)
         if let book = library.book(id: bookID) {
             let folder = library.folder(for: bookID)
             for name in syncedFilenames(book) {

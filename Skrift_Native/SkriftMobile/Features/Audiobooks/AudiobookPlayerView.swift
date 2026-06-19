@@ -68,7 +68,11 @@ struct AudiobookPlayerView: View {
         .sheet(isPresented: $showSyncSheet) {
             if let book = session.book { AudiobookSyncSheet(book: book) }
         }
-        .sheet(isPresented: $showTOC) {
+        .sheet(isPresented: $showTOC, onDismiss: {
+            // The sheet can delete bookmarks (swipe) over its own store copy; reload
+            // ours so the Mark chip + margin glyphs don't show ghosts.
+            if let id = session.book?.id { currentBookmarks = bookmarks.load(bookID: id) }
+        }) {
             if let book = session.book {
                 ChaptersBookmarksSheet(book: book, initialTab: tocInitialTab)
                     .presentationDetents([.medium, .large])
@@ -337,14 +341,14 @@ struct AudiobookPlayerView: View {
     private var transport: some View {
         HStack(spacing: 0) {
             Spacer()
-            Button { session.skip(-AudiobookSession.skipBack) } label: {
+            Button { noteInteraction(); session.skip(-AudiobookSession.skipBack) } label: {
                 Image(systemName: "gobackward.15").font(.system(size: 27, weight: .light)).foregroundStyle(Color.skText)
             }
             .accessibilityIdentifier("player-back-15").accessibilityLabel("Back 15 seconds")
             Spacer().frame(width: 28)
             playSphere(size: 56)
             Spacer().frame(width: 28)
-            Button { session.skip(AudiobookSession.skipForward) } label: {
+            Button { noteInteraction(); session.skip(AudiobookSession.skipForward) } label: {
                 Image(systemName: "goforward.30").font(.system(size: 27, weight: .light)).foregroundStyle(Color.skText)
             }
             .accessibilityIdentifier("player-forward-30").accessibilityLabel("Forward 30 seconds")
@@ -443,16 +447,18 @@ struct AudiobookPlayerView: View {
         .accessibilityLabel("Sleep timer")
     }
 
-    /// True when the playhead sits on a saved mark (within the dedupe window).
+    /// True when the playhead (or the scrubber thumb mid-drag) sits on a saved mark.
     private var isCurrentSpotMarked: Bool {
-        currentBookmarks.contains { abs($0.position - session.currentTime) < BookmarkStore.dedupeWindow }
+        let at = scrubTime ?? session.currentTime
+        return currentBookmarks.contains { abs($0.position - at) < BookmarkStore.dedupeWindow }
     }
 
     /// "Mark" = toggle a bookmark at the current spot: drop one, or lift the one
     /// you're sitting on. The margin glyph pops in/out in the read-along at once.
+    /// Uses the same effective time the rest of the player shows (scrub-aware).
     private func toggleMark() {
         guard let book = session.book else { return }
-        let at = session.currentTime
+        let at = scrubTime ?? session.currentTime
         noteInteraction()
         if let near = currentBookmarks.first(where: { abs($0.position - at) < BookmarkStore.dedupeWindow }) {
             currentBookmarks = bookmarks.remove(id: near.id, bookID: book.id)
