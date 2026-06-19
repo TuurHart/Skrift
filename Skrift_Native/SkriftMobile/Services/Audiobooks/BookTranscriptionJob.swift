@@ -55,8 +55,12 @@ final class BookTranscriptionJob: ObservableObject {
     private let chunkSeconds: TimeInterval = 60
     /// Seconds of preceding audio fed as decode context before each chunk (dropped
     /// from the kept words) so the chunk's opening words aren't garbled by a cold
-    /// decoder. See `transcribeChunk`.
-    private static let chunkLead: TimeInterval = 2.0
+    /// decoder. This is a decode WARM-UP, not a content overlap — ~a sentence of
+    /// run-up saturates the model's start context; bigger just re-transcribes
+    /// already-kept audio to throw away (wasted compute + seam re-decode risk) for
+    /// no accuracy gain. Seams themselves are handled by ChunkFusion's sentence
+    /// redo-tail, not by this lead. See `transcribeChunk`.
+    private static let chunkLead: TimeInterval = 3.0
 
     private let library: AudiobookLibraryStore
     private let store: BookTranscriptStore

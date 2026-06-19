@@ -80,6 +80,22 @@ final class ParagrapherTests: XCTestCase {
                        "A.\n\nB. C.")
     }
 
+    func testTranscriptVariantPreservesMarkersAndPunctuation() {
+        // Token-preserving: exact words + [[img]] marker survive; only \n\n is added.
+        let words = [
+            w("Look.", 0.0, 0.5),
+            w("Here.", 2.0, 2.4),   // 1.5s gap after "Look." → paragraph break
+        ]
+        // The marked transcript has an image marker between the two words.
+        let out = Paragrapher.paragraphed(transcript: "Look. [[img_001]] Here.",
+                                          words: words, gapThreshold: 0.65, maxSentences: 4)
+        XCTAssertEqual(out, "Look. [[img_001]]\n\nHere.")
+    }
+
+    func testTranscriptVariantNoTimingsReturnsTrimmed() {
+        XCTAssertEqual(Paragrapher.paragraphed(transcript: "  Plain text.  ", words: []), "Plain text.")
+    }
+
     func testTextOnlyFallbackGroupsSentences() {
         let text = "A. B. C. D. E."
         let out = Paragrapher.paragraphed(text: text, sentencesPerParagraph: 2)

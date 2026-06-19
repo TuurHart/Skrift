@@ -569,7 +569,11 @@ struct MemoSaver {
             }
             guard let memo = repository.memo(id: id) else { return }
             let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            memo.transcript = text.isEmpty ? nil : result.text
+            // Paragraph the stored transcript (hybrid: long pause after a sentence,
+            // or every ~4 sentences) so the memo + Obsidian export read as paragraphs
+            // instead of a wall of text. Token-preserving (punctuation + [[img]]
+            // markers intact); karaoke is newline-aware so word-timing alignment holds.
+            memo.transcript = text.isEmpty ? nil : Paragrapher.paragraphed(transcript: result.text, words: result.wordTimings)
             memo.transcriptConfidence = result.confidence
             memo.transcriptMarkersInjected = result.markersInjected
             memo.transcriptStatus = text.isEmpty ? .failed : .done

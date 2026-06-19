@@ -51,6 +51,49 @@ enum Paragrapher {
             .joined(separator: "\n\n")
     }
 
+    /// Paragraph an EXISTING transcript STRING in place — preserving its exact words,
+    /// punctuation, and `[[img_NNN]]` markers — using the per-word pause info. Only
+    /// `\n\n` is inserted; every token is otherwise untouched, so karaoke (which is
+    /// newline-aware) and the Mac contract are unaffected. Markers (and any tokens
+    /// past `words`) pass through without a break decision. This is the variant the
+    /// app stores (memo + export). Returns the trimmed text unchanged when there are
+    /// no timings.
+    static func paragraphed(transcript: String, words: [WordTiming],
+                            gapThreshold: TimeInterval = defaultGap, maxSentences: Int = 4) -> String {
+        let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !words.isEmpty else { return trimmed }
+        let tokens = trimmed.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        guard !tokens.isEmpty else { return trimmed }
+
+        var paragraphs: [[String]] = [[]]
+        var wordIndex = 0
+        var sentencesInParagraph = 0
+        var prevWord: WordTiming?
+        var prevEndedSentence = false
+        for token in tokens {
+            let isMarker = token.hasPrefix("[[")    // image markers ([[img_NNN]])
+            if !isMarker, wordIndex < words.count {
+                let w = words[wordIndex]
+                if prevEndedSentence, let prev = prevWord {
+                    let longPause = (w.start - prev.end) >= gapThreshold
+                    let capReached = maxSentences > 0 && sentencesInParagraph >= maxSentences
+                    if longPause || capReached { paragraphs.append([]); sentencesInParagraph = 0 }
+                }
+                paragraphs[paragraphs.count - 1].append(token)
+                prevWord = w
+                wordIndex += 1
+                prevEndedSentence = endsSentence(token)
+                if prevEndedSentence { sentencesInParagraph += 1 }
+            } else {
+                paragraphs[paragraphs.count - 1].append(token)   // marker / overflow: pass through
+            }
+        }
+        return paragraphs
+            .map { $0.joined(separator: " ") }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+
     /// Text-only fallback (no timings): split into sentences and group every
     /// `sentencesPerParagraph`. Used when a transcript has no word timings.
     static func paragraphed(text: String, sentencesPerParagraph: Int = 4) -> String {
