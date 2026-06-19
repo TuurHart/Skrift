@@ -26,12 +26,19 @@ final class AudiobookSyncRecord {
     /// push), and the peer's import nudges `reconcile` to fetch the audio by id — no
     /// separate CKQuerySubscription needed (the default zone wouldn't push one anyway).
     var audioUploadedAt: Date? = nil
+    /// Content signature of the read-along transcript sidecars the SOURCE has uploaded
+    /// (`"<fileIndex>:<coveredUpTo>:<wordCount>"` joined). The receiver pulls the
+    /// sidecars whenever this changes (so a book transcribed AFTER it was synced still
+    /// propagates), then re-stamps them to its own audio. Empty = no transcript yet.
+    var transcriptSignature: String = ""
 
-    init(bookID: UUID, blob: Data, modifiedAt: Date = Date(), audioUploadedAt: Date? = nil) {
+    init(bookID: UUID, blob: Data, modifiedAt: Date = Date(), audioUploadedAt: Date? = nil,
+         transcriptSignature: String = "") {
         self.bookID = bookID
         self.blob = blob
         self.modifiedAt = modifiedAt
         self.audioUploadedAt = audioUploadedAt
+        self.transcriptSignature = transcriptSignature
     }
 }
 

@@ -137,6 +137,31 @@ final class AudiobookCloudSyncTests: XCTestCase {
         XCTAssertNotNil(libA.book(id: book.id))
     }
 
+    /// The read-along transcript sidecar syncs with the audio AND is re-stamped to the
+    /// receiver's own audio so it isn't rejected as stale (mtime differs after download).
+    func testTranscriptSyncsAndRestampsOnReceiver() async {
+        let repo = NotesRepository(inMemory: true)
+        let book = addBook(to: libA, file: "p.m4a")
+        // A transcript sidecar on A, keyed to A's audio signature.
+        let storeA = BookTranscriptStore(directory: libA.directory)
+        let audioA = libA.folder(for: book.id).appendingPathComponent("p.m4a")
+        let ft = FileTranscript(fileIndex: 0, signature: storeA.signature(forFileAt: audioA),
+                                coveredUpTo: 10, words: [WordTiming(word: "hello", start: 0, end: 1)])
+        try! storeA.save(ft, bookID: book.id)
+
+        AudiobookCloudSync.enableSync(book: book, repository: repo)
+        await AudiobookCloudSync.reconcile(library: libA, repository: repo, defaults: defaults, transport: transport)
+        await AudiobookCloudSync.reconcile(library: libB, repository: repo, defaults: defaults, transport: transport)
+
+        // On B the transcript materialized AND passes the staleness check vs B's own audio.
+        let storeB = BookTranscriptStore(directory: libB.directory)
+        let audioB = libB.folder(for: book.id).appendingPathComponent("p.m4a")
+        let got = storeB.fileTranscript(bookID: book.id, fileIndex: 0, audioURL: audioB)
+        XCTAssertNotNil(got, "transcript synced + re-stamped so it isn't stale on B")
+        XCTAssertEqual(got?.words.count, 1)
+        XCTAssertEqual(got?.coveredUpTo, 10)
+    }
+
     // MARK: - Per-device Remove download (Apple Books model)
 
     func testRemoveDownloadFreesAudioButKeepsItSynced() async {
