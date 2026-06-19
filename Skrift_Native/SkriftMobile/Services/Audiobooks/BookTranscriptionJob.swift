@@ -53,6 +53,10 @@ final class BookTranscriptionJob: ObservableObject {
     /// loss and a longer wait for a capture that lands mid-chunk. 60 s is a
     /// middle ground (FluidAudio internally re-chunks ~15 s within it).
     private let chunkSeconds: TimeInterval = 60
+    /// Seconds of preceding audio fed as decode context before each chunk (dropped
+    /// from the kept words) so the chunk's opening words aren't garbled by a cold
+    /// decoder. See `transcribeChunk`.
+    private static let chunkLead: TimeInterval = 2.0
 
     private let library: AudiobookLibraryStore
     private let store: BookTranscriptStore
@@ -215,10 +219,23 @@ final class BookTranscriptionJob: ObservableObject {
             // (Mac `-chunksim` proof 2026-06-13: export thirds −0.24/+0.38/+0.96 vs
             // PCM −0.02/−0.02/−0.01), which made the read-along trail by ~1–2 s deep
             // in a chapter. AVAudioFile frame reads are drift-free.
-            try Self.extractPCM(of: audioURL, start: chunkStart, end: chunkEnd, to: temp)
+            //
+            // LEADING CONTEXT (2026-06-19): a chunk is transcribed from a COLD
+            // decoder with no preceding audio, so its OPENING words get mis-decoded
+            // / wrongly capitalised (device artifacts "UndetectedED", "WILLIM
+            // RAULF"). Prepend ~2 s of audio before chunkStart as decode context,
+            // then DROP those lead-in words (they're the previous chunk's already-
+            // kept tail) — keeping word times exactly file-local. First chunk has no
+            // lead. Cheap (~3% more audio); chunkEnd behaviour is unchanged, so
+            // ChunkFusion's redo-tail still owns the trailing seam.
+            let lead: TimeInterval = chunkStart > 0 ? Self.chunkLead : 0
+            let extractStart = chunkStart - lead
+            try Self.extractPCM(of: audioURL, start: extractStart, end: chunkEnd, to: temp)
             let result = try await transcriber.transcribe(audioURL: temp, imageManifest: [])
-            let fileLocal = result.wordTimings.map {
-                WordTiming(word: $0.word, start: $0.start + chunkStart, end: $0.end + chunkStart)
+            let fileLocal = result.wordTimings.compactMap { wt -> WordTiming? in
+                let start = wt.start + extractStart           // temp t=0 maps to extractStart
+                guard start >= chunkStart - 0.01 else { return nil }   // drop lead-in context
+                return WordTiming(word: wt.word, start: start, end: wt.end + extractStart)
             }
             return ChunkFusion.fuse(chunkWords: fileLocal, chunkStart: chunkStart, chunkEnd: chunkEnd,
                                     isFinal: isFinal, minProgress: chunkSeconds * 0.5)

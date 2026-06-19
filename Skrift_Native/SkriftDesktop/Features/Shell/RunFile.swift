@@ -361,6 +361,47 @@ enum RunFile {
         return Double(prev[h.count]) / Double(r.count)
     }
 
+    /// `-paragraph <audio>` → transcribe the file WHOLE, then print it (a) as today's
+    /// one block and (b) paragraphed at several pause thresholds, so we can SEE what
+    /// the deterministic paragrapher does on real speech (paragraph = a long pause
+    /// after a finished sentence). Mirrors mobile `Paragrapher`. DEBUG only.
+    nonisolated static func runParagraphDemoIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-paragraph"), i + 1 < args.count else { return }
+        let url = URL(fileURLWithPath: args[i + 1])
+        Task.detached(priority: .userInitiated) {
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            log("== PARAGRAPH \(url.lastPathComponent) ==")
+            guard let r = try? await TranscriptionService.shared.transcribe(audioURL: url) else {
+                log("transcribe failed"); exit(1)
+            }
+            let words = r.wordTimings
+            func endsSentence(_ w: String) -> Bool {
+                let closers: Set<Character> = ["\"", "”", "'", "’", ")", "]", "»"]
+                guard let last = w.reversed().first(where: { !closers.contains($0) }) else { return false }
+                return last == "." || last == "?" || last == "!"
+            }
+            func paragraphed(_ gap: Double) -> String {
+                guard !words.isEmpty else { return "" }
+                var paras: [[String]] = [[]]
+                for (k, w) in words.enumerated() {
+                    if k > 0, w.start - words[k - 1].end >= gap, endsSentence(words[k - 1].word) { paras.append([]) }
+                    paras[paras.count - 1].append(w.word)
+                }
+                return paras.map { $0.joined(separator: " ") }.joined(separator: "\n\n")
+            }
+            log("whole transcribe: \(words.count) words\n")
+            log("──────── TODAY (no paragraphs — one block) ────────")
+            log(words.map(\.word).joined(separator: " "))
+            for gap in [0.5, 0.65, 0.8, 1.0] {
+                let p = paragraphed(gap)
+                log("\n──────── pause ≥ \(gap)s  →  \(p.components(separatedBy: "\n\n").count) paragraphs ────────")
+                log(p)
+            }
+            exit(0)
+        }
+    }
+
     nonisolated static func runIfRequested() {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-runfile"), i + 1 < args.count else { return }

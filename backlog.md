@@ -104,12 +104,18 @@ this breadcrumb so the dedicated session starts fast.
   SwiftUI `Menu` presentation (the `setRate` path is constant-cost). No fix. (Latent: `AudiobookLibraryStore.persist()`
   does a synchronous main-thread JSON write on every rate/progress change — move off-main someday; not the cause.)
 - 👍 **Liked:** auto-recede chrome (read uninterrupted, pause appears when idle) · letter sizing.
-- ⏳ **PROPOSED — paragraphing** (user asked "better paragraphing?"): today the transcript is one wall of text. Parakeet
-  v3 already emits sentence punctuation → a deterministic post-process can split on sentence-final punctuation / long
-  word-time gaps (>~0.7s, we have wordTimings) into `\n\n` blocks. Biggest readability win; newlines are contract-safe.
-  NOT built yet — needs a call on where to apply (display vs stored vs sent-to-Mac). FluidAudio also ships an unused
-  `TextNormalizer`/ITN (spoken→written numbers/dates) + a language hint (`.dutch`/`.english`, single-language so risky
-  for EN/NL mix) — both deferred. Build paragraphing next on the user's go-ahead.
+- 🔧 **Paragraphing — BUILT + demoed (not yet wired into the UI).** `Models/Paragrapher.swift` (pure, 10 unit tests):
+  hybrid — break a paragraph on a long pause AFTER a finished sentence, OR after `maxSentences` (default 4). Demoed on a
+  real chapter via desktop `-paragraph`: **pause-only UNDER-segments steady audiobook narration** (the narrator barely
+  pauses → one giant block at any 0.5–1.0s threshold); the **sentence cap is what gives audiobooks regular paragraphs**.
+  So the hybrid is the right default (pauses catch real structure like bumper/credits; the cap handles dense narration).
+  **DECISION OWED:** where to apply — read-along grouping / memo-detail display / stored+exported — and the
+  threshold+cap. Not yet wired pending the user's pick. Unused FluidAudio `TextNormalizer`/ITN + `.dutch` hint still deferred.
+- 🔧 **Chunk-seam robustness — BUILT (device-verify owed).** Root cause of `UndetectedED`/`WILLIM RAULF` garble: each 60s
+  audiobook chunk transcribes from a COLD decoder with no preceding audio → its OPENING words mis-decode/mis-capitalise.
+  Fix (`BookTranscriptionJob.transcribeChunk`): prepend ~2s of audio before each chunk as decode CONTEXT, then drop those
+  lead-in words (word-time alignment preserved; chunkEnd behaviour unchanged so ChunkFusion's redo-tail still owns the
+  trailing seam). First chunk has no lead. Verify on-device on the book where the garble appeared.
 
 ✅ **BUILT 2026-06-19 (build 14, 439/439 SkriftMobileTests green; 8 commit-per-chunk steps `7d31b60`→`4bcca6e`).**
 All 8 chunks landed to the mock: **(1)** tab-bar shell (`AppTabView`; Library/Settings out of the pull-to-refresh-eating
