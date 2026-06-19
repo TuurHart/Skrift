@@ -76,6 +76,9 @@ struct ReadAlongView: View {
     let fileIndex: Int
     let fileLocal: TimeInterval
     let audioURL: URL?
+    /// Saved bookmarks (whole book) — the reader hangs a margin glyph + faint tint
+    /// beside the line each one lands on (mapped global time → this file's sentence).
+    var bookmarks: [AudiobookBookmark] = []
     let onTranscribe: () -> Void
     /// Called when the reader detects an interactive (user) scroll — the parent
     /// uses it to recede the player chrome ("more page" while reading).
@@ -167,17 +170,20 @@ struct ReadAlongView: View {
         // scrolls up under it like a page.
         GeometryReader { geo in
             ScrollViewReader { proxy in
+                let marks = bookmarkedSentences
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(alignment: .leading, spacing: readingLineSpacing) {
                         Color.clear.frame(height: geo.size.height * nowAnchor.y)
                         ForEach(model.sentences.indices, id: \.self) { i in
-                            line(i).id(i)
+                            line(i, marked: marks.contains(i)).id(i)
                         }
                         Color.clear.frame(height: geo.size.height * 0.66)
                     }
                     .frame(maxWidth: columnMax)        // reading column cap (~60–68ch)
                     .frame(maxWidth: .infinity)         // centre the column (iPad)
-                    .padding(.horizontal, 4)
+                    // A leading gutter (inside the scroll content so it can't clip)
+                    // holds the bookmark glyph beside marked lines.
+                    .padding(.leading, 18).padding(.trailing, 4)
                 }
                 // Follow the playhead — but only while the user hasn't scrolled away.
                 .onChange(of: model.currentIndex) { _, idx in
@@ -224,7 +230,7 @@ struct ReadAlongView: View {
     /// scale (that read teleprompter-y); the now-line pops via brightness + the
     /// current-word weight+underline. Uniform font/weight keeps the line height
     /// stable so advancing never reflows neighbours.
-    private func line(_ i: Int) -> some View {
+    private func line(_ i: Int, marked: Bool) -> some View {
         let isCurrent = i == model.currentIndex
         let isPast = i < model.currentIndex
         let text: Text = isCurrent
@@ -235,6 +241,17 @@ struct ReadAlongView: View {
             .lineSpacing(readingLineSpacing)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+            // Faint "this bit is saved" tint behind a bookmarked line + a real
+            // bookmark glyph hung in the gutter, anchored to the line (scrolls with it).
+            .background { if marked { Color.skAccent.opacity(0.09) } }
+            .overlay(alignment: .leading) {
+                if marked {
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 11)).foregroundStyle(Color.skAccent)
+                        .offset(x: -16)
+                        .accessibilityHidden(true)
+                }
+            }
             .contentShape(Rectangle())
             .onTapGesture {
                 guard let local = model.startOf(i) else { return }
@@ -244,6 +261,20 @@ struct ReadAlongView: View {
                 Haptics.tap()
             }
             .animation(.easeInOut(duration: 0.25), value: model.currentIndex)
+    }
+
+    /// Sentence indices (in THIS file) that a bookmark lands on. A bookmark's
+    /// GLOBAL position maps to a file + file-local offset; if it's this file, find
+    /// the sentence whose span contains it. Computed once per render in `lyrics`.
+    private var bookmarkedSentences: Set<Int> {
+        guard !bookmarks.isEmpty, !model.sentences.isEmpty else { return [] }
+        var set = Set<Int>()
+        for bm in bookmarks {
+            let loc = book.fileLocation(at: bm.position)
+            guard loc.index == fileIndex else { continue }
+            if let idx = model.sentences.firstIndex(where: { loc.offset < $0.end }) { set.insert(idx) }
+        }
+        return set
     }
 
     /// The now-line, rendered word-by-word so the active word gets weight + a thin

@@ -23,6 +23,9 @@ struct AudiobookPlayerView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var coverTint: Color?
     @State private var toast: String?
+    /// Bookmarks for the current book — reloaded on book change + after a toggle.
+    /// Drives the Mark chip's filled/outline state + the read-along margin glyphs.
+    @State private var currentBookmarks: [AudiobookBookmark] = []
     /// Reading mode: chrome recedes after idle / on scroll so the page owns the
     /// screen; tap to bring it back. Never recedes while paused.
     @State private var chromeUp = true
@@ -76,6 +79,7 @@ struct AudiobookPlayerView: View {
         .accessibilityIdentifier("audiobook-player")
         .task(id: session.book?.id) {
             loadCoverTint()
+            if let id = session.book?.id { currentBookmarks = bookmarks.load(bookID: id) }
             await prewarmIfUseful()
         }
         // Idle-recede countdown. Restarts whenever the key changes (an interaction
@@ -128,6 +132,7 @@ struct AudiobookPlayerView: View {
                     fileIndex: location.index,
                     fileLocal: location.offset,
                     audioURL: session.store.audioURL(of: book, fileIndex: location.index),
+                    bookmarks: currentBookmarks,
                     onTranscribe: { showTranscribe = true },
                     onUserScroll: { recedeOnScroll() }
                 )
@@ -388,33 +393,52 @@ struct AudiobookPlayerView: View {
             utilChip("Chapters", icon: "list.bullet", id: "player-chapters") {
                 tocInitialTab = .chapters; showTOC = true
             }
-            utilChip("Bookmark", icon: "bookmark", id: "player-bookmark") { dropBookmark() }
+            // ADD is an ACTION here (mock: "Mark"); the Chapters/Bookmarks sheet is
+            // browse-only. Toggles a mark at the current spot; fills when you're on one.
+            let marked = isCurrentSpotMarked
+            utilChip(marked ? "Marked" : "Mark",
+                     icon: marked ? "bookmark.fill" : "bookmark",
+                     id: "player-bookmark",
+                     tint: marked ? Color.skAccent : Color.skTextDim) { toggleMark() }
         }
     }
 
-    private func utilChip(_ title: String, icon: String, id: String, _ action: @escaping () -> Void) -> some View {
+    private func utilChip(_ title: String, icon: String, id: String,
+                          tint: Color = Color.skTextDim, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 5) {
                 Image(systemName: icon).font(.system(size: 13))
                 Text(title).font(.system(size: 12, weight: .medium))
             }
-            .foregroundStyle(Color.skTextDim)
+            .foregroundStyle(tint)
             .padding(.horizontal, 14).padding(.vertical, 7)
             .background(Color.skElev, in: .rect(cornerRadius: 11, style: .continuous))
         }
         .accessibilityIdentifier(id)
     }
 
-    private func dropBookmark() {
+    /// True when the playhead sits on a saved mark (within the dedupe window).
+    private var isCurrentSpotMarked: Bool {
+        currentBookmarks.contains { abs($0.position - session.currentTime) < BookmarkStore.dedupeWindow }
+    }
+
+    /// "Mark" = toggle a bookmark at the current spot: drop one, or lift the one
+    /// you're sitting on. The margin glyph pops in/out in the read-along at once.
+    private func toggleMark() {
         guard let book = session.book else { return }
         let at = session.currentTime
-        let before = bookmarks.load(bookID: book.id).count
-        let after = bookmarks.add(
-            AudiobookBookmark(position: at, chapterLabel: book.shortChapterLabel(at: at)),
-            bookID: book.id
-        ).count
-        Haptics.success()
-        showToast(after > before ? "Bookmarked · \(AudiobookTime.clock(at))" : "Already bookmarked here")
+        noteInteraction()
+        if let near = currentBookmarks.first(where: { abs($0.position - at) < BookmarkStore.dedupeWindow }) {
+            currentBookmarks = bookmarks.remove(id: near.id, bookID: book.id)
+            Haptics.tap()
+            showToast("Mark removed")
+        } else {
+            currentBookmarks = bookmarks.add(
+                AudiobookBookmark(position: at, chapterLabel: book.shortChapterLabel(at: at)),
+                bookID: book.id)
+            Haptics.success()
+            showToast("Marked · \(AudiobookTime.clock(at))")
+        }
     }
 
     private func showToast(_ text: String) {

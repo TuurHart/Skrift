@@ -85,7 +85,7 @@ struct ChaptersBookmarksSheet: View {
     @ViewBuilder
     private var bookmarksList: some View {
         if bookmarks.isEmpty {
-            empty("No bookmarks yet", "Tap Bookmark on the player to drop one here.")
+            empty("No bookmarks yet", "Tap Mark while you listen to save your spot.")
         } else {
             List {
                 ForEach(bookmarks) { bm in
