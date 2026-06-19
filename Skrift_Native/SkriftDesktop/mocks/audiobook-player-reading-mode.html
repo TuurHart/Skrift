@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audiobook reading-experience redesign — Skrift mock</title>
+<style>
+  :root{
+    --bg:#0C0C12; --surface:#17171F; --elev:#23232E; --line:#22222C; --line2:#2c2c38;
+    --accent:#7E74F0; --accent2:#9a92f7; --text:#F3F3F7; --dim:#9A9AA8; --faint:#6A6A78;
+    --cover:#C9B79A; --ok:#5DCAA5; --amber:#E0A33C;
+    --read:#D9D9E4;        /* body text in reading mode */
+    --read-dim:#7d7d8c;    /* not-current text */
+    --read-now:#FFFFFF;    /* current line */
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#050507; color:#E8E8EE;
+       font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:28px;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;}
+  .sub{color:#8A8A96;margin:0 0 6px;max-width:880px;}
+  .thesis{color:var(--accent2);font-size:13.5px;margin:0 0 24px;max-width:880px;}
+  .thesis b{color:#cfcce8;}
+  .label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#6A6A78;margin:0 0 9px;font-weight:600;}
+  .rowwrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+  .col{display:flex;flex-direction:column;gap:9px;width:300px;}
+
+  .phone{width:300px;height:600px;background:var(--bg);border:6px solid #000;border-radius:40px;
+         padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .stat{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);padding:12px 20px 4px;}
+  .body{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+
+  /* ── tab bar ── */
+  .tabbar{display:flex;border-top:.5px solid var(--line);background:#101019;padding:7px 6px 14px;}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;color:var(--faint);}
+  .tab.on{color:var(--accent);}
+  .tab.soon{opacity:.4;}
+  .tab svg{width:21px;height:21px;}
+  .tab .badge{position:absolute;}
+
+  /* ── library ── */
+  .scr{flex:1;overflow:hidden;padding:6px 16px;}
+  .h2{font-size:23px;font-weight:800;margin:8px 2px 12px;}
+  .lbook{display:flex;gap:11px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--line);}
+  .cov{width:46px;height:46px;border-radius:7px;background:var(--cover);flex-shrink:0;display:flex;align-items:flex-end;
+       padding:4px;font-size:7px;color:#2C2C2A;font-weight:700;}
+  .cov.dk{background:#3A3550;color:#C9C4E4;} .cov.bl{background:#A7B7C9;color:#26303a;}
+  .lmeta{flex:1;min-width:0;} .lt{font-size:13px;color:var(--text);}
+  .la{font-size:11px;color:var(--dim);}
+  .lbar{height:3px;background:#26262f;border-radius:2px;margin-top:5px;position:relative;overflow:hidden;}
+  .lbar>i{position:absolute;left:0;top:0;height:3px;border-radius:2px;background:var(--accent);opacity:.6;}
+
+  /* delete confirm */
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;}
+  .confirm{background:#1c1c26;border-radius:16px 16px 0 0;width:100%;padding:18px 18px 26px;}
+  .confirm h3{margin:0 0 4px;font-size:15px;}
+  .confirm p{margin:0 0 16px;font-size:12px;color:var(--dim);}
+  .btn{display:block;width:100%;text-align:center;padding:12px;border-radius:11px;font-size:14px;font-weight:600;margin-bottom:8px;}
+  .btn.del{background:#3a1d22;color:#ff7b7b;} .btn.keep{background:var(--elev);color:var(--text);}
+
+  /* ── player ── */
+  .phdr{display:flex;align-items:center;gap:9px;padding:10px 16px 6px;}
+  .phdr .cv{width:34px;height:34px;border-radius:6px;background:var(--cover);flex-shrink:0;font-size:6px;color:#2c2c2a;font-weight:700;display:flex;align-items:flex-end;padding:3px;}
+  .phdr .tt{flex:1;min-width:0;}
+  .phdr .tt b{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .phdr .tt span{font-size:10.5px;color:var(--dim);}
+  .phdr .ch{font-size:9.5px;color:var(--amber);background:rgba(224,163,60,.13);padding:2px 7px;border-radius:10px;white-space:nowrap;}
+  .ico{color:var(--dim);}
+
+  .reader{flex:1;overflow:hidden;position:relative;padding:10px 20px 6px;}
+  .ptext{font-size:15px;line-height:1.62;color:var(--read-dim);}
+  .ptext .past{color:var(--read-dim);}
+  .ptext .now{color:var(--read-now);}
+  .ptext .now .w{background:var(--accent);color:#fff;border-radius:4px;padding:0 2px;}
+  .ptext .ahead{color:var(--read);}
+  .reader.big .ptext{font-size:18px;line-height:1.75;}
+
+  /* margin bookmark ribbon */
+  .ribbon{position:absolute;left:4px;width:10px;height:30px;background:var(--accent);border-radius:0 3px 3px 0;
+          box-shadow:0 1px 4px rgba(0,0,0,.4);}
+  .ribbon::after{content:"";position:absolute;bottom:-5px;left:0;border-left:5px solid var(--accent);
+                 border-right:5px solid var(--accent);border-bottom:5px solid transparent;}
+
+  /* transport */
+  .transport{padding:6px 18px 12px;}
+  .scrub{height:3px;background:var(--line2);border-radius:2px;position:relative;margin:4px 0 5px;}
+  .scrub>i{position:absolute;left:0;top:0;height:3px;width:34%;background:var(--accent);border-radius:2px;}
+  .scrub>b{position:absolute;left:34%;top:-3.5px;width:10px;height:10px;border-radius:50%;background:#fff;transform:translateX(-50%);}
+  .times{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);margin-bottom:10px;}
+  .controls{display:flex;align-items:center;justify-content:center;gap:22px;}
+  .play{width:60px;height:60px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;
+        box-shadow:0 6px 20px -4px var(--accent);}
+  .skip{color:var(--text);font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:1px;}
+  .util{display:flex;align-items:center;justify-content:space-between;padding:12px 22px 4px;}
+  .ub{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--dim);}
+  .ub svg{width:19px;height:19px;}
+  .addnote{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--accent);
+           background:rgba(126,116,240,.13);padding:6px 13px;border-radius:18px;}
+
+  /* reading-mode (chrome receded) */
+  .minihdr{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 2px;font-size:10.5px;color:var(--faint);}
+  .floatplay{position:absolute;bottom:18px;right:18px;width:52px;height:52px;border-radius:50%;background:var(--accent);
+             display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px -4px var(--accent);}
+  .backpill{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);font-size:10.5px;color:#fff;
+            background:rgba(126,116,240,.92);padding:6px 13px;border-radius:18px;display:inline-flex;gap:5px;align-items:center;
+            box-shadow:0 4px 14px rgba(0,0,0,.4);}
+
+  /* popover */
+  .pop{position:absolute;left:18px;right:18px;bottom:18px;background:#1c1c26;border-radius:18px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.5);}
+  .pop .ph{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.4px;margin:0 0 12px;}
+  .stepper{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .stepper .aa{display:flex;align-items:center;gap:14px;}
+  .stepper .ab{width:40px;height:40px;border-radius:11px;background:var(--elev);display:flex;align-items:center;justify-content:center;}
+  .stepper .ab.s{font-size:14px;} .stepper .ab.l{font-size:22px;font-weight:700;}
+  .seg{display:flex;background:var(--elev);border-radius:11px;padding:3px;margin-bottom:14px;}
+  .seg div{flex:1;text-align:center;font-size:12px;padding:7px;border-radius:9px;color:var(--dim);}
+  .seg div.on{background:#2f2f3c;color:var(--text);}
+  .themes{display:flex;gap:10px;}
+  .themes div{flex:1;height:42px;border-radius:10px;border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;font-size:11px;}
+  .themes .lt2{background:#ece8df;color:#2a2a2a;} .themes .sep{background:#efe2c6;color:#3a2f1a;} .themes .dk2{background:#16161e;color:#ddd;border-color:var(--accent);}
+
+  /* TOC sheet */
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#15151d;border-radius:20px 20px 0 0;padding:14px 16px 22px;height:78%;}
+  .grab{width:34px;height:4px;border-radius:2px;background:#34343e;margin:0 auto 14px;}
+  .segbig{display:flex;background:var(--elev);border-radius:11px;padding:3px;margin-bottom:14px;}
+  .segbig div{flex:1;text-align:center;font-size:13px;padding:8px;border-radius:9px;color:var(--dim);}
+  .segbig div.on{background:#2f2f3c;color:var(--text);}
+  .ti{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:.5px solid var(--line);}
+  .ti .l{font-size:13px;} .ti .l small{color:var(--faint);display:block;font-size:10.5px;margin-top:2px;}
+  .ti .r{font-size:10.5px;color:var(--faint);}
+  .ti.cur .l{color:var(--accent);}
+  .ti .bk{color:var(--accent);}
+
+  .notes{max-width:880px;margin-top:34px;color:#B8B8C2;font-size:13.5px;line-height:1.75;}
+  .notes h3{font-size:15px;color:#E8E8EE;margin:24px 0 6px;}
+  .notes h4{font-size:13px;color:var(--accent2);margin:16px 0 4px;}
+  .notes code{background:#1A1A24;padding:1px 6px;border-radius:5px;font-size:12.5px;color:#CFCFE0;}
+  .notes ul{margin:5px 0;padding-left:18px;} .notes li{margin:4px 0;}
+  .q{background:rgba(224,163,60,.08);border-left:3px solid var(--amber);padding:10px 14px;border-radius:0 8px 8px 0;margin:8px 0;font-size:13px;}
+  .q b{color:var(--amber);}
+  svg{stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+</style>
+</head>
+<body>
+<h1>Audiobook reading-experience redesign</h1>
+<p class="sub">The player is now a <b>read-AND-listen</b> surface, so it gets an e-reader pass. Folds in Henry's notes + the 2026-06-18/19 feedback. <b>Mock — point &amp; critique before any code.</b></p>
+<p class="thesis">Organizing idea: <b>“reading mode” — less chrome, more page.</b> While you read, the UI recedes so the text owns the screen; tap to bring controls back. One idea covers the header compress, the real-estate ask, the smaller note button, and the font/readability work.</p>
+
+<div class="rowwrap">
+
+  <!-- 1 · TAB BAR + LIBRARY -->
+  <div class="col">
+    <p class="label">1 · Tabs — Library is first-class now</p>
+    <div class="phone">
+      <div class="stat"><span>9:41</span><span>Skrift</span></div>
+      <div class="body">
+        <div class="scr">
+          <div class="h2">Library</div>
+          <div class="lbook"><div class="cov">SAPIENS</div><div class="lmeta"><div class="lt">Sapiens</div><div class="la">Yuval Noah Harari</div><div class="lbar"><i style="width:38%"></i></div></div></div>
+          <div class="lbook"><div class="cov dk">ATOMIC<br>HABITS</div><div class="lmeta"><div class="lt">Atomic Habits</div><div class="la">James Clear</div><div class="lbar"><i style="width:71%"></i></div></div></div>
+          <div class="lbook"><div class="cov bl">MEDi<br>TATIONS</div><div class="lmeta"><div class="lt">Meditations</div><div class="la">Marcus Aurelius</div><div class="lbar"><i style="width:12%"></i></div></div></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Notes</div>
+          <div class="tab on"><svg viewBox="0 0 24 24"><path d="M4 5a1 1 0 0 1 1-1h12a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2z"/><path d="M19 4v16"/></svg>Library</div>
+          <div class="tab soon"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Highlights</div>
+          <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>Settings</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 · PLAYER — controls visible -->
+  <div class="col">
+    <p class="label">2 · Player — controls up, page wins</p>
+    <div class="phone">
+      <div class="stat"><span>9:41</span><span></span></div>
+      <div class="body">
+        <div class="phdr">
+          <svg viewBox="0 0 24 24" class="ico" style="width:18px;height:18px"><path d="M6 9l6 6 6-6"/></svg>
+          <div class="cv">SAP</div>
+          <div class="tt"><b>Sapiens</b><span>Harari</span></div>
+          <span class="ch">Ch 4 / 18</span>
+          <svg viewBox="0 0 24 24" class="ico" style="width:18px;height:18px"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+        </div>
+        <div class="reader">
+          <div class="ptext">
+            <span class="past">Fire gave us power. The campfire became a place of warmth and protection against predators. </span>
+            <span class="now">But the truly important thing about fire was that <span class="w">it</span> set humans on a path</span>
+            <span class="ahead"> toward cooking — flames did some of the work a stomach would otherwise do, letting our guts shrink and our brains grow. No other animal cooks its food.</span>
+          </div>
+        </div>
+        <div class="transport">
+          <div class="scrub"><i></i><b></b></div>
+          <div class="times"><span>1:42:10</span><span>−21:13</span></div>
+          <div class="controls">
+            <div class="skip"><svg viewBox="0 0 24 24" style="width:24px;height:24px"><path d="M11 5L4 12l7 7"/><path d="M19 5l-7 7 7 7"/></svg>15</div>
+            <div class="play"><svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:#fff;stroke:none"><path d="M8 5v14l11-7z"/></svg></div>
+            <div class="skip"><svg viewBox="0 0 24 24" style="width:24px;height:24px"><path d="M13 5l7 7-7 7"/><path d="M5 5l7 7-7 7"/></svg>30</div>
+          </div>
+        </div>
+        <div class="util">
+          <div class="ub"><svg viewBox="0 0 24 24"><text x="3" y="17" style="font:700 13px sans-serif;stroke:none;fill:currentColor">Aa</text></svg>Text</div>
+          <div class="ub"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>Bookmark</div>
+          <div class="ub"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 10l7-7 7 7"/></svg>1.5×</div>
+          <div class="ub"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2 2"/></svg>Sleep</div>
+          <div class="addnote"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 5v14M5 12h14"/></svg>Add note</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 · PLAYER — reading mode -->
+  <div class="col">
+    <p class="label">3 · Reading mode — chrome recedes</p>
+    <div class="phone">
+      <div class="stat"><span>9:41</span><span></span></div>
+      <div class="body">
+        <div class="minihdr"><span>Sapiens · ch 4</span><span>−21:13</span></div>
+        <div class="reader" style="padding-top:4px;">
+          <div class="ribbon" style="top:96px;"></div>
+          <div class="ptext" style="font-size:16px;">
+            <span class="past">Fire gave us power. The campfire became a place of warmth and protection against predators, and the first humans to master it gained an edge that would echo for a hundred thousand years. </span>
+            <span class="now">But the truly important thing about fire was that <span class="w">it</span></span>
+            <span class="ahead"> set humans on a path toward cooking — flames did some of the digestive work a stomach would otherwise do, letting our guts shrink and our brains grow. No other animal cooks, and none ever rivalled us once we did.</span>
+          </div>
+        </div>
+        <div class="backpill"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:#fff"><path d="M12 5v14M5 12l7 7 7-7"/></svg>Back to playing</div>
+        <div class="floatplay"><svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#fff;stroke:none"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></div>
+      </div>
+    </div>
+    <p class="label" style="margin-top:2px;color:var(--faint);">tap anywhere on the page → controls fade back in (screen 2)</p>
+  </div>
+
+  <!-- 4 · TEXT SETTINGS popover -->
+  <div class="col">
+    <p class="label">4 · “Aa” text settings</p>
+    <div class="phone">
+      <div class="stat"><span>9:41</span><span></span></div>
+      <div class="body">
+        <div class="phdr"><svg viewBox="0 0 24 24" class="ico" style="width:18px;height:18px"><path d="M6 9l6 6 6-6"/></svg><div class="cv">SAP</div><div class="tt"><b>Sapiens</b><span>Harari</span></div></div>
+        <div class="reader big"><div class="ptext"><span class="past">Fire gave us power. </span><span class="now">The campfire <span class="w">became</span> a place</span><span class="ahead"> of warmth and protection.</span></div></div>
+        <div class="pop">
+          <p class="ph">Text</p>
+          <div class="stepper">
+            <span style="font-size:12px;color:var(--dim)">Size</span>
+            <div class="aa"><div class="ab s">A</div><div class="ab l">A</div></div>
+          </div>
+          <div class="seg"><div>Tight</div><div class="on">Cozy</div><div>Loose</div></div>
+          <div class="themes"><div class="lt2">Light</div><div class="sep">Sepia</div><div class="dk2">Dark</div></div>
+        </div>
+      </div>
+    </div>
+    <p class="label" style="margin-top:2px;color:var(--faint);">v1 = Size + line-spacing. Theme = fast follow.</p>
+  </div>
+
+  <!-- 5 · Bookmarks / chapters browse -->
+  <div class="col">
+    <p class="label">5 · Chapters + Bookmarks = browse only</p>
+    <div class="phone">
+      <div class="stat"><span>9:41</span><span></span></div>
+      <div class="body" style="background:#0a0a10;">
+        <div class="reader" style="opacity:.25;"><div class="ptext"><span class="ahead">Fire gave us power. The campfire became a place of warmth.</span></div></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="segbig"><div>Chapters</div><div class="on">Bookmarks</div></div>
+          <div class="ti cur"><div class="l"><span class="bk">▸</span> “it set humans on a path…”<small>Ch 4 · 1:42:10 · tap to jump</small></div><svg viewBox="0 0 24 24" class="bk" style="width:16px;height:16px"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
+          <div class="ti"><div class="l">“our guts shrink and our brains grow”<small>Ch 4 · 1:45:02</small></div><svg viewBox="0 0 24 24" class="bk" style="width:16px;height:16px"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
+          <div class="ti"><div class="l">“the cognitive revolution”<small>Ch 2 · 0:38:55</small></div><svg viewBox="0 0 24 24" class="bk" style="width:16px;height:16px"><path d="M6 3h12v18l-6-4-6 4z"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <p class="label" style="margin-top:2px;color:var(--faint);">add = the Bookmark button (screen 2). this sheet only jumps.</p>
+  </div>
+
+</div>
+
+<div class="notes">
+  <h3>The decisions (the spec)</h3>
+
+  <h4>Navigation / IA — a tab bar (screen 1)</h4>
+  <ul>
+    <li><b>Notes · Library · (Highlights) · Settings</b> as a bottom tab bar. The Library stops being a dismissible <code>.sheet</code> → pull-to-refresh works, and it reads as co-equal with Notes (the vision = both first-class). <b>Highlights</b> is shown dimmed = the Phase-6 slot (book quotes become notes); ships then, not now.</li>
+    <li><b>Delete needs a confirm</b> — one swipe currently nukes a book. Confirm sheet spells out local-only vs also-stops-syncing.</li>
+  </ul>
+
+  <h4>The player — “reading mode” (screens 2 & 3)</h4>
+  <ul>
+    <li><b>Compressed header (Henry):</b> “NOW PLAYING” is gone; cover-chip + title + author + chapter live in one slim bar. In reading mode it shrinks to a one-line “Sapiens · ch 4 / −21:13”.</li>
+    <li><b>Accent the now, don’t hide the rest:</b> the whole page is readable; the current line is brightest and the current word gets the accent chip; past/ahead text stays legible (not blacked out). You can free-scroll to read ahead; a <b>“Back to playing”</b> pill returns you when you’ve wandered.</li>
+    <li><b>Floating play button</b> (screen 3) matches the memo screen’s floating play — always under your thumb. Skip ±15/30 flank it when controls are up (screen 2); in reading mode just the float shows.</li>
+    <li><b>“Capture this” → “Add note”</b> — demoted from a big pill to a small accent chip in the utility row. The capture flow is unchanged; it just stops dominating.</li>
+    <li>Speed + Sleep + Bookmark + Aa sit in a quiet utility row; everything but the page recedes while reading.</li>
+  </ul>
+
+  <h4>Text settings — the “Aa” button (screen 4)</h4>
+  <ul>
+    <li>Size stepper (small-A / big-A) + line-spacing (Tight/Cozy/Loose) in v1 — the two that actually make long reading comfortable. Light/Sepia/Dark reading theme is the fast-follow. Persists app-wide.</li>
+  </ul>
+
+  <h4>Bookmarks — book-like, and the model untangled (screens 2, 3, 5)</h4>
+  <ul>
+    <li><b>Add</b> = the Bookmark button in the utility row (drops/removes a mark at your spot). <b>Browse</b> = the sheet (Chapters | Bookmarks), which ONLY jumps — fixing today’s confusing “Bookmarks tab adds, Chapters tab navigates”.</li>
+    <li><b>Margin ribbon</b> (screen 3): a bookmarked spot shows an accent ribbon in the left margin that scrolls with the text — so you can scroll and see “this bit is saved”, just like a dog-eared page. A bookmark is really a timestamp → the ribbon maps to the nearest text when the book’s transcribed, and the list always works regardless.</li>
+  </ul>
+
+  <h3>Open questions for you 👇</h3>
+  <div class="q"><b>Q1 — Tabs:</b> commit to the bottom tab bar (Notes · Library · Highlights · Settings)? Or the cheaper interim (Library becomes a full-screen page instead of a sheet, no tabs yet)?</div>
+  <div class="q"><b>Q2 — “Importance” relabel:</b> significance is being de-Mac’d into a per-note flag. Best word: <b>Importance</b>, <b>Pin</b>, or <b>Highlight</b>? (Needed for the Phase-3 work that rides alongside this.)</div>
+  <div class="q"><b>Q3 — Add-note placement:</b> small chip in the utility row (shown), or a tiny floating button near the play control?</div>
+  <div class="q"><b>Q4 — Reading mode trigger:</b> auto-recede after a few seconds of no touch (Kindle-style), or only when you scroll the text? </div>
+  <p style="color:#6A6A78">Palette + phone frame match <code>audiobook-player-redesign.html</code> / <code>standalone-audiobook-sync.html</code>. Glyphs = placeholders for SF Symbols. Prior art baked in: Apple Books / Kindle (Aa, chrome-fade, margins), Spotify lyrics &amp; Snipd (accent-the-now read-along + back-to-playing), Apple Books (margin marks), Audible (transport).</p>
+</div>
+</body>
+</html>
