@@ -2,6 +2,60 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## Device-testing feedback — 2026-06-21 (6 live notes, pulled + verified)
+
+Pulled from the dev phone via the **App Group container** (`group.com.skrift.mobile.dev` →
+`Library/Application Support/default.store`, live, 83 MB, modified during the pull). ⚠️ **The
+`pull-phone-feedback` skill's documented path (`com.skrift.mobile.dev` per-app container) is STILL the
+06-12 stale orphan** — confirmed again this round; the live store is in the App Group container and is only
+reachable with `devicectl --domain-type appGroupDataContainer` when the CoreDevice service tunnel is up
+(it was, this time). 6 non-deleted notes (matched what the user saw in-app); 65 soft-deleted tombstones
+ignored. Second-agent verify done. Raw dump at `.claude/memos_dump.txt`.
+
+### P0 — 🐛 DATA-LOSS BUG: append after clearing a pasted note deletes the WHOLE note
+**The bug the user "ran into."** Lost a ~3-minute note. **Exact repro (load-bearing details):** (1) start a
+**new note**; (2) **paste** text into the body; (3) decide you don't want it and **delete/clear** that
+pasted text; (4) **append** to the note with the **+ button**. → the append commits, and *then the whole
+note gets deleted* ("your whole note gets deleted after it's added"). Destruction is in the **append-commit
+path on a note whose body was paste-then-emptied**, not in the paste or delete step. User: "something we
+couldn't have caught… this is strange behavior." → **P0, reproduce + fix first.** (memo 06-21 11:12)
+
+### P1 — 🐛 Diarization / speaker-ID does not survive backgrounding (hypothesis) + ✨ wants a progress bar
+Same session, "conversation" mode, 2 speakers. **(a) ✨ FEATURE (loved — "I love this"): a progress bar
+while identifying speakers.** Diarization runs long enough that the user backgrounded the app waiting — the
+duration itself is a data point. **(b) 🐛 BUG (unconfirmed — user *thinks*):** "it was identifying speakers
+for a long time, then I switched out of the app and then I **think** it stopped. Just didn't anymore."
+Hypothesis: the speaker-ID `Task` dies on app suspension — **same class as the 06-17 stuck-transcription
+bug** (fire-and-forget `Task` can't survive suspend), but on the diarization path. Keep the "user thinks"
+hedge — not a verified repro. The progress bar (a) would also surface whether (b) is a true stall vs. just
+slow. (memo 06-17 20:20)
+
+### P1 — 🔎 CONFIRM: transcription engine now "always warm", much faster, NOT eating battery — what changed?
+User noticed (in **prod AND dev**) the engine is now always warm, "way faster," and "not really taking
+batteries." Tone is pleased-but-suspicious — "something changed… what happened?" **Action: confirm what
+changed (likely the pre-warm booster / always-warm path), confirm it's intentional, and verify it isn't
+silently draining battery in some state.** File-and-document, not just log as praise. (memo 06-20 12:33)
+
+### P2 — ✨ Share a PDF into Skrift and have it persist as a source
+User tried to share a PDF to Skrift via the share sheet and "have it live in there" — couldn't. Wants a PDF
+to **persist as an imported source** (parallels the existing share-to-import audio/video path), not a
+one-shot read. Extends the planned **"Unified source taxonomy"** (PDF is already a listed source type — see
+below) → make PDF a first-class shareable/importable source. (memo 06-20 10:52)
+
+### P2 — 🎨 Audiobook reading-mode: bookmark icon placement follow-up (post build-14)
+Refinement on the just-built reading-mode bookmark UX. Currently the bookmark icon "is still at the bottom"
+with awkward negative-space margin. Want it **inline with the "selected text" button, far left** — bookmark
+becomes part of the selected-text affordance: tap it to **visualize the bookmarked text and toggle it
+on/off** (save/unsave per selection). i.e. bookmark state is per-selection + visualized, not a global bottom
+button. (memo 06-19 21:38)
+
+### P2 — 🧱 EPIC: note-editing experience needs its own focused sprint
+"The editing of the notes in the app is… not a very good experience." Concrete **exemplar** (not the whole
+ask): selecting many **tags** — "you can't drag down and it doesn't keep going" (tag picker doesn't
+scroll/keep showing options). User: "I'm sure there's other bits" → wants a **focused study of note-editing,
+learning from other apps**, as its **own separate sprint**. Don't log the tag-scroll fix as "done = sprint
+done" — it's one symptom of a broader editing-UX pass. (memo 06-21 11:22)
+
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 
 NEW DIRECTION: ship **SkriftMobile to the App Store as a standalone audiobook + notetaking app** that
@@ -322,6 +376,11 @@ containers — only `devicectl --domain-type appGroupDataContainer` can (and tha
 `pull-phone-feedback` skill** — it currently points at the now-orphaned `Library/Application Support/default.store`;
 (3) the word-timing sidecar recovery trick (`wt_<uuid>.json` → join `word`s) is a reliable AFC-only fallback
 worth baking into the skill.
+**✅ RESOLVED 2026-06-21:** all three done. Live store confirmed in the **app group** container
+(`group.com.skrift.mobile.dev` → `Library/Application Support/default.store`; tunnel was up, mtime fresh, 6
+non-deleted notes matched in-app). Skill updated — pulls from `appGroupDataContainer`, sanity-checks
+mtime/`ZDELETEDAT IS NULL`, and bakes in the `wt_<uuid>.json` sidecar AFC-fallback. The per-app store
+remains the orphan; don't triage from it.
 
 ## ⭐ CONTINUE HERE — Conversation pipeline bug-hunt (2026-06-14)
 
