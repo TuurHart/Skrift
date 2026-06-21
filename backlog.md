@@ -118,8 +118,13 @@ playhead) never matched. Fixed: the reader passes the tapped line's whole GLOBAL
 any bookmark **inside that span** (`toggleBookmark(inSpan:)`), so it removes the exact one the line shows.
 Also switched the gutter from a nested `Button` to a single **`SpatialTapGesture`** on the line (left of
 text = fold/unfold, text = seek) so the tap is reliable in the scroll view. Mock
-(`mocks/audiobook-bookmark-fold.html`) re-aligned to the app's **purple bookmark ribbon + tint** (was a
-dog-ear) and redeployed. Device-eyeball on build 17 owed.
+(`mocks/audiobook-bookmark-fold.html`) re-aligned to the app's marker and redeployed.
+
+**🎨 build 18 (user: "i want the dog ear, it's a good idea"):** swapped the marker from the bookmark glyph
+to an actual **folded page corner** — a `DogEar` Shape (right-angle at the line's top-leading, hypotenuse
+TR→BL) filled accent with a soft shadow, scale-in transition on fold; the faint tint stays. Mock restored
+to the matching dog-ear (clip-path triangle). Toggle logic unchanged (span-aware + spatial-tap). Build 18.
+Device-eyeball owed.
 
 ### P2 — 🧱 EPIC: note-editing experience needs its own focused sprint
 "The editing of the notes in the app is… not a very good experience." Concrete **exemplar** (not the whole

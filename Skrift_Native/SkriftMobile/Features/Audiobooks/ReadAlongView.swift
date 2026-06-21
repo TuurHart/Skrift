@@ -240,18 +240,12 @@ struct ReadAlongView: View {
         let isCurrent = i == model.currentIndex
         let isPast = i < model.currentIndex
         return HStack(alignment: .top, spacing: 0) {
-            // Fixed left gutter that carries the fold marker (the bookmark glyph the
-            // user liked). The TAP is handled by one spatial gesture on the whole
-            // line (below) — left of the text folds/unfolds, the text itself seeks.
+            // Fixed left gutter = the fold tap-zone (the tap is handled by one spatial
+            // gesture on the whole line below — left of the text folds/unfolds, the
+            // text itself seeks). The marker is the dog-ear drawn at the corner.
             Color.clear
                 .frame(width: gutterWidth)
                 .frame(maxHeight: .infinity)
-                .overlay(alignment: .topLeading) {
-                    if marked {
-                        Image(systemName: "bookmark.fill")
-                            .font(.system(size: 12)).foregroundStyle(Color.skAccent)
-                    }
-                }
 
             Text(model.sentences[i].text)
                 .foregroundColor(isCurrent ? Self.readNow : (isPast ? Self.readPast : Self.readAhead))
@@ -261,7 +255,23 @@ struct ReadAlongView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         // Faint "this bit is saved" tint behind a bookmarked line, scrolls with it.
-        .background { if marked { Color.skAccent.opacity(0.09) } }
+        .background {
+            if marked {
+                RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.skAccent.opacity(0.09))
+            }
+        }
+        // The bookmark = a folded page corner (dog-ear) at the passage's top-left.
+        // Tap the gutter to fold it in / lift it off.
+        .overlay(alignment: .topLeading) {
+            if marked {
+                DogEar()
+                    .fill(Color.skAccent)
+                    .frame(width: 17, height: 17)
+                    .shadow(color: .black.opacity(0.35), radius: 1, x: 0.5, y: 0.5)
+                    .transition(.scale(scale: 0.1, anchor: .topLeading).combined(with: .opacity))
+                    .accessibilityHidden(true)
+            }
+        }
         .contentShape(Rectangle())
         // ONE spatial tap: tapping the left gutter folds/unfolds a bookmark, tapping
         // the text seeks. Location-based (not a nested Button) so the gutter tap is
@@ -385,5 +395,19 @@ struct ReadAlongView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 30)
         .accessibilityIdentifier("player-readalong-transcribing")
+    }
+}
+
+/// A folded page corner ("dog-ear") — a right triangle with its right angle at the
+/// top-leading corner (hypotenuse top-right → bottom-left). The bookmark marker for
+/// reading mode: tapping the gutter folds it in / lifts it off (2026-06-21).
+private struct DogEar: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.minX, y: r.minY))      // top-left
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY))   // top-right
+        p.addLine(to: CGPoint(x: r.minX, y: r.maxY))   // bottom-left
+        p.closeSubpath()
+        return p
     }
 }

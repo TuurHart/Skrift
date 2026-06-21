@@ -51,14 +51,15 @@
   .para:not(.marked):hover .hintdot{opacity:1;}
   .ptext{font-size:15px;line-height:1.62;color:var(--read-ahead);letter-spacing:.1px;}
 
-  /* the marker = the app's purple bookmark ribbon (SF bookmark.fill) in the gutter,
-     + a faint accent tint behind the marked passage (matches build 17) */
-  .ribbon{position:absolute;left:7px;top:0;width:12px;height:17px;background:var(--accent);
-          clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%);
-          opacity:0;transform:translateY(-3px);
-          transition:opacity .18s ease,transform .18s ease;pointer-events:none;}
+  /* the bookmark = a folded page corner (dog-ear) at the passage's top-left, matching
+     the app (build 18). Right-angle at top-left, hypotenuse top-right → bottom-left. */
+  .fold{position:absolute;left:0;top:0;width:17px;height:17px;background:var(--accent);
+        clip-path:polygon(0 0,100% 0,0 100%);
+        opacity:0;transform:scale(.2);transform-origin:top left;
+        transition:opacity .18s ease,transform .2s cubic-bezier(.3,1.2,.5,1);
+        filter:drop-shadow(1px 1px 1px rgba(0,0,0,.4));pointer-events:none;}
   .para.marked{background:rgba(126,116,240,.10);}
-  .para.marked .ribbon{opacity:1;transform:translateY(0);}
+  .para.marked .fold{opacity:1;transform:scale(1);}
   .para.marked .ptext{color:var(--text);}
 
   .reader-foot{height:42px;}
@@ -126,22 +127,22 @@
       <div class="reader" id="reader">
         <div class="para" data-i="0">
           <div class="gutter" onclick="toggle(0)"><div class="hintdot"></div></div>
-          <div class="ribbon"></div>
+          <div class="fold"></div>
           <div class="ptext">Tolerance is not a Sapiens trademark. In modern times, a small difference in skin colour, dialect or religion has been enough to prompt one group to set about exterminating another.</div>
         </div>
         <div class="para marked" data-i="1">
           <div class="gutter" onclick="toggle(1)"><div class="hintdot"></div></div>
-          <div class="ribbon"></div>
+          <div class="fold"></div>
           <div class="ptext">Would ancient humans have been more tolerant towards an entirely different human species? It may well be that when Sapiens encountered Neanderthals, the result was the first and most significant ethnic-cleansing campaign in history.</div>
         </div>
         <div class="para" data-i="2">
           <div class="gutter" onclick="toggle(2)"><div class="hintdot"></div></div>
-          <div class="ribbon"></div>
+          <div class="fold"></div>
           <div class="ptext">On the other hand, the two species may have found each other sexually attractive, and the differences between them dissolved into a single interbreeding population.</div>
         </div>
         <div class="para" data-i="3">
           <div class="gutter" onclick="toggle(3)"><div class="hintdot"></div></div>
-          <div class="ribbon"></div>
+          <div class="fold"></div>
           <div class="ptext">Whatever the case, the Neanderthals (and the other human species) pose one of history's great what-ifs. Imagine how things might have turned out had the Neanderthals or Denisovans survived alongside Homo sapiens.</div>
         </div>
         <div class="reader-foot"></div>
@@ -171,7 +172,7 @@
       <span class="tag">interactive — tap the left margin of any passage</span>
       <h3>What changes</h3>
       <ul>
-        <li><b>Tap-to-fold, tap-to-unfold.</b> The bookmark lives <b>on the page</b> — tap the gutter left of a passage and the purple bookmark drops in beside it (+ a faint tint). Tap it again and it lifts off. <span class="old">(Before: the glyph wasn't tappable — you couldn't remove it.)</span></li>
+        <li><b>Tap-to-fold, tap-to-unfold.</b> The bookmark lives <b>on the page</b> — tap the gutter left of a passage and its corner folds over (purple dog-ear + a faint tint). Tap it again and it unfolds. <span class="old">(Before: the glyph wasn't tappable — you couldn't remove it.)</span></li>
         <li><b>No bottom "Mark" button.</b> The dedicated toggle in the control row is gone — folding is the gesture. <span class="old">(Before: Mark sat in the bottom row, detached from the text.)</span></li>
         <li><b>Contents sheet jumps.</b> One sheet, two tabs — <b>Chapters</b> to skip chapters, <b>Bookmarks</b> to jump straight to a fold. Tapping a bookmark scrolls to it.</li>
       </ul>
