@@ -179,6 +179,15 @@ that same `HISTORY` array (mine git/`archive/`/ledgers into dated eras) — the 
 so the dedicated session just fills it in. (User, when choosing the rebuild: "a dream, not structurally
 directed yet" — so kept light for now, designed to grow.)
 
+**UPDATE 2026-06-21 — staged material compiled:** read-only pass over the 3 external milestone snapshots
+the user flagged (`~/Hackerman/archive/Skrift {…before frontend with hendri | …whisper AND parakeet | …before
+starting the mobile app}`) → **`ROADMAP_HISTORY_BACKFILL.md`** (repo root). It has the sources, a verified
+3-snapshot table, a draft 7-era timeline (Genesis→Whisper→v2-frontend-w/Hendri→Parakeet+significance→RN
+mobile→native convergence→standalone), and how to extend the `HISTORY` array. **Not built** — user wants to
+hold the backfill until the viz mechanics are locked (avoid rework). Key finding: the **live repo's own
+779-commit `git log` (2025-10-18 → now) already holds the full narrative** — the snapshots just add human
+milestone labels + the "Hendri" collaborator marker + preserved era artifacts. Start that session from the doc.
+
 ## 🎧 Audiobook player — reading-experience redesign (feedback 2026-06-18; ✅ MOCK SIGNED OFF + ✅ BUILT 2026-06-19)
 
 ### Device feedback — build 14 run (2026-06-19, triaged same session)
