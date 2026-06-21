@@ -378,12 +378,13 @@ function setComment(id,reaction,note){
   updateDirty();
 }
 function clearComment(id){ setComment(id,null,""); }
-// in-flow durability nudge: flag the Export button while local (un-baked) edits exist
+// Reactions auto-save to this browser instantly (no click needed). The dot just notes you have
+// reactions worth backing up / sharing — Export is only for getting them OUT to the repo/agent.
 function updateDirty(){
   const dirty=Object.keys(localStore).length>0;
   const b=$("exportBtn"); if(!b)return;
   b.classList.toggle("dirty",dirty);
-  b.title=dirty?"You have local reactions saved only in this browser — Export to keep them durably.":"Export comments as JSON";
+  b.title=dirty?"Auto-saved in this browser ✓  ·  Export to back up or share these reactions":"Export comments as JSON";
 }
 
 // build a node element
@@ -422,6 +423,15 @@ ALL.forEach(buildNode);
 
 // raw positions → normalize so everything sits at >= pad
 ALL.forEach(n=>{ n.rx = n.order*COLSTEP; n.ry = n.track*LANEH; });
+// guarantee nodes sharing a lane (same track) never overlap — nudge later ones right by
+// (their width + gap). Self-correcting layout: no hand-tuned `order` spacing needed, so you
+// never need to drag a card out from under another (fixes the detour-row overlap).
+const DGAP=24;
+const _laneGroups={}; ALL.forEach(n=>{ (_laneGroups[n.track]=_laneGroups[n.track]||[]).push(n); });
+Object.values(_laneGroups).forEach(group=>{
+  group.sort((a,b)=>a.rx-b.rx);
+  for(let i=1;i<group.length;i++){ const minX=group[i-1].rx+group[i-1].w+DGAP; if(group[i].rx<minX) group[i].rx=minX; }
+});
 const PAD=70;
 let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
 // include milestone labels & axis in bounds roughly via nodes; labels handled after
