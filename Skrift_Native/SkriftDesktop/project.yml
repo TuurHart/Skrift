@@ -35,6 +35,7 @@ targets:
       - path: Features
       # Shared cross-app source (one physical copy → no phone↔Mac drift).
       - path: ../Shared/Naming
+      - path: ../Shared/Export
     settings:
       base:
         PRODUCT_NAME: SkriftDesktop
@@ -98,6 +99,7 @@ targets:
       - path: Server
       # Shared cross-app source (host-less test bundle compiles it directly, like Models/Pipeline).
       - path: ../Shared/Naming
+      - path: ../Shared/Export
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests

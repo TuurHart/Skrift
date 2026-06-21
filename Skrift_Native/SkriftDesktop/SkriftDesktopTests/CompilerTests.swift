@@ -310,7 +310,7 @@ final class CaptureCompilerTests: XCTestCase {
     // MARK: captureSharedBlock unit tests
 
     func testCaptureSharedBlockUrl() {
-        let sc = SharedContent(type: "url",
+        let sc = CompilerSharedContent(type: "url",
                                url: "https://example.com",
                                urlTitle: "Example Page")
         let block = Compiler.captureSharedBlock(sc)
@@ -319,19 +319,19 @@ final class CaptureCompilerTests: XCTestCase {
     }
 
     func testCaptureSharedBlockText() {
-        let sc = SharedContent(type: "text", text: "A quoted snippet.")
+        let sc = CompilerSharedContent(type: "text", text: "A quoted snippet.")
         let block = Compiler.captureSharedBlock(sc)
         XCTAssertTrue(block.hasPrefix("> A quoted snippet."))
     }
 
     func testCaptureSharedBlockImage() {
-        let sc = SharedContent(type: "image", fileName: "photo.jpg")
+        let sc = CompilerSharedContent(type: "image", fileName: "photo.jpg")
         let block = Compiler.captureSharedBlock(sc)
         XCTAssertTrue(block.contains("![[photo.jpg]]"))
     }
 
     func testCaptureSharedBlockUnknownTypeIsEmpty() {
-        let sc = SharedContent(type: "file")
+        let sc = CompilerSharedContent(type: "file")
         let block = Compiler.captureSharedBlock(sc)
         XCTAssertTrue(block.isEmpty, "unknown type → no pinned block")
     }

@@ -1,86 +1,29 @@
 import Foundation
 
-/// Phone-sent metadata, decoded from `PipelineFile.audioMetadataJSON` (the phone's
-/// MemoMetadata shape) for the export frontmatter. All optional / lenient.
-struct PhoneMetadata: Codable, Sendable {
-    struct Location: Codable, Sendable { var placeName: String? }
-    struct Weather: Codable, Sendable { var conditions: String?; var temperature: Double?; var temperatureUnit: String? }
-    struct Pressure: Codable, Sendable { var hPa: Double?; var trend: String? }
-    struct Daylight: Codable, Sendable { var sunrise: String?; var sunset: String?; var hoursOfLight: Double? }
-    var location: Location?
-    var weather: Weather?
-    var pressure: Pressure?
-    var dayPeriod: String?
-    var daylight: Daylight?
-    var steps: Int?
-    var recordedAt: String?
-    // Audiobook quote-capture (contract C2) — additive optional fields riding the
-    // existing metadata JSON. Absent on every non-capture memo and on uploads from
-    // older phone builds (synthesized Codable = decodeIfPresent / encodeIfPresent),
-    // so the contract stays byte-compatible in both directions.
-    var bookTitle: String?
-    var bookAuthor: String?
-    var bookChapter: String?
-}
-
-/// The `sharedContent` object from `PipelineFile.audioMetadataJSON` for C3 captures.
-/// Mirrors mobile's `SharedContent` Codable — field names are intentionally identical.
-/// Decoded on-demand (not stored on PipelineFile — avoids the SwiftData Codable trap).
-struct SharedContent: Codable, Sendable {
-    var type: String          // "url" | "text" | "image" | "file"
-    var url: String?          // url captures
-    var urlTitle: String?     // url captures (from share payload, no network fetch)
-    var urlDescription: String?
-    var text: String?         // text captures (the quoted snippet)
-    var fileName: String?     // image captures (the image part's filename)
-    var mimeType: String?     // image captures
-
-    /// Decode from the raw metadata JSON blob.
-    static func decode(from metadataJSON: Data?) -> SharedContent? {
-        guard let data = metadataJSON else { return nil }
-        // Try Codable first (standard JSON keys), then fall back to manual extraction
-        // (the demo seeds use a raw dict with snake_case `shared_content` key).
-        if let wrapper = try? JSONDecoder().decode(_Wrapper.self, from: data) { return wrapper.sharedContent }
-        if let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-           let sc = (obj["sharedContent"] ?? obj["shared_content"]) as? [String: Any] {
-            return SharedContent(
-                type: sc["type"] as? String ?? "",
-                url: sc["url"] as? String,
-                urlTitle: sc["urlTitle"] as? String,
-                urlDescription: sc["urlDescription"] as? String,
-                text: sc["text"] as? String,
-                fileName: sc["fileName"] as? String,
-                mimeType: sc["mimeType"] as? String
-            )
-        }
-        return nil
-    }
-
-    private struct _Wrapper: Codable { var sharedContent: SharedContent? }
-}
-
-/// Assembles Obsidian-ready markdown (YAML frontmatter + body) from a PipelineFile.
-/// Pure (no IO) → host-testable. Ported from `enhancement.py:compile_file`. Body
-/// precedence: sanitised → enhanced copy-edit → transcript (the name-linked text
-/// wins, since it's what exports). The vault write/copy is the Export step (Phase 8).
+/// Assembles Obsidian-ready markdown (YAML frontmatter + body) from a neutral
+/// `CompilerInput`. Pure (no IO) → host-testable, and `PipelineFile`-free so BOTH apps
+/// compile the SAME engine (standalone Phase 2; desktop maps via `PipelineFile.compilerInput`,
+/// mobile via `MemoExporter`). Ported from `enhancement.py:compile_file`. Body precedence:
+/// sanitised → enhanced copy-edit → transcript (the name-linked text wins, since it's what
+/// exports). The vault write/copy is the Export step.
 enum Compiler {
     /// `knownPeople` (the live names DB) filters the `people:` list to actual persons —
     /// excluding non-person wiki-links (places like `[[Hotel Du Vin]]`, manual links) that a
     /// transcript/Apple-Note body may carry. nil = no filter (engine tests / minor call sites).
-    static func compile(file pf: PipelineFile, author: String, date overrideDate: String? = nil,
+    static func compile(_ input: CompilerInput, author: String, date overrideDate: String? = nil,
                         knownPeople: [Person]? = nil) -> String {
-        let meta = pf.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
-        let sc = SharedContent.decode(from: pf.audioMetadataJSON)   // nil for non-captures
+        let meta = input.metadata
+        let sc = input.sharedContent   // nil for non-captures
 
         // For captures the annotation body comes from sanitised/transcript only — no copy-edit layer.
-        let body = firstNonEmpty(pf.sanitised, pf.enhancedCopyedit, pf.transcript) ?? ""
-        let summary = (pf.enhancedSummary ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let rawStem = (pf.filename as NSString).deletingPathExtension
-        let title = firstNonEmpty(pf.enhancedTitle, rawStem) ?? rawStem
+        let body = firstNonEmpty(input.sanitised, input.enhancedCopyedit, input.transcript) ?? ""
+        let summary = (input.enhancedSummary ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawStem = (input.filename as NSString).deletingPathExtension
+        let title = firstNonEmpty(input.enhancedTitle, rawStem) ?? rawStem
 
         // `date` from the phone's `recordedAt` (captures use this as the share
-        // time); falls back to the raw metadata JSON when PhoneMetadata didn't decode.
-        let recordedAt = meta?.recordedAt ?? rawMetaString(pf, key: "recordedAt")
+        // time); falls back to the raw metadata JSON when the metadata didn't decode.
+        let recordedAt = meta?.recordedAt ?? input.rawRecordedAt
         let date = overrideDate ?? recordedAt.map { String($0.prefix(10)) } ?? ""
 
         // Audiobook quote-capture (spec 7): the presence of a book title marks the
@@ -95,10 +38,10 @@ enum Compiler {
         let source: String
         if bookTitle != nil {
             source = "Audiobook-quote"
-        } else if pf.mediaSource == "video" {
+        } else if input.mediaSource == "video" {
             source = "Video"
         } else {
-            switch pf.sourceType {
+            switch input.sourceType {
             case .note: source = "Apple-Note"
             case .audio: source = "Voice-memo"
             case .capture:
@@ -122,10 +65,9 @@ enum Compiler {
             "author: \(author)",
             "source: \(source)",
         ]
-        // People this note is ABOUT (opt-in naming, mocks/opt-in-naming.html): the distinct
-        // canonical wiki-links present in the body. Empty until the user taps a chip (or a
-        // conversation auto-links its matched speakers). Carries the graph connection that
-        // the body's one-note-one-link rule deliberately keeps to a single link per person.
+        // People this note is ABOUT: the distinct canonical wiki-links present in the body.
+        // Carries the graph connection that the body's one-note-one-link rule keeps to a
+        // single link per person.
         let peopleLinks = peopleLinks(in: body, knownPeople: knownPeople)
         y.append(peopleLinks.isEmpty ? "people:"
                  : "people: " + peopleLinks.map { "[[\($0)]]" }.joined(separator: ", "))
@@ -135,7 +77,7 @@ enum Compiler {
         if let bookAuthor { y.append("bookAuthor: \"\(bookAuthor)\"") }
         if let bookChapter { y.append("chapter: \"\(bookChapter)\"") }
         // `url:` key only for url captures (C3 §compile).
-        if pf.sourceType == .capture, let url = sc?.url, !url.isEmpty {
+        if input.sourceType == .capture, let url = sc?.url, !url.isEmpty {
             y.append("url: \(url)")
         }
         if let place = meta?.location?.placeName, !place.isEmpty {
@@ -158,8 +100,8 @@ enum Compiler {
         if let steps = meta?.steps { y.append("steps: \(steps)") }
 
         y.append("tags:")
-        for t in pf.tags { y.append("  - \(t)") }
-        y.append(pf.significance != nil ? "significance: \(String(format: "%.1f", pf.significance!))" : "significance:")
+        for t in input.tags { y.append("  - \(t)") }
+        y.append(input.significance != nil ? "significance: \(String(format: "%.1f", input.significance!))" : "significance:")
         y.append(summary.isEmpty ? "summary:" : "summary: \(yamlQuoted(summary))")
         y.append("---")
         y.append("")
@@ -167,7 +109,7 @@ enum Compiler {
         let frontmatter = y.joined(separator: "\n") + "\n"
 
         // Captures pin the shared-content block ABOVE the annotation body (C3 §compile).
-        if pf.sourceType == .capture, let sc {
+        if input.sourceType == .capture, let sc {
             return frontmatter + captureSharedBlock(sc) + body
         }
         // Audiobook quote memos italicise the quote + add the attribution line.
@@ -212,8 +154,8 @@ enum Compiler {
     /// Build the pinned shared-content Markdown block for the three capture types (C3).
     /// - url:   bold title + full URL on its own line (intact, Obsidian imports as a link).
     /// - text:  the snippet as a Markdown blockquote.
-    /// - image: `![[filename]]` Obsidian embed (the actual file is copied by VaultExporter).
-    static func captureSharedBlock(_ sc: SharedContent) -> String {
+    /// - image: `![[filename]]` Obsidian embed (the actual file is copied by the exporter).
+    static func captureSharedBlock(_ sc: CompilerSharedContent) -> String {
         var lines: [String] = []
         switch sc.type {
         case "url":
@@ -241,17 +183,17 @@ enum Compiler {
 
     // MARK: Helpers
 
-    /// The DISTINCT canonical names this note links — the `people:` graph list for the
-    /// opt-in naming model. Reads the body's `[[Name]]` wiki-links (`[[img_NNN]]` markers
-    /// already excluded by `linkOccurrences`), takes each link's canonical TARGET (the part
-    /// before any `|spoken` alias-display), and de-duplicates case-insensitively in reading
-    /// order. Derived from the rendered body so it can never drift from what's actually
-    /// linked (one-note-one-link → one entry per person, conversations include matched speakers).
+    /// The DISTINCT canonical names this note links — the `people:` graph list. Reads the
+    /// body's `[[Name]]` wiki-links (`[[img_NNN]]` markers already excluded by
+    /// `linkOccurrences`), takes each link's canonical TARGET (the part before any `|spoken`
+    /// alias-display), and de-duplicates case-insensitively in reading order. Derived from
+    /// the rendered body so it can never drift from what's actually linked (one-note-one-link
+    /// → one entry per person, conversations include matched speakers).
     ///
     /// Image EMBEDS (`![[file]]`) are skipped (the `[[ ]]` is an embed, not a link), and when
     /// `knownPeople` is supplied the list is filtered to PERSONS — so a transcript/Apple-Note
-    /// body carrying a place link (`[[Hotel Du Vin]]`) or other non-person wiki-link never
-    /// lands in `people:`. nil `knownPeople` = no filter (engine-level callers/tests).
+    /// body carrying a place link (`[[Hotel Du Vin]]`) never lands in `people:`. nil
+    /// `knownPeople` = no filter (engine-level callers/tests).
     static func peopleLinks(in body: String, knownPeople: [Person]? = nil) -> [String] {
         let ns = body as NSString
         let allow: Set<String>? = knownPeople.map {
@@ -292,14 +234,5 @@ enum Compiler {
     /// Whole numbers print without a trailing `.0` (e.g. 21, 1013), fractions keep it.
     private static func fmtNum(_ d: Double) -> String {
         d == d.rounded() ? String(Int(d)) : String(d)
-    }
-
-    /// Extract a top-level string from the raw metadata JSON without Codable (for keys
-    /// PhoneMetadata doesn't have — e.g. `recordedAt` on captures).
-    private static func rawMetaString(_ pf: PipelineFile, key: String) -> String? {
-        guard let data = pf.audioMetadataJSON,
-              let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              let v = obj[key] as? String else { return nil }
-        return v
     }
 }
