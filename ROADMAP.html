@@ -16,6 +16,13 @@
      BAKED_COMMENTS below (mirror of repo file roadmap-comments.json) + commits. On next load
      BAKED_COMMENTS are merged in as defaults (localStorage wins per-node for local edits).
 
+     ── REGENERATE CHECKLIST (run every time you touch this file) ───────────────────────
+       1. Edit the data arrays (PHASES/DETOURS/HISTORY/IDEAS) to match the markdown ledgers.
+       2. If the user handed back exported comments: paste them into BAKED_COMMENTS AND write
+          the same JSON to repo file roadmap-comments.json (keep the two mirrored).
+       3. Bump LAST_UPDATED.  4. Sync STANDALONE_PLAN.md / backlog.md in the SAME pass.
+       5. Redeploy to the SAME Artifact URL (Artifact tool `url` param).  6. Commit.
+
      From a NEW chat, pass the URL above to the Artifact tool's `url` param so it redeploys to
      the SAME link. git log ROADMAP.html = the project history. -->
 <html lang="en">
@@ -61,12 +68,14 @@
         background:#15151d;cursor:pointer;transition:.12s;}
   .tbtn:hover{border-color:#42425a;}
   .tbtn.on{border-color:var(--accent);color:var(--accent2);}
+  #exportBtn.dirty{border-color:var(--amber);color:var(--amber);}
+  #exportBtn.dirty::before{content:"●";font-size:9px;margin-right:5px;vertical-align:1px;}
   .legend{display:flex;gap:13px;flex-wrap:wrap;margin-left:4px;font-size:10.5px;color:var(--dim);align-items:center;}
   .legend span{display:inline-flex;align-items:center;gap:5px;}
   .chip{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
 
   /* ── canvas ── */
-  .stage{position:absolute;inset:0;cursor:grab;}
+  .stage{position:absolute;inset:0;cursor:grab;touch-action:none;}
   .stage.panning{cursor:grabbing;}
   .world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;}
   svg.lines{position:absolute;top:0;left:0;overflow:visible;z-index:1;pointer-events:none;}
@@ -81,6 +90,8 @@
   .node{position:absolute;width:208px;background:var(--surface);border:1px solid var(--line);
         border-radius:13px;padding:10px 12px;z-index:3;cursor:pointer;transition:opacity .18s, box-shadow .15s, transform .1s;}
   .node:hover{transform:translateY(-1px);}
+  .node:focus-visible,.rbtn:focus-visible,.ib:focus-visible,.fchip:focus-visible,.tbtn:focus-visible,.ctl:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
+  button.rbtn,button.ib{font:inherit;color:var(--text);-webkit-appearance:none;appearance:none;}
   .node .id{font-size:10px;font-weight:700;color:var(--faint);letter-spacing:.4px;}
   .node .t{font-size:13px;font-weight:600;margin:2px 0 4px;line-height:1.26;}
   .node .n{font-size:11px;color:var(--dim);line-height:1.42;}
@@ -234,14 +245,14 @@
   <div class="modal" id="modal"></div>
   <div class="toast" id="toast"></div>
 
-  <div class="hint" id="hint">Scroll to zoom · drag to pan · click a card to react</div>
+  <div class="hint" id="hint">Scroll / pinch to zoom · drag to pan · click (or Tab + Enter on) a card to react</div>
   <div class="controls">
     <div class="ctl" id="zout">−</div><div class="ctl z" id="zlvl">100%</div><div class="ctl" id="zin">+</div><div class="ctl" id="zfit" title="Fit">⛶</div>
   </div>
 
 <script>
 "use strict";
-const LAST_UPDATED = "2026-06-19";
+const LAST_UPDATED = "2026-06-21";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SOURCE DATA — edit here (and the markdown ledgers) when a phase/detour moves.
@@ -267,7 +278,7 @@ const PHASES = [
   { id:"P6",  ms:"Differentiator",  track:-1,order:5, title:"Commonplace Book + quote cards",status:"future", eff:"L",          via:"P4", deps:["P2"],         note:"Highlights feed + Daily Review + shareable quote cards. The headline + App-Store marketing." },
   { id:"P5",  ms:"Enrichment",      track:1, order:4, title:"Organization",                 status:"future", eff:"M",           via:"P3", deps:["P3"],         note:"Pins, nested tags, smart folders. (Folders model still open.)" },
   { id:"P7",  ms:"Enrichment",      track:1, order:5, title:"People & backlinks",           status:"future", eff:"M",           via:"P5", deps:["P0"],         note:"Person pages, linked/unlinked mentions." },
-  { id:"P8",  ms:"Enrichment",      track:2, order:4, title:"Journal / On-This-Day / search",status:"future", eff:"L",          via:"Mac", deps:["P1"],        note:"On This Day, map, semantic 'related notes' (on-device embeddings)." },
+  { id:"P8",  ms:"Enrichment",      track:2, order:4, title:"Journal / On-This-Day / search",status:"future", eff:"L",          via:"P3", deps:["P1"],         note:"On This Day, map, semantic 'related notes' (on-device embeddings)." },
   { id:"P9b", ms:"Enrichment",      track:2, order:5, title:"Audiobook player polish",      status:"future", eff:"M",           via:"P8", deps:["D3"],         note:"Sleep timer, clips, annotatable bookmarks, skip-silence — after the reading-mode redesign." },
   { id:"P11", ms:"Ship",            track:0, order:6, title:"App Store readiness",          status:"future", eff:"M",           via:"Mac", deps:["P2","P3"],   note:"Price tier, privacy label, screenshots, onboarding, review prep." },
   { id:"P10", ms:"Ship",            track:2, order:6, title:"Apple Watch capture",          status:"deferred", eff:"L",         via:"P11", deps:["P1"],        note:"Fast-follow — its own target + review." },
@@ -342,6 +353,7 @@ const STATUS_LABEL={done:"Done",inprogress:"In progress",next:"Next",future:"Ahe
 const EMO={like:"👍",dislike:"👎",think:"🤔"};
 const REACT_COLOR={like:"var(--like)",dislike:"var(--dislike)",think:"var(--think)"};
 const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 const world=$("world"), svg=$("lines"), stage=$("stage");
 const NS="http://www.w3.org/2000/svg";
 document.getElementById("stamp").textContent="Last updated "+LAST_UPDATED+" · a generated view — canonical detail in STANDALONE_PLAN.md + backlog.md";
@@ -360,11 +372,19 @@ let localStore={}; try{ localStore=JSON.parse(localStorage.getItem(LS_KEY)||"{}"
 function effective(id){ const b=BAKED_COMMENTS[id], l=localStore[id]; const m=l!==undefined?l:b; return (m&&(m.reaction||m.note))?m:null; }
 function allEffectiveIds(){ const s=new Set([...Object.keys(BAKED_COMMENTS),...Object.keys(localStore)]); return [...s].filter(id=>effective(id)); }
 function setComment(id,reaction,note){
-  localStore[id]={reaction:reaction||null, note:note||"", ts:0};
-  if(!reaction && !note) localStore[id]={reaction:null,note:"",ts:0}; // explicit clear (overrides baked)
+  // store the full current value (empty = explicit clear that overrides a baked default)
+  localStore[id]={reaction:reaction||null, note:note||"", ts:Date.now()};
   try{ localStorage.setItem(LS_KEY, JSON.stringify(localStore)); }catch(e){}
+  updateDirty();
 }
 function clearComment(id){ setComment(id,null,""); }
+// in-flow durability nudge: flag the Export button while local (un-baked) edits exist
+function updateDirty(){
+  const dirty=Object.keys(localStore).length>0;
+  const b=$("exportBtn"); if(!b)return;
+  b.classList.toggle("dirty",dirty);
+  b.title=dirty?"You have local reactions saved only in this browser — Export to keep them durably.":"Export comments as JSON";
+}
 
 // build a node element
 const els={};
@@ -388,6 +408,13 @@ function buildNode(n){
       (n.done?`<span class="date">✓ ${n.done}</span>`:`<span class="eff">${n.eff||""}</span>`)+
       (ideas?`<span class="ideapill" data-ideapill="${n.id}">💡 ${ideas.length}</span>`:``)+
       `</div>`);
+  // keyboard accessibility: each card is a focusable button (Enter/Space → react)
+  el.tabIndex=0; el.setAttribute("role","button");
+  el.setAttribute("aria-label",`${n.id.replace(/^H_/,'')} ${n.title} — ${tagTxt||"idea"}${ideas?`, ${ideas.length} ideas`:""}. Press Enter to react.`);
+  el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openPop(n.id); } });
+  // per-node hover (mouseenter/leave don't fire on child transitions → no dim flicker)
+  el.addEventListener("mouseenter",()=>{ if(down&&down.moved)return; if(!el.classList.contains("filtered"))focusNode(n.id); });
+  el.addEventListener("mouseleave",()=>unfocus());
   els[n.id]=el; world.appendChild(el);
   n._h=el.offsetHeight;
 }
@@ -524,23 +551,20 @@ function openPop(id){
   const isPhase=!!byId[id] && byId[id].kind==="phase";
   const ideas=ideasByParent[id]||[];
   const statusTxt = byId[id] ? (byId[id].kind==="detour"?"DETOUR":(STATUS_LABEL[byId[id].status]||"").toUpperCase()) : "IDEA";
-  let html=`<div class="ph">${id.replace(/^H_/,'')} · ${statusTxt}${n.risk?" · RISK":""}</div>`+
-    `<div class="pt">${n.title}</div>`+
-    (n.note?`<div class="pn">${n.note}</div>`:`<div style="height:4px"></div>`)+
+  const rb=(cls,r,emoji,on,attrs)=>`<button type="button" class="${cls} ${r} ${on===r?'on':''}" ${attrs} data-r="${r}" aria-pressed="${on===r}" aria-label="${r==='like'?'Like':r==='dislike'?'Not this':'Think about'}">${emoji}</button>`;
+  let html=`<div class="ph">${esc(id.replace(/^H_/,''))} · ${statusTxt}${n.risk?" · RISK":""}</div>`+
+    `<div class="pt">${esc(n.title)}</div>`+
+    (n.note?`<div class="pn">${esc(n.note)}</div>`:`<div style="height:4px"></div>`)+
     `<div class="reacts">`+
-      `<div class="rbtn like ${c.reaction==='like'?'on':''}" data-r="like">👍</div>`+
-      `<div class="rbtn dislike ${c.reaction==='dislike'?'on':''}" data-r="dislike">👎</div>`+
-      `<div class="rbtn think ${c.reaction==='think'?'on':''}" data-r="think">🤔</div>`+
+      rb("rbtn","like","👍",c.reaction,"")+rb("rbtn","dislike","👎",c.reaction,"")+rb("rbtn","think","🤔",c.reaction,"")+
     `</div>`+
-    `<textarea id="popnote" placeholder="Add a note — why? what next?">${c.note||""}</textarea>`;
+    `<textarea id="popnote" aria-label="Note for ${esc(n.title)}" placeholder="Add a note — why? what next?">${esc(c.note)}</textarea>`;
   if(ideas.length){
     html+=`<div class="ideas-h">💡 Ideas in this phase — react to each</div>`;
     ideas.forEach(i=>{ const ic=effective(i.id)||{reaction:null};
-      html+=`<div class="irow"><div class="it">${i.title}${i.risk?' <span style="color:var(--risk);font-size:9px;font-weight:700">RISK</span>':''}</div>`+
+      html+=`<div class="irow"><div class="it">${esc(i.title)}${i.risk?' <span style="color:var(--risk);font-size:9px;font-weight:700">RISK</span>':''}</div>`+
         `<div class="ibtns">`+
-          `<div class="ib like ${ic.reaction==='like'?'on':''}" data-ir="${i.id}" data-r="like">👍</div>`+
-          `<div class="ib dislike ${ic.reaction==='dislike'?'on':''}" data-ir="${i.id}" data-r="dislike">👎</div>`+
-          `<div class="ib think ${ic.reaction==='think'?'on':''}" data-ir="${i.id}" data-r="think">🤔</div>`+
+          rb("ib","like","👍",ic.reaction,`data-ir="${i.id}"`)+rb("ib","dislike","👎",ic.reaction,`data-ir="${i.id}"`)+rb("ib","think","🤔",ic.reaction,`data-ir="${i.id}"`)+
         `</div></div>`;
     });
   }
@@ -561,16 +585,16 @@ function openPop(id){
     const r=b.dataset.r; const cur=effective(id)||{};
     const nr = cur.reaction===r ? null : r;
     setComment(id, nr, $("popnote").value);
-    pop.querySelectorAll(".rbtn").forEach(x=>x.classList.remove("on"));
-    if(nr) b.classList.add("on");
+    pop.querySelectorAll(".rbtn").forEach(x=>{x.classList.remove("on");x.setAttribute("aria-pressed","false");});
+    if(nr){ b.classList.add("on"); b.setAttribute("aria-pressed","true"); }
     renderNodeComment(id); renderSummary();
   });
   pop.querySelectorAll(".ib").forEach(b=>b.onclick=()=>{
     const iid=b.dataset.ir, r=b.dataset.r; const cur=effective(iid)||{};
     const nr=cur.reaction===r?null:r;
     setComment(iid, nr, (effective(iid)||{}).note||"");
-    b.parentElement.querySelectorAll(".ib").forEach(x=>x.classList.remove("on"));
-    if(nr) b.classList.add("on");
+    b.parentElement.querySelectorAll(".ib").forEach(x=>{x.classList.remove("on");x.setAttribute("aria-pressed","false");});
+    if(nr){ b.classList.add("on"); b.setAttribute("aria-pressed","true"); }
     renderNodeComment(id); renderSummary();
   });
   $("popnote").oninput=()=>{ const cur=effective(id)||{}; setComment(id, cur.reaction||null, $("popnote").value); renderNodeComment(id); renderSummary(); };
@@ -601,48 +625,63 @@ const flowBaseW=new Map();
 function rebuildFlowWidths(){ Object.values(flowByNode).flat().forEach(p=>{ if(flowBaseW.has(p))p.setAttribute("stroke-width",flowBaseW.get(p)); }); }
 Object.values(flowByNode).flat().forEach(p=>flowBaseW.set(p,p.getAttribute("stroke-width")));
 
-/* ───────────────────────────── zoom / pan ───────────────────────────── */
+/* ───────────────────────────── zoom / pan / pinch ───────────────────────────── */
 const Z={s:1,x:0,y:0}, MINZ=.32, MAXZ=2.4;
+const headerEl=document.querySelector("header");
+const headerH=()=>(headerEl?headerEl.offsetHeight:96)+10;   // measured, not hard-coded (wraps on narrow screens)
 function apply(){ world.style.transform=`translate(${Z.x}px,${Z.y}px) scale(${Z.s})`; $("zlvl").textContent=Math.round(Z.s*100)+"%"; }
 function fit(){
-  const vw=innerWidth, vh=innerHeight-118;
+  const hH=headerH(), vw=innerWidth, vh=Math.max(140, innerHeight-hH);
   const s=Math.min(vw/WORLD_W, vh/WORLD_H, 1); Z.s=Math.max(MINZ,s*.98);
-  Z.x=(vw-WORLD_W*Z.s)/2 + 0; Z.y=118 + Math.max(8,(vh-WORLD_H*Z.s)/2);
+  Z.x=(vw-WORLD_W*Z.s)/2; Z.y=hH + Math.max(8,(vh-WORLD_H*Z.s)/2);
   apply();
 }
 function zoomAt(cx,cy,ns){
   ns=Math.max(MINZ,Math.min(MAXZ,ns));
   Z.x = cx-(cx-Z.x)*(ns/Z.s); Z.y = cy-(cy-Z.y)*(ns/Z.s); Z.s=ns; apply();
 }
-stage.addEventListener("wheel",e=>{ e.preventDefault(); zoomAt(e.clientX,e.clientY, Z.s*Math.exp(-e.deltaY*0.0014)); },{passive:false});
+stage.addEventListener("wheel",e=>{ e.preventDefault(); closePop(); zoomAt(e.clientX,e.clientY, Z.s*Math.exp(-e.deltaY*0.0014)); },{passive:false});
 $("zin").onclick=()=>zoomAt(innerWidth/2,innerHeight/2,Z.s*1.2);
 $("zout").onclick=()=>zoomAt(innerWidth/2,innerHeight/2,Z.s/1.2);
 $("zfit").onclick=fit;
 
-let down=null;
+// Unified pointer handling: 1 pointer = pan (+ click-to-comment); 2 pointers = pinch-zoom (touch).
+const pointers=new Map();
+let down=null, pinch=null;
+function midDist(){ const p=[...pointers.values()]; const dx=p[0].x-p[1].x, dy=p[0].y-p[1].y;
+  return {mx:(p[0].x+p[1].x)/2, my:(p[0].y+p[1].y)/2, d:Math.hypot(dx,dy)||1}; }
 stage.addEventListener("pointerdown",e=>{
-  if(e.button!==0)return;
-  const node=e.target.closest(".node"); const pill=e.target.closest("[data-ideapill]");
-  down={x:e.clientX,y:e.clientY,ox:Z.x,oy:Z.y,node,pill,moved:false};
+  if(e.pointerType==="mouse" && e.button!==0) return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   stage.setPointerCapture(e.pointerId);
+  if(pointers.size===2){ down=null; closePop(); const m=midDist(); pinch={d:m.d,mx:m.mx,my:m.my}; }
+  else if(pointers.size===1){ const node=e.target.closest(".node"); down={x:e.clientX,y:e.clientY,ox:Z.x,oy:Z.y,node,moved:false}; }
 });
 stage.addEventListener("pointermove",e=>{
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch && pointers.size>=2){
+    const m=midDist();
+    zoomAt(m.mx,m.my, Z.s*(m.d/pinch.d));        // pinch scale toward the gesture midpoint
+    Z.x+=(m.mx-pinch.mx); Z.y+=(m.my-pinch.my); apply();   // two-finger drag pans too
+    pinch={d:m.d,mx:m.mx,my:m.my}; return;
+  }
   if(!down)return;
   const dx=e.clientX-down.x, dy=e.clientY-down.y;
   if(!down.moved && Math.hypot(dx,dy)>4){ down.moved=true; stage.classList.add("panning"); closePop(); }
   if(down.moved){ Z.x=down.ox+dx; Z.y=down.oy+dy; apply(); }
 });
-stage.addEventListener("pointerup",e=>{
-  if(!down)return;
-  if(!down.moved){
-    if(down.node){ const id=down.node.dataset.id; openPop(id); }
-    else closePop();
-  }
-  stage.classList.remove("panning"); down=null;
-});
-// hover deps (skip while panning)
-world.addEventListener("mouseover",e=>{ if(down&&down.moved)return; const n=e.target.closest(".node"); if(n&&!n.classList.contains("filtered"))focusNode(n.dataset.id); });
-world.addEventListener("mouseout",e=>{ const n=e.target.closest(".node"); if(n)unfocus(); });
+function endPointer(e){
+  if(!pointers.has(e.pointerId))return;
+  const wasPinch=!!pinch;
+  pointers.delete(e.pointerId);
+  if(pointers.size<2) pinch=null;
+  if(!wasPinch && down && !down.moved){ if(down.node) openPop(down.node.dataset.id); else closePop(); }
+  if(pointers.size===0){ stage.classList.remove("panning"); down=null; }
+}
+stage.addEventListener("pointerup",endPointer);
+stage.addEventListener("pointercancel",endPointer);
+// hover deps are wired per-node in buildNode (mouseenter/leave — no child-transition flicker).
 
 /* ───────────────────────────── filters ───────────────────────────── */
 const FILTERS=[
@@ -705,7 +744,7 @@ $("importBtn").onclick=()=>{
       <span style="flex:1"></span><button class="mbtn" id="closebtn">Cancel</button></div>`);
   $("loadbtn").onclick=()=>{ try{ const obj=JSON.parse($("imparea").value); if(typeof obj!=="object"||!obj)throw 0;
       localStore={}; Object.keys(obj).forEach(k=>{ const v=obj[k]||{}; localStore[k]={reaction:v.reaction||null,note:v.note||"",ts:v.ts||0}; });
-      localStorage.setItem(LS_KEY,JSON.stringify(localStore)); renderAllComments(); applyFilter(); closeModal(); showToast("Imported ✓");
+      localStorage.setItem(LS_KEY,JSON.stringify(localStore)); renderAllComments(); applyFilter(); updateDirty(); closeModal(); showToast("Imported ✓");
     }catch(e){ showToast("Invalid JSON"); } };
   $("closebtn").onclick=closeModal;
 };
@@ -714,7 +753,7 @@ $("helpBtn").onclick=()=>openModal(`<h3>How to use this</h3>
   • <b>Read the map:</b> the line runs left → right. <b style="color:var(--done)">Green</b> = built; it branches off for the <b style="color:var(--detour)">audiobook detour</b> and merges back, then fans into the planned tracks. The far left shows how the two native rewrites converged.<br>
   • <b>React:</b> click any card → set 👍 / 👎 / 🤔 and add a note. Big phases list their individual ideas — react to each one right there.<br>
   • <b>Dependencies:</b> hover a card to reveal just its dependency lines (toggle <b>Deps: all</b> to see them at once).<br>
-  • <b>Navigate:</b> scroll to zoom, drag to pan, ⛶ to fit.<br>
+  • <b>Navigate:</b> scroll or pinch to zoom, drag to pan, ⛶ to fit. Keyboard: Tab to a card, Enter to react, Esc to close.<br>
   • <b>Make it durable:</b> comments save in this browser. <b>Export</b> → hand the JSON back → it's committed to <code>roadmap-comments.json</code> and baked in for everyone on the next rebuild.</p>
   <div class="mrow"><span style="flex:1"></span><button class="mbtn primary" id="closebtn">Got it</button></div>`)||($("closebtn").onclick=closeModal);
 
@@ -724,8 +763,9 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closePop(); close
 (function(){ const n=byId["P2"]; if(!n)return; const h=document.createElement("div"); h.className="here";
   h.style.left=(n.x+n.w-98)+"px"; h.style.top=n.y+"px"; h.textContent="◉ you are here"; world.appendChild(h); })();
 
-setDepOpacity(); renderAllComments(); applyFilter(); fit();
-window.addEventListener("resize",()=>{ /* keep current zoom; just re-clamp nothing */ });
+setDepOpacity(); renderAllComments(); applyFilter(); updateDirty(); fit();
+// re-fit on resize / device-rotation (debounced) so the diagram can't end up stranded off-screen
+let rzT=null; window.addEventListener("resize",()=>{ clearTimeout(rzT); rzT=setTimeout(fit,150); });
 </script>
 </body>
 </html>
