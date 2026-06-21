@@ -77,9 +77,11 @@ struct ReadAlongView: View {
     /// uses it to recede the player chrome ("more page" while reading).
     var onUserScroll: () -> Void = {}
     /// Tap the left gutter beside a line to fold/unfold a bookmark there. Called
-    /// with that sentence's GLOBAL book time; the parent toggles the store and
-    /// passes back an updated `bookmarks` (2026-06-21 — replaces the bottom button).
-    var onToggleBookmarkAt: (TimeInterval) -> Void = { _ in }
+    /// with that sentence's GLOBAL time SPAN (start, end); the parent removes any
+    /// bookmark falling inside the span (so it lifts the exact one the line shows,
+    /// wherever in the sentence it sits) or adds one at the start, then passes back
+    /// an updated `bookmarks` (2026-06-21 — replaces the bottom button).
+    var onToggleBookmarkInSpan: (TimeInterval, TimeInterval) -> Void = { _, _ in }
 
     @ObservedObject private var session = AudiobookSession.shared
     @ObservedObject private var transcribeJob = BookTranscriptionJob.shared
@@ -105,6 +107,8 @@ struct ReadAlongView: View {
     private let nowAnchor = UnitPoint(x: 0.5, y: 0.34)
     /// Reading column cap (~60–68ch) so text never runs full-bleed on iPad.
     private let columnMax: CGFloat = 660
+    /// Width of the tappable left gutter (the fold zone + bookmark marker).
+    private let gutterWidth: CGFloat = 26
 
     /// Interpolation anchor: the playhead value (file-local) at the last real
     /// 0.5 s tick, and the wall-clock when it landed.
@@ -236,23 +240,18 @@ struct ReadAlongView: View {
         let isCurrent = i == model.currentIndex
         let isPast = i < model.currentIndex
         return HStack(alignment: .top, spacing: 0) {
-            // The fold zone: a full-height tappable left gutter. Tap to bookmark
-            // ("fold the corner"), tap again to remove ("unfold"). Shows the mark
-            // when set — the marker the user already liked, now toggleable.
-            Button { toggleBookmark(at: i) } label: {
-                Color.clear
-                    .frame(width: 22)
-                    .frame(maxHeight: .infinity)
-                    .overlay(alignment: .topLeading) {
-                        if marked {
-                            Image(systemName: "bookmark.fill")
-                                .font(.system(size: 11)).foregroundStyle(Color.skAccent)
-                        }
+            // Fixed left gutter that carries the fold marker (the bookmark glyph the
+            // user liked). The TAP is handled by one spatial gesture on the whole
+            // line (below) — left of the text folds/unfolds, the text itself seeks.
+            Color.clear
+                .frame(width: gutterWidth)
+                .frame(maxHeight: .infinity)
+                .overlay(alignment: .topLeading) {
+                    if marked {
+                        Image(systemName: "bookmark.fill")
+                            .font(.system(size: 12)).foregroundStyle(Color.skAccent)
                     }
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(marked ? "Remove bookmark" : "Add bookmark")
+                }
 
             Text(model.sentences[i].text)
                 .foregroundColor(isCurrent ? Self.readNow : (isPast ? Self.readPast : Self.readAhead))
@@ -260,11 +259,18 @@ struct ReadAlongView: View {
                 .lineSpacing(readingLineSpacing)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .onTapGesture { seek(to: i) }   // tap the TEXT to seek (gutter = bookmark)
         }
         // Faint "this bit is saved" tint behind a bookmarked line, scrolls with it.
         .background { if marked { Color.skAccent.opacity(0.09) } }
+        .contentShape(Rectangle())
+        // ONE spatial tap: tapping the left gutter folds/unfolds a bookmark, tapping
+        // the text seeks. Location-based (not a nested Button) so the gutter tap is
+        // reliable inside the scroll view (2026-06-21 fix: it "never removed").
+        .gesture(SpatialTapGesture().onEnded { e in
+            if e.location.x < gutterWidth + 6 { toggleBookmark(at: i) } else { seek(to: i) }
+        })
+        .accessibilityElement()
+        .accessibilityLabel(marked ? "Bookmarked. \(model.sentences[i].text)" : model.sentences[i].text)
         .animation(.easeInOut(duration: 0.2), value: marked)
         .animation(.easeInOut(duration: 0.25), value: model.currentIndex)
     }
@@ -278,11 +284,14 @@ struct ReadAlongView: View {
         Haptics.tap()
     }
 
-    /// Tap the gutter → fold/unfold a bookmark at this sentence's global position.
+    /// Tap the gutter → fold/unfold. Pass the sentence's whole GLOBAL span so the
+    /// parent lifts a bookmark sitting ANYWHERE in this line (not just at its start —
+    /// that was the "tapping never removed it" bug), or adds one at the start.
     private func toggleBookmark(at i: Int) {
-        guard let local = model.startOf(i) else { return }
+        guard model.sentences.indices.contains(i) else { return }
+        let s = model.sentences[i]
         let origin = book.fileStartTimes.indices.contains(fileIndex) ? book.fileStartTimes[fileIndex] : 0
-        onToggleBookmarkAt(local + origin)
+        onToggleBookmarkInSpan(s.start + origin, s.end + origin)
     }
 
     /// Sentence indices (in THIS file) that a bookmark lands on. A bookmark's

@@ -139,7 +139,7 @@ struct AudiobookPlayerView: View {
                     bookmarks: currentBookmarks,
                     onTranscribe: { showTranscribe = true },
                     onUserScroll: { recedeOnScroll() },
-                    onToggleBookmarkAt: { position in toggleBookmark(atGlobal: position) }
+                    onToggleBookmarkInSpan: { start, end in toggleBookmark(inSpan: start, end) }
                 )
                 .frame(maxHeight: .infinity)
                 .padding(.horizontal, Theme.Space.margin)
@@ -425,22 +425,25 @@ struct AudiobookPlayerView: View {
     }
 
     /// Fold / unfold a page corner: tap the read-along's left gutter to bookmark
-    /// that spot, tap again to remove it (2026-06-21 — replaces the bottom "Mark"
-    /// button; the margin tap IS the gesture). `position` is the tapped sentence's
-    /// GLOBAL book time, resolved by the reader.
-    private func toggleBookmark(atGlobal position: TimeInterval) {
+    /// that line, tap again to remove it (2026-06-21 — replaces the bottom "Mark"
+    /// button; the margin tap IS the gesture). The reader passes the tapped line's
+    /// whole GLOBAL span [start, end]: if ANY bookmark sits inside it, lift it (that's
+    /// the one the line's glyph shows — wherever in the sentence it landed); else add
+    /// one at the start. (Span match, not ±start — the "tapping never removed it" fix.)
+    private func toggleBookmark(inSpan start: TimeInterval, _ end: TimeInterval) {
         guard let book = session.book else { return }
         noteInteraction()
-        if let near = currentBookmarks.first(where: { abs($0.position - position) < BookmarkStore.dedupeWindow }) {
-            currentBookmarks = bookmarks.remove(id: near.id, bookID: book.id)
+        let inSpan = currentBookmarks.filter { $0.position >= start - 0.5 && $0.position <= end + 0.5 }
+        if !inSpan.isEmpty {
+            for bm in inSpan { currentBookmarks = bookmarks.remove(id: bm.id, bookID: book.id) }
             Haptics.tap()
             showToast("Unfolded")
         } else {
             currentBookmarks = bookmarks.add(
-                AudiobookBookmark(position: position, chapterLabel: book.shortChapterLabel(at: position)),
+                AudiobookBookmark(position: start, chapterLabel: book.shortChapterLabel(at: start)),
                 bookID: book.id)
             Haptics.success()
-            showToast("Folded · \(AudiobookTime.clock(position))")
+            showToast("Folded · \(AudiobookTime.clock(start))")
         }
     }
 

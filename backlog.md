@@ -111,7 +111,15 @@ unfold (remove); the liked `bookmark.fill` marker stays as the indicator + the f
 deleted; new `toggleBookmark(atGlobal:)` wired via `onToggleBookmarkAt`). Tap the TEXT still seeks; the TOC
 sheet's Chapters/Bookmarks tabs still jump (unchanged). 455/455 unit green. **Trade-off:** bookmarking an
 **un-transcribed** (audio-only, no read-along text) book now has no affordance — flag if a fallback is wanted.
-Device-eyeball on build 16 owed.
+
+**🔧 build 17 fix (device feedback on 16):** tapping never REMOVED a bookmark — the remove matched within
+±2 s of the sentence START, but a bookmark sitting elsewhere in a long passage (e.g. dropped at the
+playhead) never matched. Fixed: the reader passes the tapped line's whole GLOBAL span and the parent lifts
+any bookmark **inside that span** (`toggleBookmark(inSpan:)`), so it removes the exact one the line shows.
+Also switched the gutter from a nested `Button` to a single **`SpatialTapGesture`** on the line (left of
+text = fold/unfold, text = seek) so the tap is reliable in the scroll view. Mock
+(`mocks/audiobook-bookmark-fold.html`) re-aligned to the app's **purple bookmark ribbon + tint** (was a
+dog-ear) and redeployed. Device-eyeball on build 17 owed.
 
 ### P2 — 🧱 EPIC: note-editing experience needs its own focused sprint
 "The editing of the notes in the app is… not a very good experience." Concrete **exemplar** (not the whole
