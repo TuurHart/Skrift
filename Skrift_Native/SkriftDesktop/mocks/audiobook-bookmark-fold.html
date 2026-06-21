@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skrift — Reading-mode bookmark = page-corner fold</title>
+<style>
+  :root{
+    --bg:#0C0C12; --reader-bg:#111119; --surface:#17171F; --elev:#23232E;
+    --line:#23232e; --line2:#2c2c38;
+    --accent:#7E74F0; --accent2:#9a92f7; --accent-muted:#6E66C8;
+    --text:#F0F0F4; --dim:#9A9AA8; --faint:#6A6A78;
+    --read-ahead:#A6A6B6;
+    --ok:#5DCAA5;
+    --r-card:14px; --r-sheet:20px;
+    --page:#15151f;            /* the "paper" */
+    --fold:#2a2740;            /* the folded-over triangle */
+    --fold-edge:#0c0c12;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:#060608;color:#E8E8EE;
+       font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+       padding:26px 18px 60px;}
+  h1{font-size:19px;margin:0 0 4px;letter-spacing:-.2px;}
+  .sub{color:#8A8A96;margin:0 0 4px;font-size:13px;max-width:880px;}
+  .thesis{color:var(--accent2);font-size:13px;margin:0 0 20px;max-width:880px;}
+  .thesis b{color:#cfcce8;}
+  .stage{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start;}
+
+  /* phone */
+  .phone{width:312px;height:650px;background:var(--reader-bg);border:6px solid #000;border-radius:42px;
+         overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.5);flex-shrink:0;
+         display:flex;flex-direction:column;}
+  .stat{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);padding:13px 22px 6px;flex-shrink:0;}
+  .phdr{display:flex;align-items:center;gap:10px;padding:2px 18px 10px;flex-shrink:0;}
+  .phdr .tt{flex:1;min-width:0;}
+  .phdr .tt b{font-size:12.5px;color:var(--text);font-weight:600;}
+  .phdr .tt span{font-size:11px;color:var(--dim);}
+  .chip-ch{font-size:9.5px;color:var(--accent2);background:rgba(126,116,240,.13);padding:3px 9px;border-radius:10px;}
+
+  /* reader */
+  .reader{flex:1;overflow-y:auto;padding:6px 4px 20px;}
+  .reader::-webkit-scrollbar{display:none;}
+
+  /* a passage = a "page block" with a tappable left gutter + a fold-down corner */
+  .para{position:relative;margin:0 14px 2px 0;padding:11px 14px 11px 30px;border-radius:8px;
+        transition:background .18s ease;}
+  .gutter{position:absolute;left:0;top:0;bottom:0;width:30px;cursor:pointer;
+           display:flex;align-items:flex-start;justify-content:center;padding-top:9px;}
+  .gutter .hintdot{width:5px;height:5px;border-radius:50%;background:var(--line2);opacity:0;transition:opacity .15s;}
+  .para:not(.marked):hover .hintdot{opacity:1;}
+  .ptext{font-size:15px;line-height:1.62;color:var(--read-ahead);letter-spacing:.1px;}
+
+  /* the dog-ear: a folded-over corner at the top-left of a bookmarked passage */
+  .dogear{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;
+          border-style:solid;border-width:0 0 0 0;
+          border-color:transparent;
+          transition:border-width .2s cubic-bezier(.4,1.3,.5,1);
+          filter:drop-shadow(1px 1px 1px rgba(0,0,0,.5));}
+  /* folded state: a 20px triangle peeled from the top-left, accent underside */
+  .para.marked{background:rgba(126,116,240,.07);}
+  .para.marked .dogear{border-width:22px 22px 0 0;
+        border-color:var(--accent) transparent transparent transparent;}
+  .para.marked .ptext{color:var(--text);}
+  /* a tiny crease line under the fold */
+  .dogear::after{content:"";position:absolute;left:0;top:0;width:22px;height:22px;}
+
+  .reader-foot{height:42px;}
+
+  /* bottom controls — NOTE: no standalone "Mark" button anymore */
+  .controls{display:flex;align-items:center;justify-content:space-around;gap:6px;
+            padding:12px 16px 20px;background:#0d0d15;border-top:.5px solid var(--line2);flex-shrink:0;}
+  .cbtn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;color:var(--dim);
+        background:none;border:none;font-family:inherit;cursor:pointer;}
+  .cbtn .g{font-size:17px;line-height:1;}
+  .cbtn.accent{color:var(--accent2);}
+  .strike{position:relative;}
+
+  /* contents sheet */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;}
+  .scrim.show{opacity:1;pointer-events:auto;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);
+         border-radius:var(--r-sheet) var(--r-sheet) 0 0;transform:translateY(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1);
+         box-shadow:0 -12px 44px rgba(0,0,0,.55);padding:8px 0 22px;max-height:74%;display:flex;flex-direction:column;}
+  .sheet.show{transform:translateY(0);}
+  .grab{width:36px;height:4px;border-radius:2px;background:#3a3a46;margin:6px auto 8px;}
+  .segs{display:flex;gap:6px;padding:2px 16px 10px;}
+  .seg{flex:1;text-align:center;font-size:12px;font-weight:600;color:var(--dim);padding:7px;border-radius:9px;background:#13131b;cursor:pointer;}
+  .seg.on{color:var(--text);background:var(--elev);}
+  .slist{overflow-y:auto;padding:0 8px;}
+  .srow{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;cursor:pointer;}
+  .srow:hover{background:#13131b;}
+  .srow .mk{width:22px;text-align:center;}
+  .srow .mt{flex:1;min-width:0;}
+  .srow .mt b{font-size:13px;color:var(--text);font-weight:500;display:block;}
+  .srow .mt span{font-size:11px;color:var(--faint);}
+  .srow .tm{font-size:11px;color:var(--faint);}
+  .empty{color:var(--faint);font-size:12px;text-align:center;padding:24px;}
+
+  /* toast */
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(8px);
+         background:#000a;color:#fff;font-size:12px;padding:7px 14px;border-radius:20px;opacity:0;
+         transition:opacity .2s, transform .2s;pointer-events:none;backdrop-filter:blur(8px);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* legend */
+  .legend{max-width:340px;font-size:13px;color:var(--dim);line-height:1.6;}
+  .legend h3{color:var(--text);font-size:14px;margin:0 0 8px;}
+  .legend li{margin:0 0 9px;}
+  .legend b{color:var(--accent2);}
+  .legend .old{color:var(--faint);}
+  .tag{display:inline-block;font-size:10px;color:var(--ok);background:rgba(93,202,165,.12);
+       padding:2px 9px;border-radius:20px;margin-bottom:14px;}
+  .try{font-size:12px;color:var(--faint);margin-top:14px;border-top:.5px solid var(--line);padding-top:12px;}
+</style>
+</head>
+<body>
+  <h1>Reading-mode bookmark = page-corner fold</h1>
+  <p class="sub">Audiobook reading mode · refines the signed-off <i>audiobook-player-reading-mode</i> mock.</p>
+  <p class="thesis"><b>Tap the margin to the left of a passage to fold its corner over — like dog-earing a real page. Tap again to unfold it.</b> No more bottom "Mark" button; jump between folds from Contents → Bookmarks.</p>
+
+  <div class="stage">
+    <div class="phone">
+      <div class="stat"><span>9:41</span><span class="num">100%</span></div>
+      <div class="phdr">
+        <div class="tt"><b>Sapiens</b><br><span>Yuval Noah Harari</span></div>
+        <div class="chip-ch">Ch 4 · The Flood</div>
+      </div>
+
+      <div class="reader" id="reader">
+        <div class="para" data-i="0">
+          <div class="gutter" onclick="toggle(0)"><div class="hintdot"></div></div>
+          <div class="dogear"></div>
+          <div class="ptext">Tolerance is not a Sapiens trademark. In modern times, a small difference in skin colour, dialect or religion has been enough to prompt one group to set about exterminating another.</div>
+        </div>
+        <div class="para marked" data-i="1">
+          <div class="gutter" onclick="toggle(1)"><div class="hintdot"></div></div>
+          <div class="dogear"></div>
+          <div class="ptext">Would ancient humans have been more tolerant towards an entirely different human species? It may well be that when Sapiens encountered Neanderthals, the result was the first and most significant ethnic-cleansing campaign in history.</div>
+        </div>
+        <div class="para" data-i="2">
+          <div class="gutter" onclick="toggle(2)"><div class="hintdot"></div></div>
+          <div class="dogear"></div>
+          <div class="ptext">On the other hand, the two species may have found each other sexually attractive, and the differences between them dissolved into a single interbreeding population.</div>
+        </div>
+        <div class="para" data-i="3">
+          <div class="gutter" onclick="toggle(3)"><div class="hintdot"></div></div>
+          <div class="dogear"></div>
+          <div class="ptext">Whatever the case, the Neanderthals (and the other human species) pose one of history's great what-ifs. Imagine how things might have turned out had the Neanderthals or Denisovans survived alongside Homo sapiens.</div>
+        </div>
+        <div class="reader-foot"></div>
+      </div>
+
+      <!-- bottom controls: Aa / speed / sleep / Contents — NO Mark button -->
+      <div class="controls">
+        <button class="cbtn"><span class="g" style="font-weight:700">Aa</span>Type</button>
+        <button class="cbtn"><span class="g" style="font-size:13px;font-weight:600">1.0×</span>Speed</button>
+        <button class="cbtn"><span class="g">🌙</span>Sleep</button>
+        <button class="cbtn accent" onclick="openSheet()"><span class="g">📖</span>Contents</button>
+      </div>
+
+      <div class="toast" id="toast">Folded · 12:30</div>
+      <div class="scrim" id="scrim" onclick="closeSheet()"></div>
+      <div class="sheet" id="sheet">
+        <div class="grab"></div>
+        <div class="segs">
+          <div class="seg" id="segCh" onclick="seg('ch')">Chapters</div>
+          <div class="seg on" id="segBm" onclick="seg('bm')">Bookmarks</div>
+        </div>
+        <div class="slist" id="slist"></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="tag">interactive — tap the left margin of any passage</span>
+      <h3>What changes</h3>
+      <ul>
+        <li><b>Tap-to-fold, tap-to-unfold.</b> The bookmark lives <b>on the page</b> — tap the gutter left of a passage and its corner folds over (accent dog-ear). Tap it again and it unfolds. <span class="old">(Before: the purple glyph wasn't tappable — you couldn't remove it.)</span></li>
+        <li><b>No bottom "Mark" button.</b> The dedicated toggle in the control row is gone — folding is the gesture. <span class="old">(Before: Mark sat in the bottom row, detached from the text.)</span></li>
+        <li><b>Contents sheet jumps.</b> One sheet, two tabs — <b>Chapters</b> to skip chapters, <b>Bookmarks</b> to jump straight to a fold. Tapping a bookmark scrolls to it.</li>
+      </ul>
+      <p class="try">Try it: tap a margin to fold, tap again to unfold, then open <b>Contents → Bookmarks</b> to see the list update live.</p>
+    </div>
+  </div>
+
+<script>
+  const marks = {};                       // i -> {time}
+  const times = ["3:58","12:30","21:07","27:44"];
+  const snippets = [
+    "Tolerance is not a Sapiens trademark…",
+    "Would ancient humans have been more tolerant…",
+    "On the other hand, the two species may have…",
+    "Whatever the case, the Neanderthals pose…"
+  ];
+  // seed: passage 1 pre-folded
+  marks[1] = {time:times[1]};
+
+  let toastT;
+  function toast(msg){
+    const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+    clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1300);
+  }
+  function toggle(i){
+    const el=document.querySelector('.para[data-i="'+i+'"]');
+    if(marks[i]){ delete marks[i]; el.classList.remove('marked'); toast('Unfolded'); }
+    else { marks[i]={time:times[i]}; el.classList.add('marked'); toast('Folded · '+times[i]); }
+    if(curSeg==='bm') renderList();
+  }
+
+  let curSeg='bm';
+  function seg(s){ curSeg=s;
+    document.getElementById('segCh').classList.toggle('on',s==='ch');
+    document.getElementById('segBm').classList.toggle('on',s==='bm');
+    renderList();
+  }
+  function renderList(){
+    const list=document.getElementById('slist');
+    if(curSeg==='ch'){
+      list.innerHTML = [["1 · Animal of No Significance","0:00"],["2 · The Tree of Knowledge","18:20"],
+        ["3 · A Day in the Life of Adam & Eve","41:05"],["4 · The Flood","1:02:40"]]
+        .map(c=>`<div class="srow"><div class="mk" style="color:var(--dim)">▸</div><div class="mt"><b>${c[0]}</b></div><div class="tm">${c[1]}</div></div>`).join('');
+      return;
+    }
+    const keys=Object.keys(marks).map(Number).sort((a,b)=>a-b);
+    if(!keys.length){ list.innerHTML='<div class="empty">No bookmarks yet — tap a passage’s left margin to fold one.</div>'; return; }
+    list.innerHTML = keys.map(i=>`<div class="srow" onclick="jump(${i})">
+        <div class="mk" style="color:var(--accent)">🔖</div>
+        <div class="mt"><b>${marks[i].time}</b><span>${snippets[i]}</span></div>
+        <div class="tm">Ch 4</div></div>`).join('');
+  }
+  function jump(i){
+    closeSheet();
+    const el=document.querySelector('.para[data-i="'+i+'"]');
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.animate([{background:'rgba(126,116,240,.22)'},{background:'rgba(126,116,240,.07)'}],{duration:700});
+  }
+  function openSheet(){ renderList(); document.getElementById('sheet').classList.add('show'); document.getElementById('scrim').classList.add('show'); }
+  function closeSheet(){ document.getElementById('sheet').classList.remove('show'); document.getElementById('scrim').classList.remove('show'); }
+</script>
+</body>
+</html>
