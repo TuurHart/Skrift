@@ -218,7 +218,15 @@ struct MemoDetailView: View {
     /// step now happens only when you ask, not after every recording).
     private func splitSpeakers(_ count: Int?) {
         guard let id = currentMemo?.id else { return }
-        Task { await MemoSaver().diarizeExisting(id: id, targetSpeakers: count) }
+        // Keep the diarization alive if the user backgrounds the app mid-identify
+        // (they often do — it can take a while). If iOS suspends/kills it anyway, the
+        // launch sweep recoverStuckDiarizations re-runs it (2026-06-21 "I switched out
+        // of the app and then I think it stopped").
+        Task {
+            await BackgroundTask.run(name: "diarize") {
+                await MemoSaver().diarizeExisting(id: id, targetSpeakers: count)
+            }
+        }
     }
 
     /// Soft-delete: move the memo to Recently Deleted, same as every list delete
@@ -300,9 +308,20 @@ private struct MemoPageView: View {
                     .padding(.top, 14)
 
                 if let label = diarStatus.label(for: memo.id) {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text(label).font(.system(size: 12, weight: .medium)).foregroundStyle(Color.skTextDim)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            // Diarization is opaque (no real %) — show an honest
+                            // ticking elapsed time so it's clearly still working.
+                            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                                Text(diarStatus.labelWithElapsed(for: memo.id) ?? label)
+                                    .font(.system(size: 12, weight: .medium)).foregroundStyle(Color.skTextDim)
+                            }
+                        }
+                        if diarStatus.isIdentifying(memo.id) {
+                            Text("This can take a while — it keeps going if you leave.")
+                                .font(.system(size: 11)).foregroundStyle(Color.skTextFaint)
+                        }
                     }
                     .padding(.top, 14)
                     .accessibilityIdentifier("diarization-status")

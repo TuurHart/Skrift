@@ -105,6 +105,15 @@ final class Memo {
     /// nil default → legacy/local memos (nil) stay recoverable. Syncs as a plain field.
     var recordingDeviceID: String? = nil
 
+    /// In-flight marker for "Split speakers" (diarization). Non-nil = a diarization
+    /// was started and hasn't completed: `0` = Auto, `N > 0` = forced to N speakers.
+    /// Set before the diarize call, cleared (nil) when it completes — so a diarization
+    /// orphaned by app suspension (the user backgrounds the app mid-identify, the
+    /// fire-and-forget Task dies — 2026-06-21 device bug) is re-run by the launch
+    /// sweep `recoverStuckDiarizations`, exactly like `.transcribing` recovery.
+    /// ADDITIVE, nil default → lightweight SwiftData migration (safe for prod data).
+    var pendingDiarizationTarget: Int? = nil
+
     init(
         id: UUID = UUID(),
         audioFilename: String = "",

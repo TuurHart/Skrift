@@ -47,6 +47,18 @@ bug** (fire-and-forget `Task` can't survive suspend), but on the diarization pat
 hedge — not a verified repro. The progress bar (a) would also surface whether (b) is a true stall vs. just
 slow. (memo 06-17 20:20)
 
+**✅ BUILT 2026-06-21 (awaiting device-eyeball).** (b) **Keep-alive + relaunch recovery** mirroring the
+06-17 stuck-transcription fix: new additive `Memo.pendingDiarizationTarget: Int?` (0=Auto, N=forced) set
+before `MemoSaver.diarizeExisting` and cleared on completion; a kill mid-identify leaves it set →
+`recoverStuckDiarizations()` (new, scoped like `recoverStuckTranscriptions`: own-device, audio +
+word-timings present) re-runs it once per launch from `SkriftApp`. "Split speakers" now also runs under a
+`BackgroundTask.run` UIKit assertion so brief diarizations survive backgrounding without a relaunch.
+(a) **Honest progress** (no fake % — FluidAudio's `processComplete` is opaque): the `.identifying` banner
+now shows a ticking `· m:ss` elapsed (`DiarizationStatus.labelWithElapsed`, driven by a `TimelineView`) +
+a "this can take a while — it keeps going if you leave" subtitle. **15/15 MemoSaverTests green** (2 new
+recovery tests: re-runs a stuck memo + skips non-in-flight). OWED: device-eyeball the elapsed readout +
+a real background-mid-diarize → return/relaunch cycle.
+
 ### P1 — 🔎 CONFIRM: transcription engine now "always warm", much faster, NOT eating battery — what changed?
 User noticed (in **prod AND dev**) the engine is now always warm, "way faster," and "not really taking
 batteries." Tone is pleased-but-suspicious — "something changed… what happened?" **Action: confirm what

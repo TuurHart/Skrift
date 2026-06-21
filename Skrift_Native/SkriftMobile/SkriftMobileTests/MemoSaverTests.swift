@@ -258,6 +258,57 @@ final class MemoSaverTests: XCTestCase {
         }
     }
 
+    // MARK: - Stuck-diarization recovery (2026-06-21 device bug)
+
+    /// A "Split speakers" orphaned by app suspension (its fire-and-forget Task died
+    /// mid-identify) is left with `pendingDiarizationTarget` set. The launch sweep
+    /// re-runs it: the transcript becomes speaker turns and the marker clears.
+    @MainActor
+    func testRecoverReRunsStuckDiarization() async {
+        let repo = NotesRepository(inMemory: true)
+        try? FileManager.default.createDirectory(at: AppPaths.recordingsDirectory, withIntermediateDirectories: true)
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+        FileManager.default.createFile(atPath: AppPaths.recordingsDirectory.appendingPathComponent(filename).path,
+                                       contents: Data("AUDIO".utf8))
+        let memo = Memo(id: id, audioFilename: filename, duration: 28, recordedAt: Date(),
+                        transcript: "one two three four", transcriptStatus: .done, transcriptConfidence: 0.9)
+        memo.pendingDiarizationTarget = 0   // in-flight, Auto
+        repo.insert(memo)
+
+        let sidecar = FileManager.default.temporaryDirectory
+            .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)
+        let wt = WordTimingsStore(directory: sidecar)
+        wt.write((0..<8).map { WordTiming(word: "w\($0)", start: Double($0) * 3, end: Double($0) * 3 + 2.5) }, for: id)
+
+        let saver = MemoSaver(repository: repo, transcriber: SeededTranscriber(text: "x"),
+                              diarizer: SeededDiarizer(), wordTimings: wt, metadataProvider: MockMetadataService())
+        await saver.recoverStuckDiarizations()
+
+        let result = repo.memo(id: id)
+        XCTAssertNil(result?.pendingDiarizationTarget, "the in-flight marker must clear after recovery")
+        XCTAssertEqual(result?.transcript?.contains("**"), true, "recovery re-splits into **Speaker:** turns")
+        try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(filename))
+    }
+
+    /// Recovery is scoped to in-flight memos: one with no marker is left untouched.
+    @MainActor
+    func testRecoverSkipsMemosNotMidDiarization() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = insertBaseMemo(into: repo, transcript: "plain prose")   // pendingDiarizationTarget == nil
+        let sidecar = FileManager.default.temporaryDirectory
+            .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)
+        let wt = WordTimingsStore(directory: sidecar)
+        wt.write([WordTiming(word: "a", start: 0, end: 1)], for: id)
+        let saver = MemoSaver(repository: repo, transcriber: SeededTranscriber(text: "x"),
+                              diarizer: SeededDiarizer(), wordTimings: wt, metadataProvider: MockMetadataService())
+
+        await saver.recoverStuckDiarizations()
+
+        XCTAssertEqual(repo.memo(id: id)?.transcript, "plain prose", "a memo not mid-diarization is untouched")
+        XCTAssertNil(repo.memo(id: id)?.pendingDiarizationTarget)
+    }
+
     @MainActor
     private func makeRecoverySaver(repo: NotesRepository, text: String) -> MemoSaver {
         MemoSaver(

@@ -641,7 +641,42 @@ struct MemoSaver {
     func diarizeExisting(id: UUID, targetSpeakers: Int? = nil) async {
         guard let memo = repository.memo(id: id), let url = memo.audioURL,
               let words = wordTimings.load(for: id), !words.isEmpty else { return }
+        // Mark in-flight so a diarization orphaned by app suspension is re-run at the
+        // next launch (recoverStuckDiarizations). 0 = Auto, N>0 = forced N speakers.
+        memo.pendingDiarizationTarget = targetSpeakers ?? 0
+        repository.save()
         await diarizeIntoTurns(id: id, audioURL: url, words: words, targetSpeakers: targetSpeakers)
+        // Attempt complete (a real split OR a <2-speaker no-op) — clear the marker.
+        // A kill MID-diarize never reaches here, so the marker survives for recovery.
+        repository.memo(id: id)?.pendingDiarizationTarget = nil
+        repository.save()
+    }
+
+    /// Re-run any diarization orphaned by a process kill. "Split speakers" runs in a
+    /// fire-and-forget Task that can't survive app suspension — the user backgrounds
+    /// the app while it's "identifying speakers" (it can take a while), the Task dies,
+    /// and the memo is stranded with `pendingDiarizationTarget` still set and the
+    /// transcript un-split (2026-06-21 device bug). Any memo still marked in-flight at
+    /// launch is orphaned by definition → re-run it. Scoped like the transcription
+    /// sweep: this device's own memos (`ownsForRecovery`), audio + word-timings present
+    /// (diarization needs both). Called once per launch from `SkriftApp`.
+    func recoverStuckDiarizations() async {
+        let stuck = repository.allMemos().filter { memo in
+            memo.pendingDiarizationTarget != nil
+                && !memo.audioFilename.isEmpty
+                && Self.ownsForRecovery(memo.recordingDeviceID)
+                && (wordTimings.load(for: memo.id)?.isEmpty == false)
+                && FileManager.default.fileExists(
+                    atPath: AppPaths.recordingsDirectory
+                        .appendingPathComponent(memo.audioFilename).path)
+        }
+        guard !stuck.isEmpty else { return }
+        DevLog.log("recover: \(stuck.count) memo(s) stuck mid-diarization — re-running")
+        for memo in stuck {
+            let target = memo.pendingDiarizationTarget ?? 0     // 0 = Auto
+            DevLog.log("recover stuck diarization — memo \(memo.id) target=\(target)")
+            await diarizeExisting(id: memo.id, targetSpeakers: target == 0 ? nil : target)
+        }
     }
 
     /// Diarize the recording and, if ≥2 speakers are found, rewrite the transcript as

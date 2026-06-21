@@ -76,6 +76,15 @@ struct SkriftApp: App {
                         await MemoSaver().recoverStuckTranscriptions()
                     }
                 }
+                // Recover any diarization orphaned mid-identify: "Split speakers" runs
+                // in a fire-and-forget Task that dies if the user backgrounds the app
+                // while it's identifying speakers (2026-06-21 device bug). Any memo
+                // still marked in-flight at launch is re-diarized. Sim/UI-test skip.
+                .task {
+                    if LaunchFlags.seedTranscript == nil {
+                        await MemoSaver().recoverStuckDiarizations()
+                    }
+                }
                 // Pre-warm the custom-vocabulary booster when the user has custom
                 // words, so the FIRST recording this session is boosted. The
                 // booster is non-blocking (it skips the first, model-loading

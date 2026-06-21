@@ -20,10 +20,27 @@ final class DiarizationStatus: ObservableObject {
 
     @Published private(set) var memoID: UUID?
     @Published private(set) var phase: Phase = .idle
+    /// When the active diarization session began — drives the elapsed-time readout
+    /// (diarization is opaque, so there's no real %; an honest "Identifying… · 0:14"
+    /// + a "this can take a while" note is the agreed UX, 2026-06-21).
+    @Published private(set) var startedAt: Date?
 
-    func begin(_ id: UUID, phase: Phase = .identifying) { memoID = id; self.phase = phase }
+    func begin(_ id: UUID, phase: Phase = .identifying) { memoID = id; self.phase = phase; startedAt = Date() }
     func set(_ phase: Phase) { self.phase = phase }
-    func finish() { memoID = nil; phase = .idle }
+    func finish() { memoID = nil; phase = .idle; startedAt = nil }
+
+    /// True while actively running diarization for `id` (not a model download/prepare) —
+    /// gates the "this can take a while" reassurance subtitle.
+    func isIdentifying(_ id: UUID) -> Bool { memoID == id && (phase == .identifying || phase == .enrolling) }
+
+    /// The banner label with an elapsed `· m:ss` appended while identifying, so the
+    /// user can see it's still working. Falls back to the plain `label(for:)`.
+    func labelWithElapsed(for id: UUID) -> String? {
+        guard let base = label(for: id) else { return nil }
+        guard isIdentifying(id), let startedAt else { return base }
+        let s = max(0, Int(Date().timeIntervalSince(startedAt)))
+        return base + String(format: " · %d:%02d", s / 60, s % 60)
+    }
 
     /// A banner label for the active memo, or nil when idle.
     func label(for id: UUID) -> String? {
