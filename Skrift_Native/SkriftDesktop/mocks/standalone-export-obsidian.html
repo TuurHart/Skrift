@@ -100,7 +100,14 @@
 </head>
 <body>
 <h1>Skrift — export &amp; Obsidian publish (standalone)</h1>
-<p class="sub">Phase 2 of the standalone push: close the "the only way out is copy-to-clipboard" gap. Every memo becomes shareable + exportable (Markdown / PDF / plain text / audio), and a one-way <strong>Obsidian publisher</strong> writes name-linked notes into a Skrift-owned subfolder — never touching the user's own vault. Name-links <span class="lk2">[[Tuur]]</span> are produced on-device by the ported <code>Sanitiser</code>. Dark by default; matches the audiobook-player-redesign design language.</p>
+<p class="sub">Phase 2 of the standalone push: close the "the only way out is copy-to-clipboard" gap. Every memo becomes shareable + exportable (Markdown / PDF / plain text / audio), and a one-way <strong>Obsidian publisher</strong> writes name-linked notes into a Skrift-owned subfolder — never touching the user's own vault. Name-links <span class="lk2">[[Tuur]]</span> are produced on-device by the shared <code>Sanitiser</code>. Dark by default; matches the audiobook-player-redesign design language.</p>
+
+<p class="sub" style="background:rgba(91,201,139,.10); border:.5px solid rgba(91,201,139,.35); border-radius:10px; padding:12px 14px; color:#CFEFD9;">
+  ✅ <strong>Backend is BUILT + green (2026-06-21, branch <code>phase2-export-cloudkit</code>, 475/475 tests).</strong>
+  The shared <code>Compiler</code>, <code>MemoLinking</code>, <code>MemoExporter</code> (MD / txt / PDF / quote-card),
+  <code>ObsidianPublisher</code>, and <code>PublishCoordinator</code> all exist + are unit-tested. These screens are the
+  remaining UI — <strong>mock-first: not built until you sign off.</strong> Notes below say what's real vs. what each
+  screen still binds to.</p>
 
 <div class="row">
 
@@ -141,6 +148,7 @@
           <div class="item">􀈷 Export as Markdown</div>
           <div class="item">􀉅 Export as PDF</div>
           <div class="item">􀉃 Export as Plain text</div>
+          <div class="item">􀏅 Export as image (quote card)</div>
           <div class="item">􀫀 Export audio (.m4a)</div>
           <div class="item hero"><span class="ob">◈</span> Export to Obsidian</div>
         </div>
@@ -291,6 +299,47 @@ MyVault/<br>
     </div>
   </div>
 
+  <!-- STATE 5 — Names & voices → alias editor (mirrors the Mac PersonEditor) -->
+  <div class="col">
+    <div class="label">5 · Settings → Names &amp; voices → a person (alias editor, mirrors the Mac)</div>
+    <div class="phone">
+      <div class="nav"><span>‹ Names</span><span class="title">Edit person</span><span style="color:var(--accent);">Done</span></div>
+      <div style="padding:0 14px 18px;">
+        <div style="display:flex; align-items:center; gap:12px; padding:8px 2px 16px;">
+          <div style="width:52px;height:52px;border-radius:50%;background:rgba(126,116,240,.18);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px;font-weight:600;">T</div>
+          <div><div style="font-size:18px;font-weight:600;color:var(--text);">Tuur</div><div style="font-size:12px;color:var(--faint);">aka Thierry, tyr · voice enrolled</div></div>
+        </div>
+
+        <div class="sect">Full name</div>
+        <div class="listcard"><div class="srow"><span>Tuur</span><span class="val">edit</span></div></div>
+
+        <div class="sect">Aliases — heard as</div>
+        <div class="listcard">
+          <div class="srow stack" style="align-items:stretch;">
+            <div class="chips">
+              <span class="chip">Thierry ✕</span>
+              <span class="chip">tyr ✕</span>
+              <span class="chip">Tuur ✕</span>
+              <span class="chip" style="color:var(--accent);border:1px dashed rgba(126,116,240,.5);background:transparent;">＋ add alias</span>
+            </div>
+            <div style="font-size:11px;color:var(--faint);line-height:1.45;">Mis-heard forms link to this person — "Thierry" in a transcript becomes <span class="lk2">[[Tuur]]</span>. Syncs to all your devices (and the Mac) via the existing names LWW.</div>
+          </div>
+        </div>
+
+        <div class="sect">Short name (link display)</div>
+        <div class="listcard"><div class="srow"><span>Tuur</span><span class="val">shown as <span class="lk2">[[Tuur]]</span></span></div></div>
+
+        <div class="sect">Voice</div>
+        <div class="listcard">
+          <div class="srow"><span>Voiceprint</span><span class="val" style="color:var(--green);">􀢒 Enrolled ›</span></div>
+          <div class="srow"><span>Re-record sample</span><span class="val">􀊰</span></div>
+        </div>
+
+        <div class="listcard" style="margin-top:18px;"><div class="srow" style="justify-content:center;color:#E5604B;">Delete person</div></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="notes">
@@ -322,11 +371,15 @@ MyVault/<br>
     (<code>Skrift/Voice Memos/</code>, <code>Skrift/Audiobook Quotes/</code>) — Skrift owns it, never reads
     the rest of the vault. The privacy line in State 2 is load-bearing copy, not decoration: the bookmark
     is scoped to <code>Skrift/</code>, satisfying the repo's hard "never point at the vault" rule.</li>
-    <li><strong>Per-memo export identity</strong> on <code>Memo</code> (additive/defaulted → clean for
-    CloudKit + SwiftData): <code>exportRelativePath: String?</code>, <code>exportedContentHash: String?</code>,
-    <code>exportedAt: Date?</code>. The <em>sticky path</em> means a re-export overwrites only its own file
-    (single owner per file = no <code>filename 2.md</code> conflict copy). The <em>content-hash</em> makes
-    re-publish idempotent — unchanged memos are skipped, so we don't churn iCloud.</li>
+    <li><strong>Per-device export state</strong> via <code>ExportStateStore</code> — a small local
+    <code>skrift_export_state.json</code> keyed by memo id → <code>{relativePath, contentHash, exportedAt}</code>.
+    <em>Built as a per-device store, NOT <code>Memo</code> fields</em> (a change from the original sketch): each
+    device has its own vault bookmark, so "exported here" is a per-device fact — a synced field would falsely mark a
+    memo exported on a device whose vault never received it. It also keeps export state off the synced
+    <code>Memo</code> schema (which the bug-fix chat is editing). The <em>sticky path</em> means a re-export
+    overwrites only its own file (single owner per file = no <code>filename 2.md</code> conflict copy); the
+    <em>content-hash</em> makes re-publish idempotent (unchanged memos skipped). <strong>WRITE-ONLY</strong> —
+    idempotency uses the stored hash + an own-file existence check, never a vault read (privacy hard rule).</li>
     <li><strong>Atomic + <code>NSFileCoordinator</code> writes</strong> — Obsidian / iCloud never observe a
     half-written <code>.md</code>.</li>
     <li><strong>New <code>PublishCoordinator</code></strong> (peer to <code>SyncCoordinator</code>) fans the
@@ -336,11 +389,16 @@ MyVault/<br>
 
   <h2>On-device name-linking — the <code>[[Name]]</code> in every state</h2>
   <ul>
-    <li>The <span class="lk2">[[Tuur]]</span> / <span class="lk2">[[Roksana]]</span> links in States 1 &amp; 4
-    are produced <strong>on-device by the ported <code>Sanitiser</code></strong> (Phase 0,
-    <code>SkriftPipelineKit</code>) running over the local <code>names.json</code> automatically after
-    transcription — no extra UI for the linking itself, exactly like the Mac. So the phone's display AND its
-    standalone Obsidian export both carry real wiki-links.</li>
+    <li>The <span class="lk2">[[Tuur]]</span> / <span class="lk2">[[Roksana]]</span> links are produced
+    <strong>on-device by the shared <code>Sanitiser</code></strong> (<code>Shared/Naming</code>) via the new
+    <code>MemoLinking</code>, which <strong>RE-DERIVES</strong> the linked text on demand from the RAW transcript
+    over the local <code>names.json</code> — there is no stored <code>sanitised</code> field, so
+    <code>Memo.transcript</code> stays RAW (the contract spine the Mac trusts) and a names edit shows up
+    immediately, never stale. Conversations route through <code>processConversation</code>, monologues through
+    <code>process</code>, exactly like the Mac's <code>BatchRunner</code>. <strong>Wired into export now</strong>
+    (States 1 &amp; 4); rendering the links in the memo-detail <em>display</em> is a small follow-up (the editor
+    already styles <code>[[ ]]</code>, and it was left out to avoid the file the bug chat is editing + a separate
+    display-UX call).</li>
     <li><strong>The phone still sends RAW to the Mac</strong> (contract spine unchanged). Linking is
     deterministic over the synced names DB, so the Mac re-links the same RAW with the same shared code →
     identical links, no double-linking, no skip-signal to miss. State 3's "Aliases &amp; voices" row is the
@@ -374,9 +432,13 @@ MyVault/<br>
     text, so the plan defaults Obsidian export to the Mac and turns the phone's publish off (two writers
     shouldn't race one note). Per-memo file ownership + content-hash make a stray double-write harmless, so
     this could also be a user toggle rather than an automatic switch — which do you want as the default?</li>
-    <li><strong>Quote-card image export</strong> — <code>MemoExporter</code> can also render the Phase-6
-    shareable quote card. Should it appear in this sheet now (as "Export as image"), or wait for the
-    Commonplace Book phase where the card UI properly lives?</li>
+    <li><strong>Quote-card image export — ✅ RESOLVED (in now).</strong> You picked "MD + txt + PDF +
+    quote-card," so <code>MemoExporter.quoteCardImage</code> is built and "Export as image (quote card)" is in the
+    sheet (State 1). The fuller card-design surface still lives in Phase 6 (Commonplace Book); this is the basic
+    shareable render.</li>
+    <li><strong>Paired-mode default — built as a toggle.</strong> <code>PublishCoordinator</code> defaults the
+    phone's Obsidian publish OFF when a Mac is paired (the Mac owns the enhanced export), flippable via
+    <code>publishWhenPaired</code>. Confirm this default, or prefer phone-always-publishes?</li>
   </ul>
 </div>
 </body>
