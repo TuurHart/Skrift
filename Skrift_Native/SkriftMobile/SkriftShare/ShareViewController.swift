@@ -44,6 +44,8 @@ final class ShareViewController: UIViewController {
             let payload = await SharePayloadLoader.load(from: extensionContext)
             if payload.isVideo {
                 completeVideo(payload)
+            } else if payload.type == .file, payload.fileURL != nil {
+                completeFile(payload)
             } else {
                 presentSheet(payload: payload)
             }
@@ -104,6 +106,26 @@ final class ShareViewController: UIViewController {
         )
         CaptureInbox.write(entry, videoFileURL: videoURL)
         try? FileManager.default.removeItem(at: videoURL)   // copied into the inbox now
+        extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+    }
+
+    /// A shared document (PDF/etc.) bypasses the annotation sheet: write a "file"
+    /// inbox entry (the document copied in) and finish. The main app persists it as
+    /// a `.file` capture on its next foreground drain; the user can ramble on it in
+    /// the memo detail. (2026-06-21 device feedback: "share a PDF and have it live in there".)
+    private func completeFile(_ payload: SharePayload) {
+        guard let fileURL = payload.fileURL else { cancel(); return }
+        let id = UUID()
+        let ext = fileURL.pathExtension.isEmpty ? "pdf" : fileURL.pathExtension
+        let entry = CaptureInboxEntry(
+            id: id, type: "file", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: payload.mimeType, annotationText: nil,
+            significance: 0, sharedAt: ISO8601.string(from: Date()),
+            fileName: "file_\(id.uuidString).\(ext)",
+            fileDisplayName: payload.fileName
+        )
+        CaptureInbox.write(entry, fileSourceURL: fileURL)
+        try? FileManager.default.removeItem(at: fileURL)   // copied into the inbox now
         extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
     }
 

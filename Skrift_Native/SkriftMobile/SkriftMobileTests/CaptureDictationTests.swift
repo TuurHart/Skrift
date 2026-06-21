@@ -124,6 +124,42 @@ final class CaptureDictationTests: XCTestCase {
         XCTAssertEqual(memo?.sharedContent?.url, "https://example.com")
     }
 
+    /// Drain a shared-document (.file) entry: the PDF is copied into the recordings
+    /// dir, the capture memo carries `sharedContent.type == .file` with a resolvable
+    /// `sharedFileURL`, and the inbox entry is consumed. (2026-06-21 PDF share-import.)
+    @MainActor
+    func testDrainPersistsSharedFileCapture() throws {
+        let repo = NotesRepository(inMemory: true)
+        guard let inbox = CaptureInbox.inboxURL else {
+            throw XCTSkip("no App Group container in this test host")
+        }
+        try? FileManager.default.removeItem(at: inbox)
+
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "file", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: "application/pdf",
+            annotationText: nil, significance: 0,
+            sharedAt: ISO8601.string(from: Date()),
+            fileName: "file_\(id.uuidString).pdf",
+            fileDisplayName: "report.pdf")
+        let src = FileManager.default.temporaryDirectory.appendingPathComponent("src_\(UUID().uuidString).pdf")
+        FileManager.default.createFile(atPath: src.path, contents: Data("%PDF-1.4".utf8))
+        XCTAssertTrue(CaptureInbox.write(entry, fileSourceURL: src))
+
+        CaptureInboxDrainer.drain(into: repo)
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.sharedContent?.type, .file)
+        XCTAssertEqual(memo?.sharedContent?.fileName, "report.pdf")
+        XCTAssertEqual(memo?.transcriptStatus, .done)   // no dictation → done immediately
+        let fileURL = try XCTUnwrap(memo?.sharedFileURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path), "the document is persisted in recordings")
+        XCTAssertTrue(CaptureInbox.pendingEntries().isEmpty, "entry consumed")
+        try? FileManager.default.removeItem(at: fileURL)
+        try? FileManager.default.removeItem(at: src)
+    }
+
     /// Old inbox entries (written before dictation existed) still decode.
     func testEntryWithoutDictationFieldDecodes() throws {
         let legacyJSON = """

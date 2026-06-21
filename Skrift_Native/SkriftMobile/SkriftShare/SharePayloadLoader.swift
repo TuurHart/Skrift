@@ -19,6 +19,12 @@ struct SharePayload {
     /// extension-temp copy of the movie (nil if the copy failed → host cancels).
     var isVideo: Bool = false
     var videoURL: URL?
+    /// A shared document (e.g. a PDF) was detected. The host skips the annotation
+    /// sheet and persists it as a `.file` capture (the user can ramble on it later
+    /// in the memo detail). `fileURL` is the extension-temp copy; `fileName` is the
+    /// original display name (e.g. "report.pdf").
+    var fileURL: URL?
+    var fileName: String?
 }
 
 /// Loads a `SharePayload` from the extension context's input items.
@@ -55,8 +61,51 @@ enum SharePayloadLoader {
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) }) {
             return await loadText(from: provider)
         }
+        // 5. Document (PDF or any other file) — shared from Files/Books/etc. Checked
+        //    last: url/movie/image/text are more specific. A PDF conforms to
+        //    public.data but none of those, so it falls through to here.
+        if let provider = attachments.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) ||
+            $0.hasItemConformingToTypeIdentifier(UTType.data.identifier) ||
+            $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
+        }) {
+            return await loadFile(from: provider)
+        }
 
         return SharePayload(type: .text)
+    }
+
+    // MARK: - File (PDF / document)
+
+    /// Copy a shared document out of the provider's transient storage into our own
+    /// temp (like `loadVideo` — the provided URL is valid only inside the closure).
+    /// We copy the FILE (no in-memory load) so a large PDF can't blow the extension's
+    /// memory ceiling. The host persists it as a `.file` capture.
+    private static func loadFile(from provider: NSItemProvider) async -> SharePayload {
+        // Prefer a concrete data-bearing type (PDF/etc.), not a url/text alias.
+        let typeID = provider.registeredTypeIdentifiers.first {
+            guard let t = UTType($0) else { return false }
+            return t.conforms(to: .data) && !t.conforms(to: .url) && !t.conforms(to: .text)
+        } ?? UTType.pdf.identifier
+        let result: (url: URL, name: String)? = await withCheckedContinuation { cont in
+            provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, _ in
+                guard let url else { cont.resume(returning: nil); return }
+                let name = url.lastPathComponent
+                let ext = url.pathExtension.isEmpty ? "pdf" : url.pathExtension
+                let dest = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("shared_\(UUID().uuidString).\(ext)")
+                do {
+                    try? FileManager.default.removeItem(at: dest)
+                    try FileManager.default.copyItem(at: url, to: dest)
+                    cont.resume(returning: (dest, name))
+                } catch {
+                    cont.resume(returning: nil)
+                }
+            }
+        }
+        guard let result else { return SharePayload(type: .text) }
+        let mime = UTType(filenameExtension: result.url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+        return SharePayload(type: .file, mimeType: mime, fileURL: result.url, fileName: result.name)
     }
 
     // MARK: - Video

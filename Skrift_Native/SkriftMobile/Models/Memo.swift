@@ -163,6 +163,14 @@ final class Memo {
         audioFilename.isEmpty ? nil : AppPaths.recordingsDirectory.appendingPathComponent(audioFilename)
     }
 
+    /// Resolved on-disk location of a shared `.file` capture's document (e.g. a PDF),
+    /// or nil. `sharedContent.filePath` holds the RELATIVE filename (reinstall-safe),
+    /// resolved against the recordings dir — same rule as `audioURL`.
+    var sharedFileURL: URL? {
+        guard let path = sharedContent?.filePath, !path.isEmpty else { return nil }
+        return AppPaths.recordingsDirectory.appendingPathComponent(path)
+    }
+
     /// When the memo entered Skrift — legacy memos (nil `createdAt`) fall back to
     /// `recordedAt`. The "Recently added" sort key.
     var addedAt: Date { createdAt ?? recordedAt }

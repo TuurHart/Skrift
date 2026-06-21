@@ -71,6 +71,18 @@ to **persist as an imported source** (parallels the existing share-to-import aud
 one-shot read. Extends the planned **"Unified source taxonomy"** (PDF is already a listed source type — see
 below) → make PDF a first-class shareable/importable source. (memo 06-20 10:52)
 
+**✅ BUILT 2026-06-21 — MVP (persist + open), awaiting device-eyeball.** Shares a PDF (or any document)
+into Skrift via the share extension and persists it as a `.file` capture: the share-extension activation
+rule gains `NSExtensionActivationSupportsFileWithMaxCount`; `SharePayloadLoader.loadFile` copies the doc
+out of the provider (no in-memory load); `ShareViewController.completeFile` bypasses the annotation sheet
+(mirrors the video path) → writes a `"file"` inbox entry (`CaptureInboxEntry.fileName`/`fileDisplayName`);
+`CaptureInboxDrainer` copies the doc into the recordings dir (`file_<memoUUID>.<ext>`, reinstall-safe
+relative path in `SharedContent.filePath`) → a `.file` capture memo; `Memo.sharedFileURL` resolves it; the
+detail shows a doc card with **Open** → `quickLookPreview`. `permanentlyDelete` now also drops the doc
+blob. 455/455 unit green (new drain test). **PINNED for later (user):** PDF as a full text-extracted /
+readable source (PDFKit → transcript → name-link/enhance/Obsidian; read-along surface). **OWED:** device
+test — share a PDF from Files/Books → confirm the capture + Open. (Share sheet can't be exercised on the sim.)
+
 ### P2 — 🎨 Audiobook reading-mode: bookmark icon placement follow-up (post build-14)
 Refinement on the just-built reading-mode bookmark UX. Currently the bookmark icon "is still at the bottom"
 with awkward negative-space margin. Want it **inline with the "selected text" button, far left** — bookmark

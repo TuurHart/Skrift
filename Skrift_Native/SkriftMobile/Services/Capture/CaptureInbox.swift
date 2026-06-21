@@ -40,6 +40,13 @@ struct CaptureInboxEntry: Codable {
     /// `MemoSaver.importVideo` — it becomes a normal voice memo (audio + a frame
     /// thumbnail + transcribe), NOT a capture item. Optional so older entries decode.
     var videoFileName: String? = nil
+    /// Filename (relative to the entry folder) of a shared DOCUMENT (e.g. a PDF
+    /// shared from Files/Books). The MAIN APP persists it into the recordings dir on
+    /// drain → a `.file` capture. Optional so older entries decode.
+    var fileName: String? = nil
+    /// The document's original display name (e.g. "report.pdf"), shown in the capture
+    /// detail. Distinct from `fileName` (the UUID-keyed stored name).
+    var fileDisplayName: String? = nil
 }
 
 // MARK: - Inbox
@@ -102,7 +109,7 @@ enum CaptureInbox {
     /// never a half-written JSON.
     @discardableResult
     static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil, dictationData: Data? = nil,
-                      videoFileURL: URL? = nil) -> Bool {
+                      videoFileURL: URL? = nil, fileSourceURL: URL? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
         let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
         do {
@@ -123,6 +130,12 @@ enum CaptureInbox {
                 let destURL = entryDir.appendingPathComponent(name)
                 try? FileManager.default.removeItem(at: destURL)
                 try FileManager.default.copyItem(at: videoFileURL, to: destURL)
+            }
+            // Shared document (PDF/etc.): COPY the file in (same memory rationale as video).
+            if let fileSourceURL, let name = entry.fileName {
+                let destURL = entryDir.appendingPathComponent(name)
+                try? FileManager.default.removeItem(at: destURL)
+                try FileManager.default.copyItem(at: fileSourceURL, to: destURL)
             }
             // Atomic JSON write.
             let data = try JSONEncoder().encode(entry)
@@ -171,6 +184,12 @@ enum CaptureInbox {
     /// Resolve the on-disk URL of a shared video, when present.
     static func videoURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
         guard let name = entry.videoFileName else { return nil }
+        return entryDir.appendingPathComponent(name)
+    }
+
+    /// Resolve the on-disk URL of a shared document (PDF/etc.), when present.
+    static func fileURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
+        guard let name = entry.fileName else { return nil }
         return entryDir.appendingPathComponent(name)
     }
 

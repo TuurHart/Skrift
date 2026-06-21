@@ -106,6 +106,7 @@ final class NotesRepository {
     func permanentlyDelete(_ memo: Memo) {
         DevLog.log("permanentlyDelete memo \(memo.id) status=\(memo.transcriptStatus)")
         if let url = memo.audioURL { try? FileManager.default.removeItem(at: url) }
+        if let fileURL = memo.sharedFileURL { try? FileManager.default.removeItem(at: fileURL) }
         memo.metadata?.imageManifest?.forEach {
             try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent($0.filename))
         }

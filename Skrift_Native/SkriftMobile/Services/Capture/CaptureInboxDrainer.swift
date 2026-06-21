@@ -69,7 +69,7 @@ enum CaptureInboxDrainer {
                 continue
             }
 
-            let sharedContent = SharedContent(
+            var sharedContent = SharedContent(
                 type: contentType,
                 url: entry.url,
                 urlTitle: entry.urlTitle,
@@ -77,6 +77,26 @@ enum CaptureInboxDrainer {
                 fileName: entry.imageFileName,
                 mimeType: entry.mimeType
             )
+
+            // File capture (e.g. a shared PDF): copy the document from the inbox into
+            // the recordings dir under the memo UUID so it persists. We store the
+            // RELATIVE filename in `filePath` (resolved against recordingsDirectory at
+            // open time) so it survives reinstall — same rule as audio/photos.
+            if contentType == .file,
+               let srcURL = CaptureInbox.fileURL(for: entry, entryDir: entryDir),
+               FileManager.default.fileExists(atPath: srcURL.path) {
+                let ext = (entry.fileName.map { ($0 as NSString).pathExtension } ?? "")
+                let destName = "file_\(memoID.uuidString).\(ext.isEmpty ? "pdf" : ext)"
+                let destURL = AppPaths.recordingsDirectory.appendingPathComponent(destName)
+                do {
+                    try? FileManager.default.removeItem(at: destURL)
+                    try FileManager.default.copyItem(at: srcURL, to: destURL)
+                    sharedContent = SharedContent(type: .file, filePath: destName,
+                                                  fileName: entry.fileDisplayName, mimeType: entry.mimeType)
+                } catch {
+                    print("[CaptureInboxDrainer] file copy failed: \(error)")
+                }
+            }
 
             // For image captures, move the image from the inbox to the recordings
             // directory under the memo's UUID before saving the Memo. The image

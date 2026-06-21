@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import QuickLook
 import FluidAudio
 
 /// The "note" screen (mockup2). Swipe left/right between memos (a SwiftUI-native
@@ -251,6 +252,7 @@ private struct MemoPageView: View {
     private let repository = NotesRepository.shared
     @State private var showAddTag = false
     @State private var newTag = ""
+    @State private var quickLookURL: URL?            // shared-document (.file) capture → QuickLook preview
     @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
 
     /// A tapped speaker turn: its position (for per-line merge), label (for whole-speaker
@@ -359,6 +361,8 @@ private struct MemoPageView: View {
         } message: {
             Text("Separate multiple tags with commas.")
         }
+        // Shared-document (.file) capture → preview the PDF/doc in QuickLook.
+        .quickLookPreview($quickLookURL)
         // Tap a speaker → an assign sheet: pick a known Person (links + enrolls the
         // voiceprint), merge into another speaker in this convo (fixes a mis-split), or
         // type a new name. Replaces the old free-text alert.
@@ -562,10 +566,62 @@ private struct MemoPageView: View {
                 if let text = sc.text, !text.isEmpty {
                     captureTextQuote(text: text)
                 }
-            case .image, .file:
+            case .image:
                 captureImageEmbed
+            case .file:
+                captureFileCard(sc: sc)
             }
         }
+    }
+
+    /// A shared document (PDF/etc.) capture: a card showing the filename + an Open
+    /// button that previews it in QuickLook. (2026-06-21 "share a PDF and have it
+    /// live in there".)
+    private func captureFileCard(sc: SharedContent) -> some View {
+        HStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.skAccent.opacity(0.13))
+                .frame(width: 32, height: 32)
+                .overlay(
+                    Image(systemName: "doc.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.skAccent)
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(sc.fileName ?? "Document")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.skText)
+                    .lineLimit(2)
+                Text(memo.shareCaptureTypeLabel)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.skTextFaint)
+            }
+
+            Spacer(minLength: 4)
+
+            if memo.sharedFileURL != nil {
+                Button { quickLookURL = memo.sharedFileURL } label: {
+                    Text("Open")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.skAccent)
+                        .padding(.horizontal, 9).padding(.vertical, 4)
+                        .background(Color.skAccentSoft, in: .rect(cornerRadius: 6, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(Color.skAccent.opacity(0.35), lineWidth: 0.5)
+                        )
+                }
+                .accessibilityIdentifier("capture-open-file")
+                .accessibilityLabel("Open document")
+            }
+        }
+        .padding(13)
+        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
+        )
+        .accessibilityIdentifier("capture-file-card")
     }
 
     private func captureURLCard(sc: SharedContent) -> some View {
