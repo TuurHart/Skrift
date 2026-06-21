@@ -154,6 +154,24 @@ nice… we can keep that"); `Memo.parseTagInput` stays, easily reverted on reque
 have a scroll bug. The real text-selection-autoscroll issue above is the actual ask and belongs to THIS
 sprint, not a one-off.
 
+**🧠 DESIGN THINKING 2026-06-22 (pre-mock).** Framing: a Skrift note = a **transcript** (editable text +
+inline `[[img]]` + speaker turns + title/tags/significance + capture quote), NOT a freeform doc → bar =
+"native text-editing *mechanics* (Apple Notes) + keep the transcript richness." **Root-cause diagnosis:** the
+editable body `TranscriptEditor` is a `NonScrollingTextView` (UITextView, scrolling OFF, offset pinned 0)
+inside the page's one outer ScrollView — a deliberate unified-scroll trade (text + images + metadata in one
+flow) that is ALSO why native editing breaks: a non-scrolling textview can't autoscroll a selection drag
+(the reported bug), can't run the magnifier/edge handles, can't keep the caret in view while typing (the old
+"paste jumps to top" hack = same wound). **Central fork:** A) bridge — manually drive the outer ScrollView
+to follow selection/caret (cheap stopgap, hand-reimplements UIKit one behavior at a time); **B) re-found the
+body on a natively-scrolling UITextView** with title/tags/significance as a scrolling header + TextKit image
+attachments → selection/magnifier/edit-menu/undo/caret-follow all free (**recommended**); C) full TextKit 2
+rich editor (overkill, transcripts don't need formatting). **Experience layer (fork-independent):** a
+keyboard accessory toolbar (none today — biggest "native" jump), undo/redo, a real tag CHIP editor with
+autocomplete from existing tags (the actual "select a lot" need = pick not retype), smart paste.
+**Must-not-break:** inline images · edit/play/read mode swap (`TranscriptBodyView`) · karaoke · capture-quote
+protection · speaker-turn editing · `transcriptUserEdited` trust flag · save-now. **Path:** (optional) ship
+A as a stopgap; then the real sprint MOCK-FIRST on B + toolbar + tag editor. Awaiting user direction.
+
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 
 NEW DIRECTION: ship **SkriftMobile to the App Store as a standalone audiobook + notetaking app** that
