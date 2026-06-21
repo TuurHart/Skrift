@@ -44,6 +44,28 @@ each carried a test vault / sample notes). Git log, READMEs, CLAUDE.md, code str
 
 All three share the same Oct-18-2025 initial commit (same lineage as the live repo).
 
+### Dating the eras — what's actually anchorable (investigated 2026-06-21)
+
+**The git log floors at Oct 18 2025 — that's when git was first used, NOT when Skrift began.**
+Earlier history is only datable from **file mtimes** and dated doc content.
+
+- **Earliest concrete artifacts found:** frontend `2025-07-09`, backend `2025-07-28` (in the
+  snapshots). So this Skrift incarnation is **~July 2025 onward (~11 months as of Jun 2026)**.
+- **No Skrift artifacts older than mid-2025 exist anywhere in `~/Hackerman`.** The user recalls
+  "2 years or more" — that origin is **NOT on this machine's `~/Hackerman`** (external drive? old
+  Mac? deleted? a differently-named prototype?). **OPEN: ask the user where the oldest material lives.**
+- **Possible ancestor lineage:** `~/Hackerman/Shhhcribble` + `ShhcribbleiOS` (May 2025) — the user's
+  native FluidAudio transcription app (the native rewrite's live-caption was ported from it). Only
+  ~1 month older than the July files, so it doesn't explain a 2-year origin, but it's a related root.
+- **Bogus dates to ignore:** `1985-10-26` mtimes appear on some copied assets in a nested
+  `.claude/worktrees/.../mobile/` — corrupted timestamps, not history.
+- **Privacy:** did NOT open `Obsidian_LLM_Test_Vault` or `Obsidian Backup` (vault rule).
+
+**Implication for the backfill:** eras are cleanly datable from **~Jul 2025** (mtimes) and
+**precisely from Oct 2025** (git commits). Anything claimed before Jul 2025 needs a source the user
+provides — don't invent dates. So in the viz, pre-git eras may need approximate/"~2025" stamps or an
+explicit "exact date unknown" treatment.
+
 ---
 
 ## Draft era timeline (candidate `HISTORY` content — for the future build)
