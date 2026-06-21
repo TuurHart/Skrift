@@ -83,6 +83,18 @@ blob. 455/455 unit green (new drain test). **PINNED for later (user):** PDF as a
 readable source (PDFKit → transcript → name-link/enhance/Obsidian; read-along surface). **OWED:** device
 test — share a PDF from Files/Books → confirm the capture + Open. (Share sheet can't be exercised on the sim.)
 
+> **⚠️ P0 REFRAMED 2026-06-21 (user correction) — NOT a deletion, the APPENDED TEXT didn't land.**
+> The note was **never deleted** (hence not in Recently Deleted): it stayed, but was **empty after the append
+> recording stopped** — the appended text never landed. So this is the **append-transcription path**, the
+> same family as the 2026-06-10 "append silently adds NO text" fix, NOT CloudKit/deletion. The
+> `testAppendAfterClearingBodyKeepsMemoAndLandsText` test passes because its seeded transcriber returns text
+> → the logic is correct **when transcription returns something**; on device the append clip is coming back
+> **empty**. The note ends up blank only via: the `audioURL` guard bailing, the engine returning no text
+> (silent-restore branch, no Error pill), or the landed text being clobbered by the editor's stale empty
+> buffer. `appendRecordingAsync` now logs each branch (start/transcribe-outcome/no-text/failed/landed) +
+> the existing "editor cleared body → nil" marker catches a post-append clobber. DEV build **(15)** pushed
+> 2026-06-21. **OWED (user):** repro append → I pull `devlog.txt` to see which branch fires.
+
 ### P2 — 🎨 Audiobook reading-mode: bookmark icon placement follow-up (post build-14)
 Refinement on the just-built reading-mode bookmark UX. Currently the bookmark icon "is still at the bottom"
 with awkward negative-space margin. Want it **inline with the "selected text" button, far left** — bookmark

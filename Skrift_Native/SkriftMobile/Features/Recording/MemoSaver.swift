@@ -368,10 +368,12 @@ struct MemoSaver {
     /// `.failed` (the memos list shows an Error pill) — never a silent no-op.
     func appendRecordingAsync(to memoID: UUID, tempURL: URL, duration: TimeInterval, liveCaption: String? = nil) async {
         guard let memo = repository.memo(id: memoID), let memoURL = memo.audioURL else {
+            DevLog.log("append BAILED — memo missing or no audioURL (memoID \(memoID)); clip discarded")
             try? FileManager.default.removeItem(at: tempURL); return
         }
         let priorDuration = memo.duration
         let priorStatus = memo.transcriptStatus
+        DevLog.log("append start memo \(memoID) clipDur=\(String(format: "%.1f", duration))s priorStatus=\(priorStatus) priorBodyLen=\((memo.transcript ?? "").count)")
 
         // Make the append visible immediately — a cold model can take a while.
         memo.transcriptStatus = .transcribing
@@ -414,6 +416,7 @@ struct MemoSaver {
         let fallbackCaption = (liveCaption ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let newText = engineText.isEmpty ? fallbackCaption : (result?.text ?? "")
         let newTimings = engineText.isEmpty ? [] : (result?.wordTimings ?? [])
+        DevLog.log("append transcribe: gotResult=\(result != nil) engineLen=\(engineText.count) captionLen=\(fallbackCaption.count) clipExists=\(FileManager.default.fileExists(atPath: clip.path))")
 
         guard let memo = repository.memo(id: memoID) else {
             try? FileManager.default.removeItem(at: clip)
@@ -426,9 +429,11 @@ struct MemoSaver {
                 // The engine ran and heard no speech (and no live caption either):
                 // an honest no-text append. The audio is merged; restore the prior
                 // status and consume the clip.
+                DevLog.log("append NO-TEXT: engine ran but heard nothing (no caption) → restored \(priorStatus); nothing appended")
                 memo.transcriptStatus = priorStatus
                 try? FileManager.default.removeItem(at: clip)
             } else {
+                DevLog.log("append FAILED: transcription threw on every retry → .failed; clip kept for retry")
                 // Transcription failed outright after retries — surface it (the
                 // memos list shows an Error pill) and KEEP the clip on disk as the
                 // retry source. transcriptUserEdited stays untouched, so an
@@ -445,6 +450,7 @@ struct MemoSaver {
         memo.transcriptUserEdited = true   // Mac trusts the combined transcript as-is
         memo.transcriptStatus = .done
         memo.markEdited()
+        DevLog.log("append LANDED: +\(newText.count) chars (existing=\(existing.count)) → total \(memo.transcript?.count ?? 0)")
 
         // Shift the new clip's word timings past the prior audio + append to the sidecar.
         if !newTimings.isEmpty {
