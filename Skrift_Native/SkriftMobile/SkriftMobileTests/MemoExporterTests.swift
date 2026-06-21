@@ -75,4 +75,25 @@ final class MemoExporterTests: XCTestCase {
         XCTAssertGreaterThan(MemoExporter.pdf(for: memo, people: []).count, 500, "PDF should have content")
         XCTAssertNotNil(MemoExporter.quoteCardImage(for: memo, people: []), "quote card should render")
     }
+
+    // MARK: Mac enhancement (CloudKit write-back) preference
+
+    func testMarkdownPrefersMacEnhancement() {
+        let memo = Memo(recordedAt: fixedDate, title: "raw title",
+                        transcript: "um so i met hendri today you know")
+        let enh = MemoEnhancement(memoID: memo.id, copyedit: "I met Hendri today.",
+                                  title: "Meeting Hendri", summary: "A short note about meeting Hendri.")
+        let md = MemoExporter.markdown(for: memo, people: [hendri], author: "T", enhancement: enh)
+        XCTAssertTrue(md.contains("title: \"Meeting Hendri\""), "uses the Mac title")
+        XCTAssertTrue(md.contains("summary: \"A short note about meeting Hendri.\""), "uses the Mac summary")
+        XCTAssertTrue(md.contains("I met [[Hendri van Niekerk]] today."),
+                      "polished body, re-linked on-device — got: \(md)")
+        XCTAssertFalse(md.contains("um so"), "raw transcript dropped when enhanced")
+    }
+
+    func testEmptyEnhancementFallsBackToRaw() {
+        let memo = Memo(title: "T", transcript: "Met Hendri today.")
+        let md = MemoExporter.markdown(for: memo, people: [hendri], enhancement: MemoEnhancement(memoID: memo.id))
+        XCTAssertTrue(md.contains("Met [[Hendri van Niekerk]] today."), "empty enhancement → raw linked body")
+    }
 }

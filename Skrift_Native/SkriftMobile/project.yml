@@ -42,8 +42,11 @@ targets:
       # Shared cross-app source (one physical copy → no phone↔Mac drift). Naming
       # types (Person/NamesMerge/NamesData) live here; engine + more land in Phase 0.
       # Export adds the shared Compiler + neutral CompilerInput DTO (standalone Phase 2).
+      # Model adds the shared CloudKit @Models the Mac also adopts (MemoEnhancement; later
+      # Memo/MemoAsset) — the Mac→CloudKit write-back (MAC_CLOUDKIT_PLAN.md).
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/Model
     info:
       path: App/Info.plist
       properties:

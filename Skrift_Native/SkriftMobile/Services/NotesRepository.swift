@@ -12,7 +12,7 @@ final class NotesRepository {
 
     init(inMemory: Bool) {
         let schema = Schema([Memo.self, MemoAsset.self, NamesRecord.self, VocabularyRecord.self,
-                             AudiobookSyncRecord.self, AudiobookAsset.self])
+                             AudiobookSyncRecord.self, AudiobookAsset.self, MemoEnhancement.self])
         // CloudKit-backed (standalone Phase 1 internal sync): SwiftData mirrors the Memo
         // store to the user's PRIVATE CloudKit database, so notes sync across THEIR own
         // devices (iPhone↔iPad) with no Mac and no iCloud-Drive conflict-copy files.

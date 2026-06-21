@@ -20,14 +20,17 @@ enum MemoExporter {
     // MARK: - Markdown (Obsidian)
 
     /// Full Obsidian markdown (YAML frontmatter + name-linked body) via the shared `Compiler`.
-    static func markdown(for memo: Memo, people: [Person], author: String = "") -> String {
-        Compiler.compile(compilerInput(for: memo, people: people),
+    /// `enhancement` (the Mac's CloudKit write-back) is preferred when present — a paired Mac
+    /// auto-upgrades the export; nil = on-device raw + linking.
+    static func markdown(for memo: Memo, people: [Person], author: String = "",
+                         enhancement: MemoEnhancement? = nil) -> String {
+        Compiler.compile(compilerInput(for: memo, people: people, enhancement: enhancement),
                          author: author, date: dateString(memo.recordedAt), knownPeople: people)
     }
 
     /// Convenience over the live on-device names DB.
-    static func markdown(for memo: Memo, author: String = "") -> String {
-        markdown(for: memo, people: NamesStore.shared.load().people, author: author)
+    static func markdown(for memo: Memo, author: String = "", enhancement: MemoEnhancement? = nil) -> String {
+        markdown(for: memo, people: NamesStore.shared.load().people, author: author, enhancement: enhancement)
     }
 
     // MARK: - Plain text
@@ -51,16 +54,24 @@ enum MemoExporter {
     /// analogue of the desktop `PipelineFile.compilerInput`. The body is the on-device
     /// name-LINKED transcript (or annotation, for a share-capture), placed in `sanitised` so it
     /// wins the Compiler's body precedence; `transcript` keeps the RAW as the fallback.
-    static func compilerInput(for memo: Memo, people: [Person]) -> CompilerInput {
+    static func compilerInput(for memo: Memo, people: [Person], enhancement: MemoEnhancement? = nil) -> CompilerInput {
         let capture = memo.isShareCapture
-        let rawBody = capture ? (memo.annotationText ?? "") : (memo.transcript ?? "")
-        let linked = MemoLinking.linkedTranscript(rawBody, people: people)
+        let enh = (enhancement?.hasContent == true) ? enhancement : nil
+        // Body: prefer the Mac's polished copy-edit; else the raw transcript/annotation. Either
+        // way it's re-linked on-device (no drift) and placed in `sanitised` so it wins the
+        // Compiler's body precedence; `transcript` keeps the base text as the fallback.
+        let baseBody: String = {
+            if let c = enh?.copyedit, !c.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return c }
+            return capture ? (memo.annotationText ?? "") : (memo.transcript ?? "")
+        }()
+        let linked = MemoLinking.linkedTranscript(baseBody, people: people)
         let meta = memo.metadata
         return CompilerInput(
             filename: "memo",                                  // unused: enhancedTitle is always set
-            transcript: rawBody.isEmpty ? nil : rawBody,
+            transcript: baseBody.isEmpty ? nil : baseBody,
             sanitised: linked.isEmpty ? nil : linked,
-            enhancedTitle: exportTitle(for: memo, people: people),
+            enhancedTitle: nonEmpty(enh?.title) ?? exportTitle(for: memo, people: people),
+            enhancedSummary: nonEmpty(enh?.summary),
             tags: memo.tags,
             significance: memo.significance,
             sourceType: capture ? .capture : .audio,
