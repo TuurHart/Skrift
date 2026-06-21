@@ -85,6 +85,16 @@ scroll/keep showing options). User: "I'm sure there's other bits" → wants a **
 learning from other apps**, as its **own separate sprint**. Don't log the tag-scroll fix as "done = sprint
 done" — it's one symptom of a broader editing-UX pass. (memo 06-21 11:22)
 
+**🔎 FINDING + ✅ QUICK WIN 2026-06-21.** The "can't drag down / doesn't keep going" is NOT a scroll/clip
+bug — `FlowLayout` self-sizes correctly inside the page `ScrollView`, so tags never become unreachable.
+The real pain is the **add-tag alert added ONE tag at a time** (`MemoDetailView.addTag`), tedious for "a
+lot of tags." **Quick win shipped:** the alert now accepts **comma-separated tags** (`Memo.parseTagInput`,
+unit-tested) — "work, big idea, todo" adds three at once; placeholder + "separate with commas" hint.
+**STILL DEFERRED to the epic (mock-first):** "select" implies *picking from existing tags*, so the real
+solution is a **tag picker** (show the user's existing tags to tap/multi-select + type-to-add), plus the
+wider note-editing pass (body editor, significance, photos, speaker turns — surfaces mapped in the plan).
+This quick win is NOT the sprint.
+
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 
 NEW DIRECTION: ship **SkriftMobile to the App Store as a standalone audiobook + notetaking app** that

@@ -27,6 +27,16 @@ final class MemoModelTests: XCTestCase {
         XCTAssertEqual(sc, decoded)
     }
 
+    func testParseTagInputSplitsCommasTrimsAndDropsBlanks() {
+        // Several tags in one entry; commas separate, spaces inside a tag survive.
+        XCTAssertEqual(Memo.parseTagInput("work, big idea ,  #todo ,, "), ["work", "big idea", "todo"])
+        // A single tag still works (back-compat with the old one-at-a-time alert).
+        XCTAssertEqual(Memo.parseTagInput("  #solo "), ["solo"])
+        // Empty / whitespace-only input yields nothing.
+        XCTAssertEqual(Memo.parseTagInput("   "), [])
+        XCTAssertEqual(Memo.parseTagInput(""), [])
+    }
+
     func testWordTimingsSidecarRoundTrip() {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)

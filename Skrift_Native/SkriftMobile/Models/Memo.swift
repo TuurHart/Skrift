@@ -167,6 +167,16 @@ final class Memo {
     /// `recordedAt`. The "Recently added" sort key.
     var addedAt: Date { createdAt ?? recordedAt }
 
+    /// Parse a tag-entry string into individual tags: COMMA / newline separated (a
+    /// tag may contain spaces, so we don't split on whitespace), each trimmed and
+    /// de-`#`-ed, blanks dropped. Lets the user add several tags at once instead of
+    /// one alert per tag (2026-06-21 "select a lot of tags" device feedback).
+    static func parseTagInput(_ raw: String) -> [String] {
+        raw.split(whereSeparator: { $0 == "," || $0 == "\n" })
+            .map { $0.replacingOccurrences(of: "#", with: "").trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
     /// Last content edit — never-edited memos fall back to added/recorded. The
     /// "Recently edited" sort key.
     var lastEditedAt: Date { editedAt ?? createdAt ?? recordedAt }

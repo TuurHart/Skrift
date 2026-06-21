@@ -352,10 +352,12 @@ private struct MemoPageView: View {
         // page when the title/transcript field has focus).
         .scrollDismissesKeyboard(.interactively)
         .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
-        .alert("Add tag", isPresented: $showAddTag) {
-            TextField("tag", text: $newTag)
+        .alert("Add tags", isPresented: $showAddTag) {
+            TextField("tag, tag, tag", text: $newTag)
             Button("Add", action: addTag)
             Button("Cancel", role: .cancel) { newTag = "" }
+        } message: {
+            Text("Separate multiple tags with commas.")
         }
         // Tap a speaker → an assign sheet: pick a known Person (links + enrolls the
         // voiceprint), merge into another speaker in this convo (fixes a mis-split), or
@@ -480,10 +482,13 @@ private struct MemoPageView: View {
     }
 
     private func addTag() {
-        let t = newTag.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "#", with: "")
+        // Accept several comma-separated tags in one go (device ask: "select a lot
+        // of tags"); de-duped against the memo's existing tags.
+        let incoming = Memo.parseTagInput(newTag)
         newTag = ""
-        guard !t.isEmpty, !memo.tags.contains(t) else { return }
-        memo.tags.append(t)
+        var added = false
+        for t in incoming where !memo.tags.contains(t) { memo.tags.append(t); added = true }
+        guard added else { return }
         memo.markEdited()
         repository.save()
     }
