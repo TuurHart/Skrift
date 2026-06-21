@@ -1,0 +1,199 @@
+# MAC_CLOUDKIT_PLAN.md — Mac as a CloudKit client of the phone's note store
+
+> **Status:** DESIGN — awaiting user review (drafted 2026-06-21, worktree `phase2-export-cloudkit`).
+> This is "option A" from `STANDALONE_PLAN.md` ("Mac → CloudKit client … user-greenlit, AFTER
+> Phases 1–3"), pulled forward at the user's request. **No code yet** — this doc locks the
+> architecture + flags the one hard manual step before the build (task #8 in this session's plan).
+
+---
+
+## The problem it solves
+
+Today the phone and Mac talk over **Bonjour + HTTP** (`Services/Sync/MacTransport.swift` ↔
+`Server/SyncServer.swift`). The phone uploads a RAW memo; the Mac enhances/links/exports it into the
+Obsidian vault. **Three pain points:**
+
+1. **Mac polish never returns to the phone.** The transport only does `uploadMemo` / `listFilenames` /
+   `health` + names LWW. The Mac's Gemma copy-edit / title / summary land in the *vault* only — the
+   phone keeps showing the raw transcript forever (verified: `Memo` has **no** `enhanced*` fields).
+2. **Same-network requirement.** Bonjour needs both devices on the same LAN, app foregrounded, Mac
+   server running. CloudKit (already syncing the phone↔iPad in Phase 1) has none of those limits.
+3. **Two transports to reason about.** Phase 1 made CloudKit the phone↔iPad spine; the Mac is the one
+   participant still on the old wire.
+
+**The fix:** make the macOS app a **CloudKit client of the same `Memo` store** the phone already
+syncs. The Mac reads synced raw memos, runs its existing pipeline, and **writes the polished result
+back** so it syncs to the phone + iPad. Bonjour stays as an opt-in fallback (byte-compatible, for
+non-iCloud users), but CloudKit becomes the default path.
+
+---
+
+## Today's shapes (the two models)
+
+| | Phone `Memo` (`SkriftMobile/Models/Memo.swift`) | Mac `PipelineFile` (`SkriftDesktop/Models/PipelineFile.swift`) |
+|---|---|---|
+| Role | source of truth (raw capture) | rich **processing** entity (full pipeline state) |
+| Identity | `id: UUID` (no `.unique` — CloudKit) | `id: String` (`.unique`); **== the memo UUID** for synced memos |
+| Has | transcript, transcriptConfidence/UserEdited/MarkersInjected, significance, tags, title, metadata blob, sharedContent blob, recordingDeviceID, word-timings/diar (as `MemoAsset`s) | everything Memo has **+** `sanitised`, `enhancedTitle/Copyedit/Summary`, `ambiguousNames`, `namePicks`, `compiledText`, `exported`, step states |
+| Polish fields | **NONE** | the `enhanced*` cluster |
+| Persistence | `NSPersistentCloudKitContainer`, schema `[Memo, MemoAsset, NamesRecord, VocabularyRecord, …]`, container `iCloud.com.skrift.mobile{.dev}` | plain local SwiftData (no CloudKit), **ad-hoc signed** |
+
+The contract spine already aligns them: **`PipelineFile.id == Memo.id.uuidString`** (the upload
+reconciles by filename, which embeds the UUID). That single invariant is what makes dedup + write-back
+safe regardless of transport.
+
+---
+
+## Architecture fork — RECOMMENDED: Fork A (second `NSPersistentCloudKitContainer` client)
+
+**Fork A — the Mac runs its own `NSPersistentCloudKitContainer` over the SAME `Memo` schema + container.**
+SwiftData/CoreData does all the sync; the Mac just reads/writes `Memo` objects. The Mac **keeps
+`PipelineFile`** as its processing model and bridges Memo→PipelineFile (read) / polish→Memo (write).
+
+**Fork B — hand-rolled CKRecord bridge.** The Mac talks raw CloudKit (`CKDatabase`/`CKRecord`) and maps
+records ↔ PipelineFile manually (like the audiobook raw-CloudKit transport in Phase 1g).
+
+**→ Recommend Fork A.** Rationale:
+- The phone already uses `NSPersistentCloudKitContainer`; a second client of the same container is the
+  *supported* multi-device pattern and inherits conflict handling, asset (CKAsset) materialization, and
+  schema evolution **for free**. Fork B re-implements all of that by hand (the Phase-1g audiobook
+  transport needed epoch guards, single-flight reconcile, atomic asset copies — a lot of surface).
+- Media already rides `MemoAsset` blobs (Phase 1c) → the Mac gets the `.m4a` + photos automatically,
+  no separate asset transport.
+- Cost of A: the Mac must **compile the `Memo`/`MemoAsset`/sidecar `@Model`s** and add the CloudKit
+  capability. That's the "real change" the plan flagged — addressed below.
+
+Fork B is the fallback only if adopting the SwiftData CloudKit container on macOS proves unworkable
+(e.g. schema-sharing friction). Default to A.
+
+---
+
+## What moves where (Fork A model sharing)
+
+The Mac needs the `Memo` schema. `Memo` has two iOS couplings to break:
+- `Memo.audioURL` → `AppPaths.recordingsDirectory` (iOS app-container path).
+- `Memo.init(recordingDeviceID: DeviceID.current())` (iOS device id).
+
+**Plan:** lift the `@Model` definitions (`Memo`, `MemoAsset`, the names/vocab carrier records, the
+diar/word-timing sidecar kinds) into a shared location compiled by both apps — the same mechanism as
+`Shared/Naming` + `Shared/Export` (a **source folder**, not an SPM package; ~the established pattern).
+The platform-specific bits (`AppPaths`, `DeviceID`) become small per-app providers the model reads
+through, OR stay out of the shared model (the Mac resolves audio via its own working-folder path, since
+it materializes CKAssets to its own disk). Exact seam is a task-#8 detail; the **principle** is: ONE
+`Memo` schema definition, two CloudKit clients — no drift (mirrors the no-drift rule for the engine).
+
+> ⚠️ This is the most invasive part. If sharing the `@Model` is messier than expected, the fallback is a
+> Mac-local `Memo` mirror `@Model` with a byte-identical CloudKit schema (CoreData matches on entity
+> +attribute names, not Swift type identity) — riskier (manual schema parity) but decouples the apps.
+> Decide during task #8 with the code in front of us; default to true sharing.
+
+---
+
+## The two bridges
+
+**Read (Memo → PipelineFile).** Reuse the exact mapping `UploadService.ingest` already does from a
+multipart upload (`Pipeline/Ingest/UploadService.swift`): id, filename (`memo_<uuid>.m4a`), transcript
+(trusted iff `transcriptUserEdited || confidence ≥ 0.7`), significance, `audioMetadataJSON` verbatim,
+`recordedAt`, title, word-timings/diar sidecars. A new `MemoCloudIngest` produces a `PipelineFile` from
+a `Memo` + its `MemoAsset`s — the CloudKit analogue of the HTTP upload handler. Because
+`PipelineFile.id == Memo.id.uuidString` and `id` is `.unique`, **a memo seen via CloudKit AND Bonjour
+dedups to one PipelineFile** → no double-ingest.
+
+**Write-back (polish → Memo).** The Mac's pipeline (`BatchRunner`) produces `enhancedTitle/Copyedit/
+Summary` + `compiledText`. To return them, the synced store needs somewhere to put them. Two options:
+
+- **W1 — add `enhanced*` fields to `Memo`** (additive/defaulted → lightweight migration + CloudKit
+  additive). Simplest; the phone can show polished text directly.
+- **W2 — a new `@Model MemoEnhancement { memoID, copyedit, title, summary, compiledMarkdown,
+  enhancedByDeviceID, enhancedAt }`** (loose `memoID` FK, no `@Relationship`) — mirrors the established
+  `MemoAsset` sidecar pattern, keeps `Memo.transcript` sacrosanct (RAW stays the source of truth).
+
+**→ Recommend W2.** It keeps the RAW contract clean (the Mac never overwrites the phone's transcript —
+it adds a derived sidecar), matches the MemoAsset precedent, and lets the phone adopt the polish at its
+own pace. **Integration win:** `MemoExporter` (Phase 2, task #4) prefers the Mac's `MemoEnhancement`
+text when present, else the on-device-linked raw — so a paired Mac automatically upgrades the phone's
+standalone Obsidian export, with zero phone-UI work required.
+
+> The phone's *visual* presentation of polished text (raw vs polished toggle, the title chooser) is the
+> **PARKED** mobile-polish UI (`STANDALONE_PLAN.md` Phase 4). Write-back lands the DATA now; the phone
+> can keep showing raw until that UI is designed. Export consuming it is the immediate payoff.
+
+---
+
+## Coexistence with Bonjour/HTTP (no double-processing, byte-compatible)
+
+- **CloudKit is the default ingest path when enabled; Bonjour stays opt-in** (non-iCloud users, LAN-only
+  setups). The existing contract (`CAPTURE_CONTRACT.md`, multipart upload, names LWW) is **unchanged** —
+  Bonjour code is not touched.
+- **Dedup by id** (the `.unique` `PipelineFile.id`) means both paths can see a memo harmlessly.
+- **Significance gate respected.** Today Bonjour only sends `significance > 0` ("0 = stays on phone").
+  CloudKit syncs *every* memo to the Mac's mirror, so the Mac must **filter to `significance > 0` by
+  default** (preserve the user's intent), with an opt-in "process everything synced" Mac setting.
+- **Single processor.** Only the Mac enhances (the phone can't). The write-back sidecar carries
+  `enhancedByDeviceID` + `enhancedAt`; a second Mac (rare) is LWW. The phone's **on-device name-linking
+  (task #3) is deterministic + separate** from the Mac's Gemma polish, so they never fight: linking is
+  re-derivable display/export; polish is a Mac-authored sidecar.
+
+---
+
+## ⚠️ The hard manual steps (USER — can't be done from the CLI)
+
+1. **CloudKit capability on the macOS target.** Add **iCloud → CloudKit** to `SkriftDesktop` in Xcode's
+   Signing & Capabilities, declaring the **same container** the phone uses:
+   `iCloud.com.skrift.mobile.dev` (Debug) / `iCloud.com.skrift.mobile` (Release), **per-config**,
+   entitlement values **literal** (no `$(VAR)` — the locked CAPTURE_CONTRACT lesson). `-allowProvisioning
+   Updates` registers IDs but **cannot add a capability** (every prior capability hit this).
+2. **Real team signing for the desktop.** The desktop currently signs **ad-hoc** (`CODE_SIGN_IDENTITY:
+   "-"`, `CODE_SIGN_STYLE: Manual`, no team — `project.yml:50-52`). **CloudKit entitlements can't be
+   ad-hoc signed** → the macOS app must sign with `DEVELOPMENT_TEAM=9W82X49JZS` (Automatic) like the
+   phone, with a provisioning profile that includes the iCloud container. **This changes the desktop
+   build/signing story** (the `/Applications/Skrift Dev.app` local-deploy flow now needs a signed
+   build). Biggest non-code item — surfaced early so it's not a build-day surprise.
+3. **Background Modes → Remote notifications** on the macOS target (optional, for prompt push sync; the
+   Phase-1 mobile precedent). Lazy sync works without it.
+4. **CloudKit Dashboard:** the new `MemoEnhancement` record type auto-creates in the **dev** environment;
+   at prod promotion it needs **Deploy Schema Changes** (same as the Memo/MemoAsset types).
+5. Both Mac + phone signed into the **same iCloud account** (single user — fine).
+
+Until #1+#2 are done, the task-#8 code **compiles + unit-tests but stays inert** (CloudKit `.none`
+under tests; no container = lazy local-only), exactly like Phase 1 shipped before its capability.
+
+---
+
+## Phasing (task #8 sub-steps; commit per chunk, gate each)
+
+- **8a — schema + capability prep.** Share the `Memo`/`MemoAsset`/sidecar `@Model`s to a folder both
+  apps compile; add the `MemoEnhancement` sidecar (additive). Desktop `NSPersistentCloudKitContainer`
+  wired with CloudKit `.none` under tests. *(Capability/signing = the user's Xcode step.)*
+- **8b — read bridge.** `MemoCloudIngest` (Memo + MemoAsset → PipelineFile), reusing the UploadService
+  mapping + trust gate; dedup by id; significance filter. Unit-test the mapping vs the HTTP path
+  (golden: same PipelineFile from the same memo, both transports).
+- **8c — write-back.** `BatchRunner` (or a thin `MacCloudWriteBack`) writes `MemoEnhancement` after
+  enhance/compile; `enhancedByDeviceID`/`enhancedAt`. `MemoExporter` prefers it. Unit-test.
+- **8d — coexistence + reconcile loop.** Launch/foreground/push-driven reconcile (mirror
+  `CloudSyncMonitor`); Bonjour untouched + opt-in; Mac "process synced memos" setting (default
+  significance>0).
+- **Gate each:** desktop `UnitTests` + full `-skipMacroValidation` build green; phone `SkriftMobileTests`
+  green (the shared `@Model` move must keep the phone suite green).
+
+---
+
+## Risks / open decisions (for the user)
+
+1. **Model sharing vs Mac-mirror** (§What moves where) — default: truly share the `@Model`s; fall back
+   to a schema-parity mirror only if sharing fights the iOS couplings. *(I'll decide in 8a with code in
+   hand unless you want to call it now.)*
+2. **W1 vs W2 write-back** — recommend **W2** (sidecar). Confirm or override.
+3. **Desktop signing change** (§hard steps #2) — moving the Mac off ad-hoc to team signing is required
+   for CloudKit. OK to proceed?
+4. **Process-everything vs significance>0** — default to `>0` (today's intent). Confirm.
+5. **Retire Bonjour eventually?** Not now — kept as opt-in fallback. Revisit once CloudKit is proven.
+
+## Test plan
+
+- Unit: read-bridge golden (HTTP-ingest PipelineFile == CloudKit-ingest PipelineFile for the same
+  memo); write-back round-trip; significance filter; dedup-by-id.
+- Device (USER, after capability): record a significant memo on the phone → it appears on the Mac via
+  CloudKit (no Bonjour) → Mac enhances → the `MemoEnhancement` syncs back → the phone's Obsidian export
+  uses the polished text; the iPad sees it too.
+```
