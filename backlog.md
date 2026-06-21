@@ -102,6 +102,17 @@ becomes part of the selected-text affordance: tap it to **visualize the bookmark
 on/off** (save/unsave per selection). i.e. bookmark state is per-selection + visualized, not a global bottom
 button. (memo 06-19 21:38)
 
+**✅ MOCK (`mocks/audiobook-bookmark-fold.html`) → BUILT 2026-06-21 (build 16).** Clarified on a device call:
+the real pain was that the purple margin glyph **wasn't tappable to remove** (the bottom "Mark" button only
+toggled at the playhead). Shipped the **page-corner-fold** model: in `ReadAlongView` each line now has a
+full-height **tappable left gutter** — tap to fold (bookmark this sentence's global position), tap again to
+unfold (remove); the liked `bookmark.fill` marker stays as the indicator + the faint line tint. The bottom
+**Mark button is removed** from `AudiobookPlayerView.utilityRow` (`markButton`/`toggleMark`/`isCurrentSpotMarked`
+deleted; new `toggleBookmark(atGlobal:)` wired via `onToggleBookmarkAt`). Tap the TEXT still seeks; the TOC
+sheet's Chapters/Bookmarks tabs still jump (unchanged). 455/455 unit green. **Trade-off:** bookmarking an
+**un-transcribed** (audio-only, no read-along text) book now has no affordance — flag if a fallback is wanted.
+Device-eyeball on build 16 owed.
+
 ### P2 — 🧱 EPIC: note-editing experience needs its own focused sprint
 "The editing of the notes in the app is… not a very good experience." Concrete **exemplar** (not the whole
 ask): selecting many **tags** — "you can't drag down and it doesn't keep going" (tag picker doesn't
@@ -185,7 +196,7 @@ VERIFIED the Mac never syncs polished text back to the phone, so non-AI devices 
 
 ## 🗺️ Roadmap history backfill (idea 2026-06-19; SEPARATE SESSION)
 
-`ROADMAP.html` is forward-looking (phases → ship). User wants to also fold in the **full past** —
+`roadmap/ROADMAP.html` is forward-looking (phases → ship). User wants to also fold in the **full past** —
 "insane amounts" of history from the very start of Skrift — as a backward-looking timeline. Doable + its
 own session. **Raw material (no vault — privacy):** `git log` back to the start (the spine), `archive/`
 (old Electron/Python/RN apps preserved intact) + `archive/CLAUDE-electron-python.md` (pre-convergence
@@ -205,7 +216,7 @@ directed yet" — so kept light for now, designed to grow.)
 
 **UPDATE 2026-06-21 — staged material compiled:** read-only pass over the 3 external milestone snapshots
 the user flagged (`~/Hackerman/archive/Skrift {…before frontend with hendri | …whisper AND parakeet | …before
-starting the mobile app}`) → **`ROADMAP_HISTORY_BACKFILL.md`** (repo root). It has the sources, a verified
+starting the mobile app}`) → **`roadmap/HISTORY_BACKFILL.md`**. It has the sources, a verified
 3-snapshot table, a draft 7-era timeline (Genesis→Whisper→v2-frontend-w/Hendri→Parakeet+significance→RN
 mobile→native convergence→standalone), and how to extend the `HISTORY` array. **Not built** — user wants to
 hold the backfill until the viz mechanics are locked (avoid rework). Key finding: the **live repo's own

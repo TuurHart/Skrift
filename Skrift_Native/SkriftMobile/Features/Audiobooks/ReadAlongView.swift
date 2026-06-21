@@ -76,6 +76,10 @@ struct ReadAlongView: View {
     /// Called when the reader detects an interactive (user) scroll — the parent
     /// uses it to recede the player chrome ("more page" while reading).
     var onUserScroll: () -> Void = {}
+    /// Tap the left gutter beside a line to fold/unfold a bookmark there. Called
+    /// with that sentence's GLOBAL book time; the parent toggles the store and
+    /// passes back an updated `bookmarks` (2026-06-21 — replaces the bottom button).
+    var onToggleBookmarkAt: (TimeInterval) -> Void = { _ in }
 
     @ObservedObject private var session = AudiobookSession.shared
     @ObservedObject private var transcribeJob = BookTranscriptionJob.shared
@@ -178,9 +182,9 @@ struct ReadAlongView: View {
                     }
                     .frame(maxWidth: columnMax)        // reading column cap (~60–68ch)
                     .frame(maxWidth: .infinity)         // centre the column (iPad)
-                    // A leading gutter (inside the scroll content so it can't clip)
-                    // holds the bookmark glyph beside marked lines.
-                    .padding(.leading, 18).padding(.trailing, 4)
+                    // Each line carries its own tappable left gutter (the fold zone);
+                    // a hair of leading so it isn't flush to the screen edge.
+                    .padding(.leading, 2).padding(.trailing, 4)
                 }
                 // Follow the playhead — but only while the user hasn't scrolled away.
                 .onChange(of: model.currentIndex) { _, idx in
@@ -231,33 +235,54 @@ struct ReadAlongView: View {
     private func line(_ i: Int, marked: Bool) -> some View {
         let isCurrent = i == model.currentIndex
         let isPast = i < model.currentIndex
-        let text = Text(model.sentences[i].text)
-            .foregroundColor(isCurrent ? Self.readNow : (isPast ? Self.readPast : Self.readAhead))
-        return text
-            .font(.system(size: readingFontSize, weight: .regular))
-            .lineSpacing(readingLineSpacing)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // Faint "this bit is saved" tint behind a bookmarked line + a real
-            // bookmark glyph hung in the gutter, anchored to the line (scrolls with it).
-            .background { if marked { Color.skAccent.opacity(0.09) } }
-            .overlay(alignment: .leading) {
-                if marked {
-                    Image(systemName: "bookmark.fill")
-                        .font(.system(size: 11)).foregroundStyle(Color.skAccent)
-                        .offset(x: -16)
-                        .accessibilityHidden(true)
-                }
+        return HStack(alignment: .top, spacing: 0) {
+            // The fold zone: a full-height tappable left gutter. Tap to bookmark
+            // ("fold the corner"), tap again to remove ("unfold"). Shows the mark
+            // when set — the marker the user already liked, now toggleable.
+            Button { toggleBookmark(at: i) } label: {
+                Color.clear
+                    .frame(width: 22)
+                    .frame(maxHeight: .infinity)
+                    .overlay(alignment: .topLeading) {
+                        if marked {
+                            Image(systemName: "bookmark.fill")
+                                .font(.system(size: 11)).foregroundStyle(Color.skAccent)
+                        }
+                    }
+                    .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                guard let local = model.startOf(i) else { return }
-                let origin = book.fileStartTimes.indices.contains(fileIndex) ? book.fileStartTimes[fileIndex] : 0
-                AudiobookSession.shared.seek(to: local + origin)
-                following = true            // a deliberate jump → resume follow
-                Haptics.tap()
-            }
-            .animation(.easeInOut(duration: 0.25), value: model.currentIndex)
+            .buttonStyle(.plain)
+            .accessibilityLabel(marked ? "Remove bookmark" : "Add bookmark")
+
+            Text(model.sentences[i].text)
+                .foregroundColor(isCurrent ? Self.readNow : (isPast ? Self.readPast : Self.readAhead))
+                .font(.system(size: readingFontSize, weight: .regular))
+                .lineSpacing(readingLineSpacing)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture { seek(to: i) }   // tap the TEXT to seek (gutter = bookmark)
+        }
+        // Faint "this bit is saved" tint behind a bookmarked line, scrolls with it.
+        .background { if marked { Color.skAccent.opacity(0.09) } }
+        .animation(.easeInOut(duration: 0.2), value: marked)
+        .animation(.easeInOut(duration: 0.25), value: model.currentIndex)
+    }
+
+    /// Tap the text → seek there (resumes follow).
+    private func seek(to i: Int) {
+        guard let local = model.startOf(i) else { return }
+        let origin = book.fileStartTimes.indices.contains(fileIndex) ? book.fileStartTimes[fileIndex] : 0
+        AudiobookSession.shared.seek(to: local + origin)
+        following = true
+        Haptics.tap()
+    }
+
+    /// Tap the gutter → fold/unfold a bookmark at this sentence's global position.
+    private func toggleBookmark(at i: Int) {
+        guard let local = model.startOf(i) else { return }
+        let origin = book.fileStartTimes.indices.contains(fileIndex) ? book.fileStartTimes[fileIndex] : 0
+        onToggleBookmarkAt(local + origin)
     }
 
     /// Sentence indices (in THIS file) that a bookmark lands on. A bookmark's

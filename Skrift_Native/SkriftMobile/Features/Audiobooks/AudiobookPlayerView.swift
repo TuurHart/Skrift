@@ -138,7 +138,8 @@ struct AudiobookPlayerView: View {
                     audioURL: session.store.audioURL(of: book, fileIndex: location.index),
                     bookmarks: currentBookmarks,
                     onTranscribe: { showTranscribe = true },
-                    onUserScroll: { recedeOnScroll() }
+                    onUserScroll: { recedeOnScroll() },
+                    onToggleBookmarkAt: { position in toggleBookmark(atGlobal: position) }
                 )
                 .frame(maxHeight: .infinity)
                 .padding(.horizontal, Theme.Space.margin)
@@ -360,7 +361,6 @@ struct AudiobookPlayerView: View {
         HStack(spacing: 14) {
             Spacer(minLength: 0)
             textSettingsButton
-            markButton
             addNoteChip
             speedMenu
             sleepMenu
@@ -375,21 +375,6 @@ struct AudiobookPlayerView: View {
         }
         .accessibilityIdentifier("player-text-settings")
         .accessibilityLabel("Text size and spacing")
-    }
-
-    /// ADD is an ACTION here (mock: the bookmark glyph = "Mark"); the Chapters/
-    /// Bookmarks sheet is browse-only. Toggles a mark at the current spot; fills
-    /// + tints accent when the playhead is on one.
-    private var markButton: some View {
-        let marked = isCurrentSpotMarked
-        return Button { toggleMark() } label: {
-            Image(systemName: marked ? "bookmark.fill" : "bookmark")
-                .font(.system(size: 19))
-                .foregroundStyle(marked ? Color.skAccent : Color.skTextDim)
-                .frame(width: 34, height: 32)
-        }
-        .accessibilityIdentifier("player-bookmark")
-        .accessibilityLabel(marked ? "Remove mark" : "Mark this spot")
     }
 
     /// The hero: capture a quote + your voice ramble from what you just heard.
@@ -439,29 +424,23 @@ struct AudiobookPlayerView: View {
         .accessibilityLabel("Sleep timer")
     }
 
-    /// True when the playhead (or the scrubber thumb mid-drag) sits on a saved mark.
-    private var isCurrentSpotMarked: Bool {
-        let at = scrubTime ?? session.currentTime
-        return currentBookmarks.contains { abs($0.position - at) < BookmarkStore.dedupeWindow }
-    }
-
-    /// "Mark" = toggle a bookmark at the current spot: drop one, or lift the one
-    /// you're sitting on. The margin glyph pops in/out in the read-along at once.
-    /// Uses the same effective time the rest of the player shows (scrub-aware).
-    private func toggleMark() {
+    /// Fold / unfold a page corner: tap the read-along's left gutter to bookmark
+    /// that spot, tap again to remove it (2026-06-21 — replaces the bottom "Mark"
+    /// button; the margin tap IS the gesture). `position` is the tapped sentence's
+    /// GLOBAL book time, resolved by the reader.
+    private func toggleBookmark(atGlobal position: TimeInterval) {
         guard let book = session.book else { return }
-        let at = scrubTime ?? session.currentTime
         noteInteraction()
-        if let near = currentBookmarks.first(where: { abs($0.position - at) < BookmarkStore.dedupeWindow }) {
+        if let near = currentBookmarks.first(where: { abs($0.position - position) < BookmarkStore.dedupeWindow }) {
             currentBookmarks = bookmarks.remove(id: near.id, bookID: book.id)
             Haptics.tap()
-            showToast("Mark removed")
+            showToast("Unfolded")
         } else {
             currentBookmarks = bookmarks.add(
-                AudiobookBookmark(position: at, chapterLabel: book.shortChapterLabel(at: at)),
+                AudiobookBookmark(position: position, chapterLabel: book.shortChapterLabel(at: position)),
                 bookID: book.id)
             Haptics.success()
-            showToast("Marked · \(AudiobookTime.clock(at))")
+            showToast("Folded · \(AudiobookTime.clock(position))")
         }
     }
 
