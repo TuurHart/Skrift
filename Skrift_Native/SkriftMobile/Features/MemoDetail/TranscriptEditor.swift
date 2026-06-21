@@ -116,8 +116,14 @@ struct TranscriptEditor: UIViewRepresentable {
                 memo.transcript = quote.transcript(withRamble: text)
                 memo.transcriptStatus = .done
             } else {
+                let wasNonEmpty = !(loaded ?? "").isEmpty
                 memo.transcript = trimmed.isEmpty ? nil : text
                 if !trimmed.isEmpty { memo.transcriptStatus = .done }
+                // Timeline marker for the 2026-06-21 "cleared body → append → note
+                // vanished" hunt: log the moment the body is emptied to nil.
+                if trimmed.isEmpty && wasNonEmpty {
+                    DevLog.log("editor cleared body → transcript=nil memo \(memo.id)")
+                }
             }
             memo.transcriptUserEdited = true                       // Mac trusts it → no re-transcribe
             loaded = memo.transcript ?? ""

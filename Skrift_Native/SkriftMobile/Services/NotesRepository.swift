@@ -77,9 +77,20 @@ final class NotesRepository {
     /// so Restore is lossless; the startup purge removes them after
     /// `TrashPolicy.retention`. `date` is injectable for tests.
     func softDelete(_ memo: Memo, at date: Date = Date()) {
-        DevLog.log("softDelete memo \(memo.id) status=\(memo.transcriptStatus)")
+        DevLog.log("softDelete memo \(memo.id) status=\(memo.transcriptStatus) — caller: \(Self.callerFrames())")
         memo.deletedAt = date
         save()
+    }
+
+    /// A compact slice of the call stack above a delete, to pinpoint WHO triggered it
+    /// during the 2026-06-21 "note vanished after append" hunt. If a memo disappears
+    /// on device with NO `softDelete`/`delete`/`permanentlyDelete` line in devlog, the
+    /// delete came from CloudKit's remote-change import, not our code. DEBUG/devlog-only.
+    private static func callerFrames() -> String {
+        Thread.callStackSymbols
+            .dropFirst(2).prefix(4)
+            .compactMap { line in line.split(separator: " ").dropFirst(3).first.map(String.init) }
+            .joined(separator: " ← ")
     }
 
     /// Bring a trashed memo back to the main list, untouched.

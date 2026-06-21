@@ -20,6 +20,23 @@ note gets deleted* ("your whole note gets deleted after it's added"). Destructio
 path on a note whose body was paste-then-emptied**, not in the paste or delete step. User: "something we
 couldn't have caught… this is strange behavior." → **P0, reproduce + fix first.** (memo 06-21 11:12)
 
+**🔎 INVESTIGATION 2026-06-21 (static read + unit probe) — MemoSaver EXONERATED; suspect = CloudKit.**
+Traced every delete path: all three (`softDelete`/`delete`/`permanentlyDelete`,
+`NotesRepository.swift`) are DevLog-logged and fire ONLY from explicit user actions (detail ⋯ Delete,
+list swipe) or the trash-retention purge — there is **no auto-delete-of-empty-notes** anywhere, and
+`recoverStuckTranscriptions` only re-transcribes. The append path
+(`MemoSaver.appendRecordingAsync`) re-fetches the memo, handles an empty existing transcript
+(`existing.isEmpty ? newText : …`), and never deletes. New regression test
+`testAppendAfterClearingBodyKeepsMemoAndLandsText` (clear body → append) **passes** (451/451 unit) →
+the append path is safe. The store moved to a **CloudKit-backed** `NSPersistentCloudKitContainer`
+(iPhone↔iPad private-DB sync) since this feature era — the prime suspect is a CloudKit remote-change
+import deleting/merging the record, which a CloudKit-OFF unit store can't reproduce.
+**Instrumentation added** (`5c…`): caller-frames breadcrumb on `softDelete` + a "editor cleared body
+→ transcript=nil" timeline marker, so a device repro is conclusive — **if the note vanishes with NO
+delete line in `devlog.txt`, it's CloudKit, not our code.** **OWED (needs user): device repro** of
+new note → paste → clear → append → pull `devlog.txt`; also confirm whether the lost note is in
+**Recently Deleted** (recoverable) and whether the iPad was syncing at the time.
+
 ### P1 — 🐛 Diarization / speaker-ID does not survive backgrounding (hypothesis) + ✨ wants a progress bar
 Same session, "conversation" mode, 2 speakers. **(a) ✨ FEATURE (loved — "I love this"): a progress bar
 while identifying speakers.** Diarization runs long enough that the user backgrounded the app waiting — the

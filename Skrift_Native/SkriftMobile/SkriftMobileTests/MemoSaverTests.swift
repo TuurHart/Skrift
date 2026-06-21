@@ -132,6 +132,31 @@ final class MemoSaverTests: XCTestCase {
         XCTAssertEqual(memo?.transcriptStatus, .done)
     }
 
+    /// The 2026-06-21 P0 repro ("paste into a new note → clear it → append → the
+    /// whole note vanishes"). A memo whose body was pasted-then-CLEARED
+    /// (`transcript == nil`, the editor's `textViewDidChange` on an empty body) must
+    /// SURVIVE an append: the appended text becomes the whole body and the memo is
+    /// NEVER trashed or deleted. This locks the MemoSaver append path as safe — so a
+    /// real-device "note vanished" points at the CloudKit/UI layer, not here.
+    @MainActor
+    func testAppendAfterClearingBodyKeepsMemoAndLandsText() async {
+        let repo = NotesRepository(inMemory: true)
+        let id = insertBaseMemo(into: repo, transcript: "pasted text I don't want")
+        // Simulate clearing the body in the editor (textViewDidChange → transcript=nil).
+        repo.memo(id: id)?.transcript = nil
+        repo.save()
+
+        let saver = makeAppendSaver(repo: repo, transcriber: SeededTranscriber(text: "the appended recording"))
+        let temp = makeTempClip()
+        await saver.appendRecordingAsync(to: id, tempURL: temp, duration: 2)
+
+        let memo = repo.memo(id: id)
+        XCTAssertNotNil(memo, "the memo must still exist after appending to a cleared body")
+        XCTAssertNil(memo?.deletedAt, "append must NEVER trash the memo")
+        XCTAssertEqual(memo?.transcript, "the appended recording", "appended text lands as the whole body")
+        XCTAssertEqual(memo?.transcriptStatus, .done)
+    }
+
     /// The engine RAN but heard nothing (silence guard) and there's no caption:
     /// an honest no-text append — prior status restored (not an error), clip consumed.
     @MainActor
