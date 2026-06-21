@@ -34,7 +34,9 @@ final class LiveRecordingService: ObservableObject {
 
     /// Whether live captioning is on (Settings toggle; default on). Off = record
     /// + waveform only, transcript comes from the one-shot pass after stop.
-    var liveTranscription: Bool
+    /// `@Published` so the UI reacts when the auto-off timer flips it mid-recording
+    /// (the RT tap reads `tapLive`, not this, so publishing it is race-free).
+    @Published var liveTranscription: Bool
 
     // MARK: - Cross-feature recording signal
 
@@ -144,6 +146,10 @@ final class LiveRecordingService: ObservableObject {
 
     func start() throws {
         guard !isRecording else { return }
+        // Reflect the CURRENT "Live transcription" preference, and reset any transient
+        // auto-off (the timer) left on a reused service from a prior recording — so a
+        // long recording's auto-off never silences the NEXT one (2026-06-22).
+        liveTranscription = UserDefaults.standard.object(forKey: "liveTranscription") as? Bool ?? true
         accumulated = 0
         elapsed = 0
         level = 0

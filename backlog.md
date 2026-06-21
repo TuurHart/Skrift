@@ -65,6 +65,19 @@ batteries." Tone is pleased-but-suspicious — "something changed… what happen
 changed (likely the pre-warm booster / always-warm path), confirm it's intentional, and verify it isn't
 silently draining battery in some state.** File-and-document, not just log as praise. (memo 06-20 12:33)
 
+### ✨ Auto-stop live captions on a timer — ✅ BUILT 2026-06-22 (build 19)
+Feature idea (2026-06-22): for a long recording you don't need live captions the whole time — after N
+seconds, auto-drop live captioning (record + waveform + `.m4a` keep going; transcript comes from the
+one-shot pass at stop). Saves battery on long messages. **Decided:** a **Setting**, default **1 minute**
+(user: "default one minute, that's great"). **Built:** Settings → "Stop live captions after: Never / 30s /
+1 min / 2 min" (`@AppStorage("liveCaptionAutoOffSeconds")`, shown only when Live transcription is on);
+`RecordView` watches `service.elapsed` and calls the existing `setLiveTranscription(false)` once past the
+limit (`autoOffFired` guards re-fire if you tap captions back on). **Transient** — it never flips the sticky
+`liveTranscription` preference; `LiveRecordingService.start()` re-seeds from the pref each recording so a
+long recording's auto-off can't silence the next. The toggle button + caption now reflect the EFFECTIVE
+state (`liveTranscription` made `@Published`; RT tap reads `tapLive`, so race-free). 455/455 unit green.
+**Device-eyeball owed** (sim has no real recording). May drop the setting later if it doesn't earn its keep.
+
 ### P2 — ✨ Share a PDF into Skrift and have it persist as a source
 User tried to share a PDF to Skrift via the share sheet and "have it live in there" — couldn't. Wants a PDF
 to **persist as an imported source** (parallels the existing share-to-import audio/video path), not a
@@ -127,21 +140,19 @@ to the matching dog-ear (clip-path triangle). Toggle logic unchanged (span-aware
 Device-eyeball owed.
 
 ### P2 — 🧱 EPIC: note-editing experience needs its own focused sprint
-"The editing of the notes in the app is… not a very good experience." Concrete **exemplar** (not the whole
-ask): selecting many **tags** — "you can't drag down and it doesn't keep going" (tag picker doesn't
-scroll/keep showing options). User: "I'm sure there's other bits" → wants a **focused study of note-editing,
-learning from other apps**, as its **own separate sprint**. Don't log the tag-scroll fix as "done = sprint
-done" — it's one symptom of a broader editing-UX pass. (memo 06-21 11:22)
+"The editing of the notes in the app is… not a very good experience." User wants a **focused, holistic
+study of note-editing** (Apple Notes as the bar, maybe better apps too) as its **own separate sprint** —
+not piecemeal. **Concrete first item — ⚠️ the 06-21 memo's "tags" was an ASR mishear of "TEXT"
+(clarified 2026-06-22):** **text SELECTION doesn't auto-scroll.** Double-tap to select → drag the end
+handle DOWN → the note doesn't scroll with the drag, so you can't extend the selection past what's on
+screen. That's the real annoyance. Plus the wider pass: body editor, significance, photos, speaker turns.
+(memo 06-21 11:22 + 06-22 clarification)
 
-**🔎 FINDING + ✅ QUICK WIN 2026-06-21.** The "can't drag down / doesn't keep going" is NOT a scroll/clip
-bug — `FlowLayout` self-sizes correctly inside the page `ScrollView`, so tags never become unreachable.
-The real pain is the **add-tag alert added ONE tag at a time** (`MemoDetailView.addTag`), tedious for "a
-lot of tags." **Quick win shipped:** the alert now accepts **comma-separated tags** (`Memo.parseTagInput`,
-unit-tested) — "work, big idea, todo" adds three at once; placeholder + "separate with commas" hint.
-**STILL DEFERRED to the epic (mock-first):** "select" implies *picking from existing tags*, so the real
-solution is a **tag picker** (show the user's existing tags to tap/multi-select + type-to-add), plus the
-wider note-editing pass (body editor, significance, photos, speaker turns — surfaces mapped in the plan).
-This quick win is NOT the sprint.
+**↩︎ CORRECTION 2026-06-22.** The earlier "comma-separated tags" quick win was built off the MIS-HEARD word
+("tags" should've been "text") — the user never asked for it. **KEPT anyway** (user: "the comma is actually
+nice… we can keep that"); `Memo.parseTagInput` stays, easily reverted on request. The `FlowLayout` does NOT
+have a scroll bug. The real text-selection-autoscroll issue above is the actual ask and belongs to THIS
+sprint, not a one-off.
 
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 

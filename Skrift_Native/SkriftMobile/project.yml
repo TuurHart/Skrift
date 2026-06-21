@@ -52,7 +52,7 @@ targets:
         # extension's Info.plist, so both processes resolve the identical container.
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "18"
+        CFBundleVersion: "19"
         # Skrift is offline + uses only standard iOS crypto (on-device ASR, plain
         # local-network HTTP) → exempt from export compliance. Declaring this skips
         # the "Missing Compliance" prompt on every TestFlight/App Store build.
@@ -185,7 +185,7 @@ targets:
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "18"
+        CURRENT_PROJECT_VERSION: "19"
         SKIP_INSTALL: YES
         DEFINES_MODULE: YES
         BUILD_LIBRARY_FOR_DISTRIBUTION: NO
@@ -214,7 +214,7 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "18"
+        CFBundleVersion: "19"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -265,7 +265,7 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "18"
+        CFBundleVersion: "19"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         # Dictation in the share sheet: the extension RECORDS a voice note (the
         # main app transcribes it on drain — Parakeet can't fit the extension's

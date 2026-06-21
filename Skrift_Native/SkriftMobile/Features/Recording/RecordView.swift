@@ -45,6 +45,16 @@ struct RecordView: View {
     /// recordings doesn't need re-toggling each time. The engine reads this at
     /// `start()`; the toggle also applies it mid-recording via `setLiveTranscription`.
     @AppStorage("liveTranscription") private var liveTranscription = true
+    /// Auto-stop live captions after this many seconds of recording (0 = never),
+    /// so a long recording quietly drops live captioning to save battery — you just
+    /// record and it transcribes once at stop. Settings → Recording. Default 1 min.
+    /// Transient: it flips the live stream off for THIS recording only, never the
+    /// sticky `liveTranscription` preference (2026-06-22 device request).
+    @AppStorage("liveCaptionAutoOffSeconds") private var liveCaptionAutoOffSeconds = 60
+    /// The auto-off fires at most once per recording — so if the user taps live
+    /// captions back ON after it triggered, it doesn't immediately re-fire (elapsed
+    /// is still past the limit). Reset when a fresh recording starts.
+    @State private var autoOffFired = false
 
     private struct PhotoMark: Equatable { let wordIndex: Int; let anchor: [String]; let number: Int }
 
@@ -93,7 +103,25 @@ struct RecordView: View {
         // A recording ended but we're still on this screen (the empty-capture
         // retry case) → from here on the manual ready screen is the idle state.
         .onChange(of: service.isRecording) { was, now in
-            if was, !now { showManualReady = true }
+            if !was, now { autoOffFired = false }   // fresh recording → re-arm the auto-off
+            if was, !now {
+                showManualReady = true
+                // Restore the sticky preference after a transient auto-off, so the
+                // ready screen + next recording reflect the user's real choice.
+                service.setLiveTranscription(liveTranscription)
+            }
+        }
+        // Auto-stop live captions once a recording runs past the user's chosen limit
+        // (Settings; 0 = never) — for long, battery-saving recordings you just record
+        // and it transcribes at stop. Fires at most ONCE per recording (`autoOffFired`),
+        // so tapping captions back on afterwards doesn't instantly re-trigger; transient,
+        // so the sticky preference is untouched and a fresh recording re-seeds it.
+        .onChange(of: service.elapsed) { _, t in
+            guard liveCaptionAutoOffSeconds > 0, !autoOffFired, service.isRecording,
+                  service.liveTranscription, t >= Double(liveCaptionAutoOffSeconds) else { return }
+            autoOffFired = true
+            service.setLiveTranscription(false)
+            Haptics.tap()
         }
         // A photo was captured mid-record → drop a `[photo N]` marker into the live
         // caption at the current spoken-word position (the count badge still updates
@@ -144,15 +172,17 @@ struct RecordView: View {
                 // SF Symbols on every iOS; state is shown by fill + colour, NOT a
                 // `.slash` variant (captions.bubble.slash doesn't exist on iOS 26,
                 // so it rendered as an EMPTY button — device-reported 2026-06-17).
-                Image(systemName: liveTranscription ? "text.bubble.fill" : "text.bubble")
+                // Reflect the EFFECTIVE live state (`service.liveTranscription`), so it
+                // shows "off" the moment the auto-off timer fires, not just the pref.
+                Image(systemName: service.liveTranscription ? "text.bubble.fill" : "text.bubble")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(liveTranscription ? Color.skAccent : Color.skTextDim)
+                    .foregroundStyle(service.liveTranscription ? Color.skAccent : Color.skTextDim)
                     .frame(width: 32, height: 32)
                     .background(Color.skSurface, in: .circle)
                     .overlay(Circle().stroke(Color.skBorder, lineWidth: 1))
             }
             .accessibilityIdentifier("live-transcription-toggle")
-            .accessibilityLabel(liveTranscription ? "Live transcription on" : "Live transcription off")
+            .accessibilityLabel(service.liveTranscription ? "Live transcription on" : "Live transcription off")
         }
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 8)
@@ -162,8 +192,11 @@ struct RecordView: View {
     /// `setLiveTranscription` tears the live stream down / brings it up; otherwise
     /// the engine picks up the new value at `start()`.
     private func toggleLiveTranscription() {
-        liveTranscription.toggle()
-        service.setLiveTranscription(liveTranscription)
+        // Flip from the EFFECTIVE state (so a tap after the auto-off turns captions
+        // back ON), update the sticky preference, and apply to the live stream.
+        let newOn = !service.liveTranscription
+        liveTranscription = newOn
+        service.setLiveTranscription(newOn)
     }
 
     // MARK: - Starting (instant record in flight)

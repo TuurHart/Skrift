@@ -5,6 +5,9 @@ import SwiftUI
 /// Memos toolbar; Names + Pair-a-Mac push within its own stack.
 struct SettingsView: View {
     @AppStorage("liveTranscription") private var liveTranscription = true
+    // Auto-stop live captions after N seconds of recording (0 = never) — long
+    // battery-saving recordings drop live captioning and transcribe once at stop.
+    @AppStorage("liveCaptionAutoOffSeconds") private var liveCaptionAutoOffSeconds = 60
     @AppStorage("appTheme") private var appTheme = "dark"
     @AppStorage("weatherAPIKey") private var weatherKey = ""
     @AppStorage("karaokeTapToSeek") private var karaokeTapToSeek = true
@@ -108,6 +111,15 @@ struct SettingsView: View {
                 Section {
                     Toggle("Live transcription", isOn: $liveTranscription)
                         .accessibilityIdentifier("setting-live-transcription")
+                    if liveTranscription {
+                        Picker("Stop live captions after", selection: $liveCaptionAutoOffSeconds) {
+                            Text("Never").tag(0)
+                            Text("30 seconds").tag(30)
+                            Text("1 minute").tag(60)
+                            Text("2 minutes").tag(120)
+                        }
+                        .accessibilityIdentifier("setting-live-caption-auto-off")
+                    }
                     Toggle("Copy transcript to clipboard", isOn: $autoCopyTranscript)
                         .accessibilityIdentifier("setting-auto-copy-transcript")
                     Picker("Language", selection: $transcriptionMultilingual) {
