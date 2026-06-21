@@ -13,13 +13,13 @@
      Comments (reaction + note per node) live in the browser's localStorage, keyed by the
      STABLE node id (survives reloads + redeploys of this URL). To make a comment durable /
      shared: in the app click "Export", hand the JSON back, and the agent pastes it into
-     BAKED_COMMENTS below (mirror of repo file roadmap-comments.json) + commits. On next load
+     BAKED_COMMENTS below (mirror of repo file roadmap/roadmap-comments.json) + commits. On next load
      BAKED_COMMENTS are merged in as defaults (localStorage wins per-node for local edits).
 
      ── REGENERATE CHECKLIST (run every time you touch this file) ───────────────────────
        1. Edit the data arrays (PHASES/DETOURS/HISTORY/IDEAS) to match the markdown ledgers.
        2. If the user handed back exported comments: paste them into BAKED_COMMENTS AND write
-          the same JSON to repo file roadmap-comments.json (keep the two mirrored).
+          the same JSON to repo file roadmap/roadmap-comments.json (keep the two mirrored).
        3. Bump LAST_UPDATED.  4. Sync STANDALONE_PLAN.md / backlog.md in the SAME pass.
        5. Redeploy to the SAME Artifact URL (Artifact tool `url` param).  6. Commit.
 
@@ -344,7 +344,7 @@ const IDEAS = [
   { id:"P11e", parent:"P11", title:"Review prep (graceful model download; plain AppIntent)" },
 ];
 
-// Comments baked from the repo (roadmap-comments.json). localStorage overrides these per-node.
+// Comments baked from the repo (roadmap/roadmap-comments.json). localStorage overrides these per-node.
 const BAKED_COMMENTS = {};
 
 /* ───────────────────────────── layout + render ───────────────────────────── */
@@ -734,7 +734,7 @@ function exportJSON(){
 $("exportBtn").onclick=()=>{
   const json=exportJSON();
   openModal(`<h3>Export comments</h3>
-    <p>Your reactions + notes (localStorage). Copy this JSON or download it, then hand it back — it gets committed to <code>roadmap-comments.json</code> and baked in as defaults on the next rebuild.</p>
+    <p>Your reactions + notes (localStorage). Copy this JSON or download it, then hand it back — it gets committed to <code>roadmap/roadmap-comments.json</code> and baked in as defaults on the next rebuild.</p>
     <textarea id="exparea" readonly>${json.replace(/</g,"&lt;")}</textarea>
     <div class="mrow"><button class="mbtn primary" id="copybtn">Copy to clipboard</button>
       <button class="mbtn" id="dlbtn">Download .json</button>
@@ -764,7 +764,7 @@ $("helpBtn").onclick=()=>openModal(`<h3>How to use this</h3>
   • <b>React:</b> click any card → set 👍 / 👎 / 🤔 and add a note. Big phases list their individual ideas — react to each one right there.<br>
   • <b>Dependencies:</b> hover a card to reveal just its dependency lines (toggle <b>Deps: all</b> to see them at once).<br>
   • <b>Navigate:</b> scroll or pinch to zoom, drag to pan, ⛶ to fit. Keyboard: Tab to a card, Enter to react, Esc to close.<br>
-  • <b>Make it durable:</b> comments save in this browser. <b>Export</b> → hand the JSON back → it's committed to <code>roadmap-comments.json</code> and baked in for everyone on the next rebuild.</p>
+  • <b>Make it durable:</b> comments save in this browser. <b>Export</b> → hand the JSON back → it's committed to <code>roadmap/roadmap-comments.json</code> and baked in for everyone on the next rebuild.</p>
   <div class="mrow"><span style="flex:1"></span><button class="mbtn primary" id="closebtn">Got it</button></div>`)||($("closebtn").onclick=closeModal);
 
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closePop(); closeModal(); } });
