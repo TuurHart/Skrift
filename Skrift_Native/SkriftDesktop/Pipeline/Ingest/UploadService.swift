@@ -8,8 +8,12 @@ import SwiftData
 struct UploadService: Sendable {
     var outputDir: URL = AppPaths.audioOutputDirectory
 
+    /// `memoID`, when non-nil, forces the created PipelineFile's `id` to that value (a
+    /// single-memo ingest — the CloudKit read bridge passes `memo.id.uuidString` so the
+    /// row keys on the memo UUID, the contract spine, and dedups across transports). HTTP
+    /// uploads pass nil → a fresh UUID per audio part, exactly as before (byte-identical).
     @discardableResult
-    func ingest(parts: [MultipartPart], into context: ModelContext) throws -> [PipelineFile] {
+    func ingest(parts: [MultipartPart], into context: ModelContext, memoID: String? = nil) throws -> [PipelineFile] {
         let metadataPart = parts.first { $0.name == "metadata" }
         let meta = metadataPart.flatMap { (try? JSONSerialization.jsonObject(with: $0.data)) as? [String: Any] }
         let transcript = parts.first { $0.name == "transcript" }
@@ -25,7 +29,8 @@ struct UploadService: Sendable {
         // Memo uploads with audio remain BYTE-IDENTICAL in behavior (new branch only).
         let audioParts = parts.filter { $0.name == "files" && $0.filename != nil }
         if audioParts.isEmpty, let sharedContent = meta?["sharedContent"] as? [String: Any] {
-            let pf = try ingestCapture(meta: meta, sharedContent: sharedContent,
+            let pf = try ingestCapture(id: memoID ?? UUID().uuidString,
+                                       meta: meta, sharedContent: sharedContent,
                                        metadataPart: metadataPart,
                                        imageParts: imageParts, manifest: manifest)
             context.insert(pf)
@@ -36,7 +41,7 @@ struct UploadService: Sendable {
         var created: [PipelineFile] = []
         for audio in audioParts {
             let filename = audio.filename ?? "memo.m4a"
-            let id = UUID().uuidString
+            let id = memoID ?? UUID().uuidString
             let folder = outputDir.appendingPathComponent("\(id)_\(filename)", isDirectory: true)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
@@ -122,13 +127,13 @@ struct UploadService: Sendable {
     /// captures) are saved under the working folder's `images/` using the same
     /// `saveImages` path as memo photo uploads — VaultExporter picks them up identically.
     private func ingestCapture(
+        id: String,
         meta: [String: Any]?,
         sharedContent: [String: Any],
         metadataPart: MultipartPart?,
         imageParts: [MultipartPart],
         manifest: [[String: Any]]
     ) throws -> PipelineFile {
-        let id = UUID().uuidString
         let folderName = "capture_\(id)"
         let folder = outputDir.appendingPathComponent(folderName, isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
