@@ -26,6 +26,8 @@ struct PublishCoordinator {
         var skipped = 0
         var failed = 0
         var ineligible = 0
+        /// Files the user edited in their vault → Skrift backed off, did not overwrite.
+        var protected = 0
     }
 
     /// Production coordinator over the live store, settings, and pairing state.
@@ -68,7 +70,8 @@ struct PublishCoordinator {
                 switch try publisher.publish(memo) {
                 case .written:          s.written += 1
                 case .skippedUnchanged: s.skipped += 1
-                case .noVault:          s.failed += 1   // enabled but the bookmark didn't resolve
+                case .userEdited:       s.protected += 1   // user edited it in the vault → left alone
+                case .noVault:          s.failed += 1      // enabled but the bookmark didn't resolve
                 }
             } catch {
                 s.failed += 1

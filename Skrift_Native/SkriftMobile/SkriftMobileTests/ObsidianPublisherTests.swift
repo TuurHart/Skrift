@@ -81,4 +81,47 @@ final class ObsidianPublisherTests: XCTestCase {
         XCTAssertEqual(ObsidianPublisher.sanitizeFilename("a/b:c*?"), "a b c")
         XCTAssertEqual(ObsidianPublisher.sanitizeFilename("   "), "Untitled")
     }
+
+    // MARK: Edit guard — never clobber a vault edit
+
+    func testUserEditIsNotClobbered() throws {
+        let memo = Memo(title: "Note", transcript: "Original body.")
+        guard case let .written(rel) = try publisher().publish(memo) else { return XCTFail() }
+        let file = vaultRoot.appendingPathComponent(rel)
+        let edited = "My own edited version in Obsidian.\n"
+        try edited.write(to: file, atomically: true, encoding: .utf8)   // user edits it in the vault
+        memo.transcript = "A different, updated body."                  // and the memo also changes
+        XCTAssertEqual(try publisher().publish(memo), .userEdited(relativePath: rel))
+        XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), edited, "the user's edit must survive")
+    }
+
+    func testOnceEditedSkriftStaysOff() throws {
+        let memo = Memo(title: "Note", transcript: "Body.")
+        guard case let .written(rel) = try publisher().publish(memo) else { return XCTFail() }
+        let file = vaultRoot.appendingPathComponent(rel)
+        try "edited".write(to: file, atomically: true, encoding: .utf8)
+        _ = try publisher().publish(memo)                               // detects the edit, backs off
+        memo.transcript = "changed yet again"
+        XCTAssertEqual(try publisher().publish(memo), .userEdited(relativePath: rel))
+        XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "edited", "stays the user's forever")
+    }
+
+    func testUntouchedFileStillUpdates() throws {
+        let memo = Memo(title: "Note", transcript: "Body.")
+        guard case let .written(rel) = try publisher().publish(memo) else { return XCTFail() }
+        memo.transcript = "Updated body."                               // no external edit → normal update
+        XCTAssertEqual(try publisher().publish(memo), .written(relativePath: rel))
+        XCTAssertTrue(try String(contentsOf: vaultRoot.appendingPathComponent(rel), encoding: .utf8)
+            .contains("Updated body."))
+    }
+
+    func testDeletingTheFileLetsSkriftReexport() throws {
+        let memo = Memo(title: "Note", transcript: "Body.")
+        guard case let .written(rel) = try publisher().publish(memo) else { return XCTFail() }
+        let file = vaultRoot.appendingPathComponent(rel)
+        try "edited".write(to: file, atomically: true, encoding: .utf8)
+        _ = try publisher().publish(memo)                               // backs off
+        try FileManager.default.removeItem(at: file)                    // user deletes it → wants it back
+        XCTAssertEqual(try publisher().publish(memo), .written(relativePath: rel))
+    }
 }

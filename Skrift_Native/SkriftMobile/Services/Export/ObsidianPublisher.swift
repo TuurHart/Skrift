@@ -34,6 +34,8 @@ enum ObsidianVault {
 enum PublishOutcome: Equatable {
     case written(relativePath: String)
     case skippedUnchanged
+    /// The user edited this file in their vault → Skrift backed off and did NOT overwrite it.
+    case userEdited(relativePath: String)
     case noVault
 }
 
@@ -83,14 +85,34 @@ struct ObsidianPublisher {
         let existing = stateStore.record(for: memo.id)
         let relPath = existing?.relativePath ?? Self.relativePath(for: memo, people: people)
         let dest = vaultRoot.appendingPathComponent(relPath)
+        let onDisk = FileManager.default.fileExists(atPath: dest.path)
 
-        // Idempotent skip: unchanged AND our file is still there.
-        if let existing, existing.contentHash == hash, FileManager.default.fileExists(atPath: dest.path) {
+        // EDIT GUARD — never clobber a vault edit. Once Skrift has detected the user edited this
+        // file (its bytes diverge from what we last wrote), it adopts their version and backs off
+        // this file FOR GOOD: the note is theirs now. (Deleting the vault file lets the next export
+        // recreate it fresh.) Reading our OWN file is privacy-clean — Skrift is on-device, and the
+        // hard rule is about cloud AI, not the app's own code.
+        if let existing, onDisk {
+            if existing.userEdited { return .userEdited(relativePath: relPath) }
+            if let diskBytes = Self.readCoordinated(dest) {
+                let diskHash = Self.sha256(diskBytes)
+                if diskHash != existing.contentHash {
+                    // Adopt their version (so we recognise it next time) + back off permanently.
+                    stateStore.set(ExportRecord(relativePath: relPath, contentHash: diskHash,
+                                                exportedAt: existing.exportedAt, userEdited: true), for: memo.id)
+                    return .userEdited(relativePath: relPath)
+                }
+            }
+        }
+
+        // Idempotent skip: unchanged AND our (untouched) file is still there.
+        if let existing, existing.contentHash == hash, onDisk {
             return .skippedUnchanged
         }
 
         try Self.writeAtomic(markdown, to: dest)
-        stateStore.set(ExportRecord(relativePath: relPath, contentHash: hash, exportedAt: Date()), for: memo.id)
+        stateStore.set(ExportRecord(relativePath: relPath, contentHash: hash, exportedAt: Date(),
+                                    userEdited: false), for: memo.id)
         return .written(relativePath: relPath)
     }
 
@@ -139,7 +161,20 @@ struct ObsidianPublisher {
         if let writeError { throw writeError }
     }
 
-    static func sha256(_ s: String) -> String {
-        SHA256.hash(data: Data(s.utf8)).map { String(format: "%02x", $0) }.joined()
+    static func sha256(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
+    static func sha256(_ s: String) -> String { sha256(Data(s.utf8)) }
+
+    /// Read our own exported file back, coordinated so iCloud/Obsidian-Sync can't hand us a
+    /// half-written copy. Returns nil if unreadable. Only ever called on a path in our own ledger.
+    static func readCoordinated(_ url: URL) -> Data? {
+        var coordError: NSError?
+        var data: Data?
+        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordError) { u in
+            data = try? Data(contentsOf: u)
+        }
+        return data
     }
 }

@@ -8,6 +8,29 @@ struct ExportRecord: Codable, Equatable {
     var relativePath: String
     var contentHash: String
     var exportedAt: Date
+    /// Set once Skrift detects the user edited this exported file in their vault. From then on
+    /// Skrift NEVER overwrites it (the note is theirs); deleting the vault file lets a fresh
+    /// export recreate it. The edit-guard floor — see `ObsidianPublisher.publish`.
+    var userEdited: Bool
+
+    init(relativePath: String, contentHash: String, exportedAt: Date, userEdited: Bool = false) {
+        self.relativePath = relativePath
+        self.contentHash = contentHash
+        self.exportedAt = exportedAt
+        self.userEdited = userEdited
+    }
+
+    // Back-compat decode: an older state file without `userEdited` reads as false (synthesized
+    // Decodable would otherwise reject the missing key).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        relativePath = try c.decode(String.self, forKey: .relativePath)
+        contentHash = try c.decode(String.self, forKey: .contentHash)
+        exportedAt = try c.decode(Date.self, forKey: .exportedAt)
+        userEdited = (try? c.decode(Bool.self, forKey: .userEdited)) ?? false
+    }
+
+    enum CodingKeys: String, CodingKey { case relativePath, contentHash, exportedAt, userEdited }
 }
 
 /// Per-device record of what's been published to the Obsidian vault, keyed by memo id.

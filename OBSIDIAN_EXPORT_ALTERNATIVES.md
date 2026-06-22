@@ -5,6 +5,29 @@
 > Source: a 12-agent exploration (prior art: Readwise→Obsidian, Bear, Day One, Obsidian
 > Daily/Periodic Notes, the iCloud-Drive conflict-copy problem).
 
+## ✅ DECIDED + BUILT (2026-06-22): overwrite + edit-guard (back-off)
+
+The user confirmed they **will** edit exported notes in Obsidian → pure overwrite is out. Built into
+`ObsidianPublisher`: Skrift writes/updates a note freely **until** it detects the file was edited in the
+vault (its bytes ≠ what Skrift last wrote), then it **adopts the user's version and backs off that file
+for good** — it never clobbers an edit. Deleting the vault file lets the next export recreate it fresh.
+This is **option #1 + the safe core of #4** (round-trip guard) with a *"your edit wins"* default — no
+conflict modal needed for v1, and privacy-clean (reading our own file is fine; see the reframe). The full
+split-region hybrid, the per-book commonplace book (#6), and the Phase-8 vault-read-for-search remain
+sequenced later. Gate: `ObsidianPublisherTests` (4 guard tests) + 486/486 `SkriftMobileTests`.
+
+## ⚠️ Privacy reframe (2026-06-22 — corrects the framing below)
+
+The hard rule is **"never point AI/agents at the vault; only the app's OWN code scans it"** — that is
+about **cloud LLMs / big-company AI**, NOT about Skrift's own code. Skrift is fully on-device, so
+**Skrift reading the vault is fine** — there is no privacy cost to the conflict-guard re-reading its own
+files, or even (later) reading the *whole* vault for semantic search. So every *"this relaxes write-only
+/ this is a privacy tradeoff"* caveat in the options below is an **over-reading**: reading is an
+**engineering** decision, not a privacy blocker. (The dev-time rule still binds the *developer/agent*:
+don't read the user's real vault during dev — test on a sample.) Net: the recommended hybrid is
+unblocked on privacy grounds, and **"Obsidian as a read-source for search/connections" (Phase 8) is
+fully on the table.**
+
 ## The core tension (why this is hard)
 
 Every notes-to-vault tool sits on a spectrum between two philosophies, and **both have a fatal flaw**:
@@ -89,21 +112,27 @@ coordinated writes. **Effort ≈ M** (it's the built publisher + a read-back + a
 per-book aggregation (#6) for the audiobook commonplace book — #6 is the one I'd prioritize next given
 your audiobook focus.
 
-## The one decision this needs from you
+## What the decision actually is (post-reframe)
 
-The hybrid (and #3/#4/#5/#6) all relax the **strict "never read the vault" hard rule** to:
+Privacy is **not** the blocker (see the reframe above) — Skrift reading the vault is fine. So this is
+purely a **product-scope + timing** choice, and it sits inside a clearer product picture:
 
-> *"Skrift may read back only the files it itself wrote, located by its own `skrift-id` — never a scan,
-> glob, or read of any note Skrift didn't create."*
+**Skrift's relationship to Obsidian = up to three independent modes over ONE source of truth (the
+on-device store):**
+1. **PUSH** — one-way export to Obsidian; deleting the Skrift memo after export is fine + desirable
+   ("capture tool; Obsidian is home"). Simple one-way (the built `ObsidianPublisher`) covers this.
+2. **PULL** *(future, ~Phase 8)* — Skrift reads the vault for **semantic search + connections** (the
+   north-star "see how my thinking evolved", local embeddings). Obsidian becomes a read-source too.
+3. **STANDALONE-ONLY** — never touch Obsidian; Skrift is your single notes app. Also fully valid.
 
-The research is clear this is **aligned with privacy, not in tension** — re-finding your own content by
-id is exactly what lets you do safe in-place updates *without* touching anyone else's notes. But it's a
-genuine change to a stated hard rule, so it's your call:
+Because Skrift is the reading surface *and* reading the vault is allowed, the export model is low-stakes:
 
-- **(A)** Keep strict write-only → you're limited to **#1 (built)** or **#2 (create-only)**.
-- **(B)** Allow "read back our own files by id" → unlocks the **recommended hybrid (#1+#4+user-region)**,
-  and later #3 / #6.
+- **Ship simple now:** the built **#1 one-way overwrite** is enough for the push user (and "delete after
+  export" is a clean little feature on top). Don't gold-plate it for v1.
+- **Add the hybrid (#1 + user-region + guard) when** people actually want to *annotate inside* Skrift's
+  exported files — now an easy add, with no privacy cost.
+- **#6 (per-book commonplace book)** is the standout for the audiobook angle — a deliberate later phase.
+- **Phase 8 PULL** (read the vault for search/connections) is the exciting long-game and is unblocked.
 
-My recommendation: **(B) + the hybrid.** It's the only path that gives you both "I can edit in my vault"
-*and* "the Mac's polish still flows in," at moderate effort, while keeping the privacy boundary narrow
-and auditable ("our reads ⊆ our writes").
+**Recommendation:** keep the built one-way export as v1, treat the hybrid + #6 + the Phase-8 pull as
+sequenced enhancements — not a fork to resolve now.
