@@ -31,6 +31,14 @@ enum AppPaths {
     /// non-sandboxed macOS app, which would share dev + prod data).
     static var storeFile: URL { appSupportDirectory.appendingPathComponent("skrift.store") }
 
+    /// LOCAL mirror store for the CloudKit-backed Memo container (MAC_CLOUDKIT_PLAN.md
+    /// 8a-iii). SEPARATE file from `storeFile` (the two SwiftData containers must not
+    /// share a store), and explicit + dev/prod-suffixed for the same reason as
+    /// `storeFile`: a non-sandboxed Mac's default store location isn't namespaced, so
+    /// dev (syncing iCloud.com.skrift.mobile.dev) and prod (…mobile) would otherwise
+    /// collide their CloudKit-mirror metadata in one file.
+    static var memoCloudStoreFile: URL { appSupportDirectory.appendingPathComponent("memo_cloud.store") }
+
     static var audioOutputDirectory: URL {
         let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let dir = base.appendingPathComponent("Voice Transcription Pipeline Audio Output\(dataSuffix)", isDirectory: true)
