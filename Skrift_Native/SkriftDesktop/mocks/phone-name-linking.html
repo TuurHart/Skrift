@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — phone name-linking (iOS)</title>
+<style>
+  :root{
+    /* --- canvas / surfaces (Mac spec) --- */
+    --bg:#0f1117;            /* note pane */
+    --surface:#181a23;       /* raised surface — People bar */
+    --elev:#1e2130;          /* elevated — input bg / opt-in popover */
+    --pop:#1d1f29;           /* the live NSPopover bg (resolver & unlink) */
+    /* --- text tiers --- */
+    --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    /* --- accent --- */
+    --accent:124 107 245;    /* rgb triplet, used at opacity */
+    --acc:#7c6bf5;           /* linked text in resolver/unlink/opt-in */
+    --link:#9d8ff7;          /* linked text in the SIGNED-OFF naming-review tier */
+    /* --- suggested (dotted) tier --- */
+    --suggest:#bda481; --suggestline:#ab9676;
+    /* --- semantic --- */
+    --green:#34d399; --amber:#f59e0b;
+    --bd:255 255 255;        /* hairline borders, rgb triplet */
+    /* --- phone-mock chrome (from standalone family) --- */
+    --del:#E5604B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#050507; color:#e8e8ee;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; padding:28px;
+  }
+  h1{font-size:20px; font-weight:600; margin:0 0 4px; letter-spacing:-.01em;}
+  .sub{color:#8a8a96; margin:0 0 22px; max-width:880px; line-height:1.6;}
+  .sub code{background:#1a1a24; padding:1px 6px; border-radius:5px; font-size:13px;}
+
+  /* tier legend banner */
+  .legend{display:flex; flex-wrap:wrap; gap:22px; max-width:880px; margin:0 0 26px;
+    background:#0d0d13; border:.5px solid rgba(255,255,255,.08); border-radius:12px; padding:14px 18px;}
+  .legend .li{display:flex; align-items:baseline; gap:9px; font-size:13px; color:var(--t2);}
+  .legend .sw{font-size:14px; font-weight:600;}
+  .legend .sw.linked{color:var(--link);}
+  .legend .sw.sugg{color:var(--suggest); border-bottom:1.6px dotted var(--suggestline); padding-bottom:1px;}
+  .legend .sw.plain{color:var(--t1);}
+  .legend .sw.repeat{color:var(--t2);}
+
+  .row{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .label{font-size:12px; color:#8a8a96; letter-spacing:.3px; text-align:center; max-width:322px; line-height:1.45;}
+
+  /* phone frame (standalone family) */
+  .phone{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px;
+    overflow:hidden; position:relative;}
+  .nav{display:flex; align-items:center; justify-content:space-between; padding:14px 18px 10px;
+    color:var(--acc); font-size:15px;}
+  .nav .title{color:var(--t1); font-size:13px; font-weight:600; letter-spacing:.2px;}
+  .nav .ic{font-size:20px;}
+  .crumb{padding:0 18px 6px; color:var(--t3); font-size:12px;}
+  .body-pane{padding:2px 18px 18px;}
+
+  /* note body — match the Mac review prose */
+  .ntitle{font-size:21px; font-weight:700; letter-spacing:-.02em; color:var(--t1); margin:6px 0 14px;}
+  .prose{font-size:16px; line-height:1.72; color:var(--t1);}
+  .prose p{margin:0 0 15px;}
+
+  /* === THE THREE TIERS (Mac spec, verbatim) === */
+  /* LINKED — solid, no underline, the [[Canonical|short]] rendered as just the short word */
+  .linked{color:var(--link); border-radius:3px; padding:0 1px; cursor:pointer;
+    transition:background .12s, box-shadow .12s;}
+  .linked:hover, .linked.active{background:rgb(var(--accent)/.18); box-shadow:0 1px 0 rgb(var(--accent)/.5);}
+  /* SUGGESTED — warm tan, dotted underline */
+  .sugg{color:var(--suggest); border-bottom:1.6px dotted var(--suggestline);
+    border-radius:3px; padding:0 1px 1px; cursor:pointer; transition:background .12s;}
+  .sugg:hover, .sugg.active{background:rgb(var(--accent)/.10);}
+  /* AMBIGUOUS variant — resolver-inline .amb verbatim: plain --t1 text + faint accent bg
+     + purple 1.5px dotted + accent ? superscript */
+  .ambig{color:var(--t1); background:rgb(var(--accent)/.13);
+    border-bottom:1.5px dotted rgb(var(--accent)/.65); border-radius:3px; padding:0 2px; cursor:pointer;
+    position:relative; transition:.12s;}
+  .ambig:hover{background:rgb(var(--accent)/.22);}
+  .ambig sup{color:var(--acc); font-size:9px; vertical-align:super; font-weight:700; margin-left:1px;}
+  /* PLAIN — nothing. .repeat = grey-tinted later mention of a linked person */
+  .repeat{color:var(--t2);}
+
+  /* === POPOVER ANATOMY (resolver-inline / name-unlink, the live idiom) === */
+  .scrim{position:absolute; inset:0; background:rgba(2,2,5,.5); z-index:4;}
+  .pop{position:absolute; width:260px; background:var(--pop);
+    border:.5px solid rgb(var(--bd)/.14); border-radius:11px; padding:12px;
+    box-shadow:0 16px 44px rgba(0,0,0,.6); z-index:5;}
+  /* the rotated-45 caret pointing up at the tapped word */
+  .pop::before{content:""; position:absolute; top:-6px; width:11px; height:11px;
+    background:var(--pop); transform:rotate(45deg);
+    border-top:.5px solid rgb(var(--bd)/.14); border-left:.5px solid rgb(var(--bd)/.14);}
+  .pop.caret-l::before{left:46px;}
+  .pop.caret-c::before{left:50%; margin-left:-5px;}
+  .pop .ptitle{font-size:12px; color:var(--t2); margin-bottom:7px;}
+  .pop .ptitle b{color:var(--t1); font-weight:600;}
+  .pop .ctx{font-size:10.5px; color:var(--t3); font-style:italic; line-height:1.5; margin-bottom:10px;}
+  .pop .ctx .m{color:var(--acc); font-style:normal; font-weight:600;}
+  .pop .phead{font-size:11px; color:var(--t3); margin-bottom:6px; padding:0 2px;}
+  /* an option row */
+  .opt{display:flex; align-items:center; gap:9px; width:100%; background:transparent;
+    border-radius:7px; padding:7px 9px; cursor:pointer; transition:background .12s; text-align:left;}
+  .opt:hover{background:rgb(var(--accent)/.14);}
+  .opt.sel{background:rgb(var(--accent)/.16);}
+  /* naming-review chooser avatar idiom: rgb(accent/.2) bg + --link text */
+  .opt .av{width:18px; height:18px; border-radius:50%; flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; font-size:9.5px; font-weight:700;
+    background:rgb(var(--accent)/.2); color:var(--link);}
+  .opt .ic{width:18px; height:18px; border-radius:50%; flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; font-size:11px;
+    background:rgb(var(--accent)/.2); color:var(--acc);}
+  .opt .ic.neutral, .opt .av.neutral{background:rgb(var(--bd)/.06); color:var(--t3);}
+  .opt .txt{display:flex; flex-direction:column; gap:1px; min-width:0;}
+  .opt .l1{font-size:12.5px; color:var(--t1); line-height:1.25;}
+  .opt .l1.dim{color:var(--t3);}
+  .opt .l2{font-size:10.5px; color:var(--t3); line-height:1.3;}
+  .opt .ck{margin-left:auto; color:var(--acc); font-size:12px; flex-shrink:0;}
+  .opt .l1 .gn{color:var(--green); font-weight:700; font-size:10.5px;}
+  .sep{height:.5px; background:rgb(var(--bd)/.08); margin:7px 2px;}
+  .hint{display:flex; gap:6px; align-items:flex-start; font-size:10px; color:var(--t3);
+    line-height:1.45; margin-top:9px; padding:0 2px;}
+  .hint .hi{opacity:.7; flex-shrink:0; font-size:11px; line-height:1.3;}
+
+  /* linked-name HEADER row (prune/fix popover) */
+  .pop .lhead{display:flex; align-items:center; gap:9px; margin-bottom:9px; padding:0 1px;}
+  .pop .lhead .av{width:22px; height:22px; font-size:10px;}
+  .pop .lhead .ht{display:flex; flex-direction:column; gap:1px;}
+  .pop .lhead .ht .g{font-size:10.5px; font-weight:700; color:var(--green);}
+  .pop .lhead .ht .n{font-size:12.5px; font-weight:600; color:var(--link);}
+
+  /* === CHIP BAR (older opt-in model — shown as reference, state 4) === */
+  .peoplebar{background:var(--surface); border:.5px solid rgb(var(--bd)/.1); border-radius:11px;
+    padding:11px 12px; margin:8px 0 14px;}
+  .peoplebar .ph{font-size:11.5px; color:var(--t2); margin-bottom:9px;}
+  .peoplebar .ph b{color:var(--t1); font-weight:600;}
+  .chips{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip{font-size:12px; border-radius:8px; padding:4px 9px; display:flex; align-items:center; gap:5px; white-space:nowrap;}
+  .chip.cand{background:rgb(var(--bd)/.05); border:.5px solid rgb(var(--bd)/.08); color:var(--t2);}
+  .chip.cand .pl{color:var(--t3);}
+  .chip.on{background:rgb(var(--accent)/.16); border:.5px solid rgb(var(--accent)/.4); color:var(--acc); font-weight:600;}
+  .chip.add{border:.5px dashed rgb(var(--bd)/.22); color:var(--t3); background:transparent;}
+
+  /* === PERSON EDITOR === */
+  .editor{padding:2px 16px 20px;}
+  .ehero{display:flex; align-items:center; gap:12px; padding:6px 2px 16px;}
+  .ehero .av{width:48px; height:48px; border-radius:50%; background:rgb(var(--accent)/.2);
+    display:flex; align-items:center; justify-content:center; color:var(--acc); font-size:18px; font-weight:700;}
+  .ehero .en{font-size:18px; font-weight:600; color:var(--t1);}
+  .ehero .es{font-size:12px; color:var(--t3); margin-top:2px;}
+  .ehero .es .gn{color:var(--green);}
+  .field{margin-bottom:14px;}
+  .field .flabel{font-size:12.5px; font-weight:600; color:var(--t1); margin-bottom:2px;}
+  .field .fhelp{font-size:11px; color:var(--t3); line-height:1.4; margin-bottom:7px;}
+  .field .fhelp .lk{color:var(--acc); font-weight:600;}
+  .input{background:var(--elev); border:.5px solid rgb(var(--bd)/.1); border-radius:8px;
+    padding:8px 10px; color:var(--t1); font-size:13px; font:inherit; font-size:13px;
+    display:flex; align-items:center; gap:6px;}
+  .input.tags{flex-wrap:wrap; gap:6px;}
+  .input .tag{background:rgb(var(--bd)/.06); border-radius:6px; padding:2px 7px; font-size:12px;
+    color:var(--t2); display:flex; align-items:center; gap:5px;}
+  .input .tag .x{color:var(--t3); font-size:11px;}
+  .input .addtag{color:var(--acc); font-size:12px; border:.5px dashed rgb(var(--accent)/.45);
+    border-radius:6px; padding:2px 8px;}
+  .input .cursor{width:1px; height:15px; background:var(--acc); display:inline-block; opacity:.8;}
+  .demo{font-size:11px; color:var(--t2); margin-top:7px; line-height:1.5;}
+  .demo .q{color:var(--t1);} .demo .r{color:var(--acc); font-weight:600;}
+  .voicerow{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--green);}
+
+  .notes{max-width:880px; margin-top:36px; color:#b8b8c2; font-size:14px; line-height:1.7;}
+  .notes h2{font-size:16px; color:#e8e8ee; margin:24px 0 6px;}
+  .notes h3{font-size:13.5px; color:#d6d6de; margin:16px 0 4px;}
+  .notes code{background:#1a1a24; padding:1px 6px; border-radius:5px; font-size:13px;}
+  .notes li{margin-bottom:8px;}
+  .notes .map{border-collapse:collapse; width:100%; margin:8px 0 4px; font-size:13px;}
+  .notes .map td{border-top:.5px solid #20202a; padding:8px 10px; vertical-align:top;}
+  .notes .map td:first-child{color:#e8e8ee; font-weight:600; white-space:nowrap; width:32%;}
+  .notes .map td code{font-size:12.5px;}
+</style>
+</head>
+<body>
+<h1>Skrift — phone name-linking (iOS)</h1>
+<p class="sub">The Mac review's name-linking, ported to iPhone touch. <strong>Same tiers, same colors,
+same option sets</strong> as the desktop mocks (<code>naming-review.html</code> opt-out model +
+<code>resolver-inline.html</code> / <code>name-unlink.html</code> popover idiom) — re-skinned for a small
+screen and finger targets. The interaction model is carried verbatim: <strong>one link per person at the
+first mention</strong>; opt-out auto-link for distinctive names; tan-dotted <em>suggestions</em> for
+common-word / ambiguous names that need one tap; tapping a link offers Unlink / Change / Open with an Undo
+toast. Deterministic, LLM-free, phone-portable. Linking re-derives on demand from the RAW transcript over
+the synced <code>names.json</code> — the phone still sends RAW to the Mac.</p>
+
+<div class="legend">
+  <div class="li"><span class="sw linked">Hendri</span><span>LINKED · solid <code style="font-size:11px">--link #9d8ff7</code>, no underline, the <code style="font-size:11px">[[Canonical|short]]</code></span></div>
+  <div class="li"><span class="sw sugg">Rose</span><span>SUGGESTED · tan <code style="font-size:11px">#bda481</code>, 1.6px dotted — tap to confirm</span></div>
+  <div class="li"><span class="sw plain">Marcus</span><span>PLAIN · unknown / stoplisted, not tappable</span></div>
+  <div class="li"><span class="sw repeat">him</span><span>.repeat · grey-tinted later mention of a linked person</span></div>
+</div>
+
+<div class="row">
+
+  <!-- ============ STATE 1 — Memo detail, all three tiers inline ============ -->
+  <div class="col">
+    <div class="label">1 · Memo detail — RAW transcript, all three tiers inline</div>
+    <div class="phone">
+      <div class="nav"><span>‹ Memos</span><span class="title">Voice memo</span><span class="ic">⋯</span></div>
+      <div class="crumb">Queue › Fri, 6 Jun 2026</div>
+      <div class="body-pane">
+        <div class="ntitle">Studio afternoon</div>
+        <div class="prose">
+          <p>Met up with <span class="sugg">Jack</span> this morning at the studio and we ran the
+          whole set twice. <span class="linked">Hendri</span> wants the commonplace angle up front, so I'll
+          carve out an hour for it tomorrow.</p>
+          <p>Later <span class="sugg">Rose</span> dropped by with the proofs — she thinks the cover's
+          nearly there. <span class="repeat">Hendri</span> said he'd loop in Marcus from the print shop,
+          but I still owe <span class="repeat">him</span> the final spreads.</p>
+          <p>One thing I keep circling back to: the thread is resistance. Exactly what Pressfield keeps
+          hammering.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STATE 2 — tap a SUGGESTED (ambiguous) name ============ -->
+  <div class="col">
+    <div class="label">2 · Tap a SUGGESTED name → "which person?" chooser (two Jacks)</div>
+    <div class="phone">
+      <div class="nav"><span>‹ Memos</span><span class="title">Voice memo</span><span class="ic">⋯</span></div>
+      <div class="crumb">Queue › Fri, 6 Jun 2026</div>
+      <div class="body-pane" style="position:relative; min-height:330px;">
+        <div class="ntitle">Studio afternoon</div>
+        <div class="prose">
+          <p>Met up with <span class="ambig active">Jack<sup>?</sup></span> this morning at the studio and
+          we ran the whole set twice. <span class="linked">Hendri</span> wants the commonplace angle up
+          front…</p>
+        </div>
+        <div class="scrim"></div>
+        <!-- resolver popover, anchored under "Jack" -->
+        <div class="pop caret-l" style="left:14px; top:118px;">
+          <div class="phead">Which Jack? · 2 people share this name</div>
+          <button class="opt sel">
+            <span class="av">JH</span>
+            <span class="txt"><span class="l1">Jack Hutton</span></span>
+            <span class="ck">✓</span>
+          </button>
+          <button class="opt">
+            <span class="av">JT</span>
+            <span class="txt"><span class="l1">Jack Tanner</span></span>
+          </button>
+          <div class="sep"></div>
+          <button class="opt">
+            <span class="ic neutral">＋</span>
+            <span class="txt"><span class="l1 dim">New person…</span></span>
+          </button>
+          <button class="opt">
+            <span class="av neutral">—</span>
+            <span class="txt"><span class="l1 dim">Leave as plain text</span></span>
+          </button>
+          <div class="hint"><span class="hi">ⓘ</span><span>Pick once — applies to the whole note. A second
+            Jack? Tap that mention and pick the other.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STATE 3 — tap a LINKED name ============ -->
+  <div class="col">
+    <div class="label">3 · Tap a LINKED name → Unlink / Change / Open (+ Undo toast)</div>
+    <div class="phone">
+      <div class="nav"><span>‹ Memos</span><span class="title">Voice memo</span><span class="ic">⋯</span></div>
+      <div class="crumb">Queue › Fri, 6 Jun 2026</div>
+      <div class="body-pane" style="position:relative; min-height:360px;">
+        <div class="ntitle">Studio afternoon</div>
+        <div class="prose">
+          <p>Met up with <span class="sugg">Jack</span> this morning at the studio and we ran the whole set
+          twice. <span class="linked active">Hendri</span> wants the commonplace angle up front…</p>
+        </div>
+        <div class="scrim"></div>
+        <!-- prune / fix popover, anchored under "Hendri" -->
+        <div class="pop caret-c" style="left:50px; right:14px; top:118px;">
+          <div class="lhead">
+            <span class="av">HN</span>
+            <span class="ht">
+              <span class="g">✓ this note is about</span>
+              <span class="n">Hendri van Niekerk</span>
+            </span>
+          </div>
+          <button class="opt">
+            <span class="ic">🔗︎</span>
+            <span class="txt"><span class="l1">Unlink — just a side-mention</span>
+              <span class="l2">→ plain “Hendri”, as spoken</span></span>
+          </button>
+          <button class="opt">
+            <span class="ic">⇄</span>
+            <span class="txt"><span class="l1">Change person…</span></span>
+          </button>
+          <div class="sep"></div>
+          <button class="opt">
+            <span class="ic">↗</span>
+            <span class="txt"><span class="l1">Open Hendri’s note</span></span>
+          </button>
+          <div class="hint"><span class="hi">ⓘ</span><span>Only the first mention carries the link — later
+            “Hendri”s are already plain. Hendri stays in your Names.</span></div>
+        </div>
+        <!-- undo toast (post-unlink) -->
+        <div style="position:absolute; left:14px; right:14px; bottom:10px;
+            background:rgb(var(--bd)/.04); border:.5px solid rgb(var(--bd)/.1); border-radius:9px;
+            padding:11px 13px; display:flex; align-items:center; gap:10px; z-index:6;">
+          <span style="font-size:12px; color:var(--t2); flex:1; line-height:1.4;">Unlinked —
+            <b style="color:var(--t1)">“Hendri”</b> is plain text in this note</span>
+          <span style="font-size:12px; color:var(--acc); border:.5px solid rgb(var(--accent)/.35);
+            border-radius:6px; padding:4px 11px; font-weight:600;">Undo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STATE 4 — People in this note chip bar ============ -->
+  <div class="col">
+    <div class="label">4 · “People in this note” chip bar (opt-in reference model)</div>
+    <div class="phone">
+      <div class="nav"><span>‹ Memos</span><span class="title">Voice memo</span><span class="ic">⋯</span></div>
+      <div class="crumb">Queue › Fri, 6 Jun 2026</div>
+      <div class="body-pane">
+        <div class="ntitle">Studio afternoon</div>
+        <div class="peoplebar">
+          <div class="ph">👤 <b>People in this note</b> · tap to link the ones it’s about</div>
+          <div class="chips">
+            <span class="chip on">✓ Hendri van Niekerk</span>
+            <span class="chip cand"><span class="pl">＋</span> Jack Hutton</span>
+            <span class="chip cand"><span class="pl">＋</span> Jack Tanner</span>
+            <span class="chip cand"><span class="pl">＋</span> Rose</span>
+            <span class="chip add">＋ Someone else…</span>
+          </div>
+        </div>
+        <div class="prose">
+          <p>Met up with <span class="sugg">Jack</span> this morning at the studio and we ran the whole set
+          twice. <span class="linked">Hendri</span> wants the commonplace angle up front…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STATE 5 — Person editor ============ -->
+  <div class="col">
+    <div class="label">5 · Person editor — mirrors the Mac (Full name / Aliases / Short / Voice)</div>
+    <div class="phone">
+      <div class="nav"><span>‹ Names</span><span class="title">Edit person</span><span style="color:var(--acc);">Done</span></div>
+      <div class="editor">
+        <div class="ehero">
+          <div class="av">BA</div>
+          <div>
+            <div class="en">Bruno Aragorn</div>
+            <div class="es">aka Bruno, Bru · <span class="gn">〰 voice enrolled</span></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="flabel">Full name</div>
+          <div class="fhelp">The Obsidian note title. Becomes the <span class="lk">[[link]]</span> target.</div>
+          <div class="input">Bruno Aragorn</div>
+        </div>
+
+        <div class="field">
+          <div class="flabel">Aliases</div>
+          <div class="fhelp">Spoken words (comma-separated) that should be recognised as this person.</div>
+          <div class="input tags">
+            <span class="tag">Bruno <span class="x">✕</span></span>
+            <span class="tag">Bru <span class="x">✕</span></span>
+            <span class="addtag">＋ add</span>
+            <span class="cursor"></span>
+          </div>
+          <div class="demo">saying <span class="q">“Bruno”</span> → recognised as <span class="r">Bruno Aragorn</span></div>
+        </div>
+
+        <div class="field">
+          <div class="flabel">Short name</div>
+          <div class="fhelp">How the inline link reads: <span class="lk">[[Bruno Aragorn|Bruno]]</span>.</div>
+          <div class="input">Bruno</div>
+        </div>
+
+        <div class="field">
+          <div class="flabel">Voice</div>
+          <div class="voicerow" style="margin-top:6px;">〰 Voice enrolled</div>
+        </div>
+
+        <div style="margin-top:18px; text-align:center; font-size:13px; color:var(--del);">Delete person</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="notes">
+  <h2>Build notes — each screen → its iOS control</h2>
+  <p>This is the phone half of the name-linking surface. It binds to the <strong>same shared
+  <code>Sanitiser</code> / <code>NamesData</code></strong> (<code>Skrift_Native/Shared/Naming/</code>) the
+  Mac uses, so a link the phone shows and a link the Mac writes are byte-identical. The phone keeps
+  <code>Memo.transcript</code> RAW and re-derives the styled tiers on demand via <code>MemoLinking</code> —
+  a names edit shows up immediately, never stale, and the upload contract (phone sends RAW, Mac links) is
+  untouched.</p>
+
+  <table class="map">
+    <tr><td>1 · Memo detail body</td>
+      <td>An <strong>attributed <code>Text</code></strong> (or a thin <code>NSTextView</code>-backed
+      <code>UIViewRepresentable</code> for tappable ranges) rendered from <code>MemoLinking.attributed(raw,
+      names)</code>. Three run styles map 1:1 to the tier colors: <code>.foregroundColor(.link #9d8ff7)</code>
+      for LINKED, <code>.foregroundColor(.suggest #bda481)</code> + dotted <code>.underlineStyle</code> for
+      SUGGESTED, no attributes for PLAIN, <code>.foregroundColor(.t2)</code> for <code>.repeat</code>. Tap on
+      a linked/suggested run opens the matching sheet; only the <strong>first</strong> mention per person is
+      interactive (later ones render <code>.repeat</code>).</td></tr>
+    <tr><td>2 · Which-person chooser</td>
+      <td>A <strong><code>.confirmationDialog</code></strong> (or a small custom anchored popover) headed by the
+      single naming-review line <code>Which Jack? · 2 people share this name</code>, with that mock's exact option
+      set: one button per candidate (<code>Jack Hutton</code> / <code>Jack Tanner</code>, the selected one
+      trailing a ✓), <code>＋ New person…</code> (pushes the Person editor pre-filled), <code>Leave as plain
+      text</code>. The footer states the signed-off <strong>whole-note</strong> semantics: pick once → applies
+      to the note; a rarer second Jack is tapped + resolved separately (no per-occurrence resolver).</td></tr>
+    <tr><td>3 · Linked-name actions</td>
+      <td>A <strong><code>.confirmationDialog</code></strong> with the green “✓ this note is about / Hendri van
+      Niekerk” header and three actions: <strong>Unlink — just a side-mention</strong> (demotes to a dotted
+      suggestion, re-promotable; restores the alias AS SPOKEN), <strong>Change person…</strong> (reopens the
+      chooser), <strong>Open Hendri’s note</strong> (jumps to the person in Names / Obsidian). The action posts
+      an <strong>Undo toast</strong> — a transient overlay holding the pre-action linked-flag snapshot, exactly
+      like <code>name-unlink.html</code>. This matches naming-review's signed-off 3-action set
+      (Unlink / Change / Open — no “Unlink all”, no Cancel); the name-unlink “Unlink all mentions in this note”
+      variant is only adopted if we switch to that idiom.</td></tr>
+    <tr><td>4 · People-in-this-note chips</td>
+      <td><strong>Reference only.</strong> This is the OLDER opt-in chip bar — the signed-off opt-out model
+      (<code>naming-review.html</code>, 2026-06-16) DELETED it and moved interaction into the prose (screens
+      1–3). Kept here because the user asked to see it: a horizontal wrap of toggle chips above the body
+      (<code>✓ Full Name</code> = linked/on, <code>＋ Name</code> = candidate, dashed <code>＋ Someone
+      else…</code>). If we ever want a roster glance, this is the component; default IA is prose-only.</td></tr>
+    <tr><td>5 · Person editor</td>
+      <td>A <strong><code>Form</code></strong> reached two ways — <code>New person…</code> from a chooser
+      (pre-filled with the tapped word) OR a row tap in <strong>Settings → Names</strong>. Four field blocks
+      mirror the Mac: <strong>Full name</strong> (canonical / link target), <strong>Aliases</strong> (token
+      field + the live “saying ‘Bruno’ → Bruno Aragorn” demo line), <strong>Short name</strong> (the
+      <code>[[Bruno Aragorn|Bruno]]</code> display alias), <strong>Voice</strong> (the “〰 Voice enrolled”
+      status row — label only, no help line, mirroring the Mac editor).
+      Saving a new person <strong>re-scans the open note</strong> so they appear as a suggestion/chip
+      immediately. Edits sync via the existing NamesData LWW (union voiceEmbeddings) to all devices + the
+      Mac.</td></tr>
+  </table>
+
+  <h2>What is faithfully matched from the Mac</h2>
+  <ul>
+    <li><strong>Tier colors are exact:</strong> LINKED <code>#9d8ff7</code> (the newest signed-off
+    naming-review tier), SUGGESTED text <code>#bda481</code> over a <code>1.6px</code> dotted
+    <code>#ab9676</code>, ambiguous variant = resolver-inline <code>.amb</code> verbatim: plain
+    <code>--t1 #e4e4e7</code> text + faint <code>rgb(124 107 245/.13)</code> bg + <code>1.5px</code> purple
+    dotted underline + the accent superscript <code>?</code>. PLAIN is <code>--t1 #e4e4e7</code>;
+    <code>.repeat</code> (a 2nd mention of a linked person) is <code>--t2 #8b8b97</code>.</li>
+    <li><strong>Popover anatomy is the live idiom:</strong> <code>#1d1f29</code> bg, <code>11px</code> radius,
+    the rotated-45° caret pointing at the tapped word, <code>18px</code> accent-tinted avatar/icon circles,
+    a <code>.5px</code> separator dividing primary from secondary actions, the <code>10px --t3</code> footer
+    hint with a leading info/chevron glyph. Same component reused across screens 2 &amp; 3.</li>
+    <li><strong>Option sets are verbatim:</strong> the which-person chooser is
+    <code>naming-review.html</code>'s (single <code>Which Jack? · …</code> header, Hutton / Tanner / ＋ New
+    person… / Leave as plain text); the prune/fix actions + the unlink sub-line (“→ plain ‘Hendri’, as
+    spoken”) come from <code>naming-review.html</code> + <code>name-unlink.html</code>.</li>
+    <li><strong>Person editor</strong> reproduces the four labeled blocks, the help lines (Full name / Aliases /
+    Short name only — Voice is a status row, no help line, per the Mac), the alias recognition demo line
+    (resolved name in accent), and the green “voice enrolled” status — the Mac’s “two doors, one editor.”</li>
+    <li><strong>Prose typography</strong> holds the Mac’s review feel on a phone column: 21px/700/-.02em title,
+    16px / 1.72 body, the shared SF system font stack.</li>
+  </ul>
+
+  <h2>Decisions to weigh in on</h2>
+  <ul>
+    <li><strong>Tappable text vs. confirmationDialog.</strong> Screens 2 &amp; 3 are drawn as anchored
+    popovers (to keep the green header + rich rows). A plain <code>.confirmationDialog</code> is more
+    “stock iOS” but drops the rich header. Pick: custom anchored popover (matches the Mac, more build) vs.
+    confirmationDialog (cheaper, less faithful).</li>
+    <li><strong>Chip bar in or out (screen 4).</strong> The opt-out model says prose-only. Confirm we ship
+    <em>without</em> the chip bar (screens 1–3 are the real UI), or keep it as an optional roster header.</li>
+    <li><strong>Whole-note resolution (locked).</strong> Per the signed-off naming-review opt-out model, picking
+    a person in screen 2 applies to the whole note; a rarer second Jack is tapped and resolved separately (no
+    per-occurrence resolver). The screen-2 footer now states this; resolved away from resolver-inline’s
+    per-occurrence promise toward the signed-off spec.</li>
+  </ul>
+</div>
+</body>
+</html>
