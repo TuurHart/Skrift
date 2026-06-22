@@ -9,7 +9,12 @@ enum SharedStore {
     static let container: ModelContainer = {
         // Explicit store path so dev ("Skrift Dev") and prod ("Skrift") keep
         // SEPARATE SwiftData stores (AppPaths.storeFile is suffixed per build).
-        let config = ModelConfiguration(url: AppPaths.storeFile)
+        // cloudKitDatabase: .none is REQUIRED, not cosmetic: this is the LOCAL pipeline store
+        // and PipelineFile has @Attribute(.unique) id, which CloudKit forbids. Once the app
+        // gained the CloudKit entitlement (for the separate MemoCloudStore), the DEFAULT
+        // .automatic started resolving to "CloudKit on" here too → ModelContainer init
+        // fatal-errors on the unique constraint. .none pins this store local regardless.
+        let config = ModelConfiguration(url: AppPaths.storeFile, cloudKitDatabase: .none)
         do { return try ModelContainer(for: PipelineFile.self, configurations: config) }
         catch { fatalError("Failed to create ModelContainer: \(error)") }
     }()
