@@ -1164,6 +1164,19 @@ feel, folder import, AirPods re-insert recheck). Original findings below.
 - **Capture tool still confusing — STOP REBUILDING (user decision): design pause.** Next session = sit down
   with the user / produce interaction mocks for the capture-adjust flow BEFORE more code. No more iteration
   batches on CaptureMomentView until the design is agreed.
+  - **🧠 DESIGN THINKING 2026-06-22 (for that paused session — overlaps the note-editing sprint's selection
+    primitive).** Direction the user is leaning: **pull capture INTO the reader via in-place text selection**
+    (highlighter / Kindle model) instead of a separate capture screen — select a passage → small menu
+    (Highlight · Note · Bookmark), stay on the page. Keep Skrift's edge (the **voice ramble**) as a
+    LIGHTWEIGHT inline bar (talk while staying on the page; grab the quote audio behind the scenes), not a
+    full screen. **Bookmark vs Note = same gesture, different keepsake:** a bookmark is a *breadcrumb*
+    (stays in-book, jump-back, throwaway); a note is a *souvenir* (becomes a memo → sync → tags/significance
+    → Obsidian, permanent). Don't merge the entities; unify the gesture. **Missing middle tier = a plain
+    HIGHLIGHT** (save the passage's words, no ramble) — the literal highlighter act, between bookmark (a
+    point) and note (a voice capture). Possible unified model to MOCK: **"Marks"** = bookmarks + highlights
+    (a point OR a text span; both in-book, both jumpable) and **"Notes"** = a mark you've talked over →
+    promoted to a memo (bookmark = mark w/ no text; highlight = mark w/ text; note = highlight + your voice).
+    Mock-first; shares the selection mechanic with the note-editing sprint.
 - **Bar at bottom: looks good now** ✓.
 - **Full player (big-thumbnail screen): add swipe-down to close.** Also: user still couldn't change the
   cover ("still needs to be able to be changed") — Edit-book-details shipped in round 2 under the ⋯ menu;
