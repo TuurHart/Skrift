@@ -235,8 +235,8 @@ final class MemoSaverTests: XCTestCase {
                                        contents: Data("AUDIO".utf8))
         var bookMeta = MemoMetadata()
         bookMeta.bookTitle = "Meditations"
-        repo.insert(Memo(id: bookID, audioFilename: bookFile, duration: 5, recordedAt: Date(),
-                         transcriptStatus: .transcribing, metadata: bookMeta))
+        repo.insert(Memo.make(id: bookID, audioFilename: bookFile, duration: 5, recordedAt: Date(),
+                              transcriptStatus: .transcribing, metadata: bookMeta))
 
         // (c) plain recording — stuck, SHOULD be recovered
         let plainID = UUID()

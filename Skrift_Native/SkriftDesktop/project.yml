@@ -34,8 +34,11 @@ targets:
       - path: Engines
       - path: Features
       # Shared cross-app source (one physical copy → no phone↔Mac drift).
+      # Model: the shared CloudKit @Models (Memo, MemoAsset, MemoEnhancement) + DeviceID,
+      # so the Mac can be a CloudKit client of the phone's note store (MAC_CLOUDKIT_PLAN.md).
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/Model
     settings:
       base:
         PRODUCT_NAME: SkriftDesktop
@@ -108,6 +111,7 @@ targets:
       # Shared cross-app source (host-less test bundle compiles it directly, like Models/Pipeline).
       - path: ../Shared/Naming
       - path: ../Shared/Export
+      - path: ../Shared/Model
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests

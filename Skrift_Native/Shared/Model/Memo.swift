@@ -26,6 +26,16 @@ enum TrashPolicy {
 
 /// A captured voice memo. Mirrors the RN `Memo` shape (`Mobile/lib/storage.ts`)
 /// plus the mobile↔Mac contract fields the backend trusts.
+///
+/// **Shared model (`Shared/Model/Memo.swift`):** this @Model is the SINGLE source of
+/// the `Memo` CloudKit schema, compiled by BOTH the iOS app and the macOS app so the
+/// Mac can be a CloudKit client of the phone's note store (`MAC_CLOUDKIT_PLAN.md`,
+/// Fork A). To stay desktop-compilable it carries NO iOS couplings — the contextual
+/// `MemoMetadata` / `SharedContent` types stay mobile-only, so the designated init here
+/// is **blob-based** (`metadataData` / `sharedContentData` as `Data?`). The phone's
+/// typed accessors (`metadata` / `sharedContent`), the on-disk path helpers
+/// (`audioURL` / `sharedFileURL`), and a convenient typed factory (`Memo.make(…)`) live
+/// in the mobile-only `SkriftMobile/Models/Memo+Mobile.swift` extension.
 @Model
 final class Memo {
     /// Stable identity. Audio filenames embed it (`memo_{uuid}.m4a`) and the Mac
@@ -91,11 +101,13 @@ final class Memo {
     /// Contextual capture payload + shared content, persisted as JSON blobs —
     /// NOT direct SwiftData Codable-struct attributes. SwiftData's internal decode
     /// of a nested-optional Codable struct traps at runtime (EXC_BREAKPOINT) the
-    /// first time the attribute is read back; the blob + computed accessors below
-    /// use our own JSON coder, which round-trips cleanly. Never queried by
-    /// SwiftData; the shape feeds the Mac upload JSON.
-    private var metadataData: Data?
-    private var sharedContentData: Data?
+    /// first time the attribute is read back; the blob + computed accessors (mobile
+    /// extension) use our own JSON coder, which round-trips cleanly. Never queried by
+    /// SwiftData; the shape feeds the Mac upload JSON. **Internal (not `private`)** so
+    /// the mobile typed accessors AND the Mac's CloudKit ingest can read/write the raw
+    /// bytes — the Mac forwards `metadataData` verbatim as the upload `audioMetadataJSON`.
+    var metadataData: Data?
+    var sharedContentData: Data?
     var annotationText: String?
 
     /// The install that RECORDED this memo (`DeviceID.current`). With CloudKit a memo
@@ -114,6 +126,10 @@ final class Memo {
     /// ADDITIVE, nil default → lightweight SwiftData migration (safe for prod data).
     var pendingDiarizationTarget: Int? = nil
 
+    /// Designated, **blob-based** initializer (desktop-compilable — no `MemoMetadata` /
+    /// `SharedContent`). The mobile app constructs memos with typed contextual metadata
+    /// via `Memo.make(metadata:sharedContent:…)` (the `Memo+Mobile.swift` extension),
+    /// which encodes the blobs and forwards here.
     init(
         id: UUID = UUID(),
         audioFilename: String = "",
@@ -131,8 +147,8 @@ final class Memo {
         deletedAt: Date? = nil,
         createdAt: Date? = Date(),
         editedAt: Date? = nil,
-        metadata: MemoMetadata? = nil,
-        sharedContent: SharedContent? = nil,
+        metadataData: Data? = nil,
+        sharedContentData: Data? = nil,
         annotationText: String? = nil,
         recordingDeviceID: String? = DeviceID.current()
     ) {
@@ -152,28 +168,23 @@ final class Memo {
         self.deletedAt = deletedAt
         self.createdAt = createdAt
         self.editedAt = editedAt
-        self.metadataData = Self.encodeJSON(metadata)
-        self.sharedContentData = Self.encodeJSON(sharedContent)
+        self.metadataData = metadataData
+        self.sharedContentData = sharedContentData
         self.annotationText = annotationText
         self.recordingDeviceID = recordingDeviceID
-    }
-
-    /// Resolved on-disk audio location, or nil for memos without audio.
-    var audioURL: URL? {
-        audioFilename.isEmpty ? nil : AppPaths.recordingsDirectory.appendingPathComponent(audioFilename)
-    }
-
-    /// Resolved on-disk location of a shared `.file` capture's document (e.g. a PDF),
-    /// or nil. `sharedContent.filePath` holds the RELATIVE filename (reinstall-safe),
-    /// resolved against the recordings dir — same rule as `audioURL`.
-    var sharedFileURL: URL? {
-        guard let path = sharedContent?.filePath, !path.isEmpty else { return nil }
-        return AppPaths.recordingsDirectory.appendingPathComponent(path)
     }
 
     /// When the memo entered Skrift — legacy memos (nil `createdAt`) fall back to
     /// `recordedAt`. The "Recently added" sort key.
     var addedAt: Date { createdAt ?? recordedAt }
+
+    /// Last content edit — never-edited memos fall back to added/recorded. The
+    /// "Recently edited" sort key.
+    var lastEditedAt: Date { editedAt ?? createdAt ?? recordedAt }
+
+    /// Bump the edited timestamp. Call from content-edit sites (title, transcript,
+    /// tags, append, trim) — NOT from sync-status / significance changes.
+    func markEdited(_ date: Date = Date()) { editedAt = date }
 
     /// Parse a tag-entry string into individual tags: COMMA / newline separated (a
     /// tag may contain spaces, so we don't split on whitespace), each trimmed and
@@ -185,30 +196,14 @@ final class Memo {
             .filter { !$0.isEmpty }
     }
 
-    /// Last content edit — never-edited memos fall back to added/recorded. The
-    /// "Recently edited" sort key.
-    var lastEditedAt: Date { editedAt ?? createdAt ?? recordedAt }
-
-    /// Bump the edited timestamp. Call from content-edit sites (title, transcript,
-    /// tags, append, trim) — NOT from sync-status / significance changes.
-    func markEdited(_ date: Date = Date()) { editedAt = date }
-
-    var metadata: MemoMetadata? {
-        get { Self.decodeJSON(metadataData) }
-        set { metadataData = Self.encodeJSON(newValue) }
-    }
-
-    var sharedContent: SharedContent? {
-        get { Self.decodeJSON(sharedContentData) }
-        set { sharedContentData = Self.encodeJSON(newValue) }
-    }
-
-    private static func encodeJSON<T: Encodable>(_ value: T?) -> Data? {
+    /// Generic JSON helpers for the `metadataData` / `sharedContentData` blobs. Internal
+    /// (not `private`) so the mobile typed accessors + `Memo.make` can use them.
+    static func encodeJSON<T: Encodable>(_ value: T?) -> Data? {
         guard let value else { return nil }
         return try? JSONEncoder().encode(value)
     }
 
-    private static func decodeJSON<T: Decodable>(_ data: Data?) -> T? {
+    static func decodeJSON<T: Decodable>(_ data: Data?) -> T? {
         guard let data else { return nil }
         return try? JSONDecoder().decode(T.self, from: data)
     }

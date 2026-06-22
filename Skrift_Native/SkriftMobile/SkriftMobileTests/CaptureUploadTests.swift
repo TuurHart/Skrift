@@ -132,7 +132,7 @@ final class CaptureUploadTests: XCTestCase {
     @MainActor
     func testCaptureUploadFlowsThroughSyncCoordinator() async {
         let repo = NotesRepository(inMemory: true)
-        let memo = Memo(
+        let memo = Memo.make(
             audioFilename: "",     // no audio = capture discriminator
             duration: 0,
             syncStatus: .waiting,
@@ -206,7 +206,7 @@ final class CaptureUploadTests: XCTestCase {
         let imageManifest: [ImageManifestEntry]? = imageManifestFilename.map {
             [ImageManifestEntry(filename: $0, offsetSeconds: 0)]
         }
-        return Memo(
+        return Memo.make(
             audioFilename: "",
             duration: 0,
             recordedAt: Date(),

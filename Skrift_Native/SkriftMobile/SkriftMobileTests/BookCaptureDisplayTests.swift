@@ -18,7 +18,7 @@ final class BookCaptureDisplayTests: XCTestCase {
         var meta = MemoMetadata()
         meta.bookTitle = book
         meta.bookChapter = chapter
-        return Memo(title: title, transcript: transcript, metadata: meta)
+        return Memo.make(title: title, transcript: transcript, metadata: meta)
     }
 
     private let c1Transcript = """

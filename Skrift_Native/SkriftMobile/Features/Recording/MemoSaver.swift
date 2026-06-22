@@ -318,7 +318,7 @@ struct MemoSaver {
             return nil
         }
 
-        repository.insert(Memo(
+        repository.insert(Memo.make(
             id: id,
             audioFilename: filename,
             duration: duration,
@@ -531,7 +531,7 @@ struct MemoSaver {
         let metadata = manifest.isEmpty ? nil : MemoMetadata(imageManifest: manifest)
         let provisionalText = provisional?.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        repository.insert(Memo(
+        repository.insert(Memo.make(
             id: id,
             audioFilename: filename,
             duration: duration,

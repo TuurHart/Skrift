@@ -14,10 +14,10 @@ final class MemoExporterTests: XCTestCase {
     // MARK: Markdown
 
     func testMarkdownFrontmatterAndLinkedBody() {
-        let memo = Memo(recordedAt: fixedDate, tags: ["idea"], title: "Coffee with Hendri",
-                        transcript: "Met up with Hendri today.", significance: 0.5,
-                        metadata: MemoMetadata(location: LocationInfo(latitude: 1, longitude: 2, placeName: "Lisbon"),
-                                               tags: []))
+        let memo = Memo.make(recordedAt: fixedDate, tags: ["idea"], title: "Coffee with Hendri",
+                             transcript: "Met up with Hendri today.", significance: 0.5,
+                             metadata: MemoMetadata(location: LocationInfo(latitude: 1, longitude: 2, placeName: "Lisbon"),
+                                                    tags: []))
         let md = MemoExporter.markdown(for: memo, people: [hendri], author: "Tiuri")
 
         XCTAssertTrue(md.hasPrefix("---\n"), "starts with YAML frontmatter")
@@ -33,8 +33,8 @@ final class MemoExporterTests: XCTestCase {
 
     func testCaptureMarkdownUrlSource() {
         let sc = SharedContent(type: .url, url: "https://example.com", urlTitle: "Example")
-        let memo = Memo(recordedAt: fixedDate, title: "Saved link",
-                        sharedContent: sc, annotationText: "Worth reading.")
+        let memo = Memo.make(recordedAt: fixedDate, title: "Saved link",
+                             sharedContent: sc, annotationText: "Worth reading.")
         XCTAssertTrue(memo.isShareCapture, "fixture must be a share-capture")
         let md = MemoExporter.markdown(for: memo, people: [], author: "T")
         XCTAssertTrue(md.contains("source: capture-url"))

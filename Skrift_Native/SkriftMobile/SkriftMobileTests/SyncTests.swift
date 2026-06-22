@@ -5,7 +5,7 @@ final class UploadPayloadTests: XCTestCase {
 
     @MainActor
     func testMultipartHasExpectedPartsAndNeverSanitised() {
-        let memo = Memo(
+        let memo = Memo.make(
             id: UUID(),
             audioFilename: "memo_x.m4a",
             duration: 5,
@@ -136,9 +136,9 @@ final class SyncCoordinatorTests: XCTestCase {
     func testCaptureHeldWhileDictationTranscribing() async {
         let repo = NotesRepository(inMemory: true)
         let id = UUID()
-        repo.insert(Memo(id: id, audioFilename: "", duration: 0, recordedAt: Date(),
-                         syncStatus: .waiting, transcript: nil, transcriptStatus: .transcribing,
-                         significance: 0.6,
+        repo.insert(Memo.make(id: id, audioFilename: "", duration: 0, recordedAt: Date(),
+                              syncStatus: .waiting, transcript: nil, transcriptStatus: .transcribing,
+                              significance: 0.6,
                          sharedContent: SharedContent(type: .url, url: "https://a.com", urlTitle: "A",
                                                       text: nil, fileName: nil, mimeType: nil),
                          annotationText: "typed"))

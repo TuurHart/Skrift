@@ -147,7 +147,7 @@ final class QuotePresentationTests: XCTestCase {
         meta.bookTitle = book
         meta.bookAuthor = author
         meta.bookChapter = chapter
-        return Memo(transcript: transcript, metadata: meta)
+        return Memo.make(transcript: transcript, metadata: meta)
     }
 
     func testCaptureQuoteIsGatedOnTheBookMetadata() {

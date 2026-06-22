@@ -154,7 +154,7 @@ enum CaptureInboxDrainer {
                 MemoMetadata(imageManifest: manifest)
             }
 
-            let memo = Memo(
+            let memo = Memo.make(
                 id: memoID,
                 audioFilename: "",          // no audio — the discriminator for capture items
                 duration: 0,

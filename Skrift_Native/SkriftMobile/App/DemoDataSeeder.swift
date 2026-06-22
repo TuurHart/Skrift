@@ -25,7 +25,7 @@ enum DemoDataSeeder {
         let id = UUID()
         let photoName = "photo_\(id.uuidString)_001.jpg"
         writePortraitDiagnosticFrame(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName))
-        return Memo(
+        return Memo.make(
             id: id,
             audioFilename: "memo_\(id.uuidString).m4a",
             duration: 42,
@@ -76,7 +76,7 @@ enum DemoDataSeeder {
 
         **Speaker 2:** Yeah, but can we split the conversation during this pre-recording as well? Because now you'll see if it saves. But it would be cool if it noticed while you were talking.
         """
-        return Memo(
+        return Memo.make(
             audioFilename: "memo_conversation.m4a",
             duration: 28,
             recordedAt: now,
@@ -96,7 +96,7 @@ enum DemoDataSeeder {
         let now = Date()
         let body = (1...18).map { "Line \($0): the harbour was quiet at dawn and the light came in sideways across the water." }
             .joined(separator: "\n\n")
-        return Memo(
+        return Memo.make(
             audioFilename: "memo_long.m4a",
             duration: 240,
             recordedAt: now,
@@ -115,7 +115,7 @@ enum DemoDataSeeder {
     static func demoMemos() -> [Memo] {
         let now = Date()
         return [
-            Memo(
+            Memo.make(
                 audioFilename: "memo_demo1.m4a",
                 duration: 134,
                 recordedAt: now.addingTimeInterval(-3_600),

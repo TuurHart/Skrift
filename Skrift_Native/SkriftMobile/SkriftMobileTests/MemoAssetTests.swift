@@ -26,8 +26,8 @@ final class MemoAssetTests: XCTestCase {
         defer { cleanup([audio, photo]) }
         write(audio, Data("AUDIO-BYTES".utf8))
         write(photo, Data("JPG".utf8))
-        let memo = Memo(id: id, audioFilename: audio,
-                        metadata: MemoMetadata(imageManifest: [ImageManifestEntry(filename: photo, offsetSeconds: 0)]))
+        let memo = Memo.make(id: id, audioFilename: audio,
+                             metadata: MemoMetadata(imageManifest: [ImageManifestEntry(filename: photo, offsetSeconds: 0)]))
         repo.insert(memo)
 
         AssetMaterializer.captureMissing(repo)
@@ -148,8 +148,8 @@ final class MemoAssetTests: XCTestCase {
         let photoBytes = Data("THE-PHOTO".utf8)
         write(audio, audioBytes)
         write(photo, photoBytes)
-        repo.insert(Memo(id: id, audioFilename: audio,
-                         metadata: MemoMetadata(imageManifest: [ImageManifestEntry(filename: photo, offsetSeconds: 0)])))
+        repo.insert(Memo.make(id: id, audioFilename: audio,
+                              metadata: MemoMetadata(imageManifest: [ImageManifestEntry(filename: photo, offsetSeconds: 0)])))
         AssetMaterializer.captureMissing(repo)        // device A
         XCTAssertEqual(repo.allAssets().count, 2)
 

@@ -21,9 +21,9 @@ final class CaptureDictationTests: XCTestCase {
     @MainActor
     private func makePendingDictationMemo(repo: NotesRepository, typed: String? = nil) -> UUID {
         let id = UUID()
-        repo.insert(Memo(id: id, audioFilename: "", duration: 0, recordedAt: Date(),
-                         syncStatus: .waiting, transcript: nil, transcriptStatus: .transcribing,
-                         significance: 0.5,
+        repo.insert(Memo.make(id: id, audioFilename: "", duration: 0, recordedAt: Date(),
+                              syncStatus: .waiting, transcript: nil, transcriptStatus: .transcribing,
+                              significance: 0.5,
                          sharedContent: SharedContent(type: .url, url: "https://x.com", urlTitle: "X",
                                                       text: nil, fileName: nil, mimeType: nil),
                          annotationText: typed))

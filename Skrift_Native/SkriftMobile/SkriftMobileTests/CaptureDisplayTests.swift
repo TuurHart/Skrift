@@ -94,7 +94,7 @@ final class CaptureDisplayTests: XCTestCase {
     }
 
     func testDisplayTitlePrefersUserSetTitle() {
-        let memo = Memo(
+        let memo = Memo.make(
             audioFilename: "", title: "My title",
             sharedContent: SharedContent(type: .url, url: "https://example.com", urlTitle: "Page title")
         )
@@ -111,7 +111,7 @@ final class CaptureDisplayTests: XCTestCase {
         imageFileName: String? = nil,
         annotationText: String? = nil
     ) -> Memo {
-        Memo(
+        Memo.make(
             audioFilename: "",
             sharedContent: SharedContent(
                 type: type,

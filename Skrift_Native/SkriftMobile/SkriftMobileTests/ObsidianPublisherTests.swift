@@ -71,9 +71,9 @@ final class ObsidianPublisherTests: XCTestCase {
 
     func testSubfolderBySource() {
         XCTAssertEqual(ObsidianPublisher.subfolder(for: Memo(transcript: "x")), "Voice Memos")
-        XCTAssertEqual(ObsidianPublisher.subfolder(for: Memo(transcript: "x",
+        XCTAssertEqual(ObsidianPublisher.subfolder(for: Memo.make(transcript: "x",
             metadata: MemoMetadata(tags: [], bookTitle: "Dune"))), "Audiobook Quotes")
-        XCTAssertEqual(ObsidianPublisher.subfolder(for: Memo(
+        XCTAssertEqual(ObsidianPublisher.subfolder(for: Memo.make(
             sharedContent: SharedContent(type: .url, url: "https://e.com"))), "Captures")
     }
 
