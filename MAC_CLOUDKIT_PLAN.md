@@ -9,7 +9,7 @@
 
 ## ⭐ RESUME HERE (2026-06-22) — BUILT (8a–8d), awaiting the user's Xcode + device steps
 
-**ALL BUILT + committed on `main` (commit-per-chunk, each gated green; NOT yet pushed to origin):**
+**ALL BUILT + committed + pushed to `main`/origin (commit-per-chunk, each gated green):**
 - `845e6bc` **8a-ii — true-share `Memo`/`MemoAsset`/`DeviceID` → `Shared/Model`.** The @Model CORE (+ `SyncStatus`/
   `TranscriptStatus`/`TrashPolicy` enums, `addedAt`/`lastEditedAt`/`markEdited`/`parseTagInput`, internal
   `encode/decodeJSON`) moved to `Shared/Model/Memo.swift` with a **blob-based** designated init (no iOS types).
@@ -51,14 +51,19 @@ capture cross-transport dedup limit, see below). `76e3747` **launch-crash fix** 
 that must stay local under an entitled app needs explicit `.none`. **The fresh Dev build is deployed to
 `/Applications/Skrift Dev.app` and launches clean** (verified). `MemoCloudStore` is the only CloudKit container.
 
-**REMAINING — user only (can't be done from the CLI):**
-1. **Push** `main` → origin (these 5 commits are local).
-2. **Enable** CloudKit-Mac sync on the Dev Mac: Settings → Sync → "CloudKit sync with the Mac" (OFF by default), with
-   the Mac signed into the same iCloud account as the phone.
-3. **Device-verify:** record a significant memo on the phone → it appears on the Mac via CloudKit (no Bonjour) → the
-   Mac enhances it → the `MemoEnhancement` syncs back → the phone's Obsidian export uses the polished text; the iPad sees it.
-4. **At prod promotion:** register `iCloud.com.skrift.mobile` + Push on `com.skrift.desktop` in Xcode's Signing &
-   Capabilities (Debug `…mobile.dev` already done) + Deploy the `MemoEnhancement` record type in the CloudKit Dashboard.
+**DEVICE-VERIFIED (2026-06-22):** CloudKit-Mac sync enabled on the Dev Mac → **73 phone memos synced down** to the
+Mac's CloudKit mirror; the eligible (significance>0, non-trashed) ones ingested into the queue with `id == memo UUID`
+(the CloudKit-ingest signature) and `transcribe=done` (trusted transcript accepted, no re-ASR). Desktop **push
+registered + 32-byte APNs token** received (`6642af4`). Launch-crash from the entitlement→`.automatic` flip fixed
+(`76e3747`). Push registration code: macOS `MacAppDelegate` (`6642af4`); the phone was already fully push-ready since
+`53451a6` (2026-06-18). Fresh Dev build deployed to `/Applications/Skrift Dev.app`, launches clean.
+
+**REMAINING — user only:**
+1. **Finish one round-trip:** on the Mac, **Process** an ingested memo → it enhances → the `MemoEnhancement` write-back
+   syncs back → confirm the phone's Obsidian export uses the polished text (the only end-to-end leg not yet eyeballed).
+2. **At prod promotion (Release):** in Xcode's Signing & Capabilities for the Release config, register
+   `iCloud.com.skrift.mobile` + add the **Push** capability on `com.skrift.desktop` AND `com.skrift.mobile` (Debug/dev is
+   done for both), and **Deploy** the `MemoEnhancement` record type in the CloudKit Dashboard (prod environment).
 
 **Known limitation (follow-up):** **capture** items (URL/text/PDF shares) dedup across transports only on CloudKit
 re-ingest (by `id`), NOT cross-transport — a Bonjour capture upload carries no memo UUID (random id +
@@ -200,25 +205,24 @@ standalone Obsidian export, with zero phone-UI work required.
 
 ## ⚠️ The hard manual steps (USER — can't be done from the CLI)
 
-1. **CloudKit capability on the macOS target.** Add **iCloud → CloudKit** to `SkriftDesktop` in Xcode's
-   Signing & Capabilities, declaring the **same container** the phone uses:
-   `iCloud.com.skrift.mobile.dev` (Debug) / `iCloud.com.skrift.mobile` (Release), **per-config**,
-   entitlement values **literal** (no `$(VAR)` — the locked CAPTURE_CONTRACT lesson). `-allowProvisioning
-   Updates` registers IDs but **cannot add a capability** (every prior capability hit this).
-2. **Real team signing for the desktop.** The desktop currently signs **ad-hoc** (`CODE_SIGN_IDENTITY:
-   "-"`, `CODE_SIGN_STYLE: Manual`, no team — `project.yml:50-52`). **CloudKit entitlements can't be
-   ad-hoc signed** → the macOS app must sign with `DEVELOPMENT_TEAM=9W82X49JZS` (Automatic) like the
-   phone, with a provisioning profile that includes the iCloud container. **This changes the desktop
-   build/signing story** (the `/Applications/Skrift Dev.app` local-deploy flow now needs a signed
-   build). Biggest non-code item — surfaced early so it's not a build-day surprise.
-3. **Background Modes → Remote notifications** on the macOS target (optional, for prompt push sync; the
-   Phase-1 mobile precedent). Lazy sync works without it.
-4. **CloudKit Dashboard:** the new `MemoEnhancement` record type auto-creates in the **dev** environment;
-   at prod promotion it needs **Deploy Schema Changes** (same as the Memo/MemoAsset types).
-5. Both Mac + phone signed into the **same iCloud account** (single user — fine).
+1. **CloudKit capability on the macOS target.** ✅ DONE (Debug). **iCloud → CloudKit** added to `SkriftDesktop`
+   declaring `iCloud.com.skrift.mobile.dev` (Debug) / `iCloud.com.skrift.mobile` (Release), per-config, literal
+   entitlement values. Release container still to register at prod promotion. (`-allowProvisioningUpdates` registers
+   IDs but **cannot add a capability** — the locked lesson.)
+2. **Real team signing for the desktop.** ✅ DONE. The main app target now signs with `CODE_SIGN_STYLE: Automatic` +
+   `DEVELOPMENT_TEAM: 9W82X49JZS` (`project.yml:53-62`, "Team signing — REQUIRED for CloudKit"); only the host-less
+   test bundles keep ad-hoc (so the fast MLX-free loop needs no profile). The `/Applications/Skrift Dev.app`
+   local-deploy now ships a signed build (build → quit → `ditto` → open — see `feedback_desktop_dev_deploy`).
+3. **Push Notifications on the macOS target.** ✅ DONE (Debug). macOS needs NO `UIBackgroundModes` key (iOS-only) — it
+   needs the `aps-environment` entitlement (committed) + `NSApplication.registerForRemoteNotifications()`
+   (`MacAppDelegate`, `6642af4`) + the App-ID Push capability (added in Xcode). **Device-verified:** 32-byte APNs
+   token on launch. Release App-ID Push still to add at prod promotion. Lazy sync works without it.
+4. **CloudKit Dashboard:** the `MemoEnhancement` record type auto-creates in the **dev** environment; at prod
+   promotion it needs **Deploy Schema Changes** (same as the Memo/MemoAsset types).
+5. Both Mac + phone signed into the **same iCloud account** (single user — confirmed `tiurihartog@icloud.com`).
 
-Until #1+#2 are done, the task-#8 code **compiles + unit-tests but stays inert** (CloudKit `.none`
-under tests; no container = lazy local-only), exactly like Phase 1 shipped before its capability.
+Dev steps #1–#3 are now DONE (the feature is live on the Dev build). Under tests the code stays inert (CloudKit `.none`
+under XCTest; no container = local-only), exactly like Phase 1 before its capability.
 
 ---
 

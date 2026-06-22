@@ -3,6 +3,7 @@
 # Build output
 build/
 build-device/
+build-release/
 build-archive/
 build-archive-dd/
 DerivedData/
