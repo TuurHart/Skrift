@@ -22,6 +22,11 @@ enum SharedStore {
 
 @main
 struct SkriftDesktopApp: App {
+    // Registers for CloudKit silent push at launch (MAC_CLOUDKIT_PLAN.md 8d) — the macOS
+    // mirror of the phone's AppDelegate. Without it the Mac's NSPersistentCloudKitContainer
+    // syncs LAZILY (minutes); with it, a synced memo lands in seconds, even unfocused.
+    @NSApplicationDelegateAdaptor(MacAppDelegate.self) private var appDelegate
+
     // The phone's sync target — local HTTP + Bonjour (plan §4).
     private let syncServer: SyncServer
 
@@ -122,5 +127,27 @@ struct SkriftDesktopApp: App {
         .defaultSize(width: 1180, height: 780)
         .windowStyle(.hiddenTitleBar)
         .modelContainer(SharedStore.container)
+    }
+}
+
+/// Registers for remote notifications so CloudKit silent pushes wake the app + drive a prompt
+/// import (then `MemoCloudReconciler`'s eventChangedNotification observer ingests). Mirrors the
+/// phone's `AppDelegate`. Requires the Push Notifications capability (writes `aps-environment`,
+/// enables the App ID) — already added; registration no-ops otherwise, so it's safe regardless.
+/// NSPersistentCloudKitContainer creates + owns the CloudKit subscription; once registered, the
+/// system delivers its silent pushes and the container imports — no manual push handling needed.
+final class MacAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApplication.shared.registerForRemoteNotifications()
+    }
+
+    func application(_ application: NSApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        print("[Push] registered for remote notifications (\(deviceToken.count)-byte token)")
+    }
+
+    func application(_ application: NSApplication,
+                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("[Push] failed to register: \(error.localizedDescription)")
     }
 }
