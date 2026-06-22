@@ -3,8 +3,11 @@
 <plist version="1.0">
 <dict>
 	<!-- Release ("Skrift", com.skrift.desktop) joins the phone's PROD CloudKit container.
-	     Register this container on the App ID in Xcode at prod promotion (same one-time
-	     step as the dev id). Literal value; NO app sandbox (see the dev entitlements). -->
+	     Register this container + Push on the com.skrift.desktop App ID in Xcode at prod
+	     promotion (the same one-time step done for the dev id). Literal value; NO app
+	     sandbox (the app reads the Obsidian vault + arbitrary audio paths). -->
+	<key>com.apple.developer.aps-environment</key>
+	<string>production</string>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
 		<string>iCloud.com.skrift.mobile</string>

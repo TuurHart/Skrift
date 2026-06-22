@@ -2,12 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Debug ("Skrift Dev", com.skrift.desktop.dev) joins the phone's DEV CloudKit
-	     container to read synced memos + write back enhancements (MAC_CLOUDKIT_PLAN.md).
-	     SAME container the dev phone uses → they share the private DB. Literal value
-	     (no $(VAR) — that breaks CLI profile matching). NO app sandbox: the desktop reads
-	     the Obsidian vault + audio from arbitrary paths, which the sandbox would block;
-	     CloudKit works in a non-sandboxed dev-signed Mac app. -->
+	<key>com.apple.developer.aps-environment</key>
+	<string>development</string>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
 		<string>iCloud.com.skrift.mobile.dev</string>
