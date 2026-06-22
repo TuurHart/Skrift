@@ -174,8 +174,18 @@ final class ProcessingCoordinator {
                 lastError = "Processing failed: \(error.localizedDescription)"
             }
             try? context.save()
+            writeBackEnhancement(pf)
             runState?.done += 1
         }
+    }
+
+    /// Sync the Mac's polish for a just-enhanced memo-sourced file back to the phone via
+    /// CloudKit (MAC_CLOUDKIT_PLAN.md 8c). No-op when CloudKit is off (no container) or the
+    /// file isn't a synced memo. The phone's MemoExporter already prefers the resulting
+    /// MemoEnhancement over the raw transcript, so a paired Mac auto-upgrades its export.
+    private func writeBackEnhancement(_ pf: PipelineFile) {
+        guard pf.enhanceStatus == .done, let container = MemoCloudStore.container else { return }
+        try? MacCloudWriteBack.upsert(for: pf, into: container.mainContext, deviceID: DeviceID.current())
     }
 
     /// The per-file `image_manifest.json` next to the audio (written by phone uploads
@@ -347,6 +357,7 @@ final class ProcessingCoordinator {
             pf.compiledText = Compiler.compile(file: pf, author: settings.authorName, knownPeople: NamesStore.shared.livePeople())
             pf.lastActivityAt = Date()
             try? context.save()
+            writeBackEnhancement(pf)   // re-sync the edited title/copy-edit/summary to the phone (8c)
         } catch {
             lastError = "Redo failed: \(error.localizedDescription)"
         }
