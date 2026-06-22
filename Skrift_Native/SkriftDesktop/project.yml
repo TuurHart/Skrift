@@ -47,10 +47,16 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
         # App icon from App/Assets.xcassets (macOS squircle, full size set).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        # Ad-hoc local signing so build + XCUITest work without a dev team.
-        CODE_SIGN_STYLE: Manual
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGNING_REQUIRED: NO
+        # Team signing — REQUIRED for CloudKit (the Mac joins the phone's private DB to read
+        # synced memos + write enhancements back; MAC_CLOUDKIT_PLAN.md). NOT sandboxed on
+        # purpose (the app reads the Obsidian vault + arbitrary audio paths); CloudKit works in
+        # a non-sandboxed dev/Developer-ID-signed Mac app. The iCloud CloudKit container is
+        # declared per-config in the .entitlements below; registering it on the App ID is a
+        # one-time manual Xcode "Signing & Capabilities" visit (the CLI can't add a capability).
+        # The host-less UnitTests bundle keeps its OWN ad-hoc signing, so the fast MLX-free
+        # test loop still runs without a provisioning profile.
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 9W82X49JZS
         ENABLE_HARDENED_RUNTIME: NO
       configs:
         # Dev/prod separation. Debug = "Skrift Dev" (com.skrift.desktop.dev) → its own
@@ -66,10 +72,12 @@ targets:
           PRODUCT_NAME: Skrift Dev
           INFOPLIST_KEY_CFBundleDisplayName: Skrift Dev
           ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon-Dev   # inverted-color dev icon
+          CODE_SIGN_ENTITLEMENTS: SkriftDesktop.dev.entitlements
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop
           PRODUCT_NAME: Skrift
           INFOPLIST_KEY_CFBundleDisplayName: Skrift
+          CODE_SIGN_ENTITLEMENTS: SkriftDesktop.entitlements
     dependencies:
       - package: FluidAudio
         product: FluidAudio
