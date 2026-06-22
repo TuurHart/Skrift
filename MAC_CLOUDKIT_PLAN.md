@@ -51,6 +51,13 @@
 4. **At prod promotion:** register `iCloud.com.skrift.mobile` + Push on `com.skrift.desktop` in Xcode's Signing &
    Capabilities (Debug `…mobile.dev` already done) + Deploy the `MemoEnhancement` record type in the CloudKit Dashboard.
 
+**Known limitation (follow-up):** **capture** items (URL/text/PDF shares) dedup across transports only on CloudKit
+re-ingest (by `id`), NOT cross-transport — a Bonjour capture upload carries no memo UUID (random id +
+`capture_<random>` filename), so the same capture sent via BOTH Bonjour AND CloudKit double-creates a `PipelineFile`.
+Audio memos are fully deduped (their `memo_<uuid>.m4a` filename embeds the UUID). The clean fix is an additive contract
+change — carry the memo id in the capture upload metadata so the desktop keys the capture on `memo.id` regardless of
+transport. Narrow edge (needs both an active LAN pairing AND CloudKit-Mac on for the same capture); deferred.
+
 ---
 
 ## The problem it solves

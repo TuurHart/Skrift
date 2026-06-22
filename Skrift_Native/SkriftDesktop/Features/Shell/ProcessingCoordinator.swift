@@ -180,11 +180,15 @@ final class ProcessingCoordinator {
     }
 
     /// Sync the Mac's polish for a just-enhanced memo-sourced file back to the phone via
-    /// CloudKit (MAC_CLOUDKIT_PLAN.md 8c). No-op when CloudKit is off (no container) or the
-    /// file isn't a synced memo. The phone's MemoExporter already prefers the resulting
-    /// MemoEnhancement over the raw transcript, so a paired Mac auto-upgrades its export.
+    /// CloudKit (MAC_CLOUDKIT_PLAN.md 8c). No-op unless the user opted into CloudKit-Mac sync
+    /// (same gate as the reconcile loop — a Mac with iCloud configured but the toggle OFF must
+    /// not touch CloudKit), the container is available, and the file is a synced memo. The
+    /// phone's MemoExporter already prefers the resulting MemoEnhancement over the raw
+    /// transcript, so a paired Mac auto-upgrades its export.
     private func writeBackEnhancement(_ pf: PipelineFile) {
-        guard pf.enhanceStatus == .done, let container = MemoCloudStore.container else { return }
+        guard pf.enhanceStatus == .done,
+              SettingsStore.shared.load().cloudKitMacSyncEnabled,
+              let container = MemoCloudStore.container else { return }
         try? MacCloudWriteBack.upsert(for: pf, into: container.mainContext, deviceID: DeviceID.current())
     }
 

@@ -53,7 +53,16 @@ enum MemoCloudIngest {
     }
 
     /// True when this memo already has a PipelineFile — by memo-UUID id (a prior CloudKit
-    /// ingest) OR by the embedded filename (a Bonjour upload, which minted a random id).
+    /// ingest) OR by the embedded filename (a Bonjour AUDIO upload, which minted a random id
+    /// but whose filename is `memo_<uuid>.m4a`).
+    ///
+    /// LIMITATION (captures): a CAPTURE uploaded via Bonjour carries NO memo UUID — its row has
+    /// a random id AND a `capture_<random>` filename — so it can't be matched to the same
+    /// capture arriving via CloudKit (whose row keys on `memo.id.uuidString`). CloudKit
+    /// re-ingest of a capture still dedups (the `id ==` arm); only a capture ingested via BOTH
+    /// transports double-creates. A full fix needs the phone to carry the memo id in capture
+    /// metadata (additive contract change) — tracked in MAC_CLOUDKIT_PLAN.md. Audio memos
+    /// dedup across both transports today.
     static func alreadyIngested(id: String, filename: String, in context: ModelContext) -> Bool {
         let descriptor = FetchDescriptor<PipelineFile>(
             predicate: #Predicate { $0.id == id || $0.filename == filename }
