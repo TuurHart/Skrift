@@ -139,7 +139,21 @@ TR→BL) filled accent with a soft shadow, scale-in transition on fold; the fain
 to the matching dog-ear (clip-path triangle). Toggle logic unchanged (span-aware + spatial-tap). Build 18.
 Device-eyeball owed.
 
+**📌 NEXT IDEA (after device use, 2026-06-22 — NOT built yet):** gate bookmark *creation* to the **active
+(white, now-playing) line only**, and show a **hollow bookmark/dog-ear OUTLINE in that line's gutter as the
+affordance** (tells the user "you can bookmark here" — fixes the current invisible-gutter discoverability
+gap; matches "mark where you are as you listen"). Tap the outline → fills (bookmarked). **Removal stays
+tap-the-filled-marker** (keep the unfold; else a past bookmark could only be cleared via the Bookmarks
+list) — CONFIRM with user. Consequence: you can only CREATE at the playback spot; to mark a line read ahead,
+tap it to seek there first. Replaces the current "every line's gutter is tappable to add." Build later.
+
 ### P2 — 🧱 EPIC: note-editing experience needs its own focused sprint
+> 📌 **PINNED FOR A FRESH CHAT (2026-06-22).** The user wants to start this as its own session. Resume here:
+> read the design thinking + the A/B/C fork + the B1-vs-B2 title question below, then go MOCK-FIRST.
+> Recommendation on record: **option B** (re-found the body on a natively-scrolling text view), likely
+> **B2** (pinned title only; tags/significance scroll with the body). First step in the fresh chat = mock
+> **B1 (Notes-style, title scrolls away) vs B2 (pinned title)** side by side for the user to pick.
+
 "The editing of the notes in the app is… not a very good experience." User wants a **focused, holistic
 study of note-editing** (Apple Notes as the bar, maybe better apps too) as its **own separate sprint** —
 not piecemeal. **Concrete first item — ⚠️ the 06-21 memo's "tags" was an ASR mishear of "TEXT"
