@@ -91,6 +91,12 @@ struct SkriftDesktopApp: App {
         self.syncServer = LocalHTTPServer(handlers: handlers)
         try? syncServer.start()
 
+        // CloudKit-Mac client (MAC_CLOUDKIT_PLAN.md 8d): register the launch/foreground/import
+        // reconcile triggers + run the launch sweep. Inert (no-op) unless the user opted into
+        // `cloudKitMacSync` — the Bonjour server above stays the default path, and the two
+        // coexist (MemoCloudIngest dedups a memo seen via both transports).
+        MemoCloudReconciler.start()
+
         // Pre-warm the custom-vocabulary booster at launch when the user has
         // custom words. The booster is NON-BLOCKING (it skips the first,
         // model-loading transcribe), so without this the first processed file

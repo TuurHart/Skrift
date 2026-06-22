@@ -43,6 +43,23 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// Effective list (nil legacy → empty).
     var customWords: [String] { customVocabulary ?? [] }
 
+    // ── CloudKit-Mac sync (MAC_CLOUDKIT_PLAN.md 8d) ──
+    // When on, the Mac reconciles memos synced over CloudKit (from the phone's note store)
+    // into the local pipeline queue (`MemoCloudReconciler`) and writes its polish back as a
+    // `MemoEnhancement` (8c). OFF by default (opt-in): CloudKit needs the iCloud capability +
+    // the user signed into iCloud on the Mac, and the Bonjour/HTTP path stays the default
+    // until the user turns this on. Optional for legacy-decode (same pattern as conversationMode).
+    var cloudKitMacSync: Bool? = nil
+    /// Effective flag (nil → OFF). When false, `MemoCloudReconciler` is inert and only the
+    /// Bonjour/HTTP path ingests — the two transports coexist.
+    var cloudKitMacSyncEnabled: Bool { cloudKitMacSync ?? false }
+
+    /// When on, the Mac processes EVERY synced memo, ignoring the phone's significance>0
+    /// flag-to-send gate (the `MemoCloudIngest` `processEverything` override). OFF by default
+    /// → honor the phone's intent (significance 0 stays on the phone). Optional for legacy-decode.
+    var processAllSyncedMemos: Bool? = nil
+    var processAllSyncedMemosEnabled: Bool { processAllSyncedMemos ?? false }
+
     static let `default` = AppSettings()
 
     /// LLM prompts — copied verbatim from `DEFAULT_SETTINGS.enhancement.prompts`.

@@ -103,6 +103,14 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 customWordsEditor
             }
+            section("Sync") {
+                toggleRow("CloudKit sync with the Mac", \.cloudKitMacSync,
+                          help: "Process memos your phone synced over iCloud — no Wi-Fi pairing, no app foregrounded — and sync the Mac's polished title/summary/copy-edit back to your phone. Needs the Mac signed into the same iCloud account. The local-network “Pair a Mac” path still works as a fallback when this is off.")
+                if settings.cloudKitMacSync ?? false {
+                    toggleRow("Process every synced memo", \.processAllSyncedMemos,
+                              help: "By default the Mac only processes memos you rated (significance > 0), matching the phone's flag-to-send. Turn this on to process every synced memo regardless of rating.")
+                }
+            }
             section("Names · \(displayPeople.count)") {
                 Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")
                     .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
@@ -174,6 +182,29 @@ struct SettingsView: View {
     }
 
     // ── Rows ────────────────────────────────────────────────
+    /// A label + switch over an OPTIONAL Bool setting (nil → off), with help text below.
+    /// Renders the state as "On"/"Off" text in snapshot mode (ImageRenderer can't draw a switch).
+    private func toggleRow(_ label: String, _ key: WritableKeyPath<AppSettings, Bool?>, help: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label).font(.system(size: 12)).foregroundStyle(Theme.textPrimary)
+                Spacer()
+                if interactive {
+                    Toggle("", isOn: Binding(
+                        get: { settings[keyPath: key] ?? false },
+                        set: { settings[keyPath: key] = $0 }
+                    ))
+                    .labelsHidden().toggleStyle(.switch).controlSize(.small)
+                } else {
+                    Text((settings[keyPath: key] ?? false) ? "On" : "Off")
+                        .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
+                }
+            }
+            Text(help).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private func textRow(_ label: String, _ key: WritableKeyPath<AppSettings, String>, placeholder: String = "") -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)

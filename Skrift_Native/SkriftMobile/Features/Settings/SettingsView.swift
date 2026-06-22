@@ -76,7 +76,7 @@ struct SettingsView: View {
                     Text("Your memos, names, and custom words sync across your devices via iCloud. Audiobooks sync per-book — turn one on from its long-press menu.")
                 }
 
-                Section("Mac") {
+                Section {
                     HStack {
                         Text("Connection")
                         Spacer()
@@ -106,6 +106,10 @@ struct SettingsView: View {
                         Text("Pair a Mac")
                     }
                     .accessibilityIdentifier("pair-mac-link")
+                } header: {
+                    Text("Mac · local network")
+                } footer: {
+                    Text("With the Mac app signed into the same iCloud account, your memos sync to it automatically over iCloud — no pairing needed. This local-network connection is an optional fallback for setups without iCloud.")
                 }
 
                 Section {
