@@ -53,14 +53,18 @@
 
   /* the bookmark = a folded page corner (dog-ear) at the passage's top-left, matching
      the app (build 18). Right-angle at top-left, hypotenuse top-right → bottom-left. */
-  .fold{position:absolute;left:0;top:0;width:17px;height:17px;background:var(--accent);
-        clip-path:polygon(0 0,100% 0,0 100%);
+  .fold{position:absolute;left:0;top:0;width:17px;height:17px;
         opacity:0;transform:scale(.2);transform-origin:top left;
-        transition:opacity .18s ease,transform .2s cubic-bezier(.3,1.2,.5,1);
-        filter:drop-shadow(1px 1px 1px rgba(0,0,0,.4));pointer-events:none;}
+        transition:opacity .18s ease,transform .2s cubic-bezier(.3,1.2,.5,1);pointer-events:none;}
+  .fold polygon{fill:var(--accent);stroke:none;}
   .para.marked{background:rgba(126,116,240,.10);}
-  .para.marked .fold{opacity:1;transform:scale(1);}
+  .para.marked .fold{opacity:1;transform:scale(1);filter:drop-shadow(1px 1px 1px rgba(0,0,0,.4));}
   .para.marked .ptext{color:var(--text);}
+  /* now-playing line: bright text + a HOLLOW outline fold = the affordance ("fold THIS
+     spot"). Only it can create a bookmark; matches the app's DogEar fill-vs-stroke. */
+  .para.active .ptext{color:#F4F4F8;}
+  .para.active:not(.marked) .fold{opacity:1;transform:scale(1);}
+  .para.active:not(.marked) .fold polygon{fill:none;stroke:var(--accent);stroke-width:1.5;}
 
   .reader-foot{height:42px;}
 
@@ -114,7 +118,7 @@
 <body>
   <h1>Reading-mode bookmark = page-corner fold</h1>
   <p class="sub">Audiobook reading mode · refines the signed-off <i>audiobook-player-reading-mode</i> mock.</p>
-  <p class="thesis"><b>Tap the margin to the left of a passage to fold its corner over — like dog-earing a real page. Tap again to unfold it.</b> No more bottom "Mark" button; jump between folds from Contents → Bookmarks.</p>
+  <p class="thesis"><b>The now-playing (white) line shows a hollow fold outline — tap it to dog-ear THIS spot. Tap any fold to lift it off.</b> Only the line you're on can be folded; no bottom "Mark" button; jump between folds from Contents → Bookmarks.</p>
 
   <div class="stage">
     <div class="phone">
@@ -127,22 +131,22 @@
       <div class="reader" id="reader">
         <div class="para" data-i="0">
           <div class="gutter" onclick="toggle(0)"><div class="hintdot"></div></div>
-          <div class="fold"></div>
+          <svg class="fold" viewBox="0 0 17 17"><polygon points="0,0 17,0 0,17"/></svg>
           <div class="ptext">Tolerance is not a Sapiens trademark. In modern times, a small difference in skin colour, dialect or religion has been enough to prompt one group to set about exterminating another.</div>
         </div>
         <div class="para marked" data-i="1">
           <div class="gutter" onclick="toggle(1)"><div class="hintdot"></div></div>
-          <div class="fold"></div>
+          <svg class="fold" viewBox="0 0 17 17"><polygon points="0,0 17,0 0,17"/></svg>
           <div class="ptext">Would ancient humans have been more tolerant towards an entirely different human species? It may well be that when Sapiens encountered Neanderthals, the result was the first and most significant ethnic-cleansing campaign in history.</div>
         </div>
-        <div class="para" data-i="2">
+        <div class="para active" data-i="2">
           <div class="gutter" onclick="toggle(2)"><div class="hintdot"></div></div>
-          <div class="fold"></div>
+          <svg class="fold" viewBox="0 0 17 17"><polygon points="0,0 17,0 0,17"/></svg>
           <div class="ptext">On the other hand, the two species may have found each other sexually attractive, and the differences between them dissolved into a single interbreeding population.</div>
         </div>
         <div class="para" data-i="3">
           <div class="gutter" onclick="toggle(3)"><div class="hintdot"></div></div>
-          <div class="fold"></div>
+          <svg class="fold" viewBox="0 0 17 17"><polygon points="0,0 17,0 0,17"/></svg>
           <div class="ptext">Whatever the case, the Neanderthals (and the other human species) pose one of history's great what-ifs. Imagine how things might have turned out had the Neanderthals or Denisovans survived alongside Homo sapiens.</div>
         </div>
         <div class="reader-foot"></div>
@@ -169,14 +173,14 @@
     </div>
 
     <div class="legend">
-      <span class="tag">interactive — tap the left margin of any passage</span>
+      <span class="tag">interactive — tap the now-playing line's margin (the outlined one)</span>
       <h3>What changes</h3>
       <ul>
-        <li><b>Tap-to-fold, tap-to-unfold.</b> The bookmark lives <b>on the page</b> — tap the gutter left of a passage and its corner folds over (purple dog-ear + a faint tint). Tap it again and it unfolds. <span class="old">(Before: the glyph wasn't tappable — you couldn't remove it.)</span></li>
+        <li><b>The now-line shows a hollow fold outline = the affordance.</b> Only the line you're on offers a fold — tap its margin and the corner folds over (purple dog-ear + a faint tint). Tap any fold to lift it off. <span class="old">(Fixes: the gutter used to be invisibly tappable on every line, with no hint.)</span></li>
         <li><b>No bottom "Mark" button.</b> The dedicated toggle in the control row is gone — folding is the gesture. <span class="old">(Before: Mark sat in the bottom row, detached from the text.)</span></li>
         <li><b>Contents sheet jumps.</b> One sheet, two tabs — <b>Chapters</b> to skip chapters, <b>Bookmarks</b> to jump straight to a fold. Tapping a bookmark scrolls to it.</li>
       </ul>
-      <p class="try">Try it: tap a margin to fold, tap again to unfold, then open <b>Contents → Bookmarks</b> to see the list update live.</p>
+      <p class="try">Try it: tap the <b>outlined (now-playing)</b> line's margin to fold; tap a fold to remove it; the other lines won't fold (only the line you're on can). Then open <b>Contents → Bookmarks</b> to see the list update live.</p>
     </div>
   </div>
 
@@ -197,10 +201,12 @@
     const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
     clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1300);
   }
+  const ACTIVE = 2;   // the now-playing line in this mock (shows the outline affordance)
   function toggle(i){
     const el=document.querySelector('.para[data-i="'+i+'"]');
     if(marks[i]){ delete marks[i]; el.classList.remove('marked'); toast('Unfolded'); }
-    else { marks[i]={time:times[i]}; el.classList.add('marked'); toast('Folded · '+times[i]); }
+    else if(i===ACTIVE){ marks[i]={time:times[i]}; el.classList.add('marked'); toast('Folded · '+times[i]); }
+    else { toast('Only the line you’re on can be folded'); return; }   // creation gated to the now-line
     if(curSeg==='bm') renderList();
   }
 

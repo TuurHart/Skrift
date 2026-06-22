@@ -261,7 +261,10 @@ struct ReadAlongView: View {
             }
         }
         // The bookmark = a folded page corner (dog-ear) at the passage's top-left.
-        // Tap the gutter to fold it in / lift it off.
+        // FILLED on a bookmarked line; on the now-playing line (unbookmarked) a hollow
+        // OUTLINE shows as the affordance — "you can fold THIS spot." Only the active
+        // line can create one (2026-06-22 device feedback); the outline rides the
+        // now-line as playback advances + sits on it when paused.
         .overlay(alignment: .topLeading) {
             if marked {
                 DogEar()
@@ -270,14 +273,21 @@ struct ReadAlongView: View {
                     .shadow(color: .black.opacity(0.35), radius: 1, x: 0.5, y: 0.5)
                     .transition(.scale(scale: 0.1, anchor: .topLeading).combined(with: .opacity))
                     .accessibilityHidden(true)
+            } else if isCurrent {
+                DogEar()
+                    .stroke(Color.skAccent.opacity(0.55), lineWidth: 1.5)
+                    .frame(width: 17, height: 17)
+                    .transition(.opacity)
+                    .accessibilityHidden(true)
             }
         }
         .contentShape(Rectangle())
-        // ONE spatial tap: tapping the left gutter folds/unfolds a bookmark, tapping
-        // the text seeks. Location-based (not a nested Button) so the gutter tap is
-        // reliable inside the scroll view (2026-06-21 fix: it "never removed").
+        // ONE spatial tap (location-based — reliable in the scroll view). Tap the
+        // gutter to fold/unfold: a FILLED line → remove; the active line → add (only
+        // the now-line can create); anywhere else → seek to that line.
         .gesture(SpatialTapGesture().onEnded { e in
-            if e.location.x < gutterWidth + 6 { toggleBookmark(at: i) } else { seek(to: i) }
+            let inGutter = e.location.x < gutterWidth + 6
+            if inGutter, marked || isCurrent { toggleBookmark(at: i) } else { seek(to: i) }
         })
         .accessibilityElement()
         .accessibilityLabel(marked ? "Bookmarked. \(model.sentences[i].text)" : model.sentences[i].text)
