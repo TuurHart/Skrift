@@ -1,55 +1,55 @@
 # MAC_CLOUDKIT_PLAN.md — Mac as a CloudKit client of the phone's note store
 
-> **Status:** DESIGN — awaiting user review (drafted 2026-06-21, worktree `phase2-export-cloudkit`).
-> This is "option A" from `STANDALONE_PLAN.md` ("Mac → CloudKit client … user-greenlit, AFTER
-> Phases 1–3"), pulled forward at the user's request. This doc locks the architecture; the build
-> is partly done (see RESUME) and is now on `main` (pushed).
+> **Status:** BUILT (8a–8d) — code-complete on `main`, awaiting the user's Xcode prod-registration
+> step + on-device verification (see RESUME). Drafted 2026-06-21; built 2026-06-22. This is "option A"
+> from `STANDALONE_PLAN.md` ("Mac → CloudKit client … user-greenlit, AFTER Phases 1–3"), pulled
+> forward at the user's request. This doc locks the architecture.
 
 ---
 
-## ⭐ RESUME HERE (2026-06-22) — foundation done, build the client next
+## ⭐ RESUME HERE (2026-06-22) — BUILT (8a–8d), awaiting the user's Xcode + device steps
 
-**DONE + on `main` (pushed to origin):**
-- This design doc (Fork A; write-back via `MemoEnhancement` sidecar; significance>0 gate; coexist with Bonjour).
-- **Desktop signing + CloudKit entitlement** — `SkriftDesktop` switched to team signing (9W82X49JZS, Automatic) +
-  `SkriftDesktop.dev.entitlements`/`.entitlements` declare the iCloud CloudKit container + push. **Debug container
-  `iCloud.com.skrift.mobile.dev` registered in Xcode + the Debug app BUILDS + codesigns** (verified). NOT sandboxed
-  (reads the vault/audio). Release container registers at prod promotion.
-- **`MemoEnhancement` sidecar** (`Shared/Model/MemoEnhancement.swift`) — the write-back carrier (copyedit/title/
-  summary + enhancedByDeviceID/enhancedAt), in the phone's CloudKit schema; `MemoExporter` already PREFERS it.
-  Inert until the Mac writes it.
+**ALL BUILT + committed on `main` (commit-per-chunk, each gated green; NOT yet pushed to origin):**
+- `845e6bc` **8a-ii — true-share `Memo`/`MemoAsset`/`DeviceID` → `Shared/Model`.** The @Model CORE (+ `SyncStatus`/
+  `TranscriptStatus`/`TrashPolicy` enums, `addedAt`/`lastEditedAt`/`markEdited`/`parseTagInput`, internal
+  `encode/decodeJSON`) moved to `Shared/Model/Memo.swift` with a **blob-based** designated init (no iOS types).
+  iOS coupling lives in `SkriftMobile/Models/Memo+Mobile.swift` (typed `metadata`/`sharedContent` accessors,
+  `audioURL`/`sharedFileURL`, `Memo.make(…)`). **Chose `Memo.make` over a convenience init** — a convenience init
+  with all-defaulted typed params is *ambiguous* with the blob designated init (Swift overload resolution, not just
+  macro friction); the 12 typed call sites use `Memo.make(…)`, metadata-free ones keep `Memo(…)`. `../Shared/Model`
+  wired into the desktop `project.yml` (app + UnitTests).
+- `add6a23` **8a-iii — `MemoCloudStore`** (`SkriftDesktop/App/MemoCloudContainer.swift`): the 2nd
+  `NSPersistentCloudKitContainer` over `[Memo, MemoAsset, MemoEnhancement]`, `.private(iCloud.com.skrift.mobile{.dev})`
+  per `#if DEBUG`, separate from the local PipelineFile `SharedStore`. `container: ModelContainer?` — nil under XCTest /
+  if it fails to build (→ Bonjour fallback). Lazy + inert until touched. `AppPaths.memoCloudStoreFile` = its own
+  dev/prod-suffixed mirror store. Mac device-id = the shared `DeviceID.current()`.
+- `a2e831a` **8b — `MemoCloudIngest`** read bridge: synthesizes the phone's multipart parts from the `Memo` + its
+  `MemoAsset` blobs and reuses `UploadService.ingest` (parity by construction; trust gate + materialization + field
+  reads are the identical code). `UploadService.ingest` gained an optional `memoID` (HTTP default unchanged) so
+  `PipelineFile.id == memo.id.uuidString`. Significance>0 gate + dedup (by UUID OR `memo_<uuid>` filename — collapses a
+  Bonjour+CloudKit memo to one row). `metadataJSON` rebuilds the upload-metadata shape on the desktop (`.sortedKeys`).
+  **10 golden tests** (`MemoCloudIngestTests`).
+- `74cb609` **8c — write-back** (`MacCloudWriteBack`): after enhance, upsert a `MemoEnhancement` (copyedit/title/
+  summary + provenance) into the CloudKit Memo store — only for a memo that exists there, only when there's content;
+  idempotent update-in-place. Hooked in `ProcessingCoordinator.process` + `redo`. `MemoExporter` already PREFERS it.
+  **8 unit tests** (`MacCloudWriteBackTests`).
+- `fa458df` **8d — reconcile + coexistence + de-Mac Settings.** `MemoCloudReconciler.sweep` (pure, testable) +
+  `+Wiring` (launch/active/CloudKit-import triggers, wired in `SkriftDesktopApp`). `AppSettings.cloudKitMacSync`
+  (opt-in, OFF default) + `processAllSyncedMemos`; a "Sync" Settings section (snapshot-verified). Phone's LAN "Pair a
+  Mac" section demoted to "Mac · local network" with an iCloud-is-primary footer (PairMacView kept as fallback).
+  **3 reconciler tests**.
 
-**DECISION UPDATE:** the bug chat is DONE and `Memo.swift` is quiescent on `main`, so do the **TRUE shared `Memo`
-model (decision 9), NOT the mirror.** Clean approach that dodges the `SharedContent` name collision:
-- Move the `Memo` @Model CORE → `Shared/Model/Memo.swift`: stored attributes only (incl. `pendingDiarizationTarget`)
-  + the pure computed props (`addedAt`/`lastEditedAt`/`markEdited`) + the generic `encode/decodeJSON` helpers + a
-  designated **blob-based** init (`metadataData`/`sharedContentData` as `Data?`). Also move `MemoAsset` + `DeviceID`
-  (both pure) → `Shared/Model/`. Move `SyncStatus`/`TranscriptStatus` enums too.
-- Keep the iOS coupling in a **mobile-only** `SkriftMobile/Models/Memo+Mobile.swift` extension: `audioURL` /
-  `sharedFileURL` (AppPaths) + the typed `metadata`/`sharedContent` accessors + a convenience `init(metadata:
-  sharedContent: …)` matching today's signature. So `MemoMetadata`/`SharedContent` STAY mobile → no collision with
-  the desktop's `CompilerBridge.SharedContent`. (If the @Model + convenience-init-in-extension fights the macro,
-  fall back to a `Memo.make(...)` static factory.)
-- Wire `../Shared/Model` into the **desktop** `project.yml` (app + test bundle) — it currently only has it on mobile.
+**Gates at HEAD (`fa458df`):** mobile `SkriftMobileTests` 486/486; desktop `UnitTests` 309/309; desktop full
+`-skipMacroValidation` build SUCCEEDED. Foundation (entitlements/signing + `MemoEnhancement`) from the prior commits.
 
-**REMAINING BUILD (commit per chunk; gate each):**
-- **8a-ii** — the true-share move above. Gate: mobile `SkriftMobileTests` + desktop `UnitTests` both green.
-- **8a-iii** — `SkriftDesktop` `MemoCloudContainer`: a SECOND `NSPersistentCloudKitContainer` (separate from the
-  local PipelineFile `SharedStore.container`) over `[Memo, MemoAsset, MemoEnhancement]`, `cloudKitDatabase:
-  .private("iCloud.com.skrift.mobile{.dev}")` per `#if DEBUG`, `.none` under XCTest/inMemory. A desktop device-id.
-- **8b** — `MemoCloudIngest`: synced `Memo` (+ its `MemoAsset`s, materialized to the Mac working folder) → a
-  `PipelineFile`, reusing the `UploadService` field mapping + trust gate (`isTranscriptTrusted`); dedup by
-  `PipelineFile.id == memo.id.uuidString`; respect significance>0. Golden test: same memo → same PipelineFile as the
-  HTTP path.
-- **8c** — write-back: after `BatchRunner` enhances a memo-sourced `PipelineFile`, upsert a `MemoEnhancement`
-  (copyedit/title/summary + `enhancedByDeviceID`/`enhancedAt`) into the Memo container → syncs to the phone (which
-  already prefers it in export).
-- **8d** — reconcile loop (launch/foreground/push) + coexist with Bonjour (opt-in). Fold in the **de-Mac Settings**
-  change (demote/remove the phone's "Pair a Mac" LAN section once CloudKit-Mac is the path — see the chat).
-
-**HARD user step remaining:** at prod promotion, register `iCloud.com.skrift.mobile` + Push on `com.skrift.desktop`
-in Xcode (Debug is done). **Device-verify (user):** iPhone memo → Mac via CloudKit → Mac enhances → syncs back →
-phone's Obsidian export uses the polished text.
+**REMAINING — user only (can't be done from the CLI):**
+1. **Push** `main` → origin (these 5 commits are local).
+2. **Enable** CloudKit-Mac sync on the Dev Mac: Settings → Sync → "CloudKit sync with the Mac" (OFF by default), with
+   the Mac signed into the same iCloud account as the phone.
+3. **Device-verify:** record a significant memo on the phone → it appears on the Mac via CloudKit (no Bonjour) → the
+   Mac enhances it → the `MemoEnhancement` syncs back → the phone's Obsidian export uses the polished text; the iPad sees it.
+4. **At prod promotion:** register `iCloud.com.skrift.mobile` + Push on `com.skrift.desktop` in Xcode's Signing &
+   Capabilities (Debug `…mobile.dev` already done) + Deploy the `MemoEnhancement` record type in the CloudKit Dashboard.
 
 ---
 
