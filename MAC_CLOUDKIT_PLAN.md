@@ -39,8 +39,17 @@
   Mac" section demoted to "Mac · local network" with an iCloud-is-primary footer (PairMacView kept as fallback).
   **3 reconciler tests**.
 
-**Gates at HEAD (`fa458df`):** mobile `SkriftMobileTests` 486/486; desktop `UnitTests` 309/309; desktop full
+**Gates:** mobile `SkriftMobileTests` 486/486; desktop `UnitTests` 309/309; desktop full
 `-skipMacroValidation` build SUCCEEDED. Foundation (entitlements/signing + `MemoEnhancement`) from the prior commits.
+
+**Follow-ups (pushed to origin):** `0040611` write-back also respects the `cloudKitMacSync` opt-in (+ documented the
+capture cross-transport dedup limit, see below). `76e3747` **launch-crash fix** — pin the LOCAL `SharedStore`
+(`PipelineFile`) to `cloudKitDatabase: .none`. **Durable gotcha:** once the app has the CloudKit entitlement, a
+`ModelConfiguration` left at the default `.automatic` resolves to "CloudKit ON" — and `PipelineFile`'s
+`@Attribute(.unique) id` is CloudKit-forbidden → `ModelContainer` init fatal-errors on launch. The gates miss it
+(in-memory + unentitled test bundle never flip `.automatic`; the build doesn't launch the app). Any SwiftData store
+that must stay local under an entitled app needs explicit `.none`. **The fresh Dev build is deployed to
+`/Applications/Skrift Dev.app` and launches clean** (verified). `MemoCloudStore` is the only CloudKit container.
 
 **REMAINING — user only (can't be done from the CLI):**
 1. **Push** `main` → origin (these 5 commits are local).
