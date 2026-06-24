@@ -2,6 +2,19 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🐛 Audiobook import — MP3 rejected as "not a playable audiobook" (2026-06-24, FIXED)
+
+User imported a valid MP3 audiobook part ("Made to Stick-Part02.mp3", 36.6 MB, 76:14 per
+Files) via the normal in-app audiobook add → got **"That file doesn't look like a playable
+audiobook."** Root cause: every `AVURLAsset(url:)` in the audiobook path was built **without**
+`AVURLAssetPreferPreciseDurationAndTimingKey`. For MP3s (VBR rips, large ID3 tags) AVFoundation
+estimates duration lazily and returns **0 / indefinite**, so `AudiobookImporter.importSingleFile`'s
+`guard tags.duration > 0` threw `.unreadable`. m4b/m4a imported fine (the two existing library books),
+which is why only the MP3 failed. **Fix:** `AudiobookImporter.makeAsset(url:)` helper sets the precise
+key; used in `readTags`, the multi-file duration loop, and both `AudiobookSession` AVPlayerItem builds
+(precise timing also tightens MP3 seek + read-along word alignment). **⚠️ Device verify owed** — fixed on
+Linux, no sim gate here; build+install Skrift Dev and re-import the same MP3.
+
 ## Device-testing feedback — 2026-06-21 (6 live notes, pulled + verified)
 
 Pulled from the dev phone via the **App Group container** (`group.com.skrift.mobile.dev` →

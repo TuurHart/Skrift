@@ -91,7 +91,7 @@ final class AudiobookSession: ObservableObject {
             print("[Skrift] Audiobook audio missing: \(url.lastPathComponent)")
             return
         }
-        let item = AVPlayerItem(asset: AVURLAsset(url: url))
+        let item = AVPlayerItem(asset: AudiobookImporter.makeAsset(url: url))
         let avPlayer = AVPlayer(playerItem: item)
         avPlayer.automaticallyWaitsToMinimizeStalling = false
         player = avPlayer
@@ -240,7 +240,7 @@ final class AudiobookSession: ObservableObject {
             pause()
             return
         }
-        let item = AVPlayerItem(asset: AVURLAsset(url: url))
+        let item = AVPlayerItem(asset: AudiobookImporter.makeAsset(url: url))
         currentFileIndex = index
         player.replaceCurrentItem(with: item)
         observeItemEnd(of: item)
