@@ -15,6 +15,19 @@ key; used in `readTags`, the multi-file duration loop, and both `AudiobookSessio
 (precise timing also tightens MP3 seek + read-along word alignment). **⚠️ Device verify owed** — fixed on
 Linux, no sim gate here; build+install Skrift Dev and re-import the same MP3.
 
+**Ultracode sweep (2026-06-24) — same anti-pattern, 3 more sites fixed, 1 refuted.** Fanned out
+agents over every `AVURLAsset`/duration site repo-wide, classified each for MP3-reachability +
+whether precise timing changes correctness, then adversarially verified. Confirmed + fixed:
+- `QuoteCaptureProcessor.exportSpan:369` (**HIGH**) — quote-span export off an MP3 book drifts late
+  (no duration guard → silent mis-alignment of the core audiobook-capture feature).
+- `MemoSaver.appendAudio:486` (**MED**) — appending a recording to a memo imported from an MP3
+  misplaces the splice offset + writes a wrong merged duration (the `base` asset).
+- `RunFile.swift:58` (**MED, DEBUG `-chunksim`**) — bare sync `.duration` on an MP3 returns
+  0/indefinite → chunk loop never runs; switched to precise async `load(.duration)`.
+Refuted / left alone: `RunFile.swift:81` (the `-chunksim` A/B harness deliberately shows real
+AVAssetExportSession behavior); all `IngestService` + `AudioMetadata` + video-import + test sites
+(video/AAC-only or metadata-only — not MP3-reachable; not blanket-edited). **⚠️ Device verify owed.**
+
 ## Device-testing feedback — 2026-06-21 (6 live notes, pulled + verified)
 
 Pulled from the dev phone via the **App Group container** (`group.com.skrift.mobile.dev` →
