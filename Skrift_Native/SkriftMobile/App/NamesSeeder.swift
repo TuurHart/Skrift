@@ -9,8 +9,19 @@ enum NamesSeeder {
         if LaunchFlags.resetNames {
             NamesStore.shared.save(NamesData(lastModifiedAt: ISO8601.now(), people: []))
         }
-        guard LaunchFlags.seedDemoNames else { return }
         let now = ISO8601.now()
+        if LaunchFlags.seedNameLinking {
+            // The mock's roster: two Jacks (ambiguous), distinctive Hendri (auto-links),
+            // common-word Rose (suggested).
+            NamesStore.shared.save(NamesData(lastModifiedAt: now, people: [
+                Person(canonical: "[[Jack Hutton]]", aliases: ["Jack"], short: nil, lastModifiedAt: now),
+                Person(canonical: "[[Jack Tanner]]", aliases: ["Jack"], short: nil, lastModifiedAt: now),
+                Person(canonical: "[[Hendri van Niekerk]]", aliases: ["Hendri"], short: "Hendri", lastModifiedAt: now),
+                Person(canonical: "[[Rose]]", aliases: ["Rose"], short: "Rose", lastModifiedAt: now),
+            ]))
+            return
+        }
+        guard LaunchFlags.seedDemoNames else { return }
         NamesStore.shared.save(NamesData(lastModifiedAt: now, people: [
             Person(canonical: "[[Jane Doe]]", aliases: ["Janey"], short: "Jane",
                    voiceEmbeddings: [VoiceEmbedding(vector: [0.1, 0.2, 0.3], condition: "demo", addedAt: now)],

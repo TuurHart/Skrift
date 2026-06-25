@@ -6,13 +6,46 @@ import UIKit
 /// idempotent (skips if memos already exist). **Not for production.**
 @MainActor
 enum DemoDataSeeder {
+    /// Fixed id for the name-linking demo memo so the screenshot route can open it directly.
+    static let nameLinkingMemoID = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+
     static func seedIfRequested(_ repo: NotesRepository) {
         guard repo.allMemos().isEmpty else { return }
         if LaunchFlags.seedLongMemo { repo.insert(longMemo()); return }
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
+        if LaunchFlags.seedNameLinking { repo.insert(nameLinkingMemo()); return }
         guard LaunchFlags.seedDemoMemos else { return }
         for memo in demoMemos() { repo.insert(memo) }
+    }
+
+    /// The mock's "Studio afternoon" memo (`mocks/phone-name-linking.html`): "Jack" is
+    /// shared by two roster people (ambiguous), "Hendri" is distinctive (auto-linked),
+    /// "Rose" is a common word (suggested), "Marcus" isn't on the roster (plain). Seeded
+    /// with `NamesSeeder`'s matching roster under `-seedNameLinking`.
+    static func nameLinkingMemo() -> Memo {
+        let now = Date()
+        let transcript = """
+        Met up with Jack this morning at the studio and we ran the whole set twice. \
+        Hendri wants the commonplace angle up front, so I'll carve out an hour for it tomorrow.
+
+        Later Rose dropped by with the proofs — she thinks the cover's nearly there. \
+        Hendri said he'd loop in Marcus from the print shop, but I still owe him the final spreads.
+        """
+        return Memo.make(
+            id: nameLinkingMemoID,
+            audioFilename: "memo_\(nameLinkingMemoID.uuidString).m4a",
+            duration: 96,
+            recordedAt: now,
+            tags: ["studio"],
+            syncStatus: .waiting,
+            title: "Studio afternoon",
+            transcript: transcript,
+            transcriptStatus: .done,
+            transcriptConfidence: 0.95,
+            significance: 0.5,
+            metadata: MemoMetadata(capturedAt: ISO8601.string(from: now), dayPeriod: .afternoon)
+        )
     }
 
     /// One VIDEO-import memo with a REAL PORTRAIT (9:16, 1080×1920 — like an iPhone

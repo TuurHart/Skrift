@@ -18,6 +18,11 @@ import UIKit
 struct TranscriptEditor: UIViewRepresentable {
     let memo: Memo
     var onCommit: () -> Void
+    /// Name-linking tiers over the RAW transcript (derived by the parent from the memo +
+    /// names DB). Styled in place and tappable; empty = no name-linking (no people).
+    var nameSpans: [NameSpan] = []
+    /// A name span was tapped (while not editing) → the parent presents the resolve sheet.
+    var onTapName: (NameSpan) -> Void = { _ in }
 
     /// Portrait-locked app → the body width is fixed (screen − the page's side margins).
     private var contentWidth: CGFloat { max(80, UIScreen.main.bounds.width - 2 * Theme.Space.margin) }
@@ -25,7 +30,10 @@ struct TranscriptEditor: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(memo: memo, onCommit: onCommit, width: contentWidth) }
 
     func makeUIView(context: Context) -> UITextView {
-        let tv = NonScrollingTextView()
+        // TextKit 1 (explicit) so `layoutManager` hit-testing for the name-tap is reliable
+        // (a default UITextView is TextKit 2 on iOS 16+, where touching `layoutManager`
+        // silently migrates the view — we pin the classic stack instead).
+        let tv = NonScrollingTextView(usingTextLayoutManager: false)
         tv.isScrollEnabled = false                 // self-size inside the SwiftUI ScrollView
         // No safe-area inset adjustment: the view is mid-scroll-content and never
         // scrolls itself, so its rest contentOffset is always exactly .zero (which
@@ -40,13 +48,31 @@ struct TranscriptEditor: UIViewRepresentable {
         tv.keyboardDismissMode = .interactive
         tv.accessibilityIdentifier = "transcript-editor"
         context.coordinator.textView = tv
+        context.coordinator.nameSpans = nameSpans
+        context.coordinator.onTapName = onTapName
+        // A tapped NAME opens the resolve sheet. The editor stays always-editable, so the
+        // tap also begins editing; `handleNameTap` detects the name hit and resigns first
+        // responder, so the keyboard yields to the sheet. Tapping plain text edits normally.
+        let tap = UITapGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handleNameTap(_:)))
+        tap.delegate = context.coordinator
+        tap.cancelsTouchesInView = false
+        tv.addGestureRecognizer(tap)
         context.coordinator.load(force: true)
         return tv
     }
 
     func updateUIView(_ uiView: UITextView, context: Context) {
         context.coordinator.memo = memo
+        context.coordinator.onTapName = onTapName
         context.coordinator.load(force: false)     // re-render only if the transcript changed under us
+        // Re-style when the tiers changed (a resolution applied) — but never mid-edit
+        // (offsets drift while typing; we restyle on end-edit instead).
+        if !uiView.isFirstResponder {
+            context.coordinator.updateSpans(nameSpans)
+        } else {
+            context.coordinator.nameSpans = nameSpans
+        }
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
@@ -60,12 +86,19 @@ struct TranscriptEditor: UIViewRepresentable {
 
     // MARK: - Coordinator
 
-    final class Coordinator: NSObject, UITextViewDelegate {
+    final class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate {
         var memo: Memo
         let onCommit: () -> Void
         let width: CGFloat
-        weak var textView: UITextView?
+        weak var textView: NonScrollingTextView?
         private var loaded: String?           // the transcript string our attributed text currently reflects
+
+        /// Name-linking tiers over the RAW transcript (set by the representable). Styled
+        /// in place; `displaySpans` is the same set mapped to the DISPLAYED text offsets
+        /// (image markers collapse to one glyph) for hit-testing + restyle.
+        var nameSpans: [NameSpan] = []
+        var onTapName: (NameSpan) -> Void = { _ in }
+        private var displaySpans: [(range: NSRange, span: NameSpan)] = []
 
         /// Custom attribute tagging an attachment with its 1-based image-marker index,
         /// so the transcript string can be reconstructed from the attributed text.
@@ -73,6 +106,106 @@ struct TranscriptEditor: UIViewRepresentable {
 
         init(memo: Memo, onCommit: @escaping () -> Void, width: CGFloat) {
             self.memo = memo; self.onCommit = onCommit; self.width = width
+        }
+
+        // MARK: name-linking tiers (styling + tap hit-test)
+
+        /// Re-apply tier styling for a new span set (a resolution was applied). No-op while
+        /// the user is typing (the representable guards on `!isFirstResponder`).
+        func updateSpans(_ spans: [NameSpan]) {
+            nameSpans = spans
+            applyTierStyling()
+        }
+
+        /// The name span under a tap point, or nil for plain text / outside any name. Used
+        /// both to suppress begin-editing (so a name tap opens the sheet, not the keyboard)
+        /// and to route the tap to the resolve sheet.
+        func spanAt(_ point: CGPoint) -> NameSpan? {
+            guard let tv = textView, tv.textStorage.length > 0, !displaySpans.isEmpty else { return nil }
+            let p = CGPoint(x: point.x - tv.textContainerInset.left, y: point.y - tv.textContainerInset.top)
+            let lm = tv.layoutManager
+            // Hit-test against each token's DRAWN rect(s) (expanded for a comfortable touch
+            // target), not the nearest char index — a tap at the trailing edge of a short
+            // name resolves to the boundary index just OUTSIDE the span, which would miss.
+            // A span can wrap a line, so union its enclosing rects.
+            for entry in displaySpans {
+                let glyphRange = lm.glyphRange(forCharacterRange: entry.range, actualCharacterRange: nil)
+                var hit = false
+                lm.enumerateEnclosingRects(forGlyphRange: glyphRange,
+                                           withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0),
+                                           in: tv.textContainer) { rect, stop in
+                    if rect.insetBy(dx: -6, dy: -4).contains(p) { hit = true; stop.pointee = true }
+                }
+                if hit { return entry.span }
+            }
+            return nil
+        }
+
+        @objc func handleNameTap(_ gr: UITapGestureRecognizer) {
+            guard gr.state == .ended, let tv = textView else { return }
+            // A tap on a name → resolve sheet; otherwise let it edit (caret + keyboard).
+            guard let span = spanAt(gr.location(in: tv)) else { return }
+            // The tap also began editing (UITextView raises the keyboard on tap); resign so
+            // the keyboard yields to the resolve sheet.
+            tv.resignFirstResponder()
+            Haptics.tap(.light)
+            onTapName(span)
+        }
+
+        // Let the tap coexist with the text view's own selection gestures.
+        func gestureRecognizer(_ g: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+
+        /// Re-color the name spans on top of the base attributed text. Idempotent: resets
+        /// tier attributes over the text first (attachments untouched), then applies each
+        /// span. Rebuilds `displaySpans` (display offsets) for hit-testing.
+        func applyTierStyling() {
+            guard let tv = textView else { return }
+            let storage = tv.textStorage
+            let full = NSRange(location: 0, length: storage.length)
+            guard full.length > 0 else { displaySpans = []; return }
+            let sel = tv.selectedRange
+            storage.beginEditing()
+            storage.enumerateAttribute(.attachment, in: full) { attachment, range, _ in
+                guard attachment == nil else { return }     // skip image attachments
+                storage.removeAttribute(.underlineStyle, range: range)
+                storage.removeAttribute(.underlineColor, range: range)
+                storage.removeAttribute(.backgroundColor, range: range)
+                storage.addAttribute(.foregroundColor, value: UIColor(Color.skText), range: range)
+            }
+            var built: [(NSRange, NameSpan)] = []
+            let transcript = memo.transcript ?? ""          // ordinary memo: == the display source
+            for span in nameSpans {
+                guard let dr = displayRange(forRaw: span.range, transcript: transcript),
+                      dr.location + dr.length <= storage.length else { continue }
+                NameTierStyle.apply(span.tier, to: storage, range: dr)
+                built.append((dr, span))
+            }
+            storage.endEditing()
+            displaySpans = built
+            let len = storage.length
+            let loc = min(sel.location, len)
+            tv.selectedRange = NSRange(location: loc, length: min(sel.length, len - loc))
+        }
+
+        /// Map a RAW-transcript range to the DISPLAYED-text range: each `[[img_NNN]]`
+        /// marker before the range collapses to a single attachment glyph. Returns nil if
+        /// the range overlaps a marker (names never do).
+        private func displayRange(forRaw raw: NSRange, transcript: String) -> NSRange? {
+            let ns = transcript as NSString
+            guard ns.length > 0, let rx = try? NSRegularExpression(pattern: #"\[\[img_\d+\]\]"#) else { return raw }
+            var delta = 0
+            for m in rx.matches(in: transcript, range: NSRange(location: 0, length: ns.length)) {
+                if m.range.location + m.range.length <= raw.location {
+                    delta += m.range.length - 1             // marker → 1 glyph
+                } else if m.range.location < raw.location + raw.length {
+                    return nil                              // span straddles a marker
+                } else {
+                    break
+                }
+            }
+            let loc = raw.location - delta
+            return loc >= 0 ? NSRange(location: loc, length: raw.length) : nil
         }
 
         /// The protected C1 quote split for a capture memo — recomputed from the
@@ -103,7 +236,14 @@ struct TranscriptEditor: UIViewRepresentable {
             let location = min(selection.location, length)
             tv.selectedRange = NSRange(location: location, length: min(selection.length, length - location))
             loaded = t
+            applyTierStyling()                                 // re-color names over the fresh text
             tv.invalidateIntrinsicContentSize()
+        }
+
+        /// Editing ended → re-derive the name tiers over the final text (we skip restyling
+        /// while typing, since offsets drift). The representable passed the up-to-date spans.
+        func textViewDidEndEditing(_ tv: UITextView) {
+            applyTierStyling()
         }
 
         func textViewDidChange(_ tv: UITextView) {
@@ -232,5 +372,40 @@ final class NonScrollingTextView: UITextView {
 
     override func setContentOffset(_ contentOffset: CGPoint, animated: Bool) {
         super.setContentOffset(isScrollEnabled ? contentOffset : .zero, animated: isScrollEnabled && animated)
+    }
+}
+
+// MARK: - Name-tier attributed styling
+
+/// Maps a `NameSpan.Tier` to attributed-text attributes over a token range, matching the
+/// signed-off mock (`mocks/phone-name-linking.html`): LINKED solid accent; SUGGESTED tan +
+/// dotted tan underline; AMBIGUOUS accent wash + dotted purple underline; PLAIN (leftplain)
+/// a faint dotted underline. The mock's ambiguous "?" superscript is dropped on purpose —
+/// injecting a glyph would corrupt the RAW transcript the editor reconstructs.
+enum NameTierStyle {
+    private static let dotted = NSNumber(value: NSUnderlineStyle([.single, .patternDot]).rawValue)
+
+    static func apply(_ tier: NameSpan.Tier, to storage: NSTextStorage, range: NSRange) {
+        switch tier {
+        case .linked:
+            storage.addAttribute(.foregroundColor, value: UIColor(Color.skNameLinked), range: range)
+        case .suggested:
+            storage.addAttributes([
+                .foregroundColor: UIColor(Color.skNameSuggest),
+                .underlineStyle: dotted,
+                .underlineColor: UIColor(Color.skNameSuggestLine),
+            ], range: range)
+        case .ambiguous:
+            storage.addAttributes([
+                .backgroundColor: UIColor(Color.skAccentSoft),
+                .underlineStyle: dotted,
+                .underlineColor: UIColor(Color.skNameAmbigLine),
+            ], range: range)
+        case .plain:
+            storage.addAttributes([
+                .underlineStyle: dotted,
+                .underlineColor: UIColor(Color.skNamePlainLine),
+            ], range: range)
+        }
     }
 }

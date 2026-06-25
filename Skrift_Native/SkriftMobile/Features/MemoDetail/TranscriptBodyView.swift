@@ -23,6 +23,10 @@ struct TranscriptBodyView: View {
     let memo: Memo
     @ObservedObject var player: AudioPlayerModel
     var onCommit: () -> Void
+    /// Name-linking tiers over the RAW transcript (ordinary memos only — empty for
+    /// captures); a tapped name routes up to the resolve sheet.
+    var nameSpans: [NameSpan] = []
+    var onTapName: (NameSpan) -> Void = { _ in }
 
     enum Mode: Equatable { case editing, playing, reading }
 
@@ -103,10 +107,10 @@ struct TranscriptBodyView: View {
         if let quote = memo.captureQuote {
             VStack(alignment: .leading, spacing: 18) {
                 CaptureQuoteBlock(quote: quote.displayText, attribution: memo.quoteAttributionLabel)
-                TranscriptEditor(memo: memo, onCommit: onCommit)
+                TranscriptEditor(memo: memo, onCommit: onCommit)   // captures: no inline name-linking
             }
         } else {
-            TranscriptEditor(memo: memo, onCommit: onCommit)
+            TranscriptEditor(memo: memo, onCommit: onCommit, nameSpans: nameSpans, onTapName: onTapName)
         }
     }
 

@@ -42,6 +42,10 @@ enum LaunchFlags {
     /// so a UI test can screenshot-verify the video source glyph + thumbnail aspect.
     static var seedVideoMemo: Bool { args.boolFlag("-seedVideoMemo") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
+    /// Seed the name-linking demo (the mock's "Studio afternoon" memo + 4 people: two
+    /// Jacks → ambiguous, Hendri → linked, Rose → suggested) and open its detail directly,
+    /// so the in-place name-linking surface can be screenshot-verified on the Simulator.
+    static var seedNameLinking: Bool { args.boolFlag("-seedNameLinking") }
     /// Wipe the local names.json at launch so a conversation/voice test starts from a
     /// known-empty names slate (names.json persists across sim runs, unlike the SwiftData
     /// store — `-inMemoryStore` doesn't reset it). Used by the diarization-split and

@@ -267,6 +267,13 @@ private struct MemoPageView: View {
     @State private var timings: [WordTiming] = []   // for karaoke highlight in the turn view
     @AppStorage("karaokeTapToSeek") private var tapToSeek = true   // default ON — must match TranscriptBodyView
 
+    // Name-linking (mocks/phone-name-linking.html): the live names roster, the tapped
+    // span's resolve sheet, the unlink-undo toast, and the person-card / new-person editor.
+    @State private var people: [Person] = []
+    @State private var resolveTarget: NameResolveTarget?
+    @State private var undoToast: NameUndoToast?
+    @State private var personSheet: PersonSheetRequest?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -353,7 +360,10 @@ private struct MemoPageView: View {
         // already has its own interactive dismiss; this covers scrolling the OUTER
         // page when the title/transcript field has focus).
         .scrollDismissesKeyboard(.interactively)
-        .task(id: memo.id) { timings = WordTimingsStore().load(for: memo.id) ?? [] }
+        .task(id: memo.id) {
+            timings = WordTimingsStore().load(for: memo.id) ?? []
+            people = NamesStore.shared.livePeople()
+        }
         .alert("Add tags", isPresented: $showAddTag) {
             TextField("tag, tag, tag", text: $newTag)
             Button("Add", action: addTag)
@@ -376,6 +386,30 @@ private struct MemoPageView: View {
                 onNewName: { assign(target.speaker, to: $0, enroll: true, slot: target.slot, turnSlots: target.turnSlots) }
             )
         }
+        // Tap a name in the transcript → resolve it (the native confirmationDialog idiom,
+        // mocks/phone-name-linking.html). Buttons depend on the tapped span's tier.
+        .confirmationDialog(resolveDialogTitle, isPresented: resolveDialogPresented,
+                            titleVisibility: .visible, presenting: resolveTarget) { target in
+            resolveActions(for: target.span)
+        } message: { target in
+            if let msg = resolveDialogMessage(for: target.span) { Text(msg) }
+        }
+        // "Open … person card" / "New person…" → the editable person card (mock state 5).
+        .sheet(item: $personSheet) { req in
+            PersonEditorView(
+                canonical: req.canonical, prefillName: req.prefillAlias ?? "",
+                onSaved: { canonical in
+                    if let alias = req.prefillAlias {        // a New-person flow links the tapped word
+                        memo.linkName(alias: alias, to: canonical)
+                        repository.save()
+                    }
+                    people = NamesStore.shared.livePeople()
+                },
+                onDeleted: { people = NamesStore.shared.livePeople() }
+            )
+        }
+        // Unlink → an Undo toast (reversible; mock build note #6).
+        .overlay(alignment: .bottom) { undoToastView }
     }
 
     private func startAssigning(_ index: Int, _ speaker: String) {
@@ -524,7 +558,129 @@ private struct MemoPageView: View {
                 imageURL: turnImageURL
             )
         } else {
-            TranscriptBodyView(memo: memo, player: player, onCommit: { memo.markEdited(); repository.save() })
+            TranscriptBodyView(
+                memo: memo, player: player,
+                onCommit: { memo.markEdited(); repository.save() },
+                nameSpans: transcriptNameSpans,
+                onTapName: { resolveTarget = NameResolveTarget(span: $0) }
+            )
+        }
+    }
+
+    /// Tiered name spans for the in-place linking surface — ordinary voice memos only
+    /// (captures show a quote block; conversations route to `SpeakerTurnsView`), and
+    /// skipped during playback (the editor is swapped for karaoke, and recomputing every
+    /// tick would be wasteful).
+    private var transcriptNameSpans: [NameSpan] {
+        guard !player.isPlaying, !people.isEmpty,
+              !memo.isShareCapture, memo.captureQuote == nil,
+              SpeakerTranscript.parse(memo.transcript) == nil else { return [] }
+        return memo.nameSpans(people: people)
+    }
+
+    // MARK: - Name resolution (the tapped-name sheet)
+
+    private var resolveDialogPresented: Binding<Bool> {
+        Binding(get: { resolveTarget != nil }, set: { if !$0 { resolveTarget = nil } })
+    }
+
+    private var resolveDialogTitle: String {
+        guard let span = resolveTarget?.span else { return "" }
+        switch span.tier {
+        case .linked:    return personDisplay(span.canonical) ?? span.alias
+        case .suggested: return "Link this name?"
+        case .ambiguous: return "Which \(span.alias)?"
+        case .plain:     return "Link “\(span.alias)”?"
+        }
+    }
+
+    private func resolveDialogMessage(for span: NameSpan) -> String? {
+        switch span.tier {
+        case .linked:    return "Linked in this note — only the first “\(span.alias)” carries the link."
+        case .suggested: return "Tap to link “\(span.alias)” to this person."
+        case .ambiguous: return "\(span.candidates.count) people in your Names go by “\(span.alias)”."
+        case .plain:     return "Kept as plain text here."
+        }
+    }
+
+    @ViewBuilder private func resolveActions(for span: NameSpan) -> some View {
+        switch span.tier {
+        case .linked:
+            // Change person — only when the alias is shared (an ambiguous force-pick).
+            ForEach(span.candidates.filter { candidateKey($0.canonical) != candidateKey(span.canonical ?? "") }, id: \.id) { c in
+                Button("Switch to \(candidateLabel(c))") { applyLink(span.alias, to: c.canonical) }
+            }
+            Button("Unlink — keep as plain text") { applyUnlink(span) }
+            if let canonical = span.canonical {
+                Button("Open \(firstName(canonical))’s person card") {
+                    personSheet = PersonSheetRequest(canonical: canonical, prefillAlias: nil)
+                }
+            }
+        case .suggested, .plain:
+            ForEach(span.candidates, id: \.id) { c in
+                Button("Link to \(candidateLabel(c))") { applyLink(span.alias, to: c.canonical) }
+            }
+            Button("New person…") { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: span.alias) }
+            if span.tier == .suggested {
+                Button("Keep as plain text") { applyKeepPlain(span.alias) }
+            }
+        case .ambiguous:
+            ForEach(span.candidates, id: \.id) { c in
+                Button(candidateLabel(c)) { applyLink(span.alias, to: c.canonical) }
+            }
+            Button("New person…") { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: span.alias) }
+            Button("Keep as plain text") { applyKeepPlain(span.alias) }
+        }
+    }
+
+    private func candidateKey(_ canonical: String) -> String { NamesMerge.keyName(canonical).lowercased() }
+    private func candidateLabel(_ c: NameCandidate) -> String { NamesMerge.keyName(c.canonical) }
+    private func firstName(_ canonical: String) -> String {
+        NamesMerge.keyName(canonical).split(separator: " ").first.map(String.init) ?? NamesMerge.keyName(canonical)
+    }
+    private func personDisplay(_ canonical: String?) -> String? { canonical.map { NamesMerge.keyName($0) } }
+
+    private func applyLink(_ alias: String, to canonical: String) {
+        memo.linkName(alias: alias, to: canonical); repository.save()
+    }
+    private func applyKeepPlain(_ alias: String) {
+        memo.keepNamePlain(alias: alias); repository.save()
+    }
+    /// Unlink a LINKED name → plain, with a reversible Undo toast restoring the exact
+    /// prior resolutions (the pick / auto-link), not just the default tier.
+    private func applyUnlink(_ span: NameSpan) {
+        let prior = memo.nameResolutions
+        memo.keepNamePlain(alias: span.alias); repository.save()
+        let alias = span.alias
+        withAnimation(Theme.Motion.spring) {
+            undoToast = NameUndoToast(message: "Unlinked — “\(alias)” is plain text here") {
+                memo.nameResolutions = prior
+                memo.markEdited(); repository.save()
+                withAnimation(Theme.Motion.spring) { undoToast = nil }
+            }
+        }
+    }
+
+    @ViewBuilder private var undoToastView: some View {
+        if let toast = undoToast {
+            HStack(spacing: 10) {
+                Text(toast.message).font(.system(size: 13)).foregroundStyle(Color.skText).lineLimit(2)
+                Spacer(minLength: 4)
+                Button("Undo", action: toast.undo)
+                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skAccent)
+                    .accessibilityIdentifier("name-unlink-undo")
+            }
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .background(Color.skSurface, in: .rect(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle.sk(12).stroke(Color.skBorder, lineWidth: 1))
+            .shadow(color: .black.opacity(0.25), radius: 14, y: 5)
+            .padding(.horizontal, Theme.Space.margin)
+            .padding(.bottom, 96)                          // clear the floating player bar
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .task(id: toast.id) {
+                try? await Task.sleep(for: .seconds(4))
+                if undoToast?.id == toast.id { withAnimation(Theme.Motion.spring) { undoToast = nil } }
+            }
         }
     }
 
@@ -890,4 +1046,21 @@ private struct PageDots: View {
         }
         .animation(Theme.Motion.snappy, value: index)
     }
+}
+
+// MARK: - Name-linking presentation state
+
+/// A transcript name span the user tapped → drives the resolve confirmationDialog.
+struct NameResolveTarget: Identifiable { let id = UUID(); let span: NameSpan }
+
+/// The reversible "unlink" toast (mock build note #6) — `undo` restores the exact prior
+/// resolutions.
+struct NameUndoToast: Identifiable { let id = UUID(); let message: String; let undo: () -> Void }
+
+/// Routes to the person editor (mock state 5): `canonical` set = open an existing card;
+/// `prefillAlias` set = a "New person…" / "Someone else…" flow seeded with the spoken word.
+struct PersonSheetRequest: Identifiable {
+    let id = UUID()
+    let canonical: String?
+    let prefillAlias: String?
 }

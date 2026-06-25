@@ -55,6 +55,18 @@ extension Color {
     static let skGreen      = skDynamic(light: 0x0f9d72, dark: 0x34d399)
     static let skAmber      = skDynamic(light: 0xd97706, dark: 0xf59e0b)
     static let skRed        = skDynamic(light: 0xdc2626, dark: 0xef4444)
+
+    // Name-linking tiers — the phone in-place linking surface
+    // (mocks/phone-name-linking.html). Dark = the mock's exact values; light deepens for
+    // contrast on white. LINKED is solid; SUGGESTED/AMBIGUOUS/PLAIN are dotted underlines.
+    static let skNameLinked      = skDynamic(light: 0x6c5ce0, dark: 0x9d8ff7)   // solid accent
+    static let skNameSuggest     = skDynamic(light: 0x8a6d3b, dark: 0xbda481)   // tan text
+    static let skNameSuggestLine = skDynamic(light: 0xa8843f, dark: 0xc4a982)   // tan dotted underline
+    static let skNameAmbigLine   = skDynamic(light: 0x6c5ce0, dark: 0x7c6bf5, alpha: 0.7)  // purple dotted
+    /// Faint dotted underline for a kept-plain (leftplain) token.
+    static let skNamePlainLine   = Color(uiColor: UIColor { tc in
+        tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.26) : UIColor(white: 0, alpha: 0.28)
+    })
 }
 
 /// Spacing, corner radii, and motion constants. The mockups use a 4/8/16/24/32
