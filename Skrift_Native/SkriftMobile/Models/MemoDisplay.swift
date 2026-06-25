@@ -354,15 +354,28 @@ enum MemoDate {
         let time = timeFormatter.string(from: date)
         if cal.isDateInToday(date) { return "Today · \(time)" }
         if cal.isDateInYesterday(date) { return "Yesterday · \(time)" }
-        return "\(weekdayFormatter.string(from: date)) · \(time)"
+        // This week → weekday ("Fri · 14:29"). Older than a week, the weekday alone is
+        // misleading — a memo from last year read identically to last Friday — so degrade to
+        // a real date: same year → "19 Jun · 14:29", a different year → ISO "2025-06-19 · 14:29".
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: date),
+                                      to: cal.startOfDay(for: now)).day ?? 0
+        if days < 7 { return "\(weekdayFormatter.string(from: date)) · \(time)" }
+        if cal.component(.year, from: date) == cal.component(.year, from: now) {
+            return "\(monthDayFormatter.string(from: date)) · \(time)"
+        }
+        return "\(isoDateFormatter.string(from: date)) · \(time)"
     }
 
     /// Day-group header key for the list ("Today" / "Yesterday" / "Mon 3 Jun").
-    static func group(_ date: Date) -> String {
+    static func group(_ date: Date, now: Date = Date()) -> String {
         let cal = Calendar.current
         if cal.isDateInToday(date) { return "Today" }
         if cal.isDateInYesterday(date) { return "Yesterday" }
-        return groupFormatter.string(from: date)
+        // Carry the year on a different-year group so old day-groups aren't ambiguous.
+        if cal.component(.year, from: date) == cal.component(.year, from: now) {
+            return groupFormatter.string(from: date)
+        }
+        return groupYearFormatter.string(from: date)
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -373,6 +386,15 @@ enum MemoDate {
     }()
     private static let groupFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "EEE d MMM"; return f
+    }()
+    private static let monthDayFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "d MMM"; return f
+    }()
+    private static let isoDateFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+    private static let groupYearFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "EEE d MMM yyyy"; return f
     }()
 }
 
