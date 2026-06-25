@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — phone polished-text display (interactive)</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#050507;color:#e4e4e7;padding:28px;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+  .sub{color:#9a9aae;margin:0 0 18px;max-width:780px;line-height:1.6;}
+  .sub code{background:#1a1a24;padding:1px 6px;border-radius:5px;font-size:13px;}
+  .stage{display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap;}
+
+  .phone{width:332px;min-height:620px;position:relative;background:#0f1117;border:6px solid #000;border-radius:42px;overflow:hidden;color:#e4e4e7;}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:15px 16px 9px;font-size:15px;}
+  .nav .t{color:#e4e4e7;font-size:13px;font-weight:600;}
+  .nav button{background:transparent;border:none;color:#7c6bf5;font-size:15px;cursor:pointer;padding:0;}
+  .pbody{padding:2px 18px 18px;}
+
+  /* Title + chooser */
+  .titlewrap{display:flex;align-items:flex-start;gap:8px;margin:6px 0 4px;}
+  .ptitle{font-size:21px;font-weight:700;letter-spacing:-.02em;flex:1;}
+  .titlebtn{flex-shrink:0;margin-top:3px;width:28px;height:28px;border-radius:8px;background:rgba(124,107,245,.14);
+    border:none;color:#9d8ff7;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .crumb{color:#9a9aae;font-size:12px;margin-bottom:12px;}
+
+  /* Source / mode toggle */
+  .seg{display:inline-flex;background:#1a1c26;border:.5px solid rgba(255,255,255,.08);border-radius:9px;padding:2px;margin:2px 0 14px;}
+  .seg button{border:none;background:transparent;color:#9a9aae;font:inherit;font-size:12.5px;font-weight:600;
+    padding:5px 13px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+  .seg button.on{background:#2a2d3a;color:#e4e4e7;}
+  .seg .spark{color:#9d8ff7;font-size:11px;}
+
+  /* Summary card */
+  .summary{background:#15131f;border:.5px solid rgba(124,107,245,.22);border-radius:13px;padding:12px 13px;margin-bottom:16px;}
+  .summary .h{font-size:11px;font-weight:700;letter-spacing:.5px;color:#9d8ff7;display:flex;align-items:center;gap:5px;margin-bottom:5px;}
+  .summary p{margin:0;font-size:13.5px;line-height:1.55;color:#c8c8d2;}
+
+  .prose{font-size:16px;line-height:1.78;}
+  .prose p{margin:0 0 15px;}
+  .prose.raw{color:#cfcfd8;}
+  .tok{color:#9d8ff7;}                                   /* a linked name (task-1 tiers still apply) */
+  .filler{color:#55556a;text-decoration:line-through;}   /* shown only in the diff peek */
+
+  .prov{font-size:11.5px;color:#7e7e8e;margin-top:6px;display:flex;align-items:center;gap:5px;}
+  .prov .spark{color:#9d8ff7;}
+  .editnote{font-size:12px;color:#9a9aae;background:#16181f;border:.5px solid rgba(255,255,255,.07);
+    border-radius:10px;padding:9px 11px;margin-top:4px;display:flex;gap:7px;}
+
+  /* Title chooser sheet */
+  .scrim{position:absolute;inset:0;background:rgba(2,2,5,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:4;}
+  .scrim.on{opacity:1;pointer-events:auto;}
+  .sheetwrap{position:absolute;left:0;right:0;bottom:0;padding:0 9px 20px;z-index:5;transform:translateY(115%);
+    transition:transform .26s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;gap:8px;}
+  .sheetwrap.on{transform:translateY(0);}
+  .card{background:#1d1f29;border:.5px solid rgba(255,255,255,.14);border-radius:16px;padding:8px;}
+  .cancel{background:#1d1f29;border:.5px solid rgba(255,255,255,.14);border-radius:16px;padding:14px;text-align:center;color:#9d8ff7;font-size:16px;font-weight:600;cursor:pointer;}
+  .shead{font-size:12px;color:#b4b4c2;padding:9px 10px 6px;}
+  .shead .h{color:#e4e4e7;font-weight:600;font-size:15px;display:block;margin-bottom:2px;}
+  .opt{display:flex;align-items:center;gap:11px;width:100%;background:transparent;border:none;border-radius:11px;
+    padding:11px 10px;cursor:pointer;text-align:left;color:#e4e4e7;font:inherit;}
+  .opt:hover{background:rgba(124,107,245,.12);}
+  .opt .lab{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;}
+  .opt .l1{font-size:14px;line-height:1.3;}
+  .opt .l2{font-size:11.5px;color:#9a9aae;}
+  .opt .l2 .spark{color:#9d8ff7;}
+  .opt .chk{color:#9d8ff7;font-size:15px;width:18px;text-align:center;}
+
+  .notes{max-width:560px;font-size:13.5px;line-height:1.7;color:#b4b4c2;}
+  .notes h2{font-size:15px;color:#e4e4e7;margin:0 0 8px;}
+  .notes li{margin-bottom:8px;}
+  .notes code{background:#1a1a24;padding:1px 6px;border-radius:5px;font-size:12.5px;}
+  .notes b{color:#e4e4e7;font-weight:600;}
+  .reset{margin-top:14px;font:inherit;font-size:13px;background:transparent;border:.5px solid rgba(255,255,255,.14);color:#b4b4c2;border-radius:8px;padding:7px 14px;cursor:pointer;}
+</style>
+</head>
+<body>
+<h1>Skrift — phone polished-text display (interactive)</h1>
+<p class="sub">The Mac's <b>polish</b> (copy-edit · title · summary), synced back to the phone over CloudKit as a
+<code>MemoEnhancement</code>, made <b>visible</b> on the phone (STANDALONE_PLAN Phase 4). Tap <b>Polished / Original</b>
+to switch the body; tap the <b>✦ title button</b> to choose between the Mac's suggested title, the recording's first
+line, or your own. Deterministic, no on-phone AI — the phone just <em>displays</em> the Mac's result and keeps the
+<b>RAW transcript as the source of truth</b>.</p>
+
+<div class="stage">
+  <div>
+    <div class="phone" id="ph">
+      <div class="nav"><button>‹ Memos</button><span class="t">Voice memo</span><button aria-label="more">⋯</button></div>
+      <div class="pbody">
+        <div class="titlewrap">
+          <div class="ptitle" id="title">Studio afternoon</div>
+          <button class="titlebtn" id="titleBtn" title="Choose title">✦</button>
+        </div>
+        <div class="crumb">Queue › Fri, 6 Jun 2026</div>
+
+        <div class="seg">
+          <button id="segP" class="on" onclick="PD.mode('polished')"><span class="spark">✦</span> Polished</button>
+          <button id="segR" onclick="PD.mode('original')">Original</button>
+        </div>
+
+        <div id="summaryCard" class="summary">
+          <div class="h">✦ SUMMARY</div>
+          <p>Ran the full set twice with Jack; Hendri wants the commonplace angle up front. Rose brought
+            proofs — cover's nearly there. Owe Hendri the final spreads.</p>
+        </div>
+
+        <div id="prose" class="prose">
+          <p>Met up with <span class="tok">Jack</span> this morning at the studio and ran the whole set twice.
+            <span class="tok">Hendri</span> wants the commonplace angle up front, so I'll carve out an hour for it
+            tomorrow.</p>
+          <p>Later <span class="tok">Rose</span> dropped by with the proofs — she thinks the cover's nearly there.
+            Hendri said he'd loop in Marcus from the print shop; I still owe him the final spreads.</p>
+        </div>
+        <div id="prov" class="prov"><span class="spark">✦</span> Polished on your Mac · 2h ago</div>
+        <div id="editnote" class="editnote" style="display:none;"><span>✎</span><span>This is your raw transcript — edit it
+          here. Polished text is the Mac's; switch back to see it.</span></div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sheetwrap" id="sheet"></div>
+    </div>
+    <button class="reset" id="reset">↻ Reset</button>
+  </div>
+
+  <div class="notes">
+    <h2>Build notes — proposed decisions (2026-06-25)</h2>
+    <ul>
+      <li><b>What syncs:</b> the Mac writes a <code>MemoEnhancement</code> sidecar (copy-edit · title · summary +
+        provenance) to the shared CloudKit Memo store; it lands on the phone. The phone <b>re-links names</b> over the
+        copy-edit (shared <code>Sanitiser</code>) — same deterministic engine as the export, no on-phone LLM.</li>
+      <li><b>Body = Polished / Original toggle.</b> Default <b>Polished</b> when a <code>MemoEnhancement.hasContent</code>
+        exists (best-body precedence, matching the export). <b>Original</b> = the editable RAW transcript (the task-1
+        name-linking surface). No toggle shows at all when there's no polish — just the raw editor as today.</li>
+      <li><b>Polished is READ-only; Original is editable.</b> Clean separation: the polish is the Mac's derived result
+        you read; edits happen on the RAW (the contract source of truth). Avoids the "who owns the edit" ambiguity.</li>
+      <li><b>Title chooser (the parked phone problem) = a compact bottom sheet, not two cards.</b> The ✦ button opens
+        a list: <i>Suggested</i> (the Mac's LLM title, ✦) · <i>From the recording</i> (transcript first line) ·
+        <i>your own</i> (edit). A check marks the active one. Picking the Mac title just adopts it as
+        <code>memo.title</code>; "your own" opens the inline title field. Replaces the desktop's cramped
+        Suggested/From-recording two-card chooser.</li>
+      <li><b>Summary card</b> (✦) above the body when the Mac wrote one; hidden otherwise.</li>
+      <li><b>Provenance:</b> a quiet "✦ Polished on your Mac · &lt;ago&gt;" caption so it's clear the polish came from
+        the paired Mac (not invented on-device).</li>
+      <li><b>Name tiers still apply</b> (task 1): linked names render accent in BOTH bodies; tap-to-resolve works on the
+        editable Original. (Open Q for sign-off: allow tap-resolve on the read-only Polished too, or only Original?)</li>
+      <li><b>No on-device polish here</b> — that's the separate Phase-4 spike (Apple-Intelligence / bundled model). This
+        screen only surfaces what a paired Mac produced.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+window.PD=(function(){
+  function g(id){return document.getElementById(id);}
+  var sheet=g('sheet'),scrim=g('scrim');
+  var state={mode:'polished',title:'Studio afternoon'};
+  var POLISHED=g('prose').innerHTML;
+  var RAW='<p>Yeah so met up with Jack this morning, um, at the studio and we kind of ran the whole set twice.'
+    +' <span class="tok">Hendri</span> he wants the like commonplace angle up front so I\'ll, I\'ll carve out an hour'
+    +' for it tomorrow.</p><p>And then later <span class="tok">Rose</span> dropped by with the proofs, she thinks the'
+    +' cover\'s nearly there. Hendri said he\'d loop in Marcus from the print shop but I still owe him the final spreads.</p>';
+  var titles=[
+    {k:'sug', l1:'Studio afternoon', l2:'✦ Suggested by your Mac', spark:true},
+    {k:'rec', l1:'Met up with Jack this morning at…', l2:'From the recording (first line)'},
+    {k:'own', l1:'Add your own…', l2:'Type a title'}
+  ];
+
+  function mode(m){
+    state.mode=m;
+    g('segP').classList.toggle('on',m==='polished');
+    g('segR').classList.toggle('on',m==='original');
+    g('prose').className='prose'+(m==='original'?' raw':'');
+    g('prose').innerHTML=(m==='polished')?POLISHED:RAW;
+    g('summaryCard').style.display=(m==='polished')?'block':'none';
+    g('prov').style.display=(m==='polished')?'flex':'none';
+    g('editnote').style.display=(m==='original')?'flex':'none';
+  }
+  function close(){sheet.classList.remove('on');scrim.classList.remove('on');}
+  function chooseTitle(){
+    sheet.innerHTML='';
+    var card=document.createElement('div');card.className='card';
+    var head=document.createElement('div');head.className='shead';
+    head.innerHTML='<span class="h">Title</span>Choose what heads this note.';card.appendChild(head);
+    titles.forEach(function(t){
+      var b=document.createElement('button');b.className='opt';
+      b.innerHTML='<span class="lab"><span class="l1">'+t.l1+'</span><span class="l2">'+t.l2+'</span></span>'
+        +'<span class="chk">'+(state.title===t.l1?'✓':'')+'</span>';
+      b.onclick=function(){ if(t.k!=='own'){ state.title=t.l1; g('title').textContent=t.l1; } close(); };
+      card.appendChild(b);
+    });
+    sheet.appendChild(card);
+    var cb=document.createElement('div');cb.className='cancel';cb.textContent='Cancel';cb.onclick=close;sheet.appendChild(cb);
+    sheet.classList.add('on');scrim.classList.add('on');
+  }
+  g('titleBtn').onclick=chooseTitle; scrim.onclick=close;
+  g('reset').onclick=function(){state.title='Studio afternoon';g('title').textContent=state.title;mode('polished');close();};
+  return {mode:mode};
+})();
+</script>
+</body>
+</html>
