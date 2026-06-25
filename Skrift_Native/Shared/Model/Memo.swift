@@ -110,6 +110,18 @@ final class Memo {
     var sharedContentData: Data?
     var annotationText: String?
 
+    /// Per-note name-linking RESOLUTION choices, persisted as a JSON blob (same
+    /// SwiftData-Codable-trap avoidance as `metadataData`). Holds the note's
+    /// `unlinkedNames` (canonical keys kept plain — the "keep as plain text" / unlink
+    /// gesture) + `namePicks` (alias → chosen canonical, or "" to silence) — exactly the
+    /// `neverLink` / `namePicks` inputs the shared `Sanitiser` accepts. The phone keeps
+    /// the transcript RAW and re-derives tiers (`Sanitiser.nameSpans`) against these on
+    /// demand (`mocks/phone-name-linking.html`); they also steer the on-device Obsidian
+    /// export. Phone-side display/export only — the mobile↔Mac contract (phone sends RAW,
+    /// Mac links names with its OWN overrides) is untouched; the Mac's CloudKit ingest
+    /// ignores this field. ADDITIVE, nil default → lightweight migration + CloudKit-safe.
+    var nameResolutionsData: Data?
+
     /// The install that RECORDED this memo (`DeviceID.current`). With CloudKit a memo
     /// can arrive on another device still `.transcribing`; the receiver must NOT
     /// re-transcribe it (the recording device owns that, and the transcript will sync)
@@ -150,6 +162,7 @@ final class Memo {
         metadataData: Data? = nil,
         sharedContentData: Data? = nil,
         annotationText: String? = nil,
+        nameResolutionsData: Data? = nil,
         recordingDeviceID: String? = DeviceID.current()
     ) {
         self.id = id
@@ -171,6 +184,7 @@ final class Memo {
         self.metadataData = metadataData
         self.sharedContentData = sharedContentData
         self.annotationText = annotationText
+        self.nameResolutionsData = nameResolutionsData
         self.recordingDeviceID = recordingDeviceID
     }
 

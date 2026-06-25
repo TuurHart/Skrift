@@ -306,6 +306,22 @@ enum Sanitiser {
                                   candidates: occ.candidates))
         }
 
+        // PLAIN (leftplain) tier — a SILENCED alias (`namePicks[alias] == ""`, the
+        // reversible "keep as plain text" / unlink gesture) that still belongs to ≥1 live
+        // person stays a faint dotted, re-tappable token so it can be re-linked inline.
+        // The silence already suppressed any link/suggestion above, so these never overlap.
+        for (rawAlias, canon) in namePicks where canon.trimmingCharacters(in: .whitespaces).isEmpty {
+            let alias = rawAlias.trimmingCharacters(in: .whitespaces)
+            let cands = sharers(of: alias)
+            guard !cands.isEmpty, let rx = wordRegex(alias) else { continue }
+            for m in rx.matches(in: raw, range: fullRange(raw)) where eligible(raw, m.range.location, prot) {
+                let r = stripPoss(offset: m.range.location, length: m.range.length)
+                spans.append(NameSpan(offset: r.location, length: r.length,
+                                      alias: nsSub(raw, r.location, r.location + r.length),
+                                      tier: .plain, canonical: nil, candidates: cands.map(candidate)))
+            }
+        }
+
         return spans.sorted { $0.offset < $1.offset }
     }
 

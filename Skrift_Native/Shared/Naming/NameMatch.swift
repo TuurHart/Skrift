@@ -38,7 +38,12 @@ struct NameSpan: Equatable, Sendable {
     /// SUGGESTED — a single-candidate FP-prone name (common word / too short) whose
     ///           person did not auto-link; tan dotted, one tap to link.
     /// AMBIGUOUS — an alias 2+ roster people share; purple dotted + "?".
-    enum Tier: String, Equatable, Sendable { case linked, suggested, ambiguous }
+    /// PLAIN   — a name the user explicitly KEPT PLAIN this note (the reversible
+    ///           "keep as plain text" / unlink gesture, persisted as a silenced
+    ///           `namePicks[alias]=""`); a faint dotted, re-tappable token (the mock's
+    ///           `leftplain`) so it can be re-linked inline. Phone-only — `process`
+    ///           drops a silenced alias entirely.
+    enum Tier: String, Equatable, Sendable { case linked, suggested, ambiguous, plain }
 
     /// Range into the RAW transcript (the displayed spoken word).
     var offset: Int

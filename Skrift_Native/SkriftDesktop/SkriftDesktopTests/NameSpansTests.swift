@@ -47,8 +47,11 @@ final class NameSpansTests: XCTestCase {
             for (a, c) in pairs { b["\(a.lowercased())#\(c)", default: 0] += 1 }
             return b
         }
+        // `.plain` (leftplain) is a phone-only re-tappability affordance for silenced
+        // aliases — `process` drops them — so it's excluded from the process-parity bag.
         let processBag = bag(p.ambiguous.map { ($0.alias, $0.candidates.count) })
-        let spanBag = bag(spans.filter { $0.tier != .linked }.map { ($0.alias, $0.candidates.count) })
+        let spanBag = bag(spans.filter { $0.tier == .suggested || $0.tier == .ambiguous }
+                            .map { ($0.alias, $0.candidates.count) })
         XCTAssertEqual(spanBag, processBag, "suggested/ambiguous spans drifted from process", file: file, line: line)
 
         // (3) Every span indexes the RAW text (offsets valid, substring = the alias shown).
@@ -162,13 +165,25 @@ final class NameSpansTests: XCTestCase {
         assertParity(text, people, neverLink: ["[[Hendri van Niekerk]]"])
     }
 
-    func testSilencedAliasIsPlain() {
-        // An empty namePick silences the alias → neither linked nor suggested.
+    func testSilencedAliasIsKeptPlainAndReTappable() {
+        // An empty namePick silences the alias → not linked / not suggested, but the
+        // name of a live person stays a re-tappable PLAIN (leftplain) span.
         let people = [person("[[Rose]]", ["Rose"], short: "Rose")]
-        let text = "Rose stopped by."
+        let text = "Rose stopped by, then Rose left."
         let spans = Sanitiser.nameSpans(inRaw: text, people: people, namePicks: ["rose": ""])
-        XCTAssertTrue(spans.isEmpty, "silenced → plain body text")
+        XCTAssertEqual(spans.count, 2, "both Roses stay re-tappable")
+        XCTAssertTrue(spans.allSatisfy { $0.tier == .plain && $0.alias == "Rose" })
+        XCTAssertNil(spans.first?.canonical)
+        XCTAssertEqual(spans.first?.candidates.count, 1, "re-link offers the owning person")
+        // No linked/suggested/ambiguous → process parity (it drops silenced aliases).
         assertParity(text, people, namePicks: ["rose": ""])
+    }
+
+    func testSilencedAliasWithNoLivePersonHasNoSpan() {
+        // A silence for an alias no live person owns produces nothing (nothing to re-link).
+        let spans = Sanitiser.nameSpans(inRaw: "Ghost was here.", people: [person("[[Rose]]", ["Rose"])],
+                                        namePicks: ["ghost": ""])
+        XCTAssertTrue(spans.isEmpty)
     }
 
     func testEmptyAndNoPeople() {
