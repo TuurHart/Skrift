@@ -23,3 +23,34 @@ struct AmbiguousOccurrence: Codable, Equatable, Sendable {
     var contextAfter: String
     var candidates: [NameCandidate]
 }
+
+/// One name occurrence rendered over the **RAW** transcript, tiered for the phone's
+/// in-place name-linking touch surface (`mocks/phone-name-linking.html`). The phone
+/// keeps the transcript RAW and re-derives these on demand via
+/// `Sanitiser.nameSpans(inRaw:)` — it NEVER writes `[[brackets]]` into the body, so
+/// the offsets index the raw text directly (the displayed spoken word styles by tier
+/// and is tappable). Deterministic, LLM-free, derived from the SAME `Overrides` +
+/// first-mention logic as `Sanitiser.process`, so the phone's tiers always agree with
+/// what the export / the Mac would link.
+struct NameSpan: Equatable, Sendable {
+    /// LINKED  — this person's FIRST mention (auto-linked or user-picked); shows the
+    ///           spoken word in solid accent. One per linked person.
+    /// SUGGESTED — a single-candidate FP-prone name (common word / too short) whose
+    ///           person did not auto-link; tan dotted, one tap to link.
+    /// AMBIGUOUS — an alias 2+ roster people share; purple dotted + "?".
+    enum Tier: String, Equatable, Sendable { case linked, suggested, ambiguous }
+
+    /// Range into the RAW transcript (the displayed spoken word).
+    var offset: Int
+    var length: Int
+    /// The matched spoken word (what the user said / what's shown).
+    var alias: String
+    var tier: Tier
+    /// The resolved person's canonical (`[[Name]]`) for a linked span, or the single
+    /// candidate for a suggested span; nil for an ambiguous span (pick one of `candidates`).
+    var canonical: String?
+    /// Candidate people for the resolution sheet — one entry for suggested, 2+ for ambiguous.
+    var candidates: [NameCandidate]
+
+    var range: NSRange { NSRange(location: offset, length: length) }
+}

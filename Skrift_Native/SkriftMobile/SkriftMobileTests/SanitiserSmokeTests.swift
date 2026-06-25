@@ -34,4 +34,28 @@ final class SanitiserSmokeTests: XCTestCase {
         XCTAssertFalse(result.ambiguous.isEmpty,
                        "common-word name should surface as a suggestion")
     }
+
+    /// `nameSpans(inRaw:)` — the phone's RAW-text tier derivation — runs on-device and
+    /// tiers correctly (full parity coverage is in the desktop `NameSpansTests`, same
+    /// shared source). One linked Hendri (first mention), one ambiguous Jack, one
+    /// suggested Rose.
+    func testNameSpansTiersOnDevice() {
+        let people = [
+            Person(canonical: "[[Jack Hutton]]", aliases: ["Jack"], short: nil, lastModifiedAt: "2026-01-01T00:00:00Z"),
+            Person(canonical: "[[Jack Tanner]]", aliases: ["Jack"], short: nil, lastModifiedAt: "2026-01-01T00:00:00Z"),
+            Person(canonical: "[[Hendri van Niekerk]]", aliases: ["Hendri"], short: "Hendri", lastModifiedAt: "2026-01-01T00:00:00Z"),
+            Person(canonical: "[[Rose]]", aliases: ["Rose"], short: "Rose", lastModifiedAt: "2026-01-01T00:00:00Z"),
+        ]
+        let text = "Met Jack and Hendri. Later Rose came by, and Hendri left."
+        let spans = Sanitiser.nameSpans(inRaw: text, people: people)
+
+        XCTAssertEqual(spans.filter { $0.alias == "Hendri" && $0.tier == .linked }.count, 1,
+                       "Hendri links once (first mention)")
+        XCTAssertEqual(spans.first { $0.alias == "Jack" }?.tier, .ambiguous)
+        XCTAssertEqual(spans.first { $0.alias == "Rose" }?.tier, .suggested)
+        // Every span indexes the RAW text.
+        for s in spans {
+            XCTAssertEqual((text as NSString).substring(with: s.range), s.alias)
+        }
+    }
 }
