@@ -366,7 +366,11 @@ struct QuoteCaptureProcessor {
     /// (`AVAssetExportSession` with a `timeRange` — the only part of the book
     /// that’s ever read).
     static func exportSpan(of url: URL, start: TimeInterval, end: TimeInterval, to dest: URL) async throws {
-        let asset = AVURLAsset(url: url)
+        // Precise timing is load-bearing: the book audio is often a VBR MP3,
+        // and the carved span's word-times must align to the source for the
+        // read-along sidecar. Without the key the timeRange maps to imprecise
+        // sample positions and the captured quote drifts late.
+        let asset = AVURLAsset(url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
         guard end > start,
               let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
             throw QuoteCaptureError.exportFailed

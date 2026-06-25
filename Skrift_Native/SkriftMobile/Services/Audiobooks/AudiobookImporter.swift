@@ -178,7 +178,7 @@ enum AudiobookImporter {
 
             var durations: [TimeInterval] = []
             for name in filenames {
-                let asset = AVURLAsset(url: folder.appendingPathComponent(name))
+                let asset = makeAsset(url: folder.appendingPathComponent(name))
                 let seconds = ((try? await asset.load(.duration)).map { CMTimeGetSeconds($0) }) ?? 0
                 guard seconds.isFinite, seconds > 0 else {
                     try? FileManager.default.removeItem(at: folder)
@@ -253,6 +253,18 @@ enum AudiobookImporter {
         return trimmed
     }
 
+    // MARK: - Asset construction
+
+    /// Build the asset with PRECISE duration + timing. Without this option
+    /// AVFoundation estimates duration lazily from the first frame's bitrate,
+    /// which for many MP3s (VBR rips, big ID3 tags) comes back 0 / indefinite —
+    /// the import then fails the `duration > 0` guard and rejects a perfectly
+    /// playable book ("doesn't look like a playable audiobook"). m4b/m4a are
+    /// unaffected; turning it on everywhere is the safe default for imports.
+    static func makeAsset(url: URL) -> AVURLAsset {
+        AVURLAsset(url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
+    }
+
     // MARK: - Tag reading (AVAsset metadata)
 
     struct ParsedTags: Sendable {
@@ -270,7 +282,7 @@ enum AudiobookImporter {
     /// metadata. Missing pieces come back nil/empty —
     /// `AudiobookMetadataDefaults` decides the fallbacks.
     static func readTags(at url: URL) async -> ParsedTags {
-        let asset = AVURLAsset(url: url)
+        let asset = makeAsset(url: url)
         let duration = ((try? await asset.load(.duration)).map { CMTimeGetSeconds($0) }) ?? 0
         let common = (try? await asset.load(.commonMetadata)) ?? []
 

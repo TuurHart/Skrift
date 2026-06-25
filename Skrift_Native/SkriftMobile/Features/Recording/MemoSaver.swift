@@ -483,7 +483,12 @@ struct MemoSaver {
         guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
             throw AppendError.composition
         }
-        let baseAsset = AVURLAsset(url: base)
+        // Precise timing: `base` can be an imported MP3 (importAudio preserves
+        // the .mp3 extension). Without the key a VBR MP3 reports an estimated
+        // duration, which would misplace the splice offset (`at: baseDur`) and
+        // write a wrong merged duration. The addition is always the app's own
+        // AAC clip, so it doesn't need it.
+        let baseAsset = AVURLAsset(url: base, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
         let baseDur = try await baseAsset.load(.duration)
         guard let baseTrack = try await baseAsset.loadTracks(withMediaType: .audio).first else { throw AppendError.noBaseTrack }
         try track.insertTimeRange(CMTimeRange(start: .zero, duration: baseDur), of: baseTrack, at: .zero)

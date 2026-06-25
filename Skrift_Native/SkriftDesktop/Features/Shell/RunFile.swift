@@ -55,7 +55,11 @@ enum RunFile {
             log("== CHUNKSIM \(url.lastPathComponent) ==")
             let svc = TranscriptionService.shared
             guard let whole = try? await svc.transcribe(audioURL: url) else { log("whole transcribe failed"); exit(1) }
-            let dur = CMTimeGetSeconds(AVURLAsset(url: url).duration)
+            // Precise timing + async load: this harness targets audiobook MP3s,
+            // where the bare synchronous `.duration` can come back 0/indefinite
+            // (estimated) — making the chunk loop below never run or go garbage.
+            let durAsset = AVURLAsset(url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
+            let dur = CMTimeGetSeconds((try? await durAsset.load(.duration)) ?? .zero)
             log(String(format: "duration %.1fs, whole words %d", dur, whole.wordTimings.count))
 
             func chunked(_ label: String, extract: (Double, Double, URL) async throws -> Void) async -> [WordTiming] {
