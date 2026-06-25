@@ -273,6 +273,7 @@ private struct MemoPageView: View {
     @State private var resolveTarget: NameResolveTarget?
     @State private var undoToast: NameUndoToast?
     @State private var personSheet: PersonSheetRequest?
+    @State private var showPeopleSheet = false
 
     var body: some View {
         ScrollView {
@@ -347,6 +348,10 @@ private struct MemoPageView: View {
                 } else {
                     transcriptSection
                         .padding(.top, 18)
+                    if !transcriptNameSpans.isEmpty {
+                        peopleInNoteRow
+                            .padding(.top, 14)
+                    }
                 }
 
                 // Small breathing room; the bar's own height is reserved by the
@@ -408,6 +413,8 @@ private struct MemoPageView: View {
                 onDeleted: { people = NamesStore.shared.livePeople() }
             )
         }
+        // People-in-this-note chip surface (mock state 4) — link / re-link via chips.
+        .sheet(isPresented: $showPeopleSheet) { peopleSheetView }
         // Unlink → an Undo toast (reversible; mock build note #6).
         .overlay(alignment: .bottom) { undoToastView }
     }
@@ -682,6 +689,108 @@ private struct MemoPageView: View {
                 if undoToast?.id == toast.id { withAnimation(Theme.Motion.spring) { undoToast = nil } }
             }
         }
+    }
+
+    // MARK: - People in this note (chip surface, mock state 4)
+
+    private var linkedCount: Int {
+        Set(transcriptNameSpans.filter { $0.tier == .linked }.compactMap { $0.canonical?.lowercased() }).count
+    }
+
+    private var peopleInNoteRow: some View {
+        Button { showPeopleSheet = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "person.crop.circle").font(.system(size: 15)).foregroundStyle(Color.skTextDim)
+                (Text("People in this note").fontWeight(.semibold).foregroundStyle(Color.skText)
+                 + Text(" · \(linkedCount) linked").foregroundStyle(Color.skTextDim))
+                    .font(.system(size: 13))
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.skTextFaint)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 11)
+            .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
+            .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
+        }
+        .accessibilityIdentifier("people-in-note-row")
+    }
+
+    /// One candidate person for the note, with the alias they go by here + whether they're
+    /// currently linked. Built from the spans (union of every span's candidates).
+    private struct PersonChip: Identifiable {
+        let id: String; let canonical: String; let display: String; let alias: String; let linked: Bool
+    }
+
+    private var noteCandidateChips: [PersonChip] {
+        var aliasFor: [String: String] = [:], displayFor: [String: String] = [:]
+        var order: [String] = [], linkedSet = Set<String>()
+        for span in transcriptNameSpans {
+            if span.tier == .linked, let c = span.canonical { linkedSet.insert(c.lowercased()) }
+            for cand in span.candidates {
+                let key = cand.canonical.lowercased()
+                if aliasFor[key] == nil {
+                    aliasFor[key] = span.alias
+                    displayFor[key] = NamesMerge.keyName(cand.canonical)
+                    order.append(cand.canonical)
+                }
+            }
+        }
+        return order.map { canonical in
+            let key = canonical.lowercased()
+            return PersonChip(id: canonical, canonical: canonical, display: displayFor[key] ?? canonical,
+                              alias: aliasFor[key] ?? "", linked: linkedSet.contains(key))
+        }
+    }
+
+    private var peopleSheetView: some View {
+        NavigationStack {
+            ZStack {
+                Color.skBg.ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Tap to link the people this note is about. Linking writes the [[wikilink]] at the first mention.")
+                            .font(.system(size: 13)).foregroundStyle(Color.skTextDim)
+                        FlowLayout(spacing: 8, lineSpacing: 8) {
+                            ForEach(noteCandidateChips) { chip in
+                                Button { togglePersonChip(chip) } label: { chipLabel(chip) }
+                            }
+                            Button { personSheet = PersonSheetRequest(canonical: nil, prefillAlias: nil) } label: {
+                                Text("＋ Someone else…")
+                                    .font(.system(size: 13)).foregroundStyle(Color.skTextDim)
+                                    .padding(.horizontal, 11).padding(.vertical, 7)
+                                    .overlay(Capsule().strokeBorder(Color.skBorder, style: StrokeStyle(lineWidth: 1, dash: [3, 2])))
+                            }
+                            .accessibilityIdentifier("people-someone-else")
+                        }
+                    }
+                    .padding(Theme.Space.margin)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .navigationTitle("People in this note")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showPeopleSheet = false } } }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func chipLabel(_ chip: PersonChip) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: chip.linked ? "checkmark" : "plus").font(.system(size: 11, weight: .bold))
+            Text(chip.display).font(.system(size: 13, weight: chip.linked ? .semibold : .regular))
+        }
+        .foregroundStyle(chip.linked ? Color.skAccent : Color.skTextDim)
+        .padding(.horizontal, 11).padding(.vertical, 7)
+        .background((chip.linked ? Color.skAccentSoft : Color.white.opacity(0.05)),
+                    in: .capsule)
+        .overlay(Capsule().strokeBorder(chip.linked ? Color.skAccent.opacity(0.45) : Color.skBorder, lineWidth: 1))
+    }
+
+    /// Chip tap: link a candidate's first mention, or unlink (→ a dotted, re-linkable token).
+    private func togglePersonChip(_ chip: PersonChip) {
+        guard !chip.alias.isEmpty else { return }
+        if chip.linked { memo.keepNamePlain(alias: chip.alias) }
+        else { memo.linkName(alias: chip.alias, to: chip.canonical) }
+        repository.save()
     }
 
     private struct MetaChip: Identifiable { let id = UUID(); let text: String; let symbol: String? }

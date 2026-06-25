@@ -2,6 +2,31 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ✅ Phone in-place name-linking (2026-06-25, BUILT + sim-verified)
+
+Built the Mac review's name-linking as an iPhone touch surface, to the signed-off interactive
+prototype `Skrift_Native/SkriftDesktop/mocks/phone-name-linking.html` (its "Build notes — locked
+decisions" are the spec). The phone keeps the transcript **RAW** and re-derives tiers on demand —
+the mobile↔Mac contract (phone sends RAW, Mac links names) is **untouched**.
+
+- **Shared engine:** `Sanitiser.nameSpans(inRaw:)` (+ `NameSpan` in `Shared/Naming/NameMatch.swift`)
+  — a sibling to `process()` that records linked/suggested/ambiguous/plain spans over the RAW text
+  (no `[[brackets]]` written), reusing the SAME `Overrides`/first-mention/`suggestedOccurrences`
+  machinery → tiers can't drift from what `process()`/the export links. 9 parity tests.
+- **Persistence:** additive `Memo.nameResolutionsData` JSON blob (CloudKit-safe) →
+  `NameResolutions{unlinkedNames, namePicks}`; `linkName`/`keepNamePlain`/`clearNameResolution`.
+  Uniform model: link = `namePicks[alias]=canonical`, keep-plain/unlink = silence (`""`), undo = clear.
+- **UI (always-editable transcript):** 4 tiers styled in place (linked solid #9d8ff7 / suggested tan
+  dotted / ambiguous accent-wash+purple-dotted / plain-kept faint dotted); tap a name → native
+  confirmationDialog (candidates / New person… / Keep as plain text; linked → Switch person when
+  shared / Unlink+Undo-toast / Open card). "People in this note" chip bar. Editable `PersonEditorView`
+  (Full name/Aliases+demo/Short/Voice). Tap detects the name (layoutManager rect) then resigns first
+  responder so the keyboard yields — robust on UITextInteraction; editor stays always-editable.
+- **Verified** on the iPhone 17 sim (`-seedNameLinking` route + `NameLinkingUITests`): detail tiers,
+  resolve sheet, chip sheet, person editor all screenshot-checked. Mobile 498 unit tests green.
+- **Owed:** device eyeball; conversation (`SpeakerTurnsView`) tap-to-resolve is monologue-only for now
+  (conversations already render alias-display links via the conversation linker).
+
 ## 🐛 Audiobook import — MP3 rejected as "not a playable audiobook" (2026-06-24, FIXED)
 
 User imported a valid MP3 audiobook part ("Made to Stick-Part02.mp3", 36.6 MB, 76:14 per

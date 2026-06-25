@@ -48,4 +48,16 @@ final class NameLinkingUITests: XCTestCase {
                       "New person didn't open the person editor")
         shot(app, "namelink-person-editor")
     }
+
+    func testPeopleInNoteChipBar() throws {
+        let app = launch()
+        let row = app.buttons["people-in-note-row"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "people-in-note row missing")
+        row.tap()
+        XCTAssertTrue(app.buttons["people-someone-else"].waitForExistence(timeout: 5),
+                      "people-in-note chip sheet didn't open")
+        // Both Jacks + Hendri + Rose are candidate chips.
+        XCTAssertTrue(app.buttons.containing(NSPredicate(format: "label CONTAINS 'Hendri'")).firstMatch.exists)
+        shot(app, "namelink-people-sheet")
+    }
 }
