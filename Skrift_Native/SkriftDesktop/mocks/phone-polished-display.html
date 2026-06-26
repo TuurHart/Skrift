@@ -13,7 +13,7 @@
   .sub code{background:#1a1a24;padding:1px 6px;border-radius:5px;font-size:13px;}
   .stage{display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap;}
 
-  .phone{width:332px;min-height:620px;position:relative;background:#0f1117;border:6px solid #000;border-radius:42px;overflow:hidden;color:#e4e4e7;}
+  .phone{width:332px;min-height:600px;position:relative;background:#0f1117;border:6px solid #000;border-radius:42px;overflow:hidden;color:#e4e4e7;}
   .nav{display:flex;align-items:center;justify-content:space-between;padding:15px 16px 9px;font-size:15px;}
   .nav .t{color:#e4e4e7;font-size:13px;font-weight:600;}
   .nav button{background:transparent;border:none;color:#7c6bf5;font-size:15px;cursor:pointer;padding:0;}
@@ -24,30 +24,22 @@
   .ptitle{font-size:21px;font-weight:700;letter-spacing:-.02em;flex:1;}
   .titlebtn{flex-shrink:0;margin-top:3px;width:28px;height:28px;border-radius:8px;background:rgba(124,107,245,.14);
     border:none;color:#9d8ff7;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-  .crumb{color:#9a9aae;font-size:12px;margin-bottom:12px;}
-
-  /* Source / mode toggle */
-  .seg{display:inline-flex;background:#1a1c26;border:.5px solid rgba(255,255,255,.08);border-radius:9px;padding:2px;margin:2px 0 14px;}
-  .seg button{border:none;background:transparent;color:#9a9aae;font:inherit;font-size:12.5px;font-weight:600;
-    padding:5px 13px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:5px;}
-  .seg button.on{background:#2a2d3a;color:#e4e4e7;}
-  .seg .spark{color:#9d8ff7;font-size:11px;}
+  .crumb{color:#9a9aae;font-size:12px;margin-bottom:14px;}
 
   /* Summary card */
   .summary{background:#15131f;border:.5px solid rgba(124,107,245,.22);border-radius:13px;padding:12px 13px;margin-bottom:16px;}
   .summary .h{font-size:11px;font-weight:700;letter-spacing:.5px;color:#9d8ff7;display:flex;align-items:center;gap:5px;margin-bottom:5px;}
   .summary p{margin:0;font-size:13.5px;line-height:1.55;color:#c8c8d2;}
 
-  .prose{font-size:16px;line-height:1.78;}
+  .prose{font-size:16px;line-height:1.78;outline:none;}
   .prose p{margin:0 0 15px;}
-  .prose.raw{color:#cfcfd8;}
   .tok{color:#9d8ff7;}                                   /* a linked name (task-1 tiers still apply) */
-  .filler{color:#55556a;text-decoration:line-through;}   /* shown only in the diff peek */
+  .word.on{color:#9d8ff7;}                               /* proportional karaoke highlight */
+  .word.done{color:#8a8a98;}
 
-  .prov{font-size:11.5px;color:#7e7e8e;margin-top:6px;display:flex;align-items:center;gap:5px;}
+  .prov{font-size:11.5px;color:#7e7e8e;margin-top:8px;display:flex;align-items:center;gap:5px;}
   .prov .spark{color:#9d8ff7;}
-  .editnote{font-size:12px;color:#9a9aae;background:#16181f;border:.5px solid rgba(255,255,255,.07);
-    border-radius:10px;padding:9px 11px;margin-top:4px;display:flex;gap:7px;}
+  .editcaption{font-size:11.5px;color:#7e7e8e;margin-top:2px;}
 
   /* Title chooser sheet */
   .scrim{position:absolute;inset:0;background:rgba(2,2,5,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:4;}
@@ -68,21 +60,24 @@
   .opt .l2 .spark{color:#9d8ff7;}
   .opt .chk{color:#9d8ff7;font-size:15px;width:18px;text-align:center;}
 
+  .pill{margin-top:14px;display:flex;gap:8px;}
+  .pill button{font:inherit;font-size:12.5px;font-weight:600;border-radius:9px;padding:6px 13px;cursor:pointer;border:.5px solid rgba(255,255,255,.12);background:#1a1c26;color:#b4b4c2;}
+  .pill button.on{background:#7c6bf5;color:#fff;border-color:#7c6bf5;}
+
   .notes{max-width:560px;font-size:13.5px;line-height:1.7;color:#b4b4c2;}
   .notes h2{font-size:15px;color:#e4e4e7;margin:0 0 8px;}
   .notes li{margin-bottom:8px;}
   .notes code{background:#1a1a24;padding:1px 6px;border-radius:5px;font-size:12.5px;}
   .notes b{color:#e4e4e7;font-weight:600;}
-  .reset{margin-top:14px;font:inherit;font-size:13px;background:transparent;border:.5px solid rgba(255,255,255,.14);color:#b4b4c2;border-radius:8px;padding:7px 14px;cursor:pointer;}
 </style>
 </head>
 <body>
 <h1>Skrift — phone polished-text display (interactive)</h1>
-<p class="sub">The Mac's <b>polish</b> (copy-edit · title · summary), synced back to the phone over CloudKit as a
-<code>MemoEnhancement</code>, made <b>visible</b> on the phone (STANDALONE_PLAN Phase 4). Tap <b>Polished / Original</b>
-to switch the body; tap the <b>✦ title button</b> to choose between the Mac's suggested title, the recording's first
-line, or your own. Deterministic, no on-phone AI — the phone just <em>displays</em> the Mac's result and keeps the
-<b>RAW transcript as the source of truth</b>.</p>
+<p class="sub">The Mac's <b>polish</b> (copy-edit · title · summary), synced back over CloudKit as a
+<code>MemoEnhancement</code>, made <b>visible</b> on the phone (STANDALONE_PLAN Phase 4). <b>One editable body that
+starts from the polish</b> — no toggle. Your edits become the synced source of truth (the Mac won't re-polish an
+already-processed memo, so nothing clobbers them). Tap the <b>✦ title button</b> to choose the title. Tap
+<b>▶ Play</b> to see the proportional karaoke. Deterministic — the phone just displays the Mac's result.</p>
 
 <div class="stage">
   <div>
@@ -95,58 +90,53 @@ line, or your own. Deterministic, no on-phone AI — the phone just <em>displays
         </div>
         <div class="crumb">Queue › Fri, 6 Jun 2026</div>
 
-        <div class="seg">
-          <button id="segP" class="on" onclick="PD.mode('polished')"><span class="spark">✦</span> Polished</button>
-          <button id="segR" onclick="PD.mode('original')">Original</button>
-        </div>
-
         <div id="summaryCard" class="summary">
           <div class="h">✦ SUMMARY</div>
           <p>Ran the full set twice with Jack; Hendri wants the commonplace angle up front. Rose brought
             proofs — cover's nearly there. Owe Hendri the final spreads.</p>
         </div>
 
-        <div id="prose" class="prose">
-          <p>Met up with <span class="tok">Jack</span> this morning at the studio and ran the whole set twice.
-            <span class="tok">Hendri</span> wants the commonplace angle up front, so I'll carve out an hour for it
-            tomorrow.</p>
-          <p>Later <span class="tok">Rose</span> dropped by with the proofs — she thinks the cover's nearly there.
-            Hendri said he'd loop in Marcus from the print shop; I still owe him the final spreads.</p>
+        <div id="prose" class="prose" contenteditable="true" spellcheck="false"></div>
+        <div class="prov"><span class="spark">✦</span> Polished on your Mac · 2h ago · edits sync everywhere</div>
+        <div class="editcaption">The polished text is yours to edit — type right in it.</div>
+
+        <div class="pill">
+          <button id="play" onclick="PD.togglePlay()">▶ Play</button>
+          <span style="flex:1"></span>
         </div>
-        <div id="prov" class="prov"><span class="spark">✦</span> Polished on your Mac · 2h ago</div>
-        <div id="editnote" class="editnote" style="display:none;"><span>✎</span><span>This is your raw transcript — edit it
-          here. Polished text is the Mac's; switch back to see it.</span></div>
       </div>
 
       <div class="scrim" id="scrim"></div>
       <div class="sheetwrap" id="sheet"></div>
     </div>
-    <button class="reset" id="reset">↻ Reset</button>
+    <button class="titlebtn" id="reset" style="width:auto;padding:0 12px;height:32px;margin-top:14px;">↻ Reset</button>
   </div>
 
   <div class="notes">
-    <h2>Build notes — proposed decisions (2026-06-25)</h2>
+    <h2>Build notes — locked decisions (2026-06-26)</h2>
     <ul>
-      <li><b>What syncs:</b> the Mac writes a <code>MemoEnhancement</code> sidecar (copy-edit · title · summary +
-        provenance) to the shared CloudKit Memo store; it lands on the phone. The phone <b>re-links names</b> over the
-        copy-edit (shared <code>Sanitiser</code>) — same deterministic engine as the export, no on-phone LLM.</li>
-      <li><b>Body = Polished / Original toggle.</b> Default <b>Polished</b> when a <code>MemoEnhancement.hasContent</code>
-        exists (best-body precedence, matching the export). <b>Original</b> = the editable RAW transcript (the task-1
-        name-linking surface). No toggle shows at all when there's no polish — just the raw editor as today.</li>
-      <li><b>Polished is READ-only; Original is editable.</b> Clean separation: the polish is the Mac's derived result
-        you read; edits happen on the RAW (the contract source of truth). Avoids the "who owns the edit" ambiguity.</li>
-      <li><b>Title chooser (the parked phone problem) = a compact bottom sheet, not two cards.</b> The ✦ button opens
-        a list: <i>Suggested</i> (the Mac's LLM title, ✦) · <i>From the recording</i> (transcript first line) ·
-        <i>your own</i> (edit). A check marks the active one. Picking the Mac title just adopts it as
-        <code>memo.title</code>; "your own" opens the inline title field. Replaces the desktop's cramped
-        Suggested/From-recording two-card chooser.</li>
+      <li><b>One editable body, starting from the polish — no toggle.</b> When a <code>MemoEnhancement.hasContent</code>
+        exists, the body shows the Mac's copy-edit (re-linked names via the shared <code>Sanitiser</code>), editable in
+        place. No polish → the raw transcript as today. (Mirrors the Mac: polish gives you a cleaner draft, you tweak it.)</li>
+      <li><b>Your edits are the source of truth + sync.</b> Editing writes the <code>MemoEnhancement.copyedit</code>
+        (stamped <code>enhancedByDeviceID</code> = this phone, <code>enhancedAt</code> = now), which CloudKit syncs to the
+        Mac + iPad as the new truth. The RAW <code>transcript</code> stays the contract input (uploaded to the Mac,
+        untouched). <b>No clobber</b> — the Mac only processes a memo whose <code>enhanceStatus != .done</code>; once
+        polished it's never auto-re-polished (verified in <code>ProcessingCoordinator.needsProcessing</code>). <b>No
+        drift</b> — raw = input, polished(+edits) = output; nothing re-derives polished from raw once it exists.</li>
+      <li><b>Title chooser (the parked phone problem) = a compact bottom sheet, not two cards.</b> The ✦ button opens a
+        list: <i>Suggested</i> (the Mac's title, ✦) · <i>From the recording</i> (transcript first line) · <i>your own</i>
+        (edit). A check marks the active one. Picking just sets <code>memo.title</code>.</li>
       <li><b>Summary card</b> (✦) above the body when the Mac wrote one; hidden otherwise.</li>
-      <li><b>Provenance:</b> a quiet "✦ Polished on your Mac · &lt;ago&gt;" caption so it's clear the polish came from
-        the paired Mac (not invented on-device).</li>
-      <li><b>Name tiers still apply</b> (task 1): linked names render accent in BOTH bodies; tap-to-resolve works on the
-        editable Original. (Open Q for sign-off: allow tap-resolve on the read-only Polished too, or only Original?)</li>
-      <li><b>No on-device polish here</b> — that's the separate Phase-4 spike (Apple-Intelligence / bundled model). This
-        screen only surfaces what a paired Mac produced.</li>
+      <li><b>Provenance:</b> a quiet "✦ Polished on your Mac · &lt;ago&gt;" caption.</li>
+      <li><b>Karaoke = PROPORTIONAL on the polished body</b> (v1). Word timings are pinned to the RAW words; polishing
+        rewrites them, so the per-word 1:1 mapping breaks. Like the Mac, the highlight tracks progress proportionally
+        (follow-along) rather than word-exact. Audio + raw timings are kept intact. <b>Fast-follow:</b> re-align the
+        polished words to the raw timestamps (token diff: unchanged words inherit their exact time, new ones interpolate)
+        → near word-exact karaoke + "scrub to a word and fix it by ear" on the polished text.</li>
+      <li><b>Name tiers (task 1) apply to this body too</b> — names render accent + are tappable to resolve (the
+        resolution is a per-note pick; it never edits the words, so it's safe in either text).</li>
+      <li><b>No on-device polish here</b> — that's the separate Phase-4 spike. This screen only surfaces a paired Mac's result.</li>
     </ul>
   </div>
 </div>
@@ -154,29 +144,19 @@ line, or your own. Deterministic, no on-phone AI — the phone just <em>displays
 <script>
 window.PD=(function(){
   function g(id){return document.getElementById(id);}
-  var sheet=g('sheet'),scrim=g('scrim');
-  var state={mode:'polished',title:'Studio afternoon'};
-  var POLISHED=g('prose').innerHTML;
-  var RAW='<p>Yeah so met up with Jack this morning, um, at the studio and we kind of ran the whole set twice.'
-    +' <span class="tok">Hendri</span> he wants the like commonplace angle up front so I\'ll, I\'ll carve out an hour'
-    +' for it tomorrow.</p><p>And then later <span class="tok">Rose</span> dropped by with the proofs, she thinks the'
-    +' cover\'s nearly there. Hendri said he\'d loop in Marcus from the print shop but I still owe him the final spreads.</p>';
+  var sheet=g('sheet'),scrim=g('scrim'),prose=g('prose');
+  var POLISHED='Met up with <span class="tok">Jack</span> this morning at the studio and ran the whole set twice. '
+    +'<span class="tok">Hendri</span> wants the commonplace angle up front, so I\'ll carve out an hour for it tomorrow. '
+    +'Later <span class="tok">Rose</span> dropped by with the proofs — she thinks the cover\'s nearly there. Hendri said '
+    +'he\'d loop in Marcus from the print shop; I still owe him the final spreads.';
+  var state={title:'Studio afternoon',playing:false,timer:null,frac:0};
   var titles=[
-    {k:'sug', l1:'Studio afternoon', l2:'✦ Suggested by your Mac', spark:true},
-    {k:'rec', l1:'Met up with Jack this morning at…', l2:'From the recording (first line)'},
-    {k:'own', l1:'Add your own…', l2:'Type a title'}
+    {k:'sug',l1:'Studio afternoon',l2:'✦ Suggested by your Mac'},
+    {k:'rec',l1:'Met up with Jack this morning at…',l2:'From the recording (first line)'},
+    {k:'own',l1:'Add your own…',l2:'Type a title'}
   ];
 
-  function mode(m){
-    state.mode=m;
-    g('segP').classList.toggle('on',m==='polished');
-    g('segR').classList.toggle('on',m==='original');
-    g('prose').className='prose'+(m==='original'?' raw':'');
-    g('prose').innerHTML=(m==='polished')?POLISHED:RAW;
-    g('summaryCard').style.display=(m==='polished')?'block':'none';
-    g('prov').style.display=(m==='polished')?'flex':'none';
-    g('editnote').style.display=(m==='original')?'flex':'none';
-  }
+  function renderProse(){ prose.innerHTML=POLISHED; }
   function close(){sheet.classList.remove('on');scrim.classList.remove('on');}
   function chooseTitle(){
     sheet.innerHTML='';
@@ -194,9 +174,28 @@ window.PD=(function(){
     var cb=document.createElement('div');cb.className='cancel';cb.textContent='Cancel';cb.onclick=close;sheet.appendChild(cb);
     sheet.classList.add('on');scrim.classList.add('on');
   }
+  // Proportional karaoke: wrap words, highlight by a moving fraction (NOT per-word timings).
+  function startKaraoke(){
+    var html=POLISHED.replace(/(<[^>]+>)|(\S+)/g,function(m,tag,word){return tag?tag:'<span class="word">'+word+'</span>';});
+    prose.innerHTML=html; prose.setAttribute('contenteditable','false');
+    var words=[].slice.call(prose.querySelectorAll('.word'));
+    state.frac=0;
+    state.timer=setInterval(function(){
+      state.frac+=0.012; if(state.frac>=1){stopKaraoke();return;}
+      var active=Math.floor(state.frac*words.length);
+      words.forEach(function(w,i){ w.className='word'+(i<active?' done':(i===active?' on':'')); });
+    },90);
+  }
+  function stopKaraoke(){ clearInterval(state.timer); state.timer=null; state.playing=false;
+    g('play').classList.remove('on'); g('play').textContent='▶ Play'; prose.setAttribute('contenteditable','true'); renderProse(); }
+  function togglePlay(){ state.playing=!state.playing;
+    g('play').classList.toggle('on',state.playing); g('play').textContent=state.playing?'⏸ Pause':'▶ Play';
+    if(state.playing) startKaraoke(); else stopKaraoke(); }
+
   g('titleBtn').onclick=chooseTitle; scrim.onclick=close;
-  g('reset').onclick=function(){state.title='Studio afternoon';g('title').textContent=state.title;mode('polished');close();};
-  return {mode:mode};
+  g('reset').onclick=function(){ if(state.timer)stopKaraoke(); state.title='Studio afternoon'; g('title').textContent=state.title; renderProse(); close(); };
+  renderProse();
+  return {togglePlay:togglePlay};
 })();
 </script>
 </body>
