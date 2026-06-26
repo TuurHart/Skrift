@@ -10,7 +10,7 @@ enum NamesSeeder {
             NamesStore.shared.save(NamesData(lastModifiedAt: ISO8601.now(), people: []))
         }
         let now = ISO8601.now()
-        if LaunchFlags.seedNameLinking {
+        if LaunchFlags.seedNameLinking || LaunchFlags.seedPolished {
             // The mock's roster: two Jacks (ambiguous), distinctive Hendri (auto-links),
             // common-word Rose (suggested).
             NamesStore.shared.save(NamesData(lastModifiedAt: now, people: [

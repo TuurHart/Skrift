@@ -23,6 +23,11 @@ struct TranscriptEditor: UIViewRepresentable {
     var nameSpans: [NameSpan] = []
     /// A name span was tapped (while not editing) → the parent presents the resolve sheet.
     var onTapName: (NameSpan) -> Void = { _ in }
+    /// When set, the editor edits THIS text (the Mac's polished `MemoEnhancement.copyedit`)
+    /// instead of `memo.transcript` — the Phase-4 "polished body". Image markers + name
+    /// tiers + tap all work over it; the capture-quote split is bypassed (a polished memo is
+    /// never an audiobook capture). The caller's binding setter writes copyedit + provenance.
+    var polishedBinding: Binding<String>? = nil
 
     /// Portrait-locked app → the body width is fixed (screen − the page's side margins).
     private var contentWidth: CGFloat { max(80, UIScreen.main.bounds.width - 2 * Theme.Space.margin) }
@@ -50,6 +55,7 @@ struct TranscriptEditor: UIViewRepresentable {
         context.coordinator.textView = tv
         context.coordinator.nameSpans = nameSpans
         context.coordinator.onTapName = onTapName
+        context.coordinator.polishedBinding = polishedBinding
         // A tapped NAME opens the resolve sheet. The editor stays always-editable, so the
         // tap also begins editing; `handleNameTap` detects the name hit and resigns first
         // responder, so the keyboard yields to the sheet. Tapping plain text edits normally.
@@ -65,6 +71,7 @@ struct TranscriptEditor: UIViewRepresentable {
     func updateUIView(_ uiView: UITextView, context: Context) {
         context.coordinator.memo = memo
         context.coordinator.onTapName = onTapName
+        context.coordinator.polishedBinding = polishedBinding
         context.coordinator.load(force: false)     // re-render only if the transcript changed under us
         // Re-style when the tiers changed (a resolution applied) — but never mid-edit
         // (offsets drift while typing; we restyle on end-edit instead).
@@ -98,7 +105,13 @@ struct TranscriptEditor: UIViewRepresentable {
         /// (image markers collapse to one glyph) for hit-testing + restyle.
         var nameSpans: [NameSpan] = []
         var onTapName: (NameSpan) -> Void = { _ in }
+        /// When set, edit the Mac's polished copy-edit instead of `memo.transcript`.
+        var polishedBinding: Binding<String>?
         private var displaySpans: [(range: NSRange, span: NameSpan)] = []
+
+        /// The text the editor currently shows/edits — the polished copy-edit when bound,
+        /// else the raw transcript. (Both carry `[[img_NNN]]` markers + name tiers.)
+        private var bodyText: String { polishedBinding?.wrappedValue ?? (memo.transcript ?? "") }
 
         /// Custom attribute tagging an attachment with its 1-based image-marker index,
         /// so the transcript string can be reconstructed from the attributed text.
@@ -174,7 +187,7 @@ struct TranscriptEditor: UIViewRepresentable {
                 storage.addAttribute(.foregroundColor, value: UIColor(Color.skText), range: range)
             }
             var built: [(NSRange, NameSpan)] = []
-            let transcript = memo.transcript ?? ""          // ordinary memo: == the display source
+            let transcript = bodyText                        // raw transcript OR the polished copy-edit
             for span in nameSpans {
                 guard let dr = displayRange(forRaw: span.range, transcript: transcript),
                       dr.location + dr.length <= storage.length else { continue }
@@ -217,10 +230,11 @@ struct TranscriptEditor: UIViewRepresentable {
         /// us (e.g. transcription finished) — but never while the user is typing.
         func load(force: Bool) {
             guard let tv = textView else { return }
-            let t = memo.transcript ?? ""
-            // Quote-protected captures edit only the ramble; the styled quote
-            // block above the editor presents the "> " lines.
-            let display = protectedQuote?.ramble ?? t
+            let t = bodyText
+            // Polished body: edit the copy-edit verbatim (no capture-quote split — a polished
+            // memo is never an audiobook capture). Otherwise quote-protected captures edit
+            // only the ramble; the styled quote block above presents the "> " lines.
+            let display = polishedBinding != nil ? t : (protectedQuote?.ramble ?? t)
             if !force {
                 if t == loaded { return }
                 if tv.isFirstResponder { return }                 // don't yank text mid-edit
@@ -249,6 +263,15 @@ struct TranscriptEditor: UIViewRepresentable {
         func textViewDidChange(_ tv: UITextView) {
             let text = reconstruct(tv.attributedText)
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let binding = polishedBinding {
+                // Polished body: write the Mac's copy-edit; the caller's binding setter stamps
+                // provenance (this phone + now) so it syncs as the source of truth.
+                binding.wrappedValue = text
+                loaded = text
+                tv.invalidateIntrinsicContentSize()
+                onCommit()
+                return
+            }
             if let quote = protectedQuote {
                 // Capture memo: the editor held ONLY the ramble — re-prepend the
                 // raw "> " block verbatim so the stored quote is untouchable.

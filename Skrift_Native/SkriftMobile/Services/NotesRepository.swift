@@ -132,6 +132,13 @@ final class NotesRepository {
         return (try? context.fetch(descriptor)) ?? []
     }
 
+    /// The Mac's polish for a memo (the CloudKit write-back), or nil. App-level one-per-memo
+    /// (reconciled by `memoID`); newest `enhancedAt` wins if two ever exist.
+    func enhancement(forMemo id: UUID) -> MemoEnhancement? {
+        let d = FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == id })
+        return (try? context.fetch(d))?.sorted { $0.enhancedAt > $1.enhancedAt }.first
+    }
+
     /// Delete a memo's asset rows. Caller saves (`permanentlyDelete` does).
     func deleteAssets(forMemo id: UUID) {
         for asset in assets(forMemo: id) { context.delete(asset) }

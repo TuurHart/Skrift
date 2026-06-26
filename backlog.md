@@ -2,6 +2,36 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ✅ Phone polished-text display — STANDALONE Phase 4 (2026-06-26, BUILT + sim-verified)
+
+The Mac→CloudKit polish (`MemoEnhancement`) is now VISIBLE on the phone — the thing the user was
+waiting on to "see results" of the round-trip. Built to `mocks/phone-polished-display.html`.
+
+- **One editable body, starts from the polish — no toggle** (user decision, mirrors the Mac). When a
+  `MemoEnhancement.hasContent` exists for an ordinary monologue memo, the detail body shows the Mac's
+  copy-edit; name tiers + tap-resolve (task 1) apply to it. Edits write `MemoEnhancement.copyedit` +
+  stamp provenance (this phone, now) → sync as the source of truth.
+  - **No clobber** — verified in code: the Mac only processes `enhanceStatus != .done`
+    (`ProcessingCoordinator.needsProcessing`); a done memo is never auto-re-polished. **No drift** —
+    raw transcript = the contract input, polished(+edits) = the output; nothing re-derives polished
+    from raw once it exists.
+- **Title chooser** = a compact bottom sheet (Suggested / From-the-recording / your own) — solves the
+  PARKED phone title-UI problem (the desktop's two-card chooser is cramped on a phone). The detail
+  title defaults to the Mac's suggestion when no user title is set.
+- **Summary card** + **"✦ Polished on your Mac" provenance caption**.
+- **PROPORTIONAL karaoke** on the polished body (word timings pin to the RAW words; the polish rewrites
+  them, so v1 tracks progress, like the Mac). **⭐ FAST-FOLLOW owed:** re-align polished words → raw
+  timestamps (token diff: unchanged words inherit exact time, new ones interpolate; mostly-deletions →
+  mostly-exact) for word-exact karaoke + "scrub to a word in the polished text and fix it by ear."
+- Files: `MemoDetailView` (macPolish/polishedBinding/summaryCard/title chooser/provenance),
+  `TranscriptBodyView`+`TranscriptEditor` (polished binding + proportional karaoke),
+  `NotesRepository.enhancement(forMemo:)`. Verified on the iPhone 17 sim (`-seedPolished` +
+  `PolishedDisplayUITests`). Mobile 498 unit tests green. **Owed:** device eyeball; the list row
+  could also prefer the enhancement title (detail does); proportional-karaoke device eyeball.
+- **Drive-by fix:** `MemoDate.label`/`group` used `Calendar.isDateInToday/isYesterday` (wall-clock,
+  ignored the injected `now`) → the date tests were non-deterministic across midnight. Switched to a
+  day-delta against `now` (identical in prod, deterministic in tests).
+
 ## ✅ Phone in-place name-linking (2026-06-25, BUILT + sim-verified)
 
 Built the Mac review's name-linking as an iPhone touch surface, to the signed-off interactive

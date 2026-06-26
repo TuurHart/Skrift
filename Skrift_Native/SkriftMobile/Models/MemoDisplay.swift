@@ -352,13 +352,15 @@ enum MemoDate {
     static func label(_ date: Date, now: Date = Date()) -> String {
         let cal = Calendar.current
         let time = timeFormatter.string(from: date)
-        if cal.isDateInToday(date) { return "Today · \(time)" }
-        if cal.isDateInYesterday(date) { return "Yesterday · \(time)" }
+        // Day delta against the INJECTED `now` (not `isDateInToday`, which ignores `now` and
+        // checks the wall clock — making these labels non-deterministic across midnight).
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: date),
+                                      to: cal.startOfDay(for: now)).day ?? 0
+        if days <= 0 { return "Today · \(time)" }
+        if days == 1 { return "Yesterday · \(time)" }
         // This week → weekday ("Fri · 14:29"). Older than a week, the weekday alone is
         // misleading — a memo from last year read identically to last Friday — so degrade to
         // a real date: same year → "19 Jun · 14:29", a different year → ISO "2025-06-19 · 14:29".
-        let days = cal.dateComponents([.day], from: cal.startOfDay(for: date),
-                                      to: cal.startOfDay(for: now)).day ?? 0
         if days < 7 { return "\(weekdayFormatter.string(from: date)) · \(time)" }
         if cal.component(.year, from: date) == cal.component(.year, from: now) {
             return "\(monthDayFormatter.string(from: date)) · \(time)"
@@ -369,8 +371,11 @@ enum MemoDate {
     /// Day-group header key for the list ("Today" / "Yesterday" / "Mon 3 Jun").
     static func group(_ date: Date, now: Date = Date()) -> String {
         let cal = Calendar.current
-        if cal.isDateInToday(date) { return "Today" }
-        if cal.isDateInYesterday(date) { return "Yesterday" }
+        // Day delta against the injected `now` (deterministic across midnight — see `label`).
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: date),
+                                      to: cal.startOfDay(for: now)).day ?? 0
+        if days <= 0 { return "Today" }
+        if days == 1 { return "Yesterday" }
         // Carry the year on a different-year group so old day-groups aren't ambiguous.
         if cal.component(.year, from: date) == cal.component(.year, from: now) {
             return groupFormatter.string(from: date)

@@ -27,6 +27,10 @@ struct TranscriptBodyView: View {
     /// captures); a tapped name routes up to the resolve sheet.
     var nameSpans: [NameSpan] = []
     var onTapName: (NameSpan) -> Void = { _ in }
+    /// When set, the body shows the Mac's polished copy-edit (Phase 4) — editable here,
+    /// with PROPORTIONAL karaoke on playback (the word timings are pinned to the raw words,
+    /// so polished text can't karaoke word-exact; it tracks progress instead).
+    var polishedBinding: Binding<String>? = nil
 
     enum Mode: Equatable { case editing, playing, reading }
 
@@ -42,10 +46,27 @@ struct TranscriptBodyView: View {
     private var mode: Mode { Self.mode(isPlaying: player.isPlaying, status: memo.transcriptStatus) }
 
     var body: some View {
-        switch mode {
-        case .playing: playingBody
-        case .reading: readingBody
-        case .editing: editingBody
+        if let binding = polishedBinding {
+            polishedBody(binding)
+        } else {
+            switch mode {
+            case .playing: playingBody
+            case .reading: readingBody
+            case .editing: editingBody
+            }
+        }
+    }
+
+    // MARK: - Polished body (Phase 4 — the Mac's copy-edit, editable)
+
+    /// The polished copy-edit as the ONE editable body (no capture-quote split — a polished
+    /// memo is never an audiobook capture). Playback shows proportional karaoke.
+    @ViewBuilder private func polishedBody(_ binding: Binding<String>) -> some View {
+        if player.isPlaying {
+            KaraokeTranscriptView(memo: memo, player: player, text: binding.wrappedValue, proportional: true)
+        } else {
+            TranscriptEditor(memo: memo, onCommit: onCommit, nameSpans: nameSpans,
+                             onTapName: onTapName, polishedBinding: binding)
         }
     }
 
@@ -141,6 +162,10 @@ private struct KaraokeTranscriptView: View {
     /// Render as the styled quote's text — italic, slightly dimmed base colour —
     /// so karaoke can run INSIDE the `CaptureQuoteFrame` without a restyle jump.
     var quoteStyle = false
+    /// Proportional highlight (Phase 4 polished body): word timings are pinned to the RAW
+    /// words, so over the rewritten polish we track progress (time/duration) instead of a
+    /// per-word timestamp. Tap-to-seek lands at the proportional position.
+    var proportional = false
     @State private var timings: [WordTiming] = []
     // Default ON (2026-06-12, user call): tapping a word during playback should
     // just work. The Settings toggle remains for opting back into the crisp
@@ -153,8 +178,22 @@ private struct KaraokeTranscriptView: View {
     /// Active spoken-word index during playback (nil when paused / no timings) —
     /// the transcript highlights that word. Word-accurate via the on-device timings.
     private var activeWord: Int? {
-        guard player.isPlaying, !timings.isEmpty else { return nil }
+        guard player.isPlaying else { return nil }
+        if proportional {
+            guard player.duration > 0, totalWords > 0 else { return nil }
+            return min(totalWords - 1, Int(player.currentTime / player.duration * Double(totalWords)))
+        }
+        guard !timings.isEmpty else { return nil }
         return Karaoke.activeWordIndex(timings, at: player.currentTime)
+    }
+
+    /// Spoken-word count across the text segments (image markers aren't words) — the
+    /// denominator for proportional karaoke.
+    private var totalWords: Int {
+        segments.reduce(0) { acc, seg in
+            if case .text(let s) = seg { return acc + s.split(whereSeparator: { $0.isWhitespace }).count }
+            return acc
+        }
     }
 
     var body: some View {
@@ -248,6 +287,13 @@ private struct KaraokeTranscriptView: View {
     }
 
     private func seekToWord(_ i: Int) {
+        if proportional {
+            guard totalWords > 0, player.duration > 0 else { return }
+            let target = Double(i) / Double(totalWords) * player.duration
+            player.seek(to: max(0, min(target, player.duration)))
+            if !player.isPlaying { player.play() }
+            return
+        }
         guard i >= 0, i < timings.count else { return }
         player.seek(to: timings[i].start)
         if !player.isPlaying { player.play() }

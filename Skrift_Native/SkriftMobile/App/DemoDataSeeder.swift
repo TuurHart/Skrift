@@ -8,6 +8,8 @@ import UIKit
 enum DemoDataSeeder {
     /// Fixed id for the name-linking demo memo so the screenshot route can open it directly.
     static let nameLinkingMemoID = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+    /// Fixed id for the polished (Phase 4) demo memo.
+    static let polishedMemoID = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
 
     static func seedIfRequested(_ repo: NotesRepository) {
         guard repo.allMemos().isEmpty else { return }
@@ -15,8 +17,43 @@ enum DemoDataSeeder {
         if LaunchFlags.seedConversationMemo { repo.insert(conversationMemo()); return }
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
         if LaunchFlags.seedNameLinking { repo.insert(nameLinkingMemo()); return }
+        if LaunchFlags.seedPolished { seedPolished(repo); return }
         guard LaunchFlags.seedDemoMemos else { return }
         for memo in demoMemos() { repo.insert(memo) }
+    }
+
+    /// A memo with a raw (um-filled) transcript + a Mac `MemoEnhancement` (clean copy-edit +
+    /// title + summary), to screenshot the Phase-4 polished-text display.
+    static func seedPolished(_ repo: NotesRepository) {
+        let now = Date()
+        let memo = Memo.make(
+            id: polishedMemoID,
+            audioFilename: "memo_\(polishedMemoID.uuidString).m4a",
+            duration: 96, recordedAt: now, tags: ["studio"], syncStatus: .synced,
+            transcript: """
+            Yeah so, um, met up with Jack this morning at the studio and we kind of ran the whole \
+            set twice. Hendri, he wants the, the commonplace angle up front, so I'll carve out an \
+            hour for it tomorrow. And then later Rose dropped by with the proofs, she thinks the \
+            cover's nearly there. Hendri said he'd loop in Marcus from the print shop but I still \
+            owe him the final spreads.
+            """,
+            transcriptStatus: .done, transcriptConfidence: 0.95, significance: 0.5,
+            metadata: MemoMetadata(capturedAt: ISO8601.string(from: now), dayPeriod: .afternoon))
+        repo.insert(memo)
+        repo.context.insert(MemoEnhancement(
+            memoID: polishedMemoID,
+            copyedit: """
+            Met up with Jack this morning at the studio and ran the whole set twice. Hendri wants \
+            the commonplace angle up front, so I'll carve out an hour for it tomorrow.
+
+            Later Rose dropped by with the proofs — she thinks the cover's nearly there. Hendri \
+            said he'd loop in Marcus from the print shop; I still owe him the final spreads.
+            """,
+            title: "Studio afternoon",
+            summary: "Ran the full set twice with Jack; Hendri wants the commonplace angle up front. " +
+                     "Rose brought proofs — cover's nearly there. Owe Hendri the final spreads.",
+            enhancedByDeviceID: "mac-demo", enhancedAt: now))
+        repo.save()
     }
 
     /// The mock's "Studio afternoon" memo (`mocks/phone-name-linking.html`): "Jack" is

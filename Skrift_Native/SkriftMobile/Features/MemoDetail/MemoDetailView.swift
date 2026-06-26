@@ -274,17 +274,37 @@ private struct MemoPageView: View {
     @State private var undoToast: NameUndoToast?
     @State private var personSheet: PersonSheetRequest?
     @State private var showPeopleSheet = false
+    // Phase 4 — the Mac's polish (CloudKit write-back), shown as the editable body.
+    @State private var enhancement: MemoEnhancement?
+    @State private var showTitleChooser = false
+    @FocusState private var titleFocused: Bool
+    @ObservedObject private var sync = CloudSyncMonitor.shared
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                TextField("", text: titleBinding, prompt: titlePrompt)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color.skText)
-                    .tint(.skAccent)
-                    .submitLabel(.done)
-                    .onSubmit { repository.save() }
-                    .accessibilityIdentifier("detail-title")
+                HStack(alignment: .top, spacing: 8) {
+                    TextField("", text: titleBinding, prompt: titlePrompt)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Color.skText)
+                        .tint(.skAccent)
+                        .submitLabel(.done)
+                        .focused($titleFocused)
+                        .onSubmit { repository.save() }
+                        .accessibilityIdentifier("detail-title")
+                    // ✦ title chooser — only when the Mac sent a suggested title.
+                    if macPolish?.title.trimmingCharacters(in: .whitespaces).isEmpty == false {
+                        Button { showTitleChooser = true } label: {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Color.skAccent)
+                                .frame(width: 30, height: 30)
+                                .background(Color.skAccentSoft, in: .rect(cornerRadius: 8, style: .continuous))
+                        }
+                        .padding(.top, 3)
+                        .accessibilityIdentifier("title-chooser-button")
+                    }
+                }
 
                 FlowLayout(spacing: 6, lineSpacing: 6) {
                     ForEach(metaChips) { chip in
@@ -316,6 +336,13 @@ private struct MemoPageView: View {
                 // is past the refine wall.
                 SignificanceCircles(value: $memo.significance) { repository.save() }
                     .padding(.top, 14)
+
+                // Mac's polish: the summary card (when present) above the body.
+                if let summary = macPolish?.summary.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !summary.isEmpty {
+                    summaryCard(summary)
+                        .padding(.top, 16)
+                }
 
                 if let label = diarStatus.label(for: memo.id) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -368,6 +395,11 @@ private struct MemoPageView: View {
         .task(id: memo.id) {
             timings = WordTimingsStore().load(for: memo.id) ?? []
             people = NamesStore.shared.livePeople()
+            enhancement = repository.enhancement(forMemo: memo.id)
+        }
+        // A polish can arrive via CloudKit after the screen opens — re-fetch when a sync settles.
+        .onChange(of: sync.isSyncing) { _, syncing in
+            if !syncing { enhancement = repository.enhancement(forMemo: memo.id) }
         }
         .alert("Add tags", isPresented: $showAddTag) {
             TextField("tag, tag, tag", text: $newTag)
@@ -415,6 +447,18 @@ private struct MemoPageView: View {
         }
         // People-in-this-note chip surface (mock state 4) — link / re-link via chips.
         .sheet(isPresented: $showPeopleSheet) { peopleSheetView }
+        // Title chooser (Phase 4): Suggested (Mac) / From the recording / your own.
+        .confirmationDialog("Title", isPresented: $showTitleChooser, titleVisibility: .visible) {
+            if let suggested = macPolish?.title.trimmingCharacters(in: .whitespaces), !suggested.isEmpty {
+                Button(suggested) { memo.title = suggested; memo.markEdited(); repository.save() }
+            }
+            if let line = recordingFirstLine {
+                Button("From the recording: \(line)") { memo.title = line; memo.markEdited(); repository.save() }
+            }
+            Button("Type your own…") { titleFocused = true }
+        } message: {
+            Text("Choose what heads this note.")
+        }
         // Unlink → an Undo toast (reversible; mock build note #6).
         .overlay(alignment: .bottom) { undoToastView }
     }
@@ -507,7 +551,11 @@ private struct MemoPageView: View {
     }
 
     private var titleBinding: Binding<String> {
-        Binding(get: { memo.title ?? "" }, set: { memo.title = $0.isEmpty ? nil : $0; memo.markEdited() })
+        // Prefer the user's title; else default to the Mac's suggested title (so a polished
+        // memo reads nicely instead of falling back to the um-filled first line). Editing
+        // writes the user title.
+        Binding(get: { memo.title ?? macPolish?.title ?? "" },
+                set: { memo.title = $0.isEmpty ? nil : $0; memo.markEdited() })
     }
 
     private var titlePrompt: Text {
@@ -565,24 +613,95 @@ private struct MemoPageView: View {
                 imageURL: turnImageURL
             )
         } else {
-            TranscriptBodyView(
-                memo: memo, player: player,
-                onCommit: { memo.markEdited(); repository.save() },
-                nameSpans: transcriptNameSpans,
-                onTapName: { resolveTarget = NameResolveTarget(span: $0) }
-            )
+            VStack(alignment: .leading, spacing: 8) {
+                TranscriptBodyView(
+                    memo: memo, player: player,
+                    onCommit: { memo.markEdited(); repository.save() },
+                    nameSpans: transcriptNameSpans,
+                    onTapName: { resolveTarget = NameResolveTarget(span: $0) },
+                    polishedBinding: polishedBinding
+                )
+                if macPolish != nil { provenanceCaption }
+            }
         }
     }
 
-    /// Tiered name spans for the in-place linking surface — ordinary voice memos only
-    /// (captures show a quote block; conversations route to `SpeakerTurnsView`), and
-    /// skipped during playback (the editor is swapped for karaoke, and recomputing every
-    /// tick would be wasteful).
+    /// "✦ Polished on your Mac" caption under a polished body.
+    private var provenanceCaption: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "sparkles").font(.system(size: 10))
+            Text("Polished on your Mac · edits sync everywhere")
+        }
+        .font(.system(size: 11.5))
+        .foregroundStyle(Color.skTextFaint)
+        .padding(.top, 2)
+    }
+
+    /// Tiered name spans for the in-place linking surface — over the ACTIVE body (the
+    /// polished copy-edit when present, else the raw transcript). Ordinary voice memos only
+    /// (captures show a quote block; conversations route to `SpeakerTurnsView`), and skipped
+    /// during playback (the editor is swapped for karaoke; recomputing every tick is waste).
     private var transcriptNameSpans: [NameSpan] {
         guard !player.isPlaying, !people.isEmpty,
               !memo.isShareCapture, memo.captureQuote == nil,
               SpeakerTranscript.parse(memo.transcript) == nil else { return [] }
-        return memo.nameSpans(people: people)
+        return Sanitiser.nameSpans(inRaw: activeBodyText, people: people,
+                                   neverLink: Set(memo.nameResolutions.unlinkedNames),
+                                   namePicks: memo.nameResolutions.namePicks)
+    }
+
+    // MARK: - Mac polish (Phase 4)
+
+    /// The Mac's polish to SHOW — only for an ordinary monologue voice memo (captures keep
+    /// their quote block; conversations route to `SpeakerTurnsView`). nil = show raw.
+    private var macPolish: MemoEnhancement? {
+        guard let e = enhancement, e.hasContent,
+              !memo.isShareCapture, memo.captureQuote == nil,
+              SpeakerTranscript.parse(memo.transcript) == nil else { return nil }
+        return e
+    }
+
+    /// The body the editor/karaoke/name-linking act on: the polished copy-edit when present,
+    /// else the raw transcript.
+    private var activeBodyText: String { macPolish?.copyedit ?? (memo.transcript ?? "") }
+
+    /// Binding the editor writes when showing the polished body — persists the copy-edit +
+    /// stamps provenance (this phone, now) so the edit syncs as the source of truth. The Mac
+    /// won't re-polish an already-done memo, so it's never clobbered.
+    private var polishedBinding: Binding<String>? {
+        guard let e = macPolish else { return nil }
+        return Binding(
+            get: { e.copyedit },
+            set: { newValue in
+                e.copyedit = newValue
+                e.enhancedByDeviceID = DeviceID.current()
+                e.enhancedAt = Date()
+            }
+        )
+    }
+
+    /// The recording's first line (markers/speaker-prefix stripped) — the "From the
+    /// recording" title option.
+    private var recordingFirstLine: String? {
+        memo.firstTranscriptLine.map { String($0.prefix(60)) }
+    }
+
+    private func summaryCard(_ summary: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Image(systemName: "sparkles").font(.system(size: 10, weight: .bold))
+                Text("SUMMARY").font(.system(size: 11, weight: .bold)).kerning(0.5)
+            }
+            .foregroundStyle(Color.skAccent)
+            Text(summary)
+                .font(.system(size: 13.5))
+                .foregroundStyle(Color.skTextDim)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(12)
+        .background(Color.skAccentSoft.opacity(0.5), in: .rect(cornerRadius: 13, style: .continuous))
+        .overlay(RoundedRectangle.sk(13).stroke(Color.skAccent.opacity(0.22), lineWidth: 1))
+        .accessibilityIdentifier("polish-summary-card")
     }
 
     // MARK: - Name resolution (the tapped-name sheet)

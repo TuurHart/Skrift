@@ -142,6 +142,9 @@ struct RootView: View {
             // Screenshot route: open the seeded "Studio afternoon" memo straight into the
             // in-place name-linking surface.
             NavigationStack { MemoDetailView(initialID: DemoDataSeeder.nameLinkingMemoID) }
+        } else if LaunchFlags.seedPolished {
+            // Screenshot route: open the seeded polished memo (Phase 4 display).
+            NavigationStack { MemoDetailView(initialID: DemoDataSeeder.polishedMemoID) }
         } else if needsOnboarding {
             OnboardingView {
                 UserDefaults.standard.set(true, forKey: "onboardingComplete")

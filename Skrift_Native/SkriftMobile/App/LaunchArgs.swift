@@ -46,6 +46,10 @@ enum LaunchFlags {
     /// Jacks → ambiguous, Hendri → linked, Rose → suggested) and open its detail directly,
     /// so the in-place name-linking surface can be screenshot-verified on the Simulator.
     static var seedNameLinking: Bool { args.boolFlag("-seedNameLinking") }
+    /// Seed a polished memo (raw um-filled transcript + a Mac `MemoEnhancement`:
+    /// copy-edit/title/summary) + the name roster, and open its detail — so the Phase-4
+    /// polished-text display can be screenshot-verified.
+    static var seedPolished: Bool { args.boolFlag("-seedPolished") }
     /// Wipe the local names.json at launch so a conversation/voice test starts from a
     /// known-empty names slate (names.json persists across sim runs, unlike the SwiftData
     /// store — `-inMemoryStore` doesn't reset it). Used by the diarization-split and
