@@ -5,3 +5,5 @@ build/
 DerivedData/
 .DS_Store
 *.xcuserstate
+
+build-release/
