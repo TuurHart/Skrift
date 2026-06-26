@@ -61,9 +61,12 @@ registered + 32-byte APNs token** received (`6642af4`). Launch-crash from the en
 **REMAINING — user only:**
 1. **Finish one round-trip:** on the Mac, **Process** an ingested memo → it enhances → the `MemoEnhancement` write-back
    syncs back → confirm the phone's Obsidian export uses the polished text (the only end-to-end leg not yet eyeballed).
-2. **At prod promotion (Release):** in Xcode's Signing & Capabilities for the Release config, register
-   `iCloud.com.skrift.mobile` + add the **Push** capability on `com.skrift.desktop` AND `com.skrift.mobile` (Debug/dev is
-   done for both), and **Deploy** the `MemoEnhancement` record type in the CloudKit Dashboard (prod environment).
+2. **At prod promotion (Release):** ✅ **Release-config capabilities VERIFIED DONE 2026-06-26** — both
+   `com.skrift.mobile` and `com.skrift.desktop` Release configs show iCloud (CloudKit · container
+   `iCloud.com.skrift.mobile`) + Push with NO signing warnings (Xcode automatic signing had already
+   registered them; the earlier "still to register" note was stale). The ONLY remaining prod-CloudKit
+   step is the dashboard: confirm the `MemoEnhancement` record type exists in the **Production**
+   environment of `iCloud.com.skrift.mobile` (deploy Dev→Prod if it's only in Development).
 
 **Known limitation (follow-up):** **capture** items (URL/text/PDF shares) dedup across transports only on CloudKit
 re-ingest (by `id`), NOT cross-transport — a Bonjour capture upload carries no memo UUID (random id +
