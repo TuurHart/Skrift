@@ -50,17 +50,35 @@ enum ChunkFusion {
         }
 
         let starts = SentenceSnap.sentenceStartIndices(chunkWords)
-        // Need at least two sentence starts to have a COMPLETE sentence to keep
-        // and a trailing one to re-transcribe. With ≤1, keep all + advance to end.
-        guard starts.count >= 2 else {
-            return Fused(kept: chunkWords, newFrontier: chunkEnd)
+        // Preferred seam: cut at the last COMPLETE sentence and re-transcribe the
+        // trailing one next chunk. Needs ≥2 sentence starts (one complete + a
+        // trailing partial) AND enough advance to avoid a tiny-step loop.
+        if starts.count >= 2 {
+            let lastStart = starts[starts.count - 1]
+            let frontier = chunkWords[lastStart].start
+            if frontier - chunkStart >= minProgress {
+                return Fused(kept: Array(chunkWords[0..<lastStart]), newFrontier: frontier)
+            }
         }
-        let lastStart = starts[starts.count - 1]
-        let frontier = chunkWords[lastStart].start
-        // Guard against a tiny advance (one giant sentence filling the chunk).
-        guard frontier - chunkStart >= minProgress else {
-            return Fused(kept: chunkWords, newFrontier: chunkEnd)
+        // Fallback: no usable sentence boundary in the chunk's back half (a run-on
+        // sentence filling the chunk, e.g. the long "creative genius…" sentence).
+        // We CANNOT just keep every word up to the arbitrary `chunkEnd` cut: that
+        // cut lands MID-WORD, so the boundary word is transcribed from TRUNCATED
+        // audio (mis-decoded + terminating period lost — "session" → "summer") yet
+        // kept here, while the next chunk drops it (it starts before chunkEnd). The
+        // orphaned, period-less word then merges the two sentences it straddles
+        // (device bug 2026-06-27). So mirror the sentence redo-tail at WORD
+        // granularity: drop the final word and rewind the frontier to its start, so
+        // the next chunk re-transcribes it whole (its audio is uncut there).
+        let lastIdx = chunkWords.count - 1
+        if lastIdx >= 1 {
+            let wordFrontier = chunkWords[lastIdx].start
+            if wordFrontier - chunkStart >= minProgress {
+                return Fused(kept: Array(chunkWords[0..<lastIdx]), newFrontier: wordFrontier)
+            }
         }
-        return Fused(kept: Array(chunkWords[0..<lastStart]), newFrontier: frontier)
+        // Even the last-word rewind wouldn't make minimal progress (a few words
+        // bunched early then silence) → accept the cut to guarantee forward motion.
+        return Fused(kept: chunkWords, newFrontier: chunkEnd)
     }
 }
