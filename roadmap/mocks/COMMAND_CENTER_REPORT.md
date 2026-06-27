@@ -13,9 +13,10 @@ I redeployed at each version.*
 
 You asked me to polish the hub, use lots of agents, think through workflows,
 "pretend to use the app and find weird bits we didn't consider," make my own
-calls, and write this up. I ran **three multi-agent workflows (≈31 agents,
-~1.6M tokens)** and drove the mock from v2 → **v3 "The Tape"** → **v4** with a
-design-direction exploration and an adversarial review in between.
+calls, and write this up. I ran **four multi-agent workflows (~58 agents,
+~2.5M tokens)** and drove the mock from v2 → **v3 "The Tape"** → **v4 (hardened)**
+with a design-direction exploration, a 30-agent adversarial review, and a
+verification pass in between.
 
 The headline outcome: **"The Tape" is the right direction** — chat is the
 instrument, the roadmap rides along as a single OP-1 tape with NOW at the
@@ -38,7 +39,8 @@ output before synthesizing:
 |---|---|---|
 | **Design directions** | 9 | 5 divergent interaction directions → 3-judge panel → a decisive v3 brief |
 | **Usability audit** | 16 | repo grounding + 10 persona walkthroughs + 3 adversarial critiques → prioritized v3/v4 decisions, missing screens, open questions |
-| **v3 review** | ~13 | 6 review lenses on the *built* v3 + adversarial triage of high-severity findings → v4 changelist |
+| **v3 review** | 30 | 6 review lenses on the *built* v3 + adversarial triage → 22 confirmed-high bugs + a v4 changelist + a "keep as-is" list |
+| **v4 verify** | 3 | must-fix audit + regression hunt + a11y/CSP on the rewrite |
 
 I built and committed at each stage so the git history is the audit trail
 (`git log roadmap/mocks/`).
@@ -174,14 +176,60 @@ dense graph. The 80-node stress scenario is hypothetical headroom, not today.
 
 ---
 
-## 6. v4 — *(in progress; finalized after the v3 review lands)*
+## 6. v4 — what the review changed
 
-This section is completed once the review workflow returns its triaged changelist;
-v4 merges it with the audit's v3-changes (§3). Planned focus: ration orange to
-LIVE-only, kill the SaaS pills (2-value radius), semantic mono/sans, distinguish
-the two record affordances, freshness stamp, non-terminal tap-to-inspect chips,
-and the key missing states (first-run/empty, capture-confirm + Inbox, build/CI
-read-only, account-identity chip).
+The v3 review (30 agents) was the most valuable pass: it caught **real code-level
+bugs I'd introduced**, not taste calls. The standout: a hardcoded `-90` "gutter
+fudge" in the centring math meant **NOW never actually sat on the playhead** — it
+parked ~90px left — quietly breaking the single load-bearing illusion of the whole
+design. v4 fixes that and 21 other confirmed-high findings, while a **"keep as-is"
+list** stopped me over-correcting (the single-NOW playhead, the model/view split,
+B/W+orange, the cost-split label, and the CSP cleanliness were all validated as
+*correct* and left alone).
+
+**Correctness (the bugs):**
+- **NOW truly centres on the playhead** — deleted the `-90`; one `centreOn(fi)`
+  helper owns it; the lane/shipped/freshness chrome moved to a caption row *above*
+  the tape so nothing overlaps the track.
+- **`cursor` is the single source of truth** — `renderTape` is the sole owner of the
+  transform + focus chip; tapping a node now *visibly re-scopes the chat* (per-node
+  stubs), and clearing returns to whole-project view. (v3's shared cursor was inert.)
+- **Shipped nodes keep their real order** and spool under a fade-mask instead of
+  sliding behind the chrome; after a ship with no NOW, the next planned node
+  auto-promotes.
+- **Ghost preview is delta-driven** — confirm/discard actually mutate `nodes[]`, and
+  the reconcile defers nodes that are really on the tape so something visibly moves.
+- **Lane-aware playhead** — dims to grey when a lane has no active node (it used to
+  imply NOW in 2 of 3 lanes); the `◆` NOW-tick doubles as a "home" button.
+
+**One orange record:** the transport bar's capture is the only orange control
+(real hold-to-talk via pointer events); the field gets a quiet mono outline
+*dictate* mic. The "which orange dot?" ambiguity is gone.
+
+**Identity discipline:** orange rationed to LIVE-only (tool-chips demoted to
+mono-on-paper with a grey ✓ — they're a log, not an alarm); the SaaS pills killed
+for a 2-value radius system; **machine speaks mono, you speak sans** (Claude's
+prose is mono, your dictated turns are the one humanist element); a structural grid
+replaced the decorative dot wallpaper; an **account-identity chip** that flips to an
+orange work-org warning; a **freshness stamp** (`roadmap.yaml @ sha · 2m ago`).
+
+**Accessibility:** real `<textarea>` + `<button>` tape nodes with roving tabindex,
+arrow-key navigation and aria-current; Escape + focus-return on the overlays;
+visible focus rings.
+
+**New states built (the mock was all happy-path):** empty/first-run, a build→CI
+**job card** (requested → landed → CI running → ship-at-desk), a capture-confirm
+chip routed to the cursor or Inbox, and a **real project-model swap** in the
+switcher. The full-map **tray now renders from the same `nodes[]` model** as the
+tape (v3 had two disagreeing data models).
+
+A 3-agent **verification pass** then audited the rewrite for regressions, a11y and
+CSP. *(Outcome + any follow-up patch noted at the end of this section once it lands.)*
+
+**Deliberately deferred** (documented, not built — they'd bloat the mock and the
+audit says v1 should be lean): the full 3-step auth flow, the add-project modal, the
+standalone privacy/data panel, a node-search minimap, and momentum scrubbing. The
+spec + audit already specify these; they're build-time work, not design-unknowns.
 
 ---
 
