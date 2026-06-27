@@ -1,4 +1,7 @@
-# Skrift Command — build report
+# Tiuri Command Center — build report
+
+*(Named "Skrift Command" in earlier drafts — renamed to Tiuri Command Center; it's
+a personal hub across all projects, and Skrift is just one of them.)*
 
 *Written while you were in the air. Everything below is committed to the branch
 `claude/transcript-missing-content-0nsc26`; the live mock is one Artifact URL that

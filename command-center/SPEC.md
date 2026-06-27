@@ -1,4 +1,4 @@
-# Skrift Command — architecture & data model (working spec)
+# Tiuri Command Center — architecture & data model (working spec)
 
 > Draft written 2026-06-27 alongside the v2/v3 mock. This is the **model** half of
 > the model/view split: the structured data Claude edits and the canvas renders.

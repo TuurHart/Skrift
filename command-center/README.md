@@ -1,4 +1,4 @@
-# Skrift Command
+# Tiuri Command Center
 
 A **personal, single-user command center** for running many side projects from one
 place — chat is the instrument, and each project's plan rides along as a calm
@@ -8,8 +8,9 @@ token-heavy **building** runs in Claude Code under a Max subscription; **GitHub
 Actions** verifies.
 
 > **Status:** design phase complete. This folder is **extraction-ready** — it's a
-> self-contained project staged inside the Skrift repo, meant to graduate into its
-> own repo (`skrift-command`). See [Extracting to its own repo](#extracting-to-its-own-repo).
+> self-contained project staged inside the Skrift repo, graduating into its own repo
+> [`Tiuri-Command-Center`](https://github.com/OsamaBinBallZak/Tiuri-Command-Center).
+> See [Extracting to its own repo](#extracting-to-its-own-repo).
 > It is **separate from Skrift** — Skrift is just one of the projects it manages.
 
 ## What's here
@@ -99,17 +100,18 @@ doing heavy capture. Tracked in SPEC §5.
 
 This folder is staged so it lifts out cleanly, with history:
 
+The repo already exists: **<https://github.com/OsamaBinBallZak/Tiuri-Command-Center>**.
+
 ```sh
 # from the Skrift repo root — split this folder into its own branch (keeps history)
 git subtree split --prefix=command-center -b command-center-export
 
-# create the new repo and push that branch as main
-gh repo create skrift-command --private
-git push git@github.com:<you>/skrift-command.git command-center-export:main
+# push that branch as main into the existing repo
+git push git@github.com:OsamaBinBallZak/Tiuri-Command-Center.git command-center-export:main
 ```
 
 Or, simplest (no history): copy the folder and start fresh —
-`cp -r command-center ../skrift-command && cd ../skrift-command && git init && git add -A && git commit -m "init: Skrift Command"`.
+`cp -r command-center ../Tiuri-Command-Center && cd ../Tiuri-Command-Center && git init && git add -A && git commit -m "init: Tiuri Command Center"`.
 
 ---
 
