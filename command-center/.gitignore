@@ -1,0 +1,27 @@
+# deps / build
+node_modules/
+dist/
+build/
+.next/
+.output/
+*.log
+
+# env / secrets — never commit the Anthropic key, Supabase service key, GitHub token
+.env
+.env.*
+!.env.example
+
+# supabase local
+.branches/
+.temp/
+
+# native wrapper (if/when a thin capture app is added)
+ios/Pods/
+ios/build/
+*.xcuserstate
+DerivedData/
+
+# os / editor
+.DS_Store
+.vscode/
+.idea/

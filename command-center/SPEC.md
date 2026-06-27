@@ -139,11 +139,22 @@ versioned commit to the yaml so the canvas has full history → trivial revert.
 - **Layout = chat full-bleed + the tape** (not a side-by-side split). Mobile = same
   model, smaller px.
 - **Tool-call receipts: always shown**, as a mono-on-paper log (not orange, not silent).
-- **Capture transcription:** primary path is the **native Skrift app** (Parakeet,
-  on-device, free, private) writing to the shared store; the hub *displays + triages*.
-  The hub's in-page web recorder is a **fallback** that records → Supabase → an edge
-  function transcribes via a cloud STT (the one off-device, metered path). Browsers
-  cannot run Parakeet (no ANE access).
+- **Capture transcription (STANDALONE — NOT coupled to Skrift):**
+  - **In-app capture is the primary path and it's easy.** Most capture happens while
+    you're *already in the hub* looking at the plan → tap record → instant, on-device,
+    no cold-launch. iOS's foreground-mic limit only bites for *cold/external* triggers
+    (the Shhhcribble friction), which is the minority of captures.
+  - When the hub becomes a thin native app it bundles the **open-source FluidAudio /
+    Parakeet** package *itself* (its own copy — same library Skrift happens to use,
+    **zero shared code**) for on-device, private, free transcription in-app.
+  - **Browsers cannot run Parakeet** (no ANE). So the *web* hub's in-page recorder uses
+    a cloud STT (record → Supabase → edge fn) — the one off-device, metered path, for
+    iPad/desktop-browser use before the native app exists.
+  - **Cold/stray capture (app closed):** don't fight iOS — fire into whatever's already
+    frictionless (Voice Memos / a Shortcut → the hub's capture endpoint) and triage later.
+  - **STILL OPEN:** how much to invest in cold/external capture vs. letting the phone be
+    the plan/triage surface (keyboard dictation in chat is fine) with the Mac doing heavy
+    capture. The iOS foreground constraint is *why* this stays open — no app escapes it.
 - **Spend meter: REAL, computed.** Accumulate each turn's `usage` (input/output/cache
   tokens) × the model's per-token price into a per-project running total in Supabase;
   show `API $X.XX/mo` in the chrome (click → breakdown). Keep the org-identity label too.
