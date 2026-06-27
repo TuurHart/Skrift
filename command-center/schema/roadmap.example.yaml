@@ -1,0 +1,77 @@
+# roadmap.yaml — one per project, lives in that project's repo, mirrored to Supabase.
+# This is the MODEL. The tape/tray are a pure render of it; Claude edits it ONLY
+# through the strict tools in ../tools/roadmap-tools.ts. Layout auto-computes from
+# each node's lane (track) + order — never hand-place pixels.
+# Example below is a slice of Skrift's real roadmap.
+
+project: skrift
+title: Skrift
+status: active                 # active | paused | parked | shipped | archived  (truth lives in projects.yaml; this mirrors it)
+repo: OsamaBinBallZak/Skrift
+roadmapPath: roadmap/roadmap.yaml
+version: 37                    # bumps on every committed mutation; = the verstamp / plan-history cursor
+updated: 2026-06-27T09:10:00Z
+
+lanes:                         # vertical lanes, top → bottom. track 0 is the spine.
+  - { track: -1, label: Differentiator }
+  - { track: 0,  label: Core }
+  - { track: 1,  label: Enrichment }
+
+nodes:
+  - id: P0                     # STABLE slug — keys reactions/comments; never mutated
+    title: Shared naming engine
+    lane: 0
+    order: 0
+    status: done               # done | inprogress | now | planned | deferred
+    ms: Foundation             # milestone bucket (label only)
+    eff: M                     # S | M | L  (optional)
+    done: 2026-06-17           # ISO date when status==done
+    deps: []
+    note: One name-linking engine both apps compile — no drift.
+    backlog: []                # links into backlog.md (the constituent todos)
+
+  - id: P1
+    title: CloudKit sync
+    lane: 0
+    order: 1
+    status: inprogress
+    ms: Foundation
+    eff: L
+    deps: [P0]
+    via: P0                    # the node this flows from on the backbone (defaults to deps[0])
+    note: Memos + media + names + vocab across your devices.
+
+  - id: P2
+    title: Export & Obsidian publish
+    lane: 0
+    order: 2
+    status: now                # exactly ONE node may be 'now' (enforced in set_status)
+    ms: Standalone core
+    eff: L
+    deps: [P0, P1]
+    via: P1
+    note: "#1 gap — a phone-only note can only escape via copy-paste."
+    backlog: ["Markdown frontmatter mapping", "Vault path picker", "Conflict on re-publish"]
+
+  - id: P10
+    title: Apple Watch capture
+    lane: 1
+    order: 6
+    status: deferred
+    ms: Ship
+    eff: L
+    deps: [P1]
+    note: Fast-follow — its own target + review.
+
+detours:                       # branch off the spine and merge back; render in a half-lane
+  - name: Audiobook deep-dive
+    when: Jun 18–19, while in Phase 1
+    branchFrom: P1
+    mergeTo: P2
+    nodes:
+      - { id: D1, title: Per-book sync + real %, status: done, done: 2026-06-19, note: Determinate upload/download bar. }
+
+history: []                    # converged/shipped origin nodes kept for the "green tail"
+
+ideas:                         # unplaced captures awaiting triage into nodes (live only in chat/inbox)
+  - { id: i1, text: per-book resume position, source: voice, nodeHint: P3, ts: 2026-06-27T08:40:00Z }

@@ -20,6 +20,9 @@ Actions** verifies.
 | [`mock/index.html`](mock/index.html) | The interactive **v4 mock** ("The Tape") — self-contained HTML, runs in any browser |
 | [`SPEC.md`](SPEC.md) | The **data model + tool schema** — `roadmap.yaml`, the strict planning-tool set, the resolved design decisions |
 | [`REPORT.md`](REPORT.md) | The **build report** — method (4 multi-agent workflows, ~58 agents), the design verdict, the usability audit, the v1→v4 evolution |
+| [`tools/roadmap-tools.ts`](tools/roadmap-tools.ts) | **The spine (starter code)** — the strict tool defs for the Claude API + a pure `applyTool` reducer enforcing the invariants (immutable id, one-NOW, position-only moves, preview-then-commit reconcile) |
+| [`schema/roadmap.schema.json`](schema/roadmap.schema.json) | JSON Schema for `roadmap.yaml` (the data contract) |
+| [`schema/roadmap.example.yaml`](schema/roadmap.example.yaml) · [`schema/projects.example.yaml`](schema/projects.example.yaml) | Worked examples of a project's node graph and the lifecycle manifest |
 
 Live mock (claude.ai Artifact): <https://claude.ai/code/artifact/3363b4ed-aa73-451e-ab7c-c09065bb27c3>
 

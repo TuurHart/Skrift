@@ -1,0 +1,9 @@
+# projects.yaml — the lifecycle manifest, the SINGLE SOURCE OF TRUTH for which
+# projects exist and their state. Lives in the Tiuri-Command-Center repo. Supabase
+# mirrors this as a cache; it never owns it (so lifecycle can't drift).
+projects:
+  - { slug: skrift, name: Skrift,            repo: OsamaBinBallZak/Skrift,  roadmapPath: roadmap/roadmap.yaml, status: active, lastTouched: 2026-06-27 }
+  - { slug: study,  name: Study app,         repo: OsamaBinBallZak/study,   roadmapPath: roadmap.yaml,         status: active, lastTouched: 2026-06-25 }
+  - { slug: web,    name: Personal website,  repo: OsamaBinBallZak/site,    roadmapPath: roadmap.yaml,         status: paused, lastTouched: 2026-06-10 }
+  - { slug: convo,  name: Conversation mode, repo: OsamaBinBallZak/Skrift,  roadmapPath: convo.roadmap.yaml,   status: parked, lastTouched: 2026-06-01 }
+# status: active | paused | parked | shipped | archived
