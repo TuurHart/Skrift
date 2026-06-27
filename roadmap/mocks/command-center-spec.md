@@ -130,12 +130,35 @@ versioned commit to the yaml so the canvas has full history → trivial revert.
   holds auth + audio + the live mutable mirror. Last-write-wins across devices on
   the yaml, with the commit history as the safety net.
 
-## 5. Open decisions (resolve with the audit synthesis)
+## 5. Decisions (resolved 2026-06-27 with the user)
 
-- Node detail on tap: expand a small detail card on the canvas, or keep the canvas
-  pure and put all detail in the chat?
-- Canvas/chat split ratio on desktop; canvas placement on mobile (top strip vs.
-  swipe-to-reveal).
-- Whether tool-call receipts are always shown, shown-then-collapsed, or silent.
-- Search / jump-to-node at 80+ nodes.
-- How "building done" reflects back into the hub (CI webhook → status flip).
+- **Scope: FULL chat-instrument** (not lean). The tape + planning chat + reconcile +
+  build/CI are all first-class; build/CI is interactive, not read-only-only.
+- **Node detail on tap → in the chat** (shared cursor centres the node and the chat
+  *is* its detail). No separate detail card. (Resolved by "The Tape".)
+- **Layout = chat full-bleed + the tape** (not a side-by-side split). Mobile = same
+  model, smaller px.
+- **Tool-call receipts: always shown**, as a mono-on-paper log (not orange, not silent).
+- **Capture transcription:** primary path is the **native Skrift app** (Parakeet,
+  on-device, free, private) writing to the shared store; the hub *displays + triages*.
+  The hub's in-page web recorder is a **fallback** that records → Supabase → an edge
+  function transcribes via a cloud STT (the one off-device, metered path). Browsers
+  cannot run Parakeet (no ANE access).
+- **Spend meter: REAL, computed.** Accumulate each turn's `usage` (input/output/cache
+  tokens) × the model's per-token price into a per-project running total in Supabase;
+  show `API $X.XX/mo` in the chrome (click → breakdown). Keep the org-identity label too.
+  Note it's a computed estimate, not an Anthropic-billed figure. Building (Max) is not metered.
+- **Project lifecycle truth = `projects.yaml` in GitHub** (active/paused/parked/
+  shipped/archived); Supabase mirrors it as a cache. Ledger-backed, can't drift.
+- **`ROADMAP.html` → generated view of `roadmap.yaml`.** `roadmap.yaml` is the single
+  truth; `ROADMAP.html` is regenerated from it on demand as the shareable pan/zoom
+  "big picture" (read-only). Migrate the existing localStorage comments into Supabase
+  reactions (keyed by stable id). Avoids the two-hand-maintained-copies trap.
+- **Import is the roadmap STRUCTURE + the substance.** The ~18 `ROADMAP.html` nodes are
+  high-level phases, NOT todos — the real ~350 todos live in `backlog.md` (+32 ideas).
+  Import writes `roadmap.yaml` (nodes/detours/history/ideas) AND links each node to its
+  `backlog.md` items, so the hub shows both levels (tape = phases; node focus → its
+  backlog todos in the chat). First dogfood target: **Skrift**.
+
+Still genuinely open: search / jump-to-node at 80+ nodes (current rec: `/find` verb +
+a thin minimap); exact CI-webhook → status-flip wiring.

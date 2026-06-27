@@ -37,6 +37,8 @@
   .psel .c{color:var(--ink-2)}
   .sp{flex:1}
   .clk{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+  .spend{font-family:var(--mono);font-size:11px;color:var(--ink-2);border:1px solid var(--line);border-radius:var(--rs);padding:4px 9px}
+  .spend:hover{border-color:var(--ink);color:var(--ink)} .spend .d{opacity:.55}
   .pdrop{position:absolute;top:50px;left:118px;z-index:40;width:252px;background:var(--paper);border:1px solid var(--ink);
     border-radius:var(--rs);box-shadow:0 16px 34px -16px rgba(0,0,0,.5);padding:5px;display:none}
   .pdrop.open{display:block}
@@ -199,6 +201,7 @@
     <span class="wm">SKRIFT<span class="d">·COMMAND</span></span>
     <button class="psel" id="psel" aria-haspopup="true"><span id="projname">SKRIFT</span> <span class="c">▾</span></button>
     <span class="sp"></span>
+    <button class="spend" id="spend" title="API spend this month">API $4.12<span class="d">/mo</span></button>
     <span class="clk mono" id="clk">REC 00:00</span>
     <div class="pdrop" id="pdrop" role="menu">
       <button role="menuitem" data-proj="skrift"><i class="dot active"></i>Skrift<span class="k">active</span></button>
@@ -556,6 +559,11 @@ const HIST=[["v37","now","reconcile · 6 nodes"],["v36","2m","set_status Export�
 function histHTML(){return '<h3>Plan history · roadmap.yaml · viewing live (v37) <button class="x" aria-label="Close">✕</button></h3><div class="hist">'+
   HIST.map(h=>'<div class="h"><span class="v">'+h[0]+'</span><span>'+h[2]+'</span><span class="when">'+h[1]+'</span><button class="rev">restore</button></div>').join('')+'</div>'}
 document.getElementById('verstamp').addEventListener('click',()=>openScrim(histHTML()));
+// real spend meter — computed from each turn's usage × model price, summed in Supabase
+function costHTML(){return '<h3>API spend · this month · computed from token usage <button class="x" aria-label="Close">✕</button></h3><div class="hist">'+
+  [["Skrift","$2.40","58 turns"],["Study app","$1.10","22 turns"],["Personal website","$0.62","12 turns"]].map(r=>'<div class="h"><span class="v">'+r[1]+'</span><span>'+r[0]+'</span><span class="when">'+r[2]+'</span></div>').join('')+
+  '<div class="h"><span class="v" style="color:var(--screen-lit)">$4.12</span><span>total · planning (API)</span><span class="when">building runs on Max — not metered</span></div></div>';}
+document.getElementById('spend').addEventListener('click',()=>openScrim(costHTML()));
 
 /* ===================== DEMO RAIL ===================== */
 document.querySelectorAll('[data-demo]').forEach(b=>b.addEventListener('click',()=>{
