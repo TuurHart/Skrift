@@ -222,7 +222,7 @@
     <span class="fresh"><span id="freshStamp">roadmap.yaml @ a1c9d2 · 2m ago</span> · <button class="ver" id="verstamp">v37</button></span>
   </div>
   <div class="tapewrap" id="tapewrap">
-    <div class="track" id="track" role="list" aria-label="roadmap tape" tabindex="0"></div>
+    <div class="track" id="track" role="group" aria-label="roadmap tape — arrow keys to move" tabindex="0"></div>
     <div class="playhead" id="playhead"></div>
     <div class="nowtick" id="nowtick">◆</div>
     <div class="spoolmask"></div>
@@ -345,7 +345,7 @@ function renderTape(animate=true){
   ns.forEach((n,i)=>{
     let el=track.querySelector('[data-id="'+n.id+'"]');
     if(!el){
-      el=document.createElement('button'); el.dataset.id=n.id; el.className='tnode'; el.setAttribute('role','listitem');
+      el=document.createElement('button'); el.dataset.id=n.id; el.className='tnode'; el.type='button';
       el.innerHTML='<span class="pip"></span><span class="glyph"></span><span class="tl"></span>';
       el.addEventListener('click',()=>setCursor(n.id));
       track.appendChild(el);
@@ -379,13 +379,20 @@ function renderTape(animate=true){
 /* shared cursor: changes the tape AND the chat */
 function renderChat(){
   const c=document.getElementById('chat');
-  if(cursor && STUBS[cursor]){
-    const n=nodes.find(x=>x.id===cursor), s=STUBS[cursor];
-    c.innerHTML='<div class="sysdiv">'+n.title+' · '+n.status+' · '+s.turns+' prior turns</div>'+
-      (s.you?'<div class="turn you"><div class="who">You</div><p>'+s.you+'</p></div>':'')+
-      '<div class="turn cl"><div class="who">Claude · scoped to '+n.id+'</div><div class="bubble"><p>'+s.cl+'</p></div></div>';
-  } else { c.innerHTML=WHOLE_PROJECT_CHAT; bindChatButtons(); }
-  c.scrollTop=c.scrollHeight;
+  if(nodes.length===0){ // empty / first-run — never leak another project's chat
+    c.innerHTML='<div class="sysdiv">'+PROJECTS[projKey].name+' · no roadmap yet</div>'+
+      '<div class="turn cl"><div class="who">Claude</div><div class="bubble"><p>Point me at a repo and I’ll import an existing roadmap, or just describe what you want to build and I’ll draft the first nodes.</p></div></div>';
+    c.scrollTop=c.scrollHeight; return; }
+  const n=cursor&&nodes.find(x=>x.id===cursor);
+  if(n){ // EVERY focused node visibly re-scopes the chat (stub if we have one, else synthesised)
+    const s=STUBS[cursor];
+    const turns = s?s.turns:(n.status==='done'?4:n.status==='now'?3:1);
+    const cl = s?s.cl:('“'+n.title+'” — '+n.status+(n.deps?(', depends on '+n.deps.join(', ')):'')+'. Ask me to re-status it, move it to another lane, or fold it into the next reconcile.');
+    c.innerHTML='<div class="sysdiv">'+n.title+' · '+n.status+' · '+turns+' prior turns</div>'+
+      ((s&&s.you)?'<div class="turn you"><div class="who">You</div><p>'+s.you+'</p></div>':'')+
+      '<div class="turn cl"><div class="who">Claude · scoped to '+n.id+'</div><div class="bubble"><p>'+cl+'</p></div></div>';
+    c.scrollTop=c.scrollHeight; return; }
+  c.innerHTML=WHOLE_PROJECT_CHAT; bindChatButtons(); c.scrollTop=c.scrollHeight;
 }
 function setCursor(id){ cursor=id; field.value=''; renderTape(); renderChat(); }
 document.getElementById('clearfocus').addEventListener('click',()=>{cursor=null;renderTape();renderChat()});
@@ -445,7 +452,7 @@ function openJob(){
 /* ===================== INTERACTIONS ===================== */
 // lane cycle
 laneBtn.addEventListener('click',()=>{laneIdx=(laneIdx+1)%LANES.length;laneBtn.textContent=LANES[laneIdx].label+' ▾';
-  if(cursor&&!laneNodes().some(n=>n.id===cursor))cursor=null; renderTape()});
+  const had=cursor; if(cursor&&!laneNodes().some(n=>n.id===cursor))cursor=null; renderTape(); if(had&&!cursor)renderChat()});
 // NOW tick = home button
 nowtick.addEventListener('click',()=>{const a=activeNode();if(!a)return;laneIdx=LANES.findIndex(l=>l.track===a.lane);laneBtn.textContent=LANES[laneIdx].label+' ▾';cursor=null;renderTape();renderChat()});
 
@@ -475,10 +482,18 @@ const VERBS=[["/now","set status → now","/now Export"],["/defer","park it (rev
 function paintPalette(){palette.innerHTML='<div class="ph">commands</div>'+VERBS.map((v,i)=>
   '<button role="option" data-i="'+i+'"><span class="v">'+v[0]+'</span><span class="ex">'+v[1]+(v[2]?' · '+v[2]:'')+'</span></button>').join('')}
 paintPalette();
-field.addEventListener('input',()=>{palette.classList.toggle('open',field.value.trim().startsWith('/'));
+let pi=-1;
+field.addEventListener('input',()=>{palette.classList.toggle('open',field.value.trim().startsWith('/'));pi=-1;
   field.style.height='auto';field.style.height=Math.min(96,field.scrollHeight)+'px'});
 palette.addEventListener('mousedown',e=>{const b=e.target.closest('button');if(!b)return;e.preventDefault();
   const v=VERBS[+b.dataset.i];field.value=v[2]||v[0]+' ';palette.classList.remove('open');field.focus()});
+field.addEventListener('keydown',e=>{ if(!palette.classList.contains('open'))return; const opts=[...palette.querySelectorAll('button')];
+  if(e.key==='ArrowDown'){e.preventDefault();pi=Math.min(opts.length-1,pi+1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();pi=Math.max(0,pi-1);}
+  else if(e.key==='Enter'&&pi>=0){e.preventDefault();const v=VERBS[pi];field.value=v[2]||v[0]+' ';palette.classList.remove('open');pi=-1;return;}
+  else if(e.key==='Escape'){palette.classList.remove('open');pi=-1;return;}
+  else return;
+  opts.forEach((o,i)=>o.classList.toggle('hi',i===pi)); });
 
 // ONE orange record (transport, hold-to-talk) + a separate mono dictate mic
 const led=document.getElementById('led'),clk=document.getElementById('clk');
@@ -492,10 +507,11 @@ const cbtn=document.getElementById('cbtn');
 cbtn.addEventListener('pointerdown',e=>{e.preventDefault();cbtn.setPointerCapture(e.pointerId);capArm(true)});
 cbtn.addEventListener('pointerup',()=>{if(document.getElementById('cbtn').classList.contains('armed')){capArm(false);captureConfirm()}});
 cbtn.addEventListener('pointercancel',()=>capArm(false));
+cbtn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();const on=!cbtn.classList.contains('armed');capArm(on);if(!on)captureConfirm();}});
 // dictate mic (mono, non-orange) — animates the field, never the LED
 const mic=document.getElementById('mic'); let dictating=false;
 mic.addEventListener('click',()=>{dictating=!dictating;mic.classList.toggle('dictating',dictating);field.classList.toggle('dictating',dictating);
-  field.placeholder=dictating?'listening…':(cursor?field.placeholder:'type / for commands, or dictate…')});
+  if(dictating)field.placeholder='listening…'; else renderTape()/* renderTape owns the placeholder → restores the scoped/default prompt */});
 
 function captureConfirm(){
   const c=document.getElementById('chat'); const dest=cursor?nodes.find(n=>n.id===cursor).title:'Inbox';
@@ -509,11 +525,17 @@ function captureConfirm(){
 /* ===================== OVERLAYS (accessible) ===================== */
 const scrim=document.getElementById('scrim'),sheet=document.getElementById('sheet');
 let lastFocused=null;
-function openScrim(html){lastFocused=document.activeElement;sheet.innerHTML=html;scrim.classList.add('open');sheet.focus();}
-function closeScrim(){scrim.classList.remove('open');if(lastFocused)lastFocused.focus();}
+function bgInert(on){[...document.body.children].forEach(el=>{if(el!==scrim)el.toggleAttribute('inert',on)});}
+function openScrim(html){lastFocused=document.activeElement;sheet.innerHTML=html;scrim.classList.add('open');bgInert(true);sheet.focus();}
+function closeScrim(){scrim.classList.remove('open');bgInert(false);if(lastFocused)lastFocused.focus();}
 scrim.addEventListener('click',e=>{if(e.target===scrim)closeScrim()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&scrim.classList.contains('open'))closeScrim()});
 sheet.addEventListener('click',e=>{if(e.target.closest('.x'))closeScrim()});
+sheet.addEventListener('keydown',e=>{ if(e.key!=='Tab')return; // focus trap
+  const f=[...sheet.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])')]; if(!f.length)return;
+  const first=f[0],last=f[f.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
 // tray renders from the SAME nodes[] model (one layout, not a hand-drawn copy)
 function trayHTML(){
   const W=860,H=300,laneY={"-1":70,"0":160,"1":250},x=o=>120+o*108;
@@ -544,7 +566,7 @@ document.querySelectorAll('[data-demo]').forEach(b=>b.addEventListener('click',(
   if(d==='reco')openReco();
   if(d==='job')openJob();
   if(d==='capture')captureConfirm();
-  if(d==='lane'){laneIdx=(laneIdx+1)%LANES.length;laneBtn.textContent=LANES[laneIdx].label+' ▾';if(cursor&&!laneNodes().some(n=>n.id===cursor))cursor=null;renderTape()}
+  if(d==='lane'){laneIdx=(laneIdx+1)%LANES.length;laneBtn.textContent=LANES[laneIdx].label+' ▾';const had=cursor;if(cursor&&!laneNodes().some(n=>n.id===cursor))cursor=null;renderTape();if(had&&!cursor)renderChat()}
   if(d==='tray')openScrim(trayHTML());
   if(d==='hist')openScrim(histHTML());
   if(d==='empty'){projKey='new';nodes=PROJECTS.new.nodes;cursor=null;document.getElementById('projname').textContent='NEW PROJECT';
@@ -554,4 +576,7 @@ document.querySelectorAll('[data-demo]').forEach(b=>b.addEventListener('click',(
 
 window.addEventListener('resize',()=>renderTape(false));
 renderTape(false); renderChat();
+// re-centre once layout is flushed (clientWidth can read 0 at parse time)
+requestAnimationFrame(()=>renderTape(false));
+window.addEventListener('load',()=>renderTape(false));
 </script>

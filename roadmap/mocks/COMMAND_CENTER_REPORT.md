@@ -223,8 +223,18 @@ chip routed to the cursor or Inbox, and a **real project-model swap** in the
 switcher. The full-map **tray now renders from the same `nodes[]` model** as the
 tape (v3 had two disagreeing data models).
 
-A 3-agent **verification pass** then audited the rewrite for regressions, a11y and
-CSP. *(Outcome + any follow-up patch noted at the end of this section once it lands.)*
+A 3-agent **verification pass** then audited the rewrite. Verdict: **sound to ship
+as a mock** — it confirmed 5 of 6 must-fixes landed correctly (NOW genuinely
+centres, one orange record, delta-driven ghost that mutates, shipped spool, CSP
+clean). It caught follow-on bugs, which I then **patched**: the shared cursor only
+re-scoped the chat for 3 stubbed nodes (so tapping Export/CloudKit fell back to the
+whole-project view) → now *every* focused node re-scopes via a synthesised turn;
+lane-cycle dropped the cursor without re-rendering the chat; swapping to the empty
+project leaked Skrift's chat; the dictate toggle stuck the placeholder on
+"listening…"; the modal had no focus trap (added trap + background `inert`); tape
+nodes were `role="listitem"` buttons (fixed); capture was pointer-only (added
+keyboard); and initial centring could read a 0-width container (added `load`/rAF
+re-centre). All committed; the live URL is the patched build.
 
 **Deliberately deferred** (documented, not built — they'd bloat the mock and the
 audit says v1 should be lean): the full 3-step auth flow, the add-project modal, the
