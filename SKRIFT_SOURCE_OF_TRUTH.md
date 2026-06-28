@@ -13,7 +13,9 @@
 > one is named — see [§7 Contradictions](#7-contradictions--reconciliations).
 >
 > **Generated** 2026‑06‑28 by a fan‑out of 10 extraction agents (one per source group)
-> + reconciliation + a completeness‑critic pass. Source map in [§8](#8-provenance--source-map).
+> + reconciliation + a completeness‑critic pass. A second **adversarial gap audit** (3 agents
+> over thirds of `backlog.md`) then verified nothing actionable was lost in distillation; its
+> findings are folded into §3. Source map in [§8](#8-provenance--source-map).
 >
 > **Two hard rules carried across every era** (current `CLAUDE.md` "Hard rules"):
 > 1. **Privacy** — never point cloud AI/agents at the user's Obsidian vault. Skrift's
@@ -314,7 +316,7 @@ names + voices ✅/➖; custom vocab ✅/➖; sync visibility strip ✅/➖; **C
 ### Settings, widgets, metadata (`FEATURES.md:262‑284`)
 Settings ✅/✅; first‑run setup ✅(onboarding)/✅(wizard); theme Light/Dark/Auto ✅/✅; auto‑copy transcript ✅/➖;
 send feedback (record+type+screenshot→Mail) ✅/➖. **Widgets/intents (mobile):** Live Activity + Dynamic Island ✅;
-Start‑recording intent (Siri/Control Center, plain `AppIntent`, glyph `quote.opening` ❝) ✅; Lock/Home record widget · `skrift://record` ✅.
+Start‑recording intent (Siri/Control Center, plain `AppIntent`, glyph `quote.opening` ❝) ✅; **Resume‑audiobook intent** (Siri "Resume my book", `ResumeAudiobookIntent`) ✅ (user‑test owed); Lock/Home record widget · `skrift://record` ✅.
 **Metadata/sensors (mobile):** location / weather / day‑period / steps / pressure ✅ (Mac consumes into frontmatter).
 
 > **Feature count:** ~115 capability rows across 25 sections in `FEATURES.md`. Mobile owns recording/
@@ -342,10 +344,32 @@ The single live resume point (`backlog.md:5‑33`):
 - **PDF share persist** (`backlog.md:204`), **auto‑stop captions** (build 19), **bookmark affordances** (builds 16–20): built + unit‑green; device‑eyeball owed.
 
 ### Open product/design questions (pinned)
-- **Note‑editing EPIC** (`backlog.md:269‑280`, pinned for a fresh chat): text selection doesn't auto‑scroll (editable body is a non‑scrolling `UITextView` inside the outer ScrollView). Recommended fix = option B (natively‑scrolling body), likely B2 (pinned title). Start by mocking B1 vs B2.
-- **Offline conflict resolution** (`backlog.md:344`): same note edited on both devices = per‑record LWW (one edit can be silently lost). To verify: `NSPersistentCloudKitContainer` merge granularity. Decide: accept LWW vs "conflicted copy" vs field‑level.
+- **Note‑editing EPIC** (`backlog.md:269‑305`, pinned for a fresh chat): text selection doesn't auto‑scroll (editable body is a non‑scrolling `UITextView` inside the outer ScrollView). Recommended fix = option B (natively‑scrolling body), likely B2 (pinned title); start by mocking B1 vs B2. The pin's design thinking (the A/B/C fork + the fork‑independent "experience layer": keyboard accessory toolbar, undo/redo, tag‑chip editor, smart paste + the "must‑not‑break" list) is at `backlog.md:289‑305`.
+- **Offline conflict resolution** (`backlog.md:344`): same note edited on both devices = per‑record LWW (one edit can be silently lost). **Scope:** names/voices, vocabulary, and audiobook position all *converge* (re‑merge / whole‑list LWW / newest‑play‑wins) — only same‑note‑body edits are at LWW risk. To verify: `NSPersistentCloudKitContainer` merge granularity. Decide: accept LWW vs "conflicted copy" vs field‑level.
 - **Folders model** (`STANDALONE_PLAN.md:576‑577`): app‑native vs Obsidian‑subfolder — user wants to think more; blocks Phase 5 only.
 - **Significance → "Importance"/pin label** — needs a label nod before the rest of the de‑Mac reframe.
+
+### Open / owed engineering items (folded in from the 2026‑06‑28 gap audit)
+Live action items that sat between §3 and §4. Each verified still‑open against `backlog.md` (items the audit flagged that turned out already‑fixed — names‑auto‑sync‑after‑enroll `:1775`, audiobook rate‑sync `[build 13]`, stuck‑transcription reconciler `[2026‑06‑17]`, the mid‑recording SIGSEGV crash — are deliberately NOT listed).
+- **Confirm the "always‑warm" engine isn't draining battery** (`backlog.md:179`): user noticed (prod + dev) the engine is now always warm + much faster + "not really taking battery" — an unexplained behaviour change to **confirm is intentional + measure for silent drain**. P1, open.
+- **Mac "name a speaker" review UI** (`backlog.md:1720`): backend done (diarization sidecar + `embedSpeaker`/`addVoiceEmbedding`); the desktop turn‑renderer → click‑to‑name → relabel `**[[Person]]:**` → enroll UI is **the remaining desktop build** (mock signed off). (§2 marks it 🟡.)
+- **Paragrapher built but inert** (`backlog.md:430`): `Models/Paragrapher.swift` (hybrid pause + sentence‑cap, 10 tests) is demoed but **not wired into the UI** — decision owed on where to apply (read‑along / memo‑detail / stored+exported) + threshold/cap.
+- **FluidAudio pinned to a moving `main` branch** (`backlog.md:419`): both apps pin FluidAudio to `main` → **should pin a fixed version (drift risk)**. Tech‑debt.
+- **Audiobook unshare leaves a "phantom" entry** (`backlog.md:347`, #10): un‑sharing leaves an unplayable library entry on a device that got the carrier but never downloaded the audio; deferred fix = GC entries with no carrier AND no local audio.
+- **Whole‑book transcribe memory‑pressure lead** (`backlog.md:2116`): `.ips` disk‑write warnings flagged whole‑book transcribe + model downloads as memory‑pressure suspects — a profiling lead, "not a clear fix." *(Note: the acute 2026‑06‑10 mid‑recording SIGSEGV is fixed; this is the remaining pressure lead.)*
+- **Capture sentence‑split on abbreviations** (`backlog.md:1948`, suspected/awaiting‑screenshot): "sentence breaks up strangely" in text capture — likely Parakeet punctuation (e.g. "Dr.") tripping `SentenceSnap.isSentenceEnd`. *(Read‑along's split moved to `NLTokenizer(.sentence)` 2026‑06‑15; the capture path may still be affected.)*
+- **Polished‑body karaoke is proportional** (`backlog.md:59`): the 2026‑06‑26 phone polished display pins word‑timings to raw words → ⭐ **fast‑follow** to re‑align polished words to raw timestamps for word‑exact scrubbing.
+
+### Deferred / unscheduled backlog (not yet on the phase ledger)
+Real items logged in `backlog.md` with no §4 phase home — parked, not lost:
+- **Watched‑folder ingest** (`backlog.md:969`) — point Skrift at a folder (e.g. Mac Voice Memos export) for zero‑friction auto‑ingest.
+- **Summary‑prompt quality pass** (`backlog.md:970`) — summaries read stale / "not in my voice"; a dedicated prompt‑tuning pass (gated by local‑model quality).
+- **Re‑ingest the ~30 old notes** (`backlog.md:1084`) from `~/Desktop/Skrift old notes/` (do with the user — needs prod quit + real vault; also memory `project_port_electron_notes`).
+- **In‑app feedback → `backlog.md`** (`backlog.md:1087`) — route dictated/typed feedback into the ledger (phone can't write the repo file → options incl. a scheduled agent).
+- **Drag‑to‑multi‑select** memos (`backlog.md:1018`) — Photos/Mail‑style lasso to replace the Select button (wants a mock).
+- **Phone Models/Storage management view** (`backlog.md:1096`) + the desktop Models‑tab mirror.
+- **Unified source taxonomy** (`backlog.md:2124`) — glyph/label maps are duplicated (`QueueDerivations.swift:61` vs `MemoDisplay.swift:184`), coincidentally in sync, no shared module; PDF/video are not yet first‑class source *types* (the PDF→`.file` capture shipped, build 15, but not the taxonomy type).
+- **Backlink Weaver** (`DESKTOP_NATIVE_HANDOFF.md:176`) — auto‑`[[link]]` vault note titles, not just people (gated by length/distinctiveness to avoid over‑linking).
 
 ### Desktop walkthrough tracker (`WALKTHROUGH_BUGS.md`)
 Legend: `☐ open · ⧖ pending build‑verify · ☑ fixed`. **Still open (☐):** C1 (three green health dots unclear — design call, `:13`); ST7 + E4 (verify prompts/YAML match Electron, `:23`,`:51`). **Pending build‑verify (⧖):** several AUD‑P* polish items + W2 cursor (`:62‑66,:85,:10`). Most of the tracker is ☑.
@@ -355,7 +379,7 @@ Legend: `☐ open · ⧖ pending build‑verify · ☑ fixed`. **Still open (☐
 > sliders, uncapped upload) were flagged mid‑desktop‑track then **RECONCILED 2026‑06‑13 as already‑fixed**
 > (`backlog.md:1728`; desktop A1–A7 all done, `DESKTOP_NATIVE_HANDOFF.md:35`). See [§7 #18](#7-contradictions--reconciliations).
 
-> **Open bug count:** 5 live prod (P0/P1) + ~6 device‑verify‑owed + 4 pinned design questions + ~5 desktop‑tracker items.
+> **Open bug count:** 5 live prod (P0/P1) + ~6 device‑verify‑owed + 4 pinned design questions + ~8 open/owed engineering items (gap‑audit) + ~8 deferred backlog items + ~5 desktop‑tracker items.
 
 ---
 
@@ -450,6 +474,9 @@ Each with the doc that records it. (Locked = don't re‑litigate.)
 - **Diarization = Sortformer on both apps** (not the legacy `DiarizerManager`, which mislabels similar voices). **Identification = a separate embedding‑cosine** (wespeaker `[Float]` voiceprint vs `Person.voiceEmbeddings`). **Threshold 0.5** (measured). The embedding is what syncs (bidirectional LWW, **union** voiceEmbeddings). (`CONVERSATION_MODE_HANDOFF.md:131‑135,28‑30`)
 - **Conversation mode = manual toggle, off by default** (was a blunt global auto‑diarize that over‑split monologues); "Flatten to monologue" added. (`backlog.md`, `[bc0b5b5]`)
 
+### Product north star (the "why")
+- **"See how my thinking evolved over time"** (`backlog.md:722`) — the stated eventual reason the app exists: semantic search across the whole multi‑year archive + ranked related notes + a timeline UI ("you had a similar thought in 2019…"). The backbone (on‑device embeddings + retrieval) is buildable **now/offline** and is staged as roadmap **P8**; **LLM *narration* of the evolution is deferred** until local models are good enough (the same ceiling as the stale‑summary problem). Skrift is the capture+processing front‑end feeding this, not a replacement for Obsidian.
+
 ### Product behaviours
 - **Significance is a user‑set value (not LLM), and it gates phone→Mac sync** (flag‑to‑send: 0 = stays on phone, >0 = eligible to sync). CloudKit (own devices) ignores significance — every memo syncs to your own devices. (`backlog.md:996`, `STANDALONE_PLAN.md:582‑593`)
 - **Tags are deterministic** (NLTagger lemma match ≥2× + spoken `#hashtags`), not LLM. **Enhancement runs on the RAW transcript** (no `[[ ]]` reaches the LLM). (Era‑1 overhaul decisions that persist; `archive/CLAUDE-electron-python.md:85,207`)
@@ -466,6 +493,8 @@ Each with the doc that records it. (Locked = don't re‑litigate.)
 - **ATS `NSAllowsLocalNetworking` + Bonjour‑resolve‑to‑IPv4** unblocked the phone→Mac LAN upload. (`MOBILE_NATIVE_HANDOFF.md:370‑372`)
 - **Build with the xcodebuild UDID `00008110-001208C902EA201E`** (not the devicectl id) or installs push a STALE binary. (memory `feedback_device_build_udid`)
 - **Desktop CLI build needs `-skipMacroValidation`**; only `xcodebuild` (not `swift build`) compiles MLX's `.metallib`. (`DESKTOP_NATIVE_HANDOFF.md:226`)
+- **Liquid Glass needs `.glassEffect(.clear)`** (not `.regular`, which frosts); **Reduce Motion ON throttles it on A15**; the **Simulator never renders specular/chromatic glass** → judge glass on‑device only. (`backlog.md:1005`)
+- **Never run two "Skrift Dev" instances** — they race port 8000 + the shared SwiftData store (broke sync 2026‑06‑15); deploy desktop as build → `pkill` → `ditto` → `open`. (`backlog.md:920`, memory `feedback_desktop_dev_deploy`)
 
 ---
 
@@ -564,6 +593,20 @@ The `.claude/skills/*/SKILL.md` and `mocks/*.html` are build artifacts / process
 - **Device‑eyeball‑owed behaviours** (can't be falsified by sim/source, per the user's verification rule): phone voice auto‑match; read‑along `lead` tune + player screens 3–7; raw‑CloudKit audiobook audio round‑trip; the Mac↔CloudKit one‑Process→write‑back→phone‑export round‑trip; the device‑verify‑owed fixes in [§3](#3-open-bugs--known-issues). Marked "owed/unverified" wherever they appear.
 
 ---
+
+### How to keep this waterproof (tiering rule)
+This doc is a **source‑of‑truth *index*** — authoritative for every distinct fact, with the *depth*
+living in the cited docs (`backlog.md:line`, the handoffs, the plans). That makes it a **two‑tier**
+system:
+- **Top tier = this doc.** The live layer (§3 open bugs, §4 in‑progress roadmap, §5 current decisions) is
+  written to be **self‑contained** — actionable without opening the backlog. History (§1) and depth stay
+  distilled‑with‑citations.
+- **Archive tier = the ~20 cited source docs.** They are a **frozen deep tier — kept, not edited or pruned.**
+  The index's citations are **line‑number anchors**: if `backlog.md` (or any cited doc) is reorganized or
+  truncated, those line numbers **rot**. So either treat the cited docs as append‑only/frozen, or re‑run the
+  extraction + gap audit and refresh the citations. Do **not** silently renumber a cited doc.
+- **Don't inflate the index.** A fatter SSOT just recreates the fragmentation it replaced. Add a fact only
+  when it's a distinct feature/bug/decision/release/contradiction; push detail down to the cited tier.
 
 *End of Skrift Single Source of Truth. Update contract: when a feature, bug, decision, release, or
 phase changes, update the relevant ledger (`backlog.md`/`FEATURES.md`/`CHANGELOG.md`/the plans) AND
