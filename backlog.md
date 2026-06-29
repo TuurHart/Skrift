@@ -2,6 +2,42 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🐛 Post-0.2.0 prod findings (2026-06-26, after promoting prod to build 22) — TRIAGE
+
+User hit these on the freshly-promoted PROD apps. Diagnoses below; fixes owed (do on Dev, verify,
+re-promote — don't hot-patch prod).
+
+1. **Phone memo won't sync to Mac; phone stuck "syncing…".** Most likely root: the **prod CloudKit
+   PRODUCTION schema was never deployed** (all on-device testing was on Dev, per the data-safety rule,
+   so only the Development schema exists). The phone's `NSPersistentCloudKitContainer` can't push to a
+   container whose Production schema lacks the record types → `isSyncing` hangs. **Action (no code):**
+   CloudKit Dashboard → `iCloud.com.skrift.mobile` → compare Development vs **Production** record types
+   → **Deploy Schema Changes** (now includes `MemoEnhancement`). THEN, for the Mac to *receive* phone
+   memos, the prod Mac needs **Settings → cloudKitMacSync ON** (opt-in, OFF by default). I under-sold
+   this as "polish-only" earlier — it's the whole prod CloudKit path. ⚠️ Confirm by dashboard check.
+2. **"Waiting" sync pill is stale.** `Memo.statusKind` returns `.waiting` for `significance>0 &&
+   syncStatus != .synced` — but `syncStatus` is the **Bonjour/HTTP upload** state, not CloudKit. With
+   CloudKit the spine, the pill is misleading. **Fix:** drive the pill off CloudKit sync state (or drop
+   Waiting/Synced for non-Bonjour users). `MemoDisplay.statusKind`.
+3. **Name added on the phone isn't recognised in a note (e.g. "IJsbrand").** ROOT: `AddPersonView`
+   (`NamesListView.swift`) saves `upsert(canonical:, aliases: [], short:)` — **empty aliases** — and the
+   shared `Sanitiser` matches ONLY by `p.aliases` (no implicit canonical alias). So a phone-added person
+   is unlinkable. NOT a capitalization issue (matching is `.caseInsensitive`). **Fix:** seed the alias
+   from the name on add (the new `PersonEditorView` already does `if aliases.isEmpty { [name] }`; apply
+   the same in `AddPersonView`), and/or make the `Sanitiser` treat the canonical's key as an implicit
+   alias (broader; affects desktop). Existing IJsbrand needs an alias added after the fix.
+4. **Can't select a word in the transcript and "add as name".** Task-1 added tap-a-RECOGNISED-name →
+   resolve, but NOT select-arbitrary-text → add-person/alias (the desktop has it via `onAddName`/
+   `onAddAlias`). **Fix:** a UITextView selection → "Add as new person / alias of…" action in
+   `TranscriptEditor`. Compounds #3 (no way to fix IJsbrand inline today).
+5. **Desktop shows EVERY note as a conversation; no re-transcribe button.** A note is a "conversation"
+   when its transcript has **≥2 `**Name:**` headers** (`SpeakerTranscript.parse`), and the note-detail
+   **Re-transcribe is hidden for conversations** (`NoteActions.canRetranscribe = … && !isConversation`)
+   → can't undo it from the detail. **Workaround NOW:** right-click the note in the **sidebar** →
+   **Re-transcribe** (that menu item is NOT conversation-gated, `SidebarView.swift:527`). **Investigate:**
+   why do the notes carry turn markers — stale diarized output baked into the stored transcript? (cf.
+   `project_conversation_namelinking` "brackets on every mention"). May need a bulk un-diarize/re-transcribe.
+
 ## ✅ Phone polished-text display — STANDALONE Phase 4 (2026-06-26, BUILT + sim-verified)
 
 The Mac→CloudKit polish (`MemoEnhancement`) is now VISIBLE on the phone — the thing the user was
