@@ -161,3 +161,23 @@ branches (`mobile-native`, `desktop-native`, `feature/photo-capture`, …) are s
   iterations on `CaptureMomentView` until an interaction design/mock session happens.
 - **Unified source taxonomy** — voice memo / URL / PDF / video / audiobook quote /
   Apple Note: consistent glyphs + labels across both apps (folds into capture items).
+
+## How this project is run (Tiuri Command Center)
+
+This repo is a project in my Tiuri Command Center — a hub where I manage all my side projects.
+
+- Each project has one `roadmap/roadmap.yaml`: the single source of truth for the plan —
+  what's done, what I'm on now, what's next. The Command Center reads it from the repo and
+  renders it as a visual map I can see and talk to.
+- I plan by talking to Huginn (the hub agent), who edits roadmap.yaml. You (Claude Code) are
+  the builder — you do the work in this repo. The roadmap is the brief between us.
+- The habit every session: when you finish a chunk of work, update roadmap.yaml in the SAME
+  change — flip that node to `done`, move the one `now` node to what's next. Live state, not a notepad.
+- No `roadmap.yaml` yet? Don't create one — Huginn seeds it. Just build; this habit starts once a plan exists.
+
+Editing rules:
+- A node is a chunk of work with a done-state. `status: done|now|inprogress|planned|deferred`, exactly one `now`.
+- `id` is permanent — edit the title, not the id.
+- Layout = `lane` (kind of work) + `order` (left→right) — set those, never position by pixel; a fractional lane is fine to draw a convergence.
+- The past is just nodes to the left: `done` at negative `order`.
+- Keep it lean — few nodes, short notes.
