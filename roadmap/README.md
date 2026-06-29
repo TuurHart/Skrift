@@ -13,6 +13,10 @@ comment (the update contract).
   big phases list their individual ideas. Pan/zoom; hover a card to reveal just its dependency lines.
 - **`roadmap-comments.json`** — the durable, committed copy of reactions/notes (mirror of the file's
   `BAKED_COMMENTS`). See "Comments round-trip".
+- **`visual-check.mjs`** — headless render check (Playwright/Chromium). Asserts the file loads with no
+  JS errors, that all 5 history era nodes render + are positioned, and that opening a history card shows
+  its shipped log. Run `node roadmap/visual-check.mjs` (also drops two screenshots beside the file). Use
+  this instead of `chrome --headless` (Chrome was removed from the dev Mac).
 - **`HISTORY_BACKFILL.md`** — staged research for a *future* "deep history" lane (NOT built yet).
 - **`mocks/`** — the A/B/C/D design-exploration mockups (tech-tree / metro / board / the chosen
   hybrid `D`). Kept for design rationale.
@@ -34,6 +38,8 @@ ledger, bump `LAST_UPDATED`, then redeploy. Full checklist is in `ROADMAP.html`'
 - **Locally:** open `roadmap/ROADMAP.html` in a browser, or render via the preview server
   (`.claude/launch.json` → `roadmap-static`, then `http://localhost:8765/roadmap/ROADMAP.html`) and
   screenshot. (Chrome was removed from this machine — use the preview server, not `chrome --headless`.)
+- **Automated:** `node roadmap/visual-check.mjs` (Playwright/Chromium) — asserts no JS errors, all 5
+  history era nodes render, and a history card's shipped log opens; writes two screenshots beside the file.
 - `git log --follow roadmap/ROADMAP.html` = its history (the `--follow` picks up the pre-2026-06-21
   root-level path).
 
