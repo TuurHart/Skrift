@@ -439,6 +439,20 @@ milestone labels + the "Hendri" collaborator marker + preserved era artifacts. S
   Fix (`BookTranscriptionJob.transcribeChunk`): prepend ~2s of audio before each chunk as decode CONTEXT, then drop those
   lead-in words (word-time alignment preserved; chunkEnd behaviour unchanged so ChunkFusion's redo-tail still owns the
   trailing seam). First chunk has no lead. Verify on-device on the book where the garble appeared.
+- 🔧 **Chunk-seam DROPPED-WORD / merged-sentence — FIXED (device-verify owed).** Device bug 2026-06-27
+  ("Made to Stick", ch1 ~40:15): a long run-on sentence ("The creative genius… launch into a four-hour
+  brainstorming **session.**") fills a 60s chunk, so `ChunkFusion`'s last sentence-start is > minProgress
+  back → it took the **fallback** = keep ALL words + advance to the arbitrary `chunkEnd`. That cut lands
+  MID-WORD: chunk A transcribes the boundary word from TRUNCATED audio (mis-decoded "session"→"summer",
+  terminating period lost) yet KEEPS it, while chunk B drops it (starts before chunkEnd). The period-less
+  word merges the two sentences → the giant un-split highlight block in the screenshot. **Fix:** the
+  fallback now mirrors the sentence redo-tail at WORD granularity — drop the final word, rewind the
+  frontier to its start so the next chunk re-transcribes it WHOLE (`ChunkFusion.fuse`); guard the tiny-step
+  loop (accept the cut only when even the last-word rewind can't make minProgress). Also widened the
+  lead-in drop tolerance 0.01→0.2s (`BookTranscriptionJob.transcribeChunk`) so the re-decoded frontier word
+  survives cross-decode timing jitter instead of being dropped again. +2 regression tests in
+  `ChunkFusionTests`. ⚠️ **xcodebuild test gate NOT run (fixed on Linux/web)** — run the SkriftMobile suite
+  on the Mac, then device-verify on "Made to Stick".
 
 ✅ **BUILT 2026-06-19 (build 14, 439/439 SkriftMobileTests green; 8 commit-per-chunk steps `7d31b60`→`4bcca6e`).**
 All 8 chunks landed to the mock: **(1)** tab-bar shell (`AppTabView`; Library/Settings out of the pull-to-refresh-eating

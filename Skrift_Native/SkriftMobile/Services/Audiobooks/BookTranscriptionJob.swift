@@ -238,7 +238,15 @@ final class BookTranscriptionJob: ObservableObject {
             let result = try await transcriber.transcribe(audioURL: temp, imageManifest: [])
             let fileLocal = result.wordTimings.compactMap { wt -> WordTiming? in
                 let start = wt.start + extractStart           // temp t=0 maps to extractStart
-                guard start >= chunkStart - 0.01 else { return nil }   // drop lead-in context
+                // Drop the lead-in context words (they were kept by the previous
+                // chunk). Tolerance absorbs cross-decode timing jitter on the
+                // FRONTIER word: ChunkFusion rewinds the frontier to a word the
+                // next chunk must re-transcribe whole, and its re-decoded start can
+                // land a fraction before the recorded frontier — a hairline guard
+                // would drop it and re-introduce the seam gap. 0.2 s stays well
+                // under the gap to the (dropped) preceding lead word, so it can't
+                // duplicate one.
+                guard start >= chunkStart - 0.2 else { return nil }   // drop lead-in context
                 return WordTiming(word: wt.word, start: start, end: wt.end + extractStart)
             }
             return ChunkFusion.fuse(chunkWords: fileLocal, chunkStart: chunkStart, chunkEnd: chunkEnd,

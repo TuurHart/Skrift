@@ -1,0 +1,75 @@
+name: CI
+
+# Build + test gate for both native apps so remote / web Claude Code sessions
+# (which run on Linux and cannot compile Swift) get verified automatically:
+# push → CI runs xcodebuild on a macOS runner → the session reads the result and
+# logs over the GitHub MCP tools. Closes the "I pushed but couldn't run the gate"
+# gap. Both are xcodegen projects (.xcodeproj is gitignored), so each job
+# regenerates first.
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch cancels the older in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile:
+    name: SkriftMobile (iOS unit tests)
+    runs-on: macos-26
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: Skrift_Native/SkriftMobile
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xcodegen + xcbeautify
+        run: brew install xcodegen xcbeautify
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Unit tests (iPhone 17 simulator)
+        run: |
+          set -o pipefail
+          # Only the host-less logic tests (SkriftMobileTests) — UI tests are
+          # device/sim-interaction flaky and not the verification gate. Simulator
+          # builds need no signing, so disable it to avoid provisioning on CI.
+          xcodebuild test \
+            -scheme SkriftMobile \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -derivedDataPath build \
+            -only-testing:SkriftMobileTests \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+  desktop:
+    name: SkriftDesktop (macOS UnitTests)
+    runs-on: macos-26
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: Skrift_Native/SkriftDesktop
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xcodegen + xcbeautify
+        run: brew install xcodegen xcbeautify
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Unit tests (fast, MLX-free scheme)
+        run: |
+          set -o pipefail
+          # The UnitTests scheme builds ONLY the host-less SkriftDesktopTests
+          # bundle (ad-hoc signed, no FluidAudio/MLX compile) — the routine test
+          # loop per CLAUDE.md.
+          xcodebuild test \
+            -scheme UnitTests \
+            -destination 'platform=macOS' \
+            -derivedDataPath build \
+            | xcbeautify
