@@ -178,7 +178,7 @@ Mac + Obsidian become optional sinks over one source of truth. Plan = `STANDALON
 - **2026‑06‑19** `[e5a6b45]`/`[0c31d6d]` MILESTONE — **Visual roadmap** (`roadmap/ROADMAP.html`) — first as a tech‑tree, then rebuilt into the interactive, commentable **metro‑tree** (zoom/pan).
 - **2026‑06‑19** `[c9568b3]`→`[4bcca6e]` FEATURE — **Audiobook reading‑mode redesign** + tab‑bar IA (Notes · Library · Highlights · Settings); "significance" → **"Importance"** relabel; **build 14**.
 
-### Era 6 — Mac↔CloudKit round‑trip + 0.2.0 (2026‑06‑21 → 2026‑06‑27, current)
+### Era 6 — Mac↔CloudKit round‑trip + 0.2.0 (2026‑06‑21 → 2026‑06‑29, current)
 The Mac rejoins as a **CloudKit client** of the phone's notes (reads raw memos, enhances, writes
 polish back), and the on‑device export / phone name‑linking path matures, culminating in the
 **0.2.0 "iCloud round‑trip" release**. Plan = `MAC_CLOUDKIT_PLAN.md`.
@@ -197,7 +197,9 @@ polish back), and the on‑device export / phone name‑linking path matures, cu
 - **2026‑06‑26** `[36119bb]`/`[9687c36]` FEATURE — **Phone polished‑text display**: the Mac's `MemoEnhancement` (copy‑edit/title/summary) made VISIBLE on the phone — one editable body that starts from the polish (no toggle), title chooser, summary card, "✦ Polished on your Mac" provenance.
 - **2026‑06‑26** `[f4626c0]`/`[7b8d165]`/`[09d4dbd]` RELEASE — **0.2.0 (build 22) — "the iCloud round‑trip release"** (prod promotion): Mac↔phone over iCloud, polished text on phone, on‑device name‑linking, MP3 audiobook fix. (`CHANGELOG.md:8`.)
 - **2026‑06‑26** — **Post‑0.2.0 prod findings** triaged (5 issues; see [§3](#3-open-bugs--known-issues)).
-- **2026‑06‑27** `[e97ab35]` FEATURE — Add `/handoff` skill (current HEAD).
+- **2026‑06‑27** `[e97ab35]` FEATURE — Add `/handoff` skill.
+- **2026‑06‑29** `[553755a]` FIX — **Audiobook chunk‑seam**: ChunkFusion fallback redo‑tail + lead‑in tolerance + 2 regression tests; **macOS CI** workflow added.
+- **2026‑06‑29** `[52e7164]`/`[16956e8]` INFRA — **roadmap.yaml = single source**: deleted `ROADMAP.html` + orphaned satellites; live docs point at the **Tiuri Command Center** hub; "How this project is run" onboarding section added across repo CLAUDE.md files. (Post‑0.2.0 prod findings mirrored into `backlog.md` `[f4701de]`; already tracked in [§3](#3-open-bugs--known-issues).)
 
 ### Version / build numbers (preserved exactly)
 Marketing version was **`0.1.0`** from the first TestFlight build through build 21, then **`0.2.0`** at build 22.
