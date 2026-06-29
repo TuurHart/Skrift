@@ -34,6 +34,10 @@ nodes:
     ms: Foundation
     done: 2026-06-17
     note: One name-linking engine both apps compile — no drift.
+    shipped:
+      - "2026-06-16 · Naming model RE-DERIVED from first principles → opt-out + risk-tiering, LOCKED (NAMING_MODEL.md); supersedes the opt-in model [dd2f7e3, 4f010c1]"
+      - "2026-06-16 · Naming chunks 1–5 built (Sanitiser opt-out, roster seeding, delete chip-bar/resolver, in-prose 3 tiers, RosterAudit) [67de42f…]"
+      - "2026-06-17 · Shared naming engine extracted to Skrift_Native/Shared/Naming/ — one source, both apps [ea3eeed]"
   - id: P1
     title: CloudKit sync (your devices)
     lane: 0
@@ -46,6 +50,13 @@ nodes:
       - P0
     via: P0
     note: Memos + media + names + vocab across your own devices, no Mac. Build 13; device-verified iPhone↔iPad.
+    shipped:
+      - "2026-06-17 · Phase 1a/1b — CloudKit Memo row sync (drop @Attribute(.unique)); device-verified iPhone→iPad [345ea0a]"
+      - "2026-06-18 · Phase 1c — media (recording .m4a + photos) → CKAsset; device-verified [ec10bf5]"
+      - "2026-06-18 · Phase 1d/1e/1f — sidecars + names+enrolled-voices + custom-vocabulary sync [026d4ca, 5ca7c1e, fddf690]"
+      - "2026-06-18 · CloudKit silent push + pull-to-refresh; sync-visibility strip [63bf236]"
+      - "2026-06-18 · Builds 5–12 (push, sync indicator, raw-CloudKit audiobook audio with real %)"
+      - "2026-06-19 · Build 13 — 'everything syncs' (cover + read-along transcript + position + rate) [a9b8502]"
   - id: P2
     title: Export & Obsidian publish
     lane: 0
@@ -62,6 +73,13 @@ nodes:
       name-linking, phone in-place linking, phone polished display.
     backlog:
       - Split-note + skrift-id hybrid (#6 per-book aggregation) — sequenced enhancement
+    shipped:
+      - "2026-06-21 · Compiler extracted into Shared/ behind a CompilerInput DTO [da9097f]"
+      - "2026-06-21 · On-device name-linking (MemoLinking) for export — phone still sends RAW to Mac [946c3df]"
+      - "2026-06-21 · ObsidianPublisher — one-way create-only publish into <vault>/Skrift/ [6b78dab]"
+      - "2026-06-22 · Export model DECIDED + BUILT: overwrite + edit-guard back-off (OBSIDIAN_EXPORT_ALTERNATIVES.md)"
+      - "2026-06-25 · Phone in-place name-linking in the transcript — 4 tiers + tap-to-resolve + person editor [950097f]"
+      - "2026-06-26 · Phone polished-text display — Mac polish visible on phone (title chooser + summary + provenance) [36119bb]"
   - id: P3
     title: De-Mac the UX
     lane: 0
@@ -80,18 +98,27 @@ nodes:
     title: Mac rejoins via CloudKit
     lane: 0
     order: 4
-    status: done
+    status: inprogress
     eff: L
     ms: Standalone core
-    done: 2026-06-26
     deps:
       - P1
       - P2
       - P3
     via: P3
     note: >-
-      8a–8d BUILT 2026-06-22, device-verified (73 memos synced), shipped in 0.2.0:
-      2nd CloudKit container over the shared Memo schema, write-back via MemoEnhancement.
+      8a–8d BUILT 2026-06-22 and shipped in 0.2.0 (2nd CloudKit container over the shared
+      Memo schema, write-back via MemoEnhancement; 73 memos synced to the Mac in Dev).
+      Round-trip still UNVERIFIED in prod — the prod CloudKit schema isn't deployed yet, so
+      phone↔Mac sync hangs in prod (tracked in Stz020).
+    shipped:
+      - "2026-06-22 · 8a — shared Memo/MemoAsset/DeviceID model (compiled by both apps) [845e6bc]"
+      - "2026-06-22 · 8a-iii — 2nd NSPersistentCloudKitContainer over [Memo, MemoAsset, MemoEnhancement] [add6a23]"
+      - "2026-06-22 · 8b — read bridge (Memo → PipelineFile), reuses UploadService.ingest; 10 golden tests [a2e831a]"
+      - "2026-06-22 · 8c — write-back: Mac polish → MemoEnhancement → phone [74cb609]"
+      - "2026-06-22 · 8d — reconcile loop + coexistence + de-Mac phone Settings; device-verified 73 memos [fa458df]"
+      - "2026-06-22 · macOS CloudKit silent push (32-byte APNs token) + launch-crash fix (store→.none) [6642af4, 76e3747]"
+      - "2026-06-26 · Shipped in 0.2.0 (build 22) — 'the iCloud round-trip release' [7b8d165]"
   - id: Stz020
     title: Stabilize 0.2.0
     lane: 0
@@ -235,32 +262,128 @@ detours:
         via: D2
         note: "Build 14: tab-bar IA, e-reader reading mode, Aa size/spacing, dog-ear bookmarks, Add-note chip, sync-aware delete."
 history:
+  # The full lineage, back to the Oct-2025 floor (no in-repo artifacts predate it; the
+  # user recalls older work but none survives here — see SSOT Era 0 [unverified]).
+  # Each era node carries a complete dated+cited `shipped` log (commit hash or doc cite),
+  # so the inspector can list everything that happened in it. Source: SKRIFT_SOURCE_OF_TRUTH.md §1.
   - id: H_elec
-    title: Electron + Python
+    title: "Era 1 · Electron + Python"
     lane: 0.55
     order: -1.92
     status: done
-    note: Original desktop app (Electron/React + Python FastAPI), 2025-10 → 2026-06. Archived under archive/.
+    range: "2025-10-18 → 2026-06-05"
+    note: Original desktop app — Electron/React UI + Python FastAPI backend on localhost:8000. Archived intact under archive/. The genesis era; everything downstream reacts to it.
+    shipped:
+      - "2025-10-18 · Initial commit — audio transcription pipeline (React + Python) [e96f92f]"
+      - "2025-10-18 · Renamed the app to 'Skrift'; externalized dependencies [b73b0aa]"
+      - "2025-10-18 · Batch processing Phase 1 — core infrastructure [96614cf]"
+      - "2026-03-05 · Electron-managed backend startup + loading screen [dbebf60]"
+      - "2026-03-20 · Skrift v2 frontend rewrite (frontend-new) — batch ops + DMG [319fabf]"
+      - "2026-03-26 · ASR engine migrated whisper.cpp → parakeet-mlx [de5fd51]"
+      - "2026-03-27 · Apple Notes inline hashtags → YAML frontmatter [b4336dc]"
+      - "2026-04-05 · Enhancement model switched to Gemma-4-E4B (from Qwen3.5; 26B crashed Mac) [a4730dc]"
+      - "2026-04-09 · Playback speed, AI chat panel (later removed), markdown export preview [0a21c16]"
+      - "2026-04-14 · Two-phase vision pipeline + significance display (short-lived) [d1d3bc3]"
+      - "2026-04-27 · Removed the vision pipeline → single E4B model [c27a3e2]"
+      - "2026-06-04 · Significance → user-set value (dropped LLM scoring) [83b76d4]"
+      - "2026-06-04 · Deterministic vault-derived tag matching (dropped LLM tagger) [3e3acba]"
+      - "2026-06-04 · Auto-run orchestrator → 'Ready for Review' (one-button Process) [a583ff2]"
+      - "2026-06-04 · TanStack Query + shadcn primitives (the Electron overhaul) [5da7a2e, a41c6d5]"
+      - "2026-06-04 · Ambiguous-name resolver + linked body text (the two-Jacks lineage) [e95baac]"
+      - "2026-06-05 · Render Apple Notes images inline (HEIC→JPG) — last Electron commit [2f4469e]"
   - id: H_rn
-    title: React Native
+    title: "Era 2 · React Native"
     lane: -0.55
     order: -1.92
     status: done
-    note: iPhone companion (Expo SDK 54 / RN 0.81), 2026-04 → 05. Archived under archive/Mobile/.
+    range: "2026-04-02 → 2026-05-02"
+    note: The iPhone companion (Expo SDK 54 / RN 0.81), built alongside the Electron desktop. Archived under archive/Mobile/. Introduced the two-app (phone+Mac) architecture that survives every rewrite.
+    shipped:
+      - "2026-04-02 · Skrift Mobile Phase 1 — iPhone companion [daf84b3]"
+      - "2026-04-02 · Phase 2 — playback + contextual metadata capture [3c7a98b]"
+      - "2026-04-03 · Phase 3 — phone→Mac sync + QR pairing (QR later dropped) [2fa554a]"
+      - "2026-04-03 · Phase 4 polish — theme, prompts, swipe, YAML, Inspector, Share Sheet [9ab502a]"
+      - "2026-04-03 · Phase 5 — Lock Screen widget + skrift://record + Obsidian backfill [6f24d3f]"
+      - "2026-04-11 · Dynamic Island Live Activity + Quick Actions [80b0377]"
+      - "2026-04-11 · Universal capture inbox (share URLs/images/text) — capture-items origin [818a827]"
+      - "2026-04-14 · Photo capture during recording (feature/photo-capture, merged 04-15) [773dc2c, 5d78cf8]"
+      - "2026-04-15 · Pause/resume recording with paused-time-aware photo timestamps [2a6c579]"
+      - "2026-04-27 · Mobile FluidAudio Parakeet TDT v3 + on-device sanitise (later reversed) + names sync [a48286b]"
+      - "2026-05-02 · Per-file Inspector state + real cancellation — last RN feature [a4f1527]"
   - id: H_desk
-    title: desktop-native
+    title: "Era 3 · desktop-native"
     lane: 0.55
     order: -0.92
     status: done
+    range: "2026-06-05 → 2026-06-07"
     via: H_elec
-    note: Native SwiftUI macOS rewrite (was Electron + Python). Converged → 'native' → main, Jun 7–8 → merges to P0.
+    mergeTo: H_conv
+    note: macOS app rebuilt as ONE native SwiftUI process (FluidAudio ASR + mlx-swift Gemma in-process + Bonjour server). NO Python, NO Electron. Phases 0–8 in ~two days.
+    shipped:
+      - "2026-06-06 · Phase 0 — mlx-swift Gemma go/no-go = GO NATIVE (8bit, 3.2s load, ~10.8 tok/s, M4) [aa71b85]"
+      - "2026-06-06 · Phase 1 — SwiftData model + NamesStore (mirrors names_store.py) [e4d7d9c]"
+      - "2026-06-06 · Phase 2 — sync server + Bonjour + multipart upload→PipelineFile [98dad86, 5cd837c]"
+      - "2026-06-06 · Phase 3 — FluidAudio Parakeet ASR, real-verified on M4/ANE (conf 0.998) [8291041]"
+      - "2026-06-06 · Phase 4 — mlx-swift Gemma enhancement service (in-process) [6624a89]"
+      - "2026-06-06 · Phase 5 — name-link + deterministic tags (NLTagger) + Obsidian compile [d6a336b, 188da49, 7549c35]"
+      - "2026-06-06 · Phase 6 — BatchManager auto-run (headless pipeline complete) [41b40c7]"
+      - "2026-06-07 · Phase 7 — review UI: sidebar, body, karaoke, resolver (v5 mock) [c8edcd7…7c81fbb]"
+      - "2026-06-07 · REAL end-to-end run on the two-Jacks 'Hotel Du Vin' (105s, NO Python) [bb7cc95]"
+      - "2026-06-07 · Phase 8 — file/folder ingest + drag-drop + Settings + SetupWizard [c217f69, 2b14a06, 95db821]"
   - id: H_mob
-    title: mobile-native
+    title: "Era 3 · mobile-native"
     lane: -0.55
     order: -0.92
     status: done
+    range: "2026-06-05 → 2026-06-07"
     via: H_rn
-    note: Native SwiftUI iOS rewrite (was React Native) → merges to P0.
+    mergeTo: H_conv
+    note: iOS app rebuilt native SwiftUI (FluidAudio/Parakeet on the ANE). Phases 0–9 + on-device hardening, ending with a verified live phone→Mac round-trip.
+    shipped:
+      - "2026-06-05 · Native SwiftUI rewrite plan + Phase 0 toolchain spike (xcodegen + XCUITest) [4b38dad, 09541e0]"
+      - "2026-06-06 · Phase 1 — SwiftData model + names store/sync (pulled forward) [d67c489]"
+      - "2026-06-06 · Phase 2 — recording + transcription (one-shot-on-stop) [3e667a2]"
+      - "2026-06-06 · Phase 7.1 — caption-first record + live streaming (Shhhcribble path) [9f7b49e]"
+      - "2026-06-07 · Phase 8 — Live Activity + App Intents (SIGTRAP-safe) + Control Center + share [55c2032…ece27b9]"
+      - "2026-06-07 · Phase 9 parity sweep; hand-editable transcript; Re-transcribe removed [a41c1e4, 97a3bf1]"
+      - "2026-06-07 · LIVE ROUND-TRIP verified iPhone 13 → native Mac (ATS NSAllowsLocalNetworking + Bonjour→IPv4 fixes)"
+  - id: H_conv
+    title: "Era 4 · Convergence + native feature sprint"
+    lane: 0
+    order: -0.46
+    status: done
+    range: "2026-06-07 → 2026-06-14"
+    deps:
+      - H_desk
+      - H_mob
+    via: H_desk
+    mergeTo: P0
+    note: Both branches merged to one trunk (native → main); then the high-velocity native feature sprint. Ends with the first TestFlight (0.1.0) and main becoming the trunk.
+    shipped:
+      - "2026-06-07 · MERGE — converge mobile-native + desktop-native → 'native' [9e338b6]"
+      - "2026-06-07 · Reorg under Skrift_Native/; old apps archived intact [8b3a409]"
+      - "2026-06-08 · Cold-launch auto-record fix — 4 causes, killer = Haptics blocking the main actor [150fd4f]"
+      - "2026-06-08 · Phase 8 device-verified on a real iPhone 13 (App Intents register, NO SIGTRAP)"
+      - "2026-06-08 · Dev/prod split via per-config bundle IDs (.dev, isolated data, TEST vault) [5415b52, ebd777e]"
+      - "2026-06-08 · App icons both apps + inverted-color dev icon [6be7847, 9a771f6]"
+      - "2026-06-09 · MemoDetail TabView(.page) → SwiftUI paging ScrollView (fixed 3 device bugs) [d96dafb]"
+      - "2026-06-09 · Diarization → NVIDIA Sortformer (clean splits, no tuning) [4678c1c]"
+      - "2026-06-09 · Voice identity — embedding-cosine, measured threshold 0.5 [8ccc3d2, 245db92]"
+      - "2026-06-09 · Video import → audio + 1 frame thumbnail (both apps) [07378ea]"
+      - "2026-06-10 · pull-phone-feedback skill (devicectl pull → parse → verify → triage) [30fb318]"
+      - "2026-06-11 · Trash / Recently Deleted, 14-day retention (mobile) [4295887]"
+      - "2026-06-11 · Significance slider → 10-circle control (signed-off mock) [bb00554]"
+      - "2026-06-11 · Audiobook quote-capture — player + library + retroactive capture + desktop pipeline [a32436e, 006eb22]"
+      - "2026-06-12 · AirPods P0 fixed (round 4) — validate tap with inputFormat not outputFormat [fbf8bd2]"
+      - "2026-06-12 · Capture items shipped both lanes (share-ext + App-Group inbox; desktop UploadService) [8d22c1f, 1704f9b]"
+      - "2026-06-12 · Custom vocabulary — CTC keyword-spot + rescore, both apps [8d7d7c9]"
+      - "2026-06-13 · Custom-vocab pre-warm fix — the 'Script→Skrift' bug (booster never warm) [8c653d7]"
+      - "2026-06-13 · Text-capture WAVE 2 (book sidecar + ChunkFusion + resumable job) [661179d]"
+      - "2026-06-13 · Audiobook player text-forward A+D hybrid (read-along, bookmarks, TOC) [7a43c55]"
+      - "2026-06-13 · Chunk time-drift fix — sample-accurate AVAudioFile reads (not AVAssetExportSession) [80c2aad]"
+      - "2026-06-14 · TestFlight build 1 — 0.1.0(1) uploaded (internal, no review) [518bf58]"
+      - "2026-06-14 · main is the trunk — native fast-forwarded into main (215 commits) + pushed [cc4fa53]"
+      - "2026-06-14 · Turn-aware conversation name-linking + guard re-transcribe [116c7b3]"
 ideas:
   - id: P4a
     text: Spike on the iPhone 13 FIRST (the gate)
