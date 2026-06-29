@@ -1,0 +1,392 @@
+# Skrift roadmap — generated from SKRIFT_SOURCE_OF_TRUTH.md §4 (2026-06-28).
+# Canonical detail + provenance live in SKRIFT_SOURCE_OF_TRUTH.md (the SSOT index)
+# and the cited ledgers. This file is the model the Command Center canvas renders.
+# Milestone theses (kept in SSOT §4, no schema home here):
+#   Foundation = done · Standalone core = earliest shippable · Differentiator = worth $0.69
+#   Enrichment = depth · Ship = App Store
+project: skrift
+title: Skrift
+status: active
+repo: OsamaBinBallZak/Skrift
+roadmapPath: roadmap/roadmap.yaml
+version: 1
+updated: 2026-06-28T08:50:17Z
+lanes:
+  - track: -1
+    label: Differentiator
+  - track: 0
+    label: Core
+  - track: 1
+    label: Organization & People
+  - track: 2
+    label: Journal & Search
+  - track: 3
+    label: Audiobook
+  - track: 4
+    label: Capture
+nodes:
+  - id: P0
+    title: Shared naming engine
+    lane: 0
+    order: 0
+    status: done
+    eff: M
+    ms: Foundation
+    done: 2026-06-17
+    note: One name-linking engine both apps compile — no drift.
+  - id: P1
+    title: CloudKit sync (your devices)
+    lane: 0
+    order: 1
+    status: done
+    eff: L
+    ms: Foundation
+    done: 2026-06-19
+    deps:
+      - P0
+    via: P0
+    note: Memos + media + names + vocab across your own devices, no Mac. Build 13; device-verified iPhone↔iPad.
+  - id: P2
+    title: Export & Obsidian publish
+    lane: 0
+    order: 2
+    status: inprogress
+    eff: L
+    ms: Standalone core
+    deps:
+      - P0
+    via: P1
+    note: >-
+      The #1 table-stakes gap. Largely BUILT (newer than the old roadmap snapshot):
+      ObsidianPublisher (one-way, create-only, overwrite + edit-guard), on-device
+      name-linking, phone in-place linking, phone polished display.
+    backlog:
+      - Split-note + skrift-id hybrid (#6 per-book aggregation) — sequenced enhancement
+  - id: P3
+    title: De-Mac the UX
+    lane: 0
+    order: 3
+    status: inprogress
+    eff: M
+    ms: Standalone core
+    deps:
+      - P1
+    via: P2
+    note: Tab-bar IA + 'Importance' relabel done (build 14); de-Mac phone Settings done.
+    backlog:
+      - Significance → 'Importance'/pin reframe (needs a label nod)
+      - Standalone onboarding rewrite
+  - id: Mac
+    title: Mac rejoins via CloudKit
+    lane: 0
+    order: 4
+    status: done
+    eff: L
+    ms: Standalone core
+    done: 2026-06-26
+    deps:
+      - P1
+      - P2
+      - P3
+    via: P3
+    note: >-
+      8a–8d BUILT 2026-06-22, device-verified (73 memos synced), shipped in 0.2.0:
+      2nd CloudKit container over the shared Memo schema, write-back via MemoEnhancement.
+  - id: Stz020
+    title: Stabilize 0.2.0
+    lane: 0
+    order: 5
+    status: now
+    eff: M
+    ms: Standalone core
+    deps:
+      - Mac
+    via: Mac
+    note: >-
+      Post-0.2.0 prod hardening — the 5 live findings from the 2026-06-26 triage (SSOT §3).
+      Done = phone↔Mac sync works end-to-end in prod + the batch is cleared.
+    backlog:
+      - Deploy prod CloudKit PRODUCTION schema (incl. MemoEnhancement) — phone→Mac sync hangs in prod (all testing was on Dev)
+      - Stale 'Waiting' sync pill — Memo.statusKind keys off Bonjour/HTTP, not CloudKit
+      - Name added on phone not recognised (e.g. 'IJsbrand') — AddPersonView saves empty aliases; seed alias from name on add
+      - Phone can't select a word + 'add as name' (desktop has it)
+      - Desktop tags every note a 'conversation' (≥2 '**Name:**' headers) + no re-transcribe button — stale diarized turn markers
+  - id: P4
+    title: On-device Polish
+    lane: -1
+    order: 4
+    status: planned
+    eff: L
+    ms: Differentiator
+    deps:
+      - P0
+    via: P3
+    risk: true
+    note: >-
+      Cleanup/title/summary on-device. Longest pole; the iPhone-13 memory spike is the
+      gate (zero jetsam + ≥300 MB headroom). Ships no-polish if the spike fails.
+    backlog:
+      - Spike on the iPhone 13 FIRST — hard memory gate, ships no-polish if it fails
+  - id: P6
+    title: Commonplace Book + quote cards
+    lane: -1
+    order: 5
+    status: planned
+    eff: L
+    ms: Differentiator
+    deps:
+      - P2
+    via: P4
+    note: Highlights feed + Daily Review + shareable quote cards (ImageRenderer). The headline + App-Store marketing.
+  - id: P5
+    title: Organization
+    lane: 1
+    order: 4
+    status: planned
+    eff: M
+    ms: Enrichment
+    deps:
+      - P3
+    via: P3
+    note: Pins, nested tags, smart folders.
+    backlog:
+      - Folders model is an OPEN decision — don't build until decided
+  - id: P7
+    title: People & backlinks
+    lane: 1
+    order: 5
+    status: planned
+    eff: M
+    ms: Enrichment
+    deps:
+      - P0
+    via: P5
+    note: Person pages, linked/unlinked mentions. Near-free given the Sanitiser substrate.
+  - id: P8
+    title: Journal / On-This-Day / search
+    lane: 2
+    order: 4
+    status: planned
+    eff: L
+    ms: Enrichment
+    deps:
+      - P1
+    via: P3
+    note: On This Day, map, calendar, semantic 'Related notes' (on-device NLContextualEmbedding). The north-star backbone.
+  - id: P9b
+    title: Audiobook player polish
+    lane: 3
+    order: 5
+    status: planned
+    eff: M
+    ms: Enrichment
+    deps:
+      - D3
+    via: P8
+    note: Sleep timer, clips, annotatable bookmarks, skip-silence — after the reading-mode redesign.
+  - id: P11
+    title: App Store readiness
+    lane: 0
+    order: 6
+    status: planned
+    eff: M
+    ms: Ship
+    deps:
+      - P2
+      - P3
+    via: Stz020
+    note: Price tier $0.69 / no IAP, privacy nutrition label, onboarding rewrite, screenshots, review prep (keep plain AppIntent).
+  - id: P10
+    title: Apple Watch capture
+    lane: 4
+    order: 6
+    status: deferred
+    eff: L
+    ms: Ship
+    deps:
+      - P1
+    via: P11
+    note: Fast-follow — own target + review. (User has no Watch.)
+detours:
+  - name: Audiobook deep-dive
+    when: Jun 18–19, while in Phase 1
+    branchFrom: P1
+    mergeTo: P2
+    nodes:
+      - id: D1
+        title: Per-book audiobook sync + real %
+        status: done
+        done: 2026-06-19
+        note: Raw-CloudKit CKAsset transfer → determinate upload/download bar + the 'Turn it on' size sheet.
+      - id: D2
+        title: Everything syncs
+        status: done
+        done: 2026-06-19
+        deps:
+          - D1
+        via: D1
+        note: Cover + read-along transcript + resume-position + speed, all across devices.
+      - id: D3
+        title: Player reading-mode redesign
+        status: done
+        done: 2026-06-19
+        deps:
+          - D2
+        via: D2
+        note: "Build 14: tab-bar IA, e-reader reading mode, Aa size/spacing, dog-ear bookmarks, Add-note chip, sync-aware delete."
+history:
+  - id: H_elec
+    title: Electron + Python
+    lane: 0.55
+    order: -1.92
+    status: done
+    note: Original desktop app (Electron/React + Python FastAPI), 2025-10 → 2026-06. Archived under archive/.
+  - id: H_rn
+    title: React Native
+    lane: -0.55
+    order: -1.92
+    status: done
+    note: iPhone companion (Expo SDK 54 / RN 0.81), 2026-04 → 05. Archived under archive/Mobile/.
+  - id: H_desk
+    title: desktop-native
+    lane: 0.55
+    order: -0.92
+    status: done
+    via: H_elec
+    note: Native SwiftUI macOS rewrite (was Electron + Python). Converged → 'native' → main, Jun 7–8 → merges to P0.
+  - id: H_mob
+    title: mobile-native
+    lane: -0.55
+    order: -0.92
+    status: done
+    via: H_rn
+    note: Native SwiftUI iOS rewrite (was React Native) → merges to P0.
+ideas:
+  - id: P4a
+    text: Spike on the iPhone 13 FIRST (the gate)
+    source: import
+    nodeHint: P4
+  - id: P4b
+    text: "Adaptive engine: Apple FM / Mac / small MLX / none"
+    source: import
+    nodeHint: P4
+  - id: P4c
+    text: ‘Clean up my ramble’ modes (note/bullets/email/to-do)
+    source: import
+    nodeHint: P4
+  - id: P4d
+    text: Models tab = device-gated picker
+    source: import
+    nodeHint: P4
+  - id: P6a
+    text: Highlights tab (quotes + significant memos feed)
+    source: import
+    nodeHint: P6
+  - id: P6b
+    text: Daily Review (spaced resurfacing)
+    source: import
+    nodeHint: P6
+  - id: P6c
+    text: Shareable quote cards (the virality lever)
+    source: import
+    nodeHint: P6
+  - id: P6d
+    text: Instant auto-transcribe + auto-title a capture
+    source: import
+    nodeHint: P6
+  - id: P6e
+    text: Per-source highlight .md export
+    source: import
+    nodeHint: P6
+  - id: P5a
+    text: Pins (flag + pinned cluster)
+    source: import
+    nodeHint: P5
+  - id: P5b
+    text: Folders / notebooks (= an export subfolder)
+    source: import
+    nodeHint: P5
+  - id: P5c
+    text: Navigable nested tags (#book/quotes, tap-to-filter)
+    source: import
+    nodeHint: P5
+  - id: P5d
+    text: Smart folders (saved searches)
+    source: import
+    nodeHint: P5
+  - id: P7a
+    text: Person pages (profile + voice + every mention)
+    source: import
+    nodeHint: P7
+  - id: P7b
+    text: Linked / unlinked mentions panel (one-tap link)
+    source: import
+    nodeHint: P7
+  - id: P8a
+    text: On This Day (memos from this date, prior years)
+    source: import
+    nodeHint: P8
+  - id: P8b
+    text: Map view (geotagged memos)
+    source: import
+    nodeHint: P8
+  - id: P8c
+    text: Calendar / timeline view
+    source: import
+    nodeHint: P8
+  - id: P8d
+    text: Semantic ‘Related notes’ + search (on-device embeddings)
+    source: import
+    nodeHint: P8
+  - id: P9b1
+    text: Sleep timer (end-of-chapter + fade)
+    source: import
+    nodeHint: P9b
+  - id: P9b2
+    text: Per-book speed memory
+    source: import
+    nodeHint: P9b
+  - id: P9b3
+    text: Skip-silence / volume boost
+    source: import
+    nodeHint: P9b
+  - id: P9b4
+    text: Annotatable bookmarks (note on a marker)
+    source: import
+    nodeHint: P9b
+  - id: P9b5
+    text: Clips (export quote audio as .m4a / video card)
+    source: import
+    nodeHint: P9b
+  - id: P9b6
+    text: Skip-back-on-resume (rewind 5–30 s)
+    source: import
+    nodeHint: P9b
+  - id: P10a
+    text: Apple Watch one-tap capture app
+    source: import
+    nodeHint: P10
+  - id: P10b
+    text: Capture modes / presets
+    source: import
+    nodeHint: P10
+  - id: P11a
+    text: Price tier $0.69, no IAP
+    source: import
+    nodeHint: P11
+  - id: P11b
+    text: Privacy nutrition label (all on-device)
+    source: import
+    nodeHint: P11
+  - id: P11c
+    text: Onboarding rewrite
+    source: import
+    nodeHint: P11
+  - id: P11d
+    text: Quote cards + screenshots + copy
+    source: import
+    nodeHint: P11
+  - id: P11e
+    text: Review prep (graceful model download; plain AppIntent)
+    source: import
+    nodeHint: P11
