@@ -109,22 +109,18 @@ Rules:
   **CloudKit** internal sync (not iCloud-Drive); one-way Obsidian publish; on-device Polish as a **gated
   spike**; Mac+Obsidian = optional sinks over one source of truth. Phases 0–11 + portability map +
   device/LLM matrix. Branch **`standalone`**. Track in `backlog.md` "⭐ Standalone App Store push".
-- **`roadmap/`** — ⭐ the **interactive visual roadmap**, now its own folder (new chats: start at
-  **`roadmap/README.md`**). `roadmap/ROADMAP.html` is a **"metro-tree"**: one line left→right that runs
-  **green** while done, **branches** off for detours & merges back, then fans into the planned tracks;
-  far left = the native-rewrite **history** convergence). **Pan/zoom**, hover a card to reveal just its
-  dependency lines, and **click any card to react** (👍/👎/🤔 + a note) — big phases list their individual
-  **ideas** to react to. Comments persist in `localStorage`; **Export** → hand the JSON back → it's committed
-  to **`roadmap/roadmap-comments.json`** and pasted into the file's `BAKED_COMMENTS` (defaults on next rebuild).
-  Deployed as a claude.ai Artifact at
-  **`https://claude.ai/code/artifact/64e6c806-d042-4d60-aa64-351142d61cbb`** — to redeploy to the SAME
-  url from a new chat, pass it to the Artifact tool's `url` param (a fresh session otherwise mints a new
-  one). **Source of truth = the markdown ledgers**; this is a GENERATED VIEW from the
-  `PHASES`/`DETOURS`/`HISTORY`/`IDEAS` arrays at the top of the file (layout auto-computes from each node's
-  `track` + `order` — to move a node, change those two numbers). **UPDATE CONTRACT (do this so the picture
-  never drifts):** whenever a phase/detour/idea changes status, edit those arrays AND the markdown in the
-  same pass, then redeploy the Artifact. The A/B/C/D design-exploration mocks live in `roadmap/mocks/`.
-  `git log --follow roadmap/ROADMAP.html` = the project history.
+- **`roadmap/`** — ⭐ the roadmap **data** (new chats: start at **`roadmap/README.md`**).
+  **`roadmap/roadmap.yaml`** is the single source of truth for the plan: the node graph (spine
+  `nodes`, `detours`, the 5 `history` eras with dated `shipped` logs, `ideas`). Layout auto-computes
+  from each node's `lane` (vertical) + `order` (horizontal) — to move a node, change those two numbers.
+  It's rendered by the **Tiuri Command Center hub**, a *separate* project in its own repo
+  (`OsamaBinBallZak/Tiuri-Command-Center`); this repo only holds the data. **UPDATE CONTRACT (so it
+  can't drift):** when a phase/detour/idea changes, edit `roadmap.yaml` AND the markdown ledger it
+  mirrors (`SKRIFT_SOURCE_OF_TRUTH.md` §4, `STANDALONE_PLAN.md`, `backlog.md`) in the **same pass**, and
+  bump `updated:`. **History note (2026-06-29):** the old in-repo viz `roadmap/ROADMAP.html` (a
+  self-contained metro-tree with its *own hardcoded* plan copy) was **deleted** — it was a second source
+  that drifted from `roadmap.yaml`. Recover it from git history if ever needed; the A/B/C/D
+  design-exploration mocks remain in `roadmap/mocks/`.
 - **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity: full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
 - `MOBILE_NATIVE_HANDOFF.md` → `MOBILE_NATIVE_REWRITE_PLAN.md` — the iOS app (phases, contract, XCUITest harness).
 - `DESKTOP_NATIVE_HANDOFF.md` → `DESKTOP_NATIVE_REWRITE_PLAN.md` — the macOS app. `WALKTHROUGH_BUGS.md` — desktop walkthrough tracker.
