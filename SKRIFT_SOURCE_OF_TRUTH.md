@@ -558,12 +558,14 @@ Every place the inputs disagree, with the value treated as **authoritative** (ne
 
 What each input contributed, and which are **superseded** (safe to ignore for current state / archive).
 
+> **Doc locations (2026‑07‑01 root cleanup):** the cited handoffs/plans now live in **`archive/handoffs/`**, and the one‑shot prompts + testing log in **`archive/`**. Every bare `Filename.md:line` citation in this doc resolves there. Root now keeps only the live set: `README.md`, `CLAUDE.md`, this file, `roadmap/`, `backlog.md`, `FEATURES.md`, `CHANGELOG.md`, `STANDALONE_PLAN.md`, `NAMING_MODEL.md`.
+
 ### Primary ledgers (LIVE — keep)
 - **`backlog.md`** (2137 lines, reverse‑chronological) — THE working ledger: every feature decision, device‑test verdict, bug status, "CONTINUE HERE." Contributed: §3 open bugs, most of §5 decisions, the contradiction set. **The single live resume point is its top block (post‑0.2.0 triage, 2026‑06‑26).**
 - **`FEATURES.md`** (293 lines) — the feature matrix. Contributed: all of §2. Authoritative for "what exists and where today."
 - **`CHANGELOG.md`** (86 lines) — curated releases (0.1.0, 0.2.0). Contributed: release entries + the 0.2.0 ship list.
 
-### Plans / handoffs (LIVE — keep)
+### Plans / handoffs (root: `STANDALONE_PLAN.md`, `NAMING_MODEL.md`; rest → `archive/handoffs/`)
 - **`STANDALONE_PLAN.md`** (621) — the App Store direction; phases, locked decisions, device/LLM matrix. Contributed: §4 roadmap, §5 strategy.
 - **`MAC_CLOUDKIT_PLAN.md`** (268) — the Mac↔CloudKit feature (8a–8d, BUILT 2026‑06‑22). Contributed: §4 `Mac` phase, §5 write‑back decision, §6 CloudKit.
 - **`NAMING_MODEL.md`** (295) — the re‑derived opt‑out naming model (LOCKED 2026‑06‑16). Contributed: §5 naming.
@@ -586,7 +588,7 @@ What each input contributed, and which are **superseded** (safe to ignore for cu
 
 ### Other docs found in‑repo (not consumed as status sources)
 `AUDIOBOOK_REDESIGN_PROMPT.md`, `CONVERSATION_BUGHUNT_PROMPT.md`, `ROADMAP_VIZ_PROMPT.md`,
-`TESTING_2026-06-09.md` — prompts + a testing log; their outcomes are captured in `backlog.md`/git.
+`TESTING_2026-06-09.md` — prompts + a testing log (now in `archive/`); their outcomes are captured in `backlog.md`/git.
 The `.claude/skills/*/SKILL.md` and `mocks/*.html` are build artifacts / process tooling — **excluded from current state** per the brief.
 
 ### `[unverified]` items (flagged, not asserted)

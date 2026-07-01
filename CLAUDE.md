@@ -121,9 +121,8 @@ Rules:
   self-contained metro-tree with its *own hardcoded* plan copy) was **deleted** — it was a second source
   that drifted from `roadmap.yaml`. Recover it from git history if ever needed; the A/B/C/D
   design-exploration mocks remain in `roadmap/mocks/`.
-- **`CONVERSATION_MODE_HANDOFF.md`** — conversation/diarization + voice identity: full state, the locked Sortformer-diarize + wespeaker-embedding-cosine design, bidirectional voice sync, mandatory codebase-read step, next-chat prompt. Start here for conversation work.
-- `MOBILE_NATIVE_HANDOFF.md` → `MOBILE_NATIVE_REWRITE_PLAN.md` — the iOS app (phases, contract, XCUITest harness).
-- `DESKTOP_NATIVE_HANDOFF.md` → `DESKTOP_NATIVE_REWRITE_PLAN.md` — the macOS app. `WALKTHROUGH_BUGS.md` — desktop walkthrough tracker.
+- **`SKRIFT_SOURCE_OF_TRUTH.md`** — ⭐ the canonical record: timeline, current state, decisions, wire contracts, resolved contradictions. **Start here** — it indexes the deep docs by `file:line`.
+- **`archive/handoffs/`** — the native-rewrite deep tier (the SSOT's cited sources, moved out of root 2026-07-01): `MOBILE_NATIVE_HANDOFF.md` + `…_REWRITE_PLAN.md` (iOS), `DESKTOP_NATIVE_HANDOFF.md` + `…_REWRITE_PLAN.md` (macOS), `CONVERSATION_MODE_HANDOFF.md` (diarization + voice identity — Sortformer + wespeaker-cosine), `MAC_CLOUDKIT_PLAN.md`, `OBSIDIAN_EXPORT_ALTERNATIVES.md`, `WALKTHROUGH_BUGS.md`. Read on demand via the SSOT's citations.
 - Memory: `project_native_convergence`, `project_vocab_booster`, `feedback_vault_privacy`, `feedback_autonomous_execution`, `feedback_native_ui_process`, `feedback_native_ui_verification`.
 
 ## Branch
