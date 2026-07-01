@@ -125,6 +125,14 @@ Rules:
 - **`archive/handoffs/`** — the native-rewrite deep tier (the SSOT's cited sources, moved out of root 2026-07-01): `MOBILE_NATIVE_HANDOFF.md` + `…_REWRITE_PLAN.md` (iOS), `DESKTOP_NATIVE_HANDOFF.md` + `…_REWRITE_PLAN.md` (macOS), `CONVERSATION_MODE_HANDOFF.md` (diarization + voice identity — Sortformer + wespeaker-cosine), `MAC_CLOUDKIT_PLAN.md`, `OBSIDIAN_EXPORT_ALTERNATIVES.md`, `WALKTHROUGH_BUGS.md`. Read on demand via the SSOT's citations.
 - Memory: `project_native_convergence`, `project_vocab_booster`, `feedback_vault_privacy`, `feedback_autonomous_execution`, `feedback_native_ui_process`, `feedback_native_ui_verification`.
 
+## Docs: keep them lean
+
+- Root holds only the live set (see README's doc map). Write rules, not essays — cut any
+  sentence that doesn't change what the reader does; state each rule once.
+- Superseded docs → `archive/` (session handoffs/plans → `archive/handoffs/`), never delete.
+  Fold a new handoff's durable facts into `SKRIFT_SOURCE_OF_TRUTH.md`, then archive it.
+- The SSOT is a citation index — keep its `Filename.md:line` anchors resolvable when moving cited docs.
+
 ## Branch
 
 **Work on `main`.** As of **2026-06-14**, `main` IS the trunk: the `native` branch — itself
