@@ -1,0 +1,22 @@
+# Validates roadmap/roadmap.yaml on every roadmap push — schema + the one-playhead rule.
+# This file is written into managed repos by the Command Center's scaffold flow; the source
+# of truth is templates/managed-repo/roadmap-validate.yml in the CC repo. The schema is
+# vendored alongside as roadmap/roadmap.schema.json (the CC repo is private, so no curl).
+name: roadmap
+on:
+  push:
+    paths: ["roadmap/**"]
+  workflow_dispatch: {}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: yaml → json
+        run: npx --yes js-yaml roadmap/roadmap.yaml > /tmp/roadmap.json
+      - name: validate against the vendored schema
+        run: npx --yes ajv-cli@5 validate --spec=draft2020 --validate-formats=false -s roadmap/roadmap.schema.json -d /tmp/roadmap.json
+      - name: exactly one playhead
+        run: test "$(jq '[.nodes[]|select(.status=="now")]|length' /tmp/roadmap.json)" = "1"

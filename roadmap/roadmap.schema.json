@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tiuri.dev/schemas/roadmap.schema.json",
+  "title": "roadmap.yaml",
+  "description": "The per-project node graph. The canvas is a pure render of this; Claude mutates it only via the strict tool layer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "title", "nodes"],
+  "properties": {
+    "project": { "type": "string", "description": "stable project slug" },
+    "title": { "type": "string" },
+    "north": { "type": "string", "description": "the project's one-line bet — the yardstick every node is weighed against" },
+    "status": { "enum": ["active", "paused", "parked", "shipped", "archived"] },
+    "repo": { "type": "string", "description": "owner/name" },
+    "roadmapPath": { "type": "string", "default": "roadmap/roadmap.yaml" },
+    "version": { "type": "integer", "minimum": 0 },
+    "updated": { "type": "string", "format": "date-time" },
+    "lanes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["track", "label"],
+        "properties": {
+          "track": { "type": "number", "description": "0 = Core spine; <0 above; >0 below; fractional for detour/history rows" },
+          "label": { "type": "string" }
+        }
+      }
+    },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "detours": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "branchFrom", "mergeTo", "nodes"],
+        "properties": {
+          "name": { "type": "string" },
+          "when": { "type": "string" },
+          "branchFrom": { "type": "string", "description": "node id on the spine to fork from" },
+          "mergeTo": { "type": "string", "description": "node id to merge back into" },
+          "nodes": { "type": "array", "items": { "$ref": "#/$defs/detourNode" } }
+        }
+      }
+    },
+    "ideas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text"],
+        "properties": {
+          "id": { "type": "string" },
+          "text": { "type": "string" },
+          "source": { "enum": ["voice", "text", "shortcut", "import"] },
+          "nodeHint": { "type": "string", "description": "id of the node this idea probably belongs to" },
+          "ts": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "status": {
+      "enum": ["done", "inprogress", "now", "planned", "deferred"],
+      "description": "render: done=filled square, now=orange dot+halo (max ONE), inprogress=orange ring, planned=hollow, deferred=dashed"
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "lane", "order", "status"],
+      "properties": {
+        "id": { "type": "string", "description": "STABLE — keys reactions; never mutated by any tool" },
+        "title": { "type": "string" },
+        "lane": { "type": "number", "description": "matches a lanes[].track" },
+        "order": { "type": "number", "description": "horizontal index within the lane" },
+        "status": { "$ref": "#/$defs/status" },
+        "ms": { "type": "string", "description": "milestone bucket label" },
+        "eff": { "enum": ["S", "M", "L"] },
+        "done": { "type": "string", "description": "ISO date; present iff status==done" },
+        "deps": { "type": "array", "items": { "type": "string" }, "description": "real dependencies (hover-only risers)" },
+        "via": { "type": "string", "description": "backbone flow source (defaults to deps[0])" },
+        "risk": { "type": "boolean" },
+        "note": { "type": "string" },
+        "win": { "type": "string", "description": "the done-state in one line" },
+        "backlog": { "type": "array", "items": { "type": "string" }, "description": "constituent todos, linked from backlog.md" },
+        "shipped": { "$ref": "#/$defs/shipped" }
+      }
+    },
+    "detourNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A node on a detour. Unlike spine nodes, its lane/order are not authored — position is computed from the detour's branchFrom/mergeTo and its index within nodes.",
+      "required": ["id", "title", "status"],
+      "properties": {
+        "id": { "type": "string", "description": "STABLE — keys reactions; never mutated by any tool" },
+        "title": { "type": "string" },
+        "lane": { "type": "number", "description": "optional; usually a fractional half-lane track" },
+        "order": { "type": "number" },
+        "status": { "$ref": "#/$defs/status" },
+        "ms": { "type": "string" },
+        "eff": { "enum": ["S", "M", "L"] },
+        "done": { "type": "string", "description": "ISO date; present iff status==done" },
+        "deps": { "type": "array", "items": { "type": "string" } },
+        "via": { "type": "string" },
+        "risk": { "type": "boolean" },
+        "note": { "type": "string" },
+        "win": { "type": "string", "description": "the done-state in one line" },
+        "backlog": { "type": "array", "items": { "type": "string" } },
+        "shipped": { "$ref": "#/$defs/shipped" }
+      }
+    },
+    "shipped": {
+      "type": "array",
+      "description": "dated ship log on done work — preserved verbatim; no tool writes it",
+      "items": {
+        "anyOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "date": { "type": "string" },
+              "text": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
