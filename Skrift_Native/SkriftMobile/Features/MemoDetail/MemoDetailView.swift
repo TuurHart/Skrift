@@ -236,11 +236,17 @@ struct MemoDetailView: View {
     /// window. The pager's @Query excludes trashed memos, so the page disappears
     /// and we move to the next one (or dismiss when it was the last).
     private func deleteCurrent() {
-        guard let memo = currentMemo else { return }
-        let next = memos.first { $0.id != memo.id }?.id
+        guard let memo = currentMemo,
+              let idx = memos.firstIndex(where: { $0.id == memo.id }) else { return }
+        // Land on the ADJACENT page after delete — the next memo, else the previous
+        // — not the top of the list. Dismiss when it was the only one.
+        let neighbor: UUID?
+        if idx + 1 < memos.count { neighbor = memos[idx + 1].id }
+        else if idx - 1 >= 0 { neighbor = memos[idx - 1].id }
+        else { neighbor = nil }
         player.stopAndClear()
         repository.softDelete(memo)
-        if let next { selection = next } else { dismiss() }
+        if let neighbor { selection = neighbor } else { dismiss() }
     }
 }
 

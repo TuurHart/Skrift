@@ -97,6 +97,23 @@ final class SpeakerTranscriptTests: XCTestCase {
         XCTAssertFalse(String(decoding: try JSONEncoder().encode(old), as: UTF8.self).contains("turnSlots"))
     }
 
+    /// Regression: a transcript PREAMBLE — a leading `[[img_NNN]]` photo marker (or any text
+    /// before the first `**Name:**` header) — must survive every turn mutation. Before the fix
+    /// setText/reassign/relabelSlot/mergeAdjacentTurns rebuilt from turns only and silently
+    /// DROPPED it (the photo vanished from the note on any edit/merge/rename).
+    func testPreambleSurvivesTurnMutations() {
+        let pre = "[[img_001]]"
+        let t = "\(pre)\n\n**A:** one\n\n**B:** two\n\n**A:** three"
+        XCTAssertEqual(SpeakerTranscript.setText(t, turnAt: 1, to: "TWO"),
+                       "\(pre)\n\n**A:** one\n\n**B:** TWO\n\n**A:** three")
+        XCTAssertEqual(SpeakerTranscript.reassign(t, turnAt: 1, to: "A"),
+                       "\(pre)\n\n**A:** one two three")
+        XCTAssertEqual(SpeakerTranscript.relabelSlot(t, turnSlots: [0, 1, 0], slot: 1, to: "A"),
+                       "\(pre)\n\n**A:** one two three")
+        XCTAssertEqual(SpeakerTranscript.mergeAdjacentTurns("\(pre)\n\n**A:** a\n\n**A:** b"),
+                       "\(pre)\n\n**A:** a b")
+    }
+
     /// Inline photos coexist with turns: an `[[img_NNN]]` marker stays inside the turn it
     /// was spoken in, and isn't counted as a spoken word (so karaoke stays aligned).
     func testImageMarkerStaysInTurnAndIsntASpokenWord() {

@@ -48,6 +48,20 @@ enum SpeakerTranscript {
         return (preamble, turns)
     }
 
+    /// Prepend the transcript's PREAMBLE (anything before the first `**Name:**`
+    /// header — e.g. a leading `[[img_NNN]]` photo marker) onto a rebuilt turns
+    /// body, so a turn edit / merge / rename never silently drops it. No-op when
+    /// there's no preamble (the common case, incl. a rebuilt body that starts at a
+    /// header — used to re-attach the ORIGINAL preamble after a rebuild).
+    static func withPreamble(of original: String?, _ body: String) -> String {
+        guard let original, let re = try? NSRegularExpression(pattern: headerPattern),
+              let first = re.firstMatch(in: original, range: NSRange(location: 0, length: (original as NSString).length)),
+              first.range.location > 0 else { return body }
+        let preamble = (original as NSString).substring(to: first.range.location)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return preamble.isEmpty ? body : preamble + "\n\n" + body
+    }
+
     /// "Speaker N" is the un-named placeholder (offer to tag it); a real name isn't.
     static func isUnnamed(_ name: String) -> Bool {
         name.range(of: #"^Speaker \d+$"#, options: .regularExpression) != nil
@@ -66,9 +80,10 @@ enum SpeakerTranscript {
     /// not parseable. Does NOT re-fuse (names unchanged).
     static func setText(_ transcript: String?, turnAt index: Int, to newText: String) -> String? {
         guard let turns = parse(transcript), index >= 0, index < turns.count else { return nil }
-        return turns.enumerated()
+        let body = turns.enumerated()
             .map { i, t in "**\(t.name):** \(i == index ? newText.trimmingCharacters(in: .whitespacesAndNewlines) : t.text)" }
             .joined(separator: "\n\n")
+        return withPreamble(of: transcript, body)
     }
 
     /// Reassign a SINGLE turn (by position) to another speaker, then re-fuse — the per-line
@@ -79,7 +94,7 @@ enum SpeakerTranscript {
         let rebuilt = turns.enumerated()
             .map { i, t in "**\(i == index ? newName : t.name):** \(t.text)" }
             .joined(separator: "\n\n")
-        return mergeAdjacentTurns(rebuilt)
+        return withPreamble(of: transcript, mergeAdjacentTurns(rebuilt))
     }
 
     /// Collapse consecutive turns by the SAME speaker into one (after a reassign/merge), so
@@ -95,7 +110,8 @@ enum SpeakerTranscript {
                 merged.append((t.name, t.text))
             }
         }
-        return merged.map { "**\($0.name):** \($0.text)" }.joined(separator: "\n\n")
+        let body = merged.map { "**\($0.name):** \($0.text)" }.joined(separator: "\n\n")
+        return withPreamble(of: transcript, body)
     }
 
     /// Rename every turn belonging to diarization SLOT `slot` (NOT every turn that happens
@@ -110,7 +126,7 @@ enum SpeakerTranscript {
         let rebuilt = turns.enumerated()
             .map { i, t in "**\(turnSlots[i] == slot ? newName : t.name):** \(t.text)" }
             .joined(separator: "\n\n")
-        return mergeAdjacentTurns(rebuilt)
+        return withPreamble(of: transcript, mergeAdjacentTurns(rebuilt))
     }
 }
 
