@@ -100,15 +100,16 @@ enum AudiobookImporter {
             defer { if scoped { source.stopAccessingSecurityScopedResource() } }
             do {
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-                try? FileManager.default.removeItem(at: dest)
-                try FileManager.default.copyItem(at: source, to: dest)
+                try materializingCopy(from: source, to: dest)
             } catch {
+                DevLog.log("audiobook import COPY FAILED \(originalName): \(error)")
                 try? FileManager.default.removeItem(at: folder)
                 throw ImportError.copyFailed
             }
 
             let tags = await readTags(at: dest)
             guard tags.duration > 0 else {
+                DevLog.log("audiobook import REJECTED (unreadable) \(originalName) — copiedBytes=\(copiedByteString(dest)) duration=\(tags.duration)")
                 try? FileManager.default.removeItem(at: folder)
                 throw ImportError.unreadable
             }
@@ -168,8 +169,9 @@ enum AudiobookImporter {
                 defer { if scoped { source.stopAccessingSecurityScopedResource() } }
                 let name = String(format: "%03d_%@", index + 1, source.lastPathComponent)
                 do {
-                    try FileManager.default.copyItem(at: source, to: folder.appendingPathComponent(name))
+                    try materializingCopy(from: source, to: folder.appendingPathComponent(name))
                 } catch {
+                    DevLog.log("audiobook part COPY FAILED \(source.lastPathComponent): \(error)")
                     try? FileManager.default.removeItem(at: folder)
                     throw ImportError.copyFailed
                 }
@@ -178,9 +180,11 @@ enum AudiobookImporter {
 
             var durations: [TimeInterval] = []
             for name in filenames {
-                let asset = makeAsset(url: folder.appendingPathComponent(name))
+                let partURL = folder.appendingPathComponent(name)
+                let asset = makeAsset(url: partURL)
                 let seconds = ((try? await asset.load(.duration)).map { CMTimeGetSeconds($0) }) ?? 0
                 guard seconds.isFinite, seconds > 0 else {
+                    DevLog.log("audiobook part REJECTED (unreadable) \(name) — copiedBytes=\(copiedByteString(partURL)) duration=\(seconds)")
                     try? FileManager.default.removeItem(at: folder)
                     throw ImportError.unreadable
                 }
@@ -251,6 +255,40 @@ enum AudiobookImporter {
             return url.lastPathComponent
         }
         return trimmed
+    }
+
+    // MARK: - Cloud-safe copy
+
+    /// Copy a picked file into the library, MATERIALIZING it first if it lives in
+    /// iCloud / a third-party File Provider and hasn't been downloaded to the
+    /// device. A plain `copyItem` grabs the on-disk PLACEHOLDER for an un-downloaded
+    /// cloud item — a 0-byte / undecodable copy → `readTags` sees `duration == 0` →
+    /// the import rejects a perfectly good book ("doesn't look like a playable
+    /// audiobook"). A COORDINATED read forces the provider to download the real
+    /// bytes first (same pattern as `ObsidianPublisher`); `startDownloadingUbiquitousItem`
+    /// nudges iCloud along (throws + is ignored for non-iCloud sources). Must be
+    /// called inside the source's security scope. Throws on a genuine copy failure.
+    static func materializingCopy(from source: URL, to dest: URL) throws {
+        try? FileManager.default.startDownloadingUbiquitousItem(at: source)
+        var coordError: NSError?
+        var copyError: Error?
+        NSFileCoordinator().coordinate(readingItemAt: source, options: [], error: &coordError) { readURL in
+            do {
+                try? FileManager.default.removeItem(at: dest)
+                try FileManager.default.copyItem(at: readURL, to: dest)
+            } catch {
+                copyError = error
+            }
+        }
+        if let copyError { throw copyError }
+        if let coordError { throw coordError }
+    }
+
+    /// Byte size of a just-copied file, as a string for the devlog. A tiny value
+    /// on an `.unreadable` reject means the source was an un-downloaded cloud
+    /// placeholder; a real size means a codec AVFoundation couldn't decode.
+    static func copiedByteString(_ url: URL) -> String {
+        ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int).map(String.init) ?? "?"
     }
 
     // MARK: - Asset construction
