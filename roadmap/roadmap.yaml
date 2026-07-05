@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 5
-updated: 2026-07-05T12:14:21.911Z
+version: 6
+updated: 2026-07-05T13:01:57.820Z
 lanes:
   - track: -1
     label: Differentiator
@@ -693,6 +693,17 @@ ideas:
       roadmap look weird — the move was committed then reverted. Leaving it
       as-is for now; the user will sort the layout out in Claude Code. (Just a
       note that this is a known thing, no action needed from Huginn.)
+    source: voice
+  - id: i4
+    text: "Shared-audio capture flow is broken + a batch enhancement. (1) BUG:
+      sharing an audio/voice message from a messenger app (WhatsApp etc.) into
+      Skrift imports it as a LINK, not as a voice message to transcribe — so you
+      can end up adding a voice memo on top of a voice memo. The share flow
+      needs to recognise shared audio as transcribable audio. (2) FEATURE:
+      select MULTIPLE messages in WhatsApp, share them all together, transcribe
+      them all — with a choice to either append them in order as ONE note or
+      split them into SEPARATE notes. Both relate to the same share-to-import /
+      capture-items flow."
     source: voice
 north: everything you say and read lands organized in your vault — so you can
   see how your thinking evolved
