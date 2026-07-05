@@ -68,14 +68,12 @@ final class AudiobookSession: ObservableObject {
     /// into the right FILE) and mark the session active. Re-opening the
     /// already-loaded book is a no-op (so the player screen can be re-entered
     /// freely).
-    func open(_ newBook: Audiobook, autoplay: Bool = false) {
+    @discardableResult
+    func open(_ newBook: Audiobook, autoplay: Bool = false) -> Bool {
         if book?.id == newBook.id, player != nil {
             if autoplay, !isPlaying { play() }
-            return
+            return true
         }
-        persistProgress(force: true)   // the outgoing book keeps its position
-        closePlayer()
-
         // Cross-device resume: a CloudKit carrier may hold a further-along position
         // from another device that hasn't reconciled into library.json yet. Adopt it
         // when it's newer (and write it back so the store + future opens agree), so
@@ -87,10 +85,18 @@ final class AudiobookSession: ObservableObject {
         let resume = min(startBook.position, startBook.duration)
         let location = startBook.fileLocation(at: resume)
         let url = store.audioURL(of: startBook, fileIndex: location.index)
+        // Validate the audio is on disk BEFORE any teardown. A synced book whose
+        // audio hasn't downloaded yet (or was freed on this device) must NOT tear
+        // down the currently-playing session or leave a dead player behind — bail
+        // and let the caller trigger a download (Apple Books "tap to download").
         guard FileManager.default.fileExists(atPath: url.path) else {
             print("[Skrift] Audiobook audio missing: \(url.lastPathComponent)")
-            return
+            return false
         }
+
+        persistProgress(force: true)   // the outgoing book keeps its position
+        closePlayer()
+
         let item = AVPlayerItem(asset: AudiobookImporter.makeAsset(url: url))
         let avPlayer = AVPlayer(playerItem: item)
         avPlayer.automaticallyWaitsToMinimizeStalling = false
@@ -109,6 +115,7 @@ final class AudiobookSession: ObservableObject {
         installInterruptionObserverIfNeeded()
         updateNowPlaying()
         if autoplay { play() }
+        return true
     }
 
     /// The CloudKit carrier's `Audiobook` if it holds a STRICTLY newer state than

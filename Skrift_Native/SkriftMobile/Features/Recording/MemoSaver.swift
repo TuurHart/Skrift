@@ -395,7 +395,11 @@ struct MemoSaver {
         // clip — it stays available for transcription.) If the merge can't run
         // (e.g. placeholder audio in tests), keep the base audio and still append
         // the text — the feature is "add more text", audio is a bonus.
-        let mergedDuration = (try? await Self.appendAudio(base: memoURL, addition: clip)) ?? priorDuration
+        let merge = try? await Self.appendAudio(base: memoURL, addition: clip)
+        let mergedDuration = merge?.merged ?? priorDuration
+        // Shift the appended clip's word-timings by the PRECISE base duration the
+        // clip was spliced at — not the (possibly-estimated) memo.duration.
+        let clipOffset = merge?.base ?? priorDuration
 
         // Transcribe the clip (no image markers on an append). `transcribe` itself
         // awaits the model load, so stopping the append before the model was ready
@@ -454,7 +458,7 @@ struct MemoSaver {
 
         // Shift the new clip's word timings past the prior audio + append to the sidecar.
         if !newTimings.isEmpty {
-            let shifted = newTimings.map { WordTiming(word: $0.word, start: $0.start + priorDuration, end: $0.end + priorDuration) }
+            let shifted = newTimings.map { WordTiming(word: $0.word, start: $0.start + clipOffset, end: $0.end + clipOffset) }
             wordTimings.write((wordTimings.load(for: memoID) ?? []) + shifted, for: memoID)
         }
         repository.save()
@@ -476,9 +480,11 @@ struct MemoSaver {
     private enum AppendError: Error { case composition, noBaseTrack }
 
     /// Concatenate `addition` after `base` into one .m4a, replacing `base` in place.
-    /// Returns the merged duration (seconds). Throws on non-audio inputs (the caller
-    /// then keeps the base audio).
-    private static func appendAudio(base: URL, addition: URL) async throws -> TimeInterval {
+    /// Returns the merged duration AND the precise `base` duration — the exact splice
+    /// offset, which the caller uses to shift the appended clip's word-timings (memo
+    /// `duration` can be an estimate for imported VBR audio and would drift karaoke).
+    /// Throws on non-audio inputs (the caller then keeps the base audio).
+    private static func appendAudio(base: URL, addition: URL) async throws -> (merged: TimeInterval, base: TimeInterval) {
         let comp = AVMutableComposition()
         guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
             throw AppendError.composition
@@ -507,9 +513,11 @@ struct MemoSaver {
         let tmpOut = base.deletingLastPathComponent().appendingPathComponent("merge_\(UUID().uuidString).m4a")
         try? FileManager.default.removeItem(at: tmpOut)
         try await export.export(to: tmpOut, as: .m4a)
-        try? FileManager.default.removeItem(at: base)
-        try FileManager.default.moveItem(at: tmpOut, to: base)
-        return CMTimeGetSeconds(baseDur) + addSeconds
+        // Atomic replace — a failed swap or a kill mid-move can NEVER leave the memo
+        // with no audio file (the old remove-then-move had that data-loss window).
+        _ = try FileManager.default.replaceItemAt(base, withItemAt: tmpOut)
+        let baseSeconds = CMTimeGetSeconds(baseDur)
+        return (merged: baseSeconds + addSeconds, base: baseSeconds)
     }
 
     /// Merge contextual metadata onto the memo, preserving the photo

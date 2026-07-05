@@ -289,8 +289,18 @@ struct AudiobookLibraryView: View {
         let isCurrent = session.book?.id == book.id
         let syncState = bookSyncState(book)
         return Button {
-            session.open(book)
-            showPlayer = true
+            if session.open(book) {
+                showPlayer = true
+            } else if syncState == .downloadAvailable {
+                // Audio was freed on this device — tap to re-download. open() already
+                // bailed without tearing down current playback or opening a dead player.
+                Task {
+                    await AudiobookCloudSync.restoreDownload(bookID: book.id)
+                    syncToggleTick += 1
+                }
+            }
+            // .downloading / genuinely-missing: leave the current session intact; the
+            // reconcile sweep is already fetching the audio.
         } label: {
             HStack(spacing: 12) {
                 BookCoverView(book: book)
