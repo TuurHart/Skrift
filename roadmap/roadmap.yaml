@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 4
-updated: 2026-07-05T12:05:56.893Z
+version: 5
+updated: 2026-07-05T12:14:21.911Z
 lanes:
   - track: -1
     label: Differentiator
@@ -687,6 +687,12 @@ ideas:
       suppressed if the app hasn't been opened in a while (don't nuke a
       returning user's backlog). Differentiator for note-hygiene; needs a design
       pass in Claude Code before it earns a node.
+    source: voice
+  - id: i3
+    text: Flattening the history nodes into a single straight Core lane makes the
+      roadmap look weird — the move was committed then reverted. Leaving it
+      as-is for now; the user will sort the layout out in Claude Code. (Just a
+      note that this is a known thing, no action needed from Huginn.)
     source: voice
 north: everything you say and read lands organized in your vault — so you can
   see how your thinking evolved
