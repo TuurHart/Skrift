@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 11
-updated: 2026-07-05T12:13:28.389Z
+version: 4
+updated: 2026-07-05T12:05:56.893Z
 lanes:
   - track: -1
     label: Differentiator
@@ -290,7 +290,7 @@ nodes:
     win: one-tap Watch capture with presets, past App Store review
   - id: H_elec
     title: Electron + Python — the transcription desktop
-    lane: 0
+    lane: 0.55
     order: -1.92
     status: done
     note: "2025-10-18 → 2026-03-20 — the genesis app: React UI, Python FastAPI
@@ -307,8 +307,8 @@ nodes:
         [319fabf]
   - id: H_churn
     title: Model churn — whisper out, vision in and out
-    lane: 0
-    order: -1.7349999999999999
+    lane: 0.55
+    order: -1.55
     status: done
     via: H_elec
     note: "2026-03-26 → 2026-04-27 — the try-measure-cut stretch: parakeet-mlx
@@ -326,8 +326,8 @@ nodes:
       - 2026-04-27 · Removed the vision pipeline → single E4B model [c27a3e2]
   - id: H_determ
     title: The deterministic turn — drop LLM scoring, one-button Process
-    lane: 0
-    order: -0.619375
+    lane: 0.55
+    order: -1.18
     status: done
     via: H_churn
     note: 2026-06-04 → 2026-06-05 — significance becomes user-set, tags become
@@ -348,8 +348,8 @@ nodes:
         commit [2f4469e]
   - id: H_rn
     title: React Native iPhone companion — capture to sync
-    lane: 0
-    order: -1.0975
+    lane: -0.55
+    order: -1.92
     status: done
     note: "2026-04-02 → 2026-04-03 — five phases in two days: record, playback,
       phone→Mac sync, Lock Screen widget, skrift://record. The two-app
@@ -366,8 +366,8 @@ nodes:
         backfill [6f24d3f]
   - id: H_capture
     title: Capture surface grows — Live Activity, inbox, photos
-    lane: 0
-    order: -0.7787499999999999
+    lane: -0.55
+    order: -1.42
     status: done
     via: H_rn
     note: 2026-04-11 → 2026-05-02 — Dynamic Island, the universal capture inbox
@@ -387,8 +387,8 @@ nodes:
         feature [a4f1527]
   - id: H_desk
     title: Mac goes native — one SwiftUI process, no Python
-    lane: 0
-    order: -0.5396875
+    lane: 0.55
+    order: -0.92
     status: done
     via: H_determ
     deps:
@@ -419,8 +419,8 @@ nodes:
         SetupWizard [c217f69, 2b14a06, 95db821]
   - id: H_mob
     title: iPhone goes native — Parakeet on the ANE
-    lane: 0
-    order: -0.49984375000000003
+    lane: -0.55
+    order: -0.92
     status: done
     via: H_capture
     deps:
