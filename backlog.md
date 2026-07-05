@@ -119,6 +119,21 @@ Refuted / left alone: `RunFile.swift:81` (the `-chunksim` A/B harness deliberate
 AVAssetExportSession behavior); all `IngestService` + `AudioMetadata` + video-import + test sites
 (video/AAC-only or metadata-only — not MP3-reachable; not blanket-edited). **⚠️ Device verify owed.**
 
+## 🐛 Audiobook import — recurrence, DIFFERENT root cause (2026-07-05, FIXED + device-verified)
+
+Same "doesn't look like a playable audiobook" symptom on the Frankl multi-part rip — but NOT the
+precise-timing bug above. Devlog diagnostics (`copiedBytes=10227234 duration=0.0`) + Mac forensics
+proved parts 08+09 are **100% null bytes** (hollow files from a failed 2022 bulk copy — no audio
+exists in them; unrecoverable, re-rip to fill). One bad part rejected the WHOLE book, while Bound
+silently imported broken zero-length chapters. Fixes (`AudiobookImporter`, build 25, device-verified):
+- **Resilient multi-part import** — skip unreadable parts, import the rest, alert "Imported with
+  skipped parts" naming each file (never a silent gap, never a whole-book reject).
+- **`robustDuration`** — AVAudioFile frame-count fallback when `load(.duration)` returns 0.
+- **`materializingCopy`** — coordinated read + `startDownloadingUbiquitousItem` so an un-downloaded
+  iCloud/File-Provider pick can't copy a placeholder (the other latent cause of this symptom).
+Devlog lines `SKIPPED (unreadable)` + `copiedBytes=` now say WHICH failure it was, ending the
+guess-loop. User owes: re-rip parts 08/09; optional hollow-file scan of the Books folder.
+
 ## Device-testing feedback — 2026-06-21 (6 live notes, pulled + verified)
 
 Pulled from the dev phone via the **App Group container** (`group.com.skrift.mobile.dev` →

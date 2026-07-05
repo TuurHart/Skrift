@@ -40,6 +40,11 @@ enum AudiobookMetadataDefaults {
 struct PendingAudiobookImport: Identifiable {
     var book: Audiobook
     var needsConfirmation: Bool
+    /// Original filenames of parts iOS couldn't decode and the import SKIPPED
+    /// (multi-file books only). The library surfaces these so a gap is never
+    /// silent — unlike rejecting the whole book (old Skrift) or quietly
+    /// importing broken chapters (Bound).
+    var skippedParts: [String] = []
     var id: UUID { book.id }
 }
 
@@ -139,6 +144,12 @@ enum AudiobookImporter {
     private struct ParsedParts: Sendable {
         var filenames: [String]
         var durations: [TimeInterval]
+        /// Original (un-prefixed) filename per KEPT part — chapter titles come
+        /// from these, staying index-aligned with `filenames`/`durations` even
+        /// when unreadable parts were skipped.
+        var originalNames: [String]
+        /// Original filenames of parts that couldn't be decoded and were skipped.
+        var skipped: [String]
         var title: String?
         var author: String?
         var hasCover: Bool
@@ -163,32 +174,45 @@ enum AudiobookImporter {
                 throw ImportError.copyFailed
             }
 
-            var filenames: [String] = []
+            // RESILIENT per-part import (device finding 2026-07-05, the Frankl rip):
+            // one undecodable MP3 used to reject the WHOLE book, while Bound's
+            // permissiveness silently imported broken zero-length chapters. Middle
+            // path: keep every readable part, SKIP the unreadable ones, and report
+            // them — the book imports with an honest gap the user can re-download.
+            var copied: [(name: String, original: String)] = []
+            var skipped: [String] = []
             for (index, source) in ordered.enumerated() {
                 let scoped = source.startAccessingSecurityScopedResource()
                 defer { if scoped { source.stopAccessingSecurityScopedResource() } }
                 let name = String(format: "%03d_%@", index + 1, source.lastPathComponent)
                 do {
                     try materializingCopy(from: source, to: folder.appendingPathComponent(name))
+                    copied.append((name, source.lastPathComponent))
                 } catch {
-                    DevLog.log("audiobook part COPY FAILED \(source.lastPathComponent): \(error)")
-                    try? FileManager.default.removeItem(at: folder)
-                    throw ImportError.copyFailed
+                    DevLog.log("audiobook part COPY FAILED (skipped) \(source.lastPathComponent): \(error)")
+                    skipped.append(source.lastPathComponent)
                 }
-                filenames.append(name)
             }
 
+            var filenames: [String] = []
+            var originalNames: [String] = []
             var durations: [TimeInterval] = []
-            for name in filenames {
-                let partURL = folder.appendingPathComponent(name)
-                let asset = makeAsset(url: partURL)
-                let seconds = ((try? await asset.load(.duration)).map { CMTimeGetSeconds($0) }) ?? 0
+            for part in copied {
+                let partURL = folder.appendingPathComponent(part.name)
+                let seconds = await robustDuration(of: partURL)
                 guard seconds.isFinite, seconds > 0 else {
-                    DevLog.log("audiobook part REJECTED (unreadable) \(name) — copiedBytes=\(copiedByteString(partURL)) duration=\(seconds)")
-                    try? FileManager.default.removeItem(at: folder)
-                    throw ImportError.unreadable
+                    DevLog.log("audiobook part SKIPPED (unreadable) \(part.name) — copiedBytes=\(copiedByteString(partURL)) duration=\(seconds)")
+                    try? FileManager.default.removeItem(at: partURL)   // don't ship dead bytes
+                    skipped.append(part.original)
+                    continue
                 }
+                filenames.append(part.name)
+                originalNames.append(part.original)
                 durations.append(seconds)
+            }
+            guard !filenames.isEmpty else {
+                try? FileManager.default.removeItem(at: folder)
+                throw ImportError.unreadable   // every part failed — nothing to import
             }
 
             // Book-level tags from the FIRST part. Prefer the ALBUM tag for
@@ -201,6 +225,8 @@ enum AudiobookImporter {
             return ParsedParts(
                 filenames: filenames,
                 durations: durations,
+                originalNames: originalNames,
+                skipped: skipped,
                 title: tags.albumTitle ?? tags.title,
                 author: tags.author,
                 hasCover: tags.artworkData != nil
@@ -211,14 +237,15 @@ enum AudiobookImporter {
             title: parsed.title, author: parsed.author, filename: fallbackName
         )
 
-        // One chapter per part, named from the original filename — the whole
-        // chapter UI (lines, menu, scoped scrubber, ch. N attribution) then
-        // works unchanged for multi-file books.
+        // One chapter per KEPT part, named from its original filename — the whole
+        // chapter UI (lines, menu, scoped scrubber, ch. N attribution) then works
+        // unchanged for multi-file books. Built from `originalNames` (not the
+        // picked sources) so titles stay index-aligned when parts were skipped.
         var chapters: [AudiobookChapter] = []
         var total: TimeInterval = 0
-        for (i, source) in ordered.enumerated() {
+        for (i, original) in parsed.originalNames.enumerated() {
             chapters.append(AudiobookChapter(
-                title: AudiobookMetadataDefaults.filenameTitle(source.lastPathComponent),
+                title: AudiobookMetadataDefaults.filenameTitle(original),
                 start: total,
                 duration: parsed.durations[i]
             ))
@@ -235,7 +262,8 @@ enum AudiobookImporter {
             chapters: chapters,
             hasCover: parsed.hasCover && FileManager.default.fileExists(atPath: coverDest.path)
         )
-        return PendingAudiobookImport(book: book, needsConfirmation: resolved.needsConfirmation)
+        return PendingAudiobookImport(book: book, needsConfirmation: resolved.needsConfirmation,
+                                      skippedParts: parsed.skipped)
     }
 
     /// Finder-style ordering ("2.mp3" before "10.mp3") — the order the parts
@@ -303,6 +331,32 @@ enum AudiobookImporter {
         AVURLAsset(url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
     }
 
+    /// Robust track duration (seconds). `AVURLAsset.load(.duration)` returns 0 (or throws)
+    /// for some MP3s even WITH precise-timing — no usable header for an upfront estimate —
+    /// yet the stream is perfectly decodable/playable, so the import wrongly rejected the
+    /// whole book ("doesn't look like a playable audiobook"; device devlog 2026-07-05:
+    /// copiedBytes=10 MB, duration=0). Fall back to an `AVAudioFile` frame count, which
+    /// decodes the stream and reports the true length (the app already uses this for memo
+    /// imports). Returns 0 only when the file is genuinely unreadable.
+    static func robustDuration(of url: URL) async -> TimeInterval {
+        let asset = makeAsset(url: url)
+        if let cm = try? await asset.load(.duration) {
+            let s = CMTimeGetSeconds(cm)
+            if s.isFinite, s > 0 { return s }
+        }
+        // AVURLAsset gave no usable duration — decode via AVAudioFile instead.
+        do {
+            let file = try AVAudioFile(forReading: url)
+            let sr = file.processingFormat.sampleRate
+            let d = sr > 0 ? Double(file.length) / sr : 0
+            DevLog.log("duration fallback (AVAudioFile) \(url.lastPathComponent) → \(String(format: "%.1f", d))s")
+            return d
+        } catch {
+            DevLog.log("duration fallback FAILED \(url.lastPathComponent): \(error)")
+            return 0
+        }
+    }
+
     // MARK: - Tag reading (AVAsset metadata)
 
     struct ParsedTags: Sendable {
@@ -321,7 +375,7 @@ enum AudiobookImporter {
     /// `AudiobookMetadataDefaults` decides the fallbacks.
     static func readTags(at url: URL) async -> ParsedTags {
         let asset = makeAsset(url: url)
-        let duration = ((try? await asset.load(.duration)).map { CMTimeGetSeconds($0) }) ?? 0
+        let duration = await robustDuration(of: url)
         let common = (try? await asset.load(.commonMetadata)) ?? []
 
         let title = await stringValue(in: common, identifier: .commonIdentifierTitle)

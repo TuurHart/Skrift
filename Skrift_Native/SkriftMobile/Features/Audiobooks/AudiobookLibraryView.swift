@@ -15,6 +15,8 @@ struct AudiobookLibraryView: View {
     @State private var importing = false
     @State private var pendingImport: PendingAudiobookImport?
     @State private var importError: String?
+    /// Partial-import notice: the book imported but N parts were skipped (unreadable).
+    @State private var importNotice: String?
     @State private var showPlayer = false
     /// Long-press → "Transcribe book" target (presents the transcribe sheet for
     /// any library book without opening it first).
@@ -56,6 +58,7 @@ struct AudiobookLibraryView: View {
                 onConfirm: { book in
                     store.add(book)
                     pendingImport = nil
+                    importNotice = Self.skippedNotice(pending.skippedParts)
                 },
                 onCancel: {
                     store.remove(pending.book)   // clears the copied folder
@@ -80,6 +83,16 @@ struct AudiobookLibraryView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importError ?? "")
+        }
+        // Partial import: the book landed, but some parts couldn't be decoded and
+        // were skipped — say so, never a silent gap (device finding 2026-07-05).
+        .alert("Imported with skipped parts", isPresented: .init(
+            get: { importNotice != nil },
+            set: { if !$0 { importNotice = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importNotice ?? "")
         }
         .confirmationDialog(
             pendingDelete.map { "Remove \u{201C}\($0.title)\u{201D}?" } ?? "",
@@ -403,15 +416,26 @@ struct AudiobookLibraryView: View {
 
     // MARK: - Actions
 
+    /// The partial-import notice text, or nil when nothing was skipped. Static +
+    /// pure so the skip-surfacing behaviour is unit-testable.
+    static func skippedNotice(_ skipped: [String]) -> String? {
+        guard !skipped.isEmpty else { return nil }
+        let n = skipped.count
+        return "\(n) part\(n == 1 ? "" : "s") couldn’t be read by iOS and \(n == 1 ? "was" : "were") skipped:\n"
+            + skipped.joined(separator: "\n")
+            + "\n\nThe book plays with a gap there — re-download or re-rip \(n == 1 ? "that file" : "those files") and re-import to fill it."
+    }
+
     private func runImport(_ urls: [URL]) async {
         importing = true
         defer { importing = false }
         do {
             let pending = try await AudiobookImporter.importBook(from: urls, libraryDirectory: store.directory)
             if pending.needsConfirmation {
-                pendingImport = pending
+                pendingImport = pending   // skipped-parts notice fires after the sheet resolves
             } else {
                 store.add(pending.book)
+                importNotice = Self.skippedNotice(pending.skippedParts)
             }
         } catch {
             importError = error.localizedDescription
