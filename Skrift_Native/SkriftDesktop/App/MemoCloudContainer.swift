@@ -27,10 +27,15 @@ enum MemoCloudStore {
     static let cloudContainerID = "iCloud.com.skrift.mobile"
     #endif
 
-    /// The shared CloudKit schema — the same `@Model`s the phone registers (a subset: the Mac
-    /// only needs the note rows it reads + the enhancement it writes, not the phone's
-    /// names/vocab/audiobook records, which it doesn't process).
-    static let schema = Schema([Memo.self, MemoAsset.self, MemoEnhancement.self])
+    /// The shared CloudKit schema — the `@Model`s the phone registers that the Mac also needs:
+    /// the note rows it reads (`Memo`/`MemoAsset`), the enhancement it writes (`MemoEnhancement`),
+    /// and — now that Bonjour is being retired — the `NamesRecord` (people + voiceprints) and
+    /// `VocabularyRecord` (custom words) carriers, so names + vocab sync phone↔Mac over CloudKit
+    /// instead of the LAN `/api/names` endpoints. (The Mac still doesn't join the phone's
+    /// audiobook records.) These record types already exist in the CloudKit schema — the phone
+    /// created them — so the Mac is just a second client of them.
+    static let schema = Schema([Memo.self, MemoAsset.self, MemoEnhancement.self,
+                                NamesRecord.self, VocabularyRecord.self])
 
     /// The CloudKit-backed container, or `nil` when CloudKit is unavailable/disabled.
     static let container: ModelContainer? = makeContainer()

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import os
 
 /// Drives the auto-run pipeline over SwiftData `PipelineFile`s and the Obsidian
 /// export. Wraps `BatchRunner` with the real engines, persists each file as it
@@ -189,7 +190,16 @@ final class ProcessingCoordinator {
         guard pf.enhanceStatus == .done,
               SettingsStore.shared.load().cloudKitMacSyncEnabled,
               let container = MemoCloudStore.container else { return }
-        try? MacCloudWriteBack.upsert(for: pf, into: container.mainContext, deviceID: DeviceID.current())
+        // Don't swallow CloudKit failures silently — a lost write-back means the phone
+        // never sees the polish. Log it so it's diagnosable (a durable retry queue is the
+        // documented Phase-2 follow-up). A `nil` return is an intentional skip (not a synced
+        // memo / nothing to write), not a failure.
+        do {
+            try MacCloudWriteBack.upsert(for: pf, into: container.mainContext, deviceID: DeviceID.current())
+        } catch {
+            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                .error("write-back failed for \(pf.id, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
     }
 
     /// The per-file `image_manifest.json` next to the audio (written by phone uploads

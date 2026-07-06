@@ -43,13 +43,19 @@ extension MemoCloudReconciler {
         Task { @MainActor in _ = reconcile() }   // launch sweep — async, doesn't block App.init()
     }
 
-    /// Pull every eligible synced memo into the local pipeline store. No-op unless the user
-    /// enabled CloudKit-Mac sync AND the CloudKit container is available. Returns the count
-    /// ingested.
+    /// Pull every eligible synced memo into the local pipeline store, and reconcile the
+    /// CloudKit names + vocabulary carriers into the Mac's local stores. No-op unless the user
+    /// enabled CloudKit-Mac sync AND the CloudKit container is available. Returns the count of
+    /// memos ingested.
     @discardableResult
     static func reconcile() -> Int {
         let settings = SettingsStore.shared.load()
         guard settings.cloudKitMacSyncEnabled, let cloud = MemoCloudStore.container else { return 0 }
+        // Names (people + voiceprints) + custom vocab now flow over CloudKit (replacing the
+        // Bonjour /api/names path). Both are guarded + idempotent, so running them on every
+        // sweep is cheap; they converge with the phone through the shared merge.
+        NamesCloudSync.run()
+        VocabularyCloudSync.run()
         return sweep(from: cloud.mainContext, into: SharedStore.container.mainContext,
                      processEverything: settings.processAllSyncedMemosEnabled)
     }

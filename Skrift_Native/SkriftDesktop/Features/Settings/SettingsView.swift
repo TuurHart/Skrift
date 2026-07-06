@@ -40,10 +40,12 @@ struct SettingsView: View {
             PersonEditor(request: req,
                          onSave: { original, person in
                              NamesStore.shared.upsert(person, replacing: original)
+                             NamesCloudSync.run()   // push the edit to CloudKit now (no-op if CloudKit-Mac sync off)
                              reloadNames()
                          },
                          onDelete: { canonical in
                              NamesStore.shared.delete(canonical: canonical)
+                             NamesCloudSync.run()   // push the tombstone to CloudKit
                              reloadNames()
                          },
                          onClose: { editorRequest = nil })
