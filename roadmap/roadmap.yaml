@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 6
-updated: 2026-07-06T13:18:02.000Z
+updated: 2026-07-06T14:18:40.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -181,15 +181,22 @@ nodes:
     note: Re-found the note body on a natively-scrolling text view (fork B) —
       selection/undo/find/caret-follow come free; karaoke becomes attribute
       painting on the SAME view (kills the 20 Hz per-word re-render + mode
-      swap). Study 2026-07-06 in backlog.md "EPIC note-editing". Mock-first —
-      B1 (Notes-style in-flow title) vs B2 (pinned title) for sign-off.
+      swap). Study + review-1 2026-07-06 in backlog.md "EPIC note-editing";
+      spec = mocks/note-editor-redesign.html (v2). LOCKED — B2 pinned title;
+      accessory = undo/redo/find/photo/Done; no Save-highlight; summary card
+      in the scrolling header. Build waits for the bug-fix chat to wrap.
     backlog:
-      - B1 vs B2 mock — user picks the title treatment
-      - Keyboard accessory bar (Done · undo/redo · find · insert photo)
+      - Sign off the accessory RESTYLE (floating Skrift pill) + the compact
+        player direction
+      - Compact player pill — one 44pt row, whole-pill scrubbing (old bar
+        blocks the note)
+      - Keyboard accessory bar (undo · redo · find · photo-at-caret · Done)
       - Tag chips + autocomplete (replace the comma alert; chip tap currently
         DELETES silently)
       - Debounce per-keystroke saves; memoize the name-span scan
       - Photo tap → viewer; Dynamic Type
+      - Verify: polished memo's summary card shows on phone (possible bug →
+        bugs chat)
     win: "editing a note feels like Apple Notes — selection autoscrolls, caret
       stays visible, undo/find/magnifier work — with transcript richness
       (karaoke, name tiers, inline photos) intact"

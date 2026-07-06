@@ -343,10 +343,20 @@ tap→QuickLook (reuse the capture path), selection→"Save highlight" hook (fee
 tapping a tag chip DELETES it silently (`removeTag`) — the chip editor must fix that. Perf hygiene
 regardless of fork: debounce transcript saves (~1 s idle + end-edit + disappear), memoize nameSpans by
 (text, people, resolutions), keep player ticks out of the page body. Conversations (`SpeakerTurnsView`)
-keep their surface for now — phase 2. **MOCK RENDERED 2026-07-06 →
-`Skrift_Native/SkriftDesktop/mocks/note-editor-redesign.html`** (B1 vs B2 × rest/editing-deep, strictly
-parallel; accessory bar; find-in-note + edit-menu detail cards). **AWAITING PICK: B1 vs B2 + accessory-bar
-contents (add ▶ play-from-caret? ＋ append?) + "Save highlight" in v1 or later.**
+keep their surface for now — phase 2.
+
+**✅ REVIEW 1 DECIDED 2026-07-06 (mock v2 = the spec → `Skrift_Native/SkriftDesktop/mocks/note-editor-redesign.html`).**
+LOCKED: **B2 — pinned title** (slim title row + ✦ chooser under the nav; rationale = swipe-between-memos context).
+Accessory bar = **undo · redo · find · photo-at-caret · Done** (no play-from-caret, no append). **"Save highlight"
+DROPPED** (user: never seen it, not necessary — plain system edit menu). Find-in-note: yes. **Summary card joins the
+scrolling header** (chips → importance → summary → body) — the app already shows it for Mac-polished memos
+(`MemoDetailView.summaryCard`); ⚠️ if a polished memo is NOT showing its summary on the phone today, that's a BUG —
+check in the bugs chat. NEW asks from review: (1) **accessory bar restyled** to the app's language (floating glass
+pill matching the player — user: system strip "doesn't fit the style, not as clean"); (2) **compact player pill** —
+the old ~112 pt bar "takes up way too much space, blocks out the note" → one 44 pt row (play · ±10 s · scrubber+times
+· rate), whole-pill scrub target, page dots → transient "3 / 7" while swiping. Mock fidelity note: chips/importance
+render schematic — build matches the real app. **STILL TO SIGN OFF: the accessory restyle + the compact player
+direction (both mocked in v2).** Implementation waits until the user's bug-fixing chat wraps (this chat = research).
 
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 
