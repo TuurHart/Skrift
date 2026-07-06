@@ -56,13 +56,21 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
   new, same cluster); no sentiment/stance/mood inference anywhere. Vault-side edits stay in the
   vault (edit-guard divergence is by design): Skrift shows what you *said*, the vault holds what
   you *curated*. Publish stays one-way.
-- **Retention corollary:** retrieval assumes the in-app corpus is permanent. Any future auto-prune
-  (backlog idea i2) must never delete exported, significant, or in-thread memos — prune *audio*,
-  never text.
-- **No new tab.** The dimmed "Highlights (soon)" tab in `AppTabView` is reserved for P6
-  (Commonplace Book). Proposed surfaces (the mock decides): On-This-Day card atop the Notes list,
-  a Journal (calendar/map) view behind a Notes-header button, Related card on detail, Related
-  section in search results.
+- **Retention & pruning (user-locked 2026-07-06):** the permanent corpus = importance-rated memos —
+  the rating is the curation act (it already gates Mac sync). Unrated memos are provisional:
+  auto-prune (backlog idea i2) may remove them after its review flow. The index sweep therefore
+  also deletes orphaned `MemoEmbedding` rows; threads/lookbacks span whatever survives. If space
+  ever forces a choice, prune audio before text.
+- **Journal takes the reserved "Highlights (soon)" tab slot** (proposed in the mock — Tuur confirms
+  at sign-off): Notes · Library · **Journal** · Settings; `AppTabView.Tab.highlights` →
+  `.journal`. P6's Highlights feed + Daily Review later land as *sections inside Journal*, not a
+  fifth tab. Surfaces per the mock: Looking-back cards + mini-calendar + map preview on Journal
+  home, full calendar + map pushed from it, Related card on detail, Matches+Related in search
+  (search stays in the Notes tab).
+- **Looking back generalizes On This Day** (the corpus only starts 2026-04, so a literal
+  on-this-day is empty until 2027): spaced lookback cards at 1/3/6/12 months, highest-importance
+  note of each window, empty windows hidden — a literal "On this day, <year>" card tops the list
+  once prior-year history exists.
 
 ## Architecture (files to create, `Skrift_Native/SkriftMobile/`)
 
@@ -102,15 +110,17 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
    per-language) or ship items 1–2 only and defer semantic. Don't build past a failed gate.
 1. `MemoEmbedding` + second local ModelConfiguration + `MemoGist` + `EmbeddingIndex` upsert/
    invalidate with `MockEmbedder`. Unit tests green (`xcodebuild test -scheme SkriftMobile …`).
-2. Sweep job wiring: foreground + post-save triggers, batched, resumable, idle-unload. Tests for
-   hash-invalidation (edit gist → re-embed; untouched → skipped).
+2. Sweep job wiring: foreground + post-save triggers, batched, resumable, idle-unload, plus orphan
+   cleanup (memo deleted/pruned → its embedding row deleted). Tests for hash-invalidation (edit
+   gist → re-embed; untouched → skipped; orphan → removed).
 3. Query API (`related` / `search` / `thread` + first-mention) + **calibration harness**: seed via
    `DemoDataSeeder`, print the score histogram (DEBUG flag), pick the related/search/thread floors
    from data. Tests for ordering + floors + thread chronology.
-4. **MOCK GATE (blocking).** One HTML mock in `Skrift_Native/SkriftDesktop/mocks/` (repo
-   convention) covering all five surfaces — On-This-Day card, Journal (calendar/map), Related card,
-   search with filter chips, **Thread view** (chronological arc + "first mentioned" header); Tuur
-   signs off before any SwiftUI. The signed mock IS the spec.
+4. **MOCK GATE (blocking).** Mock DRAFTED 2026-07-06:
+   `Skrift_Native/SkriftDesktop/mocks/journal-retrieval.html` — all five surfaces (Journal home
+   with Looking-back/calendar/map, full Calendar, Map, Thread view, search with chips, Related
+   card) + a "Build notes — locked decisions" block. Remaining: Tuur's sign-off (especially the
+   tab-slot swap). The signed mock IS the spec; iterate it, don't skip to SwiftUI.
 5. Journal v1: On This Day + calendar/timeline (+ map if signed off). Metadata only. UITest seed
    (`-seedJournal`) with back-dated memos; screenshot-verify.
 6. Search "Related" section + filter chips (person / place / month / kind) in `MemosListView`

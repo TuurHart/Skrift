@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Journal &amp; retrieval — Skrift mock v1</title>
+<style>
+  :root{
+    --bg:#0C0C12; --surface:#17171F; --elev:#23232E; --track:#1b1b22;
+    --line:#23232e; --line2:#2c2c38;
+    --accent:#7E74F0; --accent2:#9a92f7; --accent-muted:#6E66C8;
+    --text:#F0F0F4; --dim:#9A9AA8; --faint:#6A6A78;
+    --ok:#5DCAA5; --amber:#E0A33C;
+    --sh-chip:0 1px 0 rgba(0,0,0,.3), inset 0 .5px 0 rgba(255,255,255,.05);
+    --r-card:14px; --r-chip:18px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#060608;color:#E8E8EE;
+       font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:28px;}
+  .num{font-variant-numeric:tabular-nums;letter-spacing:.2px;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-.3px;}
+  .sub{color:#8A8A96;margin:0 0 6px;max-width:940px;}
+  .thesis{color:var(--accent2);font-size:13.5px;margin:0 0 8px;max-width:940px;}
+  .thesis b{color:#cfcce8;}
+  .v1{display:inline-block;font-size:11px;color:var(--ok);background:rgba(93,202,165,.12);padding:2px 9px;border-radius:20px;margin-bottom:22px;}
+  .label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#6A6A78;margin:0 0 9px;font-weight:600;}
+  .hint{font-size:10.5px;color:var(--faint);margin:2px 2px 0;line-height:1.45;}
+  .hint b{color:#9a96c9;font-weight:600;}
+  .rowwrap{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;}
+  .col{display:flex;flex-direction:column;gap:9px;width:300px;}
+
+  .phone{width:300px;height:600px;background:var(--bg);border:6px solid #000;border-radius:42px;
+         overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .stat{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);padding:13px 22px 4px;}
+  .scr{flex:1;overflow:hidden;padding:4px 16px 0;display:flex;flex-direction:column;}
+  .h2{font-size:24px;font-weight:800;letter-spacing:-.4px;margin:8px 4px 12px;}
+
+  /* ── nav header for pushed screens ── */
+  .nav{display:flex;align-items:center;gap:8px;padding:8px 16px 6px;}
+  .nav .back{color:var(--accent);display:flex;align-items:center;gap:2px;font-size:13px;}
+  .nav .ttl{flex:1;text-align:center;font-size:14px;font-weight:600;margin-right:44px;}
+
+  /* ── tab bar ── */
+  .tabbar{display:grid;grid-template-columns:repeat(4,1fr);background:#0d0d15;padding:8px 4px 16px;
+          box-shadow:0 -0.5px 0 var(--line2), 0 -10px 26px rgba(0,0,0,.35);}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:9.5px;color:var(--faint);font-weight:500;}
+  .tab.on{color:var(--accent);}
+  .tab svg{width:22px;height:22px;}
+
+  /* ── cards ── */
+  .card{background:var(--surface);border-radius:var(--r-card);padding:12px 13px;margin:0 2px 10px;
+        box-shadow:inset 0 .5px 0 rgba(255,255,255,.04);}
+  .card .k{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);font-weight:600;display:flex;align-items:center;gap:6px;}
+  .card .k .when{color:var(--accent2);}
+  .seeall{margin-left:auto;color:var(--faint);font-size:10px;text-transform:none;letter-spacing:0;}
+
+  /* memo rows */
+  .mrow{display:flex;gap:10px;padding:9px 0 8px;border-bottom:.5px solid var(--line);align-items:flex-start;}
+  .mrow:last-child{border-bottom:none;padding-bottom:2px;}
+  .mrow .gl{width:15px;height:15px;color:var(--faint);flex-shrink:0;margin-top:2px;}
+  .mrow .gl.quote{color:var(--amber);}
+  .mm{flex:1;min-width:0;}
+  .mt{font-size:12.5px;font-weight:600;color:var(--text);letter-spacing:-.1px;}
+  .ms{font-size:11px;color:var(--dim);margin-top:1px;line-height:1.45;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .meta{display:flex;gap:8px;align-items:center;margin-top:4px;font-size:9.5px;color:var(--faint);}
+  .meta .pl{display:inline-flex;align-items:center;gap:3px;}
+  .meta svg{width:9px;height:9px;}
+  .imp{display:inline-flex;gap:2px;}
+  .imp i{width:5px;height:5px;border-radius:50%;background:var(--track);display:inline-block;}
+  .imp i.f{background:var(--accent-muted);}
+
+  /* ── mini calendar (journal home) ── */
+  .mini-cal .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:8px;}
+  .mini-cal .dow{font-size:8px;color:var(--faint);text-align:center;padding-bottom:3px;}
+  .dcell{height:26px;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:9.5px;color:var(--dim);}
+  .dcell.mute{color:#3c3c48;}
+  .dcell.today{box-shadow:inset 0 0 0 1.5px var(--accent);color:var(--text);font-weight:700;}
+  .dcell.sel{background:var(--elev);color:var(--text);font-weight:600;}
+  .dts{display:flex;gap:1.5px;height:3px;}
+  .dts i{width:3px;height:3px;border-radius:50%;background:var(--accent-muted);}
+  .dts i.hot{background:var(--accent2);}
+
+  /* ── full calendar screen ── */
+  .cal-full .dcell{height:34px;}
+
+  /* ── map ── */
+  .map{position:relative;border-radius:var(--r-card);overflow:hidden;background:
+        radial-gradient(90px 70px at 68% 30%, #1a2030 0%, transparent 70%),
+        radial-gradient(120px 90px at 25% 65%, #16202a 0%, transparent 70%),
+        repeating-linear-gradient(0deg, transparent 0 21px, rgba(255,255,255,.022) 21px 22px),
+        repeating-linear-gradient(90deg, transparent 0 21px, rgba(255,255,255,.022) 21px 22px),
+        #10101A;}
+  .map.preview{height:98px;margin-top:8px;}
+  .map.full{position:absolute;inset:0;border-radius:0;}
+  .coast{position:absolute;left:-30px;bottom:-40px;width:200px;height:150px;border-radius:50% 60% 40% 50%;
+         background:rgba(38,58,88,.35);filter:blur(2px);}
+  .pin{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .pin b{min-width:20px;height:20px;padding:0 5px;border-radius:11px;background:var(--accent);color:#fff;font-size:10px;
+         display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px -2px rgba(126,116,240,.8);}
+  .pin.sm b{background:var(--accent-muted);min-width:17px;height:17px;font-size:9px;}
+  .pin span{font-size:8.5px;color:var(--dim);text-shadow:0 1px 2px #000;}
+  .mapsheet{position:absolute;left:8px;right:8px;bottom:8px;background:rgba(23,23,31,.96);border-radius:16px;padding:11px 13px 9px;
+            box-shadow:0 12px 44px rgba(0,0,0,.55), inset 0 .5px 0 rgba(255,255,255,.06);backdrop-filter:blur(6px);}
+  .grab{width:32px;height:4px;border-radius:2px;background:var(--line2);margin:0 auto 8px;}
+
+  /* ── thread ── */
+  .thr-head{margin:2px 4px 12px;}
+  .thr-head .big{font-size:19px;font-weight:800;letter-spacing:-.3px;line-height:1.25;}
+  .thr-head .sub2{font-size:11px;color:var(--dim);margin-top:4px;}
+  .fm{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--accent2);
+      background:rgba(126,116,240,.13);padding:3px 9px;border-radius:11px;margin-top:8px;}
+  .rail{position:relative;margin:2px 4px 0 10px;flex:1;overflow:hidden;}
+  .rail::before{content:"";position:absolute;left:5px;top:6px;bottom:0;width:1.5px;background:var(--line2);}
+  .tn{position:relative;padding:0 2px 14px 22px;}
+  .tn::before{content:"";position:absolute;left:1px;top:5px;width:9px;height:9px;border-radius:50%;
+              background:var(--bg);border:2px solid var(--accent-muted);}
+  .tn.first::before{background:var(--accent);border-color:var(--accent);}
+  .tn.cur .tcard{box-shadow:inset 0 0 0 1px rgba(126,116,240,.55);}
+  .tdate{font-size:9.5px;color:var(--faint);font-weight:600;letter-spacing:.3px;text-transform:uppercase;margin-bottom:3px;display:flex;gap:6px;align-items:center;}
+  .tdate .you{color:var(--accent2);text-transform:none;letter-spacing:0;font-weight:600;}
+  .tcard{background:var(--surface);border-radius:11px;padding:9px 11px;}
+  .tcard .mt{font-size:12px;}
+  .tcard .ms{-webkit-line-clamp:2;}
+
+  /* ── search ── */
+  .sfield{display:flex;align-items:center;gap:7px;background:var(--elev);border-radius:11px;padding:8px 10px;margin:2px 2px 8px;}
+  .sfield svg{width:13px;height:13px;color:var(--faint);flex-shrink:0;}
+  .sfield .q{flex:1;font-size:12.5px;color:var(--text);}
+  .sfield .caret{width:1.5px;height:14px;background:var(--accent);margin-left:-4px;animation:none;}
+  .sfield .mic{color:var(--faint);opacity:.45;}
+  .chips{display:flex;gap:6px;margin:0 2px 12px;flex-wrap:nowrap;overflow:hidden;}
+  .chip{font-size:10px;color:var(--dim);background:var(--surface);padding:4px 9px;border-radius:12px;
+        display:inline-flex;align-items:center;gap:4px;box-shadow:var(--sh-chip);white-space:nowrap;}
+  .chip svg{width:9px;height:9px;}
+  .chip.onf{color:#fff;background:var(--accent-muted);}
+  .sect{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);font-weight:600;margin:6px 4px 4px;display:flex;align-items:baseline;gap:7px;}
+  .sect em{font-style:normal;text-transform:none;letter-spacing:0;color:#4f4f5c;font-weight:500;}
+  .srow{display:flex;gap:10px;padding:8px 2px;border-bottom:.5px solid var(--line);align-items:flex-start;}
+  .srow .gl{width:14px;height:14px;color:var(--faint);flex-shrink:0;margin-top:2px;}
+  .srow .gl.quote{color:var(--amber);}
+  .hl{color:var(--text);font-weight:600;box-shadow:inset 0 -0.09em 0 rgba(126,116,240,.6);}
+
+  /* ── detail related card ── */
+  .bodytext{font-size:13px;line-height:1.65;color:var(--dim);padding:0 4px;margin-bottom:4px;}
+  .bodytext .link{color:var(--accent2);box-shadow:inset 0 -0.08em 0 rgba(126,116,240,.5);}
+  .fade{height:26px;background:linear-gradient(180deg,transparent,var(--bg));margin-top:-30px;position:relative;}
+  .relcard{margin-top:6px;}
+  .threadcta{display:flex;align-items:center;gap:7px;margin-top:10px;padding-top:10px;border-top:.5px solid var(--line);
+             font-size:11.5px;color:var(--accent2);font-weight:600;}
+  .threadcta svg{width:12px;height:12px;}
+  .threadcta .sub3{color:var(--faint);font-weight:500;font-size:10px;margin-left:auto;}
+
+  /* build notes */
+  .notes{max-width:940px;margin-top:34px;background:var(--surface);border-radius:16px;padding:18px 22px;}
+  .notes h3{margin:0 0 10px;font-size:15px;}
+  .notes ul{margin:0;padding-left:18px;color:#B8B8C4;font-size:12.5px;line-height:1.7;}
+  .notes li b{color:#E8E8EE;}
+  .notes .ask{color:var(--amber);}
+</style>
+</head>
+<body>
+
+<h1>Journal &amp; retrieval — the reflection home</h1>
+<p class="sub">P8, five surfaces: Journal tab (Looking back + calendar + map), Thread view, semantic search with
+filter chips, and the Related card on a note. On-device embeddings; nothing leaves the phone.</p>
+<p class="thesis"><b>Juxtapose, don't judge</b> — the app arranges your own words next to each other across time;
+you supply the meaning. And <b>no fifth tab</b>: Journal takes the reserved "Highlights (soon)" slot.</p>
+<span class="v1">mock v1 · 2026-07-06 · sign-off = the spec</span>
+
+<div class="rowwrap">
+
+  <!-- ═══════════ S1 · JOURNAL HOME ═══════════ -->
+  <div class="col">
+    <p class="label">1 · Journal tab — home</p>
+    <div class="phone">
+      <div class="stat"><span class="num">9:41</span><span>●●●</span></div>
+      <div class="scr">
+        <div class="h2" style="margin:6px 4px 10px;">Journal</div>
+
+        <div class="card" style="margin-bottom:8px;">
+          <div class="k"><span class="when">1 month ago</span> · Sat 6 June</div>
+          <div class="mrow">
+            <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+            <div class="mm">
+              <div class="mt">Fietslease uitzoeken voor Q3</div>
+              <div class="ms" style="-webkit-line-clamp:1;">Ramble over de fietslease — of ik het zakelijk via Good Friday moet doen…</div>
+              <div class="meta"><span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/></svg>Alvalade</span><span class="imp"><i class="f"></i><i class="f"></i><i></i></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:8px;">
+          <div class="k"><span class="when">3 months ago</span> · Mon 6 April</div>
+          <div class="mrow">
+            <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+            <div class="mm">
+              <div class="mt">First proper walk-ramble with the app</div>
+              <div class="ms" style="-webkit-line-clamp:1;">Testing the recorder on the walk home — if this works I can stop typing…</div>
+              <div class="meta"><span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/></svg>Jardim da Estrela</span><span class="imp"><i class="f"></i><i class="f"></i><i class="f"></i></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mini-cal" style="margin-bottom:8px;">
+          <div class="k">July <span class="seeall">Calendar ›</span></div>
+          <div class="grid">
+            <div class="dow">M</div><div class="dow">T</div><div class="dow">W</div><div class="dow">T</div><div class="dow">F</div><div class="dow">S</div><div class="dow">S</div>
+            <div class="dcell mute">29</div><div class="dcell mute">30</div>
+            <div class="dcell">1<span class="dts"><i></i></span></div>
+            <div class="dcell">2<span class="dts"><i></i><i></i></span></div>
+            <div class="dcell">3<span class="dts"><i></i><i></i><i class="hot"></i></span></div>
+            <div class="dcell">4</div>
+            <div class="dcell">5<span class="dts"><i></i></span></div>
+            <div class="dcell today">6<span class="dts"><i class="hot"></i></span></div>
+            <div class="dcell mute">7</div><div class="dcell mute">8</div><div class="dcell mute">9</div><div class="dcell mute">10</div><div class="dcell mute">11</div><div class="dcell mute">12</div>
+          </div>
+        </div>
+
+        <div class="card" style="padding-bottom:10px;">
+          <div class="k">Places <span class="seeall">Map ›</span></div>
+          <div class="map preview" style="height:64px;">
+            <div class="coast"></div>
+            <div class="pin" style="left:36%;top:34%;"><b class="num">23</b><span>Lisboa</span></div>
+            <div class="pin sm" style="left:74%;top:26%;"><b class="num">4</b><span>Amsterdam</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Notes</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5c-2-1.5-5-2-8-1.5v14c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-14C17 3 14 3.5 12 5z"/><path d="M12 5v14"/></svg>Library</div>
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2.5 12 1l3 1.5"/></svg>Journal</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Settings</div>
+      </div>
+    </div>
+    <p class="hint"><b>Looking back</b> generalizes On This Day: spaced lookbacks (1 / 3 / 6 / 12 months) so the
+    tab is alive from month one — a literal "On this day, 2025" card tops the list once history exists.</p>
+    <p class="hint"><b>Empty slots are hidden, never shown empty.</b> A lookback card renders only if that window
+    has a note (importance-weighted pick when there are several).</p>
+    <p class="hint"><b>Journal replaces the dimmed "Highlights (soon)" tab</b> — P6's Highlights feed + Daily
+    Review later land as Journal sections, not a fifth tab.</p>
+  </div>
+
+  <!-- ═══════════ S2 · CALENDAR ═══════════ -->
+  <div class="col">
+    <p class="label">2 · Calendar</p>
+    <div class="phone">
+      <div class="stat"><span class="num">9:41</span><span>●●●</span></div>
+      <div class="nav"><span class="back"><svg width="11" height="14" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M10 2 3 10l7 8"/></svg>Journal</span><span class="ttl num">July 2026</span></div>
+      <div class="scr">
+        <div class="card mini-cal cal-full">
+          <div class="grid">
+            <div class="dow">M</div><div class="dow">T</div><div class="dow">W</div><div class="dow">T</div><div class="dow">F</div><div class="dow">S</div><div class="dow">S</div>
+            <div class="dcell mute">29</div><div class="dcell mute">30</div>
+            <div class="dcell">1<span class="dts"><i></i></span></div>
+            <div class="dcell">2<span class="dts"><i></i><i></i></span></div>
+            <div class="dcell sel">3<span class="dts"><i></i><i></i><i class="hot"></i></span></div>
+            <div class="dcell">4</div>
+            <div class="dcell">5<span class="dts"><i></i></span></div>
+            <div class="dcell today">6<span class="dts"><i class="hot"></i></span></div>
+            <div class="dcell mute">7</div><div class="dcell mute">8</div><div class="dcell mute">9</div><div class="dcell mute">10</div><div class="dcell mute">11</div><div class="dcell mute">12</div><div class="dcell mute">13</div>
+            <div class="dcell mute">14</div><div class="dcell mute">15</div><div class="dcell mute">16</div><div class="dcell mute">17</div><div class="dcell mute">18</div><div class="dcell mute">19</div><div class="dcell mute">20</div>
+            <div class="dcell mute">21</div><div class="dcell mute">22</div><div class="dcell mute">23</div><div class="dcell mute">24</div><div class="dcell mute">25</div><div class="dcell mute">26</div><div class="dcell mute">27</div>
+            <div class="dcell mute">28</div><div class="dcell mute">29</div><div class="dcell mute">30</div><div class="dcell mute">31</div><div class="dcell mute"></div><div class="dcell mute"></div><div class="dcell mute"></div>
+          </div>
+        </div>
+
+        <div class="sect" style="margin-top:8px;">Friday 3 July · 4 notes</div>
+        <div class="card" style="padding-top:4px;padding-bottom:6px;">
+          <div class="mrow">
+            <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+            <div class="mm">
+              <div class="mt">Standup ramble — CloudKit latency</div>
+              <div class="ms" style="-webkit-line-clamp:1;">Sync is seconds, not instant. Is that fine?…</div>
+              <div class="meta"><span class="num">09:12</span><span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/></svg>Home</span><span class="imp"><i class="f"></i><i></i><i></i></span></div>
+            </div>
+          </div>
+          <div class="mrow">
+            <svg class="gl quote" viewBox="0 0 24 24" fill="currentColor"><path d="M10 8H6a3 3 0 0 0-3 3v5h5v-5H6.5A1.5 1.5 0 0 1 8 9.5V8zM21 8h-4a3 3 0 0 0-3 3v5h5v-5h-1.5A1.5 1.5 0 0 1 19 9.5V8z"/></svg>
+            <div class="mm">
+              <div class="mt">Sapiens — on shared fictions</div>
+              <div class="ms">"There are no gods, no money… except in the common imagination of human beings." + ramble</div>
+              <div class="meta"><span class="num">13:40</span><span class="imp"><i class="f"></i><i class="f"></i><i class="f"></i></span></div>
+            </div>
+          </div>
+          <div class="mrow">
+            <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+            <div class="mm">
+              <div class="mt">Dinner with Jack &amp; Jack — Hotel du Vin</div>
+              <div class="ms">Conversation · 2 speakers · the sourdough theory again…</div>
+              <div class="meta"><span class="num">21:05</span><span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/></svg>Hotel du Vin</span><span class="imp"><i class="f"></i><i class="f"></i><i></i></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Notes</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5c-2-1.5-5-2-8-1.5v14c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-14C17 3 14 3.5 12 5z"/><path d="M12 5v14"/></svg>Library</div>
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2.5 12 1l3 1.5"/></svg>Journal</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Settings</div>
+      </div>
+    </div>
+    <p class="hint">Dot density = notes that day; bright dot = an importance-rated note. Tap a day → its notes
+    below. Month pager swipes horizontally.</p>
+    <p class="hint">Pure date math over <b>createdAt</b> — zero ML, ships even if the embedding spike fails.</p>
+  </div>
+
+  <!-- ═══════════ S3 · MAP ═══════════ -->
+  <div class="col">
+    <p class="label">3 · Map</p>
+    <div class="phone">
+      <div class="map full">
+        <div class="coast"></div>
+        <div class="pin" style="left:40%;top:38%;"><b class="num">14</b><span>Estrela</span></div>
+        <div class="pin sm" style="left:64%;top:30%;"><b class="num">6</b><span>Alvalade</span></div>
+        <div class="pin sm" style="left:55%;top:58%;"><b class="num">3</b><span>Cais do Sodré</span></div>
+        <div class="pin sm" style="left:22%;top:22%;"><b class="num">2</b></div>
+      </div>
+      <div class="stat" style="position:relative;z-index:2;"><span class="num">9:41</span><span>●●●</span></div>
+      <div class="nav" style="position:relative;z-index:2;"><span class="back"><svg width="11" height="14" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M10 2 3 10l7 8"/></svg>Journal</span></div>
+      <div class="mapsheet">
+        <div class="grab"></div>
+        <div class="sect" style="margin:0 0 2px;">Jardim da Estrela · 14 notes</div>
+        <div class="mrow">
+          <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+          <div class="mm">
+            <div class="mt">First proper walk-ramble with the app</div>
+            <div class="meta"><span class="num">6 Apr</span><span class="imp"><i class="f"></i><i class="f"></i><i class="f"></i></span></div>
+          </div>
+        </div>
+        <div class="mrow">
+          <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+          <div class="mm">
+            <div class="mt">Walk-thought: standalone is the bet</div>
+            <div class="meta"><span class="num">15 Jun</span><span class="imp"><i class="f"></i><i class="f"></i><i></i></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="hint">MapKit, pins clustered by place; tap a cluster → that place's notes in the bottom sheet.
+    "What do I think about on this walk" becomes a real query.</p>
+    <p class="hint">Only notes with location metadata appear; the map is reached from Journal home (no tab).</p>
+  </div>
+
+  <!-- ═══════════ S4 · THREAD ═══════════ -->
+  <div class="col">
+    <p class="label">4 · Thread view — the arc of an idea</p>
+    <div class="phone">
+      <div class="stat"><span class="num">9:41</span><span>●●●</span></div>
+      <div class="nav"><span class="back"><svg width="11" height="14" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M10 2 3 10l7 8"/></svg>Note</span><span class="ttl">Thread</span></div>
+      <div class="scr">
+        <div class="thr-head">
+          <div class="big">Should Skrift cost money?</div>
+          <div class="sub2">4 notes · Feb → Jul 2026 · 3 places</div>
+          <div class="fm"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>First mentioned 14 Feb 2026</div>
+        </div>
+        <div class="rail">
+          <div class="tn first">
+            <div class="tdate"><span class="num">14 Feb</span> · first mention</div>
+            <div class="tcard">
+              <div class="mt">Should Skrift cost money?</div>
+              <div class="ms">People don't value free tools. But charging for my own note-taking app feels weird…</div>
+            </div>
+          </div>
+          <div class="tn">
+            <div class="tdate"><span class="num">28 Mar</span></div>
+            <div class="tcard">
+              <div class="mt">Subscriptions feel wrong here</div>
+              <div class="ms">A notes app you stop paying for shouldn't hold your thoughts hostage. One-time or nothing.</div>
+            </div>
+          </div>
+          <div class="tn">
+            <div class="tdate"><span class="num">12 Jun</span></div>
+            <div class="tcard">
+              <div class="mt">Besloten: €0,69, geen IAP</div>
+              <div class="ms">Goedkoop genoeg dat niemand twijfelt, duur genoeg dat het geen gratis-app-verwachting wekt.</div>
+            </div>
+          </div>
+          <div class="tn cur">
+            <div class="tdate"><span class="num">6 Jul</span> <span class="you">· this note</span></div>
+            <div class="tcard">
+              <div class="mt">What if the price IS the marketing?</div>
+              <div class="ms">"The 69-cent thought-journal" — the price tier as the whole positioning…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="hint"><b>Thread = related() sorted by date</b>, floor-gated. Header title = the first mention's
+    title. Reached from a note's Related card (next screen) or its ••• menu — threads are not a Journal-home
+    list in v1.</p>
+    <p class="hint">No scores shown anywhere — relevance is expressed by presence and order, never numbers.</p>
+  </div>
+
+  <!-- ═══════════ S5 · SEARCH ═══════════ -->
+  <div class="col">
+    <p class="label">5 · Search — exact + related, with context chips</p>
+    <div class="phone">
+      <div class="stat"><span class="num">9:41</span><span>●●●</span></div>
+      <div class="scr" style="padding-top:10px;">
+        <div class="sfield">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <span class="q">how should skrift cost money</span><span class="caret"></span>
+          <svg class="mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+        </div>
+        <div class="chips">
+          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg>Person</span>
+          <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/></svg>Place</span>
+          <span class="chip onf">Jun–Jul ✕</span>
+          <span class="chip">Kind</span>
+        </div>
+
+        <div class="sect">Matches</div>
+        <div class="srow">
+          <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+          <div class="mm">
+            <div class="mt">What if the price IS the marketing?</div>
+            <div class="ms">…what Skrift should <span class="hl">cost</span> is the positioning: "the 69-cent thought-journal"…</div>
+            <div class="meta"><span class="num">6 Jul</span><span class="imp"><i class="f"></i><i class="f"></i><i></i></span></div>
+          </div>
+        </div>
+
+        <div class="sect" style="margin-top:10px;">Related <em>similar in meaning</em></div>
+        <div class="srow">
+          <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+          <div class="mm">
+            <div class="mt">Besloten: €0,69, geen IAP</div>
+            <div class="ms">Goedkoop genoeg dat niemand twijfelt, duur genoeg dat het geen gratis-app-verwachting wekt.</div>
+            <div class="meta"><span class="num">12 Jun</span><span class="imp"><i class="f"></i><i class="f"></i><i class="f"></i></span></div>
+          </div>
+        </div>
+        <div class="srow">
+          <svg class="gl quote" viewBox="0 0 24 24" fill="currentColor"><path d="M10 8H6a3 3 0 0 0-3 3v5h5v-5H6.5A1.5 1.5 0 0 1 8 9.5V8zM21 8h-4a3 3 0 0 0-3 3v5h5v-5h-1.5A1.5 1.5 0 0 1 19 9.5V8z"/></svg>
+          <div class="mm">
+            <div class="mt">Sapiens — on shared fictions</div>
+            <div class="ms">"There are no gods, no money… except in the common imagination." — your ramble ties it to pricing psychology.</div>
+            <div class="meta"><span class="num">3 Jul</span><span>Quote · Sapiens</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Notes</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5c-2-1.5-5-2-8-1.5v14c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-14C17 3 14 3.5 12 5z"/><path d="M12 5v14"/></svg>Library</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2.5 12 1l3 1.5"/></svg>Journal</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Settings</div>
+      </div>
+    </div>
+    <p class="hint">Search stays in the <b>Notes</b> tab. "Matches" = today's substring search, untouched.
+    "Related" = semantic, appears when the query has ≥2 words or exact hits &lt; 3. Note the EN query finding
+    the NL note and an audiobook quote — one meaning-space across languages and sources.</p>
+    <p class="hint">Chips prefilter (person / place / month / kind) before ranking. Mic = voice search,
+    <b>fast-follow</b> (rendered dimmed).</p>
+  </div>
+
+  <!-- ═══════════ S6 · RELATED CARD ON A NOTE ═══════════ -->
+  <div class="col">
+    <p class="label">6 · Related card on a note → thread entry</p>
+    <div class="phone">
+      <div class="stat"><span class="num">9:41</span><span>●●●</span></div>
+      <div class="nav"><span class="back"><svg width="11" height="14" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M10 2 3 10l7 8"/></svg>Notes</span></div>
+      <div class="scr">
+        <div class="h2" style="font-size:19px;">What if the price IS the marketing?</div>
+        <div class="bodytext">…so instead of hiding the number, lead with it. "The 69-cent thought-journal."
+        The price tells the story: this is not a subscription trap, it's a tool you buy once, like
+        <span class="link">[[Jack Whitham]]</span> said about pocket knives. Cheap enough that nobody
+        deliberates, odd enough that it sticks…</div>
+        <div class="fade"></div>
+
+        <div class="card relcard">
+          <div class="k">Related</div>
+          <div class="mrow">
+            <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+            <div class="mm">
+              <div class="mt">Besloten: €0,69, geen IAP</div>
+              <div class="meta"><span class="num">12 Jun</span><span class="pl">Home</span></div>
+            </div>
+          </div>
+          <div class="mrow">
+            <svg class="gl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg>
+            <div class="mm">
+              <div class="mt">Subscriptions feel wrong here</div>
+              <div class="meta"><span class="num">28 Mar</span></div>
+            </div>
+          </div>
+          <div class="mrow">
+            <svg class="gl quote" viewBox="0 0 24 24" fill="currentColor"><path d="M10 8H6a3 3 0 0 0-3 3v5h5v-5H6.5A1.5 1.5 0 0 1 8 9.5V8zM21 8h-4a3 3 0 0 0-3 3v5h5v-5h-1.5A1.5 1.5 0 0 1 19 9.5V8z"/></svg>
+            <div class="mm">
+              <div class="mt">Sapiens — on shared fictions</div>
+              <div class="meta"><span class="num">3 Jul</span><span>Quote</span></div>
+            </div>
+          </div>
+          <div class="threadcta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h10M4 12h16M4 18h7"/><circle cx="19" cy="6" r="2"/></svg>
+            View thread
+            <span class="sub3">first mentioned 14 Feb</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="hint">k = 4, similarity floor calibrated in chunk 3; the card renders only when something clears
+    the floor — <b>no "no related notes" placeholder, ever</b>.</p>
+    <p class="hint">⚠️ This screen builds <b>last</b> — after the note-editing lane's rebuilt detail view merges.</p>
+  </div>
+
+</div>
+
+<div class="notes">
+  <h3>Build notes — locked decisions (sign-off makes these the spec)</h3>
+  <ul>
+    <li><b>Tab IA:</b> Journal takes the reserved "Highlights (soon)" slot → Notes · Library · <b>Journal</b> · Settings.
+        P6 (Highlights feed, Daily Review, quote cards) later lands <i>inside</i> Journal as sections.
+        <span class="ask">← the one IA decision to confirm at sign-off.</span></li>
+    <li><b>Looking back</b> = spaced lookbacks (1/3/6/12 months) + a literal On-this-day card once prior-year
+        history exists. Slots with nothing to show are hidden. Card picks the highest-importance note of the window.</li>
+    <li><b>Then vs Now</b> (fast-follow): a future Looking-back card variant that pairs an old note with a recent
+        same-cluster note ("a year ago you thought… last week you said…"). Juxtaposition only, no interpretation.</li>
+    <li><b>Thread</b> = related() above floor, date-ascending; header = first mention's title + date. Entry points:
+        Related card CTA + note ••• menu. No thread list on Journal home in v1.</li>
+    <li><b>Search:</b> Matches (existing substring, unchanged) above Related (semantic; shows when query ≥2 words
+        or exact hits &lt;3). Chips prefilter person/place/month/kind. Voice search = fast-follow (mic dimmed).</li>
+    <li><b>No numbers:</b> similarity scores never render. Relevance = presence + order.</li>
+    <li><b>Corpus:</b> Skrift memos only (the source of truth); the Obsidian vault is never indexed in v1
+        (later opt-in "vault lens"). Unrated notes are provisional — auto-prune (i2) may remove them after the
+        review flow; the index sweep deletes orphaned embeddings.</li>
+    <li><b>Calendar + map + lookbacks are ML-free</b> (pure metadata) and ship even if the embedding spike fails;
+        Related/Thread/semantic-Related-section are the embedding-gated half.</li>
+    <li><b>Privacy:</b> everything on-device (NL framework embeddings, local index, MapKit). Nothing leaves the phone.</li>
+  </ul>
+</div>
+
+</body>
+</html>

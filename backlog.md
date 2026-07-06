@@ -35,9 +35,10 @@ audiobooks, and the Bonjour-removal/live-sync handoff (`claude/xenodochial-mclar
    live-sync lands, then run `/code-review` over the whole CloudKit sync spine (newest,
    least-battle-tested code in the repo).
 
-Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab is P6's reserved slot (Commonplace Book +
-quote cards — the App-Store headline). P6 needs a user-led mock/design session first — good to run
-interactively whenever Tuur has taste-time; it is NOT part of the P8 plan.
+Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
+(`Skrift_Native/SkriftDesktop/mocks/journal-retrieval.html`, drafted 2026-07-06) proposes **Journal
+takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
+land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
 
 ## ⭐ CloudKit-only sync epic — retiring Bonjour (2026-07-06, on `main`)
 
