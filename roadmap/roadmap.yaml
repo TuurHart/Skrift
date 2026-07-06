@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 6
-updated: 2026-07-05T13:01:57.820Z
+updated: 2026-07-06T13:18:02.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -172,6 +172,27 @@ nodes:
         re-transcribe button — stale diarized turn markers
     win: phone↔Mac sync works end-to-end in prod (CloudKit schema deployed) and the
       5-finding post-0.2.0 batch is cleared
+  - id: NEdit
+    title: Note-editing overhaul
+    lane: 0
+    order: 5.5
+    status: planned
+    eff: M
+    note: Re-found the note body on a natively-scrolling text view (fork B) —
+      selection/undo/find/caret-follow come free; karaoke becomes attribute
+      painting on the SAME view (kills the 20 Hz per-word re-render + mode
+      swap). Study 2026-07-06 in backlog.md "EPIC note-editing". Mock-first —
+      B1 (Notes-style in-flow title) vs B2 (pinned title) for sign-off.
+    backlog:
+      - B1 vs B2 mock — user picks the title treatment
+      - Keyboard accessory bar (Done · undo/redo · find · insert photo)
+      - Tag chips + autocomplete (replace the comma alert; chip tap currently
+        DELETES silently)
+      - Debounce per-keystroke saves; memoize the name-span scan
+      - Photo tap → viewer; Dynamic Type
+    win: "editing a note feels like Apple Notes — selection autoscrolls, caret
+      stays visible, undo/find/magnifier work — with transcript richness
+      (karaoke, name tiers, inline photos) intact"
   - id: P4
     title: On-device Polish
     lane: -1

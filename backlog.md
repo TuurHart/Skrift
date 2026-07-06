@@ -319,6 +319,32 @@ autocomplete from existing tags (the actual "select a lot" need = pick not retyp
 protection · speaker-turn editing · `transcriptUserEdited` trust flag · save-now. **Path:** (optional) ship
 A as a stopgap; then the real sprint MOCK-FIRST on B + toolbar + tag editor. Awaiting user direction.
 
+**🔬 STUDY 2026-07-06 (fresh-eyes code audit — sprint kicked off; roadmap node `NEdit`).** Confirms fork B
+and adds the PERF story (code-derived; device magnitudes unprofiled):
+1. **Per KEYSTROKE:** the page re-evals and runs the full `Sanitiser.nameSpans` regex scan 2–3×
+   (`MemoDetailView.transcriptNameSpans` is an uncached computed property read in several places) +
+   `context.save()` (disk + CloudKit churn) + a full-document TextKit relayout (self-sizing
+   `sizeThatFits`) → typing cost O(note length × roster size), on-main.
+2. **During PLAYBACK:** `AudioPlayerModel`'s 0.05 s timer republishes `currentTime` at 20 Hz through the
+   whole page tree; tap-to-seek karaoke (default ON) is one SwiftUI `Text` PER WORD re-diffed per tick.
+3. **Mode swaps** (edit↔karaoke) rebuild the body and even change inline image sizes (editor attachment
+   cap 320 pt vs `ImageEmbed` fixed 160 pt — a visible jump when Play starts on a photo note).
+Scar tissue of the non-scrolling choice: `NonScrollingTextView` offset pin, selection carry-over,
+`sizeThatFits` clamps, THREE karaoke renderers (single-Text attr + FlowLayout word grid +
+SpeakerTurns' own pair) + `KaraokeWordLayout`. Missing table stakes (grep-verified): keyboard accessory
+bar, undo/redo UI, find-in-note, photo tap→viewer, Dynamic Type (all fonts fixed-size).
+**KEY MOVE (sharpens B):** ONE scrolling UITextView renders edit AND karaoke — the highlight is
+attribute painting on the same textStorage (changes at word rate, not 20 Hz), tap-to-seek = character
+hit-test, find = `isFindInteractionEnabled`, undo = native; deletes the mode swap + both monologue
+karaoke renderers. Metadata (tags/significance/summary/quote block) = header content inside the scroll
+(B1: title in-flow too / B2: title pinned). Free wins during the rebuild: UITextView find, native undo
+(+ accessory buttons), Writing Tools on AI-capable devices (NOT the iPhone 13), Dynamic Type, photo
+tap→QuickLook (reuse the capture path), selection→"Save highlight" hook (feeds P6 quote cards). Also:
+tapping a tag chip DELETES it silently (`removeTag`) — the chip editor must fix that. Perf hygiene
+regardless of fork: debounce transcript saves (~1 s idle + end-edit + disappear), memoize nameSpans by
+(text, people, resolutions), keep player ticks out of the page body. Conversations (`SpeakerTurnsView`)
+keep their surface for now — phase 2. **NEXT: render B1-vs-B2 mocks side by side → user picks.**
+
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 
 NEW DIRECTION: ship **SkriftMobile to the App Store as a standalone audiobook + notetaking app** that
