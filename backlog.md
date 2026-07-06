@@ -31,6 +31,20 @@ Building CloudKit as the sole phone↔Mac transport, then deleting Bonjour. Plan
 **Still owed in the epic:** Phase 2a (off-main CloudKit reconciler I/O), Phase 4 (deploy prod CloudKit
 schema + device round-trip), Phase 5 (delete the Bonjour code — held until CloudKit-only is signed off).
 
+**Test session 2 (2026-07-06 later — after push-on-edit + Mac Names redesign):**
+- ✅ **A/D re-verified**: a deleted person + custom words both synced phone→Mac (CloudKit LATENCY, not
+  instant); ✅ B re-confirmed (memo round-trip + polish back). CloudKit-only sync is effectively verified.
+- 🐛→✅ **FIXED — rename was genuinely blocked**: the phone Names list opens `PersonDetailView` (voice +
+  delete ONLY, no name/alias editing; the full `PersonEditorView` was reachable only from the review flow).
+  Added an **Edit** button on `PersonDetailView` → opens the editor (build 28).
+- 🐛→✅ **FIXED — stray vertical line down the phone Names list**: `PersonRow` used `.overlay(Divider()…)`,
+  which renders a full-height VERTICAL divider (iOS-26 SwiftUI quirk) → replaced with a 0.5pt `Rectangle` rule.
+- ⬜ **NEW — live bidirectional editing (Apple-Notes-style)**: a MANUAL edit on the Mac (note body / title)
+  does NOT sync back to the phone — only the enhance-time `MemoEnhancement` write-back does. User wants
+  "edit anywhere, syncs everywhere". Needs a debounced write-back on Mac-side edits. BIG-ish.
+- ℹ️ **Latency expectation**: CloudKit is seconds (with silent push), not Apple-Notes-instant; push-on-edit
+  helps but CloudKit propagation + the Mac's import-triggered reconcile add delay. Partly inherent.
+
 ## 🐛 Post-0.2.0 prod findings (2026-06-26, after promoting prod to build 22) — TRIAGE
 
 User hit these on the freshly-promoted PROD apps. Diagnoses below; fixes owed (do on Dev, verify,

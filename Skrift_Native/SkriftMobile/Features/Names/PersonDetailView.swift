@@ -13,6 +13,7 @@ struct PersonDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var person: Person?
     @State private var showEnroll = false
+    @State private var showEdit = false
     private let store = NamesStore.shared
 
     var body: some View {
@@ -51,12 +52,24 @@ struct PersonDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") { showEdit = true }
+                    .accessibilityIdentifier("person-edit-button")
+            }
+        }
         .onAppear(perform: load)
         .sheet(isPresented: $showEnroll) {
             VoiceEnrollView(canonical: canonical,
                             displayName: person.map(NamesDisplay.name) ?? canonical) {
                 load(); onChange()   // refresh the card → "Voice enrolled"
             }
+        }
+        // Full editor (name / aliases / short) — the Names-list path to renaming a person.
+        .sheet(isPresented: $showEdit) {
+            PersonEditorView(canonical: canonical,
+                             onSaved: { _ in onChange(); load() },
+                             onDeleted: { onChange(); dismiss() })
         }
     }
 
@@ -93,7 +106,12 @@ struct PersonDetailView: View {
         .skCard(padding: 16)
     }
 
-    private func load() { person = store.livePeople().first { $0.canonical == canonical } }
+    private func load() {
+        person = store.livePeople().first { $0.canonical == canonical }
+        // A rename tombstones the old canonical → pop back to the list (which reloads),
+        // instead of sitting on a now-missing person.
+        if person == nil { dismiss() }
+    }
 
     private func deletePerson() {
         store.delete(canonical: canonical)
