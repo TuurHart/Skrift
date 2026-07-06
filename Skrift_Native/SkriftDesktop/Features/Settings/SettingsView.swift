@@ -285,27 +285,48 @@ struct SettingsView: View {
         }
     }
 
-    /// A names LIST row (mocks/opt-in-naming.html panel 4): avatar initials · full name ·
-    /// "aka" alias summary · voice chip. Tapping it (interactive) opens the detail editor.
+    /// A names LIST row — parity with the phone's Names tab (mocks/names-mac.html): a
+    /// colourful name-gradient avatar, the full name, and a voice-enrollment status line.
+    /// Tapping it (interactive) opens the detail editor.
     private func nameListRow(_ person: Person) -> some View {
-        HStack(spacing: 10) {
-            ZStack {
-                Circle().fill(Theme.accent.opacity(0.16)).frame(width: 30, height: 30)
-                Text(Self.initials(person.displayName))
-                    .font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.accent)
-            }
-            VStack(alignment: .leading, spacing: 1) {
-                Text(person.displayName).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.textPrimary)
-                if !person.aliases.isEmpty {
-                    Text("aka " + person.aliases.joined(separator: ", "))
-                        .font(.system(size: 11)).foregroundStyle(Theme.textMuted).lineLimit(1)
-                }
+        HStack(spacing: 12) {
+            nameAvatar(person.displayName, size: 38)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(person.displayName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.textPrimary)
+                voiceStatus(!(person.voiceEmbeddings?.isEmpty ?? true))
             }
             Spacer(minLength: 8)
-            voiceTag(!(person.voiceEmbeddings?.isEmpty ?? true))
+            Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Theme.textMuted.opacity(0.6))
         }
-        .padding(.vertical, 5).padding(.horizontal, 4)
+        .padding(.vertical, 6).padding(.horizontal, 4)
         .contentShape(Rectangle())
+    }
+
+    /// Colourful initials avatar (name-gradient) — the phone's `Avatar`, ported so both
+    /// apps' Names screens read as one product.
+    private func nameAvatar(_ name: String, size: CGFloat) -> some View {
+        let palette = Self.avatarPalettes[Self.avatarIndex(name)]
+        return Circle()
+            .fill(LinearGradient(colors: palette, startPoint: .topLeading, endPoint: .bottomTrailing))
+            .frame(width: size, height: size)
+            .overlay(Text(Self.initials(name))
+                .font(.system(size: size * 0.36, weight: .bold)).foregroundStyle(.white))
+    }
+
+    private static let avatarPalettes: [[Color]] = [
+        [srgb(124, 107, 245), srgb(157, 139, 255)],   // purple
+        [srgb( 52, 211, 153), srgb( 16, 185, 129)],   // green
+        [srgb(245, 158,  11), srgb(249, 115,  22)],   // amber
+        [srgb( 56, 189, 248), srgb( 59, 130, 246)],   // blue
+    ]
+    private static func srgb(_ r: Double, _ g: Double, _ b: Double) -> Color {
+        Color(.sRGB, red: r / 255, green: g / 255, blue: b / 255, opacity: 1)
+    }
+    /// Stable per-name palette pick (consistent across launches, unlike `hashValue`).
+    private static func avatarIndex(_ name: String) -> Int {
+        let h = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0x7fffffff }
+        return h % avatarPalettes.count
     }
 
     /// One- or two-letter avatar initials from a full name.
@@ -315,17 +336,33 @@ struct SettingsView: View {
         return s.isEmpty ? "?" : s
     }
 
-    /// Voice-enrollment indicator (parity with the phone's Names & voices). Green
-    /// "Voice" when the person has a synced voiceprint → Conversation mode can attribute
-    /// speech to them; a faint "No voice" otherwise.
-    @ViewBuilder private func voiceTag(_ enrolled: Bool) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: "waveform").font(.system(size: 9, weight: .semibold))
-            Text(enrolled ? "Voice" : "No voice").font(.system(size: 10, weight: .semibold))
+    /// Voice-enrollment status for a names row (the phone's row): "Voice enrolled" (green +
+    /// bar glyph) when a voiceprint is synced, else "Add voice" (accent + waveform).
+    @ViewBuilder private func voiceStatus(_ enrolled: Bool) -> some View {
+        if enrolled {
+            HStack(spacing: 6) {
+                voiceBars
+                Text("Voice enrolled")
+            }
+            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.green)
+            .help("A voiceprint is enrolled — Conversation mode can recognise this person.")
+        } else {
+            HStack(spacing: 6) {
+                Image(systemName: "waveform").font(.system(size: 11))
+                Text("Add voice")
+            }
+            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.accent)
+            .help("No voiceprint yet — name them in a conversation (phone or Mac) to enroll their voice.")
         }
-        .foregroundStyle(enrolled ? Theme.green : Theme.textMuted)
-        .help(enrolled ? "A voiceprint is enrolled — Conversation mode can recognise this person."
-                       : "No voiceprint yet — name them in a conversation (phone or Mac) to enroll their voice.")
+    }
+
+    /// Static 5-bar voice glyph (the phone's `VoiceBars`).
+    private var voiceBars: some View {
+        HStack(alignment: .bottom, spacing: 2) {
+            ForEach(Array([CGFloat(5), 11, 7, 13, 6].enumerated()), id: \.offset) { _, h in
+                Capsule().fill(Theme.green).frame(width: 2.5, height: h)
+            }
+        }
     }
 
     // ── Helpers ─────────────────────────────────────────────
