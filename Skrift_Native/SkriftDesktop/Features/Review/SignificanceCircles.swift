@@ -148,7 +148,7 @@ struct SignificanceCircles: View {
             tierLabel("passing", width: 3 * Self.dotSize + 2 * Self.gap, active: lit >= 1 && lit <= 3, warmTint: false)
             tierLabel("useful", width: 3 * Self.dotSize + 2 * Self.gap, active: lit >= 4 && lit <= 6, warmTint: false)
             // The significant cluster is 4 dots + the 1pt wall + its gaps wide.
-            tierLabel("significant", width: 4 * Self.dotSize + 4 * Self.gap + 1, active: lit >= 7, warmTint: warm)
+            tierLabel("important", width: 4 * Self.dotSize + 4 * Self.gap + 1, active: lit >= 7, warmTint: warm)
         }
     }
 
