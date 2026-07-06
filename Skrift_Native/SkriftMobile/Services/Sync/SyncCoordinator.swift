@@ -17,6 +17,11 @@ struct SyncCoordinator {
 
     @discardableResult
     func syncAll() async -> Int {
+        // Bonjour/HTTP is retired — names + memos sync over CloudKit now (NamesCloudSync +
+        // NSPersistentCloudKitContainer). The LAN path is dark unless a user opts into the
+        // fallback, so a normal CloudKit-only device never touches it.
+        guard BonjourFallback.isEnabled else { return 0 }
+
         if let namesTransport {
             _ = await NamesSync(store: .shared, transport: namesTransport).run()
         }

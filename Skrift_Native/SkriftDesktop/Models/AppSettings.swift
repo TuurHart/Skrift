@@ -60,6 +60,14 @@ struct AppSettings: Codable, Equatable, Sendable {
     var processAllSyncedMemos: Bool? = nil
     var processAllSyncedMemosEnabled: Bool { processAllSyncedMemos ?? false }
 
+    /// Bonjour/HTTP LAN server — the legacy phone↔Mac path being retired in favor of CloudKit
+    /// (names + memos now flow over CloudKit). OFF by default: the Mac no longer advertises or
+    /// serves the LAN endpoints unless a user explicitly re-enables the fallback (e.g. no iCloud).
+    /// Optional for legacy-decode (same pattern as the flags above). Phase 3 of retiring Bonjour;
+    /// the code is removed entirely once CloudKit is prod-verified (Phase 5).
+    var bonjourFallback: Bool? = nil
+    var bonjourFallbackEnabled: Bool { bonjourFallback ?? false }
+
     static let `default` = AppSettings()
 
     /// LLM prompts — copied verbatim from `DEFAULT_SETTINGS.enhancement.prompts`.

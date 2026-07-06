@@ -111,7 +111,11 @@ struct SkriftDesktopApp: App {
             transcriptionReady: { TranscriptionService.shared.isModelReadySync }
         )
         self.syncServer = LocalHTTPServer(handlers: handlers)
-        try? syncServer.start()
+        // Bonjour/HTTP is the legacy LAN path — OFF by default now that names + memos sync over
+        // CloudKit. Only advertise/serve it when the user explicitly re-enables the fallback.
+        if SettingsStore.shared.load().bonjourFallbackEnabled {
+            try? syncServer.start()
+        }
 
         // CloudKit-Mac client (MAC_CLOUDKIT_PLAN.md 8d): register the launch/foreground/import
         // reconcile triggers + run the launch sweep. Inert (no-op) unless the user opted into

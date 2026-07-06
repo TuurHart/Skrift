@@ -344,6 +344,13 @@ struct MemosListView: View {
 
     private func runSync() {
         guard !syncing else { return }
+        // CloudKit-only (the default): memos + names sync automatically over iCloud, so there's
+        // no manual Mac sync and no "pair a Mac" nudge. The global "Syncing with iCloud…" chip
+        // (CloudSyncMonitor) covers live activity.
+        guard BonjourFallback.isEnabled else {
+            flashBanner("Up to date")
+            return
+        }
         Task {
             syncing = true
             let synced = await SyncCoordinator().syncAll()

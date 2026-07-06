@@ -77,7 +77,12 @@ extension Memo {
     var statusKind: MemoStatusKind? {
         if transcriptStatus == .transcribing { return .transcribing }
         if transcriptStatus == .failed { return .error }
-        guard significance > 0 else { return nil }
+        // The waiting/synced pill is a Bonjour-era concept: `syncStatus` is only advanced by the
+        // LAN upload (flag-to-send). Under CloudKit — the default — every memo mirrors to iCloud
+        // automatically, so a per-memo "Waiting" pill (driven by the now-idle `syncStatus`) would
+        // lie forever. Sync visibility comes from the global "Syncing with iCloud…" chip instead.
+        // Only when the Bonjour fallback is re-enabled does the per-memo pill apply again.
+        guard BonjourFallback.isEnabled, significance > 0 else { return nil }
         return syncStatus == .synced ? .synced : .waiting
     }
 }
