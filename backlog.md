@@ -18,15 +18,15 @@ Building CloudKit as the sole phone↔Mac transport, then deleting Bonjour. Plan
   NamesCloudSync/VocabularyCloudSync on edit; Mac Names list reloads on `.namesDidChangeFromSync`.
   Re-test owed.
 
-**Feature requests / parity gaps from the session (NOT yet done — backlog):**
-- **"significance" (Mac) vs "importance" (phone)** — unify the user-facing label to **"Importance"**
-  everywhere (Mac still says "significance"). Small.
-- **Mac Names screen should match the phone's** person UI (look + interaction parity).
-- **Mac in-place name-linking should match the phone**: on the phone a linkable word ("Will") shows
+**Feature requests / parity gaps from the session:**
+- ✅ **DONE — "significance" → "Importance" on the Mac**: the review label + a11y label + Settings help
+  now read "importance" (internal `Significance*` symbols unchanged), matching the phone. (`SignificanceCircles`, `SettingsView`).
+- ✅ **DONE — rename discoverability**: the phone person editor's Full-name help now says "Change it to
+  rename this person" when editing an existing person (`PersonEditorView`).
+- ⬜ **Mac Names screen should match the phone's** person UI (look + interaction parity) — BIG, mock-first.
+- ⬜ **Mac in-place name-linking should match the phone**: on the phone a linkable word ("Will") shows
   dotted/tappable immediately on the raw transcript; on the Mac the dotted suggestions only appear
-  **after enhance** (the sanitise pass), and aren't as interactive. Want parity (immediate, tappable).
-- **Rename discoverability**: user thought you can't rename a person on the phone — you can (edit the
-  Full name in `PersonEditorView`, it tombstones the old canonical). Make rename obvious in the UI.
+  **after enhance** (the sanitise pass), and aren't as interactive. Want parity (immediate, tappable). BIG.
 
 **Still owed in the epic:** Phase 2a (off-main CloudKit reconciler I/O), Phase 4 (deploy prod CloudKit
 schema + device round-trip), Phase 5 (delete the Bonjour code — held until CloudKit-only is signed off).

@@ -113,7 +113,7 @@ struct SettingsView: View {
                           help: "Process memos your phone synced over iCloud — no Wi-Fi pairing, no app foregrounded — and sync the Mac's polished title/summary/copy-edit back to your phone. Needs the Mac signed into the same iCloud account. The local-network “Pair a Mac” path still works as a fallback when this is off.")
                 if settings.cloudKitMacSync ?? false {
                     toggleRow("Process every synced memo", \.processAllSyncedMemos,
-                              help: "By default the Mac only processes memos you rated (significance > 0), matching the phone's flag-to-send. Turn this on to process every synced memo regardless of rating.")
+                              help: "By default the Mac only processes memos you rated (importance > 0), matching the phone's flag-to-send. Turn this on to process every synced memo regardless of rating.")
                 }
             }
             section("Names · \(displayPeople.count)") {

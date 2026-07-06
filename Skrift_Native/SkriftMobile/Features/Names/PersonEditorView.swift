@@ -84,7 +84,8 @@ struct PersonEditorView: View {
 
     private var fullNameField: some View {
         field(title: "Full name",
-              help: "The Obsidian note title — becomes the [[link]] target.") {
+              help: isNew ? "The Obsidian note title — becomes the [[link]] target."
+                          : "The Obsidian note title — the [[link]] target. Change it to rename this person.") {
             TextField("Full name", text: $fullName)
                 .font(.system(size: 15))
                 .foregroundStyle(Color.skText)

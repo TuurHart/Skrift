@@ -44,7 +44,7 @@ struct SignificanceCircles: View {
     // ── Label + live value (same spot as the old slider value) ──
     private var topRow: some View {
         HStack {
-            Text("significance").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+            Text("importance").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
             Spacer()
             if !enabled {
                 Text("rate after processing").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
@@ -116,7 +116,7 @@ struct SignificanceCircles: View {
         }
         .disabled(!enabled)
         .help(SignificanceScale.valueText(i))
-        .accessibilityLabel("Significance \(SignificanceScale.valueText(i))")
+        .accessibilityLabel("Importance \(SignificanceScale.valueText(i))")
     }
 
     /// Always-visible amber hairline before circle 8 — the refine wall.
