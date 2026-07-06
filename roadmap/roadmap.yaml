@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 6
-updated: 2026-07-06T14:43:28.000Z
+updated: 2026-07-06T14:57:28.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -214,8 +214,9 @@ nodes:
     note: "Survey wave, ALL user-approved 2026-07-06: checklists · memo↔memo
       links · photo OCR · reminders · FaceID lock · doc scan. HARD RULE:
       shared-first — model/logic in Shared/, both apps ship every feature.
-      Build plan = backlog.md EPIC 🏗 chunks 4–9. Audio-trim-with-transcript
-      PARKED after the wave."
+      Build plan = backlog.md EPIC 🏗 chunks 4–9. Audio-trim DROPPED (the
+      text is the source). Locked notes still SYNC (Mac too, locked);
+      excluded from Obsidian PUBLISH only."
     backlog:
       - Live checklists (- [ ] toggle ↔ Obsidian tasks)
       - Memo↔memo [[links]] + backlinks (stores memo:UUID, exports [[Title]])

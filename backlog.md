@@ -409,12 +409,15 @@ feel); update FEATURES.md + roadmap in the same commits. Chunks in order:
    notification → open the memo.
 8. **Locked notes:** synced `locked` flag; list long-press / detail ⋯ → Lock (Apple Notes idiom); open gated via
    `LocalAuthentication` (FaceID phone / TouchID-password Mac — shared gate); list shows title + 🔒, hides
-   preview; **locked ⇒ excluded from Obsidian publish by default** (vault is plaintext). v1 = auth-gated UI,
-   NOT per-note crypto (search + pipeline keep working) — stated honestly in Settings copy.
+   preview. **Semantics (user-clarified 2026-07-06): locked memos still SYNC via CloudKit** (appear on the Mac,
+   locked there too) — **they're excluded from Obsidian PUBLISH only** (vault = plaintext .md on disk).
+   Lock-after-export edge: Skrift never deletes vault files — it surfaces "already in your vault; remove it
+   there if you want it gone." Unlock ⇒ publishes again next export. v1 = auth-gated UI, NOT per-note crypto
+   (search + pipeline keep working) — stated honestly in Settings copy.
 9. **Doc scan (phone):** VisionKit document camera → PDF → the existing C3 file-capture path (Mac views it like
    any shared file).
-**PARKED:** audio trim / delete-a-section with transcript+timings sync (differentiator-grade, L — revisit after
-the wave; the sample-accurate `AVAudioFile` machinery already exists from the chunk-drift fix).
+**DROPPED 2026-07-06:** audio trim / delete-a-section (was parked) — user: "the text is the main source; we
+just edit the text. I don't think we need to edit the voice note itself." Off the plan entirely.
 
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 
