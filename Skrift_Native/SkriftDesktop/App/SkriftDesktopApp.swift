@@ -27,9 +27,6 @@ struct SkriftDesktopApp: App {
     // syncs LAZILY (minutes); with it, a synced memo lands in seconds, even unfocused.
     @NSApplicationDelegateAdaptor(MacAppDelegate.self) private var appDelegate
 
-    // The phone's sync target — local HTTP + Bonjour (plan §4).
-    private let syncServer: SyncServer
-
     init() {
         #if DEBUG
         Snapshot.renderIfRequested()
@@ -48,79 +45,11 @@ struct SkriftDesktopApp: App {
         // NSApp.appearance, not SwiftUI's colorScheme. RootView keeps it in sync on
         // change; "auto" (nil) follows the system.
         AppTheme.applyToApp()
-        let upload = UploadService()
-        let handlers = SyncHandlers(
-            namesStore: .shared,
-            // SwiftData isn't thread-safe across contexts. These handlers run on the
-            // Bonjour server's background queue, while the UI mutates `mainContext`
-            // on the main thread — concurrent writes risk store corruption. Marshal
-            // all SwiftData access onto the main actor and use the SAME mainContext
-            // the UI observes (so phone uploads also appear live via @Query). The
-            // sync is deadlock-free: these never run on the main queue. The CPU-heavy
-            // multipart parse stays off-main; only the DB touch is marshaled.
-            listFilesJSON: {
-                // ENFORCE the "never on main" invariant the deadlock-freedom of
-                // this `.sync` depends on: if a future refactor ever routes a
-                // handler onto the main queue, this fires a clear crash instead
-                // of a silent deadlock (the comment above was the only guard).
-                dispatchPrecondition(condition: .notOnQueue(.main))
-                return DispatchQueue.main.sync {
-                    MainActor.assumeIsolated {
-                        let ctx = SharedStore.container.mainContext
-                        // Exclude soft-deleted (Recently Deleted) files — the phone
-                        // must not re-see a note the user trashed on the Mac.
-                        let all = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
-                        let live = all.filter { $0.deletedAt == nil }
-                        return (try? JSONEncoder().encode(live.map(\.dto))) ?? Data("[]".utf8)
-                    }
-                }
-            },
-            handleUpload: { req in
-                guard let boundary = MultipartParser.boundary(fromContentType: req.contentType) else {
-                    return .status(400, "Expected multipart/form-data")
-                }
-                let parts = MultipartParser.parse(req.body, boundary: boundary)
-                dispatchPrecondition(condition: .notOnQueue(.main))
-                // Phase 1 — write the audio/images/sidecars to disk OFF the main
-                // actor (a memo can be many MB; doing this inside the main-sync below
-                // would stall the UI). Only the light SwiftData insert/save is marshaled.
-                let prepared: [UploadService.PreparedUpload]
-                do {
-                    prepared = try upload.prepare(parts: parts)
-                } catch {
-                    return .json(UploadResponseDTO(success: false, files: [],
-                                                   message: "Upload failed", errors: [String(describing: error)]),
-                                 status: 500)
-                }
-                // Phase 2 — SwiftData only, on the main actor with the UI's mainContext.
-                return DispatchQueue.main.sync {
-                    MainActor.assumeIsolated {
-                        let ctx = SharedStore.container.mainContext
-                        do {
-                            let created = try upload.commit(prepared, into: ctx)
-                            return .json(UploadResponseDTO(success: true, files: created.map(\.dto),
-                                                           message: "Uploaded \(created.count) file(s)", errors: nil))
-                        } catch {
-                            return .json(UploadResponseDTO(success: false, files: [],
-                                                           message: "Upload failed", errors: [String(describing: error)]),
-                                         status: 500)
-                        }
-                    }
-                }
-            },
-            transcriptionReady: { TranscriptionService.shared.isModelReadySync }
-        )
-        self.syncServer = LocalHTTPServer(handlers: handlers)
-        // Bonjour/HTTP is the legacy LAN path — OFF by default now that names + memos sync over
-        // CloudKit. Only advertise/serve it when the user explicitly re-enables the fallback.
-        if SettingsStore.shared.load().bonjourFallbackEnabled {
-            try? syncServer.start()
-        }
 
         // CloudKit-Mac client (MAC_CLOUDKIT_PLAN.md 8d): register the launch/foreground/import
         // reconcile triggers + run the launch sweep. Inert (no-op) unless the user opted into
-        // `cloudKitMacSync` — the Bonjour server above stays the default path, and the two
-        // coexist (MemoCloudIngest dedups a memo seen via both transports).
+        // `cloudKitMacSync`. CloudKit is now the ONLY phone↔Mac transport (the Bonjour/HTTP
+        // server was retired) — it carries memos, names, and vocabulary.
         MemoCloudReconciler.start()
 
         // Pre-warm the custom-vocabulary booster at launch when the user has

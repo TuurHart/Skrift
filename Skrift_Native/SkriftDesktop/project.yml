@@ -30,7 +30,6 @@ targets:
       - path: App
       - path: Models
       - path: Pipeline
-      - path: Server
       - path: Engines
       - path: Features
       # Shared cross-app source (one physical copy → no phone↔Mac drift).
@@ -107,7 +106,6 @@ targets:
       - path: SkriftDesktopTests
       - path: Models
       - path: Pipeline
-      - path: Server
       # Shared cross-app source (host-less test bundle compiles it directly, like Models/Pipeline).
       - path: ../Shared/Naming
       - path: ../Shared/Export

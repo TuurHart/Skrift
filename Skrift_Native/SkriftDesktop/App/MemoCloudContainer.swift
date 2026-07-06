@@ -52,7 +52,7 @@ enum MemoCloudStore {
             cloudKitDatabase: .private(cloudContainerID)
         )
         // Resilient: a failure (missing entitlement, not signed into iCloud) disables the
-        // CloudKit-Mac path rather than crashing — the Bonjour fallback still works.
+        // CloudKit-Mac path rather than crashing (the Mac simply won't sync until iCloud is set up).
         return try? ModelContainer(for: schema, configurations: config)
     }
 }
