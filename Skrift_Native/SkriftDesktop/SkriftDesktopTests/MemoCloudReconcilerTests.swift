@@ -44,7 +44,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         seedMemo(cloud, significance: 0)     // gated out (flag-to-send)
         try cloud.save()
 
-        let created = MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false)
+        let created = MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false).created
         XCTAssertEqual(created, 2, "two rated memos ingest; the significance-0 one stays on the phone")
         XCTAssertEqual(pipelineCount(local), 2)
     }
@@ -54,9 +54,9 @@ final class MemoCloudReconcilerTests: XCTestCase {
         seedMemo(cloud, significance: 0.5)
         try cloud.save()
 
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false), 1)
+        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false).created, 1)
         // A second reconcile (foreground/import) must not duplicate already-ingested memos.
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false), 0)
+        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false).created, 0)
         XCTAssertEqual(pipelineCount(local), 1)
     }
 
@@ -65,8 +65,8 @@ final class MemoCloudReconcilerTests: XCTestCase {
         seedMemo(cloud, significance: 0)
         try cloud.save()
 
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false), 0)
-        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: true), 1,
+        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false).created, 0)
+        XCTAssertEqual(MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: true).created, 1,
                        "the 'process everything' override ingests significance-0 memos")
         XCTAssertEqual(pipelineCount(local), 1)
     }

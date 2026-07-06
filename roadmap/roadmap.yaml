@@ -148,6 +148,10 @@ nodes:
       - 2026-07-06 · Bonjour/HTTP LAN sync fully RETIRED — desktop server [510ad0c]
         + mobile client (Part A) deleted; CloudKit is the only transport. Per-memo
         'Waiting' sync pill removed (statusKind no longer Bonjour-keyed)
+      - 2026-07-06 · Live bidirectional edit sync (Part B) — edit-anywhere→syncs-everywhere.
+        Mac edit → debounced MemoEnhancement write-back (MacCloudEditSync); phone edit →
+        reconciler updates the PipelineFile (re-link+recompile, no LLM). Built + unit-tested
+        (desktop UnitTests green); TWO-DEVICE round-trip still owed on-device
     win: prod CloudKit schema deployed + Release app-ID registered; one real
       phone↔Mac round-trip verified in prod
   - id: Stz020

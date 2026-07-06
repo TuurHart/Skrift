@@ -33,12 +33,17 @@ enum MacCloudWriteBack {
     /// row in the CloudKit store — e.g. a locally-ingested file), or nothing to write yet (no
     /// copy-edit / title / summary). The phone re-links + re-compiles from the pieces, so only
     /// the raw-names polish + provenance is stored (no pre-compiled markdown).
+    /// `bodyOverride` carries the LIVE-EDITED body for the Mac→phone edit write-back (Part B):
+    /// a manual edit lands in `pf.sanitised` (names `[[linked]]`), so the edit path passes the
+    /// un-linked `Sanitiser.unlinkToSpoken(pf.bestBodyText, people:)` here — the phone stores that
+    /// RAW copy-edit and re-links it. `nil` (the post-process path) uses `pf.enhancedCopyedit`.
     @discardableResult
     static func upsert(for pf: PipelineFile, into context: ModelContext,
-                       deviceID: String, now: Date = Date()) throws -> MemoEnhancement? {
+                       deviceID: String, now: Date = Date(),
+                       bodyOverride: String? = nil) throws -> MemoEnhancement? {
         guard let memoID = memoID(for: pf) else { return nil }
 
-        let copyedit = pf.enhancedCopyedit ?? ""
+        let copyedit = bodyOverride ?? (pf.enhancedCopyedit ?? "")
         let title = pf.enhancedTitle ?? ""
         let summary = pf.enhancedSummary ?? ""
         // Nothing worth syncing back yet — leave the phone on the raw transcript.
@@ -52,6 +57,12 @@ enum MacCloudWriteBack {
 
         let existing = try context.fetch(
             FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == memoID })).first
+        // Echo/LWW guard (Part B): don't clobber a STRICTLY-NEWER edit made on ANOTHER device
+        // (a phone edit that arrived while this write was queued). Our own device's earlier
+        // write is always safe to update. `enhancedAt` is the last-write-wins key.
+        if let existing, existing.enhancedByDeviceID != deviceID, existing.enhancedAt > now {
+            return existing
+        }
         let enhancement = existing ?? MemoEnhancement(memoID: memoID)
         enhancement.copyedit = copyedit
         enhancement.title = title

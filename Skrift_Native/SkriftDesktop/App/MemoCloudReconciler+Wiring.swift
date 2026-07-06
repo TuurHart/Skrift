@@ -56,7 +56,32 @@ extension MemoCloudReconciler {
         // sweep is cheap; they converge with the phone through the shared merge.
         NamesCloudSync.run()
         VocabularyCloudSync.run()
-        return sweep(from: cloud.mainContext, into: SharedStore.container.mainContext,
-                     processEverything: settings.processAllSyncedMemosEnabled)
+        let local = SharedStore.container.mainContext
+        let outcome = sweep(from: cloud.mainContext, into: local,
+                            processEverything: settings.processAllSyncedMemosEnabled,
+                            people: NamesStore.shared.livePeople(), author: settings.authorName,
+                            thisDeviceID: DeviceID.current())
+        // A phone edit re-linked + recompiled an existing row (Part B). Persist it, and if it
+        // was already in the vault, re-export so Obsidian reflects the edit too ("everywhere").
+        if !outcome.updatedIDs.isEmpty {
+            try? local.save()
+            reexportEdited(outcome.updatedIDs, in: local, settings: settings)
+        }
+        return outcome.created
+    }
+
+    /// Re-export the vault markdown for rows a phone edit just changed — but only those already
+    /// exported (`.done`), so we never push an un-reviewed note into the vault. Best-effort:
+    /// an export failure is logged by the caller path, never fatal to the sweep.
+    private static func reexportEdited(_ ids: [String], in context: ModelContext, settings: AppSettings) {
+        let files = (try? context.fetch(FetchDescriptor<PipelineFile>(
+            predicate: #Predicate { ids.contains($0.id) }))) ?? []
+        for pf in files where pf.exportStatus == .done {
+            if let result = try? VaultExporter.export(pf, settings: settings) {
+                pf.exported = result.markdownURL.path
+                pf.lastActivityAt = Date()
+            }
+        }
+        try? context.save()
     }
 }
