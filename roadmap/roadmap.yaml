@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 6
-updated: 2026-07-06T14:18:40.000Z
+updated: 2026-07-06T14:30:07.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -182,12 +182,12 @@ nodes:
       selection/undo/find/caret-follow come free; karaoke becomes attribute
       painting on the SAME view (kills the 20 Hz per-word re-render + mode
       swap). Study + review-1 2026-07-06 in backlog.md "EPIC note-editing";
-      spec = mocks/note-editor-redesign.html (v2). LOCKED — B2 pinned title;
-      accessory = undo/redo/find/photo/Done; no Save-highlight; summary card
-      in the scrolling header. Build waits for the bug-fix chat to wrap.
+      SPEC COMPLETE 2026-07-06 = mocks/note-editor-redesign.html. LOCKED — B2
+      pinned title; accessory = undo/redo/find/photo/Done (floating Skrift
+      pill, SF Symbols); no Save-highlight; summary card in the scrolling
+      header; compact player pill. Build green-lit once the bug-fix chat
+      wraps. Feature-gap survey shortlist in backlog.md (awaiting pick).
     backlog:
-      - Sign off the accessory RESTYLE (floating Skrift pill) + the compact
-        player direction
       - Compact player pill — one 44pt row, whole-pill scrubbing (old bar
         blocks the note)
       - Keyboard accessory bar (undo · redo · find · photo-at-caret · Done)

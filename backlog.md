@@ -355,8 +355,28 @@ check in the bugs chat. NEW asks from review: (1) **accessory bar restyled** to 
 pill matching the player — user: system strip "doesn't fit the style, not as clean"); (2) **compact player pill** —
 the old ~112 pt bar "takes up way too much space, blocks out the note" → one 44 pt row (play · ±10 s · scrubber+times
 · rate), whole-pill scrub target, page dots → transient "3 / 7" while swiping. Mock fidelity note: chips/importance
-render schematic — build matches the real app. **STILL TO SIGN OFF: the accessory restyle + the compact player
-direction (both mocked in v2).** Implementation waits until the user's bug-fixing chat wraps (this chat = research).
+render schematic — build matches the real app. ~~STILL TO SIGN OFF: the accessory restyle + the compact player direction~~
+**✅ REVIEW 2 2026-07-06 — BOTH SIGNED OFF ("that's about it"); icon nit fixed (crisp SVG stand-ins in the mock,
+SF Symbols on device: arrow.uturn.backward/.forward · magnifyingglass · camera). THE SPEC IS COMPLETE →
+`mocks/note-editor-redesign.html`. Build green-lit as soon as the user's bug-fixing chat wraps.**
+
+**🔍 FEATURE-GAP SURVEY 2026-07-06 (other note apps vs Skrift; knowledge-based).** Already have or already
+planned: pins/folders/nested-tags/smart-folders (P5), highlights-feed/quote-cards/daily-review (P6), person
+pages/backlinks (P7), journal/on-this-day/map/calendar/semantic-search (P8), ramble→to-do/bullets polish modes
+(P4c), share-IN captures (C3), find-in-note + undo + photo-viewer + Dynamic Type (NEdit spec). **Real gaps
+proposed (awaiting user pick):** (1) **share a note OUT** — md/text (+audio) share sheet; phone today only
+copies the transcript — fold into the NEdit build (S); (2) **word count / duration stats** in ⋯ (S, fold in);
+(3) **photo OCR** — on-device Vision text-in-photos → searchable + copyable (M, feeds P8d later);
+(4) **note reminders** — "note to self" → local notification at a time (M); (5) **FaceID-locked notes** (M,
+fits the privacy brand); (6) **live checklists** — render/toggle `- [ ]` lines, pairs with P4c + Obsidian tasks
+(M); (7) **note↔note [[links]] + backlinks** — people-links exist; extend to memos, enriches the vault (M-L,
+P7-adjacent); (8) **in-app document scan** — VisionKit → PDF capture (S-M); (9) **audio trim/delete-section
+with transcript sync** — beyond Voice Memos; differentiator-grade (L, later). **Rejected as off-north:**
+collaboration/shared notes, templates, publish-to-web, handwriting, note colors, typewriter modes.
+Strategic note: iOS 18+ Apple Notes/Voice Memos transcribe natively now — don't chase generic parity; win on
+context + names + audiobooks + karaoke + Obsidian + privacy.
+
+Implementation waits until the user's bug-fixing chat wraps (this chat = research/spec).
 
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 
