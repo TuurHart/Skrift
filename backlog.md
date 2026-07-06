@@ -2,6 +2,35 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ CloudKit-only sync epic — retiring Bonjour (2026-07-06, on `main`)
+
+Building CloudKit as the sole phone↔Mac transport, then deleting Bonjour. Plan in
+`~/.claude/plans/do-all-the-work-lively-sedgewick.md`. Phases 1–3 built + committed; verify-first.
+
+**Device test session (2026-07-06, Dev, CloudKit-only both ends):**
+- ✅ **B — memo round-trip**: phone → Mac (via CloudKit, Bonjour off) → enhance → `MemoEnhancement`
+  write-back → phone shows "✦ Polished on your Mac". Title + polish confirmed. PASS.
+- ✅ **C — Bonjour retired UX**: phone Settings has no Pair-a-Mac (just "iCloud sync"); no stale
+  "Waiting" pill. PASS.
+- 🔧 **A/D — names + vocab looked broken, were mostly UI/timing**: the name DID sync (landed in the
+  Mac's `names.json`) but the **Mac Names settings list didn't live-refresh**, and edits only pushed
+  the carrier on app foreground, not on edit. FIXED (`23a2eb1`/`79975a7`): phone pushes
+  NamesCloudSync/VocabularyCloudSync on edit; Mac Names list reloads on `.namesDidChangeFromSync`.
+  Re-test owed.
+
+**Feature requests / parity gaps from the session (NOT yet done — backlog):**
+- **"significance" (Mac) vs "importance" (phone)** — unify the user-facing label to **"Importance"**
+  everywhere (Mac still says "significance"). Small.
+- **Mac Names screen should match the phone's** person UI (look + interaction parity).
+- **Mac in-place name-linking should match the phone**: on the phone a linkable word ("Will") shows
+  dotted/tappable immediately on the raw transcript; on the Mac the dotted suggestions only appear
+  **after enhance** (the sanitise pass), and aren't as interactive. Want parity (immediate, tappable).
+- **Rename discoverability**: user thought you can't rename a person on the phone — you can (edit the
+  Full name in `PersonEditorView`, it tombstones the old canonical). Make rename obvious in the UI.
+
+**Still owed in the epic:** Phase 2a (off-main CloudKit reconciler I/O), Phase 4 (deploy prod CloudKit
+schema + device round-trip), Phase 5 (delete the Bonjour code — held until CloudKit-only is signed off).
+
 ## 🐛 Post-0.2.0 prod findings (2026-06-26, after promoting prod to build 22) — TRIAGE
 
 User hit these on the freshly-promoted PROD apps. Diagnoses below; fixes owed (do on Dev, verify,
