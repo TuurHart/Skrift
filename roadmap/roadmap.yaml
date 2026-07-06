@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 6
-updated: 2026-07-05T13:01:57.820Z
+updated: 2026-07-06T00:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -145,6 +145,9 @@ nodes:
         launch-crash fix (store→.none) [6642af4, 76e3747]
       - 2026-06-26 · Shipped in 0.2.0 (build 22) — 'the iCloud round-trip
         release' [7b8d165]
+      - 2026-07-06 · Bonjour/HTTP LAN sync fully RETIRED — desktop server [510ad0c]
+        + mobile client (Part A) deleted; CloudKit is the only transport. Per-memo
+        'Waiting' sync pill removed (statusKind no longer Bonjour-keyed)
     win: prod CloudKit schema deployed + Release app-ID registered; one real
       phone↔Mac round-trip verified in prod
   - id: Stz020
@@ -161,10 +164,8 @@ nodes:
       (SSOT §3). Done = phone↔Mac sync works end-to-end in prod + the batch is
       cleared.
     backlog:
-      - Deploy prod CloudKit PRODUCTION schema (incl. MemoEnhancement) —
-        phone→Mac sync hangs in prod (all testing was on Dev)
-      - Stale 'Waiting' sync pill — Memo.statusKind keys off Bonjour/HTTP, not
-        CloudKit
+      - Deploy prod CloudKit PRODUCTION schema (incl. MemoEnhancement + NamesRecord
+        + VocabularyRecord) — phone→Mac sync hangs in prod (all testing was on Dev)
       - Name added on phone not recognised (e.g. 'IJsbrand') — AddPersonView
         saves empty aliases; seed alias from name on add
       - Phone can't select a word + 'add as name' (desktop has it)
