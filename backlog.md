@@ -343,7 +343,10 @@ tap→QuickLook (reuse the capture path), selection→"Save highlight" hook (fee
 tapping a tag chip DELETES it silently (`removeTag`) — the chip editor must fix that. Perf hygiene
 regardless of fork: debounce transcript saves (~1 s idle + end-edit + disappear), memoize nameSpans by
 (text, people, resolutions), keep player ticks out of the page body. Conversations (`SpeakerTurnsView`)
-keep their surface for now — phase 2. **NEXT: render B1-vs-B2 mocks side by side → user picks.**
+keep their surface for now — phase 2. **MOCK RENDERED 2026-07-06 →
+`Skrift_Native/SkriftDesktop/mocks/note-editor-redesign.html`** (B1 vs B2 × rest/editing-deep, strictly
+parallel; accessory bar; find-in-note + edit-menu detail cards). **AWAITING PICK: B1 vs B2 + accessory-bar
+contents (add ▶ play-from-caret? ＋ append?) + "Save highlight" in v1 or later.**
 
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 

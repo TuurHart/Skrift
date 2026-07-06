@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — note editor re-foundation: B1 vs B2</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#050507;color:#e4e4e7;padding:28px;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+  .sub{color:#9a9aae;margin:0 0 14px;max-width:860px;line-height:1.6;}
+  .sub code{background:#1a1a24;padding:1px 6px;border-radius:5px;font-size:13px;}
+  .sub b{color:#e4e4e7;}
+  .freebies{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 26px;max-width:980px;}
+  .freebies .f{font-size:12.5px;color:#b4b4c2;background:#14141c;border:.5px solid rgba(255,255,255,.09);border-radius:8px;padding:5px 10px;}
+  .freebies .f b{color:#34d399;font-weight:600;}
+
+  .fork{display:flex;gap:44px;flex-wrap:wrap;align-items:flex-start;}
+  .option{display:flex;flex-direction:column;gap:14px;}
+  .ohead{max-width:700px;}
+  .ohead .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;color:#9d8ff7;background:rgba(124,107,245,.14);border:.5px solid rgba(124,107,245,.4);border-radius:7px;padding:3px 9px;margin-bottom:6px;}
+  .ohead h2{font-size:16px;margin:0 0 3px;}
+  .ohead p{font-size:13px;color:#9a9aae;margin:0;line-height:1.55;max-width:640px;}
+  .pair{display:flex;gap:26px;flex-wrap:wrap;}
+  .unit{width:332px;}
+  .cap{font-size:12.5px;color:#9a9aae;line-height:1.5;margin-top:10px;padding:0 4px;}
+  .cap b{color:#b4b4c2;font-weight:600;}
+
+  /* ---------- phone ---------- */
+  .phone{width:332px;height:664px;position:relative;background:#0f1117;border:6px solid #000;border-radius:42px;overflow:hidden;color:#e4e4e7;}
+  .nav{display:flex;align-items:center;padding:16px 16px 9px;font-size:15px;position:relative;z-index:2;}
+  .nav .back{color:#7c6bf5;}
+  .nav .navtitle{position:absolute;left:0;right:0;padding:0 78px;text-align:center;font-size:13px;font-weight:600;color:#e4e4e7;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nav .acts{margin-left:auto;display:flex;gap:16px;color:#8b8b97;font-size:16px;}
+  .pinbar{padding:2px 18px 10px;border-bottom:.5px solid rgba(255,255,255,.09);display:flex;align-items:center;gap:8px;position:relative;z-index:2;background:#0f1117;}
+  .pinbar .t{font-size:16.5px;font-weight:700;letter-spacing:-.015em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sparkle{width:26px;height:26px;border-radius:8px;background:rgba(124,107,245,.13);color:#9d8ff7;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+  .page{position:absolute;inset:0;top:52px;overflow:hidden;padding:6px 18px 0;}
+  .phone.haspin .page{top:96px;}
+  .ptitle{font-size:23px;font-weight:700;letter-spacing:-.02em;margin:8px 0 2px;display:flex;align-items:flex-start;gap:8px;}
+  .ptitle span{flex:1;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0;}
+  .chip{font-size:11px;color:#8b8b97;background:#1e2130;border-radius:7px;padding:3px 8px;}
+  .chip.tagc{color:#b3a7fb;background:rgba(124,107,245,.13);}
+  .chip.addt{color:#8b8b97;background:#1e2130;}
+  .sig{display:flex;align-items:center;gap:5px;margin:15px 0 0;}
+  .sig .c{width:13px;height:13px;border-radius:50%;border:1.4px solid rgba(255,255,255,.22);}
+  .sig .c.on{background:#7c6bf5;border-color:#7c6bf5;}
+  .sig .lab{font-size:10px;letter-spacing:.08em;color:#55556a;font-weight:600;margin-left:7px;}
+  .prose{font-size:15.5px;line-height:1.72;margin-top:16px;}
+  .prose p{margin:0 0 14px;}
+  .tok.ambig{background:rgba(124,107,245,.13);border-bottom:1.5px dotted rgba(124,107,245,.7);border-radius:3px;padding:0 2px 1px;}
+  .tok.sugg{color:#bda481;border-bottom:1.6px dotted #c4a982;padding-bottom:1px;}
+  .photo{height:132px;border-radius:14px;border:.5px solid rgba(255,255,255,.09);background:linear-gradient(135deg,#2b3350,#161a29);display:flex;align-items:center;justify-content:center;color:#55556a;font-size:22px;margin:2px 0 14px;}
+  .peoplerow{display:flex;align-items:center;gap:8px;margin-top:2px;padding:11px 12px;background:#181a23;border:.5px solid rgba(255,255,255,.08);border-radius:11px;font-size:13px;color:#b4b4c2;}
+  .peoplerow b{color:#e4e4e7;font-weight:600;}
+  .peoplerow .ch{margin-left:auto;color:#9a9aae;}
+  .scrollhint{position:absolute;right:3px;width:3px;height:84px;border-radius:2px;background:rgba(255,255,255,.22);}
+
+  /* selection + caret */
+  .sel{background:rgba(124,107,245,.32);border-radius:2px;position:relative;}
+  .hmark{display:inline-block;width:0;position:relative;}
+  .hmark i{position:absolute;width:2px;background:#7c6bf5;height:22px;left:-1px;top:-19px;}
+  .hmark i::after{content:'';position:absolute;width:9px;height:9px;border-radius:50%;background:#7c6bf5;left:-3.5px;}
+  .hmark.st i{top:-21px;}
+  .hmark.st i::after{top:-8px;}
+  .hmark.en i{top:1px;}
+  .hmark.en i::after{bottom:-8px;}
+  .caret{display:inline-block;width:2px;height:18px;background:#7c6bf5;vertical-align:-3px;border-radius:1px;}
+  .editmenu{position:absolute;background:#26262f;border:.5px solid rgba(255,255,255,.14);border-radius:11px;padding:8px 13px;font-size:13px;font-weight:500;display:flex;gap:14px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:3;white-space:nowrap;}
+  .editmenu span{color:#fff;}
+  .editmenu .hl{color:#9d8ff7;}
+  .editmenu::after{content:'';position:absolute;left:50%;bottom:-5px;width:9px;height:9px;background:#26262f;border-right:.5px solid rgba(255,255,255,.14);border-bottom:.5px solid rgba(255,255,255,.14);transform:translateX(-50%) rotate(45deg);}
+
+  /* player bar (rest) */
+  .playerbar{position:absolute;left:14px;right:14px;bottom:14px;border-radius:24px;padding:11px 18px 10px;
+    background:rgba(30,33,48,.66);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:.5px solid rgba(255,255,255,.14);box-shadow:0 10px 28px rgba(0,0,0,.35);z-index:2;}
+  .track{height:3.5px;border-radius:2px;background:rgba(255,255,255,.14);position:relative;margin-bottom:6px;}
+  .track i{position:absolute;left:0;top:0;bottom:0;width:34%;background:#7c6bf5;border-radius:2px;}
+  .track b{position:absolute;left:34%;top:50%;width:11px;height:11px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);}
+  .times{display:flex;justify-content:space-between;font-size:10px;font-weight:600;color:#8b8b97;margin-bottom:5px;}
+  .ctrls{display:flex;align-items:center;justify-content:center;gap:30px;position:relative;}
+  .ctrls .sk{font-size:17px;color:#e4e4e7;}
+  .playbtn{width:40px;height:40px;border-radius:50%;background:#7c6bf5;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;box-shadow:0 4px 14px rgba(124,107,245,.4);}
+  .rate{position:absolute;right:0;font-size:11px;font-weight:700;background:#181a23;border:.5px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 8px;color:#e4e4e7;}
+
+  /* keyboard (editing) */
+  .kbstack{position:absolute;left:0;right:0;bottom:0;z-index:4;}
+  .acc{display:flex;align-items:center;gap:4px;background:#17171d;border-top:.5px solid rgba(255,255,255,.1);padding:7px 10px;}
+  .acc .ab{width:34px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#c9c9d4;}
+  .acc .ab.dis{color:#4a4a58;}
+  .acc .gap{width:10px;}
+  .acc .done{margin-left:auto;color:#9d8ff7;font-size:15px;font-weight:600;padding:0 6px;}
+  .kb{background:#17171c;padding:7px 4px 4px;}
+  .krow{display:flex;gap:5px;justify-content:center;margin-bottom:7px;}
+  .key{flex:1;max-width:29px;height:38px;background:#454550;border-radius:5px;box-shadow:0 1px 0 rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:15.5px;color:#fff;}
+  .key.sp{max-width:none;flex:5;font-size:12.5px;color:#b4b4c2;}
+  .key.fn{background:#2e2e36;max-width:42px;font-size:12px;color:#d4d4dc;}
+  .key.fn.wide{max-width:64px;}
+  .homebar{height:22px;background:#17171c;display:flex;align-items:center;justify-content:center;}
+  .homebar i{width:110px;height:4px;border-radius:2px;background:rgba(255,255,255,.32);}
+
+  /* details strip */
+  .details{display:flex;gap:22px;flex-wrap:wrap;margin-top:40px;}
+  .dcard{width:322px;background:#101017;border:.5px solid rgba(255,255,255,.09);border-radius:16px;padding:16px;}
+  .dcard h3{font-size:13.5px;margin:0 0 10px;color:#e4e4e7;}
+  .dcard .cap{margin-top:11px;padding:0;}
+  .findbar{display:flex;align-items:center;gap:8px;background:#17171d;border:.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 10px;font-size:13px;}
+  .findbar .fld{flex:1;background:#26262f;border-radius:7px;padding:5px 9px;color:#e4e4e7;display:flex;gap:6px;align-items:center;}
+  .findbar .fld .ph{color:#55556a;}
+  .findbar .cnt{color:#8b8b97;font-size:12px;}
+  .findbar .nv{color:#9d8ff7;font-size:14px;}
+  .minisel{background:#0f1117;border:.5px solid rgba(255,255,255,.08);border-radius:12px;padding:34px 14px 14px;font-size:15px;line-height:1.7;position:relative;}
+  .accdemo{background:#17171d;border:.5px solid rgba(255,255,255,.1);border-radius:12px;display:flex;align-items:center;gap:4px;padding:9px 10px;}
+  .alabels{display:flex;gap:4px;margin-top:8px;}
+  .alabels span{width:34px;text-align:center;font-size:9.5px;color:#55556a;line-height:1.25;}
+  .alabels .big{margin-left:auto;width:auto;}
+
+  /* notes */
+  .notes{max-width:600px;font-size:13.5px;line-height:1.7;color:#b4b4c2;margin-top:40px;}
+  .notes h2{font-size:15px;color:#e4e4e7;margin:22px 0 8px;}
+  .notes h2:first-child{margin-top:0;}
+  .notes li{margin-bottom:7px;}
+  .notes code{background:#1a1a24;padding:1px 6px;border-radius:5px;font-size:12.5px;}
+  .notes b{color:#e4e4e7;font-weight:600;}
+  .notes .q{color:#f0b35e;font-weight:600;}
+</style>
+</head>
+<body>
+<h1>Skrift — note editor re-foundation (fork B): B1 vs B2</h1>
+<p class="sub">The note body moves onto a <b>natively-scrolling text view</b> — the scroll view <em>is</em> the editor,
+so selection-drag autoscroll, caret-follow, magnifier, undo and find-in-note come from UIKit instead of patches.
+Everything below the title (chips · tags · importance · summary · quote block) scrolls with the note in both options.
+<b>The one decision this mock asks for: where the title lives.</b></p>
+<div class="freebies">
+  <span class="f"><b>✓</b> selection drag autoscrolls</span>
+  <span class="f"><b>✓</b> caret stays above the keyboard</span>
+  <span class="f"><b>✓</b> magnifier + edit menu</span>
+  <span class="f"><b>✓</b> undo / redo</span>
+  <span class="f"><b>✓</b> find in note</span>
+  <span class="f"><b>✓</b> karaoke paints the SAME view — no swap, no image jump</span>
+</div>
+
+<div class="fork">
+
+  <!-- ============================ B1 ============================ -->
+  <div class="option">
+    <div class="ohead">
+      <span class="tag">B1 · NOTES-STYLE</span>
+      <h2>Title is the first line of the note</h2>
+      <p>Exactly Apple Notes: the big title scrolls away with the content; once it's off-screen the nav bar
+      picks it up. Maximum text on screen while editing.</p>
+    </div>
+    <div class="pair">
+
+      <div class="unit">
+        <div class="phone">
+          <div class="nav"><span class="back">‹ Memos</span><span class="acts"><span>＋</span><span>⋯</span></span></div>
+          <div class="page">
+            <div class="ptitle"><span>Evening at Hotel du Vin</span><span class="sparkle">✦</span></div>
+            <div class="chips">
+              <span class="chip">Fri 4 Jul · 21:12</span><span class="chip">📍 Hotel du Vin</span><span class="chip">☾ Evening</span>
+              <span class="chip tagc">#travel</span><span class="chip tagc">#friends</span><span class="chip addt">＋ Tag</span>
+            </div>
+            <div class="sig">
+              <span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c"></span><span class="c"></span><span class="c"></span><span class="c"></span>
+              <span class="lab">IMPORTANCE</span>
+            </div>
+            <div class="prose">
+              <p>Checked in just before sunset and the courtyard was glowing. <span class="tok ambig">Jack</span> grabbed the corner table before anyone could argue, and <span class="tok sugg">Rose</span> was already deep into the wine list by the time we sat down.</p>
+              <div class="photo">▦</div>
+              <p>Note to self — the tasting menu is the move next time. Ask Jack about the vineyard he kept mentioning; half of it sounded made up but the other half sounded like a plan.</p>
+            </div>
+            <div class="peoplerow"><span>👤</span><span><b>People in this note</b> · 0 linked</span><span class="ch">›</span></div>
+          </div>
+          <div class="playerbar">
+            <div class="track"><i></i><b></b></div>
+            <div class="times"><span>1:04</span><span>3:07</span></div>
+            <div class="ctrls"><span class="sk">↺</span><span class="playbtn">▶</span><span class="sk">↻</span><span class="rate">1×</span></div>
+          </div>
+        </div>
+        <div class="cap"><b>At rest.</b> The title is simply the note's first line — one uninterrupted flow, the most
+        Notes-like reading surface. Meta chips, tags and importance scroll with it.</div>
+      </div>
+
+      <div class="unit">
+        <div class="phone">
+          <div class="nav"><span class="back">‹ Memos</span><span class="navtitle">Evening at Hotel du Vin</span><span class="acts"><span>＋</span><span>⋯</span></span></div>
+          <div class="page">
+            <div class="scrollhint" style="top:150px;"></div>
+            <div class="prose" style="margin-top:2px;">
+              <p style="color:#8b8b97;">…half of it sounded made up but the other half sounded like a plan.</p>
+              <div class="editmenu" style="top:64px;left:38px;"><span>Cut</span><span>Copy</span><span class="hl">Save highlight</span><span>▸</span></div>
+              <p>Walked the old town loop after dinner. The <span class="hmark st"><i></i></span><span class="sel">best part of the whole evening</span><span class="hmark en"><i></i></span> was the quiet stretch along the river — nobody talked for ten minutes and it wasn't awkward at all.</p>
+              <p>Tomorrow: breakfast at nine, then the drive out to the coast if the weather holds. Jack says forty minutes; it's ninety.</p>
+            </div>
+          </div>
+          <div class="kbstack">
+            <div class="acc">
+              <span class="ab">↶</span><span class="ab dis">↷</span><span class="gap"></span><span class="ab">🔍</span><span class="ab">📷</span><span class="done">Done</span>
+            </div>
+            <div class="kb">
+              <div class="krow"><span class="key">Q</span><span class="key">W</span><span class="key">E</span><span class="key">R</span><span class="key">T</span><span class="key">Y</span><span class="key">U</span><span class="key">I</span><span class="key">O</span><span class="key">P</span></div>
+              <div class="krow"><span class="key">A</span><span class="key">S</span><span class="key">D</span><span class="key">F</span><span class="key">G</span><span class="key">H</span><span class="key">J</span><span class="key">K</span><span class="key">L</span></div>
+              <div class="krow"><span class="key fn">⇧</span><span class="key">Z</span><span class="key">X</span><span class="key">C</span><span class="key">V</span><span class="key">B</span><span class="key">N</span><span class="key">M</span><span class="key fn">⌫</span></div>
+              <div class="krow"><span class="key fn wide">123</span><span class="key fn">😀</span><span class="key sp">space</span><span class="key fn wide">return</span></div>
+            </div>
+            <div class="homebar"><i></i></div>
+          </div>
+        </div>
+        <div class="cap"><b>Scrolled deep, editing.</b> The title has scrolled away → <b>the nav bar shows it</b> (Notes
+        behaviour). Selection handles drag past the fold and the note scrolls with you. Accessory bar:
+        undo · redo · find · insert photo · Done.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================ B2 ============================ -->
+  <div class="option">
+    <div class="ohead">
+      <span class="tag">B2 · PINNED TITLE</span>
+      <h2>Compact title row pinned under the nav</h2>
+      <p>The title never leaves: a slim pinned row (with the ✦ title-chooser) above the scrolling note.
+      Costs ~44 pt of height, buys permanent context in a paged, swipe-between-memos UI.</p>
+    </div>
+    <div class="pair">
+
+      <div class="unit">
+        <div class="phone haspin">
+          <div class="nav"><span class="back">‹ Memos</span><span class="acts"><span>＋</span><span>⋯</span></span></div>
+          <div class="pinbar"><span class="t">Evening at Hotel du Vin</span><span class="sparkle">✦</span></div>
+          <div class="page">
+            <div class="chips" style="margin-top:10px;">
+              <span class="chip">Fri 4 Jul · 21:12</span><span class="chip">📍 Hotel du Vin</span><span class="chip">☾ Evening</span>
+              <span class="chip tagc">#travel</span><span class="chip tagc">#friends</span><span class="chip addt">＋ Tag</span>
+            </div>
+            <div class="sig">
+              <span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c"></span><span class="c"></span><span class="c"></span><span class="c"></span>
+              <span class="lab">IMPORTANCE</span>
+            </div>
+            <div class="prose">
+              <p>Checked in just before sunset and the courtyard was glowing. <span class="tok ambig">Jack</span> grabbed the corner table before anyone could argue, and <span class="tok sugg">Rose</span> was already deep into the wine list by the time we sat down.</p>
+              <div class="photo">▦</div>
+              <p>Note to self — the tasting menu is the move next time. Ask Jack about the vineyard he kept mentioning; half of it sounded made up but the other half…</p>
+            </div>
+          </div>
+          <div class="playerbar">
+            <div class="track"><i></i><b></b></div>
+            <div class="times"><span>1:04</span><span>3:07</span></div>
+            <div class="ctrls"><span class="sk">↺</span><span class="playbtn">▶</span><span class="sk">↻</span><span class="rate">1×</span></div>
+          </div>
+        </div>
+        <div class="cap"><b>At rest.</b> Title row is chrome, not content — slightly smaller type than B1's in-flow
+        title. Everything below it (chips · tags · importance · body) is one scroll.</div>
+      </div>
+
+      <div class="unit">
+        <div class="phone haspin">
+          <div class="nav"><span class="back">‹ Memos</span><span class="acts"><span>＋</span><span>⋯</span></span></div>
+          <div class="pinbar"><span class="t">Evening at Hotel du Vin</span><span class="sparkle">✦</span></div>
+          <div class="page">
+            <div class="scrollhint" style="top:110px;"></div>
+            <div class="prose" style="margin-top:2px;">
+              <p style="color:#8b8b97;">…half of it sounded made up but the other half sounded like a plan.</p>
+              <p>Walked the old town loop after dinner. The <span class="hmark st"><i></i></span><span class="sel">best part of the whole evening</span><span class="hmark en"><i></i></span> was the quiet stretch along the river — nobody talked for ten minutes and it wasn't awkward at all.</p>
+              <p>Tomorrow: breakfast at nine.<span class="caret"></span></p>
+            </div>
+          </div>
+          <div class="kbstack">
+            <div class="acc">
+              <span class="ab">↶</span><span class="ab dis">↷</span><span class="gap"></span><span class="ab">🔍</span><span class="ab">📷</span><span class="done">Done</span>
+            </div>
+            <div class="kb">
+              <div class="krow"><span class="key">Q</span><span class="key">W</span><span class="key">E</span><span class="key">R</span><span class="key">T</span><span class="key">Y</span><span class="key">U</span><span class="key">I</span><span class="key">O</span><span class="key">P</span></div>
+              <div class="krow"><span class="key">A</span><span class="key">S</span><span class="key">D</span><span class="key">F</span><span class="key">G</span><span class="key">H</span><span class="key">J</span><span class="key">K</span><span class="key">L</span></div>
+              <div class="krow"><span class="key fn">⇧</span><span class="key">Z</span><span class="key">X</span><span class="key">C</span><span class="key">V</span><span class="key">B</span><span class="key">N</span><span class="key">M</span><span class="key fn">⌫</span></div>
+              <div class="krow"><span class="key fn wide">123</span><span class="key fn">😀</span><span class="key sp">space</span><span class="key fn wide">return</span></div>
+            </div>
+            <div class="homebar"><i></i></div>
+          </div>
+        </div>
+        <div class="cap"><b>Scrolled deep, editing.</b> The pinned row is <b>still there</b> — you always know which memo
+        you're in (matters when swiping between memos). Caret sits above the keyboard and the view follows it as
+        you type.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================ details ============================ -->
+<div class="details">
+  <div class="dcard">
+    <h3>The keyboard accessory bar (both options)</h3>
+    <div class="accdemo">
+      <span class="ab" style="width:34px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#c9c9d4;">↶</span>
+      <span class="ab" style="width:34px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#4a4a58;">↷</span>
+      <span style="width:10px;"></span>
+      <span class="ab" style="width:34px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;">🔍</span>
+      <span class="ab" style="width:34px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;">📷</span>
+      <span style="margin-left:auto;color:#9d8ff7;font-size:15px;font-weight:600;padding:0 6px;">Done</span>
+    </div>
+    <div class="alabels">
+      <span>undo</span><span>redo</span><span style="width:10px;"></span><span>find in note</span><span>photo at caret</span><span class="big" style="color:#9a9aae;">dismiss</span>
+    </div>
+    <div class="cap">Undo/redo drive the text view's own <code>UndoManager</code>; find is the system
+    <code>findInteraction</code>; 📷 drops a photo at the caret as an inline <code>[[img]]</code>. Nothing custom to maintain.</div>
+  </div>
+
+  <div class="dcard">
+    <h3>Find in note</h3>
+    <div class="findbar"><span>🔍</span><span class="fld">river <span class="ph">|</span></span><span class="cnt">2 of 7</span><span class="nv">‹ ›</span><span style="color:#9a9aae;">✕</span></div>
+    <div class="cap">The system find panel over the transcript — all matches highlighted, ‹ › jumps between them.
+    Long rambles finally searchable in place.</div>
+  </div>
+
+  <div class="dcard">
+    <h3>Selection → native edit menu</h3>
+    <div class="minisel">
+      <div class="editmenu" style="top:-16px;left:24px;"><span>Cut</span><span>Copy</span><span class="hl">Save highlight</span><span>▸</span></div>
+      The <span class="hmark st"><i></i></span><span class="sel">best part of the whole evening</span><span class="hmark en"><i></i></span> was the quiet stretch along the river…
+    </div>
+    <div class="cap">The real iOS edit menu, with one Skrift item added: <b style="color:#9d8ff7;">Save highlight</b> —
+    a selected passage becomes a highlight (feeds the Commonplace Book / quote cards later). <span class="q">Open
+    question — include in v1?</span></div>
+  </div>
+</div>
+
+<!-- ============================ notes ============================ -->
+<div class="notes">
+  <h2>What this mock decides</h2>
+  <ul>
+    <li><b>B1 vs B2</b> — title in the flow (Notes-style, nav picks it up on scroll) vs a pinned compact title row.
+    Everything else on this page is identical between the two.</li>
+    <li><b>Accessory bar contents</b> — proposed: undo · redo · find · photo-at-caret · Done. Say what to add/drop
+    (candidates: ▶ play-from-caret, ＋ append recording).</li>
+    <li><b>"Save highlight" in the edit menu</b> — in v1 or later?</li>
+  </ul>
+  <h2>Identical in both (the re-foundation itself)</h2>
+  <ul>
+    <li>The body is ONE scrolling text view; chips / tags / importance / summary / capture-quote live in a header that
+    scrolls with the text. No more non-scrolling-textview-inside-ScrollView.</li>
+    <li>Selection autoscroll, caret-follow, magnifier, smart paste, shake/3-finger undo — native, un-patched.</li>
+    <li><b>Karaoke = attribute painting on the same view</b> (play/pause no longer swaps renderers): highlight moves at
+    word rate instead of re-rendering at 20 Hz, tap-a-word-to-seek = character hit test, inline photos keep their exact
+    size and position when playback starts.</li>
+    <li>Name tiers (linked / suggested / ambiguous) render and tap exactly as today.</li>
+    <li>Typing gets cheap: saves debounce (~1 s idle + on Done/close), the name-scan memoizes, layout is viewport-only.</li>
+  </ul>
+  <h2>Rides along, mocked separately if wanted</h2>
+  <ul>
+    <li>Tag CHIP editor with autocomplete (replaces the comma alert; also fixes tap-a-chip-silently-deletes).</li>
+    <li>Photo tap → full-screen viewer (QuickLook). Dynamic Type across the page.</li>
+  </ul>
+  <h2>Must not break</h2>
+  <ul>
+    <li>Inline <code>[[img]]</code> photos · capture-quote protection (quote block above, ramble editable) ·
+    speaker-turn view for conversations (keeps its own surface for now) · <code>transcriptUserEdited</code> trust flag ·
+    save-now flow · polished-body editing (Phase 4) · swipe-between-memos paging.</li>
+  </ul>
+</div>
+
+</body>
+</html>
