@@ -36,6 +36,9 @@ struct SettingsView: View {
         .background(Theme.bg)
         .onChange(of: settings) { _, new in SettingsStore.shared.save(new) }
         .task { reloadNames() }
+        // Live-refresh when a CloudKit names reconcile merges in a person from the phone/iPad,
+        // so the list doesn't sit stale while it's open.
+        .onReceive(NotificationCenter.default.publisher(for: .namesDidChangeFromSync)) { _ in reloadNames() }
         .sheet(item: $editorRequest) { req in
             PersonEditor(request: req,
                          onSave: { original, person in

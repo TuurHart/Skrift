@@ -1,6 +1,12 @@
 import Foundation
 import SwiftData
 
+extension Notification.Name {
+    /// Posted when a CloudKit names reconcile changes the local roster, so open UI (the
+    /// Settings names list) can live-refresh instead of showing stale data until reopened.
+    static let namesDidChangeFromSync = Notification.Name("skrift.namesDidChangeFromSync")
+}
+
 /// Mac side of the CloudKit **names** carrier — the phone↔Mac names path over CloudKit that
 /// replaces the Bonjour `/api/names` endpoints. Reconciles the Mac's local `names.json`
 /// (`NamesStore`) with the shared `NamesRecord` blob carrier, using the SAME merge the
@@ -65,6 +71,9 @@ enum NamesCloudSync {
             context.insert(NamesRecord(blob: mergedBlob))
         }
         try? context.save()
+        // Live-refresh any open Settings names list (the reconcile runs in the background
+        // off a CloudKit import, so the view has no other way to know the roster changed).
+        if changed { NotificationCenter.default.post(name: .namesDidChangeFromSync, object: nil) }
         return changed
     }
 }

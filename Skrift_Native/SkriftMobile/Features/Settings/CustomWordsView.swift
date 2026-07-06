@@ -39,6 +39,7 @@ struct CustomWordsView: View {
                     .onDelete { offsets in
                         words.remove(atOffsets: offsets)
                         CustomVocabularyStore.save(words)
+                        VocabularyCloudSync.run(NotesRepository.shared)   // push to CloudKit now
                     }
                 }
             }
@@ -60,6 +61,7 @@ struct CustomWordsView: View {
         }
         words.append(trimmed)
         CustomVocabularyStore.save(words)
+        VocabularyCloudSync.run(NotesRepository.shared)   // push to CloudKit so other devices get it now
         newWord = ""
         fieldFocused = true   // keep the keyboard for rapid entry
     }

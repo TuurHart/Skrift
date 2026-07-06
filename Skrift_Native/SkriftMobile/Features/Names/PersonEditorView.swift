@@ -219,12 +219,14 @@ struct PersonEditorView: View {
         var cleanAliases = aliases.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         if cleanAliases.isEmpty { cleanAliases = [name] }
         store.upsert(canonical: name, aliases: cleanAliases, short: short.trimmingCharacters(in: .whitespaces).nilIfBlank)
+        NamesCloudSync.run(NotesRepository.shared)   // push to CloudKit so the Mac/iPad get it now
         onSaved(newCanonical)
         dismiss()
     }
 
     private func deletePerson() {
         if let canonical { store.delete(canonical: canonical) }
+        NamesCloudSync.run(NotesRepository.shared)   // push the tombstone to CloudKit now
         onDeleted()
         dismiss()
     }
