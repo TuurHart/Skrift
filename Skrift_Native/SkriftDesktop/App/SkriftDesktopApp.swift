@@ -81,11 +81,23 @@ struct SkriftDesktopApp: App {
                 }
                 let parts = MultipartParser.parse(req.body, boundary: boundary)
                 dispatchPrecondition(condition: .notOnQueue(.main))
+                // Phase 1 — write the audio/images/sidecars to disk OFF the main
+                // actor (a memo can be many MB; doing this inside the main-sync below
+                // would stall the UI). Only the light SwiftData insert/save is marshaled.
+                let prepared: [UploadService.PreparedUpload]
+                do {
+                    prepared = try upload.prepare(parts: parts)
+                } catch {
+                    return .json(UploadResponseDTO(success: false, files: [],
+                                                   message: "Upload failed", errors: [String(describing: error)]),
+                                 status: 500)
+                }
+                // Phase 2 — SwiftData only, on the main actor with the UI's mainContext.
                 return DispatchQueue.main.sync {
                     MainActor.assumeIsolated {
                         let ctx = SharedStore.container.mainContext
                         do {
-                            let created = try upload.ingest(parts: parts, into: ctx)
+                            let created = try upload.commit(prepared, into: ctx)
                             return .json(UploadResponseDTO(success: true, files: created.map(\.dto),
                                                            message: "Uploaded \(created.count) file(s)", errors: nil))
                         } catch {

@@ -128,8 +128,12 @@ struct BatchRunner {
         // Deterministic steps work on the cleaned copy-edit (fall back to transcript).
         let working = copyedit.isEmpty ? transcript : copyedit
 
-        // 3. Deterministic tag candidates (review-time selection).
-        let suggestions = TagMatcher.suggest(text: working, whitelist: tagWhitelist)
+        // 3. Deterministic tag candidates (review-time selection). For a conversation,
+        // tag over the SPOKEN bodies only — strip the `**Name:**` turn headers first so a
+        // speaker's name (repeated on every turn) can't be counted as a topic word and
+        // push a vault tag past the occurrence gate (over-eager conversation tagging).
+        let tagText = isConversation ? (SpeakerTranscript.flattened(working) ?? working) : working
+        let suggestions = TagMatcher.suggest(text: tagText, whitelist: tagWhitelist)
         pf.tagSuggestions = suggestions.matched + suggestions.spoken
 
         // 4. Name-link — last deterministic step, non-blocking. The note's persisted

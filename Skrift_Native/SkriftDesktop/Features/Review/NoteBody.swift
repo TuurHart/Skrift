@@ -122,19 +122,25 @@ struct NoteBody: View {
     }
 
     /// Karaoke state for the editor: how far through the words to brighten, and a
-    /// click-a-word → seek callback. Clicking word N seeks to that word's REAL start
-    /// time from the word-timings (the highlight uses the same timings, so click and
-    /// highlight agree). Falls back to an index-proportional position only when timings
-    /// are absent / the body word count drifts from the timings (e.g. demo notes).
+    /// click-a-word → seek callback. The SHOWN words are aligned to the raw word-timings
+    /// ONCE (C3), so the highlight sits on the spoken word AND clicking word N seeks to
+    /// that same word's real time — even when copy-edit / name-linking / conversation
+    /// headers made the displayed word count differ from the timings. Falls back to a
+    /// time proportion only when timings are absent (e.g. demo notes).
     private var karaokePlayback: BodyTextView.KaraokePlayback {
         let timings = file.wordTimings
         let duration = effectiveDuration
-        let frac = BodyText.karaokeFraction(
-            currentTime: audio.currentTime, duration: duration, timings: timings)
+        let displayedWords = file.bestBodyText.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        let times = timings.isEmpty ? [] : KaraokeAlignment.wordTimes(displayedWords: displayedWords, timings: timings)
+        let frac: Double = times.isEmpty
+            ? BodyText.karaokeFraction(currentTime: audio.currentTime, duration: duration, timings: timings)
+            : min(1, Double(KaraokeAlignment.activeCount(times: times, currentTime: audio.currentTime)) / Double(max(1, displayedWords.count)))
         return .init(fraction: frac) { wordIndex in
             let target: Double
-            if wordIndex >= 0, wordIndex < timings.count {
-                target = timings[wordIndex].start
+            if wordIndex >= 0, wordIndex < times.count {
+                target = times[wordIndex]                       // aligned time of the SHOWN word
+            } else if wordIndex >= 0, wordIndex < timings.count {
+                target = timings[wordIndex].start               // fallback: raw index
             } else if timings.count > 1 {
                 target = duration * Double(wordIndex) / Double(timings.count - 1)
             } else {
@@ -199,10 +205,21 @@ enum BodyText {
     /// `timings` it counts how many spoken words have started (tracks speech cadence);
     /// otherwise it's a pure time/duration proportion. Shared by the SwiftUI read path
     /// and the NSTextView in-place karaoke, so they highlight identically.
-    static func karaokeFraction(currentTime: Double, duration: Double, timings: [WordTiming]) -> Double {
+    static func karaokeFraction(currentTime: Double, duration: Double, timings: [WordTiming],
+                                displayedWords: [String]? = nil) -> Double {
         if timings.isEmpty {
             return duration > 0 ? min(1, max(0, currentTime / duration)) : 0
         }
+        // C3: when the SHOWN words are known, align them to the raw timings so the
+        // highlight tracks the actual spoken word (not a count the copy-edit shifted).
+        if let dw = displayedWords, !dw.isEmpty {
+            let times = KaraokeAlignment.wordTimes(displayedWords: dw, timings: timings)
+            if !times.isEmpty {
+                return min(1, Double(KaraokeAlignment.activeCount(times: times, currentTime: currentTime)) / Double(dw.count))
+            }
+        }
+        // Fallback (no displayed-word list, e.g. a caller that only has the timings):
+        // raw-progress proportion — how many spoken words have started.
         var started = 0
         for t in timings { if t.start <= currentTime { started += 1 } else { break } }
         return min(1, Double(started) / Double(max(1, timings.count)))
@@ -210,8 +227,10 @@ enum BodyText {
 
     static func karaoke(_ text: String, currentTime: Double, duration: Double, timings: [WordTiming] = []) -> Text {
         let tokens = tokenize(text)
-        let wordCount = tokens.reduce(0) { $0 + ($1.isWord ? 1 : 0) }
-        let frac = karaokeFraction(currentTime: currentTime, duration: duration, timings: timings)
+        let words = tokens.compactMap { $0.isWord ? $0.text : nil }
+        let wordCount = words.count
+        let frac = karaokeFraction(currentTime: currentTime, duration: duration, timings: timings,
+                                   displayedWords: words)
         let active = Int(frac * Double(max(1, wordCount)))
         var out = Text("")
         var wc = -1
