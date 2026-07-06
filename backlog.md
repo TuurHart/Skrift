@@ -2,6 +2,43 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🔭 Next unclaimed lane + code-verified quick hits (2026-07-06 Fable survey, worktree youthful-wozniak)
+
+Surveyed while three lanes were claimed elsewhere: note-editing (`claude/gracious-easley-e3fc96`),
+audiobooks, and the Bonjour-removal/live-sync handoff (`claude/xenodochial-mclaren-9361b9`).
+**Recommended next big lane = P8 Journal & retrieval** — full Opus-ready plan in
+**`JOURNAL_RETRIEVAL_PLAN.md`** (repo root): locked decisions, chunk list with gates, collision map.
+
+**Quick hits (unclaimed; each verified against today's code, not memory):**
+1. ⬜ **Stz020 #3 STILL LIVE — phone-added person is unlinkable.** `NamesListView.swift:202` still
+   saves `aliases: []`; `PersonEditorView.swift:222` already seeds `[name]`. Fix: same seed in
+   AddPersonView + a one-time backfill `aliases = [canonical]` for alias-less people (safe: only
+   AddPersonView ever produced them — the editor auto-seeds on save). Backfill also fixes IJsbrand.
+2. ⬜ **i4 ROOT-CAUSED — WhatsApp voice message imports as a LINK.** `SkriftShare/SharePayloadLoader.swift:48-70`
+   classifies url → movie → image → text → file and has **no `UTType.audio` branch**; WhatsApp audio
+   also exposes a URL representation, so the url branch wins. Fix: an audio branch BEFORE url,
+   mirroring the movie fast-path (copy into the App-Group inbox, `type: "audio"`, host imports as a
+   voice memo + transcribes). Feature half (multi-select messages → append-as-one vs split): the
+   loader only reads `attachments.first` per type — iterate all providers + a small share-sheet
+   choice. Verify on device with a real WhatsApp share.
+3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
+   over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
+   markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →
+   Re-transcribe, `SidebarView.swift:527`.)
+4. ⬜ **Prod gate runbook (no code — dashboard + user GUI), before ANY Release promote:**
+   (a) CloudKit Dashboard `iCloud.com.skrift.mobile` → deploy Development→Production schema, must
+   now include `MemoEnhancement` + `NamesRecord` + `VocabularyRecord`; (b) prod Mac Settings →
+   cloudKitMacSync ON; (c) Release bundle-IDs' App Groups capability — one-time Xcode Signing &
+   Capabilities visit (CLAUDE.md signing lesson); (d) one real prod round-trip test.
+5. ⬜ **Sequencing:** Mac in-place name-linking parity (§ CloudKit epic above) touches
+   `Features/Review/NoteBody.swift` — the same file live-sync Part B will edit. Do it AFTER
+   live-sync lands, then run `/code-review` over the whole CloudKit sync spine (newest,
+   least-battle-tested code in the repo).
+
+Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab is P6's reserved slot (Commonplace Book +
+quote cards — the App-Store headline). P6 needs a user-led mock/design session first — good to run
+interactively whenever Tuur has taste-time; it is NOT part of the P8 plan.
+
 ## ⭐ CloudKit-only sync epic — retiring Bonjour (2026-07-06, on `main`)
 
 Building CloudKit as the sole phone↔Mac transport, then deleting Bonjour. Plan in
