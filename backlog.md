@@ -374,9 +374,47 @@ P7-adjacent); (8) **in-app document scan** — VisionKit → PDF capture (S-M); 
 with transcript sync** — beyond Voice Memos; differentiator-grade (L, later). **Rejected as off-north:**
 collaboration/shared notes, templates, publish-to-web, handwriting, note colors, typewriter modes.
 Strategic note: iOS 18+ Apple Notes/Voice Memos transcribe natively now — don't chase generic parity; win on
-context + names + audiobooks + karaoke + Obsidian + privacy.
+context + names + audiobooks + karaoke + Obsidian + privacy. **USER 2026-07-06: their native transcription
+quality is far below Parakeet's — transcription QUALITY is the moat; keep it front of positioning.**
 
-Implementation waits until the user's bug-fixing chat wraps (this chat = research/spec).
+**✅ SURVEY DECIDED 2026-07-06 — ALL shortlist items APPROVED** (share-out, word count, photo OCR, reminders,
+FaceID lock, checklists, memo↔memo links, doc scan; audio-trim PARKED after explanation; rejected list confirmed
+rejected). **HARD RULE (user): every feature ships on BOTH apps — model/logic in `Skrift_Native/Shared/`, thin
+per-platform UI; phone and Mac run the same code wherever possible.**
+
+**🏗 BUILD PLAN — frozen 2026-07-06. DO NOT START until the user's bug-fixing chat wraps.** Spec =
+`mocks/note-editor-redesign.html`. Commit + verify per chunk (sim tests both apps; device eyeball for editor
+feel); update FEATURES.md + roadmap in the same commits. Chunks in order:
+1. **Re-foundation (the editor):** scrolling UITextView page per spec (B2 pinned title; chips→importance→
+   summary as in-scroll header), TextKit 2, `[[img]]` attachments, name-tier attributes, quote-protected
+   captures. DELETE `NonScrollingTextView` + the 3-mode swap. **Karaoke = attribute painting** on the same
+   textStorage (word-rate) + char-hit tap-to-seek. Perf: debounced saves (~1 s idle + Done/close), memoized
+   nameSpans, player ticks out of the page body. Verify on a LONG memo: selection-drag autoscroll, caret-follow,
+   paste, undo, magnifier.
+2. **Chrome:** floating accessory pill (undo · redo · find · photo-at-caret · Done; SF Symbols),
+   `isFindInteractionEnabled`, compact 44-pt player pill (whole-pill scrub; dots → transient "3/7"), photo
+   tap→QuickLook (Live Text ⇒ copyable for free), Dynamic Type, **share note OUT** (md/text + audio),
+   **word count/duration** in ⋯.
+3. **Tag chip editor** + autocomplete from existing tags (fixes tap-a-chip-silently-deletes).
+4. **Live checklists:** `- [ ]` / `- [x]` lines render as tappable checkboxes in the editor; toggle rewrites the
+   line; round-trips verbatim to Obsidian tasks. (Pairs with P4c ramble→to-do later.)
+5. **Memo↔memo links:** `[[` in the editor → memo-title autocomplete; store `[[memo:UUID|Title]]` in the raw
+   text; exporter emits `[[Title]]` (resolving the CURRENT title) so it works in Obsidian; tap → open that memo;
+   "Linked from…" backlinks section on detail. Shared linker in Shared/.
+6. **Photo OCR:** Vision `VNRecognizeTextRequest` at photo save/import (background) → per-image text sidecar;
+   folds into list search on phone AND Mac; copyable via the QuickLook viewer.
+7. **Note reminders:** `Memo.remindAt: Date?` on the SHARED model (syncs via CloudKit like any field); the alarm
+   is LOCAL per device — each device reconciles `UNUserNotificationCenter` pending requests from the synced field
+   on sync-settle (CloudSyncMonitor hook); same framework on macOS. Set/clear from ⋯ + list long-press; tap the
+   notification → open the memo.
+8. **Locked notes:** synced `locked` flag; list long-press / detail ⋯ → Lock (Apple Notes idiom); open gated via
+   `LocalAuthentication` (FaceID phone / TouchID-password Mac — shared gate); list shows title + 🔒, hides
+   preview; **locked ⇒ excluded from Obsidian publish by default** (vault is plaintext). v1 = auth-gated UI,
+   NOT per-note crypto (search + pipeline keep working) — stated honestly in Settings copy.
+9. **Doc scan (phone):** VisionKit document camera → PDF → the existing C3 file-capture path (Mac views it like
+   any shared file).
+**PARKED:** audio trim / delete-a-section with transcript+timings sync (differentiator-grade, L — revisit after
+the wave; the sample-accurate `AVAudioFile` machinery already exists from the chunk-drift fix).
 
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 

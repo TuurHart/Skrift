@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 6
-updated: 2026-07-06T14:30:07.000Z
+updated: 2026-07-06T14:43:28.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -186,20 +186,48 @@ nodes:
       pinned title; accessory = undo/redo/find/photo/Done (floating Skrift
       pill, SF Symbols); no Save-highlight; summary card in the scrolling
       header; compact player pill. Build green-lit once the bug-fix chat
-      wraps. Feature-gap survey shortlist in backlog.md (awaiting pick).
+      wraps. Build plan = backlog.md EPIC 🏗 (chunks 1–3 here; 4–9 = NFeat).
     backlog:
       - Compact player pill — one 44pt row, whole-pill scrubbing (old bar
         blocks the note)
       - Keyboard accessory bar (undo · redo · find · photo-at-caret · Done)
       - Tag chips + autocomplete (replace the comma alert; chip tap currently
         DELETES silently)
+      - Share note OUT (md/text + audio) + word count/duration in ⋯ (survey
+        folds, user-approved)
       - Debounce per-keystroke saves; memoize the name-span scan
       - Photo tap → viewer; Dynamic Type
-      - Verify: polished memo's summary card shows on phone (possible bug →
+      - Check the polished memo's summary card shows on phone (possible bug →
         bugs chat)
     win: "editing a note feels like Apple Notes — selection autoscrolls, caret
       stays visible, undo/find/magnifier work — with transcript richness
       (karaoke, name tiers, inline photos) intact"
+  - id: NFeat
+    title: Note feature wave
+    lane: 0
+    order: 5.7
+    status: planned
+    eff: L
+    deps:
+      - NEdit
+    via: NEdit
+    note: "Survey wave, ALL user-approved 2026-07-06: checklists · memo↔memo
+      links · photo OCR · reminders · FaceID lock · doc scan. HARD RULE:
+      shared-first — model/logic in Shared/, both apps ship every feature.
+      Build plan = backlog.md EPIC 🏗 chunks 4–9. Audio-trim-with-transcript
+      PARKED after the wave."
+    backlog:
+      - Live checklists (- [ ] toggle ↔ Obsidian tasks)
+      - Memo↔memo [[links]] + backlinks (stores memo:UUID, exports [[Title]])
+      - Photo OCR → search both apps (Vision, on-device)
+      - Note reminders (synced remindAt; per-device UNUserNotificationCenter
+        reconcile)
+      - FaceID/TouchID locked notes (synced flag; excluded from publish;
+        auth-gate not crypto in v1)
+      - Doc scan → PDF capture (VisionKit, phone)
+    win: the six approved gap features run on BOTH apps from shared code —
+      locked notes stay out of the vault, OCR'd photos are searchable,
+      reminders ring on whichever device you're holding
   - id: P4
     title: On-device Polish
     lane: -1
