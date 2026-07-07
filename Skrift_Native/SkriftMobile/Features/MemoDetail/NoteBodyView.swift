@@ -58,6 +58,11 @@ struct NoteBodyView: UIViewRepresentable {
     var a11yHidden: Bool = false
     /// A focus-gaining tap landed on an inline photo → the page opens the viewer.
     var onTapImage: (Int) -> Void = { _ in }
+    /// A focus-gaining tap landed on a memo-link chip → the page opens that memo.
+    var onTapMemoLink: (UUID) -> Void = { _ in }
+    /// "[[" was typed → the page presents the memo picker; the pick comes back
+    /// through `proxy.insertMemoLink`.
+    var onRequestMemoLink: () -> Void = {}
     /// The accessory bar's 📷 — the page presents the photo picker, then hands
     /// the image back through `proxy.insertPhoto`.
     var onRequestPhoto: () -> Void = {}
@@ -115,7 +120,9 @@ struct NoteBodyView: UIViewRepresentable {
         c.player = player
         c.onTapName = onTapName
         c.onTapImage = onTapImage
+        c.onTapMemoLink = onTapMemoLink
         c.onRequestPhoto = onRequestPhoto
+        c.onRequestMemoLink = onRequestMemoLink
         c.polishedBinding = polishedBinding
         c.tapToSeek = tapToSeek
         proxy?.coordinator = c
@@ -152,11 +159,15 @@ struct NoteBodyView: UIViewRepresentable {
         var nameSpans: [NameSpan] = []
         var onTapName: (NameSpan) -> Void = { _ in }
         var onTapImage: (Int) -> Void = { _ in }
+        var onTapMemoLink: (UUID) -> Void = { _ in }
         var onRequestPhoto: () -> Void = {}
+        var onRequestMemoLink: () -> Void = {}
         var tapToSeek = true
         private var accessory: NoteAccessoryBar?
         /// Caret at the moment 📷 was tapped — the picker's insert target.
         private var pendingPhotoLocation: Int?
+        /// The "[[" the user just typed — replaced by the picked link chip.
+        private var pendingLinkTrigger: NSRange?
 
         /// The transcript string our attributed text currently reflects.
         private var loaded: String?
@@ -183,6 +194,9 @@ struct NoteBodyView: UIViewRepresentable {
         /// Custom attribute tagging a checkbox attachment with its checked state
         /// — reconstructs to Obsidian task syntax ("- [ ]" / "- [x]").
         static let taskKey = NSAttributedString.Key("skriftTask")
+        /// Custom attribute tagging a memo-link chip: value = "UUID|Title" —
+        /// reconstructs to the raw `[[memo:UUID|Title]]` syntax.
+        static let memoLinkKey = NSAttributedString.Key("skriftMemoLink")
 
         init(memo: Memo, onCommit: @escaping () -> Void) {
             self.memo = memo
@@ -575,6 +589,16 @@ struct NoteBodyView: UIViewRepresentable {
             guard currentMode == .editing, tv.selectedRange.length == 0 else { return }
             let caret = tv.selectedRange.location
             for probe in [caret, caret - 1] where probe >= 0 && probe < tv.textStorage.length {
+                // Memo-link chip → open that memo.
+                if let payload = tv.textStorage.attribute(Self.memoLinkKey, at: probe,
+                                                          effectiveRange: nil) as? String,
+                   let id = UUID(uuidString: String(payload.prefix(36))) {
+                    editingBeganAt = nil
+                    tv.resignFirstResponder()
+                    Haptics.tap(.light)
+                    onTapMemoLink(id)
+                    return
+                }
                 // Checkbox: toggle in place — the keyboard never takes over.
                 if tv.textStorage.attribute(Self.taskKey, at: probe, effectiveRange: nil) is Bool {
                     editingBeganAt = nil
@@ -608,6 +632,7 @@ struct NoteBodyView: UIViewRepresentable {
         func textViewDidChange(_ tv: UITextView) {
             draftDirty = true
             refreshAccessory()
+            detectLinkTrigger(tv)
             (tv as? NoteBodyTextView)?.setNeedsAccessoryLayout()
             commitTask?.cancel()
             commitTask = Task { [weak self] in
@@ -645,6 +670,76 @@ struct NoteBodyView: UIViewRepresentable {
             draftDirty = true
             commitDraft()
             applyTierStyling()          // re-derive display spans over the same offsets
+        }
+
+        /// One memo-link chip as an attributed piece (attachment + the raw
+        /// payload in `memoLinkKey`, so it round-trips byte-exact).
+        static func memoLinkPiece(id: UUID, title: String,
+                                  base: [NSAttributedString.Key: Any]) -> NSAttributedString {
+            let a = NSMutableAttributedString(attachment: memoLinkAttachment(title: title))
+            let r = NSRange(location: 0, length: a.length)
+            a.addAttribute(memoLinkKey, value: "\(id.uuidString)|\(title)", range: r)
+            a.addAttributes(base, range: r)
+            return a
+        }
+
+        /// The chip image: "→ Title" in accent on a soft pill — atomic (one
+        /// glyph), so typing next to it can never extend the link.
+        static func memoLinkAttachment(title: String) -> NSTextAttachment {
+            let font = UIFont.systemFont(ofSize: bodyFont().pointSize - 1.5, weight: .medium)
+            let display = title.isEmpty ? "Untitled" : (title.count > 28 ? title.prefix(27) + "…" : title)
+            let text = "→ \(display)" as NSString
+            let textSize = text.size(withAttributes: [.font: font])
+            let padH: CGFloat = 8, padV: CGFloat = 3
+            let size = CGSize(width: ceil(textSize.width) + padH * 2,
+                              height: ceil(textSize.height) + padV * 2)
+            let image = UIGraphicsImageRenderer(size: size).image { _ in
+                UIColor(Color.skAccentSoft).setFill()
+                UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 7).fill()
+                text.draw(at: CGPoint(x: padH, y: padV),
+                          withAttributes: [.font: font, .foregroundColor: UIColor(Color.skNameLinked)])
+            }
+            let att = NSTextAttachment()
+            att.image = image
+            att.bounds = CGRect(x: 0, y: -5.5, width: size.width, height: size.height)
+            return att
+        }
+
+        /// Replace the typed "[[" trigger with a link chip to the picked memo
+        /// (falls back to the caret if the trigger moved), then persist.
+        func insertMemoLink(id: UUID, title: String) {
+            guard let tv = textView, currentMode == .editing else { return }
+            let storage = tv.textStorage
+            var at = min(pendingLinkTrigger?.location ?? tv.selectedRange.location, storage.length)
+            if let trigger = pendingLinkTrigger,
+               trigger.location + trigger.length <= storage.length,
+               storage.attributedSubstring(from: trigger).string == "[[" {
+                storage.deleteCharacters(in: trigger)
+                at = trigger.location
+            }
+            pendingLinkTrigger = nil
+            let clean = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let piece = NSMutableAttributedString(
+                attributedString: Self.memoLinkPiece(id: id,
+                                                     title: clean.isEmpty ? "Untitled" : clean,
+                                                     base: baseAttributes()))
+            piece.append(NSAttributedString(string: " ", attributes: baseAttributes()))
+            storage.insert(piece, at: at)
+            tv.selectedRange = NSRange(location: at + piece.length, length: 0)
+            draftDirty = true
+            commitDraft()
+        }
+
+        /// "[[" just typed → stash its range and ask the page for the picker.
+        private func detectLinkTrigger(_ tv: UITextView) {
+            let caret = tv.selectedRange.location
+            guard caret >= 2, tv.selectedRange.length == 0 else { return }
+            let r = NSRange(location: caret - 2, length: 2)
+            guard tv.textStorage.attributedSubstring(from: r).string == "[[",
+                  tv.textStorage.attribute(.attachment, at: r.location, effectiveRange: nil) == nil
+            else { return }
+            pendingLinkTrigger = r
+            onRequestMemoLink()
         }
 
         /// Persist the draft: reconstruct the marker string from the attributed
@@ -706,6 +801,8 @@ struct NoteBodyView: UIViewRepresentable {
                     a.addAttribute(Self.taskKey, value: checked, range: NSRange(location: 0, length: a.length))
                     a.addAttributes(base, range: NSRange(location: 0, length: a.length))
                     result.append(a)
+                case .memoLink(let id, let title):
+                    result.append(Self.memoLinkPiece(id: id, title: title, base: base))
                 }
             }
             return result
@@ -739,6 +836,8 @@ struct NoteBodyView: UIViewRepresentable {
                     out.append("[[img_\(String(format: "%03d", marker))]]")
                 } else if let checked = attrs[Self.taskKey] as? Bool {
                     out.append(BodyTransform.rawTask(checked: checked))
+                } else if let payload = attrs[Self.memoLinkKey] as? String {
+                    out.append("[[memo:\(payload)]]")
                 } else if attrs[.attachment] == nil {
                     out.append(full.substring(with: range))
                 }                                                  // untagged attachment → drop
@@ -793,6 +892,7 @@ struct NoteBodyView: UIViewRepresentable {
 final class NoteBodyProxy {
     weak var coordinator: NoteBodyView.Coordinator?
     func insertPhoto(_ image: UIImage) { coordinator?.insertPhoto(image) }
+    func insertMemoLink(id: UUID, title: String) { coordinator?.insertMemoLink(id: id, title: title) }
 }
 
 // MARK: - The scrolling text view with hosted header/footer

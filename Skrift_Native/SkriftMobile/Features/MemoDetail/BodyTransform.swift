@@ -13,6 +13,7 @@ enum BodyTransform {
         case text(String)
         case image(Int)                 // [[img_NNN]] → photo attachment (1-based)
         case task(checked: Bool)        // "- [ ]" / "- [x]" → checkbox attachment
+        case memoLink(id: UUID, title: String)  // [[memo:UUID|Title]] → link chip
     }
 
     struct Piece: Equatable {
@@ -21,11 +22,14 @@ enum BodyTransform {
         let rawRange: NSRange
     }
 
-    /// `[[img_NNN]]` anywhere; `- [ ]` / `- [x]` only at a line start (optionally
-    /// indented — the indent stays TEXT so it round-trips) and only when followed
-    /// by a space or line end — matching what Obsidian treats as a task.
-    private static let regex = try! NSRegularExpression(
-        pattern: #"\[\[img_(\d+)\]\]|(?m)^([ \t]*)(- \[( |x|X)\])(?=\s|$)"#)
+    /// `[[img_NNN]]` and `[[memo:UUID|Title]]` anywhere; `- [ ]` / `- [x]` only
+    /// at a line start (optionally indented — the indent stays TEXT so it
+    /// round-trips) and only when followed by a space or line end — matching
+    /// what Obsidian treats as a task.
+    private static let regex = try! NSRegularExpression(pattern:
+        #"\[\[img_(?<img>\d+)\]\]"# +
+        #"|\[\[memo:(?<mid>[0-9A-Fa-f\-]{36})\|(?<mtitle>[^\]\n|]*)\]\]"# +
+        #"|(?m)^(?<ind>[ \t]*)(?<task>- \[(?<mark> |x|X)\])(?=\s|$)"#)
 
     static func pieces(of raw: String) -> [Piece] {
         let ns = raw as NSString
@@ -37,15 +41,22 @@ enum BodyTransform {
             out.append(Piece(segment: .text(ns.substring(with: r)), rawRange: r))
         }
         for m in regex.matches(in: raw, range: NSRange(location: 0, length: ns.length)) {
-            if m.range(at: 1).location != NSNotFound {
+            let img = m.range(withName: "img")
+            let mid = m.range(withName: "mid")
+            if img.location != NSNotFound {
                 text(upTo: m.range.location)
-                let n = Int(ns.substring(with: m.range(at: 1))) ?? 0
-                out.append(Piece(segment: .image(n), rawRange: m.range))
+                out.append(Piece(segment: .image(Int(ns.substring(with: img)) ?? 0), rawRange: m.range))
+                last = m.range.location + m.range.length
+            } else if mid.location != NSNotFound {
+                guard let id = UUID(uuidString: ns.substring(with: mid)) else { continue }
+                text(upTo: m.range.location)
+                out.append(Piece(segment: .memoLink(id: id, title: ns.substring(with: m.range(withName: "mtitle"))),
+                                 rawRange: m.range))
                 last = m.range.location + m.range.length
             } else {
-                let token = m.range(at: 3)                     // "- [ ]" without the indent
+                let token = m.range(withName: "task")          // "- [ ]" without the indent
                 text(upTo: token.location)
-                let mark = ns.substring(with: m.range(at: 4)).lowercased()
+                let mark = ns.substring(with: m.range(withName: "mark")).lowercased()
                 out.append(Piece(segment: .task(checked: mark == "x"), rawRange: token))
                 last = token.location + token.length
             }

@@ -449,7 +449,15 @@ first, prefix-filtered) — "pick, not retype".
 consumed by BOTH the attributed builder and the name-span offset mapper (they were drifting duplicates);
 tap a checkbox → toggles in place (no keyboard) + commits immediately; typed task syntax materializes into
 live checkboxes on end-editing; exports verbatim as Obsidian tasks. ⚠️ Desktop parity owed (hard rule) —
-`BodyTextView` doesn't render tasks yet; tracked on NFeat. Device eyeball owed
+`BodyTextView` doesn't render tasks yet; tracked on NFeat.
+**Chunk 5 ✅ 2026-07-07 (memo↔memo links):** raw syntax `[[memo:UUID|Title]]` (SHARED `MemoLinkSyntax` in
+Shared/Model — both apps compile it); typing `[[` in the editor → searchable note picker → atomic link CHIP
+(one attachment glyph — typing can't extend it); tap chip → pager jumps to that memo; **"LINKED FROM"
+backlinks** section under the body (off-main scan, capped 6). EXPORT: the shared `Compiler` now rewrites the
+syntax at its body choke point — phone publish resolves PRECISE stems (`[[<frozen-or-derived stem>|Title]]`
+via ExportStateStore, rename-safe) so vault links actually land; any unresolved path falls back to readable
+`[[Title]]` (Mac compiles get the fallback until its resolver is wired — owed). Mobile 505 + desktop 325
+unit green. Device eyeball owed
 (selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
 scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
 FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret

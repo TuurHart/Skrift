@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T09:30:44.000Z'
+updated: '2026-07-07T09:44:01.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -279,10 +279,16 @@ nodes:
         2026-07-07 · Chunk 4 — live checklists (mobile): BodyTransform (one
         raw⇄display transform for img markers + task prefixes), checkbox
         attachments toggle in place + commit immediately, typed syntax
-        materializes on end-editing, byte-exact Obsidian round-trip
+        materializes on end-editing, byte-exact Obsidian round-trip [8e4688b]
+      - >-
+        2026-07-07 · Chunk 5 — memo↔memo links: shared MemoLinkSyntax
+        ([[memo:UUID|Title]]), '[[' → searchable picker → atomic chip, tap →
+        jump, LINKED-FROM backlinks; shared Compiler rewrites on export (phone
+        = precise frozen-path stems, fallback [[Title]]); desktop 325 green
     backlog:
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
-      - Memo↔memo [[links]] + backlinks (stores memo:UUID, exports [[Title]])
+      - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]
+        ships already; wire PipelineFile stems)
       - Photo OCR → search both apps (Vision, on-device)
       - Note reminders (synced remindAt; per-device UNUserNotificationCenter
         reconcile)

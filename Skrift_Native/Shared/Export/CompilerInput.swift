@@ -53,6 +53,10 @@ struct CompilerSharedContent: Sendable {
 /// Everything the shared `Compiler.compile(_:)` needs from a note. Each app fills this from
 /// its own model; the Compiler never sees `PipelineFile`/`Memo`.
 struct CompilerInput: Sendable {
+    /// Memo↔memo link resolver (chunk 5): maps a linked memo's UUID to its
+    /// exported note stem. nil (the default everywhere but the phone's publish
+    /// path so far) → links fall back to `[[<title snapshot>]]`.
+    var memoLinkResolver: (@Sendable (UUID) -> String?)? = nil
     var filename: String
     var transcript: String? = nil
     var sanitised: String? = nil

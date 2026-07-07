@@ -46,7 +46,11 @@ struct MemoDetailView: View {
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 0) {
                     ForEach(memos) { memo in
-                        MemoPageView(memo: memo, player: player, isCurrent: memo.id == selection)
+                        MemoPageView(memo: memo, player: player, isCurrent: memo.id == selection,
+                                     onOpenMemo: { id in
+                                         guard memos.contains(where: { $0.id == id }) else { return }
+                                         withAnimation(Theme.Motion.snappy) { selection = id }
+                                     })
                             .containerRelativeFrame(.horizontal)
                             // The LazyHStack realises adjacent pages; hide the
                             // off-screen ones from VoiceOver (and XCUITest) so
@@ -346,6 +350,11 @@ private struct MemoPageView: View {
     @State private var bodyProxy = NoteBodyProxy()
     @State private var showPhotoPicker = false
     @State private var pickedPhoto: PhotosPickerItem?
+    /// Memo↔memo links (chunk 5): the "[[" picker + who links here.
+    @State private var showMemoLinkPicker = false
+    @State private var backlinks: [(id: UUID, title: String)] = []
+    /// Jump the pager to another memo (link chips + backlink rows).
+    var onOpenMemo: (UUID) -> Void = { _ in }
 
     var body: some View {
         // Note-editing overhaul (spec mocks/note-editor-redesign.html): B2 pinned
@@ -367,6 +376,7 @@ private struct MemoPageView: View {
             people = NamesStore.shared.livePeople()
             enhancement = repository.enhancement(forMemo: memo.id)
             recomputeSpans()
+            recomputeBacklinks()
         }
         // A polish can arrive via CloudKit after the screen opens — re-fetch when a sync settles.
         .onChange(of: sync.isSyncing) { _, syncing in
@@ -386,6 +396,12 @@ private struct MemoPageView: View {
         // Shared-document (.file) capture → preview the PDF/doc in QuickLook —
         // and the editor's inline photos (tap a photo → viewer).
         .quickLookPreview($quickLookURL)
+        // "[[" typed → pick a note to link; the chip lands at the trigger.
+        .sheet(isPresented: $showMemoLinkPicker) {
+            MemoLinkPickerSheet(candidates: memoLinkCandidates()) { id, title in
+                bodyProxy.insertMemoLink(id: id, title: title)
+            }
+        }
         // Accessory 📷 → photo library → insert at the caret + register the new
         // file for CloudKit (same manifest/asset conventions as recording).
         .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhoto, matching: .images)
@@ -514,6 +530,8 @@ private struct MemoPageView: View {
                 footer: AnyView(noteFooter(isCurrent: isCurrent).accessibilityHidden(!isCurrent)),
                 a11yHidden: !isCurrent,
                 onTapImage: { n in quickLookURL = memo.imageURL(markerIndex: n) },
+                onTapMemoLink: { id in onOpenMemo(id) },
+                onRequestMemoLink: { showMemoLinkPicker = true },
                 onRequestPhoto: { showPhotoPicker = true },
                 proxy: bodyProxy
             )
@@ -647,16 +665,72 @@ private struct MemoPageView: View {
         }
     }
 
-    /// Below-the-body footer inside the editor's scroll: the people row.
+    /// Below-the-body footer inside the editor's scroll: the people row +
+    /// "Linked from" backlinks.
     private func noteFooter(isCurrent: Bool) -> some View {
-        Group {
+        VStack(alignment: .leading, spacing: 10) {
             if !spans.isEmpty {
                 peopleInNoteRow
                     .accessibilityIdentifier(isCurrent ? "people-in-note-row" : "people-in-note-row-offscreen")
-                    .padding(.horizontal, Theme.Space.margin)
-                    .padding(.top, 4)
+            }
+            if !backlinks.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    SectionLabel("LINKED FROM")
+                    ForEach(backlinks, id: \.id) { link in
+                        Button { onOpenMemo(link.id) } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.turn.up.left")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Color.skTextFaint)
+                                Text(link.title)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.skText)
+                                    .lineLimit(1)
+                                Spacer(minLength: 4)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Color.skTextFaint)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 9)
+                            .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
+                            .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
+                        }
+                        .accessibilityIdentifier(isCurrent ? "backlink-row" : "backlink-row-offscreen")
+                    }
+                }
             }
         }
+        .padding(.horizontal, Theme.Space.margin)
+        .padding(.top, 4)
+    }
+
+    /// Who links HERE: scan every live memo's transcript for this memo's id.
+    /// Cheap contains() pre-filter, exact via MemoLinkSyntax; off-main.
+    private func recomputeBacklinks() {
+        let myID = memo.id
+        let others: [(UUID, String, String?)] = repository.allMemos()
+            .filter { $0.id != myID }
+            .map { ($0.id, $0.title ?? $0.firstTranscriptLine ?? "Untitled", $0.transcript) }
+        Task.detached(priority: .utility) {
+            let marker = "[[memo:\(myID.uuidString)"
+            let found: [(id: UUID, title: String)] = others.compactMap { id, title, transcript in
+                guard let t = transcript, t.contains(marker),
+                      MemoLinkSyntax.targets(in: t).contains(myID) else { return nil }
+                return (id: id, title: String(title.prefix(60)))
+            }
+            await MainActor.run { backlinks = Array(found.prefix(6)) }
+        }
+    }
+
+    /// Everything linkable from here: most recent first, self excluded.
+    private func memoLinkCandidates() -> [(id: UUID, title: String, subtitle: String)] {
+        repository.allMemos()
+            .filter { $0.id != memo.id }
+            .map { m in
+                (id: m.id,
+                 title: (m.title ?? m.firstTranscriptLine ?? "Untitled").trimmingCharacters(in: .whitespaces),
+                 subtitle: MemoDate.label(m.recordedAt))
+            }
     }
 
     /// Conversation body — speaker-attributed turns. The per-tick karaoke state

@@ -182,6 +182,74 @@ final class BodyTransformTests: XCTestCase {
     }
 }
 
+/// Memo↔memo link syntax + editor round-trip (chunk 5).
+final class MemoLinkTests: XCTestCase {
+
+    private let idA = UUID(uuidString: "AAAAAAAA-1111-2222-3333-444444444444")!
+
+    func testLinkBuildsSafeSyntax() {
+        XCTAssertEqual(MemoLinkSyntax.link(id: idA, title: "Trip | notes [[x]]"),
+                       "[[memo:\(idA.uuidString)|Trip   notes x]]")
+        XCTAssertEqual(MemoLinkSyntax.link(id: idA, title: "  "),
+                       "[[memo:\(idA.uuidString)|Untitled]]")
+    }
+
+    func testOccurrencesAndTargets() {
+        let text = "See [[memo:\(idA.uuidString)|Harbor]] and plain [[Hotel]]."
+        let occs = MemoLinkSyntax.occurrences(in: text)
+        XCTAssertEqual(occs.count, 1)
+        XCTAssertEqual(occs.first?.id, idA)
+        XCTAssertEqual(occs.first?.title, "Harbor")
+        XCTAssertEqual(MemoLinkSyntax.targets(in: text), [idA])
+    }
+
+    func testExportRewriteFallbackAndPrecise() {
+        let text = "See [[memo:\(idA.uuidString)|Harbor]]."
+        XCTAssertEqual(MemoLinkSyntax.exportRewrite(text), "See [[Harbor]].")
+        XCTAssertEqual(MemoLinkSyntax.exportRewrite(text, resolveStem: { _ in "Harbor walk-AAAAAAAA" }),
+                       "See [[Harbor walk-AAAAAAAA|Harbor]].")
+        XCTAssertEqual(MemoLinkSyntax.exportRewrite("no links"), "no links")
+    }
+
+    func testCompilerEmitsWikilinkNotRawSyntax() {
+        let input = CompilerInput(filename: "m.m4a",
+                                  transcript: "Body with [[memo:\(idA.uuidString)|Harbor]].",
+                                  enhancedTitle: "T")
+        let md = Compiler.compile(input, author: "A")
+        XCTAssertFalse(md.contains("[[memo:"), "raw memo-link syntax must never reach the vault")
+        XCTAssertTrue(md.contains("[[Harbor]]"))
+    }
+
+    @MainActor
+    func testMemoLinkRoundTripsThroughTheEditor() {
+        let raw = "Start [[memo:\(idA.uuidString)|Harbor]] end"
+        let memo = Memo(audioFilename: "memo_l.m4a", transcript: raw)
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        XCTAssertEqual(tv.text.filter { $0 == "\u{FFFC}" }.count, 1, "the link renders as one chip")
+        XCTAssertEqual(coordinator.reconstruct(tv.attributedText), raw, "byte-exact round trip")
+    }
+
+    @MainActor
+    func testInsertMemoLinkReplacesTheTypedTrigger() {
+        let memo = Memo(audioFilename: "memo_l2.m4a", transcript: "Hello ")
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        // Simulate typing "[[" at the end (the trigger the picker replaces).
+        tv.textStorage.append(NSAttributedString(string: "[["))
+        tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
+        coordinator.textViewDidChange(tv)      // detects the trigger
+        coordinator.insertMemoLink(id: idA, title: "Harbor")
+        XCTAssertEqual(memo.transcript, "Hello [[memo:\(idA.uuidString)|Harbor]] ")
+    }
+}
+
 /// Share-out + stats helpers (chunk 2 survey folds).
 final class MemoShareTests: XCTestCase {
 
