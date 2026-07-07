@@ -47,6 +47,8 @@ struct MemosListView: View {
     @State private var lastHandledStart = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @ObservedObject private var memoOpen = MemoOpenBridge.shared
+    /// Long-press → "Remind me…" (chunk 7).
+    @State private var reminderMemo: Memo?
     @State private var showSortFilter = false
     @State private var showTrash = false
     /// C3 contract: the audiobook session singleton (defined by the Audiobooks
@@ -127,6 +129,9 @@ struct MemosListView: View {
     private var listContent: some View {
         VStack(spacing: 0) {
             SearchField(text: $search, prompt: "Search transcripts", fieldID: "memo-search")
+                .sheet(item: $reminderMemo) { memo in
+                    ReminderSheet(memo: memo) { NotesRepository.shared.save() }
+                }
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
                 .padding(.bottom, 6)
@@ -164,6 +169,10 @@ struct MemosListView: View {
                                     // Second path to the same actions; empty while
                                     // selecting so long-press can't fight multi-select.
                                     if !editMode.isEditing {
+                                        Button { reminderMemo = memo } label: {
+                                            Label("Remind me…", systemImage: "bell")
+                                        }
+                                        .accessibilityIdentifier("context-remind-button")
                                         Button { copyTranscript(memo) } label: {
                                             Label("Copy transcript", systemImage: "doc.on.doc")
                                         }

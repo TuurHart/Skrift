@@ -465,7 +465,21 @@ tolerant); a title edited away ⇒ WHOLE body falls back to unedited (QuoteProte
 `EnhancementService.editProse` (+ title/summary prompts read escrowed text); (2) the SHARED Sanitiser could
 name-link an alias INSIDE a link title (nested brackets) → memo-link ranges are now `nonProseRanges` — fixes
 the Mac sanitise step AND the phone's export relink in one shared change. Mobile 508 + desktop 325 unit green
-+ full desktop app builds. Device eyeball owed
++ full desktop app builds.
+**Chunk 6 ✅ 2026-07-07 (photo OCR):** `PhotoTextIndexer` — on-device Vision over every memo photo; text lands
+on `ImageManifestEntry.text` INSIDE the synced metadata blob (additive → every device carries it, zero new sync
+machinery). Idempotent sweep (nil = pending, "" = no text) on launch/foreground/sync-settle/photo-insert.
+Search extracted to `Memo.matches(query:)` + now matches photo text AND the memo TITLE (pre-existing gap).
+Verified with a REAL Vision pass over a rendered fixture (512 unit); Mac search-UI wiring owed. [1d4da6e]
+**Chunk 7 ✅ 2026-07-07 (reminders — signed-off design):** `Memo.remindAt: Date?` on the SHARED model (additive
+→ lightweight migration; ⚠️ prod CloudKit schema deploy needed at promotion). Reminder = DATA (syncs); alarm =
+per-device — `ReminderScheduler` reconciles `UNUserNotificationCenter` from the field (pure `ReminderPlan`:
+future+live only → past dates inert; moved dates re-add; unrelated notifications untouched) on
+launch/foreground/sync-settle/set/clear. Notification tap → `MemoOpenBridge` opens the memo; foreground
+banners. UI: bell CHIP in the header when set (tap = change/remove), ⋯ → "Remind me…", list long-press →
+"Remind me…"; presets (This evening/Tomorrow/Next week) + graphical picker; auth on FIRST set, denial explained.
+Mac reconciler owed (same UserNotifications API; data lands already). 516 unit + desktop 325 + desktop app
+build green. Device eyeball owed
 (selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
 scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
 FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret

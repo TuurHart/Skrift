@@ -98,6 +98,14 @@ final class Memo {
     /// ADDITIVE, nil default → lightweight migration.
     var editedAt: Date? = nil
 
+    /// Note reminder (feature wave chunk 7): WHEN to surface this memo. The
+    /// reminder is DATA — it syncs like every field; each device derives its
+    /// local notification from it (`ReminderScheduler`), so it rings whichever
+    /// device you're holding and clears everywhere at once. A PAST date is
+    /// inert history (never scheduled). ADDITIVE, nil default → lightweight
+    /// migration; needs the prod CloudKit schema deploy at promotion.
+    var remindAt: Date? = nil
+
     /// Contextual capture payload + shared content, persisted as JSON blobs —
     /// NOT direct SwiftData Codable-struct attributes. SwiftData's internal decode
     /// of a nested-optional Codable struct traps at runtime (EXC_BREAKPOINT) the

@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 import SwiftData
 import UIKit
 
@@ -56,6 +57,7 @@ struct SkriftApp: App {
                 .task {
                     AssetMaterializer.run(repository)
                     PhotoTextIndexer.run(repository)
+                    ReminderScheduler.run(repository)
                 }
                 // Reconcile the names/people DB across devices (Phase 1e): merge the
                 // CloudKit-synced carrier with the local names.json via the same
@@ -107,6 +109,7 @@ struct SkriftApp: App {
                         CaptureInboxDrainer.drain(into: repository)
                         AssetMaterializer.run(repository)
                         PhotoTextIndexer.run(repository)
+                        ReminderScheduler.run(repository)
                         NamesCloudSync.run(repository)
                         VocabularyCloudSync.run(repository)
                         Task { await AudiobookCloudSync.reconcile(repository: repository) }
@@ -180,6 +183,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UIApplication.shared.registerForRemoteNotifications()
+        // Reminder taps → open the memo; foreground reminders still banner.
+        UNUserNotificationCenter.current().delegate = ReminderScheduler.delegate
         return true
     }
 }

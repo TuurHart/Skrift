@@ -119,6 +119,7 @@ final class CloudSyncMonitor: ObservableObject {
             // Blobs/rows just arrived — write them to disk + converge names/vocab now.
             AssetMaterializer.run(.shared)
             PhotoTextIndexer.run(.shared)
+            ReminderScheduler.run(.shared)
             NamesCloudSync.run(.shared)
             VocabularyCloudSync.run(.shared)
             // A synced audiobook that just arrived materializes here too (hands-off

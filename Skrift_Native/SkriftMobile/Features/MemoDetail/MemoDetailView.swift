@@ -25,6 +25,8 @@ struct MemoDetailView: View {
     @State private var showSplitOptions = false
     @State private var showAppendRecorder = false
     @State private var showShare = false
+    /// ⋯ → "Remind me…" for the current page (chunk 7).
+    @State private var reminderMemo: Memo?
     /// Transient "n / total" that ghosts in while swiping between memos —
     /// replaces the permanent page-dots row (compact-player spec).
     @State private var pageFlash = false
@@ -137,10 +139,14 @@ struct MemoDetailView: View {
         // toolbar `Menu`, which silently failed to present on device.
         .confirmationDialog(memoStatsLine, isPresented: $showActions, titleVisibility: .visible) {
             Button("Add recording", action: { showAppendRecorder = true })
+            Button("Remind me…", action: { reminderMemo = currentMemo })
             Button("Share note…", action: { showShare = true })
             Button("Copy transcript", action: copyTranscript)
             Button("Delete", role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
+        }
+        .sheet(item: $reminderMemo) { memo in
+            ReminderSheet(memo: memo) { repository.save() }
         }
         .sheet(isPresented: $showShare) {
             if let memo = currentMemo {
@@ -352,6 +358,8 @@ private struct MemoPageView: View {
     @State private var pickedPhoto: PhotosPickerItem?
     /// Memo↔memo links (chunk 5): the "[[" picker + who links here.
     @State private var showMemoLinkPicker = false
+    /// Reminder chip → the sheet (chunk 7).
+    @State private var showReminderSheet = false
     @State private var backlinks: [(id: UUID, title: String)] = []
     /// Jump the pager to another memo (link chips + backlink rows).
     var onOpenMemo: (UUID) -> Void = { _ in }
@@ -388,6 +396,9 @@ private struct MemoPageView: View {
         // Transcript can change outside the editor (transcription lands, append,
         // speaker edits) — re-derive the tiers.
         .onChange(of: memo.transcript) { _, _ in recomputeSpans() }
+        .sheet(isPresented: $showReminderSheet) {
+            ReminderSheet(memo: memo) { repository.save() }
+        }
         // Tag CHIP editor (chunk 3): chips with explicit ✕, comma input kept,
         // autocomplete from every tag in the library.
         .sheet(isPresented: $showTagEditor) {
@@ -582,6 +593,23 @@ private struct MemoPageView: View {
                             .padding(.horizontal, 7).padding(.vertical, 2)
                             .background(Color.skAccentSoft, in: .rect(cornerRadius: 7, style: .continuous))
                     }
+                }
+                // Reminder chip — visible whenever a reminder is set (future =
+                // accent bell, past = faint); tap to change/remove.
+                if let at = memo.remindAt {
+                    Button { showReminderSheet = true } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: at > Date() ? "bell.fill" : "bell")
+                                .font(.system(size: 9, weight: .semibold))
+                            Text(at.formatted(.dateTime.day().month().hour().minute()))
+                                .font(.system(size: 11))
+                        }
+                        .foregroundStyle(at > Date() ? Color.skAccentText : Color.skTextFaint)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(at > Date() ? Color.skAccentSoft : Color.skElev,
+                                    in: .rect(cornerRadius: 7, style: .continuous))
+                    }
+                    .accessibilityIdentifier("reminder-chip")
                 }
                 Button { openTagEditor() } label: {
                     Text("+ Tag")

@@ -282,6 +282,65 @@ final class MemoLinkTests: XCTestCase {
     }
 }
 
+/// Reminders (chunk 7): the pure reconcile plan + preset date math.
+final class ReminderPlanTests: XCTestCase {
+
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+    private let idA = UUID(uuidString: "AAAAAAAA-0000-0000-0000-000000000001")!
+    private let idB = UUID(uuidString: "BBBBBBBB-0000-0000-0000-000000000002")!
+
+    func testDesiredSchedulesOnlyFutureLiveReminders() {
+        let desired = ReminderPlan.desired(memos: [
+            (id: idA, remindAt: now.addingTimeInterval(3600), deleted: false),   // future ✓
+            (id: idB, remindAt: now.addingTimeInterval(-60), deleted: false),    // past → inert
+            (id: UUID(), remindAt: now.addingTimeInterval(3600), deleted: true), // trashed → silent
+            (id: UUID(), remindAt: nil, deleted: false),                         // none
+        ], now: now)
+        XCTAssertEqual(desired.map(\.memoID), [idA])
+    }
+
+    func testDiffAddsRemovesAndReschedules() {
+        let at = now.addingTimeInterval(3600)
+        let moved = now.addingTimeInterval(7200)
+        let desired = [ReminderPlan.Entry(memoID: idA, fireAt: moved),
+                       ReminderPlan.Entry(memoID: idB, fireAt: at)]
+        let pending: [(id: String, fireAt: Date?)] = [
+            (id: ReminderPlan.idPrefix + idA.uuidString, fireAt: at),            // date moved → replace
+            (id: ReminderPlan.idPrefix + UUID().uuidString, fireAt: at),         // cleared → remove
+            (id: "unrelated-notification", fireAt: nil),                         // not ours → untouched
+        ]
+        let (add, remove) = ReminderPlan.diff(desired: desired, pending: pending)
+        XCTAssertEqual(Set(add.map(\.memoID)), [idA, idB], "moved reschedules, new schedules")
+        XCTAssertEqual(remove.count, 2)
+        XCTAssertFalse(remove.contains("unrelated-notification"))
+    }
+
+    func testDiffLeavesUnchangedAlone() {
+        let at = now.addingTimeInterval(3600)
+        let desired = [ReminderPlan.Entry(memoID: idA, fireAt: at)]
+        let (add, remove) = ReminderPlan.diff(
+            desired: desired,
+            pending: [(id: ReminderPlan.idPrefix + idA.uuidString, fireAt: at)])
+        XCTAssertTrue(add.isEmpty)
+        XCTAssertTrue(remove.isEmpty)
+    }
+
+    func testPresets() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Europe/Lisbon")!
+        let morning = cal.date(from: DateComponents(year: 2026, month: 7, day: 7, hour: 10))!
+        let evening = ReminderPresets.thisEvening(from: morning, calendar: cal)
+        XCTAssertEqual(cal.component(.hour, from: evening!), 18)
+        let night = cal.date(from: DateComponents(year: 2026, month: 7, day: 7, hour: 21))!
+        XCTAssertNil(ReminderPresets.thisEvening(from: night, calendar: cal), "18:00 already past")
+        let tomorrow = ReminderPresets.tomorrowMorning(from: night, calendar: cal)!
+        XCTAssertEqual(cal.component(.day, from: tomorrow), 8)
+        XCTAssertEqual(cal.component(.hour, from: tomorrow), 9)
+        let week = ReminderPresets.nextWeek(from: morning, calendar: cal)!
+        XCTAssertEqual(cal.component(.day, from: week), 14)
+    }
+}
+
 /// Photo OCR (chunk 6): the synced manifest field + the search matcher + a
 /// real Vision pass over a rendered fixture.
 final class PhotoTextTests: XCTestCase {

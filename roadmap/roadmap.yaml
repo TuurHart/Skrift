@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T10:06:17.000Z'
+updated: '2026-07-07T10:27:32.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -298,14 +298,20 @@ nodes:
         idempotent sweep on launch/foreground/sync/insert; search matches
         photo text + the memo TITLE (pre-existing gap); real-Vision test
         [a8dd6be]
+      - >-
+        2026-07-07 · Chunk 7 — reminders: Memo.remindAt on the SHARED model
+        (data syncs; alarm is per-device — ReminderScheduler reconciles
+        UNUserNotificationCenter from the field; pure ReminderPlan tested);
+        bell chip + ⋯ + list long-press; tap → opens the memo; auth on first
+        set. Mac reconciler owed; prod schema deploy needed at promotion
     backlog:
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
       - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]
         ships already; wire PipelineFile stems)
       - Photo OCR — Mac SEARCH-UI wiring (the text already syncs in the
         metadata blob)
-      - Note reminders (synced remindAt; per-device UNUserNotificationCenter
-        reconcile)
+      - Reminders — Mac reconciler (same UserNotifications API; remindAt
+        already syncs) + prod CloudKit schema deploy at promotion
       - FaceID/TouchID locked notes (synced flag; excluded from publish;
         auth-gate not crypto in v1)
       - Doc scan → PDF capture (VisionKit, phone)
