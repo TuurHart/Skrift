@@ -32,7 +32,7 @@ struct JournalIndexSettingsSection: View {
             .foregroundStyle(Color.skTextDim)
             #endif
         } header: {
-            Text("Journal & search")
+            Text("Review & search")
         } footer: {
             Text("Finds notes by meaning — Related notes, threads, and semantic search. Runs fully on this \(UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"); nothing leaves the device. The language model is a one-time 295 MB download.")
         }

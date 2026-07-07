@@ -7,17 +7,28 @@ struct JournalMapView: View {
     private let repository = NotesRepository.shared
     @State private var clusters: [PlaceCluster] = []
     @State private var selected: PlaceCluster?
+    /// Current camera span — drives Photos-style zoom-adaptive clustering
+    /// (Tuur, 2026-07-07): zoomed out, nearby places COLLECT into one pin;
+    /// zooming in pulls them apart.
+    @State private var span = MKCoordinateSpan(latitudeDelta: 40, longitudeDelta: 40)
+
+    private var displayed: [PlaceCluster] {
+        PlaceCluster.merged(clusters, span: span)
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Map {
-                ForEach(clusters) { cluster in
+                ForEach(displayed) { cluster in
                     Annotation(cluster.name, coordinate: cluster.coordinate) {
                         pin(cluster)
                     }
                 }
             }
             .mapStyle(.standard)
+            .onMapCameraChange(frequency: .onEnd) { context in
+                span = context.region.span
+            }
             if let selected { placeSheet(selected) }
         }
         .navigationTitle("Places")
@@ -78,6 +89,39 @@ struct PlaceCluster: Identifiable {
                                 memos: sorted)
         }
         .sorted { $0.memos.count > $1.memos.count }
+    }
+
+    /// Photos-style zoom clustering: base (name-grouped) clusters closer than
+    /// ~12% of the visible span COLLECT into one pin — biggest first, weighted
+    /// centroid, "Name +N" title. Zooming in shrinks the span → they pull
+    /// apart. Pure; unit-tested.
+    static func merged(_ base: [PlaceCluster], span: MKCoordinateSpan) -> [PlaceCluster] {
+        let latLimit = span.latitudeDelta * 0.12
+        let lonLimit = span.longitudeDelta * 0.12
+        var out: [PlaceCluster] = []
+        for cluster in base.sorted(by: { $0.memos.count > $1.memos.count }) {
+            if let i = out.firstIndex(where: {
+                abs($0.coordinate.latitude - cluster.coordinate.latitude) < latLimit &&
+                abs($0.coordinate.longitude - cluster.coordinate.longitude) < lonLimit
+            }) {
+                let host = out[i]
+                let total = Double(host.memos.count + cluster.memos.count)
+                let lat = (host.coordinate.latitude * Double(host.memos.count)
+                    + cluster.coordinate.latitude * Double(cluster.memos.count)) / total
+                let lon = (host.coordinate.longitude * Double(host.memos.count)
+                    + cluster.coordinate.longitude * Double(cluster.memos.count)) / total
+                let mergedCount = host.id.split(separator: "+").count
+                out[i] = PlaceCluster(
+                    id: host.id + "+" + cluster.id,
+                    name: "\(host.name.split(separator: " +").first.map(String.init) ?? host.name) +\(mergedCount)",
+                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                    memos: (host.memos + cluster.memos)
+                        .sorted { LookbackProvider.journalDate($0) > LookbackProvider.journalDate($1) })
+            } else {
+                out.append(cluster)
+            }
+        }
+        return out
     }
 }
 
