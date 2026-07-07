@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — accessory bar v2 + photo block layout (round-1 P2 #9/#11)</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#050507;color:#e4e4e7;padding:28px;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+  h2{font-size:16px;font-weight:600;margin:34px 0 10px;color:#c9c9d4;}
+  .sub{color:#9a9aae;margin:0 0 14px;max-width:880px;line-height:1.6;}
+  .sub b{color:#e4e4e7;}
+  .locked{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 26px;max-width:1000px;}
+  .locked .f{font-size:12.5px;color:#b4b4c2;background:#14141c;border:.5px solid rgba(255,255,255,.09);border-radius:8px;padding:5px 10px;}
+  .locked .f b{color:#34d399;font-weight:600;}
+  .locked .f.q{border-color:rgba(240,179,94,.4);}
+  .locked .f.q b{color:#f0b35e;}
+  .pair{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;}
+  .unit{width:332px;}
+  .cap{font-size:12.5px;color:#9a9aae;line-height:1.5;margin-top:10px;padding:0 4px;}
+  .cap b{color:#b4b4c2;font-weight:600;}
+  .cap .rec{color:#34d399;font-weight:700;}
+
+  /* phone bottom-slice frame: keyboard + bar only (the bar is the subject) */
+  .slice{width:332px;position:relative;background:#0f1117;border:6px solid #000;border-radius:30px;overflow:hidden;}
+  .prose{font-size:14.5px;line-height:1.7;padding:14px 18px 6px;color:#e4e4e7;}
+  .prose .caret{display:inline-block;width:2px;height:16px;background:#7c6bf5;vertical-align:-3px;border-radius:1px;}
+  .prose .box{display:inline-block;width:15px;height:15px;border:1.6px solid #55556a;border-radius:4px;vertical-align:-2.5px;margin-right:7px;}
+  .prose .box.on{background:#7c6bf5;border-color:#7c6bf5;position:relative;}
+  .prose .box.on::after{content:'✓';position:absolute;inset:0;color:#fff;font-size:10.5px;display:flex;align-items:center;justify-content:center;}
+  .prose .done{color:#8b8b97;text-decoration:none;}
+
+  /* the pill (current glass language) */
+  .barwrap{padding:8px 10px;}
+  .pill{height:40px;border-radius:15px;background:rgba(30,33,48,.94);border:.5px solid rgba(255,255,255,.13);
+    box-shadow:0 6px 11px rgba(0,0,0,.35);display:flex;align-items:center;padding:0 7px;gap:3px;position:relative;overflow:hidden;}
+  .ic{width:34px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#8b8b97;font-size:15px;flex-shrink:0;}
+  .pill.a .ic{width:27px;}
+  .pill.b .ic{width:29px;}
+  .pill.b{gap:2px;}
+  .find{font-size:21px;font-weight:700;transform:rotate(-45deg);line-height:1;color:#9a9aae;}
+  .ic.dim{opacity:.35;}
+  .ic.act{color:#9d8ff7;background:rgba(124,107,245,.13);}
+  .vdiv{width:.5px;height:18px;background:rgba(255,255,255,.12);flex-shrink:0;margin:0 5px;}
+  .donebtn{margin-left:auto;flex-shrink:0;font-size:13.5px;font-weight:600;color:#9d8ff7;background:rgba(124,107,245,.13);border-radius:9px;padding:5px 12px;}
+  .scrollzone{display:flex;align-items:center;gap:3px;overflow:hidden;flex:1;min-width:0;position:relative;}
+  .fade{position:absolute;right:0;top:0;bottom:0;width:26px;background:linear-gradient(90deg,transparent,rgba(30,33,48,.96));pointer-events:none;}
+  .peek{opacity:.45;transform:translateX(6px);}
+
+  /* keyboard sketch */
+  .kb{background:#16161e;padding:8px 6px 14px;display:flex;flex-direction:column;gap:7px;}
+  .krow{display:flex;justify-content:center;gap:5px;}
+  .key{width:26px;height:34px;border-radius:6px;background:#2a2a35;box-shadow:0 1px 0 rgba(0,0,0,.5);}
+  .key.w{width:44px;}.key.sp{width:150px;}
+
+  /* photo-block comparison */
+  .page{width:332px;background:#0f1117;border:6px solid #000;border-radius:30px;overflow:hidden;padding:16px 18px 18px;}
+  .page .t{font-size:15px;font-weight:700;margin-bottom:8px;}
+  .body2{font-size:14.5px;line-height:1.7;}
+  .ph-inline{display:inline-block;width:118px;height:88px;border-radius:10px;vertical-align:middle;margin:3px 4px;
+    background:linear-gradient(135deg,#2b3350,#161a29);border:.5px solid rgba(255,255,255,.12);}
+  .ph-block{display:block;width:100%;height:132px;border-radius:14px;margin:10px 0;
+    background:linear-gradient(135deg,#2b3350,#161a29);border:.5px solid rgba(255,255,255,.12);}
+  .rawnote{font-size:11px;color:#55556a;font-family:ui-monospace,Menlo,monospace;background:#14141c;border-radius:8px;padding:7px 9px;margin-top:10px;line-height:1.6;}
+  .rawnote b{color:#8b8b97;font-weight:600;}
+</style>
+</head>
+<body>
+
+<h1>Accessory bar v2 + inline-photo block layout</h1>
+<p class="sub">Round-1 P2 <b>#9</b> ("study Apple Notes' scrollable format bar… make ours similar") and
+<b>#11</b> (mid-sentence photos wrap ugly). Same glass pill, richer verbs. Notes' buttons we deliberately
+<b>skip</b>: tables and Aa rich-text styles — Skrift bodies stay plain Markdown prose + tasks.</p>
+
+<div class="locked">
+  <span class="f">keeps <b>undo · redo · find · Done</b> (round-1 liked)</span>
+  <span class="f">📷 opens the <b>camera / library</b> dialog (P2#7, built)</span>
+  <span class="f">☑ inserts / continues a <b>checklist</b> (P2#8 flow, built)</span>
+  <span class="f">→ opens the <b>[[memo-link]]</b> picker (typing "[[" still works)</span>
+  <span class="f q">open: <b>scan-into-this-note?</b> (today scan lives in the list = a NEW memo)</span>
+</div>
+
+<h2>#9 — the bar: two candidates</h2>
+<div class="pair">
+  <div class="unit">
+    <div class="slice">
+      <div class="prose"><span class="box"></span>call the plumber<span class="caret"></span></div>
+      <div class="barwrap">
+        <div class="pill a">
+          <div class="scrollzone">
+            <div class="ic">↩︎</div>
+            <div class="ic dim">↪︎</div>
+            <div class="vdiv"></div>
+            <div class="ic act">☑</div>
+            <div class="ic">📷</div>
+            <div class="ic">→</div>
+            <div class="ic"><span class="find">⌕</span></div>
+            <div class="ic peek">📄</div>
+            <div class="fade"></div>
+          </div>
+          <div class="donebtn">Done</div>
+        </div>
+      </div>
+      <div class="kb">
+        <div class="krow"><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div></div>
+        <div class="krow"><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div></div>
+        <div class="krow"><div class="key w"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key w"></div></div>
+        <div class="krow"><div class="key sp"></div></div>
+      </div>
+    </div>
+    <p class="cap"><b>A — one scrollable strip.</b> Everything rides one horizontally-scrollable zone
+    (Notes-style); <b>Done stays pinned</b> outside the scroll. The 📄 peeking + edge fade say
+    "there's more". ☑ is lit because the caret sits in a checklist. Scales to future verbs for free.</p>
+  </div>
+
+  <div class="unit">
+    <div class="slice">
+      <div class="prose"><span class="box"></span>call the plumber<span class="caret"></span></div>
+      <div class="barwrap">
+        <div class="pill b">
+          <div class="ic">↩︎</div>
+          <div class="ic dim">↪︎</div>
+          <div class="vdiv"></div>
+          <div class="ic act">☑</div>
+          <div class="ic">📷</div>
+          <div class="ic">→</div>
+          <div class="ic">⋯</div>
+          <div class="donebtn">Done</div>
+        </div>
+      </div>
+      <div class="kb">
+        <div class="krow"><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div></div>
+        <div class="krow"><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div></div>
+        <div class="krow"><div class="key w"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key"></div><div class="key w"></div></div>
+        <div class="krow"><div class="key sp"></div></div>
+      </div>
+    </div>
+    <p class="cap"><b>B — fixed six + ⋯ overflow. <span class="rec">RECOMMENDED.</span></b> The five
+    daily verbs are always in the same spot (muscle memory, no hidden-by-scroll state); rare ones
+    (find, future scan/markup) live under ⋯. No scroll = nothing to discover by accident, and the
+    pill never looks half-scrolled. Costs one tap for find.</p>
+  </div>
+</div>
+
+<h2>#11 — mid-sentence photo: inline vs display block</h2>
+<div class="pair">
+  <div class="unit">
+    <div class="page">
+      <div class="t">Evening at the harbor</div>
+      <div class="body2">The light on the water was fantastic
+        <span class="ph-inline"></span> and then we walked to the old
+        crane and talked about the sailing trip for next spring.</div>
+      <div class="rawnote"><b>raw (synced/exported):</b><br>…was fantastic [[img_001]] and then we walked…</div>
+    </div>
+    <p class="cap"><b>Today — true inline.</b> The attachment sits ON the text line: the whole line
+    grows to photo height, neighbours dangle at its baseline. This is the "ugly wrap" screenshot
+    from round 1.</p>
+  </div>
+
+  <div class="unit">
+    <div class="page">
+      <div class="t">Evening at the harbor</div>
+      <div class="body2">The light on the water was fantastic
+        <span class="ph-block"></span> and then we walked to the old
+        crane and talked about the sailing trip for next spring.</div>
+      <div class="rawnote"><b>raw (synced/exported):</b><br>…was fantastic [[img_001]] and then we walked…
+      <br><b>unchanged</b> — the breaks are display-only.</div>
+    </div>
+    <p class="cap"><b>Proposed — display BLOCK. <span class="rec">RECOMMENDED.</span></b> The photo
+    always renders as its own full-width paragraph (like the recording flow's photos); the sentence
+    flows on below. The <b>raw text keeps the marker mid-sentence</b> — sync, export, and the Mac see
+    no difference. Tap/markup behaviour identical.</p>
+  </div>
+</div>
+
+<p class="sub" style="margin-top:26px">Sign-off = pick <b>A or B</b> for the bar (B recommended), and
+<b>yes/no</b> on the photo block (recommended yes). Then both build in one chunk; the ⋯ sheet and any
+scan-into-note verb come as their own later decisions.</p>
+
+</body>
+</html>

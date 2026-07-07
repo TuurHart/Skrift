@@ -519,16 +519,23 @@ job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet
    lift; the row is a plain Button now. New UI test long-presses row 0 and asserts the menu (green).
 6. ✅ **Checkbox tap sometimes entered editing** (`da3cfee`) — same rect-based fix as #2: task glyph hit by
    drawn rect ±12 pt slop, caret snap irrelevant; geometry test.
-**P2 FEATURES/POLISH (user-requested this round):**
-7. 📷 accessory should offer TAKE PHOTO (camera) as well as library.
-8. Checklist: Return at the end of a task line auto-continues with a new `- [ ] ` (Apple Notes behaviour).
-9. **Accessory bar v2 — study Apple Notes' scrollable format bar** ("way more options… make ours similar,
-   scrollable — get some ideas from that"). MOCK-FIRST design pass; candidates: checklist toggle, link, photo.
-10. **Draw on photos IN-APP with auto-save** ("would be awesome") — try QuickLook `editingMode(.updateContents)`
-    → markup saves to the photo file → `AssetMaterializer` size-change refresh syncs it. Likely small; verify.
-11. **Mid-sentence inline photo layout is ugly** (screenshot: text wraps around the image awkwardly) — design
-    decision: render images as their own display BLOCK (display-only line breaks; raw stays inline)?
-12. Photo-viewer open animation "weird" (QuickLook slide-up + black overlay) — consider zoom transition.
+**P2 FEATURES/POLISH (user-requested this round; code items BUILT 2026-07-07, device verify owed):**
+7. ✅ 📷 offers TAKE PHOTO + library (`f5a16a3`) — confirmation dialog → system camera; both funnel into
+   one caret-insert + CloudKit mirror + OCR path; sim stays library-only.
+8. ✅ Checklist Return-continuation (`54fe2d4`) — Return in a task line = fresh unchecked item (mid-line
+   splits); Return on an EMPTY item dissolves the box (Notes flow). 4 delegate-driven tests.
+9. 📐 **Accessory bar v2 — MOCK READY, awaiting sign-off:** `mocks/accessory-bar-v2.html` — variant A
+   (one scrollable strip) vs B (fixed six + ⋯ overflow, RECOMMENDED); Notes' tables/Aa deliberately
+   skipped; open chip: scan-into-this-note? Pick A/B → build.
+10. ✅ Draw on photos in-app (`fb7f5f4`) — QuickLook `.updateContents` wrapper (MarkupPreviewView):
+    markup saves INTO the photo file → AssetMaterializer size-change re-mirror + OCR reset→rescan +
+    mtime-keyed thumbnail rebuild. Shared-file captures get markup too (PDFs).
+11. 📐 **Mid-sentence photo block layout — MOCK READY, same file** (`accessory-bar-v2.html` §#11):
+    current true-inline vs display-BLOCK (raw keeps `[[img]]` mid-sentence; breaks are display-only).
+    RECOMMENDED yes → build with #9's chunk.
+12. ⏳ Photo-viewer open animation (zoom) — deliberately NOT built: needs UIKit-driven presentation +
+    `transitionViewFor` anchored to the attachment rect through the hosting boundary; revisit after
+    the #9/#11 chunk lands.
 **BY DESIGN (confirmed to user):** a SECOND typed mention of a linked name stays plain — one link per person,
 first mention only (the locked naming model); re-scan happens on commit (~1 s) + restyles on end-editing.
 **ANSWERED:** reminders are LOCAL notifications (not the Reminders app / EventKit), alarms fully offline;
