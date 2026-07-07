@@ -504,9 +504,8 @@ job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet
    rebuild under live handles. Fixed: updateSpans skips unchanged spans; selectedRange written only when
    different; never restyle over a live selection. DevLog probes left in (inset writes, tier-restore moves,
    load rebuilds, sel-noFR changes) — if round 2 still shows jumps, the devlog names the event.
-2. ✅ **Tap right of a photo opened the viewer** (`da3cfee`) — attachment taps now resolve from the TOUCH
-   POINT against the glyph's drawn rect (anchored on `closestPosition`, caret-independent); geometry test
-   with a real portrait photo.
+2. ✅✅ **Tap right of a photo opened the viewer** (`da3cfee`) — touch-point vs drawn rect;
+   **DEVICE-CONFIRMED round 2** ("clicking next to the picture doesn't open it anymore — really nice").
 3. ✅ **Doc-scan button invisible** (`81a7208`) — the button was a ToolbarItem nested TWO conditionals deep
    in ToolbarContentBuilder (the shape iOS 26 drops); both trailing buttons now live in ONE ToolbarItemGroup.
    Devlog probe "docScan: isSupported=…" proves capability vs toolbar in round 2.
@@ -524,10 +523,12 @@ job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet
    one caret-insert + CloudKit mirror + OCR path; sim stays library-only.
 8. ✅ Checklist Return-continuation (`54fe2d4`) — Return in a task line = fresh unchecked item (mid-line
    splits); Return on an EMPTY item dissolves the box (Notes flow). 4 delegate-driven tests.
-9. ✅ **Accessory bar v2 — SIGNED OFF (variant B) + BUILT 2026-07-07:** fixed six —
-   undo · redo | ☑ checklist-toggle (lights when the caret's in a task line; un-tasks it) ·
-   📷 · → memo-link (same picker as typing "[[") · ⋯ overflow (Find; future scan/markup) · Done.
-   Headless-rendered + eyeballed. Open (deferred): scan-into-this-note verb.
+9. ✅ **Accessory bar v2 — SIGNED OFF (variant B) + BUILT + round-2 AMENDED 2026-07-07:**
+   undo · redo | ☑ checklist-toggle (lights in a task line; un-tasks it) · 📷 · → memo-link
+   (same picker as typing "[[") · 🔍 · Done. Round-2 verdict: checklist "super cool", link
+   found + understood (Obsidian-style [[ ]]). ⋯ overflow REMOVED same day (user: not needed
+   while there's space — it held only Find); revisit overflow-vs-SCROLL (user leans scroll,
+   à la Notes) when scan/markup verbs arrive. Open (deferred): scan-into-this-note verb.
 10. ✅ Draw on photos in-app (`fb7f5f4`) — QuickLook `.updateContents` wrapper (MarkupPreviewView):
     markup saves INTO the photo file → AssetMaterializer size-change re-mirror + OCR reset→rescan +
     mtime-keyed thumbnail rebuild. Shared-file captures get markup too (PDFs).
@@ -536,9 +537,9 @@ job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet
     unchanged). Rule lives in `BodyTransform.imageBreaks` (one source for builder + displayRange).
     Hardening: reconstruct emits syntax only for real U+FFFC runs + typingAttributes scrubbed —
     inherited keys can't duplicate markers or eat a Return.
-12. ⏳ Photo-viewer open animation (zoom) — deliberately NOT built: needs UIKit-driven presentation +
-    `transitionViewFor` anchored to the attachment rect through the hosting boundary; revisit after
-    the #9/#11 chunk lands.
+12. ⏳ Photo-viewer open animation (zoom) — still open; user re-flagged it round 2 ("something
+    black comes up from the bottom"). Needs UIKit-driven presentation + `transitionViewFor`
+    anchored to the attachment rect through the hosting boundary. Next in line.
 **BY DESIGN (confirmed to user):** a SECOND typed mention of a linked name stays plain — one link per person,
 first mention only (the locked naming model); re-scan happens on commit (~1 s) + restyles on end-editing.
 **ANSWERED:** reminders are LOCAL notifications (not the Reminders app / EventKit), alarms fully offline;

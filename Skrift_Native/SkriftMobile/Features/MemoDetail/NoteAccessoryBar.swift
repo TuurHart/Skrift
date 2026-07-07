@@ -3,10 +3,9 @@ import SwiftUI
 
 /// The editor's keyboard accessory — a floating Skrift pill (same glass language
 /// as the player bar), NOT the flat system strip. v2 = variant B of the
-/// signed-off `mocks/accessory-bar-v2.html` (2026-07-07): the daily verbs stay
-/// FIXED — undo · redo | checklist · photo · memo-link — rare ones live under
-/// the ⋯ menu (find; future scan/markup), Done pinned right. No scroll zone:
-/// muscle memory beats discoverability-by-swipe.
+/// signed-off `mocks/accessory-bar-v2.html` (2026-07-07), amended by device
+/// round 2 same day: NO ⋯ overflow while every verb still fits — find rides
+/// inline. Revisit overflow-vs-scroll only when scan/markup verbs arrive.
 final class NoteAccessoryBar: UIView {
     var onUndo: (() -> Void)?
     var onRedo: (() -> Void)?
@@ -21,7 +20,7 @@ final class NoteAccessoryBar: UIView {
     private let checklistButton = NoteAccessoryBar.iconButton("checklist", id: "accessory-checklist")
     private let photoButton = NoteAccessoryBar.iconButton("camera", id: "accessory-photo")
     private let linkButton = NoteAccessoryBar.iconButton("arrow.right", id: "accessory-link")
-    private let moreButton = NoteAccessoryBar.iconButton("ellipsis", id: "accessory-more")
+    private let findButton = NoteAccessoryBar.iconButton("magnifyingglass", id: "accessory-find")
     private let doneButton = UIButton(type: .system)
 
     init() {
@@ -62,19 +61,11 @@ final class NoteAccessoryBar: UIView {
         checklistButton.addAction(UIAction { [weak self] _ in self?.onChecklist?() }, for: .touchUpInside)
         photoButton.addAction(UIAction { [weak self] _ in self?.onPhoto?() }, for: .touchUpInside)
         linkButton.addAction(UIAction { [weak self] _ in self?.onMemoLink?() }, for: .touchUpInside)
-
-        // The overflow: rare verbs, one tap away (find today; scan/markup later).
-        moreButton.showsMenuAsPrimaryAction = true
-        moreButton.menu = UIMenu(children: [
-            UIAction(title: "Find in note", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
-                self?.onFind?()
-            },
-        ])
-
+        findButton.addAction(UIAction { [weak self] _ in self?.onFind?() }, for: .touchUpInside)
         doneButton.addAction(UIAction { [weak self] _ in self?.onDone?() }, for: .touchUpInside)
 
         let stack = UIStackView(arrangedSubviews: [undoButton, redoButton, divider,
-                                                   checklistButton, photoButton, linkButton, moreButton,
+                                                   checklistButton, photoButton, linkButton, findButton,
                                                    UIView(), doneButton])
         stack.axis = .horizontal
         stack.alignment = .center
