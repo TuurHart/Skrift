@@ -78,12 +78,14 @@ final class MemoDetailUITests: XCTestCase {
         XCTAssertTrue(addTag.waitForExistence(timeout: 5))
         addTag.tap()
 
-        let field = app.alerts.textFields.firstMatch
+        // The tag CHIP editor sheet (chunk 3) — type, Done commits + closes.
+        let field = app.textFields["tag-input"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
         field.typeText("harbor")
-        app.alerts.buttons["Add"].tap()
+        app.buttons["tag-editor-done"].tap()
 
-        // The applied tag chip is a tappable (remove) button, so query buttons.
+        // The applied tag chip is a tappable (opens the editor) button.
         XCTAssertTrue(app.buttons["#harbor"].waitForExistence(timeout: 5),
                       "added tag chip didn't appear")
     }

@@ -1,13 +1,17 @@
 import SwiftUI
 
-/// Root tab bar (audiobook reading-mode redesign 2026-06-19; trimmed 2026-07-06).
+/// Root tab bar (audiobook reading-mode redesign 2026-06-19; reshaped 2026-07-07
+/// by TWO converging chats): **Notes · Books · Journal · Settings**.
 ///
-/// Notes · Books · Settings. The audiobook library ("Books") is a co-equal tab,
-/// not a sheet — a sheet's swipe-down-to-dismiss gesture stole pull-to-refresh
-/// (device feedback 2026-06-19). The Highlights placeholder tab was CUT
-/// 2026-07-06: captures already live in Notes (book glyph + ❝-quote rows), so a
-/// tab-level filtered duplicate never earned its slot; a per-book notes surface
-/// belongs in the book context instead.
+/// - The audiobook library is a co-equal tab (not a sheet — a sheet's
+///   swipe-down-to-dismiss stole pull-to-refresh, device feedback 2026-06-19),
+///   renamed **Books** (Library→Books, `mocks/books-tab-and-resume.html`).
+/// - **Journal** took the reserved Highlights slot (signed
+///   `mocks/journal-retrieval.html`); the Highlights placeholder tab was cut the
+///   same day by the Books chat — both agreed a bare captured-quotes tab never
+///   earned its slot. P6's Highlights feed + Daily Review later land as sections
+///   INSIDE Journal, not a fifth tab (JOURNAL_RETRIEVAL_PLAN.md); per-book notes
+///   belong in the book context.
 ///
 /// Each tab owns its own navigation; the shared SwiftData model container +
 /// environment flow down from `RootView` unchanged. The record FAB stays inside
@@ -15,8 +19,8 @@ import SwiftUI
 /// bottom `safeAreaInset` on every tab, so the listening session keeps one body
 /// wherever you are — and scroll views automatically make room for it.
 struct AppTabView: View {
-    enum Tab: Hashable { case notes, books, settings }
-    @State private var selection: Tab = .notes
+    enum Tab: Hashable { case notes, books, journal, settings }
+    @State private var selection: Tab = LaunchFlags.openJournal ? .journal : .notes
 
     var body: some View {
         TabView(selection: $selection) {
@@ -30,6 +34,11 @@ struct AppTabView: View {
                 .tabItem { Label("Books", systemImage: "book") }
                 .tag(Tab.books)
 
+            JournalHomeView()
+                .safeAreaInset(edge: .bottom) { GlobalMiniPlayerMount() }
+                .tabItem { Label("Journal", systemImage: "clock.arrow.circlepath") }
+                .tag(Tab.journal)
+
             SettingsView()
                 .safeAreaInset(edge: .bottom) { GlobalMiniPlayerMount() }
                 .tabItem { Label("Settings", systemImage: "gearshape") }
@@ -38,7 +47,7 @@ struct AppTabView: View {
         .tint(.skAccent)
         // Launch restore: arm the most recently played book as a PAUSED session so
         // "continue my book" is one tap (play on the capsule) from wherever you
-        // land — no Library-dig. Never auto-plays (surprise audio on launch is
+        // land — no Books-dig. Never auto-plays (surprise audio on launch is
         // wrong); open() bails safely if the audio isn't on disk. Skipped under
         // the UI-test store flag so hermetic tests never inherit a sim library.
         .task {

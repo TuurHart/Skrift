@@ -136,4 +136,8 @@ struct DaylightInfo: Codable, Equatable, Sendable {
 struct ImageManifestEntry: Codable, Equatable, Sendable {
     var filename: String
     var offsetSeconds: Double
+    /// On-device OCR of the photo (NFeat chunk 6): nil = not indexed yet,
+    /// "" = indexed and no text found. Additive — old payloads decode fine,
+    /// and it rides the synced metadata blob to every device.
+    var text: String? = nil
 }

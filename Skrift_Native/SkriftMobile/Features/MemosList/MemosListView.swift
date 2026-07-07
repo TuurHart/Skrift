@@ -47,6 +47,12 @@ struct MemosListView: View {
     @State private var lastHandledStart = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @ObservedObject private var memoOpen = MemoOpenBridge.shared
+    /// Long-press → "Remind me…" (chunk 7).
+    @State private var reminderMemo: Memo?
+    /// Locking a memo that's already published → honest notice (chunk 8).
+    @State private var lockVaultNotice = false
+    /// In-app document scan (chunk 9) — device-only entry.
+    @State private var showDocScanner = false
     @State private var showSortFilter = false
     @State private var showTrash = false
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
@@ -95,7 +101,25 @@ struct MemosListView: View {
             // widget / deep link / shared video) BEFORE this view subscribed —
             // onChange alone misses it, which left Siri/widget "opens but doesn't
             // record" and a shared video not opening on a cold launch.
-            .onAppear { handleStartRequest(); handleOpenRequest() }
+            .onAppear {
+                handleStartRequest(); handleOpenRequest()
+                // Round-2 evidence for the invisible doc-scan button: was the
+                // capability gate the culprit, or the iOS-26 toolbar?
+                DevLog.log("docScan: isSupported=\(DocScanView.isSupported)")
+            }
+            // Round-3 evidence for "photo search finds nothing": per query,
+            // how many memos match at all, and how many via photo OCR text —
+            // separates 'Vision read nothing' from 'search doesn't match'.
+            .onChange(of: search) { _, q in
+                let query = q.trimmingCharacters(in: .whitespaces).lowercased()
+                guard !query.isEmpty else { return }
+                let photoHits = memos.filter {
+                    $0.metadata?.imageManifest?.contains {
+                        $0.text?.lowercased().contains(query) == true
+                    } == true
+                }.count
+                DevLog.log("search '\(query)' → \(filtered.count)/\(memos.count) hits, \(photoHits) via photoText")
+            }
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
             }
@@ -111,6 +135,29 @@ struct MemosListView: View {
     private var listContent: some View {
         VStack(spacing: 0) {
             SearchField(text: $search, prompt: "Search transcripts", fieldID: "memo-search")
+                .sheet(item: $reminderMemo) { memo in
+                    ReminderSheet(memo: memo) { NotesRepository.shared.save() }
+                }
+                .fullScreenCover(isPresented: $showDocScanner) {
+                    DocScanView(
+                        onScan: { pages in
+                            showDocScanner = false
+                            Task {
+                                if let id = await DocScanner.save(pages: pages,
+                                                                  repository: NotesRepository.shared) {
+                                    MemoOpenBridge.shared.open(id)
+                                }
+                            }
+                        },
+                        onCancel: { showDocScanner = false }
+                    )
+                    .ignoresSafeArea()
+                }
+                .alert("Already in your vault", isPresented: $lockVaultNotice) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("This note was published to Obsidian before you locked it. Skrift never deletes vault files — remove it there if you want it gone. New publishes will skip it.")
+                }
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
                 .padding(.bottom, 6)
@@ -122,7 +169,14 @@ struct MemosListView: View {
                 ForEach(groups, id: \.title) { group in
                     Section {
                         ForEach(group.memos) { memo in
-                            MemoRow(memo: memo) { path.append(memo.id) }
+                            MemoRow(memo: memo) {
+                                // Opening a SEARCH RESULT carries the query
+                                // along — the note flashes where it matched
+                                // (text range, or the photo whose OCR hit).
+                                let q = search.trimmingCharacters(in: .whitespaces)
+                                if !q.isEmpty { SearchHitBridge.pending = (memo.id, q) }
+                                path.append(memo.id)
+                            }
                                 .tag(memo.id)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
@@ -148,6 +202,15 @@ struct MemosListView: View {
                                     // Second path to the same actions; empty while
                                     // selecting so long-press can't fight multi-select.
                                     if !editMode.isEditing {
+                                        Button { reminderMemo = memo } label: {
+                                            Label("Remind me…", systemImage: "bell")
+                                        }
+                                        .accessibilityIdentifier("context-remind-button")
+                                        Button { toggleLock(memo) } label: {
+                                            Label(memo.locked ? "Remove Lock" : "Lock Note",
+                                                  systemImage: memo.locked ? "lock.open" : "lock")
+                                        }
+                                        .accessibilityIdentifier("context-lock-button")
                                         Button { copyTranscript(memo) } label: {
                                             Label("Copy transcript", systemImage: "doc.on.doc")
                                         }
@@ -271,7 +334,11 @@ struct MemosListView: View {
     // MARK: - Toolbar
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
+        // Doc scan lives on the LEADING side: round 2+3 proved iOS 26 eats a
+        // second trailing item no matter the shape (separate items AND one
+        // group both dropped it, with isSupported=true in the devlog — build
+        // 35 probe). Leading has one text button and renders reliably.
+        ToolbarItemGroup(placement: .topBarLeading) {
             Button(editMode.isEditing ? "Done" : "Select") {
                 withAnimation(Theme.Motion.snappy) {
                     if editMode.isEditing { editMode = .inactive; selected.removeAll() }
@@ -279,13 +346,20 @@ struct MemosListView: View {
                 }
             }
             .accessibilityIdentifier("select-button")
+            if !editMode.isEditing, DocScanView.isSupported {
+                // Scan a paper document → PDF capture (chunk 9). No sim camera
+                // → the button honestly disappears there.
+                Button { showDocScanner = true } label: {
+                    Image(systemName: "doc.viewfinder")
+                }
+                .accessibilityIdentifier("doc-scan-button")
+            }
         }
-        if !editMode.isEditing {
-            // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
-            // 2026-06-19) — co-equal with Notes, so a sheet's swipe-to-dismiss no
-            // longer steals pull-to-refresh. Sync is fully automatic over CloudKit
-            // (push) + pull-to-refresh reconcile, so there's no manual sync button.
-            ToolbarItem(placement: .topBarTrailing) {
+        // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
+        // 2026-06-19); sync is fully automatic over CloudKit, so there's no
+        // manual sync button — sort/filter is the lone trailing item.
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if !editMode.isEditing {
                 Button { showSortFilter = true } label: {
                     Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
                 }
@@ -382,6 +456,26 @@ struct MemosListView: View {
     /// Quick copy straight from the list: transcript (fallback: title) → pasteboard,
     /// with a light haptic + the same top banner as sync. An empty memo says so
     /// instead of silently copying nothing.
+    /// Lock (instant; honesty copy lives on the detail page too) / remove lock
+    /// (requires auth — Apple Notes idiom). Locking an already-published memo
+    /// surfaces the vault notice; Skrift never deletes vault files.
+    private func toggleLock(_ memo: Memo) {
+        if memo.locked {
+            Task {
+                guard await LockGate.shared.authorizeRemoveLock() else { return }
+                memo.locked = false
+                memo.markEdited()
+                NotesRepository.shared.save()
+            }
+        } else {
+            guard LockGate.shared.canAuthenticate() else { return }
+            memo.locked = true
+            memo.markEdited()
+            NotesRepository.shared.save()
+            if ExportStateStore.shared.record(for: memo.id) != nil { lockVaultNotice = true }
+        }
+    }
+
     private func copyTranscript(_ memo: Memo) {
         guard let text = memo.copyableText else {
             flashBanner("Nothing to copy yet")
@@ -430,16 +524,7 @@ struct MemosListView: View {
     }
 
     private func matchesSearch(_ memo: Memo) -> Bool {
-        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return true }
-        if memo.transcript?.lowercased().contains(q) == true { return true }
-        if memo.tags.contains(where: { $0.lowercased().contains(q) }) { return true }
-        if memo.metadata?.location?.placeName?.lowercased().contains(q) == true { return true }
-        // C3 capture items: search annotation + urlTitle + text snippet
-        if memo.annotationText?.lowercased().contains(q) == true { return true }
-        if memo.sharedContent?.urlTitle?.lowercased().contains(q) == true { return true }
-        if memo.sharedContent?.text?.lowercased().contains(q) == true { return true }
-        return false
+        memo.matches(query: search)
     }
 
     private func matchesFilter(_ memo: Memo) -> Bool {
@@ -494,9 +579,16 @@ private struct MemoRow: View {
         if editMode?.wrappedValue.isEditing == true {
             MemoCard(memo: memo)
         } else {
-            MemoCard(memo: memo)
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onTap)
+            // A Button, NOT .onTapGesture: a tap gesture on a List row fights
+            // the context-menu lift on iOS 26 — a long-press just started the
+            // row drifting as if scrolling and the menu never opened (device
+            // round 1). The system resolves Button-tap vs long-press-menu vs
+            // scroll natively.
+            Button(action: onTap) {
+                MemoCard(memo: memo)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 }
@@ -534,11 +626,26 @@ private struct MemoCard: View {
                     statusPill
                 }
 
+                // Locked notes: title + 🔒 only — the preview never shows
+                // (chunk 8). Content requires Face ID on the detail page.
+                if memo.locked {
+                    HStack(spacing: 6) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.skTextDim)
+                        Text(memo.title?.isEmpty == false ? memo.title! : "Locked note")
+                            .font(.system(size: 14.5, weight: .semibold))
+                            .foregroundStyle(Color.skText)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 6)
+                    .accessibilityIdentifier("locked-row-title")
                 // C3 share-item captures lead with the resolved title (urlTitle /
                 // text snippet / "Image") and the annotation as the secondary line.
                 // They never have a voice transcript, so the standard snippet path
                 // is bypassed entirely.
-                if memo.isShareCapture {
+                } else if memo.isShareCapture {
                     Text(memo.shareCaptureTitle)
                         .font(.system(size: 14.5, weight: .semibold))
                         .foregroundStyle(Color.skText)
@@ -643,7 +750,7 @@ private struct MemoCard: View {
                     .fill(LinearGradient(colors: [Color(hex: 0x2b3350), Color(hex: 0x1a1f33)],
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 48, height: 48)
-                    .overlay(photoThumb)
+                    .overlay(memo.locked ? nil : photoThumb)
                     .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 1))
             }
         }

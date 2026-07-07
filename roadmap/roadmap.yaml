@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 11
-updated: 2026-07-07T09:01:51.185Z
+version: 12
+updated: 2026-07-07T16:15:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -187,7 +187,7 @@ nodes:
     title: Stabilize 0.2.0
     lane: 0
     order: 5
-    status: now
+    status: inprogress
     eff: M
     ms: Standalone core
     deps:
@@ -210,6 +210,162 @@ nodes:
         round-trip is device-unverified)
     win: phone↔Mac sync works end-to-end in prod (CloudKit schema deployed) and the
       5-finding post-0.2.0 batch is cleared
+  - id: NEdit
+    title: Note-editing overhaul
+    lane: 0
+    order: 5.5
+    status: inprogress
+    shipped:
+      - >-
+        2026-07-07 · Chunk 1 — body re-founded on a scrolling text view
+        (NoteBodyView): B2 pinned title, header/footer inside the scroll,
+        karaoke = attribute painting on the same textStorage (PlayerClock split
+        ends the 20 Hz whole-page re-render), debounced saves, memoized
+        name-span scan; NonScrollingTextView + 3-mode swap + 2 karaoke
+        renderers DELETED. Unit suite green. [620ddbc]
+      - >-
+        2026-07-07 · Chunk 2 — chrome: floating accessory pill (undo·redo·
+        find·photo·Done), system find-in-note, compact 40pt player pill
+        (whole-pill scrub; dots → transient n/total), photo tap→QuickLook,
+        photo-at-caret insert (manifest+CloudKit), share note OUT (md+audio),
+        word count·duration in ⋯, Dynamic Type on the body [55254b4]
+      - >-
+        2026-07-07 · Chunk 3 — TagEditorSheet: chips with explicit ✕ (no more
+        silent tap-delete), comma input kept, autocomplete from every library
+        tag (pick, not retype)
+    eff: M
+    note: Re-found the note body on a natively-scrolling text view (fork B) —
+      selection/undo/find/caret-follow come free; karaoke becomes attribute
+      painting on the SAME view (kills the 20 Hz per-word re-render + mode
+      swap). Study + review-1 2026-07-06 in backlog.md "EPIC note-editing";
+      SPEC COMPLETE 2026-07-06 = mocks/note-editor-redesign.html. LOCKED — B2
+      pinned title; accessory = undo/redo/find/photo/Done (floating Skrift
+      pill, SF Symbols); no Save-highlight; summary card in the scrolling
+      header; compact player pill. Build green-lit once the bug-fix chat
+      wraps. Build plan = backlog.md EPIC 🏗 (chunks 1–3 here; 4–9 = NFeat).
+    backlog:
+      - Device eyeball — selection/caret/magnifier feel, accessory pill,
+        compact player, tag editor, name-tap-while-editing semantics
+      - Check the polished memo's summary card shows on phone (possible bug →
+        bugs chat)
+    win: "editing a note feels like Apple Notes — selection autoscrolls, caret
+      stays visible, undo/find/magnifier work — with transcript richness
+      (karaoke, name tiers, inline photos) intact"
+  - id: NFeat
+    title: Note feature wave
+    lane: 0
+    order: 5.7
+    status: now
+    eff: L
+    deps:
+      - NEdit
+    via: NEdit
+    note: "Survey wave, ALL user-approved 2026-07-06: checklists · memo↔memo
+      links · photo OCR · reminders · FaceID lock · doc scan. HARD RULE:
+      shared-first — model/logic in Shared/, both apps ship every feature.
+      Build plan = backlog.md EPIC 🏗 chunks 4–9. Audio-trim DROPPED (the
+      text is the source). Locked notes still SYNC (Mac too, locked);
+      excluded from Obsidian PUBLISH only."
+    shipped:
+      - >-
+        2026-07-07 · Chunk 4 — live checklists (mobile): BodyTransform (one
+        raw⇄display transform for img markers + task prefixes), checkbox
+        attachments toggle in place + commit immediately, typed syntax
+        materializes on end-editing, byte-exact Obsidian round-trip [8e4688b]
+      - >-
+        2026-07-07 · Chunk 5 — memo↔memo links: shared MemoLinkSyntax
+        ([[memo:UUID|Title]]), '[[' → searchable picker → atomic chip, tap →
+        jump, LINKED-FROM backlinks; shared Compiler rewrites on export (phone
+        = precise frozen-path stems, fallback [[Title]]); desktop 325 green
+        [a066f4b]
+      - >-
+        2026-07-07 · Chunk 5b — enhancement-safety (user-caught): LLM escrow
+        (links→titles→reattach, whole-body fallback on a lost title) in the
+        Mac copy-edit; shared Sanitiser shields link titles from name-linking
+        (nonProseRanges) — fixes Mac sanitise + phone export relink at once
+        [946ec86]
+      - >-
+        2026-07-07 · Chunk 6 — photo OCR: PhotoTextIndexer (on-device Vision)
+        → ImageManifestEntry.text in the SYNCED metadata (zero new sync);
+        idempotent sweep on launch/foreground/sync/insert; search matches
+        photo text + the memo TITLE (pre-existing gap); real-Vision test
+        [a8dd6be]
+      - >-
+        2026-07-07 · Chunk 7 — reminders: Memo.remindAt on the SHARED model
+        (data syncs; alarm is per-device — ReminderScheduler reconciles
+        UNUserNotificationCenter from the field; pure ReminderPlan tested);
+        bell chip + ⋯ + list long-press; tap → opens the memo; auth on first
+        set. Mac reconciler owed; prod schema deploy needed at promotion
+        [d257256]
+      - >-
+        2026-07-07 · Chunk 8 — locked notes: synced Memo.locked + per-device
+        LockGate session (FaceID/passcode; background re-locks); list hides
+        preview, detail renders an Unlock placeholder (pager/player can't
+        bypass); publish EXCLUDES locked (tested) + already-in-vault notice;
+        remove-lock needs auth. Mac gate owed [23a0f06]
+      - >-
+        2026-07-07 · Chunk 9 — doc scan: VisionKit camera → one PDF through
+        the existing C3 file-capture path (normal capture memo, synced);
+        pages OCR'd into sharedContent.text → scans searchable; device-only
+        toolbar entry. THE 9-CHUNK WAVE IS BUILT
+      - >-
+        2026-07-07 · Device round 1 (build 31) verdicts + ALL 6 P1s fixed
+        same-day [461c55d…600d9ef]: OCR at save time (in-session search),
+        attachment taps by drawn rect (photo greedy / checkbox tight),
+        doc-scan toolbar iOS-26 group fix + probe, list row = Button (long-
+        press menu), selection-churn kill + instrumentation (P1#1)
+      - >-
+        2026-07-07 · Round-1 P2 code [f5a16a3/54fe2d4/fb7f5f4]: 📷 camera-or-
+        library, checklist Return-continuation (Notes flow), QuickLook markup
+        SAVE-BACK (re-mirror + re-OCR + mtime-fresh thumbnails). Build 33
+        installed for round 2. 538/538 unit
+      - >-
+        2026-07-07 · Signed-off chunk (mock accessory-bar-v2.html, same-day):
+        accessory bar v2 variant B (fixed six — ☑ toggle lights in a task
+        line · 📷 · → link · ⋯ Find — Done pinned) + photo display-BLOCK
+        (BodyTransform.imageBreaks, tagged display-only breaks, raw
+        untouched; reconstruct hardened to real-FFFC-only + typing-attr
+        scrub). 545/545 unit; bar headless-rendered + eyeballed. Build 34
+      - >-
+        2026-07-07 · Rounds 2+3 same-day loop (builds 35/36): bar ⋯ dropped
+        while all verbs fit (user ask); round-3 verdicts — camera dialog +
+        markup save-back + photo-tap fix CONFIRMED; markup-ERASE crash fixed
+        (edit chain deferred to cover dismissal; crash .ips diagnosed);
+        doc-scan relocated LEADING (devlog proved isSupported=true, iOS 26
+        eats trailing #2); handles fix attempt 2 (frame-writes only-on-change)
+        + sharper probes (sel-during-scroll, OCR yield, search hits)
+    backlog:
+      - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
+        pipeline never broken (sim e2e test stays as the gate). Search-hit
+        FLASH built same turn (build 37): result tap → scroll + flash the
+        text range / photo ring. ROUND 5 remainders: selection-handles repro
+        (sel-during-scroll probe arbitrates), long-press verdict, flash
+        eyeball"
+      - "Round-5 close (build 39): long-press ✓, search-hit flash ✓, zoom ✓,
+        PDF-inline ✓ device-confirmed. NEXT DESIGN CHUNK (mock-first):
+        capture reads as a NOTE — annotation folds into the body, file/PDF
+        becomes a body block (today's marker machinery generalizes); touches
+        C3 + exporter + Mac"
+      - "Selection handles: NOT retested since build 35 — build 39 carries
+        armed probes (sel-during-scroll + frame-write guards); pull devlog
+        on next repro"
+      - "Merge decision: branch is 41 commits ahead of main (user's call)"
+      - "P2#12 viewer ZOOM built (build 38, MarkupQuickLook UIKit presenter,
+        transitionViewFor off the tapped photo; edit chain still
+        dismissal-deferred) — device eyeball owed"
+      - P2#12 viewer zoom-open transition (re-flagged round 2; next polish)
+      - Scan-into-this-note accessory verb (deferred design question)
+      - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
+      - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]
+        ships already; wire PipelineFile stems)
+      - Photo OCR — Mac SEARCH-UI wiring (the text already syncs in the
+        metadata blob)
+      - Reminders — Mac reconciler (same UserNotifications API; remindAt
+        already syncs) + prod CloudKit schema deploy at promotion
+      - Locked notes — Mac gate (LocalAuthentication; flag already syncs)
+    win: the six approved gap features run on BOTH apps from shared code —
+      locked notes stay out of the vault, OCR'd photos are searchable,
+      reminders ring on whichever device you're holding
   - id: P4
     title: On-device Polish
     lane: -1

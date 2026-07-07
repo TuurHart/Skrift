@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — note editor re-foundation (LOCKED: B2 pinned title)</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#050507;color:#e4e4e7;padding:28px;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+  .sub{color:#9a9aae;margin:0 0 14px;max-width:880px;line-height:1.6;}
+  .sub code{background:#1a1a24;padding:1px 6px;border-radius:5px;font-size:13px;}
+  .sub b{color:#e4e4e7;}
+  .locked{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 26px;max-width:1000px;}
+  .locked .f{font-size:12.5px;color:#b4b4c2;background:#14141c;border:.5px solid rgba(255,255,255,.09);border-radius:8px;padding:5px 10px;}
+  .locked .f b{color:#34d399;font-weight:600;}
+  .locked .f.no b{color:#E5604B;}
+  .locked .f.q{border-color:rgba(240,179,94,.4);}
+  .locked .f.q b{color:#f0b35e;}
+
+  .pair{display:flex;gap:26px;flex-wrap:wrap;}
+  .unit{width:332px;}
+  .cap{font-size:12.5px;color:#9a9aae;line-height:1.5;margin-top:10px;padding:0 4px;}
+  .cap b{color:#b4b4c2;font-weight:600;}
+
+  /* ---------- phone ---------- */
+  .phone{width:332px;height:664px;position:relative;background:#0f1117;border:6px solid #000;border-radius:42px;overflow:hidden;color:#e4e4e7;}
+  .nav{display:flex;align-items:center;padding:16px 16px 9px;font-size:15px;position:relative;z-index:2;}
+  .nav .back{color:#7c6bf5;}
+  .nav .acts{margin-left:auto;display:flex;gap:16px;color:#8b8b97;font-size:16px;}
+  .pinbar{padding:2px 18px 10px;border-bottom:.5px solid rgba(255,255,255,.09);display:flex;align-items:center;gap:8px;position:relative;z-index:2;background:#0f1117;}
+  .pinbar .t{font-size:16.5px;font-weight:700;letter-spacing:-.015em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sparkle{width:26px;height:26px;border-radius:8px;background:rgba(124,107,245,.13);color:#9d8ff7;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+  .page{position:absolute;inset:0;top:96px;overflow:hidden;padding:6px 18px 0;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;}
+  .chip{font-size:11px;color:#8b8b97;background:#1e2130;border-radius:7px;padding:3px 8px;}
+  .chip.tagc{color:#b3a7fb;background:rgba(124,107,245,.13);}
+  .sig{display:flex;align-items:center;gap:5px;margin:14px 0 0;}
+  .sig .c{width:13px;height:13px;border-radius:50%;border:1.4px solid rgba(255,255,255,.22);}
+  .sig .c.on{background:#7c6bf5;border-color:#7c6bf5;}
+  .sig .lab{font-size:10px;letter-spacing:.08em;color:#55556a;font-weight:600;margin-left:7px;}
+  .summary{margin:14px 0 0;background:rgba(124,107,245,.07);border:.5px solid rgba(124,107,245,.22);border-radius:13px;padding:11px 12px;}
+  .summary .sl{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;letter-spacing:.05em;color:#9d8ff7;margin-bottom:4px;}
+  .summary .st{font-size:13px;line-height:1.55;color:#b4b4c2;}
+  .prose{font-size:15.5px;line-height:1.72;margin-top:15px;}
+  .prose p{margin:0 0 14px;}
+  .tok.ambig{background:rgba(124,107,245,.13);border-bottom:1.5px dotted rgba(124,107,245,.7);border-radius:3px;padding:0 2px 1px;}
+  .tok.sugg{color:#bda481;border-bottom:1.6px dotted #c4a982;padding-bottom:1px;}
+  .played{color:#8b8b97;}
+  .kword{color:#9d8ff7;}
+  .photo{height:132px;border-radius:14px;border:.5px solid rgba(255,255,255,.09);background:linear-gradient(135deg,#2b3350,#161a29);display:flex;align-items:center;justify-content:center;color:#55556a;font-size:22px;margin:2px 0 14px;}
+  .scrollhint{position:absolute;right:3px;width:3px;height:84px;border-radius:2px;background:rgba(255,255,255,.22);}
+
+  /* selection + caret */
+  .sel{background:rgba(124,107,245,.32);border-radius:2px;position:relative;}
+  .hmark{display:inline-block;width:0;position:relative;}
+  .hmark i{position:absolute;width:2px;background:#7c6bf5;height:22px;left:-1px;top:-19px;}
+  .hmark i::after{content:'';position:absolute;width:9px;height:9px;border-radius:50%;background:#7c6bf5;left:-3.5px;}
+  .hmark.st i{top:-21px;}
+  .hmark.st i::after{top:-8px;}
+  .hmark.en i{top:1px;}
+  .hmark.en i::after{bottom:-8px;}
+  .caret{display:inline-block;width:2px;height:18px;background:#7c6bf5;vertical-align:-3px;border-radius:1px;}
+
+  /* compact player pill (NEW) */
+  .miniplayer{position:absolute;left:14px;right:14px;bottom:14px;border-radius:22px;padding:7px 10px;
+    background:rgba(30,33,48,.66);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:.5px solid rgba(255,255,255,.14);box-shadow:0 10px 28px rgba(0,0,0,.35);z-index:2;
+    display:flex;align-items:center;gap:9px;}
+  .miniplayer .play{width:30px;height:30px;border-radius:50%;background:#7c6bf5;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;flex-shrink:0;box-shadow:0 3px 10px rgba(124,107,245,.38);}
+  .miniplayer .sk{font-size:13.5px;color:#b4b4c2;flex-shrink:0;}
+  .miniplayer .tt{font-size:9.5px;font-weight:600;color:#8b8b97;flex-shrink:0;font-variant-numeric:tabular-nums;}
+  .miniplayer .bar{flex:1;height:3.5px;border-radius:2px;background:rgba(255,255,255,.14);position:relative;}
+  .miniplayer .bar i{position:absolute;left:0;top:0;bottom:0;background:#7c6bf5;border-radius:2px;}
+  .miniplayer .bar b{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);}
+  .miniplayer .rate{font-size:10.5px;font-weight:700;background:rgba(255,255,255,.07);border:.5px solid rgba(255,255,255,.1);border-radius:7px;padding:3px 6px;color:#c9c9d4;flex-shrink:0;}
+
+  /* old player bar (for the comparison card) */
+  .oldplayer{border-radius:24px;padding:11px 18px 10px;background:#1e2130;border:.5px solid rgba(255,255,255,.14);}
+  .oldplayer .track{height:3.5px;border-radius:2px;background:rgba(255,255,255,.14);position:relative;margin-bottom:6px;}
+  .oldplayer .track i{position:absolute;left:0;top:0;bottom:0;width:34%;background:#7c6bf5;border-radius:2px;}
+  .oldplayer .track b{position:absolute;left:34%;top:50%;width:11px;height:11px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);}
+  .oldplayer .times{display:flex;justify-content:space-between;font-size:10px;font-weight:600;color:#8b8b97;margin-bottom:5px;}
+  .oldplayer .ctrls{display:flex;align-items:center;justify-content:center;gap:30px;position:relative;}
+  .oldplayer .sk{font-size:17px;color:#e4e4e7;}
+  .oldplayer .playbtn{width:40px;height:40px;border-radius:50%;background:#7c6bf5;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;}
+  .oldplayer .rate{position:absolute;right:0;font-size:11px;font-weight:700;background:#181a23;border:.5px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 8px;color:#e4e4e7;}
+
+  /* keyboard + floating Skrift accessory (restyled) */
+  .kbstack{position:absolute;left:0;right:0;bottom:0;z-index:4;}
+  .accfloat{display:flex;align-items:center;gap:3px;margin:0 10px 8px;border-radius:15px;padding:5px 7px;
+    background:rgba(24,26,35,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:.5px solid rgba(255,255,255,.13);box-shadow:0 8px 22px rgba(0,0,0,.4);}
+  .accfloat .ab{width:34px;height:29px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14.5px;color:#b4b4c2;}
+  .accfloat .ab.pressed{background:rgba(255,255,255,.07);}
+  .accfloat .ab.dis{color:#4a4a58;}
+  .ab svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+  .sk svg{width:15px;height:15px;fill:none;stroke:#b4b4c2;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;display:block;}
+  .findbar > svg{width:14px;height:14px;fill:none;stroke:#8b8b97;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+  .accfloat .div{width:.5px;height:18px;background:rgba(255,255,255,.12);margin:0 5px;}
+  .accfloat .done{margin-left:auto;color:#9d8ff7;font-size:13.5px;font-weight:600;background:rgba(124,107,245,.13);border-radius:9px;padding:5px 12px;}
+  .kb{background:#17171c;padding:7px 4px 4px;}
+  .krow{display:flex;gap:5px;justify-content:center;margin-bottom:7px;}
+  .key{flex:1;max-width:29px;height:38px;background:#454550;border-radius:5px;box-shadow:0 1px 0 rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:15.5px;color:#fff;}
+  .key.sp{max-width:none;flex:5;font-size:12.5px;color:#b4b4c2;}
+  .key.fn{background:#2e2e36;max-width:42px;font-size:12px;color:#d4d4dc;}
+  .key.fn.wide{max-width:64px;}
+  .homebar{height:22px;background:#17171c;display:flex;align-items:center;justify-content:center;}
+  .homebar i{width:110px;height:4px;border-radius:2px;background:rgba(255,255,255,.32);}
+
+  /* details strip */
+  .details{display:flex;gap:22px;flex-wrap:wrap;margin-top:40px;align-items:flex-start;}
+  .dcard{width:340px;background:#101017;border:.5px solid rgba(255,255,255,.09);border-radius:16px;padding:16px;}
+  .dcard h3{font-size:13.5px;margin:0 0 10px;color:#e4e4e7;}
+  .dcard .cap{margin-top:11px;padding:0;}
+  .dcard .mini{font-size:10px;letter-spacing:.07em;font-weight:700;color:#55556a;margin:12px 0 6px;}
+  .dcard .mini:first-of-type{margin-top:0;}
+  .findbar{display:flex;align-items:center;gap:8px;background:#17171d;border:.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 10px;font-size:13px;}
+  .findbar .fld{flex:1;background:#26262f;border-radius:7px;padding:5px 9px;color:#e4e4e7;display:flex;gap:6px;align-items:center;}
+  .findbar .fld .ph{color:#55556a;}
+  .findbar .cnt{color:#8b8b97;font-size:12px;}
+  .findbar .nv{color:#9d8ff7;font-size:14px;}
+  .alabels{display:flex;gap:3px;margin-top:8px;}
+  .alabels span{width:34px;text-align:center;font-size:9.5px;color:#55556a;line-height:1.25;}
+  .alabels .dv{width:11px;}
+  .alabels .big{margin-left:auto;width:auto;}
+  .hnote{font-size:11px;color:#55556a;margin-top:6px;text-align:right;}
+
+  /* notes */
+  .notes{max-width:620px;font-size:13.5px;line-height:1.7;color:#b4b4c2;margin-top:40px;}
+  .notes h2{font-size:15px;color:#e4e4e7;margin:22px 0 8px;}
+  .notes h2:first-child{margin-top:0;}
+  .notes li{margin-bottom:7px;}
+  .notes code{background:#1a1a24;padding:1px 6px;border-radius:5px;font-size:12.5px;}
+  .notes b{color:#e4e4e7;font-weight:600;}
+  .notes .q{color:#f0b35e;font-weight:600;}
+</style>
+</head>
+<body>
+<h1>Skrift — note editor re-foundation · the spec (v2, after 2026-07-06 review)</h1>
+<p class="sub">The note body moves onto a <b>natively-scrolling text view</b>; selection-drag autoscroll, caret-follow,
+magnifier, undo and find-in-note come from UIKit instead of patches. <b>B2 picked: the title pins under the nav</b>
+(you always know which memo you're in while swiping); chips · tags · importance · <b>summary</b> · body are one scroll.
+NEW this round: the Skrift-styled accessory bar and the <b>compact player pill</b> (the old one blocked the note).
+Mock is schematic — chips/importance render exactly as the current app where not stated.</p>
+<div class="locked">
+  <span class="f"><b>✓ LOCKED</b> B2 — pinned title</span>
+  <span class="f"><b>✓</b> accessory: undo · redo · find · photo · Done</span>
+  <span class="f"><b>✓</b> find in note</span>
+  <span class="f no"><b>✗ DROPPED</b> "Save highlight"</span>
+  <span class="f"><b>✓</b> accessory restyle — floating pill (icons → SF Symbols)</span>
+  <span class="f"><b>✓</b> compact player pill (−60% height)</span>
+  <span class="f"><b>SPEC COMPLETE</b> — signed off 2026-07-06</span>
+</div>
+
+<div class="pair">
+
+  <div class="unit">
+    <div class="phone">
+      <div class="nav"><span class="back">‹ Memos</span><span class="acts"><span>＋</span><span>⋯</span></span></div>
+      <div class="pinbar"><span class="t">Evening at Hotel du Vin</span><span class="sparkle">✦</span></div>
+      <div class="page">
+        <div class="chips">
+          <span class="chip">Fri 4 Jul · 21:12</span><span class="chip">📍 Hotel du Vin</span><span class="chip">☾ Evening</span>
+          <span class="chip tagc">#travel</span><span class="chip tagc">#friends</span><span class="chip">＋ Tag</span>
+        </div>
+        <div class="sig">
+          <span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c"></span><span class="c"></span><span class="c"></span><span class="c"></span>
+          <span class="lab">IMPORTANCE</span>
+        </div>
+        <div class="summary">
+          <div class="sl">✦ SUMMARY</div>
+          <div class="st">Check-in and dinner at Hotel du Vin — corner table, wine list, and a plan to come back for the tasting menu.</div>
+        </div>
+        <div class="prose">
+          <p>Checked in just before sunset and the courtyard was glowing. <span class="tok ambig">Jack</span> grabbed the corner table before anyone could argue, and <span class="tok sugg">Rose</span> was already deep into the wine list by the time we sat down.</p>
+          <div class="photo">▦</div>
+          <p>Note to self — the tasting menu is the move next time. Ask Jack about the vineyard he kept mentioning…</p>
+        </div>
+      </div>
+      <div class="miniplayer">
+        <span class="play">▶</span>
+        <span class="sk"><svg viewBox="0 0 20 20"><path d="M5.6 3.4v4.2h4.2"/><path d="M16.7 10a6.7 6.7 0 1 1-11-5.1"/></svg></span><span class="sk"><svg viewBox="0 0 20 20"><path d="M14.4 3.4v4.2h-4.2"/><path d="M3.3 10a6.7 6.7 0 1 0 11-5.1"/></svg></span>
+        <span class="tt">0:00</span>
+        <span class="bar"><i style="width:0;"></i></span>
+        <span class="tt">3:07</span>
+        <span class="rate">1×</span>
+      </div>
+    </div>
+    <div class="cap"><b>At rest.</b> Pinned title (+ ✦ title-chooser) under the nav; chips · importance ·
+    <b>summary card</b> · body scroll as one. The player is now a single 44-pt pill — the note isn't blocked
+    anymore (content still scrolls under the glass).</div>
+  </div>
+
+  <div class="unit">
+    <div class="phone">
+      <div class="nav"><span class="back">‹ Memos</span><span class="acts"><span>＋</span><span>⋯</span></span></div>
+      <div class="pinbar"><span class="t">Evening at Hotel du Vin</span><span class="sparkle">✦</span></div>
+      <div class="page">
+        <div class="chips">
+          <span class="chip">Fri 4 Jul · 21:12</span><span class="chip">📍 Hotel du Vin</span><span class="chip">☾ Evening</span>
+          <span class="chip tagc">#travel</span><span class="chip tagc">#friends</span><span class="chip">＋ Tag</span>
+        </div>
+        <div class="sig">
+          <span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c on"></span><span class="c"></span><span class="c"></span><span class="c"></span><span class="c"></span>
+          <span class="lab">IMPORTANCE</span>
+        </div>
+        <div class="summary">
+          <div class="sl">✦ SUMMARY</div>
+          <div class="st">Check-in and dinner at Hotel du Vin — corner table, wine list, and a plan to come back for the tasting menu.</div>
+        </div>
+        <div class="prose">
+          <p><span class="played">Checked in just before sunset and the courtyard was</span> <span class="kword">glowing.</span> Jack grabbed the corner table before anyone could argue, and Rose was already deep into the wine list by the time we sat down.</p>
+          <div class="photo">▦</div>
+          <p>Note to self — the tasting menu is the move next time. Ask Jack about the vineyard he kept mentioning…</p>
+        </div>
+      </div>
+      <div class="miniplayer">
+        <span class="play">❚❚</span>
+        <span class="sk"><svg viewBox="0 0 20 20"><path d="M5.6 3.4v4.2h4.2"/><path d="M16.7 10a6.7 6.7 0 1 1-11-5.1"/></svg></span><span class="sk"><svg viewBox="0 0 20 20"><path d="M14.4 3.4v4.2h-4.2"/><path d="M3.3 10a6.7 6.7 0 1 0 11-5.1"/></svg></span>
+        <span class="tt">1:04</span>
+        <span class="bar"><i style="width:34%;"></i><b style="left:34%;"></b></span>
+        <span class="tt">3:07</span>
+        <span class="rate">1×</span>
+      </div>
+    </div>
+    <div class="cap"><b>Playing.</b> No view swap: the SAME text repaints in place — played words dim, the current
+    word accents, photos don't move, tap any word to seek. (Name tints rest while playing, exactly like today.)</div>
+  </div>
+
+  <div class="unit">
+    <div class="phone">
+      <div class="nav"><span class="back">‹ Memos</span><span class="acts"><span>＋</span><span>⋯</span></span></div>
+      <div class="pinbar"><span class="t">Evening at Hotel du Vin</span><span class="sparkle">✦</span></div>
+      <div class="page">
+        <div class="scrollhint" style="top:110px;"></div>
+        <div class="prose" style="margin-top:2px;">
+          <p style="color:#8b8b97;">…half of it sounded made up but the other half sounded like a plan.</p>
+          <p>Walked the old town loop after dinner. The <span class="hmark st"><i></i></span><span class="sel">best part of the whole evening</span><span class="hmark en"><i></i></span> was the quiet stretch along the river — nobody talked for ten minutes and it wasn't awkward at all.</p>
+          <p>Tomorrow: breakfast at nine.<span class="caret"></span></p>
+        </div>
+      </div>
+      <div class="kbstack">
+        <div class="accfloat">
+          <span class="ab"><svg viewBox="0 0 20 20"><path d="M7.5 4.5 3.5 8.5l4 4"/><path d="M3.5 8.5h8.5a4.5 4.5 0 0 1 0 9H10"/></svg></span><span class="ab dis"><svg viewBox="0 0 20 20"><path d="m12.5 4.5 4 4-4 4"/><path d="M16.5 8.5H8a4.5 4.5 0 0 0 0 9h2"/></svg></span><span class="div"></span><span class="ab"><svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.2"/><path d="m13 13 4 4"/></svg></span><span class="ab"><svg viewBox="0 0 20 20"><path d="M7.2 5.3 8.4 3.6h3.2l1.2 1.7"/><rect x="2.5" y="5.3" width="15" height="11.2" rx="2.6"/><circle cx="10" cy="10.9" r="3.1"/></svg></span><span class="done">Done</span>
+        </div>
+        <div class="kb">
+          <div class="krow"><span class="key">Q</span><span class="key">W</span><span class="key">E</span><span class="key">R</span><span class="key">T</span><span class="key">Y</span><span class="key">U</span><span class="key">I</span><span class="key">O</span><span class="key">P</span></div>
+          <div class="krow"><span class="key">A</span><span class="key">S</span><span class="key">D</span><span class="key">F</span><span class="key">G</span><span class="key">H</span><span class="key">J</span><span class="key">K</span><span class="key">L</span></div>
+          <div class="krow"><span class="key fn">⇧</span><span class="key">Z</span><span class="key">X</span><span class="key">C</span><span class="key">V</span><span class="key">B</span><span class="key">N</span><span class="key">M</span><span class="key fn">⌫</span></div>
+          <div class="krow"><span class="key fn wide">123</span><span class="key fn">😀</span><span class="key sp">space</span><span class="key fn wide">return</span></div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+    <div class="cap"><b>Scrolled deep, editing.</b> Title still pinned. Selection handles drag past the fold and the
+    note scrolls with you; the caret always stays above the keyboard. The accessory is now a <b>floating Skrift
+    pill</b> (same glass language as the player), not a flat system strip.</div>
+  </div>
+
+</div>
+
+<!-- ============================ details ============================ -->
+<div class="details">
+  <div class="dcard">
+    <h3>Accessory bar — restyled to the app's language</h3>
+    <div class="accfloat" style="margin:0;">
+      <span class="ab"><svg viewBox="0 0 20 20"><path d="M7.5 4.5 3.5 8.5l4 4"/><path d="M3.5 8.5h8.5a4.5 4.5 0 0 1 0 9H10"/></svg></span><span class="ab dis"><svg viewBox="0 0 20 20"><path d="m12.5 4.5 4 4-4 4"/><path d="M16.5 8.5H8a4.5 4.5 0 0 0 0 9h2"/></svg></span><span class="div"></span><span class="ab"><svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.2"/><path d="m13 13 4 4"/></svg></span><span class="ab"><svg viewBox="0 0 20 20"><path d="M7.2 5.3 8.4 3.6h3.2l1.2 1.7"/><rect x="2.5" y="5.3" width="15" height="11.2" rx="2.6"/><circle cx="10" cy="10.9" r="3.1"/></svg></span><span class="done">Done</span>
+    </div>
+    <div class="alabels">
+      <span>undo</span><span>redo</span><span class="dv"></span><span>find in note</span><span>photo at caret</span><span class="big" style="color:#9a9aae;">dismiss</span>
+    </div>
+    <div class="cap">Floating glass pill (matches the player), soft 9-pt corners, hairline border, accent Done chip —
+    instead of the flat gray system strip. In build: a custom <code>inputAccessoryView</code> with a clear background
+    and this pill inset inside it; the icons are SF Symbols (arrow.uturn.backward / .forward ·
+    magnifyingglass · camera).</div>
+  </div>
+
+  <div class="dcard">
+    <h3>Player — old vs compact</h3>
+    <div class="mini">TODAY — ~112 PT, SITS ON THE NOTE</div>
+    <div class="oldplayer">
+      <div class="track"><i></i><b></b></div>
+      <div class="times"><span>1:04</span><span>3:07</span></div>
+      <div class="ctrls"><span class="sk">↺</span><span class="playbtn">▶</span><span class="sk">↻</span><span class="rate">1×</span></div>
+    </div>
+    <div class="mini" style="margin-top:14px;">NEW — ONE ROW, ~44 PT</div>
+    <div class="miniplayer" style="position:static;">
+      <span class="play">▶</span>
+      <span class="sk"><svg viewBox="0 0 20 20"><path d="M5.6 3.4v4.2h4.2"/><path d="M16.7 10a6.7 6.7 0 1 1-11-5.1"/></svg></span><span class="sk"><svg viewBox="0 0 20 20"><path d="M14.4 3.4v4.2h-4.2"/><path d="M3.3 10a6.7 6.7 0 1 0 11-5.1"/></svg></span>
+      <span class="tt">1:04</span>
+      <span class="bar"><i style="width:34%;"></i><b style="left:34%;"></b></span>
+      <span class="tt">3:07</span>
+      <span class="rate">1×</span>
+    </div>
+    <div class="hnote">−60% height · same controls</div>
+    <div class="cap">Play, ±10 s, scrubber with times, speed — one row. <b>The whole pill is the scrub target</b>
+    (drag anywhere on it to seek — no more fishing for a 3-pt slider). Page dots fold away: while swiping between
+    memos a transient "3 / 7" ghosts in above the pill, then fades.</div>
+  </div>
+
+  <div class="dcard">
+    <h3>Find in note</h3>
+    <div class="findbar"><svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.2"/><path d="m13 13 4 4"/></svg><span class="fld">river <span class="ph">|</span></span><span class="cnt">2 of 7</span><span class="nv">‹ ›</span><span style="color:#9a9aae;">✕</span></div>
+    <div class="cap">The system find panel over the transcript — all matches highlighted, ‹ › jumps between them.
+    Long rambles finally searchable in place.</div>
+  </div>
+</div>
+
+<!-- ============================ notes ============================ -->
+<div class="notes">
+  <h2>Locked 2026-07-06 (this review)</h2>
+  <ul>
+    <li><b>B2 — pinned title.</b> Slim title row + ✦ chooser pinned under the nav; everything else scrolls.
+    Rationale: with swipe-between-memos you always know which memo you're in.</li>
+    <li><b>Accessory bar = undo · redo · find · photo-at-caret · Done.</b> No play-from-caret, no append button.</li>
+    <li><b>No "Save highlight"</b> — dropped; the edit menu stays the plain system one.</li>
+    <li><b>Summary card joins the scrolling header</b> (chips → importance → summary → body), same as the app
+    already shows for Mac-polished memos. <span class="q">If a polished memo is NOT showing its summary on the
+    phone today, that's a bug — check in the bugs chat.</span></li>
+    <li><b>Compact player pill</b> replaces the tall bar — one row, whole-pill scrubbing, dots → transient "3 / 7".</li>
+  </ul>
+  <h2>Signed off 2026-07-06 (review 2) — SPEC COMPLETE</h2>
+  <ul>
+    <li><b>The accessory restyle</b> — floating Skrift pill over the keyboard. Icon nit fixed: crisp stroke icons
+    here, real SF Symbols on device.</li>
+    <li><b>The compact player</b> — one-row pill as mocked (controls kept, −60% height).</li>
+  </ul>
+  <h2>The re-foundation underneath (unchanged from v1)</h2>
+  <ul>
+    <li>ONE scrolling text view; header content scrolls with the text. Selection autoscroll, caret-follow, magnifier,
+    smart paste, shake/3-finger undo — native, un-patched.</li>
+    <li><b>Karaoke = attribute painting on the same view</b> — word-rate repaints instead of 20 Hz re-renders;
+    tap-a-word-to-seek = character hit test; photos keep their exact size and position when playback starts.</li>
+    <li>Typing gets cheap: debounced saves (~1 s idle + Done/close), memoized name-scan, viewport-only layout.</li>
+  </ul>
+  <h2>Rides along, mocked separately if wanted</h2>
+  <ul>
+    <li>Tag CHIP editor with autocomplete (replaces the comma alert; fixes tap-a-chip-silently-deletes).</li>
+    <li>Photo tap → full-screen viewer (QuickLook). Dynamic Type across the page.</li>
+  </ul>
+  <h2>Must not break</h2>
+  <ul>
+    <li>Inline <code>[[img]]</code> photos · capture-quote protection · speaker-turn view for conversations (own
+    surface, phase 2) · <code>transcriptUserEdited</code> trust flag · save-now flow · polished-body editing ·
+    swipe-between-memos paging.</li>
+  </ul>
+</div>
+
+</body>
+</html>

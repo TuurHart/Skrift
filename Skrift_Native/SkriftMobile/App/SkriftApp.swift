@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 import SwiftData
 import UIKit
 
@@ -53,7 +54,11 @@ struct SkriftApp: App {
                 // capture any local audio/photos that have no asset yet (incl.
                 // migrating pre-1c memos). Idempotent; mirrors the inbox drainer's
                 // launch + foreground cadence below.
-                .task { AssetMaterializer.run(repository) }
+                .task {
+                    AssetMaterializer.run(repository)
+                    PhotoTextIndexer.run(repository)
+                    ReminderScheduler.run(repository)
+                }
                 // Reconcile the names/people DB across devices (Phase 1e): merge the
                 // CloudKit-synced carrier with the local names.json via the same
                 // NamesMerge the Mac sync uses. Idempotent; launch + foreground.
@@ -103,9 +108,14 @@ struct SkriftApp: App {
                     if newPhase == .active {
                         CaptureInboxDrainer.drain(into: repository)
                         AssetMaterializer.run(repository)
+                        PhotoTextIndexer.run(repository)
+                        ReminderScheduler.run(repository)
                         NamesCloudSync.run(repository)
                         VocabularyCloudSync.run(repository)
                         Task { await AudiobookCloudSync.reconcile(repository: repository) }
+                        // P8 retrieval index — inert until the Journal UI's consent
+                        // flow enables it AND the model is on disk (no surprise 295 MB).
+                        JournalIndexService.shared.sweepSoon(repository)
                     } else if newPhase == .background {
                         // If a whole-book transcribe is in flight, ask iOS to let it
                         // continue in the background (best overnight on a charger).
@@ -176,6 +186,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UIApplication.shared.registerForRemoteNotifications()
+        // Reminder taps → open the memo; foreground reminders still banner.
+        UNUserNotificationCenter.current().delegate = ReminderScheduler.delegate
         return true
     }
 }

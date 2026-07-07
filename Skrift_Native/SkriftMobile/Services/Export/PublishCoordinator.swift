@@ -46,6 +46,10 @@ struct PublishCoordinator {
     func shouldPublish(_ memo: Memo) -> Bool {
         guard obsidianEnabled() else { return false }
         guard memo.deletedAt == nil else { return false }
+        // Locked notes stay inside Skrift — the vault is plaintext .md on disk.
+        // (Locking never deletes an already-published file; the lock flow tells
+        // the user it's still in the vault.)
+        guard !memo.locked else { return false }
         if isMacPaired() && !publishWhenPaired() { return false }   // Mac owns export when paired
         if policy() == .importantOnly && memo.significance <= 0 { return false }
         // Needs some content to be worth a file.

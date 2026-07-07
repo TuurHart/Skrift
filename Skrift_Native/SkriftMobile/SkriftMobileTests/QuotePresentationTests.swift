@@ -77,31 +77,20 @@ final class QuotePresentationTests: XCTestCase {
         XCTAssertEqual(CaptureQuote.split(c1)?.spokenWordCount, 16)
     }
 
-    func testKaraokeWordLayoutPreservesParagraphsAndGlobalIndices() {
-        // FlowLayout flattens whitespace, so the tap-to-seek grid rebuilds the
-        // newline structure as stacked lines — each keeping the sidecar index
-        // of its first word (this is what keeps a multi-append ramble from
-        // collapsing into one run, and taps landing on the right timing).
-        let lines = KaraokeWordLayout.lines(of: "one two\n\nthree four five\nsix", base: 3)
-        XCTAssertEqual(lines, [
-            KaraokeWordLayout.Line(words: ["one", "two"], offset: 3),
-            KaraokeWordLayout.Line(words: ["three", "four", "five"], offset: 5),
-            KaraokeWordLayout.Line(words: ["six"], offset: 8),
-        ])
-        XCTAssertEqual(KaraokeWordLayout.lines(of: "", base: 0), [])
-        XCTAssertEqual(KaraokeWordLayout.lines(of: "  \n ", base: 0), [], "blank lines emit no blocks")
-    }
+    // (The old KaraokeWordLayout per-line grid test retired with the FlowLayout
+    // word grid: the re-founded editor paints the highlight on the text storage
+    // in place, so newline structure is native — see KaraokeMapTests.)
 
     // MARK: - Mode derivation (one place: playback > transcribing > editable)
 
     func testTranscriptBodyModePrecedence() {
-        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: true, status: .transcribing), .playing,
+        XCTAssertEqual(NoteBody.mode(isPlaying: true, status: .transcribing), .playing,
                        "playback always wins — full-text karaoke")
-        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: true, status: .done), .playing)
-        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: false, status: .transcribing), .reading,
+        XCTAssertEqual(NoteBody.mode(isPlaying: true, status: .done), .playing)
+        XCTAssertEqual(NoteBody.mode(isPlaying: false, status: .transcribing), .reading,
                        "an in-flight append must NOT show an editor (stale-draft clobber)")
-        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: false, status: .done), .editing)
-        XCTAssertEqual(TranscriptBodyView.mode(isPlaying: false, status: .failed), .editing)
+        XCTAssertEqual(NoteBody.mode(isPlaying: false, status: .done), .editing)
+        XCTAssertEqual(NoteBody.mode(isPlaying: false, status: .failed), .editing)
     }
 
     // MARK: - Reassembly (the editor's write-back)
@@ -177,10 +166,10 @@ final class QuotePresentationTests: XCTestCase {
     // MARK: - Quote-protected editor
 
     @MainActor
-    private func makeEditor(memo: Memo) -> (TranscriptEditor.Coordinator, UITextView) {
-        let coordinator = TranscriptEditor.Coordinator(memo: memo, onCommit: {}, width: 350)
-        let tv = NonScrollingTextView()
-        tv.isScrollEnabled = false
+    private func makeEditor(memo: Memo) -> (NoteBodyView.Coordinator, UITextView) {
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
         coordinator.textView = tv
         coordinator.load(force: true)
         return (coordinator, tv)
@@ -199,6 +188,7 @@ final class QuotePresentationTests: XCTestCase {
         let (coordinator, tv) = makeEditor(memo: memo)
         tv.attributedText = NSAttributedString(string: "Edited ramble.")
         coordinator.textViewDidChange(tv)
+        coordinator.commitDraft()
         XCTAssertEqual(
             memo.transcript,
             "> Optimism is not the belief that things will go well,\n"
@@ -214,6 +204,7 @@ final class QuotePresentationTests: XCTestCase {
         let (coordinator, tv) = makeEditor(memo: memo)
         tv.attributedText = NSAttributedString(string: "")
         coordinator.textViewDidChange(tv)
+        coordinator.commitDraft()
         XCTAssertEqual(memo.transcript, CaptureQuote.split(c1)?.rawBlock)
         XCTAssertNotNil(memo.captureQuote, "still a valid quote-only capture")
     }
@@ -225,6 +216,7 @@ final class QuotePresentationTests: XCTestCase {
         XCTAssertEqual(tv.text, "", "no ramble yet → empty editor")
         tv.attributedText = NSAttributedString(string: "First thoughts.")
         coordinator.textViewDidChange(tv)
+        coordinator.commitDraft()
         XCTAssertEqual(memo.transcript, "> Just the quote.\n\nFirst thoughts.")
     }
 

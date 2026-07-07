@@ -23,9 +23,14 @@ enum MemoExporter {
     /// `enhancement` (the Mac's CloudKit write-back) is preferred when present — a paired Mac
     /// auto-upgrades the export; nil = on-device raw + linking.
     static func markdown(for memo: Memo, people: [Person], author: String = "",
-                         enhancement: MemoEnhancement? = nil) -> String {
-        Compiler.compile(compilerInput(for: memo, people: people, enhancement: enhancement),
-                         author: author, date: dateString(memo.recordedAt), knownPeople: people)
+                         enhancement: MemoEnhancement? = nil,
+                         linkStems: [UUID: String] = [:]) -> String {
+        var input = compilerInput(for: memo, people: people, enhancement: enhancement)
+        if !linkStems.isEmpty {
+            input.memoLinkResolver = { linkStems[$0] }   // value capture — Sendable
+        }
+        return Compiler.compile(input, author: author, date: dateString(memo.recordedAt),
+                                knownPeople: people)
     }
 
     /// Convenience over the live on-device names DB.
