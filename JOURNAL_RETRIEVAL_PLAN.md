@@ -169,8 +169,11 @@ Per-app wiring — `Skrift_Native/SkriftMobile/`:
    notes — locked decisions" block. Tuur approved enthusiastically; the tab question resolved via
    the Highlights-removal lane (Journal becomes the third tab). The mock IS the spec — build to
    it; if Tuur requests tweaks later, iterate the mock first, then the SwiftUI.
-5. Journal v1: On This Day + calendar/timeline (+ map if signed off). Metadata only. UITest seed
-   (`-seedJournal`) with back-dated memos; screenshot-verify.
+5. ✅ **BUILT 2026-07-07** — Journal tab v1 to the signed mock: Looking back (On-this-day +
+   spaced lookbacks, `LookbackProvider`, journal axis = `recordedAt`), mini + full calendar with
+   dot density, Places map with clusters; Journal replaces the Highlights tab slot. `-seedJournal`
+   + `-openJournal` flags; 7 unit tests; home screen sim-screenshot verified against the mock.
+   OWED: device eyeball (incl. pushed Calendar/Map screens) on the next Dev build.
 6. Search "Related" section + filter chips (person / place / month / kind) in `MemosListView`
    search, and the Thread view (reached from a memo's Related card / context menu). Warm the
    engine when the search field gains focus; Matches render instantly, Related fills in async —

@@ -301,7 +301,8 @@ Mirrors the SwiftData store to the user's PRIVATE CloudKit database so notes syn
 | Gist + chunking + hashing | ✅ | ➖ | `Shared/Retrieval/MemoGist.swift` | Gist vector + ~175-word sentence-boundary chunks (chunk-don't-truncate, bake-off-validated); speaker headers stripped; SHA-256 invalidation hash |
 | Local embedding index (sweep + queries) | ✅ | ➖ | `Services/Embeddings/EmbeddingIndex.swift`, `Models/MemoEmbedding.swift`, `EmbeddingStore.swift` | Own local-only SwiftData container (CloudKit store untouched). Hash-diff sweep, orphan cleanup, `search`/`related` max-cosine queries. 14 unit tests |
 | Foreground sweep wiring | 🟡 | ➖ | `Services/Embeddings/JournalIndexService.swift`, `App/SkriftApp.swift` | INERT by default: runs only when the (future) Journal UI sets `journalIndexEnabled` AND the model is on disk — no surprise download. Floors calibration owed |
-| Journal UI (Looking back / calendar / map / threads / search) | ➖ | ➖ | mock: `SkriftDesktop/mocks/journal-retrieval.html` (signed off) | Blocked on the other lanes landing (tab bar, memos list, detail view) — build order in the plan |
+| Journal tab: Looking back + calendar + map | 🟡 | ➖ | `Features/Journal/` (LookbackProvider, Home/Calendar/Map views), `AppTabView` | ✅ BUILT 2026-07-07 to the signed mock — Journal replaces the Highlights slot; journal axis = `recordedAt`; `-seedJournal`/`-openJournal` flags; 502 tests green; home sim-screenshot verified, pushed screens + device eyeball owed |
+| Journal: threads / semantic search UI / Related card | ➖ | ➖ | mock: `SkriftDesktop/mocks/journal-retrieval.html` (signed off) | Chunks 6–7: search Related section + chips (MemosListView), Thread view, Related card on detail (waits for the note-editing branch merge) |
 
 ---
 
