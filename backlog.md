@@ -22,9 +22,15 @@ From the 2026-07-06/07 audiobook deep-review chat (roadmap detour node **D4**). 
 Also fixed in passing: stale "Tap Mark" bookmarks empty-state copy; stale "last 30 seconds" capsule a11y label.
 **Gate:** build green; unit suite 327 run — only the 8 PRE-EXISTING CloudKit-epic failures (verified identical at
 branch HEAD baseline); new sort/filter tests green; 4 UI-test files' "Memos" assertions updated to "Notes".
-**OWED:** device eyeball (capsule on all tabs + crowding check on the Notes screen — user flagged the worry; levers
-if it feels heavy: compact idle-capsule, scroll-minimize, swipe-away-to-end-session). UI suite not re-run (10
-pre-existing iOS-26 failures tracked separately).
+**Device round 1 (build 40, 2026-07-07): FAIL — record button buried under the capsule.** The tab-level
+`safeAreaInset` mount never propagated into the tabs' NavigationStacks on iOS 26; uncatchable in sim (no book
+seedable). **FIXED build 46 — Option A** (signed `mocks/notes-bottom-chrome.html`): Notes = ONE 60pt row, compact
+`AudiobookMiniPill` (cover · play/pause · ❝ Add note) left + record right (no session → record alone, right corner);
+Books keeps the full bar (mounted INSIDE the view); Journal/Settings carry nothing (user call); ˄ chevron cut
+everywhere (duplicate of cover-tap); list gets bottom content margin. New hooks `-seedAudiobook` + `-openTab` make
+the capsule sim-visible per tab — vision-verified all four before install. **OWED:** user eyeball of build 46.
+Build numbering: 43–45 were consumed by the sprint branch in parallel → renumbered 46; rule = bump to
+max(installed-on-phone, main) + 1 before any device build.
 
 ## 🔭 Next unclaimed lane + code-verified quick hits (2026-07-06 Fable survey, worktree youthful-wozniak)
 
