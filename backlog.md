@@ -503,7 +503,15 @@ same API). 520 unit + desktop 325 + desktop app build + UI cluster green.
 - ❌→🔁 **P1#3 doc-scan invisible AGAIN** — devlog `isSupported=true` proves capability; iOS 26 eats a
   2nd trailing item in ANY shape (separate items AND one group). Build 36: RELOCATED to the LEADING
   side next to Select. Sort-filter stays lone trailing. (Both toolbar UI tests green.)
-- 🔬 **P1#4 photo search — PIPELINE PROVEN, input mystery remains (round 4):** device devlog shows
+- ✅✅ **P1#4 photo search — SOLVED round 5: never broken.** User had been using the in-note 🔍
+  (find-in-note) the whole time; photo text matches in the LIST "Search transcripts" bar. Sim e2e
+  test stays as the permanent regression gate. SPAWNED the round-5 ask → search-hit flash (below).
+- ✅ **NEW (round 5, BUILT build 37): search-hit flash** — tapping a search RESULT opens the note,
+  scrolls to the first match and flashes it (~1.4 s): text hit = accent-tinted range; OCR hit = an
+  accent ring over the photo (a background hides behind an image). One-shot SearchHitBridge; cleanup
+  via the idempotent tier restyle so name-tier colors (incl. ambiguous backgrounds) repaint exactly.
+  3 unit tests; device eyeball owed.
+- 🔬 **(superseded) P1#4 round-4 evidence trail:** device devlog shows
   Vision READ his photo (`chars=21 head='TENHO…'` at 14:55) yet ZERO `search '…'` probe lines — the
   query never reached the memos-list search field. Sim end-to-end repro (user-directed) is GREEN:
   `-seedPhotoTextMemo` (real rendered-text JPEG, un-OCR'd) → launch sweep → REAL Vision → typed in

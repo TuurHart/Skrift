@@ -649,6 +649,68 @@ final class AttachmentHitTests: XCTestCase {
     }
 }
 
+/// Search-hit flash (round-4 ask: "show me WHERE it matched"): a list-search
+/// tap flashes the matched text range, or resolves the photo whose OCR text
+/// carried the hit; the bridge hands the query over exactly once.
+final class SearchHitFlashTests: XCTestCase {
+
+    private var window: UIWindow!
+
+    @MainActor
+    private func makeEditor(memo: Memo) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
+        window.addSubview(tv)
+        window.makeKeyAndVisible()
+        tv.frame = window.bounds
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        tv.layoutIfNeeded()
+        return (coordinator, tv)
+    }
+
+    @MainActor
+    func testTextHitPaintsTheMatchedRange() throws {
+        let memo = Memo(audioFilename: "m.m4a", transcript: "we talked about the zeppelin at dawn")
+        let (c, tv) = makeEditor(memo: memo)
+        c.flashSearchHit("Zeppelin")
+        let r = (tv.textStorage.string as NSString).range(of: "zeppelin")
+        let bg = tv.textStorage.attribute(.backgroundColor, at: r.location, effectiveRange: nil)
+        XCTAssertNotNil(bg, "the matched range must light up")
+        XCTAssertNil(tv.textStorage.attribute(.backgroundColor, at: 0, effectiveRange: nil),
+                     "only the match is painted")
+    }
+
+    @MainActor
+    func testPhotoHitResolvesTheMatchingMarker() throws {
+        var meta = MemoMetadata()
+        meta.imageManifest = [
+            ImageManifestEntry(filename: "a.jpg", offsetSeconds: 0, text: "nothing here"),
+            ImageManifestEntry(filename: "b.jpg", offsetSeconds: 5, text: "TENHO SAUDADES"),
+        ]
+        let memo = Memo.make(transcript: "before [[img_001]] mid [[img_002]] after", metadata: meta)
+        let (c, tv) = makeEditor(memo: memo)
+        XCTAssertEqual(c.attachmentRange(forMarker: 2).map { $0.length }, 1)
+        c.flashSearchHit("tenho")
+        // No text match → no background paint anywhere on the body text.
+        let full = tv.textStorage.string as NSString
+        let wordLoc = full.range(of: "before").location
+        XCTAssertNil(tv.textStorage.attribute(.backgroundColor, at: wordLoc, effectiveRange: nil),
+                     "an OCR hit must not paint the body text")
+    }
+
+    @MainActor
+    func testBridgeHandsOverExactlyOnce() {
+        let id = UUID()
+        SearchHitBridge.pending = (id, "tram")
+        XCTAssertNil(SearchHitBridge.take(for: UUID()), "wrong memo must not consume")
+        XCTAssertEqual(SearchHitBridge.take(for: id), "tram")
+        XCTAssertNil(SearchHitBridge.take(for: id), "one-shot")
+    }
+}
+
 /// Photo display-block (signed off 2026-07-07, mocks/accessory-bar-v2.html
 /// §#11): a mid-sentence photo renders as its own paragraph via TAGGED
 /// display-only newlines — the raw keeps the marker mid-sentence, and no

@@ -185,7 +185,14 @@ struct MemosListView: View {
                 ForEach(groups, id: \.title) { group in
                     Section {
                         ForEach(group.memos) { memo in
-                            MemoRow(memo: memo) { path.append(memo.id) }
+                            MemoRow(memo: memo) {
+                                // Opening a SEARCH RESULT carries the query
+                                // along — the note flashes where it matched
+                                // (text range, or the photo whose OCR hit).
+                                let q = search.trimmingCharacters(in: .whitespaces)
+                                if !q.isEmpty { SearchHitBridge.pending = (memo.id, q) }
+                                path.append(memo.id)
+                            }
                                 .tag(memo.id)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)

@@ -133,6 +133,15 @@ struct NoteBodyView: UIViewRepresentable {
         c.load(force: false)                    // re-render only if the text changed under us
         c.apply(mode: mode)                     // editable / painter / read-only
 
+        // A list-search tap opened this note → flash WHERE it matched (one-
+        // shot; the delay lets the page's layout + accessory insets settle).
+        if let query = SearchHitBridge.take(for: memo.id) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(450))
+                c.flashSearchHit(query)
+            }
+        }
+
         // Re-style when the tiers changed (a resolution applied) — never mid-edit
         // (offsets drift while typing), never while the painter owns the colors,
         // and never over a LIVE selection: SwiftUI re-evals storm during an
@@ -844,6 +853,75 @@ struct NoteBodyView: UIViewRepresentable {
             tv.selectedRange = NSRange(location: insertAt + piece.length, length: 0)
             textViewDidChange(tv)
             return true
+        }
+
+        // MARK: search-hit flash (list search → "show me WHERE it matched")
+
+        /// Scroll to and briefly highlight the first match of `query`: the
+        /// text range when the words are in the body, else the PHOTO whose
+        /// OCR text matched (a background is invisible behind an image, so
+        /// photos get an overlay ring). Cleanup = applyTierStyling, which
+        /// idempotently repaints the canonical colors.
+        func flashSearchHit(_ query: String) {
+            guard let tv = textView, !painting else { return }
+            let q = query.trimmingCharacters(in: .whitespaces)
+            guard !q.isEmpty else { return }
+            let ns = tv.textStorage.string as NSString
+            let r = ns.range(of: q, options: [.caseInsensitive, .diacriticInsensitive])
+            if r.location != NSNotFound {
+                tv.scrollRangeToVisible(r)
+                tv.textStorage.addAttribute(.backgroundColor,
+                                            value: UIColor(Color.skAccent).withAlphaComponent(0.35),
+                                            range: r)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { [weak self] in
+                    self?.applyTierStyling()
+                }
+                return
+            }
+            // Not in the body → the match lives inside a photo's OCR text.
+            guard let manifest = memo.metadata?.imageManifest else { return }
+            for (i, entry) in manifest.enumerated()
+            where entry.text?.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil {
+                guard let attRange = attachmentRange(forMarker: i + 1) else { return }
+                tv.scrollRangeToVisible(attRange)
+                flashOverlay(on: tv, around: attRange)
+                return
+            }
+        }
+
+        /// The 1-char range of the photo attachment carrying marker `n`.
+        func attachmentRange(forMarker n: Int) -> NSRange? {
+            guard let tv = textView else { return nil }
+            var found: NSRange?
+            tv.textStorage.enumerateAttribute(Self.markerKey,
+                                              in: NSRange(location: 0, length: tv.textStorage.length)) {
+                value, range, stop in
+                if value as? Int == n { found = range; stop.pointee = true }
+            }
+            return found
+        }
+
+        /// A fading accent ring over the attachment's drawn rect(s).
+        private func flashOverlay(on tv: NoteBodyTextView, around range: NSRange) {
+            // Layout must settle before the rects are real (we may have just
+            // scrolled a far-away fragment into place).
+            DispatchQueue.main.async {
+                let rects = tv.rects(forCharacterRange: range)
+                guard let union = rects.dropFirst().reduce(rects.first, { $0?.union($1) }) else { return }
+                let ring = UIView(frame: union.insetBy(dx: -5, dy: -5))
+                ring.layer.cornerRadius = 16
+                ring.layer.cornerCurve = .continuous
+                ring.layer.borderWidth = 2.5
+                ring.layer.borderColor = UIColor(Color.skAccent).cgColor
+                ring.backgroundColor = UIColor(Color.skAccent).withAlphaComponent(0.12)
+                ring.isUserInteractionEnabled = false
+                tv.addSubview(ring)
+                UIView.animate(withDuration: 0.55, delay: 0.9, options: [.curveEaseOut]) {
+                    ring.alpha = 0
+                } completion: { _ in
+                    ring.removeFromSuperview()
+                }
+            }
         }
 
         // MARK: editing / debounced commit

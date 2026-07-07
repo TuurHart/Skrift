@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T15:10:00.000Z'
+updated: '2026-07-07T15:30:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -343,11 +343,12 @@ nodes:
         eats trailing #2); handles fix attempt 2 (frame-writes only-on-change)
         + sharper probes (sel-during-scroll, OCR yield, search hits)
     backlog:
-      - "Round-4 verdicts IN: erase-crash FIXED ✓, doc-scan FOUND+works ✓,
-        long-press understood. ROUND 5 remainders: selection-handles repro
-        (sel-during-scroll probe arbitrates), photo-search = type 'tenho' in
-        the LIST search bar (sim e2e GREEN ccb7ce4 + device OCR green — only
-        the input path unproven), long-press proper verdict"
+      - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
+        pipeline never broken (sim e2e test stays as the gate). Search-hit
+        FLASH built same turn (build 37): result tap → scroll + flash the
+        text range / photo ring. ROUND 5 remainders: selection-handles repro
+        (sel-during-scroll probe arbitrates), long-press verdict, flash
+        eyeball"
       - "NEW ask (round 4): scanned PDF renders INLINE in the note (Notes
         idiom — 'text, PDF, text', no Open button) → mock-first next session"
       - P2#12 viewer zoom-open transition (re-flagged round 2; next polish)
