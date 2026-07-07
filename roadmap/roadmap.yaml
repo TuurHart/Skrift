@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T10:39:40.000Z'
+updated: '2026-07-07T10:43:57.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -310,7 +310,12 @@ nodes:
         LockGate session (FaceID/passcode; background re-locks); list hides
         preview, detail renders an Unlock placeholder (pager/player can't
         bypass); publish EXCLUDES locked (tested) + already-in-vault notice;
-        remove-lock needs auth. Mac gate owed
+        remove-lock needs auth. Mac gate owed [23a0f06]
+      - >-
+        2026-07-07 · Chunk 9 — doc scan: VisionKit camera → one PDF through
+        the existing C3 file-capture path (normal capture memo, synced);
+        pages OCR'd into sharedContent.text → scans searchable; device-only
+        toolbar entry. THE 9-CHUNK WAVE IS BUILT
     backlog:
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
       - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]
@@ -320,7 +325,8 @@ nodes:
       - Reminders — Mac reconciler (same UserNotifications API; remindAt
         already syncs) + prod CloudKit schema deploy at promotion
       - Locked notes — Mac gate (LocalAuthentication; flag already syncs)
-      - Doc scan → PDF capture (VisionKit, phone)
+      - Device eyeball pass — the whole wave (editor feel, accessory,
+        player, tags, checklists, links, OCR, reminders, lock, scan)
     win: the six approved gap features run on BOTH apps from shared code —
       locked notes stay out of the vault, OCR'd photos are searchable,
       reminders ring on whichever device you're holding

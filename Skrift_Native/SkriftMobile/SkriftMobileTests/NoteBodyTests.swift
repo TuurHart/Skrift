@@ -1,3 +1,4 @@
+import PDFKit
 import UIKit
 import XCTest
 @testable import SkriftMobile
@@ -279,6 +280,43 @@ final class MemoLinkTests: XCTestCase {
         coordinator.textViewDidChange(tv)      // detects the trigger
         coordinator.insertMemoLink(id: idA, title: "Harbor")
         XCTAssertEqual(memo.transcript, "Hello [[memo:\(idA.uuidString)|Harbor]] ")
+    }
+}
+
+/// Doc scan (chunk 9): PDF rendering + the capture-memo construction contract.
+final class DocScannerTests: XCTestCase {
+
+    private func page(text: String) -> UIImage {
+        let size = CGSize(width: 600, height: 800)
+        return UIGraphicsImageRenderer(size: size).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            (text as NSString).draw(at: CGPoint(x: 40, y: 80),
+                                    withAttributes: [.font: UIFont.boldSystemFont(ofSize: 44),
+                                                     .foregroundColor: UIColor.black])
+        }
+    }
+
+    func testRenderPDFHoldsEveryPage() throws {
+        let data = try XCTUnwrap(DocScanner.renderPDF(pages: [page(text: "ONE"), page(text: "TWO")]))
+        let doc = try XCTUnwrap(PDFDocument(data: data))
+        XCTAssertEqual(doc.pageCount, 2)
+        XCTAssertNil(DocScanner.renderPDF(pages: []))
+    }
+
+    func testRecognizeTextReadsThePages() async {
+        let text = await DocScanner.recognizeText(pages: [page(text: "INVOICE 7788")])
+        XCTAssertTrue(text.uppercased().contains("INVOICE"), "got: '\(text)'")
+    }
+
+    func testScanMemoIsASearchableFileCapture() {
+        // The construction contract the scanner mirrors from the share drainer.
+        let sc = SharedContent(type: .file, text: "INVOICE 7788",
+                               filePath: "file_X.pdf", fileName: "Scan.pdf",
+                               mimeType: "application/pdf")
+        let memo = Memo.make(audioFilename: "", transcript: nil, sharedContent: sc)
+        XCTAssertTrue(memo.isShareCapture, "empty audioFilename + sharedContent = capture")
+        XCTAssertTrue(memo.matches(query: "invoice"), "the OCR text is searchable")
     }
 }
 

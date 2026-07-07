@@ -59,17 +59,19 @@ enum PhotoTextIndexer {
     /// Vision text recognition, off the main actor. "" = ran, nothing found
     /// (distinct from nil = never ran).
     nonisolated static func recognize(at url: URL) async -> String {
+        guard let cg = UIImage(contentsOfFile: url.path)?.cgImage else { return "" }
+        return await recognize(cgImage: cg)
+    }
+
+    /// The core recognizer — also used by the document scanner (chunk 9).
+    nonisolated static func recognize(cgImage: CGImage) async -> String {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
-                guard let cg = UIImage(contentsOfFile: url.path)?.cgImage else {
-                    continuation.resume(returning: "")
-                    return
-                }
                 let request = VNRecognizeTextRequest()
                 request.recognitionLevel = .accurate
                 request.usesLanguageCorrection = true
                 do {
-                    try VNImageRequestHandler(cgImage: cg, options: [:]).perform([request])
+                    try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
                 } catch {
                     continuation.resume(returning: "")
                     return

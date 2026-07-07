@@ -51,6 +51,8 @@ struct MemosListView: View {
     @State private var reminderMemo: Memo?
     /// Locking a memo that's already published → honest notice (chunk 8).
     @State private var lockVaultNotice = false
+    /// In-app document scan (chunk 9) — device-only entry.
+    @State private var showDocScanner = false
     @State private var showSortFilter = false
     @State private var showTrash = false
     /// C3 contract: the audiobook session singleton (defined by the Audiobooks
@@ -133,6 +135,21 @@ struct MemosListView: View {
             SearchField(text: $search, prompt: "Search transcripts", fieldID: "memo-search")
                 .sheet(item: $reminderMemo) { memo in
                     ReminderSheet(memo: memo) { NotesRepository.shared.save() }
+                }
+                .fullScreenCover(isPresented: $showDocScanner) {
+                    DocScanView(
+                        onScan: { pages in
+                            showDocScanner = false
+                            Task {
+                                if let id = await DocScanner.save(pages: pages,
+                                                                  repository: NotesRepository.shared) {
+                                    MemoOpenBridge.shared.open(id)
+                                }
+                            }
+                        },
+                        onCancel: { showDocScanner = false }
+                    )
+                    .ignoresSafeArea()
                 }
                 .alert("Already in your vault", isPresented: $lockVaultNotice) {
                     Button("OK", role: .cancel) {}
@@ -318,6 +335,17 @@ struct MemosListView: View {
             .accessibilityIdentifier("select-button")
         }
         if !editMode.isEditing {
+            // Scan a paper document → PDF capture (chunk 9). The document
+            // camera doesn't exist on the simulator — the button honestly
+            // disappears there.
+            if DocScanView.isSupported {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showDocScanner = true } label: {
+                        Image(systemName: "doc.viewfinder")
+                    }
+                    .accessibilityIdentifier("doc-scan-button")
+                }
+            }
             // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
             // 2026-06-19) — co-equal with Notes, so a sheet's swipe-to-dismiss no
             // longer steals pull-to-refresh. Sync is fully automatic over CloudKit

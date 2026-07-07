@@ -489,7 +489,15 @@ NEVER loads a locked memo's audio (gate-aware load + re-derive on unlock/relock)
 passcode-capable device); REMOVING the lock needs auth. **Publish: locked ⇒ excluded** (`shouldPublish` guard,
 tested); locking an already-published memo → honest "already in your vault" notice (Skrift never deletes vault
 files). Honesty copy on the placeholder: "hidden, not encrypted". Mac gate owed (LocalAuthentication is the
-same API). 520 unit + desktop 325 + desktop app build + UI cluster green. Device eyeball owed
+same API). 520 unit + desktop 325 + desktop app build + UI cluster green.
+**Chunk 9 ✅ 2026-07-07 (doc scan — THE WAVE IS BUILT):** `DocScanner` + `DocScanView` (VisionKit document
+camera) — scan pages → ONE PDF via the existing C3 file-capture path (mirrors the share-drainer construction
+byte-for-byte: `file_<uuid>.pdf`, SharedContent .file, empty audioFilename discriminator) → the scan is a
+normal capture memo (file card + QuickLook + annotation) that syncs like any shared file; pages are OCR'd
+on-device into `sharedContent.text` (capped 4 KB) so scans are FINDABLE from the memos search. Entry: a
+`doc.viewfinder` toolbar button in the list — hidden on the simulator (the camera doesn't exist there; honest).
+Scan → opens the new memo (MemoOpenBridge). 523 unit green (PDF page-count, real-Vision page read, capture
+contract). Device eyeball owed
 (selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
 scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
 FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret
