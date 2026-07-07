@@ -152,8 +152,24 @@ final class BodyTransformTests: XCTestCase {
         let raw = "- [ ] see [[img_001]] Jack"
         let jack = (raw as NSString).range(of: "Jack")
         let display = BodyTransform.displayRange(forRaw: jack, in: raw)
-        // task "- [ ]" (5→1) saves 4; img (11→1) saves 10 → display loc = 22-14
-        XCTAssertEqual(display, NSRange(location: jack.location - 14, length: 4))
+        // task "- [ ]" (5→1) saves 4; the mid-line img becomes a display BLOCK
+        // (\n + glyph + \n, 11→3) saving 8 → display loc = 22-12
+        XCTAssertEqual(display, NSRange(location: jack.location - 12, length: 4))
+    }
+
+    func testImageBreaksMakeMidSentencePhotosBlocks() {
+        func breaks(_ raw: String) -> (Bool, Bool) {
+            let piece = BodyTransform.pieces(of: raw).first {
+                if case .image = $0.segment { return true }; return false
+            }!
+            return BodyTransform.imageBreaks(for: piece, in: raw)
+        }
+        XCTAssertTrue(breaks("was fantastic [[img_001]] and then") == (true, true),
+                      "mid-sentence photo needs both breaks")
+        XCTAssertTrue(breaks("look\n[[img_001]]\nafter") == (false, false),
+                      "a photo already on its own line needs none")
+        XCTAssertTrue(breaks("[[img_001]] tail") == (false, true))
+        XCTAssertTrue(breaks("head [[img_001]]") == (true, false))
     }
 
     @MainActor
@@ -633,6 +649,67 @@ final class AttachmentHitTests: XCTestCase {
     }
 }
 
+/// Photo display-block (signed off 2026-07-07, mocks/accessory-bar-v2.html
+/// §#11): a mid-sentence photo renders as its own paragraph via TAGGED
+/// display-only newlines — the raw keeps the marker mid-sentence, and no
+/// inherited attribute can corrupt the round-trip.
+final class PhotoBlockDisplayTests: XCTestCase {
+
+    @MainActor
+    private func makeEditor(transcript: String) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
+        let memo = Memo(audioFilename: "memo_block.m4a", transcript: transcript)
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        return (coordinator, tv)
+    }
+
+    @MainActor
+    func testMidSentencePhotoRendersAsBlockAndRoundTrips() {
+        let raw = "was fantastic [[img_001]] and then we walked"
+        let (c, tv) = makeEditor(transcript: raw)
+        XCTAssertTrue(tv.text.contains("\n\u{FFFC}\n"),
+                      "the photo must sit on its own display line")
+        XCTAssertEqual(c.reconstruct(tv.attributedText), raw,
+                       "the raw keeps the marker mid-sentence — breaks are display-only")
+    }
+
+    @MainActor
+    func testPhotoAlreadyOnOwnLineGainsNoExtraBreaks() {
+        let raw = "look\n[[img_001]]\nafter"
+        let (c, tv) = makeEditor(transcript: raw)
+        XCTAssertEqual(tv.text, "look\n\u{FFFC}\nafter", "no doubled newlines")
+        XCTAssertEqual(c.reconstruct(tv.attributedText), raw)
+    }
+
+    @MainActor
+    func testTypedTextInheritingDisplayTagSurvivesReconstruct() {
+        let (c, tv) = makeEditor(transcript: "a [[img_001]] b")
+        // Simulate UIKit inheriting the display-only tag onto typed text.
+        let typed = NSMutableAttributedString(string: "x")
+        typed.addAttribute(NoteBodyView.Coordinator.displayOnlyKey, value: true,
+                           range: NSRange(location: 0, length: 1))
+        tv.textStorage.append(typed)
+        XCTAssertTrue(c.reconstruct(tv.attributedText).hasSuffix("bx"),
+                      "typed text must never vanish, even with a leaked display tag")
+    }
+
+    @MainActor
+    func testInheritedMarkerKeyOnTypedTextEmitsNoSyntax() {
+        let (c, tv) = makeEditor(transcript: "a [[img_001]] b")
+        let typed = NSMutableAttributedString(string: "x")
+        typed.addAttribute(NoteBodyView.Coordinator.markerKey, value: 1,
+                           range: NSRange(location: 0, length: 1))
+        tv.textStorage.append(typed)
+        let out = c.reconstruct(tv.attributedText)
+        XCTAssertEqual(out.components(separatedBy: "[[img_001]]").count, 2,
+                       "exactly ONE marker — inherited keys on plain text emit no syntax")
+        XCTAssertTrue(out.hasSuffix("bx"))
+    }
+}
+
 /// Checklist Return-continuation (round-1 P2#8, the Notes idiom): Return in a
 /// task line grows the list; Return on an empty item dissolves it. Driven
 /// through the real shouldChangeTextIn delegate over the display text.
@@ -700,6 +777,30 @@ final class ChecklistContinuationTests: XCTestCase {
         XCTAssertEqual(c.memo.transcript, "plain text line",
                        "trailing whitespace trims on commit; no box was added")
         XCTAssertFalse(BodyTransform.containsTaskSyntax(c.memo.transcript ?? ""))
+    }
+
+    // MARK: accessory ☑ (bar v2, signed off 2026-07-07)
+
+    @MainActor
+    func testAccessoryToggleMakesCaretLineAChecklistItem() {
+        let (c, tv) = makeEditor(transcript: "buy milk\nplain below")
+        tv.selectedRange = NSRange(location: 3, length: 0)          // inside "buy milk"
+        XCTAssertFalse(c.caretInTaskLine())
+        c.toggleChecklistAtCaret()
+        XCTAssertTrue(c.caretInTaskLine(), "the ☑ state must light up")
+        c.commitDraft()
+        XCTAssertEqual(c.memo.transcript, "- [ ] buy milk\nplain below")
+    }
+
+    @MainActor
+    func testAccessoryToggleDissolvesAnExistingBox() {
+        let (c, tv) = makeEditor(transcript: "- [ ] buy milk")
+        tv.selectedRange = NSRange(location: 4, length: 0)
+        XCTAssertTrue(c.caretInTaskLine())
+        c.toggleChecklistAtCaret()
+        XCTAssertFalse(c.caretInTaskLine())
+        c.commitDraft()
+        XCTAssertEqual(c.memo.transcript, "buy milk", "un-task keeps the text")
     }
 }
 

@@ -2,21 +2,26 @@ import UIKit
 import SwiftUI
 
 /// The editor's keyboard accessory — a floating Skrift pill (same glass language
-/// as the player bar), NOT the flat system strip (signed-off in
-/// `mocks/note-editor-redesign.html`): undo · redo · find-in-note ·
-/// photo-at-caret · Done. Installed as the text view's `inputAccessoryView`
-/// with a clear background so only the pill shows above the keyboard.
+/// as the player bar), NOT the flat system strip. v2 = variant B of the
+/// signed-off `mocks/accessory-bar-v2.html` (2026-07-07): the daily verbs stay
+/// FIXED — undo · redo | checklist · photo · memo-link — rare ones live under
+/// the ⋯ menu (find; future scan/markup), Done pinned right. No scroll zone:
+/// muscle memory beats discoverability-by-swipe.
 final class NoteAccessoryBar: UIView {
     var onUndo: (() -> Void)?
     var onRedo: (() -> Void)?
     var onFind: (() -> Void)?
     var onPhoto: (() -> Void)?
+    var onChecklist: (() -> Void)?
+    var onMemoLink: (() -> Void)?
     var onDone: (() -> Void)?
 
     private let undoButton = NoteAccessoryBar.iconButton("arrow.uturn.backward", id: "accessory-undo")
     private let redoButton = NoteAccessoryBar.iconButton("arrow.uturn.forward", id: "accessory-redo")
-    private let findButton = NoteAccessoryBar.iconButton("magnifyingglass", id: "accessory-find")
+    private let checklistButton = NoteAccessoryBar.iconButton("checklist", id: "accessory-checklist")
     private let photoButton = NoteAccessoryBar.iconButton("camera", id: "accessory-photo")
+    private let linkButton = NoteAccessoryBar.iconButton("arrow.right", id: "accessory-link")
+    private let moreButton = NoteAccessoryBar.iconButton("ellipsis", id: "accessory-more")
     private let doneButton = UIButton(type: .system)
 
     init() {
@@ -54,17 +59,28 @@ final class NoteAccessoryBar: UIView {
 
         undoButton.addAction(UIAction { [weak self] _ in self?.onUndo?() }, for: .touchUpInside)
         redoButton.addAction(UIAction { [weak self] _ in self?.onRedo?() }, for: .touchUpInside)
-        findButton.addAction(UIAction { [weak self] _ in self?.onFind?() }, for: .touchUpInside)
+        checklistButton.addAction(UIAction { [weak self] _ in self?.onChecklist?() }, for: .touchUpInside)
         photoButton.addAction(UIAction { [weak self] _ in self?.onPhoto?() }, for: .touchUpInside)
+        linkButton.addAction(UIAction { [weak self] _ in self?.onMemoLink?() }, for: .touchUpInside)
+
+        // The overflow: rare verbs, one tap away (find today; scan/markup later).
+        moreButton.showsMenuAsPrimaryAction = true
+        moreButton.menu = UIMenu(children: [
+            UIAction(title: "Find in note", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
+                self?.onFind?()
+            },
+        ])
+
         doneButton.addAction(UIAction { [weak self] _ in self?.onDone?() }, for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [undoButton, redoButton, divider, findButton, photoButton,
+        let stack = UIStackView(arrangedSubviews: [undoButton, redoButton, divider,
+                                                   checklistButton, photoButton, linkButton, moreButton,
                                                    UIView(), doneButton])
         stack.axis = .horizontal
         stack.alignment = .center
-        stack.spacing = 3
-        stack.setCustomSpacing(8, after: redoButton)
-        stack.setCustomSpacing(8, after: divider)
+        stack.spacing = 2
+        stack.setCustomSpacing(7, after: redoButton)
+        stack.setCustomSpacing(7, after: divider)
         stack.translatesAutoresizingMaskIntoConstraints = false
         pill.addSubview(stack)
 
@@ -81,10 +97,15 @@ final class NoteAccessoryBar: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
-    /// Reflect the text view's undo stack (called on begin-editing and per edit).
-    func refresh(canUndo: Bool, canRedo: Bool) {
+    /// Reflect the text view's state: the undo stack, and whether the caret
+    /// sits in a checklist line (the ☑ lights up — it will REMOVE the box).
+    func refresh(canUndo: Bool, canRedo: Bool, inChecklist: Bool = false) {
         undoButton.isEnabled = canUndo
         redoButton.isEnabled = canRedo
+        checklistButton.tintColor = inChecklist
+            ? UIColor(Color.skAccent) : UIColor(Color.skTextDim)
+        checklistButton.backgroundColor = inChecklist
+            ? UIColor(Color.skAccentSoft) : .clear
     }
 
     private static func iconButton(_ symbol: String, id: String) -> UIButton {
@@ -93,8 +114,10 @@ final class NoteAccessoryBar: UIView {
                            withConfiguration: UIImage.SymbolConfiguration(pointSize: 14.5, weight: .medium)),
                    for: .normal)
         b.tintColor = UIColor(Color.skTextDim)
+        b.layer.cornerRadius = 8
+        b.layer.cornerCurve = .continuous
         b.accessibilityIdentifier = id
-        b.widthAnchor.constraint(equalToConstant: 36).isActive = true
+        b.widthAnchor.constraint(equalToConstant: 33).isActive = true
         b.heightAnchor.constraint(equalToConstant: 30).isActive = true
         return b
     }

@@ -524,15 +524,18 @@ job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet
    one caret-insert + CloudKit mirror + OCR path; sim stays library-only.
 8. ✅ Checklist Return-continuation (`54fe2d4`) — Return in a task line = fresh unchecked item (mid-line
    splits); Return on an EMPTY item dissolves the box (Notes flow). 4 delegate-driven tests.
-9. 📐 **Accessory bar v2 — MOCK READY, awaiting sign-off:** `mocks/accessory-bar-v2.html` — variant A
-   (one scrollable strip) vs B (fixed six + ⋯ overflow, RECOMMENDED); Notes' tables/Aa deliberately
-   skipped; open chip: scan-into-this-note? Pick A/B → build.
+9. ✅ **Accessory bar v2 — SIGNED OFF (variant B) + BUILT 2026-07-07:** fixed six —
+   undo · redo | ☑ checklist-toggle (lights when the caret's in a task line; un-tasks it) ·
+   📷 · → memo-link (same picker as typing "[[") · ⋯ overflow (Find; future scan/markup) · Done.
+   Headless-rendered + eyeballed. Open (deferred): scan-into-this-note verb.
 10. ✅ Draw on photos in-app (`fb7f5f4`) — QuickLook `.updateContents` wrapper (MarkupPreviewView):
     markup saves INTO the photo file → AssetMaterializer size-change re-mirror + OCR reset→rescan +
     mtime-keyed thumbnail rebuild. Shared-file captures get markup too (PDFs).
-11. 📐 **Mid-sentence photo block layout — MOCK READY, same file** (`accessory-bar-v2.html` §#11):
-    current true-inline vs display-BLOCK (raw keeps `[[img]]` mid-sentence; breaks are display-only).
-    RECOMMENDED yes → build with #9's chunk.
+11. ✅ **Photo display-block — SIGNED OFF + BUILT 2026-07-07:** mid-sentence photos render as their
+    own paragraph via TAGGED display-only newlines; raw keeps `[[img]]` mid-sentence (sync/export/Mac
+    unchanged). Rule lives in `BodyTransform.imageBreaks` (one source for builder + displayRange).
+    Hardening: reconstruct emits syntax only for real U+FFFC runs + typingAttributes scrubbed —
+    inherited keys can't duplicate markers or eat a Return.
 12. ⏳ Photo-viewer open animation (zoom) — deliberately NOT built: needs UIKit-driven presentation +
     `transitionViewFor` anchored to the attachment rect through the hosting boundary; revisit after
     the #9/#11 chunk lands.

@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T13:45:00.000Z'
+updated: '2026-07-07T14:20:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -327,12 +327,19 @@ nodes:
         library, checklist Return-continuation (Notes flow), QuickLook markup
         SAVE-BACK (re-mirror + re-OCR + mtime-fresh thumbnails). Build 33
         installed for round 2. 538/538 unit
+      - >-
+        2026-07-07 · Signed-off chunk (mock accessory-bar-v2.html, same-day):
+        accessory bar v2 variant B (fixed six — ☑ toggle lights in a task
+        line · 📷 · → link · ⋯ Find — Done pinned) + photo display-BLOCK
+        (BodyTransform.imageBreaks, tagged display-only breaks, raw
+        untouched; reconstruct hardened to real-FFFC-only + typing-attr
+        scrub). 545/545 unit; bar headless-rendered + eyeballed. Build 34
     backlog:
-      - "Device ROUND 2 (build 33): verify the 6 P1 fixes + camera/Return-
-        continuation/markup; P1#1+#3 devlog probes arbitrate any remainder"
-      - Accessory-bar-v2 + photo display-block mocks AWAIT SIGN-OFF
-        (mocks/accessory-bar-v2.html; pick bar A/B + block yes/no) → build
-        as one chunk; then P2#12 zoom transition
+      - "Device ROUND 2 (build 34): verify the 6 P1 fixes + camera/Return-
+        continuation/markup + bar v2 + photo block; P1#1+#3 devlog probes
+        arbitrate any remainder"
+      - P2#12 viewer zoom-open transition (deferred; after round 2)
+      - Scan-into-this-note accessory verb (deferred design question)
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
       - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]
         ships already; wire PipelineFile stems)

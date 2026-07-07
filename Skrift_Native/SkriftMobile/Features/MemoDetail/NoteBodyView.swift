@@ -201,6 +201,10 @@ struct NoteBodyView: UIViewRepresentable {
         /// Custom attribute tagging a memo-link chip: value = "UUID|Title" —
         /// reconstructs to the raw `[[memo:UUID|Title]]` syntax.
         static let memoLinkKey = NSAttributedString.Key("skriftMemoLink")
+        /// Custom attribute tagging a DISPLAY-ONLY newline (the block breaks
+        /// around an inline photo) — `reconstruct` skips it, so the raw text
+        /// keeps the marker mid-sentence exactly as spoken.
+        static let displayOnlyKey = NSAttributedString.Key("skriftDisplayOnly")
 
         init(memo: Memo, onCommit: @escaping () -> Void) {
             self.memo = memo
@@ -536,6 +540,13 @@ struct NoteBodyView: UIViewRepresentable {
                 self.pendingPhotoLocation = tv.selectedRange.location
                 self.onRequestPhoto()
             }
+            bar.onChecklist = { [weak self] in self?.toggleChecklistAtCaret() }
+            bar.onMemoLink = { [weak self] in
+                // Same picker the typed "[[" opens; no trigger to replace —
+                // the chip lands at the caret.
+                self?.pendingLinkTrigger = nil
+                self?.onRequestMemoLink()
+            }
             bar.onDone = { [weak self, weak tv] in
                 self?.commitDraft()
                 tv?.resignFirstResponder()
@@ -546,7 +557,49 @@ struct NoteBodyView: UIViewRepresentable {
 
         private func refreshAccessory() {
             accessory?.refresh(canUndo: textView?.undoManager?.canUndo ?? false,
-                               canRedo: textView?.undoManager?.canRedo ?? false)
+                               canRedo: textView?.undoManager?.canRedo ?? false,
+                               inChecklist: caretInTaskLine())
+        }
+
+        /// Whether the caret's line starts with a checkbox glyph.
+        func caretInTaskLine() -> Bool {
+            guard let tv = textView, tv.textStorage.length > 0 else { return false }
+            let ns = tv.textStorage.string as NSString
+            let caret = min(tv.selectedRange.location, ns.length)
+            let line = ns.lineRange(for: NSRange(location: caret, length: 0))
+            guard line.length > 0 else { return false }
+            return tv.textStorage.attribute(Self.taskKey, at: line.location,
+                                            effectiveRange: nil) is Bool
+        }
+
+        /// Accessory ☑ (bar v2, signed off): make the caret's line a checklist
+        /// item, or dissolve its box when it already is one. The Notes toggle.
+        func toggleChecklistAtCaret() {
+            guard let tv = textView, currentMode == .editing else { return }
+            let storage = tv.textStorage
+            let ns = storage.string as NSString
+            let caret = min(tv.selectedRange.location, ns.length)
+            let line = ns.lineRange(for: NSRange(location: caret, length: 0))
+
+            if line.length > 0,
+               storage.attribute(Self.taskKey, at: line.location, effectiveRange: nil) is Bool {
+                // Un-task: drop the box (and its padding space when present).
+                var drop = 1
+                if line.location + 1 < ns.length, ns.character(at: line.location + 1) == 32 { drop = 2 }
+                storage.deleteCharacters(in: NSRange(location: line.location, length: drop))
+                tv.selectedRange = NSRange(location: max(line.location, caret - drop), length: 0)
+            } else {
+                let piece = NSMutableAttributedString(attachment: Self.taskAttachment(checked: false))
+                piece.addAttribute(Self.taskKey, value: false,
+                                   range: NSRange(location: 0, length: piece.length))
+                piece.addAttributes(baseAttributes(), range: NSRange(location: 0, length: piece.length))
+                piece.append(NSAttributedString(string: " ", attributes: baseAttributes()))
+                storage.insert(piece, at: line.location)
+                tv.selectedRange = NSRange(location: caret + piece.length, length: 0)
+            }
+            Haptics.tap(.light)
+            textViewDidChange(tv)
+            applyTierStyling()          // display offsets shifted under the spans
         }
 
         /// Insert a picked photo AT THE CARET: the file lands in the recordings
@@ -603,6 +656,11 @@ struct NoteBodyView: UIViewRepresentable {
         }
 
         func textViewDidChangeSelection(_ tv: UITextView) {
+            // Typing next to an attachment glyph or a display-only block break
+            // inherits its custom attributes — a marker key on typed text would
+            // re-emit syntax, a display-only tag would DROP a real Return. Strip
+            // them from the typing attributes at every caret move.
+            sanitizeTypingAttributes(tv)
             // Round-1 P1#1 evidence: a selection that CHANGES while the view is
             // not first responder (keyboard interactively dismissed, handles
             // still up) means something is rewriting it under the scroll —
@@ -611,9 +669,20 @@ struct NoteBodyView: UIViewRepresentable {
             if !tv.isFirstResponder, currentMode == .editing, tv.selectedRange.length > 0 {
                 DevLog.log("noteBody: sel-noFR \(NSStringFromRange(tv.selectedRange))")
             }
+            refreshAccessory()          // the ☑ lights up when the caret sits in a checklist
             guard tv.isFirstResponder,
                   let began = editingBeganAt, Date().timeIntervalSince(began) < 0.35 else { return }
             resolveNameAtCaret(tv)
+        }
+
+        private static let customKeys: [NSAttributedString.Key] =
+            [markerKey, taskKey, memoLinkKey, displayOnlyKey]
+
+        private func sanitizeTypingAttributes(_ tv: UITextView) {
+            guard Self.customKeys.contains(where: { tv.typingAttributes[$0] != nil }) else { return }
+            var attrs = tv.typingAttributes
+            for key in Self.customKeys { attrs.removeValue(forKey: key) }
+            tv.typingAttributes = attrs
         }
 
         /// If the caret the focus-gaining tap just placed sits inside a name
@@ -925,14 +994,25 @@ struct NoteBodyView: UIViewRepresentable {
         private func attributed(from transcript: String) -> NSAttributedString {
             let result = NSMutableAttributedString()
             let base = baseAttributes()
+            var displayBreak: NSAttributedString {
+                var attrs = base
+                attrs[Self.displayOnlyKey] = true
+                return NSAttributedString(string: "\n", attributes: attrs)
+            }
             for piece in BodyTransform.pieces(of: transcript) {
                 switch piece.segment {
                 case .text(let s):
                     result.append(NSAttributedString(string: s, attributes: base))
                 case .image(let n):
+                    // Photos render as their own display BLOCK (signed off
+                    // 2026-07-07): tagged, display-only breaks — the raw
+                    // marker stays mid-sentence.
+                    let breaks = BodyTransform.imageBreaks(for: piece, in: transcript)
+                    if breaks.leading { result.append(displayBreak) }
                     let a = NSMutableAttributedString(attachment: imageAttachment(markerIndex: n))
                     a.addAttribute(Self.markerKey, value: n, range: NSRange(location: 0, length: a.length))
                     result.append(a)
+                    if breaks.trailing { result.append(displayBreak) }
                 case .task(let checked):
                     let a = NSMutableAttributedString(attachment: Self.taskAttachment(checked: checked))
                     a.addAttribute(Self.taskKey, value: checked, range: NSRange(location: 0, length: a.length))
@@ -962,21 +1042,29 @@ struct NoteBodyView: UIViewRepresentable {
 
         /// Walk the attributed text → the raw transcript string with `[[img_NNN]]`
         /// markers where attachments are (so edits round-trip losslessly).
+        /// Marker/task/chip emission requires the run to BE the attachment char
+        /// (U+FFFC) — typing next to a glyph inherits its custom attributes, and
+        /// an inherited key on plain text must never re-emit syntax. Display-only
+        /// newlines (photo block breaks) contribute nothing; typed text that
+        /// inherited their tag stays text.
         func reconstruct(_ attr: NSAttributedString?) -> String {
             guard let attr else { return "" }
             let out = NSMutableString()
             let full = attr.string as NSString
             attr.enumerateAttributes(in: NSRange(location: 0, length: attr.length)) { attrs, range, _ in
-                if let marker = attrs[Self.markerKey] as? Int {
+                let run = full.substring(with: range)
+                if let marker = attrs[Self.markerKey] as? Int, run == "\u{FFFC}" {
                     // Match the writer's zero-padded format (ImageMarkers %03d) —
                     // the old editor re-emitted "[[img_1]]" and drifted the format.
                     out.append("[[img_\(String(format: "%03d", marker))]]")
-                } else if let checked = attrs[Self.taskKey] as? Bool {
+                } else if let checked = attrs[Self.taskKey] as? Bool, run == "\u{FFFC}" {
                     out.append(BodyTransform.rawTask(checked: checked))
-                } else if let payload = attrs[Self.memoLinkKey] as? String {
+                } else if let payload = attrs[Self.memoLinkKey] as? String, run == "\u{FFFC}" {
                     out.append("[[memo:\(payload)]]")
+                } else if attrs[Self.displayOnlyKey] != nil {
+                    out.append(run.filter { $0 != "\n" })          // block breaks vanish
                 } else if attrs[.attachment] == nil {
-                    out.append(full.substring(with: range))
+                    out.append(run)
                 }                                                  // untagged attachment → drop
             }
             return out as String

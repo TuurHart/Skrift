@@ -68,9 +68,35 @@ enum BodyTransform {
     /// The raw syntax an attachment reconstructs to.
     static func rawTask(checked: Bool) -> String { checked ? "- [x]" : "- [ ]" }
 
+    /// Display-only paragraph breaks around an IMAGE piece — photos render as
+    /// their own BLOCK (signed off 2026-07-07, `mocks/accessory-bar-v2.html`
+    /// §#11): a break before when the marker doesn't already start a line, a
+    /// break after when raw text continues on the same line. The breaks exist
+    /// ONLY in the display text (tagged; `reconstruct` skips them) and this is
+    /// the single rule both the attributed builder and `displayRange` use, so
+    /// they can't drift.
+    static func imageBreaks(for piece: Piece, in raw: String) -> (leading: Bool, trailing: Bool) {
+        guard case .image = piece.segment else { return (false, false) }
+        let ns = raw as NSString
+        let r = piece.rawRange
+        let leading = r.location > 0 && ns.character(at: r.location - 1) != 10
+        let end = r.location + r.length
+        let trailing = end < ns.length && ns.character(at: end) != 10
+        return (leading, trailing)
+    }
+
+    /// Display length of a piece's glyph(s): 1 for every attachment, plus an
+    /// image's display-only breaks.
+    private static func displayLength(of piece: Piece, in raw: String) -> Int {
+        if case .text = piece.segment { return piece.rawRange.length }
+        let breaks = imageBreaks(for: piece, in: raw)
+        return 1 + (breaks.leading ? 1 : 0) + (breaks.trailing ? 1 : 0)
+    }
+
     /// Map a RAW range to the DISPLAYED range: every non-text piece before it
-    /// collapses to one glyph. nil when the range straddles a piece (name spans
-    /// never do).
+    /// collapses to one glyph (images additionally gain their display-only
+    /// block breaks). nil when the range straddles a piece (name spans never
+    /// do).
     static func displayRange(forRaw raw: NSRange, in text: String) -> NSRange? {
         var delta = 0
         for piece in pieces(of: text) {
@@ -79,7 +105,7 @@ enum BodyTransform {
             // A task prefix keeps its leading indent in rawRange? No — rawRange
             // includes the indent for tasks; the glyph replaces the WHOLE match.
             if r.location + r.length <= raw.location {
-                delta += r.length - 1
+                delta += r.length - displayLength(of: piece, in: text)
             } else if r.location < raw.location + raw.length {
                 return nil
             } else {
