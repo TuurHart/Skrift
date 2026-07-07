@@ -74,6 +74,27 @@ final class MemoCloudUpdateTests: XCTestCase {
         XCTAssertEqual(pf.sanitised, "Phone-edited copy-edit.")
     }
 
+    func testPolishedEditAppliesEvenWhenMemoEditedAfterEnhancement() {
+        // Regression (device-found): the phone stamps enhancement.enhancedAt, THEN memo.markEdited()
+        // — so memo.lastEditedAt > enhancement.enhancedAt for the SAME copy-edit. A timestamp-gated
+        // path selection dropped it; content-based must apply it, even with a poisoned watermark.
+        let id = UUID()
+        let t0 = Date()
+        let pf = ingestedFile(id: id, at: t0)
+        pf.enhancedCopyedit = "Mac copy-edit."
+        pf.enhanceStatus = .done
+        pf.syncedSourceEditedAt = t0.addingTimeInterval(20)   // a prior buggy run already advanced it
+        let m = memo(id, transcript: "Original transcript.", editedAt: t0.addingTimeInterval(11))
+        let enh = MemoEnhancement(memoID: id, copyedit: "Phone-edited copy-edit.",
+                                  enhancedByDeviceID: "phone-9", enhancedAt: t0.addingTimeInterval(10))
+
+        let changed = MemoCloudUpdate.apply(memo: m, enhancement: enh, to: pf,
+                                            people: [], author: "", thisDeviceID: mac)
+        XCTAssertTrue(changed, "a differing phone copy-edit is applied regardless of timestamps/watermark")
+        XCTAssertEqual(pf.enhancedCopyedit, "Phone-edited copy-edit.")
+        XCTAssertEqual(pf.sanitised, "Phone-edited copy-edit.")
+    }
+
     // MARK: - Echo guard + no-op
 
     func testMacOwnWriteBackIsNotEchoed() {

@@ -13,11 +13,13 @@ import Foundation
 /// - a memo WITH a Mac polish → the phone edits `MemoEnhancement.copyedit` (path 2);
 /// - a raw memo → the phone edits `Memo.transcript` (path 3).
 ///
-/// **Echo guard.** The Mac's OWN write-back (`MacCloudWriteBack`) also lands a `MemoEnhancement`
-/// back in the Mac's CloudKit mirror. Its `enhancedByDeviceID` is THIS Mac, so it is ignored
-/// here — only a PHONE-authored enhancement is reflected, and `Memo.lastEditedAt` (untouched by
-/// the write-back) gates the raw path. The `syncedSourceEditedAt` watermark makes each edit
-/// reflect exactly once, so there is no ping-pong.
+/// **Echo guard + no ping-pong.** The decision is CONTENT-based: a change is applied only when
+/// the synced text actually differs from the row, so a no-op sweep does nothing and there is no
+/// loop. The Mac's OWN write-back (`MacCloudWriteBack`) lands a `MemoEnhancement` whose
+/// `enhancedByDeviceID` is THIS Mac, so it is ignored — only a PHONE-authored enhancement is
+/// reflected. (`syncedSourceEditedAt` is kept as an informational watermark, not the gate — an
+/// earlier timestamp-gated version dropped a copy-edit edit because the phone stamps
+/// `memo.editedAt` a hair after `enhancement.enhancedAt`.)
 enum MemoCloudUpdate {
 
     /// Reflect a phone edit to an already-ingested memo into its local `PipelineFile`.
@@ -30,44 +32,41 @@ enum MemoCloudUpdate {
         // Trashed memos are handled by the reconciler's delete path, not here.
         guard memo.deletedAt == nil else { return false }
 
-        let baseline = pf.syncedSourceEditedAt ?? .distantPast
-        let memoEdited = memo.lastEditedAt
-
-        // A PHONE-authored enhancement edit (path 2). The Mac's own write-back echo is skipped
-        // by the device-id check, so the Mac never re-reflects what it just wrote.
+        // A PHONE-authored enhancement edit. The Mac's own write-back echo is skipped by the
+        // device-id check, so the Mac never re-reflects what it just wrote.
         let phoneEnh: MemoEnhancement? = {
             guard let e = enhancement, e.hasContent, e.enhancedByDeviceID != thisDeviceID else { return nil }
             return e
         }()
-        let enhEdited = phoneEnh?.enhancedAt ?? .distantPast
 
-        let sourceEdited = max(memoEdited, enhEdited)
-        guard sourceEdited > baseline else { return false }   // already up to date — nothing to reflect
-
+        // CONTENT-based, not timestamp-based: the phone stamps `enhancement.enhancedAt` and THEN
+        // `memo.editedAt` in the same edit (`TranscriptEditor`), so `memo.lastEditedAt` can be a
+        // hair NEWER than the enhancement — a timestamp race that must NOT hide a copy-edit change.
+        // Comparing the actual text is race-proof AND self-healing (recovers even if a prior run
+        // advanced the watermark without applying).
         var changed = false
 
-        if let e = phoneEnh, enhEdited >= memoEdited {
-            // Path 2 — the phone edited the polished copy-edit. Adopt the RAW copy-edit + any
-            // title/summary the phone carried, then re-link + recompile (no LLM).
+        // Path 2 — the phone edited the polished copy-edit / title / summary.
+        if let e = phoneEnh {
             if pf.enhancedCopyedit != e.copyedit { pf.enhancedCopyedit = e.copyedit; changed = true }
             if !e.title.isEmpty, pf.enhancedTitle != e.title { pf.enhancedTitle = e.title; changed = true }
             if !e.summary.isEmpty, pf.enhancedSummary != e.summary { pf.enhancedSummary = e.summary; changed = true }
-            if changed { resanitiseAndCompile(pf, people: people, author: author) }
-        } else if let t = memo.transcript, pf.transcript != t {
-            // Path 3 — the phone edited the RAW transcript. Adopt it. Re-link + recompile only
-            // when this row isn't LLM-enhanced (an enhanced memo is edited via the copy-edit
-            // path above; re-linking a stale copy-edit off a new transcript would misrepresent
-            // the edit, and re-enhancing is the user-declined heavy path).
-            pf.transcript = t
-            changed = true
-            if pf.enhancedCopyedit == nil { resanitiseAndCompile(pf, people: people, author: author) }
         }
 
-        // Advance the watermark even when nothing textual changed (e.g. a title-only edit we
-        // don't mirror) so a no-op edit can't re-trigger every sweep.
-        pf.syncedSourceEditedAt = sourceEdited
-        if changed { pf.lastActivityAt = now }
-        return changed
+        // Path 3 — the phone edited the RAW transcript.
+        if let t = memo.transcript, pf.transcript != t {
+            pf.transcript = t
+            changed = true
+        }
+
+        guard changed else { return false }
+
+        // Re-link + recompile once (no LLM) over the pristine working text (copy-edit → transcript),
+        // so a path-2 copy-edit wins the body and a path-3 raw edit falls through for un-enhanced rows.
+        resanitiseAndCompile(pf, people: people, author: author)
+        pf.syncedSourceEditedAt = max(memo.lastEditedAt, phoneEnh?.enhancedAt ?? .distantPast)
+        pf.lastActivityAt = now
+        return true
     }
 
     /// Deterministic re-link + recompile (no LLM) over the pristine working text
