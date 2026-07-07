@@ -58,6 +58,20 @@ enum LaunchFlags {
     /// capsule was un-screenshotable before this (a real book is device-only),
     /// which is exactly how the build-40 FAB/capsule overlap shipped unseen.
     static var seedAudiobook: Bool { args.boolFlag("-seedAudiobook") }
+    /// Open the Settings tab on launch (screenshot routing).
+    static var openSettings: Bool { args.boolFlag("-openSettings") }
+    /// Run the journal index on MockEmbedder + an in-memory store (no model
+    /// assets) so search-Related/threads are demoable on the sim / UI tests.
+    static var mockJournalIndex: Bool { args.boolFlag("-mockJournalIndex") }
+    /// Pre-fill the memos-list search on launch (screenshot the Related section
+    /// without typing).
+    static var initialSearch: String? { args.stringValue("-initialSearch") }
+    /// Open the P8 thread view for the seeded pricing memo (screenshot route;
+    /// combine with -seedJournal -mockJournalIndex).
+    static var threadDemo: Bool { args.boolFlag("-threadDemo") }
+    /// Open the seeded pricing memo's DETAIL (the P8 Related card; combine
+    /// with -seedJournal -mockJournalIndex).
+    static var journalMemoDemo: Bool { args.boolFlag("-journalMemoDemo") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Seed the name-linking demo (the mock's "Studio afternoon" memo + 4 people: two
     /// Jacks → ambiguous, Hendri → linked, Rose → suggested) and open its detail directly,

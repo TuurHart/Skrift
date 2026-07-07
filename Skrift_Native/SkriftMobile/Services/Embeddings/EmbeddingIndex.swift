@@ -120,6 +120,22 @@ actor EmbeddingIndex {
         try groupedRows()[memoID]?.count ?? 0
     }
 
+    /// Calibration sample: cosine over random distinct GIST pairs (up to
+    /// `limit`) — the raw material for the floor histogram.
+    func gistPairScores(limit: Int) throws -> [Float] {
+        let gists = try groupedRows().compactMap { $0.value.first { $0.chunkIndex == 0 }?.floats }
+        guard gists.count > 1 else { return [] }
+        var out: [Float] = []
+        out.reserveCapacity(limit)
+        for _ in 0..<limit {
+            let a = Int.random(in: 0..<gists.count)
+            var b = Int.random(in: 0..<gists.count)
+            if a == b { b = (b + 1) % gists.count }
+            out.append(RetrievalMath.dot(gists[a], gists[b]))
+        }
+        return out
+    }
+
     private func scores(against qv: [Float], excluding: UUID?) throws -> [(memoID: UUID, score: Float)] {
         var best: [UUID: Float] = [:]
         for (memoID, rows) in try groupedRows() where memoID != excluding {

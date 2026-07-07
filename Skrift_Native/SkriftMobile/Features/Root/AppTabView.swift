@@ -20,7 +20,8 @@ import SwiftUI
 /// wherever you are — and scroll views automatically make room for it.
 struct AppTabView: View {
     enum Tab: Hashable { case notes, books, journal, settings }
-    @State private var selection: Tab = LaunchFlags.openJournal ? .journal : .notes
+    @State private var selection: Tab = LaunchFlags.openJournal ? .journal
+        : LaunchFlags.openSettings ? .settings : .notes
 
     var body: some View {
         TabView(selection: $selection) {

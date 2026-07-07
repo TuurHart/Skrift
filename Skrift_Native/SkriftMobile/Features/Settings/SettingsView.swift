@@ -98,6 +98,12 @@ struct SettingsView: View {
                     Text("While audio plays, tap a word in the transcript to jump there.")
                 }
 
+                // P8: consent flow for the on-device semantic index.
+                JournalIndexSettingsSection()
+
+                // Print-to-wall: orange-tier notes print on the home printer.
+                WallPrinterSettingsSection()
+
                 Section("Library") {
                     NavigationLink {
                         NamesListView()
