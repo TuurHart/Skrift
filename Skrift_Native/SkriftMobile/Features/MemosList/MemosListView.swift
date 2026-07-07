@@ -117,7 +117,12 @@ struct MemosListView: View {
             // widget / deep link / shared video) BEFORE this view subscribed —
             // onChange alone misses it, which left Siri/widget "opens but doesn't
             // record" and a shared video not opening on a cold launch.
-            .onAppear { handleStartRequest(); handleOpenRequest() }
+            .onAppear {
+                handleStartRequest(); handleOpenRequest()
+                // Round-2 evidence for the invisible doc-scan button: was the
+                // capability gate the culprit, or the iOS-26 toolbar?
+                DevLog.log("docScan: isSupported=\(DocScanView.isSupported)")
+            }
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
             }
@@ -334,23 +339,23 @@ struct MemosListView: View {
             }
             .accessibilityIdentifier("select-button")
         }
-        if !editMode.isEditing {
-            // Scan a paper document → PDF capture (chunk 9). The document
-            // camera doesn't exist on the simulator — the button honestly
-            // disappears there.
-            if DocScanView.isSupported {
-                ToolbarItem(placement: .topBarTrailing) {
+        // ONE trailing group with ViewBuilder conditionals INSIDE it: a
+        // conditional ToolbarItem nested in ToolbarContentBuilder ifs is the
+        // shape iOS 26 drops from the bar (device round 1: doc-scan invisible
+        // while its one-if-shallower sibling rendered). The Audiobooks Library
+        // + Settings moved out to root tabs (AppTabView, 2026-06-19); sync is
+        // fully automatic over CloudKit, so there's no manual sync button.
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if !editMode.isEditing {
+                // Scan a paper document → PDF capture (chunk 9). The document
+                // camera doesn't exist on the simulator — the button honestly
+                // disappears there.
+                if DocScanView.isSupported {
                     Button { showDocScanner = true } label: {
                         Image(systemName: "doc.viewfinder")
                     }
                     .accessibilityIdentifier("doc-scan-button")
                 }
-            }
-            // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
-            // 2026-06-19) — co-equal with Notes, so a sheet's swipe-to-dismiss no
-            // longer steals pull-to-refresh. Sync is fully automatic over CloudKit
-            // (push) + pull-to-refresh reconcile, so there's no manual sync button.
-            ToolbarItem(placement: .topBarTrailing) {
                 Button { showSortFilter = true } label: {
                     Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
                 }
