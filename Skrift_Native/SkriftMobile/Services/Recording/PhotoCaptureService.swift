@@ -27,12 +27,20 @@ final class PhotoCaptureService: NSObject, ObservableObject {
     private var videoDevice: AVCaptureDevice?
     private var videoInput: AVCaptureDeviceInput?
     private var lastCaptureAt: Date?
+    /// Session inputs/outputs are built once; configure() after a stop() just
+    /// restarts the session. Touched only on `sessionQueue`, like the session.
+    private var configured = false
 
     init(mock: Bool = LaunchFlags.seedTranscript != nil) {
         self.mock = mock
         super.init()
     }
 
+    /// Build the session (once) and start it. Called when the camera UI is
+    /// about to show — NOT at record-screen open: a running AVCaptureSession
+    /// keeps the camera + ISP powered for the entire recording, a real heat +
+    /// battery cost on an older phone, for a feature most recordings never
+    /// touch. Idempotent and safe after `stop()` (the session just restarts).
     func configure() {
         guard !mock else {
             isReady = true
@@ -40,20 +48,23 @@ final class PhotoCaptureService: NSObject, ObservableObject {
         }
         sessionQueue.async { [weak self] in
             guard let self else { return }
-            self.session.beginConfiguration()
-            self.session.sessionPreset = .photo
-            if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-               let input = try? AVCaptureDeviceInput(device: device),
-               self.session.canAddInput(input) {
-                self.session.addInput(input)
-                self.videoDevice = device
-                self.videoInput = input
+            if !self.configured {
+                self.configured = true
+                self.session.beginConfiguration()
+                self.session.sessionPreset = .photo
+                if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+                   let input = try? AVCaptureDeviceInput(device: device),
+                   self.session.canAddInput(input) {
+                    self.session.addInput(input)
+                    self.videoDevice = device
+                    self.videoInput = input
+                }
+                if self.session.canAddOutput(self.photoOutput) {
+                    self.session.addOutput(self.photoOutput)
+                }
+                self.session.commitConfiguration()
             }
-            if self.session.canAddOutput(self.photoOutput) {
-                self.session.addOutput(self.photoOutput)
-            }
-            self.session.commitConfiguration()
-            self.session.startRunning()
+            if !self.session.isRunning { self.session.startRunning() }
             Task { @MainActor in self.isReady = true }
         }
     }

@@ -78,7 +78,9 @@ struct RecordView: View {
         }
         .animation(Theme.Motion.spring, value: showCamera)
         .onAppear {
-            camera.configure()
+            // The camera session starts when the camera sheet opens (see the
+            // Photo button), not here — an eagerly-running AVCaptureSession
+            // heated the phone for the whole recording even when never used.
             startIfActive()
         }
         // Cold launch (Record intent / Siri / widget): the auto-start MUST wait
@@ -124,13 +126,18 @@ struct RecordView: View {
         }
         .animation(Theme.Motion.snappy, value: service.routeNotice)
         .task {
-            context = await MetadataProviderFactory.make().capture()
-            // Preload the model on the ready screen so the status goes live
-            // (downloading → ready) before recording, and the first record isn't
-            // a cold start. Skipped in the mock/sim path (no ANE, no download).
+            // Preload the model FIRST — it's the caption's critical path, and it
+            // used to wait behind the GPS fix below. Skipped in the mock/sim
+            // path (no ANE, no download).
             if LaunchFlags.seedTranscript == nil {
                 Task { try? await TranscriptionService.shared.ensureLoaded() }
             }
+            // The context capture (GPS fix + reverse-geocode + weather fetch +
+            // pedometer) is save-time data, not start-time: give the engine and
+            // model the first seconds of an older phone's CPU. If the user
+            // stops before this lands, MemoSaver captures at save instead.
+            try? await Task.sleep(for: .seconds(2))
+            context = await MetadataProviderFactory.make().capture()
         }
     }
 
@@ -351,6 +358,7 @@ struct RecordView: View {
 
             Spacer()
             ControlButton(title: "Photo", systemImage: "camera.fill", accent: true, id: "photo-button") {
+                camera.configure()   // spin the session up now — first open shows the preview in ~½ s
                 showCamera = true
             }
             .overlay(alignment: .topTrailing) {
@@ -388,7 +396,10 @@ struct RecordView: View {
                 // this whole overlay re-render at every timer tick just to keep a
                 // capture offset fresh; the sheet reads it at shutter time instead.
                 recordingOffset: { service.elapsed },
-                onDone: { showCamera = false }
+                onDone: {
+                    showCamera = false
+                    camera.stop()   // camera off between uses; reopening restarts it
+                }
             )
         }
     }
