@@ -1,22 +1,24 @@
 import Foundation
 
 /// Identity matching for conversation mode: compares a diarized speaker's voiceprint
-/// (a wespeaker embedding from `SpeakerEmbedder`) against the saved voiceprints on the
-/// known people, and returns the best match above a similarity threshold.
+/// (a wespeaker embedding) against the saved voiceprints on the known people, and
+/// returns the best match above a similarity threshold.
 ///
-/// Pure + deterministic — no ML, no IO — so it's fully unit-testable on the Simulator;
-/// the embedding EXTRACTION (device-only ANE) feeds it. This is the "is this Tiuri?"
-/// step, kept separate from diarization ("who spoke when", Sortformer): Sortformer can't
-/// ingest an embedding, so identification is a standalone cosine match. The matched name
-/// becomes the `**Name:**` turn label; the embedding is what syncs phone↔Mac
-/// (`Person.voiceEmbeddings`).
+/// SHARED (one copy, both apps): the embeddings themselves sync phone↔Mac
+/// (`Person.voiceEmbeddings`, union-merged), so both apps MUST score them identically
+/// or the same person would be recognised on one device and not the other. Pure +
+/// deterministic — no ML, no IO — the embedding EXTRACTION is app-specific (the
+/// phone's `SpeakerEmbedder`, the Mac's `DiarizationService` engine) and feeds this.
+/// This is the "is this Tiuri?" step, kept separate from diarization ("who spoke
+/// when", Sortformer): Sortformer can't ingest an embedding, so identification is a
+/// standalone cosine match. The matched name becomes the `**Name:**` turn label.
 enum VoiceMatcher {
     /// Cosine-similarity threshold for "same person". Measured in `DiarizeSpike` on real
     /// audio (M4 ANE): genuinely different people score ≤0.22, the same person ≥0.62
     /// (in- and cross-recording) — so 0.5 sits safely in the gap (0.28 above the
     /// different-people ceiling, 0.12 below the same-speaker floor), favouring NO false
-    /// matches. Overridable on-device via `UserDefaults("voiceMatchThreshold")` so the
-    /// threshold can be tuned without a rebuild.
+    /// matches. Overridable via `UserDefaults("voiceMatchThreshold")` so the threshold
+    /// can be tuned without a rebuild.
     static var threshold: Float {
         let t = UserDefaults.standard.double(forKey: "voiceMatchThreshold")
         return t > 0 ? Float(t) : 0.5
