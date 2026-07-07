@@ -1030,6 +1030,9 @@ final class NoteBodyProxy {
     weak var coordinator: NoteBodyView.Coordinator?
     func insertPhoto(_ image: UIImage) { coordinator?.insertPhoto(image) }
     func insertMemoLink(id: UUID, title: String) { coordinator?.insertMemoLink(id: id, title: title) }
+    /// Rebuild the attributed text so attachment thumbnails re-decode (after
+    /// a markup save-back rewrote a photo file). Caret carries across.
+    func refreshAttachments() { coordinator?.load(force: true) }
 }
 
 // MARK: - The scrolling text view with hosted header/footer

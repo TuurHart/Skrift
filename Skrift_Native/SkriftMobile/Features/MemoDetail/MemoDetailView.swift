@@ -358,7 +358,14 @@ private struct MemoPageView: View {
     private let repository = NotesRepository.shared
     @State private var showTagEditor = false
     @State private var libraryTags: [String] = []
-    @State private var quickLookURL: URL?            // shared-document (.file) capture → QuickLook preview
+    /// What the QuickLook viewer is showing: an inline photo (marker set — an
+    /// edit re-mirrors + re-OCRs it) or a shared-document capture (marker nil).
+    struct QuickLookTarget: Identifiable {
+        let url: URL
+        var marker: Int?
+        var id: String { url.path }
+    }
+    @State private var quickLookTarget: QuickLookTarget?
     @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
 
     /// A tapped speaker turn: its position (for per-line merge), label (for whole-speaker
@@ -452,7 +459,15 @@ private struct MemoPageView: View {
         }
         // Shared-document (.file) capture → preview the PDF/doc in QuickLook —
         // and the editor's inline photos (tap a photo → viewer).
-        .quickLookPreview($quickLookURL)
+        // Markup-enabled QuickLook (P2#10): draw on a photo → saves back into
+        // the file → re-mirror to CloudKit (size-change capture), fresh OCR
+        // (text reset to un-scanned), and a rebuilt inline thumbnail.
+        .fullScreenCover(item: $quickLookTarget) { target in
+            MarkupPreviewView(url: target.url) {
+                photoWasEdited(target)
+            }
+            .ignoresSafeArea()
+        }
         // "[[" typed → pick a note to link; the chip lands at the trigger.
         .sheet(isPresented: $showMemoLinkPicker) {
             MemoLinkPickerSheet(candidates: memoLinkCandidates()) { id, title in
@@ -631,7 +646,11 @@ private struct MemoPageView: View {
                     .accessibilityHidden(!isCurrent)),
                 footer: AnyView(noteFooter(isCurrent: isCurrent).accessibilityHidden(!isCurrent)),
                 a11yHidden: !isCurrent,
-                onTapImage: { n in quickLookURL = memo.imageURL(markerIndex: n) },
+                onTapImage: { n in
+                    if let url = memo.imageURL(markerIndex: n) {
+                        quickLookTarget = QuickLookTarget(url: url, marker: n)
+                    }
+                },
                 onTapMemoLink: { id in onOpenMemo(id) },
                 onRequestMemoLink: { showMemoLinkPicker = true },
                 onRequestPhoto: {
@@ -850,6 +869,24 @@ private struct MemoPageView: View {
         bodyProxy.insertPhoto(image)
         AssetMaterializer.capture(memoID: memo.id, repository: repository)
         PhotoTextIndexer.run(repository)
+    }
+
+    /// Markup saved back into a photo/file: re-mirror to CloudKit (the
+    /// size-change capture), re-OCR an inline photo (its manifest text resets
+    /// to un-scanned), and rebuild the editor's thumbnail (mtime-keyed cache
+    /// decodes fresh).
+    private func photoWasEdited(_ target: QuickLookTarget) {
+        if let n = target.marker,
+           var meta = memo.metadata, var manifest = meta.imageManifest,
+           n >= 1, n <= manifest.count {
+            manifest[n - 1].text = nil
+            meta.imageManifest = manifest
+            memo.metadata = meta
+            repository.save()
+        }
+        AssetMaterializer.capture(memoID: memo.id, repository: repository)
+        PhotoTextIndexer.run(repository)
+        bodyProxy.refreshAttachments()
     }
 
     /// Everything linkable from here: most recent first, self excluded.
@@ -1363,7 +1400,11 @@ private struct MemoPageView: View {
             Spacer(minLength: 4)
 
             if memo.sharedFileURL != nil {
-                Button { quickLookURL = memo.sharedFileURL } label: {
+                Button {
+                    if let url = memo.sharedFileURL {
+                        quickLookTarget = QuickLookTarget(url: url, marker: nil)
+                    }
+                } label: {
                     Text("Open")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.skAccent)

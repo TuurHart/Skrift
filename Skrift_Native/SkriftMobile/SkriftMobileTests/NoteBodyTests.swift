@@ -1,4 +1,5 @@
 import PDFKit
+import QuickLook
 import SwiftUI
 import UIKit
 import XCTest
@@ -721,6 +722,58 @@ final class CameraImagePickerTests: XCTestCase {
         coordinator.imagePickerController(UIImagePickerController(),
                                           didFinishPickingMediaWithInfo: [.originalImage: image])
         XCTAssertNotNil(received, "a capture must reach onCapture")
+    }
+}
+
+/// Markup save-back plumbing (round-1 P2#10): QuickLook must run in
+/// .updateContents (write INTO the photo file), edits must reach onEdited,
+/// and the thumbnail cache must self-invalidate when the file is rewritten.
+final class MarkupSaveBackTests: XCTestCase {
+
+    @MainActor
+    func testPreviewRunsInUpdateContentsMode() {
+        let view = MarkupPreviewView(url: URL(fileURLWithPath: "/tmp/x.jpg"))
+        let coordinator = view.makeCoordinator()
+        let mode = coordinator.previewController(QLPreviewController(),
+                                                 editingModeFor: URL(fileURLWithPath: "/tmp/x.jpg") as NSURL)
+        XCTAssertEqual(mode, .updateContents, "markup must save back into the file, not a copy")
+    }
+
+    @MainActor
+    func testDidUpdateContentsFiresOnEdited() {
+        var edited = false
+        let view = MarkupPreviewView(url: URL(fileURLWithPath: "/tmp/x.jpg")) { edited = true }
+        let coordinator = view.makeCoordinator()
+        coordinator.previewController(QLPreviewController(),
+                                      didUpdateContentsOf: URL(fileURLWithPath: "/tmp/x.jpg") as NSURL)
+        XCTAssertTrue(edited, "a save-back must reach the re-mirror/re-OCR chain")
+    }
+
+    @MainActor
+    func testThumbnailCacheInvalidatesWhenFileRewritten() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("thumb-\(UUID().uuidString).jpg")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        func write(_ size: CGSize, stampedAt date: Date) throws {
+            let img = UIGraphicsImageRenderer(size: size).image { ctx in
+                UIColor.systemRed.setFill()
+                ctx.fill(CGRect(origin: .zero, size: size))
+            }
+            try XCTUnwrap(img.jpegData(compressionQuality: 0.9)).write(to: url)
+            try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: url.path)
+        }
+
+        try write(CGSize(width: 40, height: 40), stampedAt: Date(timeIntervalSinceNow: -60))
+        let before = try XCTUnwrap(MemoImageLoader.thumbnail(at: url, maxWidth: 100))
+        XCTAssertEqual(before.size.width, before.size.height, accuracy: 1)
+
+        // A markup save rewrites the file (different content, new mtime) —
+        // the next load must decode fresh, not serve the cached square.
+        try write(CGSize(width: 80, height: 40), stampedAt: Date())
+        let after = try XCTUnwrap(MemoImageLoader.thumbnail(at: url, maxWidth: 100))
+        XCTAssertEqual(after.size.width, after.size.height * 2, accuracy: 2,
+                       "the rewritten file must yield a fresh thumbnail (mtime-keyed cache)")
     }
 }
 
