@@ -25,7 +25,13 @@ live-sync/Bonjour-removal handoff are owned by other sessions (collision map at 
    mentioned 14 Feb"). A sort-order away from the related() API — the cheapest feature that
    delivers the north star directly.
 
-Desktop gets none of this in v1; the engine is written so it can later move to `Shared/`.
+**Platforms (user-locked 2026-07-07): build the brain shared, ship the UI phone-first.** The whole
+engine layer (protocol, Gemma engine, gist, chunker, cosine/query scoring) lives in
+`Skrift_Native/Shared/Retrieval/` from day one — the P0 shared-naming mechanism, compiled by BOTH
+apps; Foundation+CoreML only, no UIKit, and CoreML-LLM runs on macOS 15+ (the bake-off spike
+literally ran it on the M4). Only the SwiftData row + sweep wiring + views are per-app. v1 UI =
+iPhone; the iOS app already runs on iPad (CloudKit sync was device-verified iPhone↔iPad), so add
+an iPad layout eyeball to chunk 8. Mac surfaces + the vault lens = Phase 2 below.
 
 ## Locked decisions (don't re-litigate; re-open only if the spike gate fails)
 
@@ -101,14 +107,18 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
   note of each window, empty windows hidden — a literal "On this day, <year>" card tops the list
   once prior-year history exists.
 
-## Architecture (files to create, `Skrift_Native/SkriftMobile/`)
+## Architecture (files to create)
 
-- `Services/Embeddings/EmbeddingEngine.swift` — `protocol EmbeddingEngine { func embed(_ text: String) async throws -> [Float]; var modelRev: String { get } }` + a deterministic `MockEmbedder`
+Shared brain — `Skrift_Native/Shared/Retrieval/` (compiled by BOTH apps, Foundation+CoreML only):
+- `EmbeddingEngine.swift` — `protocol EmbeddingEngine { func embed(_ text: String, isQuery: Bool) async throws -> [Float]; var modelRev: String { get } }` + a deterministic `MockEmbedder`
   for tests (hash-seeded vectors). Keeps the unit-test scheme asset-free (established pattern).
-- `Services/Embeddings/ContextualEmbedder.swift` — the `NLContextualEmbedding` impl: lazy load,
-  `hasAvailableAssets` / `requestAssets` handling, mean-pool + normalize. Idle-unload after ~60s
-  (desktop lesson: never leave a model pinned).
-- `Services/Embeddings/MemoGist.swift` — pure `compose(memo) -> String` + `textHash` (testable).
+- `GemmaEmbedder.swift` — EmbeddingGemma via CoreML-LLM (port from the spike's `Engines.swift`):
+  lazy load, dim 512 fixed at load, idle-unload after ~60s (desktop lesson: never leave a model
+  pinned).
+- `MemoGist.swift` — pure `compose(…) -> String` + sentence-boundary chunker + `textHash`
+  (testable, platform-neutral).
+
+Per-app wiring — `Skrift_Native/SkriftMobile/`:
 - `Models/MemoEmbedding.swift` — the local-only @Model. **Vector as `Data`** (float32 LE) — the
   SwiftData Codable-struct-attribute trap is real (traps on read-back; see CLAUDE.md gotcha).
 - `Services/Embeddings/EmbeddingIndex.swift` — actor: `sweep(repository:)` (batched 25, background
@@ -172,12 +182,30 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
 - **Voice search** — mic button on the search field → existing one-shot ASR → same semantic query
   path. It's a voice-first app; asking your journal out loud is the native gesture.
 
+## Phase 2 — Mac + the vault lens (user-requested 2026-07-07; after v1 ships)
+
+The vault is where the YEARS live: Skrift's corpus starts 2026-04, so "a years-old thought
+resurfaces" only becomes literally true in 2027 — unless the vault lens lands. Indexing the vault
+gives Looking back / Then-vs-Now / search years of pre-Skrift fuel on day one. Privacy is already
+settled by the locked Obsidian model: the app's own on-device code reading the vault is FINE
+("pull-for-search" is a decided mode); embeddings never leave the device.
+
+- **Mac first** (natural home: the vault is a local folder — no bookmarks, no placeholders, fast
+  disk): Journal/search surfaces over the Mac's store using the same `Shared/Retrieval/` engine,
+  plus the vault corpus: index `<vault>/**/*.md` EXCLUDING `<vault>/Skrift/` (our own exports;
+  dedupe by skrift-id frontmatter as backstop), strip frontmatter + `[[wikilink]]` syntax in the
+  gist, note date = frontmatter `created:` else file date. Vault docs are a parallel corpus
+  (path/title/date/vectors), tagged `source: vault` in results.
+- **Phone vault lens after**: reuse the ObsidianPublisher's vault folder access (security-scoped
+  bookmark) for reads; handle File-Provider placeholders (un-downloaded iCloud files — the
+  audiobook-import bug class); the index stays derived-local per device.
+
 ## Later, on the same substrate (not v1)
 
 Book influence pages (per audiobook: captured quotes + the memos semantically downstream of them —
-feeds P6) · vault lens (opt-in read-only vault indexing, see locked decisions) · Ask-your-memos
-(RAG over this index) · weekly "how my thinking evolved" digest exported to Obsidian · P6 Daily
-Review ranking by embedding diversity. The index is the enabler; build it once, well.
+feeds P6) · Ask-your-memos (RAG over this index) · weekly "how my thinking evolved" digest
+exported to Obsidian · P6 Daily Review ranking by embedding diversity. The index is the enabler;
+build it once, well.
 
 ## Collision map (2026-07-06)
 
