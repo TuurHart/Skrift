@@ -888,28 +888,38 @@ final class CameraImagePickerTests: XCTestCase {
     }
 }
 
-/// Markup save-back plumbing (round-1 P2#10): QuickLook must run in
-/// .updateContents (write INTO the photo file), edits must reach onEdited,
-/// and the thumbnail cache must self-invalidate when the file is rewritten.
+/// Markup save-back plumbing (P2#10, presenter form since P2#12): QuickLook
+/// must run in .updateContents (write INTO the photo file), an edit must
+/// surface as edited=true ON DISMISS (never mid-session — the erase-crash
+/// contract), and the thumbnail cache must self-invalidate on rewrite.
 final class MarkupSaveBackTests: XCTestCase {
 
     @MainActor
     func testPreviewRunsInUpdateContentsMode() {
-        let view = MarkupPreviewView(url: URL(fileURLWithPath: "/tmp/x.jpg"))
-        let coordinator = view.makeCoordinator()
-        let mode = coordinator.previewController(QLPreviewController(),
-                                                 editingModeFor: URL(fileURLWithPath: "/tmp/x.jpg") as NSURL)
+        let mq = MarkupQuickLook()
+        let ql = mq.prepare(url: URL(fileURLWithPath: "/tmp/x.jpg")) { _ in }
+        let mode = mq.previewController(ql, editingModeFor: URL(fileURLWithPath: "/tmp/x.jpg") as NSURL)
         XCTAssertEqual(mode, .updateContents, "markup must save back into the file, not a copy")
     }
 
     @MainActor
-    func testDidUpdateContentsFiresOnEdited() {
-        var edited = false
-        let view = MarkupPreviewView(url: URL(fileURLWithPath: "/tmp/x.jpg")) { edited = true }
-        let coordinator = view.makeCoordinator()
-        coordinator.previewController(QLPreviewController(),
-                                      didUpdateContentsOf: URL(fileURLWithPath: "/tmp/x.jpg") as NSURL)
-        XCTAssertTrue(edited, "a save-back must reach the re-mirror/re-OCR chain")
+    func testEditReportsOnDismissOnly() {
+        var reports: [Bool] = []
+        let mq = MarkupQuickLook()
+        let ql = mq.prepare(url: URL(fileURLWithPath: "/tmp/x.jpg")) { reports.append($0) }
+        mq.previewController(ql, didUpdateContentsOf: URL(fileURLWithPath: "/tmp/x.jpg") as NSURL)
+        XCTAssertTrue(reports.isEmpty, "the edit chain must NOT run under a live markup session")
+        mq.previewControllerDidDismiss(ql)
+        XCTAssertEqual(reports, [true], "dismissal reports the edit exactly once")
+    }
+
+    @MainActor
+    func testCleanDismissReportsNoEdit() {
+        var reports: [Bool] = []
+        let mq = MarkupQuickLook()
+        let ql = mq.prepare(url: URL(fileURLWithPath: "/tmp/x.jpg")) { reports.append($0) }
+        mq.previewControllerDidDismiss(ql)
+        XCTAssertEqual(reports, [false], "a look without an edit must not trigger re-mirror/re-OCR")
     }
 
     @MainActor

@@ -578,9 +578,15 @@ job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet
     unchanged). Rule lives in `BodyTransform.imageBreaks` (one source for builder + displayRange).
     Hardening: reconstruct emits syntax only for real U+FFFC runs + typingAttributes scrubbed —
     inherited keys can't duplicate markers or eat a Return.
-12. ⏳ Photo-viewer open animation (zoom) — still open; user re-flagged it round 2 ("something
-    black comes up from the bottom"). Needs UIKit-driven presentation + `transitionViewFor`
-    anchored to the attachment rect through the hosting boundary. Next in line.
+12. ✅ **Photo-viewer ZOOM — BUILT 2026-07-07 (build 38):** the viewer is UIKit-presented
+    (`MarkupQuickLook`) so QuickLook's native zoom runs, anchored on the tapped photo's drawn rect
+    (transient UIImageView over the attachment; file-card opens keep the standard animation). The
+    markup + dismissal-deferred edit chain moved into the presenter unchanged (tested: edit reports
+    on dismiss ONLY — the erase-crash contract). Old cover wrapper deleted. Device eyeball owed.
+13. 📐 **PDF INLINE in the note — MOCK READY, awaiting sign-off** (round-4 ask "text, PDF, text —
+    like Apple Notes"): `mocks/pdf-inline-capture.html` — A = first page inline + "N pages" chip
+    (RECOMMENDED) vs B = swipeable strip. Applies to doc scans AND shared PDFs; tap → the zooming
+    viewer; chip+Open dies; search unchanged (sharedContent.text).
 **BY DESIGN (confirmed to user):** a SECOND typed mention of a linked name stays plain — one link per person,
 first mention only (the locked naming model); re-scan happens on commit (~1 s) + restyles on end-editing.
 **ANSWERED:** reminders are LOCAL notifications (not the Reminders app / EventKit), alarms fully offline;

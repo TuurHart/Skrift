@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T15:30:00.000Z'
+updated: '2026-07-07T15:55:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -349,8 +349,11 @@ nodes:
         text range / photo ring. ROUND 5 remainders: selection-handles repro
         (sel-during-scroll probe arbitrates), long-press verdict, flash
         eyeball"
-      - "NEW ask (round 4): scanned PDF renders INLINE in the note (Notes
-        idiom — 'text, PDF, text', no Open button) → mock-first next session"
+      - "PDF-inline mock READY (pdf-inline-capture.html: A first-page+count
+        RECOMMENDED vs B strip) — awaiting sign-off, then build"
+      - "P2#12 viewer ZOOM built (build 38, MarkupQuickLook UIKit presenter,
+        transitionViewFor off the tapped photo; edit chain still
+        dismissal-deferred) — device eyeball owed"
       - P2#12 viewer zoom-open transition (re-flagged round 2; next polish)
       - Scan-into-this-note accessory verb (deferred design question)
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)

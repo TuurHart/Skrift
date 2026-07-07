@@ -365,9 +365,9 @@ private struct MemoPageView: View {
         var marker: Int?
         var id: String { url.path }
     }
-    @State private var quickLookTarget: QuickLookTarget?
-    /// Set while the cover is up when markup saved back; consumed on dismiss.
-    @State private var editedQuickLookTarget: QuickLookTarget?
+    /// UIKit-presented viewer (P2#12): zoom transition off the tapped photo +
+    /// markup save-back; edits are reported on dismissal only (erase-crash fix).
+    @State private var markupQuickLook = MarkupQuickLook()
     @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
 
     /// A tapped speaker turn: its position (for per-line merge), label (for whole-speaker
@@ -461,26 +461,10 @@ private struct MemoPageView: View {
         }
         // Shared-document (.file) capture → preview the PDF/doc in QuickLook —
         // and the editor's inline photos (tap a photo → viewer).
-        // Markup-enabled QuickLook (P2#10): draw on a photo → saves back into
-        // the file → re-mirror to CloudKit (size-change capture), fresh OCR
-        // (text reset to un-scanned), and a rebuilt inline thumbnail.
-        //
-        // The edit chain is DEFERRED to dismissal: didUpdateContents fires
-        // with the preview still up, and rebuilding the editor under a live
-        // markup session dirtied keyboard/selection layers that a PencilKit
-        // worker thread then committed off-main → the round-3 erase crash
-        // (CoreAutoLayout main-thread assert, crash 2026-07-07-142621).
-        .fullScreenCover(item: $quickLookTarget, onDismiss: {
-            if let target = editedQuickLookTarget {
-                editedQuickLookTarget = nil
-                photoWasEdited(target)
-            }
-        }) { target in
-            MarkupPreviewView(url: target.url) {
-                editedQuickLookTarget = target
-            }
-            .ignoresSafeArea()
-        }
+        // The photo/file viewer is UIKit-presented (MarkupQuickLook, P2#12) —
+        // no SwiftUI cover here: the zoom transition needs transitionViewFor,
+        // which a cover can't provide. Markup + the dismissal-deferred edit
+        // chain live in the presenter.
         // "[[" typed → pick a note to link; the chip lands at the trigger.
         .sheet(isPresented: $showMemoLinkPicker) {
             MemoLinkPickerSheet(candidates: memoLinkCandidates()) { id, title in
@@ -660,8 +644,10 @@ private struct MemoPageView: View {
                 footer: AnyView(noteFooter(isCurrent: isCurrent).accessibilityHidden(!isCurrent)),
                 a11yHidden: !isCurrent,
                 onTapImage: { n in
-                    if let url = memo.imageURL(markerIndex: n) {
-                        quickLookTarget = QuickLookTarget(url: url, marker: n)
+                    guard let url = memo.imageURL(markerIndex: n) else { return }
+                    let target = QuickLookTarget(url: url, marker: n)
+                    markupQuickLook.present(url: url, anchor: bodyProxy.photoAnchor(marker: n)) { edited in
+                        if edited { photoWasEdited(target) }
                     }
                 },
                 onTapMemoLink: { id in onOpenMemo(id) },
@@ -1414,8 +1400,10 @@ private struct MemoPageView: View {
 
             if memo.sharedFileURL != nil {
                 Button {
-                    if let url = memo.sharedFileURL {
-                        quickLookTarget = QuickLookTarget(url: url, marker: nil)
+                    guard let url = memo.sharedFileURL else { return }
+                    let target = QuickLookTarget(url: url, marker: nil)
+                    markupQuickLook.present(url: url, anchor: nil) { edited in
+                        if edited { photoWasEdited(target) }
                     }
                 } label: {
                     Text("Open")

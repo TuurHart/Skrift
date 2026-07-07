@@ -889,6 +889,19 @@ struct NoteBodyView: UIViewRepresentable {
             }
         }
 
+        /// The zoom-transition anchor for the photo carrying marker `n`: the
+        /// text view, the attachment's drawn rect, and its rendered thumbnail
+        /// (P2#12 — the viewer lifts the photo off the page instead of the
+        /// black bottom-sheet slide).
+        func photoAnchor(marker n: Int) -> MarkupQuickLook.Anchor? {
+            guard let tv = textView, let range = attachmentRange(forMarker: n) else { return nil }
+            let rects = tv.rects(forCharacterRange: range)
+            guard let union = rects.dropFirst().reduce(rects.first, { $0?.union($1) }) else { return nil }
+            let image = (tv.textStorage.attribute(.attachment, at: range.location,
+                                                  effectiveRange: nil) as? NSTextAttachment)?.image
+            return (tv, union, image)
+        }
+
         /// The 1-char range of the photo attachment carrying marker `n`.
         func attachmentRange(forMarker n: Int) -> NSRange? {
             guard let tv = textView else { return nil }
@@ -1212,6 +1225,10 @@ final class NoteBodyProxy {
     /// Rebuild the attributed text so attachment thumbnails re-decode (after
     /// a markup save-back rewrote a photo file). Caret carries across.
     func refreshAttachments() { coordinator?.load(force: true) }
+    /// Zoom-transition anchor for the photo with marker `n` (P2#12).
+    func photoAnchor(marker n: Int) -> MarkupQuickLook.Anchor? {
+        coordinator?.photoAnchor(marker: n)
+    }
 }
 
 // MARK: - The scrolling text view with hosted header/footer
