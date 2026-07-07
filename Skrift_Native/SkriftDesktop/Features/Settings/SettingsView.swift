@@ -411,6 +411,7 @@ struct SettingsView: View {
                     if interactive {
                         Button {
                             settings.customVocabulary = settings.customWords.filter { $0 != word }
+                            commitVocabEdit()
                         } label: {
                             Image(systemName: "xmark").font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(Theme.textMuted)
@@ -432,6 +433,16 @@ struct SettingsView: View {
         else { newCustomWord = ""; return }
         settings.customVocabulary = settings.customWords + [trimmed]
         newCustomWord = ""
+        commitVocabEdit()
+    }
+
+    /// A vocab edit is a dated LWW write: stamp it, persist NOW (`.onChange` fires only
+    /// after this event), and push it to CloudKit (no-op if CloudKit-Mac sync is off) —
+    /// mirroring the names push-on-edit above.
+    private func commitVocabEdit() {
+        settings.customVocabularyModifiedAt = Date()
+        SettingsStore.shared.save(settings)
+        VocabularyCloudSync.run()
     }
 
     private func chooseFolder(_ key: WritableKeyPath<AppSettings, String>) {
