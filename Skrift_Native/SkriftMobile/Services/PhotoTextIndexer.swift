@@ -38,6 +38,11 @@ enum PhotoTextIndexer {
             var indexed = 0
             for job in jobs {
                 let text = await Self.recognize(at: job.url)
+                // Round-3 evidence: "indexed N" hid empty results — the user's
+                // photos may OCR to "" (angle/handwriting) while the count
+                // looks healthy. Log what Vision actually read, per photo.
+                DevLog.log("photoText: \(job.url.lastPathComponent) chars=\(text.count)"
+                           + (text.isEmpty ? " (no text found)" : " head='\(text.prefix(24))'"))
                 // Re-validate against the LIVE memo — the manifest can change
                 // under a slow OCR pass (append, sync) — then write back.
                 guard let memo = repository.memo(id: job.memoID),

@@ -490,10 +490,34 @@ passcode-capable device); REMOVING the lock needs auth. **Publish: locked ⇒ ex
 tested); locking an already-published memo → honest "already in your vault" notice (Skrift never deletes vault
 files). Honesty copy on the placeholder: "hidden, not encrypted". Mac gate owed (LocalAuthentication is the
 same API). 520 unit + desktop 325 + desktop app build + UI cluster green.
-**📱 DEVICE TEST ROUND 1 — build 31, 2026-07-07 (user feedback batch, triaged same-session).
-⭐ ALL 6 P1s FIXED same-day (commits `461c55d`…`600d9ef`, 529/529 unit green) → build 32 = round 2.
-Device verify owed on every P1 (sim can't falsify device feel); P1#1+#3 carry DevLog probes so the
-round-2 devlog arbitrates if anything remains. CONTINUE HERE: round-2 verdicts, then the P2 list.**
+**📱 DEVICE TEST ROUNDS 1–3 — builds 31→36, all 2026-07-07. ⭐ CONTINUE HERE.**
+**ROUND-3 VERDICTS (build 35) + same-day fixes (build 36):**
+- ❌→🔁 **P1#1 selection handles STILL WEIRD** ("weirder than before": handle refuses to move at the
+  screen bottom while dragging; selection follows the viewport after keyboard-dismiss scroll; then
+  snaps back). Devlog: ZERO churn events during the repro → round-2's churn fix held; remaining
+  suspect = our per-frame hosted-subview frame writes fighting iOS 26's selection overlay
+  (_UICursorAccessoryHostView). Build 36: frames assigned ONLY on change + a NEW probe
+  `sel-during-scroll` (FR-inclusive — the round-2 probe was FR-gated and his repro keeps FR). If
+  round 4 still jumps WITHOUT probe lines → pure overlay artifact → next step is restructuring
+  (host header/footer outside the text view).
+- ❌→🔁 **P1#3 doc-scan invisible AGAIN** — devlog `isSupported=true` proves capability; iOS 26 eats a
+  2nd trailing item in ANY shape (separate items AND one group). Build 36: RELOCATED to the LEADING
+  side next to Select. Sort-filter stays lone trailing. (Both toolbar UI tests green.)
+- ❌→🔍 **P1#4 photo search "for sure not working"** — devlog shows the save-time sweep FIRED
+  (`indexed 1` at 14:26) but "indexed" counted EMPTY results too. Build 36 logs per-photo OCR yield
+  (`chars=N head='…'`) + per-query search hits (`search 'q' → N/M, K via photoText`). Also NOTE:
+  photo text matches in the LIST search bar, not the in-note 🔍 find — clarify with user which he
+  used. If devlog shows chars=0 on his text photo → Vision quality issue, different fix.
+- 💥→✅ **NEW: markup ERASE crash** (draw → close → reopen → erase → app dies; crash
+  `SkriftMobile-2026-07-07-142621.ips`): CoreAutoLayout main-thread assert — a PencilKit worker
+  thread's dying CATransaction committed keyboard/selection-host layout off-main; our
+  didUpdateContents chain was rebuilding the editor UNDER the live markup session. Build 36: the
+  whole edit chain (re-mirror + OCR reset + thumbnail rebuild) DEFERRED to cover dismissal.
+- ✅ **P2#7 camera dialog works** ("Take photo or choose from library — very good"); ✅ markup
+  save-back persists ("it stays, very good"); ✅ P1#2 photo-tap fix confirmed (round 2).
+- ❓ **P1#5 long-press** — user didn't know what it meant; explain: press-and-HOLD a note card in
+  the memos LIST ~1 s → context menu (Remind me / Lock / Copy / Delete). Verdict owed.
+**Original round-1 triage (builds 31→33) below for the record:**
 LIKED ✓: compact player ("looks good"), player auto-hides for no-audio notes, tag editor ("way better, good
 job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet + edit-mode semantics
 ("very good"), lock ("works, very cool"), reminders ("quite cool"), pinned-title ellipsis.

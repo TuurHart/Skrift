@@ -123,6 +123,19 @@ struct MemosListView: View {
                 // capability gate the culprit, or the iOS-26 toolbar?
                 DevLog.log("docScan: isSupported=\(DocScanView.isSupported)")
             }
+            // Round-3 evidence for "photo search finds nothing": per query,
+            // how many memos match at all, and how many via photo OCR text —
+            // separates 'Vision read nothing' from 'search doesn't match'.
+            .onChange(of: search) { _, q in
+                let query = q.trimmingCharacters(in: .whitespaces).lowercased()
+                guard !query.isEmpty else { return }
+                let photoHits = memos.filter {
+                    $0.metadata?.imageManifest?.contains {
+                        $0.text?.lowercased().contains(query) == true
+                    } == true
+                }.count
+                DevLog.log("search '\(query)' → \(filtered.count)/\(memos.count) hits, \(photoHits) via photoText")
+            }
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
             }
@@ -330,7 +343,11 @@ struct MemosListView: View {
     // MARK: - Toolbar
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
+        // Doc scan lives on the LEADING side: round 2+3 proved iOS 26 eats a
+        // second trailing item no matter the shape (separate items AND one
+        // group both dropped it, with isSupported=true in the devlog — build
+        // 35 probe). Leading has one text button and renders reliably.
+        ToolbarItemGroup(placement: .topBarLeading) {
             Button(editMode.isEditing ? "Done" : "Select") {
                 withAnimation(Theme.Motion.snappy) {
                     if editMode.isEditing { editMode = .inactive; selected.removeAll() }
@@ -338,24 +355,20 @@ struct MemosListView: View {
                 }
             }
             .accessibilityIdentifier("select-button")
+            if !editMode.isEditing, DocScanView.isSupported {
+                // Scan a paper document → PDF capture (chunk 9). No sim camera
+                // → the button honestly disappears there.
+                Button { showDocScanner = true } label: {
+                    Image(systemName: "doc.viewfinder")
+                }
+                .accessibilityIdentifier("doc-scan-button")
+            }
         }
-        // ONE trailing group with ViewBuilder conditionals INSIDE it: a
-        // conditional ToolbarItem nested in ToolbarContentBuilder ifs is the
-        // shape iOS 26 drops from the bar (device round 1: doc-scan invisible
-        // while its one-if-shallower sibling rendered). The Audiobooks Library
-        // + Settings moved out to root tabs (AppTabView, 2026-06-19); sync is
-        // fully automatic over CloudKit, so there's no manual sync button.
+        // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
+        // 2026-06-19); sync is fully automatic over CloudKit, so there's no
+        // manual sync button — sort/filter is the lone trailing item.
         ToolbarItemGroup(placement: .topBarTrailing) {
             if !editMode.isEditing {
-                // Scan a paper document → PDF capture (chunk 9). The document
-                // camera doesn't exist on the simulator — the button honestly
-                // disappears there.
-                if DocScanView.isSupported {
-                    Button { showDocScanner = true } label: {
-                        Image(systemName: "doc.viewfinder")
-                    }
-                    .accessibilityIdentifier("doc-scan-button")
-                }
                 Button { showSortFilter = true } label: {
                     Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
                 }

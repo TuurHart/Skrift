@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T14:20:00.000Z'
+updated: '2026-07-07T14:45:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -334,11 +334,21 @@ nodes:
         (BodyTransform.imageBreaks, tagged display-only breaks, raw
         untouched; reconstruct hardened to real-FFFC-only + typing-attr
         scrub). 545/545 unit; bar headless-rendered + eyeballed. Build 34
+      - >-
+        2026-07-07 · Rounds 2+3 same-day loop (builds 35/36): bar ⋯ dropped
+        while all verbs fit (user ask); round-3 verdicts — camera dialog +
+        markup save-back + photo-tap fix CONFIRMED; markup-ERASE crash fixed
+        (edit chain deferred to cover dismissal; crash .ips diagnosed);
+        doc-scan relocated LEADING (devlog proved isSupported=true, iOS 26
+        eats trailing #2); handles fix attempt 2 (frame-writes only-on-change)
+        + sharper probes (sel-during-scroll, OCR yield, search hits)
     backlog:
-      - "Device ROUND 2 (build 34): verify the 6 P1 fixes + camera/Return-
-        continuation/markup + bar v2 + photo block; P1#1+#3 devlog probes
-        arbitrate any remainder"
-      - P2#12 viewer zoom-open transition (deferred; after round 2)
+      - "Device ROUND 4 (build 36): selection handles (frame-write guard +
+        sel-during-scroll probe arbitrates overlay-vs-data), doc-scan now
+        LEADING-side, photo-search devlog yield (chars=N + per-query hits),
+        markup-erase crash fix (edit chain deferred to dismissal), long-press
+        explained (hold a note card)"
+      - P2#12 viewer zoom-open transition (re-flagged round 2; next polish)
       - Scan-into-this-note accessory verb (deferred design question)
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
       - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]

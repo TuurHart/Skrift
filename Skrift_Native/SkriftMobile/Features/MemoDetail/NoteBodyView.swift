@@ -183,6 +183,8 @@ struct NoteBodyView: UIViewRepresentable {
 
         /// Name spans mapped to DISPLAYED offsets for hit-testing.
         private var displaySpans: [(range: NSRange, span: NameSpan)] = []
+        /// Last selection logged by the scroll probe (rate-limits the DevLog).
+        private var lastScrollSel: NSRange?
 
         // Karaoke painting state.
         private var clockSub: AnyCancellable?
@@ -668,6 +670,17 @@ struct NoteBodyView: UIViewRepresentable {
             // this can't flood the ring buffer.
             if !tv.isFirstResponder, currentMode == .editing, tv.selectedRange.length > 0 {
                 DevLog.log("noteBody: sel-noFR \(NSStringFromRange(tv.selectedRange))")
+            }
+            // Round-3 probe (the round-2 one missed his repro — FR stays true):
+            // does the RANGE change while the view scrolls? Lines here = someone
+            // rewrites the selection mid-scroll; silence while handles visibly
+            // drift = the range is constant and only iOS 26's handle OVERLAY is
+            // re-anchoring (a rendering-layer fight, not a data one). Logged
+            // only on change, so it can't flood.
+            if tv.selectedRange.length > 0, tv.isDragging || tv.isDecelerating || tv.isTracking,
+               tv.selectedRange != lastScrollSel {
+                lastScrollSel = tv.selectedRange
+                DevLog.log("noteBody: sel-during-scroll \(NSStringFromRange(tv.selectedRange)) FR=\(tv.isFirstResponder)")
             }
             refreshAccessory()          // the ☑ lights up when the caret sits in a checklist
             guard tv.isFirstResponder,
@@ -1202,12 +1215,18 @@ final class NoteBodyTextView: UITextView {
             }
         }
         // Subview frames are in CONTENT coordinates, so they scroll with the text.
-        headerHost.view.frame = CGRect(x: 0, y: 0, width: width, height: headerHeight)
+        // Assign ONLY on change: layoutSubviews runs every scroll frame, and
+        // re-setting a hosting view's frame dirties its layer each time — iOS
+        // 26's selection-handle host (_UICursorAccessoryHostView) relays out
+        // alongside, which is exactly when handles wobble (round 2/3 P1#1).
+        let headerFrame = CGRect(x: 0, y: 0, width: width, height: headerHeight)
+        if headerHost.view.frame != headerFrame { headerHost.view.frame = headerFrame }
         // The text ends at contentSize.height − bottom inset; the footer sits in
         // the reserved bottom inset (no full-document layout pass needed).
         let footerY = contentSize.height - baseTextInsets.bottom - footerHeight + 8
-        footerHost.view.frame = CGRect(x: 0, y: max(footerY, headerHeight),
-                                       width: width, height: footerHeight)
+        let footerFrame = CGRect(x: 0, y: max(footerY, headerHeight),
+                                 width: width, height: footerHeight)
+        if footerHost.view.frame != footerFrame { footerHost.view.frame = footerFrame }
     }
 
     // MARK: geometry helpers (TextKit-2 first, TextKit-1 fallback)
