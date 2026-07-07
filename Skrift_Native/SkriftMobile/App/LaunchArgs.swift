@@ -50,6 +50,14 @@ enum LaunchFlags {
     /// Open the Journal tab on launch (screenshot/UITest routing, like the
     /// seed-and-open flags above).
     static var openJournal: Bool { args.boolFlag("-openJournal") }
+    /// Open a specific root tab on launch: "notes" / "books" / "journal" /
+    /// "settings" — per-tab screenshot verification of the global mini-player.
+    static var openTab: String? { args.stringValue("-openTab") }
+    /// Seed a synthetic audiobook (generated silent audio) + open it as a PAUSED
+    /// session, so the GLOBAL mini-player capsule exists in the Simulator — the
+    /// capsule was un-screenshotable before this (a real book is device-only),
+    /// which is exactly how the build-40 FAB/capsule overlap shipped unseen.
+    static var seedAudiobook: Bool { args.boolFlag("-seedAudiobook") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Seed the name-linking demo (the mock's "Studio afternoon" memo + 4 people: two
     /// Jacks → ambiguous, Hendri → linked, Rose → suggested) and open its detail directly,
