@@ -265,6 +265,70 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     }
 }
 
+/// Books-tab sort orders (the header chip; persisted via its rawValue).
+/// Default = recently played — the "continue where I was" library.
+enum BookSort: String, CaseIterable, Sendable {
+    case recentlyPlayed
+    case title
+    case author
+    case recentlyAdded
+
+    var label: String {
+        switch self {
+        case .recentlyPlayed: return "Recently played"
+        case .title: return "Title"
+        case .author: return "Author"
+        case .recentlyAdded: return "Recently added"
+        }
+    }
+
+    func sorted(_ books: [Audiobook]) -> [Audiobook] {
+        switch self {
+        case .recentlyPlayed:
+            // Most recently played first; never-played after, newest import first.
+            return books.sorted { a, b in
+                switch (a.lastPlayedAt, b.lastPlayedAt) {
+                case let (pa?, pb?): return pa > pb
+                case (.some, .none): return true
+                case (.none, .some): return false
+                case (.none, .none): return a.importedAt > b.importedAt
+                }
+            }
+        case .title:
+            return books.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+        case .author:
+            return books.sorted { $0.author.localizedStandardCompare($1.author) == .orderedAscending }
+        case .recentlyAdded:
+            return books.sorted { $0.importedAt > $1.importedAt }
+        }
+    }
+}
+
+/// Books-tab status filter (transient). Finished = within 30 s of the end;
+/// in progress = started and not finished; not started = never past the top.
+enum BookStatusFilter: CaseIterable, Sendable {
+    case inProgress, notStarted, finished
+
+    static let finishedTail: TimeInterval = 30
+
+    var label: String {
+        switch self {
+        case .inProgress: return "In progress"
+        case .notStarted: return "Not started"
+        case .finished: return "Finished"
+        }
+    }
+
+    func matches(_ book: Audiobook) -> Bool {
+        let finished = book.duration > 0 && book.timeLeft <= Self.finishedTail
+        switch self {
+        case .finished: return finished
+        case .inProgress: return !finished && book.position > 1
+        case .notStarted: return !finished && book.position <= 1
+        }
+    }
+}
+
 /// Time formatting for the audiobook UI: "12:10:33" past the hour mark,
 /// "21:13" under it.
 enum AudiobookTime {

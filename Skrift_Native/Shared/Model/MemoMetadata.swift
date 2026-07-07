@@ -30,6 +30,15 @@ struct MemoMetadata: Codable, Equatable, Sendable {
     var bookTitle: String?
     var bookAuthor: String?
     var bookChapter: String?
+    /// STABLE link back to the source audiobook (2026-07-06): the library
+    /// `Audiobook.id` + the quote's GLOBAL book position (seconds). The
+    /// title/author strings above break as a join key the moment the user edits
+    /// book details — these don't, and they're what any "notes for this book" /
+    /// jump-back-to-the-spot surface needs. ADDITIVE + optional (absent on
+    /// pre-existing captures and every non-capture memo; unknown keys are
+    /// ignored by the Mac's decoder) — contract stays byte-compatible.
+    var bookID: UUID?
+    var bookPosition: Double?
 
     /// How the memo entered Skrift, when it's NOT an ordinary voice recording —
     /// the first marker of the deferred "unified source taxonomy" (voice memo /
@@ -55,6 +64,8 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         bookTitle: String? = nil,
         bookAuthor: String? = nil,
         bookChapter: String? = nil,
+        bookID: UUID? = nil,
+        bookPosition: Double? = nil,
         sourceType: String? = nil
     ) {
         self.capturedAt = capturedAt
@@ -70,6 +81,8 @@ struct MemoMetadata: Codable, Equatable, Sendable {
         self.bookTitle = bookTitle
         self.bookAuthor = bookAuthor
         self.bookChapter = bookChapter
+        self.bookID = bookID
+        self.bookPosition = bookPosition
         self.sourceType = sourceType
     }
 

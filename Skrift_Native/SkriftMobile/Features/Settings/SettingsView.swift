@@ -51,7 +51,7 @@ struct SettingsView: View {
                         Label("Synced audiobooks", systemImage: "books.vertical")
                     }
                 } footer: {
-                    Text("Your memos, names, and custom words sync across your devices via iCloud. Audiobooks sync per-book — turn one on from its long-press menu.")
+                    Text("Your notes, names, and custom words sync across your devices via iCloud. Audiobooks sync per-book — turn one on from its long-press menu.")
                 }
 
                 Section {
@@ -177,7 +177,7 @@ private struct WeatherKeyView: View {
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .accessibilityIdentifier("weather-key-field")
             } footer: {
-                Text("Used to tag memos with weather + pressure. Get a free key at openweathermap.org.")
+                Text("Used to tag notes with weather + pressure. Get a free key at openweathermap.org.")
             }
         }
         .scrollContentBackground(.hidden)

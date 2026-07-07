@@ -27,8 +27,8 @@ final class DataModelUITests: XCTestCase {
 
         // Root showed.
         XCTAssertTrue(
-            app.staticTexts["Memos"].waitForExistence(timeout: 15)
-                || app.navigationBars["Memos"].waitForExistence(timeout: 5),
+            app.staticTexts["Notes"].waitForExistence(timeout: 15)
+                || app.navigationBars["Notes"].waitForExistence(timeout: 5),
             "Memos root never appeared"
         )
 

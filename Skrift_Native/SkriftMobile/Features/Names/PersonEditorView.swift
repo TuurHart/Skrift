@@ -153,7 +153,7 @@ struct PersonEditorView: View {
             } else {
                 HStack(spacing: 7) {
                     Image(systemName: "mic").font(.system(size: 13)).foregroundStyle(Color.skTextDim)
-                    Text("Not enrolled — record in a memo or on your Mac")
+                    Text("Not enrolled — record in a note or on your Mac")
                         .font(.system(size: 14)).foregroundStyle(Color.skTextDim)
                 }
             }
