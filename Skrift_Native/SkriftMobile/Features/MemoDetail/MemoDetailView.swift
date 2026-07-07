@@ -423,6 +423,12 @@ private struct MemoPageView: View {
     /// Reminder chip → the sheet (chunk 7).
     @State private var showReminderSheet = false
     @State private var backlinks: [(id: UUID, title: String)] = []
+    /// P8 Related card (chunk 7): semantic neighbours + the thread entry —
+    /// loaded only while the journal index is active; the card is HIDDEN when
+    /// nothing clears the floor (never an empty placeholder).
+    @State private var relatedMemos: [Memo] = []
+    @State private var threadFirstMention: Date?
+    @State private var showThreadSheet = false
     /// Jump the pager to another memo (link chips + backlink rows).
     var onOpenMemo: (UUID) -> Void = { _ in }
 
@@ -451,7 +457,10 @@ private struct MemoPageView: View {
             enhancement = repository.enhancement(forMemo: memo.id)
             recomputeSpans()
             recomputeBacklinks()
+            await loadRelated()
         }
+        // The arc of this idea (P8) — from the Related card's CTA.
+        .sheet(isPresented: $showThreadSheet) { ThreadView(seedID: memo.id) }
         // A polish can arrive via CloudKit after the screen opens — re-fetch when a sync settles.
         .onChange(of: sync.isSyncing) { _, syncing in
             if !syncing {
@@ -850,9 +859,71 @@ private struct MemoPageView: View {
                     }
                 }
             }
+            if !relatedMemos.isEmpty {
+                relatedSection(isCurrent: isCurrent)
+            }
         }
         .padding(.horizontal, Theme.Space.margin)
         .padding(.top, 4)
+    }
+
+    /// P8 Related card (mock screen 6): up to `relatedK` semantic neighbours +
+    /// the "View thread" CTA with the first-mention date.
+    private func relatedSection(isCurrent: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SectionLabel("RELATED")
+            ForEach(relatedMemos, id: \.id) { rel in
+                Button { onOpenMemo(rel.id) } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color.skTextFaint)
+                        Text(rel.displayTitle)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.skText)
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(LookbackProvider.journalDate(rel).formatted(.dateTime.day().month(.abbreviated)))
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.skTextFaint)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
+                    .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
+                }
+                .accessibilityIdentifier(isCurrent ? "related-row" : "related-row-offscreen")
+            }
+            Button { showThreadSheet = true } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("View thread")
+                        .font(.system(size: 12.5, weight: .semibold))
+                    Spacer(minLength: 4)
+                    if let first = threadFirstMention {
+                        Text("first mentioned \(first.formatted(.dateTime.day().month(.abbreviated)))")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(Color.skTextFaint)
+                    }
+                }
+                .foregroundStyle(Color.skAccentText)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+            }
+            .accessibilityIdentifier(isCurrent ? "view-thread-cta" : "view-thread-cta-offscreen")
+        }
+    }
+
+    /// Semantic neighbours for the Related card — no-op unless the journal
+    /// index is active (the card stays invisible for everyone else).
+    private func loadRelated() async {
+        guard JournalIndexService.shared.isActive else { return }
+        let scores = await JournalIndexService.shared.relatedScores(to: memo.id, repository: repository)
+        let byID = Dictionary(uniqueKeysWithValues: repository.allMemos().map { ($0.id, $0) })
+        relatedMemos = JournalIndexService.relatedResults(
+            scores: scores, excluding: [memo.id], memosByID: byID,
+            floor: RetrievalTuning.relatedFloor, limit: RetrievalTuning.relatedK)
+        let thread = JournalIndexService.threadOrder(seedID: memo.id, scores: scores, memosByID: byID)
+        threadFirstMention = thread.first.map { LookbackProvider.journalDate($0) }
     }
 
     /// Who links HERE: scan every live memo's transcript for this memo's id.

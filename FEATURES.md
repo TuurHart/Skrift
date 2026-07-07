@@ -318,7 +318,7 @@ Mirrors the SwiftData store to the user's PRIVATE CloudKit database so notes syn
 | Foreground sweep wiring | 🟡 | ➖ | `Services/Embeddings/JournalIndexService.swift`, `App/SkriftApp.swift` | INERT by default: runs only when the (future) Journal UI sets `journalIndexEnabled` AND the model is on disk — no surprise download. Floors calibration owed |
 | Journal tab: Looking back + calendar + map | 🟡 | ➖ | `Features/Journal/` (LookbackProvider, Home/Calendar/Map views), `AppTabView` | ✅ BUILT 2026-07-07 to the signed mock — Journal replaces the Highlights slot; journal axis = `recordedAt`; `-seedJournal`/`-openJournal` flags; 502 tests green; home sim-screenshot verified, pushed screens + device eyeball owed |
 | Search "Related" (semantic) + Thread view | 🟡 | ➖ | `MemosListView` (Related section), `Features/Journal/ThreadView.swift`, `JournalIndexService` | ✅ BUILT 2026-07-07 — Related under exact matches (async, floor-gated, filter-sheet aware); thread sheet from the detail ⋯ menu; `-mockJournalIndex`/`-initialSearch`/`-threadDemo` demo flags; sim-verified. Dark until the model-consent flow (chunk 8); floors calibration owed |
-| Journal: Related card on detail (chunk 7) | ➖ | ➖ | mock: `SkriftDesktop/mocks/journal-retrieval.html` | Related card + "View thread" CTA on the note body — next chunk |
+| Related card on note detail | 🟡 | ➖ | `MemoDetailView` (noteFooter `relatedSection`) | ✅ BUILT 2026-07-07 — sparkle rows + "View thread · first mentioned" CTA in the editor-page footer; hidden unless the index is active AND something clears the floor; `-journalMemoDemo` route; sim-verified. Conversation/capture pages get it when they migrate to the editor layout |
 
 ---
 

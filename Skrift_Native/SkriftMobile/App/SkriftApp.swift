@@ -159,6 +159,10 @@ struct RootView: View {
             // Screenshot route: the P8 thread for the seeded pricing memo
             // (combine with -seedJournal -mockJournalIndex).
             ThreadView(seedID: DemoDataSeeder.journalPricingMemoID)
+        } else if LaunchFlags.journalMemoDemo {
+            // Screenshot route: the seeded pricing memo's detail — the P8
+            // Related card in the footer (combine with -seedJournal -mockJournalIndex).
+            NavigationStack { MemoDetailView(initialID: DemoDataSeeder.journalPricingMemoID) }
         } else if needsOnboarding {
             OnboardingView {
                 UserDefaults.standard.set(true, forKey: "onboardingComplete")

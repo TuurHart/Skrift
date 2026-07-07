@@ -183,8 +183,12 @@ Per-app wiring — `Skrift_Native/SkriftMobile/`:
    filter CHIPS not built — the merged list already has a SortFilterSheet (place/date/toggles)
    that prefilters Related too; person/kind additions to that sheet + the calibration histogram
    move to chunk 8's device pass.
-7. Related-notes card on memo detail. **LAST — only after the note-editing lane merges** (it owns
-   `MemoDetail`). Build against the rebuilt detail view.
+7. ✅ **BUILT 2026-07-07** — Related card in the note footer (editor pages), styled after the
+   "Linked from" section: up to `relatedK` sparkle rows (tap → pager jump via `onOpenMemo`) + the
+   "View thread · first mentioned <date>" CTA (sheet). Hidden when nothing clears the floor or the
+   index is inactive. `-journalMemoDemo` screenshot route; sim-verified on the seeded pricing
+   memo. NOTE: conversation/capture pages keep the legacy layout without the footer — the card
+   reaches them when those pages migrate to the editor architecture (note-editing phase 2).
 8. Device pass on the iPhone 13 (Dev build): backfill duration + memory on the real corpus, jetsam
    watch, asset-download UX. Then FEATURES.md rows + roadmap flip (P8 → done via Huginn) + fold
    this doc per the docs-lean rule.

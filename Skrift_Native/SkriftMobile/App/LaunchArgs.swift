@@ -59,6 +59,9 @@ enum LaunchFlags {
     /// Open the P8 thread view for the seeded pricing memo (screenshot route;
     /// combine with -seedJournal -mockJournalIndex).
     static var threadDemo: Bool { args.boolFlag("-threadDemo") }
+    /// Open the seeded pricing memo's DETAIL (the P8 Related card; combine
+    /// with -seedJournal -mockJournalIndex).
+    static var journalMemoDemo: Bool { args.boolFlag("-journalMemoDemo") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Seed the name-linking demo (the mock's "Studio afternoon" memo + 4 people: two
     /// Jacks → ambiguous, Hendri → linked, Rose → suggested) and open its detail directly,
