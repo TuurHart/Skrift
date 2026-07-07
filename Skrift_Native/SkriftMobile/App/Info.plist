@@ -72,7 +72,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>30</string>
+	<string>39</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
@@ -88,6 +88,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Skrift lets you snap photos while recording, placed into the transcript at the moment you took them.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Skrift uses Face ID to open your locked notes.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Skrift finds your Mac on the local network to sync memos and names.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -29,6 +29,9 @@ enum LaunchFlags {
     /// survive across runs and the idempotent seeder would skip).
     static var inMemoryStore: Bool { args.boolFlag("-inMemoryStore") }
     static var seedDemoMemos: Bool { args.boolFlag("-seedDemoMemos") }
+    /// Seed a memo whose photo contains rendered text but is NOT yet OCR'd —
+    /// the photo-search end-to-end fixture (launch sweep must index it).
+    static var seedPhotoTextMemo: Bool { args.boolFlag("-seedPhotoTextMemo") }
     /// Seed ONE long memo (long transcript + an image marker) so a UI test can
     /// scroll content UNDER the glass player bar and screenshot the refraction.
     static var seedLongMemo: Bool { args.boolFlag("-seedLongMemo") }
@@ -41,6 +44,12 @@ enum LaunchFlags {
     /// centered circle — distorts to an ellipse if the thumbnail squishes aspect),
     /// so a UI test can screenshot-verify the video source glyph + thumbnail aspect.
     static var seedVideoMemo: Bool { args.boolFlag("-seedVideoMemo") }
+    /// Seed back-dated memos with locations for the Journal tab (Looking-back
+    /// cards, calendar dot density, place clusters) — screenshot verification.
+    static var seedJournal: Bool { args.boolFlag("-seedJournal") }
+    /// Open the Journal tab on launch (screenshot/UITest routing, like the
+    /// seed-and-open flags above).
+    static var openJournal: Bool { args.boolFlag("-openJournal") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Seed the name-linking demo (the mock's "Studio afternoon" memo + 4 people: two
     /// Jacks → ambiguous, Hendri → linked, Rose → suggested) and open its detail directly,

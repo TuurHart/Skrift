@@ -10,10 +10,13 @@ enum MemoImageLoader {
     private static let cache = NSCache<NSString, UIImage>()
 
     /// A downsampled image whose largest side is ~`maxWidth` points (× screen scale),
-    /// cached by path+size. Returns nil if the file is missing/unreadable.
+    /// cached by path+mtime+size — the mtime in the key self-invalidates when
+    /// the file is rewritten (QuickLook markup save-back, a photo replaced by
+    /// sync). Returns nil if the file is missing/unreadable.
     static func thumbnail(at url: URL, maxWidth: CGFloat) -> UIImage? {
         let maxPixel = max(1, Int(maxWidth * UIScreen.main.scale))
-        let key = "\(url.path)|\(maxPixel)" as NSString
+        let mtime = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
+        let key = "\(url.path)|\(mtime?.timeIntervalSince1970 ?? 0)|\(maxPixel)" as NSString
         if let cached = cache.object(forKey: key) { return cached }
 
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }

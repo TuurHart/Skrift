@@ -18,8 +18,109 @@ enum DemoDataSeeder {
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
         if LaunchFlags.seedNameLinking { repo.insert(nameLinkingMemo()); return }
         if LaunchFlags.seedPolished { seedPolished(repo); return }
+        if LaunchFlags.seedJournal { seedJournal(repo); return }
+        if LaunchFlags.seedPhotoTextMemo {
+            // The photo-search end-to-end fixture: a real un-OCR'd text photo
+            // (the launch sweep must index it) among the demo memos (which
+            // must NOT match the query).
+            repo.insert(photoTextMemo())
+            for memo in demoMemos() { repo.insert(memo) }
+            return
+        }
         guard LaunchFlags.seedDemoMemos else { return }
         for memo in demoMemos() { repo.insert(memo) }
+    }
+
+    /// Back-dated memos with locations for the Journal tab: lookback windows at
+    /// 1/3/6/12 months, an on-this-day hit last year, and a scatter across the
+    /// current month for calendar dots + place clusters.
+    static func seedJournal(_ repo: NotesRepository) {
+        let cal = Calendar.current
+        let now = Date()
+        func back(months: Int = 0, days: Int = 0, hour: Int = 14) -> Date {
+            let base = cal.date(byAdding: DateComponents(month: -months, day: -days), to: now)!
+            return cal.date(bySettingHour: hour, minute: 12, second: 0, of: base) ?? base
+        }
+        func place(_ name: String, _ lat: Double, _ lon: Double) -> MemoMetadata {
+            MemoMetadata(capturedAt: ISO8601.string(from: now),
+                         location: LocationInfo(latitude: lat, longitude: lon, placeName: name))
+        }
+        let estrela = place("Jardim da Estrela", 38.7139, -9.1607)
+        let seeds: [(String, String, Date, Double, MemoMetadata?)] = [
+            ("Fietslease uitzoeken voor Q3",
+             "Ramble over de fietslease — of ik het zakelijk via Good Friday moet doen of privé.",
+             back(months: 1), 0.6, place("Alvalade", 38.7532, -9.1440)),
+            ("First proper walk-ramble with the app",
+             "Testing the recorder on the walk home — if this works I can stop typing notes at red lights.",
+             back(months: 3), 0.9, estrela),
+            ("Subscriptions feel wrong here",
+             "A notes app you stop paying for shouldn't hold your thoughts hostage. One-time or nothing.",
+             back(months: 6), 0.4, nil),
+            ("Should Skrift cost money?",
+             "People don't value free tools. But charging for my own note-taking app feels weird.",
+             back(months: 12), 0.8, nil),
+            ("Standup ramble — CloudKit latency",
+             "Sync is seconds, not instant. Is that fine? Push-on-edit helped.",
+             back(days: 3, hour: 9), 0.3, place("Home", 38.7370, -9.1500)),
+            ("Dinner with Jack & Jack — Hotel du Vin",
+             "The sourdough theory again: you don't own a starter, you just host it for a while.",
+             back(days: 3, hour: 21), 0.7, place("Hotel du Vin", 38.7080, -9.1350)),
+            ("Walk-thought: standalone is the bet",
+             "The phone alone has to be the whole product; Mac and Obsidian become optional sinks.",
+             back(days: 5), 0.6, estrela),
+            ("Amsterdam terras notitie",
+             "Idee voor de export-knop besproken — alles naar Markdown in één keer.",
+             back(months: 2, days: 2), 0.5, place("Amsterdam", 52.3702, 4.8952)),
+        ]
+        for (title, transcript, date, significance, metadata) in seeds {
+            repo.insert(Memo.make(
+                recordedAt: date, syncStatus: .synced, title: title,
+                transcript: transcript, transcriptStatus: .done,
+                transcriptConfidence: 0.95, significance: significance,
+                metadata: metadata))
+        }
+    }
+
+    /// A memo whose photo CONTAINS rendered text but whose manifest text is
+    /// still nil — the device round-3/4 "photo search finds nothing" repro:
+    /// the launch sweep must OCR it (REAL Vision) and the list search must
+    /// then surface the memo.
+    static func photoTextMemo() -> Memo {
+        let id = UUID()
+        let photoName = "photo_\(id.uuidString)_001.jpg"
+        writeTextPhoto(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName))
+        return Memo.make(
+            id: id,
+            audioFilename: "memo_\(id.uuidString).m4a",
+            duration: 21,
+            recordedAt: Date().addingTimeInterval(-1_800),
+            syncStatus: .waiting,
+            transcript: "Snapped the tram stop sign on the way home. [[img_001]]",
+            transcriptStatus: .done,
+            transcriptConfidence: 0.9,
+            metadata: MemoMetadata(
+                imageManifest: [ImageManifestEntry(filename: photoName, offsetSeconds: 4)]
+            )
+        )
+    }
+
+    /// A photo-like JPEG with big unambiguous printed text for the REAL Vision
+    /// pass ("ZUURKOOL 77" — collides with no other seeded content).
+    private static func writeTextPhoto(to url: URL) {
+        let size = CGSize(width: 1200, height: 700)
+        let image = UIGraphicsImageRenderer(size: size).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            ("ZUURKOOL 77" as NSString).draw(
+                at: CGPoint(x: 90, y: 220),
+                withAttributes: [.font: UIFont.boldSystemFont(ofSize: 150),
+                                 .foregroundColor: UIColor.black])
+            ("TRAMLIJN NAAR HUIS" as NSString).draw(
+                at: CGPoint(x: 90, y: 430),
+                withAttributes: [.font: UIFont.systemFont(ofSize: 64, weight: .semibold),
+                                 .foregroundColor: UIColor.darkGray])
+        }
+        try? image.jpegData(compressionQuality: 0.9)?.write(to: url)
     }
 
     /// A memo with a raw (um-filled) transcript + a Mac `MemoEnhancement` (clean copy-edit +

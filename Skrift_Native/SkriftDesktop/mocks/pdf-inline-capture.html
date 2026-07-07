@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skrift — PDF inline in the note (SIGNED OFF 2026-07-07: A — built same day)</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#050507;color:#e4e4e7;padding:28px;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+  .sub{color:#9a9aae;margin:0 0 22px;max-width:880px;line-height:1.6;}
+  .sub b{color:#e4e4e7;}
+  .pair{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;}
+  .unit{width:332px;}
+  .cap{font-size:12.5px;color:#9a9aae;line-height:1.5;margin-top:10px;padding:0 4px;}
+  .cap b{color:#b4b4c2;font-weight:600;}
+  .cap .rec{color:#34d399;font-weight:700;}
+
+  .page{width:332px;background:#0f1117;border:6px solid #000;border-radius:30px;overflow:hidden;padding:16px 18px 18px;}
+  .page .t{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .meta{font-size:10.5px;color:#55556a;margin-bottom:10px;}
+  .body2{font-size:14.5px;line-height:1.7;}
+
+  /* today's file card */
+  .filecard{display:flex;align-items:center;gap:10px;background:#161a24;border:.5px solid rgba(255,255,255,.09);
+    border-radius:13px;padding:11px 12px;margin:10px 0;}
+  .filecard .glyph{width:34px;height:40px;border-radius:7px;background:#1e2130;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .filecard .name{font-size:12.5px;color:#b4b4c2;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .filecard .open{font-size:11px;font-weight:600;color:#9d8ff7;background:rgba(124,107,245,.13);
+    border:.5px solid rgba(124,107,245,.35);border-radius:6px;padding:4px 9px;}
+
+  /* inline PDF block */
+  .pdfblock{margin:10px 0;border-radius:14px;overflow:hidden;border:.5px solid rgba(255,255,255,.12);position:relative;background:#fff;}
+  .pdfpage{background:#fff;color:#111;padding:16px 15px 12px;min-height:200px;}
+  .pdfpage h4{margin:0 0 6px;font-size:12.5px;}
+  .pdfpage p{margin:0 0 6px;font-size:8.5px;line-height:1.55;color:#333;}
+  .pdfpage .sig{margin-top:14px;font-size:8.5px;color:#333;}
+  .pagechip{position:absolute;right:9px;bottom:9px;font-size:10.5px;font-weight:700;color:#fff;
+    background:rgba(0,0,0,.55);backdrop-filter:blur(6px);border-radius:7px;padding:3px 8px;}
+  .strip{display:flex;gap:8px;overflow:hidden;margin:10px 0;}
+  .strip .pdfblock{flex-shrink:0;width:200px;margin:0;}
+  .strip .pdfblock:last-child{opacity:.55;transform:translateX(0);}
+  .strip .pdfpage{min-height:170px;padding:12px 11px 9px;}
+</style>
+</head>
+<body>
+
+<h1>Scanned/shared PDF — inline in the note</h1>
+<p class="sub">Round-4 ask: <b>"text, PDF, text — like Apple Notes"</b>, not a file chip with an Open
+button. The PDF renders as a block in the note body; tapping it opens the (new, zooming) viewer with
+markup. The chip+Open dies. OCR'd text keeps riding <code>sharedContent.text</code> → search unchanged.</p>
+
+<div class="pair">
+  <div class="unit">
+    <div class="page">
+      <div class="t">Warranty — heat pump</div>
+      <div class="meta">Doc scan · today 14:24 · Alfama</div>
+      <div class="body2">Scanned this at the kitchen table before filing it.</div>
+      <div class="filecard">
+        <div class="glyph">📄</div>
+        <div class="name">file_9C21…F3.pdf</div>
+        <div class="open">Open</div>
+      </div>
+      <div class="body2">Need to email a copy to the landlord before Friday.</div>
+    </div>
+    <p class="cap"><b>Today — the file chip.</b> The document is a card you must "Open"; the note
+    reads as text-chip-text and the content is invisible until you tap.</p>
+  </div>
+
+  <div class="unit">
+    <div class="page">
+      <div class="t">Warranty — heat pump</div>
+      <div class="meta">Doc scan · today 14:24 · Alfama</div>
+      <div class="body2">Scanned this at the kitchen table before filing it.</div>
+      <div class="pdfblock">
+        <div class="pdfpage">
+          <h4>WARRANTY CERTIFICATE</h4>
+          <p>Model AeroTherm 8kW — Serial 22-88431. This certificate confirms coverage of parts and
+          labour for a period of five (5) years from the date of installation, subject to annual
+          servicing by an accredited technician.</p>
+          <p>Installation date: 12 March 2026. Installer: Lisboa Clima Lda. Coverage excludes damage
+          from improper use, scale build-up, or third-party modification.</p>
+          <p class="sig">Assinatura ____________________</p>
+        </div>
+        <div class="pagechip">3 pages</div>
+      </div>
+      <div class="body2">Need to email a copy to the landlord before Friday.</div>
+    </div>
+    <p class="cap"><b>A — first page inline + count. <span class="rec">RECOMMENDED.</span></b> The
+    first page renders as a real block (PDFKit thumbnail, full content width); "3 pages" says
+    there's more; tap anywhere → the zooming viewer (swipe pages, markup). Calm, fast, and exactly
+    how the note reads back later.</p>
+  </div>
+
+  <div class="unit">
+    <div class="page">
+      <div class="t">Warranty — heat pump</div>
+      <div class="meta">Doc scan · today 14:24 · Alfama</div>
+      <div class="body2">Scanned this at the kitchen table before filing it.</div>
+      <div class="strip">
+        <div class="pdfblock">
+          <div class="pdfpage">
+            <h4>WARRANTY CERTIFICATE</h4>
+            <p>Model AeroTherm 8kW — Serial 22-88431. Coverage of parts and labour for five (5)
+            years from installation, subject to annual servicing.</p>
+            <p class="sig">Assinatura ____________</p>
+          </div>
+        </div>
+        <div class="pdfblock">
+          <div class="pdfpage">
+            <h4>TERMS &amp; CONDITIONS</h4>
+            <p>1. Annual service required. 2. Scale damage excluded. 3. Claims via installer with
+            proof of purchase and service record…</p>
+          </div>
+        </div>
+      </div>
+      <div class="body2">Need to email a copy to the landlord before Friday.</div>
+    </div>
+    <p class="cap"><b>B — swipeable page strip.</b> All pages inline as a horizontal strip. More
+    visible at once, but heavier rows, a scroll-inside-scroll gesture fight with the editor, and
+    N thumbnails to render per note. Not recommended for v1.</p>
+  </div>
+</div>
+
+<p class="sub" style="margin-top:26px">Sign-off = <b>A or B</b> (A recommended). Applies to BOTH
+PDF sources — doc scans and shared PDFs. Build shape: PDFKit first-page thumbnail block replaces
+the file card in the capture body; tap → MarkupQuickLook (already zooms + pages + markup).</p>
+
+</body>
+</html>

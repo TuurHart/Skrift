@@ -34,6 +34,56 @@ final class MemoSaverTests: XCTestCase {
         XCTAssertEqual(timings?.count, 4)   // four words
     }
 
+    /// Device round 1 (build 31): photos captured with a recording stayed
+    /// unsearchable until the NEXT launch — no OCR trigger fired after the
+    /// save's photo-move (the sweep ran only on launch/foreground/sync/insert).
+    /// The save paths now run `PhotoTextIndexer` themselves: a fresh memo's
+    /// photo text must become searchable in-session, no relaunch.
+    @MainActor
+    func testSavedPhotoBecomesSearchableWithoutRelaunch() async throws {
+        let repo = NotesRepository(inMemory: true)
+        let saver = MemoSaver(
+            repository: repo,
+            transcriber: SeededTranscriber(text: "note with a photo"),
+            wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService()
+        )
+        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("rec_\(UUID().uuidString).m4a")
+        FileManager.default.createFile(atPath: temp.path, contents: Data())
+
+        // Render a photo with unambiguous text for the REAL Vision pass.
+        let size = CGSize(width: 600, height: 200)
+        let image = UIGraphicsImageRenderer(size: size).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            ("GATE B7 LISBOA" as NSString).draw(
+                at: CGPoint(x: 40, y: 70),
+                withAttributes: [.font: UIFont.boldSystemFont(ofSize: 48),
+                                 .foregroundColor: UIColor.black])
+        }
+        let photoTemp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("photo-\(UUID().uuidString).jpg")
+        try image.jpegData(compressionQuality: 0.9)!.write(to: photoTemp)
+
+        let id = await saver.saveAndTranscribe(tempURL: temp, duration: 3,
+                                               photos: [(url: photoTemp, offset: 1.0)])
+
+        // The indexer's write-back runs in its own Task — poll for it. No
+        // re-trigger in the loop: the point is that the SAVE fired the sweep.
+        var matched = false
+        for _ in 0..<100 {
+            if repo.memo(id: id)?.matches(query: "lisboa") == true { matched = true; break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        XCTAssertTrue(matched, "photo OCR text must be searchable right after save — manifest: \(String(describing: repo.memo(id: id)?.metadata?.imageManifest))")
+
+        if let f = repo.memo(id: id)?.metadata?.imageManifest?.first?.filename {
+            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(f))
+        }
+        try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent("memo_\(id.uuidString).m4a"))
+    }
+
     /// Append a follow-up recording to an existing memo: the new transcript is
     /// appended, the memo becomes user-edited (Mac trusts the combined text), and
     /// the clip is consumed. The placeholder audio can't be merged here, so the base

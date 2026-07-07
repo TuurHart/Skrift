@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import UIKit
 import QuickLook
+import PhotosUI
 import FluidAudio
 
 /// The "note" screen (mockup2). Swipe left/right between memos (a SwiftUI-native
@@ -23,7 +24,15 @@ struct MemoDetailView: View {
     @State private var showActions = false
     @State private var showSplitOptions = false
     @State private var showAppendRecorder = false
+    @State private var showShare = false
+    /// ⋯ → "Remind me…" for the current page (chunk 7).
+    @State private var reminderMemo: Memo?
+    /// Transient "n / total" that ghosts in while swiping between memos —
+    /// replaces the permanent page-dots row (compact-player spec).
+    @State private var pageFlash = false
     @StateObject private var player = AudioPlayerModel()
+    @ObservedObject private var lockGate = LockGate.shared
+    @State private var lockVaultNotice = false
     private let repository = NotesRepository.shared
 
     init(initialID: UUID) {
@@ -41,7 +50,11 @@ struct MemoDetailView: View {
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 0) {
                     ForEach(memos) { memo in
-                        MemoPageView(memo: memo, player: player)
+                        MemoPageView(memo: memo, player: player, isCurrent: memo.id == selection,
+                                     onOpenMemo: { id in
+                                         guard memos.contains(where: { $0.id == id }) else { return }
+                                         withAnimation(Theme.Motion.snappy) { selection = id }
+                                     })
                             .containerRelativeFrame(.horizontal)
                             // The LazyHStack realises adjacent pages; hide the
                             // off-screen ones from VoiceOver (and XCUITest) so
@@ -126,11 +139,30 @@ struct MemoDetailView: View {
         // A confirmationDialog is presented by the view controller (not anchored
         // to the toolbar item), so the paged TabView can't swallow it — unlike a
         // toolbar `Menu`, which silently failed to present on device.
-        .confirmationDialog("Memo", isPresented: $showActions, titleVisibility: .hidden) {
+        .confirmationDialog(memoStatsLine, isPresented: $showActions, titleVisibility: .visible) {
             Button("Add recording", action: { showAppendRecorder = true })
+            Button("Remind me…", action: { reminderMemo = currentMemo })
+            if let memo = currentMemo {
+                Button(memo.locked ? "Remove Lock" : "Lock Note", action: { toggleLock(memo) })
+            }
+            Button("Share note…", action: { showShare = true })
             Button("Copy transcript", action: copyTranscript)
             Button("Delete", role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
+        }
+        .sheet(item: $reminderMemo) { memo in
+            ReminderSheet(memo: memo) { repository.save() }
+        }
+        .alert("Already in your vault", isPresented: $lockVaultNotice) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("This note was published to Obsidian before you locked it. Skrift never deletes vault files — remove it there if you want it gone. New publishes will skip it.")
+        }
+        .sheet(isPresented: $showShare) {
+            if let memo = currentMemo {
+                ActivityShareSheet(items: shareItems(for: memo))
+                    .presentationDetents([.medium, .large])
+            }
         }
         // Append a follow-up recording to the current memo (records → transcribes →
         // appends text + merges audio in MemoSaver.appendRecording). Transcript
@@ -138,13 +170,17 @@ struct MemoDetailView: View {
         .fullScreenCover(isPresented: $showAppendRecorder) {
             RecordView(appendTo: selection)
         }
-        .onAppear { player.load(currentMemo?.audioURL) }
-        .onChange(of: selection) { _, newID in
+        .onAppear { loadCurrentAudio() }
+        .onChange(of: selection) { old, newID in
             // Re-target the bar when paging settles; ignore the transient nil the
             // paging scroll reports between snap points (don't stop audio mid-swipe).
             guard let newID else { return }
-            player.load(memos.first { $0.id == newID }?.audioURL)
+            loadCurrentAudio()
+            if old != nil, old != newID, memos.count > 1 { pageFlash = true }
         }
+        // Unlocking (or re-locking on background) re-derives what the player
+        // may touch — a locked memo's audio never loads.
+        .onChange(of: lockGate.unlockedMemoIDs) { _, _ in loadCurrentAudio() }
         // A VIDEO import inserts the memo and opens this screen BEFORE its audio
         // has been extracted (extraction is async), so the initial load() hit a
         // file that didn't exist yet and left the player with no audio — tapping
@@ -191,14 +227,25 @@ struct MemoDetailView: View {
     }
 
     private var playerBarStack: some View {
-        VStack(spacing: 7) {
-            if memos.count > 1, memos.count <= 8 {
-                PageDots(count: memos.count, index: memos.firstIndex { $0.id == selection } ?? 0)
+        PlayerBar(player: player, clock: player.clock)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .overlay(alignment: .top) {
+                if pageFlash, let idx = memos.firstIndex(where: { $0.id == selection }) {
+                    Text("\(idx + 1) / \(memos.count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.skTextDim)
+                        .padding(.horizontal, 9).padding(.vertical, 4)
+                        .background(Color.skSurface, in: .capsule)
+                        .overlay(Capsule().strokeBorder(Color.skBorder, lineWidth: 0.5))
+                        .offset(y: -30)
+                        .transition(.opacity)
+                        .task(id: selection) {
+                            try? await Task.sleep(for: .seconds(1.1))
+                            withAnimation(.easeOut(duration: 0.3)) { pageFlash = false }
+                        }
+                }
             }
-            PlayerBar(player: player)
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 9)
     }
 
     private func copyTranscript() {
@@ -206,12 +253,62 @@ struct MemoDetailView: View {
         UIPasteboard.general.string = text
     }
 
+    /// "512 words · 3:07" — the ⋯ sheet's title doubles as the note's stats line.
+    private var memoStatsLine: String {
+        guard let memo = currentMemo else { return "Memo" }
+        let words = MemoShare.wordCount(of: memo.transcript)
+        var parts: [String] = [words == 1 ? "1 word" : "\(words) words"]
+        if memo.duration > 0 {
+            let total = Int(memo.duration)
+            parts.append(String(format: "%d:%02d", total / 60, total % 60))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// Share OUT (survey fold, user-approved): the note as markdown text, plus
+    /// the recording file when there is one.
+    private func shareItems(for memo: Memo) -> [Any] {
+        var items: [Any] = [MemoShare.markdown(title: memo.title ?? memo.firstTranscriptLine,
+                                               body: memo.transcript ?? "")]
+        if let url = memo.audioURL, FileManager.default.fileExists(atPath: url.path) {
+            items.append(url)
+        }
+        return items
+    }
+
+    /// Load the CURRENT memo's audio — unless its content is lock-gated
+    /// (chunk 8: the bar must not play a locked note around the placeholder).
+    private func loadCurrentAudio() {
+        guard let memo = currentMemo else { return }
+        player.load(lockGate.isLocked(memo) ? nil : memo.audioURL)
+    }
+
+    /// Lock from ⋯ (instant, + vault notice when already published); removing
+    /// the lock requires device-owner auth (Apple Notes idiom).
+    private func toggleLock(_ memo: Memo) {
+        if memo.locked {
+            Task {
+                guard await LockGate.shared.authorizeRemoveLock() else { return }
+                memo.locked = false
+                memo.markEdited()
+                repository.save()
+            }
+        } else {
+            guard LockGate.shared.canAuthenticate() else { return }
+            memo.locked = true
+            memo.markEdited()
+            repository.save()
+            player.stopAndClear()
+            if ExportStateStore.shared.record(for: memo.id) != nil { lockVaultNotice = true }
+        }
+    }
+
     /// Re-point the player at the current memo's audio if an earlier `load()` failed
     /// because the file wasn't on disk yet (the async video-import extraction case).
     /// A no-op once audio is loaded, so it never disturbs active playback.
     private func reloadIfAudioMissing() {
         guard !player.hasAudio else { return }
-        player.load(currentMemo?.audioURL)
+        loadCurrentAudio()
     }
 
     /// Split the current memo into speakers (Auto, or force `count`). Re-runs diarization
@@ -255,10 +352,22 @@ struct MemoDetailView: View {
 private struct MemoPageView: View {
     @Bindable var memo: Memo
     @ObservedObject var player: AudioPlayerModel
+    /// Whether this page is the pager's current page — off-screen neighbours
+    /// hide their UIKit editor subtree from accessibility (see NoteBodyView).
+    var isCurrent: Bool = true
     private let repository = NotesRepository.shared
-    @State private var showAddTag = false
-    @State private var newTag = ""
-    @State private var quickLookURL: URL?            // shared-document (.file) capture → QuickLook preview
+    @State private var showTagEditor = false
+    @State private var libraryTags: [String] = []
+    /// What the QuickLook viewer is showing: an inline photo (marker set — an
+    /// edit re-mirrors + re-OCRs it) or a shared-document capture (marker nil).
+    struct QuickLookTarget: Identifiable {
+        let url: URL
+        var marker: Int?
+        var id: String { url.path }
+    }
+    /// UIKit-presented viewer (P2#12): zoom transition off the tapped photo +
+    /// markup save-back; edits are reported on dismissal only (erase-crash fix).
+    @State private var markupQuickLook = MarkupQuickLook()
     @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
 
     /// A tapped speaker turn: its position (for per-line merge), label (for whole-speaker
@@ -286,136 +395,105 @@ private struct MemoPageView: View {
     @FocusState private var titleFocused: Bool
     @ObservedObject private var sync = CloudSyncMonitor.shared
 
+    /// Name spans over the active body — MEMOIZED (@State) and recomputed off-main
+    /// only when the text / roster / resolutions actually change. (Was an uncached
+    /// computed property that re-ran the full Sanitiser scan 2–3× per body eval —
+    /// per keystroke — note-editing study 2026-07-06.)
+    @State private var spans: [NameSpan] = []
+    /// Photo-at-caret (accessory 📷): the page presents the picker, the proxy
+    /// hands the image to the live editor coordinator.
+    @State private var bodyProxy = NoteBodyProxy()
+    @State private var showPhotoPicker = false
+    @State private var pickedPhoto: PhotosPickerItem?
+    @State private var showPhotoSourceDialog = false
+    @State private var showCameraCapture = false
+    /// Memo↔memo links (chunk 5): the "[[" picker + who links here.
+    @State private var showMemoLinkPicker = false
+    /// Reminder chip → the sheet (chunk 7).
+    @State private var showReminderSheet = false
+    @State private var backlinks: [(id: UUID, title: String)] = []
+    /// Jump the pager to another memo (link chips + backlink rows).
+    var onOpenMemo: (UUID) -> Void = { _ in }
+
+    @ObservedObject private var lockGate = LockGate.shared
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top, spacing: 8) {
-                    TextField("", text: titleBinding, prompt: titlePrompt)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(Color.skText)
-                        .tint(.skAccent)
-                        .submitLabel(.done)
-                        .focused($titleFocused)
-                        .onSubmit { repository.save() }
-                        .accessibilityIdentifier("detail-title")
-                    // ✦ title chooser — only when the Mac sent a suggested title.
-                    if macPolish?.title.trimmingCharacters(in: .whitespaces).isEmpty == false {
-                        Button { showTitleChooser = true } label: {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Color.skAccent)
-                                .frame(width: 30, height: 30)
-                                .background(Color.skAccentSoft, in: .rect(cornerRadius: 8, style: .continuous))
-                        }
-                        .padding(.top, 3)
-                        .accessibilityIdentifier("title-chooser-button")
-                    }
-                }
-
-                FlowLayout(spacing: 6, lineSpacing: 6) {
-                    ForEach(metaChips) { chip in
-                        ContextChip(text: chip.text, systemImage: chip.symbol)
-                    }
-                    ForEach(memo.tags, id: \.self) { tag in
-                        Button { removeTag(tag) } label: {
-                            Text("#\(tag)")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Color.skAccentText)
-                                .padding(.horizontal, 7).padding(.vertical, 2)
-                                .background(Color.skAccentSoft, in: .rect(cornerRadius: 7, style: .continuous))
-                        }
-                    }
-                    Button { showAddTag = true } label: {
-                        Text("+ Tag")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color.skTextDim)
-                            .padding(.horizontal, 7).padding(.vertical, 2)
-                            .background(Color.skElev, in: .rect(cornerRadius: 7, style: .continuous))
-                    }
-                    .accessibilityIdentifier("add-tag-button")
-                }
-                .padding(.top, 12)
-
-                // The 10-circle significance control (SignificanceCircles.swift —
-                // mocks/significance-circles.html): tap circle N → 0.N, re-tap →
-                // Not rated. Flag-to-send: 0 stays on the phone, >0 syncs, 0.8+
-                // is past the refine wall.
-                SignificanceCircles(value: $memo.significance) { repository.save() }
-                    .padding(.top, 14)
-
-                // Mac's polish: the summary card (when present) above the body.
-                if let summary = macPolish?.summary.trimmingCharacters(in: .whitespacesAndNewlines),
-                   !summary.isEmpty {
-                    summaryCard(summary)
-                        .padding(.top, 16)
-                }
-
-                if let label = diarStatus.label(for: memo.id) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
-                            ProgressView().controlSize(.small)
-                            // Diarization is opaque (no real %) — show an honest
-                            // ticking elapsed time so it's clearly still working.
-                            TimelineView(.periodic(from: .now, by: 1)) { _ in
-                                Text(diarStatus.labelWithElapsed(for: memo.id) ?? label)
-                                    .font(.system(size: 12, weight: .medium)).foregroundStyle(Color.skTextDim)
-                            }
-                        }
-                        if diarStatus.isIdentifying(memo.id) {
-                            Text("This can take a while — it keeps going if you leave.")
-                                .font(.system(size: 11)).foregroundStyle(Color.skTextFaint)
-                        }
-                    }
-                    .padding(.top, 14)
-                    .accessibilityIdentifier("diarization-status")
-                }
-
-                // C3 capture items: pinned source block (link card / text quote / image)
-                // above the annotation body. The transcript section is replaced entirely
-                // for captures — there's no voice transcript to show.
-                if memo.isShareCapture {
-                    captureSourceBlock
-                        .padding(.top, 18)
-                    captureAnnotationSection
-                        .padding(.top, 14)
-                } else {
-                    transcriptSection
-                        .padding(.top, 18)
-                    if !transcriptNameSpans.isEmpty {
-                        peopleInNoteRow
-                            .padding(.top, 14)
-                    }
-                }
-
-                // Small breathing room; the bar's own height is reserved by the
-                // parent's .safeAreaInset, so content rests just clear of the glass.
-                Color.clear.frame(height: 24)
+        // Note-editing overhaul (spec mocks/note-editor-redesign.html): B2 pinned
+        // title above every page kind; monologue memos (incl. audiobook captures +
+        // polished bodies) get the re-founded scrolling editor page — the text view
+        // owns the scroll, the metadata header scrolls inside it. Conversations and
+        // C3 share-captures keep their legacy scroll layout for now (phase 2).
+        Group {
+            if lockGate.isLocked(memo) {
+                lockedPlaceholder
+            } else if memo.isShareCapture {
+                legacyScrollPage { captureContent }
+            } else if SpeakerTranscript.parse(memo.transcript) != nil {
+                legacyScrollPage { conversationContent }
+            } else {
+                editorPage
             }
-            .padding(.horizontal, Theme.Space.margin)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        // Dragging the page itself dismisses the keyboard (the inner TranscriptEditor
-        // already has its own interactive dismiss; this covers scrolling the OUTER
-        // page when the title/transcript field has focus).
-        .scrollDismissesKeyboard(.interactively)
         .task(id: memo.id) {
             timings = WordTimingsStore().load(for: memo.id) ?? []
             people = NamesStore.shared.livePeople()
             enhancement = repository.enhancement(forMemo: memo.id)
+            recomputeSpans()
+            recomputeBacklinks()
         }
         // A polish can arrive via CloudKit after the screen opens — re-fetch when a sync settles.
         .onChange(of: sync.isSyncing) { _, syncing in
-            if !syncing { enhancement = repository.enhancement(forMemo: memo.id) }
+            if !syncing {
+                enhancement = repository.enhancement(forMemo: memo.id)
+                recomputeSpans()
+            }
         }
-        .alert("Add tags", isPresented: $showAddTag) {
-            TextField("tag, tag, tag", text: $newTag)
-            Button("Add", action: addTag)
-            Button("Cancel", role: .cancel) { newTag = "" }
-        } message: {
-            Text("Separate multiple tags with commas.")
+        // Transcript can change outside the editor (transcription lands, append,
+        // speaker edits) — re-derive the tiers.
+        .onChange(of: memo.transcript) { _, _ in recomputeSpans() }
+        .sheet(isPresented: $showReminderSheet) {
+            ReminderSheet(memo: memo) { repository.save() }
         }
-        // Shared-document (.file) capture → preview the PDF/doc in QuickLook.
-        .quickLookPreview($quickLookURL)
+        // Tag CHIP editor (chunk 3): chips with explicit ✕, comma input kept,
+        // autocomplete from every tag in the library.
+        .sheet(isPresented: $showTagEditor) {
+            TagEditorSheet(memo: memo, allTags: libraryTags) { repository.save() }
+        }
+        // Shared-document (.file) capture → preview the PDF/doc in QuickLook —
+        // and the editor's inline photos (tap a photo → viewer).
+        // The photo/file viewer is UIKit-presented (MarkupQuickLook, P2#12) —
+        // no SwiftUI cover here: the zoom transition needs transitionViewFor,
+        // which a cover can't provide. Markup + the dismissal-deferred edit
+        // chain live in the presenter.
+        // "[[" typed → pick a note to link; the chip lands at the trigger.
+        .sheet(isPresented: $showMemoLinkPicker) {
+            MemoLinkPickerSheet(candidates: memoLinkCandidates()) { id, title in
+                bodyProxy.insertMemoLink(id: id, title: title)
+            }
+        }
+        // Accessory 📷 → camera or library (round-1 P2: Notes offers both) →
+        // insert at the caret + register the new file for CloudKit (same
+        // manifest/asset conventions as recording). Camera-less environments
+        // (simulator) skip the dialog and go straight to the library.
+        .confirmationDialog("Add photo", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+            Button("Take Photo") { showCameraCapture = true }
+            Button("Choose from Library") { showPhotoPicker = true }
+        }
+        .fullScreenCover(isPresented: $showCameraCapture) {
+            CameraImagePicker { insertPickedPhoto($0) }
+                .ignoresSafeArea()
+        }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhoto, matching: .images)
+        .onChange(of: pickedPhoto) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    insertPickedPhoto(image)
+                }
+                pickedPhoto = nil
+            }
+        }
         // Tap a speaker → an assign sheet: pick a known Person (links + enrolls the
         // voiceprint), merge into another speaker in this convo (fixes a mis-split), or
         // type a new name. Replaces the old free-text alert.
@@ -447,8 +525,12 @@ private struct MemoPageView: View {
                         repository.save()
                     }
                     people = NamesStore.shared.livePeople()
+                    recomputeSpans()
                 },
-                onDeleted: { people = NamesStore.shared.livePeople() }
+                onDeleted: {
+                    people = NamesStore.shared.livePeople()
+                    recomputeSpans()
+                }
             )
         }
         // People-in-this-note chip surface (mock state 4) — link / re-link via chips.
@@ -467,6 +549,399 @@ private struct MemoPageView: View {
         }
         // Unlink → an Undo toast (reversible; mock build note #6).
         .overlay(alignment: .bottom) { undoToastView }
+    }
+
+    // MARK: - Page kinds (B2 pinned title + body)
+
+    /// The whole page while lock-gated: title + 🔒 + Unlock. Content, header
+    /// chips, photos, and audio all stay behind Face ID; swiping to a locked
+    /// neighbour lands here too (the pager can't bypass it).
+    private var lockedPlaceholder: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "lock.fill")
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(Color.skTextDim)
+            Text(memo.title?.isEmpty == false ? memo.title! : "Locked note")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Color.skText)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            Text("Locked notes stay out of Obsidian publish and need Face ID here. They're hidden, not encrypted.")
+                .font(.system(size: 12.5))
+                .foregroundStyle(Color.skTextFaint)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 36)
+            Button {
+                Task { _ = await lockGate.unlock(memo.id) }
+            } label: {
+                Label("Unlock", systemImage: "faceid")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 22).padding(.vertical, 11)
+                    .background(Color.skAccent, in: .capsule)
+            }
+            .accessibilityIdentifier("unlock-note-button")
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Theme.Space.margin)
+    }
+
+    /// The B2 pinned title row — always visible above the scrolling note, so you
+    /// know which memo you're in while swiping between memos. The ✦ chooser rides
+    /// along when the Mac sent a suggested title.
+    private var pinnedTitleRow: some View {
+        HStack(alignment: .center, spacing: 8) {
+            TextField("", text: titleBinding, prompt: titlePrompt)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Color.skText)
+                .tint(.skAccent)
+                .submitLabel(.done)
+                .focused($titleFocused)
+                .onSubmit { repository.save() }
+                .accessibilityIdentifier("detail-title")
+            if macPolish?.title.trimmingCharacters(in: .whitespaces).isEmpty == false {
+                Button { showTitleChooser = true } label: {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.skAccent)
+                        .frame(width: 28, height: 28)
+                        .background(Color.skAccentSoft, in: .rect(cornerRadius: 8, style: .continuous))
+                }
+                .accessibilityIdentifier("title-chooser-button")
+            }
+        }
+        .padding(.horizontal, Theme.Space.margin)
+        .padding(.top, 4)
+        .padding(.bottom, 9)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.skBorder).frame(height: 0.5)
+        }
+    }
+
+    /// The re-founded monologue page: ONE scrolling text view is the body; the
+    /// metadata header (chips/importance/summary/diar/quote) and the people-row
+    /// footer scroll INSIDE it. Native selection/caret/undo mechanics throughout.
+    private var editorPage: some View {
+        VStack(spacing: 0) {
+            pinnedTitleRow
+            NoteBodyView(
+                memo: memo,
+                player: player,
+                nameSpans: spans,
+                onTapName: { resolveTarget = NameResolveTarget(span: $0) },
+                polishedBinding: polishedBinding,
+                onCommit: {
+                    memo.markEdited()
+                    repository.save()
+                    recomputeSpans()
+                },
+                header: AnyView(noteHeaderCore(isCurrent: isCurrent)
+                    .padding(.horizontal, Theme.Space.margin).padding(.top, 6)
+                    .accessibilityHidden(!isCurrent)),
+                footer: AnyView(noteFooter(isCurrent: isCurrent).accessibilityHidden(!isCurrent)),
+                a11yHidden: !isCurrent,
+                onTapImage: { n in
+                    guard let url = memo.imageURL(markerIndex: n) else { return }
+                    let target = QuickLookTarget(url: url, marker: n)
+                    markupQuickLook.present(url: url, anchor: bodyProxy.photoAnchor(marker: n)) { edited in
+                        if edited { photoWasEdited(target) }
+                    }
+                },
+                onTapMemoLink: { id in onOpenMemo(id) },
+                onRequestMemoLink: { showMemoLinkPicker = true },
+                onRequestPhoto: {
+                    if CameraImagePicker.isAvailable { showPhotoSourceDialog = true }
+                    else { showPhotoPicker = true }
+                },
+                proxy: bodyProxy
+            )
+        }
+    }
+
+    /// Conversations + C3 share-captures keep the legacy outer-scroll layout for
+    /// now (phase 2), under the same pinned title row.
+    private func legacyScrollPage<C: View>(@ViewBuilder content: () -> C) -> some View {
+        VStack(spacing: 0) {
+            pinnedTitleRow
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    noteHeaderCore(isCurrent: true)
+                    content()
+                    Color.clear.frame(height: 24)
+                }
+                .padding(.horizontal, Theme.Space.margin)
+                .padding(.top, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+    }
+
+    /// The shared metadata header — everything between the pinned title and the
+    /// body, in the locked order chips → importance → summary → status → quote.
+    /// Each piece guards itself, so all page kinds reuse it.
+    /// `isCurrent` drives the hosted elements' accessibility identifiers:
+    /// accessibility-hiding does NOT cross the UIKit hosting boundary (iOS 26
+    /// toolchain), so an off-screen pager page suffixes its identifiers instead —
+    /// XCUITest and VoiceOver then resolve exactly one "add-tag-button" etc.
+    private func noteHeaderCore(isCurrent: Bool) -> some View {
+        let suffix = isCurrent ? "" : "-offscreen"
+        return VStack(alignment: .leading, spacing: 0) {
+            FlowLayout(spacing: 6, lineSpacing: 6) {
+                ForEach(metaChips) { chip in
+                    ContextChip(text: chip.text, systemImage: chip.symbol)
+                }
+                ForEach(memo.tags, id: \.self) { tag in
+                    // Opens the tag editor — the old tap DELETED the tag
+                    // silently (review-1 finding).
+                    Button { openTagEditor() } label: {
+                        Text("#\(tag)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.skAccentText)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(Color.skAccentSoft, in: .rect(cornerRadius: 7, style: .continuous))
+                    }
+                }
+                // Reminder chip — visible whenever a reminder is set (future =
+                // accent bell, past = faint); tap to change/remove.
+                if let at = memo.remindAt {
+                    Button { showReminderSheet = true } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: at > Date() ? "bell.fill" : "bell")
+                                .font(.system(size: 9, weight: .semibold))
+                            Text(at.formatted(.dateTime.day().month().hour().minute()))
+                                .font(.system(size: 11))
+                        }
+                        .foregroundStyle(at > Date() ? Color.skAccentText : Color.skTextFaint)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(at > Date() ? Color.skAccentSoft : Color.skElev,
+                                    in: .rect(cornerRadius: 7, style: .continuous))
+                    }
+                    .accessibilityIdentifier("reminder-chip")
+                }
+                Button { openTagEditor() } label: {
+                    Text("+ Tag")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.skTextDim)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(Color.skElev, in: .rect(cornerRadius: 7, style: .continuous))
+                }
+                .accessibilityIdentifier("add-tag-button" + suffix)
+            }
+
+            // The 10-circle significance control (SignificanceCircles.swift —
+            // mocks/significance-circles.html): tap circle N → 0.N, re-tap →
+            // Not rated. Flag-to-send: 0 stays on the phone, >0 syncs.
+            SignificanceCircles(value: $memo.significance) { repository.save() }
+                .padding(.top, 14)
+
+            // Mac's polish: the summary card (when present) above the body.
+            if let summary = macPolish?.summary.trimmingCharacters(in: .whitespacesAndNewlines),
+               !summary.isEmpty {
+                summaryCard(summary)
+                    .padding(.top, 16)
+            }
+
+            if let label = diarStatus.label(for: memo.id) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        // Diarization is opaque (no real %) — show an honest
+                        // ticking elapsed time so it's clearly still working.
+                        TimelineView(.periodic(from: .now, by: 1)) { _ in
+                            Text(diarStatus.labelWithElapsed(for: memo.id) ?? label)
+                                .font(.system(size: 12, weight: .medium)).foregroundStyle(Color.skTextDim)
+                        }
+                    }
+                    if diarStatus.isIdentifying(memo.id) {
+                        Text("This can take a while — it keeps going if you leave.")
+                            .font(.system(size: 11)).foregroundStyle(Color.skTextFaint)
+                    }
+                }
+                .padding(.top, 14)
+                .accessibilityIdentifier("diarization-status" + suffix)
+            }
+
+            // Reading mode: transcription in flight → the body is read-only and
+            // this pill says why (the old view-swap's status, now in the header).
+            if !memo.isShareCapture, memo.transcriptStatus == .transcribing {
+                StatusPill(style: .working, label: "Transcribing")
+                    .padding(.top, 14)
+            }
+
+            if !memo.isShareCapture, memo.transcriptStatus == .failed,
+               (memo.transcript ?? "").isEmpty {
+                transcriptionFailedMessage
+                    .padding(.top, 14)
+            }
+
+            // Audiobook capture: the styled, QUOTE-PROTECTED block above the
+            // editable ramble — with live karaoke through the quote's words
+            // during playback (they run from sidecar index 0).
+            if let quote = memo.captureQuote {
+                Group {
+                    if player.isPlaying, !timings.isEmpty {
+                        CaptureQuoteFrame(attribution: memo.quoteAttributionLabel) {
+                            QuoteKaraokeText(text: quote.displayText, timings: timings,
+                                             player: player, clock: player.clock)
+                        }
+                    } else {
+                        CaptureQuoteBlock(quote: quote.displayText, attribution: memo.quoteAttributionLabel)
+                    }
+                }
+                .padding(.top, 18)
+            }
+        }
+    }
+
+    private var transcriptionFailedMessage: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            StatusPill(style: .error, label: "Transcription failed", systemImage: "exclamationmark.triangle.fill")
+            Text("It'll be transcribed on your Mac when you sync — or type it yourself below.")
+                .font(.footnote).foregroundStyle(Color.skTextDim)
+        }
+    }
+
+    /// Below-the-body footer inside the editor's scroll: the people row +
+    /// "Linked from" backlinks.
+    private func noteFooter(isCurrent: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !spans.isEmpty {
+                peopleInNoteRow
+                    .accessibilityIdentifier(isCurrent ? "people-in-note-row" : "people-in-note-row-offscreen")
+            }
+            if !backlinks.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    SectionLabel("LINKED FROM")
+                    ForEach(backlinks, id: \.id) { link in
+                        Button { onOpenMemo(link.id) } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.turn.up.left")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Color.skTextFaint)
+                                Text(link.title)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.skText)
+                                    .lineLimit(1)
+                                Spacer(minLength: 4)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Color.skTextFaint)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 9)
+                            .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
+                            .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
+                        }
+                        .accessibilityIdentifier(isCurrent ? "backlink-row" : "backlink-row-offscreen")
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, Theme.Space.margin)
+        .padding(.top, 4)
+    }
+
+    /// Who links HERE: scan every live memo's transcript for this memo's id.
+    /// Cheap contains() pre-filter, exact via MemoLinkSyntax; off-main.
+    private func recomputeBacklinks() {
+        let myID = memo.id
+        let others: [(UUID, String, String?)] = repository.allMemos()
+            .filter { $0.id != myID }
+            .map { ($0.id, $0.title ?? $0.firstTranscriptLine ?? "Untitled", $0.transcript) }
+        Task.detached(priority: .utility) {
+            let marker = "[[memo:\(myID.uuidString)"
+            let found: [(id: UUID, title: String)] = others.compactMap { id, title, transcript in
+                guard let t = transcript, t.contains(marker),
+                      MemoLinkSyntax.targets(in: t).contains(myID) else { return nil }
+                return (id: id, title: String(title.prefix(60)))
+            }
+            await MainActor.run { backlinks = Array(found.prefix(6)) }
+        }
+    }
+
+    /// One downstream for both photo sources (camera + library): insert at the
+    /// caret the accessory captured, mirror to CloudKit, OCR for search.
+    private func insertPickedPhoto(_ image: UIImage) {
+        bodyProxy.insertPhoto(image)
+        AssetMaterializer.capture(memoID: memo.id, repository: repository)
+        PhotoTextIndexer.run(repository)
+    }
+
+    /// Markup saved back into a photo/file: re-mirror to CloudKit (the
+    /// size-change capture), re-OCR an inline photo (its manifest text resets
+    /// to un-scanned), and rebuild the editor's thumbnail (mtime-keyed cache
+    /// decodes fresh).
+    private func photoWasEdited(_ target: QuickLookTarget) {
+        if let n = target.marker,
+           var meta = memo.metadata, var manifest = meta.imageManifest,
+           n >= 1, n <= manifest.count {
+            manifest[n - 1].text = nil
+            meta.imageManifest = manifest
+            memo.metadata = meta
+            repository.save()
+        }
+        AssetMaterializer.capture(memoID: memo.id, repository: repository)
+        PhotoTextIndexer.run(repository)
+        bodyProxy.refreshAttachments()
+    }
+
+    /// Everything linkable from here: most recent first, self excluded.
+    private func memoLinkCandidates() -> [(id: UUID, title: String, subtitle: String)] {
+        repository.allMemos()
+            .filter { $0.id != memo.id }
+            .map { m in
+                (id: m.id,
+                 title: (m.title ?? m.firstTranscriptLine ?? "Untitled").trimmingCharacters(in: .whitespaces),
+                 subtitle: MemoDate.label(m.recordedAt))
+            }
+    }
+
+    /// Conversation body — speaker-attributed turns. The per-tick karaoke state
+    /// is isolated in `ConversationTurnsSection` so only that subtree re-renders
+    /// on the player clock, not this page.
+    @ViewBuilder private var conversationContent: some View {
+        if let turns = SpeakerTranscript.parse(memo.transcript) {
+            ConversationTurnsSection(
+                player: player, clock: player.clock, timings: timings, turns: turns,
+                tapToSeek: tapToSeek,
+                onTag: startAssigning(_:_:),
+                onSeek: seekToWord,
+                onEditText: editTurnText,
+                imageURL: turnImageURL
+            )
+            .padding(.top, 18)
+        }
+    }
+
+    /// C3 capture-item body — pinned source block + annotation editor (legacy).
+    @ViewBuilder private var captureContent: some View {
+        captureSourceBlock
+            .padding(.top, 18)
+        captureAnnotationSection
+            .padding(.top, 14)
+    }
+
+    /// Re-derive the name tiers off-main (pure Sanitiser scan). Ordinary voice
+    /// memos only — captures show a quote block, conversations route to
+    /// SpeakerTurnsView.
+    private func recomputeSpans() {
+        guard !people.isEmpty, !memo.isShareCapture, memo.captureQuote == nil,
+              SpeakerTranscript.parse(memo.transcript) == nil else {
+            spans = []
+            return
+        }
+        let text = activeBodyText
+        let roster = people
+        let never = Set(memo.nameResolutions.unlinkedNames)
+        let picks = memo.nameResolutions.namePicks
+        Task.detached(priority: .userInitiated) {
+            let result = Sanitiser.nameSpans(inRaw: text, people: roster,
+                                             neverLink: never, namePicks: picks)
+            await MainActor.run { spans = result }
+        }
     }
 
     private func startAssigning(_ index: Int, _ speaker: String) {
@@ -580,66 +1055,9 @@ private struct MemoPageView: View {
         return Text(line.isEmpty ? "Add a title" : line).foregroundStyle(Color.skTextFaint)
     }
 
-    private func addTag() {
-        // Accept several comma-separated tags in one go (device ask: "select a lot
-        // of tags"); de-duped against the memo's existing tags.
-        let incoming = Memo.parseTagInput(newTag)
-        newTag = ""
-        var added = false
-        for t in incoming where !memo.tags.contains(t) { memo.tags.append(t); added = true }
-        guard added else { return }
-        memo.markEdited()
-        repository.save()
-    }
-
-    private func removeTag(_ tag: String) {
-        memo.tags.removeAll { $0 == tag }
-        memo.markEdited()
-        repository.save()
-    }
-
-    // MARK: - Transcript (always editable in place; karaoke on playback)
-
-    /// Conversation notes render as speaker-attributed turns (their own karaoke +
-    /// inline editing); everything else — ordinary memos AND audiobook captures —
-    /// goes through `TranscriptBodyView`, ONE component with three explicit modes
-    /// (editing / playing full-text karaoke / reading while transcribing).
-    @ViewBuilder private var transcriptSection: some View {
-        if let turns = SpeakerTranscript.parse(memo.transcript) {
-            // Conversation note → speaker-attributed turns. Tap the NAME to assign/merge;
-            // paused → tap the TEXT to edit it (fix a word, move a boundary word); playing
-            // → karaoke highlight (+ tap-to-seek) like the rest of the app.
-            SpeakerTurnsView(
-                turns: turns,
-                onTag: startAssigning(_:_:),
-                activeWord: (player.isPlaying && !timings.isEmpty) ? Karaoke.activeWordIndex(timings, at: player.currentTime) : nil,
-                tapToSeek: tapToSeek,
-                onSeek: seekToWord,
-                onEditText: editTurnText,
-                imageURL: turnImageURL
-            )
-        } else {
-            TranscriptBodyView(
-                memo: memo, player: player,
-                onCommit: { memo.markEdited(); repository.save() },
-                nameSpans: transcriptNameSpans,
-                onTapName: { resolveTarget = NameResolveTarget(span: $0) },
-                polishedBinding: polishedBinding
-            )
-        }
-    }
-
-    /// Tiered name spans for the in-place linking surface — over the ACTIVE body (the
-    /// polished copy-edit when present, else the raw transcript). Ordinary voice memos only
-    /// (captures show a quote block; conversations route to `SpeakerTurnsView`), and skipped
-    /// during playback (the editor is swapped for karaoke; recomputing every tick is waste).
-    private var transcriptNameSpans: [NameSpan] {
-        guard !player.isPlaying, !people.isEmpty,
-              !memo.isShareCapture, memo.captureQuote == nil,
-              SpeakerTranscript.parse(memo.transcript) == nil else { return [] }
-        return Sanitiser.nameSpans(inRaw: activeBodyText, people: people,
-                                   neverLink: Set(memo.nameResolutions.unlinkedNames),
-                                   namePicks: memo.nameResolutions.namePicks)
+    private func openTagEditor() {
+        libraryTags = repository.allTags()
+        showTagEditor = true
     }
 
     // MARK: - Mac polish (Phase 4)
@@ -760,20 +1178,24 @@ private struct MemoPageView: View {
 
     private func applyLink(_ alias: String, to canonical: String) {
         memo.linkName(alias: alias, to: canonical); repository.save()
+        recomputeSpans()
     }
     private func applyKeepPlain(_ alias: String) {
         memo.keepNamePlain(alias: alias); repository.save()
+        recomputeSpans()
     }
     /// Unlink a LINKED name → plain, with a reversible Undo toast restoring the exact
     /// prior resolutions (the pick / auto-link), not just the default tier.
     private func applyUnlink(_ span: NameSpan) {
         let prior = memo.nameResolutions
         memo.keepNamePlain(alias: span.alias); repository.save()
+        recomputeSpans()
         let alias = span.alias
         withAnimation(Theme.Motion.spring) {
             undoToast = NameUndoToast(message: "Unlinked — “\(alias)” is plain text here") {
                 memo.nameResolutions = prior
                 memo.markEdited(); repository.save()
+                recomputeSpans()
                 withAnimation(Theme.Motion.spring) { undoToast = nil }
             }
         }
@@ -805,7 +1227,7 @@ private struct MemoPageView: View {
     // MARK: - People in this note (chip surface, mock state 4)
 
     private var linkedCount: Int {
-        Set(transcriptNameSpans.filter { $0.tier == .linked }.compactMap { $0.canonical?.lowercased() }).count
+        Set(spans.filter { $0.tier == .linked }.compactMap { $0.canonical?.lowercased() }).count
     }
 
     private var peopleInNoteRow: some View {
@@ -822,7 +1244,6 @@ private struct MemoPageView: View {
             .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
             .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
         }
-        .accessibilityIdentifier("people-in-note-row")
     }
 
     /// One candidate person for the note, with the alias they go by here + whether they're
@@ -834,7 +1255,7 @@ private struct MemoPageView: View {
     private var noteCandidateChips: [PersonChip] {
         var aliasFor: [String: String] = [:], displayFor: [String: String] = [:]
         var order: [String] = [], linkedSet = Set<String>()
-        for span in transcriptNameSpans {
+        for span in spans {
             if span.tier == .linked, let c = span.canonical { linkedSet.insert(c.lowercased()) }
             for cand in span.candidates {
                 let key = cand.canonical.lowercased()
@@ -902,6 +1323,7 @@ private struct MemoPageView: View {
         if chip.linked { memo.keepNamePlain(alias: chip.alias) }
         else { memo.linkName(alias: chip.alias, to: chip.canonical) }
         repository.save()
+        recomputeSpans()
     }
 
     private struct MetaChip: Identifiable { let id = UUID(); let text: String; let symbol: String? }
@@ -945,14 +1367,30 @@ private struct MemoPageView: View {
             case .image:
                 captureImageEmbed
             case .file:
-                captureFileCard(sc: sc)
+                // A PDF (doc scan / shared) renders INLINE — first page as a
+                // block, "N pages" chip, tap → viewer (signed-off mock
+                // pdf-inline-capture.html A: "text, PDF, text", Notes idiom).
+                // Non-PDF files and unreadable PDFs keep the card.
+                if let url = memo.sharedFileURL, url.pathExtension.lowercased() == "pdf",
+                   let entry = PDFThumbnailLoader.firstPage(
+                       at: url, maxWidth: UIScreen.main.bounds.width - 2 * Theme.Space.margin) {
+                    CapturePDFInlineBlock(entry: entry) {
+                        let target = QuickLookTarget(url: url, marker: nil)
+                        markupQuickLook.present(url: url, anchor: nil) { edited in
+                            if edited { photoWasEdited(target) }
+                        }
+                    }
+                } else {
+                    captureFileCard(sc: sc)
+                }
             }
         }
     }
 
-    /// A shared document (PDF/etc.) capture: a card showing the filename + an Open
-    /// button that previews it in QuickLook. (2026-06-21 "share a PDF and have it
-    /// live in there".)
+    /// A NON-PDF shared document capture (or an unreadable PDF): a card showing
+    /// the filename + an Open button that previews it in QuickLook.
+    /// (2026-06-21 "share a PDF and have it live in there"; PDFs themselves
+    /// render inline since 2026-07-07 — CapturePDFInlineBlock.)
     private func captureFileCard(sc: SharedContent) -> some View {
         HStack(spacing: 10) {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -977,7 +1415,13 @@ private struct MemoPageView: View {
             Spacer(minLength: 4)
 
             if memo.sharedFileURL != nil {
-                Button { quickLookURL = memo.sharedFileURL } label: {
+                Button {
+                    guard let url = memo.sharedFileURL else { return }
+                    let target = QuickLookTarget(url: url, marker: nil)
+                    markupQuickLook.present(url: url, anchor: nil) { edited in
+                        if edited { photoWasEdited(target) }
+                    }
+                } label: {
                     Text("Open")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.skAccent)
@@ -1175,68 +1619,127 @@ private struct CaptureAnnotationEditor: View {
     }
 }
 
+// MARK: - Conversation turns (per-tick isolation)
+
+/// Hosts `SpeakerTurnsView` and owns the karaoke tick: it observes the player
+/// CLOCK, so during playback only this subtree re-evaluates per position change —
+/// the page above it re-renders only on rare player state (play/pause).
+private struct ConversationTurnsSection: View {
+    @ObservedObject var player: AudioPlayerModel
+    @ObservedObject var clock: PlayerClock
+    let timings: [WordTiming]
+    let turns: [SpeakerTranscript.Turn]
+    let tapToSeek: Bool
+    let onTag: (Int, String) -> Void
+    let onSeek: (Int) -> Void
+    let onEditText: (Int, String) -> Void
+    let imageURL: (Int) -> URL?
+
+    var body: some View {
+        SpeakerTurnsView(
+            turns: turns,
+            onTag: onTag,
+            activeWord: (player.isPlaying && !timings.isEmpty)
+                ? Karaoke.activeWordIndex(timings, at: clock.time) : nil,
+            tapToSeek: tapToSeek,
+            onSeek: onSeek,
+            onEditText: onEditText,
+            imageURL: imageURL
+        )
+    }
+}
+
 // MARK: - Player bar
 
 private struct PlayerBar: View {
     @ObservedObject var player: AudioPlayerModel
+    // Position ticks are observed HERE only — the page tree above stays out of
+    // the 20 Hz re-render loop (note-editing study 2026-07-06).
+    @ObservedObject var clock: PlayerClock
 
     var body: some View {
-        VStack(spacing: 6) {
-            Slider(value: Binding(
-                get: { player.currentTime },
-                set: { player.seek(to: $0) }
-            ), in: 0...max(player.duration, 0.01))
-            .tint(.skAccent)
+        // The COMPACT pill (signed-off spec, −60% height): play · ±10 s ·
+        // scrubber with times · speed — one ~44 pt row. The whole scrubber
+        // zone is the drag target (no more fishing for a 3-pt slider).
+        HStack(spacing: 10) {
+            Button { player.togglePlay() } label: {
+                Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(Color.skAccent, in: .circle)
+                    .shadow(color: .skAccent.opacity(0.38), radius: 5, y: 3)
+            }
+            .accessibilityIdentifier("play-button")
             .disabled(!player.hasAudio)
 
-            HStack {
-                Text(timeString(player.currentTime))
-                Spacer()
-                Text(timeString(player.duration))
+            Button { player.skip(-10) } label: {
+                Image(systemName: "gobackward.10")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.skText)
+                    .frame(width: 26, height: 32)
             }
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Color.skTextDim)
+            .accessibilityIdentifier("skip-back-button")
 
-            HStack(spacing: 34) {
-                Button { player.skip(-10) } label: {
-                    skipLabel("gobackward.10")
-                }
-                .accessibilityIdentifier("skip-back-button")
-
-                Button { player.togglePlay() } label: {
-                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.white)
-                        .frame(width: 46, height: 46)
-                        .background(Color.skAccent, in: .circle)
-                        .shadow(color: .skAccent.opacity(0.4), radius: 7, y: 4)
-                }
-                .accessibilityIdentifier("play-button")
-                .disabled(!player.hasAudio)
-
-                Button { player.skip(10) } label: {
-                    skipLabel("goforward.10")
-                }
-                .accessibilityIdentifier("skip-fwd-button")
+            Button { player.skip(10) } label: {
+                Image(systemName: "goforward.10")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.skText)
+                    .frame(width: 26, height: 32)
             }
-            .foregroundStyle(Color.skText)
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .trailing) {
-                Button { player.cycleRate() } label: {
-                    Text(rateLabel)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.skText)
-                        .padding(.horizontal, 9).padding(.vertical, 5)
-                        .background(Color.skSurface, in: .rect(cornerRadius: 9, style: .continuous))
-                        .overlay(RoundedRectangle.sk(9).stroke(Color.skBorder, lineWidth: 1))
-                }
-                .accessibilityIdentifier("speed-button")
+            .accessibilityIdentifier("skip-fwd-button")
+
+            Text(timeString(clock.time))
+                .font(.system(size: 10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.skTextDim)
+
+            scrubber
+
+            Text(timeString(player.duration))
+                .font(.system(size: 10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.skTextDim)
+
+            Button { player.cycleRate() } label: {
+                Text(rateLabel)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.skText)
+                    .padding(.horizontal, 7).padding(.vertical, 4)
+                    .background(Color.skSurface, in: .rect(cornerRadius: 8, style: .continuous))
+                    .overlay(RoundedRectangle.sk(8).stroke(Color.skBorder, lineWidth: 1))
             }
+            .accessibilityIdentifier("speed-button")
         }
+        .frame(height: 40)
     }
 
-    private func skipLabel(_ symbol: String) -> some View {
-        Image(systemName: symbol).font(.system(size: 21))
+    /// Thin progress line with a knob; the FULL-HEIGHT zone around it accepts
+    /// the scrub drag.
+    private var scrubber: some View {
+        GeometryReader { geo in
+            let progress = player.duration > 0 ? min(max(clock.time / player.duration, 0), 1) : 0
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.14)).frame(height: 3.5)
+                Capsule().fill(Color.skAccent)
+                    .frame(width: max(3.5, geo.size.width * progress), height: 3.5)
+                Circle().fill(.white)
+                    .frame(width: 11, height: 11)
+                    .offset(x: geo.size.width * progress - 5.5)
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { v in
+                        guard player.duration > 0 else { return }
+                        player.seek(to: (v.location.x / geo.size.width) * player.duration)
+                    }
+            )
+        }
+        .frame(height: 40)
+        .disabled(!player.hasAudio)
+        .accessibilityIdentifier("player-scrubber")
     }
 
     private var rateLabel: String {
@@ -1250,22 +1753,35 @@ private struct PlayerBar: View {
     }
 }
 
-// MARK: - Page dots
+// MARK: - Share sheet (share note OUT — survey fold)
 
-private struct PageDots: View {
-    let count: Int
-    let index: Int
-
-    var body: some View {
-        HStack(spacing: 5) {
-            ForEach(0..<count, id: \.self) { i in
-                Capsule()
-                    .fill(i == index ? Color.skAccent : Color.skTextFaint)
-                    .frame(width: i == index ? 18 : 6, height: 6)
-            }
-        }
-        .animation(Theme.Motion.snappy, value: index)
+/// Markdown/word-count helpers for sharing a note out. Pure, unit-testable.
+enum MemoShare {
+    /// "# Title\n\nbody" with `[[img_NNN]]` markers stripped (they mean
+    /// nothing outside the app; the photos travel as files when needed).
+    static func markdown(title: String?, body: String) -> String {
+        let cleaned = body
+            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let title = title?.trimmingCharacters(in: .whitespaces), !title.isEmpty else { return cleaned }
+        return "# \(title)\n\n\(cleaned)"
     }
+
+    /// Spoken-word count — markers aren't words.
+    static func wordCount(of transcript: String?) -> Int {
+        guard let t = transcript else { return 0 }
+        return t.replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: " ", options: .regularExpression)
+            .split(whereSeparator: { $0.isWhitespace }).count
+    }
+}
+
+private struct ActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Name-linking presentation state
@@ -1283,4 +1799,41 @@ struct PersonSheetRequest: Identifiable {
     let id = UUID()
     let canonical: String?
     let prefillAlias: String?
+}
+
+/// A PDF capture rendered INLINE in the note (signed-off mock
+/// `pdf-inline-capture.html` variant A, round-4 ask "text, PDF, text — like
+/// Apple Notes"): the first page as a full-width block with an "N pages"
+/// chip; tapping anywhere opens the viewer (all pages + markup). Replaces
+/// the file card for readable PDFs — doc scans and shared PDFs alike.
+struct CapturePDFInlineBlock: View {
+    let entry: PDFThumbnailLoader.Entry
+    var onTap: () -> Void = {}
+
+    var body: some View {
+        Button(action: onTap) {
+            Image(uiImage: entry.image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.skBorder, lineWidth: 1)
+                )
+                .overlay(alignment: .bottomTrailing) {
+                    if entry.pageCount > 1 {
+                        Text("\(entry.pageCount) pages")
+                            .font(.system(size: 10.5, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(.black.opacity(0.55), in: .rect(cornerRadius: 7, style: .continuous))
+                            .padding(9)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("capture-pdf-inline")
+        .accessibilityLabel(entry.pageCount > 1 ? "PDF, \(entry.pageCount) pages" : "PDF")
+    }
 }

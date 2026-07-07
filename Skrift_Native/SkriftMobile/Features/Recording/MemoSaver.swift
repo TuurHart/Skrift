@@ -38,7 +38,14 @@ struct MemoSaver {
     @discardableResult
     func save(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = [], provisionalTranscript: String? = nil, capturedMetadata: MemoMetadata? = nil) -> UUID {
         let id = persist(tempURL: tempURL, duration: duration, photos: photos, provisional: provisionalTranscript)
-        Task { await applyMetadata(id: id, pre: capturedMetadata) }
+        Task {
+            await applyMetadata(id: id, pre: capturedMetadata)
+            // OCR the just-captured photos NOW (after the metadata merge so the
+            // manifest is settled) — the launch/foreground sweeps alone left a
+            // fresh memo's photos unsearchable for the rest of the session
+            // (device round 1, build 31).
+            PhotoTextIndexer.run(repository)
+        }
         Task { await runTranscription(id: id) }
         // Capture the recording (+ any photos) as CloudKit-mirrored MemoAssets right
         // away (Phase 1c) so a fresh memo syncs its media without waiting for the next
@@ -202,6 +209,7 @@ struct MemoSaver {
         repository.save()
         DevLog.log("processVideo[\(id)] memo updated; recordedAt=\(recorded) now=\(Date()) → transcribe")
 
+        PhotoTextIndexer.run(repository)      // frame thumbnail → searchable now, not next launch
         await runTranscription(id: id)
         DevLog.log("processVideo[\(id)] done; final status=\(repository.memo(id: id).map { "\($0.transcriptStatus)" } ?? "GONE")")
         return true
@@ -344,6 +352,7 @@ struct MemoSaver {
     func saveAndTranscribe(tempURL: URL, duration: TimeInterval, photos: [CapturedPhoto] = []) async -> UUID {
         let id = persist(tempURL: tempURL, duration: duration, photos: photos, provisional: nil)
         await applyMetadata(id: id, pre: nil)
+        PhotoTextIndexer.run(repository)
         await runTranscription(id: id)
         return id
     }
