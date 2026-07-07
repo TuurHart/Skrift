@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 12
-updated: 2026-07-07T16:15:00.000Z
+updated: 2026-07-07T18:40:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -366,6 +366,40 @@ nodes:
     win: the six approved gap features run on BOTH apps from shared code —
       locked notes stay out of the vault, OCR'd photos are searchable,
       reminders ring on whichever device you're holding
+  - id: RecHard
+    title: Recording hardening + heat diet
+    lane: 0
+    order: 5.8
+    status: inprogress
+    eff: M
+    note: "Fable audit 2026-07-07 off the user's freeze/half-recording report
+      (warm iPhone 13). Two causes: NO interruption handling (call/Siri/alarm
+      killed capture silently — the half-message data loss) and a brutal duty
+      cycle (live captions re-ran full ASR over the whole ≤25 s window every
+      0.6 s + camera ran all recording + ~30 re-renders/s). Built same day,
+      worktree nice-shtern, 5 commits, 588 unit tests green. Detail:
+      backlog.md 🎙."
+    shipped:
+      - 2026-07-07 · Interruption observer + foreground re-arm + capture
+        watchdog + resume hardening [940da12]
+      - 2026-07-07 · @Observable per-property observation, child-view split,
+        4 Hz timer, auto-off into the service clock [9d1def1]
+      - 2026-07-07 · Camera session only while the sheet is open; model
+        preload unblocked from the GPS fix [3b0e683]
+      - 2026-07-07 · Self-pacing caption polls (thermal floors) + early
+        rotation + devlog duty-cycle trace [f43cf6e]
+      - 2026-07-07 · Live Activity pushes a ~220-char tail at ≥1.5 s [733ce76]
+    backlog:
+      - Device round on the 13 — devlog snapshot-ms trace; call/alarm
+        mid-record survives; camera-sheet latency; freeze gone?
+      - Phase 3 (own session, riskiest) — audio session activate/deactivate +
+        engine start/stop off the main thread
+      - Spike — FluidAudio SlidingWindowAsrManager for captions (takes the
+        already-loaded AsrModels; replaces the snapshot loop)
+      - Extraction pass — TapWriter / RouteRecovery / CaptionFeed once device
+        rounds lock behavior
+    win: "a hot old iPhone records a 10-min memo without freezing, and a
+      call/Siri/alarm mid-recording never silently kills capture"
   - id: P4
     title: On-device Polish
     lane: -1

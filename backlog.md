@@ -2,6 +2,39 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🎙 Recording robustness + heat diet (2026-07-07, worktree nice-shtern — roadmap `RecHard`)
+
+User report (iPhone 13, warm): tap record → UI froze, stop unresponsive, memo captured only HALF the
+message. Full-code audit found two separate causes, both fixed same day (5 commits, 588 unit tests
+green; **device round owed** — the sim can't fire interruptions or measure ANE duty):
+- **Data loss:** NO `interruptionNotification` handling — a call/Siri/alarm stops the engine with no
+  route/config event, so the recovery lattice never fired and the wall-clock timer kept counting over
+  dead capture. Fixed: interruption observer + foreground re-arm (iOS can skip `.ended`) + a
+  display-timer capture WATCHDOG (engine dead >2 s, no rebuild in flight → rebuild) + resume()
+  rebuilds when a plain start fails. The route-rebuild ladder itself is untouched (device-proven).
+- **Heat/freeze:** live captions re-ran FULL ASR over the whole ≤25 s live window every 0.6 s (ANE
+  ~100% duty, cost grows with the window) + the camera session ran the entire recording + the screen
+  re-rendered ~30×/s (20 Hz timer on a whole-object ObservableObject) + Live Activity got the whole
+  transcript every poll. Fixed: self-pacing polls (≥1.5× last snapshot cost, thermal floors
+  2.5 s/.serious 6 s/.critical) + early rotation (>10 s window once snapshots >1.2 s) + camera runs
+  only while the sheet is open + @Observable per-property observation with child-view splits (4 Hz
+  timer) + Live Activity pushes a word-aligned ~220-char tail at ≥1.5 s. DevLog now traces
+  window-size/snapshot-ms/rotations — pull `devlog.txt` on the next device round for the real numbers.
+
+**Owed / follow-ups:**
+- ⬜ Device round (13 + AirPods): freeze gone? snapshot-ms trace, mid-record call/alarm survives,
+  camera-sheet first-open latency (~½ s expected), auto-off still fires, Live Activity tail reads OK.
+- ⬜ Phase 3 (own session, riskiest): move session activate/deactivate + engine start/stop OFF the
+  main thread — `setActive` blocks 100–300 ms in `start()`/`stop()`; touches the hardened lattice.
+- ⬜ Spike: FluidAudio ships true streaming ASR we hand-rolled around — `SlidingWindowAsrManager`
+  **accepts the already-loaded `AsrModels`** (`loadModels(_:)`, same weights in RAM) with push
+  `streamAudio`/`finish`; would replace the snapshot loop with bounded incremental windows. Also
+  `StreamingEouAsrManager` (separate EOU weights). Quality/latency device eval needed.
+- ⬜ Extraction pass once device rounds lock behavior: TapWriter / RouteRecovery / CaptionFeed out of
+  the 1000-line `LiveRecordingService`; protocol-seam the `if mock` branches.
+- Deferred judgment calls: captions keep running while backgrounded (Lock-Screen Live Activity shows
+  them — thermal floors now bound the cost); memory-warning `unload()` still no-ops mid-recording.
+
 ## 🔭 Next unclaimed lane + code-verified quick hits (2026-07-06 Fable survey, worktree youthful-wozniak)
 
 Surveyed while three lanes were claimed elsewhere: note-editing (`claude/gracious-easley-e3fc96`),
