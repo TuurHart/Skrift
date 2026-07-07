@@ -174,16 +174,46 @@ Per-app wiring — `Skrift_Native/SkriftMobile/`:
    dot density, Places map with clusters; Journal replaces the Highlights tab slot. `-seedJournal`
    + `-openJournal` flags; 7 unit tests; home screen sim-screenshot verified against the mock.
    OWED: device eyeball (incl. pushed Calendar/Map screens) on the next Dev build.
-6. Search "Related" section + filter chips (person / place / month / kind) in `MemosListView`
-   search, and the Thread view (reached from a memo's Related card / context menu). Warm the
-   engine when the search field gains focus; Matches render instantly, Related fills in async —
-   never block the exact results on a model load. ⚠️ Rebase after the Bonjour-removal lane lands —
-   it edits `MemosListView.swift` too.
-7. Related-notes card on memo detail. **LAST — only after the note-editing lane merges** (it owns
-   `MemoDetail`). Build against the rebuilt detail view.
-8. Device pass on the iPhone 13 (Dev build): backfill duration + memory on the real corpus, jetsam
-   watch, asset-download UX. Then FEATURES.md rows + roadmap flip (P8 → done via Huginn) + fold
-   this doc per the docs-lean rule.
+6. ✅ **BUILT 2026-07-07** — search "Related · similar in meaning" section under the exact matches
+   (debounced async, engine warm-up on first keystroke, floor + exact-exclusion + the existing
+   filter sheet applied at render), ThreadView (arc + first-mention pill + "this note" seed
+   marker, sheet from the ⋯ menu, rows open via MemoOpenBridge), `-mockJournalIndex` +
+   `-initialSearch` + `-threadDemo` screenshot/UITest flags. Sim-verified: zero-substring query
+   surfaces both pricing memos; thread renders the two-node arc. **Deviations (deliberate):**
+   filter CHIPS not built — the merged list already has a SortFilterSheet (place/date/toggles)
+   that prefilters Related too; person/kind additions to that sheet + the calibration histogram
+   move to chunk 8's device pass.
+7. ✅ **BUILT 2026-07-07** — Related card in the note footer (editor pages), styled after the
+   "Linked from" section: up to `relatedK` sparkle rows (tap → pager jump via `onOpenMemo`) + the
+   "View thread · first mentioned <date>" CTA (sheet). Hidden when nothing clears the floor or the
+   index is inactive. `-journalMemoDemo` screenshot route; sim-verified on the seeded pricing
+   memo. NOTE: conversation/capture pages keep the legacy layout without the footer — the card
+   reaches them when those pages migrate to the editor architecture (note-editing phase 2).
+8. 🟡 **CODE HALF BUILT + INSTALLED 2026-07-07 (Dev build 40 on the iPhone 13).** Shipped:
+   Settings → "Journal & search" consent section (toggle → 295 MB download with status/failure
+   states → first sweep; disabling hides all semantic surfaces, model/index stay cached), sweep
+   duration logging, and the calibration harness (DEBUG "Log score histogram" row → gist-pair
+   percentiles to the devlog). Roadmap P8 → inprogress (v13).
+   **TUUR'S HALF (5 min on the phone):** open Skrift Dev → Settings → Journal & search → toggle ON
+   → wait for the download → background/foreground once (first sweep runs) → tap "Log score
+   histogram (dev)" → then play: Journal tab, a meaning-based search, a note's ⋯ → View Thread,
+   the Related card. **NEXT SESSION:** pull the devlog (devicectl appDataContainer copy,
+   com.skrift.mobile.dev, Documents/devlog.txt) → read sweep seconds + histogram percentiles →
+   set the real `RetrievalTuning` floors + jetsam check → flip P8 done via Huginn + fold this doc
+   per the docs-lean rule. Also owed: Settings-section + pushed-screens eyeball (device), iPad
+   layout pass, person/kind filter additions.
+
+## Device findings — build 40 live test (Tuur, 2026-07-07 evening)
+
+- ✅ **Semantic search VERIFIED ON DEVICE with real embeddings**: "trying something out" surfaced
+  the testing memos (no shared words); Related card + View Thread chain works ("that's what it
+  needs to be"). Calendar + map: "pretty fucking cool."
+- 🐛 FIXED in build 41: search keyboard had no dismiss path (swipe-to-dismiss added) · a young/
+  sparse corpus showed ZERO Looking-back cards (a "1 week ago" window added — alive in week one).
+- 💡 Map polish (logged): Photos-style zoom-adaptive clustering — clusters that pull apart as you
+  zoom (today's grouping is by place name, zoom-independent).
+- Still owed from the device pass: devlog pull (sweep duration + the histogram button's
+  percentiles) → set real floors; jetsam/memory check; Settings-section + Calendar/Map eyeballs.
 
 ## Fast-follows (named, user-approved 2026-07-06 — build right after chunk 8 if momentum allows)
 

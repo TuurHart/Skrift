@@ -205,20 +205,6 @@ final class AudiobookSession: ObservableObject {
 
     func togglePlay() { isPlaying ? pause() : play() }
 
-    /// Cold-launch restore (2026-07-06): arm the most recently PLAYED book as a
-    /// paused session so the mini-player capsule is present from first paint and
-    /// "continue my book" is one tap. Passive — no autoplay, no audio-session
-    /// activation (that happens on play()); `open()` bails if the audio isn't on
-    /// disk (a freed synced copy). Requires a real listening history
-    /// (`lastPlayedAt`), so a freshly imported never-played book doesn't move in
-    /// uninvited. A paused session is also exactly what `adoptSyncedPosition()`
-    /// needs to land a late CloudKit position import.
-    func restoreOnLaunch() {
-        guard !isActive else { return }
-        guard let recent = store.sortedByRecent.first, recent.lastPlayedAt != nil else { return }
-        open(recent)
-    }
-
     /// Siri / App Shortcut entry: resume the most recently played book (loads it
     /// if no session is active) and play. No-op when the library is empty —
     /// or while a memo recording is live (session priority: starting playback

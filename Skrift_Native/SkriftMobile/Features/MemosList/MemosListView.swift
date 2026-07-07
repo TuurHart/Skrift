@@ -44,6 +44,9 @@ struct MemosListView: View {
 
     @State private var path: [UUID] = []
     @State private var showRecord = false
+    /// Presents the audiobook player for the continue-card's body tap (hoisted
+    /// here: a cover on the card itself would die when its List row unmounts).
+    @State private var showBookPlayer = false
     @State private var lastHandledStart = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @ObservedObject private var memoOpen = MemoOpenBridge.shared
@@ -58,7 +61,10 @@ struct MemosListView: View {
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
-    @State private var search = ""
+    @State private var search = LaunchFlags.initialSearch ?? ""
+    /// Semantic hits for the current search (P8) — empty unless the journal
+    /// index is active AND something clears the floor.
+    @State private var related: [Memo] = []
     @State private var sort: MemoSort = .added
     @State private var filter = MemoFilter()
     @State private var editMode: EditMode = .inactive
@@ -71,29 +77,47 @@ struct MemosListView: View {
             ZStack(alignment: .bottom) {
                 Color.skBg.ignoresSafeArea()
 
-                if memos.isEmpty {
-                    emptyState
-                } else {
-                    listContent
+                VStack(spacing: 0) {
+                    headerRow
+                    if memos.isEmpty {
+                        // No list to scroll — the card sits pinned here.
+                        ContinueListeningCard(openPlayer: { showBookPlayer = true })
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 2)
+                        emptyState
+                    } else {
+                        listContent
+                    }
                 }
 
                 if editMode.isEditing {
                     selectionBar
                 } else {
-                    // The audiobook mini-player is GLOBAL now (AppTabView mounts it
-                    // as a bottom safeAreaInset on every tab, 2026-07-06), so this
-                    // screen keeps only the record FAB — which floats above the
-                    // capsule automatically via the shrunken safe area.
-                    recordFAB
+                    // ONE bottom row (Option A, mocks/notes-bottom-chrome.html):
+                    // compact book pill left (session-gated) + record right —
+                    // explicitly side by side so they can never overlap (the
+                    // build-40 regression: a tab-level safeAreaInset never
+                    // propagated into this NavigationStack on iOS 26 and the
+                    // capsule buried the record button).
+                    NotesBottomChrome {
+                        intentBridge.clearPendingStart()
+                        showRecord = true
+                    }
                 }
             }
+            // Compact header (mock notes-compact-header.html, 2026-07-07): the
+            // stock toolbar + large-title rows are replaced by ONE hand-rolled
+            // header line (~44pt returned to content). Root-only — pushed
+            // detail views keep their own nav bars.
+            .toolbar(.hidden, for: .navigationBar)
             .overlay(alignment: .top) { syncBannerView }
             .animation(Theme.Motion.spring, value: syncBanner)
-            .navigationTitle("Notes")
-            .toolbar { toolbarContent }
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .fullScreenCover(isPresented: $showRecord) {
                 RecordView(onSaved: { newID in path = [newID] })
+            }
+            .fullScreenCover(isPresented: $showBookPlayer) {
+                AudiobookPlayerView()
             }
             .onChange(of: intentBridge.startRequestID) { handleStartRequest() }
             .onChange(of: memoOpen.requestID) { handleOpenRequest() }
@@ -166,6 +190,14 @@ struct MemosListView: View {
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
             List(selection: $selected) {
+                // The continue-card is the FIRST ROW — content under the pinned
+                // search bar, scrolling away with the notes (device round 5,
+                // build 49: pinned-above-search read as stuck chrome). Renders
+                // nothing while a session is live / dismissed today / no book.
+                ContinueListeningCard(openPlayer: { showBookPlayer = true })
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 8, trailing: 16))
                 ForEach(groups, id: \.title) { group in
                     Section {
                         ForEach(group.memos) { memo in
@@ -228,7 +260,7 @@ struct MemosListView: View {
                             .foregroundStyle(Color.skTextDim)
                     }
                 }
-                if groups.isEmpty {
+                if groups.isEmpty && relatedDisplay.isEmpty {
                     Text("No matches")
                         .font(.subheadline)
                         .foregroundStyle(Color.skTextDim)
@@ -236,6 +268,30 @@ struct MemosListView: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .padding(.top, 60)
+                }
+                // P8: semantic "Related" under the exact matches — appears only
+                // when the journal index is active (or -mockJournalIndex) and
+                // something clears the floor; passes the same filter sheet.
+                if !relatedDisplay.isEmpty {
+                    Section {
+                        ForEach(relatedDisplay) { memo in
+                            MemoRow(memo: memo) { path.append(memo.id) }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                        }
+                    } header: {
+                        HStack(spacing: 6) {
+                            Text("RELATED")
+                                .font(.system(size: 11.5, weight: .bold))
+                                .kerning(0.5)
+                                .foregroundStyle(Color.skTextDim)
+                            Text("similar in meaning")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.skTextFaint)
+                        }
+                        .accessibilityIdentifier("related-section-header")
+                    }
                 }
                 // Trash entry point, Voice Memos-style: a quiet footer row that
                 // only exists while the trash is non-empty. Hidden during
@@ -252,6 +308,14 @@ struct MemosListView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            // Room for the bottom chrome row (pill + record): the row spans the
+            // full width now, so without this the LAST card could never scroll
+            // clear of it.
+            .contentMargins(.bottom, 84, for: .scrollContent)
+            // Device finding 2026-07-07 (build 40): no way to close the keyboard
+            // after searching — swipe the list to dismiss it.
+            .scrollDismissesKeyboard(.immediately)
+            .task(id: search) { await refreshRelated() }
             .environment(\.editMode, $editMode)
             .accessibilityIdentifier("memos-list")
             // Pull-to-refresh: a manual nudge for "show me what synced" — runs the
@@ -333,39 +397,45 @@ struct MemosListView: View {
 
     // MARK: - Toolbar
 
-    @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-        // Doc scan lives on the LEADING side: round 2+3 proved iOS 26 eats a
-        // second trailing item no matter the shape (separate items AND one
-        // group both dropped it, with isSupported=true in the devlog — build
-        // 35 probe). Leading has one text button and renders reliably.
-        ToolbarItemGroup(placement: .topBarLeading) {
+    /// ONE header line: "Notes" 30pt + Select · scan · filter inline right
+    /// (mock notes-compact-header.html — the stock toolbar row above the large
+    /// title was pure cost). The iOS-26 "second trailing toolbar item gets
+    /// eaten" gotcha (build-35 probe) doesn't apply to a hand-rolled HStack,
+    /// so doc-scan rejoins the actions cluster.
+    private var headerRow: some View {
+        HStack(spacing: 18) {
+            ScreenTitle("Notes")
+            Spacer(minLength: 0)
             Button(editMode.isEditing ? "Done" : "Select") {
                 withAnimation(Theme.Motion.snappy) {
                     if editMode.isEditing { editMode = .inactive; selected.removeAll() }
                     else { editMode = .active }
                 }
             }
+            .font(.system(size: 16))
+            .tint(.skAccent)
             .accessibilityIdentifier("select-button")
-            if !editMode.isEditing, DocScanView.isSupported {
-                // Scan a paper document → PDF capture (chunk 9). No sim camera
-                // → the button honestly disappears there.
-                Button { showDocScanner = true } label: {
-                    Image(systemName: "doc.viewfinder")
-                }
-                .accessibilityIdentifier("doc-scan-button")
-            }
-        }
-        // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
-        // 2026-06-19); sync is fully automatic over CloudKit, so there's no
-        // manual sync button — sort/filter is the lone trailing item.
-        ToolbarItemGroup(placement: .topBarTrailing) {
             if !editMode.isEditing {
+                if DocScanView.isSupported {
+                    // Scan a paper document → PDF capture (chunk 9). No sim
+                    // camera → the button honestly disappears there.
+                    Button { showDocScanner = true } label: {
+                        Image(systemName: "doc.viewfinder").font(.system(size: 17))
+                    }
+                    .tint(.skAccent)
+                    .accessibilityIdentifier("doc-scan-button")
+                }
                 Button { showSortFilter = true } label: {
                     Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+                        .font(.system(size: 17))
                 }
+                .tint(.skAccent)
                 .accessibilityIdentifier("sort-filter-button")
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
     }
 
     // MARK: - Bottom bars
@@ -413,19 +483,8 @@ struct MemosListView: View {
         if let id = memoOpen.consume() { path = [id] }
     }
 
-    private var recordFAB: some View {
-        Button { intentBridge.clearPendingStart(); showRecord = true } label: {
-            Image(systemName: "mic.fill")
-                .font(.system(size: 24))
-                .foregroundStyle(.white)
-                .frame(width: 64, height: 64)
-                .background(Color.skRed, in: .circle)
-                .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 4))
-                .shadow(color: .skRed.opacity(0.45), radius: 12, y: 8)
-        }
-        .accessibilityIdentifier("new-recording-button")
-        .padding(.bottom, 26)
-    }
+    // (recordFAB moved into NotesBottomChrome — the Option-A split row at the
+    // bottom of this file.)
 
     private var selectionBar: some View {
         HStack {
@@ -525,6 +584,31 @@ struct MemosListView: View {
 
     private func matchesSearch(_ memo: Memo) -> Bool {
         memo.matches(query: search)
+    }
+
+    /// The rendered Related section: raw semantic hits minus exact matches,
+    /// passed through the same filter sheet as everything else.
+    private var relatedDisplay: [Memo] {
+        guard !related.isEmpty else { return [] }
+        let exact = Set(filtered.map(\.id))
+        return related.filter { !exact.contains($0.id) && matchesFilter($0) }
+    }
+
+    /// Debounced semantic lookup for the current query (P8). Exact matches
+    /// never wait on this — it fills the Related section in async.
+    private func refreshRelated() async {
+        let q = search.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, JournalIndexService.shared.isActive else {
+            if !related.isEmpty { related = [] }
+            return
+        }
+        JournalIndexService.shared.warmUp()
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        guard !Task.isCancelled else { return }
+        let scores = await JournalIndexService.shared.searchScores(q, repository: repository)
+        guard !Task.isCancelled, q == search.trimmingCharacters(in: .whitespaces) else { return }
+        let byID = Dictionary(uniqueKeysWithValues: memos.map { ($0.id, $0) })
+        related = JournalIndexService.relatedResults(scores: scores, excluding: [], memosByID: byID)
     }
 
     private func matchesFilter(_ memo: Memo) -> Bool {
@@ -985,5 +1069,57 @@ private struct SortFilterSheet: View {
             }
         }
         .presentationDetents([.medium])
+    }
+}
+
+// MARK: - Bottom chrome (Option A — mocks/notes-bottom-chrome.html)
+
+/// The Notes bottom row: compact book pill LEFT (only while a book session is
+/// active) + the record button RIGHT — one 60pt row, explicitly side by side so
+/// the two can never stack or overlap (the build-40 regression). No session →
+/// just the record button in the right corner. Its own view so only IT
+/// re-renders on the session's 2 Hz playback ticks, never the memos list.
+private struct NotesBottomChrome: View {
+    let onRecord: () -> Void
+    @ObservedObject private var session = AudiobookSession.shared
+    /// Mirror of the continue-card's dismissal day: starting a book VOIDS a
+    /// ×-for-today (re-engagement rule, device round 4). It lives HERE because
+    /// this view stays mounted while the card's List row comes and goes.
+    @AppStorage("continueCardDismissedDay") private var cardDismissedDay = ""
+
+    var body: some View {
+        // 16pt pill↔record gap (V2a "real air" — Henry's separation note).
+        HStack(spacing: 16) {
+            if session.isActive {
+                AudiobookMiniPill()
+                    .frame(maxWidth: .infinity)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else {
+                Spacer(minLength: 0)
+            }
+            recordButton
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 8)
+        .animation(Theme.Motion.spring, value: session.isActive)
+        .onChange(of: session.isActive) { _, active in
+            if active {
+                DevLog.log("bottomChrome void — session active, clearing cardDismissedDay (was '\(cardDismissedDay)')")
+                cardDismissedDay = ""
+            }
+        }
+    }
+
+    private var recordButton: some View {
+        Button(action: onRecord) {
+            Image(systemName: "mic.fill")
+                .font(.system(size: 23))
+                .foregroundStyle(.white)
+                .frame(width: 60, height: 60)
+                .background(Color.skRed, in: .circle)
+                .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 4))
+                .shadow(color: .skRed.opacity(0.45), radius: 12, y: 8)
+        }
+        .accessibilityIdentifier("new-recording-button")
     }
 }

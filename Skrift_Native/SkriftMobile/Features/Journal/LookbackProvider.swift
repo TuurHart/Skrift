@@ -14,6 +14,9 @@ enum LookbackProvider {
     /// ± days around a target date that still counts as "that moment".
     static let windowDays = 3
     static let lookbackMonths = [1, 3, 6, 12]
+    /// Young-corpus window (device finding 2026-07-07: a fresh corpus showed
+    /// zero cards — the tab must feel alive in week one, not month one).
+    static let lookbackWeekDays = 7
 
     struct Entry: Identifiable, Equatable {
         /// The chosen memo's id (one card per memo).
@@ -32,9 +35,12 @@ enum LookbackProvider {
     }
 
     static func entries(for memos: [Memo], now: Date = Date(),
-                        calendar: Calendar = .current) -> [Entry] {
+                        calendar: Calendar = .current,
+                        excluding: Set<UUID> = []) -> [Entry] {
         let eligible = memos.filter { !calendar.isDate(journalDate($0), inSameDayAs: now) }
-        var used = Set<UUID>()
+        // Pre-used: notes already shown by another Journal card (Important
+        // lately) — device finding 2026-07-07: the same note appeared twice.
+        var used = excluding
         var out: [Entry] = []
 
         // 1 · literal On This Day — every prior year with a hit, newest year first.
@@ -51,7 +57,12 @@ enum LookbackProvider {
             }
         }
 
-        // 2 · spaced lookbacks.
+        // 2 · spaced lookbacks — a week window first (young corpora), then months.
+        if let anchor = calendar.date(byAdding: .day, value: -lookbackWeekDays, to: now),
+           let pick = best(in: eligible, around: anchor, calendar: calendar, excluding: used) {
+            used.insert(pick.id)
+            out.append(Entry(id: pick.id, label: "1 week ago", date: journalDate(pick)))
+        }
         for months in lookbackMonths {
             guard let anchor = calendar.date(byAdding: .month, value: -months, to: now)
             else { continue }
@@ -61,6 +72,21 @@ enum LookbackProvider {
             let label = months == 12 ? "1 year ago"
                 : months == 1 ? "1 month ago" : "\(months) months ago"
             out.append(Entry(id: pick.id, label: label, date: journalDate(pick)))
+        }
+
+        // 3 · never-empty guarantee (device finding, build 41: a DAYS-old corpus
+        // still showed nothing — its notes sat between the window anchors).
+        // Any eligible history at all → surface the best of it, labeled by age.
+        if out.isEmpty, let pick = eligible.filter({ !used.contains($0.id) }).max(by: { a, b in
+            if a.significance != b.significance { return a.significance < b.significance }
+            return journalDate(a) < journalDate(b)
+        }) {
+            let days = calendar.dateComponents(
+                [.day], from: calendar.startOfDay(for: journalDate(pick)),
+                to: calendar.startOfDay(for: now)).day ?? 1
+            out.append(Entry(id: pick.id,
+                             label: days <= 1 ? "Yesterday" : "\(days) days ago",
+                             date: journalDate(pick)))
         }
         return out
     }
@@ -78,6 +104,19 @@ enum LookbackProvider {
                 if a.significance != b.significance { return a.significance < b.significance }
                 return journalDate(a) < journalDate(b)
             }
+    }
+
+    /// "Important lately" (design 2026-07-07): every orange-tier note of the
+    /// last ~30 days — TIER-anchored where Looking back is TIME-anchored (a
+    /// 0.9 note between window anchors never surfaces there). Doubles as the
+    /// wall's digital twin. Newest first, capped.
+    static func importantLately(for memos: [Memo], now: Date = Date(),
+                                calendar: Calendar = .current, limit: Int = 4) -> [Memo] {
+        guard let cutoff = calendar.date(byAdding: .day, value: -30, to: now) else { return [] }
+        return memos
+            .filter { $0.significance >= WallPrinter.threshold && journalDate($0) >= cutoff }
+            .sorted { journalDate($0) > journalDate($1) }
+            .prefix(limit).map { $0 }
     }
 
     // ── calendar + map derivations (shared by the Journal screens) ──

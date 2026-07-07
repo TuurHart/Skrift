@@ -53,6 +53,20 @@ struct AudiobookLibraryView: View {
                 bookList
             }
         }
+        // The FULL mini-player bar lives on Books (2026-07-07 bottom-chrome
+        // redesign): mounted INSIDE the screen so the inset actually reaches the
+        // list (the tab-level mount didn't, on iOS 26). Notes carries the compact
+        // pill beside the record button; Journal/Settings carry nothing.
+        .safeAreaInset(edge: .bottom) {
+            if session.isActive {
+                AudiobookMiniPlayerBar()
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(Theme.Motion.spring, value: session.isActive)
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
             // Multi-select imports ONE book: a file-per-chapter folder's mp3s
             // become its ordered chapters (Bound-style).
@@ -146,9 +160,11 @@ struct AudiobookLibraryView: View {
     // MARK: - Chrome
 
     private var topBar: some View {
-        // Library is a root tab now (AppTabView) — no back button; just the import
-        // action, right-aligned over the big "Library" header below.
+        // ONE header line (device round 4: unified 30pt titles on all four
+        // tabs): "Books" + the import action inline — the separate title row
+        // below is gone.
         HStack {
+            ScreenTitle("Books")
             Spacer()
 
             Button {
@@ -175,9 +191,6 @@ struct AudiobookLibraryView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Books")
-                .font(.system(size: 26, weight: .heavy))
-                .foregroundStyle(Color.skText)
             HStack {
                 sortFilterChip
                 Spacer()
