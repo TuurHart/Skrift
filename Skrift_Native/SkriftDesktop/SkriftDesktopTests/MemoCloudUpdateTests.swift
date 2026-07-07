@@ -102,9 +102,9 @@ final class MemoCloudUpdateTests: XCTestCase {
         // and with no newer memo edit there's nothing to reflect.
         let id = UUID()
         let t0 = Date()
-        let pf = ingestedFile(id: id, at: t0)
-        pf.enhancedCopyedit = "Mac copy-edit."
         let m = memo(id, transcript: "Original transcript.", editedAt: t0)   // memo NOT re-edited
+        let pf = baselined(ingestedFile(id: id, at: t0), to: m)   // as a real ingest leaves it
+        pf.enhancedCopyedit = "Mac copy-edit."
         let ownEnh = MemoEnhancement(memoID: id, copyedit: "Mac's own write-back.",
                                      enhancedByDeviceID: mac, enhancedAt: t0.addingTimeInterval(30))
 
@@ -117,8 +117,8 @@ final class MemoCloudUpdateTests: XCTestCase {
     func testNoOpWhenNothingNewer() {
         let id = UUID()
         let t0 = Date()
-        let pf = ingestedFile(id: id, at: t0)
         let m = memo(id, transcript: "Original transcript.", editedAt: t0)   // == baseline
+        let pf = baselined(ingestedFile(id: id, at: t0), to: m)   // as a real ingest leaves it
         XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
                                              people: [], author: "", thisDeviceID: mac))
     }
@@ -131,5 +131,64 @@ final class MemoCloudUpdateTests: XCTestCase {
         m.deletedAt = Date()
         XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
                                              people: [], author: "", thisDeviceID: mac))
+    }
+
+    // MARK: - Row mirrors (lock / reminder / photo OCR) — no recompile needed
+
+    /// Baseline a row whose blob already matches the memo's (as a real ingest leaves it),
+    /// so mirror tests isolate the mirror change from a blob refresh.
+    private func baselined(_ pf: PipelineFile, to m: Memo) -> PipelineFile {
+        pf.audioMetadataJSON = MemoCloudIngest.metadataJSON(for: m)
+        pf.transcript = m.transcript
+        return pf
+    }
+
+    func testLockToggleMirrorsWithoutRecompile() {
+        let id = UUID()
+        let t0 = Date()
+        let m = memo(id, transcript: "Original transcript.", editedAt: t0)
+        let pf = baselined(ingestedFile(id: id, at: m.lastEditedAt), to: m)
+        pf.compiledText = "COMPILED-BEFORE"
+
+        m.locked = true
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertTrue(pf.locked, "lock flag mirrored")
+        XCTAssertEqual(pf.compiledText, "COMPILED-BEFORE", "meta-only change must not recompile")
+
+        // Unlock mirrors back too (and the wiring re-exports on the same sweep).
+        m.locked = false
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertFalse(pf.locked)
+    }
+
+    func testReminderMirrors() {
+        let id = UUID()
+        let m = memo(id, transcript: "Original transcript.", editedAt: Date())
+        let pf = baselined(ingestedFile(id: id, at: m.lastEditedAt), to: m)
+
+        let remind = Date().addingTimeInterval(3600)
+        m.remindAt = remind
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertEqual(pf.remindAt, remind)
+    }
+
+    /// Photo OCR lands AFTER the first sync (the phone indexes in the background) — the
+    /// updated manifest must reach the Mac row: flat search text + refreshed blob.
+    func testLateOCRTextReachesTheRow() {
+        let id = UUID()
+        let m = memo(id, transcript: "Original transcript.", editedAt: Date())
+        let pf = baselined(ingestedFile(id: id, at: m.lastEditedAt), to: m)
+
+        m.metadata = MemoMetadata(imageManifest: [
+            ImageManifestEntry(filename: "img_001.jpg", offsetSeconds: 1, text: "WHITEBOARD ROADMAP"),
+        ])
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertEqual(pf.imageOCRText, "WHITEBOARD ROADMAP")
+        XCTAssertEqual(pf.audioMetadataJSON, MemoCloudIngest.metadataJSON(for: m),
+                       "stored blob refreshed to the new manifest")
     }
 }

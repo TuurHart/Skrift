@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 12
-updated: 2026-07-07T16:15:00.000Z
+updated: 2026-07-07T17:20:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -183,6 +183,29 @@ nodes:
         round-trip owed) [6f78ac1]
     win: no algorithm or wire struct the sync contract depends on exists twice; both
       suites green against the shared copies
+  - id: DParityA
+    title: Desktop parity — locked/links/OCR
+    lane: 0
+    order: 4.7
+    status: done
+    eff: M
+    ms: Standalone core
+    done: 2026-07-07
+    deps:
+      - SharedKit
+    note: The Mac honors the phone waves' contracts — locked notes never reach the
+      plaintext vault (export refuse + Touch ID gate), memo-links export
+      resolver-precise, photo-OCR text is searchable, reminders visible.
+    shipped:
+      - 2026-07-07 · PipelineFile mirrors (locked/remindAt/imageOCRText) at
+        ingest + update sweep; blob refresh fixes stale book fields too
+      - 2026-07-07 · VaultExporter lock gate + desktop LockGate (Touch ID) +
+        sidebar copy guard + 🔒/🔔 properties rows
+      - 2026-07-07 · Memo-link resolver on every Mac compile site
+        (MemoLinkStems over ONE noteStem derivation)
+    win: a note locked on the phone is locked on the Mac and never exported;
+      Mac-exported memo-links point at real files; UnitTests 341 green + full
+      MLX build green (device round-trip owed)
   - id: Stz020
     title: Stabilize 0.2.0
     lane: 0

@@ -46,7 +46,23 @@ enum MemoCloudIngest {
         // Baseline the live-sync watermark to the memo's current edit time, so a LATER phone
         // edit (newer `lastEditedAt`) is detected by `MemoCloudUpdate` (Part B, phone→Mac).
         pf?.syncedSourceEditedAt = memo.lastEditedAt
+        // Typed row mirrors the multipart shim doesn't carry (lock / reminder / photo OCR) —
+        // `MemoCloudUpdate` keeps them fresh on later phone edits.
+        if let pf {
+            pf.locked = memo.locked
+            pf.remindAt = memo.remindAt
+            pf.imageOCRText = ocrText(for: memo)
+        }
         return pf
+    }
+
+    /// Flat OCR text for search — the phone's Vision text on each photo
+    /// (`imageManifest[].text`, riding the synced metadata blob), joined. nil when none.
+    static func ocrText(for memo: Memo) -> String? {
+        let texts = (memo.metadata?.imageManifest ?? [])
+            .compactMap { $0.text?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return texts.isEmpty ? nil : texts.joined(separator: "\n")
     }
 
     /// The audio filename the phone would have uploaded — `memo.audioFilename`, or the

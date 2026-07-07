@@ -44,27 +44,48 @@ enum MemoCloudUpdate {
         // hair NEWER than the enhancement — a timestamp race that must NOT hide a copy-edit change.
         // Comparing the actual text is race-proof AND self-healing (recovers even if a prior run
         // advanced the watermark without applying).
-        var changed = false
+        var contentChanged = false
 
         // Path 2 — the phone edited the polished copy-edit / title / summary.
         if let e = phoneEnh {
-            if pf.enhancedCopyedit != e.copyedit { pf.enhancedCopyedit = e.copyedit; changed = true }
-            if !e.title.isEmpty, pf.enhancedTitle != e.title { pf.enhancedTitle = e.title; changed = true }
-            if !e.summary.isEmpty, pf.enhancedSummary != e.summary { pf.enhancedSummary = e.summary; changed = true }
+            if pf.enhancedCopyedit != e.copyedit { pf.enhancedCopyedit = e.copyedit; contentChanged = true }
+            if !e.title.isEmpty, pf.enhancedTitle != e.title { pf.enhancedTitle = e.title; contentChanged = true }
+            if !e.summary.isEmpty, pf.enhancedSummary != e.summary { pf.enhancedSummary = e.summary; contentChanged = true }
         }
 
         // Path 3 — the phone edited the RAW transcript.
         if let t = memo.transcript, pf.transcript != t {
             pf.transcript = t
-            changed = true
+            contentChanged = true
         }
 
-        guard changed else { return false }
+        // The metadata BLOB changed (book fields edited, photo OCR landed, …) — refresh the
+        // stored copy and recompile (the frontmatter reads it). Deterministic byte-compare:
+        // `metadataJSON` sorts keys, so an unchanged blob never churns.
+        let blob = MemoCloudIngest.metadataJSON(for: memo)
+        if pf.audioMetadataJSON != blob {
+            pf.audioMetadataJSON = blob
+            contentChanged = true
+        }
 
-        // Re-link + recompile once (no LLM) over the pristine working text (copy-edit → transcript),
-        // so a path-2 copy-edit wins the body and a path-3 raw edit falls through for un-enhanced rows.
-        resanitiseAndCompile(pf, people: people, author: author)
-        pf.syncedSourceEditedAt = max(memo.lastEditedAt, phoneEnh?.enhancedAt ?? .distantPast)
+        // Row mirrors that need NO recompile — the lock flag, the reminder, the flat OCR
+        // search text. Still count as a change so the caller saves (and re-export runs,
+        // where the lock gate has the final word).
+        var metaChanged = false
+        if pf.locked != memo.locked { pf.locked = memo.locked; metaChanged = true }
+        if pf.remindAt != memo.remindAt { pf.remindAt = memo.remindAt; metaChanged = true }
+        let ocr = MemoCloudIngest.ocrText(for: memo)
+        if pf.imageOCRText != ocr { pf.imageOCRText = ocr; metaChanged = true }
+
+        guard contentChanged || metaChanged else { return false }
+
+        if contentChanged {
+            // Re-link + recompile once (no LLM) over the pristine working text (copy-edit →
+            // transcript), so a path-2 copy-edit wins the body and a path-3 raw edit falls
+            // through for un-enhanced rows.
+            resanitiseAndCompile(pf, people: people, author: author)
+            pf.syncedSourceEditedAt = max(memo.lastEditedAt, phoneEnh?.enhancedAt ?? .distantPast)
+        }
         pf.lastActivityAt = now
         return true
     }

@@ -216,4 +216,28 @@ final class MemoCloudIngestTests: XCTestCase {
         XCTAssertEqual(pf.diarizationSegments.count, 1)
         XCTAssertEqual(pf.diarizationSegments.first?.speaker, 0)
     }
+
+    // MARK: - Row mirrors (lock / reminder / photo OCR) set at ingest
+
+    func testIngestMirrorsLockReminderAndOCR() throws {
+        let remind = Date().addingTimeInterval(7200)
+        // NB: `tags` is non-optional in the typed MemoMetadata decode (the phone always
+        // writes it) — a blob without it fails to decode and would yield no OCR text.
+        let meta = metadataBlob([
+            "tags": [],
+            "imageManifest": [["filename": "img_001.jpg", "offsetSeconds": 1.0, "text": "WHITEBOARD ROADMAP"]],
+        ])
+        let memo = Memo(id: UUID(), audioFilename: "memo_\(UUID().uuidString).m4a", duration: 5,
+                        transcript: "t", transcriptStatus: .done, transcriptConfidence: 0.9,
+                        significance: 0.5, metadataData: meta)
+        memo.locked = true
+        memo.remindAt = remind
+
+        let ctx = try memoryContext()
+        let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
+                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+        XCTAssertTrue(pf.locked)
+        XCTAssertEqual(pf.remindAt, remind)
+        XCTAssertEqual(pf.imageOCRText, "WHITEBOARD ROADMAP")
+    }
 }
