@@ -83,11 +83,16 @@ struct MemosListView: View {
                 if editMode.isEditing {
                     selectionBar
                 } else {
-                    // The audiobook mini-player is GLOBAL now (AppTabView mounts it
-                    // as a bottom safeAreaInset on every tab, 2026-07-06), so this
-                    // screen keeps only the record FAB — which floats above the
-                    // capsule automatically via the shrunken safe area.
-                    recordFAB
+                    // ONE bottom row (Option A, mocks/notes-bottom-chrome.html):
+                    // compact book pill left (session-gated) + record right —
+                    // explicitly side by side so they can never overlap (the
+                    // build-40 regression: a tab-level safeAreaInset never
+                    // propagated into this NavigationStack on iOS 26 and the
+                    // capsule buried the record button).
+                    NotesBottomChrome {
+                        intentBridge.clearPendingStart()
+                        showRecord = true
+                    }
                 }
             }
             .overlay(alignment: .top) { syncBannerView }
@@ -279,6 +284,10 @@ struct MemosListView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            // Room for the bottom chrome row (pill + record): the row spans the
+            // full width now, so without this the LAST card could never scroll
+            // clear of it.
+            .contentMargins(.bottom, 84, for: .scrollContent)
             // Device finding 2026-07-07 (build 40): no way to close the keyboard
             // after searching — swipe the list to dismiss it.
             .scrollDismissesKeyboard(.immediately)
@@ -444,19 +453,8 @@ struct MemosListView: View {
         if let id = memoOpen.consume() { path = [id] }
     }
 
-    private var recordFAB: some View {
-        Button { intentBridge.clearPendingStart(); showRecord = true } label: {
-            Image(systemName: "mic.fill")
-                .font(.system(size: 24))
-                .foregroundStyle(.white)
-                .frame(width: 64, height: 64)
-                .background(Color.skRed, in: .circle)
-                .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 4))
-                .shadow(color: .skRed.opacity(0.45), radius: 12, y: 8)
-        }
-        .accessibilityIdentifier("new-recording-button")
-        .padding(.bottom, 26)
-    }
+    // (recordFAB moved into NotesBottomChrome — the Option-A split row at the
+    // bottom of this file.)
 
     private var selectionBar: some View {
         HStack {
@@ -1041,5 +1039,46 @@ private struct SortFilterSheet: View {
             }
         }
         .presentationDetents([.medium])
+    }
+}
+
+// MARK: - Bottom chrome (Option A — mocks/notes-bottom-chrome.html)
+
+/// The Notes bottom row: compact book pill LEFT (only while a book session is
+/// active) + the record button RIGHT — one 60pt row, explicitly side by side so
+/// the two can never stack or overlap (the build-40 regression). No session →
+/// just the record button in the right corner. Its own view so only IT
+/// re-renders on the session's 2 Hz playback ticks, never the memos list.
+private struct NotesBottomChrome: View {
+    let onRecord: () -> Void
+    @ObservedObject private var session = AudiobookSession.shared
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if session.isActive {
+                AudiobookMiniPill()
+                    .frame(maxWidth: .infinity)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else {
+                Spacer(minLength: 0)
+            }
+            recordButton
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 8)
+        .animation(Theme.Motion.spring, value: session.isActive)
+    }
+
+    private var recordButton: some View {
+        Button(action: onRecord) {
+            Image(systemName: "mic.fill")
+                .font(.system(size: 23))
+                .foregroundStyle(.white)
+                .frame(width: 60, height: 60)
+                .background(Color.skRed, in: .circle)
+                .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 4))
+                .shadow(color: .skRed.opacity(0.45), radius: 12, y: 8)
+        }
+        .accessibilityIdentifier("new-recording-button")
     }
 }

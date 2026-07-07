@@ -53,6 +53,20 @@ struct AudiobookLibraryView: View {
                 bookList
             }
         }
+        // The FULL mini-player bar lives on Books (2026-07-07 bottom-chrome
+        // redesign): mounted INSIDE the screen so the inset actually reaches the
+        // list (the tab-level mount didn't, on iOS 26). Notes carries the compact
+        // pill beside the record button; Journal/Settings carry nothing.
+        .safeAreaInset(edge: .bottom) {
+            if session.isActive {
+                AudiobookMiniPlayerBar()
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(Theme.Motion.spring, value: session.isActive)
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
             // Multi-select imports ONE book: a file-per-chapter folder's mp3s
             // become its ordered chapters (Bound-style).

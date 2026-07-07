@@ -1,15 +1,17 @@
 import SwiftUI
 
-/// The conditional mini-player (CROSS-LANE CONTRACT C3 — mock state 5): a
-/// Bound-style glass capsule that exists ONLY while a book session is active
-/// (`AudiobookSession.shared.isActive`). Contents, locked by the mock:
-/// cover · ⟲15 · play/pause · 15⟳ · ❝ Capture (the one labeled verb) · ˄ expand.
+/// The FULL mini-player bar (CROSS-LANE CONTRACT C3): a Bound-style glass
+/// capsule that exists ONLY while a book session is active
+/// (`AudiobookSession.shared.isActive`). Since the 2026-07-07 bottom-chrome
+/// redesign (`mocks/notes-bottom-chrome.html`, Option A) it lives on the
+/// **Books tab only**; the Notes tab mounts the compact `AudiobookMiniPill`
+/// beside the record button instead, and Journal/Settings carry nothing.
+/// Contents: cover (→ player) · ⟲15 · play/pause · 15⟳ · ❝ Add note.
+/// The ˄ expand chevron was cut (duplicate of the cover tap).
 ///
-/// Self-contained: the mounting lane just drops `AudiobookMiniPlayerBar()`
-/// into the memos list overlay (gated on `isActive`); this view also renders
-/// nothing itself when no book is loaded, presents the full player (˄ / cover
-/// tap) and the capture flow (❝) on its own, and pauses the book before
-/// capture.
+/// Self-contained: mount it gated on `isActive`; it renders nothing when no
+/// book is loaded, presents the full player (cover tap) and the capture flow
+/// (❝) on its own, and pauses the book before capture.
 struct AudiobookMiniPlayerBar: View {
     @ObservedObject private var session = AudiobookSession.shared
 
@@ -76,17 +78,8 @@ struct AudiobookMiniPlayerBar: View {
                 }
                 .accessibilityIdentifier("mini-player-capture")
                 .accessibilityLabel("Add note — pauses the book and builds a quote from what you just heard")
-
-                Button {
-                    showPlayer = true
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.skTextDim)
-                        .frame(width: 30, height: 40)
-                }
-                .accessibilityIdentifier("mini-player-expand")
-                .accessibilityLabel("Expand to the full player")
+                // The ˄ expand chevron was CUT 2026-07-07 (user call): it duplicated
+                // tapping the cover, and the width buys breathing room.
             }
             .padding(.leading, 12)
             .padding(.trailing, 14)
@@ -129,5 +122,88 @@ struct AudiobookMiniPlayerBar: View {
         }
         .accessibilityIdentifier(id)
         .accessibilityLabel(label)
+    }
+}
+
+/// The COMPACT book pill for the Notes tab (2026-07-07 bottom-chrome redesign,
+/// `mocks/notes-bottom-chrome.html` Option A): cover (→ player) · play/pause ·
+/// ❝ Add note, 60pt tall, sharing ONE bottom row with the record button so the
+/// two never stack or overlap (the build-40 regression). Skips and the chevron
+/// are deliberately absent — they live in the full player, the Books-tab bar,
+/// and the lock screen. Renders nothing when no book session is active.
+struct AudiobookMiniPill: View {
+    @ObservedObject private var session = AudiobookSession.shared
+
+    @State private var showPlayer = false
+    @State private var showCapture = false
+
+    var body: some View {
+        if let book = session.book {
+            HStack(spacing: 4) {
+                Button {
+                    showPlayer = true
+                } label: {
+                    BookCoverView(book: book, showsPlaceholderTitle: false)
+                        .frame(width: 44, height: 44)
+                        .clipShape(.rect(cornerRadius: 10, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("mini-pill-cover")
+                .accessibilityLabel("\(book.title) — open the player")
+
+                Button {
+                    session.togglePlay()
+                } label: {
+                    Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color.skText)
+                        .frame(width: 38, height: 40)
+                        .contentShape(Circle())
+                }
+                .accessibilityIdentifier("mini-pill-play")
+                .accessibilityLabel(session.isPlaying ? "Pause" : "Play")
+
+                Spacer(minLength: 2)
+
+                Button {
+                    session.pause()
+                    showCapture = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Text("\u{275D}")
+                            .font(.system(size: 14, weight: .heavy))
+                        Text("Add note")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .foregroundStyle(Color.skAccentText)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Color.skAccent.opacity(0.2), in: .capsule)
+                }
+                .accessibilityIdentifier("mini-pill-capture")
+                .accessibilityLabel("Add note — pauses the book and builds a quote from what you just heard")
+            }
+            .padding(.leading, 8)
+            .padding(.trailing, 10)
+            .frame(height: 60)
+            .background(.ultraThinMaterial, in: .capsule)
+            .overlay(Capsule().strokeBorder(Color.skBorder, lineWidth: 0.5))
+            .overlay(
+                Capsule()
+                    .fill(LinearGradient(colors: [.white.opacity(0.09), .clear],
+                                         startPoint: .top, endPoint: .center))
+                    .allowsHitTesting(false)
+            )
+            .shadow(color: .black.opacity(0.45), radius: 14, y: 7)
+            .fullScreenCover(isPresented: $showPlayer) {
+                AudiobookPlayerView()
+            }
+            .fullScreenCover(isPresented: $showCapture) {
+                QuoteCaptureFlowView()
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("audiobook-mini-pill")
+        }
     }
 }
