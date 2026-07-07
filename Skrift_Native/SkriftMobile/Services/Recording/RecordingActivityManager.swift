@@ -5,8 +5,10 @@ import UIKit
 
 /// Owns the recording Live Activity: starts it when recording begins, pushes the
 /// live caption + pause state, and ends it on stop/cancel. Ported from
-/// Shhhcribble's `ActivityManager` (orphan reaping + ~250 ms caption throttle so
-/// frequent partials don't burn ActivityKit's update budget); adds pause/resume.
+/// Shhhcribble's `ActivityManager` (orphan reaping + a caption throttle so
+/// frequent partials don't burn ActivityKit's update budget); adds pause/resume,
+/// and pushes only a word-aligned ~220-char tail (`displayCaption`) at ≥1.5 s
+/// spacing — the banner shows ~2 lines, not the whole growing transcript.
 ///
 /// ZOMBIE-BANNER defences (2026-06-10: the lock screen kept showing
 /// "recording · 45min" long after the app died mid-recording): every content
@@ -29,10 +31,13 @@ final class RecordingActivityManager {
     private var caption = ""
     private var pausedAt: Date?
 
-    // Throttle caption pushes — partials can fire multiple times a second.
+    // Throttle caption pushes. The banner renders ~2 lines and every push
+    // re-serializes + re-renders the activity — at the old 0.25 s the poll
+    // outran the throttle, so EVERY caption update hit ActivityKit for the
+    // whole recording. 1.5 s staleness is invisible on a lock screen.
     private var lastPushAt: Date?
     private var pendingTask: Task<Void, Never>?
-    private let throttle: TimeInterval = 0.25
+    private let throttle: TimeInterval = 1.5
 
     /// No update for this long → ActivityKit marks the banner stale and the
     /// widget renders the "Recording interrupted" fallback (`context.isStale`).
@@ -100,7 +105,7 @@ final class RecordingActivityManager {
 
     func update(caption: String) {
         guard activity != nil else { return }
-        self.caption = caption
+        self.caption = Self.displayCaption(caption)
         let now = Date()
         let since = lastPushAt.map { now.timeIntervalSince($0) } ?? .infinity
         if since >= throttle {
@@ -151,6 +156,23 @@ final class RecordingActivityManager {
 
     private func makeState() -> RecordingActivityAttributes.ContentState {
         .init(status: status, caption: caption, startedAt: startedAt, pausedAt: pausedAt)
+    }
+
+    /// What the banner actually shows: the TAIL of the caption, word-aligned,
+    /// ~220 chars (pure; unit-tested). ActivityKit content states have a small
+    /// budget (~4 KB) and re-serialize on every push — shipping the whole
+    /// growing transcript eventually fails silently and burns energy on text
+    /// the ≲2-line banner never displays.
+    nonisolated static func displayCaption(_ full: String) -> String {
+        let cap = 220
+        guard full.count > cap else { return full }
+        var tail = String(full.suffix(cap))
+        // Drop the (likely partial) first word; keep the raw tail if the
+        // suffix is one giant unbroken token.
+        if let firstSpace = tail.firstIndex(of: " "), tail.index(after: firstSpace) < tail.endIndex {
+            tail = String(tail[tail.index(after: firstSpace)...])
+        }
+        return "…" + tail
     }
 
     /// Periodic content refresh purely to extend the staleDate — without it a
