@@ -282,6 +282,64 @@ final class MemoLinkTests: XCTestCase {
     }
 }
 
+/// Photo OCR (chunk 6): the synced manifest field + the search matcher + a
+/// real Vision pass over a rendered fixture.
+final class PhotoTextTests: XCTestCase {
+
+    func testManifestTextFieldIsAdditive() throws {
+        // Old payloads (no `text`) decode to nil = "not indexed yet".
+        let legacy = #"{"filename":"photo_x_001.jpg","offsetSeconds":2.5}"#.data(using: .utf8)!
+        let entry = try JSONDecoder().decode(ImageManifestEntry.self, from: legacy)
+        XCTAssertNil(entry.text)
+        // Round-trips once set.
+        var indexed = entry
+        indexed.text = "HARBOR 42"
+        let back = try JSONDecoder().decode(ImageManifestEntry.self,
+                                            from: JSONEncoder().encode(indexed))
+        XCTAssertEqual(back.text, "HARBOR 42")
+    }
+
+    func testSearchMatchesPhotoTextAndTitle() {
+        var meta = MemoMetadata()
+        meta.imageManifest = [ImageManifestEntry(filename: "p.jpg", offsetSeconds: 0, text: "Flight BA-2490 gate 14")]
+        let memo = Memo.make(transcript: "spoken words only", metadata: meta)
+        memo.title = "Airport dash"
+        XCTAssertTrue(memo.matches(query: "ba-2490"), "OCR text must be searchable")
+        XCTAssertTrue(memo.matches(query: "airport"), "the TITLE must be searchable (was a gap)")
+        XCTAssertTrue(memo.matches(query: "spoken"))
+        XCTAssertFalse(memo.matches(query: "zeppelin"))
+        XCTAssertTrue(memo.matches(query: "  "), "blank query matches everything")
+    }
+
+    @MainActor
+    func testVisionRecognizesRenderedText() async {
+        // Render an unambiguous fixture and run the REAL recognizer.
+        let size = CGSize(width: 600, height: 200)
+        let image = UIGraphicsImageRenderer(size: size).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            ("SKRIFT HARBOR 42" as NSString).draw(
+                at: CGPoint(x: 40, y: 70),
+                withAttributes: [.font: UIFont.boldSystemFont(ofSize: 48),
+                                 .foregroundColor: UIColor.black])
+        }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ocr-fixture-\(UUID().uuidString).jpg")
+        try? image.jpegData(compressionQuality: 0.9)?.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let text = await PhotoTextIndexer.recognize(at: url)
+        XCTAssertTrue(text.uppercased().contains("HARBOR"),
+                      "Vision should read the rendered fixture — got: '\(text)'")
+    }
+
+    func testRecognizeMissingFileReturnsEmpty() async {
+        let text = await PhotoTextIndexer.recognize(
+            at: URL(fileURLWithPath: "/nonexistent/photo.jpg"))
+        XCTAssertEqual(text, "")
+    }
+}
+
 /// Share-out + stats helpers (chunk 2 survey folds).
 final class MemoShareTests: XCTestCase {
 

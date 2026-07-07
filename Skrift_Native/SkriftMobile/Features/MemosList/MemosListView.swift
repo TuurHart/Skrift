@@ -446,16 +446,7 @@ struct MemosListView: View {
     }
 
     private func matchesSearch(_ memo: Memo) -> Bool {
-        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return true }
-        if memo.transcript?.lowercased().contains(q) == true { return true }
-        if memo.tags.contains(where: { $0.lowercased().contains(q) }) { return true }
-        if memo.metadata?.location?.placeName?.lowercased().contains(q) == true { return true }
-        // C3 capture items: search annotation + urlTitle + text snippet
-        if memo.annotationText?.lowercased().contains(q) == true { return true }
-        if memo.sharedContent?.urlTitle?.lowercased().contains(q) == true { return true }
-        if memo.sharedContent?.text?.lowercased().contains(q) == true { return true }
-        return false
+        memo.matches(query: search)
     }
 
     private func matchesFilter(_ memo: Memo) -> Bool {

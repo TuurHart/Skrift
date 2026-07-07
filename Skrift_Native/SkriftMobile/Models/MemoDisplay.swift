@@ -59,6 +59,27 @@ extension Memo {
         return days == 1 ? "1 day left" : "\(days) days left"
     }
 
+    /// Full-text search over everything the memo knows: title, transcript,
+    /// tags, place, capture fields — and the photos' OCR text (chunk 6).
+    /// Extracted from the list so it's testable and single-sourced.
+    func matches(query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return true }
+        if title?.lowercased().contains(q) == true { return true }
+        if transcript?.lowercased().contains(q) == true { return true }
+        if tags.contains(where: { $0.lowercased().contains(q) }) { return true }
+        if metadata?.location?.placeName?.lowercased().contains(q) == true { return true }
+        // C3 capture items: search annotation + urlTitle + text snippet
+        if annotationText?.lowercased().contains(q) == true { return true }
+        if sharedContent?.urlTitle?.lowercased().contains(q) == true { return true }
+        if sharedContent?.text?.lowercased().contains(q) == true { return true }
+        // Photo OCR (on-device Vision → synced manifest text).
+        if metadata?.imageManifest?.contains(where: { $0.text?.lowercased().contains(q) == true }) == true {
+            return true
+        }
+        return false
+    }
+
     /// Resolve a `[[img_NNN]]` transcript marker (1-based) to its photo file in
     /// the recordings directory, via the metadata image manifest. Shared by
     /// every transcript renderer (editor, karaoke view, speaker turns).

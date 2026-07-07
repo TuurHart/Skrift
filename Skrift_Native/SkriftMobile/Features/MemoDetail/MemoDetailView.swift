@@ -412,6 +412,7 @@ private struct MemoPageView: View {
                    let image = UIImage(data: data) {
                     bodyProxy.insertPhoto(image)
                     AssetMaterializer.capture(memoID: memo.id, repository: repository)
+                    PhotoTextIndexer.run(repository)
                 }
                 pickedPhoto = nil
             }
