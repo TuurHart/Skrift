@@ -70,6 +70,21 @@ enum LookbackProvider {
                 : months == 1 ? "1 month ago" : "\(months) months ago"
             out.append(Entry(id: pick.id, label: label, date: journalDate(pick)))
         }
+
+        // 3 · never-empty guarantee (device finding, build 41: a DAYS-old corpus
+        // still showed nothing — its notes sat between the window anchors).
+        // Any eligible history at all → surface the best of it, labeled by age.
+        if out.isEmpty, let pick = eligible.max(by: { a, b in
+            if a.significance != b.significance { return a.significance < b.significance }
+            return journalDate(a) < journalDate(b)
+        }) {
+            let days = calendar.dateComponents(
+                [.day], from: calendar.startOfDay(for: journalDate(pick)),
+                to: calendar.startOfDay(for: now)).day ?? 1
+            out.append(Entry(id: pick.id,
+                             label: days <= 1 ? "Yesterday" : "\(days) days ago",
+                             date: journalDate(pick)))
+        }
         return out
     }
 

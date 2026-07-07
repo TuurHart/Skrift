@@ -68,6 +68,19 @@ final class LookbackProviderTests: XCTestCase {
         XCTAssertTrue(LookbackProvider.entries(for: [today], now: now, calendar: calendar).isEmpty)
     }
 
+    func testNeverEmptyGuaranteeForDayOldCorpus() {
+        // Build-41 device finding: notes from yesterday only → zero cards.
+        let yesterday = memo(daysAgo: 1, title: "y")
+        let entries = LookbackProvider.entries(for: [yesterday], now: now, calendar: calendar)
+        XCTAssertEqual(entries.first?.label, "Yesterday")
+        XCTAssertEqual(entries.first?.id, yesterday.id)
+
+        // Between anchors (12 days: misses week + month windows) → still a card.
+        let stranded = memo(daysAgo: 12, title: "s")
+        let entries2 = LookbackProvider.entries(for: [stranded], now: now, calendar: calendar)
+        XCTAssertEqual(entries2.first?.label, "12 days ago")
+    }
+
     func testDayCountsAndHotFlag() {
         let a = memo(daysAgo: 0, significance: 0)
         let b = memo(daysAgo: 0, significance: 0.8)
