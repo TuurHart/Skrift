@@ -9,6 +9,16 @@ audiobooks, and the Bonjour-removal/live-sync handoff (`claude/xenodochial-mclar
 **Recommended next big lane = P8 Journal & retrieval** — full Opus-ready plan in
 **`JOURNAL_RETRIEVAL_PLAN.md`** (repo root): locked decisions, chunk list with gates, collision map.
 
+**⭐ P8 ENGINE BUILT 2026-07-07 (this branch — user green-lit parallel build, PR merge flow):**
+mock signed off · engine bake-off RUN on the Mac (EmbeddingGemma-300M d512 wins 10/10 vs Apple NL
+5/10, `Skrift_Native/spikes/EmbeddingBakeoff/`) · chunks 1–3 built + tested (Shared/Retrieval
+gist/chunker/protocol; MemoEmbedding in its OWN local container; hash-diff sweep + orphan cleanup;
+search/related max-cosine queries; 14 new unit tests green; full suite's 8 failures PROVEN
+pre-existing on base — they're the Bonjour-era SyncCoordinator/MemoModel pill tests the removal
+lane owns). Wiring is INERT (`journalIndexEnabled` default-false + model-on-disk guard — no
+surprise 295 MB download). **Still owed:** UI chunks 4–8 after the other lanes merge (tab bar /
+memos list / detail), floors calibration histogram, device perf run, Settings consent toggle.
+
 **Quick hits (unclaimed; each verified against today's code, not memory):**
 1. ⬜ **Stz020 #3 STILL LIVE — phone-added person is unlinkable.** `NamesListView.swift:202` still
    saves `aliases: []`; `PersonEditorView.swift:222` already seeds `[name]`. Fix: same seed in

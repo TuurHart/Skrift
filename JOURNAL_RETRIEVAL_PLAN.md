@@ -5,9 +5,10 @@ Planned 2026-07-06 (Fable survey session), for a next Opus session to execute. R
 thought resurfaces next to today's."* Unclaimed as of writing — note-editing, audiobooks, and the
 live-sync/Bonjour-removal handoff are owned by other sessions (collision map at the bottom).
 
-> ⛔ **GATE (Tuur, 2026-07-06): do NOT start building until Tuur green-lights the lane** (waiting
-> on the other running chats to settle — esp. Highlights-tab removal + note-editing). Mock is
-> **SIGNED OFF 2026-07-06**; research is done; this is the only remaining condition.
+> ✅ **GATE UPDATE (Tuur, 2026-07-07): parallel build green-lit** on branch
+> `claude/youthful-wozniak-a79a3b`, merged via PR. Conflict-free chunks (1–3, new files only) are
+> BUILT; **UI chunks (4–8) still wait for the other lanes to merge first** (tab bar / memos list /
+> detail view — see the collision map). Mock signed off 2026-07-06; research done.
 
 ## Scope (v1, phone-only)
 
@@ -148,14 +149,21 @@ Per-app wiring — `Skrift_Native/SkriftMobile/`:
    + `Eval.swift` from the spike into the app (protocol + Gemma engine + the eval as a DEBUG
    `-embedSpike` flag). Remaining on-device residue (fold into chunk 8): one `-embedSpike` run on
    the iPhone 13 for load time / speed / memory only — quality is settled.
-1. `MemoEmbedding` + second local ModelConfiguration + `MemoGist` + `EmbeddingIndex` upsert/
-   invalidate with `MockEmbedder`. Unit tests green (`xcodebuild test -scheme SkriftMobile …`).
-2. Sweep job wiring: foreground + post-save triggers, batched, resumable, idle-unload, plus orphan
-   cleanup (memo deleted/pruned → its embedding row deleted). Tests for hash-invalidation (edit
-   gist → re-embed; untouched → skipped; orphan → removed).
-3. Query API (`related` / `search` / `thread` + first-mention) + **calibration harness**: seed via
-   `DemoDataSeeder`, print the score histogram (DEBUG flag), pick the related/search/thread floors
-   from data. Tests for ordering + floors + thread chronology.
+1. ✅ **BUILT 2026-07-07** (Fable, branch `claude/youthful-wozniak-a79a3b`): `MemoEmbedding` in its
+   OWN local container (`EmbeddingStore` — the sanctioned separate-container shape, so the
+   contested `NotesRepository` is untouched), `Shared/Retrieval/` (protocol + `MockEmbedder` +
+   `MemoGist` gist/chunker/hash), `GemmaEmbedder` (CoreML-LLM package added to mobile
+   project.yml). 14 unit tests green.
+2. ✅ **BUILT 2026-07-07**, deliberately narrower than planned: hash-diff sweep + orphan cleanup +
+   per-memo saves (resumable) in `EmbeddingIndex`; foreground trigger via
+   `JournalIndexService.sweepSoon` (SkriftApp scenePhase). **INERT by default** — requires
+   `journalIndexEnabled` (UserDefaults, set by the future Journal UI's consent flow) AND the model
+   already on disk, so merging can't trigger a surprise 295 MB download. Post-save/CK-import
+   triggers + the Settings toggle land with the UI chunks.
+3. 🟡 **Query API BUILT 2026-07-07** (`search`/`related` max-cosine over gist+chunks, scores only —
+   UI applies floors/k/date-sort; thread = `related` sorted by date at the call site). **OWED:**
+   the calibration harness (DemoDataSeeder score histogram → replace the provisional
+   `RetrievalTuning` floors) + first-mention helper — fold into chunk 6.
 4. **MOCK GATE — ✅ SIGNED OFF 2026-07-06.**
    `Skrift_Native/SkriftDesktop/mocks/journal-retrieval.html` — all five surfaces + the "Build
    notes — locked decisions" block. Tuur approved enthusiastically; the tab question resolved via

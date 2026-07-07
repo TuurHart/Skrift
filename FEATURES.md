@@ -285,6 +285,18 @@ Mirrors the SwiftData store to the user's PRIVATE CloudKit database so notes syn
 
 ---
 
+## Journal & retrieval — P8 *(engine layer built 2026-07-07; UI owed — `JOURNAL_RETRIEVAL_PLAN.md`)*
+
+| Capability | Mobile | Desktop | Key files | Notes |
+|---|---|---|---|---|
+| Embedding engine (EmbeddingGemma-300M d512, ANE) | ✅ | ➖ | `Services/Embeddings/GemmaEmbedder.swift`, `Shared/Retrieval/EmbeddingEngine.swift` | Engine picked by measured bake-off (`spikes/EmbeddingBakeoff/`, 10/10 vs Apple NL 5/10). CoreML-LLM package; 295 MB runtime download; dim fixed at load. Desktop adopts the Shared path in Phase 2 |
+| Gist + chunking + hashing | ✅ | ➖ | `Shared/Retrieval/MemoGist.swift` | Gist vector + ~175-word sentence-boundary chunks (chunk-don't-truncate, bake-off-validated); speaker headers stripped; SHA-256 invalidation hash |
+| Local embedding index (sweep + queries) | ✅ | ➖ | `Services/Embeddings/EmbeddingIndex.swift`, `Models/MemoEmbedding.swift`, `EmbeddingStore.swift` | Own local-only SwiftData container (CloudKit store untouched). Hash-diff sweep, orphan cleanup, `search`/`related` max-cosine queries. 14 unit tests |
+| Foreground sweep wiring | 🟡 | ➖ | `Services/Embeddings/JournalIndexService.swift`, `App/SkriftApp.swift` | INERT by default: runs only when the (future) Journal UI sets `journalIndexEnabled` AND the model is on disk — no surprise download. Floors calibration owed |
+| Journal UI (Looking back / calendar / map / threads / search) | ➖ | ➖ | mock: `SkriftDesktop/mocks/journal-retrieval.html` (signed off) | Blocked on the other lanes landing (tab bar, memos list, detail view) — build order in the plan |
+
+---
+
 ## Known targets (open work as of 2026-06-09)
 See `backlog.md` for the full list. Active batch:
 - **B (mobile record screen):** model-loading placeholder, live auto-scroll, color-by-confidence, inline `[photo N]`, AirPods route-change robustness, append-flow verify, keyboard-dismiss-on-scroll.

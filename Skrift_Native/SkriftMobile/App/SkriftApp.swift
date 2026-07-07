@@ -106,6 +106,9 @@ struct SkriftApp: App {
                         NamesCloudSync.run(repository)
                         VocabularyCloudSync.run(repository)
                         Task { await AudiobookCloudSync.reconcile(repository: repository) }
+                        // P8 retrieval index — inert until the Journal UI's consent
+                        // flow enables it AND the model is on disk (no surprise 295 MB).
+                        JournalIndexService.shared.sweepSoon(repository)
                     } else if newPhase == .background {
                         // If a whole-book transcribe is in flight, ask iOS to let it
                         // continue in the background (best overnight on a charger).
