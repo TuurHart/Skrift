@@ -14,7 +14,7 @@ struct RecordWidget: Widget {
                 .widgetURL(URL(string: "skrift://record"))
         }
         .configurationDisplayName("Record")
-        .description("Start a Skrift voice memo.")
+        .description("Start a Skrift voice note.")
         .supportedFamilies([.accessoryCircular, .accessoryRectangular, .accessoryInline, .systemSmall])
     }
 }

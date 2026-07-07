@@ -92,7 +92,7 @@ final class MemoModelTests: XCTestCase {
         XCTAssertEqual(untitled.displayTitle, "first line")
 
         let empty = Memo()
-        XCTAssertEqual(empty.displayTitle, "Voice memo")
+        XCTAssertEqual(empty.displayTitle, "Voice note")
 
         // A blank/whitespace title falls through to the transcript.
         let blankTitle = Memo(title: "   ", transcript: "hi there")

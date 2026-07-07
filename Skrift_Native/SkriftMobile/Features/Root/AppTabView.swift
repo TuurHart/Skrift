@@ -1,66 +1,70 @@
 import SwiftUI
 
-/// Root tab bar (audiobook reading-mode redesign, 2026-06-19).
+/// Root tab bar (audiobook reading-mode redesign 2026-06-19; trimmed 2026-07-06).
 ///
-/// Replaces the old single-screen Memos root with Library + Settings hidden
-/// behind toolbar `.sheet`s. The audiobook **Library is now a co-equal tab**, not
-/// a sheet — a sheet's swipe-down-to-dismiss gesture stole pull-to-refresh, so you
-/// couldn't resync the way you can in Notes (device feedback 2026-06-19). Notes ·
-/// Library · Highlights(soon) · Settings, matching `mocks/audiobook-player-reading-
-/// mode.html` screen 1.
+/// Notes · Books · Settings. The audiobook library ("Books") is a co-equal tab,
+/// not a sheet — a sheet's swipe-down-to-dismiss gesture stole pull-to-refresh
+/// (device feedback 2026-06-19). The Highlights placeholder tab was CUT
+/// 2026-07-06: captures already live in Notes (book glyph + ❝-quote rows), so a
+/// tab-level filtered duplicate never earned its slot; a per-book notes surface
+/// belongs in the book context instead.
 ///
 /// Each tab owns its own navigation; the shared SwiftData model container +
-/// environment flow down from `RootView` unchanged. The record FAB + audiobook
-/// mini-player stay inside the Notes tab (they're notes-context chrome).
+/// environment flow down from `RootView` unchanged. The record FAB stays inside
+/// the Notes tab. The audiobook mini-player is GLOBAL (2026-07-06): mounted as a
+/// bottom `safeAreaInset` on every tab, so the listening session keeps one body
+/// wherever you are — and scroll views automatically make room for it.
 struct AppTabView: View {
-    enum Tab: Hashable { case notes, library, highlights, settings }
+    enum Tab: Hashable { case notes, books, settings }
     @State private var selection: Tab = .notes
 
     var body: some View {
         TabView(selection: $selection) {
             MemosListView()
+                .safeAreaInset(edge: .bottom) { GlobalMiniPlayerMount() }
                 .tabItem { Label("Notes", systemImage: "note.text") }
                 .tag(Tab.notes)
 
             AudiobookLibraryView()
-                .tabItem { Label("Library", systemImage: "book") }
-                .tag(Tab.library)
-
-            HighlightsComingSoonView()
-                .tabItem { Label("Highlights", systemImage: "bookmark") }
-                .tag(Tab.highlights)
+                .safeAreaInset(edge: .bottom) { GlobalMiniPlayerMount() }
+                .tabItem { Label("Books", systemImage: "book") }
+                .tag(Tab.books)
 
             SettingsView()
+                .safeAreaInset(edge: .bottom) { GlobalMiniPlayerMount() }
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(Tab.settings)
         }
         .tint(.skAccent)
+        // Launch restore: arm the most recently played book as a PAUSED session so
+        // "continue my book" is one tap (play on the capsule) from wherever you
+        // land — no Library-dig. Never auto-plays (surprise audio on launch is
+        // wrong); open() bails safely if the audio isn't on disk. Skipped under
+        // the UI-test store flag so hermetic tests never inherit a sim library.
+        .task {
+            guard !LaunchFlags.inMemoryStore else { return }
+            AudiobookSession.shared.restoreOnLaunch()
+        }
     }
 }
 
-/// The Phase-6 "Highlights" slot — a Commonplace-Book / captured-quotes surface
-/// that doesn't exist yet. Shown as a placeholder so the tab is present in the IA
-/// (the mock dims it "soon"); stock `TabView` can't dim a single tab item, so the
-/// "coming soon" cue lives in the screen body for now.
-struct HighlightsComingSoonView: View {
+/// The cross-tab mini-player mount: renders the glass capsule only while a book
+/// session is active, with the same slide-in the old Notes-only mount had. A tiny
+/// wrapper view so only IT re-renders on session ticks — the TabView shell above
+/// observes nothing.
+private struct GlobalMiniPlayerMount: View {
+    @ObservedObject private var session = AudiobookSession.shared
+
     var body: some View {
-        ZStack {
-            Color.skBg.ignoresSafeArea()
-            VStack(spacing: 10) {
-                Image(systemName: "bookmark")
-                    .font(.system(size: 34))
-                    .foregroundStyle(Color.skAccent.opacity(0.85))
-                Text("Highlights")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Color.skText)
-                Text("Your captured quotes and highlights will gather here.\nComing soon.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.skTextDim)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(2)
+        Group {
+            if session.isActive {
+                AudiobookMiniPlayerBar()
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .padding(.horizontal, 44)
         }
-        .accessibilityIdentifier("highlights-coming-soon")
+        .animation(Theme.Motion.spring, value: session.isActive)
     }
 }

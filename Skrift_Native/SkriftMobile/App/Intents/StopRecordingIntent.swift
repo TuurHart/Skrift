@@ -13,7 +13,7 @@ import AppIntents
 /// references only `Self.performer`.
 struct StopRecordingIntent: AppIntent {
     static var title: LocalizedStringResource = "Stop Skrift Recording"
-    static var description = IntentDescription("Stop the current Skrift recording and save the memo.")
+    static var description = IntentDescription("Stop the current Skrift recording and save the note.")
     static var openAppWhenRun: Bool = true
 
     static var performer: (@Sendable () async -> Void)?

@@ -26,8 +26,8 @@ final class OnboardingUITests: XCTestCase {
         getStarted.tap()
 
         XCTAssertTrue(
-            app.navigationBars["Memos"].waitForExistence(timeout: 10)
-                || app.staticTexts["Memos"].waitForExistence(timeout: 5),
+            app.navigationBars["Notes"].waitForExistence(timeout: 10)
+                || app.staticTexts["Notes"].waitForExistence(timeout: 5),
             "didn't land on Memos after Get started"
         )
     }

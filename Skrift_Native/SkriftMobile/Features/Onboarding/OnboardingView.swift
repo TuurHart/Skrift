@@ -25,7 +25,7 @@ struct OnboardingView: View {
                 Text("Welcome to Skrift")
                     .font(.system(size: 26, weight: .bold)).foregroundStyle(Color.skText)
                     .padding(.top, 18)
-                Text("Record voice memos, transcribed on-device, synced to your Mac. A couple of quick steps:")
+                Text("Record voice notes, transcribed on-device, synced to your Mac. A couple of quick steps:")
                     .font(.subheadline).foregroundStyle(Color.skTextDim)
                     .padding(.top, 8)
 
@@ -33,7 +33,7 @@ struct OnboardingView: View {
                     stepCard(icon: "mic.fill", title: "Microphone & Camera", desc: "To record and snap photos") {
                         if mediaGranted { doneBadge } else { allowButton("allow-media", action: requestMedia) }
                     }
-                    stepCard(icon: "location.fill", title: "Location & Motion", desc: "Tags memos with place, weather, steps") {
+                    stepCard(icon: "location.fill", title: "Location & Motion", desc: "Tags notes with place, weather, steps") {
                         if locationRequested { doneBadge } else { allowButton("allow-location", action: requestLocation) }
                     }
                     stepCard(icon: "desktopcomputer", title: "Pair your Mac", desc: pairDesc) {

@@ -144,7 +144,9 @@ struct MergedCaptureView: View {
                     in: .rect(cornerRadius: 7, style: .continuous)
                 )
             VStack(alignment: .leading, spacing: 1) {
-                Text("Capture")
+                // "Add note" — unified verb (user decision 2026-07-07): the capsule
+                // pill, the player chip, and this screen all say the same thing.
+                Text("Add note")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Color.skText)
                 Text(contextLine)
@@ -421,7 +423,13 @@ struct MergedCaptureView: View {
                     wordTimings: output.wordTimings,
                     bookTitle: book.title,
                     bookAuthor: book.author,
-                    bookChapter: book.chapterNumberString(at: output.spanStart)
+                    bookChapter: book.chapterNumberString(at: output.spanStart),
+                    // Stable back-link to the source (2026-07-06): the title/author
+                    // strings break as a join key when book details are edited —
+                    // the id + GLOBAL position are what a "notes for this book" /
+                    // jump-back surface needs. Additive metadata; Mac ignores it.
+                    bookID: book.id,
+                    bookPosition: output.spanStart
                 ) else {
                     building = false
                     toast = "Couldn\u{2019}t build that quote — try a different selection"; toastColor = .skAmber

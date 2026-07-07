@@ -62,7 +62,9 @@ struct AudiobookMiniPlayerBar: View {
                             .font(.system(size: 14, weight: .heavy))
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
-                        Text("Capture")
+                        // "Add note" — unified verb (user decision 2026-07-07; was
+                        // "Capture" while the player said "Add note" for the SAME flow).
+                        Text("Add note")
                             .font(.system(size: 12, weight: .bold))
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
@@ -73,7 +75,7 @@ struct AudiobookMiniPlayerBar: View {
                     .background(Color.skAccent.opacity(0.2), in: .capsule)
                 }
                 .accessibilityIdentifier("mini-player-capture")
-                .accessibilityLabel("Capture — pauses and proposes the last 30 seconds")
+                .accessibilityLabel("Add note — pauses the book and builds a quote from what you just heard")
 
                 Button {
                     showPlayer = true

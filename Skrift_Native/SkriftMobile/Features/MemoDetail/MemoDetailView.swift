@@ -126,7 +126,7 @@ struct MemoDetailView: View {
         // A confirmationDialog is presented by the view controller (not anchored
         // to the toolbar item), so the paged TabView can't swallow it — unlike a
         // toolbar `Menu`, which silently failed to present on device.
-        .confirmationDialog("Memo", isPresented: $showActions, titleVisibility: .hidden) {
+        .confirmationDialog("Note", isPresented: $showActions, titleVisibility: .hidden) {
             Button("Add recording", action: { showAppendRecorder = true })
             Button("Copy transcript", action: copyTranscript)
             Button("Delete", role: .destructive, action: deleteCurrent)

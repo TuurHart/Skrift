@@ -302,6 +302,8 @@ struct MemoSaver {
         bookTitle: String?,
         bookAuthor: String?,
         bookChapter: String?,
+        bookID: UUID? = nil,
+        bookPosition: Double? = nil,
         recordedAt: Date = Date()
     ) -> UUID? {
         let transcript = QuoteFormatting.blockquote(quote)
@@ -330,7 +332,9 @@ struct MemoSaver {
             metadata: MemoMetadata(
                 bookTitle: bookTitle,
                 bookAuthor: bookAuthor,
-                bookChapter: bookChapter
+                bookChapter: bookChapter,
+                bookID: bookID,
+                bookPosition: bookPosition
             )
         ))
         if !timings.isEmpty {
