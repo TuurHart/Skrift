@@ -15,7 +15,7 @@ import AppIntents
 /// invocations into the app process where it runs.
 struct StartRecordingIntent: AppIntent {
     static var title: LocalizedStringResource = "Start Skrift Recording"
-    static var description = IntentDescription("Open Skrift and start recording a voice memo.")
+    static var description = IntentDescription("Open Skrift and start recording a voice note.")
     static var openAppWhenRun: Bool = true
 
     static var performer: (@Sendable () async -> Void)?

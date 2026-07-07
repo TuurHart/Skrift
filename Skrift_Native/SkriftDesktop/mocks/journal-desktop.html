@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journal on the Mac + iPad — Skrift mock v1</title>
+<style>
+  /* Desktop Theme.swift tokens (dark), 1:1 */
+  :root{
+    --bg:#0F1117; --sidebar:#15171F; --surface:#181A23; --hover:#1E2130;
+    --text:#E4E4E7; --dim:#8B8B97; --faint:#55556A;
+    --accent:#7C6BF5; --green:#34D399; --amber:#F59E0B; --namelink:#9D8FF7;
+    --hairline:rgba(255,255,255,.07); --hairline2:rgba(255,255,255,.12);
+  }
+  *{box-sizing:border-box}
+  ::-webkit-scrollbar{width:8px;background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:4px}
+  body{margin:0;background:#060608;color:var(--text);
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:28px;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-.3px;}
+  .thesis{color:var(--namelink);font-size:13.5px;margin:0 0 8px;max-width:980px;}
+  .v1{display:inline-block;font-size:11px;color:var(--green);background:rgba(52,211,153,.12);padding:2px 9px;border-radius:20px;margin-bottom:20px;}
+  .label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);margin:26px 0 9px;font-weight:600;}
+  .hint{font-size:10.5px;color:var(--faint);margin:6px 2px 0;line-height:1.5;max-width:1100px;}
+  .hint b{color:#9a96c9;font-weight:600;}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ── The Mac window ─────────────────────────────── */
+  .mac{width:1180px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;
+       box-shadow:0 24px 70px rgba(0,0,0,.55);}
+  .titlebar{height:38px;display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--sidebar);border-bottom:1px solid var(--hairline);}
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .win{display:flex;height:640px;}
+
+  /* App sidebar (v5 shell) with the Queue | Journal mode switch */
+  .side{width:212px;background:var(--sidebar);border-right:1px solid var(--hairline);padding:12px 10px;flex:none;display:flex;flex-direction:column;}
+  .mode{display:flex;background:rgba(255,255,255,.04);border-radius:8px;padding:3px;margin-bottom:14px;}
+  .mode div{flex:1;text-align:center;font-size:11.5px;font-weight:600;padding:5px 0;border-radius:6px;color:var(--dim);}
+  .mode .on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.4);}
+  .srow{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim);padding:7px 9px;border-radius:7px;}
+  .srow.on{background:rgba(124,107,245,.13);color:var(--text);}
+  .srow .n{font-size:10.5px;color:var(--faint);}
+  .sideLabel{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);margin:16px 9px 6px;font-weight:600;}
+
+  /* Journal rail: mini calendar + places (the phone's screens 2+3 become NAVIGATION) */
+  .rail{width:252px;border-right:1px solid var(--hairline);padding:16px 14px;flex:none;overflow:auto;}
+  .mhead{display:flex;justify-content:space-between;align-items:center;margin:0 2px 8px;}
+  .mhead b{font-size:12.5px;}
+  .mnav{color:var(--faint);font-size:13px;letter-spacing:2px;}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:10.5px;text-align:center;}
+  .cal .wd{color:var(--faint);font-size:9px;padding:3px 0;}
+  .cal .d{position:relative;color:var(--dim);padding:5px 0 9px;border-radius:6px;}
+  .cal .d:hover{background:var(--hover);}
+  .cal .d i{position:absolute;left:50%;transform:translateX(-50%);bottom:3px;width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.45;font-style:normal;}
+  .cal .d i.d2{width:5px;height:5px;opacity:.8;}
+  .cal .d i.d3{width:6px;height:6px;opacity:1;box-shadow:0 0 6px rgba(124,107,245,.6);}
+  .cal .today{outline:1.5px solid var(--accent);outline-offset:-1.5px;color:var(--text);font-weight:700;}
+  .cal .sel{background:rgba(124,107,245,.2);color:var(--text);font-weight:600;}
+  .cal .out{opacity:.25}
+  .place{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim);padding:6px 8px;border-radius:7px;}
+  .place:hover{background:var(--hover);color:var(--text);}
+  .place .pin{color:var(--accent);margin-right:6px;}
+  .place .n{font-size:10.5px;color:var(--faint);}
+
+  /* Reading column: Looking back river + selected day */
+  .main{flex:1;overflow:auto;padding:22px 30px;}
+  .jhead{font-size:17px;font-weight:700;margin:0 0 2px;}
+  .jsub{font-size:12px;color:var(--dim);margin:0 0 18px;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:13px 16px;margin-bottom:10px;}
+  .card:hover{background:var(--hover);}
+  .kick{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:5px;}
+  .kick .when{color:var(--faint);font-weight:500;letter-spacing:0;text-transform:none;}
+  .card h3{font-size:13.5px;margin:0 0 4px;font-weight:650;}
+  .card p{font-size:12px;color:var(--dim);margin:0;line-height:1.55;}
+  .nl{color:var(--namelink);}
+  .meta{display:flex;gap:10px;align-items:center;margin-top:8px;font-size:10.5px;color:var(--faint);}
+  .imp{display:flex;gap:2.5px;}
+  .imp i{width:5px;height:5px;border-radius:50%;background:var(--accent);font-style:normal;}
+  .imp i.off{background:var(--hairline2);}
+  .chip{background:rgba(255,255,255,.05);border-radius:10px;padding:1.5px 8px;}
+  .dayhead{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 10px;}
+  .dayhead b{font-size:13.5px;}
+  .dayhead span{font-size:11px;color:var(--faint);}
+
+  /* ── iPad panel ─────────────────────────────────── */
+  .ipad{width:900px;height:640px;background:var(--bg);border:10px solid #000;border-radius:26px;overflow:hidden;display:flex;box-shadow:0 24px 70px rgba(0,0,0,.5);}
+  .ipad .col1{width:340px;border-right:1px solid var(--hairline);padding:20px 18px;overflow:auto;}
+  .ipad .col2{flex:1;padding:20px 22px;}
+  .ipad h2{font-size:24px;font-weight:800;margin:6px 0 2px;}
+  .ipad .tag{font-size:12px;color:var(--dim);line-height:1.5;margin:0 0 16px;}
+  .bigcal .cal{gap:5px;font-size:12px;}
+  .bigcal .cal .d{padding:9px 0 14px;}
+
+  /* ── Parity panels ──────────────────────────────── */
+  .row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
+  .panel{width:352px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.45);}
+  .panel .bar{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);background:var(--sidebar);padding:7px 12px;border-bottom:1px solid var(--hairline);font-weight:700;}
+  .panel .body{padding:14px 16px;font-size:12.5px;line-height:1.65;color:var(--text);}
+  .mlchip{display:inline-flex;align-items:center;gap:5px;background:rgba(124,107,245,.14);border:1px solid rgba(124,107,245,.3);
+          border-radius:7px;padding:1px 8px;color:var(--namelink);font-weight:600;font-size:12px;white-space:nowrap;}
+  .backlinks{margin-top:12px;border-top:1px solid var(--hairline);padding-top:9px;}
+  .backlinks .label{margin:0 0 7px;}
+  .bl{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim);padding:5px 8px;border-radius:7px;}
+  .bl:hover{background:var(--hover);color:var(--text);}
+  .bl .arrow{color:var(--accent);}
+  .task{display:flex;gap:9px;align-items:flex-start;margin:5px 0;}
+  .box{width:15px;height:15px;border-radius:4.5px;border:1.5px solid var(--hairline2);flex:none;margin-top:2px;}
+  .box.done{background:var(--accent);border-color:var(--accent);position:relative;}
+  .box.done:after{content:"✓";position:absolute;inset:0;color:#fff;font-size:10px;line-height:15px;text-align:center;font-weight:800;}
+  .task.done span{color:var(--faint);text-decoration:line-through;}
+  .lockpanel{text-align:center;padding:34px 20px 30px;}
+  .lockpanel .ic{font-size:30px;margin-bottom:10px;}
+  .lockpanel b{display:block;font-size:14px;margin-bottom:5px;}
+  .lockpanel p{font-size:11.5px;color:var(--dim);margin:0 0 14px;}
+  .btn{display:inline-block;background:var(--accent);color:#fff;font-size:12px;font-weight:650;padding:6px 16px;border-radius:8px;}
+  .pdf{border:1px solid var(--hairline);border-radius:10px;overflow:hidden;margin-top:6px;}
+  .pdf .page{background:#EDEDF2;color:#1c1c20;padding:14px 16px;font-size:10px;line-height:1.6;height:120px;overflow:hidden;}
+  .pdf .pbar{display:flex;justify-content:space-between;background:var(--sidebar);font-size:10.5px;color:var(--dim);padding:6px 11px;border-top:1px solid var(--hairline);}
+</style>
+</head>
+<body>
+
+<h1>Journal on the Mac (+ iPad) — v1</h1>
+<p class="thesis">The phone shows Journal as three screens; the Mac's win is <b>simultaneity</b>: calendar + places become a
+navigation rail, and “Looking back” is the reading column — same LookbackProvider rules, same visual language, zero new logic.</p>
+<span class="v1">mock v1 · desktop shell = v5 · tokens 1:1 from Theme.swift · phone Journal v1 = the shipped design</span>
+
+<div class="label">1 · The Mac window — sidebar gains a Queue | Journal mode; rail = mini calendar + places; column = Looking back</div>
+<div class="mac">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--dim);margin-left:8px;">Skrift</span>
+  </div>
+  <div class="win">
+    <div class="side">
+      <div class="mode"><div>Queue</div><div class="on">Journal</div></div>
+      <div class="sideLabel">Looking back</div>
+      <div class="srow on">On this day <span class="n">2025</span></div>
+      <div class="srow">1 month ago <span class="n">Jun 7</span></div>
+      <div class="srow">3 months ago <span class="n">Apr 7</span></div>
+      <div class="sideLabel">Recent days</div>
+      <div class="srow">Today <span class="n">3 notes</span></div>
+      <div class="srow">Yesterday <span class="n">1 note</span></div>
+      <div class="srow">Fri 4 Jul <span class="n">5 notes</span></div>
+    </div>
+
+    <div class="rail">
+      <div class="mhead"><b>July 2026</b><span class="mnav">‹ ›</span></div>
+      <div class="cal">
+        <div class="wd">M</div><div class="wd">T</div><div class="wd">W</div><div class="wd">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div>
+        <div class="d out">29</div><div class="d out">30</div><div class="d">1<i></i></div><div class="d">2</div><div class="d">3<i class="d2"></i></div><div class="d">4<i class="d3"></i></div><div class="d">5</div>
+        <div class="d">6<i></i></div><div class="d today sel">7<i class="d2"></i></div><div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div><div class="d">12</div>
+        <div class="d">13</div><div class="d">14</div><div class="d">15</div><div class="d">16</div><div class="d">17</div><div class="d">18</div><div class="d">19</div>
+        <div class="d">20</div><div class="d">21</div><div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div><div class="d">26</div>
+        <div class="d">27</div><div class="d">28</div><div class="d">29</div><div class="d">30</div><div class="d">31</div><div class="d out">1</div><div class="d out">2</div>
+      </div>
+      <div class="sideLabel" style="margin-left:2px;">Places</div>
+      <div class="place"><span><span class="pin">◉</span>Alfama, Lisbon</span><span class="n">31</span></div>
+      <div class="place"><span><span class="pin">◉</span>Good Friday HQ</span><span class="n">18</span></div>
+      <div class="place"><span><span class="pin">◉</span>Monsanto trail</span><span class="n">7</span></div>
+      <div class="place"><span><span class="pin">◉</span>Café Janis</span><span class="n">4</span></div>
+    </div>
+
+    <div class="main">
+      <div class="jhead">Journal</div>
+      <p class="jsub">As your notes age, past thinking resurfaces here — a month ago, a year ago, on this day.</p>
+
+      <div class="card">
+        <div class="kick"><span>On this day · 2025</span><span class="when">Mon 7 Jul 2025 · 09:12</span></div>
+        <h3>Walking the Monsanto loop, product doubts</h3>
+        <p>Kept circling on whether <span class="nl">[[Hendrik]]</span>'s idea about per-book capture pages is the wedge…
+        the transcription is finally boring — which is the point.</p>
+        <div class="meta"><div class="imp"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i></div><span class="chip">Monsanto trail</span><span>2:41</span></div>
+      </div>
+      <div class="card">
+        <div class="kick"><span>1 month ago</span><span class="when">Sun 7 Jun · 22:30</span></div>
+        <h3>Late-night audiobook capture flow</h3>
+        <p>The quote + ramble pairing works. <span class="nl">[[Rox]]</span> said the reading mode should feel like an
+        e-reader, not a player — she's right.</p>
+        <div class="meta"><div class="imp"><i></i><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i></div><span class="chip">Alfama, Lisbon</span><span>4:07</span></div>
+      </div>
+
+      <div class="dayhead"><b>Monday 7 July · today</b><span>3 notes · Alfama, Lisbon</span></div>
+      <div class="card">
+        <div class="kick"><span style="color:var(--green)">Polished</span><span class="when">08:41</span></div>
+        <h3>Two apps, one contract</h3>
+        <p>The shared folder finally carries every wire struct. Next: the Mac honours the lock flag…</p>
+        <div class="meta"><div class="imp"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i></div><span class="chip">Good Friday HQ</span><span>6:12</span></div>
+      </div>
+      <div class="card" style="opacity:.75">
+        <div class="kick"><span style="color:var(--amber)">Transcribing…</span><span class="when">17:55</span></div>
+        <h3 style="color:var(--dim)">Voice note</h3>
+        <p>Waveform placeholder…</p>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>Behaviour:</b> sidebar “Looking back” rows scroll the river to that card · a calendar day (dot size = note density,
+ring = today) selects the day → the column becomes that day's notes · a Place click filters the river to that cluster (the phone's
+map screen 3 collapses into this list — a full MapKit pane can ride the same rail later) · every card opens the note in the Queue
+view. <b>Same rules as the phone:</b> spaced 1/3/6/12-month lookbacks, one card per memo, empty windows hidden, importance dots.</p>
+
+<div class="label">2 · iPad — the SAME phone app at regular width (universal target): journal home + calendar side-by-side</div>
+<div class="ipad">
+  <div class="col1">
+    <h2>Journal</h2>
+    <p class="tag">As your notes age, past thinking resurfaces here — a month ago, a year ago, on this day.</p>
+    <div class="card">
+      <div class="kick"><span>On this day · 2025</span><span class="when">09:12</span></div>
+      <h3>Walking the Monsanto loop, product doubts</h3>
+      <p>Kept circling on whether <span class="nl">[[Hendrik]]</span>'s idea…</p>
+    </div>
+    <div class="card">
+      <div class="kick"><span>1 month ago</span><span class="when">22:30</span></div>
+      <h3>Late-night audiobook capture flow</h3>
+      <p>The quote + ramble pairing works…</p>
+    </div>
+    <div class="card">
+      <div class="kick"><span>3 months ago</span><span class="when">14:20</span></div>
+      <h3>Names model, re-derived</h3>
+      <p>Opt-out beats opt-in for a personal corpus…</p>
+    </div>
+  </div>
+  <div class="col2 bigcal">
+    <div class="mhead" style="margin-bottom:14px;"><b style="font-size:16px;">July 2026</b><span class="mnav">‹ ›</span></div>
+    <div class="cal">
+      <div class="wd">M</div><div class="wd">T</div><div class="wd">W</div><div class="wd">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div>
+      <div class="d out">29</div><div class="d out">30</div><div class="d">1<i></i></div><div class="d">2</div><div class="d">3<i class="d2"></i></div><div class="d">4<i class="d3"></i></div><div class="d">5</div>
+      <div class="d">6<i></i></div><div class="d today">7<i class="d2"></i></div><div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div><div class="d">12</div>
+      <div class="d">13</div><div class="d">14</div><div class="d">15</div><div class="d">16</div><div class="d">17</div><div class="d">18</div><div class="d">19</div>
+      <div class="d">20</div><div class="d">21</div><div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div><div class="d">26</div>
+      <div class="d">27</div><div class="d">28</div><div class="d">29</div><div class="d">30</div><div class="d">31</div><div class="d out">1</div><div class="d out">2</div>
+    </div>
+    <div style="margin-top:26px;border:1.5px dashed var(--hairline2);border-radius:12px;padding:26px 18px;text-align:center;color:var(--faint);font-size:11.5px;line-height:1.6;">
+      ◉ Places map &nbsp;·&nbsp; selected-day notes<br>slide in here (phone screens 2 + 3, promoted)
+    </div>
+  </div>
+</div>
+<p class="hint"><b>No new app:</b> flip SkriftMobile to a universal target and this is a <code>NavigationSplitView</code> at regular
+width — the phone's exact Journal views, calendar promoted to a standing pane. Map + day drill-down slide into the right column.</p>
+
+<div class="label">3 · Body parity panels — the phone wave's features rendered in the Mac's review column (B-list, for sign-off)</div>
+<div class="row">
+  <div class="panel">
+    <div class="bar">Memo-links + backlinks (desktop body)</div>
+    <div class="body">
+      …decided the capture flow needs the same trust gate as
+      <span class="mlchip">🗒 Late-night audiobook capture flow</span> — same reasoning as last month.
+      <div class="backlinks">
+        <div class="label">Linked from</div>
+        <div class="bl"><span class="arrow">↩</span> Two apps, one contract <span style="color:var(--faint);margin-left:auto;">7 Jul</span></div>
+        <div class="bl"><span class="arrow">↩</span> Reading-mode notes <span style="color:var(--faint);margin-left:auto;">19 Jun</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="bar">Live checklists (desktop body)</div>
+    <div class="body">
+      Prep for the TestFlight push:
+      <div class="task done"><div class="box done"></div><span>Bump the build number</span></div>
+      <div class="task"><div class="box"></div><span>Archive from Organizer (CLI export fails)</span></div>
+      <div class="task"><div class="box"></div><span>Verify vocab sync on both devices</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="bar">Locked note (desktop) — as built, refine here</div>
+    <div class="body lockpanel">
+      <div class="ic">🔒</div>
+      <b>This note is locked</b>
+      <p>Locked notes stay inside Skrift and are excluded from vault export.</p>
+      <span class="btn">Unlock…&nbsp; (Touch ID)</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="bar">PDF capture — inline (desktop CaptureViews)</div>
+    <div class="body">
+      Shared from Safari with a voice ramble:
+      <div class="pdf">
+        <div class="page"><b>Attention Is All You Need</b><br>Ashish Vaswani, Noam Shazeer, Niki Parmar…<br><br>
+        The dominant sequence transduction models are based on complex recurrent or convolutional neural networks…</div>
+        <div class="pbar"><span>📄 attention.pdf · 11 pages</span><span>Open ↗</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>Panel notes:</b> memo-link chips are read-only on the Mac v1 (click = open target; creating links stays a phone
+gesture until the Mac editor grows a picker) · checklist boxes toggle and write back through the Part-B edit sync · the locked panel
+is what shipped today — critique freely · PDF inline mirrors the phone's signed variant A.</p>
+
+</body>
+</html>

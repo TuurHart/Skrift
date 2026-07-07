@@ -35,6 +35,30 @@ green; **device round owed** — the sim can't fire interruptions or measure ANE
 - Deferred judgment calls: captions keep running while backgrounded (Lock-Screen Live Activity shows
   them — thermal floors now bound the cost); memory-warning `unload()` still no-ops mid-recording.
 
+## 🎧 Books tab + one-tap resume — ✅ BUILT 2026-07-07 (mock-first, signed off; worktree `sweet-goldstine`)
+
+From the 2026-07-06/07 audiobook deep-review chat (roadmap detour node **D4**). Mock = `mocks/books-tab-and-resume.html`
+(v2, rebuilt 1:1 against Theme.swift + real components after v1 "looks different from the app" feedback). Decisions:
+- **Highlights tab CUT** (user: "well kill it") — captures live in Notes; P6 becomes a book-context surface later.
+- **Library → Books** (tab + header). **Screen title Memos → Notes**; "memo"→"note" across all user-facing copy
+  (list/detail/trash/settings/onboarding/widgets/intents/Live Activity — Siri phrases had no "memo", unchanged).
+- **One verb: "Add note"** (capsule pill + capture-screen header renamed from "Capture"; player already said it).
+- **Cold-launch resume:** last PLAYED book restores as a **paused** capsule (`restoreOnLaunch`) → resume = 1 tap,
+  record = 1 tap, same screen (the "two first things" tension dissolved). Never auto-plays; skips w/o local audio.
+- **Global capsule:** mounted per-tab via `safeAreaInset` in AppTabView; persists over pushed screens; covers hide it.
+  Memos list stopped observing the session (kills the 2 Hz whole-list re-render during playback).
+- **Tap a book row → autoplays** (+ full player opens running); PLAYING/PAUSED row badge dropped (tint stays).
+- **Books sort/filter chip** (was a dead-looking static label): Recently played (default, persisted) / Title / Author /
+  Recently added + In progress / Not started / Finished. Unit-tested.
+- **Capture memos now carry `bookID` + `bookPosition`** (stable join key for the future per-book-notes surface;
+  additive metadata, Mac ignores).
+Also fixed in passing: stale "Tap Mark" bookmarks empty-state copy; stale "last 30 seconds" capsule a11y label.
+**Gate:** build green; unit suite 327 run — only the 8 PRE-EXISTING CloudKit-epic failures (verified identical at
+branch HEAD baseline); new sort/filter tests green; 4 UI-test files' "Memos" assertions updated to "Notes".
+**OWED:** device eyeball (capsule on all tabs + crowding check on the Notes screen — user flagged the worry; levers
+if it feels heavy: compact idle-capsule, scroll-minimize, swipe-away-to-end-session). UI suite not re-run (10
+pre-existing iOS-26 failures tracked separately).
+
 ## 🔭 Next unclaimed lane + code-verified quick hits (2026-07-06 Fable survey, worktree youthful-wozniak)
 
 Surveyed while three lanes were claimed elsewhere: note-editing (`claude/gracious-easley-e3fc96`),
@@ -82,6 +106,22 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 (`Skrift_Native/SkriftDesktop/mocks/journal-retrieval.html`, drafted 2026-07-06) proposes **Journal
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
+
+## ⭐ Desktop parity A-list — the Mac catches up to the phone waves (2026-07-07, roadmap `DParityA`)
+
+The contract-level "musts" from the parity analysis (memory `project_desktop_parity_plan`), built same-day:
+- ✅ **Locked notes**: `PipelineFile.locked` mirror (ingest + update sweep), `VaultExporter` REFUSES export
+  (typed error surfaces in the toast; auto re-export sweep skips locked and re-exports on unlock), note
+  body + sidebar Copy gated behind Touch ID/password per session (desktop `LockGate`, deactivate
+  re-locks), 🔒 properties row. The plaintext-vault promise now holds with the Mac on.
+- ✅ **Memo-link precise resolver**: `Compiler.compile(file:)` supplies the whole queue's stems
+  (`MemoLinkStems` over `VaultExporter.noteStem` — ONE derivation with the exported filename);
+  zero-cost for notes without links. Body chip rendering + backlinks UI = mock round.
+- ✅ **Photo-OCR search**: `imageOCRText` flat mirror (kept fresh when the phone's indexer lands late —
+  the update sweep now refreshes the metadata blob + recompiles on change, fixing stale book fields too);
+  `matchesSearch` matches it.
+- 🌓 **remindAt**: mirrors + shows in properties (🔔); Mac-side alarm reconciler still owed.
+- Device round-trip owed for the batch (lock on phone → Mac gate; OCR search on Mac; link export).
 
 ## ⭐ Shared-code dedup — anti-drift consolidation (2026-07-07, roadmap `SharedKit`)
 
@@ -930,7 +970,7 @@ pinned upper-third, free-scroll + "Back to playing", column cap) · **(5)** "Aa"
 fast-follow) · **(6)** bookmark "Mark" toggle + browse-only sheet + margin glyph · **(7)** "Add note" accent chip +
 utility reflow (speed/sleep in) + read-along states (nudge / live transcribing-% / empty) · **(8)** sync-aware library
 delete-confirm. **Tab bar verified on the iPhone 17 sim; player screens 3–7 owe a device eyeball (USER step — needs a
-real book + transcript). Owed: light/sepia themes; a global cross-tab mini-player. NEXT → Phase 2 Export.**
+real book + transcript). Owed: light/sepia themes; ~~a global cross-tab mini-player~~ ✅ BUILT 2026-07-07 (see "🎧 Books tab + one-tap resume"). NEXT → Phase 2 Export.**
 
 ✅ **Mock SIGNED OFF 2026-06-19** = `mocks/audiobook-player-reading-mode.html` (v4 — mock-first, refined via two
 design-critique workflows + a rendered-pixel agent review; commits `92aee15`→`1700d4e`). **It IS the spec — build to

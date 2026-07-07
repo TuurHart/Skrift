@@ -21,8 +21,8 @@ final class RecordingUITests: XCTestCase {
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
         XCTAssertTrue(
-            app.staticTexts["Memos"].waitForExistence(timeout: 15)
-                || app.navigationBars["Memos"].waitForExistence(timeout: 5),
+            app.staticTexts["Notes"].waitForExistence(timeout: 15)
+                || app.navigationBars["Notes"].waitForExistence(timeout: 5),
             "Memos root never appeared"
         )
 

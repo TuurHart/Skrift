@@ -85,7 +85,9 @@ struct ChaptersBookmarksSheet: View {
     @ViewBuilder
     private var bookmarksList: some View {
         if bookmarks.isEmpty {
-            empty("No bookmarks yet", "Tap Mark while you listen to save your spot.")
+            // (Copy fixed 2026-07-06 — the bottom "Mark" button is long gone;
+            // folding the page corner in the reader's margin is the gesture.)
+            empty("No bookmarks yet", "Tap the page corner beside the line you're hearing to fold a bookmark there.")
         } else {
             List {
                 ForEach(bookmarks) { bm in

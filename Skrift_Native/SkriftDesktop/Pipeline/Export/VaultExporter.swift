@@ -13,11 +13,21 @@ enum VaultExporter {
 
     enum ExportError: LocalizedError {
         case noVault
-        var errorDescription: String? { "Set your Obsidian vault path in Settings first." }
+        case lockedNote
+        var errorDescription: String? {
+            switch self {
+            case .noVault: return "Set your Obsidian vault path in Settings first."
+            case .lockedNote: return "This note is locked — locked notes stay inside Skrift (the vault is plain text). Unlock it on any device to export."
+            }
+        }
     }
 
     @discardableResult
     static func export(_ pf: PipelineFile, settings: AppSettings) throws -> Result {
+        // The lock gate: a locked note NEVER reaches the plaintext vault — the same
+        // promise the phone's PublishCoordinator makes. (Locking never deletes an
+        // already-exported file; the phone's lock flow says so to the user.)
+        guard !pf.locked else { throw ExportError.lockedNote }
         let vault = settings.noteFolder.trimmingCharacters(in: .whitespaces)
         guard !vault.isEmpty else { throw ExportError.noVault }
         let vaultURL = URL(fileURLWithPath: vault)
@@ -26,18 +36,7 @@ enum VaultExporter {
         // Filter `people:` to actual persons at export — the vault output is the one that
         // must be clean (no place/embed links leaking into the people graph).
         let markdown = Compiler.compile(file: pf, author: settings.authorName, knownPeople: NamesStore.shared.livePeople())
-        let stem = (pf.filename as NSString).deletingPathExtension
-        let base = (pf.enhancedTitle?.isEmpty == false) ? pf.enhancedTitle! : stem
-        // Obsidian forbids * " \ / < > : | ? in note names (cross-platform sync)
-        // and # ^ [ ] break its link syntax. Path separators become "-" (keeps
-        // word boundaries); the rest are stripped, then doubled spaces collapsed
-        // — Gemma loves "Title: Subtitle", which must not become "Title- Subtitle".
-        var safe = base.replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
-            .filter { !"*\"<>:|?#^[]".contains($0) }
-            .replacingOccurrences(of: "  +", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: CharacterSet(charactersIn: " ."))   // avoid "Title..md"
-        if safe.isEmpty { safe = "note" }
+        let safe = noteStem(pf)
         // Sensible defaults so images/audio export even when the subfolders aren't
         // configured — the walkthrough hit silently-dropped images (E1/E2). Image
         // names are title-derived (`<safe>_NNN`), so they don't collide across notes.
@@ -100,6 +99,30 @@ enum VaultExporter {
         }
 
         return Result(markdownURL: mdURL, audioURL: audioURL, imageCount: imageCount)
+    }
+
+    /// The exported note's filename stem — `enhancedTitle` (else the file stem), sanitized
+    /// for Obsidian. ONE derivation, used by the export write AND the memo-link resolver
+    /// (`[[memo:UUID|Title]]` → `[[<stem>|Title]]`), so links always match the real file.
+    ///
+    /// Obsidian forbids * " \ / < > : | ? in note names (cross-platform sync)
+    /// and # ^ [ ] break its link syntax. Path separators become "-" (keeps
+    /// word boundaries); the rest are stripped, then doubled spaces collapsed
+    /// — Gemma loves "Title: Subtitle", which must not become "Title- Subtitle".
+    static func noteStem(_ pf: PipelineFile) -> String {
+        noteStem(title: pf.enhancedTitle, filename: pf.filename)
+    }
+
+    static func noteStem(title: String?, filename: String) -> String {
+        let stem = (filename as NSString).deletingPathExtension
+        let base = (title?.isEmpty == false) ? title! : stem
+        var safe = base.replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+            .filter { !"*\"<>:|?#^[]".contains($0) }
+            .replacingOccurrences(of: "  +", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: " ."))   // avoid "Title..md"
+        if safe.isEmpty { safe = "note" }
+        return safe
     }
 
     /// Replace `[[img_NNN]]` markers with `![[<safe>_NNN.ext]]` Obsidian embeds,

@@ -16,6 +16,6 @@ struct RecordControlWidget: ControlWidget {
             }
         }
         .displayName("Skrift")
-        .description("Start a Skrift voice memo.")
+        .description("Start a Skrift voice note.")
     }
 }

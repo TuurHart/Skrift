@@ -30,7 +30,7 @@ struct RecentlyDeletedView: View {
                 }
             }
             .confirmationDialog(
-                "Delete this memo permanently? Its audio and photos will be gone for good.",
+                "Delete this note permanently? Its audio and photos will be gone for good.",
                 isPresented: Binding(
                     get: { confirmDelete != nil },
                     set: { if !$0 { confirmDelete = nil } }
@@ -78,7 +78,7 @@ struct RecentlyDeletedView: View {
                         }
                 }
             } footer: {
-                Text("Memos are kept for \(TrashPolicy.retentionDays) days, then deleted permanently.")
+                Text("Notes are kept for \(TrashPolicy.retentionDays) days, then deleted permanently.")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.skTextFaint)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -94,7 +94,7 @@ struct RecentlyDeletedView: View {
         ContentUnavailableView(
             "Nothing here",
             systemImage: "trash",
-            description: Text("Deleted memos are kept for \(TrashPolicy.retentionDays) days before being removed for good.")
+            description: Text("Deleted notes are kept for \(TrashPolicy.retentionDays) days before being removed for good.")
         )
         .accessibilityIdentifier("trash-empty")
     }
