@@ -204,7 +204,10 @@ settled by the locked Obsidian model: the app's own on-device code reading the v
   lapsed Obsidian Sync. Safe because writes are per-file disjoint: Mac edits, phone publish is
   create-only, iPad reads. Operational notes: Skrift desktop's vault path setting must be updated
   after the move; "Optimize Mac Storage" must be OFF (evicted placeholders would break the
-  exporter/tag scan); vault audio copies now count against iCloud storage.
+  exporter/tag scan); vault audio copies now count against iCloud storage. Move order: disconnect
+  the lapsed Obsidian Sync pairing on EVERY device first (never two sync engines on one vault),
+  backup, force-quit Obsidian everywhere, copy into iCloud Drive → Obsidian, verify on all
+  devices, re-point Skrift, then retire the old folder.
 
 ## Later, on the same substrate (not v1)
 
