@@ -3,7 +3,7 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 15
+version: 16
 updated: 2026-07-07T22:10:00.000Z
 lanes:
   - track: -1
@@ -491,7 +491,8 @@ nodes:
     title: Journal / On-This-Day / search
     lane: 2
     order: 4
-    status: inprogress
+    status: done
+    done: 2026-07-07
     eff: L
     ms: Enrichment
     deps:
@@ -512,6 +513,11 @@ nodes:
         the Highlights slot [d05ddd8]
       - 2026-07-07 · Semantic search Related section + Thread view [0c9babd]
       - 2026-07-07 · Related card on note detail [c6acc39]
+      - 2026-07-07 · DEVICE-VERIFIED live by Tuur (builds 40–53, 4 rounds) —
+        semantic search/threads/Related on the real corpus; tab renamed
+        Review; Photos-style map clustering; floors CALIBRATED from the
+        on-device histogram (random-pair p50 .31 / p90 .49 → related floor
+        0.45); sweep perf confirmed (hash-diff re-sweeps 0.0s)
       - 2026-07-07 · Settings consent flow (295 MB download) + sweep timing +
         histogram harness; Dev build 40 on the iPhone 13
     win: On This Day + timeline + semantic 'related notes' work on-device — a
