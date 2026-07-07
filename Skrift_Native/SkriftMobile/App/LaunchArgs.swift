@@ -50,6 +50,8 @@ enum LaunchFlags {
     /// Open the Journal tab on launch (screenshot/UITest routing, like the
     /// seed-and-open flags above).
     static var openJournal: Bool { args.boolFlag("-openJournal") }
+    /// Open the Settings tab on launch (screenshot routing).
+    static var openSettings: Bool { args.boolFlag("-openSettings") }
     /// Run the journal index on MockEmbedder + an in-memory store (no model
     /// assets) so search-Related/threads are demoable on the sim / UI tests.
     static var mockJournalIndex: Bool { args.boolFlag("-mockJournalIndex") }

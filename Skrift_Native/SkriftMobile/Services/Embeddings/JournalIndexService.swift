@@ -48,13 +48,38 @@ final class JournalIndexService {
         let index = resolvedIndex()
         sweeping = true
         Task.detached(priority: .utility) { [weak self] in
+            let t0 = Date()
             do {
                 let stats = try await index.sweep(snapshots)
-                DevLog.log("JournalIndex sweep: \(stats)")
+                // The chunk-8 perf trace: pull via devlog after a device sweep.
+                DevLog.log(String(format: "JournalIndex sweep: %d embedded · %d skipped · %d removed · %.1fs for %d memos",
+                                  stats.embedded, stats.skipped, stats.removed,
+                                  Date().timeIntervalSince(t0), snapshots.count))
             } catch {
                 DevLog.log("JournalIndex sweep failed: \(error)")
             }
             await MainActor.run { self?.sweeping = false }
+        }
+    }
+
+    /// Chunk-3/8 calibration harness: score distributions over the REAL corpus,
+    /// written to the devlog (pull via devicectl). Gist-pair percentiles say
+    /// where the related/thread floors should sit; query trials sanity-check
+    /// search. DEBUG-only entry (Settings dev row).
+    func logScoreHistogram(_ repository: NotesRepository) {
+        let index = resolvedIndex()
+        Task.detached(priority: .utility) {
+            do {
+                let sample = try await index.gistPairScores(limit: 2000)
+                guard !sample.isEmpty else { DevLog.log("Histogram: empty index"); return }
+                let sorted = sample.sorted()
+                func pct(_ p: Double) -> Float { sorted[min(sorted.count - 1, Int(p * Double(sorted.count)))] }
+                DevLog.log(String(format: "Histogram gist-pairs n=%d · p10 %.3f · p50 %.3f · p90 %.3f · p99 %.3f · max %.3f (floors: related %.2f, search %.2f)",
+                                  sorted.count, pct(0.10), pct(0.50), pct(0.90), pct(0.99),
+                                  sorted.last ?? 0, RetrievalTuning.relatedFloor, RetrievalTuning.searchFloor))
+            } catch {
+                DevLog.log("Histogram failed: \(error)")
+            }
         }
     }
 

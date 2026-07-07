@@ -189,9 +189,19 @@ Per-app wiring — `Skrift_Native/SkriftMobile/`:
    index is inactive. `-journalMemoDemo` screenshot route; sim-verified on the seeded pricing
    memo. NOTE: conversation/capture pages keep the legacy layout without the footer — the card
    reaches them when those pages migrate to the editor architecture (note-editing phase 2).
-8. Device pass on the iPhone 13 (Dev build): backfill duration + memory on the real corpus, jetsam
-   watch, asset-download UX. Then FEATURES.md rows + roadmap flip (P8 → done via Huginn) + fold
-   this doc per the docs-lean rule.
+8. 🟡 **CODE HALF BUILT + INSTALLED 2026-07-07 (Dev build 40 on the iPhone 13).** Shipped:
+   Settings → "Journal & search" consent section (toggle → 295 MB download with status/failure
+   states → first sweep; disabling hides all semantic surfaces, model/index stay cached), sweep
+   duration logging, and the calibration harness (DEBUG "Log score histogram" row → gist-pair
+   percentiles to the devlog). Roadmap P8 → inprogress (v13).
+   **TUUR'S HALF (5 min on the phone):** open Skrift Dev → Settings → Journal & search → toggle ON
+   → wait for the download → background/foreground once (first sweep runs) → tap "Log score
+   histogram (dev)" → then play: Journal tab, a meaning-based search, a note's ⋯ → View Thread,
+   the Related card. **NEXT SESSION:** pull the devlog (devicectl appDataContainer copy,
+   com.skrift.mobile.dev, Documents/devlog.txt) → read sweep seconds + histogram percentiles →
+   set the real `RetrievalTuning` floors + jetsam check → flip P8 done via Huginn + fold this doc
+   per the docs-lean rule. Also owed: Settings-section + pushed-screens eyeball (device), iPad
+   layout pass, person/kind filter additions.
 
 ## Fast-follows (named, user-approved 2026-07-06 — build right after chunk 8 if momentum allows)
 

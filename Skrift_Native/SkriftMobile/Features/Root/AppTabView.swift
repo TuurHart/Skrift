@@ -15,7 +15,8 @@ import SwiftUI
 /// mini-player stay inside the Notes tab (they're notes-context chrome).
 struct AppTabView: View {
     enum Tab: Hashable { case notes, library, journal, settings }
-    @State private var selection: Tab = LaunchFlags.openJournal ? .journal : .notes
+    @State private var selection: Tab = LaunchFlags.openJournal ? .journal
+        : LaunchFlags.openSettings ? .settings : .notes
 
     var body: some View {
         TabView(selection: $selection) {
