@@ -89,7 +89,9 @@ private struct PersonRow: View {
             Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.skTextFaint)
         }
         .padding(.vertical, 11).padding(.horizontal, 6)
-        .overlay(Divider().overlay(Color.skBorder), alignment: .bottom)
+        // A plain 0.5pt rule — NOT `Divider()` in an overlay, which renders as a full-height
+        // VERTICAL line (SwiftUI quirk, visible as a stray center line down the list on iOS 26).
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.skBorder).frame(height: 0.5) }
         .contentShape(Rectangle())
     }
 

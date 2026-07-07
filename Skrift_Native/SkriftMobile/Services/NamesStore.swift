@@ -2,9 +2,9 @@ import Foundation
 
 /// Local `names.json` store + mutators, ported from the RN `Mobile/lib/names.ts`.
 /// The on-disk schema mirrors `backend/utils/names_store.py` so the file
-/// round-trips verbatim through the Mac sync (incl. tombstones + the recomputed
-/// top-level `lastModifiedAt`). The bidirectional sync itself lives in
-/// `NamesSync`; this is the local source of truth it merges into.
+/// round-trips verbatim (incl. tombstones + the recomputed top-level
+/// `lastModifiedAt`). Cross-device sync itself lives in `NamesCloudSync`
+/// (CloudKit); this is the local source of truth it merges into.
 final class NamesStore {
     static let shared = NamesStore()
 

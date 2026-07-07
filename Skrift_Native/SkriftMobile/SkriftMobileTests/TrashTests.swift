@@ -3,7 +3,7 @@ import SwiftData
 @testable import SkriftMobile
 
 /// Trash ("Recently Deleted") behaviour: soft-delete hides a memo from every
-/// `allMemos()` consumer (list, search, sync), restore brings it back, and the
+/// `allMemos()` consumer (list, search), restore brings it back, and the
 /// startup purge permanently removes memos past the 14-day retention —
 /// including their on-disk audio and sidecars.
 final class TrashTests: XCTestCase {
@@ -18,8 +18,7 @@ final class TrashTests: XCTestCase {
         repo.softDelete(memo)
 
         XCTAssertNotNil(memo.deletedAt)
-        // Hidden from the main list (and so from SyncCoordinator's upload loop,
-        // which iterates allMemos()).
+        // Hidden from the main list (and so from every allMemos() consumer).
         XCTAssertEqual(repo.allMemos().map(\.audioFilename), ["memo_b.m4a"])
         XCTAssertEqual(repo.deletedMemos().map(\.audioFilename), ["memo_a.m4a"])
         // Lookup by id still finds it — Restore and purge depend on that.
@@ -126,33 +125,6 @@ final class TrashTests: XCTestCase {
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: audioURL.path))
         try? FileManager.default.removeItem(at: audioURL)   // tidy up
-    }
-
-    // MARK: - Sync gating
-
-    /// A trashed memo must never upload, even when it's otherwise fully eligible
-    /// (waiting + flagged significant + audio on disk). SyncCoordinator iterates
-    /// `allMemos()`, which excludes the trash.
-    @MainActor
-    func testTrashedMemoIsNotUploaded() async {
-        let repo = NotesRepository(inMemory: true)
-        let id = UUID()
-        let filename = "memo_\(id.uuidString).m4a"
-        let url = AppPaths.recordingsDirectory.appendingPathComponent(filename)
-        FileManager.default.createFile(atPath: url.path, contents: Data("AUDIO".utf8))
-        defer { try? FileManager.default.removeItem(at: url) }
-        let memo = Memo(id: id, audioFilename: filename, duration: 3, recordedAt: Date(),
-                        syncStatus: .waiting, transcript: "hi", transcriptStatus: .done,
-                        transcriptConfidence: 0.9, significance: 0.7)   // eligible…
-        repo.insert(memo)
-        repo.softDelete(memo)                                           // …but trashed
-
-        let mock = MockMacTransport()
-        let synced = await SyncCoordinator(repository: repo, macTransport: mock, namesTransport: nil).syncAll()
-
-        XCTAssertEqual(synced, 0)
-        XCTAssertEqual(mock.uploadedBodies.count, 0)
-        XCTAssertEqual(repo.memo(id: id)?.syncStatus, .waiting)
     }
 
     // MARK: - Countdown labels

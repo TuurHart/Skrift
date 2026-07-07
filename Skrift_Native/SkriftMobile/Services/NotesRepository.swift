@@ -46,8 +46,8 @@ final class NotesRepository {
     }
 
     /// Newest first — the order the memos list renders. EXCLUDES trashed memos
-    /// (`deletedAt != nil`), so every caller — list, search, and crucially
-    /// SyncCoordinator's upload loop — automatically skips the trash.
+    /// (`deletedAt != nil`), so every caller — list and search — automatically
+    /// skips the trash.
     func allMemos() -> [Memo] {
         let descriptor = FetchDescriptor<Memo>(
             predicate: #Predicate { $0.deletedAt == nil },

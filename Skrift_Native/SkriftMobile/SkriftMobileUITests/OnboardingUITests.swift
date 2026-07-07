@@ -1,22 +1,22 @@
 import XCTest
 
 /// Phase 7.7: first-run onboarding. `-forceOnboarding` shows it (other tests pass
-/// `-inMemoryStore` and auto-skip); `-seedDiscoveredMacs` fills the pair step.
-/// Permission grants + the model download are device-owed — the test just checks
-/// the screen renders and "Get started" lands on Memos.
+/// `-inMemoryStore` and auto-skip). Permission grants + the model download are
+/// device-owed — the test just checks the screen renders and "Get started" lands
+/// on Memos.
 final class OnboardingUITests: XCTestCase {
 
     override func setUpWithError() throws { continueAfterFailure = false }
 
     func testOnboardingGetStartedLandsOnMemos() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["-inMemoryStore", "-forceOnboarding", "-seedDiscoveredMacs"]
+        app.launchArguments = ["-inMemoryStore", "-forceOnboarding"]
         app.launch()
 
         XCTAssertTrue(app.staticTexts["Welcome to Skrift"].waitForExistence(timeout: 10),
                       "onboarding didn't show")
         XCTAssertTrue(app.staticTexts["Microphone & Camera"].exists)
-        XCTAssertTrue(app.staticTexts["Pair your Mac"].exists)
+        XCTAssertTrue(app.staticTexts["Transcription model"].exists)
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "onboarding"; shot.lifetime = .keepAlways; add(shot)

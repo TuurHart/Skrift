@@ -7,6 +7,33 @@ final class SanitiserTests: XCTestCase {
         Person(canonical: canonical, aliases: aliases, short: short, lastModifiedAt: "2026-01-01T00:00:00.000Z")
     }
 
+    // MARK: - unlinkToSpoken (Part B, Mac→phone un-link)
+
+    func testUnlinkToSpokenUsesShortAndDisplayForms() {
+        let people = [person("[[Tiuri Hartog]]", ["Tuur"], short: "Tuur"),
+                      person("[[Nick Jansen]]", ["Nick"], short: "Nick")]
+        // Bare first-mention link → short name; alias-display link → the spoken word.
+        XCTAssertEqual(
+            Sanitiser.unlinkToSpoken("[[Tiuri Hartog]] met [[Nick Jansen|Nick]] at noon.", people: people),
+            "Tuur met Nick at noon.")
+    }
+
+    func testUnlinkToSpokenPreservesImageMarkersAndUnknownLinks() {
+        let people = [person("[[Rose Lee]]", ["Rose"], short: "Rose")]
+        XCTAssertEqual(
+            Sanitiser.unlinkToSpoken("Look [[img_001]] here, said [[Rose Lee|Rose]].", people: people),
+            "Look [[img_001]] here, said Rose.")
+    }
+
+    func testUnlinkThenReLinkRoundTrips() {
+        // The Mac un-links before send; the phone re-links — the result must match a fresh link.
+        let people = [person("[[Nick Jansen]]", ["Nick", "Nicky"], short: "Nick")]
+        let linked = Sanitiser.process(text: "Nick went out. Later Nicky came back.", people: people).sanitised
+        let unlinked = Sanitiser.unlinkToSpoken(linked, people: people)
+        let reLinked = Sanitiser.process(text: unlinked, people: people).sanitised
+        XCTAssertEqual(reLinked, linked, "unlink → re-link is a no-op round trip")
+    }
+
     func testUnambiguousFirstLinksRestShortened() {
         let people = [person("[[Nick Jansen]]", ["Nick", "Nicky"], short: "Nick")]
         let r = Sanitiser.process(text: "Nick went out. Later Nicky came back.", people: people)

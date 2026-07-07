@@ -69,16 +69,14 @@ extension Memo {
 
     /// Honest status for the list pill, or `nil` when no pill should show.
     ///
-    /// Transcript states (`transcribing` / `error`) are always informational and
-    /// show regardless of sync eligibility. The *sync* states only apply once the
-    /// memo is flagged to send: `significance == 0` is phone-only (SyncCoordinator
-    /// never uploads it), so it shows NO sync pill — a "Waiting" pill there would
-    /// lie, since it never syncs. `significance > 0` keeps Waiting / Synced.
+    /// Only the transcript states (`transcribing` / `error`) drive a per-memo pill.
+    /// There is no per-memo *sync* pill: under CloudKit every memo mirrors to iCloud
+    /// automatically, so a "Waiting"/"Synced" badge would either lie or be noise —
+    /// sync visibility comes from the global "Syncing with iCloud…" chip instead.
     var statusKind: MemoStatusKind? {
         if transcriptStatus == .transcribing { return .transcribing }
         if transcriptStatus == .failed { return .error }
-        guard significance > 0 else { return nil }
-        return syncStatus == .synced ? .synced : .waiting
+        return nil
     }
 }
 

@@ -43,14 +43,45 @@ extension MemoCloudReconciler {
         Task { @MainActor in _ = reconcile() }   // launch sweep — async, doesn't block App.init()
     }
 
-    /// Pull every eligible synced memo into the local pipeline store. No-op unless the user
-    /// enabled CloudKit-Mac sync AND the CloudKit container is available. Returns the count
-    /// ingested.
+    /// Pull every eligible synced memo into the local pipeline store, and reconcile the
+    /// CloudKit names + vocabulary carriers into the Mac's local stores. No-op unless the user
+    /// enabled CloudKit-Mac sync AND the CloudKit container is available. Returns the count of
+    /// memos ingested.
     @discardableResult
     static func reconcile() -> Int {
         let settings = SettingsStore.shared.load()
         guard settings.cloudKitMacSyncEnabled, let cloud = MemoCloudStore.container else { return 0 }
-        return sweep(from: cloud.mainContext, into: SharedStore.container.mainContext,
-                     processEverything: settings.processAllSyncedMemosEnabled)
+        // Names (people + voiceprints) + custom vocab now flow over CloudKit (replacing the
+        // Bonjour /api/names path). Both are guarded + idempotent, so running them on every
+        // sweep is cheap; they converge with the phone through the shared merge.
+        NamesCloudSync.run()
+        VocabularyCloudSync.run()
+        let local = SharedStore.container.mainContext
+        let outcome = sweep(from: cloud.mainContext, into: local,
+                            processEverything: settings.processAllSyncedMemosEnabled,
+                            people: NamesStore.shared.livePeople(), author: settings.authorName,
+                            thisDeviceID: DeviceID.current())
+        // A phone edit re-linked + recompiled an existing row (Part B). Persist it, and if it
+        // was already in the vault, re-export so Obsidian reflects the edit too ("everywhere").
+        if !outcome.updatedIDs.isEmpty {
+            try? local.save()
+            reexportEdited(outcome.updatedIDs, in: local, settings: settings)
+        }
+        return outcome.created
+    }
+
+    /// Re-export the vault markdown for rows a phone edit just changed — but only those already
+    /// exported (`.done`), so we never push an un-reviewed note into the vault. Best-effort:
+    /// an export failure is logged by the caller path, never fatal to the sweep.
+    private static func reexportEdited(_ ids: [String], in context: ModelContext, settings: AppSettings) {
+        let files = (try? context.fetch(FetchDescriptor<PipelineFile>(
+            predicate: #Predicate { ids.contains($0.id) }))) ?? []
+        for pf in files where pf.exportStatus == .done {
+            if let result = try? VaultExporter.export(pf, settings: settings) {
+                pf.exported = result.markdownURL.path
+                pf.lastActivityAt = Date()
+            }
+        }
+        try? context.save()
     }
 }

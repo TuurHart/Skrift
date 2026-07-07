@@ -2,6 +2,49 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ CloudKit-only sync epic — retiring Bonjour (2026-07-06, on `main`)
+
+Building CloudKit as the sole phone↔Mac transport, then deleting Bonjour. Plan in
+`~/.claude/plans/do-all-the-work-lively-sedgewick.md`. Phases 1–3 built + committed; verify-first.
+
+**Device test session (2026-07-06, Dev, CloudKit-only both ends):**
+- ✅ **B — memo round-trip**: phone → Mac (via CloudKit, Bonjour off) → enhance → `MemoEnhancement`
+  write-back → phone shows "✦ Polished on your Mac". Title + polish confirmed. PASS.
+- ✅ **C — Bonjour retired UX**: phone Settings has no Pair-a-Mac (just "iCloud sync"); no stale
+  "Waiting" pill. PASS.
+- 🔧 **A/D — names + vocab looked broken, were mostly UI/timing**: the name DID sync (landed in the
+  Mac's `names.json`) but the **Mac Names settings list didn't live-refresh**, and edits only pushed
+  the carrier on app foreground, not on edit. FIXED (`23a2eb1`/`79975a7`): phone pushes
+  NamesCloudSync/VocabularyCloudSync on edit; Mac Names list reloads on `.namesDidChangeFromSync`.
+  Re-test owed.
+
+**Feature requests / parity gaps from the session:**
+- ✅ **DONE — "significance" → "Importance" on the Mac**: the review label + a11y label + Settings help
+  now read "importance" (internal `Significance*` symbols unchanged), matching the phone. (`SignificanceCircles`, `SettingsView`).
+- ✅ **DONE — rename discoverability**: the phone person editor's Full-name help now says "Change it to
+  rename this person" when editing an existing person (`PersonEditorView`).
+- ⬜ **Mac Names screen should match the phone's** person UI (look + interaction parity) — BIG, mock-first.
+- ⬜ **Mac in-place name-linking should match the phone**: on the phone a linkable word ("Will") shows
+  dotted/tappable immediately on the raw transcript; on the Mac the dotted suggestions only appear
+  **after enhance** (the sanitise pass), and aren't as interactive. Want parity (immediate, tappable). BIG.
+
+**Still owed in the epic:** Phase 2a (off-main CloudKit reconciler I/O), Phase 4 (deploy prod CloudKit
+schema + device round-trip), Phase 5 (delete the Bonjour code — held until CloudKit-only is signed off).
+
+**Test session 2 (2026-07-06 later — after push-on-edit + Mac Names redesign):**
+- ✅ **A/D re-verified**: a deleted person + custom words both synced phone→Mac (CloudKit LATENCY, not
+  instant); ✅ B re-confirmed (memo round-trip + polish back). CloudKit-only sync is effectively verified.
+- 🐛→✅ **FIXED — rename was genuinely blocked**: the phone Names list opens `PersonDetailView` (voice +
+  delete ONLY, no name/alias editing; the full `PersonEditorView` was reachable only from the review flow).
+  Added an **Edit** button on `PersonDetailView` → opens the editor (build 28).
+- 🐛→✅ **FIXED — stray vertical line down the phone Names list**: `PersonRow` used `.overlay(Divider()…)`,
+  which renders a full-height VERTICAL divider (iOS-26 SwiftUI quirk) → replaced with a 0.5pt `Rectangle` rule.
+- ⬜ **NEW — live bidirectional editing (Apple-Notes-style)**: a MANUAL edit on the Mac (note body / title)
+  does NOT sync back to the phone — only the enhance-time `MemoEnhancement` write-back does. User wants
+  "edit anywhere, syncs everywhere". Needs a debounced write-back on Mac-side edits. BIG-ish.
+- ℹ️ **Latency expectation**: CloudKit is seconds (with silent push), not Apple-Notes-instant; push-on-edit
+  helps but CloudKit propagation + the Mac's import-triggered reconcile add delay. Partly inherent.
+
 ## 🐛 Post-0.2.0 prod findings (2026-06-26, after promoting prod to build 22) — TRIAGE
 
 User hit these on the freshly-promoted PROD apps. Diagnoses below; fixes owed (do on Dev, verify,

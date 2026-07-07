@@ -669,6 +669,22 @@ enum Sanitiser {
         return out
     }
 
+    /// Un-link EVERY known person's `[[wiki link]]` back to their SPOKEN form (the alias-display
+    /// word for a `[[Canonical|spoken]]` link, else the person's short name) — the inverse of
+    /// `process`, so `unlinkToSpoken` → `process` round-trips. Used by the Mac→phone live-edit
+    /// write-back: the phone stores a RAW copy-edit (bracket-free editor) and re-links itself,
+    /// so a manual Mac body edit must be sent un-linked to the spoken word — NOT the bare
+    /// canonical, which would re-link as `[[Nick Jansen]] Jansen` (the linker re-matches the
+    /// "Nick" alias inside "Nick Jansen"). Image markers (`[[img_NNN]]`) and links to people not
+    /// in `people` are left untouched.
+    static func unlinkToSpoken(_ text: String, people: [Person]) -> String {
+        var out = text
+        for p in people {
+            out = unlinkAll(text: out, canonical: p.canonical, alias: spokenAlias(for: p))
+        }
+        return out
+    }
+
     /// The plain text a mention reads as once unlinked — the SAME short-name rule
     /// `process` uses when demoting later mentions (short override → first word of
     /// the canonical), falling back to the bare canonical.

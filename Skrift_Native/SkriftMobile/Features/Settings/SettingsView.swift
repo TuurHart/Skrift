@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Settings (mockup2): Mac connection + pairing, capture toggles, library
-/// (Names & voices, weather key), theme, version. Presented as a sheet from the
-/// Memos toolbar; Names + Pair-a-Mac push within its own stack.
+/// Settings (mockup2): iCloud sync status, capture toggles, library
+/// (Names & voices, weather key), theme, version. A root tab (AppTabView);
+/// Names pushes within its own stack.
 struct SettingsView: View {
     @AppStorage("liveTranscription") private var liveTranscription = true
     // Auto-stop live captions after N seconds of recording (0 = never) — long
@@ -17,35 +17,13 @@ struct SettingsView: View {
     // English); true = Multilingual (mel-off, fixes non-English drift). TranscriptionService
     // rebuilds the model when this flips.
     @AppStorage("transcriptionMultilingual") private var transcriptionMultilingual = false
-    @State private var connection = MacConnection.load()
     @State private var showFeedback = false
-    /// Live reachability of the paired Mac: nil = checking, true = server answered
-    /// /health, false = paired but unreachable. The green dot used to show whenever
-    /// a pairing was merely SAVED — it lied when the Mac was off / on another
-    /// network / a stale port, so memos sat "Waiting" while Settings said connected.
-    @State private var reachable: Bool?
     /// Global CloudKit (device↔device) sync activity → the honest "iCloud" status row.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
 
     private var customWordsCount: String {
         let n = CustomVocabularyStore.words().count
         return n == 0 ? "None" : "\(n)"
-    }
-
-    private var connectionColor: Color {
-        switch reachable {
-        case .some(true):  return .skGreen
-        case .some(false): return .skRed
-        case .none:        return .skTextFaint
-        }
-    }
-
-    /// Ping the paired Mac's /health so the dot reflects REAL reachability, not just
-    /// "a pairing is saved". Re-run on appear (covers returning from Pair-a-Mac).
-    private func checkReachability() async {
-        guard let connection else { reachable = nil; return }
-        reachable = nil
-        reachable = await URLSessionMacTransport(connection: connection).health()
     }
 
     var body: some View {
@@ -74,42 +52,6 @@ struct SettingsView: View {
                     }
                 } footer: {
                     Text("Your memos, names, and custom words sync across your devices via iCloud. Audiobooks sync per-book — turn one on from its long-press menu.")
-                }
-
-                Section {
-                    HStack {
-                        Text("Connection")
-                        Spacer()
-                        if let connection {
-                            HStack(spacing: 7) {
-                                if reachable == nil {
-                                    ProgressView().controlSize(.mini)
-                                } else {
-                                    Circle().fill(connectionColor).frame(width: 9, height: 9)
-                                        .shadow(color: connectionColor, radius: 4)
-                                }
-                                Text(reachable == false ? "\(connection.host) · unreachable" : connection.host)
-                                    .foregroundStyle(Color.skTextDim)
-                            }
-                            .accessibilityIdentifier("mac-connection-status")
-                        } else {
-                            Text("Not connected").foregroundStyle(Color.skTextFaint)
-                        }
-                    }
-                    if reachable == false {
-                        Text("Paired, but the Mac isn't answering. Check it's awake, on the same Wi-Fi, and running Skrift — then re-pair if its address changed.")
-                            .font(.footnote).foregroundStyle(Color.skTextDim)
-                    }
-                    NavigationLink {
-                        PairMacView()
-                    } label: {
-                        Text("Pair a Mac")
-                    }
-                    .accessibilityIdentifier("pair-mac-link")
-                } header: {
-                    Text("Mac · local network")
-                } footer: {
-                    Text("With the Mac app signed into the same iCloud account, your memos sync to it automatically over iCloud — no pairing needed. This local-network connection is an optional fallback for setups without iCloud.")
                 }
 
                 Section {
@@ -216,11 +158,6 @@ struct SettingsView: View {
             // No "Done": Settings is a root tab now (AppTabView), not a presented
             // sheet — there's nothing to dismiss.
             .sheet(isPresented: $showFeedback) { FeedbackCaptureView() }
-            .onAppear { connection = MacConnection.load() }
-            // Live health probe so the dot tells the truth (green only when the Mac
-            // actually answers). Re-runs when the saved host/port changes (e.g. after
-            // re-pairing in Pair-a-Mac).
-            .task(id: connection.map { "\($0.host):\($0.port)" }) { await checkReachability() }
         }
     }
 

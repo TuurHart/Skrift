@@ -12,8 +12,8 @@ import Foundation
 ///   source) and deleted only on success or an honest engine-heard-nothing;
 /// - a cold engine is awaited + retried; terminal failure surfaces as `.failed`
 ///   (Error pill) — never a silent no-op — and the next drain retries it;
-/// - sync holds until `.done` (SyncCoordinator gates captures on it), so the
-///   upload never races the dictated text.
+/// - the capture only reads as complete once its text is `.done`, so nothing
+///   downstream races the dictated text.
 @MainActor
 enum CaptureDictation {
 

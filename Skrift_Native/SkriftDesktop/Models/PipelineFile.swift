@@ -60,6 +60,14 @@ final class PipelineFile {
     var uploadedAt: Date = Date()
     var lastActivityAt: Date?
 
+    /// Live bidirectional sync: the source `Memo`'s `lastEditedAt` (or a phone-authored
+    /// `MemoEnhancement.enhancedAt`) that this row last reflected. Set at ingest, then bumped
+    /// by `MemoCloudUpdate` when a NEWER phone edit arrives over CloudKit — the watermark that
+    /// tells "the phone changed this after I ingested it" apart from "already up to date", so
+    /// re-link+recompile runs once per edit and never loops. Additive/optional → lightweight
+    /// migration; nil on rows ingested before this shipped (treated as "reflect the next edit").
+    var syncedSourceEditedAt: Date?
+
     // Transcription / sanitisation
     var transcript: String?
     var sanitised: String?
