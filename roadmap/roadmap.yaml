@@ -171,6 +171,9 @@ nodes:
       - 2026-07-07 · New Shared/Pipeline — VocabularyTermParsing+Trust+Tuning
         [c73643d], VoiceMatcher+SpeakerFusion [e53b50d], BPEMerge+ImageMarkers
         (phone drops its inline copies) [6e4ab09]
+      - 2026-07-07 · FIX Mac custom vocab consume-only → full whole-list LWW via
+        shared VocabularySyncCore (+push-on-edit, union migration; device
+        round-trip owed) [6f78ac1]
     win: no algorithm or wire struct the sync contract depends on exists twice;
       both suites green against the shared copies
   - id: Stz020

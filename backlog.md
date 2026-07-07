@@ -22,10 +22,10 @@ SpeakerFusion, BPEMerge (phone's inline mergeBPETokens/phantom-guard/alignWords 
   `[String: Any]`); its comments cite the DELETED phone `UploadPayload`. Map Memo+assets → PipelineFile
   directly/typed (decode `MemoMetadata` where UploadService reads dict keys). Golden parity test first
   (same memo through old + new path, byte-equal PipelineFile).
-- ⬜ **Mac custom vocab is consume-only** — a word added on the MAC never reaches the phone; a phone-side
-  deletion never reaches the Mac (desktop `VocabularyCloudSync` unions, never writes back — the phone
-  does whole-list LWW). Give the Mac a vocab `modifiedAt` + adopt the phone's `CustomVocabularyStore`
-  semantics, then the two `VocabularyCloudSync` files collapse into one shared reconcile.
+- ✅ **DONE (2026-07-07, `6f78ac1`) — Mac custom vocab is consume-only** — fixed: shared
+  `VocabularySyncCore` (whole-list LWW) + Mac `customVocabularyModifiedAt` + push-on-edit + one-time
+  union migration; both adapters are thin wrappers now. 8 new host-less core tests. Live phone↔Mac
+  round-trip unverified — fold into the next device session.
 - ⬜ **NamesCloudSync reconcile core** — both halves run the same fold-carriers → NamesMerge →
   byte-compare → collapse-duplicates algorithm with different store/gate/notify plumbing; an encoder
   divergence would cause CloudKit churn loops. Extract one shared engine, keep thin app adapters.
