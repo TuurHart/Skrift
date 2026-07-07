@@ -2,6 +2,30 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🎧 Books tab + one-tap resume — ✅ BUILT 2026-07-07 (mock-first, signed off; worktree `sweet-goldstine`)
+
+From the 2026-07-06/07 audiobook deep-review chat (roadmap detour node **D4**). Mock = `mocks/books-tab-and-resume.html`
+(v2, rebuilt 1:1 against Theme.swift + real components after v1 "looks different from the app" feedback). Decisions:
+- **Highlights tab CUT** (user: "well kill it") — captures live in Notes; P6 becomes a book-context surface later.
+- **Library → Books** (tab + header). **Screen title Memos → Notes**; "memo"→"note" across all user-facing copy
+  (list/detail/trash/settings/onboarding/widgets/intents/Live Activity — Siri phrases had no "memo", unchanged).
+- **One verb: "Add note"** (capsule pill + capture-screen header renamed from "Capture"; player already said it).
+- **Cold-launch resume:** last PLAYED book restores as a **paused** capsule (`restoreOnLaunch`) → resume = 1 tap,
+  record = 1 tap, same screen (the "two first things" tension dissolved). Never auto-plays; skips w/o local audio.
+- **Global capsule:** mounted per-tab via `safeAreaInset` in AppTabView; persists over pushed screens; covers hide it.
+  Memos list stopped observing the session (kills the 2 Hz whole-list re-render during playback).
+- **Tap a book row → autoplays** (+ full player opens running); PLAYING/PAUSED row badge dropped (tint stays).
+- **Books sort/filter chip** (was a dead-looking static label): Recently played (default, persisted) / Title / Author /
+  Recently added + In progress / Not started / Finished. Unit-tested.
+- **Capture memos now carry `bookID` + `bookPosition`** (stable join key for the future per-book-notes surface;
+  additive metadata, Mac ignores).
+Also fixed in passing: stale "Tap Mark" bookmarks empty-state copy; stale "last 30 seconds" capsule a11y label.
+**Gate:** build green; unit suite 327 run — only the 8 PRE-EXISTING CloudKit-epic failures (verified identical at
+branch HEAD baseline); new sort/filter tests green; 4 UI-test files' "Memos" assertions updated to "Notes".
+**OWED:** device eyeball (capsule on all tabs + crowding check on the Notes screen — user flagged the worry; levers
+if it feels heavy: compact idle-capsule, scroll-minimize, swipe-away-to-end-session). UI suite not re-run (10
+pre-existing iOS-26 failures tracked separately).
+
 ## ⭐ CloudKit-only sync epic — retiring Bonjour (2026-07-06, on `main`)
 
 Building CloudKit as the sole phone↔Mac transport, then deleting Bonjour. Plan in
@@ -521,7 +545,7 @@ pinned upper-third, free-scroll + "Back to playing", column cap) · **(5)** "Aa"
 fast-follow) · **(6)** bookmark "Mark" toggle + browse-only sheet + margin glyph · **(7)** "Add note" accent chip +
 utility reflow (speed/sleep in) + read-along states (nudge / live transcribing-% / empty) · **(8)** sync-aware library
 delete-confirm. **Tab bar verified on the iPhone 17 sim; player screens 3–7 owe a device eyeball (USER step — needs a
-real book + transcript). Owed: light/sepia themes; a global cross-tab mini-player. NEXT → Phase 2 Export.**
+real book + transcript). Owed: light/sepia themes; ~~a global cross-tab mini-player~~ ✅ BUILT 2026-07-07 (see "🎧 Books tab + one-tap resume"). NEXT → Phase 2 Export.**
 
 ✅ **Mock SIGNED OFF 2026-06-19** = `mocks/audiobook-player-reading-mode.html` (v4 — mock-first, refined via two
 design-critique workflows + a rendered-pixel agent review; commits `92aee15`→`1700d4e`). **It IS the spec — build to

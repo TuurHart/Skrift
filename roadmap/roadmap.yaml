@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 6
-updated: 2026-07-05T13:01:57.820Z
+updated: 2026-07-07T03:42:29.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -202,7 +202,10 @@ nodes:
       - P2
     via: P4
     note: Highlights feed + Daily Review + shareable quote cards (ImageRenderer).
-      The headline + App-Store marketing.
+      The headline + App-Store marketing. 2026-07-07 — the placeholder Highlights
+      TAB was cut (3-tab IA); when built, this surface lives in the book context
+      (Books sub-surface), not a tab. Captures now carry bookID+bookPosition, the
+      join key this needs.
     win: Highlights feed + Daily Review live; a shareable quote card renders from a
       real capture
   - id: P5
@@ -518,7 +521,7 @@ nodes:
         [116c7b3]
 detours:
   - name: Audiobook deep-dive
-    when: Jun 18–19, while in Phase 1
+    when: Jun 18–19 & Jul 6–7, while in Phase 1
     branchFrom: P1
     mergeTo: P2
     nodes:
@@ -546,6 +549,19 @@ detours:
         via: D2
         note: "Build 14: tab-bar IA, e-reader reading mode, Aa size/spacing, dog-ear
           bookmarks, Add-note chip, sync-aware delete."
+      - id: D4
+        title: Books tab + one-tap resume
+        status: done
+        done: 2026-07-07
+        deps:
+          - D3
+        via: D3
+        note: "Highlights tab CUT (3-tab Notes·Books·Settings), Library→Books,
+          global mini-player on every tab, last-played book restores paused at
+          launch (resume = 1 tap), tap-a-book autoplays, sort+status filters on
+          the Books chip, capture memos carry bookID+bookPosition (the future
+          per-book-notes join key), 'memo'→'note' copy sweep + one 'Add note'
+          verb. Mock-first: mocks/books-tab-and-resume.html."
 ideas:
   - id: P4a
     text: Spike on the iPhone 13 FIRST (the gate)
