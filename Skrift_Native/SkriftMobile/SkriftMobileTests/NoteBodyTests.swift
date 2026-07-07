@@ -474,6 +474,107 @@ final class PhotoTextTests: XCTestCase {
     }
 }
 
+/// Attachment tap resolution (device round 1, build 31): a tap in the empty
+/// space beside a PORTRAIT photo must NOT open the viewer (P1#2 — the caret-
+/// adjacency probe was too greedy), and a checkbox tap must toggle even when
+/// the caret snaps past the glyph (P1#6 — probe too tight). The resolver is
+/// anchored on the touched character and gated on the glyph's drawn rect.
+final class AttachmentHitTests: XCTestCase {
+
+    private var window: UIWindow!
+
+    @MainActor
+    private func makeLaidOutEditor(memo: Memo) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 800))
+        window.addSubview(tv)
+        window.makeKeyAndVisible()
+        tv.frame = window.bounds
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        tv.layoutIfNeeded()
+        if let tlm = tv.textLayoutManager {
+            tlm.ensureLayout(for: tlm.documentRange)     // headless TextKit 2 layout
+        }
+        return (coordinator, tv)
+    }
+
+    /// First character index carrying `key`, or nil.
+    @MainActor
+    private func attachmentIndex(_ key: NSAttributedString.Key, in tv: UITextView) -> Int? {
+        var found: Int?
+        tv.textStorage.enumerateAttribute(key, in: NSRange(location: 0, length: tv.textStorage.length)) {
+            value, range, stop in
+            if value != nil { found = range.location; stop.pointee = true }
+        }
+        return found
+    }
+
+    @MainActor
+    func testTapBesidePortraitPhotoIsNotAPhotoTap() throws {
+        // A 200×800 portrait source renders narrower than the content width —
+        // real empty space exists to its right (the P1#2 repro geometry).
+        let filename = "photo_hit_test_001.jpg"
+        let url = AppPaths.recordingsDirectory.appendingPathComponent(filename)
+        try? FileManager.default.createDirectory(at: AppPaths.recordingsDirectory,
+                                                 withIntermediateDirectories: true)
+        let img = UIGraphicsImageRenderer(size: CGSize(width: 200, height: 800)).image { ctx in
+            UIColor.systemTeal.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 200, height: 800))
+        }
+        try XCTUnwrap(img.jpegData(compressionQuality: 0.8)).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        var meta = MemoMetadata()
+        meta.imageManifest = [ImageManifestEntry(filename: filename, offsetSeconds: 0)]
+        let memo = Memo.make(transcript: "look\n[[img_001]]\nafter", metadata: meta)
+        let (coordinator, tv) = makeLaidOutEditor(memo: memo)
+
+        let idx = try XCTUnwrap(attachmentIndex(NoteBodyView.Coordinator.markerKey, in: tv))
+        let rect = try XCTUnwrap(tv.rects(forCharacterRange: NSRange(location: idx, length: 1)).first)
+        XCTAssertLessThan(rect.width, 200, "portrait photo must render narrower than the page")
+
+        XCTAssertEqual(coordinator.attachmentAction(at: CGPoint(x: rect.midX, y: rect.midY)),
+                       .openImage(marker: 1), "a tap ON the photo opens the viewer")
+        XCTAssertNil(coordinator.attachmentAction(at: CGPoint(x: rect.maxX + 40, y: rect.midY)),
+                     "a tap in the empty space RIGHT of the photo is caret placement, not a photo tap")
+    }
+
+    @MainActor
+    func testCheckboxTapTogglesWithFingerSlopRegardlessOfCaret() throws {
+        let memo = Memo.make(transcript: "- [ ] buy milk")
+        let (coordinator, tv) = makeLaidOutEditor(memo: memo)
+
+        let idx = try XCTUnwrap(attachmentIndex(NoteBodyView.Coordinator.taskKey, in: tv))
+        let rect = try XCTUnwrap(tv.rects(forCharacterRange: NSRange(location: idx, length: 1)).first)
+
+        // The caret sits far away — the resolver must not care (the P1#6 miss
+        // was exactly a caret that snapped somewhere unhelpful).
+        tv.selectedRange = NSRange(location: tv.textStorage.length, length: 0)
+
+        XCTAssertEqual(coordinator.attachmentAction(at: CGPoint(x: rect.midX, y: rect.midY)),
+                       .toggleTask(at: idx))
+        XCTAssertEqual(coordinator.attachmentAction(at: CGPoint(x: rect.maxX + 8, y: rect.midY)),
+                       .toggleTask(at: idx), "a near-miss inside the finger slop still toggles")
+        XCTAssertNil(coordinator.attachmentAction(at: CGPoint(x: rect.maxX + 40, y: rect.midY)),
+                     "a tap on the task TEXT is editing, not a toggle")
+    }
+
+    @MainActor
+    func testStaleTouchPointIsNotReplayed() {
+        let tv = NoteBodyTextView()
+        tv.noteTouchDown(CGPoint(x: 10, y: 10))
+        XCTAssertNotNil(tv.recentTouchPoint)
+        // Simulate staleness by aging the stash beyond the 0.6 s window.
+        let exp = expectation(description: "staleness window elapses")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { exp.fulfill() }
+        wait(for: [exp], timeout: 2)
+        XCTAssertNil(tv.recentTouchPoint, "a keyboard-driven caret move must not replay an old touch")
+    }
+}
+
 /// Share-out + stats helpers (chunk 2 survey folds).
 final class MemoShareTests: XCTestCase {
 

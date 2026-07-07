@@ -488,6 +488,15 @@ struct NoteBodyView: UIViewRepresentable {
         func gestureRecognizer(_ g: UIGestureRecognizer,
                                shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 
+        /// Every touch bound for our tap recognizer also stashes its down-point
+        /// — belt and braces beside `touchesBegan` (the system text
+        /// interactions can swallow the recognizer's ACTION, but touches still
+        /// pass through here; the DevLog-proven build-31 finding).
+        func gestureRecognizer(_ g: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            if let tv = textView { tv.noteTouchDown(touch.location(in: tv)) }
+            return true
+        }
+
         // MARK: keyboard accessory (undo · redo · find · photo · Done)
 
         func installAccessoryBar(on tv: NoteBodyTextView) {
@@ -582,36 +591,37 @@ struct NoteBodyView: UIViewRepresentable {
 
         /// If the caret the focus-gaining tap just placed sits inside a name
         /// span, the tap was ON the name — yield the keyboard to the resolve
-        /// sheet. A caret adjacent to an inline photo means the tap was ON the
-        /// photo — open the viewer. While already editing, taps stay plain
-        /// caret placement.
+        /// sheet. Attachment taps (checkbox / photo / memo-link chip) resolve
+        /// from the TOUCH POINT against the glyph's drawn rect instead. While
+        /// already editing, taps stay plain caret placement.
         private func resolveNameAtCaret(_ tv: UITextView) {
             guard currentMode == .editing, tv.selectedRange.length == 0 else { return }
-            let caret = tv.selectedRange.location
-            for probe in [caret, caret - 1] where probe >= 0 && probe < tv.textStorage.length {
-                // Memo-link chip → open that memo.
-                if let payload = tv.textStorage.attribute(Self.memoLinkKey, at: probe,
-                                                          effectiveRange: nil) as? String,
-                   let id = UUID(uuidString: String(payload.prefix(36))) {
+            // Attachments: anchored on the TOUCHED character and gated on the
+            // glyph's drawn rect — the old caret-adjacency probe was too greedy
+            // for photos (a tap in the empty space beside a portrait photo
+            // landed the caret adjacent and opened the viewer) and too tight
+            // for checkboxes (a caret snapping past the following space never
+            // toggled). Device round 1, build 31.
+            if let touch = (tv as? NoteBodyTextView)?.recentTouchPoint {
+                switch attachmentAction(at: touch) {
+                case .toggleTask(let index):
+                    editingBeganAt = nil
+                    tv.resignFirstResponder()
+                    toggleTask(at: index)
+                    return
+                case .openMemo(let id):
                     editingBeganAt = nil
                     tv.resignFirstResponder()
                     Haptics.tap(.light)
                     onTapMemoLink(id)
                     return
-                }
-                // Checkbox: toggle in place — the keyboard never takes over.
-                if tv.textStorage.attribute(Self.taskKey, at: probe, effectiveRange: nil) is Bool {
-                    editingBeganAt = nil
-                    tv.resignFirstResponder()
-                    toggleTask(at: probe)
-                    return
-                }
-                if let marker = tv.textStorage.attribute(Self.markerKey, at: probe,
-                                                         effectiveRange: nil) as? Int {
+                case .openImage(let marker):
                     editingBeganAt = nil
                     tv.resignFirstResponder()
                     onTapImage(marker)
                     return
+                case nil:
+                    break
                 }
             }
             // ±1 char of tolerance: a tap at a name's leading edge places the
@@ -625,6 +635,48 @@ struct NoteBodyView: UIViewRepresentable {
             tv.resignFirstResponder()
             Haptics.tap(.light)
             onTapName(hit.span)
+        }
+
+        /// What a focus-gaining tap on an attachment should do.
+        enum AttachmentAction: Equatable {
+            case toggleTask(at: Int)
+            case openImage(marker: Int)
+            case openMemo(UUID)
+        }
+
+        /// The attachment action for a touch at `touch` (view coordinates), or
+        /// nil when the touch isn't on an attachment glyph. Anchored on the
+        /// touched character — `closestPosition` is geometric, so it can't be
+        /// fooled by wherever the caret snapped — and gated on the glyph's
+        /// drawn rect(s). Small glyphs get finger-sized slop (a checkbox is
+        /// ~20 pt; ±12 pt horizontal reaches Apple's 44-pt target), photos are
+        /// their own huge target and get none.
+        func attachmentAction(at touch: CGPoint) -> AttachmentAction? {
+            guard let tv = textView, let anchor = tv.characterIndex(at: touch) else { return nil }
+            let storage = tv.textStorage
+            for probe in [anchor, anchor - 1, anchor + 1, anchor - 2, anchor + 2]
+            where probe >= 0 && probe < storage.length {
+                func hits(slopX: CGFloat, slopY: CGFloat) -> Bool {
+                    tv.rects(forCharacterRange: NSRange(location: probe, length: 1))
+                        .contains { $0.insetBy(dx: -slopX, dy: -slopY).contains(touch) }
+                }
+                if storage.attribute(Self.taskKey, at: probe, effectiveRange: nil) is Bool,
+                   hits(slopX: 12, slopY: 6) {
+                    return .toggleTask(at: probe)
+                }
+                if let payload = storage.attribute(Self.memoLinkKey, at: probe,
+                                                   effectiveRange: nil) as? String,
+                   let id = UUID(uuidString: String(payload.prefix(36))),
+                   hits(slopX: 4, slopY: 4) {
+                    return .openMemo(id)
+                }
+                if let marker = storage.attribute(Self.markerKey, at: probe,
+                                                  effectiveRange: nil) as? Int,
+                   hits(slopX: 0, slopY: 0) {
+                    return .openImage(marker: marker)
+                }
+            }
+            return nil
         }
 
         // MARK: editing / debounced commit
@@ -912,6 +964,26 @@ final class NoteBodyTextView: UITextView {
     /// Insets the TEXT keeps clear regardless of accessories (set once at make).
     var baseTextInsets = UIEdgeInsets(top: 10, left: 20, bottom: 24, right: 20)
 
+    /// Touch-down point of the most recent touch, view coordinates — the
+    /// selection delegate gates attachment taps on the glyph's DRAWN rect
+    /// (the caret alone was too greedy/too tight; device round 1, build 31).
+    /// Stale after 0.6 s so a keyboard-driven caret move can't replay it.
+    private var lastTouchDown: (point: CGPoint, at: Date)?
+
+    var recentTouchPoint: CGPoint? {
+        guard let t = lastTouchDown, Date().timeIntervalSince(t.at) < 0.6 else { return nil }
+        return t.point
+    }
+
+    func noteTouchDown(_ point: CGPoint) {
+        lastTouchDown = (point, Date())
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let t = touches.first { noteTouchDown(t.location(in: self)) }
+        super.touchesBegan(touches, with: event)
+    }
+
     func installAccessoryHosts() {
         baseTextInsets = textContainerInset
         for host in [headerHost, footerHost] {
@@ -982,10 +1054,15 @@ final class NoteBodyTextView: UITextView {
     }
 
     /// The drawn rect(s) of a character range, in VIEW coordinates.
+    /// `selectionRects` needs live display; `firstRect(for:)` is the fallback
+    /// (fine for the 1-char attachment ranges the hit-testing asks about).
     func rects(forCharacterRange range: NSRange) -> [CGRect] {
         guard let start = position(from: beginningOfDocument, offset: range.location),
               let end = position(from: start, offset: range.length),
               let textRange = textRange(from: start, to: end) else { return [] }
-        return selectionRects(for: textRange).map(\.rect).filter { !$0.isEmpty }
+        let rects = selectionRects(for: textRange).map(\.rect).filter { !$0.isEmpty && !$0.isInfinite }
+        if !rects.isEmpty { return rects }
+        let first = firstRect(for: textRange)
+        return (first.isEmpty || first.isInfinite || first.isNull) ? [] : [first]
     }
 }
