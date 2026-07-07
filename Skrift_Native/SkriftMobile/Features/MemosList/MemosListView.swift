@@ -575,9 +575,16 @@ private struct MemoRow: View {
         if editMode?.wrappedValue.isEditing == true {
             MemoCard(memo: memo)
         } else {
-            MemoCard(memo: memo)
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onTap)
+            // A Button, NOT .onTapGesture: a tap gesture on a List row fights
+            // the context-menu lift on iOS 26 — a long-press just started the
+            // row drifting as if scrolling and the menu never opened (device
+            // round 1). The system resolves Button-tap vs long-press-menu vs
+            // scroll natively.
+            Button(action: onTap) {
+                MemoCard(memo: memo)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 }

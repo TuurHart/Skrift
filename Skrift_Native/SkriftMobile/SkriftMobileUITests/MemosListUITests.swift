@@ -16,6 +16,22 @@ final class MemosListUITests: XCTestCase {
     private let harbor = "First seeded memo about the harbor at dawn."
     private let plumber = "Second seeded memo, a quick reminder to call the plumber."
 
+    /// Device round 1 (build 31): a long-press on a row started the list
+    /// drifting as if scrolling and the context menu never opened — the row's
+    /// .onTapGesture fought the lift on iOS 26. The row is a Button now; the
+    /// long-press must present the menu.
+    func testLongPressOpensContextMenu() throws {
+        let app = launch()
+        let row = app.descendants(matching: .any).matching(identifier: "memo-row-0").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.press(forDuration: 0.9)
+        XCTAssertTrue(app.buttons["context-remind-button"].waitForExistence(timeout: 4),
+                      "long-press must open the row's context menu")
+        // Dismiss without acting; the list must still be intact.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
+        XCTAssertTrue(app.staticTexts[harbor].waitForExistence(timeout: 4))
+    }
+
     func testSearchFiltersMemos() throws {
         let app = launch()
         XCTAssertTrue(app.staticTexts[harbor].waitForExistence(timeout: 10))
