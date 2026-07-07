@@ -11,7 +11,9 @@ import Vision
 /// `text == nil` whose file is on disk gets recognized exactly once ("" when
 /// the photo has no readable text, so it's never re-scanned). Runs on launch,
 /// on foreground, when a CloudKit sync settles (photos arriving from another
-/// device), and after a photo is inserted in the editor.
+/// device), after a photo is inserted in the editor, and after a save lands
+/// captured photos (recording / video import) — without that last trigger a
+/// fresh memo's photos stayed unsearchable until the next launch (build 31).
 @MainActor
 enum PhotoTextIndexer {
     private static var running = false
