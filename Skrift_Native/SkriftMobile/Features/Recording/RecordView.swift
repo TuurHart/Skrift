@@ -7,7 +7,12 @@ import UIKit
 /// the memo is persisted immediately and `onSaved` fires with its id so the
 /// caller can open it in Memo detail (the save-now post-record flow).
 struct RecordView: View {
-    @StateObject private var service = LiveRecordingService()
+    // `@Observable` service (not ObservableObject): SwiftUI tracks reads
+    // PER PROPERTY PER VIEW BODY, so the high-frequency state (elapsed,
+    // level/waveform, caption) invalidates only the small child views that
+    // read it — this shell re-renders on rare changes (isRecording, pause,
+    // route notice), not 30×/s like the old whole-object observation.
+    @State private var service = LiveRecordingService()
     @StateObject private var camera = PhotoCaptureService()
     @Environment(\.dismiss) private var dismiss
 
@@ -45,16 +50,9 @@ struct RecordView: View {
     /// recordings doesn't need re-toggling each time. The engine reads this at
     /// `start()`; the toggle also applies it mid-recording via `setLiveTranscription`.
     @AppStorage("liveTranscription") private var liveTranscription = true
-    /// Auto-stop live captions after this many seconds of recording (0 = never),
-    /// so a long recording quietly drops live captioning to save battery — you just
-    /// record and it transcribes once at stop. Settings → Recording. Default 1 min.
-    /// Transient: it flips the live stream off for THIS recording only, never the
-    /// sticky `liveTranscription` preference (2026-06-22 device request).
-    @AppStorage("liveCaptionAutoOffSeconds") private var liveCaptionAutoOffSeconds = 60
-    /// The auto-off fires at most once per recording — so if the user taps live
-    /// captions back ON after it triggered, it doesn't immediately re-fire (elapsed
-    /// is still past the limit). Reset when a fresh recording starts.
-    @State private var autoOffFired = false
+    // (The live-caption auto-off — Settings → Recording, default 1 min — is
+    // owned by the service's own clock now: watching `service.elapsed` from a
+    // view `.onChange` re-rendered the whole screen every tick.)
 
     private struct PhotoMark: Equatable { let wordIndex: Int; let anchor: [String]; let number: Int }
 
@@ -103,25 +101,12 @@ struct RecordView: View {
         // A recording ended but we're still on this screen (the empty-capture
         // retry case) → from here on the manual ready screen is the idle state.
         .onChange(of: service.isRecording) { was, now in
-            if !was, now { autoOffFired = false }   // fresh recording → re-arm the auto-off
             if was, !now {
                 showManualReady = true
                 // Restore the sticky preference after a transient auto-off, so the
                 // ready screen + next recording reflect the user's real choice.
                 service.setLiveTranscription(liveTranscription)
             }
-        }
-        // Auto-stop live captions once a recording runs past the user's chosen limit
-        // (Settings; 0 = never) — for long, battery-saving recordings you just record
-        // and it transcribes at stop. Fires at most ONCE per recording (`autoOffFired`),
-        // so tapping captions back on afterwards doesn't instantly re-trigger; transient,
-        // so the sticky preference is untouched and a fresh recording re-seeds it.
-        .onChange(of: service.elapsed) { _, t in
-            guard liveCaptionAutoOffSeconds > 0, !autoOffFired, service.isRecording,
-                  service.liveTranscription, t >= Double(liveCaptionAutoOffSeconds) else { return }
-            autoOffFired = true
-            service.setLiveTranscription(false)
-            Haptics.tap()
         }
         // A photo was captured mid-record → drop a `[photo N]` marker into the live
         // caption at the current spoken-word position (the count badge still updates
@@ -282,12 +267,11 @@ struct RecordView: View {
             .padding(.top, 18)
 
             if service.liveTranscription {
-                LiveCaption(
-                    text: service.liveCaption,
-                    photoMarks: photoMarks.map {
+                LiveCaptionPane(
+                    service: service,
+                    marks: photoMarks.map {
                         LiveCaptionLayout.Mark(wordIndex: $0.wordIndex, number: $0.number, anchor: $0.anchor)
                     },
-                    solidWordCount: service.liveCommittedWordCount,
                     modelLoading: !modelStatus.ready && modelStatus.phase != .failed
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -314,16 +298,8 @@ struct RecordView: View {
                 .accessibilityIdentifier("route-notice")
             }
 
-            HStack(spacing: 14) {
-                RecordWaveform(samples: service.waveform)
-                    .frame(height: 52)
-                Text(timeString)
-                    .font(.system(size: 22, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(Color.skTextDim)
-                    .accessibilityIdentifier("record-timer")
-            }
-            .padding(.top, 6)
+            WaveformTimerRow(service: service)
+                .padding(.top, 6)
 
             controls
                 .padding(.top, 22)
@@ -401,20 +377,17 @@ struct RecordView: View {
                 .onTapGesture {}   // swallow taps to the recording layer
 
             VStack {
-                HStack(spacing: 8) {
-                    Circle().fill(Color.skRed).frame(width: 9, height: 9).shadow(color: .skRed, radius: 5)
-                    Text("Recording · \(timeString)")
-                    Text("— still listening").foregroundStyle(Color.skTextFaint)
-                }
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.skTextDim)
-                .padding(.top, 54)
+                RecordingTimeHeader(service: service)
+                    .padding(.top, 54)
                 Spacer()
             }
 
             CameraSheet(
                 camera: camera,
-                elapsed: service.elapsed,
+                // A closure, not `service.elapsed`: passing the value would make
+                // this whole overlay re-render at every timer tick just to keep a
+                // capture offset fresh; the sheet reads it at shutter time instead.
+                recordingOffset: { service.elapsed },
                 onDone: { showCamera = false }
             )
         }
@@ -459,11 +432,6 @@ struct RecordView: View {
     }
 
     // MARK: - Actions
-
-    private var timeString: String {
-        let total = Int(service.elapsed)
-        return String(format: "%d:%02d", total / 60, total % 60)
-    }
 
     private func closeTapped() {
         if service.isRecording { service.cancel(); camera.discardAll() }
@@ -552,6 +520,65 @@ struct RecordView: View {
 }
 
 // MARK: - Pieces
+
+/// m:ss for the record timer (shared by the waveform row + camera header).
+private enum RecordClock {
+    static func string(_ elapsed: TimeInterval) -> String {
+        let total = Int(elapsed)
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+}
+
+/// Reads the hot caption state (`liveCaption` + committed count, ~1.7 Hz) in
+/// its OWN body so caption updates re-render only this pane — the shell above
+/// re-renders on rare state changes only.
+private struct LiveCaptionPane: View {
+    let service: LiveRecordingService
+    let marks: [LiveCaptionLayout.Mark]
+    let modelLoading: Bool
+
+    var body: some View {
+        LiveCaption(
+            text: service.liveCaption,
+            photoMarks: marks,
+            solidWordCount: service.liveCommittedWordCount,
+            modelLoading: modelLoading
+        )
+    }
+}
+
+/// Reads the hot meter state (waveform ~10 Hz, elapsed 4 Hz) in its own body.
+private struct WaveformTimerRow: View {
+    let service: LiveRecordingService
+
+    var body: some View {
+        HStack(spacing: 14) {
+            RecordWaveform(samples: service.waveform)
+                .frame(height: 52)
+            Text(RecordClock.string(service.elapsed))
+                .font(.system(size: 22, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(Color.skTextDim)
+                .accessibilityIdentifier("record-timer")
+        }
+    }
+}
+
+/// The "Recording · 0:42 — still listening" strip over the camera — isolates
+/// the 4 Hz elapsed read from the camera overlay.
+private struct RecordingTimeHeader: View {
+    let service: LiveRecordingService
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle().fill(Color.skRed).frame(width: 9, height: 9).shadow(color: .skRed, radius: 5)
+            Text("Recording · \(RecordClock.string(service.elapsed))")
+            Text("— still listening").foregroundStyle(Color.skTextFaint)
+        }
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(Color.skTextDim)
+    }
+}
 
 /// Live transcript, scrollable. The solid body = words in COMMITTED (rotated)
 /// chunks, which never re-transcribe — a real finalized signal, not the old

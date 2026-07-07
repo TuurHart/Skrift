@@ -10,7 +10,9 @@ import SwiftUI
 /// viewfinder.
 struct CameraSheet: View {
     @ObservedObject var camera: PhotoCaptureService
-    let elapsed: Double
+    /// The current recording offset, read AT SHUTTER TIME — taking it as a
+    /// plain value would re-render the sheet's parent on every timer tick.
+    let recordingOffset: () -> Double
     let onDone: () -> Void
 
     @State private var zoom: CGFloat = 1
@@ -128,7 +130,7 @@ struct CameraSheet: View {
 
     private func capture() {
         Haptics.recordingTap()
-        camera.capture(offsetSeconds: elapsed)
+        camera.capture(offsetSeconds: recordingOffset())
     }
 
     private func flip() {
