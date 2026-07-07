@@ -103,7 +103,8 @@ struct NoteProperties: View {
     }
 
     private var titleBinding: Binding<String> {
-        Binding(get: { file.enhancedTitle ?? "" }, set: { file.enhancedTitle = $0 })
+        Binding(get: { file.enhancedTitle ?? "" },
+                set: { file.enhancedTitle = $0; MacCloudEditSync.shared.note(file) })   // Part B live sync
     }
 
     // ── Properties card ─────────────────────────────────────

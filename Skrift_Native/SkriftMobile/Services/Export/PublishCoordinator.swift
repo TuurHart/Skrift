@@ -1,15 +1,15 @@
 import Foundation
 
-/// Fans the memo store out to the Obsidian sink (standalone Phase 2) — the peer to
-/// `SyncCoordinator` (which owns the Mac transport sink). Decides WHICH memos publish and
-/// defers to the Mac when paired; the actual write is `ObsidianPublisher`.
+/// Fans the memo store out to the Obsidian sink (standalone Phase 2). Decides WHICH memos
+/// publish; the actual write is `ObsidianPublisher`.
 ///
 /// Routing rules:
 /// - **Opt-in:** nothing publishes until a vault is configured + Obsidian is enabled.
 /// - **Policy:** `.all` or `.importantOnly` (significance > 0 — mirrors the Mac flag-to-send).
-/// - **Paired mode:** when a Mac is paired it owns Obsidian export (it has the *enhanced* text),
-///   so the phone's publish is off by default — overridable. Per-memo file ownership +
-///   content-hash idempotency (in `ObsidianPublisher`) make a stray double-write harmless anyway.
+/// - **Paired mode:** `isMacPaired` lets a deployment defer Obsidian export to a Mac that owns
+///   the *enhanced* text. There's no LAN pairing under CloudKit-only, so the live wiring reports
+///   unpaired (the phone publishes per policy); per-memo file ownership + content-hash idempotency
+///   (in `ObsidianPublisher`) make a stray double-write harmless anyway.
 @MainActor
 struct PublishCoordinator {
     enum Policy: String { case all, importantOnly }
@@ -35,7 +35,7 @@ struct PublishCoordinator {
         PublishCoordinator(
             memosProvider: { NotesRepository.shared.allMemos() },
             publisher: .live(author: author),
-            isMacPaired: { MacConnection.load() != nil },
+            isMacPaired: { false },   // no LAN pairing under CloudKit-only; the phone publishes per policy
             obsidianEnabled: { ObsidianVault.isConfigured && UserDefaults.standard.bool(forKey: "skrift.publish.obsidianEnabled") },
             publishWhenPaired: { UserDefaults.standard.bool(forKey: "skrift.publish.whenPaired") },
             policy: { Policy(rawValue: UserDefaults.standard.string(forKey: "skrift.publish.policy") ?? "") ?? .importantOnly }

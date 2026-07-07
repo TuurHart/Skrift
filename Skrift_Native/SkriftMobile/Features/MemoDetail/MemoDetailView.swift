@@ -619,28 +619,14 @@ private struct MemoPageView: View {
                 imageURL: turnImageURL
             )
         } else {
-            VStack(alignment: .leading, spacing: 8) {
-                TranscriptBodyView(
-                    memo: memo, player: player,
-                    onCommit: { memo.markEdited(); repository.save() },
-                    nameSpans: transcriptNameSpans,
-                    onTapName: { resolveTarget = NameResolveTarget(span: $0) },
-                    polishedBinding: polishedBinding
-                )
-                if macPolish != nil { provenanceCaption }
-            }
+            TranscriptBodyView(
+                memo: memo, player: player,
+                onCommit: { memo.markEdited(); repository.save() },
+                nameSpans: transcriptNameSpans,
+                onTapName: { resolveTarget = NameResolveTarget(span: $0) },
+                polishedBinding: polishedBinding
+            )
         }
-    }
-
-    /// "✦ Polished on your Mac" caption under a polished body.
-    private var provenanceCaption: some View {
-        HStack(spacing: 5) {
-            Image(systemName: "sparkles").font(.system(size: 10))
-            Text("Polished on your Mac · edits sync everywhere")
-        }
-        .font(.system(size: 11.5))
-        .foregroundStyle(Color.skTextFaint)
-        .padding(.top, 2)
     }
 
     /// Tiered name spans for the in-place linking surface — over the ACTIVE body (the

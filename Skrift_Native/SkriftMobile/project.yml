@@ -52,6 +52,9 @@ targets:
       - path: ../Shared/Naming
       - path: ../Shared/Export
       - path: ../Shared/Model
+      # Pipeline: pure parity algorithms both apps must run identically (vocab
+      # parsing/trust, fusion, voice match, BPE merge, image markers).
+      - path: ../Shared/Pipeline
       # Retrieval brain (P8): engine protocol + gist/chunker — platform-neutral;
       # the Mac adopts this path in Phase 2 (JOURNAL_RETRIEVAL_PLAN.md).
       - path: ../Shared/Retrieval
@@ -65,7 +68,7 @@ targets:
         # extension's Info.plist, so both processes resolve the identical container.
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "28"
+        CFBundleVersion: "30"
         # Skrift is offline + uses only standard iOS crypto (on-device ASR, plain
         # local-network HTTP) → exempt from export compliance. Declaring this skips
         # the "Missing Compliance" prompt on every TestFlight/App Store build.
@@ -229,7 +232,7 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "28"
+        CFBundleVersion: "30"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -261,26 +264,29 @@ targets:
       # Multi-target source membership: CaptureInbox is shared between the app
       # and the extension (both write/read the App Group container).
       - path: Services/Capture/CaptureInbox.swift
-      # SignificanceCircles + its dependencies (SignificanceScale in the same
-      # file, DesignSystem colors) are compiled directly into the extension so
+      # SignificanceCircles + its dependencies (the SHARED SignificanceScale,
+      # DesignSystem colors) are compiled directly into the extension so
       # it can render the significance control without importing the app target.
       - path: Features/MemoDetail/SignificanceCircles.swift
+      - path: ../Shared/Model/SignificanceScale.swift
       # DesignSystem (Theme colours, Components) — no UIKit/AppKit-only API here,
       # so it builds cleanly in the extension process.
       - path: DesignSystem/Theme.swift
       - path: DesignSystem/Components.swift
       - path: DesignSystem/Haptics.swift
       - path: DesignSystem/FlowLayout.swift
-      # SharedContent + MemoMetadata types used by the share UI and CaptureInbox.
-      - path: Models/MemoMetadata.swift
+      # SharedContent + MemoMetadata types used by the share UI and CaptureInbox
+      # (MemoMetadata is the shared schema; SharedContent stays mobile-side).
+      - path: ../Shared/Model/MemoMetadata.swift
+      - path: Models/SharedContent.swift
       # ISO8601 formatter (same UTC/fractional-seconds format as the Mac contract).
-      - path: Services/ISO8601.swift
+      - path: ../Shared/Model/ISO8601.swift
     info:
       path: SkriftShare/Info.plist
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "28"
+        CFBundleVersion: "30"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         # Dictation in the share sheet: the extension RECORDS a voice note (the
         # main app transcribes it on drain — Parakeet can't fit the extension's

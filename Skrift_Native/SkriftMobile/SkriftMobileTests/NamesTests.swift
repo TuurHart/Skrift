@@ -96,27 +96,15 @@ final class NamesMergeTests: XCTestCase {
     }
 }
 
-/// `NamesStore` (local names.json) + `NamesSync` (the full meta→get→merge→put
-/// flow) against an in-memory mock transport — no live backend needed.
-final class NamesStoreSyncTests: XCTestCase {
+/// `NamesStore` (local names.json) CRUD: upsert/delete tombstones and the
+/// additive voiceEmbeddings union. Cross-device convergence rides CloudKit
+/// (`NamesCloudSync`) and the pure merge (`NamesMergeTests` above).
+final class NamesStoreTests: XCTestCase {
 
     private func tempStore() -> NamesStore {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("names_\(UUID().uuidString).json")
         return NamesStore(fileURL: url)
-    }
-
-    final class MockTransport: NamesTransport {
-        var metaValue: String?
-        var remote: NamesData
-        private(set) var putCalls: [NamesData] = []
-        init(metaValue: String?, remote: NamesData) {
-            self.metaValue = metaValue
-            self.remote = remote
-        }
-        func meta() async throws -> String? { metaValue }
-        func getAll() async throws -> NamesData { remote }
-        func put(_ data: NamesData) async throws { putCalls.append(data) }
     }
 
     func testUpsertDeleteTombstoneAndResurrect() {
@@ -143,37 +131,5 @@ final class NamesStoreSyncTests: XCTestCase {
         store.addVoiceEmbedding(canonical: "Jane", embedding: VoiceEmbedding(vector: [3, 4]))
         let jane = store.load().people.first { $0.canonical == "[[Jane]]" }
         XCTAssertEqual(jane?.voiceEmbeddings?.count, 2)
-    }
-
-    func testSyncUnchangedWhenMetaMatches() async {
-        let store = tempStore()
-        store.upsert(canonical: "Nick", aliases: ["Nicky"], short: "Nick")
-        let local = store.load()
-        let transport = MockTransport(metaValue: local.lastModifiedAt,
-                                      remote: NamesData(lastModifiedAt: local.lastModifiedAt, people: []))
-        let result = await NamesSync(store: store, transport: transport).run()
-        XCTAssertEqual(result, .unchanged)
-        XCTAssertTrue(transport.putCalls.isEmpty)
-    }
-
-    func testSyncMergesAndPushesBack() async {
-        let store = tempStore()
-        store.upsert(canonical: "Nick", aliases: ["Nicky"], short: "Nick")
-        let remotePerson = Person(canonical: "[[Jane]]", aliases: ["Janey"], short: "Jane",
-                                  lastModifiedAt: "2030-01-01T00:00:00.000Z")
-        let remote = NamesData(lastModifiedAt: "2030-01-01T00:00:00.000Z", people: [remotePerson])
-        let transport = MockTransport(metaValue: "2030-01-01T00:00:00.000Z", remote: remote)
-
-        let result = await NamesSync(store: store, transport: transport).run()
-
-        guard case let .merged(localCount, remoteCount, mergedCount) = result else {
-            return XCTFail("expected .merged, got \(result)")
-        }
-        XCTAssertEqual(localCount, 1)
-        XCTAssertEqual(remoteCount, 1)
-        XCTAssertEqual(mergedCount, 2)
-        XCTAssertEqual(Set(store.load().people.map(\.canonical)), ["[[Nick]]", "[[Jane]]"])
-        XCTAssertEqual(transport.putCalls.count, 1)
-        XCTAssertEqual(transport.putCalls.first?.people.count, 2)
     }
 }

@@ -1,49 +1,12 @@
 import SwiftUI
 
-// MARK: - Scale (pure logic, unit-tested)
+// MARK: - Scale (shared)
 
-/// The 10-step importance scale behind the circle control
-/// (`mocks/significance-circles.html`). One circle = 0.1; tier boundaries are
-/// 0.4 / 0.7 (Passing · Useful · Important) and 0.8+ is past the **refine
-/// wall** — those notes get a refine pass on the Mac. Kept separate from the
-/// view so the mapping/copy is testable without UIKit. (User-facing label is
-/// "Importance"; the internal symbols stay `Significance*` / `significance`.)
-enum SignificanceScale {
-    static let stepCount = 10
-    /// First step past the refine wall: 0.8+ notes get a refine pass.
-    static let refineStep = 8
-
-    /// `memo.significance` (0 / 0.1…1.0) → its circle step (0…10), clamped.
-    static func step(for value: Double) -> Int {
-        min(stepCount, max(0, Int((value * 10).rounded())))
-    }
-
-    /// Circle step → the stored significance value (0 / 0.1…1.0).
-    static func value(forStep step: Int) -> Double {
-        Double(min(stepCount, max(0, step))) / 10
-    }
-
-    /// Star-rating toggle: tapping the already-set circle clears to 0 (Not
-    /// rated); tapping any other circle sets that rating.
-    static func toggling(_ value: Double, tappedStep: Int) -> Double {
-        step(for: value) == tappedStep ? 0 : self.value(forStep: tappedStep)
-    }
-
-    static func isRefine(step: Int) -> Bool { step >= refineStep }
-
-    /// Tier name for a set step (1…10). Boundaries 0.4 / 0.7 per the mock.
-    /// User-facing label is "Importance" (Phase-3 relabel of "significance"); the
-    /// top tier reads "Important" to match. Internal symbols stay `Significance*`.
-    static func tierName(forStep step: Int) -> String {
-        step >= 7 ? "Important" : step >= 4 ? "Useful" : "Passing"
-    }
-
-    /// The live value label: "Not rated" / "0.5 · Useful" / "1.0 · Important".
-    static func label(forStep step: Int) -> String {
-        guard step > 0 else { return "Not rated" }
-        return (step == stepCount ? "1.0" : "0.\(step)") + " · " + tierName(forStep: step)
-    }
-
+// The 10-step scale itself is the SHARED `SignificanceScale`
+// (Shared/Model/SignificanceScale.swift) — one copy for both apps, since the
+// scale gates phone→Mac sync and must never drift. Only the phone-specific
+// flag-to-send microcopy lives here, next to the view that shows it.
+extension SignificanceScale {
     /// Flag-to-send microcopy: 0 = stays on the phone, >0 = syncs, 0.8+ =
     /// syncs + flagged for a refine pass.
     static func syncCopy(forStep step: Int) -> String {

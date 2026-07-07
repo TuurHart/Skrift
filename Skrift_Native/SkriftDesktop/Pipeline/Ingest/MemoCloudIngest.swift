@@ -42,7 +42,11 @@ enum MemoCloudIngest {
         guard !alreadyIngested(id: id, filename: filename, in: context) else { return nil }
 
         let parts = buildParts(memo: memo, assets: assets, filename: filename)
-        return try upload.ingest(parts: parts, into: context, memoID: id).first
+        let pf = try upload.ingest(parts: parts, into: context, memoID: id).first
+        // Baseline the live-sync watermark to the memo's current edit time, so a LATER phone
+        // edit (newer `lastEditedAt`) is detected by `MemoCloudUpdate` (Part B, phone→Mac).
+        pf?.syncedSourceEditedAt = memo.lastEditedAt
+        return pf
     }
 
     /// The audio filename the phone would have uploaded — `memo.audioFilename`, or the

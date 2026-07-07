@@ -1,8 +1,9 @@
 import SwiftUI
 import AppKit
 
-// The pure value↔circle mapping lives in Models/SignificanceScale.swift so the
-// host-less SkriftDesktopTests bundle (Models/Pipeline/Server only) can test it.
+// The pure value↔circle mapping is the SHARED SignificanceScale
+// (Shared/Model/SignificanceScale.swift) — one copy for both apps, since the
+// scale gates phone→Mac sync and must never drift.
 
 /// The 10-circle significance control — replaces the slider row per the signed-off
 /// `mocks/significance-circles.html` (desktop card spec). Star-rating interaction:
@@ -30,7 +31,7 @@ struct SignificanceCircles: View {
     private static let gap: CGFloat = 7
 
     private var lit: Int { SignificanceScale.litCount(value) }
-    private var warm: Bool { lit >= SignificanceScale.refineWall }
+    private var warm: Bool { lit >= SignificanceScale.refineStep }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -49,11 +50,11 @@ struct SignificanceCircles: View {
             if !enabled {
                 Text("rate after processing").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
             } else if let preview {
-                Text(SignificanceScale.valueText(preview))
+                Text(SignificanceScale.valueText(forStep: preview))
                     .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
                     .foregroundStyle(Theme.textSecondary)
             } else if lit > 0 {
-                Text(SignificanceScale.valueText(lit))
+                Text(SignificanceScale.valueText(forStep: lit))
                     .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
                     .foregroundStyle(warm ? Self.warmText : Theme.accent)
             } else {
@@ -66,7 +67,7 @@ struct SignificanceCircles: View {
     private var dotsRow: some View {
         HStack(spacing: Self.gap) {
             ForEach(1...10, id: \.self) { i in
-                if i == SignificanceScale.refineWall { wallTick }
+                if i == SignificanceScale.refineStep { wallTick }
                 dot(i)
             }
             flameTag.padding(.leading, 6)
@@ -77,7 +78,7 @@ struct SignificanceCircles: View {
 
     private func dot(_ i: Int) -> some View {
         let isLit = i <= lit
-        let isWarmDot = isLit && warm && i >= SignificanceScale.refineWall
+        let isWarmDot = isLit && warm && i >= SignificanceScale.refineStep
         let isPreview = !isLit && preview.map { i <= $0 } == true
 
         let fill: Color = isWarmDot ? Self.warmFill
@@ -90,7 +91,7 @@ struct SignificanceCircles: View {
             : Theme.hairline.opacity(0.2)
 
         return Button {
-            value = lit == i ? nil : SignificanceScale.value(forCircle: i)
+            value = lit == i ? nil : SignificanceScale.value(forStep: i)
             preview = nil
         } label: {
             Circle()
@@ -115,8 +116,8 @@ struct SignificanceCircles: View {
             }
         }
         .disabled(!enabled)
-        .help(SignificanceScale.valueText(i))
-        .accessibilityLabel("Importance \(SignificanceScale.valueText(i))")
+        .help(SignificanceScale.valueText(forStep: i))
+        .accessibilityLabel("Importance \(SignificanceScale.valueText(forStep: i))")
     }
 
     /// Always-visible amber hairline before circle 8 — the refine wall.

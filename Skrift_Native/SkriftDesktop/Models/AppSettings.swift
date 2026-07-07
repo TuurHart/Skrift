@@ -43,6 +43,13 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// Effective list (nil legacy → empty).
     var customWords: [String] { customVocabulary ?? [] }
 
+    /// When the Mac last EDITED its custom-vocabulary list (Settings add/remove) — the
+    /// Mac's side of the whole-list-LWW vocab sync (`VocabularySyncCore`). nil = never
+    /// edited / pre-LWW legacy (treated as distantPast; optional for legacy decode).
+    /// The DEBUG `-runfile -vocab` harness deliberately does NOT stamp this, so
+    /// harness-injected words can never win LWW over a real device's list.
+    var customVocabularyModifiedAt: Date? = nil
+
     // ── CloudKit-Mac sync (MAC_CLOUDKIT_PLAN.md 8d) ──
     // When on, the Mac reconciles memos synced over CloudKit (from the phone's note store)
     // into the local pipeline queue (`MemoCloudReconciler`) and writes its polish back as a
