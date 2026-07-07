@@ -306,8 +306,8 @@ private struct MemoPageView: View {
     /// hide their UIKit editor subtree from accessibility (see NoteBodyView).
     var isCurrent: Bool = true
     private let repository = NotesRepository.shared
-    @State private var showAddTag = false
-    @State private var newTag = ""
+    @State private var showTagEditor = false
+    @State private var libraryTags: [String] = []
     @State private var quickLookURL: URL?            // shared-document (.file) capture → QuickLook preview
     @State private var assignTarget: AssignTarget?   // the tapped turn (index + speaker) → assign sheet
 
@@ -378,12 +378,10 @@ private struct MemoPageView: View {
         // Transcript can change outside the editor (transcription lands, append,
         // speaker edits) — re-derive the tiers.
         .onChange(of: memo.transcript) { _, _ in recomputeSpans() }
-        .alert("Add tags", isPresented: $showAddTag) {
-            TextField("tag, tag, tag", text: $newTag)
-            Button("Add", action: addTag)
-            Button("Cancel", role: .cancel) { newTag = "" }
-        } message: {
-            Text("Separate multiple tags with commas.")
+        // Tag CHIP editor (chunk 3): chips with explicit ✕, comma input kept,
+        // autocomplete from every tag in the library.
+        .sheet(isPresented: $showTagEditor) {
+            TagEditorSheet(memo: memo, allTags: libraryTags) { repository.save() }
         }
         // Shared-document (.file) capture → preview the PDF/doc in QuickLook —
         // and the editor's inline photos (tap a photo → viewer).
@@ -556,7 +554,9 @@ private struct MemoPageView: View {
                     ContextChip(text: chip.text, systemImage: chip.symbol)
                 }
                 ForEach(memo.tags, id: \.self) { tag in
-                    Button { removeTag(tag) } label: {
+                    // Opens the tag editor — the old tap DELETED the tag
+                    // silently (review-1 finding).
+                    Button { openTagEditor() } label: {
                         Text("#\(tag)")
                             .font(.system(size: 11))
                             .foregroundStyle(Color.skAccentText)
@@ -564,7 +564,7 @@ private struct MemoPageView: View {
                             .background(Color.skAccentSoft, in: .rect(cornerRadius: 7, style: .continuous))
                     }
                 }
-                Button { showAddTag = true } label: {
+                Button { openTagEditor() } label: {
                     Text("+ Tag")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.skTextDim)
@@ -815,22 +815,9 @@ private struct MemoPageView: View {
         return Text(line.isEmpty ? "Add a title" : line).foregroundStyle(Color.skTextFaint)
     }
 
-    private func addTag() {
-        // Accept several comma-separated tags in one go (device ask: "select a lot
-        // of tags"); de-duped against the memo's existing tags.
-        let incoming = Memo.parseTagInput(newTag)
-        newTag = ""
-        var added = false
-        for t in incoming where !memo.tags.contains(t) { memo.tags.append(t); added = true }
-        guard added else { return }
-        memo.markEdited()
-        repository.save()
-    }
-
-    private func removeTag(_ tag: String) {
-        memo.tags.removeAll { $0 == tag }
-        memo.markEdited()
-        repository.save()
+    private func openTagEditor() {
+        libraryTags = repository.allTags()
+        showTagEditor = true
     }
 
     // MARK: - Mac polish (Phase 4)

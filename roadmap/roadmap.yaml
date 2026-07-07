@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T09:18:20.000Z'
+updated: '2026-07-07T09:21:25.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -236,7 +236,11 @@ nodes:
         find·photo·Done), system find-in-note, compact 40pt player pill
         (whole-pill scrub; dots → transient n/total), photo tap→QuickLook,
         photo-at-caret insert (manifest+CloudKit), share note OUT (md+audio),
-        word count·duration in ⋯, Dynamic Type on the body
+        word count·duration in ⋯, Dynamic Type on the body [55254b4]
+      - >-
+        2026-07-07 · Chunk 3 — TagEditorSheet: chips with explicit ✕ (no more
+        silent tap-delete), comma input kept, autocomplete from every library
+        tag (pick, not retype)
     eff: M
     note: Re-found the note body on a natively-scrolling text view (fork B) —
       selection/undo/find/caret-follow come free; karaoke becomes attribute
@@ -248,10 +252,8 @@ nodes:
       header; compact player pill. Build green-lit once the bug-fix chat
       wraps. Build plan = backlog.md EPIC 🏗 (chunks 1–3 here; 4–9 = NFeat).
     backlog:
-      - Tag chips + autocomplete (replace the comma alert; chip tap currently
-        DELETES silently) — chunk 3
       - Device eyeball — selection/caret/magnifier feel, accessory pill,
-        compact player, name-tap-while-editing semantics
+        compact player, tag editor, name-tap-while-editing semantics
       - Check the polished memo's summary card shows on phone (possible bug →
         bugs chat)
     win: "editing a note feels like Apple Notes — selection autoscrolls, caret

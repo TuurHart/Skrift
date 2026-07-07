@@ -440,7 +440,10 @@ dots → transient "n / total" flash on swipe), **photo tap → QuickLook viewer
 **photo-at-caret insert** (PhotosPicker → manifest `photo_<id>_NNN.jpg` convention + `AssetMaterializer.capture`
 for CloudKit), **share note OUT** (⋯ → markdown + audio file via share sheet; `MemoShare` unit-tested),
 **word count · duration** as the ⋯ sheet title, **Dynamic Type** (editor body + attributed text scale via
-UIFontMetrics). Unit 493 green; editor-cluster UI tests green. Device eyeball owed
+UIFontMetrics). Unit 493 green; editor-cluster UI tests green.
+**Chunk 3 ✅ 2026-07-07 (tags):** `TagEditorSheet` — chips with explicit ✕ (tap-a-chip no longer silently
+deletes), comma input KEPT, autocomplete chips from every library tag (`NotesRepository.allTags`, most-used
+first, prefix-filtered) — "pick, not retype". Device eyeball owed
 (selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
 scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
 FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret
