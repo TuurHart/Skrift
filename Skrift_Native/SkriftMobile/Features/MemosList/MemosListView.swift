@@ -1103,7 +1103,10 @@ private struct NotesBottomChrome: View {
         .padding(.bottom, 8)
         .animation(Theme.Motion.spring, value: session.isActive)
         .onChange(of: session.isActive) { _, active in
-            if active { cardDismissedDay = "" }
+            if active {
+                DevLog.log("bottomChrome void — session active, clearing cardDismissedDay (was '\(cardDismissedDay)')")
+                cardDismissedDay = ""
+            }
         }
     }
 

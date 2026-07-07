@@ -12,13 +12,21 @@ enum AudiobookSeeder {
     static func seedAndOpen(store: AudiobookLibraryStore = .shared,
                             session: AudiobookSession = .shared) {
         guard !session.isActive else { return }
+        resetCardState()
         guard let book = ensureBook(store: store) else { return }
         session.open(book)   // paused session — the V2a pill state
+    }
+
+    /// Seeded launches define a KNOWN state: any continue-card dismissal left
+    /// in the sim container by earlier runs is cleared (hermetic UI tests).
+    private static func resetCardState() {
+        UserDefaults.standard.removeObject(forKey: "continueCardDismissedDay")
     }
 
     /// Seed the book with a played history but NO session — the Notes
     /// "Continue listening" card state.
     static func seedOnly(store: AudiobookLibraryStore = .shared) {
+        resetCardState()
         _ = ensureBook(store: store)
     }
 

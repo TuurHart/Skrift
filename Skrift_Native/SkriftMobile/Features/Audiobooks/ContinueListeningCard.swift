@@ -68,6 +68,7 @@ struct ContinueListeningCard: View {
             .accessibilityLabel("\(book.title), \(AudiobookTime.clock(book.timeLeft)) left — open the player")
 
             Button {
+                DevLog.log("card x-dismiss TAPPED — writing dismissedDay=\(Self.today())")
                 withAnimation(Theme.Motion.spring) { dismissedDay = Self.today() }
             } label: {
                 Image(systemName: "xmark")
@@ -76,6 +77,10 @@ struct ContinueListeningCard: View {
                     .frame(width: 26, height: 32)
                     .contentShape(Rectangle())
             }
+            // .borderless is LOAD-BEARING inside a List row: without it the row
+            // hijacks taps and fires sibling buttons (device round 6, build 50:
+            // tapping × auto-played the book).
+            .buttonStyle(.borderless)
             .accessibilityIdentifier("continue-card-dismiss")
             .accessibilityLabel("Hide for today")
 
@@ -94,6 +99,7 @@ struct ContinueListeningCard: View {
                 }
                 .contentShape(Circle())
             }
+            .buttonStyle(.borderless)   // see dismiss button — List-row tap hijack
             .accessibilityIdentifier("continue-card-play")
             .accessibilityLabel("Resume \(book.title)")
         }
