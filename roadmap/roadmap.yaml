@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 9
-updated: 2026-07-07T08:53:34.297Z
+version: 11
+updated: 2026-07-07T09:01:51.185Z
 lanes:
   - track: -1
     label: Differentiator
@@ -205,6 +205,9 @@ nodes:
       - Phone can't select a word + 'add as name' (desktop has it)
       - Desktop tags every note a 'conversation' (≥2 '**Name:**' headers) + no
         re-transcribe button — stale diarized turn markers
+      - Verify custom-vocab last-write-wins on real devices — add a word on the
+        Mac → see it on the phone (the 6f78ac1 LWW fix shipped but the phone↔Mac
+        round-trip is device-unverified)
     win: phone↔Mac sync works end-to-end in prod (CloudKit schema deployed) and the
       5-finding post-0.2.0 batch is cleared
   - id: P4
@@ -769,5 +772,12 @@ ideas:
       and aren't as interactive. Want immediate + tappable on the Mac too."
     source: voice
     nodeHint: P7
+  - id: i7
+    text: Books-tab branch — when it lands it needs to merge main and port its two
+      fields (bookID / bookPosition) into Shared/Model/MemoMetadata.swift.
+      Carry-forward loose end from the SharedKit dedup session; not urgent, but
+      must not be forgotten at merge time.
+    source: voice
+    nodeHint: P9b
 north: everything you say and read lands organized in your vault — so you can
   see how your thinking evolved
