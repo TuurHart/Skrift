@@ -58,6 +58,9 @@ enum LaunchFlags {
     /// capsule was un-screenshotable before this (a real book is device-only),
     /// which is exactly how the build-40 FAB/capsule overlap shipped unseen.
     static var seedAudiobook: Bool { args.boolFlag("-seedAudiobook") }
+    /// Seed the synthetic book WITHOUT arming a session — the Notes
+    /// "Continue listening" card state (card-at-rest / pill-when-live).
+    static var seedAudiobookIdle: Bool { args.boolFlag("-seedAudiobookIdle") }
     /// Open the Settings tab on launch (screenshot routing).
     static var openSettings: Bool { args.boolFlag("-openSettings") }
     /// Run the journal index on MockEmbedder + an in-memory store (no model

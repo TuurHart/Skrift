@@ -74,10 +74,19 @@ struct MemosListView: View {
             ZStack(alignment: .bottom) {
                 Color.skBg.ignoresSafeArea()
 
-                if memos.isEmpty {
-                    emptyState
-                } else {
-                    listContent
+                VStack(spacing: 0) {
+                    headerRow
+                    // At rest, the book is CONTENT above search — not chrome
+                    // (mock notes-compact-header.html; renders nothing while a
+                    // session is live / no played book / dismissed today).
+                    ContinueListeningCard()
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 2)
+                    if memos.isEmpty {
+                        emptyState
+                    } else {
+                        listContent
+                    }
                 }
 
                 if editMode.isEditing {
@@ -95,10 +104,13 @@ struct MemosListView: View {
                     }
                 }
             }
+            // Compact header (mock notes-compact-header.html, 2026-07-07): the
+            // stock toolbar + large-title rows are replaced by ONE hand-rolled
+            // header line (~44pt returned to content). Root-only — pushed
+            // detail views keep their own nav bars.
+            .toolbar(.hidden, for: .navigationBar)
             .overlay(alignment: .top) { syncBannerView }
             .animation(Theme.Motion.spring, value: syncBanner)
-            .navigationTitle("Notes")
-            .toolbar { toolbarContent }
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .fullScreenCover(isPresented: $showRecord) {
                 RecordView(onSaved: { newID in path = [newID] })
@@ -373,39 +385,47 @@ struct MemosListView: View {
 
     // MARK: - Toolbar
 
-    @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-        // Doc scan lives on the LEADING side: round 2+3 proved iOS 26 eats a
-        // second trailing item no matter the shape (separate items AND one
-        // group both dropped it, with isSupported=true in the devlog — build
-        // 35 probe). Leading has one text button and renders reliably.
-        ToolbarItemGroup(placement: .topBarLeading) {
+    /// ONE header line: "Notes" 30pt + Select · scan · filter inline right
+    /// (mock notes-compact-header.html — the stock toolbar row above the large
+    /// title was pure cost). The iOS-26 "second trailing toolbar item gets
+    /// eaten" gotcha (build-35 probe) doesn't apply to a hand-rolled HStack,
+    /// so doc-scan rejoins the actions cluster.
+    private var headerRow: some View {
+        HStack(spacing: 18) {
+            Text("Notes")
+                .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(Color.skText)
+            Spacer(minLength: 0)
             Button(editMode.isEditing ? "Done" : "Select") {
                 withAnimation(Theme.Motion.snappy) {
                     if editMode.isEditing { editMode = .inactive; selected.removeAll() }
                     else { editMode = .active }
                 }
             }
+            .font(.system(size: 16))
+            .tint(.skAccent)
             .accessibilityIdentifier("select-button")
-            if !editMode.isEditing, DocScanView.isSupported {
-                // Scan a paper document → PDF capture (chunk 9). No sim camera
-                // → the button honestly disappears there.
-                Button { showDocScanner = true } label: {
-                    Image(systemName: "doc.viewfinder")
-                }
-                .accessibilityIdentifier("doc-scan-button")
-            }
-        }
-        // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
-        // 2026-06-19); sync is fully automatic over CloudKit, so there's no
-        // manual sync button — sort/filter is the lone trailing item.
-        ToolbarItemGroup(placement: .topBarTrailing) {
             if !editMode.isEditing {
+                if DocScanView.isSupported {
+                    // Scan a paper document → PDF capture (chunk 9). No sim
+                    // camera → the button honestly disappears there.
+                    Button { showDocScanner = true } label: {
+                        Image(systemName: "doc.viewfinder").font(.system(size: 17))
+                    }
+                    .tint(.skAccent)
+                    .accessibilityIdentifier("doc-scan-button")
+                }
                 Button { showSortFilter = true } label: {
                     Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+                        .font(.system(size: 17))
                 }
+                .tint(.skAccent)
                 .accessibilityIdentifier("sort-filter-button")
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
     }
 
     // MARK: - Bottom bars

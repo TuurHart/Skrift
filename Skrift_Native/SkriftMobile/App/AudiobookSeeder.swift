@@ -12,10 +12,18 @@ enum AudiobookSeeder {
     static func seedAndOpen(store: AudiobookLibraryStore = .shared,
                             session: AudiobookSession = .shared) {
         guard !session.isActive else { return }
-        let existing = store.books.first { $0.title == Self.title }
-        let book = existing ?? makeBook(store: store)
-        guard let book else { return }
-        session.open(book)   // paused — the cold-launch-restore shape
+        guard let book = ensureBook(store: store) else { return }
+        session.open(book)   // paused session — the V2a pill state
+    }
+
+    /// Seed the book with a played history but NO session — the Notes
+    /// "Continue listening" card state.
+    static func seedOnly(store: AudiobookLibraryStore = .shared) {
+        _ = ensureBook(store: store)
+    }
+
+    private static func ensureBook(store: AudiobookLibraryStore) -> Audiobook? {
+        store.books.first { $0.title == Self.title } ?? makeBook(store: store)
     }
 
     private static let title = "Seeded Audiobook"

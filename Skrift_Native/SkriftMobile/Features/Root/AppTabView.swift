@@ -58,19 +58,16 @@ struct AppTabView: View {
                 .tag(Tab.settings)
         }
         .tint(.skAccent)
-        // Launch restore: arm the most recently played book as a PAUSED session so
-        // "continue my book" is one tap (play on the pill) from where you land —
-        // no Books-dig. Never auto-plays (surprise audio on launch is wrong);
-        // open() bails safely if the audio isn't on disk. `-seedAudiobook`
-        // fabricates the session instead (sim screenshots — a real book is
-        // device-only, which is how the build-40 overlap shipped unseen).
+        // Sim seed hooks only (screenshots/UITests — a real book is device-only,
+        // which is how the build-40 overlap shipped unseen): `-seedAudiobook`
+        // fabricates a LIVE session (the V2a pill state); `-seedAudiobookIdle`
+        // seeds a played book with NO session (the Continue-listening card
+        // state). Launch-restore was REMOVED 2026-07-07: the card on Notes
+        // replaced the phantom paused session — cards for starting, chrome for
+        // controlling; a session exists only once you actually play.
         .task {
-            if LaunchFlags.seedAudiobook {
-                AudiobookSeeder.seedAndOpen()
-                return
-            }
-            guard !LaunchFlags.inMemoryStore else { return }
-            AudiobookSession.shared.restoreOnLaunch()
+            if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen() }
+            else if LaunchFlags.seedAudiobookIdle { AudiobookSeeder.seedOnly() }
         }
     }
 }
