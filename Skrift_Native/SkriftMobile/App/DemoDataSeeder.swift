@@ -18,8 +18,58 @@ enum DemoDataSeeder {
         if LaunchFlags.seedVideoMemo { repo.insert(videoMemo()); return }
         if LaunchFlags.seedNameLinking { repo.insert(nameLinkingMemo()); return }
         if LaunchFlags.seedPolished { seedPolished(repo); return }
+        if LaunchFlags.seedPhotoTextMemo {
+            // The photo-search end-to-end fixture: a real un-OCR'd text photo
+            // (the launch sweep must index it) among the demo memos (which
+            // must NOT match the query).
+            repo.insert(photoTextMemo())
+            for memo in demoMemos() { repo.insert(memo) }
+            return
+        }
         guard LaunchFlags.seedDemoMemos else { return }
         for memo in demoMemos() { repo.insert(memo) }
+    }
+
+    /// A memo whose photo CONTAINS rendered text but whose manifest text is
+    /// still nil — the device round-3/4 "photo search finds nothing" repro:
+    /// the launch sweep must OCR it (REAL Vision) and the list search must
+    /// then surface the memo.
+    static func photoTextMemo() -> Memo {
+        let id = UUID()
+        let photoName = "photo_\(id.uuidString)_001.jpg"
+        writeTextPhoto(to: AppPaths.recordingsDirectory.appendingPathComponent(photoName))
+        return Memo.make(
+            id: id,
+            audioFilename: "memo_\(id.uuidString).m4a",
+            duration: 21,
+            recordedAt: Date().addingTimeInterval(-1_800),
+            syncStatus: .waiting,
+            transcript: "Snapped the tram stop sign on the way home. [[img_001]]",
+            transcriptStatus: .done,
+            transcriptConfidence: 0.9,
+            metadata: MemoMetadata(
+                imageManifest: [ImageManifestEntry(filename: photoName, offsetSeconds: 4)]
+            )
+        )
+    }
+
+    /// A photo-like JPEG with big unambiguous printed text for the REAL Vision
+    /// pass ("ZUURKOOL 77" — collides with no other seeded content).
+    private static func writeTextPhoto(to url: URL) {
+        let size = CGSize(width: 1200, height: 700)
+        let image = UIGraphicsImageRenderer(size: size).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            ("ZUURKOOL 77" as NSString).draw(
+                at: CGPoint(x: 90, y: 220),
+                withAttributes: [.font: UIFont.boldSystemFont(ofSize: 150),
+                                 .foregroundColor: UIColor.black])
+            ("TRAMLIJN NAAR HUIS" as NSString).draw(
+                at: CGPoint(x: 90, y: 430),
+                withAttributes: [.font: UIFont.systemFont(ofSize: 64, weight: .semibold),
+                                 .foregroundColor: UIColor.darkGray])
+        }
+        try? image.jpegData(compressionQuality: 0.9)?.write(to: url)
     }
 
     /// A memo with a raw (um-filled) transcript + a Mac `MemoEnhancement` (clean copy-edit +

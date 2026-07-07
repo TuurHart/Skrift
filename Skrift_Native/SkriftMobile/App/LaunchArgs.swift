@@ -29,6 +29,9 @@ enum LaunchFlags {
     /// survive across runs and the idempotent seeder would skip).
     static var inMemoryStore: Bool { args.boolFlag("-inMemoryStore") }
     static var seedDemoMemos: Bool { args.boolFlag("-seedDemoMemos") }
+    /// Seed a memo whose photo contains rendered text but is NOT yet OCR'd —
+    /// the photo-search end-to-end fixture (launch sweep must index it).
+    static var seedPhotoTextMemo: Bool { args.boolFlag("-seedPhotoTextMemo") }
     /// Seed ONE long memo (long transcript + an image marker) so a UI test can
     /// scroll content UNDER the glass player bar and screenshot the refraction.
     static var seedLongMemo: Bool { args.boolFlag("-seedLongMemo") }
