@@ -583,10 +583,11 @@ job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet
     (transient UIImageView over the attachment; file-card opens keep the standard animation). The
     markup + dismissal-deferred edit chain moved into the presenter unchanged (tested: edit reports
     on dismiss ONLY — the erase-crash contract). Old cover wrapper deleted. Device eyeball owed.
-13. 📐 **PDF INLINE in the note — MOCK READY, awaiting sign-off** (round-4 ask "text, PDF, text —
-    like Apple Notes"): `mocks/pdf-inline-capture.html` — A = first page inline + "N pages" chip
-    (RECOMMENDED) vs B = swipeable strip. Applies to doc scans AND shared PDFs; tap → the zooming
-    viewer; chip+Open dies; search unchanged (sharedContent.text).
+13. ✅ **PDF INLINE in the note — SIGNED OFF (A) + BUILT 2026-07-07 (build 39):** a readable PDF
+    capture (doc scan / shared) renders its FIRST PAGE as a full-width block + "N pages" chip
+    (CapturePDFInlineBlock + PDFThumbnailLoader, mtime-cached); tap → the viewer (all pages,
+    markup). Non-PDF files + unreadable PDFs keep the card. Snapshot-checked against the mock;
+    3 loader tests; device eyeball owed. Search unchanged (sharedContent.text).
 **BY DESIGN (confirmed to user):** a SECOND typed mention of a linked name stays plain — one link per person,
 first mention only (the locked naming model); re-scan happens on commit (~1 s) + restyles on end-editing.
 **ANSWERED:** reminders are LOCAL notifications (not the Reminders app / EventKit), alarms fully offline;

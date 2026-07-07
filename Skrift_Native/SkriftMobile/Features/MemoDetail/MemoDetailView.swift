@@ -1367,14 +1367,30 @@ private struct MemoPageView: View {
             case .image:
                 captureImageEmbed
             case .file:
-                captureFileCard(sc: sc)
+                // A PDF (doc scan / shared) renders INLINE — first page as a
+                // block, "N pages" chip, tap → viewer (signed-off mock
+                // pdf-inline-capture.html A: "text, PDF, text", Notes idiom).
+                // Non-PDF files and unreadable PDFs keep the card.
+                if let url = memo.sharedFileURL, url.pathExtension.lowercased() == "pdf",
+                   let entry = PDFThumbnailLoader.firstPage(
+                       at: url, maxWidth: UIScreen.main.bounds.width - 2 * Theme.Space.margin) {
+                    CapturePDFInlineBlock(entry: entry) {
+                        let target = QuickLookTarget(url: url, marker: nil)
+                        markupQuickLook.present(url: url, anchor: nil) { edited in
+                            if edited { photoWasEdited(target) }
+                        }
+                    }
+                } else {
+                    captureFileCard(sc: sc)
+                }
             }
         }
     }
 
-    /// A shared document (PDF/etc.) capture: a card showing the filename + an Open
-    /// button that previews it in QuickLook. (2026-06-21 "share a PDF and have it
-    /// live in there".)
+    /// A NON-PDF shared document capture (or an unreadable PDF): a card showing
+    /// the filename + an Open button that previews it in QuickLook.
+    /// (2026-06-21 "share a PDF and have it live in there"; PDFs themselves
+    /// render inline since 2026-07-07 — CapturePDFInlineBlock.)
     private func captureFileCard(sc: SharedContent) -> some View {
         HStack(spacing: 10) {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -1783,4 +1799,41 @@ struct PersonSheetRequest: Identifiable {
     let id = UUID()
     let canonical: String?
     let prefillAlias: String?
+}
+
+/// A PDF capture rendered INLINE in the note (signed-off mock
+/// `pdf-inline-capture.html` variant A, round-4 ask "text, PDF, text — like
+/// Apple Notes"): the first page as a full-width block with an "N pages"
+/// chip; tapping anywhere opens the viewer (all pages + markup). Replaces
+/// the file card for readable PDFs — doc scans and shared PDFs alike.
+struct CapturePDFInlineBlock: View {
+    let entry: PDFThumbnailLoader.Entry
+    var onTap: () -> Void = {}
+
+    var body: some View {
+        Button(action: onTap) {
+            Image(uiImage: entry.image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.skBorder, lineWidth: 1)
+                )
+                .overlay(alignment: .bottomTrailing) {
+                    if entry.pageCount > 1 {
+                        Text("\(entry.pageCount) pages")
+                            .font(.system(size: 10.5, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(.black.opacity(0.55), in: .rect(cornerRadius: 7, style: .continuous))
+                            .padding(9)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("capture-pdf-inline")
+        .accessibilityLabel(entry.pageCount > 1 ? "PDF, \(entry.pageCount) pages" : "PDF")
+    }
 }

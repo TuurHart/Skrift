@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T15:55:00.000Z'
+updated: '2026-07-07T16:15:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -349,8 +349,9 @@ nodes:
         text range / photo ring. ROUND 5 remainders: selection-handles repro
         (sel-during-scroll probe arbitrates), long-press verdict, flash
         eyeball"
-      - "PDF-inline mock READY (pdf-inline-capture.html: A first-page+count
-        RECOMMENDED vs B strip) — awaiting sign-off, then build"
+      - "PDF-inline SIGNED OFF (A) + BUILT build 39: first page as a block
+        + N-pages chip (CapturePDFInlineBlock/PDFThumbnailLoader), tap →
+        zooming viewer; snapshot-checked — device eyeball owed"
       - "P2#12 viewer ZOOM built (build 38, MarkupQuickLook UIKit presenter,
         transitionViewFor off the tapped photo; edit chain still
         dismissal-deferred) — device eyeball owed"

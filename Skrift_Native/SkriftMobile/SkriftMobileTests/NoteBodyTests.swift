@@ -1017,3 +1017,62 @@ final class KaraokeMapTests: XCTestCase {
         XCTAssertNil(KaraokeMap.wordIndex(at: 0, in: []))
     }
 }
+
+/// Inline PDF block (signed-off mock pdf-inline-capture.html A): the loader
+/// renders the FIRST page at width with the true page count, and the cache
+/// self-invalidates when the file is rewritten (re-scan, markup).
+final class PDFThumbnailLoaderTests: XCTestCase {
+
+    private func makePDF(pages: Int, label: String) -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("pdf-\(UUID().uuidString).pdf")
+        let bounds = CGRect(x: 0, y: 0, width: 612, height: 792)   // US Letter
+        let data = UIGraphicsPDFRenderer(bounds: bounds).pdfData { ctx in
+            for i in 1...pages {
+                ctx.beginPage()
+                ("\(label) — page \(i)" as NSString).draw(
+                    at: CGPoint(x: 60, y: 80),
+                    withAttributes: [.font: UIFont.boldSystemFont(ofSize: 32)])
+            }
+        }
+        try? data.write(to: url)
+        return url
+    }
+
+    @MainActor
+    func testFirstPageRendersWithPageCount() throws {
+        let url = makePDF(pages: 3, label: "WARRANTY")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let entry = try XCTUnwrap(PDFThumbnailLoader.firstPage(at: url, maxWidth: 350))
+        XCTAssertEqual(entry.pageCount, 3)
+        // US Letter aspect (612×792) must carry into the thumbnail.
+        let aspect = entry.image.size.width / entry.image.size.height
+        XCTAssertEqual(aspect, 612.0 / 792.0, accuracy: 0.02)
+    }
+
+    @MainActor
+    func testCacheInvalidatesWhenFileRewritten() throws {
+        let url = makePDF(pages: 3, label: "OLD")
+        defer { try? FileManager.default.removeItem(at: url) }
+        _ = try XCTUnwrap(PDFThumbnailLoader.firstPage(at: url, maxWidth: 350))
+
+        let fresh = makePDF(pages: 1, label: "NEW")
+        defer { try? FileManager.default.removeItem(at: fresh) }
+        try FileManager.default.removeItem(at: url)
+        try FileManager.default.copyItem(at: fresh, to: url)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: 60)],
+                                              ofItemAtPath: url.path)
+        let entry = try XCTUnwrap(PDFThumbnailLoader.firstPage(at: url, maxWidth: 350))
+        XCTAssertEqual(entry.pageCount, 1, "a rewritten file must re-render, not serve the cache")
+    }
+
+    @MainActor
+    func testNonPDFReturnsNil() {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("not-\(UUID().uuidString).pdf")
+        try? Data("plain text".utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        XCTAssertNil(PDFThumbnailLoader.firstPage(at: url, maxWidth: 350),
+                     "an unreadable 'PDF' must fall back to the file card")
+    }
+}
