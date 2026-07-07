@@ -224,14 +224,20 @@ feeds P6) · Ask-your-memos (RAG over this index) · weekly "how my thinking evo
 exported to Obsidian · P6 Daily Review ranking by embedding diversity. The index is the enabler;
 build it once, well.
 
-## Collision map (2026-07-06)
+## Collision map — ALL CLEAR (re-assessed 2026-07-07 evening; branch merged with origin/main)
 
-- **note-editing** (`claude/gracious-easley-e3fc96`): owns MemoDetail/editor → chunk 7 waits.
-- **Bonjour removal / live-sync** (`claude/xenodochial-mclaren-9361b9`): owns Settings/Onboarding/
-  MemosListView/MemoDisplay edits right now → chunk 6 rebases after it lands.
-- **audiobooks** (third chat): player area — no overlap.
-- **Highlights-tab removal** (upcoming lane, per Tuur 2026-07-06): touches `AppTabView` → chunk 5
-  (the Journal tab) lands after it merges.
+No lanes are active anymore; chunks 5–8 are UNBLOCKED:
+- **Bonjour removal + live-sync: LANDED on main** (merged into this branch cleanly; full suite 495
+  tests green). `MemosListView` is free → chunk 6 goes.
+- **Highlights-tab removal: never happened** — that chat didn't land it, so chunk 5 does the swap
+  itself: `AppTabView.Tab.highlights` → `.journal`, `HighlightsComingSoonView` → the Journal home
+  (exactly the mock's IA).
+- **note-editing** (`claude/gracious-easley-e3fc96`): merged NOTHING — it's spec/plan docs only.
+  MemoDetail is unowned today, so chunk 7 can build on the current detail view; expect a small
+  rebase when the NEdit editor rebuild eventually lands (keep the Related card self-contained).
+- **SharedKit dedup (landed on main 2026-07-07)**: moved MemoMetadata/WordTiming/etc. into
+  `Shared/` — no P8 impact (snapshot code compiles unchanged) and MORE shared substrate for
+  Phase 2's Mac adoption.
 
 ## Kickoff prompt for the executing session
 
