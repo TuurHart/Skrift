@@ -706,6 +706,64 @@ struct NoteBodyView: UIViewRepresentable {
             return nil
         }
 
+        // MARK: checklist continuation (Apple Notes flow)
+
+        func textView(_ tv: UITextView, shouldChangeTextIn range: NSRange,
+                      replacementText text: String) -> Bool {
+            guard text == "\n", range.length == 0 else { return true }
+            return !continueChecklist(tv, at: range.location)
+        }
+
+        /// Return inside a task line continues the list with a fresh unchecked
+        /// box; Return on an EMPTY task item ends the list (the box dissolves
+        /// into a plain line) — round-1 P2#8, the Notes idiom. True = handled.
+        private func continueChecklist(_ tv: UITextView, at caret: Int) -> Bool {
+            let ns = tv.textStorage.string as NSString
+            guard caret <= ns.length, ns.length > 0 else { return false }
+            let line = ns.lineRange(for: NSRange(location: min(caret, ns.length), length: 0))
+            guard line.length > 0,
+                  tv.textStorage.attribute(Self.taskKey, at: line.location,
+                                           effectiveRange: nil) is Bool
+            else { return false }
+
+            // The line past its 1-char box glyph, without the trailing newline.
+            let contentStart = line.location + 1
+            let lineEnd = line.location + line.length
+            let hasNewline = lineEnd > line.location && ns.character(at: lineEnd - 1) == 10
+            let contentEnd = hasNewline ? lineEnd - 1 : lineEnd
+            let content = contentStart < contentEnd
+                ? ns.substring(with: NSRange(location: contentStart,
+                                             length: contentEnd - contentStart)) : ""
+
+            if content.trimmingCharacters(in: .whitespaces).isEmpty {
+                // Empty item → end the list here.
+                tv.textStorage.replaceCharacters(
+                    in: NSRange(location: line.location, length: contentEnd - line.location),
+                    with: NSAttributedString(string: "", attributes: baseAttributes()))
+                tv.selectedRange = NSRange(location: line.location, length: 0)
+                textViewDidChange(tv)
+                return true
+            }
+
+            // Split/continue: a space right after the caret is consumed (Notes
+            // trims the split tail), then "\n" + fresh box + " ".
+            var insertAt = caret
+            if insertAt < contentEnd, ns.character(at: insertAt) == 32 {
+                tv.textStorage.deleteCharacters(in: NSRange(location: insertAt, length: 1))
+            }
+            let piece = NSMutableAttributedString(string: "\n", attributes: baseAttributes())
+            let box = NSMutableAttributedString(attachment: Self.taskAttachment(checked: false))
+            box.addAttribute(Self.taskKey, value: false,
+                             range: NSRange(location: 0, length: box.length))
+            box.addAttributes(baseAttributes(), range: NSRange(location: 0, length: box.length))
+            piece.append(box)
+            piece.append(NSAttributedString(string: " ", attributes: baseAttributes()))
+            tv.textStorage.insert(piece, at: insertAt)
+            tv.selectedRange = NSRange(location: insertAt + piece.length, length: 0)
+            textViewDidChange(tv)
+            return true
+        }
+
         // MARK: editing / debounced commit
 
         func textViewDidChange(_ tv: UITextView) {

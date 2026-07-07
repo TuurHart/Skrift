@@ -632,6 +632,76 @@ final class AttachmentHitTests: XCTestCase {
     }
 }
 
+/// Checklist Return-continuation (round-1 P2#8, the Notes idiom): Return in a
+/// task line grows the list; Return on an empty item dissolves it. Driven
+/// through the real shouldChangeTextIn delegate over the display text.
+final class ChecklistContinuationTests: XCTestCase {
+
+    @MainActor
+    private func makeEditor(transcript: String) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
+        let memo = Memo(audioFilename: "memo_check.m4a", transcript: transcript)
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        return (coordinator, tv)
+    }
+
+    /// Simulate pressing Return at `caret` through the delegate, applying the
+    /// default insertion only when the coordinator didn't handle it.
+    @MainActor
+    private func pressReturn(_ c: NoteBodyView.Coordinator, _ tv: NoteBodyTextView, at caret: Int) {
+        tv.selectedRange = NSRange(location: caret, length: 0)
+        if c.textView(tv, shouldChangeTextIn: NSRange(location: caret, length: 0),
+                      replacementText: "\n") {
+            tv.textStorage.replaceCharacters(in: NSRange(location: caret, length: 0), with: "\n")
+        }
+    }
+
+    @MainActor
+    func testReturnAtEndOfTaskLineContinuesTheList() {
+        let (c, tv) = makeEditor(transcript: "- [ ] buy milk")
+        pressReturn(c, tv, at: tv.textStorage.length)
+        c.commitDraft()
+        XCTAssertEqual(c.memo.transcript, "- [ ] buy milk\n- [ ] ",
+                       "Return must open a fresh unchecked item")
+    }
+
+    @MainActor
+    func testReturnMidLineSplitsIntoTwoItems() {
+        let (c, tv) = makeEditor(transcript: "- [ ] buy milk")
+        // Display: [box]" buy milk" — caret after "buy" (box=1 + " buy"=4 → 5).
+        pressReturn(c, tv, at: 5)
+        c.commitDraft()
+        XCTAssertEqual(c.memo.transcript, "- [ ] buy\n- [ ] milk",
+                       "the split tail keeps its text, separator space consumed")
+    }
+
+    @MainActor
+    func testReturnOnEmptyItemEndsTheList() {
+        let (c, tv) = makeEditor(transcript: "- [ ] buy milk\n- [ ] ")
+        pressReturn(c, tv, at: tv.textStorage.length)
+        c.commitDraft()
+        // Notes semantics: the box dissolves into an empty PLAIN line (the
+        // caret parks there), so the raw keeps the line break — but no box.
+        XCTAssertEqual(c.memo.transcript, "- [ ] buy milk\n",
+                       "Return on an empty item must dissolve the box, not add another")
+        XCTAssertEqual(tv.selectedRange.location, tv.textStorage.length,
+                       "the caret parks on the now-plain empty line")
+    }
+
+    @MainActor
+    func testReturnOnPlainLineIsUntouched() {
+        let (c, tv) = makeEditor(transcript: "plain text line")
+        pressReturn(c, tv, at: tv.textStorage.length)
+        c.commitDraft()
+        XCTAssertEqual(c.memo.transcript, "plain text line",
+                       "trailing whitespace trims on commit; no box was added")
+        XCTAssertFalse(BodyTransform.containsTaskSyntax(c.memo.transcript ?? ""))
+    }
+}
+
 /// Accessory 📷 camera source (round-1 P2): the system-camera wrapper must
 /// forward the captured image, and the simulator must stay library-only.
 final class CameraImagePickerTests: XCTestCase {
