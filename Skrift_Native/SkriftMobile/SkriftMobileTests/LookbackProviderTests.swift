@@ -55,9 +55,39 @@ final class LookbackProviderTests: XCTestCase {
         XCTAssertEqual(entries.first?.label, "On this day · 2025")
     }
 
+    func testWeekWindowKeepsAYoungCorpusAlive() {
+        // Device finding 2026-07-07: a corpus only days old showed zero cards.
+        let lastWeek = memo(daysAgo: 7, title: "week")
+        let entries = LookbackProvider.entries(for: [lastWeek], now: now, calendar: calendar)
+        XCTAssertEqual(entries.first?.label, "1 week ago")
+        XCTAssertEqual(entries.first?.id, lastWeek.id)
+    }
+
     func testTodaysMemosNeverLookBack() {
         let today = memo(title: "today")
         XCTAssertTrue(LookbackProvider.entries(for: [today], now: now, calendar: calendar).isEmpty)
+    }
+
+    func testExcludedNotesNeverAppearInLookbacks() {
+        // A note already shown by Important lately must not duplicate into a
+        // lookback card (build-43 device finding).
+        let star = memo(daysAgo: 1, significance: 0.9, title: "star")
+        let entries = LookbackProvider.entries(for: [star], now: now, calendar: calendar,
+                                               excluding: [star.id])
+        XCTAssertTrue(entries.isEmpty)
+    }
+
+    func testNeverEmptyGuaranteeForDayOldCorpus() {
+        // Build-41 device finding: notes from yesterday only → zero cards.
+        let yesterday = memo(daysAgo: 1, title: "y")
+        let entries = LookbackProvider.entries(for: [yesterday], now: now, calendar: calendar)
+        XCTAssertEqual(entries.first?.label, "Yesterday")
+        XCTAssertEqual(entries.first?.id, yesterday.id)
+
+        // Between anchors (12 days: misses week + month windows) → still a card.
+        let stranded = memo(daysAgo: 12, title: "s")
+        let entries2 = LookbackProvider.entries(for: [stranded], now: now, calendar: calendar)
+        XCTAssertEqual(entries2.first?.label, "12 days ago")
     }
 
     func testDayCountsAndHotFlag() {

@@ -2,6 +2,50 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ CONTINUE HERE (2026-07-07 night, audiobook-UX chat wrap) — worktree `sweet-goldstine`
+
+Branch `claude/sweet-goldstine-13dfca` (pushed, NOT yet PR'd) holds **builds 46→51** on top of merged PR #6:
+bottom-chrome saga (Option A split row → V2a pill → card-at-rest/pill-when-live → compact header + unified
+30pt titles → card as scrolling list row → List-row tap-hijack fix w/ 2 green ContinueCardUITests). Contains
+PR #8's content (sprint branch merged in) — **when this branch's PR merges, close PR #8 as contained.**
+NEXT: (1) user+Hendri eyeball of build 51 (× must not autoplay; card/pill lifecycle; title sizes), then
+(2) OPEN THE PR → merge → close #8. Ghost dismissal-write in the sim container never got attributed —
+both write-sites DevLog themselves now; if the card vanishes without ×, pull the devlog.
+
+## 🔬 Audiobook deep-review findings (2026-07-07 chat; UNBUILT unless ticked) — the perf/correctness list
+
+**Perf (one root cause: monolithic sidecar JSON + main-actor I/O):**
+- ⬜ P1 read-along uncovered-spot hot loop: `ReadAlongModel.reloadIfNeeded`'s `|| !covered` guard re-decodes the
+  ENTIRE partial sidecar ~2×/s on main while playing past the frontier (worst exactly during "keep listening
+  while it transcribes"). Cache by (sig, coveredUpTo) or check mtime/tiny header before decoding words.
+- ⬜ P1 `BookTranscriptionJob` is @MainActor incl. statics: per 60s chunk — `extractPCM` (~20MB decode+WAV write)
+  synchronous on main; `store.save` re-encodes the WHOLE accumulated sidecar (O(n²) bytes over a long file);
+  `publishValue` re-DECODES every sidecar per chunk though the loop already holds `coveredUpTo` (trivial fix).
+- ⬜ P2 `AudiobookCloudSync.localTranscriptSignature` full-decodes every sidecar per reconcile (launch/foreground/
+  pull) just for coveredUpTo+wordCount.
+- ⬜ P2 over-observation: 2Hz `currentTime` re-renders Books list (+ per-row SwiftData `isSynced` fetch + N×
+  fileExists) via whole-session @ObservedObject; split a PlaybackClock sub-observable; make sync state a real
+  observable (kills the `syncToggleTick`/`tick` hacks in AudiobookLibraryView + SyncedAudiobooksView).
+- ⬜ P3 `setCurrent` linear-scans sentences 10×/s; per-body `Timer.publish` churn in ReadAlongView; CIContext
+  per loadCoverTint.
+**Correctness:**
+- ⬜ P1 "Edit book details" never syncs: `store.update()` doesn't bump `modifiedAt` → reconcile's send guard
+  never fires; replaced cover also never re-uploads (audioUploadedAt upload-once gate).
+- ⬜ P2 TranscribeBookView shows the ACTIVE book's progress/ETA on any book's sheet while a job runs, and Start
+  silently cancels the other book's job.
+- ⬜ P2 seek-while-paused never persists (`seek()` lacks persistProgress; force-quit loses a paused scrub).
+- ⬜ P3 BookCoverView placeholder gradient uses `uuidString.hashValue` (per-process seed) — not stable across
+  launches despite the comment; use UUID bytes.
+- ⬜ VERIFY quote audio extraction: `exportSpan` (AVAssetExportSession + precise-timing key) vs the durable
+  PCM-extraction gotcha — if deep-chapter captures drift vs sidecar karaoke, switch to `extractPCM`+m4a.
+**Dead code (~800 lines + tests):** wave-1 capture arm — `CaptureMath` (all of it), `CaptureScrub` shim,
+`QuoteCaptureProcessor.process()`, `applyTrim`/`TrimResult`, `SentenceSnap.snap`/`inIndex`,
+`CaptureSpan.proposal`/`replayWindow`; `AudiobookSession.sleepLabel`; `QuoteCaptureOutput`'s vestigial
+buffer fields (shrink the struct). Zero non-test callers verified by grep 2026-07-07.
+**UX (decided elsewhere or open):** per-book "N notes" surface + note→book jump-back (metadata `bookID`/
+`bookPosition` now accrues since PR #6); multi-select import of N DISTINCT books silently merges into one
+(warn when album tags disagree); Books empty-state deserves a real CTA button.
+
 ## 🎧 Books tab + one-tap resume — ✅ BUILT 2026-07-07 (mock-first, signed off; worktree `sweet-goldstine`)
 
 From the 2026-07-06/07 audiobook deep-review chat (roadmap detour node **D4**). Mock = `mocks/books-tab-and-resume.html`
@@ -22,9 +66,15 @@ From the 2026-07-06/07 audiobook deep-review chat (roadmap detour node **D4**). 
 Also fixed in passing: stale "Tap Mark" bookmarks empty-state copy; stale "last 30 seconds" capsule a11y label.
 **Gate:** build green; unit suite 327 run — only the 8 PRE-EXISTING CloudKit-epic failures (verified identical at
 branch HEAD baseline); new sort/filter tests green; 4 UI-test files' "Memos" assertions updated to "Notes".
-**OWED:** device eyeball (capsule on all tabs + crowding check on the Notes screen — user flagged the worry; levers
-if it feels heavy: compact idle-capsule, scroll-minimize, swipe-away-to-end-session). UI suite not re-run (10
-pre-existing iOS-26 failures tracked separately).
+**Device round 1 (build 40, 2026-07-07): FAIL — record button buried under the capsule.** The tab-level
+`safeAreaInset` mount never propagated into the tabs' NavigationStacks on iOS 26; uncatchable in sim (no book
+seedable). **FIXED build 46 — Option A** (signed `mocks/notes-bottom-chrome.html`): Notes = ONE 60pt row, compact
+`AudiobookMiniPill` (cover · play/pause · ❝ Add note) left + record right (no session → record alone, right corner);
+Books keeps the full bar (mounted INSIDE the view); Journal/Settings carry nothing (user call); ˄ chevron cut
+everywhere (duplicate of cover-tap); list gets bottom content margin. New hooks `-seedAudiobook` + `-openTab` make
+the capsule sim-visible per tab — vision-verified all four before install. **Round 2 (build 46): pill interior "weird — empty space / I'd tap it to open the book" + Henry "crowded".** Iterated V1/V2/V3 then V2a/b/c (mocks notes-pill-variants + notes-pill-v2-iterations); discovered the 390pt truth (title + labeled chip + play don't fit). **PICKED V2a → build 47:** cover · time-left · ❝ Add note · filled accent play; pill BODY opens the player; 16pt pill↔record gap. **Round 3 (build 47) + the Hendri debate:** designer pushback — media chrome on a notes list is weird; dashboard floated. Resolved via mocks (notes-book-presence-debate + notes-compact-header, both signed): **cards for starting, chrome for controlling** — build 48: at rest = ZERO chrome, "Continue listening" CARD above search (▶ 1-tap resume · body → player · × dismiss-for-today); live = V2a pill; launch-restore REMOVED (no phantom paused session — card reads the library). Plus **compact header**: Select/scan/filter inline with the "Notes" title (~44pt back; dodges the iOS-26 trailing-toolbar-item bug). New sim hook `-seedAudiobookIdle`. Both states sim-verified with vision; 582/582 unit green; MemoDetailUITests 5/7 fails PRE-EXISTING (identical at baseline — the known iOS-26 cluster). **Round 4 (build 48) → build 49:** (a) ×-dismissing the card then starting a book left the card gone — playing now VOIDS the dismissal (re-engagement rule; card returns when the session ends). (b) Title parade fixed: all four tabs share ONE 30pt `ScreenTitle` (was 30/26/34/34); Books folded its + into the title line; Journal + Settings got custom headers w/ root-only nav-bar hide (pushes keep bars). Four-tab sim vision check + 582/582 green. **Round 5 (build 49) → build 50:** the pinned card read as "stuck to the top" while scrolling — moved UNDER the search bar as the FIRST LIST ROW (scrolls away with the notes, honoring the original "content, not chrome" pitch). Player cover + the plays-again-voids-dismissal rule hoisted out of the card (a cover on a List row dies when the row unmounts). **Round 6 (build 50) → build 51:** × on the card AUTO-PLAYED the book — the SwiftUI List-row tap hijack (buttons in a List row need `.buttonStyle(.borderless)` or the row fires siblings; broke exactly when the card became a List row). Fixed + **2 new ContinueCardUITests** (tap × → no session; tap ▶ → pill) — green. Seeded launches now reset card-dismissal state (hermetic); ×/void writes DevLog-instrumented (a ghost dismissal write was found in the sim container — logs will name any recurrence). **OWED:** user eyeball of build 51.
+Build numbering: 43–45 were consumed by the sprint branch in parallel → renumbered 46; rule = bump to
+max(installed-on-phone, main) + 1 before any device build.
 
 ## 🔭 Next unclaimed lane + code-verified quick hits (2026-07-06 Fable survey, worktree youthful-wozniak)
 
@@ -73,6 +123,29 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 (`Skrift_Native/SkriftDesktop/mocks/journal-retrieval.html`, drafted 2026-07-06) proposes **Journal
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
+
+## 🖨️ Print-to-wall + significance in the Journal (Tuur design session 2026-07-07 evening)
+
+**✅ BOTH BUILT same evening (build 43 on device; 581/581 tests; sim-screenshot verified).**
+`Features/Journal/WallPrinter.swift` (service + WallCardView + settings section), Important-lately
+in `LookbackProvider`/`JournalHomeView`, queue row on Journal home (the in-app surface — Tuur:
+notifications get dismissed), SignificanceCircles commit hook, ⋯ "Print Card". OWED on device:
+pick the real printer (Settings → Wall printer), rate a note orange, watch it print; test-card
+polish round on the physical print. Original design (still the spec):
+1. **"Important lately" card on Journal home** — the orange-tier (≥0.8) notes of the last ~30 days,
+   above the Looking-back cards. This is P6's Highlights feed taking its first slot inside Journal.
+   Resurfaced UNRATED notes stay in Looking back by design: they're prune-candidates (idea i2)
+   making their case — the journal is where a note earns its life (rate it → it survives).
+2. **Auto-print Important notes ("the Wall")** — when a note crosses INTO the orange tier, silently
+   print a designed card to the home printer. Mechanics: one-time `UIPrinterPickerController` pick
+   in Settings ("Wall printer" section: printer + auto-print toggle + threshold, default 0.8) →
+   `UIPrintInteractionController.printToPrinter` (NO dialog). Card = the P6 quote-card renderer on
+   paper (title + polished text + date/place footer + thread first-mention line; mono-first
+   typography; ImageRenderer → PDF). `printedAt` stamp = idempotent (re-rating never reprints);
+   manual "Print card" in the note ⋯ menu; offline → queue + retry on foreground + "🖨 sent to the
+   wall" toast. Printed notes get a 🖨 mark; later a Journal "Wall" section mirrors the physical
+   wall in print order. (Mac-as-print-daemon = robustness fallback later; phone-first is
+   standalone-true.) Quote-card renderer is shared with P6's shareable image cards.
 
 ## ⭐ Desktop parity A-list — the Mac catches up to the phone waves (2026-07-07, roadmap `DParityA`)
 

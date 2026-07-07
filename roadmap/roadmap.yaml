@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 12
-updated: 2026-07-07T17:20:00.000Z
+version: 15
+updated: 2026-07-07T21:50:15.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -457,14 +457,29 @@ nodes:
     title: Journal / On-This-Day / search
     lane: 2
     order: 4
-    status: planned
+    status: inprogress
     eff: L
     ms: Enrichment
     deps:
       - P1
     via: P3
-    note: On This Day, map, calendar, semantic 'Related notes' (on-device
-      NLContextualEmbedding). The north-star backbone.
+    note: "The north-star backbone. Engine + ALL mock surfaces BUILT 2026-07-07
+      (plan = JOURNAL_RETRIEVAL_PLAN.md; mock signed off). Engine =
+      EmbeddingGemma-300M d512 via CoreML-LLM — picked by a measured bake-off
+      (spikes/EmbeddingBakeoff: 10/10 vs Apple NL 5/10). Remaining: Tuur
+      enables the Settings toggle on device (build 40 installed) → sweep perf
+      + floor calibration from the devlog; then done."
+    shipped:
+      - 2026-07-07 · Bake-off run on the M4 — EmbeddingGemma d512 wins 10/10;
+        chunking validated (tail@1 vs full@7) [4dbf266]
+      - 2026-07-07 · Retrieval engine — Shared/Retrieval + local-only index,
+        hash-diff sweep, search/related queries, inert-by-default [4767d09]
+      - 2026-07-07 · Journal tab v1 (Looking back + calendar + map) replaces
+        the Highlights slot [d05ddd8]
+      - 2026-07-07 · Semantic search Related section + Thread view [0c9babd]
+      - 2026-07-07 · Related card on note detail [c6acc39]
+      - 2026-07-07 · Settings consent flow (295 MB download) + sweep timing +
+        histogram harness; Dev build 40 on the iPhone 13
     win: On This Day + timeline + semantic 'related notes' work on-device — a
       years-old thought resurfaces next to today's
   - id: P9b
@@ -778,7 +793,10 @@ detours:
           launch (resume = 1 tap), tap-a-book autoplays, sort+status filters on
           the Books chip, capture memos carry bookID+bookPosition (the future
           per-book-notes join key), 'memo'→'note' copy sweep + one 'Add note'
-          verb. Mock-first: mocks/books-tab-and-resume.html."
+          verb. Mock-first: mocks/books-tab-and-resume.html. Then 6 device
+          rounds (builds 46–51, w/ designer Hendri): card-at-rest / pill-when-
+          live bottom chrome, compact unified 30pt headers, ContinueCardUITests.
+          Branch sweet-goldstine, PR owed after the build-51 eyeball."
 ideas:
   - id: P4a
     text: Spike on the iPhone 13 FIRST (the gate)
@@ -927,6 +945,17 @@ ideas:
       as-is for now; the user will sort the layout out in Claude Code. (Just a
       note that this is a known thing, no action needed from Huginn.)
     source: voice
+  - id: i5
+    text: "Print-to-wall (Tuur, 2026-07-07): a note crossing INTO the orange
+      importance tier (≥0.8) silently prints a designed card to the home
+      printer (saved AirPrint printer + printToPrinter, no dialog) — the
+      physical commonplace wall. Card = P6's quote-card renderer on paper;
+      printedAt idempotency; Settings 'Wall printer' section; printed notes
+      marked 🖨, later a Journal 'Wall' section mirrors the physical wall.
+      Pairs with an 'Important lately' card on Journal home (P6's Highlights
+      feed's first slot). Full design in backlog.md 🖨️ section."
+    source: voice
+    nodeHint: P6
   - id: i4
     text: "Shared-audio capture flow is broken + a batch enhancement. (1) BUG:
       sharing an audio/voice message from a messenger app (WhatsApp etc.) into

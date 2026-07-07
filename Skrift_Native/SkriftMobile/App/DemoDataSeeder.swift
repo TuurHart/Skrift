@@ -10,6 +10,8 @@ enum DemoDataSeeder {
     static let nameLinkingMemoID = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
     /// Fixed id for the polished (Phase 4) demo memo.
     static let polishedMemoID = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+    /// Fixed id for the journal-seed pricing memo (the thread-demo seed).
+    static let journalPricingMemoID = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
 
     static func seedIfRequested(_ repo: NotesRepository) {
         guard repo.allMemos().isEmpty else { return }
@@ -64,7 +66,7 @@ enum DemoDataSeeder {
              back(days: 3, hour: 9), 0.3, place("Home", 38.7370, -9.1500)),
             ("Dinner with Jack & Jack — Hotel du Vin",
              "The sourdough theory again: you don't own a starter, you just host it for a while.",
-             back(days: 3, hour: 21), 0.7, place("Hotel du Vin", 38.7080, -9.1350)),
+             back(days: 3, hour: 21), 0.9, place("Hotel du Vin", 38.7080, -9.1350)),
             ("Walk-thought: standalone is the bet",
              "The phone alone has to be the whole product; Mac and Obsidian become optional sinks.",
              back(days: 5), 0.6, estrela),
@@ -73,7 +75,9 @@ enum DemoDataSeeder {
              back(months: 2, days: 2), 0.5, place("Amsterdam", 52.3702, 4.8952)),
         ]
         for (title, transcript, date, significance, metadata) in seeds {
+            let fixedID = title == "Should Skrift cost money?" ? journalPricingMemoID : UUID()
             repo.insert(Memo.make(
+                id: fixedID,
                 recordedAt: date, syncStatus: .synced, title: title,
                 transcript: transcript, transcriptStatus: .done,
                 transcriptConfidence: 0.95, significance: significance,
