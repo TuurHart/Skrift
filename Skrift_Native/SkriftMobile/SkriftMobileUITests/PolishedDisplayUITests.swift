@@ -24,10 +24,9 @@ final class PolishedDisplayUITests: XCTestCase {
         XCTAssertTrue(body.contains("ran the whole set twice"), "polished copy-edit missing — got: \(body)")
         XCTAssertFalse(body.lowercased().contains("um,"), "raw fillers leaked into the polished body")
 
-        // Summary + provenance.
+        // Summary. (The "Polished on your Mac" provenance caption was removed on
+        // main [d66a1ee] — this assertion had gone stale with it.)
         XCTAssertTrue(app.staticTexts["SUMMARY"].exists, "summary card missing")
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Polished on your Mac'")).firstMatch.exists,
-                      "provenance caption missing")
 
         let s = XCTAttachment(screenshot: app.screenshot())
         s.name = "polished-detail"; s.lifetime = .keepAlways; add(s)

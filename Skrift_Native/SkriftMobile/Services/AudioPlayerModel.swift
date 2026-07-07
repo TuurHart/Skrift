@@ -2,16 +2,33 @@ import AVFoundation
 import Combine
 import Foundation
 
+/// Publishes the playback POSITION at timer rate (20 Hz), separate from the
+/// player's rare state (isPlaying / duration / rate). Views that must track the
+/// position (the player bar, karaoke) observe the clock; everything else observes
+/// only `AudioPlayerModel`, so the whole page isn't re-rendered on every tick —
+/// the fix for the 20 Hz whole-tree republish (note-editing study 2026-07-06).
+@MainActor
+final class PlayerClock: ObservableObject {
+    @Published var time: TimeInterval = 0
+}
+
 /// Local playback for Memo detail: load a memo's `.m4a`, play/pause, scrub, ±10s,
 /// and cycle speed (1× / 1.5× / 2×). A missing/empty file (e.g. seeded demo memos
 /// in the sim) loads to a disabled zero-duration state rather than crashing.
 @MainActor
 final class AudioPlayerModel: NSObject, ObservableObject {
     @Published private(set) var isPlaying = false
-    @Published var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var rate: Float = 1
     @Published private(set) var hasAudio = false
+
+    /// Position ticks live here (see `PlayerClock`); `currentTime` remains the
+    /// non-observing accessor for reads/seek math.
+    let clock = PlayerClock()
+    var currentTime: TimeInterval {
+        get { clock.time }
+        set { clock.time = newValue }
+    }
 
     private var player: AVAudioPlayer?
     private var timer: Timer?

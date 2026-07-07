@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T05:00:16.938Z'
+updated: '2026-07-07T08:05:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -193,7 +193,7 @@ nodes:
     title: Stabilize 0.2.0
     lane: 0
     order: 5
-    status: now
+    status: inprogress
     eff: M
     ms: Standalone core
     deps:
@@ -222,7 +222,15 @@ nodes:
     title: Note-editing overhaul
     lane: 0
     order: 5.5
-    status: planned
+    status: now
+    shipped:
+      - >-
+        2026-07-07 · Chunk 1 — body re-founded on a scrolling text view
+        (NoteBodyView): B2 pinned title, header/footer inside the scroll,
+        karaoke = attribute painting on the same textStorage (PlayerClock split
+        ends the 20 Hz whole-page re-render), debounced saves, memoized
+        name-span scan; NonScrollingTextView + 3-mode swap + 2 karaoke
+        renderers DELETED. Unit suite green.
     eff: M
     note: Re-found the note body on a natively-scrolling text view (fork B) —
       selection/undo/find/caret-follow come free; karaoke becomes attribute

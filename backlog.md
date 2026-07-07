@@ -425,9 +425,19 @@ FaceID lock, checklists, memo↔memo links, doc scan; audio-trim PARKED after ex
 rejected). **HARD RULE (user): every feature ships on BOTH apps — model/logic in `Skrift_Native/Shared/`, thin
 per-platform UI; phone and Mac run the same code wherever possible.**
 
-**🏗 BUILD PLAN — frozen 2026-07-06. DO NOT START until the user's bug-fixing chat wraps.** Spec =
+**🏗 BUILD PLAN — frozen 2026-07-06; EXECUTION STARTED 2026-07-07 (bug chat wrapped, user green-lit).** Spec =
 `mocks/note-editor-redesign.html`. Commit + verify per chunk (sim tests both apps; device eyeball for editor
-feel); update FEATURES.md + roadmap in the same commits. Chunks in order:
+feel); update FEATURES.md + roadmap in the same commits.
+**Progress: chunk 1 ✅ 2026-07-07** — `NoteBodyView` re-foundation built (scrolling text view + hosted
+header/footer, karaoke = attribute painting, `PlayerClock` split ends the 20 Hz whole-page re-render, debounced
+saves, memoized name-scan; `NonScrollingTextView` + `TranscriptBodyView`/`TranscriptEditor` + `KaraokeWordLayout`
+DELETED; marker write-back normalizes to the writer's `%03d` — the OLD editor drifted `[[img_001]]`→`[[img_1]]`
+on every edit, a latent bug caught by the new round-trip test). Unit suite green (489). Device eyeball owed
+(selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
+scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
+FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret
+placement — resolve via the people row. Feels right in principle; confirm on device. Off-screen pager pages
+can't a11y-hide hosted UIKit content on iOS 26 → they suffix identifiers ("-offscreen") instead. Chunks in order:
 1. **Re-foundation (the editor):** scrolling UITextView page per spec (B2 pinned title; chips→importance→
    summary as in-scroll header), TextKit 2, `[[img]]` attachments, name-tier attributes, quote-protected
    captures. DELETE `NonScrollingTextView` + the 3-mode swap. **Karaoke = attribute painting** on the same
