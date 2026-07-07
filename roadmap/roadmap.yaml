@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T16:15:00.000Z'
+updated: '2026-07-07T16:40:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -349,9 +349,15 @@ nodes:
         text range / photo ring. ROUND 5 remainders: selection-handles repro
         (sel-during-scroll probe arbitrates), long-press verdict, flash
         eyeball"
-      - "PDF-inline SIGNED OFF (A) + BUILT build 39: first page as a block
-        + N-pages chip (CapturePDFInlineBlock/PDFThumbnailLoader), tap →
-        zooming viewer; snapshot-checked — device eyeball owed"
+      - "Round-5 close (build 39): long-press ✓, search-hit flash ✓, zoom ✓,
+        PDF-inline ✓ device-confirmed. NEXT DESIGN CHUNK (mock-first):
+        capture reads as a NOTE — annotation folds into the body, file/PDF
+        becomes a body block (today's marker machinery generalizes); touches
+        C3 + exporter + Mac"
+      - "Selection handles: NOT retested since build 35 — build 39 carries
+        armed probes (sel-during-scroll + frame-write guards); pull devlog
+        on next repro"
+      - "Merge decision: branch is 41 commits ahead of main (user's call)"
       - "P2#12 viewer ZOOM built (build 38, MarkupQuickLook UIKit presenter,
         transitionViewFor off the tapped photo; edit chain still
         dismissal-deferred) — device eyeball owed"

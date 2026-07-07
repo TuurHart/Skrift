@@ -490,7 +490,22 @@ passcode-capable device); REMOVING the lock needs auth. **Publish: locked ⇒ ex
 tested); locking an already-published memo → honest "already in your vault" notice (Skrift never deletes vault
 files). Honesty copy on the placeholder: "hidden, not encrypted". Mac gate owed (LocalAuthentication is the
 same API). 520 unit + desktop 325 + desktop app build + UI cluster green.
-**📱 DEVICE TEST ROUNDS 1–3 — builds 31→36, all 2026-07-07. ⭐ CONTINUE HERE.**
+**📱 DEVICE TEST ROUNDS 1–5 — builds 31→39, all 2026-07-07. ⭐ CONTINUE HERE next chat.**
+**ROUND-5 VERDICTS (build 39, session close):** long-press list menu ✓ works · search-hit flash ✓
+works · viewer zoom ✓ works · PDF inline ✓ "very nice" — BUT the capture PAGE still reads as a
+special layout (pinned block + boxed "Add a note about this capture…"), not a note. NEW DESIGN
+CHUNK (next session, MOCK-FIRST): **capture reads as a NOTE** — fold annotationText into the note
+body, the file/PDF becomes a body BLOCK (the [[img]]-style machinery from today generalizes: marker
+kind + attachment + rect hit + zoom viewer all exist). Touches the C3 contract + exporter + Mac —
+design it, don't patch it. ⚠️ STILL OPEN: selection-handles repro NOT retested since build 35 —
+build 39 carries the armed probes (`sel-during-scroll` FR-inclusive + frame-write guards); pull
+devlog after the next repro. Also owed: Mac parity halves (below), prod CloudKit schema at
+promotion, and the **merge decision — this branch is 41 commits ahead of main** (user's call).
+**Session ledger 2026-07-07 (builds 31→39):** 6 P1 fixes · camera dialog · checklist
+Return-continuation · markup save-back + erase-crash fix · bar v2→v2.1 · photo display-block ·
+search-hit flash · viewer zoom · PDF inline · 2 signed-off mocks · 552/552 unit (was 523).
+---
+**Historical: rounds 1–3 detail below.**
 **ROUND-3 VERDICTS (build 35) + same-day fixes (build 36):**
 - ❌→🔁 **P1#1 selection handles STILL WEIRD** ("weirder than before": handle refuses to move at the
   screen bottom while dragging; selection follows the viewport after keyboard-dismiss scroll; then
