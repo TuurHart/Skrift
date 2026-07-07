@@ -156,6 +156,22 @@ struct NoteProperties: View {
                         .lineLimit(1)
                 }
             }
+            // Synced note reminder (set on the phone; the alarm rings per-device).
+            if let remind = file.remindAt {
+                GridRow {
+                    Text("reminder").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                    (Text(Image(systemName: "bell")) + Text(" \(remind.formatted(date: .abbreviated, time: .shortened))"))
+                        .font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
+                }
+            }
+            // Synced lock flag — the row stays visible even while the body is gated.
+            if file.locked {
+                GridRow {
+                    Text("locked").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                    (Text(Image(systemName: "lock.fill")) + Text(" Stays inside Skrift — excluded from export"))
+                        .font(.system(size: 11)).foregroundStyle(Theme.amber)
+                }
+            }
         }
     }
 

@@ -266,7 +266,7 @@ struct MemoDetailView: View {
 
     /// "512 words · 3:07" — the ⋯ sheet's title doubles as the note's stats line.
     private var memoStatsLine: String {
-        guard let memo = currentMemo else { return "Memo" }
+        guard let memo = currentMemo else { return "Note" }
         let words = MemoShare.wordCount(of: memo.transcript)
         var parts: [String] = [words == 1 ? "1 word" : "\(words) words"]
         if memo.duration > 0 {

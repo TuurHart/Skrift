@@ -172,4 +172,37 @@ final class VaultExporterTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(
             atPath: vault.appendingPathComponent("Attachments/Trip_001.jpg").path))
     }
+
+    // MARK: - Locked notes (synced flag) never reach the plaintext vault
+
+    func testLockedNoteRefusesExportAndWritesNothing() throws {
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: work) }
+        let vault = work.appendingPathComponent("vault")
+
+        let pf = PipelineFile(id: "1", filename: "Secret.m4a", path: "", size: 0, sourceType: .audio)
+        pf.enhancedTitle = "Secret Plans"
+        pf.sanitised = "Private thoughts."
+        pf.locked = true
+
+        var settings = AppSettings.default
+        settings.noteFolder = vault.path
+
+        XCTAssertThrowsError(try VaultExporter.export(pf, settings: settings)) { error in
+            XCTAssertEqual(error as? VaultExporter.ExportError, .lockedNote)
+        }
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: vault.appendingPathComponent("Secret Plans.md").path),
+            "a locked note must never land in the vault")
+    }
+
+    // MARK: - noteStem: ONE derivation for the exported filename AND memo-link targets
+
+    func testNoteStemMatchesExportedFilenameRules() {
+        XCTAssertEqual(VaultExporter.noteStem(title: "Plan: Q3 / Q4", filename: "x.m4a"), "Plan Q3 - Q4")
+        XCTAssertEqual(VaultExporter.noteStem(title: nil, filename: "Voice Memo.m4a"), "Voice Memo")
+        XCTAssertEqual(VaultExporter.noteStem(title: "", filename: "Voice Memo.m4a"), "Voice Memo")
+        XCTAssertEqual(VaultExporter.noteStem(title: "***", filename: ".m4a"), "note")
+    }
 }

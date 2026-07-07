@@ -1,15 +1,23 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The audiobook Library (mock state 1, Bound-inspired): import from
-/// Files/iCloud, covers + sort, per-book resume with time-left, swipe-delete
-/// (captures survive — they're ordinary memos with their own audio). Lives
-/// behind the book toolbar icon on the memos list (mounted by the list lane).
-/// No mini-player here — the Playing row IS the session on this screen.
+/// The Books tab (mock state 1, Bound-inspired; root tab since 2026-06-19,
+/// renamed Library→Books 2026-07-06): import from Files/iCloud, covers,
+/// sort + status filters (default: recently played), per-book resume with
+/// time-left, swipe-delete (captures survive — they're ordinary memos with
+/// their own audio). Tapping a book PLAYS it (2026-07-06) — the full player
+/// opens already running. The global mini-player capsule (AppTabView) shows
+/// the session here too, so the row keeps only the current-book tint.
 struct AudiobookLibraryView: View {
     @ObservedObject private var store = AudiobookLibraryStore.shared
     @ObservedObject private var session = AudiobookSession.shared
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
+
+    /// Sort choice, persisted app-wide; the header chip is the control.
+    @AppStorage("bookSortRaw") private var sortRaw = BookSort.recentlyPlayed.rawValue
+    /// Status filter (transient, like the Notes funnel): nil = all books.
+    @State private var statusFilter: BookStatusFilter?
+    private var sort: BookSort { BookSort(rawValue: sortRaw) ?? .recentlyPlayed }
 
     @State private var showImporter = false
     @State private var importing = false
@@ -167,15 +175,11 @@ struct AudiobookLibraryView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Library")
+            Text("Books")
                 .font(.system(size: 26, weight: .heavy))
                 .foregroundStyle(Color.skText)
             HStack {
-                Text("Recently played")
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(Color.skTextDim)
-                    .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(Color.skElev, in: .rect(cornerRadius: 8, style: .continuous))
+                sortFilterChip
                 Spacer()
                 // The mock's header "Syncing…" chip — in the header row, so it never
                 // overlaps a book title (the per-book bar shows what's in flight). Shows
@@ -208,11 +212,55 @@ struct AudiobookLibraryView: View {
         return session.isActive ? books + " · 1 listening" : books
     }
 
+    /// The header chip IS the sort/filter control (it used to be a static
+    /// "Recently played" label that merely looked tappable). Label = active
+    /// filter (if any) + sort; menu = sorts, then status-filter toggles.
+    private var sortFilterChip: some View {
+        Menu {
+            Picker("Sort", selection: Binding(get: { sort }, set: { sortRaw = $0.rawValue })) {
+                ForEach(BookSort.allCases, id: \.self) { s in Text(s.label).tag(s) }
+            }
+            Divider()
+            ForEach(BookStatusFilter.allCases, id: \.self) { f in
+                Button {
+                    statusFilter = statusFilter == f ? nil : f
+                } label: {
+                    if statusFilter == f { Label(f.label, systemImage: "checkmark") }
+                    else { Text(f.label) }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(chipLabel)
+                    .font(.system(size: 11.5, weight: .medium))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+            }
+            .foregroundStyle(statusFilter == nil ? Color.skTextDim : Color.skAccentText)
+            .padding(.horizontal, 10).padding(.vertical, 4)
+            .background(statusFilter == nil ? Color.skElev : Color.skAccentSoft,
+                        in: .rect(cornerRadius: 8, style: .continuous))
+        }
+        .accessibilityIdentifier("books-sort-filter")
+        .accessibilityLabel("Sort and filter books")
+    }
+
+    private var chipLabel: String {
+        if let statusFilter { return "\(statusFilter.label) · \(sort.label)" }
+        return sort.label
+    }
+
+    /// The list the rows render: status-filtered, then sorted by the chip's choice.
+    private var visibleBooks: [Audiobook] {
+        let filtered = statusFilter.map { f in store.books.filter { f.matches($0) } } ?? store.books
+        return sort.sorted(filtered)
+    }
+
     // MARK: - List
 
     private var bookList: some View {
         List {
-            ForEach(store.sortedByRecent) { book in
+            ForEach(visibleBooks) { book in
                 row(book)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -246,6 +294,14 @@ struct AudiobookLibraryView: View {
             // passive hint line only (no second button).
             if store.books.isEmpty {
                 emptyHint
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 8, leading: Theme.Space.margin, bottom: 12, trailing: Theme.Space.margin))
+            } else if visibleBooks.isEmpty {
+                // A status filter with no matches must say so, not show a blank list.
+                Text("No \(statusFilter?.label.lowercased() ?? "matching") books.")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skTextFaint)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 8, leading: Theme.Space.margin, bottom: 12, trailing: Theme.Space.margin))
@@ -302,7 +358,10 @@ struct AudiobookLibraryView: View {
         let isCurrent = session.book?.id == book.id
         let syncState = bookSyncState(book)
         return Button {
-            if session.open(book) {
+            // Tapping a book PLAYS it (2026-07-06 — the audiobook-app convention;
+            // an open-paused player was a dead extra tap). open() no-ops the
+            // teardown for the already-loaded book and just resumes it.
+            if session.open(book, autoplay: true) {
                 showPlayer = true
             } else if syncState == .downloadAvailable {
                 // Audio was freed on this device — tap to re-download. open() already
@@ -391,12 +450,6 @@ struct AudiobookLibraryView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if isCurrent {
-                    Text(session.isPlaying ? "PLAYING" : "PAUSED")
-                        .font(.system(size: 9.5, weight: .bold))
-                        .kerning(0.5)
-                        .foregroundStyle(session.isPlaying ? Color.skGreen : Color.skAmber)
-                }
             }
             .padding(EdgeInsets(top: 11, leading: 12, bottom: 11, trailing: 12))
             .background(

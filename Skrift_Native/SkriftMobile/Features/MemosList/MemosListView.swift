@@ -55,9 +55,6 @@ struct MemosListView: View {
     @State private var showDocScanner = false
     @State private var showSortFilter = false
     @State private var showTrash = false
-    /// C3 contract: the audiobook session singleton (defined by the Audiobooks
-    /// feature). Drives the conditional mini-player + the toolbar live dot.
-    @ObservedObject private var audiobookSession = AudiobookSession.shared
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
@@ -86,29 +83,16 @@ struct MemosListView: View {
                 if editMode.isEditing {
                     selectionBar
                 } else {
-                    // The conditional audiobook mini-player (spec point 9): the
-                    // glass capsule exists ONLY while a book session is active —
-                    // zero chrome otherwise. Stacking it under the FAB nudges
-                    // the FAB up smoothly when the capsule appears, and the
-                    // FAB's own bottom padding becomes the gap between them.
-                    // It yields on memo detail for free: a pushed destination
-                    // covers this navigation-root ZStack.
-                    VStack(spacing: 0) {
-                        recordFAB
-                        if audiobookSession.isActive {
-                            AudiobookMiniPlayerBar()
-                                .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 14)
-                                .padding(.bottom, 16)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-                    }
-                    .animation(Theme.Motion.spring, value: audiobookSession.isActive)
+                    // The audiobook mini-player is GLOBAL now (AppTabView mounts it
+                    // as a bottom safeAreaInset on every tab, 2026-07-06), so this
+                    // screen keeps only the record FAB — which floats above the
+                    // capsule automatically via the shrunken safe area.
+                    recordFAB
                 }
             }
             .overlay(alignment: .top) { syncBannerView }
             .animation(Theme.Motion.spring, value: syncBanner)
-            .navigationTitle("Memos")
+            .navigationTitle("Notes")
             .toolbar { toolbarContent }
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .fullScreenCover(isPresented: $showRecord) {
@@ -339,9 +323,9 @@ struct MemosListView: View {
     private var emptyState: some View {
         VStack(spacing: 0) {
             ContentUnavailableView(
-                "No memos yet",
+                "No notes yet",
                 systemImage: "waveform",
-                description: Text("Tap the mic to record your first memo.")
+                description: Text("Tap the mic to record your first note.")
             )
             .accessibilityIdentifier("memos-empty")
             // The trash must stay reachable when the main list is empty (e.g.
@@ -950,7 +934,7 @@ private struct MemoCard: View {
         !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
     private var snippet: String {
-        guard let line = memo.firstTranscriptLine else { return "Voice memo" }
+        guard let line = memo.firstTranscriptLine else { return "Voice note" }
         guard let transcript = memo.transcript else { return line }
         // Show the (2-line) transcript, but strip `[[img_NNN]]` markers so the raw
         // marker never reads as the row text — a VIDEO import always opens with
@@ -1042,7 +1026,7 @@ private struct SortFilterSheet: View {
                 } header: {
                     Text("Date")
                 } footer: {
-                    Text("Filter by when each memo was \(filter.dateField == .added ? "added to Skrift" : "recorded").")
+                    Text("Filter by when each note was \(filter.dateField == .added ? "added to Skrift" : "recorded").")
                 }
                 if filter.isActive {
                     Button("Clear filters", role: .destructive) { filter = MemoFilter() }

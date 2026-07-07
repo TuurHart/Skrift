@@ -96,7 +96,7 @@ struct SkriftLiveActivity: Widget {
                 Text("Recording interrupted")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.9))
-                Text("Open Skrift to check your memo")
+                Text("Open Skrift to check your note")
                     .font(.system(size: 12.5))
                     .foregroundStyle(.white.opacity(0.55))
             }

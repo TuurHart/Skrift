@@ -132,4 +132,55 @@ final class AudiobookLibraryStoreTests: XCTestCase {
         XCTAssertEqual(AudiobookTime.clock(33), "0:33")
         XCTAssertEqual(AudiobookTime.clock(-5), "0:00")
     }
+
+    // MARK: - Books-tab sort + status filters (2026-07-07)
+
+    private func makeBook(_ title: String, author: String = "A",
+                          imported: TimeInterval, played: TimeInterval? = nil,
+                          duration: TimeInterval = 3600, position: TimeInterval = 0) -> Audiobook {
+        Audiobook(audioFilename: "\(title).m4b", title: title, author: author,
+                  duration: duration,
+                  importedAt: Date(timeIntervalSince1970: imported),
+                  lastPlayedAt: played.map { Date(timeIntervalSince1970: $0) },
+                  position: position)
+    }
+
+    func testBookSortOrders() {
+        let a = makeBook("Zebra", author: "Young", imported: 100, played: 500)
+        let b = makeBook("Alpha", author: "Brown", imported: 300, played: nil)
+        let c = makeBook("Mango", author: "smith", imported: 200, played: 900)
+
+        // Recently played: played books by recency, never-played after (newest import first).
+        XCTAssertEqual(BookSort.recentlyPlayed.sorted([a, b, c]).map(\.title), ["Mango", "Zebra", "Alpha"])
+        // Title / author: localized, case-insensitive ordering.
+        XCTAssertEqual(BookSort.title.sorted([a, b, c]).map(\.title), ["Alpha", "Mango", "Zebra"])
+        XCTAssertEqual(BookSort.author.sorted([a, b, c]).map(\.author), ["Brown", "smith", "Young"])
+        // Recently added: newest import first, regardless of play history.
+        XCTAssertEqual(BookSort.recentlyAdded.sorted([a, b, c]).map(\.title), ["Alpha", "Mango", "Zebra"])
+        // Raw-value round-trip (the chip persists via @AppStorage rawValue).
+        for sort in BookSort.allCases {
+            XCTAssertEqual(BookSort(rawValue: sort.rawValue), sort)
+        }
+    }
+
+    func testBookStatusFilters() {
+        let notStarted = makeBook("N", imported: 0, position: 0)
+        let barely = makeBook("B", imported: 0, position: 0.5)          // under the 1 s threshold
+        let inProgress = makeBook("P", imported: 0, position: 1800)
+        let nearEnd = makeBook("F", imported: 0, position: 3580)        // 20 s left → finished
+        let zeroDuration = makeBook("Z", imported: 0, duration: 0)      // degenerate: never "finished"
+
+        XCTAssertTrue(BookStatusFilter.notStarted.matches(notStarted))
+        XCTAssertTrue(BookStatusFilter.notStarted.matches(barely))
+        XCTAssertTrue(BookStatusFilter.notStarted.matches(zeroDuration))
+        XCTAssertFalse(BookStatusFilter.notStarted.matches(inProgress))
+
+        XCTAssertTrue(BookStatusFilter.inProgress.matches(inProgress))
+        XCTAssertFalse(BookStatusFilter.inProgress.matches(notStarted))
+        XCTAssertFalse(BookStatusFilter.inProgress.matches(nearEnd))    // finished wins
+
+        XCTAssertTrue(BookStatusFilter.finished.matches(nearEnd))
+        XCTAssertFalse(BookStatusFilter.finished.matches(inProgress))
+        XCTAssertFalse(BookStatusFilter.finished.matches(zeroDuration))
+    }
 }

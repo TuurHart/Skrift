@@ -21,8 +21,8 @@ final class SmokeUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        let appeared = app.staticTexts["Memos"].waitForExistence(timeout: 15)
-            || app.navigationBars["Memos"].waitForExistence(timeout: 5)
+        let appeared = app.staticTexts["Notes"].waitForExistence(timeout: 15)
+            || app.navigationBars["Notes"].waitForExistence(timeout: 5)
         XCTAssertTrue(appeared, "Memos root never appeared — app did not launch cleanly")
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())

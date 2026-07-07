@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 // Desktop bridge to the shared `Compiler` (Skrift_Native/Shared/Export). The pure compiler
 // moved to Shared behind the neutral `CompilerInput` so the phone compiles the SAME engine
@@ -117,10 +118,33 @@ extension PipelineFile {
 }
 
 extension Compiler {
-    /// Desktop convenience — compile straight from a `PipelineFile`. Byte-identical to the
-    /// pre-Shared `compile(file:)`, so every desktop call site is unchanged.
+    /// Desktop convenience — compile straight from a `PipelineFile`. Also supplies the
+    /// memo-link resolver (the phone's publish path does the same via `linkStems`): when
+    /// the body carries `[[memo:UUID|Title]]` links, they export as `[[<stem>|Title]]`
+    /// pointing at the LINKED note's Mac-exported filename instead of degrading to the
+    /// title-snapshot fallback. Zero cost for the 99% of notes without links.
     static func compile(file pf: PipelineFile, author: String, date: String? = nil,
                         knownPeople: [Person]? = nil) -> String {
-        compile(pf.compilerInput, author: author, date: date, knownPeople: knownPeople)
+        var input = pf.compilerInput
+        let body = input.sanitised ?? input.enhancedCopyedit ?? input.transcript ?? ""
+        if !MemoLinkSyntax.occurrences(in: body).isEmpty, let context = pf.modelContext {
+            let stems = MemoLinkStems.map(context)
+            if !stems.isEmpty { input.memoLinkResolver = { stems[$0] } }   // value capture — Sendable
+        }
+        return compile(input, author: author, date: date, knownPeople: knownPeople)
+    }
+}
+
+/// UUID → exported-note stem over the whole queue — what `[[memo:UUID|Title]]` resolves
+/// against on the Mac (the phone resolves against ITS published filenames; each sink's
+/// links stay self-consistent, and Obsidian resolves `[[stem]]` vault-wide).
+enum MemoLinkStems {
+    static func map(_ context: ModelContext) -> [UUID: String] {
+        let files = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        var out: [UUID: String] = [:]
+        for f in files {
+            if let id = UUID(uuidString: f.id) { out[id] = VaultExporter.noteStem(f) }
+        }
+        return out
     }
 }
