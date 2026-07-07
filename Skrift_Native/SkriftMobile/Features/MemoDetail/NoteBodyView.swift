@@ -134,8 +134,12 @@ struct NoteBodyView: UIViewRepresentable {
         c.apply(mode: mode)                     // editable / painter / read-only
 
         // Re-style when the tiers changed (a resolution applied) — never mid-edit
-        // (offsets drift while typing) and never while the painter owns the colors.
-        if !tv.isFirstResponder && mode == .editing {
+        // (offsets drift while typing), never while the painter owns the colors,
+        // and never over a LIVE selection: SwiftUI re-evals storm during an
+        // interactive keyboard dismiss, and a full-document restyle per re-eval
+        // reflows the text under the visible selection handles (device round 1:
+        // "markers follow the viewport"). Styling lands at the next end-editing.
+        if !tv.isFirstResponder && tv.selectedRange.length == 0 && mode == .editing {
             c.updateSpans(nameSpans)
         } else {
             c.nameSpans = nameSpans
@@ -267,11 +271,13 @@ struct NoteBodyView: UIViewRepresentable {
             }
             // Carry the (clamped) selection across the rebuild so the caret —
             // and with it the visible spot — stays put.
+            DevLog.log("noteBody: load rebuild force=\(force) len=\(display.count)")
             let selection = tv.selectedRange
             tv.attributedText = attributed(from: display)
             let length = tv.attributedText.length
             let location = min(selection.location, length)
-            tv.selectedRange = NSRange(location: location, length: min(selection.length, length - location))
+            let carried = NSRange(location: location, length: min(selection.length, length - location))
+            if tv.selectedRange != carried { tv.selectedRange = carried }
             loaded = t
             rebuildWordRanges()
             applyTierStyling()
@@ -405,7 +411,12 @@ struct NoteBodyView: UIViewRepresentable {
         // MARK: name tiers (styling + hit-test)
 
         func updateSpans(_ spans: [NameSpan]) {
+            // Unchanged spans = nothing to restyle. Without this, every SwiftUI
+            // re-eval (keyboard frames, sheet presentations) re-ran the full
+            // attribute rewrite — churn that reflowed text during scroll.
+            guard spans != nameSpans else { return }
             nameSpans = spans
+            DevLog.log("noteBody: restyle spans=\(spans.count)")
             applyTierStyling()
         }
 
@@ -437,7 +448,15 @@ struct NoteBodyView: UIViewRepresentable {
             displaySpans = built
             let len = storage.length
             let loc = min(sel.location, len)
-            tv.selectedRange = NSRange(location: loc, length: min(sel.length, len - loc))
+            let restored = NSRange(location: loc, length: min(sel.length, len - loc))
+            // Restore ONLY if the attribute pass actually moved the selection
+            // (it shouldn't — attribute edits preserve it). A redundant
+            // selectedRange write makes iOS 26 rebuild the whole selection UI,
+            // which is churn exactly when handles are on screen.
+            if tv.selectedRange != restored {
+                DevLog.log("noteBody: tierStyle moved sel \(NSStringFromRange(tv.selectedRange)) → \(NSStringFromRange(restored))")
+                tv.selectedRange = restored
+            }
         }
 
         /// Map a RAW-text range to the DISPLAYED range — every `[[img_NNN]]`
@@ -584,6 +603,14 @@ struct NoteBodyView: UIViewRepresentable {
         }
 
         func textViewDidChangeSelection(_ tv: UITextView) {
+            // Round-1 P1#1 evidence: a selection that CHANGES while the view is
+            // not first responder (keyboard interactively dismissed, handles
+            // still up) means something is rewriting it under the scroll —
+            // exactly the "handles follow the viewport" report. Rare state, so
+            // this can't flood the ring buffer.
+            if !tv.isFirstResponder, currentMode == .editing, tv.selectedRange.length > 0 {
+                DevLog.log("noteBody: sel-noFR \(NSStringFromRange(tv.selectedRange))")
+            }
             guard tv.isFirstResponder,
                   let began = editingBeganAt, Date().timeIntervalSince(began) < 0.35 else { return }
             resolveNameAtCaret(tv)
@@ -1018,7 +1045,12 @@ final class NoteBodyTextView: UITextView {
                                       left: baseTextInsets.left,
                                       bottom: baseTextInsets.bottom + footerHeight,
                                       right: baseTextInsets.right)
-            if textContainerInset != insets { textContainerInset = insets }
+            if textContainerInset != insets {
+                // An inset write REFLOWS the whole text — if this fires while
+                // selection handles are up, they visibly jump (round-1 suspect).
+                DevLog.log("noteBody: accessory inset top \(textContainerInset.top)→\(insets.top) bottom \(textContainerInset.bottom)→\(insets.bottom)")
+                textContainerInset = insets
+            }
         }
         // Subview frames are in CONTENT coordinates, so they scroll with the text.
         headerHost.view.frame = CGRect(x: 0, y: 0, width: width, height: headerHeight)

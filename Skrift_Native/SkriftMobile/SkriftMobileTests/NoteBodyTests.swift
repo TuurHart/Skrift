@@ -1,4 +1,5 @@
 import PDFKit
+import SwiftUI
 import UIKit
 import XCTest
 @testable import SkriftMobile
@@ -471,6 +472,62 @@ final class PhotoTextTests: XCTestCase {
         let text = await PhotoTextIndexer.recognize(
             at: URL(fileURLWithPath: "/nonexistent/photo.jpg"))
         XCTAssertEqual(text, "")
+    }
+}
+
+/// P1#1 churn guards (device round 1, build 31 — "selection handles follow
+/// the viewport"): an unchanged span set must NOT re-run the full attribute
+/// rewrite (SwiftUI re-evals storm during interactive keyboard dismiss), and
+/// a styling pass must never move a live selection.
+final class TierStylingChurnTests: XCTestCase {
+
+    @MainActor
+    private func makeEditor(transcript: String) -> (NoteBodyView.Coordinator, NoteBodyTextView) {
+        let memo = Memo(audioFilename: "memo_churn.m4a", transcript: transcript)
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        return (coordinator, tv)
+    }
+
+    private func underlinePresent(_ tv: UITextView, at location: Int) -> Bool {
+        tv.textStorage.attribute(.underlineStyle, at: location, effectiveRange: nil) != nil
+    }
+
+    @MainActor
+    func testUnchangedSpansSkipTheRestyle() {
+        let (coordinator, tv) = makeEditor(transcript: "hello Jack world")
+        let jack = NameSpan(offset: 6, length: 4, alias: "Jack", tier: .suggested,
+                            canonical: "Jack Sparrow", candidates: [])
+        coordinator.updateSpans([jack])
+        XCTAssertTrue(underlinePresent(tv, at: 7), "first pass must style the span")
+
+        // Strip the styling by hand; an UNCHANGED span set must not repaint it
+        // (the skip is the fix — restyling per SwiftUI re-eval reflowed the
+        // text under live selection handles).
+        tv.textStorage.removeAttribute(.underlineStyle,
+                                       range: NSRange(location: 0, length: tv.textStorage.length))
+        coordinator.updateSpans([jack])
+        XCTAssertFalse(underlinePresent(tv, at: 7), "unchanged spans must skip the rewrite")
+
+        // A REAL change must still restyle.
+        var linked = jack
+        linked.tier = .linked
+        coordinator.updateSpans([linked])
+        let color = tv.textStorage.attribute(.foregroundColor, at: 7, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(color, UIColor(Color.skNameLinked), "a changed tier must repaint")
+    }
+
+    @MainActor
+    func testRestyleKeepsALiveSelection() {
+        let (coordinator, tv) = makeEditor(transcript: "hello Jack world")
+        tv.selectedRange = NSRange(location: 6, length: 4)      // "Jack" selected
+        coordinator.updateSpans([NameSpan(offset: 6, length: 4, alias: "Jack", tier: .ambiguous,
+                                          canonical: nil, candidates: [])])
+        XCTAssertEqual(tv.selectedRange, NSRange(location: 6, length: 4),
+                       "styling must never move a live selection")
     }
 }
 
