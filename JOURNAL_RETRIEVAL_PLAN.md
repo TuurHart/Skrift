@@ -199,6 +199,12 @@ settled by the locked Obsidian model: the app's own on-device code reading the v
 - **Phone vault lens after**: reuse the ObsidianPublisher's vault folder access (security-scoped
   bookmark) for reads; handle File-Provider placeholders (un-downloaded iCloud files — the
   audiobook-import bug class); the index stays derived-local per device.
+- **Vault location (Tuur, 2026-07-07):** the vault moves to iCloud Drive (Obsidian's own iCloud
+  folder — on the Mac `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/<vault>`) replacing
+  lapsed Obsidian Sync. Safe because writes are per-file disjoint: Mac edits, phone publish is
+  create-only, iPad reads. Operational notes: Skrift desktop's vault path setting must be updated
+  after the move; "Optimize Mac Storage" must be OFF (evicted placeholders would break the
+  exporter/tag scan); vault audio copies now count against iCloud storage.
 
 ## Later, on the same substrate (not v1)
 
