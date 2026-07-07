@@ -233,6 +233,38 @@ final class MemoLinkTests: XCTestCase {
         XCTAssertEqual(coordinator.reconstruct(tv.attributedText), raw, "byte-exact round trip")
     }
 
+    func testEscrowStripsAndReattachRestores() {
+        let raw = "See [[memo:\(idA.uuidString)|Harbor walk]] for detail."
+        let (stripped, links) = MemoLinkSyntax.escrowForEditing(raw)
+        XCTAssertEqual(stripped, "See Harbor walk for detail.", "the LLM reads natural prose")
+        XCTAssertEqual(links.count, 1)
+        // A benign copy-edit that recases the title still reattaches (surface kept).
+        let edited = "See harbor walk for the detail."
+        XCTAssertEqual(MemoLinkSyntax.reattach(edited: edited, links: links),
+                       "See [[memo:\(idA.uuidString)|harbor walk]] for the detail.")
+    }
+
+    func testReattachFailsWhenTheTitleWasEditedAway() {
+        let raw = "See [[memo:\(idA.uuidString)|Harbor walk]]."
+        let (_, links) = MemoLinkSyntax.escrowForEditing(raw)
+        XCTAssertNil(MemoLinkSyntax.reattach(edited: "See the waterfront stroll.", links: links),
+                     "a lost title must force the caller's fallback to the unedited body")
+    }
+
+    func testSanitiserNeverLinksInsideALinkTitle() {
+        // "Hendri" is a distinctive, auto-linkable name — but INSIDE a memo-link
+        // title it must stay untouched (nested [[…]] would corrupt the syntax).
+        let hendri = Person(canonical: "[[Hendri van Niekerk]]",
+                            aliases: ["Hendri van Niekerk", "Hendri"], short: "Hendri",
+                            lastModifiedAt: "2026-07-07T00:00:00.000Z")
+        let raw = "Talked to Hendri about [[memo:\(idA.uuidString)|Lunch with Hendri]]."
+        let out = Sanitiser.process(text: raw, people: [hendri]).sanitised
+        XCTAssertTrue(out.contains("[[memo:\(idA.uuidString)|Lunch with Hendri]]"),
+                      "the link title must survive byte-exact — got: \(out)")
+        XCTAssertTrue(out.contains("[[Hendri van Niekerk"),
+                      "the prose mention outside the link still auto-links — got: \(out)")
+    }
+
     @MainActor
     func testInsertMemoLinkReplacesTheTypedTrigger() {
         let memo = Memo(audioFilename: "memo_l2.m4a", transcript: "Hello ")

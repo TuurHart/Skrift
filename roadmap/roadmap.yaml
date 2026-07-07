@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T09:44:01.000Z'
+updated: '2026-07-07T09:54:20.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -285,6 +285,12 @@ nodes:
         ([[memo:UUID|Title]]), '[[' → searchable picker → atomic chip, tap →
         jump, LINKED-FROM backlinks; shared Compiler rewrites on export (phone
         = precise frozen-path stems, fallback [[Title]]); desktop 325 green
+        [a066f4b]
+      - >-
+        2026-07-07 · Chunk 5b — enhancement-safety (user-caught): LLM escrow
+        (links→titles→reattach, whole-body fallback on a lost title) in the
+        Mac copy-edit; shared Sanitiser shields link titles from name-linking
+        (nonProseRanges) — fixes Mac sanitise + phone export relink at once
     backlog:
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
       - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]

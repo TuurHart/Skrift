@@ -457,7 +457,15 @@ backlinks** section under the body (off-main scan, capped 6). EXPORT: the shared
 syntax at its body choke point — phone publish resolves PRECISE stems (`[[<frozen-or-derived stem>|Title]]`
 via ExportStateStore, rename-safe) so vault links actually land; any unresolved path falls back to readable
 `[[Title]]` (Mac compiles get the fallback until its resolver is wired — owed). Mobile 505 + desktop 325
-unit green. Device eyeball owed
+unit green.
+**Chunk 5b ✅ 2026-07-07 (enhancement-safety — user question caught it):** two seams could corrupt memo-links:
+(1) the Mac's Gemma copy-edit ran RAW over the syntax → now `MemoLinkSyntax.escrowForEditing` strips links to
+plain titles before the LLM (the img-marker escrow's sibling) and `reattach` re-wraps them after (case-
+tolerant); a title edited away ⇒ WHOLE body falls back to unedited (QuoteProtection pattern) — wired in
+`EnhancementService.editProse` (+ title/summary prompts read escrowed text); (2) the SHARED Sanitiser could
+name-link an alias INSIDE a link title (nested brackets) → memo-link ranges are now `nonProseRanges` — fixes
+the Mac sanitise step AND the phone's export relink in one shared change. Mobile 508 + desktop 325 unit green
++ full desktop app builds. Device eyeball owed
 (selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
 scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
 FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret

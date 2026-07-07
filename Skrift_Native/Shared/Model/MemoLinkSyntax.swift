@@ -44,6 +44,42 @@ enum MemoLinkSyntax {
         Set(occurrences(in: text).map(\.id))
     }
 
+    // MARK: - LLM escrow (enhancement-safe copy-editing)
+
+    /// Strip links to their plain TITLES so an LLM copy-edit reads natural
+    /// prose and can never mangle the syntax (the img-marker escrow's sibling).
+    /// Reattach with `reattach(edited:links:)` afterwards.
+    static func escrowForEditing(_ text: String) -> (text: String, links: [Occurrence]) {
+        let occs = occurrences(in: text)
+        guard !occs.isEmpty else { return (text, []) }
+        let ns = NSMutableString(string: text)
+        for occ in occs.reversed() {
+            ns.replaceCharacters(in: occ.range, with: occ.title.isEmpty ? "Untitled" : occ.title)
+        }
+        return (ns as String, occs)
+    }
+
+    /// Re-wrap each escrowed link around its title's first occurrence (in
+    /// order, case-insensitive — the copy-edit may recase). Returns nil when a
+    /// title didn't survive the edit: the caller must FALL BACK to the unedited
+    /// body (the QuoteProtection pattern — a lost link is worse than lost polish).
+    static func reattach(edited: String, links: [Occurrence]) -> String? {
+        guard !links.isEmpty else { return edited }
+        let ns = NSMutableString(string: edited)
+        var searchFrom = 0
+        for link in links {
+            let title = link.title.isEmpty ? "Untitled" : link.title
+            let range = ns.range(of: title, options: [.caseInsensitive],
+                                 range: NSRange(location: searchFrom, length: ns.length - searchFrom))
+            guard range.location != NSNotFound else { return nil }
+            let surface = ns.substring(with: range)
+            let wrapped = "[[memo:\(link.id.uuidString)|\(surface)]]"
+            ns.replaceCharacters(in: range, with: wrapped)
+            searchFrom = range.location + (wrapped as NSString).length
+        }
+        return ns as String
+    }
+
     /// Export pass: every `[[memo:UUID|Title]]` becomes a real wikilink.
     /// `resolveStem` returns the target's exported note stem (filename without
     /// extension) — nil falls back to `[[Title]]`, which still reads correctly
