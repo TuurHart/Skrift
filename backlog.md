@@ -490,6 +490,43 @@ passcode-capable device); REMOVING the lock needs auth. **Publish: locked ⇒ ex
 tested); locking an already-published memo → honest "already in your vault" notice (Skrift never deletes vault
 files). Honesty copy on the placeholder: "hidden, not encrypted". Mac gate owed (LocalAuthentication is the
 same API). 520 unit + desktop 325 + desktop app build + UI cluster green.
+**📱 DEVICE TEST ROUND 1 — build 31, 2026-07-07 (user feedback batch, triaged same-session). ⭐ CONTINUE
+HERE next chat — fix P1s first.**
+LIKED ✓: compact player ("looks good"), player auto-hides for no-audio notes, tag editor ("way better, good
+job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet + edit-mode semantics
+("very good"), lock ("works, very cool"), reminders ("quite cool"), pinned-title ellipsis.
+**P1 BUGS:**
+1. **Selection handles misbehave on scroll** — dragging the right handle down makes the LEFT handle "jump down
+   to stay on the screen"; after selecting, scrolling makes both markers "follow along / adapt to what's on
+   screen". Repro: long note → double-tap → drag handle past fold → scroll. UNDIAGNOSED — suspect
+   `applyTierStyling`'s selectedRange save/restore or `layoutAccessories` churn re-anchoring selection UI.
+   Instrument on device (DevLog in didChangeSelection/layoutSubviews).
+2. **Tap in empty space RIGHT of a photo opens the viewer** — caret-adjacency probe too greedy; require the
+   tap point inside the attachment's drawn rect (`rects(forCharacterRange:)`) before `onTapImage`. Small fix.
+3. **Doc-scan button invisible on device** — user can't find `doc.viewfinder` in the list toolbar. Investigate:
+   iOS-26 nav-bar item OVERFLOW (check the top-bar ⋯) vs `isSupported` false; consider relocating the entry.
+4. **Photo-OCR search finds nothing on device** (tried handwriting AND printed text) — likely NO trigger right
+   after a recording save (sweep = launch/foreground/sync/insert only) → add `PhotoTextIndexer.run` after
+   MemoSaver photo-move; verify via devlog "photoText: indexed N"; handwriting may stay hard (Vision).
+5. **List long-press doesn't open the context menu** — "the note starts moving upwards as if scrolling";
+   contextMenu lift fights the row's `onTapGesture`/List on iOS 26. Investigate.
+6. **Checkbox tap sometimes enters editing instead of toggling** — task-glyph caret probe tolerance too tight;
+   widen (rect-based like #2's fix).
+**P2 FEATURES/POLISH (user-requested this round):**
+7. 📷 accessory should offer TAKE PHOTO (camera) as well as library.
+8. Checklist: Return at the end of a task line auto-continues with a new `- [ ] ` (Apple Notes behaviour).
+9. **Accessory bar v2 — study Apple Notes' scrollable format bar** ("way more options… make ours similar,
+   scrollable — get some ideas from that"). MOCK-FIRST design pass; candidates: checklist toggle, link, photo.
+10. **Draw on photos IN-APP with auto-save** ("would be awesome") — try QuickLook `editingMode(.updateContents)`
+    → markup saves to the photo file → `AssetMaterializer` size-change refresh syncs it. Likely small; verify.
+11. **Mid-sentence inline photo layout is ugly** (screenshot: text wraps around the image awkwardly) — design
+    decision: render images as their own display BLOCK (display-only line breaks; raw stays inline)?
+12. Photo-viewer open animation "weird" (QuickLook slide-up + black overlay) — consider zoom transition.
+**BY DESIGN (confirmed to user):** a SECOND typed mention of a linked name stays plain — one link per person,
+first mention only (the locked naming model); re-scan happens on commit (~1 s) + restyles on end-editing.
+**ANSWERED:** reminders are LOCAL notifications (not the Reminders app / EventKit), alarms fully offline;
+only cross-device sync of the reminder needs iCloud.
+
 **Chunk 9 ✅ 2026-07-07 (doc scan — THE WAVE IS BUILT):** `DocScanner` + `DocScanView` (VisionKit document
 camera) — scan pages → ONE PDF via the existing C3 file-capture path (mirrors the share-drainer construction
 byte-for-byte: `file_<uuid>.pdf`, SharedContent .file, empty audioFilename discriminator) → the scan is a
