@@ -73,22 +73,34 @@ actor EnhancementService: Enhancing {
         return try await editProse(transcript, prompts: prompts)
     }
 
-    /// The plain copy-edit body path: image markers out → LLM → markers back in.
+    /// The plain copy-edit body path: memo-links escrow to their plain titles
+    /// and image markers strip to anchors → LLM → both come back in. A link
+    /// whose title didn't survive the edit falls the WHOLE body back to
+    /// unedited (the QuoteProtection pattern — never ship a lost reference).
     private func editProse(_ text: String, prompts: AppSettings.Prompts) async throws -> String {
-        let (stripped, imgNums, anchors) = ImageMarkerReinsert.extractAnchors(text)
-        let input = imgNums.isEmpty ? text : stripped
+        let (linkStripped, links) = MemoLinkSyntax.escrowForEditing(text)
+        let (stripped, imgNums, anchors) = ImageMarkerReinsert.extractAnchors(linkStripped)
+        let input = imgNums.isEmpty ? linkStripped : stripped
         let edited = try await run(prompt: prompts.copyEdit, text: input, maxTokens: 1024)
-        return imgNums.isEmpty ? edited : ImageMarkerReinsert.reinsert(text: edited, imgNums: imgNums, anchors: anchors)
+        let withImages = imgNums.isEmpty ? edited
+            : ImageMarkerReinsert.reinsert(text: edited, imgNums: imgNums, anchors: anchors)
+        guard let reattached = MemoLinkSyntax.reattach(edited: withImages, links: links) else {
+            Self.log.warning("memo-link title lost during copy-edit — falling back to the unedited body")
+            return text
+        }
+        return reattached
     }
 
     func title(_ transcript: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
         try await ensureLoaded(modelRepo: modelRepo)
-        return try await run(prompt: prompts.title, text: transcript, maxTokens: 64)
+        return try await run(prompt: prompts.title,
+                             text: MemoLinkSyntax.escrowForEditing(transcript).text, maxTokens: 64)
     }
 
     func summary(_ transcript: String, prompts: AppSettings.Prompts, modelRepo: String) async throws -> String {
         try await ensureLoaded(modelRepo: modelRepo)
-        return try await run(prompt: prompts.summary, text: transcript, maxTokens: 256)
+        return try await run(prompt: prompts.summary,
+                             text: MemoLinkSyntax.escrowForEditing(transcript).text, maxTokens: 256)
     }
 
     /// One deterministic instruct turn: the prompt + the text as a single user message.

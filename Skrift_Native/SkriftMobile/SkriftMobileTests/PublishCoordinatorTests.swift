@@ -43,6 +43,15 @@ final class PublishCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator(paired: true, whenPaired: true).shouldPublish(m), "override re-enables phone publish")
     }
 
+    func testGateLocked() {
+        let m = Memo(title: "T", transcript: "x")
+        m.significance = 0.5
+        m.locked = true
+        XCTAssertFalse(coordinator().shouldPublish(m), "locked notes never reach the plaintext vault")
+        m.locked = false
+        XCTAssertTrue(coordinator().shouldPublish(m))
+    }
+
     func testGatePolicy() {
         let unrated = Memo(title: "T", transcript: "x", significance: 0)
         let rated = Memo(title: "T", transcript: "x", significance: 0.5)

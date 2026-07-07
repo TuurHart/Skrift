@@ -58,6 +58,9 @@ struct ObsidianPublisher {
     var stateStore: ExportStateStore
     var author: String
     var peopleProvider: () -> [Person]
+    /// Memo↔memo links: look a linked memo up so its export stem can be
+    /// resolved (nil lookup → the [[Title]] fallback).
+    var memoProvider: (UUID) -> Memo? = { _ in nil }
 
     /// Production publisher over the saved bookmark + live names DB.
     static func live(author: String) -> ObsidianPublisher {
@@ -66,7 +69,10 @@ struct ObsidianPublisher {
             manageScope: true,
             stateStore: .shared,
             author: author,
-            peopleProvider: { NamesStore.shared.load().people }
+            peopleProvider: { NamesStore.shared.load().people },
+            // Publish runs on the main actor in practice (settings/save paths);
+            // the repository is main-actor-bound, so assert rather than hop.
+            memoProvider: { id in MainActor.assumeIsolated { NotesRepository.shared.memo(id: id) } }
         )
     }
 
@@ -78,7 +84,16 @@ struct ObsidianPublisher {
         defer { if scoped { vaultRoot.stopAccessingSecurityScopedResource() } }
 
         let people = peopleProvider()
-        let markdown = MemoExporter.markdown(for: memo, people: people, author: author)
+        // Resolve this memo's [[memo:UUID|…]] targets to their exported note
+        // stems (frozen path first — rename-safe — else the derived one), so
+        // the compiled wikilinks actually land on the targets' vault notes.
+        var stems: [UUID: String] = [:]
+        for id in MemoLinkSyntax.targets(in: memo.transcript ?? "") {
+            guard let target = memoProvider(id) else { continue }
+            let rel = stateStore.record(for: id)?.relativePath ?? Self.relativePath(for: target, people: people)
+            stems[id] = ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
+        }
+        let markdown = MemoExporter.markdown(for: memo, people: people, author: author, linkStems: stems)
         let hash = Self.sha256(markdown)
 
         // Sticky relative path — reuse the one we first wrote (survives a rename).

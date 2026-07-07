@@ -16,7 +16,11 @@ enum Compiler {
         let sc = input.sharedContent   // nil for non-captures
 
         // For captures the annotation body comes from sanitised/transcript only — no copy-edit layer.
-        let body = firstNonEmpty(input.sanitised, input.enhancedCopyedit, input.transcript) ?? ""
+        // Memo↔memo links leave the app here: `[[memo:UUID|Title]]` → a real
+        // wikilink (resolver-precise, or the readable [[Title]] fallback).
+        let body = MemoLinkSyntax.exportRewrite(
+            firstNonEmpty(input.sanitised, input.enhancedCopyedit, input.transcript) ?? "",
+            resolveStem: input.memoLinkResolver)
         let summary = (input.enhancedSummary ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let rawStem = (input.filename as NSString).deletingPathExtension
         let title = firstNonEmpty(input.enhancedTitle, rawStem) ?? rawStem

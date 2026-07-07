@@ -25,14 +25,19 @@ final class NameLinkingUITests: XCTestCase {
         XCTAssertTrue(editor.waitForExistence(timeout: 10), "name-linking transcript didn't render")
         shot(app, "namelink-detail")
 
-        // Tap the ambiguous "Jack" (first line, ~28% across). A name tap must open the
-        // resolve sheet, not raise the keyboard. Names are narrow targets in a wrapping
-        // text view, so try a few nearby points and stop when the sheet appears.
+        // Tap the ambiguous "Jack" ("Met up with Jack…", first transcript line).
+        // The editor element spans the WHOLE page body with the metadata header
+        // scrolling inside it (note-editing re-foundation), so the first text
+        // line is ANCHORED off the importance card's bottom edge — not a guessed
+        // fraction. Sweep a few x-positions along that line and stop when the
+        // resolve sheet appears. A name tap must open the sheet, not the keyboard.
+        let importance = app.otherElements["significance-circles"].firstMatch
+        XCTAssertTrue(importance.waitForExistence(timeout: 5), "importance card missing from the header")
+        let firstLineY = importance.frame.maxY + 26          // centre of the first text line
+        let dy = (firstLineY - editor.frame.minY) / editor.frame.height
         let newPerson = app.buttons["New person…"]
-        let targets = [CGVector(dx: 0.28, dy: 0.08), CGVector(dx: 0.30, dy: 0.07),
-                       CGVector(dx: 0.26, dy: 0.09), CGVector(dx: 0.32, dy: 0.08)]
-        for (i, t) in targets.enumerated() {
-            editor.coordinate(withNormalizedOffset: t).tap()
+        for (i, dx) in [0.24, 0.21, 0.27, 0.18, 0.30].enumerated() {
+            editor.coordinate(withNormalizedOffset: CGVector(dx: dx, dy: dy)).tap()
             if newPerson.waitForExistence(timeout: 2) { break }
             if i == 0 { shot(app, "namelink-after-tap") }   // capture the first attempt's state
             if app.keyboards.element.exists { app.swipeDown() }   // a plain-text tap → dismiss + retry

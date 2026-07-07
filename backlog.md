@@ -445,6 +445,299 @@ autocomplete from existing tags (the actual "select a lot" need = pick not retyp
 protection · speaker-turn editing · `transcriptUserEdited` trust flag · save-now. **Path:** (optional) ship
 A as a stopgap; then the real sprint MOCK-FIRST on B + toolbar + tag editor. Awaiting user direction.
 
+**🔬 STUDY 2026-07-06 (fresh-eyes code audit — sprint kicked off; roadmap node `NEdit`).** Confirms fork B
+and adds the PERF story (code-derived; device magnitudes unprofiled):
+1. **Per KEYSTROKE:** the page re-evals and runs the full `Sanitiser.nameSpans` regex scan 2–3×
+   (`MemoDetailView.transcriptNameSpans` is an uncached computed property read in several places) +
+   `context.save()` (disk + CloudKit churn) + a full-document TextKit relayout (self-sizing
+   `sizeThatFits`) → typing cost O(note length × roster size), on-main.
+2. **During PLAYBACK:** `AudioPlayerModel`'s 0.05 s timer republishes `currentTime` at 20 Hz through the
+   whole page tree; tap-to-seek karaoke (default ON) is one SwiftUI `Text` PER WORD re-diffed per tick.
+3. **Mode swaps** (edit↔karaoke) rebuild the body and even change inline image sizes (editor attachment
+   cap 320 pt vs `ImageEmbed` fixed 160 pt — a visible jump when Play starts on a photo note).
+Scar tissue of the non-scrolling choice: `NonScrollingTextView` offset pin, selection carry-over,
+`sizeThatFits` clamps, THREE karaoke renderers (single-Text attr + FlowLayout word grid +
+SpeakerTurns' own pair) + `KaraokeWordLayout`. Missing table stakes (grep-verified): keyboard accessory
+bar, undo/redo UI, find-in-note, photo tap→viewer, Dynamic Type (all fonts fixed-size).
+**KEY MOVE (sharpens B):** ONE scrolling UITextView renders edit AND karaoke — the highlight is
+attribute painting on the same textStorage (changes at word rate, not 20 Hz), tap-to-seek = character
+hit-test, find = `isFindInteractionEnabled`, undo = native; deletes the mode swap + both monologue
+karaoke renderers. Metadata (tags/significance/summary/quote block) = header content inside the scroll
+(B1: title in-flow too / B2: title pinned). Free wins during the rebuild: UITextView find, native undo
+(+ accessory buttons), Writing Tools on AI-capable devices (NOT the iPhone 13), Dynamic Type, photo
+tap→QuickLook (reuse the capture path), selection→"Save highlight" hook (feeds P6 quote cards). Also:
+tapping a tag chip DELETES it silently (`removeTag`) — the chip editor must fix that. Perf hygiene
+regardless of fork: debounce transcript saves (~1 s idle + end-edit + disappear), memoize nameSpans by
+(text, people, resolutions), keep player ticks out of the page body. Conversations (`SpeakerTurnsView`)
+keep their surface for now — phase 2.
+
+**✅ REVIEW 1 DECIDED 2026-07-06 (mock v2 = the spec → `Skrift_Native/SkriftDesktop/mocks/note-editor-redesign.html`).**
+LOCKED: **B2 — pinned title** (slim title row + ✦ chooser under the nav; rationale = swipe-between-memos context).
+Accessory bar = **undo · redo · find · photo-at-caret · Done** (no play-from-caret, no append). **"Save highlight"
+DROPPED** (user: never seen it, not necessary — plain system edit menu). Find-in-note: yes. **Summary card joins the
+scrolling header** (chips → importance → summary → body) — the app already shows it for Mac-polished memos
+(`MemoDetailView.summaryCard`); ⚠️ if a polished memo is NOT showing its summary on the phone today, that's a BUG —
+check in the bugs chat. NEW asks from review: (1) **accessory bar restyled** to the app's language (floating glass
+pill matching the player — user: system strip "doesn't fit the style, not as clean"); (2) **compact player pill** —
+the old ~112 pt bar "takes up way too much space, blocks out the note" → one 44 pt row (play · ±10 s · scrubber+times
+· rate), whole-pill scrub target, page dots → transient "3 / 7" while swiping. Mock fidelity note: chips/importance
+render schematic — build matches the real app. ~~STILL TO SIGN OFF: the accessory restyle + the compact player direction~~
+**✅ REVIEW 2 2026-07-06 — BOTH SIGNED OFF ("that's about it"); icon nit fixed (crisp SVG stand-ins in the mock,
+SF Symbols on device: arrow.uturn.backward/.forward · magnifyingglass · camera). THE SPEC IS COMPLETE →
+`mocks/note-editor-redesign.html`. Build green-lit as soon as the user's bug-fixing chat wraps.**
+
+**🔍 FEATURE-GAP SURVEY 2026-07-06 (other note apps vs Skrift; knowledge-based).** Already have or already
+planned: pins/folders/nested-tags/smart-folders (P5), highlights-feed/quote-cards/daily-review (P6), person
+pages/backlinks (P7), journal/on-this-day/map/calendar/semantic-search (P8), ramble→to-do/bullets polish modes
+(P4c), share-IN captures (C3), find-in-note + undo + photo-viewer + Dynamic Type (NEdit spec). **Real gaps
+proposed (awaiting user pick):** (1) **share a note OUT** — md/text (+audio) share sheet; phone today only
+copies the transcript — fold into the NEdit build (S); (2) **word count / duration stats** in ⋯ (S, fold in);
+(3) **photo OCR** — on-device Vision text-in-photos → searchable + copyable (M, feeds P8d later);
+(4) **note reminders** — "note to self" → local notification at a time (M); (5) **FaceID-locked notes** (M,
+fits the privacy brand); (6) **live checklists** — render/toggle `- [ ]` lines, pairs with P4c + Obsidian tasks
+(M); (7) **note↔note [[links]] + backlinks** — people-links exist; extend to memos, enriches the vault (M-L,
+P7-adjacent); (8) **in-app document scan** — VisionKit → PDF capture (S-M); (9) **audio trim/delete-section
+with transcript sync** — beyond Voice Memos; differentiator-grade (L, later). **Rejected as off-north:**
+collaboration/shared notes, templates, publish-to-web, handwriting, note colors, typewriter modes.
+Strategic note: iOS 18+ Apple Notes/Voice Memos transcribe natively now — don't chase generic parity; win on
+context + names + audiobooks + karaoke + Obsidian + privacy. **USER 2026-07-06: their native transcription
+quality is far below Parakeet's — transcription QUALITY is the moat; keep it front of positioning.**
+
+**✅ SURVEY DECIDED 2026-07-06 — ALL shortlist items APPROVED** (share-out, word count, photo OCR, reminders,
+FaceID lock, checklists, memo↔memo links, doc scan; audio-trim PARKED after explanation; rejected list confirmed
+rejected). **HARD RULE (user): every feature ships on BOTH apps — model/logic in `Skrift_Native/Shared/`, thin
+per-platform UI; phone and Mac run the same code wherever possible.**
+
+**🏗 BUILD PLAN — frozen 2026-07-06; EXECUTION STARTED 2026-07-07 (bug chat wrapped, user green-lit).** Spec =
+`mocks/note-editor-redesign.html`. Commit + verify per chunk (sim tests both apps; device eyeball for editor
+feel); update FEATURES.md + roadmap in the same commits.
+**Progress: chunk 1 ✅ 2026-07-07** — `NoteBodyView` re-foundation built (scrolling text view + hosted
+header/footer, karaoke = attribute painting, `PlayerClock` split ends the 20 Hz whole-page re-render, debounced
+saves, memoized name-scan; `NonScrollingTextView` + `TranscriptBodyView`/`TranscriptEditor` + `KaraokeWordLayout`
+DELETED; marker write-back normalizes to the writer's `%03d` — the OLD editor drifted `[[img_001]]`→`[[img_1]]`
+on every edit, a latent bug caught by the new round-trip test). Unit suite green (489).
+**Chunk 2 ✅ 2026-07-07 (chrome):** floating Skrift accessory pill (`NoteAccessoryBar` — undo·redo·find·
+photo-at-caret·Done, SF Symbols, live undo-stack state), system **find-in-note** (`isFindInteractionEnabled`),
+**compact one-row player pill** (~40 pt: play·±10s·scrubber-with-times·speed; whole scrub zone draggable; page
+dots → transient "n / total" flash on swipe), **photo tap → QuickLook viewer** (caret-adjacent attachment),
+**photo-at-caret insert** (PhotosPicker → manifest `photo_<id>_NNN.jpg` convention + `AssetMaterializer.capture`
+for CloudKit), **share note OUT** (⋯ → markdown + audio file via share sheet; `MemoShare` unit-tested),
+**word count · duration** as the ⋯ sheet title, **Dynamic Type** (editor body + attributed text scale via
+UIFontMetrics). Unit 493 green; editor-cluster UI tests green.
+**Chunk 3 ✅ 2026-07-07 (tags):** `TagEditorSheet` — chips with explicit ✕ (tap-a-chip no longer silently
+deletes), comma input KEPT, autocomplete chips from every library tag (`NotesRepository.allTags`, most-used
+first, prefix-filtered) — "pick, not retype".
+**Chunk 4 ✅ 2026-07-07 (live checklists):** `BodyTransform` = the ONE raw⇄display transform (img markers +
+`- [ ]`/`- [x]` line-start task prefixes → single attachment glyphs; indent stays text; byte-exact round-trip)
+consumed by BOTH the attributed builder and the name-span offset mapper (they were drifting duplicates);
+tap a checkbox → toggles in place (no keyboard) + commits immediately; typed task syntax materializes into
+live checkboxes on end-editing; exports verbatim as Obsidian tasks. ⚠️ Desktop parity owed (hard rule) —
+`BodyTextView` doesn't render tasks yet; tracked on NFeat.
+**Chunk 5 ✅ 2026-07-07 (memo↔memo links):** raw syntax `[[memo:UUID|Title]]` (SHARED `MemoLinkSyntax` in
+Shared/Model — both apps compile it); typing `[[` in the editor → searchable note picker → atomic link CHIP
+(one attachment glyph — typing can't extend it); tap chip → pager jumps to that memo; **"LINKED FROM"
+backlinks** section under the body (off-main scan, capped 6). EXPORT: the shared `Compiler` now rewrites the
+syntax at its body choke point — phone publish resolves PRECISE stems (`[[<frozen-or-derived stem>|Title]]`
+via ExportStateStore, rename-safe) so vault links actually land; any unresolved path falls back to readable
+`[[Title]]` (Mac compiles get the fallback until its resolver is wired — owed). Mobile 505 + desktop 325
+unit green.
+**Chunk 5b ✅ 2026-07-07 (enhancement-safety — user question caught it):** two seams could corrupt memo-links:
+(1) the Mac's Gemma copy-edit ran RAW over the syntax → now `MemoLinkSyntax.escrowForEditing` strips links to
+plain titles before the LLM (the img-marker escrow's sibling) and `reattach` re-wraps them after (case-
+tolerant); a title edited away ⇒ WHOLE body falls back to unedited (QuoteProtection pattern) — wired in
+`EnhancementService.editProse` (+ title/summary prompts read escrowed text); (2) the SHARED Sanitiser could
+name-link an alias INSIDE a link title (nested brackets) → memo-link ranges are now `nonProseRanges` — fixes
+the Mac sanitise step AND the phone's export relink in one shared change. Mobile 508 + desktop 325 unit green
++ full desktop app builds.
+**Chunk 6 ✅ 2026-07-07 (photo OCR):** `PhotoTextIndexer` — on-device Vision over every memo photo; text lands
+on `ImageManifestEntry.text` INSIDE the synced metadata blob (additive → every device carries it, zero new sync
+machinery). Idempotent sweep (nil = pending, "" = no text) on launch/foreground/sync-settle/photo-insert.
+Search extracted to `Memo.matches(query:)` + now matches photo text AND the memo TITLE (pre-existing gap).
+Verified with a REAL Vision pass over a rendered fixture (512 unit); Mac search-UI wiring owed. [1d4da6e]
+**Chunk 7 ✅ 2026-07-07 (reminders — signed-off design):** `Memo.remindAt: Date?` on the SHARED model (additive
+→ lightweight migration; ⚠️ prod CloudKit schema deploy needed at promotion). Reminder = DATA (syncs); alarm =
+per-device — `ReminderScheduler` reconciles `UNUserNotificationCenter` from the field (pure `ReminderPlan`:
+future+live only → past dates inert; moved dates re-add; unrelated notifications untouched) on
+launch/foreground/sync-settle/set/clear. Notification tap → `MemoOpenBridge` opens the memo; foreground
+banners. UI: bell CHIP in the header when set (tap = change/remove), ⋯ → "Remind me…", list long-press →
+"Remind me…"; presets (This evening/Tomorrow/Next week) + graphical picker; auth on FIRST set, denial explained.
+Mac reconciler owed (same UserNotifications API; data lands already). 516 unit + desktop 325 + desktop app
+build green.
+**Chunk 8 ✅ 2026-07-07 (locked notes — semantics as pinned):** `Memo.locked: Bool` on the SHARED model
+(additive; syncs — lock once, locked everywhere; prod schema deploy needed). `LockGate` = per-device SESSION
+unlock (device-owner auth: FaceID/TouchID/passcode; injectable for tests); backgrounding re-locks all (Apple
+Notes behaviour). UI: list rows show title + 🔒 only (no preview/thumb); the DETAIL PAGE renders a locked
+placeholder (title + 🔒 + Unlock) — the pager can't swipe past it, MemoOpenBridge lands on it, and the player
+NEVER loads a locked memo's audio (gate-aware load + re-derive on unlock/relock). Lock = instant (needs a
+passcode-capable device); REMOVING the lock needs auth. **Publish: locked ⇒ excluded** (`shouldPublish` guard,
+tested); locking an already-published memo → honest "already in your vault" notice (Skrift never deletes vault
+files). Honesty copy on the placeholder: "hidden, not encrypted". Mac gate owed (LocalAuthentication is the
+same API). 520 unit + desktop 325 + desktop app build + UI cluster green.
+**📱 DEVICE TEST ROUNDS 1–5 — builds 31→39, all 2026-07-07. ⭐ CONTINUE HERE next chat.**
+**ROUND-5 VERDICTS (build 39, session close):** long-press list menu ✓ works · search-hit flash ✓
+works · viewer zoom ✓ works · PDF inline ✓ "very nice" — BUT the capture PAGE still reads as a
+special layout (pinned block + boxed "Add a note about this capture…"), not a note. NEW DESIGN
+CHUNK (next session, MOCK-FIRST): **capture reads as a NOTE** — fold annotationText into the note
+body, the file/PDF becomes a body BLOCK (the [[img]]-style machinery from today generalizes: marker
+kind + attachment + rect hit + zoom viewer all exist). Touches the C3 contract + exporter + Mac —
+design it, don't patch it. ⚠️ STILL OPEN: selection-handles repro NOT retested since build 35 —
+build 39 carries the armed probes (`sel-during-scroll` FR-inclusive + frame-write guards); pull
+devlog after the next repro. Also owed: Mac parity halves (below), prod CloudKit schema at
+promotion, and the **merge decision — this branch is 41 commits ahead of main** (user's call).
+**Session ledger 2026-07-07 (builds 31→39):** 6 P1 fixes · camera dialog · checklist
+Return-continuation · markup save-back + erase-crash fix · bar v2→v2.1 · photo display-block ·
+search-hit flash · viewer zoom · PDF inline · 2 signed-off mocks · 552/552 unit (was 523).
+---
+**Historical: rounds 1–3 detail below.**
+**ROUND-3 VERDICTS (build 35) + same-day fixes (build 36):**
+- ❌→🔁 **P1#1 selection handles STILL WEIRD** ("weirder than before": handle refuses to move at the
+  screen bottom while dragging; selection follows the viewport after keyboard-dismiss scroll; then
+  snaps back). Devlog: ZERO churn events during the repro → round-2's churn fix held; remaining
+  suspect = our per-frame hosted-subview frame writes fighting iOS 26's selection overlay
+  (_UICursorAccessoryHostView). Build 36: frames assigned ONLY on change + a NEW probe
+  `sel-during-scroll` (FR-inclusive — the round-2 probe was FR-gated and his repro keeps FR). If
+  round 4 still jumps WITHOUT probe lines → pure overlay artifact → next step is restructuring
+  (host header/footer outside the text view).
+- ❌→🔁 **P1#3 doc-scan invisible AGAIN** — devlog `isSupported=true` proves capability; iOS 26 eats a
+  2nd trailing item in ANY shape (separate items AND one group). Build 36: RELOCATED to the LEADING
+  side next to Select. Sort-filter stays lone trailing. (Both toolbar UI tests green.)
+- ✅✅ **P1#4 photo search — SOLVED round 5: never broken.** User had been using the in-note 🔍
+  (find-in-note) the whole time; photo text matches in the LIST "Search transcripts" bar. Sim e2e
+  test stays as the permanent regression gate. SPAWNED the round-5 ask → search-hit flash (below).
+- ✅ **NEW (round 5, BUILT build 37): search-hit flash** — tapping a search RESULT opens the note,
+  scrolls to the first match and flashes it (~1.4 s): text hit = accent-tinted range; OCR hit = an
+  accent ring over the photo (a background hides behind an image). One-shot SearchHitBridge; cleanup
+  via the idempotent tier restyle so name-tier colors (incl. ambiguous backgrounds) repaint exactly.
+  3 unit tests; device eyeball owed.
+- 🔬 **(superseded) P1#4 round-4 evidence trail:** device devlog shows
+  Vision READ his photo (`chars=21 head='TENHO…'` at 14:55) yet ZERO `search '…'` probe lines — the
+  query never reached the memos-list search field. Sim end-to-end repro (user-directed) is GREEN:
+  `-seedPhotoTextMemo` (real rendered-text JPEG, un-OCR'd) → launch sweep → REAL Vision → typed in
+  the REAL search field → memo surfaces (`testPhotoTextSearchEndToEnd`, `ccb7ce4`). ROUND 5 = type
+  **"tenho"** in the Memos-list "Search transcripts" bar (not the in-note 🔍); the probe logs the
+  query either way → distinguishes typed-elsewhere vs a dead device binding.
+- ✅✅ **markup ERASE crash — FIXED, device-confirmed round 4** ("works perfect").
+- ✅✅ **doc-scan — FOUND + WORKS round 4** (leading slot; "super cool", adjust works). Two spawns:
+  (a) NEW ASK: scanned PDF should render INLINE in the note ("text, PDF, text — like Apple Notes"),
+  not behind an Open button → design/mock next session (capture-card PDF preview block);
+  (b) minor: VisionKit's adjust handles sit under the finger — system UI, note only.
+- ✅ **long-press misunderstanding resolved round 4** — he'd been pressing in the NOTE BODY all
+  along; the menu lives on the LIST cards. Proper verdict owed but unblocked.
+- 💥→✅ **markup ERASE crash (round-3 finding, fixed build 36)** (draw → close → reopen → erase → app dies; crash
+  `SkriftMobile-2026-07-07-142621.ips`): CoreAutoLayout main-thread assert — a PencilKit worker
+  thread's dying CATransaction committed keyboard/selection-host layout off-main; our
+  didUpdateContents chain was rebuilding the editor UNDER the live markup session. Build 36: the
+  whole edit chain (re-mirror + OCR reset + thumbnail rebuild) DEFERRED to cover dismissal.
+- ✅ **P2#7 camera dialog works** ("Take photo or choose from library — very good"); ✅ markup
+  save-back persists ("it stays, very good"); ✅ P1#2 photo-tap fix confirmed (round 2).
+- ❓ **P1#5 long-press** — user didn't know what it meant; explain: press-and-HOLD a note card in
+  the memos LIST ~1 s → context menu (Remind me / Lock / Copy / Delete). Verdict owed.
+**Original round-1 triage (builds 31→33) below for the record:**
+LIKED ✓: compact player ("looks good"), player auto-hides for no-audio notes, tag editor ("way better, good
+job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet + edit-mode semantics
+("very good"), lock ("works, very cool"), reminders ("quite cool"), pinned-title ellipsis.
+**P1 BUGS (all FIXED 2026-07-07, device verify owed in round 2):**
+1. ✅ **Selection handles misbehave on scroll** (`600d9ef`) — diagnosed as styling/selection CHURN: SwiftUI
+   re-evals storm during interactive keyboard dismiss and every updateUIView re-ran the FULL name-tier
+   rewrite (unchanged spans) + a redundant selectedRange write = whole-doc reflow + iOS-26 selection-UI
+   rebuild under live handles. Fixed: updateSpans skips unchanged spans; selectedRange written only when
+   different; never restyle over a live selection. DevLog probes left in (inset writes, tier-restore moves,
+   load rebuilds, sel-noFR changes) — if round 2 still shows jumps, the devlog names the event.
+2. ✅✅ **Tap right of a photo opened the viewer** (`da3cfee`) — touch-point vs drawn rect;
+   **DEVICE-CONFIRMED round 2** ("clicking next to the picture doesn't open it anymore — really nice").
+3. ✅ **Doc-scan button invisible** (`81a7208`) — the button was a ToolbarItem nested TWO conditionals deep
+   in ToolbarContentBuilder (the shape iOS 26 drops); both trailing buttons now live in ONE ToolbarItemGroup.
+   Devlog probe "docScan: isSupported=…" proves capability vs toolbar in round 2.
+4. ✅ **Photo-OCR search dead** (`461c55d`) — confirmed the sweep WORKS on device (devlog: "photoText:
+   indexed 7" at 12:19); the gap was no trigger after a save, so in-session searches found nothing. The
+   save paths (recording / awaitable / video import) now run PhotoTextIndexer after the metadata merge;
+   integration test = save with rendered-text photo → searchable, real Vision. Handwriting quality = Vision's
+   call, still watch.
+5. ✅ **List long-press scrolled instead of context menu** (`5376a2f`) — the row's .onTapGesture fought the
+   lift; the row is a plain Button now. New UI test long-presses row 0 and asserts the menu (green).
+6. ✅ **Checkbox tap sometimes entered editing** (`da3cfee`) — same rect-based fix as #2: task glyph hit by
+   drawn rect ±12 pt slop, caret snap irrelevant; geometry test.
+**P2 FEATURES/POLISH (user-requested this round; code items BUILT 2026-07-07, device verify owed):**
+7. ✅ 📷 offers TAKE PHOTO + library (`f5a16a3`) — confirmation dialog → system camera; both funnel into
+   one caret-insert + CloudKit mirror + OCR path; sim stays library-only.
+8. ✅ Checklist Return-continuation (`54fe2d4`) — Return in a task line = fresh unchecked item (mid-line
+   splits); Return on an EMPTY item dissolves the box (Notes flow). 4 delegate-driven tests.
+9. ✅ **Accessory bar v2 — SIGNED OFF (variant B) + BUILT + round-2 AMENDED 2026-07-07:**
+   undo · redo | ☑ checklist-toggle (lights in a task line; un-tasks it) · 📷 · → memo-link
+   (same picker as typing "[[") · 🔍 · Done. Round-2 verdict: checklist "super cool", link
+   found + understood (Obsidian-style [[ ]]). ⋯ overflow REMOVED same day (user: not needed
+   while there's space — it held only Find); revisit overflow-vs-SCROLL (user leans scroll,
+   à la Notes) when scan/markup verbs arrive. Open (deferred): scan-into-this-note verb.
+10. ✅ Draw on photos in-app (`fb7f5f4`) — QuickLook `.updateContents` wrapper (MarkupPreviewView):
+    markup saves INTO the photo file → AssetMaterializer size-change re-mirror + OCR reset→rescan +
+    mtime-keyed thumbnail rebuild. Shared-file captures get markup too (PDFs).
+11. ✅ **Photo display-block — SIGNED OFF + BUILT 2026-07-07:** mid-sentence photos render as their
+    own paragraph via TAGGED display-only newlines; raw keeps `[[img]]` mid-sentence (sync/export/Mac
+    unchanged). Rule lives in `BodyTransform.imageBreaks` (one source for builder + displayRange).
+    Hardening: reconstruct emits syntax only for real U+FFFC runs + typingAttributes scrubbed —
+    inherited keys can't duplicate markers or eat a Return.
+12. ✅ **Photo-viewer ZOOM — BUILT 2026-07-07 (build 38):** the viewer is UIKit-presented
+    (`MarkupQuickLook`) so QuickLook's native zoom runs, anchored on the tapped photo's drawn rect
+    (transient UIImageView over the attachment; file-card opens keep the standard animation). The
+    markup + dismissal-deferred edit chain moved into the presenter unchanged (tested: edit reports
+    on dismiss ONLY — the erase-crash contract). Old cover wrapper deleted. Device eyeball owed.
+13. ✅ **PDF INLINE in the note — SIGNED OFF (A) + BUILT 2026-07-07 (build 39):** a readable PDF
+    capture (doc scan / shared) renders its FIRST PAGE as a full-width block + "N pages" chip
+    (CapturePDFInlineBlock + PDFThumbnailLoader, mtime-cached); tap → the viewer (all pages,
+    markup). Non-PDF files + unreadable PDFs keep the card. Snapshot-checked against the mock;
+    3 loader tests; device eyeball owed. Search unchanged (sharedContent.text).
+**BY DESIGN (confirmed to user):** a SECOND typed mention of a linked name stays plain — one link per person,
+first mention only (the locked naming model); re-scan happens on commit (~1 s) + restyles on end-editing.
+**ANSWERED:** reminders are LOCAL notifications (not the Reminders app / EventKit), alarms fully offline;
+only cross-device sync of the reminder needs iCloud.
+
+**Chunk 9 ✅ 2026-07-07 (doc scan — THE WAVE IS BUILT):** `DocScanner` + `DocScanView` (VisionKit document
+camera) — scan pages → ONE PDF via the existing C3 file-capture path (mirrors the share-drainer construction
+byte-for-byte: `file_<uuid>.pdf`, SharedContent .file, empty audioFilename discriminator) → the scan is a
+normal capture memo (file card + QuickLook + annotation) that syncs like any shared file; pages are OCR'd
+on-device into `sharedContent.text` (capped 4 KB) so scans are FINDABLE from the memos search. Entry: a
+`doc.viewfinder` toolbar button in the list — hidden on the simulator (the camera doesn't exist there; honest).
+Scan → opens the new memo (MemoOpenBridge). 523 unit green (PDF page-count, real-Vision page read, capture
+contract). Device eyeball owed
+(selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
+scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
+FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret
+placement — resolve via the people row. Feels right in principle; confirm on device. Off-screen pager pages
+can't a11y-hide hosted UIKit content on iOS 26 → they suffix identifiers ("-offscreen") instead. Chunks in order:
+1. **Re-foundation (the editor):** scrolling UITextView page per spec (B2 pinned title; chips→importance→
+   summary as in-scroll header), TextKit 2, `[[img]]` attachments, name-tier attributes, quote-protected
+   captures. DELETE `NonScrollingTextView` + the 3-mode swap. **Karaoke = attribute painting** on the same
+   textStorage (word-rate) + char-hit tap-to-seek. Perf: debounced saves (~1 s idle + Done/close), memoized
+   nameSpans, player ticks out of the page body. Verify on a LONG memo: selection-drag autoscroll, caret-follow,
+   paste, undo, magnifier.
+2. **Chrome:** floating accessory pill (undo · redo · find · photo-at-caret · Done; SF Symbols),
+   `isFindInteractionEnabled`, compact 44-pt player pill (whole-pill scrub; dots → transient "3/7"), photo
+   tap→QuickLook (Live Text ⇒ copyable for free), Dynamic Type, **share note OUT** (md/text + audio),
+   **word count/duration** in ⋯.
+3. **Tag chip editor** + autocomplete from existing tags (fixes tap-a-chip-silently-deletes).
+4. **Live checklists:** `- [ ]` / `- [x]` lines render as tappable checkboxes in the editor; toggle rewrites the
+   line; round-trips verbatim to Obsidian tasks. (Pairs with P4c ramble→to-do later.)
+5. **Memo↔memo links:** `[[` in the editor → memo-title autocomplete; store `[[memo:UUID|Title]]` in the raw
+   text; exporter emits `[[Title]]` (resolving the CURRENT title) so it works in Obsidian; tap → open that memo;
+   "Linked from…" backlinks section on detail. Shared linker in Shared/.
+6. **Photo OCR:** Vision `VNRecognizeTextRequest` at photo save/import (background) → per-image text sidecar;
+   folds into list search on phone AND Mac; copyable via the QuickLook viewer.
+7. **Note reminders:** `Memo.remindAt: Date?` on the SHARED model (syncs via CloudKit like any field); the alarm
+   is LOCAL per device — each device reconciles `UNUserNotificationCenter` pending requests from the synced field
+   on sync-settle (CloudSyncMonitor hook); same framework on macOS. Set/clear from ⋯ + list long-press; tap the
+   notification → open the memo.
+8. **Locked notes:** synced `locked` flag; list long-press / detail ⋯ → Lock (Apple Notes idiom); open gated via
+   `LocalAuthentication` (FaceID phone / TouchID-password Mac — shared gate); list shows title + 🔒, hides
+   preview. **Semantics (user-clarified 2026-07-06): locked memos still SYNC via CloudKit** (appear on the Mac,
+   locked there too) — **they're excluded from Obsidian PUBLISH only** (vault = plaintext .md on disk).
+   Lock-after-export edge: Skrift never deletes vault files — it surfaces "already in your vault; remove it
+   there if you want it gone." Unlock ⇒ publishes again next export. v1 = auth-gated UI, NOT per-note crypto
+   (search + pipeline keep working) — stated honestly in Settings copy.
+9. **Doc scan (phone):** VisionKit document camera → PDF → the existing C3 file-capture path (Mac views it like
+   any shared file).
+**DROPPED 2026-07-06:** audio trim / delete-a-section (was parked) — user: "the text is the main source; we
+just edit the text. I don't think we need to edit the voice note itself." Off the plan entirely.
+
 ## ⭐ Standalone App Store push (2026-06-15) — see `STANDALONE_PLAN.md`
 
 NEW DIRECTION: ship **SkriftMobile to the App Store as a standalone audiobook + notetaking app** that

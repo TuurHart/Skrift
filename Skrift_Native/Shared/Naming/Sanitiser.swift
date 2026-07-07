@@ -735,6 +735,9 @@ enum Sanitiser {
             guard let rx = try? NSRegularExpression(pattern: pattern) else { continue }
             for m in rx.matches(in: text, range: fullRange(text)) { ranges.append(m.range) }
         }
+        // Memo↔memo links: an alias inside a link TITLE must never be
+        // name-linked (nested [[…]] would corrupt the syntax).
+        for occ in MemoLinkSyntax.occurrences(in: text) { ranges.append(occ.range) }
         return ranges
     }
 

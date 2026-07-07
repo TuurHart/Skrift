@@ -68,7 +68,7 @@ targets:
         # extension's Info.plist, so both processes resolve the identical container.
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "30"
+        CFBundleVersion: "39"
         # Skrift is offline + uses only standard iOS crypto (on-device ASR, plain
         # local-network HTTP) → exempt from export compliance. Declaring this skips
         # the "Missing Compliance" prompt on every TestFlight/App Store build.
@@ -76,6 +76,7 @@ targets:
         UILaunchScreen: {}
         NSMicrophoneUsageDescription: "Skrift records audio to transcribe your speech. Recording only happens when you trigger it."
         NSCameraUsageDescription: "Skrift lets you snap photos while recording, placed into the transcript at the moment you took them."
+        NSFaceIDUsageDescription: "Skrift uses Face ID to open your locked notes."
         NSLocationWhenInUseUsageDescription: "Skrift tags each memo with where you recorded it (place name, daylight, weather)."
         NSMotionUsageDescription: "Skrift records your step count alongside a memo for context."
         NSLocalNetworkUsageDescription: "Skrift finds your Mac on the local network to sync memos and names."
@@ -232,7 +233,7 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "30"
+        CFBundleVersion: "39"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -286,7 +287,7 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "30"
+        CFBundleVersion: "39"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         # Dictation in the share sheet: the extension RECORDS a voice note (the
         # main app transcribes it on drain — Parakeet can't fit the extension's

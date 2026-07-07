@@ -147,6 +147,16 @@ final class NotesRepository {
     /// True when a synced `MemoAsset` exists for `filename` — i.e. the media is
     /// expected (downloading / pending materialization) even if its file isn't on
     /// disk yet. Drives the "Downloading from iCloud…" placeholder.
+    /// Every tag across live memos, most-used first (the tag editor's
+    /// autocomplete source).
+    func allTags() -> [String] {
+        var counts: [String: Int] = [:]
+        for memo in allMemos() {
+            for tag in memo.tags { counts[tag, default: 0] += 1 }
+        }
+        return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+    }
+
     func hasAsset(filename: String) -> Bool {
         guard !filename.isEmpty else { return false }
         var d = FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.filename == filename })
