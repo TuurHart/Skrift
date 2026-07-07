@@ -554,6 +554,8 @@ struct SidebarView: View {
                 Button("Transcript") { copyText(f.transcript ?? "") }
                 Button("Markdown") { copyText(f.compiledText ?? Compiler.compile(file: f, author: SettingsStore.shared.load().authorName, knownPeople: NamesStore.shared.livePeople())) }
             }
+            // Locked note: copying leaks the gated content — unlock in the note view first.
+            .disabled(LockGate.shared.isLocked(f))
             Divider()
             Button("Delete", role: .destructive) { deleteFiles([f]) }
         }

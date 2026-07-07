@@ -76,7 +76,9 @@ extension MemoCloudReconciler {
     private static func reexportEdited(_ ids: [String], in context: ModelContext, settings: AppSettings) {
         let files = (try? context.fetch(FetchDescriptor<PipelineFile>(
             predicate: #Predicate { ids.contains($0.id) }))) ?? []
-        for pf in files where pf.exportStatus == .done {
+        // Locked rows are skipped outright (the exporter would refuse anyway — this keeps the
+        // sweep quiet). A note UNLOCKED on the phone re-exports right here on the same sweep.
+        for pf in files where pf.exportStatus == .done && !pf.locked {
             if let result = try? VaultExporter.export(pf, settings: settings) {
                 pf.exported = result.markdownURL.path
                 pf.lastActivityAt = Date()

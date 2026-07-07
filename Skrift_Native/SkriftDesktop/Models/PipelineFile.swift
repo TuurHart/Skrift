@@ -68,6 +68,23 @@ final class PipelineFile {
     /// migration; nil on rows ingested before this shipped (treated as "reflect the next edit").
     var syncedSourceEditedAt: Date?
 
+    /// Mirror of the synced `Memo.locked` (phone feature wave chunk 8): a locked note is
+    /// EXCLUDED from vault export (the vault is plaintext — `VaultExporter` refuses) and its
+    /// body/copy actions are gated behind device-owner auth (`LockGate`). Processing keeps
+    /// working (v1 = auth-gated UI, not encryption — same as the phone). Set at ingest,
+    /// kept fresh by `MemoCloudUpdate`. ADDITIVE default → lightweight migration.
+    var locked: Bool = false
+
+    /// Mirror of the synced `Memo.remindAt` — shown in the properties card. The ALARM is
+    /// per-device by design (the phone/iPad schedule notifications); the Mac just surfaces
+    /// the date. ADDITIVE, nil default → lightweight migration.
+    var remindAt: Date? = nil
+
+    /// Flat OCR text of the memo's photos (phone-authored Vision text riding the synced
+    /// metadata blob's `imageManifest[].text`) — mirrored here so search matches what's
+    /// IN a photo without decoding JSON per keystroke. ADDITIVE, nil default.
+    var imageOCRText: String? = nil
+
     // Transcription / sanitisation
     var transcript: String?
     var sanitised: String?

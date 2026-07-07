@@ -21,6 +21,8 @@ struct NoteDisplayView: View {
     /// Drives the shared person editor sheet (mocks/opt-in-naming.html) — opened by the
     /// body's right-click "A new person…" / the suggestion popover's "New person…".
     @State private var editorRequest: PersonEditorRequest?
+    /// Locked-note session gate (synced `locked` flag; Touch ID/password unlocks per session).
+    @ObservedObject private var lockGate = LockGate.shared
 
     /// What "Undo" restores after a naming action: the note's override sets as they were.
     struct NamingUndo {
@@ -49,6 +51,39 @@ struct NoteDisplayView: View {
     }
 
     @ViewBuilder private func content(_ file: PipelineFile) -> some View {
+        if lockGate.isLocked(file) {
+            // Locked note (synced flag): everything below the breadcrumb — toolbar
+            // actions included (copy/export leak content) — waits for device-owner auth.
+            VStack(spacing: 0) {
+                breadcrumb(file)
+                lockedPanel(file)
+            }
+        } else {
+            unlockedContent(file)
+        }
+    }
+
+    private func lockedPanel(_ file: PipelineFile) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 34, weight: .medium))
+                .foregroundStyle(Theme.textMuted)
+            Text("This note is locked")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+            Text("Locked notes stay inside Skrift and are excluded from vault export.")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.textSecondary)
+            Button("Unlock…") {
+                Task { _ = await lockGate.unlock(file.id) }
+            }
+            .buttonStyle(.borderedProminent).tint(Theme.accent).controlSize(.regular)
+            .accessibilityLabel("Unlock this note")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder private func unlockedContent(_ file: PipelineFile) -> some View {
         VStack(spacing: 0) {
             breadcrumb(file)
             toolbarBar(file)

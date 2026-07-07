@@ -74,6 +74,22 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
 
+## ⭐ Desktop parity A-list — the Mac catches up to the phone waves (2026-07-07, roadmap `DParityA`)
+
+The contract-level "musts" from the parity analysis (memory `project_desktop_parity_plan`), built same-day:
+- ✅ **Locked notes**: `PipelineFile.locked` mirror (ingest + update sweep), `VaultExporter` REFUSES export
+  (typed error surfaces in the toast; auto re-export sweep skips locked and re-exports on unlock), note
+  body + sidebar Copy gated behind Touch ID/password per session (desktop `LockGate`, deactivate
+  re-locks), 🔒 properties row. The plaintext-vault promise now holds with the Mac on.
+- ✅ **Memo-link precise resolver**: `Compiler.compile(file:)` supplies the whole queue's stems
+  (`MemoLinkStems` over `VaultExporter.noteStem` — ONE derivation with the exported filename);
+  zero-cost for notes without links. Body chip rendering + backlinks UI = mock round.
+- ✅ **Photo-OCR search**: `imageOCRText` flat mirror (kept fresh when the phone's indexer lands late —
+  the update sweep now refreshes the metadata blob + recompiles on change, fixing stale book fields too);
+  `matchesSearch` matches it.
+- 🌓 **remindAt**: mirrors + shows in properties (🔔); Mac-side alarm reconciler still owed.
+- Device round-trip owed for the batch (lock on phone → Mac gate; OCR search on Mac; link export).
+
 ## ⭐ Shared-code dedup — anti-drift consolidation (2026-07-07, roadmap `SharedKit`)
 
 Every phone↔Mac parity algorithm + wire struct that existed as annotated copies now compiles from
