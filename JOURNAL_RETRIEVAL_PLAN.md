@@ -5,9 +5,9 @@ Planned 2026-07-06 (Fable survey session), for a next Opus session to execute. R
 thought resurfaces next to today's."* Unclaimed as of writing — note-editing, audiobooks, and the
 live-sync/Bonjour-removal handoff are owned by other sessions (collision map at the bottom).
 
-> ⛔ **GATE (Tuur, 2026-07-06): do NOT start building yet.** Two things must happen first:
-> (1) Tuur confirms no conflict with the other running lanes, (2) mock sign-off. Until then this
-> lane is plan + mock only.
+> ⛔ **GATE (Tuur, 2026-07-06): do NOT start building until Tuur green-lights the lane** (waiting
+> on the other running chats to settle — esp. Highlights-tab removal + note-editing). Mock is
+> **SIGNED OFF 2026-07-06**; research is done; this is the only remaining condition.
 
 ## Scope (v1, phone-only)
 
@@ -53,14 +53,20 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
   splitting anyway — so chunk, don't truncate. Per memo: ONE gist vector (title + summary if
   present + placeName + people + tags) for identity, PLUS body chunks split at sentence
   boundaries every ~150–200 words (long conversations and quote-rambles are exactly the memos
-  that matter). A memo's relevance = max over its vectors; results dedupe by memo. Store the
-  chunk's char range — later enables "jump to the matching part". Exclude trashed memos.
+  that matter). **Strip `**Name:**` speaker headers before chunking** — embed spoken bodies only
+  (same lesson as the desktop's conversation-tagging fix, `dda494d` C2). A memo's relevance = max
+  over its vectors; results dedupe by memo. Store the chunk's char range — later enables "jump to
+  the matching part". The sweep also materializes each memo's matched person keys (via the shared
+  `Sanitiser`) so the search Person chip has something to filter on. Exclude trashed memos.
   Audiobook *quote captures* are memos → included. Book sidecar transcripts are not memos →
   naturally out.
 - **Storage: derived-local, never synced.** New `@Model MemoEmbedding { memoID, chunkIndex,
   charStart, charEnd, vector: Data, textHash, modelRev, updatedAt }` (chunkIndex 0 = the gist
   vector) in a **second `ModelConfiguration(cloudKitDatabase: .none)`** — one container, two
-  configs, disjoint schemas. Each device re-derives; zero CloudKit cost.
+  configs, disjoint schemas. Each device re-derives; zero CloudKit cost. If mixed configs
+  misbehave in practice (SwiftData quirk territory), the sanctioned fallback is a fully separate
+  second `ModelContainer` just for `MemoEmbedding` — equivalent semantics, zero risk to the
+  synced store.
 - **Index maintenance: sweep-based invalidation**, not per-write hooks. On app foreground, after a
   memo save, and (if handy) on the CloudKit-import notification: for each memo compare
   `textHash(gist)` vs stored; re-embed mismatches. Robust against every write path, including
@@ -145,16 +151,18 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
 3. Query API (`related` / `search` / `thread` + first-mention) + **calibration harness**: seed via
    `DemoDataSeeder`, print the score histogram (DEBUG flag), pick the related/search/thread floors
    from data. Tests for ordering + floors + thread chronology.
-4. **MOCK GATE (blocking).** Mock DRAFTED 2026-07-06:
-   `Skrift_Native/SkriftDesktop/mocks/journal-retrieval.html` — all five surfaces (Journal home
-   with Looking-back/calendar/map, full Calendar, Map, Thread view, search with chips, Related
-   card) + a "Build notes — locked decisions" block. Remaining: Tuur's sign-off (especially the
-   tab-slot swap). The signed mock IS the spec; iterate it, don't skip to SwiftUI.
+4. **MOCK GATE — ✅ SIGNED OFF 2026-07-06.**
+   `Skrift_Native/SkriftDesktop/mocks/journal-retrieval.html` — all five surfaces + the "Build
+   notes — locked decisions" block. Tuur approved enthusiastically; the tab question resolved via
+   the Highlights-removal lane (Journal becomes the third tab). The mock IS the spec — build to
+   it; if Tuur requests tweaks later, iterate the mock first, then the SwiftUI.
 5. Journal v1: On This Day + calendar/timeline (+ map if signed off). Metadata only. UITest seed
    (`-seedJournal`) with back-dated memos; screenshot-verify.
 6. Search "Related" section + filter chips (person / place / month / kind) in `MemosListView`
-   search, and the Thread view (reached from a memo's Related card / context menu). ⚠️ Rebase
-   after the Bonjour-removal lane lands — it edits `MemosListView.swift` too.
+   search, and the Thread view (reached from a memo's Related card / context menu). Warm the
+   engine when the search field gains focus; Matches render instantly, Related fills in async —
+   never block the exact results on a model load. ⚠️ Rebase after the Bonjour-removal lane lands —
+   it edits `MemosListView.swift` too.
 7. Related-notes card on memo detail. **LAST — only after the note-editing lane merges** (it owns
    `MemoDetail`). Build against the rebuilt detail view.
 8. Device pass on the iPhone 13 (Dev build): backfill duration + memory on the real corpus, jetsam
