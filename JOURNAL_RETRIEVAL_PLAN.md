@@ -203,6 +203,18 @@ Per-app wiring — `Skrift_Native/SkriftMobile/`:
    per the docs-lean rule. Also owed: Settings-section + pushed-screens eyeball (device), iPad
    layout pass, person/kind filter additions.
 
+## Device findings — build 40 live test (Tuur, 2026-07-07 evening)
+
+- ✅ **Semantic search VERIFIED ON DEVICE with real embeddings**: "trying something out" surfaced
+  the testing memos (no shared words); Related card + View Thread chain works ("that's what it
+  needs to be"). Calendar + map: "pretty fucking cool."
+- 🐛 FIXED in build 41: search keyboard had no dismiss path (swipe-to-dismiss added) · a young/
+  sparse corpus showed ZERO Looking-back cards (a "1 week ago" window added — alive in week one).
+- 💡 Map polish (logged): Photos-style zoom-adaptive clustering — clusters that pull apart as you
+  zoom (today's grouping is by place name, zoom-independent).
+- Still owed from the device pass: devlog pull (sweep duration + the histogram button's
+  percentiles) → set real floors; jetsam/memory check; Settings-section + Calendar/Map eyeballs.
+
 ## Fast-follows (named, user-approved 2026-07-06 — build right after chunk 8 if momentum allows)
 
 - **Then vs Now** — a journal card juxtaposing an old memo with a recent same-cluster memo far

@@ -55,6 +55,14 @@ final class LookbackProviderTests: XCTestCase {
         XCTAssertEqual(entries.first?.label, "On this day · 2025")
     }
 
+    func testWeekWindowKeepsAYoungCorpusAlive() {
+        // Device finding 2026-07-07: a corpus only days old showed zero cards.
+        let lastWeek = memo(daysAgo: 7, title: "week")
+        let entries = LookbackProvider.entries(for: [lastWeek], now: now, calendar: calendar)
+        XCTAssertEqual(entries.first?.label, "1 week ago")
+        XCTAssertEqual(entries.first?.id, lastWeek.id)
+    }
+
     func testTodaysMemosNeverLookBack() {
         let today = memo(title: "today")
         XCTAssertTrue(LookbackProvider.entries(for: [today], now: now, calendar: calendar).isEmpty)

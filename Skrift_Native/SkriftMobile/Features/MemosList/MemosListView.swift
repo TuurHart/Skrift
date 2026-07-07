@@ -295,6 +295,9 @@ struct MemosListView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            // Device finding 2026-07-07 (build 40): no way to close the keyboard
+            // after searching — swipe the list to dismiss it.
+            .scrollDismissesKeyboard(.immediately)
             .task(id: search) { await refreshRelated() }
             .environment(\.editMode, $editMode)
             .accessibilityIdentifier("memos-list")

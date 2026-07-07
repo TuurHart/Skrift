@@ -14,6 +14,9 @@ enum LookbackProvider {
     /// ± days around a target date that still counts as "that moment".
     static let windowDays = 3
     static let lookbackMonths = [1, 3, 6, 12]
+    /// Young-corpus window (device finding 2026-07-07: a fresh corpus showed
+    /// zero cards — the tab must feel alive in week one, not month one).
+    static let lookbackWeekDays = 7
 
     struct Entry: Identifiable, Equatable {
         /// The chosen memo's id (one card per memo).
@@ -51,7 +54,12 @@ enum LookbackProvider {
             }
         }
 
-        // 2 · spaced lookbacks.
+        // 2 · spaced lookbacks — a week window first (young corpora), then months.
+        if let anchor = calendar.date(byAdding: .day, value: -lookbackWeekDays, to: now),
+           let pick = best(in: eligible, around: anchor, calendar: calendar, excluding: used) {
+            used.insert(pick.id)
+            out.append(Entry(id: pick.id, label: "1 week ago", date: journalDate(pick)))
+        }
         for months in lookbackMonths {
             guard let anchor = calendar.date(byAdding: .month, value: -months, to: now)
             else { continue }
