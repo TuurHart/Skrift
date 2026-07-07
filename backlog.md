@@ -105,6 +105,10 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    voice memo + transcribes). Feature half (multi-select messages → append-as-one vs split): the
    loader only reads `attachments.first` per type — iterate all providers + a small share-sheet
    choice. Verify on device with a real WhatsApp share.
+   → **2026-07-07 share-ingest deep review:** i4 is row A7 of **`SHARE_INGEST_SURVEY.md`** — the
+   full row-by-row table (existing share bugs A1–A16 + multi-item B + link-enrichment C + new
+   input types D + cross-cutting UX/IngestKit E). User reviews it row-by-row (memo per row, say
+   the ID); triage verdicts back into this ledger, then build.
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →
