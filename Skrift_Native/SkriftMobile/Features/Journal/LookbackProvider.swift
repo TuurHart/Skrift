@@ -35,9 +35,12 @@ enum LookbackProvider {
     }
 
     static func entries(for memos: [Memo], now: Date = Date(),
-                        calendar: Calendar = .current) -> [Entry] {
+                        calendar: Calendar = .current,
+                        excluding: Set<UUID> = []) -> [Entry] {
         let eligible = memos.filter { !calendar.isDate(journalDate($0), inSameDayAs: now) }
-        var used = Set<UUID>()
+        // Pre-used: notes already shown by another Journal card (Important
+        // lately) — device finding 2026-07-07: the same note appeared twice.
+        var used = excluding
         var out: [Entry] = []
 
         // 1 · literal On This Day — every prior year with a hit, newest year first.
@@ -74,7 +77,7 @@ enum LookbackProvider {
         // 3 · never-empty guarantee (device finding, build 41: a DAYS-old corpus
         // still showed nothing — its notes sat between the window anchors).
         // Any eligible history at all → surface the best of it, labeled by age.
-        if out.isEmpty, let pick = eligible.max(by: { a, b in
+        if out.isEmpty, let pick = eligible.filter({ !used.contains($0.id) }).max(by: { a, b in
             if a.significance != b.significance { return a.significance < b.significance }
             return journalDate(a) < journalDate(b)
         }) {

@@ -68,6 +68,15 @@ final class LookbackProviderTests: XCTestCase {
         XCTAssertTrue(LookbackProvider.entries(for: [today], now: now, calendar: calendar).isEmpty)
     }
 
+    func testExcludedNotesNeverAppearInLookbacks() {
+        // A note already shown by Important lately must not duplicate into a
+        // lookback card (build-43 device finding).
+        let star = memo(daysAgo: 1, significance: 0.9, title: "star")
+        let entries = LookbackProvider.entries(for: [star], now: now, calendar: calendar,
+                                               excluding: [star.id])
+        XCTAssertTrue(entries.isEmpty)
+    }
+
     func testNeverEmptyGuaranteeForDayOldCorpus() {
         // Build-41 device finding: notes from yesterday only → zero cards.
         let yesterday = memo(daysAgo: 1, title: "y")
