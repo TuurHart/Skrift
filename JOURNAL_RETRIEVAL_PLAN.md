@@ -29,28 +29,24 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
 
 ## Locked decisions (don't re-litigate; re-open only if the spike gate fails)
 
-- **Engine: two contenders behind one protocol; chunk 0 picks by numbers (researched 2026-07-06).**
-  - *Baseline:* `NLContextualEmbedding` (Apple NL framework) — 0 MB, OS-managed assets, but a
-    generic BERT-style encoder NOT contrastively trained for similarity; may or may not clear the
-    bar. Sentence vector = mean-pooled token vectors, L2-normalized.
-  - *Challenger (research verdict):* **EmbeddingGemma-300M via the `CoreML-LLM` Swift package**
-    (github.com/john-rocky/CoreML-LLM, v1.9.0 May 2026, actively maintained) — the best open
-    embedder under 500M params on MTEB, retrieval-trained, 100+ languages (EN strong, NL
-    covered), 295 MB runtime download (fits the existing model-download UX), **99.8% ANE**
-    (battery-friendly), iOS 18+, `encode(text:task:dim:)` with `.retrievalQuery`/document task
-    prefixes built in, **Matryoshka dims 768/512/256/128 → store 512** (smaller index, faster
-    search, negligible loss). License = Gemma Terms of Use — the Mac app already ships Gemma for
-    enhancement, so no new licensing posture. (multilingual-e5-small ~120 MB stays the lighter
-    alternate if 295 MB is ever deemed too heavy.)
-  - *Decision rule:* both implement `EmbeddingEngine`; run the same eval on both; ship Apple's
-    only if it clears the absolute bar (0 MB wins ties), else EmbeddingGemma. `modelRev` bump →
-    the sweep re-embeds everything; zero migration code. Read `dimension` at runtime, never
-    hardcode.
+- **Engine: ✅ DECIDED BY BAKE-OFF (2026-07-07, Mac spike): EmbeddingGemma-300M at dim 512 via the
+  `CoreML-LLM` Swift package** (github.com/john-rocky/CoreML-LLM, v1.9.0). Measured on the fixed
+  10-query EN/NL eval (`Skrift_Native/spikes/EmbeddingBakeoff/` — results in its README):
+  EmbeddingGemma **10/10 top-1, margin +0.37, cross-lang 3/3, finds buried tail content, ~5
+  ms/embed**; Apple's `NLContextualEmbedding` **5/10, margin +0.07** (anisotropy — everything
+  ~0.85 cosine), cross-lang 1/3, misses buried tails → **eliminated, don't revisit**. Facts for
+  the port: 295 MB runtime download (reuse the model-download UX), 99.8% ANE, iOS 18+ =
+  SkriftMobile's existing deployment target, `encode(text:task:dim:)` with `.retrievalQuery` /
+  `.retrievalDocument`, license = Gemma ToU (already our posture via the Mac's Gemma). **Pick dim
+  512 at load and never switch dims on a live instance** (dim-switching was flaky in the spike;
+  one dim = 100% stable). Keep the `EmbeddingEngine` protocol + `modelRev` anyway (rev bump →
+  sweep re-embeds; zero migration code).
   - *Memory rule (iPhone 13 = 4 GB):* never run the embedder concurrently with ASR — the sweep
     runs when idle, and the engine idle-unloads.
 - **Grain (user-flagged 2026-07-06): gist vector + body chunks, in v1.** Truncating a long memo at
   ~500 chars would hide its tail from retrieval, and the model's ~512-token window forces
-  splitting anyway — so chunk, don't truncate. Per memo: ONE gist vector (title + summary if
+  splitting anyway — so chunk, don't truncate. (Validated by the bake-off: for a query about a
+  long memo's buried tail, the tail chunk ranked #1 while the full-memo vector ranked #7.) Per memo: ONE gist vector (title + summary if
   present + placeName + people + tags) for identity, PLUS body chunks split at sentence
   boundaries every ~150–200 words (long conversations and quote-rambles are exactly the memos
   that matter). **Strip `**Name:**` speaker headers before chunking** — embed spoken bodies only
@@ -135,14 +131,13 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
 
 ## Chunks (commit per chunk; verify per chunk; sim = iPhone 17)
 
-0. **BAKE-OFF GATE (~half a day).** Implement BOTH engines behind `EmbeddingEngine`:
-   `ContextualEmbedder` (Apple) and `GemmaEmbedder` (EmbeddingGemma via the CoreML-LLM package) +
-   a DEBUG launch flag `-embedSpike` that runs a fixed eval set (~20 realistic memo texts +
-   queries — EN, NL, and mixed, including one long chunked memo) and prints the score table per
-   engine. **Bar: same-topic ≫ unrelated with a clear margin; EN↔NL pairs land near same-language
-   pairs; ≥16/20 queries retrieve the right memo top-1.** Pick per the decision rule (Apple's
-   ships only if it clears the bar; ties → 0 MB wins) and record the numbers + winner in this
-   doc. Don't build past this gate without a winner.
+0. **BAKE-OFF GATE — ✅ DONE 2026-07-07 (Fable, Mac spike `Skrift_Native/spikes/EmbeddingBakeoff/`).**
+   Winner: **EmbeddingGemma-300M dim 512** — 10/10 top-1, margin +0.369, cross-lang 3/3, buried
+   tail found (tail@1 vs full@7 — which also validates the chunking decision with data). Apple's
+   NLContextualEmbedding failed the bar (5/10, margin +0.073) — eliminated. Port `Engines.swift`
+   + `Eval.swift` from the spike into the app (protocol + Gemma engine + the eval as a DEBUG
+   `-embedSpike` flag). Remaining on-device residue (fold into chunk 8): one `-embedSpike` run on
+   the iPhone 13 for load time / speed / memory only — quality is settled.
 1. `MemoEmbedding` + second local ModelConfiguration + `MemoGist` + `EmbeddingIndex` upsert/
    invalidate with `MockEmbedder`. Unit tests green (`xcodebuild test -scheme SkriftMobile …`).
 2. Sweep job wiring: foreground + post-save triggers, batched, resumable, idle-unload, plus orphan
