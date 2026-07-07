@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Books tab + one-tap resume — Skrift mock v2 (app-faithful)</title>
+<style>
+  /* ═══ Tokens transcribed 1:1 from DesignSystem/Theme.swift (dark) ═══ */
+  :root{
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130;
+    --border:rgba(255,255,255,.06);
+    --text:#e4e4e7; --dim:#8b8b97; --faint:#55556a;
+    --accent:#7c6bf5; --accent-text:#b9acff; --accent-soft:rgba(124,107,245,.13);
+    --green:#34d399; --amber:#f59e0b; --red:#ef4444;
+    --r-card:16px; --r-row:14px; --r-field:11px; --r-chip:7px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#07080b;color:#E8E8EE;
+       font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:26px;}
+  .num{font-variant-numeric:tabular-nums;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-.3px;}
+  .sub{color:#8A8A96;margin:0 0 6px;max-width:980px;font-size:14px;}
+  .thesis{color:var(--accent-text);font-size:13.5px;margin:0 0 8px;max-width:980px;}
+  .thesis b{color:#e0dcf5;}
+  .v2{display:inline-block;font-size:11px;color:var(--green);background:rgba(52,211,153,.12);padding:2px 9px;border-radius:20px;margin-bottom:14px;}
+  .decisions{max-width:980px;background:var(--surface);border:.5px solid var(--border);border-radius:var(--r-card);
+             padding:14px 18px;margin:0 0 30px;font-size:12.5px;color:var(--dim);}
+  .decisions b{color:var(--text);font-weight:600;}
+  .decisions li{margin:3px 0;}
+  .decisions .q{color:var(--amber);}
+  .label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#6A6A78;margin:0 0 10px;font-weight:600;}
+  .hint{font-size:11px;color:#7a7a88;margin:4px 2px 0;max-width:390px;line-height:1.5;}
+  .hint b{color:#b5b5c2;}
+  .rowwrap{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start;}
+  .col{display:flex;flex-direction:column;gap:10px;width:390px;}
+
+  /* ═══ iPhone frame at LOGICAL SCALE: 1 CSS px = 1 pt ═══ */
+  .phone{width:390px;height:780px;background:var(--bg);border:7px solid #000;border-radius:47px;
+         overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .stat{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;
+        color:var(--text);padding:14px 30px 2px;}
+  .stat .batt{display:inline-flex;align-items:center;gap:5px;font-weight:500;font-size:12px;color:var(--dim);}
+  .batt i{width:22px;height:11px;border:1px solid var(--dim);border-radius:3px;position:relative;display:inline-block;}
+  .batt i::after{content:"";position:absolute;inset:1.5px;right:4px;background:var(--green);border-radius:1px;}
+  .body{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+
+  /* ═══ Stock iOS tab bar — 3 tabs, tint = skAccent ═══ */
+  .tabbar{background:rgba(17,19,26,.96);box-shadow:0 -0.5px 0 var(--border);
+          padding:7px 10px 4px;}
+  .tabgrid{display:grid;grid-template-columns:repeat(3,1fr);}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:#7c7c88;font-weight:500;}
+  .tab.on{color:var(--accent);}
+  .tab svg{width:25px;height:25px;}
+  .homebar{width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.25);margin:6px auto 4px;}
+
+  /* ═══ Global mini-player capsule — AudiobookMiniPlayerBar 1:1 ═══
+     h72 · pad L12/R14 · cover 48 r10 · transports 40×40 (17pt icons) ·
+     Capture pill (❝14 heavy + 12 bold, pad 12/8, accent .2) · ˄ 30×40 ·
+     ultraThinMaterial capsule + border + top sheen + big soft shadow.
+     Mounted: 14pt side padding, 8pt above the tab bar, on EVERY tab. */
+  .cap{position:absolute;left:14px;right:14px;bottom:8px;height:72px;border-radius:36px;
+       background:rgba(30,32,44,.72);backdrop-filter:blur(18px);
+       border:.5px solid var(--border);
+       box-shadow:0 16px 32px rgba(0,0,0,.45);
+       display:flex;align-items:center;gap:4px;padding:0 14px 0 12px;overflow:hidden;}
+  .cap::before{content:"";position:absolute;inset:0;border-radius:36px;pointer-events:none;
+       background:linear-gradient(180deg,rgba(255,255,255,.09),transparent 50%);}
+  .cap .cover{width:48px;height:48px;border-radius:10px;margin-right:4px;}
+  .cap .tbtn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--text);flex-shrink:0;}
+  .cap .tbtn svg{width:22px;height:22px;}
+  .cap .pill{margin-left:auto;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+             font-size:12px;font-weight:700;color:var(--accent-text);
+             background:rgba(124,107,245,.2);padding:8px 12px;border-radius:17px;}
+  .cap .pill .q{font-size:14px;font-weight:800;}
+  .cap .up{width:30px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--dim);}
+  .cap .up svg{width:15px;height:15px;}
+
+  /* ═══ Covers (gradient placeholder idiom) ═══ */
+  .cover{border-radius:9px;flex-shrink:0;position:relative;overflow:hidden;
+         display:flex;align-items:center;justify-content:center;font-weight:800;
+         box-shadow:0 2px 5px rgba(0,0,0,.3);}
+  .cover::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12),transparent 40%);}
+  .c-sap{background:linear-gradient(140deg,#caa46a,#6f4f27);color:rgba(38,28,15,.55);}
+  .c-atom{background:linear-gradient(140deg,#4a4466,#211d30);color:rgba(205,199,230,.5);}
+  .c-med{background:linear-gradient(140deg,#5b7186,#27333f);color:rgba(220,230,238,.5);}
+  .c-stick{background:linear-gradient(140deg,#8a5b3a,#3d2417);color:rgba(240,225,210,.5);}
+
+  /* ═══ NOTES (Memos) — nav bar, search, day groups, cards: 1:1 ═══ */
+  .navrow{display:flex;justify-content:space-between;align-items:center;padding:6px 16px 0;height:34px;}
+  .navrow .lead{font-size:17px;color:var(--accent);}
+  .navrow .trail{display:flex;gap:18px;color:var(--accent);}
+  .navrow svg{width:21px;height:21px;}
+  .bigtitle{font-size:34px;font-weight:700;letter-spacing:.37px;color:var(--text);padding:0 16px;margin:2px 0 8px;}
+  .search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);
+          border-radius:var(--r-field);padding:9px 12px;font-size:14px;color:var(--faint);
+          margin:4px 16px 6px;}
+  .search svg{width:14px;height:14px;color:var(--faint);}
+  .dhead{font-size:11.5px;font-weight:700;letter-spacing:.5px;color:var(--dim);margin:10px 16px 5px;}
+  .mcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);
+         padding:13px;margin:0 16px 10px;display:flex;gap:11px;align-items:flex-start;}
+  .glyph{width:32px;height:32px;border-radius:10px;background:var(--elev);
+         display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .glyph svg{width:15px;height:15px;color:var(--dim);}
+  .glyph.book{background:var(--accent-soft);} .glyph.book svg{color:var(--accent);}
+  .mbody{flex:1;min-width:0;}
+  .mrow1{display:flex;justify-content:space-between;align-items:center;}
+  .mdate{font-size:11.5px;font-weight:600;color:var(--faint);}
+  .spill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:12px;}
+  .spill.synced{color:var(--green);background:rgba(52,211,153,.12);}
+  .mtitle{font-size:14.5px;font-weight:500;color:var(--text);margin-top:6px;
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mtitle .q{color:var(--accent);font-weight:800;}
+  .mtitle i{font-style:italic;}
+  .msec{font-size:12.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;}
+  .cchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--dim);
+         background:var(--elev);padding:2px 7px;border-radius:var(--r-chip);}
+  .cchip svg{width:10px;height:10px;}
+  .tag{font-size:11px;color:var(--accent-text);background:var(--accent-soft);
+       padding:2px 7px;border-radius:var(--r-chip);}
+
+  /* FAB — 64pt red mic, ring, red glow; sits 26pt above the capsule */
+  .fab{position:absolute;left:50%;transform:translateX(-50%);bottom:106px;width:64px;height:64px;border-radius:50%;
+       background:var(--red);display:flex;align-items:center;justify-content:center;
+       box-shadow:0 8px 22px -4px rgba(239,68,68,.45), inset 0 0 0 4px rgba(255,255,255,.12);}
+  .fab svg{width:26px;height:26px;color:#fff;}
+
+  /* ═══ BOOKS — AudiobookLibraryView 1:1 (margin 20, rows r14, cover 54) ═══ */
+  .bkstop{display:flex;justify-content:flex-end;padding:8px 20px 0;}
+  .plus{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);
+        display:flex;align-items:center;justify-content:center;}
+  .plus svg{width:16px;height:16px;color:var(--accent-text);}
+  .bkshead{padding:6px 20px 12px;}
+  .bksh2{font-size:26px;font-weight:800;color:var(--text);margin-bottom:12px;}
+  .chiprow{display:flex;align-items:center;justify-content:space-between;}
+  .sortchip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:var(--dim);
+            background:var(--elev);padding:4px 10px;border-radius:8px;}
+  .sortchip.filtered{color:var(--accent-text);background:var(--accent-soft);}
+  .sortchip svg{width:9px;height:9px;}
+  .bcount{font-size:10.5px;color:var(--faint);}
+  .brow{display:flex;gap:12px;align-items:center;background:var(--surface);
+        border:1px solid transparent;border-radius:var(--r-row);
+        padding:11px 12px;margin:0 20px 8px;}
+  .brow.current{background:rgba(124,107,245,.07);border-color:rgba(124,107,245,.30);}
+  .brow .cover{width:54px;height:54px;font-size:19px;box-shadow:0 2px 5px rgba(0,0,0,.3);}
+  .bmeta{flex:1;min-width:0;}
+  .bt{font-size:13.5px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:5px;}
+  .bt svg{width:12px;height:12px;color:var(--dim);flex-shrink:0;}
+  .ba{font-size:11.5px;color:var(--dim);margin-top:1px;}
+  .brow2{display:flex;align-items:center;gap:7px;margin-top:4px;}
+  .bbar{width:110px;height:2.5px;background:rgba(255,255,255,.07);border-radius:2px;position:relative;overflow:hidden;}
+  .bbar>i{position:absolute;left:0;top:0;height:2.5px;border-radius:2px;background:rgba(124,107,245,.65);}
+  .bleft{font-size:10.5px;color:var(--faint);}
+
+  /* ═══ iOS Menu (anchored at the chip) ═══ */
+  .menu{position:absolute;top:150px;left:20px;width:250px;border-radius:13px;overflow:hidden;
+        background:rgba(34,36,46,.96);backdrop-filter:blur(20px);
+        box-shadow:0 10px 40px rgba(0,0,0,.55), inset 0 .5px 0 rgba(255,255,255,.08);z-index:6;}
+  .mitem{display:flex;align-items:center;gap:9px;height:42px;padding:0 14px;font-size:15px;color:var(--text);
+         border-bottom:.5px solid rgba(255,255,255,.06);}
+  .mitem .ckslot{width:16px;flex-shrink:0;color:var(--text);font-weight:600;}
+  .msep{height:7px;background:rgba(0,0,0,.42);}
+
+  /* ═══ Settings (context) ═══ */
+  .setcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);
+           margin:4px 16px;overflow:hidden;}
+  .srow{display:flex;align-items:center;gap:11px;font-size:14.5px;color:var(--text);
+        padding:12px 14px;border-bottom:.5px solid var(--border);}
+  .srow:last-child{border-bottom:none;}
+  .srow svg{width:17px;height:17px;color:var(--dim);}
+  .srow .chev{margin-left:auto;width:11px;height:11px;color:var(--faint);}
+
+  .flow{display:flex;gap:8px;align-items:center;font-size:11.5px;color:#7a7a88;margin-top:8px;flex-wrap:wrap;}
+  .flow b{color:#b5b5c2;}
+  .flow .n{width:17px;height:17px;border-radius:50%;background:var(--accent);color:#fff;font-size:10.5px;font-weight:700;
+           display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+  /* 4-tab grid for this mock */
+  .tabgrid{grid-template-columns:repeat(4,1fr);}
+  /* compact book pill (side-by-side variants) */
+  .pillrow{position:absolute;left:14px;right:14px;bottom:8px;display:flex;align-items:center;gap:12px;}
+  .bpill{height:60px;border-radius:30px;background:rgba(30,32,44,.72);backdrop-filter:blur(18px);
+         border:.5px solid var(--border);box-shadow:0 14px 28px rgba(0,0,0,.45);
+         display:flex;align-items:center;gap:4px;padding:0 10px 0 8px;position:relative;overflow:hidden;flex:1;min-width:0;}
+  .bpill::before{content:"";position:absolute;inset:0;border-radius:30px;pointer-events:none;
+         background:linear-gradient(180deg,rgba(255,255,255,.09),transparent 50%);}
+  .bpill .cover{width:44px;height:44px;border-radius:10px;}
+  .bpill .tbtn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--text);flex-shrink:0;}
+  .bpill .tbtn svg{width:20px;height:20px;}
+  .bpill .note{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px;font-weight:700;
+         color:var(--accent-text);background:rgba(124,107,245,.2);padding:8px 12px;border-radius:16px;margin-left:auto;margin-right:2px;}
+  .bpill .note .q{font-size:14px;font-weight:800;}
+  .bpill.icononly{flex:0 0 auto;padding:0 6px 0 6px;gap:2px;} .bpill.icononly .cover{width:40px;height:40px;} .bpill.icononly .tbtn{width:34px;} .bpill.icononly .note{padding:7px 9px;margin-left:2px;}
+  .fab2{width:60px;height:60px;border-radius:50%;background:var(--red);flex-shrink:0;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 8px 22px -4px rgba(239,68,68,.5), inset 0 0 0 4px rgba(255,255,255,.12);}
+  .fab2 svg{width:24px;height:24px;color:#fff;}
+  .fabcenter{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;}
+
+  /* pill variants */
+  .btext{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:0 2px;}
+  .btext .t{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .btext .s{font-size:10.5px;color:var(--dim);}
+  .playfill{width:44px;height:44px;border-radius:50%;background:var(--accent);flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;
+            box-shadow:0 5px 14px -3px rgba(124,107,245,.55);}
+  .playfill svg{width:19px;height:19px;color:#fff;}
+  .coverplay{position:relative;}
+  .coverplay::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.32);border-radius:10px;}
+  .coverplay svg{position:absolute;inset:0;margin:auto;width:20px;height:20px;color:#fff;z-index:2;
+                 filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));}
+  .tapnote{font-size:10px;color:var(--faint);text-align:center;margin-top:6px;}
+</style>
+</head>
+<body>
+
+<h1>Notes book pill — three interiors</h1>
+<p class="sub">Refining Option A after build 46 on-device: the play button floated next to the cover with a void beside it, and the void read as tappable. <b>All three versions:</b> the pill body opens the player (tap anywhere), ❝ Add note keeps its label, record stays right, 60pt row.</p>
+<span class="v2">v1 — pick an interior</span>
+
+<div class="rowwrap">
+  <div class="col">
+    <p class="label">V1 · Title fills the middle (Apple-Music grammar)</p>
+    <div class="phone">
+      <div class="stat"><span class="num">20:41</span><span class="batt">50% <i></i></span></div>
+      <div class="body">
+        <div class="navrow">
+          <span class="lead">Select</span>
+          <span class="trail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg></span>
+        </div>
+        <div class="bigtitle">Notes</div>
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          Search transcripts
+        </div>
+        <div class="dhead">TODAY</div>
+        <div class="mcard">
+          <div class="glyph book"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h11a3 3 0 013 3v13.5a.5.5 0 01-.8.4A5 5 0 0015 19H5a1 1 0 01-1-1V4a1 1 0 011-1z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Today · 14:56</span><span class="spill synced">Synced</span></div>
+            <div class="mtitle"><span class="q">❝ </span><i>The creative genius launches into a four-hour…</i></div>
+            <div class="chips"><span class="cchip">0:32</span><span class="cchip">Made to Stick</span></div>
+          </div>
+        </div>
+        <div class="mcard">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Yesterday · 22:34</span><span class="spill synced">Synced</span></div>
+            <div class="mtitle">Tiuri's Test: A Casual Greeting</div>
+            <div class="chips"><span class="cchip">0:06</span><span class="cchip">Cruz Quebrada</span><span class="tag">#hi</span></div>
+          </div>
+        </div>
+        <div class="mcard">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Yesterday · 16:21</span></div>
+            <div class="mtitle">More Testing and Testing</div>
+            <div class="chips"><span class="cchip">0:04</span><span class="cchip">Benfica</span></div>
+          </div>
+        </div>
+        <div class="pillrow">
+          <div class="bpill"><div class="cover c-stick" style="width:44px;height:44px;border-radius:10px;font-size:15px">S</div><div class="btext"><span class="t">Steal Like an Artist</span><span class="s num">3:02 left</span></div><div class="tbtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg></div><div class="note"><span class="q">❝</span>Add note</div></div>
+          <div class="fab2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tabgrid">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>Notes</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4.5 5.5A2.5 2.5 0 017 3h12.5v15.5H7a2.5 2.5 0 000 5h12.5"/><path d="M4.5 5.5v15.6"/></svg>Books</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>Journal</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M19.2 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7.2 7.2 0 00-2-1.2L14.2 3h-4l-.5 2.6a7.2 7.2 0 00-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 000 2.4l-2 1.6 2 3.4 2.4-1a7.2 7.2 0 002 1.2l.5 2.6h4l.5-2.6a7.2 7.2 0 002-1.2l2.4 1 2-3.4-2-1.6c.07-.4.1-.8.1-1.2z"/></svg>Settings</div>
+        </div>
+        <div class="homebar"></div>
+      </div>
+    </div>
+    <p class="hint"><b>The middle becomes the book</b>: title + time-left where the void was. Tap ANYWHERE on the pill body (cover, text, background) → the player opens — your instinct, made real. Play sits between text and Add note as its own button. The most standard mini-player anatomy; nothing floats in space.</p>
+  </div>
+  <div class="col">
+    <p class="label">V2 · Bigger play, hero at the right end</p>
+    <div class="phone">
+      <div class="stat"><span class="num">20:41</span><span class="batt">50% <i></i></span></div>
+      <div class="body">
+        <div class="navrow">
+          <span class="lead">Select</span>
+          <span class="trail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg></span>
+        </div>
+        <div class="bigtitle">Notes</div>
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          Search transcripts
+        </div>
+        <div class="dhead">TODAY</div>
+        <div class="mcard">
+          <div class="glyph book"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h11a3 3 0 013 3v13.5a.5.5 0 01-.8.4A5 5 0 0015 19H5a1 1 0 01-1-1V4a1 1 0 011-1z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Today · 14:56</span><span class="spill synced">Synced</span></div>
+            <div class="mtitle"><span class="q">❝ </span><i>The creative genius launches into a four-hour…</i></div>
+            <div class="chips"><span class="cchip">0:32</span><span class="cchip">Made to Stick</span></div>
+          </div>
+        </div>
+        <div class="mcard">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Yesterday · 22:34</span><span class="spill synced">Synced</span></div>
+            <div class="mtitle">Tiuri's Test: A Casual Greeting</div>
+            <div class="chips"><span class="cchip">0:06</span><span class="cchip">Cruz Quebrada</span><span class="tag">#hi</span></div>
+          </div>
+        </div>
+        <div class="mcard">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Yesterday · 16:21</span></div>
+            <div class="mtitle">More Testing and Testing</div>
+            <div class="chips"><span class="cchip">0:04</span><span class="cchip">Benfica</span></div>
+          </div>
+        </div>
+        <div class="pillrow">
+          <div class="bpill"><div class="cover c-stick" style="width:44px;height:44px;border-radius:10px;font-size:15px">S</div><div class="btext"><span class="t">Steal Like an Artist</span><span class="s num">3:02 left</span></div><div class="note"><span class="q">❝</span>Add note</div><div class="playfill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg></div></div>
+          <div class="fab2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tabgrid">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>Notes</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4.5 5.5A2.5 2.5 0 017 3h12.5v15.5H7a2.5 2.5 0 000 5h12.5"/><path d="M4.5 5.5v15.6"/></svg>Books</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>Journal</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M19.2 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7.2 7.2 0 00-2-1.2L14.2 3h-4l-.5 2.6a7.2 7.2 0 00-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 000 2.4l-2 1.6 2 3.4 2.4-1a7.2 7.2 0 002 1.2l.5 2.6h4l.5-2.6a7.2 7.2 0 002-1.2l2.4 1 2-3.4-2-1.6c.07-.4.1-.8.1-1.2z"/></svg>Settings</div>
+        </div>
+        <div class="homebar"></div>
+      </div>
+    </div>
+    <p class="hint"><b>Play gets big</b> — a 44pt filled accent circle at the pill’s end (echoes the full player’s hero play). Title text still fills the middle; body-tap still opens the player. Trade-off to eyeball: the purple play circle sits 12pt from the red record circle — two round buttons side by side. Distinct colors, but they’re neighbours.</p>
+  </div>
+  <div class="col">
+    <p class="label">V3 · Play lives ON the cover</p>
+    <div class="phone">
+      <div class="stat"><span class="num">20:41</span><span class="batt">50% <i></i></span></div>
+      <div class="body">
+        <div class="navrow">
+          <span class="lead">Select</span>
+          <span class="trail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg></span>
+        </div>
+        <div class="bigtitle">Notes</div>
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          Search transcripts
+        </div>
+        <div class="dhead">TODAY</div>
+        <div class="mcard">
+          <div class="glyph book"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h11a3 3 0 013 3v13.5a.5.5 0 01-.8.4A5 5 0 0015 19H5a1 1 0 01-1-1V4a1 1 0 011-1z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Today · 14:56</span><span class="spill synced">Synced</span></div>
+            <div class="mtitle"><span class="q">❝ </span><i>The creative genius launches into a four-hour…</i></div>
+            <div class="chips"><span class="cchip">0:32</span><span class="cchip">Made to Stick</span></div>
+          </div>
+        </div>
+        <div class="mcard">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Yesterday · 22:34</span><span class="spill synced">Synced</span></div>
+            <div class="mtitle">Tiuri's Test: A Casual Greeting</div>
+            <div class="chips"><span class="cchip">0:06</span><span class="cchip">Cruz Quebrada</span><span class="tag">#hi</span></div>
+          </div>
+        </div>
+        <div class="mcard">
+          <div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+          <div class="mbody">
+            <div class="mrow1"><span class="mdate">Yesterday · 16:21</span></div>
+            <div class="mtitle">More Testing and Testing</div>
+            <div class="chips"><span class="cchip">0:04</span><span class="cchip">Benfica</span></div>
+          </div>
+        </div>
+        <div class="pillrow">
+          <div class="bpill"><div class="coverplay"><div class="cover c-stick" style="width:44px;height:44px;border-radius:10px;font-size:15px">S</div><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg></div><div class="btext"><span class="t">Steal Like an Artist</span><span class="s num">3:02 left</span></div><div class="note"><span class="q">❝</span>Add note</div></div>
+          <div class="fab2"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a4 4 0 004-4V6a4 4 0 10-8 0v5a4 4 0 004 4zm7-4a7 7 0 01-14 0H3a9 9 0 008 8.94V23h2v-3.06A9 9 0 0021 11h-2z"/></svg></div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tabgrid">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>Notes</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4.5 5.5A2.5 2.5 0 017 3h12.5v15.5H7a2.5 2.5 0 000 5h12.5"/><path d="M4.5 5.5v15.6"/></svg>Books</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>Journal</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M19.2 12a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7.2 7.2 0 00-2-1.2L14.2 3h-4l-.5 2.6a7.2 7.2 0 00-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 000 2.4l-2 1.6 2 3.4 2.4-1a7.2 7.2 0 002 1.2l.5 2.6h4l.5-2.6a7.2 7.2 0 002-1.2l2.4 1 2-3.4-2-1.6c.07-.4.1-.8.1-1.2z"/></svg>Settings</div>
+        </div>
+        <div class="homebar"></div>
+      </div>
+    </div>
+    <p class="hint"><b>Minimal</b>: the cover doubles as play/pause (dimmed art + ▶ glyph — the paused state; playing shows ⏸). Body/text → player, ❝ Add note stays. Cleanest row, biggest text space; the trade: play is a smaller target and the cover no longer opens the player directly.</p>
+  </div>
+</div>
+
+</body>
+</html>
