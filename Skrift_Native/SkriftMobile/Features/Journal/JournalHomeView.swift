@@ -15,6 +15,15 @@ struct JournalHomeView: View {
 
     var body: some View {
         NavigationStack {
+            VStack(spacing: 0) {
+            // Unified 30pt screen title (device round 4: all four tabs match).
+            HStack {
+                ScreenTitle("Journal")
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 6)
             ScrollView {
                 VStack(spacing: 10) {
                     if entries.isEmpty && memos.isEmpty {
@@ -35,7 +44,9 @@ struct JournalHomeView: View {
                 .padding(.bottom, 24)
             }
             .background(Color.skBg)
-            .navigationTitle("Journal")
+            }
+            .background(Color.skBg)
+            .toolbar(.hidden, for: .navigationBar)   // root only; pushes keep bars
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .navigationDestination(for: Route.self) { route in
                 switch route {

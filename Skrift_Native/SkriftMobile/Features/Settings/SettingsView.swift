@@ -28,6 +28,15 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
+            VStack(spacing: 0) {
+            // Unified 30pt screen title (device round 4: all four tabs match).
+            HStack {
+                ScreenTitle("Settings")
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 2)
             Form {
                 // The honest GLOBAL sync state (no per-note badge — CloudKit doesn't
                 // expose reliable per-row status). "Syncing…" while in flight, else
@@ -160,7 +169,9 @@ struct SettingsView: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.skBg.ignoresSafeArea())
-            .navigationTitle("Settings")
+            }
+            .background(Color.skBg.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)   // root only; pushes keep bars
             // No "Done": Settings is a root tab now (AppTabView), not a presented
             // sheet — there's nothing to dismiss.
             .sheet(isPresented: $showFeedback) { FeedbackCaptureView() }

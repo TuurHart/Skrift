@@ -2,6 +2,19 @@ import SwiftUI
 
 /// Full-screen themed background (the mockups' near-black radial). Apply at each
 /// screen root behind a `NavigationStack` content view.
+/// The ONE screen-title style (device round 4, build 48: "every screen should
+/// have the word at the top be the same size" — they were 30/26/34/34).
+/// 30pt bold; each root tab renders it in its own custom header row.
+struct ScreenTitle: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+    var body: some View {
+        Text(text)
+            .font(.system(size: 30, weight: .bold))
+            .foregroundStyle(Color.skText)
+    }
+}
+
 struct SkScreenBackground: View {
     var body: some View {
         Color.skBg.ignoresSafeArea()

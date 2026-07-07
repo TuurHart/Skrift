@@ -392,9 +392,7 @@ struct MemosListView: View {
     /// so doc-scan rejoins the actions cluster.
     private var headerRow: some View {
         HStack(spacing: 18) {
-            Text("Notes")
-                .font(.system(size: 30, weight: .bold))
-                .foregroundStyle(Color.skText)
+            ScreenTitle("Notes")
             Spacer(minLength: 0)
             Button(editMode.isEditing ? "Done" : "Select") {
                 withAnimation(Theme.Motion.snappy) {

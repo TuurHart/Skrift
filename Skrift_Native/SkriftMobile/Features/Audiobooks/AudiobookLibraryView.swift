@@ -160,9 +160,11 @@ struct AudiobookLibraryView: View {
     // MARK: - Chrome
 
     private var topBar: some View {
-        // Library is a root tab now (AppTabView) — no back button; just the import
-        // action, right-aligned over the big "Library" header below.
+        // ONE header line (device round 4: unified 30pt titles on all four
+        // tabs): "Books" + the import action inline — the separate title row
+        // below is gone.
         HStack {
+            ScreenTitle("Books")
             Spacer()
 
             Button {
@@ -189,9 +191,6 @@ struct AudiobookLibraryView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Books")
-                .font(.system(size: 26, weight: .heavy))
-                .foregroundStyle(Color.skText)
             HStack {
                 sortFilterChip
                 Spacer()

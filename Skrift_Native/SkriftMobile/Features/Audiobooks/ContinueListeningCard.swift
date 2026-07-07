@@ -31,6 +31,12 @@ struct ContinueListeningCard: View {
             }
         }
         .animation(Theme.Motion.spring, value: session.isActive)
+        // Starting a book VOIDS today's ×-dismissal (device round 4, build 48:
+        // "when I start a book again I expected it to be back") — playing is
+        // re-engagement, so the card returns whenever the session next ends.
+        .onChange(of: session.isActive) { _, active in
+            if active { dismissedDay = "" }
+        }
         .fullScreenCover(isPresented: $showPlayer) {
             AudiobookPlayerView()
         }
