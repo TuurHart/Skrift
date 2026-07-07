@@ -14,31 +14,24 @@ import SwiftUI
 /// at launch — the card reads the library, and a session exists only once you
 /// actually play.
 struct ContinueListeningCard: View {
+    /// Body-tap opens the player — presented by the OWNER (a `fullScreenCover`
+    /// must not hang off this view: as a List row it unmounts the moment the
+    /// session starts, which would tear the cover down mid-present).
+    var openPlayer: () -> Void = {}
+
     @ObservedObject private var session = AudiobookSession.shared
     @ObservedObject private var store = AudiobookLibraryStore.shared
     /// "yyyy-MM-dd" of the last ×-dismissal — the card stays gone for that day.
+    /// (The play-again VOIDS-dismissal rule lives in `NotesBottomChrome`, which
+    /// stays mounted while this row comes and goes.)
     @AppStorage("continueCardDismissedDay") private var dismissedDay = ""
-    @State private var showPlayer = false
 
     var body: some View {
-        Group {
-            if !session.isActive,
-               dismissedDay != Self.today(),
-               let book = store.sortedByRecent.first,
-               book.lastPlayedAt != nil {
-                card(book)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .animation(Theme.Motion.spring, value: session.isActive)
-        // Starting a book VOIDS today's ×-dismissal (device round 4, build 48:
-        // "when I start a book again I expected it to be back") — playing is
-        // re-engagement, so the card returns whenever the session next ends.
-        .onChange(of: session.isActive) { _, active in
-            if active { dismissedDay = "" }
-        }
-        .fullScreenCover(isPresented: $showPlayer) {
-            AudiobookPlayerView()
+        if !session.isActive,
+           dismissedDay != Self.today(),
+           let book = store.sortedByRecent.first,
+           book.lastPlayedAt != nil {
+            card(book)
         }
     }
 
@@ -46,7 +39,7 @@ struct ContinueListeningCard: View {
         HStack(spacing: 12) {
             // Body = the book: tap → open the player (paused, where you left off).
             Button {
-                if session.open(book) { showPlayer = true }
+                if session.open(book) { openPlayer() }
             } label: {
                 HStack(spacing: 12) {
                     BookCoverView(book: book, showsPlaceholderTitle: false)

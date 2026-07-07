@@ -44,6 +44,9 @@ struct MemosListView: View {
 
     @State private var path: [UUID] = []
     @State private var showRecord = false
+    /// Presents the audiobook player for the continue-card's body tap (hoisted
+    /// here: a cover on the card itself would die when its List row unmounts).
+    @State private var showBookPlayer = false
     @State private var lastHandledStart = 0
     @ObservedObject private var intentBridge = RecordingIntentBridge.shared
     @ObservedObject private var memoOpen = MemoOpenBridge.shared
@@ -76,13 +79,11 @@ struct MemosListView: View {
 
                 VStack(spacing: 0) {
                     headerRow
-                    // At rest, the book is CONTENT above search — not chrome
-                    // (mock notes-compact-header.html; renders nothing while a
-                    // session is live / no played book / dismissed today).
-                    ContinueListeningCard()
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 2)
                     if memos.isEmpty {
+                        // No list to scroll — the card sits pinned here.
+                        ContinueListeningCard(openPlayer: { showBookPlayer = true })
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 2)
                         emptyState
                     } else {
                         listContent
@@ -114,6 +115,9 @@ struct MemosListView: View {
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .fullScreenCover(isPresented: $showRecord) {
                 RecordView(onSaved: { newID in path = [newID] })
+            }
+            .fullScreenCover(isPresented: $showBookPlayer) {
+                AudiobookPlayerView()
             }
             .onChange(of: intentBridge.startRequestID) { handleStartRequest() }
             .onChange(of: memoOpen.requestID) { handleOpenRequest() }
@@ -186,6 +190,14 @@ struct MemosListView: View {
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
             List(selection: $selected) {
+                // The continue-card is the FIRST ROW — content under the pinned
+                // search bar, scrolling away with the notes (device round 5,
+                // build 49: pinned-above-search read as stuck chrome). Renders
+                // nothing while a session is live / dismissed today / no book.
+                ContinueListeningCard(openPlayer: { showBookPlayer = true })
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 8, trailing: 16))
                 ForEach(groups, id: \.title) { group in
                     Section {
                         ForEach(group.memos) { memo in
@@ -1070,6 +1082,10 @@ private struct SortFilterSheet: View {
 private struct NotesBottomChrome: View {
     let onRecord: () -> Void
     @ObservedObject private var session = AudiobookSession.shared
+    /// Mirror of the continue-card's dismissal day: starting a book VOIDS a
+    /// ×-for-today (re-engagement rule, device round 4). It lives HERE because
+    /// this view stays mounted while the card's List row comes and goes.
+    @AppStorage("continueCardDismissedDay") private var cardDismissedDay = ""
 
     var body: some View {
         // 16pt pill↔record gap (V2a "real air" — Henry's separation note).
@@ -1086,6 +1102,9 @@ private struct NotesBottomChrome: View {
         .padding(.horizontal, 14)
         .padding(.bottom, 8)
         .animation(Theme.Motion.spring, value: session.isActive)
+        .onChange(of: session.isActive) { _, active in
+            if active { cardDismissedDay = "" }
+        }
     }
 
     private var recordButton: some View {
