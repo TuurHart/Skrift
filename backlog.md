@@ -443,7 +443,13 @@ for CloudKit), **share note OUT** (⋯ → markdown + audio file via share sheet
 UIFontMetrics). Unit 493 green; editor-cluster UI tests green.
 **Chunk 3 ✅ 2026-07-07 (tags):** `TagEditorSheet` — chips with explicit ✕ (tap-a-chip no longer silently
 deletes), comma input KEPT, autocomplete chips from every library tag (`NotesRepository.allTags`, most-used
-first, prefix-filtered) — "pick, not retype". Device eyeball owed
+first, prefix-filtered) — "pick, not retype".
+**Chunk 4 ✅ 2026-07-07 (live checklists):** `BodyTransform` = the ONE raw⇄display transform (img markers +
+`- [ ]`/`- [x]` line-start task prefixes → single attachment glyphs; indent stays text; byte-exact round-trip)
+consumed by BOTH the attributed builder and the name-span offset mapper (they were drifting duplicates);
+tap a checkbox → toggles in place (no keyboard) + commits immediately; typed task syntax materializes into
+live checkboxes on end-editing; exports verbatim as Obsidian tasks. ⚠️ Desktop parity owed (hard rule) —
+`BodyTextView` doesn't render tasks yet; tracked on NFeat. Device eyeball owed
 (selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
 scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
 FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret

@@ -180,6 +180,9 @@ struct NoteBodyView: UIViewRepresentable {
         /// Custom attribute tagging an attachment with its 1-based image-marker
         /// index, so the transcript string round-trips from the attributed text.
         static let markerKey = NSAttributedString.Key("skriftImgMarker")
+        /// Custom attribute tagging a checkbox attachment with its checked state
+        /// — reconstructs to Obsidian task syntax ("- [ ]" / "- [x]").
+        static let taskKey = NSAttributedString.Key("skriftTask")
 
         init(memo: Memo, onCommit: @escaping () -> Void) {
             self.memo = memo
@@ -423,23 +426,12 @@ struct NoteBodyView: UIViewRepresentable {
             tv.selectedRange = NSRange(location: loc, length: min(sel.length, len - loc))
         }
 
-        /// Map a RAW-text range to the DISPLAYED range: each `[[img_NNN]]` marker
-        /// before it collapses to one attachment glyph. nil if it straddles a marker.
+        /// Map a RAW-text range to the DISPLAYED range — every `[[img_NNN]]`
+        /// marker AND task prefix before it collapses to one glyph (the shared
+        /// BodyTransform, so this can never drift from the attributed builder).
         private func displayRange(forRaw raw: NSRange, transcript: String) -> NSRange? {
-            let ns = transcript as NSString
-            guard ns.length > 0, let rx = try? NSRegularExpression(pattern: #"\[\[img_\d+\]\]"#) else { return raw }
-            var delta = 0
-            for m in rx.matches(in: transcript, range: NSRange(location: 0, length: ns.length)) {
-                if m.range.location + m.range.length <= raw.location {
-                    delta += m.range.length - 1
-                } else if m.range.location < raw.location + raw.length {
-                    return nil
-                } else {
-                    break
-                }
-            }
-            let loc = raw.location - delta
-            return loc >= 0 ? NSRange(location: loc, length: raw.length) : nil
+            guard !transcript.isEmpty else { return raw }
+            return BodyTransform.displayRange(forRaw: raw, in: transcript)
         }
 
         /// The name span under a point. `closestPosition(to:)` snaps the tap to
@@ -583,6 +575,13 @@ struct NoteBodyView: UIViewRepresentable {
             guard currentMode == .editing, tv.selectedRange.length == 0 else { return }
             let caret = tv.selectedRange.location
             for probe in [caret, caret - 1] where probe >= 0 && probe < tv.textStorage.length {
+                // Checkbox: toggle in place — the keyboard never takes over.
+                if tv.textStorage.attribute(Self.taskKey, at: probe, effectiveRange: nil) is Bool {
+                    editingBeganAt = nil
+                    tv.resignFirstResponder()
+                    toggleTask(at: probe)
+                    return
+                }
                 if let marker = tv.textStorage.attribute(Self.markerKey, at: probe,
                                                          effectiveRange: nil) as? Int {
                     editingBeganAt = nil
@@ -620,7 +619,32 @@ struct NoteBodyView: UIViewRepresentable {
 
         func textViewDidEndEditing(_ tv: UITextView) {
             commitDraft()
+            // Task syntax TYPED during this session is still literal text in the
+            // display — materialize it into live checkboxes now that the
+            // keyboard is down (rebuilding mid-typing would fight the caret).
+            if BodyTransform.containsTaskSyntax(tv.text) {
+                load(force: true)
+            }
             applyTierStyling()
+        }
+
+        /// Flip a checkbox attachment in place and persist immediately (a toggle
+        /// is a decisive act — no debounce window).
+        func toggleTask(at index: Int) {
+            guard let tv = textView,
+                  let checked = tv.textStorage.attribute(Self.taskKey, at: index,
+                                                         effectiveRange: nil) as? Bool else { return }
+            let sel = tv.selectedRange
+            let piece = NSMutableAttributedString(attachment: Self.taskAttachment(checked: !checked))
+            piece.addAttribute(Self.taskKey, value: !checked, range: NSRange(location: 0, length: piece.length))
+            piece.addAttributes(baseAttributes(), range: NSRange(location: 0, length: piece.length))
+            tv.textStorage.replaceCharacters(in: NSRange(location: index, length: 1), with: piece)
+            let len = tv.textStorage.length
+            tv.selectedRange = NSRange(location: min(sel.location, len), length: 0)
+            Haptics.tap(.light)
+            draftDirty = true
+            commitDraft()
+            applyTierStyling()          // re-derive display spans over the same offsets
         }
 
         /// Persist the draft: reconstruct the marker string from the attributed
@@ -669,23 +693,37 @@ struct NoteBodyView: UIViewRepresentable {
         private func attributed(from transcript: String) -> NSAttributedString {
             let result = NSMutableAttributedString()
             let base = baseAttributes()
-            let ns = transcript as NSString
-            let regex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
-            var last = 0
-            func text(_ s: String) { result.append(NSAttributedString(string: s, attributes: base)) }
-            regex?.enumerateMatches(in: transcript, range: NSRange(location: 0, length: ns.length)) { m, _, _ in
-                guard let m else { return }
-                if m.range.location > last {
-                    text(ns.substring(with: NSRange(location: last, length: m.range.location - last)))
+            for piece in BodyTransform.pieces(of: transcript) {
+                switch piece.segment {
+                case .text(let s):
+                    result.append(NSAttributedString(string: s, attributes: base))
+                case .image(let n):
+                    let a = NSMutableAttributedString(attachment: imageAttachment(markerIndex: n))
+                    a.addAttribute(Self.markerKey, value: n, range: NSRange(location: 0, length: a.length))
+                    result.append(a)
+                case .task(let checked):
+                    let a = NSMutableAttributedString(attachment: Self.taskAttachment(checked: checked))
+                    a.addAttribute(Self.taskKey, value: checked, range: NSRange(location: 0, length: a.length))
+                    a.addAttributes(base, range: NSRange(location: 0, length: a.length))
+                    result.append(a)
                 }
-                let n = Int(ns.substring(with: m.range(at: 1))) ?? 0
-                let piece = NSMutableAttributedString(attachment: imageAttachment(markerIndex: n))
-                piece.addAttribute(Self.markerKey, value: n, range: NSRange(location: 0, length: piece.length))
-                result.append(piece)
-                last = m.range.location + m.range.length
             }
-            if last < ns.length { text(ns.substring(from: last)) }
             return result
+        }
+
+        /// The checkbox glyph for a task line — SF square / checkmark.square.fill,
+        /// scaled with the body font, accent when checked.
+        static func taskAttachment(checked: Bool) -> NSTextAttachment {
+            let side = bodyFont().pointSize + 4
+            let config = UIImage.SymbolConfiguration(pointSize: side - 4, weight: .medium)
+            let color = checked ? UIColor(Color.skAccent) : UIColor(Color.skTextDim)
+            let image = UIImage(systemName: checked ? "checkmark.square.fill" : "square",
+                                withConfiguration: config)?
+                .withTintColor(color, renderingMode: .alwaysOriginal)
+            let att = NSTextAttachment()
+            att.image = image
+            att.bounds = CGRect(x: 0, y: -3.5, width: side, height: side)
+            return att
         }
 
         /// Walk the attributed text → the raw transcript string with `[[img_NNN]]`
@@ -699,6 +737,8 @@ struct NoteBodyView: UIViewRepresentable {
                     // Match the writer's zero-padded format (ImageMarkers %03d) —
                     // the old editor re-emitted "[[img_1]]" and drifted the format.
                     out.append("[[img_\(String(format: "%03d", marker))]]")
+                } else if let checked = attrs[Self.taskKey] as? Bool {
+                    out.append(BodyTransform.rawTask(checked: checked))
                 } else if attrs[.attachment] == nil {
                     out.append(full.substring(with: range))
                 }                                                  // untagged attachment → drop

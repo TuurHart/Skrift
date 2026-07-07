@@ -119,6 +119,69 @@ final class NoteBodyTests: XCTestCase {
     }
 }
 
+/// The raw⇄display transform (chunk 4 — live checklists join the image markers).
+final class BodyTransformTests: XCTestCase {
+
+    func testPiecesSplitTextImagesAndTasks() {
+        let raw = "intro [[img_001]]\n- [ ] buy milk\n- [x] done\ntail"
+        let pieces = BodyTransform.pieces(of: raw)
+        let kinds: [BodyTransform.Segment] = pieces.map(\.segment)
+        XCTAssertEqual(kinds, [
+            .text("intro "), .image(1), .text("\n"),
+            .task(checked: false), .text(" buy milk\n"),
+            .task(checked: true), .text(" done\ntail"),
+        ])
+    }
+
+    func testTaskRequiresLineStart() {
+        let pieces = BodyTransform.pieces(of: "mention - [ ] mid-line")
+        XCTAssertEqual(pieces.count, 1, "a mid-line '- [ ]' is prose, not a task")
+    }
+
+    func testIndentStaysText() {
+        let pieces = BodyTransform.pieces(of: "  - [X] indented")
+        XCTAssertEqual(pieces.map(\.segment),
+                       [.text("  "), .task(checked: true), .text(" indented")])
+    }
+
+    func testDisplayRangeAccountsForTasksAndImages() {
+        // raw: "- [ ] see [[img_001]] Jack" — span over "Jack" (raw 22..26)
+        let raw = "- [ ] see [[img_001]] Jack"
+        let jack = (raw as NSString).range(of: "Jack")
+        let display = BodyTransform.displayRange(forRaw: jack, in: raw)
+        // task "- [ ]" (5→1) saves 4; img (11→1) saves 10 → display loc = 22-14
+        XCTAssertEqual(display, NSRange(location: jack.location - 14, length: 4))
+    }
+
+    @MainActor
+    func testChecklistRoundTripsThroughTheEditor() {
+        let raw = "- [ ] buy milk\n- [x] call Jack"
+        let memo = Memo(audioFilename: "memo_t.m4a", transcript: raw)
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        XCTAssertEqual(coordinator.reconstruct(tv.attributedText), raw, "byte-exact round trip")
+        XCTAssertEqual(tv.text.filter { $0 == "\u{FFFC}" }.count, 2, "both prefixes are checkbox glyphs")
+    }
+
+    @MainActor
+    func testToggleFlipsTheRawSyntax() {
+        let memo = Memo(audioFilename: "memo_t2.m4a", transcript: "- [ ] buy milk")
+        let coordinator = NoteBodyView.Coordinator(memo: memo, onCommit: {})
+        let tv = NoteBodyTextView()
+        tv.installAccessoryHosts()
+        coordinator.textView = tv
+        coordinator.load(force: true)
+        coordinator.toggleTask(at: 0)
+        XCTAssertEqual(memo.transcript, "- [x] buy milk")
+        XCTAssertTrue(memo.transcriptUserEdited)
+        coordinator.toggleTask(at: 0)
+        XCTAssertEqual(memo.transcript, "- [ ] buy milk")
+    }
+}
+
 /// Share-out + stats helpers (chunk 2 survey folds).
 final class MemoShareTests: XCTestCase {
 

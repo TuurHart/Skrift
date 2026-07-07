@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T09:21:25.000Z'
+updated: '2026-07-07T09:30:44.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -222,7 +222,7 @@ nodes:
     title: Note-editing overhaul
     lane: 0
     order: 5.5
-    status: now
+    status: inprogress
     shipped:
       - >-
         2026-07-07 · Chunk 1 — body re-founded on a scrolling text view
@@ -263,7 +263,7 @@ nodes:
     title: Note feature wave
     lane: 0
     order: 5.7
-    status: planned
+    status: now
     eff: L
     deps:
       - NEdit
@@ -274,8 +274,14 @@ nodes:
       Build plan = backlog.md EPIC 🏗 chunks 4–9. Audio-trim DROPPED (the
       text is the source). Locked notes still SYNC (Mac too, locked);
       excluded from Obsidian PUBLISH only."
+    shipped:
+      - >-
+        2026-07-07 · Chunk 4 — live checklists (mobile): BodyTransform (one
+        raw⇄display transform for img markers + task prefixes), checkbox
+        attachments toggle in place + commit immediately, typed syntax
+        materializes on end-editing, byte-exact Obsidian round-trip
     backlog:
-      - Live checklists (- [ ] toggle ↔ Obsidian tasks)
+      - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
       - Memo↔memo [[links]] + backlinks (stores memo:UUID, exports [[Title]])
       - Photo OCR → search both apps (Vision, on-device)
       - Note reminders (synced remindAt; per-device UNUserNotificationCenter
