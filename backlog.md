@@ -50,6 +50,24 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
 
+## 🖨️ Print-to-wall + significance in the Journal (Tuur design session 2026-07-07 evening)
+
+Two locked directions from the build-42 live test (design only — build next session):
+1. **"Important lately" card on Journal home** — the orange-tier (≥0.8) notes of the last ~30 days,
+   above the Looking-back cards. This is P6's Highlights feed taking its first slot inside Journal.
+   Resurfaced UNRATED notes stay in Looking back by design: they're prune-candidates (idea i2)
+   making their case — the journal is where a note earns its life (rate it → it survives).
+2. **Auto-print Important notes ("the Wall")** — when a note crosses INTO the orange tier, silently
+   print a designed card to the home printer. Mechanics: one-time `UIPrinterPickerController` pick
+   in Settings ("Wall printer" section: printer + auto-print toggle + threshold, default 0.8) →
+   `UIPrintInteractionController.printToPrinter` (NO dialog). Card = the P6 quote-card renderer on
+   paper (title + polished text + date/place footer + thread first-mention line; mono-first
+   typography; ImageRenderer → PDF). `printedAt` stamp = idempotent (re-rating never reprints);
+   manual "Print card" in the note ⋯ menu; offline → queue + retry on foreground + "🖨 sent to the
+   wall" toast. Printed notes get a 🖨 mark; later a Journal "Wall" section mirrors the physical
+   wall in print order. (Mac-as-print-daemon = robustness fallback later; phone-first is
+   standalone-true.) Quote-card renderer is shared with P6's shareable image cards.
+
 ## ⭐ Shared-code dedup — anti-drift consolidation (2026-07-07, roadmap `SharedKit`)
 
 Every phone↔Mac parity algorithm + wire struct that existed as annotated copies now compiles from

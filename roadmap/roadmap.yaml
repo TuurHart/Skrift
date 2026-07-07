@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 13
-updated: 2026-07-07T17:20:00.000Z
+version: 14
+updated: 2026-07-07T18:45:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -903,6 +903,17 @@ ideas:
       as-is for now; the user will sort the layout out in Claude Code. (Just a
       note that this is a known thing, no action needed from Huginn.)
     source: voice
+  - id: i5
+    text: "Print-to-wall (Tuur, 2026-07-07): a note crossing INTO the orange
+      importance tier (≥0.8) silently prints a designed card to the home
+      printer (saved AirPrint printer + printToPrinter, no dialog) — the
+      physical commonplace wall. Card = P6's quote-card renderer on paper;
+      printedAt idempotency; Settings 'Wall printer' section; printed notes
+      marked 🖨, later a Journal 'Wall' section mirrors the physical wall.
+      Pairs with an 'Important lately' card on Journal home (P6's Highlights
+      feed's first slot). Full design in backlog.md 🖨️ section."
+    source: voice
+    nodeHint: P6
   - id: i4
     text: "Shared-audio capture flow is broken + a batch enhancement. (1) BUG:
       sharing an audio/voice message from a messenger app (WhatsApp etc.) into
