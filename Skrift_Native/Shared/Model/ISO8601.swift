@@ -2,9 +2,9 @@ import Foundation
 
 /// ISO-8601 timestamps formatted exactly like JavaScript's `Date.toISOString()`
 /// (`2026-06-06T12:00:00.000Z`). The names sync compares `lastModifiedAt`
-/// strings lexicographically, so this must stay byte-compatible with the iOS app
-/// and the (retiring) Python backend. Duplicated from the iOS rewrite verbatim —
-/// the two native apps share the contract but not (yet) a Swift package (plan §8).
+/// strings lexicographically, so this must stay byte-compatible everywhere a
+/// timestamp is written — which is why it's ONE shared copy for both apps
+/// (each used to carry an identical duplicate).
 enum ISO8601 {
     private static let formatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
