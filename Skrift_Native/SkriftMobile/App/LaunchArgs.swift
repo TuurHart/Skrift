@@ -41,6 +41,12 @@ enum LaunchFlags {
     /// centered circle — distorts to an ellipse if the thumbnail squishes aspect),
     /// so a UI test can screenshot-verify the video source glyph + thumbnail aspect.
     static var seedVideoMemo: Bool { args.boolFlag("-seedVideoMemo") }
+    /// Seed back-dated memos with locations for the Journal tab (Looking-back
+    /// cards, calendar dot density, place clusters) — screenshot verification.
+    static var seedJournal: Bool { args.boolFlag("-seedJournal") }
+    /// Open the Journal tab on launch (screenshot/UITest routing, like the
+    /// seed-and-open flags above).
+    static var openJournal: Bool { args.boolFlag("-openJournal") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Seed the name-linking demo (the mock's "Studio afternoon" memo + 4 people: two
     /// Jacks → ambiguous, Hendri → linked, Rose → suggested) and open its detail directly,

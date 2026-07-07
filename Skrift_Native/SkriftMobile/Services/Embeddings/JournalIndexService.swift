@@ -56,7 +56,7 @@ final class JournalIndexService {
                 body: annotated,
                 place: memo.metadata?.location?.placeName,
                 tags: memo.tags,
-                createdAt: memo.createdAt ?? memo.recordedAt
+                createdAt: memo.recordedAt // journal axis = recorded moment (see LookbackProvider)
             )
         }
     }
