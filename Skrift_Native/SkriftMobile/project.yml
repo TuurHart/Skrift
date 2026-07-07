@@ -251,10 +251,11 @@ targets:
       # Multi-target source membership: CaptureInbox is shared between the app
       # and the extension (both write/read the App Group container).
       - path: Services/Capture/CaptureInbox.swift
-      # SignificanceCircles + its dependencies (SignificanceScale in the same
-      # file, DesignSystem colors) are compiled directly into the extension so
+      # SignificanceCircles + its dependencies (the SHARED SignificanceScale,
+      # DesignSystem colors) are compiled directly into the extension so
       # it can render the significance control without importing the app target.
       - path: Features/MemoDetail/SignificanceCircles.swift
+      - path: ../Shared/Model/SignificanceScale.swift
       # DesignSystem (Theme colours, Components) — no UIKit/AppKit-only API here,
       # so it builds cleanly in the extension process.
       - path: DesignSystem/Theme.swift
