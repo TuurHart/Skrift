@@ -12,8 +12,10 @@ import Foundation
 /// edit-distance alone wouldn't catch still surfaces the canonical as a
 /// replacement candidate. The canonical is always what gets written.
 ///
-/// Host-less + unit-tested (`VocabularyTermParsingTests`) — lives in `Models/`
-/// so the fast `UnitTests` scheme covers it without compiling FluidAudio.
+/// SHARED (one copy, both apps): the custom-vocab list syncs phone↔Mac
+/// (`VocabularyRecord`), so both boosters MUST parse + trust-gate identically —
+/// the device-confirmed 2026-06-13 fix depends on it. Pure + host-less
+/// (`CustomVocabularyTests` run against it in both apps' suites, MLX/FluidAudio-free).
 enum VocabularyTermParsing {
     struct Parsed: Equatable {
         let canonical: String
@@ -104,9 +106,9 @@ enum VocabularyTrust {
 }
 
 /// Rescorer knobs. Ships the FluidAudio-tuned defaults; a DEBUG environment
-/// override lets a headless `-runfile -vocab` sweep cbw / minSimilarity to
-/// locate the acoustic-gate margin without a rebuild. Release builds always use
-/// the passed-in default (no shipped knob).
+/// override lets a headless sweep (desktop `-runfile -vocab`) tune cbw /
+/// minSimilarity to locate the acoustic-gate margin without a rebuild. Release
+/// builds always use the passed-in default (no shipped knob).
 enum VocabularyTuning {
     static func cbw(default def: Float) -> Float {
         #if DEBUG

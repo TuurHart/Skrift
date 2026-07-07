@@ -1,11 +1,6 @@
 import Foundation
 
-/// A diarization result: a time range assigned to a speaker slot (0-based).
-struct DiarizedSegment: Sendable, Equatable, Codable {
-    let speaker: Int
-    let start: Double
-    let end: Double
-}
+// `DiarizedSegment` is the shared wire-contract struct (Shared/Model/DiarizedSegment.swift).
 
 /// Diarization result: speaker time-ranges + the matched name per slot (a slot is named
 /// when its voiceprint cosine-matches a known person; nil otherwise → "Speaker N").

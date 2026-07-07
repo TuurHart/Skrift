@@ -30,12 +30,15 @@ enum TrashPolicy {
 /// **Shared model (`Shared/Model/Memo.swift`):** this @Model is the SINGLE source of
 /// the `Memo` CloudKit schema, compiled by BOTH the iOS app and the macOS app so the
 /// Mac can be a CloudKit client of the phone's note store (`MAC_CLOUDKIT_PLAN.md`,
-/// Fork A). To stay desktop-compilable it carries NO iOS couplings — the contextual
-/// `MemoMetadata` / `SharedContent` types stay mobile-only, so the designated init here
-/// is **blob-based** (`metadataData` / `sharedContentData` as `Data?`). The phone's
-/// typed accessors (`metadata` / `sharedContent`), the on-disk path helpers
-/// (`audioURL` / `sharedFileURL`), and a convenient typed factory (`Memo.make(…)`) live
-/// in the mobile-only `SkriftMobile/Models/Memo+Mobile.swift` extension.
+/// Fork A). It carries NO iOS couplings. The designated init is **blob-based**
+/// (`metadataData` / `sharedContentData` as `Data?`) because SwiftData traps decoding a
+/// nested-optional Codable @Model attribute (see below), NOT because the types are
+/// unavailable — `MemoMetadata` is shared too (Shared/Model/MemoMetadata.swift) and the
+/// typed `metadata` accessor lives here for both apps. `SharedContent` stays
+/// mobile-typed (the desktop keeps a lenient legacy decoder of the same JSON under the
+/// same name — CompilerBridge.swift), so its accessor, the on-disk path helpers
+/// (`audioURL` / `sharedFileURL`), and the typed factory (`Memo.make(…)`) live in the
+/// mobile-only `SkriftMobile/Models/Memo+Mobile.swift` extension.
 @Model
 final class Memo {
     /// Stable identity. Audio filenames embed it (`memo_{uuid}.m4a`) and the Mac
@@ -66,7 +69,8 @@ final class Memo {
     var title: String?
 
     /// On-device transcript. Contains `[[img_NNN]]` markers when photos were
-    /// taken. Trusted by the Mac iff `transcriptUserEdited || confidence >= 0.7`.
+    /// taken. Trusted by the Mac iff `Memo.isTrustedTranscript` (user-edited, or
+    /// confidence ≥ `trustConfidenceThreshold`).
     var transcript: String?
     var transcriptStatus: TranscriptStatus = TranscriptStatus.pending
     var transcriptConfidence: Double?
@@ -220,5 +224,25 @@ final class Memo {
     static func decodeJSON<T: Decodable>(_ data: Data?) -> T? {
         guard let data else { return nil }
         return try? JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// Typed contextual metadata, decoded from / encoded to the raw `metadataData` blob
+    /// (the blob persists — SwiftData can't store the Codable struct directly, see
+    /// `metadataData`). Shared: the phone writes it, the Mac's ingest reads it.
+    var metadata: MemoMetadata? {
+        get { Self.decodeJSON(metadataData) }
+        set { metadataData = Self.encodeJSON(newValue) }
+    }
+
+    // MARK: - The mobile↔Mac transcript-trust rule
+
+    /// The Mac re-transcribes a synced memo UNLESS the phone's transcript is trusted.
+    /// ONE rule for both apps: hand-edited always wins; otherwise the on-device ASR
+    /// confidence must clear this threshold (api/files.py heritage).
+    static let trustConfidenceThreshold = 0.7
+
+    /// `transcriptUserEdited || transcriptConfidence >= 0.7` — THE trust gate.
+    static func isTrustedTranscript(userEdited: Bool, confidence: Double?) -> Bool {
+        userEdited || (confidence ?? 0) >= trustConfidenceThreshold
     }
 }

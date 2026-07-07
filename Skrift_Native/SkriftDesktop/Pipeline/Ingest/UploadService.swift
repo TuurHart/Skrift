@@ -220,11 +220,11 @@ struct UploadService: Sendable {
         return created
     }
 
-    /// Trust = `transcriptUserEdited || transcriptConfidence >= 0.7` (api/files.py).
+    /// The shared trust gate (`Memo.isTrustedTranscript`) read off the upload metadata.
     func isTranscriptTrusted(_ meta: [String: Any]?) -> Bool {
-        if (meta?["transcriptUserEdited"] as? Bool) == true { return true }
-        if let n = meta?["transcriptConfidence"] as? NSNumber { return n.doubleValue >= 0.7 }
-        return false
+        Memo.isTrustedTranscript(
+            userEdited: (meta?["transcriptUserEdited"] as? Bool) == true,
+            confidence: (meta?["transcriptConfidence"] as? NSNumber)?.doubleValue)
     }
 
     private func saveImages(_ images: [MultipartPart], manifest: [[String: Any]], into folder: URL) throws {

@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T05:00:16.938Z'
+updated: '2026-07-07T09:50:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -189,6 +189,32 @@ nodes:
       prod CloudKit schema deployed + Release app-ID registered; one real
       phone↔Mac round-trip verified in prod
     done: '2026-07-07'
+  - id: SharedKit
+    title: Shared-code dedup (anti-drift)
+    lane: 0
+    order: 4.5
+    status: done
+    eff: M
+    ms: Standalone core
+    done: 2026-07-07
+    deps:
+      - Mac
+    note: Finish what P0 started — every phone↔Mac parity algorithm + wire struct
+      moved to ONE compiled copy in Shared/ (the annotated 'mirrors the phone'
+      duplicates had already drifted, e.g. the Mac's 'Significant' tier label).
+    shipped:
+      - 2026-07-07 · SignificanceScale unified (fixes the Mac's residual
+        'Significant' value label; phone gains the clamp hardening) [0192947]
+      - 2026-07-07 · MemoMetadata/WordTiming/DiarizedSegment/ISO8601 + the 0.7
+        trust rule → Shared/Model [a5d3d5b]
+      - 2026-07-07 · New Shared/Pipeline — VocabularyTermParsing+Trust+Tuning
+        [c73643d], VoiceMatcher+SpeakerFusion [e53b50d], BPEMerge+ImageMarkers
+        (phone drops its inline copies) [6e4ab09]
+      - 2026-07-07 · FIX Mac custom vocab consume-only → full whole-list LWW via
+        shared VocabularySyncCore (+push-on-edit, union migration; device
+        round-trip owed) [6f78ac1]
+    win: no algorithm or wire struct the sync contract depends on exists twice;
+      both suites green against the shared copies
   - id: Stz020
     title: Stabilize 0.2.0
     lane: 0

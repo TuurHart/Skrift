@@ -5,9 +5,10 @@ import Foundation
 /// The core `Memo` is compiled by BOTH apps (the Mac is a CloudKit client of the phone's
 /// note store — `MAC_CLOUDKIT_PLAN.md`), so it carries no iOS types. This extension adds
 /// back the phone-side pieces the desktop must NOT see:
-/// - the typed `metadata` / `sharedContent` accessors over the raw JSON blobs (the
-///   `MemoMetadata` / `SharedContent` structs stay mobile-only — they'd otherwise collide
-///   with the desktop's `CompilerBridge.SharedContent`),
+/// - the typed `sharedContent` accessor over the raw JSON blob (the `SharedContent`
+///   struct stays mobile-only — it would collide with the desktop's lenient legacy
+///   `SharedContent` decoder in CompilerBridge.swift; `metadata`/`MemoMetadata` are
+///   SHARED and live on the shared `Memo`),
 /// - the on-disk path helpers (`audioURL` / `sharedFileURL`) that resolve against the iOS
 ///   app-container `AppPaths.recordingsDirectory`,
 /// - `Memo.make(…)`, a typed convenience factory matching the old initializer's signature.
@@ -30,12 +31,6 @@ extension Memo {
     var sharedFileURL: URL? {
         guard let path = sharedContent?.filePath, !path.isEmpty else { return nil }
         return AppPaths.recordingsDirectory.appendingPathComponent(path)
-    }
-
-    /// Typed contextual metadata, decoded from / encoded to the raw `metadataData` blob.
-    var metadata: MemoMetadata? {
-        get { Self.decodeJSON(metadataData) }
-        set { metadataData = Self.encodeJSON(newValue) }
     }
 
     /// Typed shared-capture payload, decoded from / encoded to the raw `sharedContentData` blob.
