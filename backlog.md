@@ -28,7 +28,7 @@ seedable). **FIXED build 46 — Option A** (signed `mocks/notes-bottom-chrome.ht
 `AudiobookMiniPill` (cover · play/pause · ❝ Add note) left + record right (no session → record alone, right corner);
 Books keeps the full bar (mounted INSIDE the view); Journal/Settings carry nothing (user call); ˄ chevron cut
 everywhere (duplicate of cover-tap); list gets bottom content margin. New hooks `-seedAudiobook` + `-openTab` make
-the capsule sim-visible per tab — vision-verified all four before install. **OWED:** user eyeball of build 46.
+the capsule sim-visible per tab — vision-verified all four before install. **Round 2 (build 46): pill interior "weird — empty space / I'd tap it to open the book" + Henry "crowded".** Iterated V1/V2/V3 then V2a/b/c (mocks notes-pill-variants + notes-pill-v2-iterations); discovered the 390pt truth (title + labeled chip + play don't fit). **PICKED V2a → build 47:** cover · time-left · ❝ Add note · filled accent play; pill BODY opens the player; 16pt pill↔record gap. **OWED:** user eyeball of build 47.
 Build numbering: 43–45 were consumed by the sprint branch in parallel → renumbered 46; rule = bump to
 max(installed-on-phone, main) + 1 before any device build.
 

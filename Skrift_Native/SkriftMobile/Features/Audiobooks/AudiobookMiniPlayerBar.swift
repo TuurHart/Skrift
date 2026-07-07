@@ -125,12 +125,17 @@ struct AudiobookMiniPlayerBar: View {
     }
 }
 
-/// The COMPACT book pill for the Notes tab (2026-07-07 bottom-chrome redesign,
-/// `mocks/notes-bottom-chrome.html` Option A): cover (→ player) · play/pause ·
-/// ❝ Add note, 60pt tall, sharing ONE bottom row with the record button so the
-/// two never stack or overlap (the build-40 regression). Skips and the chevron
-/// are deliberately absent — they live in the full player, the Books-tab bar,
-/// and the lock screen. Renders nothing when no book session is active.
+/// The COMPACT book pill for the Notes tab (2026-07-07 bottom-chrome redesign;
+/// interior = V2a of `mocks/notes-pill-v2-iterations.html`, picked after the
+/// build-46 device round + Henry's "crowded" note): cover · time-left ·
+/// ❝ Add note · a FILLED accent play — 60pt tall, sharing ONE bottom row with
+/// the record button so the two never stack or overlap (the build-40
+/// regression). The middle is TIME-ONLY by design: a title can't fit legibly
+/// beside a labeled chip + play at 390pt (build-46 truth) — the title is one
+/// tap away, because the pill BODY (cover + middle) opens the player, which is
+/// what the thumb expects. Skips and the chevron are deliberately absent —
+/// they live in the full player, the Books-tab bar, and the lock screen.
+/// Renders nothing when no book session is active.
 struct AudiobookMiniPill: View {
     @ObservedObject private var session = AudiobookSession.shared
 
@@ -139,31 +144,28 @@ struct AudiobookMiniPill: View {
 
     var body: some View {
         if let book = session.book {
-            HStack(spacing: 4) {
+            HStack(spacing: 8) {
+                // Cover + the flexible time-left middle are ONE tap target: the
+                // pill body is the book — tap it, the player opens.
                 Button {
                     showPlayer = true
                 } label: {
-                    BookCoverView(book: book, showsPlaceholderTitle: false)
-                        .frame(width: 44, height: 44)
-                        .clipShape(.rect(cornerRadius: 10, style: .continuous))
+                    HStack(spacing: 8) {
+                        BookCoverView(book: book, showsPlaceholderTitle: false)
+                            .frame(width: 44, height: 44)
+                            .clipShape(.rect(cornerRadius: 10, style: .continuous))
+                        Text(AudiobookTime.clock(max(0, session.duration - session.currentTime)) + " left")
+                            .font(.system(size: 12, weight: .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(Color.skTextDim)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("mini-pill-cover")
                 .accessibilityLabel("\(book.title) — open the player")
-
-                Button {
-                    session.togglePlay()
-                } label: {
-                    Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Color.skText)
-                        .frame(width: 38, height: 40)
-                        .contentShape(Circle())
-                }
-                .accessibilityIdentifier("mini-pill-play")
-                .accessibilityLabel(session.isPlaying ? "Pause" : "Play")
-
-                Spacer(minLength: 2)
 
                 Button {
                     session.pause()
@@ -178,14 +180,32 @@ struct AudiobookMiniPill: View {
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
                     .foregroundStyle(Color.skAccentText)
-                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .padding(.horizontal, 11).padding(.vertical, 8)
                     .background(Color.skAccent.opacity(0.2), in: .capsule)
                 }
                 .accessibilityIdentifier("mini-pill-capture")
                 .accessibilityLabel("Add note — pauses the book and builds a quote from what you just heard")
+
+                // V2a: play is the pill's hero — a filled accent circle at the end.
+                Button {
+                    session.togglePlay()
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.skAccent)
+                            .frame(width: 42, height: 42)
+                            .shadow(color: Color.skAccent.opacity(0.4), radius: 6, y: 2)
+                        Image(systemName: session.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white)
+                    }
+                    .contentShape(Circle())
+                }
+                .accessibilityIdentifier("mini-pill-play")
+                .accessibilityLabel(session.isPlaying ? "Pause" : "Play")
             }
             .padding(.leading, 8)
-            .padding(.trailing, 10)
+            .padding(.trailing, 9)
             .frame(height: 60)
             .background(.ultraThinMaterial, in: .capsule)
             .overlay(Capsule().strokeBorder(Color.skBorder, lineWidth: 0.5))

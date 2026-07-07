@@ -1054,7 +1054,8 @@ private struct NotesBottomChrome: View {
     @ObservedObject private var session = AudiobookSession.shared
 
     var body: some View {
-        HStack(spacing: 12) {
+        // 16pt pill↔record gap (V2a "real air" — Henry's separation note).
+        HStack(spacing: 16) {
             if session.isActive {
                 AudiobookMiniPill()
                     .frame(maxWidth: .infinity)
