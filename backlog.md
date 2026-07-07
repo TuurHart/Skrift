@@ -503,12 +503,21 @@ same API). 520 unit + desktop 325 + desktop app build + UI cluster green.
 - ❌→🔁 **P1#3 doc-scan invisible AGAIN** — devlog `isSupported=true` proves capability; iOS 26 eats a
   2nd trailing item in ANY shape (separate items AND one group). Build 36: RELOCATED to the LEADING
   side next to Select. Sort-filter stays lone trailing. (Both toolbar UI tests green.)
-- ❌→🔍 **P1#4 photo search "for sure not working"** — devlog shows the save-time sweep FIRED
-  (`indexed 1` at 14:26) but "indexed" counted EMPTY results too. Build 36 logs per-photo OCR yield
-  (`chars=N head='…'`) + per-query search hits (`search 'q' → N/M, K via photoText`). Also NOTE:
-  photo text matches in the LIST search bar, not the in-note 🔍 find — clarify with user which he
-  used. If devlog shows chars=0 on his text photo → Vision quality issue, different fix.
-- 💥→✅ **NEW: markup ERASE crash** (draw → close → reopen → erase → app dies; crash
+- 🔬 **P1#4 photo search — PIPELINE PROVEN, input mystery remains (round 4):** device devlog shows
+  Vision READ his photo (`chars=21 head='TENHO…'` at 14:55) yet ZERO `search '…'` probe lines — the
+  query never reached the memos-list search field. Sim end-to-end repro (user-directed) is GREEN:
+  `-seedPhotoTextMemo` (real rendered-text JPEG, un-OCR'd) → launch sweep → REAL Vision → typed in
+  the REAL search field → memo surfaces (`testPhotoTextSearchEndToEnd`, `ccb7ce4`). ROUND 5 = type
+  **"tenho"** in the Memos-list "Search transcripts" bar (not the in-note 🔍); the probe logs the
+  query either way → distinguishes typed-elsewhere vs a dead device binding.
+- ✅✅ **markup ERASE crash — FIXED, device-confirmed round 4** ("works perfect").
+- ✅✅ **doc-scan — FOUND + WORKS round 4** (leading slot; "super cool", adjust works). Two spawns:
+  (a) NEW ASK: scanned PDF should render INLINE in the note ("text, PDF, text — like Apple Notes"),
+  not behind an Open button → design/mock next session (capture-card PDF preview block);
+  (b) minor: VisionKit's adjust handles sit under the finger — system UI, note only.
+- ✅ **long-press misunderstanding resolved round 4** — he'd been pressing in the NOTE BODY all
+  along; the menu lives on the LIST cards. Proper verdict owed but unblocked.
+- 💥→✅ **markup ERASE crash (round-3 finding, fixed build 36)** (draw → close → reopen → erase → app dies; crash
   `SkriftMobile-2026-07-07-142621.ips`): CoreAutoLayout main-thread assert — a PencilKit worker
   thread's dying CATransaction committed keyboard/selection-host layout off-main; our
   didUpdateContents chain was rebuilding the editor UNDER the live markup session. Build 36: the

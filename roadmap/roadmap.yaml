@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T14:45:00.000Z'
+updated: '2026-07-07T15:10:00.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -343,11 +343,13 @@ nodes:
         eats trailing #2); handles fix attempt 2 (frame-writes only-on-change)
         + sharper probes (sel-during-scroll, OCR yield, search hits)
     backlog:
-      - "Device ROUND 4 (build 36): selection handles (frame-write guard +
-        sel-during-scroll probe arbitrates overlay-vs-data), doc-scan now
-        LEADING-side, photo-search devlog yield (chars=N + per-query hits),
-        markup-erase crash fix (edit chain deferred to dismissal), long-press
-        explained (hold a note card)"
+      - "Round-4 verdicts IN: erase-crash FIXED ✓, doc-scan FOUND+works ✓,
+        long-press understood. ROUND 5 remainders: selection-handles repro
+        (sel-during-scroll probe arbitrates), photo-search = type 'tenho' in
+        the LIST search bar (sim e2e GREEN ccb7ce4 + device OCR green — only
+        the input path unproven), long-press proper verdict"
+      - "NEW ask (round 4): scanned PDF renders INLINE in the note (Notes
+        idiom — 'text, PDF, text', no Open button) → mock-first next session"
       - P2#12 viewer zoom-open transition (re-flagged round 2; next polish)
       - Scan-into-this-note accessory verb (deferred design question)
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
