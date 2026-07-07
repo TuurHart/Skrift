@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import UIKit
 import QuickLook
+import PhotosUI
 import FluidAudio
 
 /// The "note" screen (mockup2). Swipe left/right between memos (a SwiftUI-native
@@ -23,6 +24,10 @@ struct MemoDetailView: View {
     @State private var showActions = false
     @State private var showSplitOptions = false
     @State private var showAppendRecorder = false
+    @State private var showShare = false
+    /// Transient "n / total" that ghosts in while swiping between memos —
+    /// replaces the permanent page-dots row (compact-player spec).
+    @State private var pageFlash = false
     @StateObject private var player = AudioPlayerModel()
     private let repository = NotesRepository.shared
 
@@ -126,11 +131,18 @@ struct MemoDetailView: View {
         // A confirmationDialog is presented by the view controller (not anchored
         // to the toolbar item), so the paged TabView can't swallow it — unlike a
         // toolbar `Menu`, which silently failed to present on device.
-        .confirmationDialog("Memo", isPresented: $showActions, titleVisibility: .hidden) {
+        .confirmationDialog(memoStatsLine, isPresented: $showActions, titleVisibility: .visible) {
             Button("Add recording", action: { showAppendRecorder = true })
+            Button("Share note…", action: { showShare = true })
             Button("Copy transcript", action: copyTranscript)
             Button("Delete", role: .destructive, action: deleteCurrent)
             Button("Cancel", role: .cancel) {}
+        }
+        .sheet(isPresented: $showShare) {
+            if let memo = currentMemo {
+                ActivityShareSheet(items: shareItems(for: memo))
+                    .presentationDetents([.medium, .large])
+            }
         }
         // Append a follow-up recording to the current memo (records → transcribes →
         // appends text + merges audio in MemoSaver.appendRecording). Transcript
@@ -139,11 +151,12 @@ struct MemoDetailView: View {
             RecordView(appendTo: selection)
         }
         .onAppear { player.load(currentMemo?.audioURL) }
-        .onChange(of: selection) { _, newID in
+        .onChange(of: selection) { old, newID in
             // Re-target the bar when paging settles; ignore the transient nil the
             // paging scroll reports between snap points (don't stop audio mid-swipe).
             guard let newID else { return }
             player.load(memos.first { $0.id == newID }?.audioURL)
+            if old != nil, old != newID, memos.count > 1 { pageFlash = true }
         }
         // A VIDEO import inserts the memo and opens this screen BEFORE its audio
         // has been extracted (extraction is async), so the initial load() hit a
@@ -191,19 +204,53 @@ struct MemoDetailView: View {
     }
 
     private var playerBarStack: some View {
-        VStack(spacing: 7) {
-            if memos.count > 1, memos.count <= 8 {
-                PageDots(count: memos.count, index: memos.firstIndex { $0.id == selection } ?? 0)
+        PlayerBar(player: player, clock: player.clock)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .overlay(alignment: .top) {
+                if pageFlash, let idx = memos.firstIndex(where: { $0.id == selection }) {
+                    Text("\(idx + 1) / \(memos.count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.skTextDim)
+                        .padding(.horizontal, 9).padding(.vertical, 4)
+                        .background(Color.skSurface, in: .capsule)
+                        .overlay(Capsule().strokeBorder(Color.skBorder, lineWidth: 0.5))
+                        .offset(y: -30)
+                        .transition(.opacity)
+                        .task(id: selection) {
+                            try? await Task.sleep(for: .seconds(1.1))
+                            withAnimation(.easeOut(duration: 0.3)) { pageFlash = false }
+                        }
+                }
             }
-            PlayerBar(player: player, clock: player.clock)
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 9)
     }
 
     private func copyTranscript() {
         guard let text = currentMemo?.transcript, !text.isEmpty else { return }
         UIPasteboard.general.string = text
+    }
+
+    /// "512 words · 3:07" — the ⋯ sheet's title doubles as the note's stats line.
+    private var memoStatsLine: String {
+        guard let memo = currentMemo else { return "Memo" }
+        let words = MemoShare.wordCount(of: memo.transcript)
+        var parts: [String] = [words == 1 ? "1 word" : "\(words) words"]
+        if memo.duration > 0 {
+            let total = Int(memo.duration)
+            parts.append(String(format: "%d:%02d", total / 60, total % 60))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// Share OUT (survey fold, user-approved): the note as markdown text, plus
+    /// the recording file when there is one.
+    private func shareItems(for memo: Memo) -> [Any] {
+        var items: [Any] = [MemoShare.markdown(title: memo.title ?? memo.firstTranscriptLine,
+                                               body: memo.transcript ?? "")]
+        if let url = memo.audioURL, FileManager.default.fileExists(atPath: url.path) {
+            items.append(url)
+        }
+        return items
     }
 
     /// Re-point the player at the current memo's audio if an earlier `load()` failed
@@ -294,6 +341,11 @@ private struct MemoPageView: View {
     /// computed property that re-ran the full Sanitiser scan 2–3× per body eval —
     /// per keystroke — note-editing study 2026-07-06.)
     @State private var spans: [NameSpan] = []
+    /// Photo-at-caret (accessory 📷): the page presents the picker, the proxy
+    /// hands the image to the live editor coordinator.
+    @State private var bodyProxy = NoteBodyProxy()
+    @State private var showPhotoPicker = false
+    @State private var pickedPhoto: PhotosPickerItem?
 
     var body: some View {
         // Note-editing overhaul (spec mocks/note-editor-redesign.html): B2 pinned
@@ -333,8 +385,23 @@ private struct MemoPageView: View {
         } message: {
             Text("Separate multiple tags with commas.")
         }
-        // Shared-document (.file) capture → preview the PDF/doc in QuickLook.
+        // Shared-document (.file) capture → preview the PDF/doc in QuickLook —
+        // and the editor's inline photos (tap a photo → viewer).
         .quickLookPreview($quickLookURL)
+        // Accessory 📷 → photo library → insert at the caret + register the new
+        // file for CloudKit (same manifest/asset conventions as recording).
+        .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhoto, matching: .images)
+        .onChange(of: pickedPhoto) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    bodyProxy.insertPhoto(image)
+                    AssetMaterializer.capture(memoID: memo.id, repository: repository)
+                }
+                pickedPhoto = nil
+            }
+        }
         // Tap a speaker → an assign sheet: pick a known Person (links + enrolls the
         // voiceprint), merge into another speaker in this convo (fixes a mis-split), or
         // type a new name. Replaces the old free-text alert.
@@ -447,7 +514,10 @@ private struct MemoPageView: View {
                     .padding(.horizontal, Theme.Space.margin).padding(.top, 6)
                     .accessibilityHidden(!isCurrent)),
                 footer: AnyView(noteFooter(isCurrent: isCurrent).accessibilityHidden(!isCurrent)),
-                a11yHidden: !isCurrent
+                a11yHidden: !isCurrent,
+                onTapImage: { n in quickLookURL = memo.imageURL(markerIndex: n) },
+                onRequestPhoto: { showPhotoPicker = true },
+                proxy: bodyProxy
             )
         }
     }
@@ -1339,62 +1409,88 @@ private struct PlayerBar: View {
     @ObservedObject var clock: PlayerClock
 
     var body: some View {
-        VStack(spacing: 6) {
-            Slider(value: Binding(
-                get: { clock.time },
-                set: { player.seek(to: $0) }
-            ), in: 0...max(player.duration, 0.01))
-            .tint(.skAccent)
+        // The COMPACT pill (signed-off spec, −60% height): play · ±10 s ·
+        // scrubber with times · speed — one ~44 pt row. The whole scrubber
+        // zone is the drag target (no more fishing for a 3-pt slider).
+        HStack(spacing: 10) {
+            Button { player.togglePlay() } label: {
+                Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(Color.skAccent, in: .circle)
+                    .shadow(color: .skAccent.opacity(0.38), radius: 5, y: 3)
+            }
+            .accessibilityIdentifier("play-button")
             .disabled(!player.hasAudio)
 
-            HStack {
-                Text(timeString(clock.time))
-                Spacer()
-                Text(timeString(player.duration))
+            Button { player.skip(-10) } label: {
+                Image(systemName: "gobackward.10")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.skText)
+                    .frame(width: 26, height: 32)
             }
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Color.skTextDim)
+            .accessibilityIdentifier("skip-back-button")
 
-            HStack(spacing: 34) {
-                Button { player.skip(-10) } label: {
-                    skipLabel("gobackward.10")
-                }
-                .accessibilityIdentifier("skip-back-button")
-
-                Button { player.togglePlay() } label: {
-                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.white)
-                        .frame(width: 46, height: 46)
-                        .background(Color.skAccent, in: .circle)
-                        .shadow(color: .skAccent.opacity(0.4), radius: 7, y: 4)
-                }
-                .accessibilityIdentifier("play-button")
-                .disabled(!player.hasAudio)
-
-                Button { player.skip(10) } label: {
-                    skipLabel("goforward.10")
-                }
-                .accessibilityIdentifier("skip-fwd-button")
+            Button { player.skip(10) } label: {
+                Image(systemName: "goforward.10")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.skText)
+                    .frame(width: 26, height: 32)
             }
-            .foregroundStyle(Color.skText)
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .trailing) {
-                Button { player.cycleRate() } label: {
-                    Text(rateLabel)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.skText)
-                        .padding(.horizontal, 9).padding(.vertical, 5)
-                        .background(Color.skSurface, in: .rect(cornerRadius: 9, style: .continuous))
-                        .overlay(RoundedRectangle.sk(9).stroke(Color.skBorder, lineWidth: 1))
-                }
-                .accessibilityIdentifier("speed-button")
+            .accessibilityIdentifier("skip-fwd-button")
+
+            Text(timeString(clock.time))
+                .font(.system(size: 10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.skTextDim)
+
+            scrubber
+
+            Text(timeString(player.duration))
+                .font(.system(size: 10.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.skTextDim)
+
+            Button { player.cycleRate() } label: {
+                Text(rateLabel)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.skText)
+                    .padding(.horizontal, 7).padding(.vertical, 4)
+                    .background(Color.skSurface, in: .rect(cornerRadius: 8, style: .continuous))
+                    .overlay(RoundedRectangle.sk(8).stroke(Color.skBorder, lineWidth: 1))
             }
+            .accessibilityIdentifier("speed-button")
         }
+        .frame(height: 40)
     }
 
-    private func skipLabel(_ symbol: String) -> some View {
-        Image(systemName: symbol).font(.system(size: 21))
+    /// Thin progress line with a knob; the FULL-HEIGHT zone around it accepts
+    /// the scrub drag.
+    private var scrubber: some View {
+        GeometryReader { geo in
+            let progress = player.duration > 0 ? min(max(clock.time / player.duration, 0), 1) : 0
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.14)).frame(height: 3.5)
+                Capsule().fill(Color.skAccent)
+                    .frame(width: max(3.5, geo.size.width * progress), height: 3.5)
+                Circle().fill(.white)
+                    .frame(width: 11, height: 11)
+                    .offset(x: geo.size.width * progress - 5.5)
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { v in
+                        guard player.duration > 0 else { return }
+                        player.seek(to: (v.location.x / geo.size.width) * player.duration)
+                    }
+            )
+        }
+        .frame(height: 40)
+        .disabled(!player.hasAudio)
+        .accessibilityIdentifier("player-scrubber")
     }
 
     private var rateLabel: String {
@@ -1408,22 +1504,35 @@ private struct PlayerBar: View {
     }
 }
 
-// MARK: - Page dots
+// MARK: - Share sheet (share note OUT — survey fold)
 
-private struct PageDots: View {
-    let count: Int
-    let index: Int
-
-    var body: some View {
-        HStack(spacing: 5) {
-            ForEach(0..<count, id: \.self) { i in
-                Capsule()
-                    .fill(i == index ? Color.skAccent : Color.skTextFaint)
-                    .frame(width: i == index ? 18 : 6, height: 6)
-            }
-        }
-        .animation(Theme.Motion.snappy, value: index)
+/// Markdown/word-count helpers for sharing a note out. Pure, unit-testable.
+enum MemoShare {
+    /// "# Title\n\nbody" with `[[img_NNN]]` markers stripped (they mean
+    /// nothing outside the app; the photos travel as files when needed).
+    static func markdown(title: String?, body: String) -> String {
+        let cleaned = body
+            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let title = title?.trimmingCharacters(in: .whitespaces), !title.isEmpty else { return cleaned }
+        return "# \(title)\n\n\(cleaned)"
     }
+
+    /// Spoken-word count — markers aren't words.
+    static func wordCount(of transcript: String?) -> Int {
+        guard let t = transcript else { return 0 }
+        return t.replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: " ", options: .regularExpression)
+            .split(whereSeparator: { $0.isWhitespace }).count
+    }
+}
+
+private struct ActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Name-linking presentation state

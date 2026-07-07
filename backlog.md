@@ -432,7 +432,15 @@ feel); update FEATURES.md + roadmap in the same commits.
 header/footer, karaoke = attribute painting, `PlayerClock` split ends the 20 Hz whole-page re-render, debounced
 saves, memoized name-scan; `NonScrollingTextView` + `TranscriptBodyView`/`TranscriptEditor` + `KaraokeWordLayout`
 DELETED; marker write-back normalizes to the writer's `%03d` — the OLD editor drifted `[[img_001]]`→`[[img_1]]`
-on every edit, a latent bug caught by the new round-trip test). Unit suite green (489). Device eyeball owed
+on every edit, a latent bug caught by the new round-trip test). Unit suite green (489).
+**Chunk 2 ✅ 2026-07-07 (chrome):** floating Skrift accessory pill (`NoteAccessoryBar` — undo·redo·find·
+photo-at-caret·Done, SF Symbols, live undo-stack state), system **find-in-note** (`isFindInteractionEnabled`),
+**compact one-row player pill** (~40 pt: play·±10s·scrubber-with-times·speed; whole scrub zone draggable; page
+dots → transient "n / total" flash on swipe), **photo tap → QuickLook viewer** (caret-adjacent attachment),
+**photo-at-caret insert** (PhotosPicker → manifest `photo_<id>_NNN.jpg` convention + `AssetMaterializer.capture`
+for CloudKit), **share note OUT** (⋯ → markdown + audio file via share sheet; `MemoShare` unit-tested),
+**word count · duration** as the ⋯ sheet title, **Dynamic Type** (editor body + attributed text scale via
+UIFontMetrics). Unit 493 green; editor-cluster UI tests green. Device eyeball owed
 (selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
 scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
 FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret

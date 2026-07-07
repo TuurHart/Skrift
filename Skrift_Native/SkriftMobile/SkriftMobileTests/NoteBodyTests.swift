@@ -119,6 +119,33 @@ final class NoteBodyTests: XCTestCase {
     }
 }
 
+/// Share-out + stats helpers (chunk 2 survey folds).
+final class MemoShareTests: XCTestCase {
+
+    func testMarkdownComposesTitleAndStripsMarkers() {
+        let md = MemoShare.markdown(title: "Evening walk",
+                                    body: "First line. [[img_001]] Second line.")
+        XCTAssertEqual(md, "# Evening walk\n\nFirst line.  Second line.")
+        XCTAssertFalse(md.contains("[[img"))
+    }
+
+    func testMarkdownWithoutTitleIsJustTheBody() {
+        XCTAssertEqual(MemoShare.markdown(title: "  ", body: "Body."), "Body.")
+        XCTAssertEqual(MemoShare.markdown(title: nil, body: "Body."), "Body.")
+    }
+
+    func testMarkdownCollapsesMarkerOnlyParagraphs() {
+        let md = MemoShare.markdown(title: nil, body: "Before.\n\n[[img_001]]\n\nAfter.")
+        XCTAssertEqual(md, "Before.\n\n\nAfter.".replacingOccurrences(of: "\n\n\n", with: "\n\n"))
+    }
+
+    func testWordCountSkipsMarkers() {
+        XCTAssertEqual(MemoShare.wordCount(of: "one two [[img_001]] three"), 3)
+        XCTAssertEqual(MemoShare.wordCount(of: nil), 0)
+        XCTAssertEqual(MemoShare.wordCount(of: "  "), 0)
+    }
+}
+
 /// The karaoke word map: display-text word ranges must align with the timings
 /// sidecar's word indexing (whitespace-delimited spoken words; attachment glyphs
 /// are not words).

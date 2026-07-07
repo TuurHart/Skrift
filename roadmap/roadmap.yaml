@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T08:05:00.000Z'
+updated: '2026-07-07T09:18:20.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -230,7 +230,13 @@ nodes:
         karaoke = attribute painting on the same textStorage (PlayerClock split
         ends the 20 Hz whole-page re-render), debounced saves, memoized
         name-span scan; NonScrollingTextView + 3-mode swap + 2 karaoke
-        renderers DELETED. Unit suite green.
+        renderers DELETED. Unit suite green. [620ddbc]
+      - >-
+        2026-07-07 · Chunk 2 — chrome: floating accessory pill (undo·redo·
+        find·photo·Done), system find-in-note, compact 40pt player pill
+        (whole-pill scrub; dots → transient n/total), photo tap→QuickLook,
+        photo-at-caret insert (manifest+CloudKit), share note OUT (md+audio),
+        word count·duration in ⋯, Dynamic Type on the body
     eff: M
     note: Re-found the note body on a natively-scrolling text view (fork B) —
       selection/undo/find/caret-follow come free; karaoke becomes attribute
@@ -242,15 +248,10 @@ nodes:
       header; compact player pill. Build green-lit once the bug-fix chat
       wraps. Build plan = backlog.md EPIC 🏗 (chunks 1–3 here; 4–9 = NFeat).
     backlog:
-      - Compact player pill — one 44pt row, whole-pill scrubbing (old bar
-        blocks the note)
-      - Keyboard accessory bar (undo · redo · find · photo-at-caret · Done)
       - Tag chips + autocomplete (replace the comma alert; chip tap currently
-        DELETES silently)
-      - Share note OUT (md/text + audio) + word count/duration in ⋯ (survey
-        folds, user-approved)
-      - Debounce per-keystroke saves; memoize the name-span scan
-      - Photo tap → viewer; Dynamic Type
+        DELETES silently) — chunk 3
+      - Device eyeball — selection/caret/magnifier feel, accessory pill,
+        compact player, name-tap-while-editing semantics
       - Check the polished memo's summary card shows on phone (possible bug →
         bugs chat)
     win: "editing a note feels like Apple Notes — selection autoscrolls, caret

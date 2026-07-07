@@ -56,6 +56,13 @@ struct NoteBodyView: UIViewRepresentable {
     /// + VoiceOver would see 2-3 editors). SwiftUI's `.accessibilityHidden` on
     /// the page doesn't reach into this UIKit subtree, so it's driven explicitly.
     var a11yHidden: Bool = false
+    /// A focus-gaining tap landed on an inline photo → the page opens the viewer.
+    var onTapImage: (Int) -> Void = { _ in }
+    /// The accessory bar's 📷 — the page presents the photo picker, then hands
+    /// the image back through `proxy.insertPhoto`.
+    var onRequestPhoto: () -> Void = {}
+    /// Page-side handle into the coordinator (photo insertion from the picker).
+    var proxy: NoteBodyProxy? = nil
 
     @AppStorage("karaokeTapToSeek") private var tapToSeek = true
 
@@ -71,12 +78,15 @@ struct NoteBodyView: UIViewRepresentable {
         tv.textContainer.lineFragmentPadding = 0
         tv.textContainerInset = UIEdgeInsets(top: 10, left: Theme.Space.margin,
                                              bottom: 24, right: Theme.Space.margin)
-        tv.font = .systemFont(ofSize: 15.5)
+        tv.font = Coordinator.bodyFont()
+        tv.adjustsFontForContentSizeCategory = true      // Dynamic Type
+        tv.isFindInteractionEnabled = true               // system find-in-note
         tv.tintColor = UIColor(Color.skAccent)
         tv.keyboardDismissMode = .interactive
         tv.delegate = context.coordinator
         tv.accessibilityIdentifier = "transcript-editor"
         tv.installAccessoryHosts()
+        context.coordinator.installAccessoryBar(on: tv)
 
         context.coordinator.textView = tv
         context.coordinator.player = player
@@ -93,8 +103,9 @@ struct NoteBodyView: UIViewRepresentable {
         tap.cancelsTouchesInView = false
         tv.addGestureRecognizer(tap)
 
-        context.coordinator.observeAppResign()
+        context.coordinator.observeEnvironment()
         context.coordinator.load(force: true)
+        proxy?.coordinator = context.coordinator
         return tv
     }
 
@@ -103,8 +114,11 @@ struct NoteBodyView: UIViewRepresentable {
         c.memo = memo
         c.player = player
         c.onTapName = onTapName
+        c.onTapImage = onTapImage
+        c.onRequestPhoto = onRequestPhoto
         c.polishedBinding = polishedBinding
         c.tapToSeek = tapToSeek
+        proxy?.coordinator = c
 
         tv.setAccessories(header: header, footer: footer)
         tv.setAccessibilityHidden(a11yHidden)
@@ -137,7 +151,12 @@ struct NoteBodyView: UIViewRepresentable {
         var polishedBinding: Binding<String>?
         var nameSpans: [NameSpan] = []
         var onTapName: (NameSpan) -> Void = { _ in }
+        var onTapImage: (Int) -> Void = { _ in }
+        var onRequestPhoto: () -> Void = {}
         var tapToSeek = true
+        private var accessory: NoteAccessoryBar?
+        /// Caret at the moment 📷 was tapped — the picker's insert target.
+        private var pendingPhotoLocation: Int?
 
         /// The transcript string our attributed text currently reflects.
         private var loaded: String?
@@ -145,6 +164,7 @@ struct NoteBodyView: UIViewRepresentable {
         private var draftDirty = false
         private var commitTask: Task<Void, Never>?
         private var resignObserver: NSObjectProtocol?
+        private var sizeObserver: NSObjectProtocol?
 
         /// Name spans mapped to DISPLAYED offsets for hit-testing.
         private var displaySpans: [(range: NSRange, span: NameSpan)] = []
@@ -181,19 +201,37 @@ struct NoteBodyView: UIViewRepresentable {
 
         // MARK: lifecycle
 
-        func observeAppResign() {
+        func observeEnvironment() {
             resignObserver = NotificationCenter.default.addObserver(
                 forName: UIApplication.willResignActiveNotification, object: nil, queue: .main
             ) { [weak self] _ in
                 MainActor.assumeIsolated { self?.commitDraft() }
+            }
+            sizeObserver = NotificationCenter.default.addObserver(
+                forName: UIContentSizeCategory.didChangeNotification, object: nil, queue: .main
+            ) { [weak self] _ in
+                // Rebuild the attributed text with the freshly scaled body font.
+                MainActor.assumeIsolated {
+                    guard let self, let tv = self.textView else { return }
+                    tv.font = Coordinator.bodyFont()
+                    self.load(force: true)
+                }
             }
         }
 
         func teardown() {
             clockSub?.cancel()
             commitTask?.cancel()
-            if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
+            for o in [resignObserver, sizeObserver].compactMap({ $0 }) {
+                NotificationCenter.default.removeObserver(o)
+            }
             resignObserver = nil
+            sizeObserver = nil
+        }
+
+        /// The body font, scaled for Dynamic Type (15.5 pt at the default size).
+        static func bodyFont() -> UIFont {
+            UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 15.5))
         }
 
         // MARK: load / rebuild
@@ -444,6 +482,73 @@ struct NoteBodyView: UIViewRepresentable {
         func gestureRecognizer(_ g: UIGestureRecognizer,
                                shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 
+        // MARK: keyboard accessory (undo · redo · find · photo · Done)
+
+        func installAccessoryBar(on tv: NoteBodyTextView) {
+            let bar = NoteAccessoryBar()
+            bar.onUndo = { [weak self, weak tv] in
+                tv?.undoManager?.undo()
+                self?.refreshAccessory()
+            }
+            bar.onRedo = { [weak self, weak tv] in
+                tv?.undoManager?.redo()
+                self?.refreshAccessory()
+            }
+            bar.onFind = { [weak tv] in
+                tv?.findInteraction?.presentFindNavigator(showingReplace: false)
+            }
+            bar.onPhoto = { [weak self] in
+                guard let self, let tv = self.textView else { return }
+                self.pendingPhotoLocation = tv.selectedRange.location
+                self.onRequestPhoto()
+            }
+            bar.onDone = { [weak self, weak tv] in
+                self?.commitDraft()
+                tv?.resignFirstResponder()
+            }
+            tv.inputAccessoryView = bar
+            accessory = bar
+        }
+
+        private func refreshAccessory() {
+            accessory?.refresh(canUndo: textView?.undoManager?.canUndo ?? false,
+                               canRedo: textView?.undoManager?.canRedo ?? false)
+        }
+
+        /// Insert a picked photo AT THE CARET: the file lands in the recordings
+        /// directory under the manifest convention (photo_<memoID>_<NNN>.jpg),
+        /// the manifest gains its entry, and the marker's attachment goes into
+        /// the text (own paragraph). The caller registers the file for CloudKit
+        /// (AssetMaterializer) after the commit.
+        func insertPhoto(_ image: UIImage) {
+            guard let tv = textView, currentMode == .editing,
+                  let jpeg = image.jpegData(compressionQuality: 0.85) else { return }
+            let index = (memo.metadata?.imageManifest?.count ?? 0) + 1
+            let filename = "photo_\(memo.id.uuidString)_\(String(format: "%03d", index)).jpg"
+            let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
+            do { try jpeg.write(to: dest) } catch {
+                DevLog.log("insertPhoto: write failed \(error)")
+                return
+            }
+            var meta = memo.metadata ?? MemoMetadata()
+            var manifest = meta.imageManifest ?? []
+            manifest.append(ImageManifestEntry(filename: filename, offsetSeconds: 0))
+            meta.imageManifest = manifest
+            memo.metadata = meta
+
+            let at = min(pendingPhotoLocation ?? tv.selectedRange.location, tv.textStorage.length)
+            pendingPhotoLocation = nil
+            let piece = NSMutableAttributedString(string: "\n", attributes: baseAttributes())
+            let att = NSMutableAttributedString(attachment: imageAttachment(markerIndex: index))
+            att.addAttribute(Self.markerKey, value: index, range: NSRange(location: 0, length: att.length))
+            piece.append(att)
+            piece.append(NSAttributedString(string: "\n", attributes: baseAttributes()))
+            tv.textStorage.insert(piece, at: at)
+            tv.selectedRange = NSRange(location: at + piece.length, length: 0)
+            textViewDidChange(tv)
+            commitDraft()          // persist text + manifest atomically
+        }
+
         // MARK: name taps (via the selection, not a gesture)
 
         /// The tap that STARTS an editing session places the caret at the tapped
@@ -456,6 +561,7 @@ struct NoteBodyView: UIViewRepresentable {
 
         func textViewDidBeginEditing(_ tv: UITextView) {
             editingBeganAt = Date()
+            refreshAccessory()
             // UIKit's delegate order on a tap-to-focus varies: the caret can be
             // placed BEFORE didBeginEditing (no later selection callback comes),
             // so check the landing caret here too.
@@ -470,9 +576,21 @@ struct NoteBodyView: UIViewRepresentable {
 
         /// If the caret the focus-gaining tap just placed sits inside a name
         /// span, the tap was ON the name — yield the keyboard to the resolve
-        /// sheet. While already editing, taps stay plain caret placement.
+        /// sheet. A caret adjacent to an inline photo means the tap was ON the
+        /// photo — open the viewer. While already editing, taps stay plain
+        /// caret placement.
         private func resolveNameAtCaret(_ tv: UITextView) {
             guard currentMode == .editing, tv.selectedRange.length == 0 else { return }
+            let caret = tv.selectedRange.location
+            for probe in [caret, caret - 1] where probe >= 0 && probe < tv.textStorage.length {
+                if let marker = tv.textStorage.attribute(Self.markerKey, at: probe,
+                                                         effectiveRange: nil) as? Int {
+                    editingBeganAt = nil
+                    tv.resignFirstResponder()
+                    onTapImage(marker)
+                    return
+                }
+            }
             // ±1 char of tolerance: a tap at a name's leading edge places the
             // caret one position BEFORE the span (DevLog-traced: "…with |Jack"
             // lands at 11 for a span at 12).
@@ -490,6 +608,7 @@ struct NoteBodyView: UIViewRepresentable {
 
         func textViewDidChange(_ tv: UITextView) {
             draftDirty = true
+            refreshAccessory()
             (tv as? NoteBodyTextView)?.setNeedsAccessoryLayout()
             commitTask?.cancel()
             commitTask = Task { [weak self] in
@@ -542,7 +661,7 @@ struct NoteBodyView: UIViewRepresentable {
         private func baseAttributes() -> [NSAttributedString.Key: Any] {
             let para = NSMutableParagraphStyle()
             para.lineSpacing = 4
-            return [.font: UIFont.systemFont(ofSize: 15.5),
+            return [.font: Coordinator.bodyFont(),
                     .foregroundColor: UIColor(Color.skText),
                     .paragraphStyle: para]
         }
@@ -623,6 +742,17 @@ struct NoteBodyView: UIViewRepresentable {
             }
         }
     }
+}
+
+// MARK: - Page-side handle
+
+/// Lets the page hand a picked photo into the live coordinator (the picker is
+/// presented by SwiftUI at page level; the insertion happens at the caret the
+/// accessory captured). @State-held, so identity survives body re-evals.
+@MainActor
+final class NoteBodyProxy {
+    weak var coordinator: NoteBodyView.Coordinator?
+    func insertPhoto(_ image: UIImage) { coordinator?.insertPhoto(image) }
 }
 
 // MARK: - The scrolling text view with hosted header/footer
