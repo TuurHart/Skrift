@@ -103,6 +103,19 @@ enum LookbackProvider {
             }
     }
 
+    /// "Important lately" (design 2026-07-07): every orange-tier note of the
+    /// last ~30 days — TIER-anchored where Looking back is TIME-anchored (a
+    /// 0.9 note between window anchors never surfaces there). Doubles as the
+    /// wall's digital twin. Newest first, capped.
+    static func importantLately(for memos: [Memo], now: Date = Date(),
+                                calendar: Calendar = .current, limit: Int = 4) -> [Memo] {
+        guard let cutoff = calendar.date(byAdding: .day, value: -30, to: now) else { return [] }
+        return memos
+            .filter { $0.significance >= WallPrinter.threshold && journalDate($0) >= cutoff }
+            .sorted { journalDate($0) > journalDate($1) }
+            .prefix(limit).map { $0 }
+    }
+
     // ── calendar + map derivations (shared by the Journal screens) ──
 
     /// Day-of-month → (memo count, any importance-rated) for one displayed month.

@@ -66,7 +66,7 @@ enum DemoDataSeeder {
              back(days: 3, hour: 9), 0.3, place("Home", 38.7370, -9.1500)),
             ("Dinner with Jack & Jack — Hotel du Vin",
              "The sourdough theory again: you don't own a starter, you just host it for a while.",
-             back(days: 3, hour: 21), 0.7, place("Hotel du Vin", 38.7080, -9.1350)),
+             back(days: 3, hour: 21), 0.9, place("Hotel du Vin", 38.7080, -9.1350)),
             ("Walk-thought: standalone is the bet",
              "The phone alone has to be the whole product; Mac and Obsidian become optional sinks.",
              back(days: 5), 0.6, estrela),

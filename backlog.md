@@ -76,7 +76,12 @@ land as sections *inside* Journal, and P6's quote cards remain a user-led design
 
 ## 🖨️ Print-to-wall + significance in the Journal (Tuur design session 2026-07-07 evening)
 
-Two locked directions from the build-42 live test (design only — build next session):
+**✅ BOTH BUILT same evening (build 43 on device; 581/581 tests; sim-screenshot verified).**
+`Features/Journal/WallPrinter.swift` (service + WallCardView + settings section), Important-lately
+in `LookbackProvider`/`JournalHomeView`, queue row on Journal home (the in-app surface — Tuur:
+notifications get dismissed), SignificanceCircles commit hook, ⋯ "Print Card". OWED on device:
+pick the real printer (Settings → Wall printer), rate a note orange, watch it print; test-card
+polish round on the physical print. Original design (still the spec):
 1. **"Important lately" card on Journal home** — the orange-tier (≥0.8) notes of the last ~30 days,
    above the Looking-back cards. This is P6's Highlights feed taking its first slot inside Journal.
    Resurfaced UNRATED notes stay in Looking back by design: they're prune-candidates (idea i2)

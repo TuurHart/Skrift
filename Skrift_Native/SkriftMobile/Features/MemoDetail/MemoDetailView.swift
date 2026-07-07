@@ -148,6 +148,11 @@ struct MemoDetailView: View {
             if JournalIndexService.shared.isActive {
                 Button("View Thread", action: { showThread = true })
             }
+            if WallPrinter.shared.hasPrinter, let memo = currentMemo {
+                Button("Print Card", action: {
+                    WallPrinter.shared.printCard(memo, repository: repository)
+                })
+            }
             if let memo = currentMemo {
                 Button(memo.locked ? "Remove Lock" : "Lock Note", action: { toggleLock(memo) })
             }
@@ -755,7 +760,11 @@ private struct MemoPageView: View {
             // The 10-circle significance control (SignificanceCircles.swift —
             // mocks/significance-circles.html): tap circle N → 0.N, re-tap →
             // Not rated. Flag-to-send: 0 stays on the phone, >0 syncs.
-            SignificanceCircles(value: $memo.significance) { repository.save() }
+            SignificanceCircles(value: $memo.significance) {
+                repository.save()
+                // Print-to-wall: an orange-tier rating enqueues a card (once, ever).
+                WallPrinter.shared.ratingCommitted(memo, repository: repository)
+            }
                 .padding(.top, 14)
 
             // Mac's polish: the summary card (when present) above the body.
