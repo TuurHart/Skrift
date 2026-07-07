@@ -95,7 +95,7 @@ final class LiveRecordingService {
     private let writerQueue = DispatchQueue(label: "skrift.recording.writer")
 
     @ObservationIgnored private var displayTimer: Timer?
-    @ObservationIgnored private var captionTimer: Timer?
+    @ObservationIgnored private var captionTask: Task<Void, Never>?
     @ObservationIgnored private var routeObserver: NSObjectProtocol?
     /// `AVAudioEngineConfigurationChange` — the canonical "the engine's node
     /// formats changed underneath you" signal. Re-arms a recording whose
@@ -150,7 +150,7 @@ final class LiveRecordingService {
         // is nonisolated, so it can't call the @MainActor stopTimers()/
         // teardownRecoveryObservers() helpers — inline the same work.)
         displayTimer?.invalidate()
-        captionTimer?.invalidate()
+        captionTask?.cancel()
         noticeClearTimer?.invalidate()
         if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
         if let engineConfigObserver { NotificationCenter.default.removeObserver(engineConfigObserver) }
@@ -245,7 +245,7 @@ final class LiveRecordingService {
             Task { await TranscriptionService.shared.beginStream() }
             startCaptionPolling()
         } else {
-            captionTimer?.invalidate(); captionTimer = nil
+            captionTask?.cancel(); captionTask = nil
             liveCaption = ""
             liveCommittedWordCount = 0
             Task { await TranscriptionService.shared.endStream() }
@@ -1009,22 +1009,53 @@ final class LiveRecordingService {
         return dst
     }
 
+    /// Poll the live caption on a SELF-PACING loop (was a fixed 0.6 s timer):
+    /// each snapshot re-transcribes the whole accumulated live chunk, so its
+    /// cost GROWS with the chunk — on a warm A15 the fixed cadence ran the
+    /// ANE/CPU flat-out for the entire recording (heat → throttle → frozen
+    /// UI). Pacing the next poll off the last snapshot's cost bounds the duty
+    /// cycle, and thermal pressure stretches it further (`captionPollDelay`).
     private func startCaptionPolling() {
-        captionTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, self.isRecording, !self.isPaused else { return }
-                Task {
-                    let parts = await TranscriptionService.shared.liveCaptionParts()
-                    if !parts.full.isEmpty {
-                        self.liveCaption = parts.full
-                        // The REAL finalized boundary: rotated (committed) chunks
-                        // never re-transcribe — drives solid-vs-volatile truthfully.
-                        self.liveCommittedWordCount = parts.committed
-                            .split(whereSeparator: { $0.isWhitespace }).count
-                        RecordingActivityManager.shared.update(caption: parts.full)
-                    }
+        captionTask?.cancel()
+        captionTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                guard let s = self, s.isRecording, s.liveTranscription else { return }
+                if s.isPaused {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    continue
                 }
+                let started = Date()
+                let parts = await TranscriptionService.shared.liveCaptionParts()
+                let cost = Date().timeIntervalSince(started)
+                guard let s = self, s.isRecording, s.liveTranscription else { return }
+                if !parts.full.isEmpty, !s.isPaused {
+                    s.liveCaption = parts.full
+                    // The REAL finalized boundary: rotated (committed) chunks
+                    // never re-transcribe — drives solid-vs-volatile truthfully.
+                    s.liveCommittedWordCount = parts.committed
+                        .split(whereSeparator: { $0.isWhitespace }).count
+                    RecordingActivityManager.shared.update(caption: parts.full)
+                }
+                let delay = Self.captionPollDelay(
+                    afterSnapshotCost: cost,
+                    thermal: ProcessInfo.processInfo.thermalState)
+                try? await Task.sleep(for: .seconds(delay))
             }
+        }
+    }
+
+    /// Next-poll delay after a snapshot that took `cost` seconds (pure;
+    /// unit-tested). ≥1.5× the cost bounds the live-caption ASR duty cycle to
+    /// ~40% so the ANE breathes between snapshots; thermal pressure raises the
+    /// floor (a hot phone throttles into the freeze spiral otherwise); the 6 s
+    /// cap keeps captions alive even at `.critical`.
+    nonisolated static func captionPollDelay(afterSnapshotCost cost: TimeInterval,
+                                             thermal: ProcessInfo.ThermalState) -> TimeInterval {
+        let paced = min(max(0.6, cost * 1.5), 6)
+        switch thermal {
+        case .serious:  return max(paced, 2.5)
+        case .critical: return max(paced, 6)
+        default:        return paced
         }
     }
 
@@ -1052,7 +1083,7 @@ final class LiveRecordingService {
 
     private func stopTimers() {
         displayTimer?.invalidate(); displayTimer = nil
-        captionTimer?.invalidate(); captionTimer = nil
+        captionTask?.cancel(); captionTask = nil
     }
 
     private func tick() {
