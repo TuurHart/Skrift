@@ -632,6 +632,28 @@ final class AttachmentHitTests: XCTestCase {
     }
 }
 
+/// Accessory 📷 camera source (round-1 P2): the system-camera wrapper must
+/// forward the captured image, and the simulator must stay library-only.
+final class CameraImagePickerTests: XCTestCase {
+
+    @MainActor
+    func testSimulatorHasNoCamera() {
+        XCTAssertFalse(CameraImagePicker.isAvailable,
+                       "the sim gate keeps Take Photo out of camera-less environments")
+    }
+
+    @MainActor
+    func testDelegateForwardsCapturedImage() {
+        var received: UIImage?
+        let picker = CameraImagePicker { received = $0 }
+        let coordinator = picker.makeCoordinator()
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 4, height: 4)).image { _ in }
+        coordinator.imagePickerController(UIImagePickerController(),
+                                          didFinishPickingMediaWithInfo: [.originalImage: image])
+        XCTAssertNotNil(received, "a capture must reach onCapture")
+    }
+}
+
 /// Share-out + stats helpers (chunk 2 survey folds).
 final class MemoShareTests: XCTestCase {
 

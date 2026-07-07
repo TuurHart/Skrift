@@ -396,6 +396,8 @@ private struct MemoPageView: View {
     @State private var bodyProxy = NoteBodyProxy()
     @State private var showPhotoPicker = false
     @State private var pickedPhoto: PhotosPickerItem?
+    @State private var showPhotoSourceDialog = false
+    @State private var showCameraCapture = false
     /// Memo↔memo links (chunk 5): the "[[" picker + who links here.
     @State private var showMemoLinkPicker = false
     /// Reminder chip → the sheet (chunk 7).
@@ -457,17 +459,25 @@ private struct MemoPageView: View {
                 bodyProxy.insertMemoLink(id: id, title: title)
             }
         }
-        // Accessory 📷 → photo library → insert at the caret + register the new
-        // file for CloudKit (same manifest/asset conventions as recording).
+        // Accessory 📷 → camera or library (round-1 P2: Notes offers both) →
+        // insert at the caret + register the new file for CloudKit (same
+        // manifest/asset conventions as recording). Camera-less environments
+        // (simulator) skip the dialog and go straight to the library.
+        .confirmationDialog("Add photo", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+            Button("Take Photo") { showCameraCapture = true }
+            Button("Choose from Library") { showPhotoPicker = true }
+        }
+        .fullScreenCover(isPresented: $showCameraCapture) {
+            CameraImagePicker { insertPickedPhoto($0) }
+                .ignoresSafeArea()
+        }
         .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhoto, matching: .images)
         .onChange(of: pickedPhoto) { _, item in
             guard let item else { return }
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let image = UIImage(data: data) {
-                    bodyProxy.insertPhoto(image)
-                    AssetMaterializer.capture(memoID: memo.id, repository: repository)
-                    PhotoTextIndexer.run(repository)
+                    insertPickedPhoto(image)
                 }
                 pickedPhoto = nil
             }
@@ -624,7 +634,10 @@ private struct MemoPageView: View {
                 onTapImage: { n in quickLookURL = memo.imageURL(markerIndex: n) },
                 onTapMemoLink: { id in onOpenMemo(id) },
                 onRequestMemoLink: { showMemoLinkPicker = true },
-                onRequestPhoto: { showPhotoPicker = true },
+                onRequestPhoto: {
+                    if CameraImagePicker.isAvailable { showPhotoSourceDialog = true }
+                    else { showPhotoPicker = true }
+                },
                 proxy: bodyProxy
             )
         }
@@ -829,6 +842,14 @@ private struct MemoPageView: View {
             }
             await MainActor.run { backlinks = Array(found.prefix(6)) }
         }
+    }
+
+    /// One downstream for both photo sources (camera + library): insert at the
+    /// caret the accessory captured, mirror to CloudKit, OCR for search.
+    private func insertPickedPhoto(_ image: UIImage) {
+        bodyProxy.insertPhoto(image)
+        AssetMaterializer.capture(memoID: memo.id, repository: repository)
+        PhotoTextIndexer.run(repository)
     }
 
     /// Everything linkable from here: most recent first, self excluded.
