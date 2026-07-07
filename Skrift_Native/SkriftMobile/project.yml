@@ -47,6 +47,9 @@ targets:
       - path: ../Shared/Naming
       - path: ../Shared/Export
       - path: ../Shared/Model
+      # Pipeline: pure parity algorithms both apps must run identically (vocab
+      # parsing/trust, fusion, voice match, BPE merge, image markers).
+      - path: ../Shared/Pipeline
     info:
       path: App/Info.plist
       properties:
