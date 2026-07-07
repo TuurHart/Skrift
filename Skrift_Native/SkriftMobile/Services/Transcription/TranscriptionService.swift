@@ -57,6 +57,10 @@ actor TranscriptionService: Transcriber {
     private var rotating = false
     private var snapshotRunning = false
     private var streaming = false
+    /// How long the LAST live snapshot took — feeds the caller's poll pacing
+    /// and the early-rotation policy (`shouldRotate`), so an old/hot device
+    /// commits smaller chunks instead of re-transcribing an ever-pricier window.
+    private var lastSnapshotCost: TimeInterval = 0
     /// Force-commit the accumulated buffer to a committed chunk after this long,
     /// bounding live-buffer memory on long recordings (Shhhcribble uses a VAD
     /// speech-end trigger too; we keep just the time-based hard cap for now).
@@ -277,6 +281,7 @@ actor TranscriptionService: Transcriber {
         lastRotationAt = nil
         rotating = false
         streaming = true
+        lastSnapshotCost = 0
         try? await ensureLoaded()
     }
 
@@ -317,6 +322,16 @@ actor TranscriptionService: Transcriber {
         snapshotRunning = true
         defer { snapshotRunning = false }
         guard let merged = Self.concatenate(buffers: streamBuffers) else { return (committed, committed) }
+        let windowSeconds = Double(merged.frameLength) / merged.format.sampleRate
+        let started = Date()
+        defer {
+            // Cost of the live window on THIS device right now — drives the
+            // caller's poll pacing + the early rotation, and gives the devlog
+            // the duty-cycle trace the freeze reports lacked.
+            lastSnapshotCost = Date().timeIntervalSince(started)
+            DevLog.log("live snapshot: \(String(format: "%.1f", windowSeconds))s window"
+                       + " → \(Int(lastSnapshotCost * 1000))ms")
+        }
         var state = TdtDecoderState.make()
         do {
             let tail = try await asr.transcribe(merged, decoderState: &state).text
@@ -356,12 +371,17 @@ actor TranscriptionService: Transcriber {
 
     private func committedText() -> String { committedChunks.joined(separator: " ") }
 
-    /// Time-based chunk rotation: once the live buffer spans `rotationInterval`,
-    /// transcribe it into a committed chunk and clear it, bounding memory.
+    /// Chunk rotation: transcribe the live buffer into a committed chunk and
+    /// clear it — at the `rotationInterval` hard cap (bounds memory), or EARLY
+    /// once snapshots have grown expensive for this device (bounds per-poll
+    /// inference cost on old/hot hardware — see `shouldRotate`).
     private func rotateIfNeeded() async {
         guard !rotating, let asr, !streamBuffers.isEmpty else { return }
         let started = lastRotationAt ?? streamStartedAt ?? Date()
-        guard Date().timeIntervalSince(started) > Self.rotationInterval else { return }
+        let window = Date().timeIntervalSince(started)
+        guard Self.shouldRotate(sinceRotation: window, lastSnapshotCost: lastSnapshotCost) else { return }
+        DevLog.log("live rotate: committing \(String(format: "%.1f", window))s window"
+                   + " (last snapshot \(Int(lastSnapshotCost * 1000))ms)")
         rotating = true
         let snapshot = streamBuffers
         streamBuffers.removeAll(keepingCapacity: true)
@@ -373,6 +393,19 @@ actor TranscriptionService: Transcriber {
             if !trimmed.isEmpty { committedChunks.append(trimmed) }
         }
         lastRotationAt = Date()
+        lastSnapshotCost = 0   // fresh (small) window — let the pacing re-measure
+    }
+
+    /// Whether the live chunk should rotate into a committed chunk now (pure;
+    /// unit-tested). The hard cap bounds live-buffer memory; the early path
+    /// commits a window whose snapshots have grown expensive (> 1.2 s) so the
+    /// per-poll cost stays bounded on old/hot hardware instead of climbing for
+    /// the full 25 s.
+    nonisolated static func shouldRotate(sinceRotation: TimeInterval,
+                                         lastSnapshotCost: TimeInterval) -> Bool {
+        if sinceRotation > rotationInterval { return true }
+        if sinceRotation > 10, lastSnapshotCost > 1.2 { return true }
+        return false
     }
 
     // MARK: - Buffer helpers (ported from Shhhcribble TextEngine)

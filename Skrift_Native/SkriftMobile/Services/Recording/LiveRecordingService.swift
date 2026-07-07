@@ -1,6 +1,7 @@
 import AVFoundation
-import Combine
 import Foundation
+import Observation
+import UIKit
 
 /// Drives a recording with a single `AVAudioEngine` tap that does three things at
 /// once: writes the `.m4a` (for upload + playback + the authoritative one-shot
@@ -14,29 +15,35 @@ import Foundation
 /// fully UI-testable on the Simulator (which has no Neural Engine). Real capture,
 /// the live ASR caption, and the file write are device-owed.
 @MainActor
-final class LiveRecordingService: ObservableObject {
-    @Published private(set) var isRecording = false
-    @Published private(set) var isPaused = false
-    @Published private(set) var elapsed: TimeInterval = 0
+@Observable
+final class LiveRecordingService {
+    // Observation is PER-PROPERTY (`@Observable`, not ObservableObject): the
+    // record screen splits into child views so the 4 Hz timer invalidates only
+    // the timer text, the ~10 Hz level only the waveform, the caption only the
+    // caption pane — the previous whole-screen re-render at ~30/s was a real
+    // cost on a warm A15.
+    private(set) var isRecording = false
+    private(set) var isPaused = false
+    private(set) var elapsed: TimeInterval = 0
     /// Smoothed input level, 0...1.
-    @Published private(set) var level: Float = 0
+    private(set) var level: Float = 0
     /// Rolling level history (newest last) for the live waveform bars.
-    @Published private(set) var waveform: [Float] = []
+    private(set) var waveform: [Float] = []
     /// Best-effort live transcript shown caption-first while recording.
-    @Published private(set) var liveCaption: String = ""
+    private(set) var liveCaption: String = ""
     /// How many leading caption words are FINAL (rotated/committed chunks never
     /// re-transcribe) — the truthful solid-vs-volatile boundary for colouring.
-    @Published private(set) var liveCommittedWordCount: Int = 0
+    private(set) var liveCommittedWordCount: Int = 0
     /// A brief, self-clearing notice surfaced when the audio route changes
     /// mid-recording (e.g. AirPods pulled out) — so the user knows capture may
     /// have hiccuped without the recording being dropped. nil = nothing to show.
-    @Published private(set) var routeNotice: String?
+    private(set) var routeNotice: String?
 
     /// Whether live captioning is on (Settings toggle; default on). Off = record
     /// + waveform only, transcript comes from the one-shot pass after stop.
-    /// `@Published` so the UI reacts when the auto-off timer flips it mid-recording
-    /// (the RT tap reads `tapLive`, not this, so publishing it is race-free).
-    @Published var liveTranscription: Bool
+    /// Observable so the UI reacts when the auto-off flips it mid-recording
+    /// (the RT tap reads `tapLive`, not this, so the flip is race-free).
+    var liveTranscription: Bool
 
     // MARK: - Cross-feature recording signal
 
@@ -61,45 +68,75 @@ final class LiveRecordingService: ObservableObject {
     private let mock: Bool
     private static let waveformBars = 40
 
-    private var engine: AVAudioEngine?
-    private var audioFile: AVAudioFile?
-    private var tempURL: URL?
+    // Internal state below is @ObservationIgnored: none of it is UI-facing,
+    // and the tap mirrors especially must NOT go through the observation
+    // registrar (the tap reads them on the real-time audio thread).
+    @ObservationIgnored private var engine: AVAudioEngine?
+    @ObservationIgnored private var audioFile: AVAudioFile?
+    @ObservationIgnored private var tempURL: URL?
     /// UID of the input port the CURRENT tap was built for — used to spot
     /// route-change notifications that are just echoes of our OWN session
     /// activation (`.categoryChange` right after `start()`), where nothing
     /// actually changed underneath us. Rebuilding on those mid-transition
     /// echoes is what crashed round 2 (P0, 2026-06-12).
-    private var tapInputUID: String?
+    @ObservationIgnored private var tapInputUID: String?
 
     // Mirrored, audio-thread-readable copies of the gating state. The tap runs
-    // on a real-time thread; reading MainActor-isolated @Published vars there
+    // on a real-time thread; reading MainActor-isolated observable vars there
     // would be a data race, so we mirror what the tap needs.
-    private nonisolated(unsafe) var tapPaused = false
-    private nonisolated(unsafe) var tapLive = true
+    @ObservationIgnored private nonisolated(unsafe) var tapPaused = false
+    @ObservationIgnored private nonisolated(unsafe) var tapLive = true
     /// Set before tearing down the tap so a callback already past `installTap`'s
     /// guard doesn't enqueue another write while we're finalizing the file.
-    private nonisolated(unsafe) var tapStopped = false
+    @ObservationIgnored private nonisolated(unsafe) var tapStopped = false
     /// File encode (AAC) + RMS run here, OFF the real-time audio render thread,
     /// so disk/encode work can't cause render overruns. Drained at stop before
     /// the `AVAudioFile` is released.
     private let writerQueue = DispatchQueue(label: "skrift.recording.writer")
 
-    private var displayTimer: Timer?
-    private var captionTimer: Timer?
-    private var routeObserver: NSObjectProtocol?
+    @ObservationIgnored private var displayTimer: Timer?
+    @ObservationIgnored private var captionTask: Task<Void, Never>?
+    @ObservationIgnored private var routeObserver: NSObjectProtocol?
     /// `AVAudioEngineConfigurationChange` — the canonical "the engine's node
     /// formats changed underneath you" signal. Re-arms a recording whose
     /// rebuild retries exhausted while the input format was still settling.
-    private var engineConfigObserver: NSObjectProtocol?
+    @ObservationIgnored private var engineConfigObserver: NSObjectProtocol?
     /// `mediaServicesWereReset` — the audio stack restarted; rebuild too.
-    private var mediaServicesObserver: NSObjectProtocol?
-    private var noticeClearTimer: Timer?
-    private var segmentStart: Date?
-    private var accumulated: TimeInterval = 0
+    @ObservationIgnored private var mediaServicesObserver: NSObjectProtocol?
+    /// `interruptionNotification` — a call/Siri/alarm stopped the engine. The
+    /// route/engine-config observers do NOT fire for a plain interruption (the
+    /// route never changed), so without this the engine stayed dead while the
+    /// wall-clock timer kept counting — the "recorded only half my message" bug.
+    @ObservationIgnored private var interruptionObserver: NSObjectProtocol?
+    /// `didBecomeActive` — iOS doesn't always deliver interruption `.ended`
+    /// (classically: the interruption happened while backgrounded); Apple's
+    /// guidance is to re-check on foreground. Re-arms a dead engine then.
+    @ObservationIgnored private var foregroundObserver: NSObjectProtocol?
+    /// True between interruption `.began` and its recovery (`.ended` /
+    /// foreground re-arm). The watchdog stands down while the system owns the
+    /// mic — a rebuild mid-interruption cannot succeed and just churns retries.
+    @ObservationIgnored private var interruptionActive = false
+    /// When the watchdog first saw the engine stopped (nil = capture healthy).
+    @ObservationIgnored private var stallSince: Date?
+    /// Last rebuild attempt — the watchdog defers to the rebuild ladder's own
+    /// backoff window instead of double-driving it.
+    @ObservationIgnored private var lastRebuildAttemptAt: Date?
+    @ObservationIgnored private var noticeClearTimer: Timer?
+    @ObservationIgnored private var segmentStart: Date?
+    @ObservationIgnored private var accumulated: TimeInterval = 0
+    /// Auto-off for live captions (Settings → Recording; 0 = never): after
+    /// this many recorded seconds the live stream quietly drops to save
+    /// battery — the one-shot pass at stop transcribes regardless. Captured at
+    /// `start()`; fires at most once per recording so tapping captions back ON
+    /// afterwards doesn't instantly re-trigger. Lived in RecordView's
+    /// `.onChange(of: elapsed)` before — which made the whole screen re-render
+    /// on every elapsed tick; the service owns its own clock now.
+    @ObservationIgnored private var autoOffSeconds = 0
+    @ObservationIgnored private var autoOffFired = false
 
     // Mock-only progressive caption state.
-    private var mockWords: [String] = []
-    private var mockRevealed = 0
+    @ObservationIgnored private var mockWords: [String] = []
+    @ObservationIgnored private var mockRevealed = 0
 
     init(mock: Bool = LaunchFlags.seedTranscript != nil,
          liveTranscription: Bool = UserDefaults.standard.object(forKey: "liveTranscription") as? Bool ?? true) {
@@ -113,11 +150,13 @@ final class LiveRecordingService: ObservableObject {
         // is nonisolated, so it can't call the @MainActor stopTimers()/
         // teardownRecoveryObservers() helpers — inline the same work.)
         displayTimer?.invalidate()
-        captionTimer?.invalidate()
+        captionTask?.cancel()
         noticeClearTimer?.invalidate()
         if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
         if let engineConfigObserver { NotificationCenter.default.removeObserver(engineConfigObserver) }
         if let mediaServicesObserver { NotificationCenter.default.removeObserver(mediaServicesObserver) }
+        if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }
+        if let foregroundObserver { NotificationCenter.default.removeObserver(foregroundObserver) }
     }
 
     /// Start, retrying briefly when the audio session is contended. Owned by the
@@ -162,6 +201,11 @@ final class LiveRecordingService: ObservableObject {
         tapPaused = false
         tapStopped = false
         tapLive = liveTranscription
+        interruptionActive = false
+        stallSince = nil
+        lastRebuildAttemptAt = nil
+        autoOffFired = false
+        autoOffSeconds = UserDefaults.standard.object(forKey: "liveCaptionAutoOffSeconds") as? Int ?? 60
 
         if mock {
             FileManager.default.createFile(atPath: url.path, contents: Data())
@@ -201,7 +245,7 @@ final class LiveRecordingService: ObservableObject {
             Task { await TranscriptionService.shared.beginStream() }
             startCaptionPolling()
         } else {
-            captionTimer?.invalidate(); captionTimer = nil
+            captionTask?.cancel(); captionTask = nil
             liveCaption = ""
             liveCommittedWordCount = 0
             Task { await TranscriptionService.shared.endStream() }
@@ -230,6 +274,14 @@ final class LiveRecordingService: ObservableObject {
                 rebuildTapForCurrentRoute()
             } else {
                 try? engine?.start()
+                if engine?.isRunning != true {
+                    // e.g. the session was interrupted while paused — a plain
+                    // start can't recover that; the rebuild reasserts the
+                    // session and reinstalls for the current route.
+                    DevLog.log("record resume — engine didn't start, rebuilding")
+                    interruptionActive = false
+                    rebuildTapForCurrentRoute()
+                }
             }
             DevLog.log("record resume — engineRunning=\(engine?.isRunning == true)")
             RecordingActivityManager.shared.resume(elapsed: elapsed)
@@ -461,12 +513,17 @@ final class LiveRecordingService: ObservableObject {
     /// `rebuildTapForCurrentRoute`. The session category was set once in
     /// `startEngine`; we don't reconfigure it here.
     ///
-    /// Three observers, together the NEVER-give-up guarantee: a refused rebuild
+    /// Five observers, together the NEVER-give-up guarantee: a refused rebuild
     /// only ever waits — it is re-triggered by the next route change, by an
     /// `AVAudioEngineConfigurationChange` (the canonical "the engine's node
-    /// formats changed" signal), or by a media-services reset. (DevLog round 3:
-    /// these are RE-ARM triggers only — a stale vended format never converges
-    /// by waiting; the rebuild itself breaks the cache with `engine.reset()`.)
+    /// formats changed" signal), by a media-services reset, by an audio-session
+    /// interruption ending (call/Siri/alarm — fires NO route/config event, the
+    /// gap that silently killed recordings halfway), or by returning to the
+    /// foreground (iOS can skip `.ended` for interruptions taken while
+    /// backgrounded). (DevLog round 3: these are RE-ARM triggers only — a stale
+    /// vended format never converges by waiting; the rebuild itself breaks the
+    /// cache with `engine.reset()`.) The display-timer watchdog (`watchdogTick`)
+    /// is the last resort for anything none of these cover.
     private func installRecoveryObservers() {
         guard routeObserver == nil else { return }
         let session = AVAudioSession.sharedInstance()
@@ -499,6 +556,72 @@ final class LiveRecordingService: ObservableObject {
                 self?.handleMediaServicesReset()
             }
         }
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: session,
+            queue: .main
+        ) { [weak self] note in
+            MainActor.assumeIsolated {
+                self?.handleInterruption(note)
+            }
+        }
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.handleForegroundReArm()
+            }
+        }
+    }
+
+    /// A call/Siri/alarm/another app took the audio session. iOS stops the
+    /// engine and — unlike a route change — fires no rebuild trigger, so before
+    /// this handler the recording stayed dead while the timer kept counting
+    /// (the half-recorded-message data loss). `.began` just marks the state
+    /// (nothing can capture while the system owns the mic); `.ended` reasserts
+    /// the session and rebuilds through the existing route-recovery ladder.
+    private func handleInterruption(_ note: Notification) {
+        guard isRecording, !mock else { return }
+        let typeValue = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+        let type = typeValue.flatMap { AVAudioSession.InterruptionType(rawValue: $0) }
+        switch type {
+        case .began:
+            interruptionActive = true
+            DevLog.log("interruption BEGAN — engineRunning=\(engine?.isRunning == true) paused=\(isPaused)")
+            showRouteNotice("Interrupted — recording resumes when it's over")
+        case .ended:
+            let optsRaw = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+            let shouldResume = AVAudioSession.InterruptionOptions(rawValue: optsRaw).contains(.shouldResume)
+            interruptionActive = false
+            if let engine, engine.isRunning {
+                DevLog.log("interruption ENDED (shouldResume=\(shouldResume)) — capture already healthy")
+                return
+            }
+            DevLog.log("interruption ENDED (shouldResume=\(shouldResume)) — rebuilding")
+            rebuildTapForCurrentRoute()
+            if engine?.isRunning == true {
+                showRouteNotice("Interruption over — still recording on \(currentInputName())")
+            }
+        default:
+            break
+        }
+    }
+
+    /// Foreground re-arm: if an interruption never delivered `.ended` (taken
+    /// while backgrounded) or the engine is just dead with no pending rebuild,
+    /// recover now — the user is looking at the screen expecting a live
+    /// recording.
+    private func handleForegroundReArm() {
+        guard isRecording, !mock else { return }
+        let engineDead = !isPaused && engine?.isRunning != true
+        guard interruptionActive || engineDead else { return }
+        DevLog.log("foreground re-arm — interruptionActive=\(interruptionActive)"
+                   + " engineRunning=\(engine?.isRunning == true) paused=\(isPaused)")
+        interruptionActive = false
+        guard !isPaused else { return }   // resume() rebuilds when the user resumes
+        rebuildTapForCurrentRoute()
     }
 
     private func handleRouteChange(_ note: Notification) {
@@ -612,6 +735,7 @@ final class LiveRecordingService: ObservableObject {
     /// fix — the old hard stop left the recording permanently deaf).
     private func rebuildTapForCurrentRoute(attempt: Int = 0) {
         guard isRecording, let engine, let file = audioFile else { return }
+        lastRebuildAttemptAt = Date()   // the watchdog defers while we're at it
         let input = engine.inputNode
         input.removeTap(onBus: 0)
         engine.stop()
@@ -713,6 +837,12 @@ final class LiveRecordingService: ObservableObject {
         engineConfigObserver = nil
         if let mediaServicesObserver { NotificationCenter.default.removeObserver(mediaServicesObserver) }
         mediaServicesObserver = nil
+        if let interruptionObserver { NotificationCenter.default.removeObserver(interruptionObserver) }
+        interruptionObserver = nil
+        if let foregroundObserver { NotificationCenter.default.removeObserver(foregroundObserver) }
+        foregroundObserver = nil
+        interruptionActive = false
+        stallSince = nil
         noticeClearTimer?.invalidate(); noticeClearTimer = nil
         routeNotice = nil
     }
@@ -879,22 +1009,53 @@ final class LiveRecordingService: ObservableObject {
         return dst
     }
 
+    /// Poll the live caption on a SELF-PACING loop (was a fixed 0.6 s timer):
+    /// each snapshot re-transcribes the whole accumulated live chunk, so its
+    /// cost GROWS with the chunk — on a warm A15 the fixed cadence ran the
+    /// ANE/CPU flat-out for the entire recording (heat → throttle → frozen
+    /// UI). Pacing the next poll off the last snapshot's cost bounds the duty
+    /// cycle, and thermal pressure stretches it further (`captionPollDelay`).
     private func startCaptionPolling() {
-        captionTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, self.isRecording, !self.isPaused else { return }
-                Task {
-                    let parts = await TranscriptionService.shared.liveCaptionParts()
-                    if !parts.full.isEmpty {
-                        self.liveCaption = parts.full
-                        // The REAL finalized boundary: rotated (committed) chunks
-                        // never re-transcribe — drives solid-vs-volatile truthfully.
-                        self.liveCommittedWordCount = parts.committed
-                            .split(whereSeparator: { $0.isWhitespace }).count
-                        RecordingActivityManager.shared.update(caption: parts.full)
-                    }
+        captionTask?.cancel()
+        captionTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                guard let s = self, s.isRecording, s.liveTranscription else { return }
+                if s.isPaused {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    continue
                 }
+                let started = Date()
+                let parts = await TranscriptionService.shared.liveCaptionParts()
+                let cost = Date().timeIntervalSince(started)
+                guard let s = self, s.isRecording, s.liveTranscription else { return }
+                if !parts.full.isEmpty, !s.isPaused {
+                    s.liveCaption = parts.full
+                    // The REAL finalized boundary: rotated (committed) chunks
+                    // never re-transcribe — drives solid-vs-volatile truthfully.
+                    s.liveCommittedWordCount = parts.committed
+                        .split(whereSeparator: { $0.isWhitespace }).count
+                    RecordingActivityManager.shared.update(caption: parts.full)
+                }
+                let delay = Self.captionPollDelay(
+                    afterSnapshotCost: cost,
+                    thermal: ProcessInfo.processInfo.thermalState)
+                try? await Task.sleep(for: .seconds(delay))
             }
+        }
+    }
+
+    /// Next-poll delay after a snapshot that took `cost` seconds (pure;
+    /// unit-tested). ≥1.5× the cost bounds the live-caption ASR duty cycle to
+    /// ~40% so the ANE breathes between snapshots; thermal pressure raises the
+    /// floor (a hot phone throttles into the freeze spiral otherwise); the 6 s
+    /// cap keeps captions alive even at `.critical`.
+    nonisolated static func captionPollDelay(afterSnapshotCost cost: TimeInterval,
+                                             thermal: ProcessInfo.ThermalState) -> TimeInterval {
+        let paced = min(max(0.6, cost * 1.5), 6)
+        switch thermal {
+        case .serious:  return max(paced, 2.5)
+        case .critical: return max(paced, 6)
+        default:        return paced
         }
     }
 
@@ -911,20 +1072,63 @@ final class LiveRecordingService: ObservableObject {
     // MARK: - Timers / shared
 
     private func startDisplayTimer() {
-        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+        // 4 Hz is plenty: the timer label has 1 s resolution, the waveform is
+        // driven by the tap's level pushes (not this timer), and the watchdog
+        // thinks in seconds. The old 20 Hz tick re-rendered the record screen
+        // for nothing.
+        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }
     }
 
     private func stopTimers() {
         displayTimer?.invalidate(); displayTimer = nil
-        captionTimer?.invalidate(); captionTimer = nil
+        captionTask?.cancel(); captionTask = nil
     }
 
     private func tick() {
         let live = segmentStart.map { Date().timeIntervalSince($0) } ?? 0
         elapsed = accumulated + (isPaused ? 0 : live)
-        if mock { mockTick() }
+        if !autoOffFired, autoOffSeconds > 0, isRecording, liveTranscription,
+           elapsed >= Double(autoOffSeconds) {
+            autoOffFired = true
+            DevLog.log("live captions auto-off at \(Int(elapsed))s (limit \(autoOffSeconds)s)")
+            setLiveTranscription(false)
+            Haptics.tap()
+        }
+        if mock { mockTick() } else { watchdogTick() }
+    }
+
+    /// Last-resort capture watchdog, driven by the display timer: `elapsed` is
+    /// wall-clock, so a dead engine otherwise LOOKS alive (timer counting,
+    /// file silently not growing — how a half-captured message slips out
+    /// looking fine). If the engine sits stopped mid-recording with no rebuild
+    /// in flight and no interruption owning the mic, rebuild — this catches
+    /// any stall the five recovery observers didn't (and re-drives an
+    /// exhausted-backoff recording without waiting for the next notification).
+    private func watchdogTick(now: Date = Date()) {
+        guard isRecording, !isPaused, !interruptionActive else { stallSince = nil; return }
+        if engine?.isRunning == true { stallSince = nil; return }
+        let since = stallSince ?? now
+        stallSince = since
+        guard Self.watchdogShouldRebuild(
+            stalledFor: now.timeIntervalSince(since),
+            sinceLastRebuildAttempt: lastRebuildAttemptAt.map { now.timeIntervalSince($0) }) else { return }
+        stallSince = nil
+        DevLog.log("WATCHDOG — engine stopped with no rebuild in flight; rebuilding")
+        showRouteNotice("Recovering the mic — keeping what's recorded so far")
+        rebuildTapForCurrentRoute()
+    }
+
+    /// Whether the watchdog should fire (pure; unit-tested): the engine has
+    /// been stopped for a couple of seconds AND the rebuild ladder isn't
+    /// already on it (its retry backoff spans ~3 s — treading on a sleeping
+    /// retry would double-drive the engine teardown).
+    nonisolated static func watchdogShouldRebuild(stalledFor: TimeInterval,
+                                                  sinceLastRebuildAttempt: TimeInterval?) -> Bool {
+        guard stalledFor >= 2 else { return false }
+        if let since = sinceLastRebuildAttempt, since < 4 { return false }
+        return true
     }
 
     /// Fake level + progressive caption reveal so the caption-first UI is
