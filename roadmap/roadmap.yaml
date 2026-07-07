@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 7
-updated: '2026-07-07T10:27:32.000Z'
+updated: '2026-07-07T10:39:40.000Z'
 lanes:
   - track: -1
     label: Differentiator
@@ -304,6 +304,13 @@ nodes:
         UNUserNotificationCenter from the field; pure ReminderPlan tested);
         bell chip + ⋯ + list long-press; tap → opens the memo; auth on first
         set. Mac reconciler owed; prod schema deploy needed at promotion
+        [d257256]
+      - >-
+        2026-07-07 · Chunk 8 — locked notes: synced Memo.locked + per-device
+        LockGate session (FaceID/passcode; background re-locks); list hides
+        preview, detail renders an Unlock placeholder (pager/player can't
+        bypass); publish EXCLUDES locked (tested) + already-in-vault notice;
+        remove-lock needs auth. Mac gate owed
     backlog:
       - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
       - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]
@@ -312,8 +319,7 @@ nodes:
         metadata blob)
       - Reminders — Mac reconciler (same UserNotifications API; remindAt
         already syncs) + prod CloudKit schema deploy at promotion
-      - FaceID/TouchID locked notes (synced flag; excluded from publish;
-        auth-gate not crypto in v1)
+      - Locked notes — Mac gate (LocalAuthentication; flag already syncs)
       - Doc scan → PDF capture (VisionKit, phone)
     win: the six approved gap features run on BOTH apps from shared code —
       locked notes stay out of the vault, OCR'd photos are searchable,

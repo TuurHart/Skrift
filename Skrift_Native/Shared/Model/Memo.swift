@@ -106,6 +106,14 @@ final class Memo {
     /// migration; needs the prod CloudKit schema deploy at promotion.
     var remindAt: Date? = nil
 
+    /// Locked note (feature wave chunk 8): opening requires device-owner auth
+    /// (Face ID / Touch ID / passcode) on every device, and a locked memo is
+    /// EXCLUDED from Obsidian publish (the vault is plaintext). The flag SYNCS
+    /// — lock on one device, locked everywhere. v1 is an auth-gated UI, not
+    /// per-note encryption (search and the pipeline keep working). ADDITIVE
+    /// default → lightweight migration; prod CloudKit schema deploy needed.
+    var locked: Bool = false
+
     /// Contextual capture payload + shared content, persisted as JSON blobs —
     /// NOT direct SwiftData Codable-struct attributes. SwiftData's internal decode
     /// of a nested-optional Codable struct traps at runtime (EXC_BREAKPOINT) the

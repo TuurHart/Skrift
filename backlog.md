@@ -479,7 +479,17 @@ launch/foreground/sync-settle/set/clear. Notification tap → `MemoOpenBridge` o
 banners. UI: bell CHIP in the header when set (tap = change/remove), ⋯ → "Remind me…", list long-press →
 "Remind me…"; presets (This evening/Tomorrow/Next week) + graphical picker; auth on FIRST set, denial explained.
 Mac reconciler owed (same UserNotifications API; data lands already). 516 unit + desktop 325 + desktop app
-build green. Device eyeball owed
+build green.
+**Chunk 8 ✅ 2026-07-07 (locked notes — semantics as pinned):** `Memo.locked: Bool` on the SHARED model
+(additive; syncs — lock once, locked everywhere; prod schema deploy needed). `LockGate` = per-device SESSION
+unlock (device-owner auth: FaceID/TouchID/passcode; injectable for tests); backgrounding re-locks all (Apple
+Notes behaviour). UI: list rows show title + 🔒 only (no preview/thumb); the DETAIL PAGE renders a locked
+placeholder (title + 🔒 + Unlock) — the pager can't swipe past it, MemoOpenBridge lands on it, and the player
+NEVER loads a locked memo's audio (gate-aware load + re-derive on unlock/relock). Lock = instant (needs a
+passcode-capable device); REMOVING the lock needs auth. **Publish: locked ⇒ excluded** (`shouldPublish` guard,
+tested); locking an already-published memo → honest "already in your vault" notice (Skrift never deletes vault
+files). Honesty copy on the placeholder: "hidden, not encrypted". Mac gate owed (LocalAuthentication is the
+same API). 520 unit + desktop 325 + desktop app build + UI cluster green. Device eyeball owed
 (selection drag / caret-follow / magnifier feel). **Name-tap mechanics changed (UI-test-driven find):** the
 scrolling view's system text interactions swallow tap gestures (DevLog-proven), so names resolve via the
 FOCUS-GAINING tap's caret (selection delegate, ±1 edge tolerance); while ALREADY editing, taps are plain caret

@@ -31,6 +31,8 @@ struct MemoDetailView: View {
     /// replaces the permanent page-dots row (compact-player spec).
     @State private var pageFlash = false
     @StateObject private var player = AudioPlayerModel()
+    @ObservedObject private var lockGate = LockGate.shared
+    @State private var lockVaultNotice = false
     private let repository = NotesRepository.shared
 
     init(initialID: UUID) {
@@ -140,6 +142,9 @@ struct MemoDetailView: View {
         .confirmationDialog(memoStatsLine, isPresented: $showActions, titleVisibility: .visible) {
             Button("Add recording", action: { showAppendRecorder = true })
             Button("Remind me…", action: { reminderMemo = currentMemo })
+            if let memo = currentMemo {
+                Button(memo.locked ? "Remove Lock" : "Lock Note", action: { toggleLock(memo) })
+            }
             Button("Share note…", action: { showShare = true })
             Button("Copy transcript", action: copyTranscript)
             Button("Delete", role: .destructive, action: deleteCurrent)
@@ -147,6 +152,11 @@ struct MemoDetailView: View {
         }
         .sheet(item: $reminderMemo) { memo in
             ReminderSheet(memo: memo) { repository.save() }
+        }
+        .alert("Already in your vault", isPresented: $lockVaultNotice) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("This note was published to Obsidian before you locked it. Skrift never deletes vault files — remove it there if you want it gone. New publishes will skip it.")
         }
         .sheet(isPresented: $showShare) {
             if let memo = currentMemo {
@@ -160,14 +170,17 @@ struct MemoDetailView: View {
         .fullScreenCover(isPresented: $showAppendRecorder) {
             RecordView(appendTo: selection)
         }
-        .onAppear { player.load(currentMemo?.audioURL) }
+        .onAppear { loadCurrentAudio() }
         .onChange(of: selection) { old, newID in
             // Re-target the bar when paging settles; ignore the transient nil the
             // paging scroll reports between snap points (don't stop audio mid-swipe).
             guard let newID else { return }
-            player.load(memos.first { $0.id == newID }?.audioURL)
+            loadCurrentAudio()
             if old != nil, old != newID, memos.count > 1 { pageFlash = true }
         }
+        // Unlocking (or re-locking on background) re-derives what the player
+        // may touch — a locked memo's audio never loads.
+        .onChange(of: lockGate.unlockedMemoIDs) { _, _ in loadCurrentAudio() }
         // A VIDEO import inserts the memo and opens this screen BEFORE its audio
         // has been extracted (extraction is async), so the initial load() hit a
         // file that didn't exist yet and left the player with no audio — tapping
@@ -263,12 +276,39 @@ struct MemoDetailView: View {
         return items
     }
 
+    /// Load the CURRENT memo's audio — unless its content is lock-gated
+    /// (chunk 8: the bar must not play a locked note around the placeholder).
+    private func loadCurrentAudio() {
+        guard let memo = currentMemo else { return }
+        player.load(lockGate.isLocked(memo) ? nil : memo.audioURL)
+    }
+
+    /// Lock from ⋯ (instant, + vault notice when already published); removing
+    /// the lock requires device-owner auth (Apple Notes idiom).
+    private func toggleLock(_ memo: Memo) {
+        if memo.locked {
+            Task {
+                guard await LockGate.shared.authorizeRemoveLock() else { return }
+                memo.locked = false
+                memo.markEdited()
+                repository.save()
+            }
+        } else {
+            guard LockGate.shared.canAuthenticate() else { return }
+            memo.locked = true
+            memo.markEdited()
+            repository.save()
+            player.stopAndClear()
+            if ExportStateStore.shared.record(for: memo.id) != nil { lockVaultNotice = true }
+        }
+    }
+
     /// Re-point the player at the current memo's audio if an earlier `load()` failed
     /// because the file wasn't on disk yet (the async video-import extraction case).
     /// A no-op once audio is loaded, so it never disturbs active playback.
     private func reloadIfAudioMissing() {
         guard !player.hasAudio else { return }
-        player.load(currentMemo?.audioURL)
+        loadCurrentAudio()
     }
 
     /// Split the current memo into speakers (Auto, or force `count`). Re-runs diarization
@@ -364,6 +404,8 @@ private struct MemoPageView: View {
     /// Jump the pager to another memo (link chips + backlink rows).
     var onOpenMemo: (UUID) -> Void = { _ in }
 
+    @ObservedObject private var lockGate = LockGate.shared
+
     var body: some View {
         // Note-editing overhaul (spec mocks/note-editor-redesign.html): B2 pinned
         // title above every page kind; monologue memos (incl. audiobook captures +
@@ -371,7 +413,9 @@ private struct MemoPageView: View {
         // owns the scroll, the metadata header scrolls inside it. Conversations and
         // C3 share-captures keep their legacy scroll layout for now (phase 2).
         Group {
-            if memo.isShareCapture {
+            if lockGate.isLocked(memo) {
+                lockedPlaceholder
+            } else if memo.isShareCapture {
                 legacyScrollPage { captureContent }
             } else if SpeakerTranscript.parse(memo.transcript) != nil {
                 legacyScrollPage { conversationContent }
@@ -486,6 +530,42 @@ private struct MemoPageView: View {
     }
 
     // MARK: - Page kinds (B2 pinned title + body)
+
+    /// The whole page while lock-gated: title + 🔒 + Unlock. Content, header
+    /// chips, photos, and audio all stay behind Face ID; swiping to a locked
+    /// neighbour lands here too (the pager can't bypass it).
+    private var lockedPlaceholder: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "lock.fill")
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(Color.skTextDim)
+            Text(memo.title?.isEmpty == false ? memo.title! : "Locked note")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Color.skText)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            Text("Locked notes stay out of Obsidian publish and need Face ID here. They're hidden, not encrypted.")
+                .font(.system(size: 12.5))
+                .foregroundStyle(Color.skTextFaint)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 36)
+            Button {
+                Task { _ = await lockGate.unlock(memo.id) }
+            } label: {
+                Label("Unlock", systemImage: "faceid")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 22).padding(.vertical, 11)
+                    .background(Color.skAccent, in: .capsule)
+            }
+            .accessibilityIdentifier("unlock-note-button")
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Theme.Space.margin)
+    }
 
     /// The B2 pinned title row — always visible above the scrolling note, so you
     /// know which memo you're in while swiping between memos. The ✦ chooser rides

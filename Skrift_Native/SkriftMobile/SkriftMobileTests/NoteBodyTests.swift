@@ -282,6 +282,43 @@ final class MemoLinkTests: XCTestCase {
     }
 }
 
+/// Locked notes (chunk 8): the session gate's logic with an injected authenticator.
+final class LockGateTests: XCTestCase {
+
+    @MainActor
+    func testGateBlocksUntilUnlockedAndRelocksAll() async {
+        let gate = LockGate.shared
+        gate.relockAll()
+        gate.authenticate = { _ in true }          // user passes Face ID
+        let memo = Memo(title: "Secret", transcript: "hidden")
+        memo.locked = true
+        XCTAssertTrue(gate.isLocked(memo))
+        let ok = await gate.unlock(memo.id)
+        XCTAssertTrue(ok)
+        XCTAssertFalse(gate.isLocked(memo), "session unlock opens the content")
+        gate.relockAll()                            // backgrounding
+        XCTAssertTrue(gate.isLocked(memo))
+    }
+
+    @MainActor
+    func testFailedAuthKeepsTheGateShut() async {
+        let gate = LockGate.shared
+        gate.relockAll()
+        gate.authenticate = { _ in false }         // user cancels / fails
+        let memo = Memo(title: "Secret", transcript: "hidden")
+        memo.locked = true
+        let ok = await gate.unlock(memo.id)
+        XCTAssertFalse(ok)
+        XCTAssertTrue(gate.isLocked(memo))
+    }
+
+    @MainActor
+    func testUnlockedFlagNeverGates() {
+        let memo = Memo(title: "Open", transcript: "visible")
+        XCTAssertFalse(LockGate.shared.isLocked(memo))
+    }
+}
+
 /// Reminders (chunk 7): the pure reconcile plan + preset date math.
 final class ReminderPlanTests: XCTestCase {
 

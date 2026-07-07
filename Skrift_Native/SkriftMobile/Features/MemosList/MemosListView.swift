@@ -49,6 +49,8 @@ struct MemosListView: View {
     @ObservedObject private var memoOpen = MemoOpenBridge.shared
     /// Long-press → "Remind me…" (chunk 7).
     @State private var reminderMemo: Memo?
+    /// Locking a memo that's already published → honest notice (chunk 8).
+    @State private var lockVaultNotice = false
     @State private var showSortFilter = false
     @State private var showTrash = false
     /// C3 contract: the audiobook session singleton (defined by the Audiobooks
@@ -132,6 +134,11 @@ struct MemosListView: View {
                 .sheet(item: $reminderMemo) { memo in
                     ReminderSheet(memo: memo) { NotesRepository.shared.save() }
                 }
+                .alert("Already in your vault", isPresented: $lockVaultNotice) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text("This note was published to Obsidian before you locked it. Skrift never deletes vault files — remove it there if you want it gone. New publishes will skip it.")
+                }
                 .padding(.horizontal, 16)
                 .padding(.top, 4)
                 .padding(.bottom, 6)
@@ -173,6 +180,11 @@ struct MemosListView: View {
                                             Label("Remind me…", systemImage: "bell")
                                         }
                                         .accessibilityIdentifier("context-remind-button")
+                                        Button { toggleLock(memo) } label: {
+                                            Label(memo.locked ? "Remove Lock" : "Lock Note",
+                                                  systemImage: memo.locked ? "lock.open" : "lock")
+                                        }
+                                        .accessibilityIdentifier("context-lock-button")
                                         Button { copyTranscript(memo) } label: {
                                             Label("Copy transcript", systemImage: "doc.on.doc")
                                         }
@@ -407,6 +419,26 @@ struct MemosListView: View {
     /// Quick copy straight from the list: transcript (fallback: title) → pasteboard,
     /// with a light haptic + the same top banner as sync. An empty memo says so
     /// instead of silently copying nothing.
+    /// Lock (instant; honesty copy lives on the detail page too) / remove lock
+    /// (requires auth — Apple Notes idiom). Locking an already-published memo
+    /// surfaces the vault notice; Skrift never deletes vault files.
+    private func toggleLock(_ memo: Memo) {
+        if memo.locked {
+            Task {
+                guard await LockGate.shared.authorizeRemoveLock() else { return }
+                memo.locked = false
+                memo.markEdited()
+                NotesRepository.shared.save()
+            }
+        } else {
+            guard LockGate.shared.canAuthenticate() else { return }
+            memo.locked = true
+            memo.markEdited()
+            NotesRepository.shared.save()
+            if ExportStateStore.shared.record(for: memo.id) != nil { lockVaultNotice = true }
+        }
+    }
+
     private func copyTranscript(_ memo: Memo) {
         guard let text = memo.copyableText else {
             flashBanner("Nothing to copy yet")
@@ -550,11 +582,26 @@ private struct MemoCard: View {
                     statusPill
                 }
 
+                // Locked notes: title + 🔒 only — the preview never shows
+                // (chunk 8). Content requires Face ID on the detail page.
+                if memo.locked {
+                    HStack(spacing: 6) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.skTextDim)
+                        Text(memo.title?.isEmpty == false ? memo.title! : "Locked note")
+                            .font(.system(size: 14.5, weight: .semibold))
+                            .foregroundStyle(Color.skText)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 6)
+                    .accessibilityIdentifier("locked-row-title")
                 // C3 share-item captures lead with the resolved title (urlTitle /
                 // text snippet / "Image") and the annotation as the secondary line.
                 // They never have a voice transcript, so the standard snippet path
                 // is bypassed entirely.
-                if memo.isShareCapture {
+                } else if memo.isShareCapture {
                     Text(memo.shareCaptureTitle)
                         .font(.system(size: 14.5, weight: .semibold))
                         .foregroundStyle(Color.skText)
@@ -659,7 +706,7 @@ private struct MemoCard: View {
                     .fill(LinearGradient(colors: [Color(hex: 0x2b3350), Color(hex: 0x1a1f33)],
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 48, height: 48)
-                    .overlay(photoThumb)
+                    .overlay(memo.locked ? nil : photoThumb)
                     .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 1))
             }
         }
