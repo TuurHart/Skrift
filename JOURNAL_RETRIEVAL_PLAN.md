@@ -25,17 +25,29 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
 
 ## Locked decisions (don't re-litigate; re-open only if the spike gate fails)
 
-- **Engine: `NLContextualEmbedding`** (Apple NL framework, iOS 17+), Latin-script multilingual
-  model — one model covers the user's English/Dutch mix. Sentence vector = mean-pooled token
-  vectors, L2-normalized, float32. Read `dimension` from the model at runtime (~512), never
-  hardcode. ⚠️ API surface + quality are **unverified** — that's chunk 0's job.
-- **Grain: one vector per memo.** Gist string = title + (summary if present, else first ~500 chars
-  of polished-else-raw body) + placeName + linked person names + tags, capped ~800 chars (the model
-  truncates long input anyway). Per-paragraph chunking is v2. Exclude trashed memos. Audiobook
-  *quote captures* are memos → included. Book sidecar transcripts are not memos → naturally out.
-- **Storage: derived-local, never synced.** New `@Model MemoEmbedding { memoID, vector: Data,
-  textHash, modelRev, updatedAt }` in a **second `ModelConfiguration(cloudKitDatabase: .none)`**
-  — one container, two configs, disjoint schemas. Each device re-derives; zero CloudKit cost.
+- **Engine: `NLContextualEmbedding` first, behind a quality bar, with a named upgrade path.**
+  Apple's NL-framework encoder (iOS 17+, Latin-script multilingual — covers the EN/NL mix; zero
+  bundle size, OS-managed assets). Honest caveat: it's a generic BERT-style encoder, NOT
+  contrastively trained for sentence similarity — the pragmatic default, not SOTA. Chunk 0 is a
+  real BAKE-OFF GATE with a quantitative bar; the fallback/upgrade is **multilingual-e5-small via
+  Core ML** (~120 MB int8, retrieval-trained, strong Dutch; needs `query:`/`passage:` prefixes +
+  a swift-transformers tokenizer; reuse the existing model-download UX). Everything sits behind
+  `EmbeddingEngine` + `modelRev`, so swapping engines later = bump the rev → the sweep re-embeds
+  everything; zero migration code. Sentence vector = mean-pooled token vectors, L2-normalized,
+  float32; read `dimension` at runtime, never hardcode.
+- **Grain (user-flagged 2026-07-06): gist vector + body chunks, in v1.** Truncating a long memo at
+  ~500 chars would hide its tail from retrieval, and the model's ~512-token window forces
+  splitting anyway — so chunk, don't truncate. Per memo: ONE gist vector (title + summary if
+  present + placeName + people + tags) for identity, PLUS body chunks split at sentence
+  boundaries every ~150–200 words (long conversations and quote-rambles are exactly the memos
+  that matter). A memo's relevance = max over its vectors; results dedupe by memo. Store the
+  chunk's char range — later enables "jump to the matching part". Exclude trashed memos.
+  Audiobook *quote captures* are memos → included. Book sidecar transcripts are not memos →
+  naturally out.
+- **Storage: derived-local, never synced.** New `@Model MemoEmbedding { memoID, chunkIndex,
+  charStart, charEnd, vector: Data, textHash, modelRev, updatedAt }` (chunkIndex 0 = the gist
+  vector) in a **second `ModelConfiguration(cloudKitDatabase: .none)`** — one container, two
+  configs, disjoint schemas. Each device re-derives; zero CloudKit cost.
 - **Index maintenance: sweep-based invalidation**, not per-write hooks. On app foreground, after a
   memo save, and (if handy) on the CloudKit-import notification: for each memo compare
   `textHash(gist)` vs stored; re-embed mismatches. Robust against every write path, including
@@ -58,13 +70,15 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
   you *curated*. Publish stays one-way.
 - **Retention & pruning (user-locked 2026-07-06):** the permanent corpus = importance-rated memos —
   the rating is the curation act (it already gates Mac sync). Unrated memos are provisional:
-  auto-prune (backlog idea i2) may remove them after its review flow. The index sweep therefore
-  also deletes orphaned `MemoEmbedding` rows; threads/lookbacks span whatever survives. If space
-  ever forces a choice, prune audio before text.
-- **Journal takes the reserved "Highlights (soon)" tab slot** (proposed in the mock — Tuur confirms
-  at sign-off): Notes · Library · **Journal** · Settings; `AppTabView.Tab.highlights` →
-  `.journal`. P6's Highlights feed + Daily Review later land as *sections inside Journal*, not a
-  fifth tab. Surfaces per the mock: Looking-back cards + mini-calendar + map preview on Journal
+  auto-prune (backlog idea i2) may remove them after its review flow. Two safety nets, both in
+  i2's spec: pruning happens only via the user-approved review, and it's suppressed while the app
+  hasn't been opened in a while — an unopened app can't prune, so a returning user's backlog is
+  safe. The index sweep deletes orphaned `MemoEmbedding` rows; threads/lookbacks span whatever
+  survives. If space ever forces a choice, prune audio before text.
+- **Journal becomes the third tab**: Notes · Library · **Journal** · Settings. ⚠️ Another lane is
+  REMOVING the "Highlights (soon)" placeholder tab (Tuur, 2026-07-06) — land Journal AFTER that
+  merges and add `.journal` to whatever `AppTabView` looks like then; same end state either way.
+  P6's Highlights feed + Daily Review later land as *sections inside Journal*, not a fifth tab. Surfaces per the mock: Looking-back cards + mini-calendar + map preview on Journal
   home, full calendar + map pushed from it, Related card on detail, Matches+Related in search
   (search stays in the Notes tab).
 - **Looking back generalizes On This Day** (the corpus only starts 2026-04, so a literal
@@ -102,12 +116,14 @@ Desktop gets none of this in v1; the engine is written so it can later move to `
 
 ## Chunks (commit per chunk; verify per chunk; sim = iPhone 17)
 
-0. **SPIKE GATE (~1h).** `ContextualEmbedder` + a DEBUG launch flag `-embedSpike` that embeds and
-   prints cosines for: an EN/EN same-topic pair, an EN/NL translation pair ("I biked to the
-   office" / "Ik ben naar kantoor gefietst"), and an unrelated pair. Run on sim. **Pass = clear
-   margin (same-topic ≫ unrelated) and the EN↔NL pair lands near the EN/EN one.** Record the
-   numbers in this doc. Fail → fallback decision: `NLEmbedding.sentenceEmbedding` (weaker,
-   per-language) or ship items 1–2 only and defer semantic. Don't build past a failed gate.
+0. **BAKE-OFF GATE (~half a day).** `ContextualEmbedder` + a DEBUG launch flag `-embedSpike` that
+   runs a fixed eval set (~20 realistic memo texts + queries — EN, NL, and mixed, including one
+   long chunked memo) and prints the score table. **Bar: same-topic ≫ unrelated with a clear
+   margin; EN↔NL pairs land near same-language pairs; ≥16/20 queries retrieve the right memo
+   top-1.** Record the numbers in this doc. Clears → ship it for v1 (zero download size). Fails →
+   implement `E5Embedder` (multilingual-e5-small, Core ML + swift-transformers tokenizer) behind
+   the same protocol, re-run the same eval, and note the winner here. Don't build past a failed
+   gate.
 1. `MemoEmbedding` + second local ModelConfiguration + `MemoGist` + `EmbeddingIndex` upsert/
    invalidate with `MockEmbedder`. Unit tests green (`xcodebuild test -scheme SkriftMobile …`).
 2. Sweep job wiring: foreground + post-save triggers, batched, resumable, idle-unload, plus orphan
@@ -153,6 +169,8 @@ Review ranking by embedding diversity. The index is the enabler; build it once, 
 - **Bonjour removal / live-sync** (`claude/xenodochial-mclaren-9361b9`): owns Settings/Onboarding/
   MemosListView/MemoDisplay edits right now → chunk 6 rebases after it lands.
 - **audiobooks** (third chat): player area — no overlap.
+- **Highlights-tab removal** (upcoming lane, per Tuur 2026-07-06): touches `AppTabView` → chunk 5
+  (the Journal tab) lands after it merges.
 
 ## Kickoff prompt for the executing session
 
