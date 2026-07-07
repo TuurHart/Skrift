@@ -120,40 +120,6 @@ final class QuoteCaptureSaveTests: XCTestCase {
         XCTAssertTrue(repo.allMemos().isEmpty)
     }
 
-    /// C2 rides the upload `metadata` JSON to the Mac (byte-compatible:
-    /// the keys appear only when present).
-    @MainActor
-    func testUploadMetadataCarriesBookFields() throws {
-        let repo = NotesRepository(inMemory: true)
-        let saver = makeSaver(repo: repo, sidecarDir: FileManager.default.temporaryDirectory)
-        let id = try XCTUnwrap(saver.saveQuoteCapture(
-            audioTempURL: tempAudioFile(),
-            quote: "Optimism is a stance.",
-            duration: 33,
-            bookTitle: "The Beginning of Infinity",
-            bookAuthor: "David Deutsch",
-            bookChapter: "4"
-        ))
-        let memo = try XCTUnwrap(repo.memo(id: id))
-
-        let data = try JSONEncoder().encode(UploadMetadata(memo: memo))
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        XCTAssertEqual(json["bookTitle"] as? String, "The Beginning of Infinity")
-        XCTAssertEqual(json["bookAuthor"] as? String, "David Deutsch")
-        XCTAssertEqual(json["bookChapter"] as? String, "4")
-
-        // And a plain memo emits NO book keys at all (additive contract).
-        let plain = Memo(audioFilename: "memo_x.m4a", duration: 1)
-        let plainJSON = try XCTUnwrap(JSONSerialization.jsonObject(
-            with: try JSONEncoder().encode(UploadMetadata(memo: plain))
-        ) as? [String: Any])
-        XCTAssertNil(plainJSON["bookTitle"])
-        XCTAssertNil(plainJSON["bookAuthor"])
-        XCTAssertNil(plainJSON["bookChapter"])
-
-        repo.permanentlyDelete(memo)
-    }
-
     // MARK: - Trim persistence math (no audio export — pure helper logic)
 
     /// `isUnchangedTrim` + the transcript/timing-rebase path used by

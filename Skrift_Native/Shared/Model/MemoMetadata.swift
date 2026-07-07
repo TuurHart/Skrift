@@ -1,10 +1,15 @@
 import Foundation
 
-/// Contextual metadata captured when a recording stops. Field names and shapes
-/// match the RN `MemoMetadata` (`Mobile/lib/metadata.ts`) and the keys the Mac
-/// backend reads from the upload `metadata` JSON (`backend/api/files.py`). All
-/// timestamps stay as raw ISO/`HH:mm` strings (faithful to the contract; never
-/// sorted on in-app), so no JSON date strategy is needed.
+/// Contextual metadata captured when a recording stops — the SCHEMA of
+/// `Memo.metadataData` (persisted as a JSON blob, synced over CloudKit). ONE
+/// shared definition: the phone writes it, the Mac reads it (typed via
+/// `Memo.metadata`; the Mac's `PhoneMetadata` in CompilerBridge.swift remains
+/// as the deliberately-lenient reader for LEGACY working-folder payloads from
+/// the RN/Python era). Field names and shapes are the wire contract — they
+/// match the RN `MemoMetadata` (`archive/Mobile/lib/metadata.ts`) and the keys
+/// the old backend read (`archive/backend/api/files.py`); never rename them.
+/// All timestamps stay as raw ISO/`HH:mm` strings (faithful to the contract;
+/// never sorted on in-app), so no JSON date strategy is needed.
 struct MemoMetadata: Codable, Equatable, Sendable {
     var capturedAt: String?
     var location: LocationInfo?
@@ -127,30 +132,8 @@ struct DaylightInfo: Codable, Equatable, Sendable {
 
 /// A timestamped photo taken during recording. `offsetSeconds` is recording
 /// time (paused time excluded) and drives `[[img_NNN]]` marker placement.
+/// Also the element of the Mac's per-file `image_manifest.json` sidecar.
 struct ImageManifestEntry: Codable, Equatable, Sendable {
     var filename: String
     var offsetSeconds: Double
-}
-
-// MARK: - Shared content (capture items)
-
-enum ShareContentType: String, Codable, Sendable {
-    case url
-    case image
-    case text
-    case file
-}
-
-/// A shared URL / image / text / file captured via the Share Extension, with an
-/// optional voice or text annotation. Mirrors the RN `SharedContent`.
-struct SharedContent: Codable, Equatable, Sendable {
-    var type: ShareContentType
-    var url: String?
-    var urlTitle: String?
-    var urlDescription: String?
-    var urlThumbnailUrl: String?
-    var text: String?
-    var filePath: String?
-    var fileName: String?
-    var mimeType: String?
 }

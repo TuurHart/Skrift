@@ -2,17 +2,16 @@ import SwiftUI
 import AVFoundation
 import CoreLocation
 
-/// First-run onboarding (mockup4): permissions (mic/camera, location/motion),
-/// pair a Mac (Bonjour), and the one-time transcription-model download. None of
-/// it blocks — "Get started" always proceeds; steps are best-effort. Real
-/// permission grants + the 494 MB model download are device-owed.
+/// First-run onboarding (mockup4): permissions (mic/camera, location/motion) and
+/// the one-time transcription-model download. None of it blocks — "Get started"
+/// always proceeds; steps are best-effort. Real permission grants + the 494 MB
+/// model download are device-owed. (Sync needs no step: it rides the user's iCloud
+/// account automatically — no Mac pairing.)
 struct OnboardingView: View {
     let onDone: () -> Void
 
-    @StateObject private var discovery = MacDiscovery()
     @State private var mediaGranted = false
     @State private var locationRequested = false
-    @State private var paired = MacConnection.load() != nil
     @ObservedObject private var modelStatus = ModelLoadStatus.shared
     @State private var modelRequested = false
     private let locationManager = CLLocationManager()
@@ -35,15 +34,6 @@ struct OnboardingView: View {
                     }
                     stepCard(icon: "location.fill", title: "Location & Motion", desc: "Tags notes with place, weather, steps") {
                         if locationRequested { doneBadge } else { allowButton("allow-location", action: requestLocation) }
-                    }
-                    stepCard(icon: "desktopcomputer", title: "Pair your Mac", desc: pairDesc) {
-                        if paired { doneBadge } else if discovery.macs.first != nil {
-                            Button("Connect", action: connectMac)
-                                .font(.system(size: 12.5, weight: .bold)).foregroundStyle(Color.skAccent)
-                                .accessibilityIdentifier("onboard-connect")
-                        } else {
-                            Text("Searching…").font(.system(size: 12.5)).foregroundStyle(Color.skTextFaint)
-                        }
                     }
                     stepCard(icon: "arrow.down.circle.fill", title: "Transcription model", desc: modelDesc) {
                         if modelStatus.ready {
@@ -76,8 +66,6 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, 22)
         }
-        .onAppear { discovery.start() }
-        .onDisappear { discovery.stop() }
     }
 
     private var logo: some View {
@@ -115,12 +103,6 @@ struct OnboardingView: View {
             .accessibilityIdentifier(id)
     }
 
-    private var pairDesc: String {
-        if let conn = MacConnection.load() { return "Connected · \(conn.host)" }
-        if let mac = discovery.macs.first { return "Found “\(mac.name)” on your Wi-Fi" }
-        return "On the same Wi-Fi as your Mac"
-    }
-
     private var modelDesc: String {
         if modelStatus.ready { return "Ready · on-device" }
         if let p = modelStatus.downloadProgress { return "Downloading · 494 MB · \(Int(p * 100))%" }
@@ -140,13 +122,6 @@ struct OnboardingView: View {
     private func requestLocation() {
         locationManager.requestWhenInUseAuthorization()
         locationRequested = true
-    }
-
-    private func connectMac() {
-        guard let mac = discovery.macs.first else { return }
-        Task {
-            if let conn = await discovery.resolve(mac) { conn.save(); paired = true }
-        }
     }
 
     private func downloadModel() {

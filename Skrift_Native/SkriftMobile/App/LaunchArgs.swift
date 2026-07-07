@@ -55,11 +55,6 @@ enum LaunchFlags {
     /// store — `-inMemoryStore` doesn't reset it). Used by the diarization-split and
     /// voice-enroll UI tests.
     static var resetNames: Bool { args.boolFlag("-resetNames") }
-    /// Stub the Mac sync layer so UI tests don't need a live backend.
-    static var mockMac: Bool { args.boolFlag("-mockMac") }
-    /// Inject fake Bonjour-discovered Macs (the sim can't see the real one) so
-    /// the Pair-a-Mac discovered list is UI-testable.
-    static var seedDiscoveredMacs: Bool { args.boolFlag("-seedDiscoveredMacs") }
     /// Force the first-run onboarding on (the onboarding UI test). Existing tests
     /// pass `-inMemoryStore` and auto-skip onboarding without it.
     static var forceOnboarding: Bool { args.boolFlag("-forceOnboarding") }

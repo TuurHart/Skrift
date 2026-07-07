@@ -26,6 +26,41 @@ branch HEAD baseline); new sort/filter tests green; 4 UI-test files' "Memos" ass
 if it feels heavy: compact idle-capsule, scroll-minimize, swipe-away-to-end-session). UI suite not re-run (10
 pre-existing iOS-26 failures tracked separately).
 
+## ⭐ Shared-code dedup — anti-drift consolidation (2026-07-07, roadmap `SharedKit`)
+
+Every phone↔Mac parity algorithm + wire struct that existed as annotated copies now compiles from
+ONE file in `Shared/` (commits `0192947`…`6e4ab09`; both suites green; full MLX desktop build green).
+Moved: SignificanceScale (fixed the Mac's residual "Significant" value label — 5207ec3 had only
+caught 1 of the Mac's 2 copies), MemoMetadata(+nested), WordTiming, DiarizedSegment, ISO8601, the
+0.7 trust rule (`Memo.isTrustedTranscript`), VocabularyTermParsing+Trust+Tuning, VoiceMatcher,
+SpeakerFusion, BPEMerge (phone's inline mergeBPETokens/phantom-guard/alignWords deleted), ImageMarkers.
+
+**Follow-ups found in the research (not built — each needs its own care):**
+- ⬜ **SpeakerTranscript twins** — the SHARED `Sanitiser` (line ~351) parses conversations through
+  `SpeakerTranscript`, which exists per-app (desktop `Diarizing.swift` / mobile `SpeakerTurnsView.swift`,
+  same anchored regex today, different helper sets + `Turn` types). A change to one app's parser silently
+  forks the shared Sanitiser's behavior. Unify into Shared (reconcile Turn Identifiable-vs-Equatable,
+  desktop flattened/isAttributed + mobile setText/reassign helpers).
+- ⬜ **MemoCloudIngest de-multipart** — the Mac's ONLY ingest path still re-encodes the typed shared
+  `Memo` into fake multipart parts for the retired Bonjour parser (`UploadService` then string-parses
+  `[String: Any]`); its comments cite the DELETED phone `UploadPayload`. Map Memo+assets → PipelineFile
+  directly/typed (decode `MemoMetadata` where UploadService reads dict keys). Golden parity test first
+  (same memo through old + new path, byte-equal PipelineFile).
+- ✅ **DONE (2026-07-07, `6f78ac1`) — Mac custom vocab is consume-only** — fixed: shared
+  `VocabularySyncCore` (whole-list LWW) + Mac `customVocabularyModifiedAt` + push-on-edit + one-time
+  union migration; both adapters are thin wrappers now. 8 new host-less core tests. Live phone↔Mac
+  round-trip unverified — fold into the next device session.
+- ⬜ **NamesCloudSync reconcile core** — both halves run the same fold-carriers → NamesMerge →
+  byte-compare → collapse-duplicates algorithm with different store/gate/notify plumbing; an encoder
+  divergence would cause CloudKit churn loops. Extract one shared engine, keep thin app adapters.
+- ⬜ **VocabularyBooster.boost() cores** — same spot→rescore→trust→apply flow both sides but drifted
+  (VocabLog vs DevLog, tuning knobs, store injection). Unify around a small store/log seam.
+- ⬜ **Desktop legacy readers** — `PhoneMetadata` + desktop `SharedContent` (CompilerBridge) are lenient
+  decoders of the now-shared schemas kept for old working-folder payloads + snake_case demo seeds;
+  collapse onto the shared types once those payloads are gone (or wrap shared types w/ lenient init).
+- ⬜ (nice-to-have) shared `DevLog` for the desktop (it has only VocabLog; the devlog.txt discipline is
+  mobile-only today).
+
 ## ⭐ CloudKit-only sync epic — retiring Bonjour (2026-07-06, on `main`)
 
 Building CloudKit as the sole phone↔Mac transport, then deleting Bonjour. Plan in

@@ -35,9 +35,12 @@ targets:
       # Shared cross-app source (one physical copy → no phone↔Mac drift).
       # Model: the shared CloudKit @Models (Memo, MemoAsset, MemoEnhancement) + DeviceID,
       # so the Mac can be a CloudKit client of the phone's note store (MAC_CLOUDKIT_PLAN.md).
+      # Pipeline: pure parity algorithms both apps must run identically (vocab
+      # parsing/trust, fusion, voice match, BPE merge, image markers).
       - path: ../Shared/Naming
       - path: ../Shared/Export
       - path: ../Shared/Model
+      - path: ../Shared/Pipeline
     settings:
       base:
         PRODUCT_NAME: SkriftDesktop
@@ -110,6 +113,7 @@ targets:
       - path: ../Shared/Naming
       - path: ../Shared/Export
       - path: ../Shared/Model
+      - path: ../Shared/Pipeline
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests

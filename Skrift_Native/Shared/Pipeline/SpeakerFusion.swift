@@ -1,20 +1,18 @@
 import Foundation
 
-/// A diarization result: a time range assigned to a speaker slot (0-based).
-struct DiarizedSegment: Sendable, Equatable, Codable {
-    let speaker: Int
-    let start: Double
-    let end: Double
-}
-
-/// Fuses diarization segments with the ASR word-timings into a speaker-attributed
-/// transcript. Each word is assigned to the speaker whose segment covers its midpoint
-/// (nearest segment if it lands in a gap); consecutive words group into turns; tiny
-/// word "islands" shorter than `minTurnWords`, flanked by the same other speaker, are
-/// smoothed away (the diarizer occasionally drops a single word into the wrong speaker
-/// — the "But" blip caught in the DiarizeSpike validation). Output is `**Name:** text`
-/// turns — the Markdown that syncs to the Mac (where the name name-links to `[[Person]]`)
+/// Fuses diarization segments (`DiarizedSegment`, shared) with the ASR word-timings
+/// into a speaker-attributed transcript. Each word is assigned to the speaker whose
+/// segment covers its midpoint (nearest segment if it lands in a gap); consecutive
+/// words group into turns; tiny word "islands" shorter than `minTurnWords`, flanked
+/// by the same other speaker, are smoothed away (the diarizer occasionally drops a
+/// single word into the wrong speaker — the "But" blip caught in the DiarizeSpike
+/// validation). Output is `**Name:** text` turns — the Markdown that syncs phone↔Mac
 /// and renders WYSIWYG in the app.
+///
+/// SHARED (one copy, both apps): the diar sidecar syncs, so re-fusing the same
+/// segments + words MUST yield the same turns on either device. Only the `name`
+/// mapping differs by caller: the phone passes an assigned person / "Speaker N";
+/// the Mac passes the matched person's `[[Canonical]]` (it owns the link form).
 enum SpeakerFusion {
     struct Turn: Equatable { let speaker: Int; let text: String }
 
@@ -37,7 +35,7 @@ enum SpeakerFusion {
     }
 
     /// The `**Name:** text` Markdown (turns joined by blank lines). `name` maps a speaker
-    /// slot to a display name (an assigned person, else "Speaker N").
+    /// slot to a display name (see the header: person / "Speaker N" / `[[Canonical]]`).
     static func attributedTranscript(
         words: [WordTiming], segments: [DiarizedSegment], minTurnWords: Int = 3,
         name: (Int) -> String = { "Speaker \($0 + 1)" }

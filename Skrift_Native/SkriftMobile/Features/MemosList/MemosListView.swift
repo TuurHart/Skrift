@@ -57,7 +57,6 @@ struct MemosListView: View {
     @State private var filter = MemoFilter()
     @State private var editMode: EditMode = .inactive
     @State private var selected: Set<UUID> = []
-    @State private var syncing = false
     @State private var syncBanner: String?
     @State private var bannerToken = 0
 
@@ -284,24 +283,8 @@ struct MemosListView: View {
         if !editMode.isEditing {
             // The Audiobooks Library + Settings moved out to root tabs (AppTabView,
             // 2026-06-19) — co-equal with Notes, so a sheet's swipe-to-dismiss no
-            // longer steals pull-to-refresh.
-            // The manual ⟳ is the MAC (Bonjour) sync — only meaningful when a Mac is
-            // actually paired. Standalone/CloudKit-first devices sync automatically
-            // (push) + via pull-to-refresh, so hide it unless a Mac is paired (Phase 3
-            // "de-Mac"). Returns when a Mac is paired again.
-            if MacConnection.load() != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: runSync) {
-                        if syncing {
-                            ProgressView().controlSize(.small).tint(.skAccent)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                        }
-                    }
-                    .disabled(syncing)
-                    .accessibilityIdentifier("sync-button")
-                }
-            }
+            // longer steals pull-to-refresh. Sync is fully automatic over CloudKit
+            // (push) + pull-to-refresh reconcile, so there's no manual sync button.
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showSortFilter = true } label: {
                     Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
@@ -323,34 +306,6 @@ struct MemosListView: View {
                 .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
                 .padding(.top, 6)
                 .transition(.move(edge: .top).combined(with: .opacity))
-        }
-    }
-
-    private func runSync() {
-        guard !syncing else { return }
-        // CloudKit-only (the default): memos + names sync automatically over iCloud, so there's
-        // no manual Mac sync and no "pair a Mac" nudge. The global "Syncing with iCloud…" chip
-        // (CloudSyncMonitor) covers live activity.
-        guard BonjourFallback.isEnabled else {
-            flashBanner("Up to date")
-            return
-        }
-        Task {
-            syncing = true
-            let synced = await SyncCoordinator().syncAll()
-            syncing = false
-            let paired = MacConnection.load() != nil
-            // Distinguish a real failure (memos still waiting) from "nothing to do".
-            let stillWaiting = repository.allMemos().contains { $0.syncStatus == .waiting && $0.audioURL != nil }
-            if !paired {
-                flashBanner("Pair a Mac in Settings to sync")
-            } else if synced > 0 {
-                flashBanner("Synced \(synced) note\(synced == 1 ? "" : "s")")
-            } else if stillWaiting {
-                flashBanner("Couldn't reach the Mac")
-            } else {
-                flashBanner("Up to date")
-            }
         }
     }
 

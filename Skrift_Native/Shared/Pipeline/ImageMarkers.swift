@@ -1,8 +1,11 @@
 import Foundation
 
-/// `[[img_NNN]]` marker insertion — pure + host-testable, ported verbatim from the
-/// phone's `ImageMarkers` / the backend `_insert_image_markers`. Works in UTF-16
-/// (NSString) indices throughout; spot-check multibyte/emoji parity vs Python if it drifts.
+/// `[[img_NNN]]` marker insertion — pure + host-testable, and SHARED: the phone
+/// injects markers at record time and the Mac injects them for its own ingests
+/// (`transcriptMarkersInjected` tells the Mac not to re-inject), so placement
+/// must be identical on both. Ported verbatim from the RN `ParakeetModule` /
+/// backend `_insert_image_markers`. Works in UTF-16 (NSString) indices
+/// throughout; spot-check multibyte/emoji parity vs the Python era if it drifts.
 enum ImageMarkers {
 
     /// Insert a marker at the word whose start time is closest to each photo's

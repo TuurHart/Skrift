@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 6
-updated: 2026-07-07T03:42:29.000Z
+version: 11
+updated: 2026-07-07T09:01:51.185Z
 lanes:
   - track: -1
     label: Differentiator
@@ -26,7 +26,7 @@ nodes:
     status: done
     eff: M
     ms: Foundation
-    done: 2026-06-17
+    done: 2026-06-17T00:00:00.000Z
     note: One name-linking engine both apps compile — no drift.
     shipped:
       - 2026-06-16 · Naming model RE-DERIVED from first principles → opt-out +
@@ -45,7 +45,7 @@ nodes:
     status: done
     eff: L
     ms: Foundation
-    done: 2026-06-19
+    done: 2026-06-19T00:00:00.000Z
     deps:
       - P0
     via: P0
@@ -117,7 +117,7 @@ nodes:
     title: Mac rejoins via CloudKit
     lane: 0
     order: 4
-    status: inprogress
+    status: done
     eff: L
     ms: Standalone core
     deps:
@@ -145,8 +145,44 @@ nodes:
         launch-crash fix (store→.none) [6642af4, 76e3747]
       - 2026-06-26 · Shipped in 0.2.0 (build 22) — 'the iCloud round-trip
         release' [7b8d165]
+      - 2026-07-06 · Bonjour/HTTP LAN sync fully RETIRED — desktop server
+        [510ad0c] + mobile client (Part A) deleted; CloudKit is the only
+        transport. Per-memo 'Waiting' sync pill removed (statusKind no longer
+        Bonjour-keyed)
+      - 2026-07-06 · Live bidirectional edit sync (Part B) —
+        edit-anywhere→syncs-everywhere. Mac edit → debounced MemoEnhancement
+        write-back (MacCloudEditSync); phone edit → reconciler updates the
+        PipelineFile (re-link+recompile, no LLM). Built + unit-tested (desktop
+        UnitTests green); TWO-DEVICE round-trip still owed on-device
     win: prod CloudKit schema deployed + Release app-ID registered; one real
       phone↔Mac round-trip verified in prod
+    done: 2026-07-07
+  - id: SharedKit
+    title: Shared-code dedup (anti-drift)
+    lane: 0
+    order: 4.5
+    status: done
+    eff: M
+    ms: Standalone core
+    done: 2026-07-07
+    deps:
+      - Mac
+    note: Finish what P0 started — every phone↔Mac parity algorithm + wire struct
+      moved to ONE compiled copy in Shared/ (the annotated 'mirrors the phone'
+      duplicates had already drifted, e.g. the Mac's 'Significant' tier label).
+    shipped:
+      - 2026-07-07 · SignificanceScale unified (fixes the Mac's residual
+        'Significant' value label; phone gains the clamp hardening) [0192947]
+      - 2026-07-07 · MemoMetadata/WordTiming/DiarizedSegment/ISO8601 + the 0.7
+        trust rule → Shared/Model [a5d3d5b]
+      - 2026-07-07 · New Shared/Pipeline — VocabularyTermParsing+Trust+Tuning
+        [c73643d], VoiceMatcher+SpeakerFusion [e53b50d], BPEMerge+ImageMarkers
+        (phone drops its inline copies) [6e4ab09]
+      - 2026-07-07 · FIX Mac custom vocab consume-only → full whole-list LWW via
+        shared VocabularySyncCore (+push-on-edit, union migration; device
+        round-trip owed) [6f78ac1]
+    win: no algorithm or wire struct the sync contract depends on exists twice; both
+      suites green against the shared copies
   - id: Stz020
     title: Stabilize 0.2.0
     lane: 0
@@ -161,15 +197,17 @@ nodes:
       (SSOT §3). Done = phone↔Mac sync works end-to-end in prod + the batch is
       cleared.
     backlog:
-      - Deploy prod CloudKit PRODUCTION schema (incl. MemoEnhancement) —
-        phone→Mac sync hangs in prod (all testing was on Dev)
-      - Stale 'Waiting' sync pill — Memo.statusKind keys off Bonjour/HTTP, not
-        CloudKit
+      - Deploy prod CloudKit PRODUCTION schema (incl. MemoEnhancement +
+        NamesRecord + VocabularyRecord) — phone→Mac sync hangs in prod (all
+        testing was on Dev)
       - Name added on phone not recognised (e.g. 'IJsbrand') — AddPersonView
         saves empty aliases; seed alias from name on add
       - Phone can't select a word + 'add as name' (desktop has it)
       - Desktop tags every note a 'conversation' (≥2 '**Name:**' headers) + no
         re-transcribe button — stale diarized turn markers
+      - Verify custom-vocab last-write-wins on real devices — add a word on the
+        Mac → see it on the phone (the 6f78ac1 LWW fix shipped but the phone↔Mac
+        round-trip is device-unverified)
     win: phone↔Mac sync works end-to-end in prod (CloudKit schema deployed) and the
       5-finding post-0.2.0 batch is cleared
   - id: P4
@@ -528,13 +566,13 @@ detours:
       - id: D1
         title: Per-book audiobook sync + real %
         status: done
-        done: 2026-06-19
+        done: 2026-06-19T00:00:00.000Z
         note: Raw-CloudKit CKAsset transfer → determinate upload/download bar + the
           'Turn it on' size sheet.
       - id: D2
         title: Everything syncs
         status: done
-        done: 2026-06-19
+        done: 2026-06-19T00:00:00.000Z
         deps:
           - D1
         via: D1
@@ -543,7 +581,7 @@ detours:
       - id: D3
         title: Player reading-mode redesign
         status: done
-        done: 2026-06-19
+        done: 2026-06-19T00:00:00.000Z
         deps:
           - D2
         via: D2
@@ -721,5 +759,41 @@ ideas:
       split them into SEPARATE notes. Both relate to the same share-to-import /
       capture-items flow."
     source: voice
+  - id: i5
+    text: "Anti-drift tail of SharedKit — 5 more phone↔Mac twin copies found in the
+      dedup research, still not unified (each needs its own care, per backlog
+      2026-07-07): (1) SpeakerTranscript twins — the shared Sanitiser parses
+      conversations through a per-app SpeakerTranscript (desktop Diarizing.swift
+      / mobile SpeakerTurnsView.swift); a change to one app's parser silently
+      forks the shared Sanitiser. (2) MemoCloudIngest de-multipart — the Mac's
+      only ingest path re-encodes the typed shared Memo into fake multipart for
+      the retired Bonjour parser; map Memo+assets → PipelineFile directly/typed
+      (golden parity test first). (3) NamesCloudSync reconcile core — both
+      halves run the same fold→NamesMerge→byte-compare→collapse with different
+      plumbing; encoder divergence → CloudKit churn loop. (4)
+      VocabularyBooster.boost() cores — same spot→rescore→trust→apply flow,
+      drifted. (5) Desktop legacy readers (PhoneMetadata + SharedContent) —
+      lenient decoders to collapse once old payloads are gone. NOTE: this means
+      SharedKit's win ('nothing the sync contract depends on exists twice')
+      isn't strictly met."
+    source: voice
+    nodeHint: SharedKit
+  - id: i6
+    text: "Mac↔phone people/name-linking parity (both BIG, mock-first, from the
+      2026-07-06 CloudKit test session). (1) The Mac's Names screen should match
+      the phone's person UI — look + interaction parity. (2) Mac in-place
+      name-linking should match the phone: on the phone a linkable word (e.g.
+      'Will') shows dotted/tappable immediately on the RAW transcript; on the
+      Mac the dotted suggestions only appear AFTER enhance (the sanitise pass)
+      and aren't as interactive. Want immediate + tappable on the Mac too."
+    source: voice
+    nodeHint: P7
+  - id: i7
+    text: Books-tab branch — when it lands it needs to merge main and port its two
+      fields (bookID / bookPosition) into Shared/Model/MemoMetadata.swift.
+      Carry-forward loose end from the SharedKit dedup session; not urgent, but
+      must not be forgotten at merge time.
+    source: voice
+    nodeHint: P9b
 north: everything you say and read lands organized in your vault — so you can
   see how your thinking evolved

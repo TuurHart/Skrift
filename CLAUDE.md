@@ -6,19 +6,21 @@ Guidance for Claude Code working in this repo.
 
 Skrift transcribes iPhone voice recordings (+ Apple Notes) to text, sanitises
 (name-linking), enhances (local MLX Gemma), and exports to Obsidian-compatible
-Markdown — fully offline. **Two native SwiftUI apps** that sync over the local
-network (Bonjour + HTTP) and share a names database (bidirectional last-write-wins):
+Markdown — fully offline transcription. **Two native SwiftUI apps** that sync over
+**CloudKit** (the user's private iCloud database) and share a names database
+(bidirectional last-write-wins). Bonjour/HTTP LAN sync is fully retired.
 
 - **`Skrift_Native/SkriftMobile/`** — native **iOS** app. Records voice memos with
   contextual metadata + photos, transcribes on-device (FluidAudio / Parakeet on the
-  Apple Neural Engine), syncs to the Mac. Live caption, Live Activity, Control
-  Center + Lock/Home widgets, App Intents, share-to-import audio/video, an
-  **audiobook player with quote-capture** (Bound-style library; captures become
-  memos with the quote audio + the user's voice ramble).
+  Apple Neural Engine), syncs across the user's devices (and the Mac) over CloudKit.
+  Live caption, Live Activity, Control Center + Lock/Home widgets, App Intents,
+  share-to-import audio/video, an **audiobook player with quote-capture** (Bound-style
+  library; captures become memos with the quote audio + the user's voice ramble).
 - **`Skrift_Native/SkriftDesktop/`** — native **macOS** app. ONE process: FluidAudio
-  (ASR) + mlx-swift (Gemma enhancement) in-process + a thin Bonjour/HTTP server as
-  the phone's sync target. Transcribe → enhance → name-link → compile → export to
-  Obsidian. **No Python, no Electron.**
+  (ASR) + mlx-swift (Gemma enhancement) in-process, a **CloudKit client** of the
+  shared `Memo` store (reads synced raw memos, writes its polish back as
+  `MemoEnhancement`). Transcribe → enhance → name-link → compile → export to
+  Obsidian. **No Python, no Electron, no Bonjour server.**
 
 The previous apps are preserved **intact** under `archive/` for reference
 (`archive/Mobile/` = old React Native iOS, `archive/frontend-new/` = old Electron,
@@ -29,12 +31,15 @@ The previous apps are preserved **intact** under `archive/` for reference
 
 - **PRIVACY:** never point AI/agents at the user's Obsidian vault contents. Only the
   app's own code scans the vault; test with a small sample the user provides.
-- **Mobile↔Mac contract is the spine** (handoffs §4): multipart `POST
-  /api/files/upload`; the phone sends the **RAW transcript** (+ confidence /
-  userEdited / markers / metadata / optional `title`), **never `sanitised`** — the
-  Mac links names. Trust = `transcriptUserEdited || transcriptConfidence ≥ 0.7`.
-  Names sync: `GET /api/names/meta` → `GET` → LWW merge (**union** voiceEmbeddings)
-  → `PUT`. Keep it byte-compatible across both apps.
+- **CloudKit sync contract is the spine:** memos mirror to the user's private CloudKit
+  DB (SwiftData `Memo` + `MemoAsset` blobs); the Mac ingests a synced memo
+  (`MemoCloudIngest`) and writes its polish back as `MemoEnhancement` (LWW by
+  `enhancedAt`). The phone always carries the **RAW transcript** (+ confidence /
+  userEdited / markers / metadata / optional `title`), **never `sanitised`** — the Mac
+  links names. Trust = `transcriptUserEdited || transcriptConfidence ≥ 0.7`. Names sync
+  over CloudKit (`NamesRecord` carrier ↔ local `names.json`) via `NamesMerge` LWW
+  (**union** voiceEmbeddings); custom vocab likewise. Keep `names.json` byte-compatible
+  across both apps.
 - **Keep it simple. Commit per chunk. Verify each chunk** (xcodebuild build+test on
   the iPhone 17 sim for mobile; `-skipMacroValidation` full scheme for desktop). For
   new UI, mock first.

@@ -178,6 +178,8 @@ struct NoteBody: View {
                 if file.sanitised != nil { file.sanitised = newValue }
                 else if file.enhancedCopyedit != nil { file.enhancedCopyedit = newValue }
                 else { file.transcript = newValue }
+                // Live bidirectional sync (Part B): debounced push of this edit to the phone.
+                MacCloudEditSync.shared.note(file)
             }
         )
     }

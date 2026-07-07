@@ -3,6 +3,22 @@
 Written 2026-07-06 at the end of a long session. On `main`, 14 local commits (not pushed).
 Prereq reading: `backlog.md` "⭐ CloudKit-only sync epic", plan `~/.claude/plans/do-all-the-work-lively-sedgewick.md`.
 
+## ✅ STATUS — both parts done in code (updated 2026-07-06, later session)
+
+- The **14 commits were already pushed** (a later push; `origin/main` had them).
+- **Part A — DONE + pushed** (`0dab500` on `main`): mobile Bonjour code deleted (~1700 lines),
+  onboarding/Settings/list de-Mac'd, per-memo sync pill removed, docs + roadmap updated, build 28→29.
+  Verified: build ✅, 481/481 mobile unit tests ✅.
+- **Part B — BUILT + UNIT-TESTED (device round-trip OWED)**: live bidirectional edit sync,
+  desktop-only (the phone already edits/consumes `MemoEnhancement`). Mac→phone =
+  `App/MacCloudEditSync.swift` (debounced write-back off `NoteBody`/`NoteProperties` edits) +
+  `MacCloudWriteBack.upsert(bodyOverride:)` + `Sanitiser.unlinkToSpoken`. Phone→Mac =
+  `Pipeline/Ingest/MemoCloudUpdate.swift` + `MemoCloudReconciler.sweep` (`SweepOutcome`) +
+  `PipelineFile.syncedSourceEditedAt` watermark + wiring re-export. Policy: **re-link + recompile,
+  NO LLM re-enhance** (user call). Verified: desktop UnitTests ✅ (324), desktop app build ✅,
+  mobile build ✅. **⏳ The only thing left is the two-device CloudKit round-trip on real hardware
+  (see "Verify (device)" below).**
+
 ## Where we are
 The **CloudKit-only sync epic is functionally done and device-verified** (names, vocab, memo
 round-trip all sync phone↔Mac over CloudKit with Bonjour off). **Desktop Bonjour is fully deleted**

@@ -99,17 +99,17 @@ final class MemoModelTests: XCTestCase {
         XCTAssertEqual(blankTitle.displayTitle, "hi there")
     }
 
-    func testStatusKindHidesSyncPillWhenInsignificant() {
-        // significance 0 → phone-only → NO sync pill (never uploads).
+    func testStatusKindNeverShowsSyncPill() {
+        // CloudKit-only: there is NO per-memo sync pill regardless of significance
+        // or syncStatus — sync is automatic and shown by the global iCloud chip.
         let phoneOnly = Memo(syncStatus: .waiting, transcriptStatus: .done, significance: 0)
         XCTAssertNil(phoneOnly.statusKind)
 
-        // significance > 0 → flagged to send → Waiting / Synced as before.
         let waiting = Memo(syncStatus: .waiting, transcriptStatus: .done, significance: 0.5)
-        XCTAssertEqual(waiting.statusKind, .waiting)
+        XCTAssertNil(waiting.statusKind)
 
         let synced = Memo(syncStatus: .synced, transcriptStatus: .done, significance: 0.5)
-        XCTAssertEqual(synced.statusKind, .synced)
+        XCTAssertNil(synced.statusKind)
     }
 
     func testStatusKindAlwaysShowsTranscriptStateRegardlessOfSignificance() {

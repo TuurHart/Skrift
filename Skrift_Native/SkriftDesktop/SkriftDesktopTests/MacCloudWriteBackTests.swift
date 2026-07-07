@@ -102,6 +102,54 @@ final class MacCloudWriteBackTests: XCTestCase {
         XCTAssertEqual(enhancements(in: ctx).count, 0)
     }
 
+    // MARK: - Part B: live-edit write-back (bodyOverride + echo guard)
+
+    func testBodyOverrideSyncsTheEditedBodyNotStaleCopyedit() throws {
+        // A manual Mac body edit lands in `sanitised`; the edit path passes the un-linked
+        // body via bodyOverride, which must win over the stale `enhancedCopyedit`.
+        let ctx = try cloudContext()
+        let id = UUID()
+        ctx.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a"))
+        try ctx.save()
+
+        let pf = enhancedFile(id: id)   // enhancedCopyedit = "Polished body."
+        let written = try XCTUnwrap(try MacCloudWriteBack.upsert(
+            for: pf, into: ctx, deviceID: "mac-1", bodyOverride: "Edited on the Mac."))
+        XCTAssertEqual(written.copyedit, "Edited on the Mac.", "bodyOverride is the live-edited body")
+    }
+
+    func testUpsertDoesNotClobberANewerPhoneEdit() throws {
+        // A phone edit (device "phone-9") landed at a LATER time than this Mac write's `now`.
+        // LWW must preserve the phone's copy, not overwrite it with the Mac's stale content.
+        let ctx = try cloudContext()
+        let id = UUID()
+        ctx.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a"))
+        let future = Date().addingTimeInterval(60)
+        let phoneEdit = MemoEnhancement(memoID: id, copyedit: "Phone's newer text.",
+                                        enhancedByDeviceID: "phone-9", enhancedAt: future)
+        ctx.insert(phoneEdit)
+        try ctx.save()
+
+        let result = try MacCloudWriteBack.upsert(for: enhancedFile(id: id), into: ctx,
+                                                  deviceID: "mac-1", now: Date())
+        XCTAssertEqual(result?.copyedit, "Phone's newer text.", "a strictly-newer phone edit is preserved")
+        XCTAssertEqual(enhancements(in: ctx).count, 1)
+    }
+
+    func testUpsertOverwritesItsOwnEarlierWrite() throws {
+        // The guard is only against OTHER devices — the Mac freely updates its own prior write.
+        let ctx = try cloudContext()
+        let id = UUID()
+        ctx.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a"))
+        ctx.insert(MemoEnhancement(memoID: id, copyedit: "Old.",
+                                   enhancedByDeviceID: "mac-1", enhancedAt: Date().addingTimeInterval(60)))
+        try ctx.save()
+
+        let written = try XCTUnwrap(try MacCloudWriteBack.upsert(
+            for: enhancedFile(id: id), into: ctx, deviceID: "mac-1", bodyOverride: "New from the same Mac."))
+        XCTAssertEqual(written.copyedit, "New from the same Mac.")
+    }
+
     func testCaptureWriteBackUsesTitleAndSummaryOnly() throws {
         // Captures get title + summary but no copy-edit (BatchRunner.runCapture) — still synced.
         let ctx = try cloudContext()
