@@ -177,20 +177,19 @@ actor TranscriptionService: Transcriber {
         let result = try await asr.transcribe(audioURL, decoderState: &state)
         let ms = Int(Date().timeIntervalSince(started) * 1000)
 
-        // Silence/phantom guard: TDT can hallucinate a short phantom transcript on
-        // (near-)silent audio. Drop empty, or tiny-AND-low-energy. Gated on a tiny
-        // word count so real speech is never dropped. Threshold tuned on device.
+        // Silence/phantom guard (shared BPEMerge — same rule as the Mac).
         let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
         let wordCount = trimmed.isEmpty
             ? 0
             : trimmed.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
-        let lowEnergy = rms.map { $0 < 0.0075 } ?? false
-        if trimmed.isEmpty || (lowEnergy && wordCount <= 3) {
+        if BPEMerge.shouldDropAsPhantom(rms: rms, wordCount: wordCount, isEmpty: trimmed.isEmpty) {
             return TranscriptionResult(text: "", confidence: Double(result.confidence),
                                        durationMs: ms, wordTimings: [], markersInjected: false)
         }
 
-        var words = Self.mergeBPETokens(result.tokenTimings ?? [])
+        var words = BPEMerge.mergeBPETokens((result.tokenTimings ?? []).map {
+            RawToken(token: $0.token, startTime: $0.startTime, endTime: $0.endTime)
+        })
         var text = result.text
 
         // Custom-vocabulary rescore (Settings → Custom words). No-op without
@@ -199,10 +198,10 @@ actor TranscriptionService: Transcriber {
         if let boosted = await VocabularyBooster.shared.boost(
             text: text, tokenTimings: result.tokenTimings ?? [], audioURL: audioURL) {
             text = boosted.text
-            if let aligned = VocabularyBooster.alignWords(original: words.map(\.text),
-                                                          rescoredText: boosted.text) {
+            if let aligned = BPEMerge.alignWords(original: words.map(\.text),
+                                                 rescoredText: boosted.text) {
                 words = zip(words, aligned).map {
-                    ImageMarkers.TimedWord(text: $1, start: $0.start, end: $0.end)
+                    TimedWord(text: $1, start: $0.start, end: $0.end)
                 }
             }
         }
@@ -251,36 +250,7 @@ actor TranscriptionService: Transcriber {
         return Float((sumSquares / totalFrames).squareRoot())
     }
 
-    /// Merge BPE sub-word tokens into whole words. A token whose raw text starts
-    /// with a space begins a new word; others are continuations.
-    private static func mergeBPETokens(_ tokens: [TokenTiming]) -> [ImageMarkers.TimedWord] {
-        var words: [ImageMarkers.TimedWord] = []
-        var pending: (text: String, start: TimeInterval, end: TimeInterval)?
-
-        for token in tokens {
-            let raw = token.token
-            if raw.isEmpty { continue }
-            let isNewWord = raw.hasPrefix(" ") || pending == nil
-            let clean = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            if clean.isEmpty { continue }
-            let s = max(0.0, token.startTime)
-            let e = max(s, token.endTime)
-
-            if isNewWord {
-                if let p = pending, !p.text.trimmingCharacters(in: .whitespaces).isEmpty {
-                    words.append(ImageMarkers.TimedWord(text: p.text.trimmingCharacters(in: .whitespaces), start: p.start, end: p.end))
-                }
-                pending = (text: clean, start: s, end: e)
-            } else {
-                pending?.text.append(clean)
-                pending?.end = e
-            }
-        }
-        if let p = pending, !p.text.trimmingCharacters(in: .whitespaces).isEmpty {
-            words.append(ImageMarkers.TimedWord(text: p.text.trimmingCharacters(in: .whitespaces), start: p.start, end: p.end))
-        }
-        return words
-    }
+    // (BPE token→word merging lives in the shared `BPEMerge` — one copy with the Mac.)
 
     // MARK: - Live streaming (record-screen captions)
     //
@@ -446,7 +416,7 @@ struct SeededTranscriber: Transcriber {
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult {
         let pieces = text.split(separator: " ")
         let timedWords = pieces.enumerated().map { index, word in
-            ImageMarkers.TimedWord(text: String(word), start: Double(index) * 0.3, end: Double(index) * 0.3 + 0.25)
+            TimedWord(text: String(word), start: Double(index) * 0.3, end: Double(index) * 0.3 + 0.25)
         }
         var outText = text
         var markersInjected = false

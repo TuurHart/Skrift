@@ -1,6 +1,9 @@
 import Foundation
 
-/// A whole word with timing, after merging BPE sub-word tokens.
+/// A whole word with timing, after merging BPE sub-word tokens. The transient
+/// in-memory shape between the ASR engine and marker insertion / fusion — NOT
+/// the `word_timings.json` element (that's the shared `WordTiming`, whose
+/// `word` key is a wire contract; this one is never serialized).
 struct TimedWord: Equatable, Sendable {
     let text: String
     let start: TimeInterval
@@ -8,15 +11,18 @@ struct TimedWord: Equatable, Sendable {
 }
 
 /// A raw ASR sub-word token, decoupled from FluidAudio's `TokenTiming` so the merge
-/// is host-testable. The engine maps FluidAudio tokens → these.
+/// is host-testable. Each app's engine maps FluidAudio tokens → these.
 struct RawToken: Equatable, Sendable {
     let token: String
     let startTime: TimeInterval
     let endTime: TimeInterval
 }
 
-/// Deterministic transcript post-processing — pure, host-testable. The
-/// FluidAudio-coupled engine feeds it `RawToken`s and an RMS reading.
+/// Deterministic transcript post-processing — pure, host-testable, and SHARED:
+/// both apps run the same Parakeet models, so token→word merging, the
+/// rescored-text word alignment, and the phantom-transcript guard must behave
+/// identically on phone and Mac (each previously carried its own copy — the
+/// phone's lived inline in its TranscriptionService/VocabularyBooster).
 enum BPEMerge {
 
     /// Custom-vocab rescore swaps whole words in the TEXT; the word timings
@@ -33,7 +39,7 @@ enum BPEMerge {
 
     /// Merge BPE sub-word tokens into whole words. A token whose raw text starts
     /// with a space begins a new word; others continue the current one. Bit-for-bit
-    /// the same as the phone's `mergeBPETokens` and the backend word merge.
+    /// the same as the RN-era merge and the backend word merge.
     static func mergeBPETokens(_ tokens: [RawToken]) -> [TimedWord] {
         var words: [TimedWord] = []
         var pending: (text: String, start: TimeInterval, end: TimeInterval)?
@@ -65,7 +71,7 @@ enum BPEMerge {
 
     /// Phantom-transcript guard: TDT can hallucinate a short transcript on
     /// (near-)silent audio. Drop empty, or tiny-AND-low-energy — gated on a small
-    /// word count so real speech is never dropped. Threshold from the phone (device-tuned).
+    /// word count so real speech is never dropped. Threshold device-tuned.
     static func shouldDropAsPhantom(rms: Float?, wordCount: Int, isEmpty: Bool) -> Bool {
         if isEmpty { return true }
         let lowEnergy = rms.map { $0 < 0.0075 } ?? false

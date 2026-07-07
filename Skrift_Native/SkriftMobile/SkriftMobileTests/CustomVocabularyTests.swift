@@ -21,20 +21,20 @@ final class CustomVocabularyTests: XCTestCase {
     }
 
     func testAlignWordsSwapsPositionally() {
-        let aligned = VocabularyBooster.alignWords(
+        let aligned = BPEMerge.alignWords(
             original: ["the", "script", "app", "works"],
             rescoredText: "the Skrift app works")
         XCTAssertEqual(aligned, ["the", "Skrift", "app", "works"])
     }
 
     func testAlignWordsNilWhenCountsDiverge() {
-        XCTAssertNil(VocabularyBooster.alignWords(
+        XCTAssertNil(BPEMerge.alignWords(
             original: ["one", "two"],
             rescoredText: "one two three"))
     }
 
     func testAlignWordsHandlesNewlines() {
-        let aligned = VocabularyBooster.alignWords(
+        let aligned = BPEMerge.alignWords(
             original: ["hello", "world"],
             rescoredText: "hello\nSkrift")
         XCTAssertEqual(aligned, ["hello", "Skrift"])

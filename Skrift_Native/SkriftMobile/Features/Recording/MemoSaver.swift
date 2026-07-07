@@ -715,7 +715,7 @@ struct MemoSaver {
         // re-insert them by timestamp, landing each in the turn being spoken when it was
         // taken (photos + manifest are untouched; this restores the inline markers).
         if let manifest = memo.metadata?.imageManifest, !manifest.isEmpty {
-            let tw = words.map { ImageMarkers.TimedWord(text: $0.word, start: $0.start, end: $0.end) }
+            let tw = words.map { TimedWord(text: $0.word, start: $0.start, end: $0.end) }
             attributed = ImageMarkers.insert(transcript: attributed, words: tw, manifest: manifest)
         }
         memo.transcript = attributed

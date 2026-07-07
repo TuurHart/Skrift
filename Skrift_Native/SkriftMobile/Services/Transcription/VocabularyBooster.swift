@@ -196,18 +196,5 @@ actor VocabularyBooster {
         loadedWords = words
     }
 
-    // MARK: - Word-timings alignment (pure)
-
-    /// The rescorer replaces whole words in the TEXT; the word-timings sidecar
-    /// (karaoke/tap-to-seek) must show the corrected words too. When the
-    /// rescored text still has the same word count, swap strings positionally
-    /// (times unchanged). nil = counts diverged — caller keeps the original
-    /// words (rare; only the replaced span would read stale).
-    nonisolated static func alignWords(original: [String], rescoredText: String) -> [String]? {
-        let rescored = rescoredText
-            .split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" })
-            .map(String.init)
-        guard rescored.count == original.count else { return nil }
-        return rescored
-    }
+    // (Word-timings alignment after a rescore lives in the shared `BPEMerge.alignWords`.)
 }
