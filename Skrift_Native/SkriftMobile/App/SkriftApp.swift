@@ -155,6 +155,10 @@ struct RootView: View {
         } else if LaunchFlags.seedPolished {
             // Screenshot route: open the seeded polished memo (Phase 4 display).
             NavigationStack { MemoDetailView(initialID: DemoDataSeeder.polishedMemoID) }
+        } else if LaunchFlags.threadDemo {
+            // Screenshot route: the P8 thread for the seeded pricing memo
+            // (combine with -seedJournal -mockJournalIndex).
+            ThreadView(seedID: DemoDataSeeder.journalPricingMemoID)
         } else if needsOnboarding {
             OnboardingView {
                 UserDefaults.standard.set(true, forKey: "onboardingComplete")

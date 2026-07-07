@@ -61,7 +61,10 @@ struct MemosListView: View {
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
-    @State private var search = ""
+    @State private var search = LaunchFlags.initialSearch ?? ""
+    /// Semantic hits for the current search (P8) — empty unless the journal
+    /// index is active AND something clears the floor.
+    @State private var related: [Memo] = []
     @State private var sort: MemoSort = .added
     @State private var filter = MemoFilter()
     @State private var editMode: EditMode = .inactive
@@ -244,7 +247,7 @@ struct MemosListView: View {
                             .foregroundStyle(Color.skTextDim)
                     }
                 }
-                if groups.isEmpty {
+                if groups.isEmpty && relatedDisplay.isEmpty {
                     Text("No matches")
                         .font(.subheadline)
                         .foregroundStyle(Color.skTextDim)
@@ -252,6 +255,30 @@ struct MemosListView: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .padding(.top, 60)
+                }
+                // P8: semantic "Related" under the exact matches — appears only
+                // when the journal index is active (or -mockJournalIndex) and
+                // something clears the floor; passes the same filter sheet.
+                if !relatedDisplay.isEmpty {
+                    Section {
+                        ForEach(relatedDisplay) { memo in
+                            MemoRow(memo: memo) { path.append(memo.id) }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                        }
+                    } header: {
+                        HStack(spacing: 6) {
+                            Text("RELATED")
+                                .font(.system(size: 11.5, weight: .bold))
+                                .kerning(0.5)
+                                .foregroundStyle(Color.skTextDim)
+                            Text("similar in meaning")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.skTextFaint)
+                        }
+                        .accessibilityIdentifier("related-section-header")
+                    }
                 }
                 // Trash entry point, Voice Memos-style: a quiet footer row that
                 // only exists while the trash is non-empty. Hidden during
@@ -268,6 +295,7 @@ struct MemosListView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .task(id: search) { await refreshRelated() }
             .environment(\.editMode, $editMode)
             .accessibilityIdentifier("memos-list")
             // Pull-to-refresh: a manual nudge for "show me what synced" — runs the
@@ -541,6 +569,31 @@ struct MemosListView: View {
 
     private func matchesSearch(_ memo: Memo) -> Bool {
         memo.matches(query: search)
+    }
+
+    /// The rendered Related section: raw semantic hits minus exact matches,
+    /// passed through the same filter sheet as everything else.
+    private var relatedDisplay: [Memo] {
+        guard !related.isEmpty else { return [] }
+        let exact = Set(filtered.map(\.id))
+        return related.filter { !exact.contains($0.id) && matchesFilter($0) }
+    }
+
+    /// Debounced semantic lookup for the current query (P8). Exact matches
+    /// never wait on this — it fills the Related section in async.
+    private func refreshRelated() async {
+        let q = search.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, JournalIndexService.shared.isActive else {
+            if !related.isEmpty { related = [] }
+            return
+        }
+        JournalIndexService.shared.warmUp()
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        guard !Task.isCancelled else { return }
+        let scores = await JournalIndexService.shared.searchScores(q, repository: repository)
+        guard !Task.isCancelled, q == search.trimmingCharacters(in: .whitespaces) else { return }
+        let byID = Dictionary(uniqueKeysWithValues: memos.map { ($0.id, $0) })
+        related = JournalIndexService.relatedResults(scores: scores, excluding: [], memosByID: byID)
     }
 
     private func matchesFilter(_ memo: Memo) -> Bool {

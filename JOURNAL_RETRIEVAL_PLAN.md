@@ -174,11 +174,15 @@ Per-app wiring — `Skrift_Native/SkriftMobile/`:
    dot density, Places map with clusters; Journal replaces the Highlights tab slot. `-seedJournal`
    + `-openJournal` flags; 7 unit tests; home screen sim-screenshot verified against the mock.
    OWED: device eyeball (incl. pushed Calendar/Map screens) on the next Dev build.
-6. Search "Related" section + filter chips (person / place / month / kind) in `MemosListView`
-   search, and the Thread view (reached from a memo's Related card / context menu). Warm the
-   engine when the search field gains focus; Matches render instantly, Related fills in async —
-   never block the exact results on a model load. ⚠️ Rebase after the Bonjour-removal lane lands —
-   it edits `MemosListView.swift` too.
+6. ✅ **BUILT 2026-07-07** — search "Related · similar in meaning" section under the exact matches
+   (debounced async, engine warm-up on first keystroke, floor + exact-exclusion + the existing
+   filter sheet applied at render), ThreadView (arc + first-mention pill + "this note" seed
+   marker, sheet from the ⋯ menu, rows open via MemoOpenBridge), `-mockJournalIndex` +
+   `-initialSearch` + `-threadDemo` screenshot/UITest flags. Sim-verified: zero-substring query
+   surfaces both pricing memos; thread renders the two-node arc. **Deviations (deliberate):**
+   filter CHIPS not built — the merged list already has a SortFilterSheet (place/date/toggles)
+   that prefilters Related too; person/kind additions to that sheet + the calibration histogram
+   move to chunk 8's device pass.
 7. Related-notes card on memo detail. **LAST — only after the note-editing lane merges** (it owns
    `MemoDetail`). Build against the rebuilt detail view.
 8. Device pass on the iPhone 13 (Dev build): backfill duration + memory on the real corpus, jetsam

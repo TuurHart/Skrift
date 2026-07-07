@@ -22,6 +22,9 @@ struct MemoDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
     @State private var showActions = false
+    /// P8 thread sheet (the ⋯ menu's "View Thread" — only when the journal
+    /// index is active).
+    @State private var showThread = false
     @State private var showSplitOptions = false
     @State private var showAppendRecorder = false
     @State private var showShare = false
@@ -142,6 +145,9 @@ struct MemoDetailView: View {
         .confirmationDialog(memoStatsLine, isPresented: $showActions, titleVisibility: .visible) {
             Button("Add recording", action: { showAppendRecorder = true })
             Button("Remind me…", action: { reminderMemo = currentMemo })
+            if JournalIndexService.shared.isActive {
+                Button("View Thread", action: { showThread = true })
+            }
             if let memo = currentMemo {
                 Button(memo.locked ? "Remove Lock" : "Lock Note", action: { toggleLock(memo) })
             }
@@ -163,6 +169,11 @@ struct MemoDetailView: View {
                 ActivityShareSheet(items: shareItems(for: memo))
                     .presentationDetents([.medium, .large])
             }
+        }
+        // The arc of this idea (P8): related memos oldest-first. A sheet — the
+        // stack's typed [UUID] path can't host a non-memo destination.
+        .sheet(isPresented: $showThread) {
+            if let memo = currentMemo { ThreadView(seedID: memo.id) }
         }
         // Append a follow-up recording to the current memo (records → transcribes →
         // appends text + merges audio in MemoSaver.appendRecording). Transcript

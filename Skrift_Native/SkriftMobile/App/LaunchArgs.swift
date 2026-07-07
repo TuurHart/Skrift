@@ -50,6 +50,15 @@ enum LaunchFlags {
     /// Open the Journal tab on launch (screenshot/UITest routing, like the
     /// seed-and-open flags above).
     static var openJournal: Bool { args.boolFlag("-openJournal") }
+    /// Run the journal index on MockEmbedder + an in-memory store (no model
+    /// assets) so search-Related/threads are demoable on the sim / UI tests.
+    static var mockJournalIndex: Bool { args.boolFlag("-mockJournalIndex") }
+    /// Pre-fill the memos-list search on launch (screenshot the Related section
+    /// without typing).
+    static var initialSearch: String? { args.stringValue("-initialSearch") }
+    /// Open the P8 thread view for the seeded pricing memo (screenshot route;
+    /// combine with -seedJournal -mockJournalIndex).
+    static var threadDemo: Bool { args.boolFlag("-threadDemo") }
     static var seedDemoNames: Bool { args.boolFlag("-seedDemoNames") }
     /// Seed the name-linking demo (the mock's "Studio afternoon" memo + 4 people: two
     /// Jacks → ambiguous, Hendri → linked, Rose → suggested) and open its detail directly,
