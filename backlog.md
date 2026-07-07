@@ -490,28 +490,35 @@ passcode-capable device); REMOVING the lock needs auth. **Publish: locked ⇒ ex
 tested); locking an already-published memo → honest "already in your vault" notice (Skrift never deletes vault
 files). Honesty copy on the placeholder: "hidden, not encrypted". Mac gate owed (LocalAuthentication is the
 same API). 520 unit + desktop 325 + desktop app build + UI cluster green.
-**📱 DEVICE TEST ROUND 1 — build 31, 2026-07-07 (user feedback batch, triaged same-session). ⭐ CONTINUE
-HERE next chat — fix P1s first.**
+**📱 DEVICE TEST ROUND 1 — build 31, 2026-07-07 (user feedback batch, triaged same-session).
+⭐ ALL 6 P1s FIXED same-day (commits `461c55d`…`600d9ef`, 529/529 unit green) → build 32 = round 2.
+Device verify owed on every P1 (sim can't falsify device feel); P1#1+#3 carry DevLog probes so the
+round-2 devlog arbitrates if anything remains. CONTINUE HERE: round-2 verdicts, then the P2 list.**
 LIKED ✓: compact player ("looks good"), player auto-hides for no-audio notes, tag editor ("way better, good
 job"), undo buttons, paste-no-teleport, caret-above-keyboard, name resolve sheet + edit-mode semantics
 ("very good"), lock ("works, very cool"), reminders ("quite cool"), pinned-title ellipsis.
-**P1 BUGS:**
-1. **Selection handles misbehave on scroll** — dragging the right handle down makes the LEFT handle "jump down
-   to stay on the screen"; after selecting, scrolling makes both markers "follow along / adapt to what's on
-   screen". Repro: long note → double-tap → drag handle past fold → scroll. UNDIAGNOSED — suspect
-   `applyTierStyling`'s selectedRange save/restore or `layoutAccessories` churn re-anchoring selection UI.
-   Instrument on device (DevLog in didChangeSelection/layoutSubviews).
-2. **Tap in empty space RIGHT of a photo opens the viewer** — caret-adjacency probe too greedy; require the
-   tap point inside the attachment's drawn rect (`rects(forCharacterRange:)`) before `onTapImage`. Small fix.
-3. **Doc-scan button invisible on device** — user can't find `doc.viewfinder` in the list toolbar. Investigate:
-   iOS-26 nav-bar item OVERFLOW (check the top-bar ⋯) vs `isSupported` false; consider relocating the entry.
-4. **Photo-OCR search finds nothing on device** (tried handwriting AND printed text) — likely NO trigger right
-   after a recording save (sweep = launch/foreground/sync/insert only) → add `PhotoTextIndexer.run` after
-   MemoSaver photo-move; verify via devlog "photoText: indexed N"; handwriting may stay hard (Vision).
-5. **List long-press doesn't open the context menu** — "the note starts moving upwards as if scrolling";
-   contextMenu lift fights the row's `onTapGesture`/List on iOS 26. Investigate.
-6. **Checkbox tap sometimes enters editing instead of toggling** — task-glyph caret probe tolerance too tight;
-   widen (rect-based like #2's fix).
+**P1 BUGS (all FIXED 2026-07-07, device verify owed in round 2):**
+1. ✅ **Selection handles misbehave on scroll** (`600d9ef`) — diagnosed as styling/selection CHURN: SwiftUI
+   re-evals storm during interactive keyboard dismiss and every updateUIView re-ran the FULL name-tier
+   rewrite (unchanged spans) + a redundant selectedRange write = whole-doc reflow + iOS-26 selection-UI
+   rebuild under live handles. Fixed: updateSpans skips unchanged spans; selectedRange written only when
+   different; never restyle over a live selection. DevLog probes left in (inset writes, tier-restore moves,
+   load rebuilds, sel-noFR changes) — if round 2 still shows jumps, the devlog names the event.
+2. ✅ **Tap right of a photo opened the viewer** (`da3cfee`) — attachment taps now resolve from the TOUCH
+   POINT against the glyph's drawn rect (anchored on `closestPosition`, caret-independent); geometry test
+   with a real portrait photo.
+3. ✅ **Doc-scan button invisible** (`81a7208`) — the button was a ToolbarItem nested TWO conditionals deep
+   in ToolbarContentBuilder (the shape iOS 26 drops); both trailing buttons now live in ONE ToolbarItemGroup.
+   Devlog probe "docScan: isSupported=…" proves capability vs toolbar in round 2.
+4. ✅ **Photo-OCR search dead** (`461c55d`) — confirmed the sweep WORKS on device (devlog: "photoText:
+   indexed 7" at 12:19); the gap was no trigger after a save, so in-session searches found nothing. The
+   save paths (recording / awaitable / video import) now run PhotoTextIndexer after the metadata merge;
+   integration test = save with rendered-text photo → searchable, real Vision. Handwriting quality = Vision's
+   call, still watch.
+5. ✅ **List long-press scrolled instead of context menu** (`5376a2f`) — the row's .onTapGesture fought the
+   lift; the row is a plain Button now. New UI test long-presses row 0 and asserts the menu (green).
+6. ✅ **Checkbox tap sometimes entered editing** (`da3cfee`) — same rect-based fix as #2: task glyph hit by
+   drawn rect ±12 pt slop, caret snap irrelevant; geometry test.
 **P2 FEATURES/POLISH (user-requested this round):**
 7. 📷 accessory should offer TAKE PHOTO (camera) as well as library.
 8. Checklist: Return at the end of a task line auto-continues with a new `- [ ] ` (Apple Notes behaviour).
