@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 15
-updated: 2026-07-07T19:10:00.000Z
+updated: 2026-07-07T21:50:15.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -793,7 +793,10 @@ detours:
           launch (resume = 1 tap), tap-a-book autoplays, sort+status filters on
           the Books chip, capture memos carry bookID+bookPosition (the future
           per-book-notes join key), 'memo'→'note' copy sweep + one 'Add note'
-          verb. Mock-first: mocks/books-tab-and-resume.html."
+          verb. Mock-first: mocks/books-tab-and-resume.html. Then 6 device
+          rounds (builds 46–51, w/ designer Hendri): card-at-rest / pill-when-
+          live bottom chrome, compact unified 30pt headers, ContinueCardUITests.
+          Branch sweet-goldstine, PR owed after the build-51 eyeball."
 ideas:
   - id: P4a
     text: Spike on the iPhone 13 FIRST (the gate)

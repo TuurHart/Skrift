@@ -2,6 +2,50 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ CONTINUE HERE (2026-07-07 night, audiobook-UX chat wrap) — worktree `sweet-goldstine`
+
+Branch `claude/sweet-goldstine-13dfca` (pushed, NOT yet PR'd) holds **builds 46→51** on top of merged PR #6:
+bottom-chrome saga (Option A split row → V2a pill → card-at-rest/pill-when-live → compact header + unified
+30pt titles → card as scrolling list row → List-row tap-hijack fix w/ 2 green ContinueCardUITests). Contains
+PR #8's content (sprint branch merged in) — **when this branch's PR merges, close PR #8 as contained.**
+NEXT: (1) user+Hendri eyeball of build 51 (× must not autoplay; card/pill lifecycle; title sizes), then
+(2) OPEN THE PR → merge → close #8. Ghost dismissal-write in the sim container never got attributed —
+both write-sites DevLog themselves now; if the card vanishes without ×, pull the devlog.
+
+## 🔬 Audiobook deep-review findings (2026-07-07 chat; UNBUILT unless ticked) — the perf/correctness list
+
+**Perf (one root cause: monolithic sidecar JSON + main-actor I/O):**
+- ⬜ P1 read-along uncovered-spot hot loop: `ReadAlongModel.reloadIfNeeded`'s `|| !covered` guard re-decodes the
+  ENTIRE partial sidecar ~2×/s on main while playing past the frontier (worst exactly during "keep listening
+  while it transcribes"). Cache by (sig, coveredUpTo) or check mtime/tiny header before decoding words.
+- ⬜ P1 `BookTranscriptionJob` is @MainActor incl. statics: per 60s chunk — `extractPCM` (~20MB decode+WAV write)
+  synchronous on main; `store.save` re-encodes the WHOLE accumulated sidecar (O(n²) bytes over a long file);
+  `publishValue` re-DECODES every sidecar per chunk though the loop already holds `coveredUpTo` (trivial fix).
+- ⬜ P2 `AudiobookCloudSync.localTranscriptSignature` full-decodes every sidecar per reconcile (launch/foreground/
+  pull) just for coveredUpTo+wordCount.
+- ⬜ P2 over-observation: 2Hz `currentTime` re-renders Books list (+ per-row SwiftData `isSynced` fetch + N×
+  fileExists) via whole-session @ObservedObject; split a PlaybackClock sub-observable; make sync state a real
+  observable (kills the `syncToggleTick`/`tick` hacks in AudiobookLibraryView + SyncedAudiobooksView).
+- ⬜ P3 `setCurrent` linear-scans sentences 10×/s; per-body `Timer.publish` churn in ReadAlongView; CIContext
+  per loadCoverTint.
+**Correctness:**
+- ⬜ P1 "Edit book details" never syncs: `store.update()` doesn't bump `modifiedAt` → reconcile's send guard
+  never fires; replaced cover also never re-uploads (audioUploadedAt upload-once gate).
+- ⬜ P2 TranscribeBookView shows the ACTIVE book's progress/ETA on any book's sheet while a job runs, and Start
+  silently cancels the other book's job.
+- ⬜ P2 seek-while-paused never persists (`seek()` lacks persistProgress; force-quit loses a paused scrub).
+- ⬜ P3 BookCoverView placeholder gradient uses `uuidString.hashValue` (per-process seed) — not stable across
+  launches despite the comment; use UUID bytes.
+- ⬜ VERIFY quote audio extraction: `exportSpan` (AVAssetExportSession + precise-timing key) vs the durable
+  PCM-extraction gotcha — if deep-chapter captures drift vs sidecar karaoke, switch to `extractPCM`+m4a.
+**Dead code (~800 lines + tests):** wave-1 capture arm — `CaptureMath` (all of it), `CaptureScrub` shim,
+`QuoteCaptureProcessor.process()`, `applyTrim`/`TrimResult`, `SentenceSnap.snap`/`inIndex`,
+`CaptureSpan.proposal`/`replayWindow`; `AudiobookSession.sleepLabel`; `QuoteCaptureOutput`'s vestigial
+buffer fields (shrink the struct). Zero non-test callers verified by grep 2026-07-07.
+**UX (decided elsewhere or open):** per-book "N notes" surface + note→book jump-back (metadata `bookID`/
+`bookPosition` now accrues since PR #6); multi-select import of N DISTINCT books silently merges into one
+(warn when album tags disagree); Books empty-state deserves a real CTA button.
+
 ## 🎧 Books tab + one-tap resume — ✅ BUILT 2026-07-07 (mock-first, signed off; worktree `sweet-goldstine`)
 
 From the 2026-07-06/07 audiobook deep-review chat (roadmap detour node **D4**). Mock = `mocks/books-tab-and-resume.html`
