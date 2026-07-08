@@ -87,17 +87,33 @@ final class JournalIndexService {
 
     /// Semantic scores for a search query (memo id → max cosine), unfiltered —
     /// the caller applies floors/filters/exclusions via `relatedResults`.
+    /// LOUD on purpose (device round 5: "semantic search sometimes finds
+    /// nothing" — a swallowed model-load error and an honest below-floor miss
+    /// look identical without the trace).
     func searchScores(_ query: String, repository: NotesRepository) async -> [(memoID: UUID, score: Float)] {
         guard isActive else { return [] }
         await ensureMockSeeded(repository)
-        return (await (try? resolvedIndex().search(query))) ?? []
+        do {
+            let scores = try await resolvedIndex().search(query)
+            let top = scores.first.map { String(format: "%.2f", $0.score) } ?? "—"
+            DevLog.log("SemanticSearch '\(query.prefix(40))' → \(scores.count) scored · top \(top) · floor \(RetrievalTuning.searchFloor)")
+            return scores
+        } catch {
+            DevLog.log("SemanticSearch FAILED '\(query.prefix(40))': \(error)")
+            return []
+        }
     }
 
     /// Scores against a memo's gist — powers threads (and later the Related card).
     func relatedScores(to memoID: UUID, repository: NotesRepository) async -> [(memoID: UUID, score: Float)] {
         guard isActive else { return [] }
         await ensureMockSeeded(repository)
-        return (await (try? resolvedIndex().related(to: memoID))) ?? []
+        do {
+            return try await resolvedIndex().related(to: memoID)
+        } catch {
+            DevLog.log("Related FAILED \(memoID.uuidString.prefix(8)): \(error)")
+            return []
+        }
     }
 
     // ── pure result shaping (unit-tested) ──

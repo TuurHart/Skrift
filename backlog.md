@@ -157,6 +157,29 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
 
+## 📱 P8 device round 5 — office session (2026-07-08 morning) — BUGS + design adds
+
+**Bug reports (Tuur, on build 53; INSTRUMENT-FIRST — phone off-cable, diagnose from devlog next USB session):**
+1. ⬜ **Semantic search intermittently finds nothing** ("I'm trying" no longer surfaces the
+   testing notes; worked on earlier builds). Suspects: swallowed engine-load error (was `try?` —
+   NOW LOUD: `SemanticSearch …` devlog lines log count/top-score/floor per query, FAILED on
+   throw); or scores genuinely below `searchFloor` 0.25 for short queries. Repro then pull devlog.
+2. ⬜ **Skrift Dev crashed a few times at random spots** (build 53, mixed usage). Pull crash logs
+   next cable session (`idevicecrashreport` per pull-phone-feedback skill); suspects unknown —
+   could be any lane's (builds 45–53 span recording + books + P8 work).
+
+**Design adds (locked in conversation):**
+- **Vault lens gains title-linking** (the old Backlink-Weaver idea): reading the vault yields a
+  title index → transcripts can suggest/insert `[[wikilinks]]` to VAULT notes (not just
+  memo↔memo). Belongs to the vault-lens chunk (JOURNAL_RETRIEVAL_PLAN.md Phase 2).
+- **Then-vs-Now pair-picking (mechanics)**: for each memo of the last ~2 weeks, `related()` →
+  keep hits ≥6 months older → highest-scoring pair above `relatedFloor` renders as the card
+  (old + new juxtaposed). No pair clears floor+gap → no card. Cosine picks the topic, the
+  time-gap guarantees the "then."
+- **Office-printer guard (behavioral rule for now)**: the saved printer IS the wall — test prints
+  at the office are fine, but re-pick the home printer after (or toggle auto-print off). Later
+  nicety: bind auto-print to the HOME printer identity only.
+
 ## 🖨️ Print-to-wall + significance in the Journal (Tuur design session 2026-07-07 evening)
 
 **✅ BOTH BUILT same evening (build 43 on device; 581/581 tests; sim-screenshot verified).**
