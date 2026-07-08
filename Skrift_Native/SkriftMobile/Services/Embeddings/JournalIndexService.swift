@@ -116,6 +116,47 @@ final class JournalIndexService {
         }
     }
 
+    struct ThenNowPair: Equatable { let then: UUID; let now: UUID }
+
+    /// Then vs Now (fast-follow, built 2026-07-08): the newest memos vs their
+    /// ≥6-month-older semantic kin — the highest-scoring old↔new pair above the
+    /// related floor. Juxtapose, don't judge: cosine picks the topic, the age
+    /// gap makes it "then". No qualifying pair → no card.
+    func thenVsNow(repository: NotesRepository) async -> ThenNowPair? {
+        guard isActive else { return nil }
+        let memos = repository.allMemos()
+        let calendar = Calendar.current
+        let now = Date()
+        guard let recentCut = calendar.date(byAdding: .day, value: -14, to: now),
+              let gapCut = calendar.date(byAdding: .month, value: -6, to: now) else { return nil }
+        let dates = Dictionary(uniqueKeysWithValues: memos.map { ($0.id, $0.recordedAt) })
+        let recents = memos.filter { $0.recordedAt >= recentCut }
+            .sorted { $0.recordedAt > $1.recordedAt }
+            .prefix(6)
+        var candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])] = []
+        for memo in recents {
+            candidates.append((memo.id, await relatedScores(to: memo.id, repository: repository)))
+        }
+        return Self.bestThenNow(candidates: candidates, dates: dates, gapCut: gapCut,
+                                floor: RetrievalTuning.relatedFloor)
+    }
+
+    /// Pure pair-picking (unit-tested): best-scoring hit that is old enough.
+    nonisolated static func bestThenNow(
+        candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])],
+        dates: [UUID: Date], gapCut: Date, floor: Float) -> ThenNowPair? {
+        var best: (pair: ThenNowPair, score: Float)?
+        for candidate in candidates {
+            for hit in candidate.hits where hit.score >= floor {
+                guard let d = dates[hit.memoID], d <= gapCut else { continue }
+                if hit.score > (best?.score ?? -1) {
+                    best = (ThenNowPair(then: hit.memoID, now: candidate.now), hit.score)
+                }
+            }
+        }
+        return best?.pair
+    }
+
     // ── pure result shaping (unit-tested) ──
 
     /// The search "Related" section: floor-gated, exact hits excluded, best-first.
