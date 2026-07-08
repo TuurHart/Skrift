@@ -598,6 +598,12 @@ struct MemosListView: View {
     /// never wait on this — it fills the Related section in async.
     private func refreshRelated() async {
         let q = search.trimmingCharacters(in: .whitespaces)
+        // Round-5 trace: device searches produced ZERO SemanticSearch lines
+        // while sweeps ran fine — log the entry + every gate's verdict.
+        if !q.isEmpty {
+            let service = JournalIndexService.shared
+            DevLog.log("refreshRelated '\(q.prefix(30))' active=\(service.isActive) enabled=\(service.isEnabled) model=\(GemmaEmbedder.isModelDownloaded)")
+        }
         guard !q.isEmpty, JournalIndexService.shared.isActive else {
             if !related.isEmpty { related = [] }
             return
