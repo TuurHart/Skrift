@@ -157,7 +157,41 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
 
-## 📱 P8 device round 5 — office session (2026-07-08 morning) — BUGS + design adds
+## ⭐ CONTINUE HERE — post-convergence stabilization (handoff 2026-07-08, P8 chat wrap)
+
+Five chats merged into main in ~24h (P8/Review+Wall · note-editing · Books/recording · SharedKit ·
+desktop parity). Feature velocity was huge; convergence bugs surfaced. **NEXT CHAT = a
+STABILIZATION round, not a feature lane.** Phone = iPhone 13, Dev build **57** installed (wifi
+installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
+
+**Triage, in order:**
+1. 🚨 **P0 DATA BUG — transcript truncated**: "Tiuri's Test: A Casual Greeting" lost most of its
+   body (ends right after "Good Day, Good Day", i.e. its opening). NOT P8 (retrieval is
+   read-only). Suspects: live-sync Part B (Mac reconciler update / MacCloudEditSync write-back),
+   note-editor debounced saves, enhancement-vs-raw display selection. FIRST determine store vs
+   display: check `memo.transcript` length via devlog/debug vs what renders; check the Mac's
+   PipelineFile + CloudKit copy for the FULL text (recovery source). Also verify no OTHER memos
+   truncated (scan lengths). Data safety rule: diagnose before any more cross-device edits.
+2. ⬜ **Semantic search on 57**: churn root-cause FIXED (dffbe27 — view-identity churn from the
+   ticking mini-player cancelled every debounced query; @State-held task now). Tuur reports
+   single-word queries ("try"/"attempt"/"trying") still return nothing → pull devlog
+   (`refreshRelated`/`SemanticSearch` lines now log query + top score + floor): if queries RUN
+   and top < 0.25 → single-word queries are genuinely weak for asymmetric retrieval prompts —
+   consider searchFloor 0.20 for 1-word queries, or verdict "too vague, by design" (bake-off:
+   2+-word queries were 10/10). If queries DON'T run → churn fix incomplete, trace again.
+3. ⬜ **Crashes (build ~53)** — pull crash logs over USB (`idevicecrashreport -e`, needs cable;
+   wifi doesn't work for it). Suspect list open; possibly the same view-churn storm.
+4. ⬜ Wall: Tuur's office print test → REMIND: re-pick the HOME printer after (saved printer IS
+   the wall). First physical card = design round on paper.
+5. ⬜ Then: vault lens (after Tuur's iCloud vault move; incl. title-linking design above),
+   desktop Review mock sign-off, prod CloudKit schema deploy (still pending, § Stz020).
+
+**KICKOFF PROMPT for the next chat:**
+> Stabilization round on main (all lanes merged). Read backlog.md "⭐ CONTINUE HERE —
+> post-convergence stabilization" and work the numbered triage top-down, instrument-first
+> (DevLog + devicectl pulls; wifi installs OK, crash logs need USB). Start with the P0
+> transcript-truncation data bug. Build numbers continue from 57; bump per device install.
+> Commit per finding with explicit paths; update this backlog section as items close.
 
 **Bug reports (Tuur, on build 53; INSTRUMENT-FIRST — phone off-cable, diagnose from devlog next USB session):**
 1. ⬜ **Semantic search intermittently finds nothing** ("I'm trying" no longer surfaces the
