@@ -464,7 +464,7 @@ private struct MemoPageView: View {
         Group {
             if lockGate.isLocked(memo) {
                 lockedPlaceholder
-            } else if memo.isShareCapture {
+            } else if memo.isShareCapture && !isInlineImageCapture {
                 legacyScrollPage { captureContent }
             } else if SpeakerTranscript.parse(memo.transcript) != nil {
                 legacyScrollPage { conversationContent }
@@ -657,6 +657,22 @@ private struct MemoPageView: View {
         }
     }
 
+    /// An image capture whose text has landed renders through the NORMAL note
+    /// body (round-2 device spec 2026-07-10: photos inline in the text via the
+    /// [[img_NNN]] pipeline, "like my Monday 22:34 note — just do that"). The
+    /// drain writes the markers into the annotation; `captureAnnotationBinding`
+    /// makes the body edit annotationText instead of the transcript.
+    private var isInlineImageCapture: Bool {
+        memo.sharedContent?.type == .image && memo.transcriptStatus == .done
+    }
+
+    private var captureAnnotationBinding: Binding<String> {
+        Binding(
+            get: { memo.annotationText ?? "" },
+            set: { memo.annotationText = $0.isEmpty ? nil : $0 }
+        )
+    }
+
     /// The re-founded monologue page: ONE scrolling text view is the body; the
     /// metadata header (chips/importance/summary/diar/quote) and the people-row
     /// footer scroll INSIDE it. Native selection/caret/undo mechanics throughout.
@@ -668,7 +684,7 @@ private struct MemoPageView: View {
                 player: player,
                 nameSpans: spans,
                 onTapName: { resolveTarget = NameResolveTarget(span: $0) },
-                polishedBinding: polishedBinding,
+                polishedBinding: isInlineImageCapture ? captureAnnotationBinding : polishedBinding,
                 onCommit: {
                     memo.markEdited()
                     repository.save()

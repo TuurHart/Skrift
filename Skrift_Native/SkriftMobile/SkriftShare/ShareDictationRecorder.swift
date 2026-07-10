@@ -78,7 +78,11 @@ final class ShareDictationRecorder {
     private func beginRecording() {
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            // Pure .record category — round-2 devlog showed permission GRANTED
+            // ('grnt') yet record() returning false with .playAndRecord; a
+            // record-only session is the one config share extensions are most
+            // likely to be allowed. If this still fails, round 4 hides the button.
+            try session.setCategory(.record, mode: .default)
             try session.setActive(true)
             // Mono 22.05 kHz AAC — small files, plenty for ASR (Parakeet resamples).
             let settings: [String: Any] = [

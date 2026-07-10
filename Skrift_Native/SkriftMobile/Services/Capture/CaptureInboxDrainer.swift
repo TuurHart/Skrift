@@ -210,6 +210,18 @@ enum CaptureInboxDrainer {
                 MemoMetadata(imageManifest: manifest)
             }
 
+            // Photos live IN the text like a recorded memo (round-2 device spec:
+            // "look at my Monday 22:34 note — the pictures are in line; just do
+            // that"): one [[img_NNN]] marker per photo appended to the annotation;
+            // the capture renders through the normal note-body inline pipeline.
+            var annotation = entry.annotationText?.isEmpty == false ? entry.annotationText! : ""
+            if let manifest = imageManifest, !manifest.isEmpty {
+                let markers = (1...manifest.count)
+                    .map { "[[img_\(String(format: "%03d", $0))]]" }
+                    .joined(separator: "\n\n")
+                annotation = annotation.isEmpty ? markers : annotation + "\n\n" + markers
+            }
+
             let memo = Memo.make(
                 id: memoID,
                 audioFilename: "",          // no audio — the discriminator for capture items
@@ -224,7 +236,7 @@ enum CaptureInboxDrainer {
                 significance: entry.significance,
                 metadata: metadata,
                 sharedContent: sharedContent,
-                annotationText: entry.annotationText?.isEmpty == false ? entry.annotationText : nil
+                annotationText: annotation.isEmpty ? nil : annotation
             )
 
             repository.insert(memo)

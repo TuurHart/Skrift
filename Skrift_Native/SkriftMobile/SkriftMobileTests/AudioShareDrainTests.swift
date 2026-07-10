@@ -178,6 +178,8 @@ final class AudioShareDrainTests: XCTestCase {
         XCTAssertEqual(manifest.map(\.filename),
                        ["photo_\(id.uuidString)_001.jpg", "photo_\(id.uuidString)_002.jpg"],
                        "manifest keeps share order")
+        XCTAssertEqual(memo?.annotationText, "two shots\n\n[[img_001]]\n\n[[img_002]]",
+                       "photos live IN the text as markers — the inline-note spec")
         for m in manifest {
             let url = AppPaths.recordingsDirectory.appendingPathComponent(m.filename)
             XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))

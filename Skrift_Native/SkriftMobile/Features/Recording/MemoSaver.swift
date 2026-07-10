@@ -173,31 +173,82 @@ struct MemoSaver {
     }
 
     /// Concatenate the audio of `sources` (in array order) into a single m4a at
-    /// `dest`. Unreadable clips are skipped; throws when none contribute audio.
+    /// `dest` — SAMPLE-ACCURATE `AVAudioFile` frame reads, off the main actor.
+    /// Device round 2: the AVMutableComposition+export path produced a phantom
+    /// silent tail on WhatsApp voice notes (`merged ok; duration=287.5s` with the
+    /// real content ending early) — the same compressed-audio weakness as the
+    /// audiobook chunk-drift gotcha. Decoding real frames and re-encoding once
+    /// writes exactly the audio that exists, nothing more.
+    /// Unreadable clips are skipped; throws when none contribute audio.
     private static func mergeAudio(sources: [URL], to dest: URL) async throws {
-        let comp = AVMutableComposition()
-        guard let track = comp.addMutableTrack(withMediaType: .audio,
-                                               preferredTrackID: kCMPersistentTrackID_Invalid) else {
-            throw VideoImportError.exportFailed
-        }
-        var cursor = CMTime.zero
+        try await Task.detached(priority: .userInitiated) {
+            try mergeAudioSync(sources: sources, to: dest)
+        }.value
+    }
+
+    nonisolated private static func mergeAudioSync(sources: [URL], to dest: URL) throws {
+        try? FileManager.default.removeItem(at: dest)
+        var out: AVAudioFile?
+        var outFormat: AVAudioFormat?
+        var wroteFrames = false
+
         for src in sources {
-            let asset = AVURLAsset(url: src)
-            guard let audioTrack = (try? await asset.loadTracks(withMediaType: .audio))?.first,
-                  let d = try? await asset.load(.duration) else {
+            guard let file = try? AVAudioFile(forReading: src) else {
                 DevLog.log("mergeAudio: skipping unreadable clip \(src.lastPathComponent)")
                 continue
             }
-            try track.insertTimeRange(CMTimeRange(start: .zero, duration: d), of: audioTrack, at: cursor)
-            cursor = CMTimeAdd(cursor, d)
-        }
-        guard cursor > .zero else { throw VideoImportError.noAudioTrack }
+            let proc = file.processingFormat
+            if out == nil {
+                // AAC output at the first readable clip's rate/channels.
+                let settings: [String: Any] = [
+                    AVFormatIDKey: kAudioFormatMPEG4AAC,
+                    AVSampleRateKey: proc.sampleRate,
+                    AVNumberOfChannelsKey: proc.channelCount,
+                    AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+                ]
+                out = try AVAudioFile(forWriting: dest, settings: settings)
+                outFormat = proc
+            }
+            guard let out, let outFormat else { continue }
 
-        guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
-            throw VideoImportError.exportFailed
+            // Later clips in a different PCM format get converted to the first
+            // clip's (rare — a WhatsApp batch is uniform). Per-file converter so
+            // its internal state never crosses clip boundaries.
+            let converter = proc == outFormat ? nil : AVAudioConverter(from: proc, to: outFormat)
+            let chunkFrames: AVAudioFrameCount = 32_768
+            // framePosition guard: AVAudioFile.read THROWS (-50) when asked to
+            // read at EOF rather than returning zero frames.
+            while file.framePosition < file.length {
+                guard let buf = AVAudioPCMBuffer(pcmFormat: proc, frameCapacity: chunkFrames) else { break }
+                try file.read(into: buf)
+                guard buf.frameLength > 0 else { break }
+                if let converter {
+                    let ratio = outFormat.sampleRate / proc.sampleRate
+                    let cap = AVAudioFrameCount(Double(buf.frameLength) * ratio) + 64
+                    guard let cbuf = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: cap) else { break }
+                    var fed = false
+                    var convErr: NSError?
+                    converter.convert(to: cbuf, error: &convErr) { _, status in
+                        if fed { status.pointee = .noDataNow; return nil }
+                        fed = true
+                        status.pointee = .haveData
+                        return buf
+                    }
+                    if convErr != nil {
+                        DevLog.log("mergeAudio: convert failed on \(src.lastPathComponent): \(convErr!)")
+                        break
+                    }
+                    if cbuf.frameLength > 0 {
+                        try out.write(from: cbuf)
+                        wroteFrames = true
+                    }
+                } else {
+                    try out.write(from: buf)
+                    wroteFrames = true
+                }
+            }
         }
-        try? FileManager.default.removeItem(at: dest)
-        try await export.export(to: dest, as: .m4a)
+        guard wroteFrames else { throw VideoImportError.noAudioTrack }
     }
 
     // MARK: - Video import (extract audio + 1 frame thumbnail)
