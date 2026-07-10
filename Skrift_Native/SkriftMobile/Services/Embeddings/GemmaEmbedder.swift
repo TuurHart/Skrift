@@ -50,12 +50,26 @@ actor GemmaEmbedder: EmbeddingEngine {
             atPath: modelsDir.appendingPathComponent("embeddinggemma-300m").path)
     }
 
+    /// The in-flight cold load, shared by every concurrent `prepare()`. The actor
+    /// SUSPENDS at the load's `await`, so without this a second caller re-enters,
+    /// still sees `model == nil`, and loads the 295 MB model AGAIN — device-proven
+    /// 2026-07-10: the first-keystroke warmup racing the query path produced two
+    /// concurrent loads (43.9s + 50.3s).
+    private var loadTask: Task<EmbeddingGemma, Error>?
+
     func prepare() async throws {
         if model == nil {
-            let t0 = Date()
-            DevLog.log("embedder: cold load START")
-            model = try await EmbeddingGemma.downloadAndLoad(modelsDir: Self.modelsDir)
-            DevLog.log(String(format: "embedder: cold load DONE in %.1fs", Date().timeIntervalSince(t0)))
+            if loadTask == nil {
+                let t0 = Date()
+                DevLog.log("embedder: cold load START")
+                loadTask = Task {
+                    let m = try await EmbeddingGemma.downloadAndLoad(modelsDir: Self.modelsDir)
+                    DevLog.log(String(format: "embedder: cold load DONE in %.1fs", Date().timeIntervalSince(t0)))
+                    return m
+                }
+            }
+            defer { loadTask = nil }   // success: model is set; failure: allow a retry
+            model = try await loadTask!.value
         }
         lastUse = Date()
         scheduleIdleUnload()
