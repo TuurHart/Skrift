@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 16
-updated: 2026-07-10T13:20:00.000Z
+updated: 2026-07-10T14:05:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -358,12 +358,13 @@ nodes:
         eats trailing #2); handles fix attempt 2 (frame-writes only-on-change)
         + sharper probes (sel-during-scroll, OCR yield, search hits)
       - >-
-        2026-07-10 · P0 stabilization — draft-target race: a raw-born editor
-        draft flushed into the async-arriving polish binding (copyedit ← raw;
-        churn-amplified). Forensics via the Mac's frozen CloudKit mirror; no
-        raw data was ever lost, all memos scan clean. Commit target now PINNED
-        at first dirty edit; both directions regression-tested; DEBUG
-        -restoreEnhancement recovery hook. Device restore owed [56f360e]
+        2026-07-10 · P0 stabilization CLOSED — no data was ever lost (phone
+        store pulled: the edited note was intact + newest; restore aborted).
+        Fixed the bug Tuur saw: search-result opens rendered the RAW body —
+        LazyHStack pages realized without appear events, the enhancement .task
+        never ran; polish is now a live per-memo @Query [6724a41]. Also fixed
+        the latent commit-target race (draft pinned at first dirty edit,
+        regression-tested both directions) [56f360e]. 601/601 green
     backlog:
       - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
         pipeline never broken (sim e2e test stays as the gate). Search-hit
@@ -527,6 +528,12 @@ nodes:
         0.45); sweep perf confirmed (hash-diff re-sweeps 0.0s)
       - 2026-07-07 · Settings consent flow (295 MB download) + sweep timing +
         histogram harness; Dev build 40 on the iPhone 13
+      - >-
+        2026-07-10 · "Single-word search finds nothing" CLOSED — devlog proved
+        a cold-load stall (first query 122s: ANE load + 31.8MB tokenizer parse
+        serialized the actor; warm queries 15ms, all scores above floor). Model
+        now held 10 min + unloads on background, warmup at first keystroke,
+        cold-load DevLogged; floors untouched [0778575]
     win: On This Day + timeline + semantic 'related notes' work on-device — a
       years-old thought resurfaces next to today's
   - id: P9b

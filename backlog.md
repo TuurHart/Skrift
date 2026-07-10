@@ -165,28 +165,37 @@ STABILIZATION round, not a feature lane.** Phone = iPhone 13, Dev build **57** i
 installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
 
 **Triage, in order:**
-1. ✅ **P0 ROOT-CAUSED + FIXED 2026-07-10 (`56f360e`, build 58) — raw-born draft clobbered the
-   polished copy-edit.** Forensics (Mac's frozen stores, app off since 07-07 19:41): the memo is a
-   6.3s recording — its RAW transcript was ALWAYS 108 chars ("…Good day good day"); the "lost" body
-   is Tuur's 369-char EDITED note, intact in `MemoEnhancement.copyedit` (authored by the phone
-   07-07 13:19:30 via the polished-editor binding). All other memos scan clean (6–21 chars/s). The
-   bug: `NoteBodyView.commitDraft` wrote the draft to whatever `polishedBinding` held AT COMMIT
-   TIME — the binding arrives async (enhancement fetch after first render) and drops on
-   view-identity churn (@State reset; same churn as dffbe27), so a draft born on the RAW body
-   flushed into the arriving binding → copyedit ← raw, LWW spread it. Fix: commit target PINNED at
-   the first dirty edit (`markDraftDirty`), both directions regression-tested (601/601 green).
-   OWED on device (phone was locked): pull phone store to confirm its copyedit state → install 58
-   → run the `-restoreEnhancementMemo B1BF3174-7BB7-4310-82B4-D27C8B5AACA4 -restoreEnhancementBody
-   <base64>` recovery hook (payload = scratchpad `p0/RECOVERY_copyedit.b64`; also archived in the
-   frozen Mac stores). ⚠️ Do NOT launch Skrift Dev on the Mac before the restore — its mirror is
-   the last pre-clobber copy and sync-down would overwrite it (scratchpad copies exist as backup).
-2. ⬜ **Semantic search on 57**: churn root-cause FIXED (dffbe27 — view-identity churn from the
-   ticking mini-player cancelled every debounced query; @State-held task now). Tuur reports
-   single-word queries ("try"/"attempt"/"trying") still return nothing → pull devlog
-   (`refreshRelated`/`SemanticSearch` lines now log query + top score + floor): if queries RUN
-   and top < 0.25 → single-word queries are genuinely weak for asymmetric retrieval prompts —
-   consider searchFloor 0.20 for 1-word queries, or verdict "too vague, by design" (bake-off:
-   2+-word queries were 10/10). If queries DON'T run → churn fix incomplete, trace again.
+1. ✅ **P0 CLOSED 2026-07-10 — NO DATA WAS EVER LOST; two real bugs found + fixed (build 58).**
+   Forensics: the memo is a 6.3s recording — its RAW transcript was ALWAYS 108 chars; the "lost"
+   body is Tuur's 369-char edited note, which the PHONE STORE STILL HELD INTACT (pulled over
+   devicectl — NB the live SwiftData store is in the APP-GROUP container
+   `group.com.skrift.mobile.dev`, not the app container, since the 06-12 App-Groups work). All
+   memos scan clean. **Restore ABORTED** — the phone's copy was newer than the Mac's frozen
+   mirror; running it would have rolled the note back. Mac Skrift Dev safe to launch again.
+   - **Real bug A (what Tuur saw), FIXED `6724a41`:** memos opened FROM SEARCH RESULTS rendered
+     the raw body and never healed — the pager's LazyHStack realizes pages during the programmatic
+     scroll WITHOUT delivering appear events, so the `.task` that fetched the enhancement never ran
+     (devlog-proven: zero task side-effects on sick opens; list-flow opens healed in ~200ms).
+     Fix: the polish is a live per-memo `@Query` — correct on the first body eval, no appear-event
+     dependency, live CloudKit updates (retired the onChange(sync.isSyncing) refetch).
+     PolishedDisplayUITests + 601/601 green. Device eyeball owed: search 'try' → tap → full note.
+   - **Real bug B (found en route), FIXED `56f360e`:** commitDraft wrote the dirty draft to
+     whatever `polishedBinding` held at COMMIT time; the binding arrives async / drops on churn, so
+     a raw-born draft COULD flush into the arriving binding (copyedit ← raw). Never fired for this
+     memo but the mechanism was real — commit target now PINNED at first dirty edit
+     (`markDraftDirty`), both directions regression-tested. The DEBUG `-restoreEnhancementMemo/-Body`
+     launch hook stays available (unused).
+2. ✅ **Semantic search CLOSED 2026-07-10 (`0778575`, build 58) — it was a COLD-LOAD STALL, not
+   weak scores.** Devlog (build 57): first query of the session took 122s — cold `prepare()` (ANE
+   load of the 294MB encoder + parsing the 31.8MB tokenizer.json) serialized SIX queries behind
+   the index actor; they drained ~15ms each once warm and ALL scored above floor (1-word 'Try'
+   0.43, 'Trying' 0.45, 'Attempt' 0.41 vs floor 0.25 — results arrived minutes late into a dead
+   view). The 60s idle unload then re-paid the load on nearly every search. Fix: model held 10 min
+   (unload immediately on backgrounding), warmup fires at the FIRST keystroke, cold-load duration
+   now DevLogged. searchFloor untouched — the bake-off calibration stands. Owed: device round with
+   the instrumented build to quantify the true cold-load seconds; if it stays >15s even from the
+   ANE cache, a quiet "warming up…" row in the Related section is a design question for Tuur
+   (mock-first).
 3. ⬜ **Crashes (build ~53)** — pull crash logs over USB (`idevicecrashreport -e`, needs cable;
    wifi doesn't work for it). Suspect list open; possibly the same view-churn storm.
 4. ⬜ Wall: Tuur's office print test → REMIND: re-pick the HOME printer after (saved printer IS
@@ -200,6 +209,11 @@ installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
 > (DevLog + devicectl pulls; wifi installs OK, crash logs need USB). Start with the P0
 > transcript-truncation data bug. Build numbers continue from 57; bump per device install.
 > Commit per finding with explicit paths; update this backlog section as items close.
+
+Noticed in passing (P0 forensics, 2026-07-10; NOT acted on): list-row previews render raw
+`memo.transcript` (`MemosListView` transcriptSnippet) while the note detail shows the polish —
+after the restore the row's first line ("Yo yo, my name is tiuri…") won't match the note body.
+Pre-existing choice, cosmetic; fold into a display-consistency pass if it bothers in use.
 
 **Bug reports (Tuur, on build 53; INSTRUMENT-FIRST — phone off-cable, diagnose from devlog next USB session):**
 1. ⬜ **Semantic search intermittently finds nothing** ("I'm trying" no longer surfaces the
