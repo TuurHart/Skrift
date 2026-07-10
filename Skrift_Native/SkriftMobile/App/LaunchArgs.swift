@@ -98,4 +98,17 @@ enum LaunchFlags {
     /// mode (no mic, no permission prompt) so the record→save→transcribe flow is
     /// hermetically UI-testable.
     static var seedTranscript: String? { args.stringValue("-seedTranscript") }
+
+    /// DEBUG surgical-recovery hook (P0 2026-07-10): rewrite ONE memo's enhancement
+    /// copy-edit from a base64 launch argument (newline-safe), stamping fresh
+    /// provenance so CloudKit LWW propagates the restore to every device. Run via
+    /// `devicectl device process launch … -restoreEnhancementMemo <uuid>
+    /// -restoreEnhancementBody <base64>` — only with the draft-target fix installed.
+    static var restoreEnhancement: (memoID: UUID, copyedit: String)? {
+        guard let id = args.stringValue("-restoreEnhancementMemo").flatMap(UUID.init(uuidString:)),
+              let b64 = args.stringValue("-restoreEnhancementBody"),
+              let data = Data(base64Encoded: b64),
+              let text = String(data: data, encoding: .utf8), !text.isEmpty else { return nil }
+        return (id, text)
+    }
 }
