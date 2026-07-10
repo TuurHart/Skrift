@@ -163,7 +163,10 @@
   <b>B2</b> (photos always combine) · <b>A12/E3</b> (error + saved states) · <b>A16</b> (unsupported type).
   Visual language = the shipped capture sheet (<i>capture-items.html</i> state 1) — same header, circles, save.
   Non-UI Wave-1 items (A15 dev label, off-main copies, IngestKit skeleton) need no mock.
-  <span class="q">Open questions are marked ❖ under each panel.</span>
+  <b>SIGNED OFF 2026-07-10</b> — locked calls: <span class="q">every share jumps to its note on the
+  next app-open</span> (videos already do) · <span class="q">audio shares carry NO ramble UI</span>
+  (the voice note IS the content — append inside the note later) · photos title spells out the
+  combine · clip preview = 3 rows + "+N more".
 </div>
 
 <div class="modebar">
@@ -201,10 +204,7 @@
             </span>
             <span class="wv" id="wv1"></span>
           </div>
-          <div class="honest"><span class="hdot"></span>Transcribes on-device next time you open Skrift</div>
-
-          <button class="recbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1h-2v1a9 9 0 0 0 8 8.94V22h2v-2.06A9 9 0 0 0 21 11v-1h-2Z"/></svg>Record your thoughts</button>
-          <div class="typefield">…or type instead (optional)</div>
+          <div class="honest"><span class="hdot"></span>Transcribes on-device · Skrift opens on it next time</div>
 
           <div class="sheetsig sig">
             <div class="top"><span class="lab">How significant is this?</span><span class="val muted">—</span></div>
@@ -219,8 +219,10 @@
         The fix behind this (A7): audio gets its own branch <b>before</b> the URL check, so a WhatsApp
         voice note can never be mistaken for a link again. On save it rides the inbox as
         <b>type&nbsp;"audio"</b> → imported + transcribed like a recording, <b>not</b> a file card.
-        Your ramble (voice or text) lands as the note's annotation, same as URL captures today.
-        <br><br>❖ <span class="q">Q1:</span> the honesty line ("transcribes next time you open Skrift") — keep, or too noisy?
+        <br><br><b>Signed 2026-07-10:</b> <span class="q">no ramble UI on audio shares</span> — the
+        voice note IS the content; add thoughts later by appending inside the note (＋ in the note
+        body, exists today). The sheet is just: what's coming in → significance → Save. And when you
+        next open Skrift it <span class="q">jumps straight to this note</span>, already transcribing.
       </div>
     </div>
   </div>
@@ -261,8 +263,6 @@
             </div>
           </div>
 
-          <button class="recbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1h-2v1a9 9 0 0 0 8 8.94V22h2v-2.06A9 9 0 0 0 21 11v-1h-2Z"/></svg>Record your thoughts</button>
-
           <div class="sheetsig sig">
             <div class="top"><span class="lab">How significant is this?</span><span class="val">0.3</span></div>
             <div class="dots"><span class="dot lit"></span><span class="dot lit"></span><span class="dot lit"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
@@ -274,13 +274,13 @@
       </div>
       <div class="pnote">
         <b>Default = One note</b> (your original ask). The save button re-labels live:
-        <b>"Save as one note"</b> ⇄ <b>"Save 8 notes"</b>. Clips are ordered by their own timestamps,
-        so a forwarded thread reads chronologically. Combine = the existing append-clips machinery —
-        one memo, clip markers inside, one continuous transcript.
-        <br><br>❖ <span class="q">Q2:</span> in <b>8-notes</b> mode the ramble stays and lands on
-        <b>every</b> note (same as significance) — or should it hide there? (Can't ramble 8 different
-        thoughts into one field.)
-        <br>❖ <span class="q">Q3:</span> clip stack shows 3 rows + "+5 more" — enough, or want the full list scrollable?
+        <b>"Save as one note"</b> ⇄ <b>"Save 8 notes"</b>. The little list above the chooser is just a
+        <b>preview of the 8 incoming clips</b> (length + when they were recorded) so you see what you
+        grabbed before saving — first 3 shown, "+5 more" implied.
+        <br><br><b>Signed 2026-07-10:</b> combine works <span class="q">exactly like your audiobook
+        captures</span> — clips append in timestamp order into ONE memo that plays straight through,
+        one continuous karaoke transcript. No ramble UI here either (audio-share rule); significance
+        applies to every note the share creates.
       </div>
     </div>
   </div>
@@ -324,9 +324,10 @@
         No chooser here — <b>multiple photos always combine into one note</b> (your B2 call).
         Grid previews up to 4; a 6-photo share shows "+2" on the last tile. Images ride the existing
         multi-photo manifest, so the note gets them in order and the OCR sweep makes any text in them
-        searchable (that part already ships — D3).
-        <br><br>❖ <span class="q">Q4:</span> header reads <b>"4 photos → one note"</b> to make the
-        combining explicit — good, or prefer the plain "Save to Skrift"?
+        searchable (that part already ships — D3). Photos KEEP the ramble — here your voice is the
+        note's substance (the audio-share rule doesn't apply).
+        <br><br><b>Signed 2026-07-10:</b> header <b>"4 photos → one note"</b> locked — says the
+        combine out loud.
       </div>
     </div>
   </div>
@@ -338,7 +339,7 @@
       <div class="minisheet">
         <div class="stateico ok"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
         <div class="stitle">Saved to Skrift</div>
-        <div class="sdesc">8 voice notes → <b>one note</b><br>Transcribes when you next open Skrift</div>
+        <div class="sdesc">8 voice notes → <b>one note</b><br>Skrift opens on it next time — transcribing</div>
         <div class="autodismiss">auto-dismisses after ~0.8 s</div>
       </div>
       <div class="pnote">Replaces today's instant close — the flash is the proof it worked (E3).

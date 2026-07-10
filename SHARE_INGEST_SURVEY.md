@@ -10,6 +10,14 @@ D1 PARKED for the Books/Journal design chat. **Still pending:** C1 (captions
 rejected outright), C2, B4. **Wave 1 scope locked:** A7 + A11 + B1/B2 + A12/E3
 + A15/A16 on the IngestKit skeleton (E5); mock-first, rebase on main at kickoff.
 
+**Mock SIGNED OFF 2026-07-10** (`mocks/share-ingest-wave1.html`) — locked rules from the
+sign-off round: (1) **every share jumps to its note on the next app-open** (extensions can't
+launch the app — iOS rule; videos already jump); (2) **audio shares carry NO ramble UI** — the
+voice note IS the content, append inside the note later; photos/URLs/text keep the ramble;
+(3) combine-mode = the audiobook-capture model: clips append in timestamp order into ONE memo,
+plays straight through, one karaoke transcript; (4) photos title spells out "N photos → one
+note"; (5) clip preview = 3 rows + "+N more"; (6) honesty line stays.
+
 Status: ✅ works · 🚧 partial/risky · 🐛 bug · 💡 new idea · 📐 policy/architecture
 
 ## A — What exists today (bugs included)
