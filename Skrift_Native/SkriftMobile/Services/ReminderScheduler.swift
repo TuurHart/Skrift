@@ -101,12 +101,22 @@ enum ReminderScheduler {
     /// shows a banner.
     static let delegate = Delegate()
 
+    /// @MainActor: the async delegate variants otherwise RESUME UIKit's internal
+    /// completion on the cooperative pool — UIKit then runs its state-restoration
+    /// snapshot off-main and trips the main-thread assert in
+    /// `_performBlockAfterCATransactionCommitSynchronizes` (device crash
+    /// 2026-07-07 18:00, build 39: reminder tapped as the app was snapshotting).
+    /// Isolating the class makes the thunk hop to main before the body AND the
+    /// completion resume.
+    @MainActor
     final class Delegate: NSObject, UNUserNotificationCenterDelegate {
+        nonisolated override init() { super.init() }
+
         func userNotificationCenter(_ center: UNUserNotificationCenter,
                                     didReceive response: UNNotificationResponse) async {
             guard let raw = response.notification.request.content.userInfo["memoID"] as? String,
                   let id = UUID(uuidString: raw) else { return }
-            await MainActor.run { MemoOpenBridge.shared.open(id) }
+            MemoOpenBridge.shared.open(id)
         }
 
         func userNotificationCenter(_ center: UNUserNotificationCenter,
