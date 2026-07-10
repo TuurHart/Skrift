@@ -285,7 +285,7 @@ targets:
     info:
       path: SkriftShare/Info.plist
       properties:
-        CFBundleDisplayName: Skrift
+        CFBundleDisplayName: $(SKRIFT_DISPLAY_NAME)
         CFBundleShortVersionString: "0.2.0"
         CFBundleVersion: "59"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
@@ -327,10 +327,14 @@ targets:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev.share
           SKRIFT_APP_GROUP: group.com.skrift.mobile.dev
           CODE_SIGN_ENTITLEMENTS: SkriftShare/SkriftShare.dev.entitlements
+          # A15: dev + prod both installed used to show two identical "Skrift"
+          # rows in the share sheet — the dev extension now says "Skrift Dev".
+          SKRIFT_DISPLAY_NAME: Skrift Dev
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.share
           SKRIFT_APP_GROUP: group.com.skrift.mobile
           CODE_SIGN_ENTITLEMENTS: SkriftShare/SkriftShare.entitlements
+          SKRIFT_DISPLAY_NAME: Skrift
 
   SkriftMobileTests:
     type: bundle.unit-test
