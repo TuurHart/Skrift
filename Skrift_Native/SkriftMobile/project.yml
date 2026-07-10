@@ -68,7 +68,7 @@ targets:
         # extension's Info.plist, so both processes resolve the identical container.
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "62"
+        CFBundleVersion: "63"
         # Skrift is offline + uses only standard iOS crypto (on-device ASR, plain
         # local-network HTTP) → exempt from export compliance. Declaring this skips
         # the "Missing Compliance" prompt on every TestFlight/App Store build.
@@ -233,7 +233,7 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "62"
+        CFBundleVersion: "63"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -287,12 +287,11 @@ targets:
       properties:
         CFBundleDisplayName: $(SKRIFT_DISPLAY_NAME)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "62"
+        CFBundleVersion: "63"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
-        # Dictation in the share sheet: the extension RECORDS a voice note (the
-        # main app transcribes it on drain — Parakeet can't fit the extension's
-        # memory ceiling). The usage key must live in the EXTENSION bundle.
-        NSMicrophoneUsageDescription: Skrift records your spoken thoughts about what you're sharing and transcribes them on-device.
+        # NO NSMicrophoneUsageDescription: iOS blocks recording in share
+        # extensions at the entitlement level (mediaserverd refusal, device-
+        # proven builds 60-62) — the sheet's dictation was removed 2026-07-10.
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController

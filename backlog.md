@@ -163,13 +163,20 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    pass, no import/append race], B2 photos→one-manifest-note, ImageIO downsample ≤2048px;
    `3371fb1` A12/E3 Saved✓/error/unsupported states + A16 husk guard + A15 "Skrift Dev"
    label). Unit suite 610/610 green; roadmap node `ShareW1` inprogress. i4 = FIXED IN CODE.
-   **⬜ OWED — DEVICE ROUND (sim can't exercise the share sheet), staggered w/ Stz020's
-   build 59:** (a) WhatsApp voice note single → transcribed memo + jump-on-open;
-   (b) WhatsApp 8-select → chooser, both modes (combine plays straight through, karaoke
-   continuous); (c) opus/ogg container: does AVFoundation read it or honest-fail →
-   Mac path; (d) Photos 4-select → one note, stacked in detail; (e) PDF + video shares
-   → Saved✓ flash; (f) unsupported type (.numbers) → can't-import state; (g) share-sheet
-   rows read "Skrift Dev" vs "Skrift"; (h) multi-select shows Skrift at all (counts 10).
+   **✅ DEVICE ROUNDS 1–4 RUN 2026-07-10 (builds 60→63).** PASSED: singles+dates (Sunday ✓),
+   multi order (chat order ✓), m4a transcribe, video, PDF (after the round-2 file-url fix
+   — `public.file-url` CONFORMS to public.url and ate every Files share since June), photos
+   inline-in-text (round-3 rebuild: markers in annotation + editorPage routing — user: "the
+   only way we should have"), Saved✓, dev label, multi-select visibility. FIXED ALONG THE
+   WAY: phantom silent tail on the 4-clip merge (composition+export fabricated duration
+   287.5s — rewritten as sample-accurate AVAudioFile frame reads, EOF guard); clip-list
+   scrolls all rows. **RETIRED: sheet dictation** — iOS blocks extension recording at the
+   entitlement level (mediaserverd refusal; perm 'grnt' yet record()=false, both session
+   categories; Apple forums 742601/108435). Old test image-captures stay broken by user
+   decree (no migration — "they can go"). **REMAINING/PARKED:** slow first transcribe =
+   cold engine + app-suspension (existing launch-sweep recovers; Scribbel-style bg-task
+   claim = Wave-2 candidate); voice-annotate captures IN-APP (Wave-2); drag inline photos
+   like Apple Notes (note-editor lane); PDF "text, PDF, text" inline (Wave-2 design).
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →

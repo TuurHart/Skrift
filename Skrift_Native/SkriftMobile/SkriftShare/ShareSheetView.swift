@@ -22,7 +22,6 @@ struct ShareSheetView: View {
 
     @State private var annotation: String = ""
     @State private var significance: Double = 0
-    @State private var recorder = ShareDictationRecorder()
     @FocusState private var annotationFocused: Bool
     /// B1 chooser: N shared voice notes → one note (default, clips merged in
     /// order) or N separate notes. Only shown when 2+ audio clips arrived.
@@ -473,86 +472,27 @@ struct ShareSheetView: View {
         .accessibilityIdentifier("capture-image-preview")
     }
 
-    // Capture-your-thoughts: a PROMINENT record button (primary — like the
-    // record FAB everywhere else in the app), with the text field secondary
-    // below. The earlier tiny mic-in-the-corner got missed; recording is the
-    // point here ("typing is for caveman" — 2026-06-13 device feedback).
+    // Typed thoughts only. Voice recording in share extensions is BLOCKED by
+    // iOS at the entitlement level — mediaserverd: "NOT allowed to start
+    // recording because it is an extension and doesn't have entitlements to
+    // record audio" (device rounds 2–3, permission GRANTED yet record()=false;
+    // Apple forums 742601/108435 show the same wall). The old record button
+    // was a dead affordance that never worked on hardware; voice thoughts land
+    // in the app after the jump-open instead.
     private var annotationField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            recordButton
-            if recorder.state == .denied {
-                Text("Microphone access is off for the Skrift share sheet — allow it in Settings, or type below.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.skTextFaint)
-            }
-            if recorder.state == .failed {
-                Text("Recording couldn't start here — type below instead.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.skTextFaint)
-            }
-            if case .recorded = recorder.state {
-                Button { recorder.discard() } label: {
-                    Text("Discard voice note")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Color.skTextFaint)
-                }
-                .accessibilityIdentifier("capture-dictation-discard")
-            }
+        VStack(alignment: .leading, spacing: 7) {
             typeField
+            Text("Voice thoughts? Add them in Skrift after saving — share sheets can't record.")
+                .font(.system(size: 10.5))
+                .foregroundStyle(Color.skTextFaint)
+                .padding(.leading, 2)
         }
     }
 
-    /// The big record control — idle / recording (live timer) / recorded
-    /// (re-record). Tapping toggles: record → stop → re-record.
-    private var recordButton: some View {
-        Button { recorder.toggleRecord() } label: {
-            HStack(spacing: 9) {
-                Image(systemName: recordIcon).font(.system(size: 15, weight: .bold))
-                Text(recordLabel).font(.system(size: 15, weight: .bold))
-                if case .recorded = recorder.state {
-                    Spacer(minLength: 8)
-                    Text("Re-record").font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.85))
-                }
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 48)
-            .padding(.horizontal, 14)
-            .background(recordColor, in: .rect(cornerRadius: 13, style: .continuous))
-            .shadow(color: recordColor.opacity(0.4), radius: 8, y: 1)
-        }
-        .accessibilityIdentifier("capture-dictation-record")
-        .accessibilityLabel(recordLabel)
-    }
-
-    private var recordIcon: String {
-        switch recorder.state {
-        case .recording: return "stop.fill"
-        case .recorded:  return "checkmark.circle.fill"
-        default:         return "mic.fill"
-        }
-    }
-    private var recordLabel: String {
-        switch recorder.state {
-        case .recording:       return "Stop · \(fmtDuration(recorder.elapsed))"
-        case .recorded(let d): return "Voice note · \(fmtDuration(d))"
-        default:               return "Record your thoughts"
-        }
-    }
-    private var recordColor: Color {
-        switch recorder.state {
-        case .recording: return Color.red.opacity(0.9)
-        case .recorded:  return Color.skAccent.opacity(0.85)
-        default:         return Color.skAccent
-        }
-    }
-
-    /// Secondary "…or type" field — no longer the primary affordance.
     private var typeField: some View {
         ZStack(alignment: .topLeading) {
             if annotationIsEmpty {
-                Text("…or type instead (optional)")
+                Text("Add a thought (optional)…")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.skTextFaint)
                     .padding(.top, 9).padding(.leading, 12)
@@ -659,9 +599,10 @@ struct ShareSheetView: View {
             return
         }
 
-        // Save while still talking = keep the take: stop, then read it.
-        if recorder.state == .recording { recorder.toggleRecord() }
-        let dictationData = recorder.recordedData
+        // No dictation from the sheet — iOS blocks extension recording (above);
+        // the entry field stays nil and CaptureDictation remains drain-side for
+        // any legacy pending entries.
+        let dictationData: Data? = nil
 
         let trimmed = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
         let imageItems = payload.imageItems
