@@ -116,6 +116,14 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    PhotoTextIndexer — verified); **pending Tuur's call** after plain-words re-explain: C1
    (captions rejected outright), C2, C4, D5, D6, B4. Scribbel reference checked for A7:
    no extension there (doc-types + onOpenURL + ImportTranscriber w/ bg-task claim + toast).
+   **r2 same day:** C4 GO · D5 SKIP · D6 GO-w2 · D1 PARKED (Books/Journal chat) — still
+   pending only C1/C2/B4.
+   → **2026-07-10 WAVE-1 MOCK ROUND OPEN:** `mocks/share-ingest-wave1.html` — 4 states
+   (single audio · 8-memos 1-or-N chooser [default = one note, Save relabels live] ·
+   photos-always-combine · Saved✓/Error/Unsupported), vision-verified. Awaiting sign-off
+   on Q1 honesty-line, Q2 ramble-in-split-mode, Q3 clip-stack depth, Q4 photos header.
+   Build starts after sign-off: merge main first (stabilization lane is at build 58),
+   sim-verify here, device install staggered with the other lane.
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →

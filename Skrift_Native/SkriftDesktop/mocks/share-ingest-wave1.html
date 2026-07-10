@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — share-ingest Wave 1 (audio · multi · feedback)</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5; --amber:#f59e0b; --green:#34d399; --blue:#60a5fa;
+    --red:#f87171; --bd:255 255 255;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:30px 26px 80px;font-size:13px;line-height:1.5}
+  h1{font-size:15px;font-weight:600;margin:0 auto 4px;max-width:1120px}
+  .sub{font-size:12px;color:var(--t2);max-width:1120px;margin:0 auto 18px;line-height:1.55}
+  .sub b{color:var(--t1);font-weight:600}
+  .sub .q{color:var(--acc);font-weight:600}
+
+  /* ── mode bar ── */
+  .modebar{max-width:1120px;margin:0 auto 24px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .mlab{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-right:3px}
+  .mode{font-size:11.5px;padding:4px 12px;border-radius:7px;border:.5px solid rgb(var(--bd)/.12);
+    background:rgb(var(--bd)/.04);color:var(--t2);cursor:pointer}
+  .mode:hover{color:var(--t1)}
+  .mode.on{background:rgb(var(--accent)/.14);border-color:rgb(var(--accent)/.35);color:var(--acc)}
+
+  .stage{max-width:1120px;margin:0 auto}
+  .panelset{display:none}
+  .panelset.on{display:flex;gap:26px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+  .phead{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+  .pnote{width:390px;font-size:11.5px;color:var(--t2);line-height:1.55;margin-top:12px}
+  .pnote b{color:var(--t1);font-weight:600}
+  .pnote .q{color:var(--acc);font-weight:600}
+
+  /* ── phone frame (390px idiom) ── */
+  .mobwrap{width:390px;flex:none}
+  .phone{background:var(--bg);border:.5px solid rgb(var(--bd)/.1);border-radius:34px;padding:16px 16px 26px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);position:relative;overflow:hidden}
+  .island{width:96px;height:24px;border-radius:13px;background:#000;margin:0 auto 14px;position:relative;z-index:3}
+
+  /* dimmed WhatsApp-ish chat behind the sheet */
+  .chat{padding:2px 6px 0;opacity:.5;filter:saturate(.55)}
+  .chat .cbar{height:26px;border-radius:9px;background:var(--elev);margin-bottom:12px;display:flex;align-items:center;
+    gap:7px;padding:0 10px;font-size:11px;color:var(--t3)}
+  .chat .cbar .av{width:16px;height:16px;border-radius:50%;background:rgb(52 211 153/.35);flex:none}
+  .bub{max-width:78%;border-radius:12px;background:rgb(var(--bd)/.07);padding:7px 10px;font-size:11px;color:var(--t2);margin-bottom:7px}
+  .bub.me{margin-left:auto;background:rgb(52 211 153/.13)}
+  .bub.vn{display:flex;align-items:center;gap:7px;width:78%}
+  .bub .pl{width:18px;height:18px;border-radius:50%;background:rgb(var(--bd)/.14);flex:none;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--t2)}
+  .bub .wv{flex:1;display:flex;align-items:center;gap:1.5px;height:14px}
+  .bub .wv i{width:2px;border-radius:1px;background:rgb(var(--bd)/.3)}
+  .bub .dur{font-size:9px;color:var(--t3);flex:none}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:34px;z-index:1}
+
+  /* ── the sheet ── */
+  .sheet{position:relative;z-index:2;margin:14px -4px 0;background:#1b1d28;border:.5px solid rgb(var(--bd)/.12);
+    border-radius:22px;padding:11px 16px 16px;box-shadow:0 -10px 36px rgba(0,0,0,.5)}
+  .grab{width:36px;height:4px;border-radius:2px;background:rgb(var(--bd)/.18);margin:0 auto 12px}
+  .shead{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+  .shead .mk{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#8e7dff,#6a59ef);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex:none;
+    box-shadow:0 1px 4px rgb(var(--accent)/.45)}
+  .shead b{font-size:14px;font-weight:700;flex:1}
+  .shead .close{width:24px;height:24px;border-radius:50%;border:none;background:rgb(var(--bd)/.07);color:var(--t2);
+    font-size:13px;cursor:pointer;line-height:1}
+
+  /* audio preview card */
+  .audiocard{display:flex;align-items:center;gap:10px;background:var(--surface);border:.5px solid rgb(var(--bd)/.09);
+    border-radius:13px;padding:10px 12px;margin-bottom:8px}
+  .audiocard .aic{width:32px;height:32px;border-radius:8px;background:rgb(var(--accent)/.14);color:var(--acc);flex:none;
+    display:flex;align-items:center;justify-content:center}
+  .audiocard .tx{min-width:0;flex:1}
+  .audiocard .at{display:block;font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .audiocard .as{display:block;font-size:11px;color:var(--t3);margin-top:1px}
+  .audiocard .wv{display:flex;align-items:center;gap:1.5px;height:16px;flex:none;width:74px}
+  .audiocard .wv i{width:2.5px;border-radius:1px;background:rgb(var(--accent)/.5)}
+
+  /* clip stack (multi-audio) */
+  .clipstack{background:var(--surface);border:.5px solid rgb(var(--bd)/.09);border-radius:13px;padding:4px 12px 2px;margin-bottom:8px}
+  .cliprow{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:.5px solid rgb(var(--bd)/.05)}
+  .cliprow:last-child{border-bottom:none}
+  .cliprow .n{width:16px;font-size:10px;color:var(--t3);font-variant-numeric:tabular-nums;flex:none;text-align:right}
+  .cliprow .wv{flex:1;display:flex;align-items:center;gap:1.5px;height:13px;overflow:hidden}
+  .cliprow .wv i{width:2px;border-radius:1px;background:rgb(var(--accent)/.4)}
+  .cliprow .ct{font-size:10.5px;color:var(--t3);flex:none;font-variant-numeric:tabular-nums}
+  .cliprow.more{justify-content:center;color:var(--t3);font-size:11px;padding:8px 0}
+  .cliprow.more b{color:var(--t2);font-weight:600}
+
+  /* honesty line under previews */
+  .honest{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--t3);margin:0 2px 11px}
+  .honest .hdot{width:6px;height:6px;border-radius:50%;background:rgb(var(--accent)/.55);flex:none}
+
+  /* the 1-or-N chooser */
+  .chooser{display:flex;gap:8px;margin-bottom:11px}
+  .choice{flex:1;border:.5px solid rgb(var(--bd)/.12);border-radius:13px;background:rgb(var(--bd)/.02);
+    padding:10px 11px 9px;cursor:pointer;position:relative}
+  .choice.on{border-color:rgb(var(--accent)/.55);background:rgb(var(--accent)/.09)}
+  .choice .radio{position:absolute;top:9px;right:9px;width:14px;height:14px;border-radius:50%;
+    border:1.5px solid rgb(var(--bd)/.25)}
+  .choice.on .radio{border-color:var(--acc);background:radial-gradient(circle at center,var(--acc) 0 4px,transparent 5px)}
+  .choice .ct{font-size:12.5px;font-weight:700;color:var(--t1);margin-bottom:2px;padding-right:16px}
+  .choice.on .ct{color:#fff}
+  .choice .cs{font-size:10.5px;color:var(--t3);line-height:1.4}
+  .choice.on .cs{color:var(--t2)}
+
+  /* photo grid preview */
+  .photogrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+  .ph{height:74px;border-radius:11px;border:.5px solid rgb(var(--bd)/.09);position:relative;overflow:hidden}
+  .ph.p1{background:linear-gradient(135deg,#2b3350,#1a2138)}
+  .ph.p2{background:linear-gradient(160deg,#3a2b50,#231a38)}
+  .ph.p3{background:linear-gradient(120deg,#2b503f,#1a3829)}
+  .ph.p4{background:linear-gradient(150deg,#503f2b,#38291a)}
+  .ph .badge{position:absolute;right:6px;bottom:5px;font-size:9px;color:rgb(255 255 255/.75);
+    background:rgba(0,0,0,.45);border-radius:6px;padding:1px 6px}
+
+  /* record-your-thoughts (existing built idiom) */
+  .recbtn{display:flex;align-items:center;gap:9px;width:100%;border:none;border-radius:13px;background:var(--acc);
+    color:#fff;font-size:15px;font-weight:700;padding:0 14px;height:48px;cursor:pointer;
+    box-shadow:0 1px 8px rgb(var(--accent)/.4);margin-bottom:8px}
+  .recbtn svg{flex:none}
+  .typefield{background:var(--surface);border:.5px solid rgb(var(--bd)/.09);border-radius:12px;padding:9px 12px;
+    font-size:13px;color:var(--t3);min-height:44px;margin-bottom:12px}
+
+  /* significance circles (compact idiom) */
+  .sheetsig{background:var(--surface);border:.5px solid rgb(var(--bd)/.09);border-radius:13px;padding:11px 12px 10px;margin-bottom:13px}
+  .sig .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .sig .lab{font-size:11px;color:var(--t3)}
+  .val{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--acc)}
+  .val.muted{color:var(--t3);font-weight:500}
+  .dots{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+  .dot{width:13px;height:13px;border-radius:50%;border:1.5px solid rgb(var(--bd)/.2);background:transparent;flex:none}
+  .dot.lit{background:var(--acc);border-color:var(--acc);box-shadow:0 1px 5px rgb(var(--accent)/.35)}
+  .sync{display:flex;align-items:center;gap:6px;font-size:10.5px;margin-top:2px;color:var(--t3)}
+  .sync .sdot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex:none}
+
+  .save{width:100%;border:none;border-radius:12px;background:var(--acc);color:#fff;font-size:14.5px;font-weight:700;
+    padding:11px 0;cursor:pointer;box-shadow:0 1px 8px rgb(var(--accent)/.45)}
+
+  /* ── feedback-state minis (sheet-only cards, no full phone) ── */
+  .miniwrap{width:352px;flex:none}
+  .minisheet{background:#1b1d28;border:.5px solid rgb(var(--bd)/.12);border-radius:22px;padding:11px 16px 16px;
+    box-shadow:0 10px 36px rgba(0,0,0,.5)}
+  .stateico{width:52px;height:52px;border-radius:50%;margin:18px auto 12px;display:flex;align-items:center;justify-content:center}
+  .stateico.ok{background:rgb(52 211 153/.14);color:var(--green)}
+  .stateico.err{background:rgb(248 113 113/.13);color:var(--red)}
+  .stateico.warn{background:rgb(var(--bd)/.07);color:var(--t2)}
+  .stitle{font-size:15.5px;font-weight:700;text-align:center;margin-bottom:5px}
+  .sdesc{font-size:12px;color:var(--t2);text-align:center;line-height:1.5;margin:0 8px 16px}
+  .sdesc b{color:var(--t1);font-weight:600}
+  .btnrow{display:flex;gap:8px}
+  .btn{flex:1;border:none;border-radius:12px;padding:10px 0;font-size:13.5px;font-weight:700;cursor:pointer}
+  .btn.primary{background:var(--acc);color:#fff;box-shadow:0 1px 8px rgb(var(--accent)/.45)}
+  .btn.ghost{background:rgb(var(--bd)/.06);color:var(--t2)}
+  .autodismiss{font-size:10px;color:var(--t3);text-align:center;margin-top:10px}
+</style>
+</head>
+<body>
+
+<h1>Share-ingest Wave 1 — the sheet learns audio, multi-item &amp; honesty</h1>
+<div class="sub">
+  Survey rows <b>A7</b> (audio branch) · <b>A11</b> (multi-select) · <b>B1</b> (N voice memos → 1-or-N chooser) ·
+  <b>B2</b> (photos always combine) · <b>A12/E3</b> (error + saved states) · <b>A16</b> (unsupported type).
+  Visual language = the shipped capture sheet (<i>capture-items.html</i> state 1) — same header, circles, save.
+  Non-UI Wave-1 items (A15 dev label, off-main copies, IngestKit skeleton) need no mock.
+  <span class="q">Open questions are marked ❖ under each panel.</span>
+</div>
+
+<div class="modebar">
+  <span class="mlab">State</span>
+  <button class="mode on" data-m="m1">1 · Audio — single</button>
+  <button class="mode" data-m="m2">2 · Audio — 8 memos (chooser)</button>
+  <button class="mode" data-m="m3">3 · Photos — always one note</button>
+  <button class="mode" data-m="m4">4 · Saved ✓ / Error / Unsupported</button>
+</div>
+
+<div class="stage">
+
+  <!-- ════ STATE 1 · single audio ════ -->
+  <div class="panelset on" id="m1">
+    <div class="mobwrap">
+      <div class="phead">Share one WhatsApp voice note → Skrift</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="chat">
+          <div class="cbar"><span class="av"></span>Rui · WhatsApp</div>
+          <div class="bub">Check this voice note when you get a chance</div>
+          <div class="bub vn"><span class="pl">▶</span><span class="wv"></span><span class="dur">0:41</span></div>
+          <div class="bub me">sending it to my notes 👌</div>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead"><span class="mk">Sk</span><b>Save to Skrift</b><button class="close">✕</button></div>
+
+          <div class="audiocard">
+            <span class="aic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg></span>
+            <span class="tx">
+              <span class="at">Voice note · 0:41</span>
+              <span class="as">from WhatsApp · today 14:02</span>
+            </span>
+            <span class="wv" id="wv1"></span>
+          </div>
+          <div class="honest"><span class="hdot"></span>Transcribes on-device next time you open Skrift</div>
+
+          <button class="recbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1h-2v1a9 9 0 0 0 8 8.94V22h2v-2.06A9 9 0 0 0 21 11v-1h-2Z"/></svg>Record your thoughts</button>
+          <div class="typefield">…or type instead (optional)</div>
+
+          <div class="sheetsig sig">
+            <div class="top"><span class="lab">How significant is this?</span><span class="val muted">—</span></div>
+            <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="sync"><span class="sdot"></span>Stays on this phone until flagged</div>
+          </div>
+
+          <button class="save">Save to Skrift</button>
+        </div>
+      </div>
+      <div class="pnote">
+        The fix behind this (A7): audio gets its own branch <b>before</b> the URL check, so a WhatsApp
+        voice note can never be mistaken for a link again. On save it rides the inbox as
+        <b>type&nbsp;"audio"</b> → imported + transcribed like a recording, <b>not</b> a file card.
+        Your ramble (voice or text) lands as the note's annotation, same as URL captures today.
+        <br><br>❖ <span class="q">Q1:</span> the honesty line ("transcribes next time you open Skrift") — keep, or too noisy?
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ STATE 2 · 8 memos chooser ════ -->
+  <div class="panelset" id="m2">
+    <div class="mobwrap">
+      <div class="phead">Share 8 forwarded voice notes → the chooser</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="chat">
+          <div class="cbar"><span class="av"></span>Rui · WhatsApp</div>
+          <div class="bub vn"><span class="pl">▶</span><span class="wv"></span><span class="dur">0:38</span></div>
+          <div class="bub vn"><span class="pl">▶</span><span class="wv"></span><span class="dur">1:02</span></div>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead"><span class="mk">Sk</span><b>8 voice notes · 6:12</b><button class="close">✕</button></div>
+
+          <div class="clipstack">
+            <div class="cliprow"><span class="n">1</span><span class="wv"></span><span class="ct">14:02 · 0:38</span></div>
+            <div class="cliprow"><span class="n">2</span><span class="wv"></span><span class="ct">14:03 · 1:02</span></div>
+            <div class="cliprow"><span class="n">3</span><span class="wv"></span><span class="ct">14:05 · 0:29</span></div>
+            <div class="cliprow more"><b>+ 5 more</b>&nbsp;· oldest → newest</div>
+          </div>
+
+          <div class="chooser">
+            <div class="choice on">
+              <span class="radio"></span>
+              <div class="ct">One note</div>
+              <div class="cs">Clips stitched in order — reads as one story, one transcript</div>
+            </div>
+            <div class="choice">
+              <span class="radio"></span>
+              <div class="ct">8 notes</div>
+              <div class="cs">Each voice note becomes its own memo</div>
+            </div>
+          </div>
+
+          <button class="recbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1h-2v1a9 9 0 0 0 8 8.94V22h2v-2.06A9 9 0 0 0 21 11v-1h-2Z"/></svg>Record your thoughts</button>
+
+          <div class="sheetsig sig">
+            <div class="top"><span class="lab">How significant is this?</span><span class="val">0.3</span></div>
+            <div class="dots"><span class="dot lit"></span><span class="dot lit"></span><span class="dot lit"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="sync"><span class="sdot"></span>Applies to every note this share creates</div>
+          </div>
+
+          <button class="save">Save as one note</button>
+        </div>
+      </div>
+      <div class="pnote">
+        <b>Default = One note</b> (your original ask). The save button re-labels live:
+        <b>"Save as one note"</b> ⇄ <b>"Save 8 notes"</b>. Clips are ordered by their own timestamps,
+        so a forwarded thread reads chronologically. Combine = the existing append-clips machinery —
+        one memo, clip markers inside, one continuous transcript.
+        <br><br>❖ <span class="q">Q2:</span> in <b>8-notes</b> mode the ramble stays and lands on
+        <b>every</b> note (same as significance) — or should it hide there? (Can't ramble 8 different
+        thoughts into one field.)
+        <br>❖ <span class="q">Q3:</span> clip stack shows 3 rows + "+5 more" — enough, or want the full list scrollable?
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ STATE 3 · photos ════ -->
+  <div class="panelset" id="m3">
+    <div class="mobwrap">
+      <div class="phead">Share 4 photos → always one note (B2)</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="chat">
+          <div class="cbar"><span class="av"></span>Photos · 4 selected</div>
+          <div class="bub">IMG_2841 … IMG_2844</div>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead"><span class="mk">Sk</span><b>4 photos → one note</b><button class="close">✕</button></div>
+
+          <div class="photogrid">
+            <div class="ph p1"></div>
+            <div class="ph p2"></div>
+            <div class="ph p3"></div>
+            <div class="ph p4"><span class="badge">4 of 4</span></div>
+          </div>
+          <div class="honest"><span class="hdot"></span>One note · photos keep their order · text in photos becomes searchable</div>
+
+          <button class="recbtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1h-2v1a9 9 0 0 0 8 8.94V22h2v-2.06A9 9 0 0 0 21 11v-1h-2Z"/></svg>Record your thoughts</button>
+          <div class="typefield">…or type instead (optional)</div>
+
+          <div class="sheetsig sig">
+            <div class="top"><span class="lab">How significant is this?</span><span class="val muted">—</span></div>
+            <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="sync"><span class="sdot"></span>Stays on this phone until flagged</div>
+          </div>
+
+          <button class="save">Save to Skrift</button>
+        </div>
+      </div>
+      <div class="pnote">
+        No chooser here — <b>multiple photos always combine into one note</b> (your B2 call).
+        Grid previews up to 4; a 6-photo share shows "+2" on the last tile. Images ride the existing
+        multi-photo manifest, so the note gets them in order and the OCR sweep makes any text in them
+        searchable (that part already ships — D3).
+        <br><br>❖ <span class="q">Q4:</span> header reads <b>"4 photos → one note"</b> to make the
+        combining explicit — good, or prefer the plain "Save to Skrift"?
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ STATE 4 · feedback states ════ -->
+  <div class="panelset" id="m4">
+    <div class="miniwrap">
+      <div class="phead">Saved ✓ (every successful share)</div>
+      <div class="minisheet">
+        <div class="stateico ok"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="stitle">Saved to Skrift</div>
+        <div class="sdesc">8 voice notes → <b>one note</b><br>Transcribes when you next open Skrift</div>
+        <div class="autodismiss">auto-dismisses after ~0.8 s</div>
+      </div>
+      <div class="pnote">Replaces today's instant close — the flash is the proof it worked (E3).
+        Shows <b>what</b> was saved, and repeats the drain honesty line once.</div>
+    </div>
+
+    <div class="miniwrap">
+      <div class="phead">Error — save failed (A12)</div>
+      <div class="minisheet">
+        <div class="stateico err"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="14"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg></div>
+        <div class="stitle">Couldn't save this</div>
+        <div class="sdesc">The voice note couldn't be copied out of WhatsApp.<br><b>Nothing was saved.</b></div>
+        <div class="btnrow">
+          <button class="btn ghost">Cancel</button>
+          <button class="btn primary">Try again</button>
+        </div>
+      </div>
+      <div class="pnote">Today this closes silently and the item is just gone. Every failure path
+        (copy, write, load) lands here instead — honest, with a retry.</div>
+    </div>
+
+    <div class="miniwrap">
+      <div class="phead">Unsupported type (A16)</div>
+      <div class="minisheet">
+        <div class="stateico warn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+        <div class="stitle">Skrift can't import this</div>
+        <div class="sdesc">This looks like a <b>.numbers spreadsheet</b> — not something Skrift understands yet.</div>
+        <div class="btnrow">
+          <button class="btn ghost" style="flex:none;padding:10px 22px;margin:0 auto">Close</button>
+        </div>
+      </div>
+      <div class="pnote">Replaces the empty-text-sheet fallback that could save a husk note.
+        Names the type when known. No Save button at all.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // mode switching
+  document.querySelectorAll('.mode').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.mode').forEach(x=>x.classList.remove('on'));
+      document.querySelectorAll('.panelset').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      document.getElementById(b.dataset.m).classList.add('on');
+    });
+  });
+  // waveform bars (deterministic pseudo-random so every render matches)
+  function bars(el,n,hmin,hmax,seed){
+    let s=seed;
+    for(let i=0;i<n;i++){
+      s=(s*16807)%2147483647;
+      const h=hmin+(s%1000)/1000*(hmax-hmin);
+      const bar=document.createElement('i');
+      bar.style.height=h.toFixed(1)+'px';
+      el.appendChild(bar);
+    }
+  }
+  document.querySelectorAll('.bub .wv').forEach((el,i)=>bars(el,26,3,12,7+i));
+  const wv1=document.getElementById('wv1'); if(wv1) bars(wv1,22,4,15,42);
+  document.querySelectorAll('.cliprow .wv').forEach((el,i)=>bars(el,46,3,11,11+i*3));
+  // chooser toggle (mock interactivity)
+  document.querySelectorAll('.chooser').forEach(ch=>{
+    const save=ch.closest('.sheet').querySelector('.save');
+    ch.querySelectorAll('.choice').forEach((c,idx)=>{
+      c.addEventListener('click',()=>{
+        ch.querySelectorAll('.choice').forEach(x=>x.classList.remove('on'));
+        c.classList.add('on');
+        if(save) save.textContent = idx===0 ? 'Save as one note' : 'Save 8 notes';
+      });
+    });
+  });
+</script>
+</body>
+</html>
