@@ -1,7 +1,34 @@
 import XCTest
+import MapKit
 @testable import SkriftMobile
 
 final class WallPrinterTests: XCTestCase {
+
+    func testMapClustersCollectWhenZoomedOutAndSplitWhenZoomedIn() {
+        func cluster(_ name: String, _ lat: Double, _ lon: Double, count: Int) -> PlaceCluster {
+            let memos = (0..<count).map { _ in
+                Memo.make(title: name, transcript: "t", transcriptStatus: .done)
+            }
+            return PlaceCluster(id: name, name: name,
+                                coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                                memos: memos)
+        }
+        // Estrela + Alvalade ≈ 4 km apart; Amsterdam far away.
+        let base = [cluster("Estrela", 38.714, -9.161, count: 5),
+                    cluster("Alvalade", 38.753, -9.144, count: 2),
+                    cluster("Amsterdam", 52.370, 4.895, count: 1)]
+
+        // Zoomed OUT (whole Europe): Lisbon collects, Amsterdam stays its own pin.
+        let wide = PlaceCluster.merged(base, span: MKCoordinateSpan(latitudeDelta: 20, longitudeDelta: 20))
+        XCTAssertEqual(wide.count, 2)
+        let lisbon = wide.first { $0.memos.count == 7 }
+        XCTAssertNotNil(lisbon)
+        XCTAssertTrue(lisbon!.name.hasPrefix("Estrela +"))
+
+        // Zoomed IN (city level): everything pulls apart.
+        let tight = PlaceCluster.merged(base, span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05))
+        XCTAssertEqual(tight.count, 3)
+    }
 
     func testEnqueueGateIsOrangeTierOncePerNote() {
         // Crossing into orange, never printed → fires.

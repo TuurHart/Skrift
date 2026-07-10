@@ -16,12 +16,17 @@ struct MemoSnapshot: Sendable {
     let createdAt: Date
 }
 
-/// Initial similarity floors — CALIBRATION OWED (plan chunk 3): print the score
-/// histogram over the real corpus on-device and tune. Query↔doc numbers from the
-/// bake-off: expected μ 0.46–0.47 vs distractor μ 0.07–0.11.
+/// Similarity floors — CALIBRATED 2026-07-07 from the on-device histogram
+/// (iPhone 13, real corpus, 5 runs × 2000 random gist pairs): p50 ≈ 0.31,
+/// p90 ≈ 0.49, p99 ≈ 0.81. The old related floor (0.30) sat AT the random-pair
+/// median — pure noise; 0.45 ≈ p90 on a deliberately NARROW test corpus (12
+/// same-topic memos inflate the baseline), so it filters noise without
+/// over-pruning a diverse one. Search floor stays bake-off-derived (query↔doc
+/// is a different, lower distribution: expected μ 0.46 vs distractor μ 0.07).
+/// Re-run Settings → "Log score histogram" as the corpus grows to re-check.
 enum RetrievalTuning {
     static let searchFloor: Float = 0.25
-    static let relatedFloor: Float = 0.30
+    static let relatedFloor: Float = 0.45
     static let relatedK = 4
 }
 

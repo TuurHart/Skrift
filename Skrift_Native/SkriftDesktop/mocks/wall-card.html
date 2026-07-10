@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wall card — print preview (true to WallCardView)</title>
+<style>
+  body{margin:0;background:#3a3a40;font-family:-apple-system,sans-serif;padding:40px;
+       display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start;}
+  .note{color:#aaa;font-size:12px;max-width:420px;line-height:1.5;}
+  .card{width:420px;height:594px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.5);
+        padding:28px;box-sizing:border-box;display:flex;flex-direction:column;
+        font-family:Georgia,'Times New Roman',serif;color:#000;}
+  .q{font-size:42px;font-weight:bold;color:rgba(0,0,0,.85);line-height:.6;margin-bottom:10px;}
+  .t{font-size:24px;font-weight:bold;margin:8px 0 14px;line-height:1.25;}
+  .b{font-size:15px;line-height:1.55;color:rgba(0,0,0,.9);flex:1;overflow:hidden;}
+  .rule{height:1.5px;background:rgba(0,0,0,.8);margin:14px 0 10px;}
+  .f{display:flex;justify-content:space-between;align-items:baseline;}
+  .fd{font-size:11px;color:rgba(0,0,0,.7);}
+  .wm{font-size:9px;font-weight:600;letter-spacing:2px;color:rgba(0,0,0,.45);
+      font-family:-apple-system,sans-serif;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="q">❝</div>
+  <div class="t">What if the price IS the marketing?</div>
+  <div class="b">So instead of hiding the number, lead with it. "The 69-cent thought-journal."
+  The price tells the story: this is not a subscription trap, it's a tool you buy once, like
+  Jack said about pocket knives. Cheap enough that nobody deliberates, odd enough that it
+  sticks in your head when a friend mentions it.<br><br>
+  And maybe that's the whole positioning — every other notes app wants a relationship with
+  your wallet. This one wants sixty-nine cents and then it wants you to think.</div>
+  <div class="rule"></div>
+  <div class="f">
+    <span class="fd">7 July 2026 · Jardim da Estrela</span>
+    <span class="wm">SKRIFT</span>
+  </div>
+</div>
+<div class="note">
+  <b>True to <code>WallCardView</code></b> (the SwiftUI the printer receives): A-series aspect
+  (420×594pt ≈ A5/A6 scaled by the printer), mono-first — pure black on white, serif title +
+  body, the quote deco, hard rule, date · place footer, SKRIFT wordmark. Long bodies clamp at
+  ~24 lines. This is the iterate-here artifact: margins, type scale, body length — say what
+  moves and the Swift follows. (Physical truth = tomorrow's first print.)
+</div>
+</body>
+</html>

@@ -50,7 +50,10 @@ struct AppTabView: View {
                 .tag(Tab.books)
 
             JournalHomeView()
-                .tabItem { Label("Journal", systemImage: "clock.arrow.circlepath") }
+                // Display name "Review" (Tuur, 2026-07-07) — internal ids stay
+                // `journal` (the `-openTab journal` flag + file names are shared
+                // API across lanes; renaming code churns for zero user value).
+                .tabItem { Label("Review", systemImage: "clock.arrow.circlepath") }
                 .tag(Tab.journal)
 
             SettingsView()

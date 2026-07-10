@@ -1,5 +1,6 @@
 import Foundation
 import CoreMLLLM
+import UIKit
 
 /// Production engine: EmbeddingGemma-300M via CoreML-LLM, on the ANE.
 ///
@@ -19,6 +20,23 @@ actor GemmaEmbedder: EmbeddingEngine {
     private var model: EmbeddingGemma?
     private var lastUse = Date.distantPast
 
+    /// Foreground hold: a cold `prepare()` costs MINUTES on an A15 (ANE model
+    /// load + the 31.8 MB tokenizer parse — devlog 2026-07-08: first query of a
+    /// session stalled ~2 min and queued everything behind the actor), so the
+    /// old 60 s idle window re-paid that on nearly every search. Hold for 10
+    /// minutes while the app is frontmost; backgrounding unloads immediately
+    /// (the observer below), which keeps the memory citizenship the 60 s window
+    /// was buying.
+    private let idleUnloadAfter: TimeInterval = 600
+
+    private init() {
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil
+        ) { _ in
+            Task { await GemmaEmbedder.shared.unloadNow() }
+        }
+    }
+
     /// ~295 MB, cached here after the first download.
     static var modelsDir: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -32,9 +50,26 @@ actor GemmaEmbedder: EmbeddingEngine {
             atPath: modelsDir.appendingPathComponent("embeddinggemma-300m").path)
     }
 
+    /// The in-flight cold load, shared by every concurrent `prepare()`. The actor
+    /// SUSPENDS at the load's `await`, so without this a second caller re-enters,
+    /// still sees `model == nil`, and loads the 295 MB model AGAIN — device-proven
+    /// 2026-07-10: the first-keystroke warmup racing the query path produced two
+    /// concurrent loads (43.9s + 50.3s).
+    private var loadTask: Task<EmbeddingGemma, Error>?
+
     func prepare() async throws {
         if model == nil {
-            model = try await EmbeddingGemma.downloadAndLoad(modelsDir: Self.modelsDir)
+            if loadTask == nil {
+                let t0 = Date()
+                DevLog.log("embedder: cold load START")
+                loadTask = Task {
+                    let m = try await EmbeddingGemma.downloadAndLoad(modelsDir: Self.modelsDir)
+                    DevLog.log(String(format: "embedder: cold load DONE in %.1fs", Date().timeIntervalSince(t0)))
+                    return m
+                }
+            }
+            defer { loadTask = nil }   // success: model is set; failure: allow a retry
+            model = try await loadTask!.value
         }
         lastUse = Date()
         scheduleIdleUnload()
@@ -50,17 +85,30 @@ actor GemmaEmbedder: EmbeddingEngine {
         return RetrievalMath.normalize(v)
     }
 
-    /// Never leave a model pinned (desktop lesson). Unloads ~60 s after last use;
-    /// the next embed reloads from the on-disk cache in a moment.
+    /// Never leave a model pinned forever (desktop lesson) — but see
+    /// `idleUnloadAfter`: the reload is minutes, not "a moment", so the idle
+    /// window must outlast a whole search-and-read session.
     private func scheduleIdleUnload() {
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 65_000_000_000)
+        Task { [weak self, idleUnloadAfter] in
+            try? await Task.sleep(nanoseconds: UInt64((idleUnloadAfter + 5) * 1_000_000_000))
             await self?.unloadIfIdle()
         }
     }
 
     private func unloadIfIdle() {
-        if Date().timeIntervalSince(lastUse) >= 60 { model = nil }
+        if model != nil, Date().timeIntervalSince(lastUse) >= idleUnloadAfter {
+            model = nil
+            DevLog.log("embedder: unloaded after idle")
+        }
+    }
+
+    /// Backgrounding: give the memory back right away — a suspended app holding
+    /// 295 MB is first in line for jetsam.
+    func unloadNow() {
+        if model != nil {
+            model = nil
+            DevLog.log("embedder: unloaded on background")
+        }
     }
 
     enum EmbeddingError: Error { case notLoaded }

@@ -29,8 +29,23 @@ final class ModelLoadStatus: ObservableObject {
     var everDownloaded: Bool { UserDefaults.standard.bool(forKey: everReadyKey) }
 
     func set(_ phase: Phase) {
-        self.phase = phase
-        if case .ready = phase { UserDefaults.standard.set(true, forKey: everReadyKey) }
+        // Quantize progress to whole percents and drop no-op updates: the
+        // download/compile callbacks fire far more often than 1% steps, and
+        // every publish re-rendered every observing screen.
+        let incoming = Self.quantized(phase)
+        guard incoming != self.phase else { return }
+        self.phase = incoming
+        if case .ready = incoming { UserDefaults.standard.set(true, forKey: everReadyKey) }
+    }
+
+    /// Round `.downloading`/`.preparing` fractions to 0.01 (the 1% display
+    /// granularity) so equal-looking states compare equal.
+    nonisolated static func quantized(_ phase: Phase) -> Phase {
+        switch phase {
+        case .downloading(let p): return .downloading((p * 100).rounded() / 100)
+        case .preparing(let p?):  return .preparing((p * 100).rounded() / 100)
+        default:                  return phase
+        }
     }
 
     // Back-compat conveniences (read by RecordView + OnboardingView).

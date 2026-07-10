@@ -65,6 +65,9 @@ struct MemosListView: View {
     /// Semantic hits for the current search (P8) — empty unless the journal
     /// index is active AND something clears the floor.
     @State private var related: [Memo] = []
+    /// Debounced semantic lookup, held in @State so view-identity churn (the
+    /// ticking mini-player) can't cancel it — only a newer query does.
+    @State private var searchTask: Task<Void, Never>?
     @State private var sort: MemoSort = .added
     @State private var filter = MemoFilter()
     @State private var editMode: EditMode = .inactive
@@ -315,7 +318,13 @@ struct MemosListView: View {
             // Device finding 2026-07-07 (build 40): no way to close the keyboard
             // after searching — swipe the list to dismiss it.
             .scrollDismissesKeyboard(.immediately)
-            .task(id: search) { await refreshRelated() }
+            // ROUND-5 FIX: was `.task(id: search)` — on device, the ticking
+            // mini-player churns the List's identity every frame, restarting
+            // the task ~15×/40ms and cancelling every debounce sleep before
+            // the query could run (devlog 11:51:17.934–.976). An @State-held
+            // Task survives view-identity churn; only a NEW query cancels it.
+            .onChange(of: search) { _, _ in scheduleRelated() }
+            .task { scheduleRelated() } // initial (-initialSearch route)
             .environment(\.editMode, $editMode)
             .accessibilityIdentifier("memos-list")
             // Pull-to-refresh: a manual nudge for "show me what synced" — runs the
@@ -596,15 +605,31 @@ struct MemosListView: View {
 
     /// Debounced semantic lookup for the current query (P8). Exact matches
     /// never wait on this — it fills the Related section in async.
+    private func scheduleRelated() {
+        // Engine load starts at the FIRST keystroke, not after the debounce —
+        // a cold load is minutes on device (devlog 2026-07-08), so every
+        // head-start counts. No-op when warm or when the index is off.
+        if !search.isEmpty { JournalIndexService.shared.warmUp() }
+        searchTask?.cancel()
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled else { return }
+            await refreshRelated()
+        }
+    }
+
     private func refreshRelated() async {
         let q = search.trimmingCharacters(in: .whitespaces)
+        // Round-5 trace: device searches produced ZERO SemanticSearch lines
+        // while sweeps ran fine — log the entry + every gate's verdict.
+        if !q.isEmpty {
+            let service = JournalIndexService.shared
+            DevLog.log("refreshRelated '\(q.prefix(30))' active=\(service.isActive) enabled=\(service.isEnabled) model=\(GemmaEmbedder.isModelDownloaded)")
+        }
         guard !q.isEmpty, JournalIndexService.shared.isActive else {
             if !related.isEmpty { related = [] }
             return
         }
-        JournalIndexService.shared.warmUp()
-        try? await Task.sleep(nanoseconds: 250_000_000)
-        guard !Task.isCancelled else { return }
         let scores = await JournalIndexService.shared.searchScores(q, repository: repository)
         guard !Task.isCancelled, q == search.trimmingCharacters(in: .whitespaces) else { return }
         let byID = Dictionary(uniqueKeysWithValues: memos.map { ($0.id, $0) })

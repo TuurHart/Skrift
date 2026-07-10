@@ -76,6 +76,40 @@ final class NoteBodyTests: XCTestCase {
         XCTAssertNil(coordinator.memo.transcript)
     }
 
+    // MARK: draft-target pinning (P0 2026-07-10: raw draft clobbered the polished copy-edit)
+
+    @MainActor
+    func testRawBornDraftNeverWritesAnArrivingPolishBinding() {
+        // First frame: enhancement not fetched yet, editor shows + edits the RAW body.
+        let (coordinator, tv) = makeEditor(transcript: "raw words")
+        tv.attributedText = NSAttributedString(string: "raw words edited")
+        coordinator.textViewDidChange(tv)
+        // The enhancement fetch lands MID-EDIT: updateUIView swaps the binding in.
+        var polished = "the full polished note"
+        coordinator.polishedBinding = Binding(get: { polished }, set: { polished = $0 })
+        coordinator.commitDraft()
+        XCTAssertEqual(polished, "the full polished note",
+                       "a raw-born draft must never clobber the polished copy-edit")
+        XCTAssertEqual(coordinator.memo.transcript, "raw words edited",
+                       "the raw-born draft belongs to the raw transcript")
+    }
+
+    @MainActor
+    func testPolishBornDraftStillCommitsToPolishAfterBindingDrops() {
+        let (coordinator, tv) = makeEditor(transcript: "raw words")
+        var polished = "polished note"
+        coordinator.polishedBinding = Binding(get: { polished }, set: { polished = $0 })
+        coordinator.load(force: true)                     // editor shows the polish
+        tv.attributedText = NSAttributedString(string: "polished note edited")
+        coordinator.textViewDidChange(tv)
+        coordinator.polishedBinding = nil                 // view-identity churn reset @State
+        coordinator.commitDraft()
+        XCTAssertEqual(polished, "polished note edited",
+                       "a polish-born draft commits to the polish it was made on")
+        XCTAssertEqual(coordinator.memo.transcript, "raw words",
+                       "the raw transcript must never receive a polished-body draft")
+    }
+
     // MARK: quote-protected captures
 
     @MainActor

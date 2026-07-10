@@ -186,6 +186,22 @@ struct NoteBodyView: UIViewRepresentable {
         private var loaded: String?
         /// Uncommitted edits exist in the view (debounce window).
         private var draftDirty = false
+        /// Where a dirty draft belongs — pinned at the FIRST unsaved edit of a burst.
+        /// `polishedBinding` can arrive (the enhancement fetch lands) or drop (view-identity
+        /// churn resets the page's @State) MID-EDIT; the commit must go to the body the
+        /// user was actually editing, never the one the binding points at by commit time.
+        /// (P0 2026-07-10: a raw-born draft flushed into an arriving polish binding and
+        /// replaced the user's whole edited note with the raw transcript.)
+        private enum DraftTarget { case polished(Binding<String>), raw }
+        private var draftTarget: DraftTarget?
+
+        /// Mark unsaved edits, pinning their commit target on the burst's first edit.
+        private func markDraftDirty() {
+            if draftTarget == nil {
+                draftTarget = polishedBinding.map { .polished($0) } ?? .raw
+            }
+            draftDirty = true
+        }
         private var commitTask: Task<Void, Never>?
         private var resignObserver: NSObjectProtocol?
         private var sizeObserver: NSObjectProtocol?
@@ -940,7 +956,7 @@ struct NoteBodyView: UIViewRepresentable {
         // MARK: editing / debounced commit
 
         func textViewDidChange(_ tv: UITextView) {
-            draftDirty = true
+            markDraftDirty()
             refreshAccessory()
             detectLinkTrigger(tv)
             (tv as? NoteBodyTextView)?.setNeedsAccessoryLayout()
@@ -977,7 +993,7 @@ struct NoteBodyView: UIViewRepresentable {
             let len = tv.textStorage.length
             tv.selectedRange = NSRange(location: min(sel.location, len), length: 0)
             Haptics.tap(.light)
-            draftDirty = true
+            markDraftDirty()
             commitDraft()
             applyTierStyling()          // re-derive display spans over the same offsets
         }
@@ -1036,7 +1052,7 @@ struct NoteBodyView: UIViewRepresentable {
             piece.append(NSAttributedString(string: " ", attributes: baseAttributes()))
             storage.insert(piece, at: at)
             tv.selectedRange = NSRange(location: at + piece.length, length: 0)
-            draftDirty = true
+            markDraftDirty()
             commitDraft()
         }
 
@@ -1060,18 +1076,21 @@ struct NoteBodyView: UIViewRepresentable {
             commitTask = nil
             guard draftDirty, let tv = textView else { return }
             draftDirty = false
+            let target = draftTarget ?? (polishedBinding.map { .polished($0) } ?? .raw)
+            draftTarget = nil
             let text = reconstruct(tv.attributedText)
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let binding = polishedBinding {
+            switch target {
+            case .polished(let binding):
                 binding.wrappedValue = text          // setter stamps provenance
                 loaded = text
-            } else if let quote = protectedQuote {
+            case .raw where memo.captureQuote != nil:
                 // The editor held ONLY the ramble — re-prepend the raw "> " block
                 // verbatim so the stored quote is untouchable.
-                memo.transcript = quote.transcript(withRamble: text)
+                memo.transcript = memo.captureQuote!.transcript(withRamble: text)
                 memo.transcriptStatus = .done
                 loaded = memo.transcript
-            } else {
+            case .raw:
                 let wasNonEmpty = !(loaded ?? "").isEmpty
                 memo.transcript = trimmed.isEmpty ? nil : text
                 if !trimmed.isEmpty { memo.transcriptStatus = .done }

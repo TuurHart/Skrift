@@ -2,6 +2,39 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🎙 Recording robustness + heat diet (2026-07-07, worktree nice-shtern — roadmap `RecHard`)
+
+User report (iPhone 13, warm): tap record → UI froze, stop unresponsive, memo captured only HALF the
+message. Full-code audit found two separate causes, both fixed same day (5 commits, 588 unit tests
+green; **device round owed** — the sim can't fire interruptions or measure ANE duty):
+- **Data loss:** NO `interruptionNotification` handling — a call/Siri/alarm stops the engine with no
+  route/config event, so the recovery lattice never fired and the wall-clock timer kept counting over
+  dead capture. Fixed: interruption observer + foreground re-arm (iOS can skip `.ended`) + a
+  display-timer capture WATCHDOG (engine dead >2 s, no rebuild in flight → rebuild) + resume()
+  rebuilds when a plain start fails. The route-rebuild ladder itself is untouched (device-proven).
+- **Heat/freeze:** live captions re-ran FULL ASR over the whole ≤25 s live window every 0.6 s (ANE
+  ~100% duty, cost grows with the window) + the camera session ran the entire recording + the screen
+  re-rendered ~30×/s (20 Hz timer on a whole-object ObservableObject) + Live Activity got the whole
+  transcript every poll. Fixed: self-pacing polls (≥1.5× last snapshot cost, thermal floors
+  2.5 s/.serious 6 s/.critical) + early rotation (>10 s window once snapshots >1.2 s) + camera runs
+  only while the sheet is open + @Observable per-property observation with child-view splits (4 Hz
+  timer) + Live Activity pushes a word-aligned ~220-char tail at ≥1.5 s. DevLog now traces
+  window-size/snapshot-ms/rotations — pull `devlog.txt` on the next device round for the real numbers.
+
+**Owed / follow-ups:**
+- ⬜ Device round (13 + AirPods): freeze gone? snapshot-ms trace, mid-record call/alarm survives,
+  camera-sheet first-open latency (~½ s expected), auto-off still fires, Live Activity tail reads OK.
+- ⬜ Phase 3 (own session, riskiest): move session activate/deactivate + engine start/stop OFF the
+  main thread — `setActive` blocks 100–300 ms in `start()`/`stop()`; touches the hardened lattice.
+- ⬜ Spike: FluidAudio ships true streaming ASR we hand-rolled around — `SlidingWindowAsrManager`
+  **accepts the already-loaded `AsrModels`** (`loadModels(_:)`, same weights in RAM) with push
+  `streamAudio`/`finish`; would replace the snapshot loop with bounded incremental windows. Also
+  `StreamingEouAsrManager` (separate EOU weights). Quality/latency device eval needed.
+- ⬜ Extraction pass once device rounds lock behavior: TapWriter / RouteRecovery / CaptionFeed out of
+  the 1000-line `LiveRecordingService`; protocol-seam the `if mock` branches.
+- Deferred judgment calls: captions keep running while backgrounded (Lock-Screen Live Activity shows
+  them — thermal floors now bound the cost); memory-warning `unload()` still no-ops mid-recording.
+
 ## ⭐ CONTINUE HERE (2026-07-07 night, audiobook-UX chat wrap) — worktree `sweet-goldstine`
 
 Branch `claude/sweet-goldstine-13dfca` (pushed, NOT yet PR'd) holds **builds 46→51** on top of merged PR #6:
@@ -145,6 +178,89 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 (`Skrift_Native/SkriftDesktop/mocks/journal-retrieval.html`, drafted 2026-07-06) proposes **Journal
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
+
+## ⭐ CONTINUE HERE — post-convergence stabilization (handoff 2026-07-08, P8 chat wrap)
+
+Five chats merged into main in ~24h (P8/Review+Wall · note-editing · Books/recording · SharedKit ·
+desktop parity). Feature velocity was huge; convergence bugs surfaced. **NEXT CHAT = a
+STABILIZATION round, not a feature lane.** Phone = iPhone 13, Dev build **57** installed (wifi
+installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
+
+**Triage, in order:**
+1. ✅ **P0 CLOSED 2026-07-10 — NO DATA WAS EVER LOST; two real bugs found + fixed (build 58).**
+   Forensics: the memo is a 6.3s recording — its RAW transcript was ALWAYS 108 chars; the "lost"
+   body is Tuur's 369-char edited note, which the PHONE STORE STILL HELD INTACT (pulled over
+   devicectl — NB the live SwiftData store is in the APP-GROUP container
+   `group.com.skrift.mobile.dev`, not the app container, since the 06-12 App-Groups work). All
+   memos scan clean. **Restore ABORTED** — the phone's copy was newer than the Mac's frozen
+   mirror; running it would have rolled the note back. Mac Skrift Dev safe to launch again.
+   - **Real bug A (what Tuur saw), FIXED `6724a41`:** memos opened FROM SEARCH RESULTS rendered
+     the raw body and never healed — the pager's LazyHStack realizes pages during the programmatic
+     scroll WITHOUT delivering appear events, so the `.task` that fetched the enhancement never ran
+     (devlog-proven: zero task side-effects on sick opens; list-flow opens healed in ~200ms).
+     Fix: the polish is a live per-memo `@Query` — correct on the first body eval, no appear-event
+     dependency, live CloudKit updates (retired the onChange(sync.isSyncing) refetch).
+     PolishedDisplayUITests + 601/601 green. ✅ DEVICE-VERIFIED build 59 (2026-07-10 13:58): Tuur
+     opened the memo from active search MID-cold-load — first render `len=369`, zero raw frames.
+   - **Real bug B (found en route), FIXED `56f360e`:** commitDraft wrote the dirty draft to
+     whatever `polishedBinding` held at COMMIT time; the binding arrives async / drops on churn, so
+     a raw-born draft COULD flush into the arriving binding (copyedit ← raw). Never fired for this
+     memo but the mechanism was real — commit target now PINNED at first dirty edit
+     (`markDraftDirty`), both directions regression-tested. The DEBUG `-restoreEnhancementMemo/-Body`
+     launch hook stays available (unused).
+2. ✅ **Semantic search CLOSED 2026-07-10 (`0778575`, build 58) — it was a COLD-LOAD STALL, not
+   weak scores.** Devlog (build 57): first query of the session took 122s — cold `prepare()` (ANE
+   load of the 294MB encoder + parsing the 31.8MB tokenizer.json) serialized SIX queries behind
+   the index actor; they drained ~15ms each once warm and ALL scored above floor (1-word 'Try'
+   0.43, 'Trying' 0.45, 'Attempt' 0.41 vs floor 0.25 — results arrived minutes late into a dead
+   view). The 60s idle unload then re-paid the load on nearly every search. Fix: model held 10 min
+   (unload immediately on backgrounding), warmup fires at the FIRST keystroke, cold-load duration
+   now DevLogged. searchFloor untouched — the bake-off calibration stands. ✅ DEVICE-MEASURED
+   builds 58/59: cold load = 42.5–43.9s from the ANE cache (the 122s on 07-08 was the uncached
+   worst case). The instrumented run ALSO caught prepare() double-loading on actor reentrancy
+   (warmup racing the query path → two concurrent 295MB loads) — fixed with a shared in-flight
+   load task, single-load verified on 59 (`70c3714`). DESIGN QUESTION for Tuur: 42s is long
+   enough that the first search of a session shows an empty Related section for ~a minute — a
+   quiet "warming up…" row would make it honest (mock-first when picked up).
+3. ⬜ **Crashes (build ~53)** — pull crash logs over USB (`idevicecrashreport -e`, needs cable;
+   wifi doesn't work for it). Suspect list open; possibly the same view-churn storm.
+4. ⬜ Wall: Tuur's office print test → REMIND: re-pick the HOME printer after (saved printer IS
+   the wall). First physical card = design round on paper.
+5. ⬜ Then: vault lens (after Tuur's iCloud vault move; incl. title-linking design above),
+   desktop Review mock sign-off, prod CloudKit schema deploy (still pending, § Stz020).
+
+**KICKOFF PROMPT for the next chat:**
+> Stabilization round on main (all lanes merged). Read backlog.md "⭐ CONTINUE HERE —
+> post-convergence stabilization" and work the numbered triage top-down, instrument-first
+> (DevLog + devicectl pulls; wifi installs OK, crash logs need USB). Start with the P0
+> transcript-truncation data bug. Build numbers continue from 57; bump per device install.
+> Commit per finding with explicit paths; update this backlog section as items close.
+
+Noticed in passing (P0 forensics, 2026-07-10; NOT acted on): list-row previews render raw
+`memo.transcript` (`MemosListView` transcriptSnippet) while the note detail shows the polish —
+after the restore the row's first line ("Yo yo, my name is tiuri…") won't match the note body.
+Pre-existing choice, cosmetic; fold into a display-consistency pass if it bothers in use.
+
+**Bug reports (Tuur, on build 53; INSTRUMENT-FIRST — phone off-cable, diagnose from devlog next USB session):**
+1. ⬜ **Semantic search intermittently finds nothing** ("I'm trying" no longer surfaces the
+   testing notes; worked on earlier builds). Suspects: swallowed engine-load error (was `try?` —
+   NOW LOUD: `SemanticSearch …` devlog lines log count/top-score/floor per query, FAILED on
+   throw); or scores genuinely below `searchFloor` 0.25 for short queries. Repro then pull devlog.
+2. ⬜ **Skrift Dev crashed a few times at random spots** (build 53, mixed usage). Pull crash logs
+   next cable session (`idevicecrashreport` per pull-phone-feedback skill); suspects unknown —
+   could be any lane's (builds 45–53 span recording + books + P8 work).
+
+**Design adds (locked in conversation):**
+- **Vault lens gains title-linking** (the old Backlink-Weaver idea): reading the vault yields a
+  title index → transcripts can suggest/insert `[[wikilinks]]` to VAULT notes (not just
+  memo↔memo). Belongs to the vault-lens chunk (JOURNAL_RETRIEVAL_PLAN.md Phase 2).
+- **Then-vs-Now pair-picking (mechanics)**: for each memo of the last ~2 weeks, `related()` →
+  keep hits ≥6 months older → highest-scoring pair above `relatedFloor` renders as the card
+  (old + new juxtaposed). No pair clears floor+gap → no card. Cosine picks the topic, the
+  time-gap guarantees the "then."
+- **Office-printer guard (behavioral rule for now)**: the saved printer IS the wall — test prints
+  at the office are fine, but re-pick the home printer after (or toggle auto-print off). Later
+  nicety: bind auto-print to the HOME printer identity only.
 
 ## 🖨️ Print-to-wall + significance in the Journal (Tuur design session 2026-07-07 evening)
 

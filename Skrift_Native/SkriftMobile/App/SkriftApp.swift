@@ -17,6 +17,25 @@ struct SkriftApp: App {
         NamesSeeder.seedIfRequested()
         repository = repo
 
+        #if DEBUG
+        // P0 recovery hook (2026-07-10): restore a clobbered enhancement copy-edit
+        // passed as a launch argument. Newest `enhancedAt` wins everywhere, so the
+        // restored text supersedes the clobber on every synced device.
+        if let restore = LaunchFlags.restoreEnhancement {
+            let enhancement = repo.enhancement(forMemo: restore.memoID)
+                ?? {
+                    let fresh = MemoEnhancement(memoID: restore.memoID)
+                    repo.context.insert(fresh)
+                    return fresh
+                }()
+            enhancement.copyedit = restore.copyedit
+            enhancement.enhancedByDeviceID = DeviceID.current()
+            enhancement.enhancedAt = Date()
+            repo.save()
+            DevLog.log("P0 restore: memo \(restore.memoID) copyedit ← \(restore.copyedit.count) chars")
+        }
+        #endif
+
         // Trash retention: permanently remove memos deleted ≥ 2 weeks ago
         // (audio + photo + sidecar files included) before any UI shows them.
         repo.purgeExpiredTrash()

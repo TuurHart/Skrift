@@ -10,6 +10,7 @@ struct JournalHomeView: View {
     @State private var memos: [Memo] = []
     @State private var entries: [LookbackProvider.Entry] = []
     @State private var important: [Memo] = []
+    @State private var thenNow: (then: Memo, now: Memo)?
 
     enum Route: Hashable { case calendar, map }
 
@@ -18,7 +19,7 @@ struct JournalHomeView: View {
             VStack(spacing: 0) {
             // Unified 30pt screen title (device round 4: all four tabs match).
             HStack {
-                ScreenTitle("Journal")
+                ScreenTitle("Review")
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
@@ -31,6 +32,7 @@ struct JournalHomeView: View {
                     } else {
                         if wall.queuedCount > 0 { wallQueueRow }
                         if !important.isEmpty { importantCard }
+                        if let pair = thenNow { thenNowCard(pair) }
                         ForEach(entries) { entry in
                             if let memo = memo(entry.id) {
                                 LookbackCard(entry: entry, memo: memo)
@@ -63,6 +65,45 @@ struct JournalHomeView: View {
         important = LookbackProvider.importantLately(for: memos)
         entries = LookbackProvider.entries(for: memos,
                                            excluding: Set(important.map(\.id)))
+        // Then vs Now arrives async (embedding queries); lookbacks re-derive so
+        // the pair's notes never double-show as lookback cards.
+        Task {
+            let snapshot = memos
+            if let pair = await JournalIndexService.shared.thenVsNow(repository: repository) {
+                let byID = Dictionary(uniqueKeysWithValues: snapshot.map { ($0.id, $0) })
+                if let then = byID[pair.then], let nowMemo = byID[pair.now] {
+                    thenNow = (then, nowMemo)
+                    entries = LookbackProvider.entries(
+                        for: snapshot,
+                        excluding: Set(important.map(\.id)).union([pair.then, pair.now]))
+                    return
+                }
+            }
+            thenNow = nil
+        }
+    }
+
+    /// The juxtaposition card: what you thought THEN, what you said NOW —
+    /// arranged, never interpreted.
+    private func thenNowCard(_ pair: (then: Memo, now: Memo)) -> some View {
+        let months = Calendar.current.dateComponents(
+            [.month], from: LookbackProvider.journalDate(pair.then),
+            to: LookbackProvider.journalDate(pair.now)).month ?? 6
+        return JournalCard {
+            VStack(alignment: .leading, spacing: 8) {
+                JournalCardHeader(title: "Then vs now")
+                JournalMemoRow(memo: pair.then)
+                HStack(spacing: 6) {
+                    Rectangle().fill(Color.skElev).frame(height: 1)
+                    Text("\(months) months later")
+                        .font(.system(size: 9.5, weight: .semibold))
+                        .foregroundStyle(Color.skAccentText)
+                        .fixedSize()
+                    Rectangle().fill(Color.skElev).frame(height: 1)
+                }
+                JournalMemoRow(memo: pair.now)
+            }
+        }
     }
 
     /// The wall's in-app surface — notifications get dismissed; this row
@@ -151,7 +192,7 @@ struct JournalHomeView: View {
             Image(systemName: "clock.arrow.circlepath")
                 .font(.system(size: 34))
                 .foregroundStyle(Color.skAccent.opacity(0.85))
-            Text("Journal")
+            Text("Review")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Color.skText)
             Text("As your notes age, past thinking resurfaces here —\na month ago, a year ago, on this day.")
