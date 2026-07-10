@@ -21,6 +21,9 @@ enum CaptureInboxDrainer {
     /// previous run never finished (crash / terminal failure recovery).
     static func drain(into repository: NotesRepository) {
         defer { CaptureDictation.resumePending(repository: repository) }
+        // Surface any share-extension diagnostics in the app devlog (the
+        // extension can't write devlog.txt itself — round-1 mic mystery).
+        CaptureInbox.flushExtLog { DevLog.log($0) }
         let pending = CaptureInbox.pendingEntries()
         guard !pending.isEmpty else { return }
 
@@ -85,9 +88,13 @@ enum CaptureInboxDrainer {
                             temps.append(temp)
                         }
                     }
-                    DevLog.log("drain: audio copied=\(temps.count) clip(s); deleting entry + importing")
+                    // Oldest clip's original date (index-aligned array) → the memo's
+                    // recordedAt seed; the import upgrades to the embedded asset
+                    // date when one exists (round-1: memos dated to upload time).
+                    let clipDate = entry.audioRecordedAts?.first.flatMap { ISO8601.date(from: $0) }
+                    DevLog.log("drain: audio copied=\(temps.count) clip(s); dates=\(entry.audioRecordedAts ?? []); deleting entry + importing")
                     CaptureInbox.delete(entryDir: entryDir)
-                    if let mid = MemoSaver(repository: repository).importAudioClips(from: temps) {
+                    if let mid = MemoSaver(repository: repository).importAudioClips(from: temps, recordedAt: clipDate) {
                         // The sheet's significance circles apply to the imported memo.
                         if entry.significance > 0, let memo = repository.memo(id: mid) {
                             memo.significance = entry.significance

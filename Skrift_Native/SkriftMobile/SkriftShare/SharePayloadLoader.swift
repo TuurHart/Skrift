@@ -80,8 +80,14 @@ enum SharePayloadLoader {
         if !audioProviders.isEmpty {
             return await loadAudio(from: audioProviders)
         }
-        // 2. URL
-        if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }) {
+        // 2. URL — WEB urls only. `public.file-url` CONFORMS to `public.url`, so
+        //    without the exclusion every Files-app share (a PDF!) landed here and
+        //    saved as a dead "Link" card (device round 1, 2026-07-10 — broken
+        //    since the June PDF feature shipped untested on device).
+        if let provider = attachments.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) &&
+            !$0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
+        }) {
             return await loadURL(from: provider, item: item)
         }
         // 3. Video (movie) — shared from Photos/Files. Checked before image so a
@@ -185,11 +191,12 @@ enum SharePayloadLoader {
             }
             items.append(SharedAudioItem(url: copied.url, duration: duration, recordedAt: copied.date))
         }
-        // Oldest → newest, only when EVERY clip has a date (a partial sort would
-        // scramble the provider order, which is the next-best signal).
-        if items.count > 1, items.allSatisfy({ $0.recordedAt != nil }) {
-            items.sort { ($0.recordedAt ?? .distantPast) < ($1.recordedAt ?? .distantPast) }
-        }
+        // Oldest → newest via the STABLE order helper. Device round 1 finding:
+        // WhatsApp materializes every temp copy at share time → near-identical
+        // dates, and Swift's sort is NOT stable — equal dates scrambled the
+        // provider order (which IS the chat order, the better signal there).
+        let order = CaptureInbox.stableClipOrder(dates: items.map(\.recordedAt))
+        items = order.map { items[$0] }
         return SharePayload(type: .file, isAudio: true, audioItems: items)
     }
 

@@ -15,7 +15,8 @@ final class ShareDictationRecorder {
 
     enum State: Equatable {
         case idle
-        case denied               // mic permission refused
+        case denied               // mic permission refused (the EXTENSION's own TCC entry)
+        case failed               // permission fine, but the session/recorder couldn't start
         case recording
         case recorded(duration: TimeInterval)
     }
@@ -43,7 +44,7 @@ final class ShareDictationRecorder {
         switch state {
         case .recording:
             stop()
-        case .idle, .recorded, .denied:
+        case .idle, .recorded, .denied, .failed:
             // Re-tap after a take replaces it (one dictation per capture, v1).
             start()
         }
@@ -57,10 +58,18 @@ final class ShareDictationRecorder {
     }
 
     private func start() {
+        // Diagnose, don't collapse: round-1 device finding showed "mic is off"
+        // while the app's mic worked — the extension has its OWN permission
+        // entry, and session failures were mislabeled as permission denials.
+        CaptureInbox.extLog("dictation: start; perm=\(AVAudioApplication.shared.recordPermission.rawValue)")
         AVAudioApplication.requestRecordPermission { [weak self] granted in
             Task { @MainActor in
                 guard let self else { return }
-                guard granted else { self.state = .denied; return }
+                guard granted else {
+                    CaptureInbox.extLog("dictation: permission DENIED")
+                    self.state = .denied
+                    return
+                }
                 self.beginRecording()
             }
         }
@@ -80,10 +89,15 @@ final class ShareDictationRecorder {
             ]
             try? FileManager.default.removeItem(at: fileURL)
             let rec = try AVAudioRecorder(url: fileURL, settings: settings)
-            guard rec.record() else { state = .denied; return }
+            guard rec.record() else {
+                CaptureInbox.extLog("dictation: recorder.record() returned false")
+                state = .failed
+                return
+            }
             recorder = rec
             elapsed = 0
             state = .recording
+            CaptureInbox.extLog("dictation: recording started")
             timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
                 Task { @MainActor in
                     guard let self, case .recording = self.state else { return }
@@ -91,7 +105,8 @@ final class ShareDictationRecorder {
                 }
             }
         } catch {
-            state = .denied
+            CaptureInbox.extLog("dictation: session/recorder threw: \(error)")
+            state = .failed
         }
     }
 

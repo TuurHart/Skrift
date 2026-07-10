@@ -50,6 +50,11 @@ struct CaptureInboxEntry: Codable {
     /// memo, NOT a capture item (the i4 fix; was a link/file card). Flat
     /// [String] (Codable-safe); optional so older entries decode.
     var audioFileNames: [String]? = nil
+    /// ISO8601 best-effort ORIGINAL dates of the audio clips, index-aligned to
+    /// `audioFileNames` (device round 1: memos were dated to the share moment,
+    /// not the voice note's creation). The import uses embedded-asset date →
+    /// this → now, mirroring video. Flat [String]; optional so older entries decode.
+    var audioRecordedAts: [String]? = nil
     /// Filenames (relative to the entry folder) of the images of a MULTI-photo
     /// capture (B2 — multiple photos always combine into one note), in order.
     /// Single-image entries keep using the legacy `imageFileName`.
@@ -233,6 +238,55 @@ enum CaptureInbox {
     static func imageURLs(for entry: CaptureInboxEntry, entryDir: URL) -> [URL] {
         let names = entry.imageFileNames ?? entry.imageFileName.map { [$0] } ?? []
         return names.map { entryDir.appendingPathComponent($0) }
+    }
+
+    // MARK: - Clip ordering (pure — unit-tested; used by the extension's loader)
+
+    /// Return the indices of `dates` in stable oldest→newest order. WhatsApp
+    /// materializes every shared temp copy at share time → near-identical dates,
+    /// and an unstable sort scrambled the provider order (device round 1). Rules:
+    /// any missing date, or all dates within 2 s of each other → keep the
+    /// provider order (it IS the chat order); otherwise sort by (date, index).
+    static func stableClipOrder(dates: [Date?]) -> [Int] {
+        let identity = Array(dates.indices)
+        guard dates.count > 1 else { return identity }
+        let known = dates.compactMap { $0 }
+        guard known.count == dates.count,
+              let min = known.min(), let max = known.max(),
+              max.timeIntervalSince(min) >= 2
+        else { return identity }
+        return identity.sorted {
+            let a = dates[$0]!, b = dates[$1]!
+            return a == b ? $0 < $1 : a < b
+        }
+    }
+
+    // MARK: - Extension diagnostics (App Group file → devlog on drain)
+
+    /// Append a diagnostic line from the SHARE EXTENSION into the App Group
+    /// container. The extension can't reach the app's devlog.txt; the drain
+    /// flushes this file into DevLog so a devicectl pull shows both sides.
+    static func extLog(_ line: String) {
+        guard let base = containerURL else { return }
+        let url = base.appendingPathComponent("ShareExtLog.txt")
+        let stamped = "\(ISO8601.string(from: Date())) \(line)\n"
+        if let handle = try? FileHandle(forWritingTo: url) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data(stamped.utf8))
+        } else {
+            try? Data(stamped.utf8).write(to: url)
+        }
+    }
+
+    /// Drain-side: move any extension log lines into the app devlog, then reset.
+    static func flushExtLog(into log: (String) -> Void) {
+        guard let base = containerURL else { return }
+        let url = base.appendingPathComponent("ShareExtLog.txt")
+        guard let data = try? Data(contentsOf: url),
+              let text = String(data: data, encoding: .utf8), !text.isEmpty else { return }
+        for line in text.split(separator: "\n") { log("ext: \(line)") }
+        try? FileManager.default.removeItem(at: url)
     }
 
     // MARK: - Delete (called by the drain, only AFTER the Memo is saved)

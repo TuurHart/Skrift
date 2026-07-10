@@ -62,7 +62,7 @@ struct MemoSaver {
     /// No contextual metadata (the memo wasn't recorded here/now). Returns the
     /// new memo id, or nil if the file couldn't be copied.
     @discardableResult
-    func importAudio(from source: URL) -> UUID? {
+    func importAudio(from source: URL, recordedAt: Date? = nil) -> UUID? {
         let id = UUID()
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
         let filename = "memo_\(id.uuidString).\(ext)"
@@ -83,14 +83,25 @@ struct MemoSaver {
             duration = Double(f.length) / f.fileFormat.sampleRate
         }
 
+        // Date ladder mirrors video: embedded asset date > supplied date (the
+        // share's clip file date) > now. Device round 1: a WhatsApp voice note
+        // landed dated to the UPLOAD moment, not the voice note's creation.
         repository.insert(Memo(
             id: id,
             audioFilename: filename,
             duration: duration,
+            recordedAt: recordedAt ?? Date(),
             syncStatus: .waiting,
             transcriptStatus: .transcribing
         ))
-        Task { await runTranscription(id: id) }
+        Task {
+            if let d = await Self.embeddedCreationDate(of: AVURLAsset(url: dest)),
+               let memo = repository.memo(id: id) {
+                memo.recordedAt = d
+                repository.save()
+            }
+            await runTranscription(id: id)
+        }
         return id
     }
 
@@ -104,9 +115,9 @@ struct MemoSaver {
     /// transcribed once — one continuous transcript/karaoke, exactly like an
     /// audiobook capture + ramble. Returns the memo id, nil for an empty list.
     @discardableResult
-    func importAudioClips(from sources: [URL]) -> UUID? {
+    func importAudioClips(from sources: [URL], recordedAt: Date? = nil) -> UUID? {
         guard !sources.isEmpty else { return nil }
-        if sources.count == 1 { return importAudio(from: sources[0]) }
+        if sources.count == 1 { return importAudio(from: sources[0], recordedAt: recordedAt) }
 
         let id = UUID()
         let filename = "memo_\(id.uuidString).m4a"
@@ -114,6 +125,9 @@ struct MemoSaver {
             id: id,
             audioFilename: filename,
             duration: 0,
+            // The FIRST (oldest) clip's date — upgraded to its embedded asset
+            // date in the async core when one exists.
+            recordedAt: recordedAt ?? Date(),
             syncStatus: .waiting,
             transcriptStatus: .transcribing
         ))
@@ -140,6 +154,9 @@ struct MemoSaver {
             }
             return false
         }
+        // First clip's embedded asset date (when present) beats the file date
+        // the placeholder was seeded with — read BEFORE the temps are deleted.
+        let embedded = await Self.embeddedCreationDate(of: AVURLAsset(url: sources[0]))
         for src in sources { try? FileManager.default.removeItem(at: src) }
 
         var duration: TimeInterval = 0
@@ -149,6 +166,7 @@ struct MemoSaver {
         DevLog.log("importAudioClips[\(id)] merged ok; duration=\(String(format: "%.1f", duration))s")
         guard let memo = repository.memo(id: id) else { return true }
         memo.duration = duration
+        if let embedded { memo.recordedAt = embedded }
         repository.save()
         await runTranscription(id: id)
         return true

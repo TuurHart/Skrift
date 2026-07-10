@@ -177,39 +177,43 @@ struct ShareSheetView: View {
         }
     }
 
-    // Multi-audio: a compact preview of the incoming clips (first 3 + "+N more",
-    // oldest → newest) so the user sees what they grabbed before saving.
+    // Multi-audio: EVERY incoming clip, scrollable past 4 rows (device round 1:
+    // "+1 more" for a single hidden row read as broken — the user expected to
+    // scroll through what they grabbed). Oldest → newest.
     private var clipStack: some View {
         VStack(spacing: 0) {
-            ForEach(Array(payload.audioItems.prefix(3).enumerated()), id: \.offset) { i, item in
-                HStack(spacing: 9) {
-                    Text("\(i + 1)")
-                        .font(.system(size: 10, weight: .medium).monospacedDigit())
-                        .foregroundStyle(Color.skTextFaint)
-                        .frame(width: 16, alignment: .trailing)
-                    Image(systemName: "waveform")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.skAccent.opacity(0.6))
-                    Text("Voice note")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.skTextDim)
-                    Spacer(minLength: 6)
-                    Text(clipLabel(item))
-                        .font(.system(size: 10.5).monospacedDigit())
-                        .foregroundStyle(Color.skTextFaint)
-                }
-                .padding(.vertical, 7)
-                if i < min(payload.audioItems.count, 3) - 1 {
-                    Divider().overlay(Color.white.opacity(0.05))
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(Array(payload.audioItems.enumerated()), id: \.offset) { i, item in
+                        HStack(spacing: 9) {
+                            Text("\(i + 1)")
+                                .font(.system(size: 10, weight: .medium).monospacedDigit())
+                                .foregroundStyle(Color.skTextFaint)
+                                .frame(width: 16, alignment: .trailing)
+                            Image(systemName: "waveform")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.skAccent.opacity(0.6))
+                            Text("Voice note")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.skTextDim)
+                            Spacer(minLength: 6)
+                            Text(clipLabel(item))
+                                .font(.system(size: 10.5).monospacedDigit())
+                                .foregroundStyle(Color.skTextFaint)
+                        }
+                        .padding(.vertical, 7)
+                        if i < payload.audioItems.count - 1 {
+                            Divider().overlay(Color.white.opacity(0.05))
+                        }
+                    }
                 }
             }
-            if payload.audioItems.count > 3 {
-                Text("+ \(payload.audioItems.count - 3) more · oldest → newest")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.skTextFaint)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-            }
+            .frame(maxHeight: 148)   // ~4.5 rows — the half row invites the scroll
+            Text("oldest → newest")
+                .font(.system(size: 10))
+                .foregroundStyle(Color.skTextFaint)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
         }
         .padding(.horizontal, 12)
         .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
@@ -477,7 +481,12 @@ struct ShareSheetView: View {
         VStack(alignment: .leading, spacing: 8) {
             recordButton
             if recorder.state == .denied {
-                Text("Microphone access is off for Skrift — enable it to record, or type below.")
+                Text("Microphone access is off for the Skrift share sheet — allow it in Settings, or type below.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.skTextFaint)
+            }
+            if recorder.state == .failed {
+                Text("Recording couldn't start here — type below instead.")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.skTextFaint)
             }
@@ -619,12 +628,17 @@ struct ShareSheetView: View {
         if payload.isAudio {
             let items = payload.audioItems
             let sharedAt = ISO8601.string(from: Date())
-            func entry(id: UUID, names: [String]) -> CaptureInboxEntry {
+            // Clip dates ride the entry, index-aligned to the names ("" = unknown)
+            // — the import dates the memo to the voice note, not the share moment.
+            func iso(_ item: SharedAudioItem) -> String {
+                item.recordedAt.map { ISO8601.string(from: $0) } ?? ""
+            }
+            func entry(id: UUID, names: [String], dates: [String]) -> CaptureInboxEntry {
                 CaptureInboxEntry(
                     id: id, type: "audio", url: nil, urlTitle: nil, text: nil,
                     imageFileName: nil, mimeType: nil, annotationText: nil,
                     significance: significance, sharedAt: sharedAt,
-                    audioFileNames: names
+                    audioFileNames: names, audioRecordedAts: dates
                 )
             }
             func ext(_ item: SharedAudioItem) -> String {
@@ -633,11 +647,12 @@ struct ShareSheetView: View {
             if combineIntoOne || items.count == 1 {
                 let id = UUID()
                 let names = items.enumerated().map { "audio_\(id.uuidString)_\($0.offset).\(ext($0.element))" }
-                onSave([entry(id: id, names: names)], [], nil)
+                onSave([entry(id: id, names: names, dates: items.map(iso))], [], nil)
             } else {
                 let entries = items.map { item -> CaptureInboxEntry in
                     let id = UUID()
-                    return entry(id: id, names: ["audio_\(id.uuidString)_0.\(ext(item))"])
+                    return entry(id: id, names: ["audio_\(id.uuidString)_0.\(ext(item))"],
+                                 dates: [iso(item)])
                 }
                 onSave(entries, [], nil)
             }

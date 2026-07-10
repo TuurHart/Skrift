@@ -186,6 +186,51 @@ final class AudioShareDrainTests: XCTestCase {
         _ = MemoOpenBridge.shared.consume()
     }
 
+    /// Round-1 device bug: WhatsApp materializes all temp copies at share time →
+    /// near-identical dates, and an unstable sort scrambled the chat order.
+    func testStableClipOrder() {
+        let d = Date()
+        // Near-identical dates (< 2 s spread) → keep provider order.
+        XCTAssertEqual(CaptureInbox.stableClipOrder(dates: [d, d.addingTimeInterval(0.5), d, d.addingTimeInterval(1)]),
+                       [0, 1, 2, 3])
+        // Any missing date → keep provider order.
+        XCTAssertEqual(CaptureInbox.stableClipOrder(dates: [d, nil, d]), [0, 1, 2])
+        // Genuinely distinct dates → oldest first; equal dates keep index order.
+        let a = Date(timeIntervalSince1970: 100), b = Date(timeIntervalSince1970: 200)
+        XCTAssertEqual(CaptureInbox.stableClipOrder(dates: [b, a, b]), [1, 0, 2])
+        XCTAssertEqual(CaptureInbox.stableClipOrder(dates: []), [])
+    }
+
+    /// Round-1 device bug: an imported voice note was dated to the SHARE moment.
+    /// The entry now carries the clip's original date and the memo adopts it.
+    @MainActor
+    func testDrainDatesAudioMemoToClipDate() throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let clipDate = "2026-07-01T10:00:00.000Z"
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "audio", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: nil, annotationText: nil,
+            significance: 0, sharedAt: ISO8601.string(from: Date()),
+            audioFileNames: ["audio_\(id.uuidString)_0.m4a"],
+            audioRecordedAts: [clipDate])
+        let src = makeClipFile()
+        XCTAssertTrue(CaptureInbox.write(entry, audioFileURLs: [src]))
+
+        CaptureInboxDrainer.drain(into: repo)
+
+        let imported = repo.allMemos().first { $0.audioFilename.hasPrefix("memo_") }
+        let expected = try XCTUnwrap(ISO8601.date(from: clipDate))
+        XCTAssertEqual(imported?.recordedAt.timeIntervalSince1970 ?? 0,
+                       expected.timeIntervalSince1970, accuracy: 1.0,
+                       "memo dated to the voice note, not the share moment")
+        if let f = imported?.audioURL { try? FileManager.default.removeItem(at: f) }
+        try? FileManager.default.removeItem(at: src)
+        _ = MemoOpenBridge.shared.consume()
+    }
+
     /// Old inbox entries (written before audio/multi-image shares existed) decode.
     func testEntryWithoutNewFieldsDecodes() throws {
         let legacyJSON = """
