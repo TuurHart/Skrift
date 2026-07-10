@@ -196,7 +196,31 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
 
-## ⭐ CONTINUE HERE — post-convergence stabilization (handoff 2026-07-08, P8 chat wrap)
+## ⭐ CONTINUE HERE — stabilization DONE, next board (handoff 2026-07-10)
+
+**Stabilization round CLOSED 2026-07-10** (all four triage items below ✅, device-verified;
+builds 58/59/60 shipped same-day; phone runs **60**; sim suite 601/601; main pushed through
+`30edbc6`). One session-spanning lesson is in memory `project_p0_enhancement_clobber`: the
+"truncated transcript", the empty single-word searches, AND the build-53 crashes were ONE
+system — the embedder cold path (OOM → relaunch → lazy-pager opens rendering raw).
+
+**The board now (pick by Tuur's call):**
+1. ⬜ **Soak-watch builds ≥59** (passive): after a day of normal use, pull devlog + crashes —
+   confirm zero tokenizer-OOMs (single-flight fix) and no 0xDEAD10CC recurrence; cold-load
+   lines now report duration. If OOM returns: tokenizer-load memory diet (CoreML-LLM side).
+2. ⬜ **Design question (1 mock)**: "warming up…" row in the Related section — first search of
+   a session shows nothing for ~40s (measured 42.5s cold load). Mock-first if picked up.
+3. ⬜ **Prod CloudKit schema deploy** (§ Stz020) — deliberate prod action, Tuur-gated: deploy
+   the dev schema to prod + Release app-ID registration, then one real phone↔Mac round-trip.
+4. ⬜ **Desktop Review mock sign-off** (user design session) + desktop-parity device
+   round-trips owed (lock-gate, OCR search, link export, vocab LWW — see DParityA/SharedKit).
+5. ⬜ **Vault lens** — waits on Tuur's iCloud vault move (JOURNAL_RETRIEVAL_PLAN.md Phase 2,
+   incl. title-linking design).
+6. ⬜ **Parked kickoff: capture-as-note + note-editing follow-ups** — verbatim brief in memory
+   `project_capture_as_note_kickoff` (user deferred 2026-07-07).
+Wall printer reminder stands: after the office test print, RE-PICK the home printer.
+
+## ✅ Post-convergence stabilization (handoff 2026-07-08 → closed 2026-07-10)
 
 Five chats merged into main in ~24h (P8/Review+Wall · note-editing · Books/recording · SharedKit ·
 desktop parity). Feature velocity was huge; convergence bugs surfaced. **NEXT CHAT = a
@@ -239,8 +263,31 @@ installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
    load task, single-load verified on 59 (`70c3714`). DESIGN QUESTION for Tuur: 42s is long
    enough that the first search of a session shows an empty Related section for ~a minute — a
    quiet "warming up…" row would make it honest (mock-first when picked up).
-3. ⬜ **Crashes (build ~53)** — pull crash logs over USB (`idevicecrashreport -e`, needs cable;
-   wifi doesn't work for it). Suspect list open; possibly the same view-churn storm.
+3. ✅ **Crashes CLOSED 2026-07-10 — logs pulled over USB (153 reports, kept on device). Four
+   classes, all explained:**
+   - **3× Jul-8 10:12–10:15 (build 53) — the ones Tuur reported**: `swift_abortAllocationFailure`
+     OOM aborts inside the embedder's tokenizer parse (`BPETokenizer.init` / YYJSONParser over the
+     31.8MB tokenizer.json), on the cooperative pool while typing searches. Same root system as
+     triage item 2 — crash pid 26017 IS the devlog's sick session (crash → relaunch → lazy-pager
+     opens = how the "truncation" kept being seen). The 58/59 fixes attack it directly:
+     single-flight load (the reentrancy DOUBLE-load meant two concurrent parses), 10-min hold
+     (fewer cold parses), first-keystroke warmup. If OOM recurs on ≥59: next step is a
+     tokenizer-load memory diet (serialize parse, release intermediates) — CoreML-LLM side.
+   - **1× Jul-7 18:00 (build 39) — reminder-tap assert, FIXED build 60 (`2593da3`)**: async
+     UNUserNotificationCenter delegate on a nonisolated class resumed UIKit's completion on the
+     cooperative pool → state-restoration snapshot ran off-main → main-thread assert. Delegate now
+     @MainActor. Fix by construction; repro (lock-screen reminder tap while snapshotting) is
+     impractical — watch.
+   - **2× Jul-7 22:07/22:08 (build 48) — RUNNINGBOARD 0xDEAD10CC** (held DB/file lock across
+     suspension), books/recording-lane era PRE-hardening; zero recurrence in builds 52–57 (Jul 8)
+     after PR #10's recording hardening. WATCH: if it returns, suspect the app-group SwiftData
+     store being written at suspension.
+   - **1× Jul-7 14:26 (build 35)** — iOS-26 CoreAutoLayout exception inside the system
+     keyboard-cursor-accessory (`_UICursorAccessoryHostView`), during the accessory-bar round;
+     accessory work landed builds 36+; no recurrence. Watch-only.
+   - Jetsam Jul-9: Skrift appears only as `idle-exit` (benign). Older `.diskwrites_resource`
+     (Jun 14/26) + `.cpu_resource` (Jun 21) reports predate the current architecture — noted, not
+     chased.
 4. ⬜ Wall: Tuur's office print test → REMIND: re-pick the HOME printer after (saved printer IS
    the wall). First physical card = design round on paper.
 5. ⬜ Then: vault lens (after Tuur's iCloud vault move; incl. title-linking design above),

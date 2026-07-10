@@ -367,6 +367,12 @@ nodes:
         regression-tested both directions) [56f360e]. 601/601 green.
         DEVICE-VERIFIED build 59: search-open mid-cold-load rendered len=369
         first frame, zero raw frames [2026-07-10]
+      - >-
+        2026-07-10 · Crash triage CLOSED (153 reports over USB) — the build-53
+        "random crashes" were embedder tokenizer-parse OOMs (same root as the
+        search stall; 58/59 fixes apply); reminder-tap off-main assert fixed
+        via @MainActor delegate (build 60) [2593da3]; build-48 0xDEAD10CC
+        pair = pre-hardening, no recurrence, watch
     backlog:
       - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
         pipeline never broken (sim e2e test stays as the gate). Search-hit
