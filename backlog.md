@@ -138,6 +138,45 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    voice memo + transcribes). Feature half (multi-select messages → append-as-one vs split): the
    loader only reads `attachments.first` per type — iterate all providers + a small share-sheet
    choice. Verify on device with a real WhatsApp share.
+   → **2026-07-07 share-ingest deep review:** i4 is row A7 of **`SHARE_INGEST_SURVEY.md`** — the
+   full row-by-row table (existing share bugs A1–A16 + multi-item B + link-enrichment C + new
+   input types D + cross-cutting UX/IngestKit E). User reviews it row-by-row (memo per row, say
+   the ID); triage verdicts back into this ledger, then build.
+   → **2026-07-10 VERDICTS RECORDED** (voice pass, in the survey's last column). Headlines:
+   big GO wave (all of A incl. A7/A15, B1–B3 w/ B2 = photos ALWAYS one note, C3 podcasts ⭐,
+   C5 pdf-urls, D1 quote-detect [NO Highlights tab — quotes are plain notes], D4, D7, D8,
+   E1–E5 w/ E2 threshold = 1 h); **SKIP** D2 vCards; **D3 already live** (drainer manifests +
+   PhotoTextIndexer — verified); **pending Tuur's call** after plain-words re-explain: C1
+   (captions rejected outright), C2, C4, D5, D6, B4. Scribbel reference checked for A7:
+   no extension there (doc-types + onOpenURL + ImportTranscriber w/ bg-task claim + toast).
+   **r2 same day:** C4 GO · D5 SKIP · D6 GO-w2 · D1 PARKED (Books/Journal chat) — still
+   pending only C1/C2/B4.
+   → **2026-07-10 WAVE-1 MOCK SIGNED OFF:** `mocks/share-ingest-wave1.html` — 4 states
+   (single audio · 8-memos 1-or-N chooser [default = one note, Save relabels live] ·
+   photos-always-combine · Saved✓/Error/Unsupported), vision-verified, all questions
+   resolved. LOCKED: every share jumps to its note on next app-open; audio shares have
+   NO ramble UI (append in-app later — user rule); combine = audiobook-capture model
+   (append in timestamp order, one karaoke transcript); "N photos → one note" title.
+   → **2026-07-10 WAVE 1 BUILT — chunks 1–3 same day** (`827965f` A7 audio fast-path +
+   jump-on-open-for-every-share; `394a916` A11 multi-select 10×, B1 1-or-N chooser
+   [combine = clips MERGED in order via `MemoSaver.importAudioClips` → ONE transcription
+   pass, no import/append race], B2 photos→one-manifest-note, ImageIO downsample ≤2048px;
+   `3371fb1` A12/E3 Saved✓/error/unsupported states + A16 husk guard + A15 "Skrift Dev"
+   label). Unit suite 610/610 green; roadmap node `ShareW1` inprogress. i4 = FIXED IN CODE.
+   **✅ DEVICE ROUNDS 1–4 RUN 2026-07-10 (builds 60→63).** PASSED: singles+dates (Sunday ✓),
+   multi order (chat order ✓), m4a transcribe, video, PDF (after the round-2 file-url fix
+   — `public.file-url` CONFORMS to public.url and ate every Files share since June), photos
+   inline-in-text (round-3 rebuild: markers in annotation + editorPage routing — user: "the
+   only way we should have"), Saved✓, dev label, multi-select visibility. FIXED ALONG THE
+   WAY: phantom silent tail on the 4-clip merge (composition+export fabricated duration
+   287.5s — rewritten as sample-accurate AVAudioFile frame reads, EOF guard); clip-list
+   scrolls all rows. **RETIRED: sheet dictation** — iOS blocks extension recording at the
+   entitlement level (mediaserverd refusal; perm 'grnt' yet record()=false, both session
+   categories; Apple forums 742601/108435). Old test image-captures stay broken by user
+   decree (no migration — "they can go"). **REMAINING/PARKED:** slow first transcribe =
+   cold engine + app-suspension (existing launch-sweep recovers; Scribbel-style bg-task
+   claim = Wave-2 candidate); voice-annotate captures IN-APP (Wave-2); drag inline photos
+   like Apple Notes (note-editor lane); PDF "text, PDF, text" inline (Wave-2 design).
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →

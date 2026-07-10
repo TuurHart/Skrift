@@ -20,6 +20,8 @@ struct CaptureInboxEntry: Codable {
     /// Plain-text content for text-type captures.
     let text: String?
     /// Filename (relative to the inbox folder) for the accompanying image, when type == "image".
+    /// LEGACY single-image field — kept so old pending entries decode; new writes
+    /// still set it to the FIRST image (the capture detail + Mac read it).
     let imageFileName: String?
     /// MIME type for image captures, e.g. "image/jpeg".
     let mimeType: String?
@@ -40,6 +42,23 @@ struct CaptureInboxEntry: Codable {
     /// `MemoSaver.importVideo` — it becomes a normal voice memo (audio + a frame
     /// thumbnail + transcribe), NOT a capture item. Optional so older entries decode.
     var videoFileName: String? = nil
+    /// Filenames (relative to the entry folder) of shared AUDIO clips (WhatsApp
+    /// voice notes / Voice Memos / Files), in play order. ONE entry with N names
+    /// = the B1 "combine into one note" flow (clips merged, one transcript);
+    /// N split notes arrive as N separate single-name entries. The MAIN APP
+    /// imports on drain via `MemoSaver.importAudioClips` — a normal transcribed
+    /// memo, NOT a capture item (the i4 fix; was a link/file card). Flat
+    /// [String] (Codable-safe); optional so older entries decode.
+    var audioFileNames: [String]? = nil
+    /// ISO8601 best-effort ORIGINAL dates of the audio clips, index-aligned to
+    /// `audioFileNames` (device round 1: memos were dated to the share moment,
+    /// not the voice note's creation). The import uses embedded-asset date →
+    /// this → now, mirroring video. Flat [String]; optional so older entries decode.
+    var audioRecordedAts: [String]? = nil
+    /// Filenames (relative to the entry folder) of the images of a MULTI-photo
+    /// capture (B2 — multiple photos always combine into one note), in order.
+    /// Single-image entries keep using the legacy `imageFileName`.
+    var imageFileNames: [String]? = nil
     /// Filename (relative to the entry folder) of a shared DOCUMENT (e.g. a PDF
     /// shared from Files/Books). The MAIN APP persists it into the recordings dir on
     /// drain → a `.file` capture. Optional so older entries decode.
@@ -109,7 +128,8 @@ enum CaptureInbox {
     /// never a half-written JSON.
     @discardableResult
     static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil, dictationData: Data? = nil,
-                      videoFileURL: URL? = nil, fileSourceURL: URL? = nil) -> Bool {
+                      videoFileURL: URL? = nil, fileSourceURL: URL? = nil,
+                      audioFileURLs: [URL]? = nil, imageDatas: [Data]? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
         let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
         do {
@@ -119,6 +139,12 @@ enum CaptureInbox {
             if let imageData, let name = entry.imageFileName {
                 let imageURL = entryDir.appendingPathComponent(name)
                 try imageData.write(to: imageURL, options: .atomic)
+            }
+            // Multi-photo capture (B2): write every image, names aligned by index.
+            if let imageDatas, let names = entry.imageFileNames {
+                for (data, name) in zip(imageDatas, names) {
+                    try data.write(to: entryDir.appendingPathComponent(name), options: .atomic)
+                }
             }
             if let dictationData, let name = entry.dictationFileName {
                 let audioURL = entryDir.appendingPathComponent(name)
@@ -130,6 +156,15 @@ enum CaptureInbox {
                 let destURL = entryDir.appendingPathComponent(name)
                 try? FileManager.default.removeItem(at: destURL)
                 try FileManager.default.copyItem(at: videoFileURL, to: destURL)
+            }
+            // Shared audio clip(s): COPY the files in (same memory rationale as
+            // video), names aligned to `audioFileNames` by index.
+            if let audioFileURLs, let names = entry.audioFileNames {
+                for (src, name) in zip(audioFileURLs, names) {
+                    let destURL = entryDir.appendingPathComponent(name)
+                    try? FileManager.default.removeItem(at: destURL)
+                    try FileManager.default.copyItem(at: src, to: destURL)
+                }
             }
             // Shared document (PDF/etc.): COPY the file in (same memory rationale as video).
             if let fileSourceURL, let name = entry.fileName {
@@ -191,6 +226,67 @@ enum CaptureInbox {
     static func fileURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
         guard let name = entry.fileName else { return nil }
         return entryDir.appendingPathComponent(name)
+    }
+
+    /// Resolve the on-disk URLs of a shared audio entry's clips (play order).
+    static func audioURLs(for entry: CaptureInboxEntry, entryDir: URL) -> [URL] {
+        (entry.audioFileNames ?? []).map { entryDir.appendingPathComponent($0) }
+    }
+
+    /// Resolve the on-disk URLs of an image entry's photos, in order — the
+    /// multi-photo names when present, else the legacy single image.
+    static func imageURLs(for entry: CaptureInboxEntry, entryDir: URL) -> [URL] {
+        let names = entry.imageFileNames ?? entry.imageFileName.map { [$0] } ?? []
+        return names.map { entryDir.appendingPathComponent($0) }
+    }
+
+    // MARK: - Clip ordering (pure — unit-tested; used by the extension's loader)
+
+    /// Return the indices of `dates` in stable oldest→newest order. WhatsApp
+    /// materializes every shared temp copy at share time → near-identical dates,
+    /// and an unstable sort scrambled the provider order (device round 1). Rules:
+    /// any missing date, or all dates within 2 s of each other → keep the
+    /// provider order (it IS the chat order); otherwise sort by (date, index).
+    static func stableClipOrder(dates: [Date?]) -> [Int] {
+        let identity = Array(dates.indices)
+        guard dates.count > 1 else { return identity }
+        let known = dates.compactMap { $0 }
+        guard known.count == dates.count,
+              let min = known.min(), let max = known.max(),
+              max.timeIntervalSince(min) >= 2
+        else { return identity }
+        return identity.sorted {
+            let a = dates[$0]!, b = dates[$1]!
+            return a == b ? $0 < $1 : a < b
+        }
+    }
+
+    // MARK: - Extension diagnostics (App Group file → devlog on drain)
+
+    /// Append a diagnostic line from the SHARE EXTENSION into the App Group
+    /// container. The extension can't reach the app's devlog.txt; the drain
+    /// flushes this file into DevLog so a devicectl pull shows both sides.
+    static func extLog(_ line: String) {
+        guard let base = containerURL else { return }
+        let url = base.appendingPathComponent("ShareExtLog.txt")
+        let stamped = "\(ISO8601.string(from: Date())) \(line)\n"
+        if let handle = try? FileHandle(forWritingTo: url) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data(stamped.utf8))
+        } else {
+            try? Data(stamped.utf8).write(to: url)
+        }
+    }
+
+    /// Drain-side: move any extension log lines into the app devlog, then reset.
+    static func flushExtLog(into log: (String) -> Void) {
+        guard let base = containerURL else { return }
+        let url = base.appendingPathComponent("ShareExtLog.txt")
+        guard let data = try? Data(contentsOf: url),
+              let text = String(data: data, encoding: .utf8), !text.isEmpty else { return }
+        for line in text.split(separator: "\n") { log("ext: \(line)") }
+        try? FileManager.default.removeItem(at: url)
     }
 
     // MARK: - Delete (called by the drain, only AFTER the Memo is saved)

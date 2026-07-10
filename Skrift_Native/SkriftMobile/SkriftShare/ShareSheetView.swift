@@ -15,13 +15,17 @@ import UIKit
 /// CaptureInbox and completes the extension context).
 struct ShareSheetView: View {
     let payload: SharePayload
-    let onSave: (CaptureInboxEntry, _ imageData: Data?, _ dictationData: Data?) -> Void
+    /// Entries to write (1 for everything except audio-split, where each clip
+    /// becomes its own entry) + the image datas aligned to `imageFileNames`.
+    let onSave: (_ entries: [CaptureInboxEntry], _ imageDatas: [Data], _ dictationData: Data?) -> Void
     let onCancel: () -> Void
 
     @State private var annotation: String = ""
     @State private var significance: Double = 0
-    @State private var recorder = ShareDictationRecorder()
     @FocusState private var annotationFocused: Bool
+    /// B1 chooser: N shared voice notes → one note (default, clips merged in
+    /// order) or N separate notes. Only shown when 2+ audio clips arrived.
+    @State private var combineIntoOne = true
 
     // TextEditor placeholder state
     private var annotationIsEmpty: Bool { annotation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -58,8 +62,13 @@ struct ShareSheetView: View {
                 .padding(.bottom, 13)
             previewBlock
                 .padding(.bottom, 11)
-            annotationField
-                .padding(.bottom, 12)
+            // Audio shares carry NO ramble UI (signed 2026-07-10): the voice note
+            // IS the content — thoughts get appended inside the note later. The
+            // sheet is just: what's coming in → significance → Save.
+            if !payload.isAudio {
+                annotationField
+                    .padding(.bottom, 12)
+            }
             SignificanceCircles(value: $significance) {}
                 .padding(.bottom, 13)
             saveButton
@@ -103,9 +112,10 @@ struct ShareSheetView: View {
                 .shadow(color: Color.skAccent.opacity(0.45), radius: 4, y: 1)
                 .accessibilityHidden(true)
 
-            Text("Save to Skrift")
+            Text(sheetTitle)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(Color.skText)
+                .lineLimit(1)
 
             Spacer()
 
@@ -121,19 +131,248 @@ struct ShareSheetView: View {
         }
     }
 
-    @ViewBuilder private var previewBlock: some View {
-        switch payload.type {
-        case .url:
-            urlCard
-        case .text:
-            textQuoteBlock
-        case .image:
-            imageBlock
-        case .file:
-            // File captures not shown in the share sheet v1 (activation rule
-            // doesn't include files; this is a defensive fallback).
-            EmptyView()
+    /// Sheet title: counts the incoming items so a multi-share says out loud what
+    /// will happen ("4 photos → one note", "8 voice notes · 6:12" — signed mock).
+    private var sheetTitle: String {
+        if payload.isAudio, payload.audioItems.count > 1 {
+            let known = payload.audioItems.compactMap(\.duration)
+            let total = known.reduce(0, +)
+            let suffix = known.isEmpty ? "" : " · \(fmtDuration(total))"
+            return "\(payload.audioItems.count) voice notes\(suffix)"
         }
+        if payload.type == .image, payload.imageItems.count > 1 {
+            return "\(payload.imageItems.count) photos → one note"
+        }
+        return "Save to Skrift"
+    }
+
+    @ViewBuilder private var previewBlock: some View {
+        if payload.isAudio {
+            if payload.audioItems.count > 1 {
+                VStack(alignment: .leading, spacing: 8) {
+                    clipStack
+                    chooser
+                }
+            } else {
+                audioCard
+            }
+        } else {
+            switch payload.type {
+            case .url:
+                urlCard
+            case .text:
+                textQuoteBlock
+            case .image:
+                if payload.imageItems.count > 1 {
+                    photoGrid
+                } else {
+                    imageBlock
+                }
+            case .file:
+                // File captures not shown in the share sheet v1 (activation rule
+                // doesn't include files; this is a defensive fallback).
+                EmptyView()
+            }
+        }
+    }
+
+    // Multi-audio: EVERY incoming clip, scrollable past 4 rows (device round 1:
+    // "+1 more" for a single hidden row read as broken — the user expected to
+    // scroll through what they grabbed). Oldest → newest.
+    private var clipStack: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(Array(payload.audioItems.enumerated()), id: \.offset) { i, item in
+                        HStack(spacing: 9) {
+                            Text("\(i + 1)")
+                                .font(.system(size: 10, weight: .medium).monospacedDigit())
+                                .foregroundStyle(Color.skTextFaint)
+                                .frame(width: 16, alignment: .trailing)
+                            Image(systemName: "waveform")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.skAccent.opacity(0.6))
+                            Text("Voice note")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.skTextDim)
+                            Spacer(minLength: 6)
+                            Text(clipLabel(item))
+                                .font(.system(size: 10.5).monospacedDigit())
+                                .foregroundStyle(Color.skTextFaint)
+                        }
+                        .padding(.vertical, 7)
+                        if i < payload.audioItems.count - 1 {
+                            Divider().overlay(Color.white.opacity(0.05))
+                        }
+                    }
+                }
+            }
+            .frame(maxHeight: 148)   // ~4.5 rows — the half row invites the scroll
+            Text("oldest → newest")
+                .font(.system(size: 10))
+                .foregroundStyle(Color.skTextFaint)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+        }
+        .padding(.horizontal, 12)
+        .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
+        )
+        .accessibilityIdentifier("capture-clip-stack")
+    }
+
+    private func clipLabel(_ item: SharedAudioItem) -> String {
+        var parts: [String] = []
+        if let at = item.recordedAt {
+            parts.append(at.formatted(date: .omitted, time: .shortened))
+        }
+        if let d = item.duration, d >= 1 { parts.append(fmtDuration(d)) }
+        return parts.joined(separator: " · ")
+    }
+
+    // B1: One note (default — clips merged in order) vs N separate notes.
+    private var chooser: some View {
+        HStack(spacing: 8) {
+            choiceCard(
+                title: "One note",
+                subtitle: "Clips stitched in order — one story, one transcript",
+                selected: combineIntoOne
+            ) { combineIntoOne = true }
+            .accessibilityIdentifier("capture-choice-combine")
+
+            choiceCard(
+                title: "\(payload.audioItems.count) notes",
+                subtitle: "Each voice note becomes its own memo",
+                selected: !combineIntoOne
+            ) { combineIntoOne = false }
+            .accessibilityIdentifier("capture-choice-split")
+        }
+    }
+
+    private func choiceCard(title: String, subtitle: String, selected: Bool,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .top) {
+                    Text(title)
+                        .font(.system(size: 12.5, weight: .bold))
+                        .foregroundStyle(selected ? Color.white : Color.skText)
+                    Spacer(minLength: 4)
+                    Circle()
+                        .strokeBorder(selected ? Color.skAccent : Color.white.opacity(0.25), lineWidth: 1.5)
+                        .background(Circle().fill(selected ? Color.skAccent : .clear).padding(3))
+                        .frame(width: 14, height: 14)
+                }
+                Text(subtitle)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(selected ? Color.skTextDim : Color.skTextFaint)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+            .background(selected ? Color.skAccent.opacity(0.09) : Color.white.opacity(0.02),
+                        in: .rect(cornerRadius: 13, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(selected ? Color.skAccent.opacity(0.55) : Color.white.opacity(0.12),
+                                  lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // B2: multi-photo grid — first 4 tiles, "+N" on the last when more.
+    private var photoGrid: some View {
+        let items = payload.imageItems
+        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
+            ForEach(Array(items.prefix(4).enumerated()), id: \.offset) { i, item in
+                ZStack(alignment: .bottomTrailing) {
+                    if let img = UIImage(data: item.data) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 74)
+                            .frame(maxWidth: .infinity)
+                            .clipShape(.rect(cornerRadius: 11, style: .continuous))
+                    } else {
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .fill(Color.skElev)
+                            .frame(height: 74)
+                    }
+                    if i == 3, items.count > 4 {
+                        Text("+\(items.count - 4)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(.black.opacity(0.5), in: .capsule)
+                            .padding(5)
+                    }
+                }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
+                )
+            }
+        }
+        .accessibilityIdentifier("capture-photo-grid")
+        .accessibilityLabel("\(items.count) photos, combined into one note")
+    }
+
+    // Audio: slim card (waveform glyph, "Voice note · 0:41") + the honesty line —
+    // the import happens on the app's next foreground drain, and the app then
+    // opens on the note (mock share-ingest-wave1.html state 1, signed 2026-07-10).
+    private var audioCard: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.skAccent.opacity(0.14))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Image(systemName: "waveform")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color.skAccent)
+                    )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(audioTitle)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(1)
+                    Text("Audio · shared \(Date().formatted(date: .omitted, time: .shortened))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.skTextFaint)
+                }
+                Spacer(minLength: 4)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
+            )
+
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.skAccent.opacity(0.55))
+                    .frame(width: 6, height: 6)
+                Text("Transcribes on-device · Skrift opens on it next time")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Color.skTextFaint)
+            }
+            .padding(.leading, 2)
+        }
+        .accessibilityIdentifier("capture-audio-card")
+        .accessibilityLabel(audioTitle)
+    }
+
+    private var audioTitle: String {
+        if let d = payload.audioItems.first?.duration, d >= 1 {
+            return "Voice note · \(fmtDuration(d))"
+        }
+        return "Voice note"
     }
 
     // URL: link card with globe glyph, title, domain
@@ -208,7 +447,7 @@ struct ShareSheetView: View {
     // Image: thumbnail from the loaded data
     private var imageBlock: some View {
         Group {
-            if let data = payload.imageData, let uiImg = UIImage(data: data) {
+            if let data = payload.imageItems.first?.data, let uiImg = UIImage(data: data) {
                 Image(uiImage: uiImg)
                     .resizable()
                     .scaledToFill()
@@ -233,81 +472,27 @@ struct ShareSheetView: View {
         .accessibilityIdentifier("capture-image-preview")
     }
 
-    // Capture-your-thoughts: a PROMINENT record button (primary — like the
-    // record FAB everywhere else in the app), with the text field secondary
-    // below. The earlier tiny mic-in-the-corner got missed; recording is the
-    // point here ("typing is for caveman" — 2026-06-13 device feedback).
+    // Typed thoughts only. Voice recording in share extensions is BLOCKED by
+    // iOS at the entitlement level — mediaserverd: "NOT allowed to start
+    // recording because it is an extension and doesn't have entitlements to
+    // record audio" (device rounds 2–3, permission GRANTED yet record()=false;
+    // Apple forums 742601/108435 show the same wall). The old record button
+    // was a dead affordance that never worked on hardware; voice thoughts land
+    // in the app after the jump-open instead.
     private var annotationField: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            recordButton
-            if recorder.state == .denied {
-                Text("Microphone access is off for Skrift — enable it to record, or type below.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.skTextFaint)
-            }
-            if case .recorded = recorder.state {
-                Button { recorder.discard() } label: {
-                    Text("Discard voice note")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Color.skTextFaint)
-                }
-                .accessibilityIdentifier("capture-dictation-discard")
-            }
+        VStack(alignment: .leading, spacing: 7) {
             typeField
+            Text("Voice thoughts? Add them in Skrift after saving — share sheets can't record.")
+                .font(.system(size: 10.5))
+                .foregroundStyle(Color.skTextFaint)
+                .padding(.leading, 2)
         }
     }
 
-    /// The big record control — idle / recording (live timer) / recorded
-    /// (re-record). Tapping toggles: record → stop → re-record.
-    private var recordButton: some View {
-        Button { recorder.toggleRecord() } label: {
-            HStack(spacing: 9) {
-                Image(systemName: recordIcon).font(.system(size: 15, weight: .bold))
-                Text(recordLabel).font(.system(size: 15, weight: .bold))
-                if case .recorded = recorder.state {
-                    Spacer(minLength: 8)
-                    Text("Re-record").font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.85))
-                }
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 48)
-            .padding(.horizontal, 14)
-            .background(recordColor, in: .rect(cornerRadius: 13, style: .continuous))
-            .shadow(color: recordColor.opacity(0.4), radius: 8, y: 1)
-        }
-        .accessibilityIdentifier("capture-dictation-record")
-        .accessibilityLabel(recordLabel)
-    }
-
-    private var recordIcon: String {
-        switch recorder.state {
-        case .recording: return "stop.fill"
-        case .recorded:  return "checkmark.circle.fill"
-        default:         return "mic.fill"
-        }
-    }
-    private var recordLabel: String {
-        switch recorder.state {
-        case .recording:       return "Stop · \(fmtDuration(recorder.elapsed))"
-        case .recorded(let d): return "Voice note · \(fmtDuration(d))"
-        default:               return "Record your thoughts"
-        }
-    }
-    private var recordColor: Color {
-        switch recorder.state {
-        case .recording: return Color.red.opacity(0.9)
-        case .recorded:  return Color.skAccent.opacity(0.85)
-        default:         return Color.skAccent
-        }
-    }
-
-    /// Secondary "…or type" field — no longer the primary affordance.
     private var typeField: some View {
         ZStack(alignment: .topLeading) {
             if annotationIsEmpty {
-                Text("…or type instead (optional)")
+                Text("Add a thought (optional)…")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.skTextFaint)
                     .padding(.top, 9).padding(.leading, 12)
@@ -348,9 +533,16 @@ struct ShareSheetView: View {
         return String(format: "%d:%02d", s / 60, s % 60)
     }
 
+    /// Save label re-states the multi-audio choice live (signed mock):
+    /// "Save as one note" ⇄ "Save N notes".
+    private var saveLabel: String {
+        guard payload.isAudio, payload.audioItems.count > 1 else { return "Save to Skrift" }
+        return combineIntoOne ? "Save as one note" : "Save \(payload.audioItems.count) notes"
+    }
+
     private var saveButton: some View {
         Button { saveTapped() } label: {
-            Text("Save to Skrift")   // mock state-1 label
+            Text(saveLabel)
                 .font(.system(size: 14.5, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -369,24 +561,68 @@ struct ShareSheetView: View {
     }
 
     private func saveTapped() {
-        // Save while still talking = keep the take: stop, then read it.
-        if recorder.state == .recording { recorder.toggleRecord() }
-        let dictationData = recorder.recordedData
+        // Audio share: slim "audio" entries — no annotation/dictation (no ramble
+        // UI on audio shares), just significance. Combine (default) = ONE entry
+        // carrying every clip name in play order → one merged memo; split = one
+        // entry per clip → N memos. The host maps clips to entries by index.
+        if payload.isAudio {
+            let items = payload.audioItems
+            let sharedAt = ISO8601.string(from: Date())
+            // Clip dates ride the entry, index-aligned to the names ("" = unknown)
+            // — the import dates the memo to the voice note, not the share moment.
+            func iso(_ item: SharedAudioItem) -> String {
+                item.recordedAt.map { ISO8601.string(from: $0) } ?? ""
+            }
+            func entry(id: UUID, names: [String], dates: [String]) -> CaptureInboxEntry {
+                CaptureInboxEntry(
+                    id: id, type: "audio", url: nil, urlTitle: nil, text: nil,
+                    imageFileName: nil, mimeType: nil, annotationText: nil,
+                    significance: significance, sharedAt: sharedAt,
+                    audioFileNames: names, audioRecordedAts: dates
+                )
+            }
+            func ext(_ item: SharedAudioItem) -> String {
+                item.url.pathExtension.isEmpty ? "m4a" : item.url.pathExtension
+            }
+            if combineIntoOne || items.count == 1 {
+                let id = UUID()
+                let names = items.enumerated().map { "audio_\(id.uuidString)_\($0.offset).\(ext($0.element))" }
+                onSave([entry(id: id, names: names, dates: items.map(iso))], [], nil)
+            } else {
+                let entries = items.map { item -> CaptureInboxEntry in
+                    let id = UUID()
+                    return entry(id: id, names: ["audio_\(id.uuidString)_0.\(ext(item))"],
+                                 dates: [iso(item)])
+                }
+                onSave(entries, [], nil)
+            }
+            return
+        }
+
+        // No dictation from the sheet — iOS blocks extension recording (above);
+        // the entry field stays nil and CaptureDictation remains drain-side for
+        // any legacy pending entries.
+        let dictationData: Data? = nil
 
         let trimmed = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
+        let imageItems = payload.imageItems
         let entry = CaptureInboxEntry(
             id: UUID(),
             type: payload.type.rawValue,
             url: payload.url,
             urlTitle: payload.urlTitle,
             text: payload.text,
-            imageFileName: payload.imageFileName,
+            // Legacy single field stays the FIRST image (capture detail + Mac read it).
+            imageFileName: imageItems.first?.fileName,
             mimeType: payload.mimeType,
             annotationText: trimmed.isEmpty ? nil : trimmed,
             significance: significance,
             sharedAt: ISO8601.string(from: Date()),
-            dictationFileName: dictationData != nil ? "dictation.m4a" : nil
+            dictationFileName: dictationData != nil ? "dictation.m4a" : nil,
+            // The names array carries EVERY image (single included) — the write
+            // path stores them all from `imageDatas`, index-aligned.
+            imageFileNames: imageItems.isEmpty ? nil : imageItems.map(\.fileName)
         )
-        onSave(entry, payload.imageData, dictationData)
+        onSave([entry], imageItems.map(\.data), dictationData)
     }
 }

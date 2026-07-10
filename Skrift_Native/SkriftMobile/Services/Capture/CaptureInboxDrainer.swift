@@ -21,8 +21,17 @@ enum CaptureInboxDrainer {
     /// previous run never finished (crash / terminal failure recovery).
     static func drain(into repository: NotesRepository) {
         defer { CaptureDictation.resumePending(repository: repository) }
+        // Surface any share-extension diagnostics in the app devlog (the
+        // extension can't write devlog.txt itself — round-1 mic mystery).
+        CaptureInbox.flushExtLog { DevLog.log($0) }
         let pending = CaptureInbox.pendingEntries()
         guard !pending.isEmpty else { return }
+
+        // Every share jumps to its note on the next app-open (signed 2026-07-10,
+        // mock share-ingest-wave1.html) — collect the last created memo and fire
+        // ONE bridge request after the loop (the bridge keeps most-recent-wins).
+        var openTarget: UUID?
+        defer { if let openTarget { MemoOpenBridge.shared.open(openTarget) } }
 
         for (entry, entryDir) in pending {
             let memoID = entry.id
@@ -47,10 +56,54 @@ enum CaptureInboxDrainer {
                     // video's filming date, so otherwise it "vanishes" from the
                     // top of the list (user-confirmed via DevLog 2026-06-14).
                     if copied, let mid = MemoSaver().importVideo(from: temp) {
-                        MemoOpenBridge.shared.open(mid)
+                        openTarget = mid
                     }
                 } else {
                     DevLog.log("drain: video entry \(entry.id) — no src file, discarding")
+                    CaptureInbox.delete(entryDir: entryDir)
+                }
+                continue
+            }
+
+            // Shared AUDIO (WhatsApp voice notes / Voice Memos / Files) → import as
+            // a normal transcribed memo, NOT a capture item (the i4 fix — the url
+            // branch used to win and save a LINK; a Files m4a became a dead file
+            // card). One entry with N clip names = the B1 combine (clips merged in
+            // order → one transcript); split notes arrive as N single-clip entries.
+            // Same delete-first pattern as video: importAudioClips mints its own
+            // memo UUID, so the id-dup guard below wouldn't catch a re-drain.
+            if entry.type == "audio" {
+                let srcs = CaptureInbox.audioURLs(for: entry, entryDir: entryDir)
+                    .filter { FileManager.default.fileExists(atPath: $0.path) }
+                DevLog.log("drain: audio entry \(entry.id); clips present=\(srcs.count)/\(entry.audioFileNames?.count ?? 0)")
+                if !srcs.isEmpty {
+                    // Copy every clip to an app-owned temp BEFORE deleting the entry.
+                    var temps: [URL] = []
+                    for (i, src) in srcs.enumerated() {
+                        let ext = src.pathExtension.isEmpty ? "m4a" : src.pathExtension
+                        let temp = FileManager.default.temporaryDirectory
+                            .appendingPathComponent("shared_import_\(entry.id.uuidString)_\(i).\(ext)")
+                        try? FileManager.default.removeItem(at: temp)
+                        if (try? FileManager.default.copyItem(at: src, to: temp)) != nil {
+                            temps.append(temp)
+                        }
+                    }
+                    // Oldest clip's original date (index-aligned array) → the memo's
+                    // recordedAt seed; the import upgrades to the embedded asset
+                    // date when one exists (round-1: memos dated to upload time).
+                    let clipDate = entry.audioRecordedAts?.first.flatMap { ISO8601.date(from: $0) }
+                    DevLog.log("drain: audio copied=\(temps.count) clip(s); dates=\(entry.audioRecordedAts ?? []); deleting entry + importing")
+                    CaptureInbox.delete(entryDir: entryDir)
+                    if let mid = MemoSaver(repository: repository).importAudioClips(from: temps, recordedAt: clipDate) {
+                        // The sheet's significance circles apply to the imported memo.
+                        if entry.significance > 0, let memo = repository.memo(id: mid) {
+                            memo.significance = entry.significance
+                            repository.save()
+                        }
+                        openTarget = mid
+                    }
+                } else {
+                    DevLog.log("drain: audio entry \(entry.id) — no clip files, discarding")
                     CaptureInbox.delete(entryDir: entryDir)
                 }
                 continue
@@ -98,29 +151,32 @@ enum CaptureInboxDrainer {
                 }
             }
 
-            // For image captures, move the image from the inbox to the recordings
-            // directory under the memo's UUID before saving the Memo. The image
-            // manifest entry uses offsetSeconds 0 (the capture has no timeline).
+            // For image captures, move the image(s) from the inbox to the recordings
+            // directory under the memo's UUID before saving the Memo — a multi-photo
+            // share (B2) always lands as ONE memo with an N-entry manifest. Manifest
+            // entries use offsetSeconds 0 (the capture has no timeline).
             var imageManifest: [ImageManifestEntry]?
-            if contentType == .image,
-               let srcURL = CaptureInbox.imageURL(for: entry, entryDir: entryDir),
-               let imageFileName = entry.imageFileName {
-
-                // Destination: recordings dir, photo_<memoUUID>_001.<ext>
-                let ext = (imageFileName as NSString).pathExtension
-                let destName = "photo_\(memoID.uuidString)_001.\(ext.isEmpty ? "jpg" : ext)"
-                let destURL = AppPaths.recordingsDirectory.appendingPathComponent(destName)
-                do {
-                    if FileManager.default.fileExists(atPath: destURL.path) {
-                        try FileManager.default.removeItem(at: destURL)
+            if contentType == .image {
+                let srcURLs = CaptureInbox.imageURLs(for: entry, entryDir: entryDir)
+                var manifest: [ImageManifestEntry] = []
+                for (i, srcURL) in srcURLs.enumerated() where FileManager.default.fileExists(atPath: srcURL.path) {
+                    // Destination: recordings dir, photo_<memoUUID>_00N.<ext>
+                    let ext = srcURL.pathExtension
+                    let destName = "photo_\(memoID.uuidString)_\(String(format: "%03d", i + 1)).\(ext.isEmpty ? "jpg" : ext)"
+                    let destURL = AppPaths.recordingsDirectory.appendingPathComponent(destName)
+                    do {
+                        if FileManager.default.fileExists(atPath: destURL.path) {
+                            try FileManager.default.removeItem(at: destURL)
+                        }
+                        try FileManager.default.copyItem(at: srcURL, to: destURL)
+                        manifest.append(ImageManifestEntry(filename: destName, offsetSeconds: 0))
+                    } catch {
+                        // Image copy failed — save the capture with whatever images
+                        // landed rather than abandoning the whole entry.
+                        print("[CaptureInboxDrainer] image copy failed: \(error)")
                     }
-                    try FileManager.default.copyItem(at: srcURL, to: destURL)
-                    imageManifest = [ImageManifestEntry(filename: destName, offsetSeconds: 0)]
-                } catch {
-                    // Image copy failed — save the capture without the image rather
-                    // than abandoning the whole entry.
-                    print("[CaptureInboxDrainer] image copy failed: \(error)")
                 }
+                if !manifest.isEmpty { imageManifest = manifest }
             }
 
             // Dictated voice note: move the audio to the app-owned pending spot
@@ -154,6 +210,18 @@ enum CaptureInboxDrainer {
                 MemoMetadata(imageManifest: manifest)
             }
 
+            // Photos live IN the text like a recorded memo (round-2 device spec:
+            // "look at my Monday 22:34 note — the pictures are in line; just do
+            // that"): one [[img_NNN]] marker per photo appended to the annotation;
+            // the capture renders through the normal note-body inline pipeline.
+            var annotation = entry.annotationText?.isEmpty == false ? entry.annotationText! : ""
+            if let manifest = imageManifest, !manifest.isEmpty {
+                let markers = (1...manifest.count)
+                    .map { "[[img_\(String(format: "%03d", $0))]]" }
+                    .joined(separator: "\n\n")
+                annotation = annotation.isEmpty ? markers : annotation + "\n\n" + markers
+            }
+
             let memo = Memo.make(
                 id: memoID,
                 audioFilename: "",          // no audio — the discriminator for capture items
@@ -168,12 +236,13 @@ enum CaptureInboxDrainer {
                 significance: entry.significance,
                 metadata: metadata,
                 sharedContent: sharedContent,
-                annotationText: entry.annotationText?.isEmpty == false ? entry.annotationText : nil
+                annotationText: annotation.isEmpty ? nil : annotation
             )
 
             repository.insert(memo)
             // Delete only AFTER the insert+save (repository.insert calls save()).
             CaptureInbox.delete(entryDir: entryDir)
+            openTarget = memoID
 
             if hasDictation {
                 CaptureDictation.transcribe(memoID: memoID, repository: repository)

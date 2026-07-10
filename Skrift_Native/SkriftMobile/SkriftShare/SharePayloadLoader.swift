@@ -1,6 +1,25 @@
+import AVFoundation
 import Foundation
+import ImageIO
 import UniformTypeIdentifiers
 import UIKit
+
+/// One shared audio clip (of possibly several — A11 multi-select).
+struct SharedAudioItem {
+    var url: URL
+    /// Best-effort clip length for the card label; nil when unreadable (ogg-opus).
+    var duration: TimeInterval?
+    /// Best-effort original recording moment (file date) — drives the
+    /// oldest→newest combine order. nil when the provider strips dates.
+    var recordedAt: Date?
+}
+
+/// One shared image (of possibly several), already downsampled + JPEG-normalised.
+struct SharedImageItem {
+    var data: Data
+    var fileName: String
+    var mimeType: String
+}
 
 /// The resolved content of the share action, ready to display in the sheet.
 /// Only the fields relevant to the type are populated.
@@ -10,9 +29,8 @@ struct SharePayload {
     /// Page title from the share item's `attributedContentText` (no network fetch).
     var urlTitle: String?
     var text: String?
-    /// JPEG or PNG data for image captures (loaded from the item provider).
-    var imageData: Data?
-    var imageFileName: String?
+    /// Image captures (1..N — multiple photos ALWAYS combine into one note, B2).
+    var imageItems: [SharedImageItem] = []
     var mimeType: String?
     /// A shared movie was detected (Photos/Files). When true the host skips the
     /// annotation sheet and imports it as a normal voice memo. `videoURL` is the
@@ -25,6 +43,15 @@ struct SharePayload {
     /// original display name (e.g. "report.pdf").
     var fileURL: URL?
     var fileName: String?
+    /// Shared AUDIO was detected (WhatsApp voice note / Voice Memos / Files).
+    /// The sheet shows a slim audio card — NO ramble UI (signed 2026-07-10: the
+    /// voice note IS the content; append inside the note later). 2+ clips add
+    /// the 1-or-N chooser (B1). On save the host writes `"audio"` inbox entries;
+    /// the main app imports them as transcribed memos (never a link or file
+    /// card — the i4 fix). `audioItems` are extension-temp copies, ordered
+    /// oldest→newest when clip dates are readable.
+    var isAudio: Bool = false
+    var audioItems: [SharedAudioItem] = []
 }
 
 /// Loads a `SharePayload` from the extension context's input items.
@@ -44,24 +71,40 @@ enum SharePayloadLoader {
 
         let attachments = item.attachments ?? []
 
-        // 1. URL
-        if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }) {
+        // 1. Audio — checked FIRST. A WhatsApp voice note exposes BOTH an audio
+        //    file and a URL representation, so the url branch used to win and the
+        //    share saved a LINK (bug i4, root-caused 2026-07-07). Anything
+        //    conforming to public.audio is an audio import, full stop. ALL audio
+        //    attachments are collected (A11 multi-select — activation allows 10).
+        let audioProviders = attachments.filter { $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }
+        if !audioProviders.isEmpty {
+            return await loadAudio(from: audioProviders)
+        }
+        // 2. URL — WEB urls only. `public.file-url` CONFORMS to `public.url`, so
+        //    without the exclusion every Files-app share (a PDF!) landed here and
+        //    saved as a dead "Link" card (device round 1, 2026-07-10 — broken
+        //    since the June PDF feature shipped untested on device).
+        if let provider = attachments.first(where: {
+            $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) &&
+            !$0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
+        }) {
             return await loadURL(from: provider, item: item)
         }
-        // 2. Video (movie) — shared from Photos/Files. Checked before image so a
+        // 3. Video (movie) — shared from Photos/Files. Checked before image so a
         //    video's poster frame doesn't get mistaken for an image capture.
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier) }) {
             return await loadVideo(from: provider)
         }
-        // 3. Image
-        if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }) {
-            return await loadImage(from: provider)
+        // 4. Image(s) — multiple photos always combine into ONE note (B2).
+        let imageProviders = attachments.filter { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }
+        if !imageProviders.isEmpty {
+            return await loadImages(from: imageProviders)
         }
-        // 4. Plain text
+        // 5. Plain text
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) }) {
             return await loadText(from: provider)
         }
-        // 5. Document (PDF or any other file) — shared from Files/Books/etc. Checked
+        // 6. Document (PDF or any other file) — shared from Files/Books/etc. Checked
         //    last: url/movie/image/text are more specific. A PDF conforms to
         //    public.data but none of those, so it falls through to here.
         if let provider = attachments.first(where: {
@@ -106,6 +149,55 @@ enum SharePayloadLoader {
         guard let result else { return SharePayload(type: .text) }
         let mime = UTType(filenameExtension: result.url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         return SharePayload(type: .file, mimeType: mime, fileURL: result.url, fileName: result.name)
+    }
+
+    // MARK: - Audio
+
+    /// Copy each shared audio clip out of its provider's transient storage into
+    /// our own temp (same rationale as `loadVideo` — file copy, never an
+    /// in-memory load). Duration is read best-effort for the card labels; an
+    /// unreadable container (e.g. ogg-opus from some messengers) just shows no
+    /// duration — the import itself still proceeds and the transcriber/Mac
+    /// handles or fails that memo honestly downstream. Clips are ordered
+    /// oldest→newest when every clip carries a readable file date (a forwarded
+    /// WhatsApp thread reads chronologically); otherwise provider order is kept.
+    private static func loadAudio(from providers: [NSItemProvider]) async -> SharePayload {
+        var items: [SharedAudioItem] = []
+        for provider in providers {
+            let typeID = provider.registeredTypeIdentifiers.first {
+                UTType($0)?.conforms(to: .audio) == true
+            } ?? UTType.audio.identifier
+            let copied: (url: URL, date: Date?)? = await withCheckedContinuation { cont in
+                provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, _ in
+                    guard let url else { cont.resume(returning: nil); return }
+                    // Original file date, read BEFORE the copy (best-effort order key).
+                    let date = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
+                    let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
+                    let dest = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("shared_\(UUID().uuidString).\(ext)")
+                    do {
+                        try? FileManager.default.removeItem(at: dest)
+                        try FileManager.default.copyItem(at: url, to: dest)
+                        cont.resume(returning: (dest, date))
+                    } catch {
+                        cont.resume(returning: nil)
+                    }
+                }
+            }
+            guard let copied else { continue }
+            var duration: TimeInterval?
+            if let f = try? AVAudioFile(forReading: copied.url) {
+                duration = Double(f.length) / f.fileFormat.sampleRate
+            }
+            items.append(SharedAudioItem(url: copied.url, duration: duration, recordedAt: copied.date))
+        }
+        // Oldest → newest via the STABLE order helper. Device round 1 finding:
+        // WhatsApp materializes every temp copy at share time → near-identical
+        // dates, and Swift's sort is NOT stable — equal dates scrambled the
+        // provider order (which IS the chat order, the better signal there).
+        let order = CaptureInbox.stableClipOrder(dates: items.map(\.recordedAt))
+        items = order.map { items[$0] }
+        return SharePayload(type: .file, isAudio: true, audioItems: items)
     }
 
     // MARK: - Video
@@ -166,48 +258,52 @@ enum SharePayloadLoader {
         )
     }
 
-    // MARK: - Image
+    // MARK: - Image(s)
 
-    private static func loadImage(from provider: NSItemProvider) async -> SharePayload {
-        // Try PNG first, then fallback to generic image type.
-        let typeID: String
-        if provider.hasItemConformingToTypeIdentifier(UTType.png.identifier) {
-            typeID = UTType.png.identifier
-        } else if provider.hasItemConformingToTypeIdentifier(UTType.jpeg.identifier) {
-            typeID = UTType.jpeg.identifier
-        } else {
-            typeID = UTType.image.identifier
-        }
-
-        let rawData: Data? = await withCheckedContinuation { cont in
-            provider.loadDataRepresentation(forTypeIdentifier: typeID) { data, _ in
-                cont.resume(returning: data)
+    /// Load every shared image, DOWNSAMPLED via ImageIO (max 2048 px, EXIF
+    /// orientation baked in) — a full `UIImage(data:)` decode of a 48 MP shot
+    /// would blow the extension's ~120 MB ceiling, and a multi-select multiplies
+    /// that. Normalised to JPEG 0.85 for consistent storage. Unreadable images
+    /// are skipped; multiple photos always combine into ONE note (B2).
+    private static func loadImages(from providers: [NSItemProvider]) async -> SharePayload {
+        var items: [SharedImageItem] = []
+        for provider in providers {
+            let typeID: String
+            if provider.hasItemConformingToTypeIdentifier(UTType.png.identifier) {
+                typeID = UTType.png.identifier
+            } else if provider.hasItemConformingToTypeIdentifier(UTType.jpeg.identifier) {
+                typeID = UTType.jpeg.identifier
+            } else {
+                typeID = UTType.image.identifier
             }
+            let rawData: Data? = await withCheckedContinuation { cont in
+                provider.loadDataRepresentation(forTypeIdentifier: typeID) { data, _ in
+                    cont.resume(returning: data)
+                }
+            }
+            guard let rawData, let jpeg = downsampledJPEG(from: rawData) else { continue }
+            items.append(SharedImageItem(
+                data: jpeg,
+                fileName: "capture_\(UUID().uuidString).jpg",
+                mimeType: "image/jpeg"
+            ))
         }
+        return SharePayload(type: .image, imageItems: items, mimeType: items.isEmpty ? nil : "image/jpeg")
+    }
 
-        guard let rawData else { return SharePayload(type: .image) }
-
-        // Normalise to JPEG for consistent storage (UIImage decode + re-encode).
-        // Falls back to the original bytes if the UIImage round-trip fails.
-        let (jpegData, mimeType): (Data, String)
-        if let img = UIImage(data: rawData),
-           let jpeg = img.jpegData(compressionQuality: 0.85) {
-            jpegData = jpeg
-            mimeType = "image/jpeg"
-        } else {
-            jpegData = rawData
-            mimeType = typeID.contains("png") ? "image/png" : "image/jpeg"
-        }
-
-        let ext = mimeType == "image/png" ? "png" : "jpg"
-        let fileName = "capture_\(UUID().uuidString).\(ext)"
-
-        return SharePayload(
-            type: .image,
-            imageData: jpegData,
-            imageFileName: fileName,
-            mimeType: mimeType
-        )
+    /// ImageIO thumbnail decode: never inflates the full-resolution bitmap
+    /// (kCGImageSourceThumbnailMaxPixelSize caps the decode) and bakes the EXIF
+    /// orientation in (WithTransform). Falls back to the raw bytes → nil only
+    /// when the data isn't an image at all.
+    private static func downsampledJPEG(from data: Data, maxPixel: CGFloat = 2048) -> Data? {
+        guard let src = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let opts: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
+        return UIImage(cgImage: cg).jpegData(compressionQuality: 0.85)
     }
 
     // MARK: - Text

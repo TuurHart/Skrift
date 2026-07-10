@@ -464,7 +464,7 @@ private struct MemoPageView: View {
         Group {
             if lockGate.isLocked(memo) {
                 lockedPlaceholder
-            } else if memo.isShareCapture {
+            } else if memo.isShareCapture && !isInlineImageCapture {
                 legacyScrollPage { captureContent }
             } else if SpeakerTranscript.parse(memo.transcript) != nil {
                 legacyScrollPage { conversationContent }
@@ -657,6 +657,22 @@ private struct MemoPageView: View {
         }
     }
 
+    /// An image capture whose text has landed renders through the NORMAL note
+    /// body (round-2 device spec 2026-07-10: photos inline in the text via the
+    /// [[img_NNN]] pipeline, "like my Monday 22:34 note — just do that"). The
+    /// drain writes the markers into the annotation; `captureAnnotationBinding`
+    /// makes the body edit annotationText instead of the transcript.
+    private var isInlineImageCapture: Bool {
+        memo.sharedContent?.type == .image && memo.transcriptStatus == .done
+    }
+
+    private var captureAnnotationBinding: Binding<String> {
+        Binding(
+            get: { memo.annotationText ?? "" },
+            set: { memo.annotationText = $0.isEmpty ? nil : $0 }
+        )
+    }
+
     /// The re-founded monologue page: ONE scrolling text view is the body; the
     /// metadata header (chips/importance/summary/diar/quote) and the people-row
     /// footer scroll INSIDE it. Native selection/caret/undo mechanics throughout.
@@ -668,7 +684,7 @@ private struct MemoPageView: View {
                 player: player,
                 nameSpans: spans,
                 onTapName: { resolveTarget = NameResolveTarget(span: $0) },
-                polishedBinding: polishedBinding,
+                polishedBinding: isInlineImageCapture ? captureAnnotationBinding : polishedBinding,
                 onCommit: {
                     memo.markEdited()
                     repository.save()
@@ -1019,11 +1035,22 @@ private struct MemoPageView: View {
     }
 
     /// C3 capture-item body — pinned source block + annotation editor (legacy).
+    /// Image captures invert the order (round-1 device feedback 2026-07-10:
+    /// photos read as huge banners stacked ABOVE the text — "I want them in
+    /// line"): the annotation reads first, the photos flow below it at
+    /// note-body size, like a recorded memo's inline photos.
     @ViewBuilder private var captureContent: some View {
-        captureSourceBlock
-            .padding(.top, 18)
-        captureAnnotationSection
-            .padding(.top, 14)
+        if memo.sharedContent?.type == .image {
+            captureAnnotationSection
+                .padding(.top, 18)
+            captureSourceBlock
+                .padding(.top, 14)
+        } else {
+            captureSourceBlock
+                .padding(.top, 18)
+            captureAnnotationSection
+                .padding(.top, 14)
+        }
     }
 
     /// Re-derive the name tiers off-main (pure Sanitiser scan). Ordinary voice
@@ -1621,31 +1648,35 @@ private struct MemoPageView: View {
     @ViewBuilder private var captureImageEmbed: some View {
         if let filename = memo.sharedContent?.fileName,
            let img = UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(filename).path) {
-            Image(uiImage: img)
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
-                .clipShape(.rect(cornerRadius: Theme.Radius.card, style: .continuous))
-                .overlay(
-                    RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
-                )
-                .accessibilityIdentifier("capture-image-embed")
-        } else if let manifest = memo.metadata?.imageManifest?.first {
-            // Fallback: look up via the image manifest (the drain copies the image
-            // to the recordings dir under the manifest filename).
-            let manifestURL = AppPaths.recordingsDirectory.appendingPathComponent(manifest.filename)
-            if let img = UIImage(contentsOfFile: manifestURL.path) {
-                Image(uiImage: img)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity)
-                    .clipShape(.rect(cornerRadius: Theme.Radius.card, style: .continuous))
-                    .overlay(
-                        RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
-                    )
-                    .accessibilityIdentifier("capture-image-embed")
+            captureImage(img)
+        } else if let manifest = memo.metadata?.imageManifest, !manifest.isEmpty {
+            // Look up via the image manifest (the drain copies the images to the
+            // recordings dir under the manifest filenames). A multi-photo share
+            // (B2 — always one note) stacks EVERY photo in order.
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(manifest, id: \.filename) { entry in
+                    let manifestURL = AppPaths.recordingsDirectory.appendingPathComponent(entry.filename)
+                    if let img = UIImage(contentsOfFile: manifestURL.path) {
+                        captureImage(img)
+                    }
+                }
             }
         }
+    }
+
+    /// One capture photo at note-body size (≤320 pt tall, same cap as inline
+    /// [[img]] photos — round-1: full-width scaledToFit portraits were huge).
+    private func captureImage(_ img: UIImage) -> some View {
+        Image(uiImage: img)
+            .resizable()
+            .scaledToFit()
+            .frame(maxHeight: 320)
+            .clipShape(.rect(cornerRadius: Theme.Radius.card, style: .continuous))
+            .overlay(
+                RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("capture-image-embed")
     }
 
     /// The annotation body for C3 captures — editable, writes back to

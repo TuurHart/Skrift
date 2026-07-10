@@ -62,7 +62,7 @@ struct MemoSaver {
     /// No contextual metadata (the memo wasn't recorded here/now). Returns the
     /// new memo id, or nil if the file couldn't be copied.
     @discardableResult
-    func importAudio(from source: URL) -> UUID? {
+    func importAudio(from source: URL, recordedAt: Date? = nil) -> UUID? {
         let id = UUID()
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
         let filename = "memo_\(id.uuidString).\(ext)"
@@ -83,15 +83,172 @@ struct MemoSaver {
             duration = Double(f.length) / f.fileFormat.sampleRate
         }
 
+        // Date ladder mirrors video: embedded asset date > supplied date (the
+        // share's clip file date) > now. Device round 1: a WhatsApp voice note
+        // landed dated to the UPLOAD moment, not the voice note's creation.
         repository.insert(Memo(
             id: id,
             audioFilename: filename,
             duration: duration,
+            recordedAt: recordedAt ?? Date(),
             syncStatus: .waiting,
             transcriptStatus: .transcribing
         ))
-        Task { await runTranscription(id: id) }
+        Task {
+            if let d = await Self.embeddedCreationDate(of: AVURLAsset(url: dest)),
+               let memo = repository.memo(id: id) {
+                memo.recordedAt = d
+                repository.save()
+            }
+            await runTranscription(id: id)
+        }
         return id
+    }
+
+    // MARK: - Multi-clip audio import (Wave-1 B1 combine)
+
+    /// Import N audio clips shared TOGETHER as ONE memo — the "8 WhatsApp voice
+    /// notes → one note" flow (mock `share-ingest-wave1.html`, signed 2026-07-10).
+    /// A single clip delegates to `importAudio`. Multiple clips: a placeholder
+    /// memo appears immediately (same pattern as `importVideo`), then the clips
+    /// are MERGED IN ORDER into one m4a off the UI and the merged file is
+    /// transcribed once — one continuous transcript/karaoke, exactly like an
+    /// audiobook capture + ramble. Returns the memo id, nil for an empty list.
+    @discardableResult
+    func importAudioClips(from sources: [URL], recordedAt: Date? = nil) -> UUID? {
+        guard !sources.isEmpty else { return nil }
+        if sources.count == 1 { return importAudio(from: sources[0], recordedAt: recordedAt) }
+
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+        repository.insert(Memo(
+            id: id,
+            audioFilename: filename,
+            duration: 0,
+            // The FIRST (oldest) clip's date — upgraded to its embedded asset
+            // date in the async core when one exists.
+            recordedAt: recordedAt ?? Date(),
+            syncStatus: .waiting,
+            transcriptStatus: .transcribing
+        ))
+        DevLog.log("importAudioClips: placeholder memo \(id) inserted; clips=\(sources.count)")
+        Task { await importAudioClipsAsync(id: id, sources: sources) }
+        return id
+    }
+
+    /// Awaitable core of `importAudioClips` (used directly by tests): merge the
+    /// clips into the memo's m4a, set the duration, transcribe. Returns true when
+    /// the merge succeeded. Unreadable clips are skipped (logged); if NONE are
+    /// readable the memo fails honestly with a reason title, never a silent husk.
+    @discardableResult
+    func importAudioClipsAsync(id: UUID, sources: [URL]) async -> Bool {
+        let dest = AppPaths.recordingsDirectory.appendingPathComponent("memo_\(id.uuidString).m4a")
+        do {
+            try await Self.mergeAudio(sources: sources, to: dest)
+        } catch {
+            DevLog.log("importAudioClips[\(id)] merge failed: \(error)")
+            if let memo = repository.memo(id: id) {
+                memo.transcriptStatus = .failed
+                memo.title = "Couldn't read the shared audio"
+                repository.save()
+            }
+            return false
+        }
+        // First clip's embedded asset date (when present) beats the file date
+        // the placeholder was seeded with — read BEFORE the temps are deleted.
+        let embedded = await Self.embeddedCreationDate(of: AVURLAsset(url: sources[0]))
+        for src in sources { try? FileManager.default.removeItem(at: src) }
+
+        var duration: TimeInterval = 0
+        if let f = try? AVAudioFile(forReading: dest) {
+            duration = Double(f.length) / f.fileFormat.sampleRate
+        }
+        DevLog.log("importAudioClips[\(id)] merged ok; duration=\(String(format: "%.1f", duration))s")
+        guard let memo = repository.memo(id: id) else { return true }
+        memo.duration = duration
+        if let embedded { memo.recordedAt = embedded }
+        repository.save()
+        await runTranscription(id: id)
+        return true
+    }
+
+    /// Concatenate the audio of `sources` (in array order) into a single m4a at
+    /// `dest` — SAMPLE-ACCURATE `AVAudioFile` frame reads, off the main actor.
+    /// Device round 2: the AVMutableComposition+export path produced a phantom
+    /// silent tail on WhatsApp voice notes (`merged ok; duration=287.5s` with the
+    /// real content ending early) — the same compressed-audio weakness as the
+    /// audiobook chunk-drift gotcha. Decoding real frames and re-encoding once
+    /// writes exactly the audio that exists, nothing more.
+    /// Unreadable clips are skipped; throws when none contribute audio.
+    private static func mergeAudio(sources: [URL], to dest: URL) async throws {
+        try await Task.detached(priority: .userInitiated) {
+            try mergeAudioSync(sources: sources, to: dest)
+        }.value
+    }
+
+    nonisolated private static func mergeAudioSync(sources: [URL], to dest: URL) throws {
+        try? FileManager.default.removeItem(at: dest)
+        var out: AVAudioFile?
+        var outFormat: AVAudioFormat?
+        var wroteFrames = false
+
+        for src in sources {
+            guard let file = try? AVAudioFile(forReading: src) else {
+                DevLog.log("mergeAudio: skipping unreadable clip \(src.lastPathComponent)")
+                continue
+            }
+            let proc = file.processingFormat
+            if out == nil {
+                // AAC output at the first readable clip's rate/channels.
+                let settings: [String: Any] = [
+                    AVFormatIDKey: kAudioFormatMPEG4AAC,
+                    AVSampleRateKey: proc.sampleRate,
+                    AVNumberOfChannelsKey: proc.channelCount,
+                    AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+                ]
+                out = try AVAudioFile(forWriting: dest, settings: settings)
+                outFormat = proc
+            }
+            guard let out, let outFormat else { continue }
+
+            // Later clips in a different PCM format get converted to the first
+            // clip's (rare — a WhatsApp batch is uniform). Per-file converter so
+            // its internal state never crosses clip boundaries.
+            let converter = proc == outFormat ? nil : AVAudioConverter(from: proc, to: outFormat)
+            let chunkFrames: AVAudioFrameCount = 32_768
+            // framePosition guard: AVAudioFile.read THROWS (-50) when asked to
+            // read at EOF rather than returning zero frames.
+            while file.framePosition < file.length {
+                guard let buf = AVAudioPCMBuffer(pcmFormat: proc, frameCapacity: chunkFrames) else { break }
+                try file.read(into: buf)
+                guard buf.frameLength > 0 else { break }
+                if let converter {
+                    let ratio = outFormat.sampleRate / proc.sampleRate
+                    let cap = AVAudioFrameCount(Double(buf.frameLength) * ratio) + 64
+                    guard let cbuf = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: cap) else { break }
+                    var fed = false
+                    var convErr: NSError?
+                    converter.convert(to: cbuf, error: &convErr) { _, status in
+                        if fed { status.pointee = .noDataNow; return nil }
+                        fed = true
+                        status.pointee = .haveData
+                        return buf
+                    }
+                    if convErr != nil {
+                        DevLog.log("mergeAudio: convert failed on \(src.lastPathComponent): \(convErr!)")
+                        break
+                    }
+                    if cbuf.frameLength > 0 {
+                        try out.write(from: cbuf)
+                        wroteFrames = true
+                    }
+                } else {
+                    try out.write(from: buf)
+                    wroteFrames = true
+                }
+            }
+        }
+        guard wroteFrames else { throw VideoImportError.noAudioTrack }
     }
 
     // MARK: - Video import (extract audio + 1 frame thumbnail)

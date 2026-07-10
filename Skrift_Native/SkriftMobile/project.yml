@@ -68,7 +68,7 @@ targets:
         # extension's Info.plist, so both processes resolve the identical container.
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "60"
+        CFBundleVersion: "63"
         # Skrift is offline + uses only standard iOS crypto (on-device ASR, plain
         # local-network HTTP) → exempt from export compliance. Declaring this skips
         # the "Missing Compliance" prompt on every TestFlight/App Store build.
@@ -233,7 +233,7 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "60"
+        CFBundleVersion: "63"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -285,14 +285,13 @@ targets:
     info:
       path: SkriftShare/Info.plist
       properties:
-        CFBundleDisplayName: Skrift
+        CFBundleDisplayName: $(SKRIFT_DISPLAY_NAME)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "60"
+        CFBundleVersion: "63"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
-        # Dictation in the share sheet: the extension RECORDS a voice note (the
-        # main app transcribes it on drain — Parakeet can't fit the extension's
-        # memory ceiling). The usage key must live in the EXTENSION bundle.
-        NSMicrophoneUsageDescription: Skrift records your spoken thoughts about what you're sharing and transcribes them on-device.
+        # NO NSMicrophoneUsageDescription: iOS blocks recording in share
+        # extensions at the entitlement level (mediaserverd refusal, device-
+        # proven builds 60-62) — the sheet's dictation was removed 2026-07-10.
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
@@ -304,12 +303,16 @@ targets:
             NSExtensionActivationRule:
               NSExtensionActivationSupportsWebURLWithMaxCount: 1
               NSExtensionActivationSupportsText: true
-              NSExtensionActivationSupportsImageWithMaxCount: 1
+              # Multi-select (A11, 2026-07-10 Wave-1): 10 images / 10 files (the
+              # WhatsApp multi-voice-note case rides the FILE count — audio
+              # attachments activate as files). Below max-1, Skrift VANISHED from
+              # the share sheet the moment 2+ items were selected. Movie stays 1.
+              NSExtensionActivationSupportsImageWithMaxCount: 10
               NSExtensionActivationSupportsMovieWithMaxCount: 1
               # PDF/document share (2026-06-21) — xcodegen GENERATES this plist from
               # project.yml, so the activation rule MUST live here (a direct edit to
               # SkriftShare/Info.plist is clobbered on the next `xcodegen generate`).
-              NSExtensionActivationSupportsFileWithMaxCount: 1
+              NSExtensionActivationSupportsFileWithMaxCount: 10
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1"
@@ -323,10 +326,14 @@ targets:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.dev.share
           SKRIFT_APP_GROUP: group.com.skrift.mobile.dev
           CODE_SIGN_ENTITLEMENTS: SkriftShare/SkriftShare.dev.entitlements
+          # A15: dev + prod both installed used to show two identical "Skrift"
+          # rows in the share sheet — the dev extension now says "Skrift Dev".
+          SKRIFT_DISPLAY_NAME: Skrift Dev
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.skrift.mobile.share
           SKRIFT_APP_GROUP: group.com.skrift.mobile
           CODE_SIGN_ENTITLEMENTS: SkriftShare/SkriftShare.entitlements
+          SKRIFT_DISPLAY_NAME: Skrift
 
   SkriftMobileTests:
     type: bundle.unit-test
