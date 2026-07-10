@@ -157,7 +157,31 @@ Also noted: `AppTabView`'s dimmed "Highlights (soon)" tab — the P8 mock
 takes that slot** (Notes · Library · Journal · Settings); P6's Highlights feed + Daily Review later
 land as sections *inside* Journal, and P6's quote cards remain a user-led design session.
 
-## ⭐ CONTINUE HERE — post-convergence stabilization (handoff 2026-07-08, P8 chat wrap)
+## ⭐ CONTINUE HERE — stabilization DONE, next board (handoff 2026-07-10)
+
+**Stabilization round CLOSED 2026-07-10** (all four triage items below ✅, device-verified;
+builds 58/59/60 shipped same-day; phone runs **60**; sim suite 601/601; main pushed through
+`30edbc6`). One session-spanning lesson is in memory `project_p0_enhancement_clobber`: the
+"truncated transcript", the empty single-word searches, AND the build-53 crashes were ONE
+system — the embedder cold path (OOM → relaunch → lazy-pager opens rendering raw).
+
+**The board now (pick by Tuur's call):**
+1. ⬜ **Soak-watch builds ≥59** (passive): after a day of normal use, pull devlog + crashes —
+   confirm zero tokenizer-OOMs (single-flight fix) and no 0xDEAD10CC recurrence; cold-load
+   lines now report duration. If OOM returns: tokenizer-load memory diet (CoreML-LLM side).
+2. ⬜ **Design question (1 mock)**: "warming up…" row in the Related section — first search of
+   a session shows nothing for ~40s (measured 42.5s cold load). Mock-first if picked up.
+3. ⬜ **Prod CloudKit schema deploy** (§ Stz020) — deliberate prod action, Tuur-gated: deploy
+   the dev schema to prod + Release app-ID registration, then one real phone↔Mac round-trip.
+4. ⬜ **Desktop Review mock sign-off** (user design session) + desktop-parity device
+   round-trips owed (lock-gate, OCR search, link export, vocab LWW — see DParityA/SharedKit).
+5. ⬜ **Vault lens** — waits on Tuur's iCloud vault move (JOURNAL_RETRIEVAL_PLAN.md Phase 2,
+   incl. title-linking design).
+6. ⬜ **Parked kickoff: capture-as-note + note-editing follow-ups** — verbatim brief in memory
+   `project_capture_as_note_kickoff` (user deferred 2026-07-07).
+Wall printer reminder stands: after the office test print, RE-PICK the home printer.
+
+## ✅ Post-convergence stabilization (handoff 2026-07-08 → closed 2026-07-10)
 
 Five chats merged into main in ~24h (P8/Review+Wall · note-editing · Books/recording · SharedKit ·
 desktop parity). Feature velocity was huge; convergence bugs surfaced. **NEXT CHAT = a
