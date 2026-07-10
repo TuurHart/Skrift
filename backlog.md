@@ -165,13 +165,21 @@ STABILIZATION round, not a feature lane.** Phone = iPhone 13, Dev build **57** i
 installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
 
 **Triage, in order:**
-1. 🚨 **P0 DATA BUG — transcript truncated**: "Tiuri's Test: A Casual Greeting" lost most of its
-   body (ends right after "Good Day, Good Day", i.e. its opening). NOT P8 (retrieval is
-   read-only). Suspects: live-sync Part B (Mac reconciler update / MacCloudEditSync write-back),
-   note-editor debounced saves, enhancement-vs-raw display selection. FIRST determine store vs
-   display: check `memo.transcript` length via devlog/debug vs what renders; check the Mac's
-   PipelineFile + CloudKit copy for the FULL text (recovery source). Also verify no OTHER memos
-   truncated (scan lengths). Data safety rule: diagnose before any more cross-device edits.
+1. ✅ **P0 ROOT-CAUSED + FIXED 2026-07-10 (`56f360e`, build 58) — raw-born draft clobbered the
+   polished copy-edit.** Forensics (Mac's frozen stores, app off since 07-07 19:41): the memo is a
+   6.3s recording — its RAW transcript was ALWAYS 108 chars ("…Good day good day"); the "lost" body
+   is Tuur's 369-char EDITED note, intact in `MemoEnhancement.copyedit` (authored by the phone
+   07-07 13:19:30 via the polished-editor binding). All other memos scan clean (6–21 chars/s). The
+   bug: `NoteBodyView.commitDraft` wrote the draft to whatever `polishedBinding` held AT COMMIT
+   TIME — the binding arrives async (enhancement fetch after first render) and drops on
+   view-identity churn (@State reset; same churn as dffbe27), so a draft born on the RAW body
+   flushed into the arriving binding → copyedit ← raw, LWW spread it. Fix: commit target PINNED at
+   the first dirty edit (`markDraftDirty`), both directions regression-tested (601/601 green).
+   OWED on device (phone was locked): pull phone store to confirm its copyedit state → install 58
+   → run the `-restoreEnhancementMemo B1BF3174-7BB7-4310-82B4-D27C8B5AACA4 -restoreEnhancementBody
+   <base64>` recovery hook (payload = scratchpad `p0/RECOVERY_copyedit.b64`; also archived in the
+   frozen Mac stores). ⚠️ Do NOT launch Skrift Dev on the Mac before the restore — its mirror is
+   the last pre-clobber copy and sync-down would overwrite it (scratchpad copies exist as backup).
 2. ⬜ **Semantic search on 57**: churn root-cause FIXED (dffbe27 — view-identity churn from the
    ticking mini-player cancelled every debounced query; @State-held task now). Tuur reports
    single-word queries ("try"/"attempt"/"trying") still return nothing → pull devlog
