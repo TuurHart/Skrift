@@ -40,9 +40,13 @@ final class ShareViewController: UIViewController {
 
         // Load the share payload asynchronously and then present the sheet — or,
         // for a shared video, skip the sheet and import it as a voice memo.
+        // Audio DOES get the sheet (slim: card + significance, no ramble —
+        // signed mock share-ingest-wave1.html state 1).
         Task { @MainActor in
             let payload = await SharePayloadLoader.load(from: extensionContext)
-            if payload.isVideo {
+            if payload.isAudio {
+                if payload.audioURL != nil { presentSheet(payload: payload) } else { cancel() }
+            } else if payload.isVideo {
                 completeVideo(payload)
             } else if payload.type == .file, payload.fileURL != nil {
                 completeFile(payload)
@@ -56,7 +60,10 @@ final class ShareViewController: UIViewController {
         let sheet = ShareSheetView(
             payload: payload,
             onSave: { [weak self] entry, imageData, dictationData in
-                self?.complete(entry: entry, imageData: imageData, dictationData: dictationData)
+                // For an audio share the sheet's entry carries `audioFileName`;
+                // hand the extension-temp copy along so the inbox write can copy it.
+                self?.complete(entry: entry, imageData: imageData, dictationData: dictationData,
+                               audioFileURL: entry.audioFileName != nil ? payload.audioURL : nil)
             },
             onCancel: { [weak self] in
                 self?.cancel()
@@ -86,8 +93,13 @@ final class ShareViewController: UIViewController {
 
     // MARK: - Completion
 
-    private func complete(entry: CaptureInboxEntry, imageData: Data?, dictationData: Data?) {
-        CaptureInbox.write(entry, imageData: imageData, dictationData: dictationData)
+    private func complete(entry: CaptureInboxEntry, imageData: Data?, dictationData: Data?,
+                          audioFileURL: URL? = nil) {
+        CaptureInbox.write(entry, imageData: imageData, dictationData: dictationData,
+                           audioFileURL: audioFileURL)
+        if let audioFileURL {
+            try? FileManager.default.removeItem(at: audioFileURL)   // copied into the inbox now
+        }
         extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
     }
 

@@ -58,8 +58,13 @@ struct ShareSheetView: View {
                 .padding(.bottom, 13)
             previewBlock
                 .padding(.bottom, 11)
-            annotationField
-                .padding(.bottom, 12)
+            // Audio shares carry NO ramble UI (signed 2026-07-10): the voice note
+            // IS the content — thoughts get appended inside the note later. The
+            // sheet is just: what's coming in → significance → Save.
+            if !payload.isAudio {
+                annotationField
+                    .padding(.bottom, 12)
+            }
             SignificanceCircles(value: $significance) {}
                 .padding(.bottom, 13)
             saveButton
@@ -122,18 +127,77 @@ struct ShareSheetView: View {
     }
 
     @ViewBuilder private var previewBlock: some View {
-        switch payload.type {
-        case .url:
-            urlCard
-        case .text:
-            textQuoteBlock
-        case .image:
-            imageBlock
-        case .file:
-            // File captures not shown in the share sheet v1 (activation rule
-            // doesn't include files; this is a defensive fallback).
-            EmptyView()
+        if payload.isAudio {
+            audioCard
+        } else {
+            switch payload.type {
+            case .url:
+                urlCard
+            case .text:
+                textQuoteBlock
+            case .image:
+                imageBlock
+            case .file:
+                // File captures not shown in the share sheet v1 (activation rule
+                // doesn't include files; this is a defensive fallback).
+                EmptyView()
+            }
         }
+    }
+
+    // Audio: slim card (waveform glyph, "Voice note · 0:41") + the honesty line —
+    // the import happens on the app's next foreground drain, and the app then
+    // opens on the note (mock share-ingest-wave1.html state 1, signed 2026-07-10).
+    private var audioCard: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.skAccent.opacity(0.14))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Image(systemName: "waveform")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Color.skAccent)
+                    )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(audioTitle)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(1)
+                    Text("Audio · shared \(Date().formatted(date: .omitted, time: .shortened))")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.skTextFaint)
+                }
+                Spacer(minLength: 4)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
+            )
+
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.skAccent.opacity(0.55))
+                    .frame(width: 6, height: 6)
+                Text("Transcribes on-device · Skrift opens on it next time")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Color.skTextFaint)
+            }
+            .padding(.leading, 2)
+        }
+        .accessibilityIdentifier("capture-audio-card")
+        .accessibilityLabel(audioTitle)
+    }
+
+    private var audioTitle: String {
+        if let d = payload.audioDuration, d >= 1 {
+            return "Voice note · \(fmtDuration(d))"
+        }
+        return "Voice note"
     }
 
     // URL: link card with globe glyph, title, domain
@@ -369,6 +433,23 @@ struct ShareSheetView: View {
     }
 
     private func saveTapped() {
+        // Audio share: a slim "audio" entry — no annotation/dictation (no ramble
+        // UI on audio shares), just significance. The host passes the audio temp
+        // file to CaptureInbox.write; the drain imports it as a transcribed memo.
+        if payload.isAudio {
+            let id = UUID()
+            let ext = (payload.audioURL?.pathExtension.isEmpty == false)
+                ? payload.audioURL!.pathExtension : "m4a"
+            let entry = CaptureInboxEntry(
+                id: id, type: "audio", url: nil, urlTitle: nil, text: nil,
+                imageFileName: nil, mimeType: nil, annotationText: nil,
+                significance: significance, sharedAt: ISO8601.string(from: Date()),
+                audioFileName: "audio_\(id.uuidString).\(ext)"
+            )
+            onSave(entry, nil, nil)
+            return
+        }
+
         // Save while still talking = keep the take: stop, then read it.
         if recorder.state == .recording { recorder.toggleRecord() }
         let dictationData = recorder.recordedData

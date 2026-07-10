@@ -40,6 +40,11 @@ struct CaptureInboxEntry: Codable {
     /// `MemoSaver.importVideo` — it becomes a normal voice memo (audio + a frame
     /// thumbnail + transcribe), NOT a capture item. Optional so older entries decode.
     var videoFileName: String? = nil
+    /// Filename (relative to the entry folder) of a shared AUDIO file (WhatsApp
+    /// voice note / Voice Memos / Files). The MAIN APP imports it on drain via
+    /// `MemoSaver.importAudio` — a normal transcribed memo, NOT a capture item
+    /// (the i4 fix; was a link/file card). Optional so older entries decode.
+    var audioFileName: String? = nil
     /// Filename (relative to the entry folder) of a shared DOCUMENT (e.g. a PDF
     /// shared from Files/Books). The MAIN APP persists it into the recordings dir on
     /// drain → a `.file` capture. Optional so older entries decode.
@@ -109,7 +114,8 @@ enum CaptureInbox {
     /// never a half-written JSON.
     @discardableResult
     static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil, dictationData: Data? = nil,
-                      videoFileURL: URL? = nil, fileSourceURL: URL? = nil) -> Bool {
+                      videoFileURL: URL? = nil, fileSourceURL: URL? = nil,
+                      audioFileURL: URL? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
         let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
         do {
@@ -130,6 +136,12 @@ enum CaptureInbox {
                 let destURL = entryDir.appendingPathComponent(name)
                 try? FileManager.default.removeItem(at: destURL)
                 try FileManager.default.copyItem(at: videoFileURL, to: destURL)
+            }
+            // Shared audio (voice note): COPY the file in (same memory rationale as video).
+            if let audioFileURL, let name = entry.audioFileName {
+                let destURL = entryDir.appendingPathComponent(name)
+                try? FileManager.default.removeItem(at: destURL)
+                try FileManager.default.copyItem(at: audioFileURL, to: destURL)
             }
             // Shared document (PDF/etc.): COPY the file in (same memory rationale as video).
             if let fileSourceURL, let name = entry.fileName {
@@ -190,6 +202,12 @@ enum CaptureInbox {
     /// Resolve the on-disk URL of a shared document (PDF/etc.), when present.
     static func fileURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
         guard let name = entry.fileName else { return nil }
+        return entryDir.appendingPathComponent(name)
+    }
+
+    /// Resolve the on-disk URL of a shared audio file, when present.
+    static func audioURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
+        guard let name = entry.audioFileName else { return nil }
         return entryDir.appendingPathComponent(name)
     }
 

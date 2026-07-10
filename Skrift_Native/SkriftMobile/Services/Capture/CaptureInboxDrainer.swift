@@ -24,6 +24,12 @@ enum CaptureInboxDrainer {
         let pending = CaptureInbox.pendingEntries()
         guard !pending.isEmpty else { return }
 
+        // Every share jumps to its note on the next app-open (signed 2026-07-10,
+        // mock share-ingest-wave1.html) — collect the last created memo and fire
+        // ONE bridge request after the loop (the bridge keeps most-recent-wins).
+        var openTarget: UUID?
+        defer { if let openTarget { MemoOpenBridge.shared.open(openTarget) } }
+
         for (entry, entryDir) in pending {
             let memoID = entry.id
 
@@ -47,10 +53,41 @@ enum CaptureInboxDrainer {
                     // video's filming date, so otherwise it "vanishes" from the
                     // top of the list (user-confirmed via DevLog 2026-06-14).
                     if copied, let mid = MemoSaver().importVideo(from: temp) {
-                        MemoOpenBridge.shared.open(mid)
+                        openTarget = mid
                     }
                 } else {
                     DevLog.log("drain: video entry \(entry.id) — no src file, discarding")
+                    CaptureInbox.delete(entryDir: entryDir)
+                }
+                continue
+            }
+
+            // Shared AUDIO (WhatsApp voice note / Voice Memos / Files) → import as
+            // a normal transcribed memo, NOT a capture item (the i4 fix — the url
+            // branch used to win and save a LINK; a Files m4a became a dead file
+            // card). Same delete-first pattern as video: importAudio mints its own
+            // memo UUID, so the id-dup guard below wouldn't catch a re-drain.
+            if entry.type == "audio" {
+                let src0 = CaptureInbox.audioURL(for: entry, entryDir: entryDir)
+                DevLog.log("drain: audio entry \(entry.id); src present=\(src0.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)")
+                if let src = src0, FileManager.default.fileExists(atPath: src.path) {
+                    let ext = src.pathExtension.isEmpty ? "m4a" : src.pathExtension
+                    let temp = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("shared_import_\(entry.id.uuidString).\(ext)")
+                    try? FileManager.default.removeItem(at: temp)
+                    let copied = (try? FileManager.default.copyItem(at: src, to: temp)) != nil
+                    DevLog.log("drain: audio copied=\(copied) → \(temp.lastPathComponent); deleting entry + importing")
+                    CaptureInbox.delete(entryDir: entryDir)
+                    if copied, let mid = MemoSaver(repository: repository).importAudio(from: temp) {
+                        // The sheet's significance circles apply to the imported memo.
+                        if entry.significance > 0, let memo = repository.memo(id: mid) {
+                            memo.significance = entry.significance
+                            repository.save()
+                        }
+                        openTarget = mid
+                    }
+                } else {
+                    DevLog.log("drain: audio entry \(entry.id) — no src file, discarding")
                     CaptureInbox.delete(entryDir: entryDir)
                 }
                 continue
@@ -174,6 +211,7 @@ enum CaptureInboxDrainer {
             repository.insert(memo)
             // Delete only AFTER the insert+save (repository.insert calls save()).
             CaptureInbox.delete(entryDir: entryDir)
+            openTarget = memoID
 
             if hasDictation {
                 CaptureDictation.transcribe(memoID: memoID, repository: repository)

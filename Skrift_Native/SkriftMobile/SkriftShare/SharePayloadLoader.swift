@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import UniformTypeIdentifiers
 import UIKit
@@ -25,6 +26,15 @@ struct SharePayload {
     /// original display name (e.g. "report.pdf").
     var fileURL: URL?
     var fileName: String?
+    /// A shared AUDIO file was detected (WhatsApp voice note / Voice Memos / Files).
+    /// The sheet shows a slim audio card — NO ramble UI (signed 2026-07-10: the
+    /// voice note IS the content; append inside the note later). On save the host
+    /// writes an `"audio"` inbox entry; the main app imports it as a transcribed
+    /// memo (never a link or file card — the i4 fix). `audioURL` is the
+    /// extension-temp copy; `audioDuration` is best-effort for the card label.
+    var isAudio: Bool = false
+    var audioURL: URL?
+    var audioDuration: TimeInterval?
 }
 
 /// Loads a `SharePayload` from the extension context's input items.
@@ -44,24 +54,31 @@ enum SharePayloadLoader {
 
         let attachments = item.attachments ?? []
 
-        // 1. URL
+        // 1. Audio — checked FIRST. A WhatsApp voice note exposes BOTH an audio
+        //    file and a URL representation, so the url branch used to win and the
+        //    share saved a LINK (bug i4, root-caused 2026-07-07). Anything
+        //    conforming to public.audio is an audio import, full stop.
+        if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }) {
+            return await loadAudio(from: provider)
+        }
+        // 2. URL
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }) {
             return await loadURL(from: provider, item: item)
         }
-        // 2. Video (movie) — shared from Photos/Files. Checked before image so a
+        // 3. Video (movie) — shared from Photos/Files. Checked before image so a
         //    video's poster frame doesn't get mistaken for an image capture.
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.movie.identifier) }) {
             return await loadVideo(from: provider)
         }
-        // 3. Image
+        // 4. Image
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) }) {
             return await loadImage(from: provider)
         }
-        // 4. Plain text
+        // 5. Plain text
         if let provider = attachments.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) }) {
             return await loadText(from: provider)
         }
-        // 5. Document (PDF or any other file) — shared from Files/Books/etc. Checked
+        // 6. Document (PDF or any other file) — shared from Files/Books/etc. Checked
         //    last: url/movie/image/text are more specific. A PDF conforms to
         //    public.data but none of those, so it falls through to here.
         if let provider = attachments.first(where: {
@@ -106,6 +123,40 @@ enum SharePayloadLoader {
         guard let result else { return SharePayload(type: .text) }
         let mime = UTType(filenameExtension: result.url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         return SharePayload(type: .file, mimeType: mime, fileURL: result.url, fileName: result.name)
+    }
+
+    // MARK: - Audio
+
+    /// Copy a shared audio file out of the provider's transient storage into our
+    /// own temp (same rationale as `loadVideo` — file copy, never an in-memory
+    /// load). Duration is read best-effort for the card label; an unreadable
+    /// container (e.g. ogg-opus from some messengers) just shows no duration —
+    /// the import itself still proceeds and the transcriber/Mac handles or fails
+    /// that memo honestly downstream.
+    private static func loadAudio(from provider: NSItemProvider) async -> SharePayload {
+        let typeID = provider.registeredTypeIdentifiers.first {
+            UTType($0)?.conforms(to: .audio) == true
+        } ?? UTType.audio.identifier
+        let tempURL: URL? = await withCheckedContinuation { cont in
+            provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, _ in
+                guard let url else { cont.resume(returning: nil); return }
+                let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
+                let dest = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("shared_\(UUID().uuidString).\(ext)")
+                do {
+                    try? FileManager.default.removeItem(at: dest)
+                    try FileManager.default.copyItem(at: url, to: dest)
+                    cont.resume(returning: dest)
+                } catch {
+                    cont.resume(returning: nil)
+                }
+            }
+        }
+        var duration: TimeInterval?
+        if let tempURL, let f = try? AVAudioFile(forReading: tempURL) {
+            duration = Double(f.length) / f.fileFormat.sampleRate
+        }
+        return SharePayload(type: .file, isAudio: true, audioURL: tempURL, audioDuration: duration)
     }
 
     // MARK: - Video
