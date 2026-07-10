@@ -157,9 +157,19 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    resolved. LOCKED: every share jumps to its note on next app-open; audio shares have
    NO ramble UI (append in-app later — user rule); combine = audiobook-capture model
    (append in timestamp order, one karaoke transcript); "N photos → one note" title.
-   Build order: merge main (stabilization lane at build 58) → IngestKit skeleton →
-   A7 audio branch → A11/B1/B2 multi → A12/E3/A16 states → A15. Sim-verify here;
-   device install staggered with the other lane.
+   → **2026-07-10 WAVE 1 BUILT — chunks 1–3 same day** (`827965f` A7 audio fast-path +
+   jump-on-open-for-every-share; `394a916` A11 multi-select 10×, B1 1-or-N chooser
+   [combine = clips MERGED in order via `MemoSaver.importAudioClips` → ONE transcription
+   pass, no import/append race], B2 photos→one-manifest-note, ImageIO downsample ≤2048px;
+   `3371fb1` A12/E3 Saved✓/error/unsupported states + A16 husk guard + A15 "Skrift Dev"
+   label). Unit suite 610/610 green; roadmap node `ShareW1` inprogress. i4 = FIXED IN CODE.
+   **⬜ OWED — DEVICE ROUND (sim can't exercise the share sheet), staggered w/ Stz020's
+   build 59:** (a) WhatsApp voice note single → transcribed memo + jump-on-open;
+   (b) WhatsApp 8-select → chooser, both modes (combine plays straight through, karaoke
+   continuous); (c) opus/ogg container: does AVFoundation read it or honest-fail →
+   Mac path; (d) Photos 4-select → one note, stacked in detail; (e) PDF + video shares
+   → Saved✓ flash; (f) unsupported type (.numbers) → can't-import state; (g) share-sheet
+   rows read "Skrift Dev" vs "Skrift"; (h) multi-select shows Skrift at all (counts 10).
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →

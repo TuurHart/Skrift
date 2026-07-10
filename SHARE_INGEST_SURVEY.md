@@ -10,6 +10,11 @@ D1 PARKED for the Books/Journal design chat. **Still pending:** C1 (captions
 rejected outright), C2, B4. **Wave 1 scope locked:** A7 + A11 + B1/B2 + A12/E3
 + A15/A16 on the IngestKit skeleton (E5); mock-first, rebase on main at kickoff.
 
+**⭐ WAVE 1 BUILT 2026-07-10** (chunks 1–3, commits `827965f`/`394a916`/`3371fb1`; 610/610
+unit green): A7 ✅code · A11 ✅ · B1 ✅ · B2 ✅ · A12/E3 ✅ · A15 ✅ · A16 ✅ · jump-on-open ✅.
+**Device round OWED** (real WhatsApp share — checklist in backlog.md under i4). Wave 2 next:
+E1 unified sheet · A1/C4 enrichment · A4 EXIF date · A6 PDF text · A9 · C5 · D4 · D6 · D8.
+
 **Mock SIGNED OFF 2026-07-10** (`mocks/share-ingest-wave1.html`) — locked rules from the
 sign-off round: (1) **every share jumps to its note on the next app-open** (extensions can't
 launch the app — iOS rule; videos already jump); (2) **audio shares carry NO ramble UI** — the
