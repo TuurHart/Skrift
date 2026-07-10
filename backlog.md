@@ -178,7 +178,8 @@ installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
      (devlog-proven: zero task side-effects on sick opens; list-flow opens healed in ~200ms).
      Fix: the polish is a live per-memo `@Query` — correct on the first body eval, no appear-event
      dependency, live CloudKit updates (retired the onChange(sync.isSyncing) refetch).
-     PolishedDisplayUITests + 601/601 green. Device eyeball owed: search 'try' → tap → full note.
+     PolishedDisplayUITests + 601/601 green. ✅ DEVICE-VERIFIED build 59 (2026-07-10 13:58): Tuur
+     opened the memo from active search MID-cold-load — first render `len=369`, zero raw frames.
    - **Real bug B (found en route), FIXED `56f360e`:** commitDraft wrote the dirty draft to
      whatever `polishedBinding` held at COMMIT time; the binding arrives async / drops on churn, so
      a raw-born draft COULD flush into the arriving binding (copyedit ← raw). Never fired for this
@@ -192,10 +193,13 @@ installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
    0.43, 'Trying' 0.45, 'Attempt' 0.41 vs floor 0.25 — results arrived minutes late into a dead
    view). The 60s idle unload then re-paid the load on nearly every search. Fix: model held 10 min
    (unload immediately on backgrounding), warmup fires at the FIRST keystroke, cold-load duration
-   now DevLogged. searchFloor untouched — the bake-off calibration stands. Owed: device round with
-   the instrumented build to quantify the true cold-load seconds; if it stays >15s even from the
-   ANE cache, a quiet "warming up…" row in the Related section is a design question for Tuur
-   (mock-first).
+   now DevLogged. searchFloor untouched — the bake-off calibration stands. ✅ DEVICE-MEASURED
+   builds 58/59: cold load = 42.5–43.9s from the ANE cache (the 122s on 07-08 was the uncached
+   worst case). The instrumented run ALSO caught prepare() double-loading on actor reentrancy
+   (warmup racing the query path → two concurrent 295MB loads) — fixed with a shared in-flight
+   load task, single-load verified on 59 (`70c3714`). DESIGN QUESTION for Tuur: 42s is long
+   enough that the first search of a session shows an empty Related section for ~a minute — a
+   quiet "warming up…" row would make it honest (mock-first when picked up).
 3. ⬜ **Crashes (build ~53)** — pull crash logs over USB (`idevicecrashreport -e`, needs cable;
    wifi doesn't work for it). Suspect list open; possibly the same view-churn storm.
 4. ⬜ Wall: Tuur's office print test → REMIND: re-pick the HOME printer after (saved printer IS

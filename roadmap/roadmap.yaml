@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 16
-updated: 2026-07-10T14:05:00.000Z
+updated: 2026-07-10T14:20:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -364,7 +364,9 @@ nodes:
         LazyHStack pages realized without appear events, the enhancement .task
         never ran; polish is now a live per-memo @Query [6724a41]. Also fixed
         the latent commit-target race (draft pinned at first dirty edit,
-        regression-tested both directions) [56f360e]. 601/601 green
+        regression-tested both directions) [56f360e]. 601/601 green.
+        DEVICE-VERIFIED build 59: search-open mid-cold-load rendered len=369
+        first frame, zero raw frames [2026-07-10]
     backlog:
       - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
         pipeline never broken (sim e2e test stays as the gate). Search-hit
@@ -533,7 +535,9 @@ nodes:
         a cold-load stall (first query 122s: ANE load + 31.8MB tokenizer parse
         serialized the actor; warm queries 15ms, all scores above floor). Model
         now held 10 min + unloads on background, warmup at first keystroke,
-        cold-load DevLogged; floors untouched [0778575]
+        cold-load DevLogged; floors untouched [0778575]. DEVICE-VERIFIED
+        build 59: single cold load 42.5s (reentrancy double-load also caught
+        + fixed, 70c3714); 'try' top 0.42, results land [2026-07-10]
     win: On This Day + timeline + semantic 'related notes' work on-device — a
       years-old thought resurfaces next to today's
   - id: P9b
