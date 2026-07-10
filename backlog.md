@@ -109,6 +109,13 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    full row-by-row table (existing share bugs A1–A16 + multi-item B + link-enrichment C + new
    input types D + cross-cutting UX/IngestKit E). User reviews it row-by-row (memo per row, say
    the ID); triage verdicts back into this ledger, then build.
+   → **2026-07-10 VERDICTS RECORDED** (voice pass, in the survey's last column). Headlines:
+   big GO wave (all of A incl. A7/A15, B1–B3 w/ B2 = photos ALWAYS one note, C3 podcasts ⭐,
+   C5 pdf-urls, D1 quote-detect [NO Highlights tab — quotes are plain notes], D4, D7, D8,
+   E1–E5 w/ E2 threshold = 1 h); **SKIP** D2 vCards; **D3 already live** (drainer manifests +
+   PhotoTextIndexer — verified); **pending Tuur's call** after plain-words re-explain: C1
+   (captions rejected outright), C2, C4, D5, D6, B4. Scribbel reference checked for A7:
+   no extension there (doc-types + onOpenURL + ImportTranscriber w/ bg-task claim + toast).
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →
