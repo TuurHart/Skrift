@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 16
-updated: 2026-07-10T18:30:00.000Z
+updated: 2026-07-10T21:15:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -403,25 +403,33 @@ nodes:
     title: Share-ingest Wave 1 (audio + multi)
     lane: 0
     order: 5.75
-    status: inprogress
+    status: done
+    done: 2026-07-10
     eff: M
     win: "done when: a real WhatsApp voice-note share (single + 8-select)
       lands as transcribed memo(s) on device, photos multi-combine, and every
       share shows Saved✓/error honestly"
     note: "SHARE_INGEST_SURVEY.md verdict wave, mock share-ingest-wave1.html
-      SIGNED 2026-07-10. Built chunks 1–3 same day: A7 audio fast-path (i4
-      fix — WhatsApp voice note was saved as a LINK), A11 multi-select +
-      B1 1-or-N chooser + B2 photos-always-one-note (clips merged in order,
-      ONE transcript — audiobook-capture model), A12/E3 Saved✓/error/
-      unsupported states, A15 dev label, jump-on-open for every share.
-      610/610 unit green. OWED: device round (real WhatsApp share — sim
-      can't exercise the share sheet), staggered with the Stz020 lane.
-      Wave 2 parked in the survey (E1 unified sheet, enrichment, D-types)."
+      SIGNED 2026-07-10; built + DEVICE-VERIFIED same day over 4 rounds
+      (builds 60→63). i4 dead: WhatsApp voice notes = transcribed memos,
+      dated to the voice note, chat order kept; 1-or-N chooser (combine =
+      sample-accurate clip merge, one karaoke transcript); photos ALWAYS one
+      note, inline [[img]] in the text (user: 'the only way'); Saved✓/error/
+      unsupported states; PDF file-url routing fixed (June regression);
+      'Skrift Dev' label. Sheet dictation RETIRED on evidence — iOS
+      entitlement-blocks extension recording. Wave 2 parked in the survey
+      (E1 unified sheet, enrichment, podcasts ⭐, in-app voice-annotate,
+      PDF text-inline, drag attachments)."
     shipped:
       - >-
         2026-07-10 · Chunks 1–3 — audio branch before url, importAudioClips
         merge, activation counts 10, feedback states, Skrift Dev label
         [827965f 394a916 3371fb1]
+      - >-
+        2026-07-10 · Device rounds 1–4 (builds 60→63) — file-url exclusion
+        (PDF fix), clip dates + stable chat order, sample-accurate merge
+        (phantom-tail kill), photos inline via editorPage, clip list scrolls,
+        dictation retired on mediaserverd evidence [227861f e02d75b 18da97a]
 
   - id: RecHard
     title: Recording hardening + heat diet
