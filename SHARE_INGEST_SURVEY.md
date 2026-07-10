@@ -5,9 +5,10 @@ current behavior + bugs (A), multi-item (B), link enrichment (C), new input type
 cross-cutting UX/architecture (E). Bugs verified against build-51 source.
 
 **2026-07-10 — Tuur's verdict pass done (voice review), verdicts in the last column.**
-**Round 2 same day:** A1/A11/A12/C4 confirmed GO; D1 moved to *not sure yet*.
-GO wave is large; **skip** D2; **already live** D3; **still pending a final call**:
-C1 (captions rejected outright), C2, D1, D5, D6, B4.
+**Round 2 same day:** A1/A11/A12/C4 confirmed GO; D5 SKIPPED; D6 GO (Wave 2);
+D1 PARKED for the Books/Journal design chat. **Still pending:** C1 (captions
+rejected outright), C2, B4. **Wave 1 scope locked:** A7 + A11 + B1/B2 + A12/E3
++ A15/A16 on the IngestKit skeleton (E5); mock-first, rebase on main at kickoff.
 
 Status: ✅ works · 🚧 partial/risky · 🐛 bug · 💡 new idea · 📐 policy/architecture
 
@@ -55,12 +56,12 @@ Status: ✅ works · 🚧 partial/risky · 🐛 bug · 💡 new idea · 📐 pol
 
 | ID | Item | Status | Idea | Effort | Verdict (Tuur, 2026-07-10) |
 |----|------|--------|------|--------|----------------|
-| D1 | **Book quotes** (Apple Books / Kindle share) | 💡 | Arrive as text with attribution — detect the format → structured quote note (quote + book + author), twin of the audiobook quote-captures. ~~Highlights tab~~ — **doesn't exist**: tabs are Notes · Books · Journal · Settings; Highlights-style features land INSIDE Journal (AppTabView.swift:11). A per-book quotes view is NOT built today — would live in Journal or the book detail | S–M | **PENDING — "not sure yet"** (r2). Per-book quotes view stays an open design question for the Journal/Books chats |
+| D1 | **Book quotes** (Apple Books / Kindle share) | 💡 | Arrive as text with attribution — detect the format → structured quote note (quote + book + author), twin of the audiobook quote-captures. ~~Highlights tab~~ — **doesn't exist**: tabs are Notes · Books · Journal · Settings; Highlights-style features land INSIDE Journal (AppTabView.swift:11). A per-book quotes view is NOT built today — would live in Journal or the book detail | S–M | **PARKED** (r2) — decide together with the per-book quotes view in the Books/Journal design chat |
 | D2 | **Contact (vCard) → Names DB** | 💡 | Share a contact → new person in names.json | S | **SKIP** — real contacts have weird names; the Names DB wants proper first+last for clarity |
 | D3 | **OCR shared images** | ✅ | **Already live (verified 2026-07-10):** the drainer gives shared images an `imageManifest`; `PhotoTextIndexer` sweeps all manifests on launch/foreground → OCR text lands in the synced metadata and memos search reads it. User was right. (Shared *PDFs* remain the OCR gap — that's A6) | — | Already done — no work |
 | D4 | **.md / .txt files → note body** | 💡 | A shared text file becomes the note *content*, not a file card | S | **GO** — "that's a good one" |
-| D5 | **Calendar event (.ics) → meeting scaffold** | 💡 | Plain words: share a calendar invite/event into Skrift → it creates a note pre-filled with the meeting title, time, and attendee names (already linked to your people DB), ready for you to ramble the debrief into | M | **PENDING** — didn't parse the pitch; explained in chat, awaiting call |
-| D6 | **Location (Maps share) → place-tagged note** | 💡 | Plain words: share a place from Apple/Google Maps → a note anchored to that place (name + pin), like the location chip your recorded memos already get — "note about this restaurant/spot" | S | **PENDING** — "sounds interesting"; explained in chat, awaiting call |
+| D5 | **Calendar event (.ics) → meeting scaffold** | 💡 | Plain words: share a calendar invite/event into Skrift → it creates a note pre-filled with the meeting title, time, and attendee names (already linked to your people DB), ready for you to ramble the debrief into | M | **SKIP for now** (r2 — twice unclear = not a real itch; revisit if ever missed) |
+| D6 | **Location (Maps share) → place-tagged note** | 💡 | Plain words: share a place from Apple/Google Maps → a note anchored to that place (name + pin), like the location chip your recorded memos already get — "note about this restaurant/spot" | S | **GO — Wave 2** (r2, after walkthrough) |
 | D7 | **Telegram / Signal voice notes** | 💡 | Free once A7 lands (Signal's odd UTIs already half-handled in project.yml) | XS | **GO — important** |
 | D8 | **In-app Files importer for audio (+ video)** | 💡 | Today there's NO in-app way to import an audio file; video picker is Photos-only. A Files picker closes the gap without relying on share-sheet mechanics | S | **GO — important** |
 
