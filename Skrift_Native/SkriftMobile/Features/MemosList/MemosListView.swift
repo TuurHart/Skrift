@@ -606,6 +606,10 @@ struct MemosListView: View {
     /// Debounced semantic lookup for the current query (P8). Exact matches
     /// never wait on this — it fills the Related section in async.
     private func scheduleRelated() {
+        // Engine load starts at the FIRST keystroke, not after the debounce —
+        // a cold load is minutes on device (devlog 2026-07-08), so every
+        // head-start counts. No-op when warm or when the index is off.
+        if !search.isEmpty { JournalIndexService.shared.warmUp() }
         searchTask?.cancel()
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 250_000_000)
@@ -626,7 +630,6 @@ struct MemosListView: View {
             if !related.isEmpty { related = [] }
             return
         }
-        JournalIndexService.shared.warmUp()
         let scores = await JournalIndexService.shared.searchScores(q, repository: repository)
         guard !Task.isCancelled, q == search.trimmingCharacters(in: .whitespaces) else { return }
         let byID = Dictionary(uniqueKeysWithValues: memos.map { ($0.id, $0) })
