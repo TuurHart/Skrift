@@ -304,12 +304,16 @@ targets:
             NSExtensionActivationRule:
               NSExtensionActivationSupportsWebURLWithMaxCount: 1
               NSExtensionActivationSupportsText: true
-              NSExtensionActivationSupportsImageWithMaxCount: 1
+              # Multi-select (A11, 2026-07-10 Wave-1): 10 images / 10 files (the
+              # WhatsApp multi-voice-note case rides the FILE count — audio
+              # attachments activate as files). Below max-1, Skrift VANISHED from
+              # the share sheet the moment 2+ items were selected. Movie stays 1.
+              NSExtensionActivationSupportsImageWithMaxCount: 10
               NSExtensionActivationSupportsMovieWithMaxCount: 1
               # PDF/document share (2026-06-21) — xcodegen GENERATES this plist from
               # project.yml, so the activation rule MUST live here (a direct edit to
               # SkriftShare/Info.plist is clobbered on the next `xcodegen generate`).
-              NSExtensionActivationSupportsFileWithMaxCount: 1
+              NSExtensionActivationSupportsFileWithMaxCount: 10
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1"

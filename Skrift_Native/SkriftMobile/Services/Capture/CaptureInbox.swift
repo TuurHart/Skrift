@@ -20,6 +20,8 @@ struct CaptureInboxEntry: Codable {
     /// Plain-text content for text-type captures.
     let text: String?
     /// Filename (relative to the inbox folder) for the accompanying image, when type == "image".
+    /// LEGACY single-image field — kept so old pending entries decode; new writes
+    /// still set it to the FIRST image (the capture detail + Mac read it).
     let imageFileName: String?
     /// MIME type for image captures, e.g. "image/jpeg".
     let mimeType: String?
@@ -40,11 +42,18 @@ struct CaptureInboxEntry: Codable {
     /// `MemoSaver.importVideo` — it becomes a normal voice memo (audio + a frame
     /// thumbnail + transcribe), NOT a capture item. Optional so older entries decode.
     var videoFileName: String? = nil
-    /// Filename (relative to the entry folder) of a shared AUDIO file (WhatsApp
-    /// voice note / Voice Memos / Files). The MAIN APP imports it on drain via
-    /// `MemoSaver.importAudio` — a normal transcribed memo, NOT a capture item
-    /// (the i4 fix; was a link/file card). Optional so older entries decode.
-    var audioFileName: String? = nil
+    /// Filenames (relative to the entry folder) of shared AUDIO clips (WhatsApp
+    /// voice notes / Voice Memos / Files), in play order. ONE entry with N names
+    /// = the B1 "combine into one note" flow (clips merged, one transcript);
+    /// N split notes arrive as N separate single-name entries. The MAIN APP
+    /// imports on drain via `MemoSaver.importAudioClips` — a normal transcribed
+    /// memo, NOT a capture item (the i4 fix; was a link/file card). Flat
+    /// [String] (Codable-safe); optional so older entries decode.
+    var audioFileNames: [String]? = nil
+    /// Filenames (relative to the entry folder) of the images of a MULTI-photo
+    /// capture (B2 — multiple photos always combine into one note), in order.
+    /// Single-image entries keep using the legacy `imageFileName`.
+    var imageFileNames: [String]? = nil
     /// Filename (relative to the entry folder) of a shared DOCUMENT (e.g. a PDF
     /// shared from Files/Books). The MAIN APP persists it into the recordings dir on
     /// drain → a `.file` capture. Optional so older entries decode.
@@ -115,7 +124,7 @@ enum CaptureInbox {
     @discardableResult
     static func write(_ entry: CaptureInboxEntry, imageData: Data? = nil, dictationData: Data? = nil,
                       videoFileURL: URL? = nil, fileSourceURL: URL? = nil,
-                      audioFileURL: URL? = nil) -> Bool {
+                      audioFileURLs: [URL]? = nil, imageDatas: [Data]? = nil) -> Bool {
         guard let inbox = inboxURL else { return false }
         let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
         do {
@@ -125,6 +134,12 @@ enum CaptureInbox {
             if let imageData, let name = entry.imageFileName {
                 let imageURL = entryDir.appendingPathComponent(name)
                 try imageData.write(to: imageURL, options: .atomic)
+            }
+            // Multi-photo capture (B2): write every image, names aligned by index.
+            if let imageDatas, let names = entry.imageFileNames {
+                for (data, name) in zip(imageDatas, names) {
+                    try data.write(to: entryDir.appendingPathComponent(name), options: .atomic)
+                }
             }
             if let dictationData, let name = entry.dictationFileName {
                 let audioURL = entryDir.appendingPathComponent(name)
@@ -137,11 +152,14 @@ enum CaptureInbox {
                 try? FileManager.default.removeItem(at: destURL)
                 try FileManager.default.copyItem(at: videoFileURL, to: destURL)
             }
-            // Shared audio (voice note): COPY the file in (same memory rationale as video).
-            if let audioFileURL, let name = entry.audioFileName {
-                let destURL = entryDir.appendingPathComponent(name)
-                try? FileManager.default.removeItem(at: destURL)
-                try FileManager.default.copyItem(at: audioFileURL, to: destURL)
+            // Shared audio clip(s): COPY the files in (same memory rationale as
+            // video), names aligned to `audioFileNames` by index.
+            if let audioFileURLs, let names = entry.audioFileNames {
+                for (src, name) in zip(audioFileURLs, names) {
+                    let destURL = entryDir.appendingPathComponent(name)
+                    try? FileManager.default.removeItem(at: destURL)
+                    try FileManager.default.copyItem(at: src, to: destURL)
+                }
             }
             // Shared document (PDF/etc.): COPY the file in (same memory rationale as video).
             if let fileSourceURL, let name = entry.fileName {
@@ -205,10 +223,16 @@ enum CaptureInbox {
         return entryDir.appendingPathComponent(name)
     }
 
-    /// Resolve the on-disk URL of a shared audio file, when present.
-    static func audioURL(for entry: CaptureInboxEntry, entryDir: URL) -> URL? {
-        guard let name = entry.audioFileName else { return nil }
-        return entryDir.appendingPathComponent(name)
+    /// Resolve the on-disk URLs of a shared audio entry's clips (play order).
+    static func audioURLs(for entry: CaptureInboxEntry, entryDir: URL) -> [URL] {
+        (entry.audioFileNames ?? []).map { entryDir.appendingPathComponent($0) }
+    }
+
+    /// Resolve the on-disk URLs of an image entry's photos, in order — the
+    /// multi-photo names when present, else the legacy single image.
+    static func imageURLs(for entry: CaptureInboxEntry, entryDir: URL) -> [URL] {
+        let names = entry.imageFileNames ?? entry.imageFileName.map { [$0] } ?? []
+        return names.map { entryDir.appendingPathComponent($0) }
     }
 
     // MARK: - Delete (called by the drain, only AFTER the Memo is saved)

@@ -94,6 +94,94 @@ struct MemoSaver {
         return id
     }
 
+    // MARK: - Multi-clip audio import (Wave-1 B1 combine)
+
+    /// Import N audio clips shared TOGETHER as ONE memo — the "8 WhatsApp voice
+    /// notes → one note" flow (mock `share-ingest-wave1.html`, signed 2026-07-10).
+    /// A single clip delegates to `importAudio`. Multiple clips: a placeholder
+    /// memo appears immediately (same pattern as `importVideo`), then the clips
+    /// are MERGED IN ORDER into one m4a off the UI and the merged file is
+    /// transcribed once — one continuous transcript/karaoke, exactly like an
+    /// audiobook capture + ramble. Returns the memo id, nil for an empty list.
+    @discardableResult
+    func importAudioClips(from sources: [URL]) -> UUID? {
+        guard !sources.isEmpty else { return nil }
+        if sources.count == 1 { return importAudio(from: sources[0]) }
+
+        let id = UUID()
+        let filename = "memo_\(id.uuidString).m4a"
+        repository.insert(Memo(
+            id: id,
+            audioFilename: filename,
+            duration: 0,
+            syncStatus: .waiting,
+            transcriptStatus: .transcribing
+        ))
+        DevLog.log("importAudioClips: placeholder memo \(id) inserted; clips=\(sources.count)")
+        Task { await importAudioClipsAsync(id: id, sources: sources) }
+        return id
+    }
+
+    /// Awaitable core of `importAudioClips` (used directly by tests): merge the
+    /// clips into the memo's m4a, set the duration, transcribe. Returns true when
+    /// the merge succeeded. Unreadable clips are skipped (logged); if NONE are
+    /// readable the memo fails honestly with a reason title, never a silent husk.
+    @discardableResult
+    func importAudioClipsAsync(id: UUID, sources: [URL]) async -> Bool {
+        let dest = AppPaths.recordingsDirectory.appendingPathComponent("memo_\(id.uuidString).m4a")
+        do {
+            try await Self.mergeAudio(sources: sources, to: dest)
+        } catch {
+            DevLog.log("importAudioClips[\(id)] merge failed: \(error)")
+            if let memo = repository.memo(id: id) {
+                memo.transcriptStatus = .failed
+                memo.title = "Couldn't read the shared audio"
+                repository.save()
+            }
+            return false
+        }
+        for src in sources { try? FileManager.default.removeItem(at: src) }
+
+        var duration: TimeInterval = 0
+        if let f = try? AVAudioFile(forReading: dest) {
+            duration = Double(f.length) / f.fileFormat.sampleRate
+        }
+        DevLog.log("importAudioClips[\(id)] merged ok; duration=\(String(format: "%.1f", duration))s")
+        guard let memo = repository.memo(id: id) else { return true }
+        memo.duration = duration
+        repository.save()
+        await runTranscription(id: id)
+        return true
+    }
+
+    /// Concatenate the audio of `sources` (in array order) into a single m4a at
+    /// `dest`. Unreadable clips are skipped; throws when none contribute audio.
+    private static func mergeAudio(sources: [URL], to dest: URL) async throws {
+        let comp = AVMutableComposition()
+        guard let track = comp.addMutableTrack(withMediaType: .audio,
+                                               preferredTrackID: kCMPersistentTrackID_Invalid) else {
+            throw VideoImportError.exportFailed
+        }
+        var cursor = CMTime.zero
+        for src in sources {
+            let asset = AVURLAsset(url: src)
+            guard let audioTrack = (try? await asset.loadTracks(withMediaType: .audio))?.first,
+                  let d = try? await asset.load(.duration) else {
+                DevLog.log("mergeAudio: skipping unreadable clip \(src.lastPathComponent)")
+                continue
+            }
+            try track.insertTimeRange(CMTimeRange(start: .zero, duration: d), of: audioTrack, at: cursor)
+            cursor = CMTimeAdd(cursor, d)
+        }
+        guard cursor > .zero else { throw VideoImportError.noAudioTrack }
+
+        guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
+            throw VideoImportError.exportFailed
+        }
+        try? FileManager.default.removeItem(at: dest)
+        try await export.export(to: dest, as: .m4a)
+    }
+
     // MARK: - Video import (extract audio + 1 frame thumbnail)
 
     /// Import a VIDEO shared into Skrift / picked from Photos (e.g. a self-recorded

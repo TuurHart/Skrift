@@ -41,11 +41,11 @@ final class ShareViewController: UIViewController {
         // Load the share payload asynchronously and then present the sheet — or,
         // for a shared video, skip the sheet and import it as a voice memo.
         // Audio DOES get the sheet (slim: card + significance, no ramble —
-        // signed mock share-ingest-wave1.html state 1).
+        // signed mock share-ingest-wave1.html state 1; 2+ clips add the chooser).
         Task { @MainActor in
             let payload = await SharePayloadLoader.load(from: extensionContext)
             if payload.isAudio {
-                if payload.audioURL != nil { presentSheet(payload: payload) } else { cancel() }
+                if !payload.audioItems.isEmpty { presentSheet(payload: payload) } else { cancel() }
             } else if payload.isVideo {
                 completeVideo(payload)
             } else if payload.type == .file, payload.fileURL != nil {
@@ -59,11 +59,9 @@ final class ShareViewController: UIViewController {
     private func presentSheet(payload: SharePayload) {
         let sheet = ShareSheetView(
             payload: payload,
-            onSave: { [weak self] entry, imageData, dictationData in
-                // For an audio share the sheet's entry carries `audioFileName`;
-                // hand the extension-temp copy along so the inbox write can copy it.
-                self?.complete(entry: entry, imageData: imageData, dictationData: dictationData,
-                               audioFileURL: entry.audioFileName != nil ? payload.audioURL : nil)
+            onSave: { [weak self] entries, imageDatas, dictationData in
+                self?.complete(entries: entries, imageDatas: imageDatas,
+                               dictationData: dictationData, payload: payload)
             },
             onCancel: { [weak self] in
                 self?.cancel()
@@ -93,13 +91,27 @@ final class ShareViewController: UIViewController {
 
     // MARK: - Completion
 
-    private func complete(entry: CaptureInboxEntry, imageData: Data?, dictationData: Data?,
-                          audioFileURL: URL? = nil) {
-        CaptureInbox.write(entry, imageData: imageData, dictationData: dictationData,
-                           audioFileURL: audioFileURL)
-        if let audioFileURL {
-            try? FileManager.default.removeItem(at: audioFileURL)   // copied into the inbox now
+    /// Write every entry the sheet produced (1 for most shares; N for the
+    /// audio-split choice). Audio temp files map to entries by index: one entry
+    /// takes ALL clips (combine), N entries take one clip each (split).
+    private func complete(entries: [CaptureInboxEntry], imageDatas: [Data],
+                          dictationData: Data?, payload: SharePayload) {
+        for (i, entry) in entries.enumerated() {
+            var audioFileURLs: [URL]?
+            if let names = entry.audioFileNames, !names.isEmpty {
+                if entries.count == 1 {
+                    audioFileURLs = payload.audioItems.map(\.url)
+                } else if i < payload.audioItems.count {
+                    audioFileURLs = [payload.audioItems[i].url]
+                }
+            }
+            CaptureInbox.write(entry,
+                               dictationData: i == 0 ? dictationData : nil,
+                               audioFileURLs: audioFileURLs,
+                               imageDatas: entry.imageFileNames != nil ? imageDatas : nil)
         }
+        // Everything is copied into the inbox now — drop the extension-temp files.
+        for item in payload.audioItems { try? FileManager.default.removeItem(at: item.url) }
         extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
     }
 

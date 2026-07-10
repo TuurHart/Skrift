@@ -1630,20 +1630,25 @@ private struct MemoPageView: View {
                     RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
                 )
                 .accessibilityIdentifier("capture-image-embed")
-        } else if let manifest = memo.metadata?.imageManifest?.first {
-            // Fallback: look up via the image manifest (the drain copies the image
-            // to the recordings dir under the manifest filename).
-            let manifestURL = AppPaths.recordingsDirectory.appendingPathComponent(manifest.filename)
-            if let img = UIImage(contentsOfFile: manifestURL.path) {
-                Image(uiImage: img)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity)
-                    .clipShape(.rect(cornerRadius: Theme.Radius.card, style: .continuous))
-                    .overlay(
-                        RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
-                    )
-                    .accessibilityIdentifier("capture-image-embed")
+        } else if let manifest = memo.metadata?.imageManifest, !manifest.isEmpty {
+            // Look up via the image manifest (the drain copies the images to the
+            // recordings dir under the manifest filenames). A multi-photo share
+            // (B2 — always one note) stacks EVERY photo in order.
+            VStack(spacing: 8) {
+                ForEach(manifest, id: \.filename) { entry in
+                    let manifestURL = AppPaths.recordingsDirectory.appendingPathComponent(entry.filename)
+                    if let img = UIImage(contentsOfFile: manifestURL.path) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity)
+                            .clipShape(.rect(cornerRadius: Theme.Radius.card, style: .continuous))
+                            .overlay(
+                                RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
+                            )
+                            .accessibilityIdentifier("capture-image-embed")
+                    }
+                }
             }
         }
     }
