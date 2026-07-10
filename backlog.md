@@ -200,8 +200,31 @@ installs work: devicectl + CoreDevice, no cable). Sim suite 599/599 green.
    load task, single-load verified on 59 (`70c3714`). DESIGN QUESTION for Tuur: 42s is long
    enough that the first search of a session shows an empty Related section for ~a minute — a
    quiet "warming up…" row would make it honest (mock-first when picked up).
-3. ⬜ **Crashes (build ~53)** — pull crash logs over USB (`idevicecrashreport -e`, needs cable;
-   wifi doesn't work for it). Suspect list open; possibly the same view-churn storm.
+3. ✅ **Crashes CLOSED 2026-07-10 — logs pulled over USB (153 reports, kept on device). Four
+   classes, all explained:**
+   - **3× Jul-8 10:12–10:15 (build 53) — the ones Tuur reported**: `swift_abortAllocationFailure`
+     OOM aborts inside the embedder's tokenizer parse (`BPETokenizer.init` / YYJSONParser over the
+     31.8MB tokenizer.json), on the cooperative pool while typing searches. Same root system as
+     triage item 2 — crash pid 26017 IS the devlog's sick session (crash → relaunch → lazy-pager
+     opens = how the "truncation" kept being seen). The 58/59 fixes attack it directly:
+     single-flight load (the reentrancy DOUBLE-load meant two concurrent parses), 10-min hold
+     (fewer cold parses), first-keystroke warmup. If OOM recurs on ≥59: next step is a
+     tokenizer-load memory diet (serialize parse, release intermediates) — CoreML-LLM side.
+   - **1× Jul-7 18:00 (build 39) — reminder-tap assert, FIXED build 60 (`2593da3`)**: async
+     UNUserNotificationCenter delegate on a nonisolated class resumed UIKit's completion on the
+     cooperative pool → state-restoration snapshot ran off-main → main-thread assert. Delegate now
+     @MainActor. Fix by construction; repro (lock-screen reminder tap while snapshotting) is
+     impractical — watch.
+   - **2× Jul-7 22:07/22:08 (build 48) — RUNNINGBOARD 0xDEAD10CC** (held DB/file lock across
+     suspension), books/recording-lane era PRE-hardening; zero recurrence in builds 52–57 (Jul 8)
+     after PR #10's recording hardening. WATCH: if it returns, suspect the app-group SwiftData
+     store being written at suspension.
+   - **1× Jul-7 14:26 (build 35)** — iOS-26 CoreAutoLayout exception inside the system
+     keyboard-cursor-accessory (`_UICursorAccessoryHostView`), during the accessory-bar round;
+     accessory work landed builds 36+; no recurrence. Watch-only.
+   - Jetsam Jul-9: Skrift appears only as `idle-exit` (benign). Older `.diskwrites_resource`
+     (Jun 14/26) + `.cpu_resource` (Jun 21) reports predate the current architecture — noted, not
+     chased.
 4. ⬜ Wall: Tuur's office print test → REMIND: re-pick the HOME printer after (saved printer IS
    the wall). First physical card = design round on paper.
 5. ⬜ Then: vault lens (after Tuur's iCloud vault move; incl. title-linking design above),
