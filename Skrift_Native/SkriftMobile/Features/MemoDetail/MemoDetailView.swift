@@ -405,11 +405,16 @@ private struct MemoPageView: View {
     @State private var undoToast: NameUndoToast?
     @State private var personSheet: PersonSheetRequest?
     @State private var showPeopleSheet = false
-    // Phase 4 — the Mac's polish (CloudKit write-back), shown as the editable body.
-    @State private var enhancement: MemoEnhancement?
+    // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
+    // A LIVE @Query, not @State + .task: the pager's LazyHStack can realize a page
+    // during a programmatic scroll WITHOUT delivering its appear events (devlog-proven
+    // on device: search-result opens never ran the .task, so the body stayed RAW —
+    // the 2026-07-10 "truncated transcript" P0). @Query renders right on the first
+    // body eval and live-updates when a polish arrives over CloudKit, which also
+    // retires the onChange(sync.isSyncing) refetch hack.
+    @Query private var enhancements: [MemoEnhancement]
     @State private var showTitleChooser = false
     @FocusState private var titleFocused: Bool
-    @ObservedObject private var sync = CloudSyncMonitor.shared
 
     /// Name spans over the active body — MEMOIZED (@State) and recomputed off-main
     /// only when the text / roster / resolutions actually change. (Was an uncached
@@ -439,6 +444,17 @@ private struct MemoPageView: View {
 
     @ObservedObject private var lockGate = LockGate.shared
 
+    init(memo: Memo, player: AudioPlayerModel, isCurrent: Bool = true,
+         onOpenMemo: @escaping (UUID) -> Void = { _ in }) {
+        self.memo = memo
+        self.player = player
+        self.isCurrent = isCurrent
+        self.onOpenMemo = onOpenMemo
+        let id = memo.id
+        _enhancements = Query(filter: #Predicate<MemoEnhancement> { $0.memoID == id },
+                              sort: \MemoEnhancement.enhancedAt, order: .reverse)
+    }
+
     var body: some View {
         // Note-editing overhaul (spec mocks/note-editor-redesign.html): B2 pinned
         // title above every page kind; monologue memos (incl. audiobook captures +
@@ -459,20 +475,15 @@ private struct MemoPageView: View {
         .task(id: memo.id) {
             timings = WordTimingsStore().load(for: memo.id) ?? []
             people = NamesStore.shared.livePeople()
-            enhancement = repository.enhancement(forMemo: memo.id)
             recomputeSpans()
             recomputeBacklinks()
             await loadRelated()
         }
         // The arc of this idea (P8) — from the Related card's CTA.
         .sheet(isPresented: $showThreadSheet) { ThreadView(seedID: memo.id) }
-        // A polish can arrive via CloudKit after the screen opens — re-fetch when a sync settles.
-        .onChange(of: sync.isSyncing) { _, syncing in
-            if !syncing {
-                enhancement = repository.enhancement(forMemo: memo.id)
-                recomputeSpans()
-            }
-        }
+        // A polish can arrive/change via CloudKit while the screen is open — the
+        // @Query updates the body live; re-derive the name tiers over the new text.
+        .onChange(of: macPolish?.copyedit) { _, _ in recomputeSpans() }
         // Transcript can change outside the editor (transcription lands, append,
         // speaker edits) — re-derive the tiers.
         .onChange(of: memo.transcript) { _, _ in recomputeSpans() }
@@ -1153,10 +1164,11 @@ private struct MemoPageView: View {
 
     // MARK: - Mac polish (Phase 4)
 
-    /// The Mac's polish to SHOW — only for an ordinary monologue voice memo (captures keep
+    /// The polish to SHOW — only for an ordinary monologue voice memo (captures keep
     /// their quote block; conversations route to `SpeakerTurnsView`). nil = show raw.
+    /// Newest `enhancedAt` first via the @Query sort — mirrors `repository.enhancement`.
     private var macPolish: MemoEnhancement? {
-        guard let e = enhancement, e.hasContent,
+        guard let e = enhancements.first, e.hasContent,
               !memo.isShareCapture, memo.captureQuote == nil,
               SpeakerTranscript.parse(memo.transcript) == nil else { return nil }
         return e
