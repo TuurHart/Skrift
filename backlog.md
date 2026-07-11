@@ -207,7 +207,10 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    on drain + all three import transcriptions (Scribbel pattern). **Track B mock
    `mocks/share-ingest-wave2.html` AWAITS SIGN-OFF** (4 states: E1 video · E1 PDF ·
    PDF text-in-note collapsed/expanded · voice-annotate idle/recording/after; open
-   questions printed on the panels). **NEXT: device round (build 64+)** — checklist:
+   questions printed on the panels). **BUILD 64 INSTALLED on the phone 2026-07-11**
+   (freshness strings-verified: Wave-2 symbols in the dylib, app+extension plists = 64).
+   **NEXT: Tuur runs the device checklist** — user hands required, share sheet isn't
+   sim-testable:
    pdf-link share → real PDF · Maps share → place chip · .md share → body · photo
    share → EXIF date · 1h+ audio → Books chooser · Files import menu · import pill
    on a big movie · avi share → honest error · open-in jumps to the note. KNOWN GAP
