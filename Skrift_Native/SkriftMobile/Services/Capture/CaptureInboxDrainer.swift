@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import PDFKit
 import SwiftData
 
 /// Observable pending-share state for the UI (A14): non-zero while the drainer is
@@ -264,6 +265,27 @@ enum CaptureInboxDrainer {
             if copied {
                 sharedContent = SharedContent(type: .file, filePath: destName,
                                               fileName: entry.fileDisplayName, mimeType: entry.mimeType)
+            }
+        }
+
+        // A6: shared PDFs get their embedded text extracted on drain into
+        // sharedContent.text → searchable like doc-scans (which OCR via the photo
+        // pipeline). Covers the C5 download too. A scanned (image-only) PDF yields
+        // nothing and stays findable by filename. Capped so a book-length PDF
+        // doesn't bloat the synced record; nothing renders this text — the .file
+        // detail card / inline PDF stays as is.
+        if sharedContent.type == .file, let rel = sharedContent.filePath,
+           rel.lowercased().hasSuffix(".pdf") {
+            let pdfURL = AppPaths.recordingsDirectory.appendingPathComponent(rel)
+            let extracted = await offMain { () -> String? in
+                guard let doc = PDFDocument(url: pdfURL),
+                      let s = doc.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      !s.isEmpty else { return nil }
+                return String(s.prefix(120_000))
+            }
+            if let extracted {
+                sharedContent.text = extracted
+                DevLog.log("drain: pdf text extracted for \(entry.id) (\(extracted.count) chars)")
             }
         }
 

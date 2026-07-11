@@ -1,4 +1,5 @@
 import AVFoundation
+import UIKit
 import XCTest
 @testable import SkriftMobile
 
@@ -261,6 +262,45 @@ final class AudioShareDrainTests: XCTestCase {
         let memo = repo.memo(id: id)
         XCTAssertEqual(memo?.sharedContent?.type, .file, "undecodable text stays a document")
         if let fileURL = memo?.sharedFileURL { try? FileManager.default.removeItem(at: fileURL) }
+    }
+
+    /// A6: a shared PDF's embedded text is extracted on drain into
+    /// sharedContent.text — the memo becomes full-text searchable (MemoDisplay
+    /// .matches already reads that field).
+    @MainActor
+    func testSharedPdfTextExtractedAndSearchable() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        // A real PDF with real text (CoreText-drawn → embedded, not rasterized).
+        let pdfURL = FileManager.default.temporaryDirectory.appendingPathComponent("pdf_\(UUID().uuidString).pdf")
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792))
+        let data = renderer.pdfData { ctx in
+            ctx.beginPage()
+            ("Quarterly synergy flamingo report" as NSString)
+                .draw(at: CGPoint(x: 72, y: 72), withAttributes: [.font: UIFont.systemFont(ofSize: 14)])
+        }
+        try data.write(to: pdfURL)
+        defer { try? FileManager.default.removeItem(at: pdfURL) }
+
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "file", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: "application/pdf",
+            annotationText: nil, significance: 0,
+            sharedAt: ISO8601.string(from: Date()),
+            fileName: "file_\(id.uuidString).pdf",
+            fileDisplayName: "report.pdf")
+        XCTAssertTrue(CaptureInbox.write(entry, fileSourceURL: pdfURL))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let memo = try XCTUnwrap(repo.memo(id: id))
+        XCTAssertEqual(memo.sharedContent?.type, .file)
+        XCTAssertTrue(memo.sharedContent?.text?.contains("flamingo") == true,
+                      "PDF text extracted into sharedContent.text")
+        XCTAssertTrue(memo.matches(query: "flamingo"), "shared PDF is now searchable")
+        if let f = memo.sharedFileURL { try? FileManager.default.removeItem(at: f) }
     }
 
     /// A14 pending indicator: after a drain the published count is back to zero
