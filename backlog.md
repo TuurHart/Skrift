@@ -209,13 +209,24 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    PDF text-in-note collapsed/expanded · voice-annotate idle/recording/after; open
    questions printed on the panels). **BUILD 64 INSTALLED on the phone 2026-07-11**
    (freshness strings-verified: Wave-2 symbols in the dylib, app+extension plists = 64).
-   **NEXT: Tuur runs the device checklist** — user hands required, share sheet isn't
-   sim-testable:
-   pdf-link share → real PDF · Maps share → place chip · .md share → body · photo
-   share → EXIF date · 1h+ audio → Books chooser · Files import menu · import pill
-   on a big movie · avi share → honest error · open-in jumps to the note. KNOWN GAP
-   (pre-existing, logged): the phone's OWN Obsidian publish never copies images for
-   ANY photo memo — Mac stays the attachment exporter.
+   → **✅ DRAIN HALF DEVICE-VERIFIED 2026-07-11 (USB, no hands needed):** staged 6
+   crafted inbox entries into the app-group container over devicectl, launched the
+   app, verified via devlog + pulled SwiftData store + library.json — C5 ✅ REAL
+   network download ON the phone (w3.org dummy.pdf → file capture) · A6 ✅ its text
+   extracted on-device (sc.text='Dummy PDF file') · D6 ✅ place parsed
+   (location{38.7223,-9.1393,'Hotel Du Vin'} + urlTitle fallback) · D4 ✅ .md → body
+   (ramble + file text in order, sc.type=text, provenance fileName kept) · A4 ✅
+   recordedAt=2026-07-02 = EARLIEST photo date, not share time (2-photo manifest +
+   markers) · A9 ✅ garbage .avi → title 'Video format not supported' · E2 ✅ audio
+   routed to the Books library (book in library.json) · A14 ✅ drain visibly
+   interleaves off-main (pdf download logged mid-video-import). Test junk on the
+   phone: 6 notes + 1 'shared import 402AD…' book — delete at will.
+   **REMAINS FOR TUUR (extension/UI half, ~3 min):** share-sheet entries from real
+   apps (Safari pdf-link · Maps · Files .md · Photos w/ EXIF · 1h+ audio → Books
+   CHOOSER visible) · header import menu eyeball · import pill on a big movie ·
+   open-in jump lands on the note. KNOWN GAP (pre-existing, logged): the phone's
+   OWN Obsidian publish never copies images for ANY photo memo — Mac stays the
+   attachment exporter.
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →
