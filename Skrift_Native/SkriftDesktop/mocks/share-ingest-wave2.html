@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift — share-ingest Wave 2 (unified sheet · PDF text · voice-annotate)</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130; --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:124 107 245; --acc:#7c6bf5; --amber:#f59e0b; --green:#34d399; --blue:#60a5fa;
+    --red:#f87171; --bd:255 255 255;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica Neue,Arial,sans-serif;
+    background:#000;color:var(--t1);-webkit-font-smoothing:antialiased;padding:30px 26px 80px;font-size:13px;line-height:1.5}
+  h1{font-size:15px;font-weight:600;margin:0 auto 4px;max-width:1120px}
+  .sub{font-size:12px;color:var(--t2);max-width:1120px;margin:0 auto 18px;line-height:1.55}
+  .sub b{color:var(--t1);font-weight:600}
+  .sub .q{color:var(--acc);font-weight:600}
+
+  /* ── mode bar ── */
+  .modebar{max-width:1120px;margin:0 auto 24px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .mlab{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-right:3px}
+  .mode{font-size:11.5px;padding:4px 12px;border-radius:7px;border:.5px solid rgb(var(--bd)/.12);
+    background:rgb(var(--bd)/.04);color:var(--t2);cursor:pointer}
+  .mode:hover{color:var(--t1)}
+  .mode.on{background:rgb(var(--accent)/.14);border-color:rgb(var(--accent)/.35);color:var(--acc)}
+
+  .stage{max-width:1120px;margin:0 auto}
+  .panelset{display:none}
+  .panelset.on{display:flex;gap:26px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+  .phead{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+  .pnote{width:390px;font-size:11.5px;color:var(--t2);line-height:1.55;margin-top:12px}
+  .pnote b{color:var(--t1);font-weight:600}
+  .pnote .q{color:var(--acc);font-weight:600}
+
+  /* ── phone frame (390px idiom) ── */
+  .mobwrap{width:390px;flex:none}
+  .phone{background:var(--bg);border:.5px solid rgb(var(--bd)/.1);border-radius:34px;padding:16px 16px 26px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);position:relative;overflow:hidden}
+  .island{width:96px;height:24px;border-radius:13px;background:#000;margin:0 auto 14px;position:relative;z-index:3}
+
+  /* dimmed host app behind the sheet */
+  .chat{padding:2px 6px 0;opacity:.5;filter:saturate(.55)}
+  .chat .cbar{height:26px;border-radius:9px;background:var(--elev);margin-bottom:12px;display:flex;align-items:center;
+    gap:7px;padding:0 10px;font-size:11px;color:var(--t3)}
+  .chat .cbar .av{width:16px;height:16px;border-radius:50%;background:rgb(96 165 250/.35);flex:none}
+  .thumbrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:6px}
+  .thumb{height:64px;border-radius:8px;background:linear-gradient(135deg,#2b3350,#1a2138)}
+  .thumb.v{position:relative}
+  .thumb.v::after{content:"▶";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:rgb(255 255 255/.7);font-size:15px}
+  .thumb.sel{outline:2px solid var(--acc);outline-offset:1px}
+  .filerow{display:flex;align-items:center;gap:9px;border-radius:9px;background:rgb(var(--bd)/.05);padding:9px 10px;
+    font-size:11px;color:var(--t2);margin-bottom:6px}
+  .filerow .fic{width:26px;height:26px;border-radius:6px;background:rgb(248 113 113/.16);color:var(--red);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800}
+  .filerow.sel{outline:2px solid var(--acc);outline-offset:1px}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.45);border-radius:34px;z-index:1}
+
+  /* ── the sheet ── */
+  .sheet{position:relative;z-index:2;margin:14px -4px 0;background:#1b1d28;border:.5px solid rgb(var(--bd)/.12);
+    border-radius:22px;padding:11px 16px 16px;box-shadow:0 -10px 36px rgba(0,0,0,.5)}
+  .grab{width:36px;height:4px;border-radius:2px;background:rgb(var(--bd)/.18);margin:0 auto 12px}
+  .shead{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+  .shead .mk{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#8e7dff,#6a59ef);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex:none;
+    box-shadow:0 1px 4px rgb(var(--accent)/.45)}
+  .shead b{font-size:14px;font-weight:700;flex:1}
+  .shead .close{width:24px;height:24px;border-radius:50%;border:none;background:rgb(var(--bd)/.07);color:var(--t2);
+    font-size:13px;cursor:pointer;line-height:1}
+
+  /* media preview cards */
+  .vidcard{display:flex;align-items:center;gap:10px;background:var(--surface);border:.5px solid rgb(var(--bd)/.09);
+    border-radius:13px;padding:10px 12px;margin-bottom:8px}
+  .vidcard .vthumb{width:52px;height:38px;border-radius:8px;background:linear-gradient(135deg,#2b3350,#1a2138);
+    flex:none;position:relative}
+  .vidcard .vthumb::after{content:"▶";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:rgb(255 255 255/.75);font-size:12px}
+  .vidcard .tx{min-width:0;flex:1}
+  .vidcard .at{display:block;font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vidcard .as{display:block;font-size:11px;color:var(--t3);margin-top:1px}
+  .doccard{display:flex;align-items:center;gap:10px;background:var(--surface);border:.5px solid rgb(var(--bd)/.09);
+    border-radius:13px;padding:10px 12px;margin-bottom:8px}
+  .doccard .dic{width:32px;height:32px;border-radius:8px;background:rgb(248 113 113/.14);color:var(--red);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+  .doccard .tx{min-width:0;flex:1}
+  .doccard .at{display:block;font-size:13px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .doccard .as{display:block;font-size:11px;color:var(--t3);margin-top:1px}
+
+  /* honesty line under previews */
+  .honest{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--t3);margin:0 2px 11px}
+  .honest .hdot{width:6px;height:6px;border-radius:50%;background:rgb(var(--accent)/.55);flex:none}
+
+  .typefield{background:var(--surface);border:.5px solid rgb(var(--bd)/.09);border-radius:12px;padding:9px 12px;
+    font-size:13px;color:var(--t3);min-height:44px;margin-bottom:12px}
+  .typefield.filled{color:var(--t1)}
+
+  /* significance circles (compact idiom) */
+  .sheetsig{background:var(--surface);border:.5px solid rgb(var(--bd)/.09);border-radius:13px;padding:11px 12px 10px;margin-bottom:13px}
+  .sig .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .sig .lab{font-size:11px;color:var(--t3)}
+  .val{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--acc)}
+  .val.muted{color:var(--t3);font-weight:500}
+  .dots{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+  .dot{width:13px;height:13px;border-radius:50%;border:1.5px solid rgb(var(--bd)/.2);background:transparent;flex:none}
+  .dot.lit{background:var(--acc);border-color:var(--acc);box-shadow:0 1px 5px rgb(var(--accent)/.35)}
+  .sync{display:flex;align-items:center;gap:6px;font-size:10.5px;margin-top:2px;color:var(--t3)}
+  .sync .sdot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex:none}
+
+  .save{width:100%;border:none;border-radius:12px;background:var(--acc);color:#fff;font-size:14.5px;font-weight:700;
+    padding:11px 0;cursor:pointer;box-shadow:0 1px 8px rgb(var(--accent)/.45)}
+
+  /* ── note-detail frame (modes 3 + 4) ── */
+  .note{padding:2px 4px 0}
+  .note .nav{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--acc);margin-bottom:12px}
+  .note .nav .sp{flex:1}
+  .note .nav .dots3{color:var(--t3);letter-spacing:2px}
+  .note h2{font-size:20px;font-weight:800;line-height:1.25;margin-bottom:4px}
+  .note .meta{font-size:11px;color:var(--t3);margin-bottom:14px}
+  .note .meta .chip{display:inline-flex;align-items:center;gap:4px;border:.5px solid rgb(var(--bd)/.12);
+    border-radius:7px;padding:1px 7px;margin-right:5px;color:var(--t2)}
+  .note p{font-size:13.5px;line-height:1.65;color:var(--t1);margin-bottom:12px}
+  .note p.dim{color:var(--t2)}
+
+  /* inline PDF block (existing built idiom — pdf-inline-capture.html A) */
+  .pdfblock{border:.5px solid rgb(var(--bd)/.12);border-radius:13px;overflow:hidden;margin-bottom:12px}
+  .pdfblock .page{height:150px;background:linear-gradient(180deg,#f4f2ec,#e8e5da);position:relative;padding:16px 18px}
+  .pdfblock .page i{display:block;height:5px;border-radius:2px;background:rgba(0,0,0,.16);margin-bottom:6px}
+  .pdfblock .page i.w60{width:60%}.pdfblock .page i.w85{width:85%}.pdfblock .page i.w75{width:75%}
+  .pdfblock .page i.h10{height:10px;width:45%;background:rgba(0,0,0,.35);margin-bottom:12px}
+  .pdfblock .bar{display:flex;align-items:center;gap:8px;background:var(--surface);padding:8px 12px;font-size:11px;color:var(--t2)}
+  .pdfblock .bar .fic{width:22px;height:22px;border-radius:6px;background:rgb(248 113 113/.14);color:var(--red);
+    display:flex;align-items:center;justify-content:center;font-size:7.5px;font-weight:800;flex:none}
+  .pdfblock .bar b{color:var(--t1);font-weight:600}
+  .pdfblock .bar .sp{flex:1}
+
+  /* the NEW text-from-PDF disclosure */
+  .pdftext{border:.5px solid rgb(var(--bd)/.1);border-radius:13px;background:rgb(var(--bd)/.025);margin-bottom:12px}
+  .pdftext .head{display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;color:var(--t2);cursor:pointer}
+  .pdftext .head .tic{width:22px;height:22px;border-radius:6px;background:rgb(var(--accent)/.12);color:var(--acc);
+    display:flex;align-items:center;justify-content:center;font-size:11px;flex:none}
+  .pdftext .head b{color:var(--t1);font-weight:600}
+  .pdftext .head .sp{flex:1}
+  .pdftext .head .chev{color:var(--t3);font-size:10px}
+  .pdftext .bodytx{padding:0 14px 12px;font-size:12.5px;line-height:1.6;color:var(--t2);border-top:.5px solid rgb(var(--bd)/.07)}
+  .pdftext .bodytx p{font-size:12.5px;color:var(--t2);margin:10px 0 0}
+  .pdftext .fade{position:relative;max-height:150px;overflow:hidden}
+  .pdftext .fade::after{content:"";position:absolute;left:0;right:0;bottom:0;height:56px;
+    background:linear-gradient(transparent,#141620)}
+  .pdftext .more{display:block;width:100%;border:none;background:none;color:var(--acc);font-size:11.5px;font-weight:600;
+    padding:9px 0 2px;cursor:pointer}
+
+  /* voice-annotate (mode 4) */
+  .micbar{position:relative;margin-top:14px;display:flex;justify-content:center}
+  .micpill{display:flex;align-items:center;gap:8px;border:none;border-radius:22px;background:var(--acc);color:#fff;
+    font-size:13.5px;font-weight:700;padding:11px 20px;cursor:pointer;box-shadow:0 4px 18px rgb(var(--accent)/.5)}
+  .recstrip{background:var(--surface);border:.5px solid rgb(var(--accent)/.4);border-radius:15px;padding:11px 13px;margin-top:14px}
+  .recstrip .row{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .recstrip .reddot{width:9px;height:9px;border-radius:50%;background:var(--red);flex:none;animation:blink 1.2s infinite}
+  @keyframes blink{50%{opacity:.35}}
+  .recstrip .rt{font-size:12px;font-weight:700;color:var(--t1);flex:1}
+  .recstrip .timer{font-size:12px;color:var(--t2);font-variant-numeric:tabular-nums}
+  .recstrip .stop{width:30px;height:30px;border-radius:50%;border:none;background:rgb(248 113 113/.16);color:var(--red);
+    font-size:11px;cursor:pointer;flex:none}
+  .recstrip .cap{font-size:12.5px;color:var(--t2);line-height:1.55;min-height:34px}
+  .recstrip .cap .live{color:var(--t1)}
+  .fresh{border-left:2.5px solid rgb(var(--accent)/.6);padding-left:11px;margin-bottom:12px}
+  .fresh p{margin-bottom:4px}
+  .fresh .stamp{font-size:10.5px;color:var(--t3)}
+  .imgline{height:110px;border-radius:12px;background:linear-gradient(135deg,#2b503f,#1a3829);margin-bottom:12px;
+    display:flex;align-items:flex-end;padding:8px}
+  .imgline span{font-size:9px;color:rgb(255 255 255/.7);background:rgba(0,0,0,.45);border-radius:6px;padding:1px 6px}
+</style>
+</head>
+<body>
+
+<h1>Share-ingest Wave 2 — one sheet for everything · PDF text in the note · voice-annotate</h1>
+<div class="sub">
+  Survey rows <b>E1</b> (unified sheet — video + PDF get the slim sheet, significance at share time,
+  closing <b>A13</b>'s "heavy media gets no annotation" hole) · <b>A6 follow-up</b> (the PDF's text now
+  lives ON the memo — how does it show in the note?) · <b>voice-annotate a capture IN-APP</b> (replaces
+  the retired sheet dictation — iOS entitlement-blocks extension recording, device-proven builds 60–62).
+  Visual language = wave-1 sheet + the shipped note screens. <span class="q">Nothing here is built yet —
+  this is the sign-off round.</span>
+</div>
+
+<div class="modebar">
+  <span class="mlab">State</span>
+  <button class="mode on" data-m="m1">1 · E1 — video gets the sheet</button>
+  <button class="mode" data-m="m2">2 · E1 — PDF gets the sheet</button>
+  <button class="mode" data-m="m3">3 · PDF text, in the note</button>
+  <button class="mode" data-m="m4">4 · Voice-annotate a capture</button>
+</div>
+
+<div class="stage">
+
+  <!-- ════ STATE 1 · E1 video sheet ════ -->
+  <div class="panelset on" id="m1">
+    <div class="mobwrap">
+      <div class="phead">Share a video from Photos → the sheet (today: silent import)</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="chat">
+          <div class="cbar"><span class="av"></span>Photos · Recents</div>
+          <div class="thumbrow">
+            <div class="thumb"></div><div class="thumb v sel"></div><div class="thumb"></div>
+          </div>
+          <div class="thumbrow">
+            <div class="thumb"></div><div class="thumb"></div><div class="thumb"></div>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead"><span class="mk">Sk</span><b>Save to Skrift</b><button class="close">✕</button></div>
+
+          <div class="vidcard">
+            <span class="vthumb"></span>
+            <span class="tx">
+              <span class="at">Video · 0:58</span>
+              <span class="as">filmed Tuesday 19:21 · audio becomes the note</span>
+            </span>
+          </div>
+          <div class="honest"><span class="hdot"></span>Transcribes on-device · the video file itself isn't kept</div>
+
+          <div class="typefield">Add a thought… (optional)</div>
+
+          <div class="sheetsig sig">
+            <div class="top"><span class="lab">How significant is this?</span><span class="val">0.4</span></div>
+            <div class="dots"><span class="dot lit"></span><span class="dot lit"></span><span class="dot lit"></span><span class="dot lit"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="sync"><span class="sdot"></span>Flagged → syncs to the Mac</div>
+          </div>
+
+          <button class="save">Save to Skrift</button>
+        </div>
+      </div>
+      <div class="pnote">
+        Today a shared video imports <b>silently</b> — no sheet at all (A5/A13), so no ramble and
+        <b>significance stuck at 0</b>, which under flag-to-send means video memos <span class="q">never
+        reach the Mac</span> unless flagged later. E1 gives video the same slim sheet: preview →
+        optional typed thought → circles → Save. The typed thought lands as the memo's first
+        annotation, ABOVE the transcript-to-come.
+        <br><br><b>Kept from today:</b> Save still imports in the background and the app
+        <span class="q">jumps to the note on next open</span>, already transcribing.
+        <br><br><b>Question for the round:</b> is the typed thought worth the extra tap-height on
+        video, or should video keep audio's "no ramble" rule and show only circles?
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ STATE 2 · E1 PDF sheet ════ -->
+  <div class="panelset" id="m2">
+    <div class="mobwrap">
+      <div class="phead">Share a PDF from Files → the sheet (today: silent file card)</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="chat">
+          <div class="cbar"><span class="av"></span>Files · Downloads</div>
+          <div class="filerow sel"><span class="fic">PDF</span>competitor-teardown.pdf · 2.4 MB</div>
+          <div class="filerow"><span class="fic" style="background:rgb(96 165 250/.16);color:var(--blue)">DOC</span>notes-q3.docx · 180 KB</div>
+          <div class="filerow"><span class="fic" style="background:rgb(52 211 153/.16);color:var(--green)">MD</span>meeting-notes.md · 4 KB</div>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="shead"><span class="mk">Sk</span><b>Save to Skrift</b><button class="close">✕</button></div>
+
+          <div class="doccard">
+            <span class="dic">PDF</span>
+            <span class="tx">
+              <span class="at">competitor-teardown.pdf</span>
+              <span class="as">14 pages · 2.4 MB · from Files</span>
+            </span>
+          </div>
+          <div class="honest"><span class="hdot"></span>Its text becomes searchable in Skrift · opens inline in the note</div>
+
+          <div class="typefield filled">Rui's teardown — read before the pricing call.</div>
+
+          <div class="sheetsig sig">
+            <div class="top"><span class="lab">How significant is this?</span><span class="val muted">—</span></div>
+            <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="sync"><span class="sdot"></span>Stays on this phone until flagged</div>
+          </div>
+
+          <button class="save">Save to Skrift</button>
+        </div>
+      </div>
+      <div class="pnote">
+        Same E1 rule for documents: today a PDF share <b>skips the sheet entirely</b> — no ramble, no
+        significance, and failure looks like success (that's how the file-url bug hid since June).
+        With the sheet, the typed thought becomes the note body above the inline PDF, and the
+        honesty line says what actually happens (<b>A6 just shipped:</b> the text inside really is
+        searchable now).
+        <br><br><b>Note:</b> a shared <b>.md/.txt</b> skips this and becomes the note body directly
+        (D4, shipped in this wave) — the sheet here is for PDFs + binary documents.
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ STATE 3 · PDF text in the note ════ -->
+  <div class="panelset" id="m3">
+    <div class="mobwrap">
+      <div class="phead">The note after — text section COLLAPSED (default)</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="note">
+          <div class="nav">‹ Notes <span class="sp"></span><span class="dots3">···</span></div>
+          <h2>Competitor teardown</h2>
+          <div class="meta"><span class="chip">📄 capture</span><span class="chip">Fri 11 Jul</span></div>
+          <p>Rui's teardown — read before the pricing call.</p>
+          <div class="pdfblock">
+            <div class="page">
+              <i class="h10"></i><i class="w85"></i><i class="w75"></i><i class="w60"></i><i class="w85"></i><i class="w75"></i>
+            </div>
+            <div class="bar"><span class="fic">PDF</span><b>competitor-teardown.pdf</b><span class="sp"></span>14 pages ›</div>
+          </div>
+          <div class="pdftext">
+            <div class="head">
+              <span class="tic">≡</span><b>Text from the PDF</b><span class="sp"></span>
+              <span style="color:var(--t3);font-size:11px">14 pages</span><span class="chev">▼</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pnote">
+        <b>Where the A6 text goes in the UI.</b> The extracted text already powers search (shipped);
+        this is the reading surface. Default = <span class="q">one quiet collapsed row</span> under
+        the PDF block — the note stays the user's: their ramble first, the document second, its
+        guts third.
+      </div>
+    </div>
+
+    <div class="mobwrap">
+      <div class="phead">Text section EXPANDED</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="note">
+          <div class="nav">‹ Notes <span class="sp"></span><span class="dots3">···</span></div>
+          <h2>Competitor teardown</h2>
+          <div class="meta"><span class="chip">📄 capture</span><span class="chip">Fri 11 Jul</span></div>
+          <p>Rui's teardown — read before the pricing call.</p>
+          <div class="pdfblock">
+            <div class="bar"><span class="fic">PDF</span><b>competitor-teardown.pdf</b><span class="sp"></span>14 pages ›</div>
+          </div>
+          <div class="pdftext">
+            <div class="head">
+              <span class="tic">≡</span><b>Text from the PDF</b><span class="sp"></span>
+              <span style="color:var(--t3);font-size:11px">14 pages</span><span class="chev">▲</span>
+            </div>
+            <div class="bodytx">
+              <div class="fade">
+                <p>Pricing lands at three tiers: a free capture-only plan, a $6/mo personal plan
+                gating sync and search, and a $14 team plan. The interesting move is what's NOT
+                gated — transcription is unlimited on free, betting the lock-in happens at the
+                library layer, not the capture layer.</p>
+                <p>Retention math from their public numbers: 38% of trial users convert when they
+                import an existing archive in week one, versus 9% who start empty. Import is the
+                whole funnel.</p>
+              </div>
+              <button class="more">Show all 14 pages</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pnote">
+        Expanded: the text flows <b>in the note's own type</b>, slightly dimmed — readable, selectable,
+        quotable, but visually subordinate to the user's words. Long documents preview the first
+        stretch + <span class="q">"Show all N pages"</span> (full text in a pushed reader screen, not
+        an endless scroll inside the note).
+        <br><br><b>Questions for the round:</b> (1) collapsed-by-default OK, or should short PDFs
+        (&lt;1 page of text) come expanded? (2) does the expanded text belong in the note body for
+        the <b>Mac export</b> too, or is export = ramble + embed only (text stays search-side)?
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ STATE 4 · voice-annotate a capture ════ -->
+  <div class="panelset" id="m4">
+    <div class="mobwrap">
+      <div class="phead">A photo capture, freshly opened (the jump) — idle</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="note">
+          <div class="nav">‹ Notes <span class="sp"></span><span class="dots3">···</span></div>
+          <h2>Whiteboard — sync flow</h2>
+          <div class="meta"><span class="chip">🖼 2 photos</span><span class="chip">Fri 11 Jul</span></div>
+          <p class="dim">Nick's session, the arrows are the retry paths.</p>
+          <div class="imgline"><span>img 1 · whiteboard</span></div>
+          <div class="micbar">
+            <button class="micpill">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+              Add a voice note
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="pnote">
+        The share sheet can't record (<b>iOS entitlement-blocks extension mics</b> — retired on
+        device evidence, builds 60–62). The ramble moves HERE: the share <span class="q">jumps to the
+        note on open</span>, and the note offers the mic. One floating pill on <b>capture notes
+        without audio</b> — recorded memos keep their existing ＋ append flow.
+      </div>
+    </div>
+
+    <div class="mobwrap">
+      <div class="phead">Recording — live caption, same engine as the recorder</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="note">
+          <div class="nav">‹ Notes <span class="sp"></span><span class="dots3">···</span></div>
+          <h2>Whiteboard — sync flow</h2>
+          <div class="meta"><span class="chip">🖼 2 photos</span><span class="chip">Fri 11 Jul</span></div>
+          <p class="dim">Nick's session, the arrows are the retry paths.</p>
+          <div class="imgline"><span>img 1 · whiteboard</span></div>
+          <div class="recstrip">
+            <div class="row"><span class="reddot"></span><span class="rt">Recording</span><span class="timer">0:12</span><button class="stop">■</button></div>
+            <div class="cap">…the top-right arrow is wrong though, <span class="live">retries should go back to the queue not the</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pnote">
+        Tap → the pill becomes an inline recording strip: red dot, timer, stop, and the
+        <b>live caption</b> streaming — the exact recorder engine, no new audio code. The capture's
+        photos stay visible while you talk about them.
+      </div>
+    </div>
+
+    <div class="mobwrap">
+      <div class="phead">After stop — the ramble is IN the note</div>
+      <div class="phone">
+        <div class="island"></div>
+        <div class="note">
+          <div class="nav">‹ Notes <span class="sp"></span><span class="dots3">···</span></div>
+          <h2>Whiteboard — sync flow</h2>
+          <div class="meta"><span class="chip">🖼 2 photos</span><span class="chip">Fri 11 Jul · 🎙 0:41</span></div>
+          <p class="dim">Nick's session, the arrows are the retry paths.</p>
+          <div class="imgline"><span>img 1 · whiteboard</span></div>
+          <div class="fresh">
+            <p>The top-right arrow is wrong though — retries should go back to the queue, not the
+            worker. Ask Nick if the double-ack was deliberate before we copy this into the sync
+            spec.</p>
+            <div class="stamp">🎙 voice note · just now</div>
+          </div>
+          <div class="micbar">
+            <button class="micpill" style="background:rgb(var(--bd)/.08);color:var(--t2);box-shadow:none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+              Add another
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="pnote">
+        The transcript appends <b>below the typed ramble</b> (accent bar + "just now" stamp fades
+        after a beat); the audio itself attaches to the memo — the capture now HAS a recording, so
+        it plays + karaokes like any memo, and the mic pill demotes to a quiet "Add another".
+        <br><br><b>Questions for the round:</b> (1) pill only on captures, or on EVERY note without
+        audio (Apple-Notes-style)? (2) should the fresh-ramble accent marker persist or fade?
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const modes = document.querySelectorAll(".mode");
+  modes.forEach(m => m.addEventListener("click", () => {
+    modes.forEach(x => x.classList.toggle("on", x === m));
+    document.querySelectorAll(".panelset").forEach(p =>
+      p.classList.toggle("on", p.id === m.dataset.m));
+  }));
+  // #m1…#m4 deep-links a mode (review + headless screenshots).
+  const h = location.hash.replace("#", "");
+  if (h) document.querySelector(`.mode[data-m="${h}"]`)?.click();
+</script>
+</body>
+</html>
