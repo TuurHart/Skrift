@@ -2,6 +2,43 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🎛 Transcription-engine wave — ✅ BUILT 2026-07-11 (worktree `transcription-engine-wave`; roadmap `TrEngine`)
+
+Research session → user picked the lot; all mobile unless said. **Device round owed on everything below.**
+- ✅ **Transcript chapter detection = THE chapter standard** (user call: even multi-file splits aren't reliably
+  chapters). `ChapterDetector` (pure, 15 tests): long pause (≥2s) or file start + heading grammar — "Chapter/Hoofdstuk
+  N" (digits, spelled EN/NL, ordinals, glued Dutch "drieëntwintig"), "Part/Book/Deel N", standalone Prologue/Epilogue/…;
+  the number must TERMINATE (punct or ≥0.35s beat) so prose starting "Chapter seven ended…" can't match; spoken-title
+  pickup only when the next short sentence HANGS (≥0.4s); same-heading echo drop (<45s); needs ≥2 detections, ≤30%
+  number inversions (reset-to-1 after a part is fine) else nil; "Opening" prepended when the first heading starts >30s.
+  Stored as `Audiobook.detectedChapters` (LOCAL-only, not in any sync carrier; `[]` = ran-found-nothing → never
+  re-scans; nil = not yet run). `effectiveChapters` routes the WHOLE chapter UI (sheet, pill, sleep end-of-chapter,
+  chapter line, capture attribution): detected > embedded/file-synth. Triggers: `BookTranscriptionJob` finish + player
+  `open()` retro path (`detectChaptersIfNeeded`, detached, coverage-gated); session `refreshFromStore()` after store.
+  Attribution `chapterNumberString` uses the ANNOUNCED number for detected books; a prologue quote carries NO number.
+- ✅ **Book-transcribe efficiency trio:** (1) chunks feed the engine as in-memory PCM buffers — the temp-WAV round-trip
+  is GONE (was ~15–30GB flash I/O per long book) and book chunks skip the custom-vocab CTC second pass (FP-prone on
+  prose, pure cost); (2) `chunkSeconds` 60→180 (per-seam 3s lead + redo-tail overhead ~13%→~4%); (3) captures, user
+  pause, AND battery-conserve now CANCEL the in-flight chunk (FluidAudio aborts between its ~15s windows) — cancel ≠
+  failure: failure skips past the chunk, cancellation redoes the SAME frontier (never a gap).
+- ✅ **Lazy RMS (both apps)** — the phantom-guard RMS decoded the ENTIRE file before every transcription; now computed
+  after, only when the transcript came back ≤3 words. Free win on every memo/import/chunk.
+- ✅ **Filler filter, opt-in (default OFF)** — Settings→Capture "Remove filler words": standalone um/uh/hmm/ehm… (tiny
+  EN/NL list; "er"/"so"/"like" deliberately excluded — real words) stripped from text + karaoke timings in lockstep at
+  memo save (`FillerFilter`, 6 tests); a dropped filler's sentence terminator transfers to the previous word; `[[img]]`
+  markers pass through; an all-filler memo stays unchanged. NEVER audiobook quotes; live caption untouched. Capture
+  DICTATION path deliberately not wired (separate path — add on demand).
+- ✅ **FluidAudio pinned** to `7f963cdc` in BOTH project.yml (was floating `branch: main` — the drift risk flagged at
+  the 2026-06-16 asrsweep entry). Upgrade = deliberate, both apps together, with a device round.
+- ✅ **Trunk fix (drive-by, other lane's file):** `NoteBody.imageURL` had a shadowed `let url` from 7b597ad — full
+  desktop scheme was RED on main (the UnitTests gate doesn't compile that file). One-line unshadow; ShareW2 chat heads-up.
+- **Device-owed:** chapter detection on the real library (titles esp.), capture-cancel latency feel, 180s-chunk memory
+  on the iPhone 13, RTF re-measure (buffer path + no-booster should raise the ~min/hr number), filler toggle on a real
+  ramble.
+- **Parked (from the same research):** per-book language override for the book job (a Dutch book under the global
+  English toggle garbles — needs a small Transcribe-sheet picker); Paragrapher grouping for reading-mode when that
+  builds; FluidAudio streaming managers for the live caption at the NEXT engine upgrade.
+
 ## 🎙 Recording robustness + heat diet (2026-07-07, worktree nice-shtern — roadmap `RecHard`)
 
 User report (iPhone 13, warm): tap record → UI froze, stop unresponsive, memo captured only HALF the

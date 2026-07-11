@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 16
-updated: 2026-07-11T16:00:00.000Z
+updated: 2026-07-11T21:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -471,6 +471,29 @@ nodes:
       - >-
         2026-07-11 · Track B mock share-ingest-wave2.html (4 states,
         vision-checked) — sign-off pending [f9386cf]
+
+  - id: TrEngine
+    title: Transcription-engine wave (chapters + perf)
+    lane: 3
+    order: 4.8
+    status: done
+    done: 2026-07-11
+    eff: M
+    win: "done when: transcript-detected chapters drive the whole chapter UI
+      on chapterless/badly-split books, book transcribe drops its WAV+booster
+      overhead, and FluidAudio is pinned"
+    note: "Research→build 2026-07-11 (worktree transcription-engine-wave).
+      ChapterDetector = THE chapter standard (pause + spoken-heading grammar,
+      EN/NL, detected > file-split/embedded, retro-runs on open); book chunks
+      in-memory (no temp WAV, no vocab CTC pass) at 180s with capture/pause/
+      conserve CANCELLING in-flight inference; lazy phantom-RMS both apps;
+      opt-in filler filter (memos only, OFF); FluidAudio pinned 7f963cdc.
+      Device round owed. Detail: backlog.md 🎛."
+    shipped:
+      - 2026-07-11 · Lazy RMS both apps + FluidAudio pin [0fb274a e9b9681]
+      - 2026-07-11 · Buffer-path book chunks + 180s + in-flight cancel;
+        ChapterDetector + detectedChapters wiring; FillerFilter opt-in;
+        trunk NoteBody unshadow [54aa983 + wave commits]
 
   - id: RecHard
     title: Recording hardening + heat diet
