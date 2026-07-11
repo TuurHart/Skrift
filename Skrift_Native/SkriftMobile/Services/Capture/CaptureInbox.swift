@@ -55,6 +55,11 @@ struct CaptureInboxEntry: Codable {
     /// not the voice note's creation). The import uses embedded-asset date →
     /// this → now, mirroring video. Flat [String]; optional so older entries decode.
     var audioRecordedAts: [String]? = nil
+    /// E2 audio-length routing: true = the clips import as an AUDIOBOOK (Books
+    /// tab, read-along) instead of a transcribed memo. The sheet offers it when
+    /// any clip runs ≥ 1 hour (user-locked threshold), overridable per share.
+    /// Optional so older entries decode.
+    var routeToBooks: Bool? = nil
     /// Filenames (relative to the entry folder) of the images of a MULTI-photo
     /// capture (B2 — multiple photos always combine into one note), in order.
     /// Single-image entries keep using the legacy `imageFileName`.

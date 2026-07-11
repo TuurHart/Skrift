@@ -357,6 +357,65 @@ final class AudioShareDrainTests: XCTestCase {
         XCTAssertTrue(memo.matches(query: "hotel du vin"), "place-searchable")
     }
 
+    /// E2: an audio entry the sheet routed to Books imports as an AUDIOBOOK in
+    /// the library — no memo. (The sheet's 1-hour threshold is extension-target
+    /// code — the device round covers it; this proves the drain routing.)
+    @MainActor
+    func testBooksRoutedAudioImportsAsAudiobook() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+        let store = AudiobookLibraryStore.shared
+        let preexisting = Set(store.books.map(\.id))
+
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "audio", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: nil, annotationText: nil,
+            significance: 0, sharedAt: ISO8601.string(from: Date()),
+            audioFileNames: ["audio_\(id.uuidString)_0.m4a"],
+            audioRecordedAts: [""],
+            routeToBooks: true)
+        let clip = try Self.writeSilence(seconds: 0.5)
+        XCTAssertTrue(CaptureInbox.write(entry, audioFileURLs: [clip]))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let newBooks = store.books.filter { !preexisting.contains($0.id) }
+        XCTAssertEqual(newBooks.count, 1, "the share landed in the audiobook library")
+        XCTAssertTrue(repo.allMemos().isEmpty, "no memo for a Books-routed share")
+        for b in newBooks { store.remove(b) }
+        try? FileManager.default.removeItem(at: clip)
+    }
+
+    /// E2 fallback: when the Books import can't read the clip, the share falls
+    /// through to the normal memo import — the audio is never lost.
+    @MainActor
+    func testBooksRouteFallsBackToMemoOnUnreadableClip() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+        let store = AudiobookLibraryStore.shared
+        let preexisting = Set(store.books.map(\.id))
+
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "audio", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: nil, annotationText: nil,
+            significance: 0, sharedAt: ISO8601.string(from: Date()),
+            audioFileNames: ["audio_\(id.uuidString)_0.m4a"],
+            audioRecordedAts: [""],
+            routeToBooks: true)
+        let garbage = makeClipFile()   // "AAC-ish" bytes — unreadable as a book
+        XCTAssertTrue(CaptureInbox.write(entry, audioFileURLs: [garbage]))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        XCTAssertTrue(store.books.allSatisfy { preexisting.contains($0.id) }, "no book added")
+        let imported = repo.allMemos().first { $0.audioFilename.hasPrefix("memo_") }
+        XCTAssertNotNil(imported, "fell back to the memo import — audio never lost")
+        _ = MemoOpenBridge.shared.consume()
+        try? FileManager.default.removeItem(at: garbage)
+    }
+
     /// A14 pending indicator: after a drain the published count is back to zero
     /// (the pill must never stick), and the entry landed as a memo.
     @MainActor

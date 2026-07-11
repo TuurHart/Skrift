@@ -166,6 +166,21 @@ enum CaptureInboxDrainer {
                 let clipDate = entry.audioRecordedAts?.first.flatMap { ISO8601.date(from: $0) }
                 DevLog.log("drain: audio copied=\(temps.count) clip(s); dates=\(entry.audioRecordedAts ?? []); deleting entry + importing")
                 CaptureInbox.delete(entryDir: entryDir)
+                // E2: the sheet routed this ≥1h share to the Books tab — import as
+                // an audiobook (clips = parts of ONE book). On failure fall through
+                // to the memo import: the audio must never be lost.
+                if entry.routeToBooks == true {
+                    do {
+                        let store = AudiobookLibraryStore.shared
+                        let pending = try await AudiobookImporter.importBook(
+                            from: temps, libraryDirectory: store.directory)
+                        store.add(pending.book)
+                        DevLog.log("drain: audio entry \(entry.id) → Books ('\(pending.book.title)')")
+                        return nil   // a book, not a note — no jump target
+                    } catch {
+                        DevLog.log("drain: Books route FAILED (\(error)) — importing as memo instead")
+                    }
+                }
                 if let mid = MemoSaver(repository: repository).importAudioClips(from: temps, recordedAt: clipDate) {
                     // The sheet's significance circles apply to the imported memo.
                     if entry.significance > 0, let memo = repository.memo(id: mid) {

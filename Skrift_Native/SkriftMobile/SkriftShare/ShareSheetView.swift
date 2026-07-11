@@ -26,6 +26,15 @@ struct ShareSheetView: View {
     /// B1 chooser: N shared voice notes → one note (default, clips merged in
     /// order) or N separate notes. Only shown when 2+ audio clips arrived.
     @State private var combineIntoOne = true
+    /// E2 audio-length routing: a clip running ≥ 1 hour (user-locked threshold)
+    /// defaults to the Books tab (read-along) instead of a transcribed memo —
+    /// overridable per share via the routing chooser.
+    @State private var sendToBooks = false
+
+    /// Any clip at/over the 1-hour threshold → the Books routing chooser shows.
+    private var hasLongClip: Bool {
+        payload.audioItems.contains { ($0.duration ?? 0) >= 3600 }
+    }
 
     // TextEditor placeholder state
     private var annotationIsEmpty: Bool { annotation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -151,10 +160,19 @@ struct ShareSheetView: View {
             if payload.audioItems.count > 1 {
                 VStack(alignment: .leading, spacing: 8) {
                     clipStack
-                    chooser
+                    // Books routing outranks the 1-or-N chooser: a book import
+                    // takes every clip as parts of ONE book, so the split
+                    // question only applies on the voice-note route.
+                    if hasLongClip { booksChooser }
+                    if !(hasLongClip && sendToBooks) { chooser }
                 }
+                .onAppear { if hasLongClip { sendToBooks = true } }
             } else {
-                audioCard
+                VStack(alignment: .leading, spacing: 8) {
+                    audioCard
+                    if hasLongClip { booksChooser }
+                }
+                .onAppear { if hasLongClip { sendToBooks = true } }
             }
         } else {
             switch payload.type {
@@ -230,6 +248,26 @@ struct ShareSheetView: View {
         }
         if let d = item.duration, d >= 1 { parts.append(fmtDuration(d)) }
         return parts.joined(separator: " · ")
+    }
+
+    // E2: a ≥1h recording defaults to the Books tab (read-along) — a lecture or
+    // audiobook chapter isn't a voice note. Same card idiom as the B1 chooser.
+    private var booksChooser: some View {
+        HStack(spacing: 8) {
+            choiceCard(
+                title: "Audiobook",
+                subtitle: "Read-along in the Books tab — it's a long one",
+                selected: sendToBooks
+            ) { sendToBooks = true }
+            .accessibilityIdentifier("capture-choice-books")
+
+            choiceCard(
+                title: "Voice note",
+                subtitle: "Transcribe the whole thing as a note",
+                selected: !sendToBooks
+            ) { sendToBooks = false }
+            .accessibilityIdentifier("capture-choice-memo")
+        }
     }
 
     // B1: One note (default — clips merged in order) vs N separate notes.
@@ -578,13 +616,17 @@ struct ShareSheetView: View {
                     id: id, type: "audio", url: nil, urlTitle: nil, text: nil,
                     imageFileName: nil, mimeType: nil, annotationText: nil,
                     significance: significance, sharedAt: sharedAt,
-                    audioFileNames: names, audioRecordedAts: dates
+                    audioFileNames: names, audioRecordedAts: dates,
+                    // E2: ≥1h clips route to Books unless overridden in the sheet.
+                    routeToBooks: (hasLongClip && sendToBooks) ? true : nil
                 )
             }
             func ext(_ item: SharedAudioItem) -> String {
                 item.url.pathExtension.isEmpty ? "m4a" : item.url.pathExtension
             }
-            if combineIntoOne || items.count == 1 {
+            // A Books-routed share is always ONE entry: the clips become the
+            // parts of one book (multi-file audiobook), never N notes.
+            if combineIntoOne || items.count == 1 || (hasLongClip && sendToBooks) {
                 let id = UUID()
                 let names = items.enumerated().map { "audio_\(id.uuidString)_\($0.offset).\(ext($0.element))" }
                 onSave([entry(id: id, names: names, dates: items.map(iso))], [], nil)
