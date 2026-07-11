@@ -245,7 +245,7 @@ struct AudiobookPlayerView: View {
 
     private func chapterPill(_ book: Audiobook) -> String? {
         guard let i = book.chapterIndex(at: scrubTime ?? session.currentTime) else { return nil }
-        return "Ch \(i + 1) / \(book.chapters.count)"
+        return "Ch \(i + 1) / \(book.effectiveChapters.count)"
     }
 
     private func menu(_ book: Audiobook) -> some View {
@@ -413,7 +413,7 @@ struct AudiobookPlayerView: View {
         Menu {
             Button("Off") { session.setSleep(.off) }
             ForEach([5, 15, 30, 45, 60], id: \.self) { m in Button("\(m) minutes") { session.setSleep(.minutes(m)) } }
-            if session.book?.chapters.isEmpty == false { Button("End of chapter") { session.setSleep(.endOfChapter) } }
+            if session.book?.effectiveChapters.isEmpty == false { Button("End of chapter") { session.setSleep(.endOfChapter) } }
         } label: {
             let sleepOn = session.sleepUntil != nil || session.sleepAtChapterEnd
             Image(systemName: sleepOn ? "moon.fill" : "moon")

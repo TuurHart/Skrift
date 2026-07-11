@@ -49,13 +49,13 @@ struct ChaptersBookmarksSheet: View {
 
     @ViewBuilder
     private var chaptersList: some View {
-        if book.chapters.isEmpty {
+        if book.effectiveChapters.isEmpty {
             empty("No chapters", "This book has no chapter marks.")
         } else {
             let titles = book.displayChapterTitles
             let current = book.chapterIndex(at: session.currentTime)
             List {
-                ForEach(Array(book.chapters.enumerated()), id: \.offset) { i, ch in
+                ForEach(Array(book.effectiveChapters.enumerated()), id: \.offset) { i, ch in
                     Button {
                         session.seek(to: ch.start); dismiss()
                     } label: {

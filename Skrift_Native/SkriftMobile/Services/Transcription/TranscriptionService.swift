@@ -19,12 +19,34 @@ struct TranscriptionResult: Sendable {
 /// real engine runs only on device.
 protocol Transcriber: Sendable {
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult
+    /// Transcribe raw PCM directly — the whole-book chunk path. No temp-file
+    /// round-trip, no image markers, and no custom-vocab rescore (that's a
+    /// second CTC pass over the same audio, and FP-prone on book prose).
+    func transcribe(buffer: AVAudioPCMBuffer) async throws -> TranscriptionResult
 }
 
 extension Transcriber {
     func transcribe(audioURL: URL) async throws -> TranscriptionResult {
         try await transcribe(audioURL: audioURL, imageManifest: [])
     }
+
+    /// Default: spill to a temp WAV and take the file path — for conformers
+    /// without a native buffer path (the seeded/test transcribers).
+    func transcribe(buffer: AVAudioPCMBuffer) async throws -> TranscriptionResult {
+        let temp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("bufferspill_\(UUID().uuidString).wav")
+        defer { try? FileManager.default.removeItem(at: temp) }
+        try writeWAV(buffer, to: temp)
+        return try await transcribe(audioURL: temp, imageManifest: [])
+    }
+}
+
+/// Write `buffer` to `url` as WAV. A standalone function so the writing
+/// `AVAudioFile` deallocates (and flushes) on return, before anyone reads it.
+private func writeWAV(_ buffer: AVAudioPCMBuffer, to url: URL) throws {
+    try? FileManager.default.removeItem(at: url)
+    let out = try AVAudioFile(forWriting: url, settings: buffer.format.settings)
+    try out.write(from: buffer)
 }
 
 /// On-device ASR via FluidAudio (Parakeet TDT v3). Ported from the RN
@@ -222,6 +244,51 @@ actor TranscriptionService: Transcriber {
         }
         return TranscriptionResult(text: text, confidence: Double(result.confidence),
                                    durationMs: ms, wordTimings: wordTimings, markersInjected: markersInjected)
+    }
+
+    /// Direct PCM transcribe (the whole-book chunk path): same engine, same
+    /// BPE merge and phantom guard as the file path, minus the temp-file
+    /// round-trip and the vocab/marker passes (see the protocol note).
+    func transcribe(buffer: AVAudioPCMBuffer) async throws -> TranscriptionResult {
+        isTranscribing = true
+        defer { isTranscribing = false }
+        try await ensureLoaded()
+        guard let asr else { throw ASRError.notInitialized }
+
+        let started = Date()
+        var state = TdtDecoderState.make()
+        let result = try await asr.transcribe(buffer, decoderState: &state)
+        let ms = Int(Date().timeIntervalSince(started) * 1000)
+
+        let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let wordCount = trimmed.isEmpty
+            ? 0
+            : trimmed.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
+        let rms = (!trimmed.isEmpty && wordCount <= 3) ? Self.rms(of: buffer) : nil
+        if BPEMerge.shouldDropAsPhantom(rms: rms, wordCount: wordCount, isEmpty: trimmed.isEmpty) {
+            return TranscriptionResult(text: "", confidence: Double(result.confidence),
+                                       durationMs: ms, wordTimings: [], markersInjected: false)
+        }
+        let words = BPEMerge.mergeBPETokens((result.tokenTimings ?? []).map {
+            RawToken(token: $0.token, startTime: $0.startTime, endTime: $0.endTime)
+        })
+        return TranscriptionResult(
+            text: result.text, confidence: Double(result.confidence), durationMs: ms,
+            wordTimings: words.map { WordTiming(word: $0.text, start: $0.start, end: $0.end) },
+            markersInjected: false)
+    }
+
+    /// RMS of an in-memory buffer (first channel) — the buffer-path phantom guard.
+    private static func rms(of buffer: AVAudioPCMBuffer) -> Float? {
+        guard let channels = buffer.floatChannelData, buffer.frameLength > 0 else { return nil }
+        let n = Int(buffer.frameLength)
+        let samples = channels[0]
+        var sumSquares: Double = 0
+        for i in 0..<n {
+            let s = Double(samples[i])
+            sumSquares += s * s
+        }
+        return Float((sumSquares / Double(n)).squareRoot())
     }
 
     // MARK: - Helpers (ported verbatim from the RN ParakeetModule)

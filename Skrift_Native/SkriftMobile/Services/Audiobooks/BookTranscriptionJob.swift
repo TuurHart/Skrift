@@ -49,10 +49,13 @@ final class BookTranscriptionJob: ObservableObject {
     private var runComputeSeconds: TimeInterval = 0
     private static let rtfKey = "bookTranscribeRTF"
 
-    /// Per chunk: bigger = less per-chunk overhead, but a longer interruption
-    /// loss and a longer wait for a capture that lands mid-chunk. 60 s is a
-    /// middle ground (FluidAudio internally re-chunks ~15 s within it).
-    private let chunkSeconds: TimeInterval = 60
+    /// Per chunk: bigger = less seam overhead — the 3 s decode lead + ChunkFusion's
+    /// redo-tail are paid PER SEAM (~13% of all compute at 60 s, ~4% at 180 s). The
+    /// old 60 s ceiling existed for capture latency, but captures/pauses now CANCEL
+    /// the in-flight chunk (`cancelInFlightChunk`), so a mid-chunk interruption
+    /// costs seconds, not a chunk. 180 s of 44.1 kHz stereo PCM ≈ 63 MB transient —
+    /// fine beside the ~600 MB model. (FluidAudio internally windows ~15 s.)
+    private let chunkSeconds: TimeInterval = 180
     /// Seconds of preceding audio fed as decode context before each chunk (dropped
     /// from the kept words) so the chunk's opening words aren't garbled by a cold
     /// decoder. This is a decode WARM-UP, not a content overlap — ~a sentence of
@@ -67,6 +70,10 @@ final class BookTranscriptionJob: ObservableObject {
     private let makeTranscriber: () -> any Transcriber
 
     private var task: Task<Void, Never>?
+    /// The in-flight chunk's transcribe, cancellable mid-inference (FluidAudio
+    /// aborts between its ~15 s windows). Cancelled by capture yields, pauses,
+    /// and job cancel; the loop then redoes the chunk from the saved frontier.
+    private var chunkTask: Task<ChunkFusion.Fused?, Error>?
     private var suspendedForCapture = false
     private var batteryObserver: NSObjectProtocol?
     private var levelObserver: NSObjectProtocol?
@@ -131,7 +138,12 @@ final class BookTranscriptionJob: ObservableObject {
         progress = savedProgress(for: book)
     }
 
-    func pauseByUser() { if phase == .running || phase == .pausedUnplugged { phase = .pausedByUser } }
+    func pauseByUser() {
+        if phase == .running || phase == .pausedUnplugged {
+            phase = .pausedByUser
+            cancelInFlightChunk()   // "pause" means stop the inference NOW
+        }
+    }
 
     func resumeByUser() {
         guard phase == .pausedByUser else { return }
@@ -141,16 +153,26 @@ final class BookTranscriptionJob: ObservableObject {
     func cancel() {
         task?.cancel()
         task = nil
+        cancelInFlightChunk()
         if isRunningOrPaused { phase = .idle }
         activeBookID = nil
     }
 
     /// Live capture is starting — yield the engine so the capture's window
-    /// transcribe (un-chunked spot) isn't stuck behind a chunk. The loop checks
-    /// this between chunks. A chunked spot needs no engine, so this only matters
-    /// while the book is still being transcribed.
-    func suspendForCapture() { suspendedForCapture = true }
+    /// transcribe (un-chunked spot) isn't stuck behind a chunk: cancel the
+    /// in-flight chunk (freed within one ~15 s engine window) and hold the loop
+    /// until `resumeAfterCapture`, which redoes it from the saved frontier. A
+    /// chunked spot needs no engine, so this only matters while the book is
+    /// still being transcribed.
+    func suspendForCapture() {
+        suspendedForCapture = true
+        cancelInFlightChunk()
+    }
     func resumeAfterCapture() { suspendedForCapture = false }
+
+    /// Abort the in-flight chunk's inference. Nothing was saved for it, so the
+    /// loop redoes it from the same frontier when runnable again — idempotent.
+    private func cancelInFlightChunk() { chunkTask?.cancel() }
 
     // MARK: - Loop
 
@@ -180,11 +202,29 @@ final class BookTranscriptionJob: ObservableObject {
                 let isFinal = chunkEnd >= fileDuration - 0.05
 
                 let started = Date()
-                guard let kept = await transcribeChunk(
-                    transcriber: transcriber, audioURL: audioURL,
-                    chunkStart: chunkStart, chunkEnd: chunkEnd, isFinal: isFinal)
-                else {
-                    // Export/transcribe failed for this chunk — skip past it so the
+                // Child task so a capture/pause/cancel can abort the ENGINE
+                // mid-chunk instead of waiting out the whole chunk's inference.
+                let chunk = Task { [transcriber] in
+                    try await self.transcribeChunk(
+                        transcriber: transcriber, audioURL: audioURL,
+                        chunkStart: chunkStart, chunkEnd: chunkEnd, isFinal: isFinal)
+                }
+                chunkTask = chunk
+                let fused: ChunkFusion.Fused?
+                do {
+                    fused = try await chunk.value
+                } catch {
+                    // CANCELLED mid-chunk (capture yield, pause, or job cancel —
+                    // the only thrown error). Nothing was saved — loop back: a
+                    // job cancel exits at the top, a pause blocks in
+                    // `awaitRunnable`, then this chunk redoes from the SAME
+                    // frontier. Never skip-past here.
+                    chunkTask = nil
+                    continue
+                }
+                chunkTask = nil
+                guard let kept = fused else {
+                    // Export/transcribe FAILED for this chunk — skip past it so the
                     // job doesn't wedge; the gap stays an un-chunked (wave-1) spot.
                     ft = ft.appending([], upTo: chunkEnd)
                     try? store.save(ft, bookID: bookID)
@@ -205,24 +245,74 @@ final class BookTranscriptionJob: ObservableObject {
             progress = 1
             phase = .finished
             activeBookID = nil
+            detectChaptersIfNeeded(bookID: bookID)
         }
     }
 
-    /// Export `[chunkStart, chunkEnd]` of the file, transcribe it, offset the
+    // MARK: - Transcript chapter detection
+
+    /// Detect chapters from the finished transcript and store them on the book
+    /// (the STANDARD chapter source — see `ChapterDetector`). Runs on job
+    /// finish, and from player open as the retro path for books transcribed
+    /// before detection existed. No-op unless the book is FULLY transcribed
+    /// and detection hasn't run yet (`detectedChapters == nil`; a ran-but-
+    /// empty result is stored as [] so it never re-scans).
+    func detectChaptersIfNeeded(bookID: UUID) {
+        guard let book = library.book(id: bookID), book.detectedChapters == nil else { return }
+        let urls = book.files.indices.map { library.audioURL(of: book, fileIndex: $0) }
+        Task.detached(priority: .utility) { [weak self] in
+            guard let result = Self.detectChapters(book: book, audioURLs: urls) else { return }
+            await MainActor.run {
+                guard let self, var fresh = self.library.book(id: bookID) else { return }
+                fresh.detectedChapters = result
+                self.library.update(fresh)
+                // A loaded session holds a value COPY of the book — refresh it
+                // so the player chrome shows the new chapters without a reopen.
+                AudiobookSession.shared.refreshFromStore()
+                DevLog.log("chapters: transcript detection for '\(fresh.title)' → "
+                           + (result.isEmpty ? "none confident" : "\(result.count) chapters"))
+            }
+        }
+    }
+
+    /// Load every file's sidecar and run the detector. nil = not fully
+    /// transcribed (leave `detectedChapters` unset so a later finish re-tries);
+    /// [] = ran and found nothing confident (persisted — don't re-scan).
+    nonisolated static func detectChapters(book: Audiobook, audioURLs: [URL]) -> [AudiobookChapter]? {
+        let store = BookTranscriptStore()
+        var fileWords: [[WordTiming]] = []
+        for (i, url) in audioURLs.enumerated() {
+            let dur = book.fileDurations.indices.contains(i) ? book.fileDurations[i] : 0
+            guard dur > 0 else { fileWords.append([]); continue }
+            let sig = store.signature(forFileAt: url)
+            guard let ft = store.load(bookID: book.id, fileIndex: i, expectedSignature: sig),
+                  ft.coveredUpTo >= dur - 0.05 else { return nil }
+            fileWords.append(ft.words)
+        }
+        guard !fileWords.isEmpty else { return nil }
+        return ChapterDetector.detect(fileWords: fileWords,
+                                      fileStartTimes: book.fileStartTimes,
+                                      bookDuration: book.duration) ?? []
+    }
+
+    /// Extract `[chunkStart, chunkEnd]` of the file, transcribe it, offset the
     /// word-timings to FILE-LOCAL, and fuse to the keepable words + new frontier.
-    /// Returns nil on export/transcribe failure. The temp file is always cleaned.
+    /// Returns nil on export/transcribe failure; THROWS `CancellationError` when
+    /// cancelled mid-chunk (capture yield / pause / job cancel) — the caller must
+    /// redo from the same frontier, never skip-past.
     private func transcribeChunk(transcriber: any Transcriber, audioURL: URL,
                                  chunkStart: TimeInterval, chunkEnd: TimeInterval,
-                                 isFinal: Bool) async -> ChunkFusion.Fused? {
-        let temp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("bookchunk_\(UUID().uuidString).wav")
-        defer { try? FileManager.default.removeItem(at: temp) }
+                                 isFinal: Bool) async throws -> ChunkFusion.Fused? {
         do {
             // SAMPLE-ACCURATE extraction (NOT AVAssetExportSession): exporting a
             // compressed-MP3 timeRange drifts progressively late with seek position
             // (Mac `-chunksim` proof 2026-06-13: export thirds −0.24/+0.38/+0.96 vs
             // PCM −0.02/−0.02/−0.01), which made the read-along trail by ~1–2 s deep
-            // in a chapter. AVAudioFile frame reads are drift-free.
+            // in a chapter. AVAudioFile frame reads are drift-free. The buffer goes
+            // to the engine IN MEMORY — the old temp-WAV round-trip cost tens of MB
+            // of flash I/O per chunk (~15 GB over a long book) for nothing. It also
+            // skips the custom-vocab rescore: that was a SECOND CTC pass over every
+            // chunk when custom words exist, and vocab swaps are FP-prone on prose.
             //
             // LEADING CONTEXT (2026-06-19): a chunk is transcribed from a COLD
             // decoder with no preceding audio, so its OPENING words get mis-decoded
@@ -230,12 +320,12 @@ final class BookTranscriptionJob: ObservableObject {
             // RAULF"). Prepend ~2 s of audio before chunkStart as decode context,
             // then DROP those lead-in words (they're the previous chunk's already-
             // kept tail) — keeping word times exactly file-local. First chunk has no
-            // lead. Cheap (~3% more audio); chunkEnd behaviour is unchanged, so
-            // ChunkFusion's redo-tail still owns the trailing seam.
+            // lead. Cheap; chunkEnd behaviour is unchanged, so ChunkFusion's
+            // redo-tail still owns the trailing seam.
             let lead: TimeInterval = chunkStart > 0 ? Self.chunkLead : 0
             let extractStart = chunkStart - lead
-            try Self.extractPCM(of: audioURL, start: extractStart, end: chunkEnd, to: temp)
-            let result = try await transcriber.transcribe(audioURL: temp, imageManifest: [])
+            let buffer = try Self.extractPCMBuffer(of: audioURL, start: extractStart, end: chunkEnd)
+            let result = try await transcriber.transcribe(buffer: buffer)
             let fileLocal = result.wordTimings.compactMap { wt -> WordTiming? in
                 let start = wt.start + extractStart           // temp t=0 maps to extractStart
                 // Drop the lead-in context words (they were kept by the previous
@@ -251,16 +341,18 @@ final class BookTranscriptionJob: ObservableObject {
             }
             return ChunkFusion.fuse(chunkWords: fileLocal, chunkStart: chunkStart, chunkEnd: chunkEnd,
                                     isFinal: isFinal, minProgress: chunkSeconds * 0.5)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             return nil
         }
     }
 
-    /// Sample-accurate extraction of `[start, end]` to a temp WAV via AVAudioFile
+    /// Sample-accurate in-memory extraction of `[start, end]` via AVAudioFile
     /// frame reads — drift-free, unlike `AVAssetExportSession` on compressed audio
-    /// (see `transcribeChunk`). FluidAudio transcribes the WAV; word times then
-    /// align to the original file at every seek depth.
-    static func extractPCM(of url: URL, start: TimeInterval, end: TimeInterval, to dst: URL) throws {
+    /// (see `transcribeChunk`). The engine transcribes the buffer directly; word
+    /// times then align to the original file at every seek depth.
+    static func extractPCMBuffer(of url: URL, start: TimeInterval, end: TimeInterval) throws -> AVAudioPCMBuffer {
         let file = try AVAudioFile(forReading: url)
         let sr = file.processingFormat.sampleRate
         file.framePosition = AVAudioFramePosition(max(0, start) * sr)
@@ -269,9 +361,7 @@ final class BookTranscriptionJob: ObservableObject {
             throw QuoteCaptureError.exportFailed
         }
         try file.read(into: buffer, frameCount: frames)
-        try? FileManager.default.removeItem(at: dst)
-        let out = try AVAudioFile(forWriting: dst, settings: file.processingFormat.settings)
-        try out.write(from: buffer)
+        return buffer
     }
 
     /// Block while paused (user or unplugged) or yielding to a capture. Polls
@@ -363,8 +453,11 @@ final class BookTranscriptionJob: ObservableObject {
     /// pause or a terminal phase.
     private func powerStateChanged() {
         switch phase {
-        case .running where shouldConserve:          phase = .pausedUnplugged
-        case .pausedUnplugged where !shouldConserve: phase = .running
+        case .running where shouldConserve:
+            phase = .pausedUnplugged
+            cancelInFlightChunk()   // conserving means stop draining NOW
+        case .pausedUnplugged where !shouldConserve:
+            phase = .running
         default: break
         }
     }

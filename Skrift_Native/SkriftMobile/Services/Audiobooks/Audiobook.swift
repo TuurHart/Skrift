@@ -28,7 +28,14 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     var title: String
     var author: String
     var duration: TimeInterval
+    /// Chapters from IMPORT: the embedded m4b track, or one-per-file synthesis.
     var chapters: [AudiobookChapter]
+    /// Chapters DETECTED from the transcript (`ChapterDetector`) once the book
+    /// was fully transcribed — the STANDARD source when non-empty: file splits
+    /// and rip metadata aren't reliably chapter boundaries, the narration is.
+    /// nil = detection never ran; [] = ran, found nothing confident (don't
+    /// re-run). Local-only — derived from the local sidecar, never synced.
+    var detectedChapters: [AudiobookChapter]? = nil
     var hasCover: Bool
     var importedAt: Date
     /// nil until first played — drives the "recently played" sort.
@@ -112,7 +119,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, files, fileDurations, audioFilename, title, author, duration
-        case chapters, hasCover, importedAt, lastPlayedAt, position, playbackRate, modifiedAt
+        case chapters, detectedChapters, hasCover, importedAt, lastPlayedAt
+        case position, playbackRate, modifiedAt
     }
 
     /// Decodes both shapes: new records carry `files` + `fileDurations`;
@@ -126,6 +134,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         author = try c.decode(String.self, forKey: .author)
         duration = try c.decode(TimeInterval.self, forKey: .duration)
         chapters = try c.decode([AudiobookChapter].self, forKey: .chapters)
+        detectedChapters = try c.decodeIfPresent([AudiobookChapter].self, forKey: .detectedChapters)
         hasCover = try c.decode(Bool.self, forKey: .hasCover)
         importedAt = try c.decode(Date.self, forKey: .importedAt)
         lastPlayedAt = try c.decodeIfPresent(Date.self, forKey: .lastPlayedAt)
@@ -160,6 +169,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         try c.encode(author, forKey: .author)
         try c.encode(duration, forKey: .duration)
         try c.encode(chapters, forKey: .chapters)
+        try c.encodeIfPresent(detectedChapters, forKey: .detectedChapters)
         try c.encode(hasCover, forKey: .hasCover)
         try c.encode(importedAt, forKey: .importedAt)
         try c.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)
@@ -216,51 +226,83 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         return CaptureSpan.Span(start: start, end: start + max(0, fileDurations[i]))
     }
 
+    /// True when transcript-detected chapters exist and win over `chapters`.
+    private var usesDetected: Bool { detectedChapters?.isEmpty == false }
+
+    /// The chapter list the WHOLE UI renders (menu, chapter line, scrubber,
+    /// sleep timer, attribution): transcript-detected when available, else the
+    /// import chapters. Never read `chapters` directly for display.
+    var effectiveChapters: [AudiobookChapter] {
+        usesDetected ? detectedChapters! : chapters
+    }
+
     /// Index of the chapter playing at `time` (the last chapter starting at or
-    /// before it). nil when the file has no chapter track.
+    /// before it). nil when the book has no chapters from any source.
     func chapterIndex(at time: TimeInterval) -> Int? {
-        guard !chapters.isEmpty else { return nil }
+        let list = effectiveChapters
+        guard !list.isEmpty else { return nil }
         var idx = 0
-        for (i, ch) in chapters.enumerated() {
+        for (i, ch) in list.enumerated() {
             if ch.start <= time { idx = i } else { break }
         }
         return idx
     }
 
     func chapter(at time: TimeInterval) -> AudiobookChapter? {
-        chapterIndex(at: time).map { chapters[$0] }
+        chapterIndex(at: time).map { effectiveChapters[$0] }
     }
 
-    /// Reader-facing chapter titles, same order as `chapters`: synthesized
-    /// multi-file chapter names (whole source filenames) get their common
-    /// prefix stripped + numbered remainders prettified ("Chapter 1"); real
-    /// m4b-embedded titles pass through unchanged. Render chapters with THESE
-    /// everywhere (menu, chapter line, capture context) — the attribution
-    /// NUMBER stays the index (`chapterNumberString`).
+    /// Reader-facing chapter titles, same order as `effectiveChapters`.
+    /// Detected titles are already display-ready ("Chapter 7 — The Iron Duke",
+    /// "Prologue") and pass through; import-synthesized (filename) chapter
+    /// names get their common prefix stripped + numbered remainders prettified
+    /// ("Chapter 1"); real m4b-embedded titles pass through unchanged. Render
+    /// chapters with THESE everywhere — the attribution NUMBER comes from
+    /// `chapterNumberString`.
     var displayChapterTitles: [String] {
-        ChapterDisplay.displayTitles(chapters.map(\.title))
+        usesDetected
+            ? effectiveChapters.map(\.title)
+            : ChapterDisplay.displayTitles(chapters.map(\.title))
     }
 
     /// "Chapter 4 of 18 — Creation" (nil without chapters). A display title
     /// that is itself just "Chapter 4" would repeat the index — dropped.
+    /// Detected titles carry their own heading ("Chapter 7 — X", "Prologue"),
+    /// so they get the position appended instead of a second "Chapter n".
     func chapterLine(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
         let title = displayChapterTitles[i]
-        let base = "Chapter \(i + 1) of \(chapters.count)"
+        let count = effectiveChapters.count
+        if usesDetected, !title.isEmpty {
+            return title + "  ·  \(i + 1) of \(count)"
+        }
+        let base = "Chapter \(i + 1) of \(count)"
         return (title.isEmpty || title == "Chapter \(i + 1)") ? base : base + " — " + title
     }
 
     /// The chapter NUMBER as a string ("4") for the C2 `bookChapter` metadata —
     /// the Mac composes the attribution "ch. N" from it. nil without chapters.
+    /// For detected chapters this is the ANNOUNCED number (the "7" of "Chapter
+    /// 7 — X"), not the list index — Opening/Prologue entries shift the index,
+    /// and a prologue quote should carry no chapter number at all.
     func chapterNumberString(at time: TimeInterval) -> String? {
-        chapterIndex(at: time).map { String($0 + 1) }
+        guard let i = chapterIndex(at: time) else { return nil }
+        guard usesDetected else { return String(i + 1) }
+        let title = effectiveChapters[i].title
+        guard let match = title.firstMatch(of: #/(?i)^chapter (\d+)/#) else { return nil }
+        return String(match.1)
     }
 
     /// "ch. 4 — Creation" for in-app labels (nil without chapters). Numbered
-    /// display titles ("Chapter 4") collapse to just "ch. 4".
+    /// display titles ("Chapter 4") collapse to just "ch. 4"; detected titles
+    /// compact their own heading ("Chapter 7 — X" → "ch. 7 — X").
     func shortChapterLabel(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
         let title = displayChapterTitles[i]
+        if usesDetected {
+            guard !title.isEmpty else { return "ch. \(i + 1)" }
+            return title.hasPrefix("Chapter ") ? "ch. " + title.dropFirst("Chapter ".count) : title
+        }
         return (title.isEmpty || title == "Chapter \(i + 1)") ? "ch. \(i + 1)" : "ch. \(i + 1) — " + title
     }
 }

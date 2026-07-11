@@ -115,6 +115,9 @@ final class AudiobookSession: ObservableObject {
         installInterruptionObserverIfNeeded()
         updateNowPlaying()
         if autoplay { play() }
+        // Retro path: a book fully transcribed before transcript-chapter
+        // detection shipped gets its chapters on first open (no-op otherwise).
+        BookTranscriptionJob.shared.detectChaptersIfNeeded(bookID: startBook.id)
         return true
     }
 
