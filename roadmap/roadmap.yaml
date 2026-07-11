@@ -494,6 +494,10 @@ nodes:
       - 2026-07-11 · Buffer-path book chunks + 180s + in-flight cancel;
         ChapterDetector + detectedChapters wiring; FillerFilter opt-in;
         trunk NoteBody unshadow [54aa983 + wave commits]
+      - 2026-07-11 · Detection v2 style-vote (bare numbers, LibriVox,
+        title-only w/ gap-dominance; duration priors; seam-echo dedup;
+        per-file number resets) — real-library probe: trilogy 0→5 real
+        chapters [ce88435]
 
   - id: RecHard
     title: Recording hardening + heat diet

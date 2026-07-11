@@ -16,6 +16,22 @@ Research session → user picked the lot; all mobile unless said. **Device round
   chapter line, capture attribution): detected > embedded/file-synth. Triggers: `BookTranscriptionJob` finish + player
   `open()` retro path (`detectChaptersIfNeeded`, detached, coverage-gated); session `refreshFromStore()` after store.
   Attribution `chapterNumberString` uses the ANNOUNCED number for detected books; a prologue quote carries NO number.
+- ✅ **Detection v2 — style vote (same day, after web research + real-library probe).** ACX has narrators read
+  headings EXACTLY as the manuscript writes them (so style varies by book but is consistent WITHIN one); m4b-tool's
+  silence-chaptering proves gaps need duration priors. v2 harvests every style after silences and the book votes:
+  keyword ("Chapter N", now incl. LibriVox "Chapter N of <book>") › bare numbers ("Seven. Don't turn into human
+  spam.") › title-only (short HANGING utterances, accepted only when the book's biggest silences are dominated by
+  title-shaped sites — sting-heavy productions fail the vote). All winners pass duration priors (median ≥4min,
+  spacing ≥2min — kills counting scenes). Probing the REAL phone sidecars found two data truths: pre-2026-06-27
+  sidecars carry chunk-seam ECHOES ("ten Ten." → was mis-parsed as 20; now deduped) and multi-file imports can be
+  several WORKS (trilogy) → ascending-sanity resets at file boundaries. Result on the real library: Steal-trilogy
+  0 → 5 real chapters (+44min Opening; sparse because the old-seam sidecars ate headings — a RE-TRANSCRIBE with the
+  fixed seams + 180s chunks should lift recall a lot); Digital Minimalism → Opening + Part 1 + Part 2 (its narrator
+  never says "chapter"; its per-chapter titles are title-only style — sidecar only 41.7% covered, finish the
+  transcribe and re-judge). 21 detector unit tests; suite 659/659.
+  **Follow-ups parked:** manual "Re-transcribe book" affordance for pre-fix sidecars (no created-at in the sidecar to
+  auto-detect age); consider a review-sheet UI for gap-only books that fail the vote (the reading-mode chat owns
+  player IA).
 - ✅ **Book-transcribe efficiency trio:** (1) chunks feed the engine as in-memory PCM buffers — the temp-WAV round-trip
   is GONE (was ~15–30GB flash I/O per long book) and book chunks skip the custom-vocab CTC second pass (FP-prone on
   prose, pure cost); (2) `chunkSeconds` 60→180 (per-seam 3s lead + redo-tail overhead ~13%→~4%); (3) captures, user
