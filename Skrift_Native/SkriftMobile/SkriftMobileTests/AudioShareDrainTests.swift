@@ -416,6 +416,35 @@ final class AudioShareDrainTests: XCTestCase {
         try? FileManager.default.removeItem(at: garbage)
     }
 
+    /// Poison-pill guard (device round 2026-07-11): an entry whose dir can't be
+    /// DELETED must be tombstoned and never drain again — video/audio entries
+    /// mint fresh memo UUIDs, so before this an undeletable entry spawned a new
+    /// failed memo + duplicate audiobook on EVERY app open.
+    @MainActor
+    func testUndeletableEntryIsTombstonedAndSkipped() throws {
+        let inbox = try cleanInbox()
+        UserDefaults.standard.removeObject(forKey: "skrift.captureInbox.tombstones")
+        defer { UserDefaults.standard.removeObject(forKey: "skrift.captureInbox.tombstones") }
+
+        let entry = CaptureInboxEntry(
+            id: UUID(), type: "text", url: nil, urlTitle: nil, text: "x",
+            imageFileName: nil, mimeType: nil, annotationText: "y", significance: 0,
+            sharedAt: ISO8601.string(from: Date()))
+        XCTAssertTrue(CaptureInbox.write(entry))
+        let entryDir = inbox.appendingPathComponent(entry.id.uuidString, isDirectory: true)
+
+        // A read-only PARENT makes the dir removal fail — the permission edge.
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: inbox.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: inbox.path) }
+
+        CaptureInbox.delete(entryDir: entryDir)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: entryDir.path),
+                      "precondition: the delete really failed")
+        XCTAssertTrue(CaptureInbox.tombstonedIDs().contains(entry.id.uuidString))
+        XCTAssertTrue(CaptureInbox.pendingEntries().isEmpty, "tombstoned entry never drains again")
+    }
+
     /// A14 pending indicator: after a drain the published count is back to zero
     /// (the pill must never stick), and the entry landed as a memo.
     @MainActor

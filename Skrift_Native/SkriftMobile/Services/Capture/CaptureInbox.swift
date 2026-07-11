@@ -206,7 +206,9 @@ enum CaptureInbox {
         guard let dirs = try? fm.contentsOfDirectory(at: inbox,
                                                       includingPropertiesForKeys: nil,
                                                       options: .skipsHiddenFiles) else { return [] }
+        let dead = Set(tombstonedIDs())
         return dirs.compactMap { dir in
+            guard !dead.contains(dir.lastPathComponent) else { return nil }
             let jsonURL = dir.appendingPathComponent("entry.json")
             guard let data = try? Data(contentsOf: jsonURL),
                   let entry = try? JSONDecoder().decode(CaptureInboxEntry.self, from: data)
@@ -310,5 +312,34 @@ enum CaptureInbox {
     /// longer `@Attribute(.unique)`, dropped for CloudKit-backed SwiftData; see Memo.swift).
     static func delete(entryDir: URL) {
         try? FileManager.default.removeItem(at: entryDir)
+        // Poison-pill guard: if the dir SURVIVED the delete (file-protection or
+        // permission edge — device-proven 2026-07-11 with externally-planted
+        // entries), tombstone its id. Without this, video/audio entries — which
+        // mint FRESH memo UUIDs on import, so the id-dup guard never fires —
+        // re-import on EVERY app open (one failed-video memo + one duplicate
+        // audiobook per launch).
+        if FileManager.default.fileExists(atPath: entryDir.path) {
+            tombstone(entryDir.lastPathComponent)
+        }
+    }
+
+    // MARK: - Tombstones (undeletable entries)
+
+    private static let tombstoneKey = "skrift.captureInbox.tombstones"
+    private static let tombstoneCap = 200
+
+    /// Entry ids whose dirs couldn't be removed — treated as consumed forever.
+    /// Only the APP drains (extensions never delete), so plain UserDefaults is fine.
+    static func tombstonedIDs() -> [String] {
+        UserDefaults.standard.stringArray(forKey: tombstoneKey) ?? []
+    }
+
+    static func tombstone(_ id: String) {
+        var ids = tombstonedIDs()
+        guard !ids.contains(id) else { return }
+        ids.append(id)
+        if ids.count > tombstoneCap { ids.removeFirst(ids.count - tombstoneCap) }
+        // No DevLog here — this file also compiles into the extension target.
+        UserDefaults.standard.set(ids, forKey: tombstoneKey)
     }
 }

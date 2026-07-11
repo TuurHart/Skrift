@@ -303,19 +303,32 @@ targets:
           # any share sheet (2026-06-12 device finding). No WebPageWithMaxCount
           # (implies a JS preprocessing file we don't ship; the URL item suffices).
           NSExtensionAttributes:
-            NSExtensionActivationRule:
-              NSExtensionActivationSupportsWebURLWithMaxCount: 1
-              NSExtensionActivationSupportsText: true
-              # Multi-select (A11, 2026-07-10 Wave-1): 10 images / 10 files (the
-              # WhatsApp multi-voice-note case rides the FILE count — audio
-              # attachments activate as files). Below max-1, Skrift VANISHED from
-              # the share sheet the moment 2+ items were selected. Movie stays 1.
-              NSExtensionActivationSupportsImageWithMaxCount: 10
-              NSExtensionActivationSupportsMovieWithMaxCount: 1
-              # PDF/document share (2026-06-21) — xcodegen GENERATES this plist from
-              # project.yml, so the activation rule MUST live here (a direct edit to
-              # SkriftShare/Info.plist is clobbered on the next `xcodegen generate`).
-              NSExtensionActivationSupportsFileWithMaxCount: 10
+            # ACTIVATION RULE — a custom predicate STRING, not the dictionary form
+            # (2026-07-11, Wave-2 device round). The dictionary keys each demand a
+            # HOMOGENEOUS item (every attachment the same kind), so Safari sharing
+            # a PDF page — ONE item carrying [web-URL + PDF] — matched no rule and
+            # Skrift vanished from the sheet. The predicate accepts an item when
+            # EVERY attachment conforms to at least one supported type (per-
+            # attachment OR), up to 10 attachments (A11). public.data is the
+            # catch-all documents leg (public.file-url covers file-backed items);
+            # unclassifiable payloads still land in A16's honest "can't import".
+            # History: WebURL 1 · Text · Image 10 · Movie 1 · File 10 (Wave 1).
+            # xcodegen GENERATES the plist from here — never edit Info.plist direct.
+            NSExtensionActivationRule: >-
+              SUBQUERY(extensionItems, $extensionItem,
+              SUBQUERY($extensionItem.attachments, $attachment,
+              ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.url"
+              OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.plain-text"
+              OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.image"
+              OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.movie"
+              OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.audio"
+              OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.adobe.pdf"
+              OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.file-url"
+              OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.data"
+              ).@count == $extensionItem.attachments.@count
+              AND $extensionItem.attachments.@count >= 1
+              AND $extensionItem.attachments.@count <= 10
+              ).@count >= 1
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1"
