@@ -203,6 +203,9 @@ nodes:
         sidebar copy guard + 🔒/🔔 properties rows
       - 2026-07-07 · Memo-link resolver on every Mac compile site
         (MemoLinkStems over ONE noteStem derivation)
+      - 2026-07-11 · Journal-on-Mac mock v2 (review-1 folded in — map mode takes
+        the column, slim in-flight row); sign-off gates the B-list + Journal
+        builds (backlog CONTINUE-HERE board)
     win: a note locked on the phone is locked on the Mac and never exported;
       Mac-exported memo-links point at real files; UnitTests 341 green + full
       MLX build green (device round-trip owed)

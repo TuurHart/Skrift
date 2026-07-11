@@ -388,6 +388,86 @@ polish round on the physical print. Original design (still the spec):
    wall in print order. (Mac-as-print-daemon = robustness fallback later; phone-first is
    standalone-true.) Quote-card renderer is shared with P6's shareable image cards.
 
+## ⭐ CONTINUE HERE — desktop-parity board (written 2026-07-11 for the NEXT chat; Fable→Opus handoff)
+
+**Read this first.** The A-list shipped 2026-07-07 (section below). What remains is three boards, all
+**GATED**: (1) Tuur must sign off `mocks/journal-desktop.html` **v2** (map-behind-Places + slim
+in-flight row — his review-1 asks, folded in 2026-07-11); (2) check no other chat is mid-flight
+before touching app code (`git worktree list` + `git branch -a --sort=-committerdate`, merge
+origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths only).
+
+**Board A — B-list body parity (desktop), mock panels 3/4 are the spec:**
+1. **Memo-link chips + LINKED FROM** in the Mac body: extend the styled-[[links]] pass in
+   `Features/Review/BodyTextView.swift`/`NoteBody.swift` to match `MemoLinkSyntax.occurrences` —
+   render the TITLE as a chip (never the UUID), click → select that row (id = UUID string).
+   Backlinks strip under the body: fetch PipelineFiles whose working text contains
+   `memo:<thisID>` (cheap contains-scan is fine at this scale). v1 is READ-ONLY — creating
+   links stays a phone gesture until the Mac editor grows a `[[` picker.
+2. **Live checklists**: render `- [ ]` / `- [x]` lines as toggleable rows. A toggle must edit the
+   SOURCE text (enhancedCopyedit if present, else transcript — the same precedence
+   `MemoCloudUpdate.resanitiseAndCompile` uses), re-derive, and push via the existing
+   `MacCloudEditSync.shared.note(file)` so the phone sees it. Mirror the phone's toggle semantics
+   in `SkriftMobile/Features/MemoDetail/BodyTransform.swift` — do NOT reinvent the line parse;
+   consider moving that pure line-toggle math to `Shared/Pipeline/` first (Board C pattern).
+3. **PDF-inline capture display** in `Features/Review/CaptureViews.swift` (phone's signed variant A;
+   mock panel 4). Render first page via PDFKit thumbnail + filename bar + Open.
+4. Verify: UnitTests scheme + full `-skipMacroValidation` build + `-snapshot` PNGs (see
+   [[native-ui-verification]] memory: sidebar can't snapshot; live-drive via UITests if needed).
+
+**Board B — Journal on the Mac (mock v2 sections 1/1b are the spec):**
+- Chunk order: (1) `Queue | Journal` mode switch (AppModel surface enum; RootView swaps the
+  content pane; sidebar per mock). (2) SHARE FIRST, then build: move the phone's pure logic to
+  `Shared/Pipeline/` — `LookbackProvider` (pure date math over [Memo]; Memo is shared) and the
+  `PlaceCluster` grouping inside `SkriftMobile/Features/Journal/JournalMapView.swift` — so the Mac
+  compiles the SAME rules (that's the whole point; don't re-implement). (3) Rail = mini month grid
+  (dot density via `LookbackProvider.dayCounts`) + Places list. (4) Column = Looking-back cards +
+  selected-day list; in-flight notes = slim row, NEVER a card (review-1). (5) Map mode = SwiftUI
+  `Map` (fine on macOS 14) with PlaceCluster pins; a place click swaps the COLUMN (the rail never
+  changes); ⨯ returns to Looking back.
+- **Data source: the Mac's journal reads the CLOUD Memo store** (`MemoCloudStore.container`), NOT
+  PipelineFile — the cloud DB has the full corpus (ingest is significance-gated; sync is not).
+  Locked memos: list row shows title + 🔒 only; content stays behind the existing `LockGate`.
+- Respect the flag: journal is read-only — never mutate Memos from the Mac journal (the Mac's
+  write path stays MemoEnhancement/edit-sync only).
+
+**Board C — SharedKit round 2 (safe when lanes are quiet; ONE chunk per commit, both suites green
+each time — the round-1 recipe):**
+1. **SpeakerTranscript → Shared** (highest value: the SHARED `Sanitiser` ~line 351 calls
+   `SpeakerTranscript.parseWithPreamble`, which today resolves to PER-APP twins — desktop
+   `Pipeline/Diarization/Diarizing.swift`, mobile `Features/MemoDetail/SpeakerTurnsView.swift`;
+   same regex, different helper sets). Reconcile `Turn`: desktop's is plain `{name,text}` Equatable
+   (tests compare Turns!), mobile's adds `id = UUID()` for ForEach — give the shared Turn a custom
+   `==` that ignores `id`, or keep id out of Shared and let mobile wrap. Superset the helpers
+   (desktop: isAttributed/flattened/mergeAdjacentTurns; mobile: withPreamble/isUnnamed/speakers/
+   setText/reassign — all pure, all belong in Shared).
+2. **LockGate → Shared** (my 2026-07-07 twins: `#if canImport(UIKit)` picks the resign
+   notification; unify the key on the memo-UUID String).
+3. **PDF text-extract → Shared/Pipeline** (phone impl inside
+   `Services/Capture/CaptureInboxDrainer.swift`, PDFKit) + wire the Mac: apply it to PDF file
+   captures at ingest so Mac search/body match the phone's A6 behavior.
+4. **VocabularyBooster core** (both `boost()` bodies are the same spot→rescore→trust→apply flow;
+   inject store + logger, keep engines app-side).
+5. **NamesCloudSync reconcile core** (round-1's `VocabularySyncCore` recipe applied to names:
+   fold-carriers → `NamesMerge` → sorted-keys byte-compare → collapse dupes; adapters keep the
+   gate/notification differences).
+6. **Desktop legacy readers** (`PhoneMetadata` + desktop `SharedContent` in CompilerBridge) —
+   collapse onto the shared types only WITH golden ingest tests (old working-folder payloads are
+   the reason they're lenient).
+7. Cheap/optional: FlowLayout → Shared/UI; check Karaoke overlap (mobile `Models/Karaoke.swift`
+   vs desktop `Models/KaraokeAlignment.swift`) before touching.
+
+**Device-verify checklist owed (fold into the next device session):** Mac-added vocab word →
+phone (and deletion → Mac) [LWW fix 6f78ac1]; lock on phone → Mac refuses export + gates body,
+unlock → auto re-export; search a photo's OCR text ON THE MAC; Mac-exported memo-link opens the
+target note in Obsidian; 🔔 reminder row shows.
+
+**Cautions for the next agent:** commit per chunk with explicit paths; regenerate xcodegen after
+every pull; mobile tests = `-only-testing:SkriftMobileTests` (UI suite has known iOS-26 failures);
+sim "preflight/Busy" flake → `xcrun simctl shutdown all && xcrun simctl erase "iPhone 17"`;
+desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev instances; promote
+prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
+one `now`); mock-first for any NEW UI beyond these signed specs.
+
 ## ⭐ Desktop parity A-list — the Mac catches up to the phone waves (2026-07-07, roadmap `DParityA`)
 
 The contract-level "musts" from the parity analysis (memory `project_desktop_parity_plan`), built same-day:
