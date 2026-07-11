@@ -39,6 +39,24 @@ enum CaptureInboxDrainer {
         await Task.detached(priority: .userInitiated) { work() }.value
     }
 
+    /// Download a remote PDF into the recordings dir (C5). True only when the fetch
+    /// succeeded AND the payload really is a PDF (magic bytes — content-type headers
+    /// lie). `file://` URLs work too (Files-app links / unit tests).
+    private static func downloadPDF(from remote: URL, toRecordingsAs destName: String) async -> Bool {
+        var request = URLRequest(url: remote)
+        request.timeoutInterval = 20
+        guard let (temp, response) = try? await URLSession.shared.download(for: request) else { return false }
+        defer { try? FileManager.default.removeItem(at: temp) }
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) { return false }
+        guard let fh = try? FileHandle(forReadingFrom: temp) else { return false }
+        let head = try? fh.read(upToCount: 5)
+        try? fh.close()
+        guard head?.starts(with: Data("%PDF".utf8)) == true else { return false }
+        let destURL = AppPaths.recordingsDirectory.appendingPathComponent(destName)
+        try? FileManager.default.removeItem(at: destURL)
+        return (try? FileManager.default.copyItem(at: temp, to: destURL)) != nil
+    }
+
     /// Convert each pending inbox entry to a Memo and save. Idempotent: safe to call
     /// on every foreground transition. Also resumes any dictation transcription a
     /// previous run never finished (crash / terminal failure recovery).
@@ -183,6 +201,23 @@ enum CaptureInboxDrainer {
             fileName: entry.imageFileName,
             mimeType: entry.mimeType
         )
+
+        // C5: a URL that points AT a PDF (Safari shares the page URL, not the file) —
+        // download it on drain (E4 policy: network in the app, never the extension)
+        // and land it as a normal file capture. Any failure falls back to the plain
+        // link card (the URL is never lost).
+        if contentType == .url, let raw = entry.url, let remote = URL(string: raw),
+           remote.pathExtension.lowercased() == "pdf" {
+            let destName = "file_\(memoID.uuidString).pdf"
+            if await downloadPDF(from: remote, toRecordingsAs: destName) {
+                sharedContent = SharedContent(type: .file, filePath: destName,
+                                              fileName: remote.lastPathComponent,
+                                              mimeType: "application/pdf")
+                DevLog.log("drain: pdf-url \(entry.id) downloaded → \(destName)")
+            } else {
+                DevLog.log("drain: pdf-url \(entry.id) download failed — keeping link card")
+            }
+        }
 
         // File capture (e.g. a shared PDF): copy the document from the inbox into
         // the recordings dir under the memo UUID so it persists. We store the

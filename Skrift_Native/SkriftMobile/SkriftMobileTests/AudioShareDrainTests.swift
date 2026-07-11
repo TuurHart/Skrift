@@ -152,6 +152,61 @@ final class AudioShareDrainTests: XCTestCase {
                        "every share type jumps to its note on next open")
     }
 
+    /// C5: a url capture whose URL points at a PDF downloads it on drain and lands
+    /// as a normal FILE capture (file:// exercises the exact URLSession path the
+    /// https share takes, minus the network).
+    @MainActor
+    func testPdfUrlCaptureBecomesFileCapture() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let src = FileManager.default.temporaryDirectory.appendingPathComponent("Remote Doc.pdf")
+        FileManager.default.createFile(atPath: src.path, contents: Data("%PDF-1.4 fake".utf8))
+        defer { try? FileManager.default.removeItem(at: src) }
+
+        let entry = CaptureInboxEntry(
+            id: UUID(), type: "url", url: src.absoluteString, urlTitle: nil,
+            text: nil, imageFileName: nil, mimeType: nil,
+            annotationText: "the spec pdf", significance: 0,
+            sharedAt: ISO8601.string(from: Date()))
+        XCTAssertTrue(CaptureInbox.write(entry))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let memo = repo.memo(id: entry.id)
+        XCTAssertEqual(memo?.sharedContent?.type, .file, "pdf link → file capture")
+        XCTAssertEqual(memo?.sharedContent?.fileName, "Remote Doc.pdf")
+        XCTAssertEqual(memo?.sharedContent?.mimeType, "application/pdf")
+        let fileURL = try XCTUnwrap(memo?.sharedFileURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path), "the PDF is persisted")
+        try? FileManager.default.removeItem(at: fileURL)
+    }
+
+    /// C5 fallback: a .pdf link whose payload ISN'T a PDF (or fails to fetch)
+    /// stays a plain url capture — the link is never lost.
+    @MainActor
+    func testPdfUrlSniffFailureKeepsLinkCard() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let src = FileManager.default.temporaryDirectory.appendingPathComponent("not-really.pdf")
+        FileManager.default.createFile(atPath: src.path, contents: Data("<html>nope</html>".utf8))
+        defer { try? FileManager.default.removeItem(at: src) }
+
+        let entry = CaptureInboxEntry(
+            id: UUID(), type: "url", url: src.absoluteString, urlTitle: "Nope",
+            text: nil, imageFileName: nil, mimeType: nil,
+            annotationText: nil, significance: 0,
+            sharedAt: ISO8601.string(from: Date()))
+        XCTAssertTrue(CaptureInbox.write(entry))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let memo = repo.memo(id: entry.id)
+        XCTAssertEqual(memo?.sharedContent?.type, .url, "non-PDF payload keeps the link card")
+        XCTAssertEqual(memo?.sharedContent?.url, src.absoluteString)
+    }
+
     /// A14 pending indicator: after a drain the published count is back to zero
     /// (the pill must never stick), and the entry landed as a memo.
     @MainActor
