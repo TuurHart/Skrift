@@ -189,6 +189,30 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    share time), PDF text-inline in the body, in-app voice-annotate a capture. C3 podcasts ⭐
    = own lane when user says go. Still awaiting user calls: C1 YouTube rich-card-only?,
    C2 Insta/TikTok, B4 chat-export. Device builds number from **64** (63 = on-phone).
+   → **2026-07-11 WAVE-2 TRACK A BUILT — all 10 items, one session, suite 632/632**
+   (commits `7b597ad`..`f9386cf`): Mac capture-marker fix FIRST (the Wave-1 unproven
+   edge was REAL — literal `[[img_NNN]]` in the Mac Review UI AND the vault export,
+   plus a stale-name pinned embed; fixed in VaultExporter/Compiler/NoteBody, desktop
+   345/345) · A9 open-in nav + honest "format not supported" for avi/mpg (extensions
+   KEPT — public.movie delivers them anyway; pruning would silently eat the share) ·
+   A14 drain copies off-main + reentrancy guard + "Importing N shares…" pill · C5
+   pdf-url → download (magic-byte sniff, link-card fallback) · D4 .md/.txt → note body
+   (loader also FIXED: a text FILE decoded to nil → empty sheet) · D6 Maps → place
+   chip (PlaceLink parser; goo.gl short links stay cards — opaque without a fetch) ·
+   D8 header import menu (Files audio+video via AppURLHandler; wires the ORPHANED
+   VideoImportPicker — it had zero call sites) · E2 ≥1h → Books chooser in the sheet
+   (default Books, fallback-to-memo when unreadable) · A4 EXIF dates (read in the
+   extension BEFORE the downsample strips them; earliest across a multi-share) · A6
+   PDFKit text-extract → sharedContent.text (searchable; 120k cap) · bg-task claims
+   on drain + all three import transcriptions (Scribbel pattern). **Track B mock
+   `mocks/share-ingest-wave2.html` AWAITS SIGN-OFF** (4 states: E1 video · E1 PDF ·
+   PDF text-in-note collapsed/expanded · voice-annotate idle/recording/after; open
+   questions printed on the panels). **NEXT: device round (build 64+)** — checklist:
+   pdf-link share → real PDF · Maps share → place chip · .md share → body · photo
+   share → EXIF date · 1h+ audio → Books chooser · Files import menu · import pill
+   on a big movie · avi share → honest error · open-in jumps to the note. KNOWN GAP
+   (pre-existing, logged): the phone's OWN Obsidian publish never copies images for
+   ANY photo memo — Mac stays the attachment exporter.
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →

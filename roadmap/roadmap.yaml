@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 16
-updated: 2026-07-10T21:15:00.000Z
+updated: 2026-07-11T16:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -278,7 +278,7 @@ nodes:
     title: Note feature wave
     lane: 0
     order: 5.7
-    status: now
+    status: inprogress
     eff: L
     deps:
       - NEdit
@@ -436,6 +436,38 @@ nodes:
         (PDF fix), clip dates + stable chat order, sample-accurate merge
         (phantom-tail kill), photos inline via editorPage, clip list scrolls,
         dictation retired on mediaserverd evidence [227861f e02d75b 18da97a]
+  - id: ShareW2
+    title: Share-ingest Wave 2 (routes + enrich)
+    lane: 0
+    order: 5.8
+    status: now
+    eff: M
+    deps:
+      - ShareW1
+    via: ShareW1
+    win: "done when: Track A device-verifies (pdf-link→PDF, Maps place chip,
+      text-file body, EXIF dates, 1h→Books routing, in-app Files import,
+      import pill) and the Track B mock is signed + built"
+    note: "Track A CODE-FIRST built 2026-07-11, suite 632/632 — A9 A14 C5 D4
+      D6 D8 E2 A4 A6 + bg-task claims + the Mac capture-marker fix (Wave-1's
+      one unproven edge: literal [[img_NNN]] in Review + vault export — fixed,
+      desktop 345/345). Track B mock share-ingest-wave2.html AWAITS SIGN-OFF
+      (E1 unified sheet · PDF text-in-note · voice-annotate). Device round
+      owed (builds from 64)."
+    shipped:
+      - >-
+        2026-07-11 · Mac fix: Wave-2 capture photos render + export
+        ([[img_NNN]] in annotations — VaultExporter converts, Compiler drops
+        the stale pinned embed, NoteBody resolves capture folders) [7b597ad]
+      - >-
+        2026-07-11 · Track A: A9 open-in nav + honest unreadable-video error ·
+        A14 off-main drain + import pill · C5 pdf-url download · D4 text-file
+        body (+ loader file-URL fix) · D6 Maps place-notes · D8 in-app
+        Files/Photos import · E2 1h→Books routing · A4 EXIF dates · A6 PDF
+        text-extract · bg-task claims [12ca149..49fc767]
+      - >-
+        2026-07-11 · Track B mock share-ingest-wave2.html (4 states,
+        vision-checked) — sign-off pending [f9386cf]
 
   - id: RecHard
     title: Recording hardening + heat diet

@@ -12,8 +12,16 @@ rejected outright), C2, B4. **Wave 1 scope locked:** A7 + A11 + B1/B2 + A12/E3
 
 **⭐ WAVE 1 BUILT 2026-07-10** (chunks 1–3, commits `827965f`/`394a916`/`3371fb1`; 610/610
 unit green): A7 ✅code · A11 ✅ · B1 ✅ · B2 ✅ · A12/E3 ✅ · A15 ✅ · A16 ✅ · jump-on-open ✅.
-**Device round OWED** (real WhatsApp share — checklist in backlog.md under i4). Wave 2 next:
-E1 unified sheet · A1/C4 enrichment · A4 EXIF date · A6 PDF text · A9 · C5 · D4 · D6 · D8.
+Device rounds 1–4 PASSED same day (builds 60→63), merged via PR #11.
+
+**⭐ WAVE 2 TRACK A BUILT 2026-07-11** (one session, `7b597ad`..`f9386cf`; suite 632/632,
+desktop 345/345): A9 ✅ · A14 ✅ · C5 ✅ · D4 ✅ (+loader file-URL fix) · D6 ✅ · D8 ✅ ·
+E2 ✅ · A4 ✅ · A6 ✅ · bg-task claims ✅ · Mac capture-marker fix ✅ (Wave-1's unproven
+edge was real — literal `[[img_NNN]]` in Mac Review + vault export, stale pinned embed).
+**Device round OWED (builds from 64)** — checklist in backlog.md. Track B mock
+`mocks/share-ingest-wave2.html` (E1 video/PDF sheets · PDF text-in-note · voice-annotate)
+**AWAITS SIGN-OFF**; A1/C4 link enrichment not yet picked up. Remaining decisions:
+C1 YouTube, C2 Insta/TikTok, B4 chat-export; C3 podcasts ⭐ = own lane on go.
 
 **Mock SIGNED OFF 2026-07-10** (`mocks/share-ingest-wave1.html`) — locked rules from the
 sign-off round: (1) **every share jumps to its note on the next app-open** (extensions can't
