@@ -6,11 +6,11 @@ options:
   createIntermediateGroups: true
 
 packages:
-  # Match Shhhcribble's pin (branch: main) so diarization/boosting APIs line up
-  # with what was verified there — NOT the RN app's exactVersion 0.12.4.
+  # Pinned to the exact commit the June-2026 device builds verified (upgrade
+  # deliberately, with a device round — never float a branch).
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    branch: main
+    revision: 7f963cdc43ba89c5993654f1e138047d517a818d  # pinned 2026-07-11 (was branch: main — irreproducible); the commit every device build ran
   # Live mic waveform (wired to the AVAudioEngine meters — no 2nd audio session).
   DSWaveformImage:
     url: https://github.com/dmrschmidt/DSWaveformImage.git

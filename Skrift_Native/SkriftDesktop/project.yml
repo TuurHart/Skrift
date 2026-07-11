@@ -6,10 +6,11 @@ options:
   createIntermediateGroups: true
 
 packages:
-  # Match Shhhcribble / the iOS rewrite: FluidAudio pinned to branch main.
+  # Pinned to the exact commit the June-2026 builds verified — same pin as the
+  # iOS app (one engine, two apps); upgrade both together, deliberately.
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    branch: main
+    revision: 7f963cdc43ba89c5993654f1e138047d517a818d  # pinned 2026-07-11 (was branch: main — irreproducible); the commit every device build ran
   # mlx-swift LLM stack for enhancement (gemma4 registered on main). 3.x decoupled
   # the downloader/tokenizer → swift-huggingface + swift-transformers integrations.
   mlx-swift-lm:
