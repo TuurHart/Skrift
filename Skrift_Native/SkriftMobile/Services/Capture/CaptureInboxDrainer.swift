@@ -220,6 +220,18 @@ enum CaptureInboxDrainer {
             }
         }
 
+        // D6: an Apple/Google Maps share → a place-anchored note. The parsed name
+        // + pin land in the memo's location metadata (the same chip + place-search
+        // a recorded memo gets); the link card stays for opening Maps.
+        var placeInfo: LocationInfo?
+        if contentType == .url, let raw = entry.url, let place = PlaceLink.parse(raw) {
+            placeInfo = LocationInfo(latitude: place.latitude, longitude: place.longitude,
+                                     placeName: place.name)
+            // The place name doubles as the card title when the source app gave none.
+            if sharedContent.urlTitle?.isEmpty != false { sharedContent.urlTitle = place.name }
+            DevLog.log("drain: maps url \(entry.id) → place '\(place.name ?? "unnamed")'")
+        }
+
         // D4: a shared TEXT file (.md/.txt) becomes the note CONTENT, not a file
         // card — its text lands as the body (below any typed ramble); no document
         // blob is kept. Oversized or non-UTF-8 files stay documents (a novel-length
@@ -354,9 +366,14 @@ enum CaptureInboxDrainer {
         let exifSeed = entry.imageRecordedAts?.compactMap { ISO8601.date(from: $0) }.min()
         let recordedAt = exifSeed ?? ISO8601.date(from: entry.sharedAt) ?? Date()
 
-        // Build MemoMetadata for image manifest (only populated for image captures).
-        let metadata: MemoMetadata? = imageManifest.map { manifest in
-            MemoMetadata(imageManifest: manifest)
+        // Build MemoMetadata when the capture carries any: an image manifest
+        // (image captures) and/or a place (D6 Maps shares).
+        var metadata: MemoMetadata?
+        if imageManifest != nil || placeInfo != nil {
+            var m = MemoMetadata()
+            m.imageManifest = imageManifest
+            m.location = placeInfo
+            metadata = m
         }
 
         // Photos live IN the text like a recorded memo (round-2 device spec:

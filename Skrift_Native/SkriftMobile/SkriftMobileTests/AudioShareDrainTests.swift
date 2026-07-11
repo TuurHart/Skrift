@@ -332,6 +332,31 @@ final class AudioShareDrainTests: XCTestCase {
         }
     }
 
+    /// D6: a Maps share drains into a place-anchored url capture — location chip
+    /// metadata set, place-searchable, card title falls back to the place name.
+    @MainActor
+    func testMapsShareBecomesPlaceNote() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let entry = CaptureInboxEntry(
+            id: UUID(), type: "url",
+            url: "https://maps.apple.com/?ll=38.7223,-9.1393&q=Hotel%20Du%20Vin",
+            urlTitle: nil, text: nil, imageFileName: nil, mimeType: nil,
+            annotationText: "dinner spot for Friday", significance: 0,
+            sharedAt: ISO8601.string(from: Date()))
+        XCTAssertTrue(CaptureInbox.write(entry))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let memo = try XCTUnwrap(repo.memo(id: entry.id))
+        XCTAssertEqual(memo.sharedContent?.type, .url, "still a link card — it opens Maps")
+        XCTAssertEqual(memo.metadata?.location?.placeName, "Hotel Du Vin")
+        XCTAssertEqual(memo.metadata?.location?.latitude ?? 0, 38.7223, accuracy: 0.001)
+        XCTAssertEqual(memo.sharedContent?.urlTitle, "Hotel Du Vin", "place name titles the card")
+        XCTAssertTrue(memo.matches(query: "hotel du vin"), "place-searchable")
+    }
+
     /// A14 pending indicator: after a drain the published count is back to zero
     /// (the pill must never stick), and the entry landed as a memo.
     @MainActor
