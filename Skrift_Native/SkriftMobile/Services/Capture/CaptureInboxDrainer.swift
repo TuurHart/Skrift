@@ -61,10 +61,21 @@ enum CaptureInboxDrainer {
     /// Convert each pending inbox entry to a Memo and save. Idempotent: safe to call
     /// on every foreground transition. Also resumes any dictation transcription a
     /// previous run never finished (crash / terminal failure recovery).
+    ///
+    /// Runs under a background-task assertion (Scribbel `ImportTranscriber` pattern):
+    /// a user who opens Skrift after sharing and immediately switches away gets ~30s
+    /// of grace to finish the copies + imports instead of suspending mid-drain. The
+    /// crash-safe inbox (delete-after-save) remains the backstop if even that expires.
     static func drain(into repository: NotesRepository) async {
         guard !isDraining else { return }
         isDraining = true
         defer { isDraining = false }
+        await BackgroundTask.run(name: "skrift.share-drain") {
+            await drainCore(into: repository)
+        }
+    }
+
+    private static func drainCore(into repository: NotesRepository) async {
         defer { CaptureDictation.resumePending(repository: repository) }
         // Surface any share-extension diagnostics in the app devlog (the
         // extension can't write devlog.txt itself — round-1 mic mystery).

@@ -95,12 +95,17 @@ struct MemoSaver {
             transcriptStatus: .transcribing
         ))
         Task {
-            if let d = await Self.embeddedCreationDate(of: AVURLAsset(url: dest)),
-               let memo = repository.memo(id: id) {
-                memo.recordedAt = d
-                repository.save()
+            // Background-task claim (Scribbel pattern): a share-launched import
+            // finishes its transcribe in the ~30s grace when the user backgrounds
+            // right away; the launch recovery sweep stays the backstop.
+            await BackgroundTask.run(name: "skrift.import-audio") {
+                if let d = await Self.embeddedCreationDate(of: AVURLAsset(url: dest)),
+                   let memo = repository.memo(id: id) {
+                    memo.recordedAt = d
+                    repository.save()
+                }
+                await runTranscription(id: id)
             }
-            await runTranscription(id: id)
         }
         return id
     }
@@ -132,7 +137,11 @@ struct MemoSaver {
             transcriptStatus: .transcribing
         ))
         DevLog.log("importAudioClips: placeholder memo \(id) inserted; clips=\(sources.count)")
-        Task { await importAudioClipsAsync(id: id, sources: sources) }
+        Task {
+            await BackgroundTask.run(name: "skrift.import-clips") {
+                await importAudioClipsAsync(id: id, sources: sources)
+            }
+        }
         return id
     }
 
@@ -284,7 +293,11 @@ struct MemoSaver {
             transcriptStatus: .transcribing
         ))
         DevLog.log("importVideo: placeholder memo \(id) inserted; source=\(source.lastPathComponent)")
-        Task { await processVideo(id: id, source: source, fallbackDate: creationDate) }
+        Task {
+            await BackgroundTask.run(name: "skrift.import-video") {
+                await processVideo(id: id, source: source, fallbackDate: creationDate)
+            }
+        }
         return id
     }
 
