@@ -177,6 +177,18 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    cold engine + app-suspension (existing launch-sweep recovers; Scribbel-style bg-task
    claim = Wave-2 candidate); voice-annotate captures IN-APP (Wave-2); drag inline photos
    like Apple Notes (note-editor lane); PDF "text, PDF, text" inline (Wave-2 design).
+   → **⭐ CONTINUE HERE — SHARE WAVE 2 (kickoff 2026-07-10, Wave 1 MERGED via PR #11).**
+   Start from MAIN, fresh worktree. Read `SHARE_INGEST_SURVEY.md` (top status block +
+   Verdict column) first. Two tracks: (A) **code-first, no mock needed** — A9 open-in video
+   nav + prune avi/mpg, A14 off-main drain copies + pending indicator, C5 pdf-url →
+   download→file-capture, D4 .md/.txt → note body, D6 Maps place-note, D8 in-app Files
+   importer (audio+video), E2 1-hour Books routing, A4 EXIF date on image captures,
+   A6 PDF text-extract (unpin — searchable PDFs), bg-task claim on share imports
+   (Scribbel `ImportTranscriber` pattern, ~/Hackerman/ShhcribbleiOS). (B) **mock-first**
+   (locked process): E1 unified sheet (video+PDF get the slim sheet — significance at
+   share time), PDF text-inline in the body, in-app voice-annotate a capture. C3 podcasts ⭐
+   = own lane when user says go. Still awaiting user calls: C1 YouTube rich-card-only?,
+   C2 Insta/TikTok, B4 chat-export. Device builds number from **64** (63 = on-phone).
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →
