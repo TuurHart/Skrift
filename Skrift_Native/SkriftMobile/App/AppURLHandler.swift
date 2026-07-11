@@ -9,8 +9,9 @@ enum AppURLHandler {
     // `.mp4`/`.mov` are deliberately NOT here — those container extensions are
     // checked for a video track first (`MemoSaver.isVideoFile`), and only fall
     // through to audio when audio-only. Pure-audio extensions stay direct.
+    // flac: AVFoundation reads it natively; pickable via the D8 Files importer.
     private static let audioExtensions: Set<String> =
-        ["m4a", "mp3", "wav", "aac", "caf", "aiff", "aif", "opus"]
+        ["m4a", "mp3", "wav", "aac", "caf", "aiff", "aif", "opus", "flac"]
 
     static func handle(_ url: URL) {
         if url.isFileURL {

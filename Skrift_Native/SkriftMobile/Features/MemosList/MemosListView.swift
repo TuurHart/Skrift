@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import UniformTypeIdentifiers
 
 enum MemoSort: String, CaseIterable, Identifiable {
     case added = "Recently added"
@@ -56,6 +57,11 @@ struct MemosListView: View {
     @State private var lockVaultNotice = false
     /// In-app document scan (chunk 9) — device-only entry.
     @State private var showDocScanner = false
+    /// D8 in-app media import: Files picker (audio + video) and the Photos
+    /// video picker — before this there was NO in-app way to import an audio
+    /// file at all, and the video picker was built but never wired anywhere.
+    @State private var showMediaFileImporter = false
+    @State private var showVideoImporter = false
     @State private var showSortFilter = false
     @State private var showTrash = false
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
@@ -166,6 +172,22 @@ struct MemosListView: View {
             // memo detail, which a non-memo destination can't join. (Settings +
             // the audiobook Library moved out to root tabs — see AppTabView.)
             .sheet(isPresented: $showTrash) { RecentlyDeletedView() }
+            // D8: Files import (audio + video) — routes through the same
+            // AppURLHandler path as open-in/AirDrop: video → strip audio +
+            // frame, audio → transcribed memo, both jump to the new note.
+            .fileImporter(isPresented: $showMediaFileImporter,
+                          allowedContentTypes: [.audio, .movie],
+                          allowsMultipleSelection: true) { result in
+                if case .success(let urls) = result {
+                    for url in urls { AppURLHandler.handle(url) }
+                }
+            }
+            .sheet(isPresented: $showVideoImporter) {
+                VideoImportPicker { id in
+                    showVideoImporter = false
+                    if let id { MemoOpenBridge.shared.open(id) }
+                }
+            }
         }
     }
 
@@ -437,6 +459,20 @@ struct MemosListView: View {
             .tint(.skAccent)
             .accessibilityIdentifier("select-button")
             if !editMode.isEditing {
+                // D8: import media into Skrift without the share sheet — a Files
+                // picker (audio + video) and the Photos video picker.
+                Menu {
+                    Button { showMediaFileImporter = true } label: {
+                        Label("Audio or video from Files", systemImage: "folder")
+                    }
+                    Button { showVideoImporter = true } label: {
+                        Label("Video from Photos", systemImage: "photo.on.rectangle")
+                    }
+                } label: {
+                    Image(systemName: "square.and.arrow.down").font(.system(size: 17))
+                }
+                .tint(.skAccent)
+                .accessibilityIdentifier("import-media-button")
                 if DocScanView.isSupported {
                     // Scan a paper document → PDF capture (chunk 9). No sim
                     // camera → the button honestly disappears there.
