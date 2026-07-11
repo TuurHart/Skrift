@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Journal on the Mac + iPad — Skrift mock v1</title>
+<title>Journal on the Mac + iPad — Skrift mock v2</title>
 <style>
   /* Desktop Theme.swift tokens (dark), 1:1 */
   :root{
@@ -81,6 +81,28 @@
   .dayhead b{font-size:13.5px;}
   .dayhead span{font-size:11px;color:var(--faint);}
 
+  .slimrow{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--dim);
+           border:1px dashed var(--hairline);border-radius:9px;padding:7px 12px;margin-bottom:10px;}
+  .slimrow .when{margin-left:auto;color:var(--faint);}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--amber);
+         box-shadow:0 0 8px rgba(245,158,11,.7);flex:none;}
+
+  /* Map mode (v2): the reading column becomes the places map */
+  .mapwrap{position:relative;height:322px;border-radius:12px;overflow:hidden;border:1px solid var(--hairline);
+           background:
+             radial-gradient(240px 140px at 68% 36%, rgba(124,107,245,.10), transparent 60%),
+             linear-gradient(115deg, #10131C 0%, #131722 40%, #101521 100%);}
+  .mapwrap .river{position:absolute;left:-8%;top:52%;width:120%;height:44px;
+                  background:rgba(96,145,250,.10);border-radius:50% 40% 50% 45%/60% 55% 60% 50%;
+                  transform:rotate(-7deg);}
+  .mapwrap .road{position:absolute;background:rgba(255,255,255,.05);}
+  .pinc{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .pinc .bub{min-width:26px;height:26px;border-radius:14px;background:var(--accent);color:#fff;
+             font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;
+             padding:0 7px;box-shadow:0 4px 14px rgba(124,107,245,.45);}
+  .pinc .pn{font-size:10px;color:var(--dim);background:rgba(6,6,8,.55);padding:1px 7px;border-radius:8px;white-space:nowrap;}
+  .pinc.sel .bub{background:#fff;color:var(--accent);outline:2.5px solid var(--accent);}
+
   /* ── iPad panel ─────────────────────────────────── */
   .ipad{width:900px;height:640px;background:var(--bg);border:10px solid #000;border-radius:26px;overflow:hidden;display:flex;box-shadow:0 24px 70px rgba(0,0,0,.5);}
   .ipad .col1{width:340px;border-right:1px solid var(--hairline);padding:20px 18px;overflow:auto;}
@@ -119,10 +141,10 @@
 </head>
 <body>
 
-<h1>Journal on the Mac (+ iPad) — v1</h1>
+<h1>Journal on the Mac (+ iPad) — v2</h1>
 <p class="thesis">The phone shows Journal as three screens; the Mac's win is <b>simultaneity</b>: calendar + places become a
 navigation rail, and “Looking back” is the reading column — same LookbackProvider rules, same visual language, zero new logic.</p>
-<span class="v1">mock v1 · desktop shell = v5 · tokens 1:1 from Theme.swift · phone Journal v1 = the shipped design</span>
+<span class="v1">mock v2 · review-1 folded in: Places click → map takes the column · in-flight notes shrink to a slim row · tokens 1:1 from Theme.swift</span>
 
 <div class="label">1 · The Mac window — sidebar gains a Queue | Journal mode; rail = mini calendar + places; column = Looking back</div>
 <div class="mac">
@@ -186,18 +208,64 @@ navigation rail, and “Looking back” is the reading column — same LookbackP
         <p>The shared folder finally carries every wire struct. Next: the Mac honours the lock flag…</p>
         <div class="meta"><div class="imp"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i></div><span class="chip">Good Friday HQ</span><span>6:12</span></div>
       </div>
-      <div class="card" style="opacity:.75">
-        <div class="kick"><span style="color:var(--amber)">Transcribing…</span><span class="when">17:55</span></div>
-        <h3 style="color:var(--dim)">Voice note</h3>
-        <p>Waveform placeholder…</p>
-      </div>
+      <div class="slimrow"><span class="pulse"></span>Voice note · transcribing…<span class="when num">17:55</span></div>
     </div>
   </div>
 </div>
 <p class="hint"><b>Behaviour:</b> sidebar “Looking back” rows scroll the river to that card · a calendar day (dot size = note density,
-ring = today) selects the day → the column becomes that day's notes · a Place click filters the river to that cluster (the phone's
-map screen 3 collapses into this list — a full MapKit pane can ride the same rail later) · every card opens the note in the Queue
-view. <b>Same rules as the phone:</b> spaced 1/3/6/12-month lookbacks, one card per memo, empty windows hidden, importance dots.</p>
+ring = today) selects the day → the column becomes that day's notes · a Place click opens <b>map mode</b> (section 1b) · every card
+opens the note in the Queue view · an in-flight note shows as a slim row, never a card (review-1: “transcribing is Queue energy”).
+<b>Same rules as the phone:</b> spaced 1/3/6/12-month lookbacks, one card per memo, empty windows hidden, importance dots.</p>
+
+<div class="label">1b · Places → the map takes the reading column (review-1 ask) — the rail is unchanged, ⨯ returns to Looking back</div>
+<div class="mac" style="width:928px;">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--dim);margin-left:8px;">Skrift — Journal · Places</span>
+  </div>
+  <div class="win" style="height:520px;">
+    <div class="rail">
+      <div class="mhead"><b>July 2026</b><span class="mnav">‹ ›</span></div>
+      <div class="cal" style="opacity:.55">
+        <div class="wd">M</div><div class="wd">T</div><div class="wd">W</div><div class="wd">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div>
+        <div class="d out">29</div><div class="d out">30</div><div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d">4</div><div class="d">5</div>
+        <div class="d">6</div><div class="d today">7</div><div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div><div class="d">12</div>
+      </div>
+      <div class="sideLabel" style="margin-left:2px;">Places · map</div>
+      <div class="place" style="background:rgba(124,107,245,.13);color:var(--text);"><span><span class="pin">◉</span>Alfama, Lisbon</span><span class="n">31</span></div>
+      <div class="place"><span><span class="pin">◉</span>Good Friday HQ</span><span class="n">18</span></div>
+      <div class="place"><span><span class="pin">◉</span>Monsanto trail</span><span class="n">7</span></div>
+      <div class="place"><span><span class="pin">◉</span>Café Janis</span><span class="n">4</span></div>
+    </div>
+    <div class="main">
+      <div class="jhead" style="display:flex;justify-content:space-between;align-items:center;">Places <span style="font-size:11px;color:var(--faint);font-weight:500;">⨯ back to Looking back</span></div>
+      <div class="mapwrap">
+        <div class="river"></div>
+        <div class="road" style="left:18%;top:0;width:2px;height:100%;transform:rotate(14deg);"></div>
+        <div class="road" style="left:0;top:30%;width:100%;height:2px;transform:rotate(-3deg);"></div>
+        <div class="pinc sel" style="left:64%;top:38%;"><div class="bub">31</div><div class="pn">Alfama, Lisbon</div></div>
+        <div class="pinc" style="left:30%;top:26%;"><div class="bub">18</div><div class="pn">Good Friday HQ</div></div>
+        <div class="pinc" style="left:16%;top:66%;"><div class="bub">7</div><div class="pn">Monsanto trail</div></div>
+        <div class="pinc" style="left:78%;top:72%;"><div class="bub">4</div><div class="pn">Café Janis</div></div>
+      </div>
+      <div class="dayhead"><b>Alfama, Lisbon</b><span>31 notes · newest first</span></div>
+      <div class="card">
+        <div class="kick"><span style="color:var(--green)">Polished</span><span class="when">Mon 7 Jul · 08:41</span></div>
+        <h3>Two apps, one contract</h3>
+        <p>The shared folder finally carries every wire struct…</p>
+      </div>
+      <div class="card">
+        <div class="kick"><span>Capture</span><span class="when">Sun 6 Jul · 19:03</span></div>
+        <h3>Fado bar recommendation</h3>
+        <p>Shared from Maps with a voice ramble — <span class="nl">[[Rox]]</span> swears by the Tuesday sets.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>Behaviour:</b> clicking <b>Places</b> (or any place row) swaps the reading column for the map — MapKit pins clustered
+by place name, EXACTLY the phone's screen-3 logic (PlaceCluster reused; SwiftUI Map runs on macOS). A cluster click selects the place
+and lists its notes under the map; ⨯ (or a Looking-back row) returns the column. The rail never changes — the map is a MODE of the
+column, not a fourth surface. Maps-shared notes (Wave 2, place-anchored) land here too.</p>
 
 <div class="label">2 · iPad — the SAME phone app at regular width (universal target): journal home + calendar side-by-side</div>
 <div class="ipad">
