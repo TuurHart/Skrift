@@ -89,9 +89,10 @@ final class ChapterDetectorTests: XCTestCase {
     }
 
     func testPartAndStandaloneSections() {
-        let script = [(0.0, "Prologue.")] + prose(12)
-            + [(3.0, "Part"), (0.1, "Two.")] + prose(12)
-            + [(2.8, "Epilogue.")] + prose(12)
+        // Realistic spacing — the duration prior vetoes seconds-long "chapters".
+        let script = [(0.0, "Prologue.")] + prose(900)
+            + [(3.0, "Part"), (0.1, "Two.")] + prose(900)
+            + [(2.8, "Epilogue.")] + prose(900)
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
@@ -179,6 +180,104 @@ final class ChapterDetectorTests: XCTestCase {
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
         XCTAssertEqual(chapters?.map(\.title), ["Chapter 2", "Chapter 3"])
+    }
+
+    // MARK: - v2 styles: LibriVox, bare numbers, title-only
+
+    func testLibriVoxHeaderFormat() {
+        // "Chapter N of <book title>." flows without a pause after the number —
+        // the of-continuation must accept it (and not treat the book title as
+        // a chapter title).
+        let intro: [(TimeInterval, String)] = [
+            (0.0, "Chapter"), (0.1, "4"), (0.08, "of"), (0.08, "Pride"), (0.08, "and"), (0.08, "Prejudice."),
+            (0.5, "This"), (0.08, "is"), (0.08, "a"), (0.08, "LibriVox"), (0.08, "recording."),
+        ]
+        let script = intro + prose(20)
+            + [(3.0, "Chapter"), (0.1, "5"), (0.08, "of"), (0.08, "Pride"), (0.08, "and"), (0.08, "Prejudice.")]
+            + prose(20)
+        let words = stream(script)
+        let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                              bookDuration: (words.last?.end ?? 0) + 1)
+        XCTAssertEqual(chapters?.map(\.title), ["Chapter 4", "Chapter 5"])
+    }
+
+    func testBareNumberHeadings() {
+        // Kleon-style: "<number>. <title>." with no "chapter" keyword. Three
+        // ascending, ~5 min apart → bare-number style wins.
+        func heading(_ n: String, _ title: [String]) -> [(TimeInterval, String)] {
+            var out: [(TimeInterval, String)] = [(3.0, n)]
+            for (i, w) in title.enumerated() {
+                out.append((i == 0 ? 0.6 : 0.08, w))
+            }
+            return out
+        }
+        var script: [(TimeInterval, String)] = prose(6)
+        script += heading("Seven.", ["Don't", "turn", "into", "human", "spam."]) + [(0.8, "so")] + prose(900)
+        script += heading("Eight.", ["Learn", "to", "take", "a", "punch."]) + [(0.8, "so")] + prose(900)
+        script += heading("Nine.", ["Sell", "out."]) + [(0.8, "so")] + prose(300)
+        let words = stream(script)
+        let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                              bookDuration: (words.last?.end ?? 0) + 1)
+        XCTAssertEqual(chapters?.map(\.title),
+                       ["Chapter 7 — Don't turn into human spam",
+                        "Chapter 8 — Learn to take a punch", "Chapter 9 — Sell out"])
+    }
+
+    func testCountingSceneIsNotChapters() {
+        // Fiction counting: standalone numbers seconds apart — spacing guard
+        // keeps one, quorum fails, nothing detected.
+        let script = prose(10)
+            + [(2.5, "One."), (2.5, "Two."), (2.5, "Three."), (2.5, "Four.")]
+            + prose(10)
+        let words = stream(script)
+        XCTAssertNil(ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                            bookDuration: (words.last?.end ?? 0) + 1))
+    }
+
+    func testTitleOnlyBookDetected() {
+        // Digital-Minimalism style: no numbers, no keywords — just short
+        // hanging titles after real silences, consistently. Six of them,
+        // ~5 min apart, and the book's biggest gaps are exactly these sites.
+        func chapter(_ title: [String]) -> [(TimeInterval, String)] {
+            var out: [(TimeInterval, String)] = []
+            for (i, w) in title.enumerated() { out.append((i == 0 ? 3.0 : 0.08, w)) }
+            out.append((0.8, "so"))
+            return out + prose(900)
+        }
+        var script: [(TimeInterval, String)] = []
+        script += chapter(["A", "Lopsided", "Arms", "Race."])
+        script += chapter(["Digital", "Minimalism."])
+        script += chapter(["The", "Digital", "Declutter."])
+        script += chapter(["Spend", "Time", "Alone."])
+        script += chapter(["Don't", "Click", "Like."])
+        script += chapter(["Reclaim", "Leisure."])
+        let words = stream(script)
+        let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                              bookDuration: (words.last?.end ?? 0) + 1)
+        XCTAssertEqual(chapters?.count, 6)
+        XCTAssertEqual(chapters?.first?.title, "A Lopsided Arms Race")
+        XCTAssertEqual(chapters?.last?.title, "Reclaim Leisure")
+    }
+
+    func testStingHeavyBookRejectsTitleOnly() {
+        // A gift-book production: it HAS a few short hanging quotes after
+        // gaps, but its BIGGEST silences are music stings flowing into long
+        // prose — dominance fails, no chapters invented.
+        func quote(_ text: [String]) -> [(TimeInterval, String)] {
+            var out: [(TimeInterval, String)] = []
+            for (i, w) in text.enumerated() { out.append((i == 0 ? 2.5 : 0.08, w)) }
+            out.append((0.8, "so"))
+            return out
+        }
+        var script: [(TimeInterval, String)] = prose(6)
+        for _ in 0..<6 {
+            script += quote(["Keep", "going", "and", "make", "things."]) + prose(420)
+            script += [(12.0, "meanwhile")] + prose(420)   // sting into flowing prose
+            script += [(13.0, "later")] + prose(420)       // another sting
+        }
+        let words = stream(script)
+        XCTAssertNil(ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                            bookDuration: (words.last?.end ?? 0) + 1))
     }
 
     // MARK: - Number parser units

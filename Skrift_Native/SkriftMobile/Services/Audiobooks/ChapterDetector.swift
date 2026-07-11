@@ -4,90 +4,240 @@ import Foundation
 /// word-timings) — pure, host-less, unit-tested. This is the STANDARD chapter
 /// source once a book is fully transcribed: file boundaries aren't reliably
 /// chapter boundaries (arbitrary splits, time-based rips), but the narration
-/// itself is — produced audiobooks announce chapters after a long silence.
+/// is — production specs (ACX) have narrators read each section heading
+/// exactly as the manuscript writes it, then pause.
 ///
-/// Signal = a LONG pause (or a file start) followed by a short heading
-/// utterance: "Chapter 7" / "Chapter Twenty-Three" / "Part Two" / "Hoofdstuk 3"
-/// / a standalone section word (Prologue, Epilogue, …). The heading's number
-/// must terminate cleanly (sentence punctuation or a beat of silence) so prose
-/// that merely *starts* with "Chapter seven ended badly…" never matches. An
-/// optional short next sentence becomes the chapter's title ("Chapter 7 —
-/// The Boy Who Lived" style data, stored as title "The Boy Who Lived").
+/// The manuscript decides the STYLE — "Chapter Seven", a bare "Seven.", or
+/// just a title ("A Lopsided Arms Race.") — but a book uses ONE style
+/// throughout (narrator guides call mixed styles a defect). So v2 works as a
+/// style VOTE, not one grammar:
+///   1. harvest candidates after silences (all styles at once),
+///   2. pick the style the book itself corroborates —
+///      keyword headings › bare numbers › title-only, in falling confidence,
+///      each with its own quorum + sanity gates,
+///   3. validate the winner against duration priors (chapters are minutes,
+///      not seconds — the m4b-tool prior), else return nil.
 ///
 /// Precision beats recall throughout: `detect` returns nil (→ keep whatever
-/// chapters exist today) unless it finds ≥2 confident headings with sane
-/// numbering. All thresholds are internal constants, tuned in tests.
+/// chapters exist today) unless one style clears its gates.
 enum ChapterDetector {
 
     // MARK: - Tunables
 
-    /// Silence before a heading for it to count as a structural break.
-    static let gapBefore: TimeInterval = 2.0
-    /// A heading's number must be followed by ≥ this much silence when it
-    /// carries no sentence punctuation ("Chapter seven ended…" guard).
+    /// Smallest silence that anchors a candidate (ACX post-heading pause is
+    /// 1–3 s; chunk seams can shave it, so the floor sits below that).
+    static let gapBefore: TimeInterval = 1.2
+    /// A heading's number/keyword must be followed by ≥ this much silence when
+    /// it carries no sentence punctuation ("Chapter seven ended…" guard).
     static let numberEndGap: TimeInterval = 0.35
     /// Title candidate: the sentence after the heading, if it's short and ends
     /// with sentence punctuation. Longest accepted title, in words.
     static let maxTitleWords = 9
     /// A spoken title HANGS — silence after it before prose starts.
     static let titleEndGap: TimeInterval = 0.4
-    /// Two same-kind detections closer than this are echoes/recaps — keep the first.
+    /// Two same-identity detections closer than this are echoes — keep the first.
     static let minSameKindSpacing: TimeInterval = 45
+    /// Numbered/title headings closer than this to the PREVIOUS accepted one
+    /// are prose artifacts (a counting scene, a list) — chapters are minutes.
+    static let minChapterSpacing: TimeInterval = 120
     /// Below 2 detections there is no chaptering; above 400 something is wrong.
     static let minDetections = 2
     static let maxDetections = 400
+    /// Bare-number style needs a stronger quorum than keyword style.
+    static let minBareNumberQuorum = 3
+    /// Title-only style is the weakest signal: it needs this many candidates
+    /// AND most of the book's biggest silences to look title-shaped.
+    static let minTitleOnlyQuorum = 5
+    static let titleOnlyDominance = 0.6
+    /// Duration priors (validated against m4b-tool's 5–15 min forced-cut
+    /// heuristic, relaxed for gift-books with short chapters).
+    static let minMedianChapterSeconds: TimeInterval = 240
+    static let maxChaptersPerSecond = 1.0 / 120.0
     /// An implicit "Opening" chapter is prepended when the first detected
     /// heading starts later than this (title/credits announcement).
     static let openingThreshold: TimeInterval = 30
 
-    // MARK: - Detection
+    // MARK: - Model
 
-    /// One confirmed heading, before chapter-list assembly.
+    /// One candidate heading, before the style vote.
     struct Heading: Equatable, Sendable {
-        enum Kind: Equatable, Sendable { case chapter(Int), part(Int), standalone(String) }
+        enum Kind: Equatable, Sendable {
+            case chapter(Int)          // "Chapter 7" / "Hoofdstuk 7"
+            case part(Int)             // "Part 2" / "Book 2" / "Deel 2"
+            case standalone(String)    // Prologue / Epilogue / …
+            case bareNumber(Int)       // "Seven." (no keyword)
+            case titleOnly             // a short hanging utterance, no number
+        }
         let kind: Kind
         /// Global (whole-book) start second — the heading word's start.
         let start: TimeInterval
-        /// Spoken title sentence after the heading, if one was confidently found.
+        /// Spoken title sentence, when confidently found (for `.titleOnly`
+        /// this IS the label).
         let title: String?
+        /// Silence before the heading (file starts report a large sentinel).
+        let gapBefore: TimeInterval
+
+        init(kind: Kind, start: TimeInterval, title: String?, gapBefore: TimeInterval = 999) {
+            self.kind = kind
+            self.start = start
+            self.title = title
+            self.gapBefore = gapBefore
+        }
     }
+
+    // MARK: - Detection
 
     /// Detect chapters across a whole book. `fileWords` = one word-timing array
     /// per book file (FILE-LOCAL times, the sidecars); `fileStartTimes` maps each
     /// file to its global origin. Returns a full-coverage chapter list, or nil
-    /// when no confident chaptering was found (caller keeps existing chapters).
+    /// when no style cleared its gates (caller keeps existing chapters).
     static func detect(fileWords: [[WordTiming]],
                        fileStartTimes: [TimeInterval],
                        bookDuration: TimeInterval) -> [AudiobookChapter]? {
         var all: [Heading] = []
+        var unmatched: [TimeInterval] = []   // big-gap sites with NO heading (negative evidence)
         for (fileIndex, words) in fileWords.enumerated() {
             let origin = fileIndex < fileStartTimes.count ? fileStartTimes[fileIndex] : 0
-            all.append(contentsOf: headings(in: words, globalOrigin: origin))
+            let h = harvest(in: words, globalOrigin: origin)
+            all.append(contentsOf: h.headings)
+            unmatched.append(contentsOf: h.unmatchedGaps)
         }
         all.sort { $0.start < $1.start }
 
-        all = dropEchoes(all)
-        guard all.count >= minDetections, all.count <= maxDetections else { return nil }
-        guard numbersAreSane(all) else { return nil }
-
-        return assemble(all, bookDuration: bookDuration)
+        guard let chosen = vote(all, unmatchedGaps: unmatched, fileStartTimes: fileStartTimes,
+                                bookDuration: bookDuration)
+        else { return nil }
+        return assemble(chosen, bookDuration: bookDuration)
     }
 
-    /// Scan one file's words for confirmed headings (global times out).
-    static func headings(in words: [WordTiming], globalOrigin: TimeInterval) -> [Heading] {
+    /// The style vote. Keyword chapters are trusted at quorum 2; bare numbers
+    /// need 3 + spacing; title-only needs 5 + dominance of the book's biggest
+    /// silences. Part/standalone keywords ride along with whichever wins.
+    static func vote(_ all: [Heading], unmatchedGaps: [TimeInterval],
+                     fileStartTimes: [TimeInterval] = [],
+                     bookDuration: TimeInterval) -> [Heading]? {
+        let deduped = dropEchoes(all)
+        let structural = deduped.filter {
+            if case .part = $0.kind { return true }
+            if case .standalone = $0.kind { return true }
+            return false
+        }
+
+        // Style 1 — keyword chapters ("Chapter N"): the production standard.
+        let keyword = deduped.filter { if case .chapter = $0.kind { return true }; return false }
+        if keyword.count >= minDetections, numbersAreSane(keyword, fileStartTimes: fileStartTimes) {
+            return finalize(keyword + structural, bookDuration: bookDuration)
+        }
+
+        // Style 2 — bare numbers ("Seven."): manuscripts with numbered-only
+        // headings. Stronger quorum, same ascending sanity.
+        let bare = spaced(deduped.filter {
+            if case .bareNumber = $0.kind { return true }; return false
+        })
+        if bare.count >= minBareNumberQuorum, numbersAreSane(bare, fileStartTimes: fileStartTimes) {
+            return finalize(bare + structural, bookDuration: bookDuration)
+        }
+
+        // Style 3 — title-only ("A Lopsided Arms Race."): the weakest signal.
+        // Quorum + the book's own biggest silences must be title-shaped —
+        // a sting-heavy production (big gaps into flowing prose) fails here.
+        let titled = spaced(deduped.filter {
+            if case .titleOnly = $0.kind { return $0.title != nil }; return false
+        })
+        if titled.count >= minTitleOnlyQuorum,
+           titleShapeDominates(candidates: deduped, unmatchedGaps: unmatchedGaps,
+                               bookDuration: bookDuration) {
+            return finalize(titled + structural, bookDuration: bookDuration)
+        }
+
+        // No chapter style — parts/sections alone still beat nothing when
+        // there are at least two of them (they ARE announced structure).
+        if structural.count >= minDetections {
+            return finalize(structural, bookDuration: bookDuration)
+        }
+        return nil
+    }
+
+    /// Shared tail gates: count bounds + duration priors. nil vetoes the style.
+    private static func finalize(_ chosen: [Heading], bookDuration: TimeInterval) -> [Heading]? {
+        let sorted = chosen.sorted { $0.start < $1.start }
+        guard sorted.count >= minDetections, sorted.count <= maxDetections else { return nil }
+        if bookDuration > 0,
+           Double(sorted.count) > max(3, bookDuration * maxChaptersPerSecond) { return nil }
+        // Median resulting chapter length must be plausible (minutes, not
+        // seconds) — kills counting scenes / list readings wholesale.
+        if sorted.count >= 3 {
+            var lengths: [TimeInterval] = []
+            for (a, b) in zip(sorted, sorted.dropFirst()) { lengths.append(b.start - a.start) }
+            let median = lengths.sorted()[lengths.count / 2]
+            guard median >= minMedianChapterSeconds else { return nil }
+        }
+        return sorted
+    }
+
+    /// Enforce `minChapterSpacing` between accepted same-style headings —
+    /// keeps the first of any implausibly tight run (counting scenes).
+    private static func spaced(_ headings: [Heading]) -> [Heading] {
+        var kept: [Heading] = []
+        for h in headings.sorted(by: { $0.start < $1.start }) {
+            if let last = kept.last, h.start - last.start < minChapterSpacing { continue }
+            kept.append(h)
+        }
+        return kept
+    }
+
+    /// Title-only corroboration: of the book's BIGGEST silences (matched OR
+    /// unmatched, top-K by the duration prior), at least `titleOnlyDominance`
+    /// must have produced a heading. A sting-heavy production has its biggest
+    /// gaps flow into ordinary prose (unmatched) and fails here. No absolute
+    /// thresholds — adapts to the book's own production style.
+    static func titleShapeDominates(candidates: [Heading], unmatchedGaps: [TimeInterval],
+                                    bookDuration: TimeInterval) -> Bool {
+        var sites: [(gap: TimeInterval, matched: Bool)] =
+            candidates.filter { $0.gapBefore < 999 }.map { ($0.gapBefore, true) }
+        sites.append(contentsOf: unmatchedGaps.map { ($0, false) })
+        let k = max(minTitleOnlyQuorum, Int(bookDuration * maxChaptersPerSecond / 2))
+        let topSites = sites.sorted { $0.gap > $1.gap }.prefix(k)
+        guard !topSites.isEmpty else { return false }
+        let matched = topSites.filter(\.matched).count
+        return Double(matched) / Double(topSites.count) >= titleOnlyDominance
+    }
+
+    // MARK: - Candidate harvest
+
+    struct Harvest {
+        var headings: [Heading]
+        /// Big-gap (≥2 s) sites where NOTHING matched — negative evidence for
+        /// the title-only dominance check (a sting-heavy book is mostly these).
+        var unmatchedGaps: [TimeInterval]
+    }
+
+    /// Scan one file's words for candidate headings of EVERY style (global
+    /// times out). A candidate anchors at the file's first word or any word
+    /// after a ≥`gapBefore` silence.
+    static func harvest(in words: [WordTiming], globalOrigin: TimeInterval) -> Harvest {
         var found: [Heading] = []
+        var unmatched: [TimeInterval] = []
         var i = 0
         while i < words.count {
-            // Candidate = the file's first word, or any word after a long silence.
-            let isCandidate = i == 0 || (words[i].start - words[i - 1].end) >= gapBefore
-            if isCandidate, let (heading, consumed) = matchHeading(words, at: i, globalOrigin: globalOrigin) {
-                found.append(heading)
-                i += consumed
-            } else {
-                i += 1
+            let gap = i == 0 ? 999 : (words[i].start - words[i - 1].end)
+            if gap >= gapBefore || i == 0 {
+                if let (heading, consumed) = matchHeading(words, at: i, globalOrigin: globalOrigin,
+                                                          gap: gap) {
+                    found.append(heading)
+                    i += consumed
+                    continue
+                }
+                if gap >= 2.0, i > 0 { unmatched.append(gap) }
             }
+            i += 1
         }
-        return found
+        return Harvest(headings: found, unmatchedGaps: unmatched)
+    }
+
+    /// Diagnostic/back-compat view of `harvest` (probe + tests).
+    static func headings(in words: [WordTiming], globalOrigin: TimeInterval) -> [Heading] {
+        harvest(in: words, globalOrigin: globalOrigin).headings
     }
 
     // MARK: - Heading grammar
@@ -95,29 +245,61 @@ enum ChapterDetector {
     /// Try to read a heading starting at `words[i]`. Returns the heading and
     /// how many words it consumed (heading + title), or nil.
     private static func matchHeading(_ words: [WordTiming], at i: Int,
-                                     globalOrigin: TimeInterval) -> (Heading, Int)? {
+                                     globalOrigin: TimeInterval,
+                                     gap: TimeInterval) -> (Heading, Int)? {
         let first = core(words[i].word)
+        let start = globalOrigin + words[i].start
 
-        // "Chapter <n>" / "Hoofdstuk <n>" / "Part <n>" / "Book <n>" / "Deel <n>"
+        // "Chapter <n> [of <book title>.]" / "Hoofdstuk <n>" / "Part <n>" …
         if let kindWord = keywordKind(first) {
             guard let (value, numberEnd) = parseNumber(words, from: i + 1) else { return nil }
-            guard terminatesCleanly(words, lastIndex: numberEnd) else { return nil }
-            let (title, consumedTitle) = titleAfter(words, index: numberEnd + 1)
+            // LibriVox format: "Chapter 4 of Pride and Prejudice." — the
+            // number flows into "of <title>"; consume through that sentence.
+            var end = numberEnd
+            if numberEnd + 1 < words.count, core(words[numberEnd + 1].word) == "of",
+               !Paragrapher.endsSentence(words[numberEnd].word) {
+                var j = numberEnd + 1
+                while j < words.count, j - numberEnd <= maxTitleWords {
+                    if Paragrapher.endsSentence(words[j].word) { end = j; break }
+                    j += 1
+                }
+                guard end > numberEnd else { return nil }
+            } else {
+                guard terminatesCleanly(words, lastIndex: numberEnd) else { return nil }
+            }
+            let (title, consumedTitle) = end == numberEnd
+                ? titleAfter(words, index: numberEnd + 1)
+                : (nil, 0)   // LibriVox headers carry the BOOK title, not a chapter title
             let kind: Heading.Kind = kindWord == .chapter ? .chapter(value) : .part(value)
-            return (Heading(kind: kind, start: globalOrigin + words[i].start, title: title),
-                    (numberEnd - i + 1) + consumedTitle)
+            return (Heading(kind: kind, start: start, title: title, gapBefore: gap),
+                    (end - i + 1) + consumedTitle)
         }
 
         // Standalone section word ("Prologue.", "Epilogue.", …) — must itself
-        // terminate cleanly, so prose like "the introduction of…" can't match
-        // (and the keyword must be the utterance's FIRST word — enforced by the
-        // candidate anchor).
+        // terminate cleanly, so prose like "the introduction of…" can't match.
         if standaloneSections.contains(first) {
             guard terminatesCleanly(words, lastIndex: i) else { return nil }
             let (title, consumedTitle) = titleAfter(words, index: i + 1)
-            return (Heading(kind: .standalone(first.capitalized),
-                            start: globalOrigin + words[i].start, title: title),
-                    1 + consumedTitle)
+            return (Heading(kind: .standalone(first.capitalized), start: start,
+                            title: title, gapBefore: gap), 1 + consumedTitle)
+        }
+
+        // Bare number ("Seven." / "23." / "Twenty-three: …") — manuscripts
+        // whose headings are numbered without the word "chapter". The number
+        // must terminate cleanly, so "One time my co-worker…" can't match.
+        if let (value, numberEnd) = parseNumber(words, from: i),
+           terminatesCleanly(words, lastIndex: numberEnd) {
+            let (title, consumedTitle) = titleAfter(words, index: numberEnd + 1)
+            return (Heading(kind: .bareNumber(value), start: start, title: title,
+                            gapBefore: gap), (numberEnd - i + 1) + consumedTitle)
+        }
+
+        // Title-only ("A Lopsided Arms Race.") — a short utterance that ends
+        // with sentence punctuation AND hangs. Only meaningful behind a real
+        // silence; the vote demands quorum + dominance before trusting these.
+        if gap >= 2.0, let (utterance, consumed) = shortHangingUtterance(words, from: i) {
+            return (Heading(kind: .titleOnly, start: start, title: utterance,
+                            gapBefore: gap), consumed)
         }
         return nil
     }
@@ -139,7 +321,7 @@ enum ChapterDetector {
     /// silence — the guard that rejects prose starting with a heading word.
     private static func terminatesCleanly(_ words: [WordTiming], lastIndex: Int) -> Bool {
         guard lastIndex < words.count else { return false }
-        if endsSentence(words[lastIndex].word) { return true }
+        if Paragrapher.endsSentence(words[lastIndex].word) { return true }
         guard lastIndex + 1 < words.count else { return true }   // end of transcript
         return (words[lastIndex + 1].start - words[lastIndex].end) >= numberEndGap
     }
@@ -150,24 +332,35 @@ enum ChapterDetector {
     /// silence follows it, the way narrators read titles. A short opening prose
     /// sentence flows straight on and is rejected.
     private static func titleAfter(_ words: [WordTiming], index: Int) -> (String?, Int) {
+        guard let (utterance, consumed) = shortHangingUtterance(words, from: index),
+              Int(utterance) == nil,
+              spelledValue(utterance.split(separator: " ").map { core(String($0)) }) == nil
+        else { return (nil, 0) }   // a bare number is the NEXT heading, not a title
+        return (utterance, consumed)
+    }
+
+    /// A ≤`maxTitleWords` run from `from` that ends with sentence punctuation
+    /// and HANGS (≥`titleEndGap` silence after, or transcript end). Returns the
+    /// cleaned text + words consumed.
+    private static func shortHangingUtterance(_ words: [WordTiming],
+                                              from: Int) -> (String, Int)? {
         var collected: [String] = []
-        var i = index
+        var i = from
         while i < words.count, collected.count < maxTitleWords {
             collected.append(words[i].word)
-            if endsSentence(words[i].word) {
+            if Paragrapher.endsSentence(words[i].word) {
                 let hangs = i + 1 >= words.count
                     || (words[i + 1].start - words[i].end) >= titleEndGap
-                let title = strippedSentence(collected)
-                // Must hang, and a bare number ("2.") or empty remainder is no title.
-                guard hangs, !title.isEmpty, Int(title) == nil else { return (nil, 0) }
-                return (title, collected.count)
+                let text = strippedSentence(collected)
+                guard hangs, !text.isEmpty else { return nil }
+                return (text, collected.count)
             }
             i += 1
         }
-        return (nil, 0)
+        return nil
     }
 
-    // MARK: - Sanity + assembly
+    // MARK: - Sanity
 
     /// Drop a detection that REPEATS the previous kept heading (same kind AND
     /// same number/name) implausibly soon — a re-announcement or recap echo.
@@ -183,20 +376,30 @@ enum ChapterDetector {
         return kept
     }
 
-    /// Numbered chapters should mostly ascend (a reset to 1 after a part break
-    /// is fine). Too many inversions = the matches are prose FPs → bail.
-    static func numbersAreSane(_ headings: [Heading]) -> Bool {
-        var numbers: [Int] = []
-        for h in headings { if case .chapter(let n) = h.kind { numbers.append(n) } }
-        guard numbers.count >= 3 else { return true }   // too few to judge
-        var inversions = 0
-        for (prev, next) in zip(numbers, numbers.dropFirst()) where next <= prev && next != 1 {
-            inversions += 1
+    /// Numbered chapters should mostly ascend. A reset to 1 after a part break
+    /// is fine, and so is any reset ACROSS A FILE BOUNDARY — a multi-file
+    /// import can be several works (a trilogy), each numbering from 1. Too
+    /// many real inversions = the matches are prose FPs → bail.
+    static func numbersAreSane(_ headings: [Heading],
+                               fileStartTimes: [TimeInterval] = []) -> Bool {
+        var numbered: [(n: Int, start: TimeInterval)] = []
+        for h in headings {
+            if case .chapter(let n) = h.kind { numbered.append((n, h.start)) }
+            if case .bareNumber(let n) = h.kind { numbered.append((n, h.start)) }
         }
-        return Double(inversions) / Double(numbers.count) <= 0.3
+        guard numbered.count >= 3 else { return true }   // too few to judge
+        var inversions = 0
+        for (prev, next) in zip(numbered, numbered.dropFirst())
+        where next.n <= prev.n && next.n != 1 {
+            let crossesFile = fileStartTimes.contains { $0 > prev.start && $0 <= next.start }
+            if !crossesFile { inversions += 1 }
+        }
+        return Double(inversions) / Double(numbered.count) <= 0.3
     }
 
-    /// Turn confirmed headings into a full-coverage chapter list.
+    // MARK: - Assembly
+
+    /// Turn the winning headings into a full-coverage chapter list.
     private static func assemble(_ headings: [Heading],
                                  bookDuration: TimeInterval) -> [AudiobookChapter] {
         var chapters: [AudiobookChapter] = []
@@ -215,12 +418,14 @@ enum ChapterDetector {
 
     /// "Chapter 7" / "Part 2" / "Prologue", with the spoken title appended the
     /// way embedded m4b tracks carry it ("Chapter 7 — The Boy Who Lived").
+    /// Bare-number headings read as chapters; title-only headings ARE their title.
     static func label(for h: Heading) -> String {
         let base: String
         switch h.kind {
-        case .chapter(let n): base = "Chapter \(n)"
+        case .chapter(let n), .bareNumber(let n): base = "Chapter \(n)"
         case .part(let n): base = "Part \(n)"
         case .standalone(let s): base = s
+        case .titleOnly: return h.title ?? "Chapter"
         }
         guard let title = h.title else { return base }
         return base + " — " + title
@@ -234,10 +439,6 @@ enum ChapterDetector {
         token.trimmingCharacters(in: .alphanumerics.inverted)
             .lowercased()
             .replacingOccurrences(of: "ë", with: "e")
-    }
-
-    private static func endsSentence(_ word: String) -> Bool {
-        Paragrapher.endsSentence(word)
     }
 
     /// Joined words with the terminal sentence punctuation stripped.
@@ -258,14 +459,18 @@ enum ChapterDetector {
         let first = core(words[from].word)
         if let n = Int(first), n > 0, n < 10_000 { return (n, from) }
 
-        // Spelled numbers: greedily extend while tokens still parse.
+        // Spelled numbers: greedily extend while tokens still parse. An
+        // ADJACENT DUPLICATE of the same word ("ten Ten.") is a chunk-seam
+        // echo (pre-fix sidecars) — consume it without re-adding the value,
+        // or "ten ten" would sum to twenty.
         var best: (Int, Int)?
         var tokens: [String] = []
         for i in from..<min(from + 4, words.count) {
-            tokens.append(core(words[i].word))
+            let c = core(words[i].word)
+            if c != tokens.last { tokens.append(c) }
             if let v = spelledValue(tokens) { best = (v, i) }
             // Stop extending past a sentence end — "Seven. The" never joins.
-            if endsSentence(words[i].word) { break }
+            if Paragrapher.endsSentence(words[i].word) { break }
         }
         return best
     }
@@ -302,8 +507,6 @@ enum ChapterDetector {
     static func spelledValue(_ tokens: [String]) -> Int? {
         var parts: [String] = []
         for t in tokens {
-            // Hyphenated ("twenty-three" cores to "twentythree"? No — core keeps
-            // alphanumerics only at the EDGES; internal hyphens survive) — split them.
             parts.append(contentsOf: t.split(separator: "-").map(String.init))
         }
         parts = parts.filter { $0 != "and" && $0 != "en" && $0 != "the" && $0 != "de" && $0 != "het" }
