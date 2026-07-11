@@ -162,8 +162,8 @@ struct NoteBody: View {
               let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               num >= 1, num <= arr.count,
               let filename = arr[num - 1]["filename"] as? String else { return nil }
-        let url = folder.appendingPathComponent("images").appendingPathComponent(filename)
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        let imageFile = folder.appendingPathComponent("images").appendingPathComponent(filename)
+        return FileManager.default.fileExists(atPath: imageFile.path) ? imageFile : nil
     }
 
     private var karaoke: some View {
