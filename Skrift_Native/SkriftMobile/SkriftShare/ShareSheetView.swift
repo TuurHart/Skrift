@@ -621,7 +621,11 @@ struct ShareSheetView: View {
             dictationFileName: dictationData != nil ? "dictation.m4a" : nil,
             // The names array carries EVERY image (single included) — the write
             // path stores them all from `imageDatas`, index-aligned.
-            imageFileNames: imageItems.isEmpty ? nil : imageItems.map(\.fileName)
+            imageFileNames: imageItems.isEmpty ? nil : imageItems.map(\.fileName),
+            // EXIF taken-dates, aligned to the names ("" = none) — the drainer
+            // dates the capture to the earliest photo, not the share moment (A4).
+            imageRecordedAts: imageItems.isEmpty ? nil
+                : imageItems.map { $0.recordedAt.map { ISO8601.string(from: $0) } ?? "" }
         )
         onSave([entry], imageItems.map(\.data), dictationData)
     }

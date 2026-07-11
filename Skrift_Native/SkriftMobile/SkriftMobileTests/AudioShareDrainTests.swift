@@ -303,6 +303,35 @@ final class AudioShareDrainTests: XCTestCase {
         if let f = memo.sharedFileURL { try? FileManager.default.removeItem(at: f) }
     }
 
+    /// A4: an image capture dates to the photos' EARLIEST EXIF taken-date, not
+    /// the share moment ("" entries = no metadata, ignored).
+    @MainActor
+    func testImageCaptureDatesToEarliestExif() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let id = UUID()
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0])   // enough for the copy path
+        let entry = CaptureInboxEntry(
+            id: id, type: "image", url: nil, urlTitle: nil, text: nil,
+            imageFileName: "a.jpg", mimeType: "image/jpeg",
+            annotationText: nil, significance: 0,
+            sharedAt: ISO8601.string(from: Date()),
+            imageFileNames: ["a.jpg", "b.jpg", "c.jpg"],
+            imageRecordedAts: ["2026-07-04T10:00:00.000Z", "2026-07-03T09:30:00.000Z", ""])
+        XCTAssertTrue(CaptureInbox.write(entry, imageDatas: [jpeg, jpeg, jpeg]))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let memo = try XCTUnwrap(repo.memo(id: id))
+        let expected = try XCTUnwrap(ISO8601.date(from: "2026-07-03T09:30:00.000Z"))
+        XCTAssertEqual(memo.recordedAt.timeIntervalSince1970, expected.timeIntervalSince1970,
+                       accuracy: 1.0, "memo dated to the earliest photo, not the share time")
+        for name in memo.metadata?.imageManifest?.map(\.filename) ?? [] {
+            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(name))
+        }
+    }
+
     /// A14 pending indicator: after a drain the published count is back to zero
     /// (the pill must never stick), and the entry landed as a memo.
     @MainActor

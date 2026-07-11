@@ -19,6 +19,9 @@ struct SharedImageItem {
     var data: Data
     var fileName: String
     var mimeType: String
+    /// EXIF taken-date, read from the ORIGINAL bytes before the downsample
+    /// re-encode stripped it (A4). nil = no metadata (screenshots, chat images).
+    var recordedAt: Date?
 }
 
 /// The resolved content of the share action, ready to display in the sheet.
@@ -285,7 +288,8 @@ enum SharePayloadLoader {
             items.append(SharedImageItem(
                 data: jpeg,
                 fileName: "capture_\(UUID().uuidString).jpg",
-                mimeType: "image/jpeg"
+                mimeType: "image/jpeg",
+                recordedAt: ImageDates.exifDate(from: rawData)   // BEFORE the re-encode (A4)
             ))
         }
         return SharePayload(type: .image, imageItems: items, mimeType: items.isEmpty ? nil : "image/jpeg")

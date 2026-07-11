@@ -59,6 +59,12 @@ struct CaptureInboxEntry: Codable {
     /// capture (B2 — multiple photos always combine into one note), in order.
     /// Single-image entries keep using the legacy `imageFileName`.
     var imageFileNames: [String]? = nil
+    /// ISO8601 EXIF taken-dates, index-aligned to the images ("" = no metadata —
+    /// screenshots/chat images). The drainer dates the capture memo to the
+    /// EARLIEST one, else the share moment (A4 — mirrors video/audio). Read in
+    /// the extension from the ORIGINAL bytes (the downsample strips EXIF).
+    /// Flat [String]; optional so older entries decode.
+    var imageRecordedAts: [String]? = nil
     /// Filename (relative to the entry folder) of a shared DOCUMENT (e.g. a PDF
     /// shared from Files/Books). The MAIN APP persists it into the recordings dir on
     /// drain → a `.file` capture. Optional so older entries decode.

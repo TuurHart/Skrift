@@ -349,7 +349,10 @@ enum CaptureInboxDrainer {
         // Parse the sharedAt timestamp using the app's canonical formatter
         // (fractional-seconds UTC, matching JavaScript Date.toISOString() and the
         // Mac contract). Fall back to now() if the string is malformed.
-        let recordedAt = ISO8601.date(from: entry.sharedAt) ?? Date()
+        // A4: image captures date to the photos' earliest EXIF taken-date when one
+        // exists — mirrors video (filming date) and audio (clip date).
+        let exifSeed = entry.imageRecordedAts?.compactMap { ISO8601.date(from: $0) }.min()
+        let recordedAt = exifSeed ?? ISO8601.date(from: entry.sharedAt) ?? Date()
 
         // Build MemoMetadata for image manifest (only populated for image captures).
         let metadata: MemoMetadata? = imageManifest.map { manifest in

@@ -265,6 +265,9 @@ targets:
       # Multi-target source membership: CaptureInbox is shared between the app
       # and the extension (both write/read the App Group container).
       - path: Services/Capture/CaptureInbox.swift
+      # EXIF taken-date reader (A4) — the extension reads it BEFORE the
+      # downsample re-encode strips metadata; the app's drainer parses it back.
+      - path: Services/Capture/ImageDates.swift
       # SignificanceCircles + its dependencies (the SHARED SignificanceScale,
       # DesignSystem colors) are compiled directly into the extension so
       # it can render the significance control without importing the app target.
