@@ -391,8 +391,8 @@ polish round on the physical print. Original design (still the spec):
 ## ⭐ CONTINUE HERE — desktop-parity board (written 2026-07-11 for the NEXT chat; Fable→Opus handoff)
 
 **Read this first.** The A-list shipped 2026-07-07 (section below). What remains is three boards, all
-**GATED**: (1) Tuur must sign off `mocks/journal-desktop.html` **v2** (map-behind-Places + slim
-in-flight row — his review-1 asks, folded in 2026-07-11); (2) check no other chat is mid-flight
+**GATE (1) CLEARED — mock v2 ✅ SIGNED OFF 2026-07-11 (Tuur): `mocks/journal-desktop.html` IS the
+spec for Boards A+B.** Remaining gate: (2) check no other chat is mid-flight
 before touching app code (`git worktree list` + `git branch -a --sort=-committerdate`, merge
 origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths only).
 

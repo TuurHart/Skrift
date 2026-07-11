@@ -104,8 +104,10 @@ Rules:
   process for new UI): v5 (desktop shell), significance-circles, name-unlink, name-a-speaker,
   capture-items, audiobook-capture, text-capture, **audiobook-player-redesign** (text-forward A+D
   hybrid player, signed off + built 2026-06-13), **audiobook-player-reading-mode** (e-reader "reading
-  mode" + tab-bar IA redesign, signed off 2026-06-19 — not yet built). A mock the user approved IS the
-  spec — build to it.
+  mode" + tab-bar IA redesign, signed off 2026-06-19 — not yet built), **journal-desktop** (Journal on
+  the Mac + iPad v2 — map mode behind Places, slim in-flight row, body-parity panels; signed off
+  2026-07-11 — not yet built; build board = backlog "CONTINUE HERE — desktop-parity"). A mock the
+  user approved IS the spec — build to it.
 - **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
   memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →
   MANDATORY second-agent verify → triage into backlog.md. Crash logs via `idevicecrashreport`.
