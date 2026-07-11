@@ -30,7 +30,7 @@ final class AudioShareDrainTests: XCTestCase {
     /// (audioFilename set — NOT a capture item), carries the sheet's
     /// significance, consumes the inbox entry, and requests the jump-to-note.
     @MainActor
-    func testDrainImportsSharedAudioAsTranscribedMemo() throws {
+    func testDrainImportsSharedAudioAsTranscribedMemo() async throws {
         _ = try cleanInbox()
         let repo = NotesRepository(inMemory: true)
 
@@ -43,7 +43,7 @@ final class AudioShareDrainTests: XCTestCase {
         let src = makeClipFile()
         XCTAssertTrue(CaptureInbox.write(entry, audioFileURLs: [src]))
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         XCTAssertTrue(CaptureInbox.pendingEntries().isEmpty, "entry consumed")
         // importAudioClips mints its own memo UUID — find it by the audio-memo shape.
@@ -61,7 +61,7 @@ final class AudioShareDrainTests: XCTestCase {
     /// COMBINE (B1 default): one entry carrying N clip names drains into exactly
     /// ONE memo (the placeholder appears synchronously; the merge finishes async).
     @MainActor
-    func testCombinedEntryMakesOneMemo() throws {
+    func testCombinedEntryMakesOneMemo() async throws {
         _ = try cleanInbox()
         let repo = NotesRepository(inMemory: true)
 
@@ -74,7 +74,7 @@ final class AudioShareDrainTests: XCTestCase {
         let srcs = [makeClipFile(), makeClipFile()]
         XCTAssertTrue(CaptureInbox.write(entry, audioFileURLs: srcs))
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         XCTAssertTrue(CaptureInbox.pendingEntries().isEmpty, "entry consumed")
         let memos = repo.allMemos()
@@ -86,7 +86,7 @@ final class AudioShareDrainTests: XCTestCase {
 
     /// SPLIT (B1 alternative): the sheet writes N single-clip entries → N memos.
     @MainActor
-    func testSplitEntriesMakeSeparateMemos() throws {
+    func testSplitEntriesMakeSeparateMemos() async throws {
         _ = try cleanInbox()
         let repo = NotesRepository(inMemory: true)
 
@@ -103,7 +103,7 @@ final class AudioShareDrainTests: XCTestCase {
             XCTAssertTrue(CaptureInbox.write(entry, audioFileURLs: [src]))
         }
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         XCTAssertTrue(CaptureInbox.pendingEntries().isEmpty, "both entries consumed")
         XCTAssertEqual(repo.allMemos().count, 2, "split = one memo per voice note")
@@ -114,7 +114,7 @@ final class AudioShareDrainTests: XCTestCase {
     /// An audio entry whose payload files vanished (failed inbox copy) is
     /// discarded rather than looping forever — and creates no memo.
     @MainActor
-    func testAudioEntryWithoutFileIsDiscarded() throws {
+    func testAudioEntryWithoutFileIsDiscarded() async throws {
         _ = try cleanInbox()
         let repo = NotesRepository(inMemory: true)
 
@@ -126,7 +126,7 @@ final class AudioShareDrainTests: XCTestCase {
             audioFileNames: ["audio_\(id.uuidString)_0.m4a"])
         XCTAssertTrue(CaptureInbox.write(entry))   // no audioFileURLs → no payload files
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         XCTAssertTrue(CaptureInbox.pendingEntries().isEmpty, "husk entry discarded")
         XCTAssertTrue(repo.allMemos().isEmpty, "no memo minted for a lost payload")
@@ -135,7 +135,7 @@ final class AudioShareDrainTests: XCTestCase {
     /// The signed jump-on-open rule covers plain captures too: a url capture's
     /// drain requests opening the new capture memo.
     @MainActor
-    func testCaptureDrainAlsoRequestsJumpToNote() throws {
+    func testCaptureDrainAlsoRequestsJumpToNote() async throws {
         _ = try cleanInbox()
         let repo = NotesRepository(inMemory: true)
 
@@ -146,16 +146,35 @@ final class AudioShareDrainTests: XCTestCase {
             sharedAt: ISO8601.string(from: Date()))
         XCTAssertTrue(CaptureInbox.write(entry))
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         XCTAssertEqual(MemoOpenBridge.shared.consume(), entry.id,
                        "every share type jumps to its note on next open")
     }
 
+    /// A14 pending indicator: after a drain the published count is back to zero
+    /// (the pill must never stick), and the entry landed as a memo.
+    @MainActor
+    func testDrainStateReturnsToZero() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let entry = CaptureInboxEntry(
+            id: UUID(), type: "text", url: nil, urlTitle: nil, text: "hello",
+            imageFileName: nil, mimeType: nil, annotationText: "a note",
+            significance: 0, sharedAt: ISO8601.string(from: Date()))
+        XCTAssertTrue(CaptureInbox.write(entry))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        XCTAssertEqual(CaptureDrainState.shared.pendingCount, 0, "pill state cleared")
+        XCTAssertNotNil(repo.memo(id: entry.id), "entry drained into a memo")
+    }
+
     /// Multi-photo capture (B2 — always ONE note): an entry with N image names +
     /// datas drains into one memo with an N-entry image manifest, in order.
     @MainActor
-    func testMultiImageEntryBuildsManifestInOrder() throws {
+    func testMultiImageEntryBuildsManifestInOrder() async throws {
         _ = try cleanInbox()
         let repo = NotesRepository(inMemory: true)
 
@@ -170,7 +189,7 @@ final class AudioShareDrainTests: XCTestCase {
         let datas = [Data("IMG-A".utf8), Data("IMG-B".utf8)]
         XCTAssertTrue(CaptureInbox.write(entry, imageDatas: datas))
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         let memo = repo.memo(id: id)
         let manifest = memo?.metadata?.imageManifest ?? []
@@ -206,7 +225,7 @@ final class AudioShareDrainTests: XCTestCase {
     /// Round-1 device bug: an imported voice note was dated to the SHARE moment.
     /// The entry now carries the clip's original date and the memo adopts it.
     @MainActor
-    func testDrainDatesAudioMemoToClipDate() throws {
+    func testDrainDatesAudioMemoToClipDate() async throws {
         _ = try cleanInbox()
         let repo = NotesRepository(inMemory: true)
 
@@ -221,7 +240,7 @@ final class AudioShareDrainTests: XCTestCase {
         let src = makeClipFile()
         XCTAssertTrue(CaptureInbox.write(entry, audioFileURLs: [src]))
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         let imported = repo.allMemos().first { $0.audioFilename.hasPrefix("memo_") }
         let expected = try XCTUnwrap(ISO8601.date(from: clipDate))

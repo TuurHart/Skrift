@@ -97,7 +97,7 @@ final class CaptureDictationTests: XCTestCase {
     /// .transcribing memo with the audio staged at the pending path, and the
     /// entry deleted — crash-safe ordering.
     @MainActor
-    func testDrainStagesDictationAudioAndMarksTranscribing() throws {
+    func testDrainStagesDictationAudioAndMarksTranscribing() async throws {
         let repo = NotesRepository(inMemory: true)
         guard let inbox = CaptureInbox.inboxURL else {
             throw XCTSkip("no App Group container in this test host")
@@ -113,7 +113,7 @@ final class CaptureDictationTests: XCTestCase {
             dictationFileName: "dictation.m4a")
         XCTAssertTrue(CaptureInbox.write(entry, dictationData: Data("AUDIO".utf8)))
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         let memo = repo.memo(id: entry.id)
         XCTAssertNotNil(memo)
@@ -128,7 +128,7 @@ final class CaptureDictationTests: XCTestCase {
     /// dir, the capture memo carries `sharedContent.type == .file` with a resolvable
     /// `sharedFileURL`, and the inbox entry is consumed. (2026-06-21 PDF share-import.)
     @MainActor
-    func testDrainPersistsSharedFileCapture() throws {
+    func testDrainPersistsSharedFileCapture() async throws {
         let repo = NotesRepository(inMemory: true)
         guard let inbox = CaptureInbox.inboxURL else {
             throw XCTSkip("no App Group container in this test host")
@@ -147,7 +147,7 @@ final class CaptureDictationTests: XCTestCase {
         FileManager.default.createFile(atPath: src.path, contents: Data("%PDF-1.4".utf8))
         XCTAssertTrue(CaptureInbox.write(entry, fileSourceURL: src))
 
-        CaptureInboxDrainer.drain(into: repo)
+        await CaptureInboxDrainer.drain(into: repo)
 
         let memo = repo.memo(id: id)
         XCTAssertEqual(memo?.sharedContent?.type, .file)

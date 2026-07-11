@@ -67,7 +67,7 @@ struct SkriftApp: App {
                 // share extension writes inbox entries into the App Group container;
                 // we convert them to Memos here and delete the entries after save —
                 // see Services/Capture/CaptureInbox.swift for the crash-safety model.
-                .task { CaptureInboxDrainer.drain(into: repository) }
+                .task { await CaptureInboxDrainer.drain(into: repository) }
                 // Reconcile CloudKit-mirrored media (Phase 1c): write any synced
                 // MemoAsset blobs that arrived from another device to disk, and
                 // capture any local audio/photos that have no asset yet (incl.
@@ -125,7 +125,7 @@ struct SkriftApp: App {
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
-                        CaptureInboxDrainer.drain(into: repository)
+                        Task { await CaptureInboxDrainer.drain(into: repository) }
                         AssetMaterializer.run(repository)
                         PhotoTextIndexer.run(repository)
                         ReminderScheduler.run(repository)

@@ -61,6 +61,9 @@ struct MemosListView: View {
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
+    /// Share-imports being copied out of the inbox (A14) — drives the top pill so
+    /// a big shared movie doesn't look like nothing happened until the drain ends.
+    @ObservedObject private var drainState = CaptureDrainState.shared
     @State private var search = LaunchFlags.initialSearch ?? ""
     /// Semantic hits for the current search (P8) — empty unless the journal
     /// index is active AND something clears the floor.
@@ -113,8 +116,17 @@ struct MemosListView: View {
             // header line (~44pt returned to content). Root-only — pushed
             // detail views keep their own nav bars.
             .toolbar(.hidden, for: .navigationBar)
-            .overlay(alignment: .top) { syncBannerView }
+            .overlay(alignment: .top) {
+                // Import pill outranks the transient sync banner (both are rare;
+                // the drain runs at foreground before sync chatter starts).
+                if drainState.pendingCount > 0 {
+                    importPendingPill
+                } else {
+                    syncBannerView
+                }
+            }
             .animation(Theme.Motion.spring, value: syncBanner)
+            .animation(Theme.Motion.spring, value: drainState.pendingCount)
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .fullScreenCover(isPresented: $showRecord) {
                 RecordView(onSaved: { newID in path = [newID] })
@@ -448,6 +460,25 @@ struct MemosListView: View {
     }
 
     // MARK: - Bottom bars
+
+    /// "Importing N share(s)…" — visible only while the drainer is copying inbox
+    /// blobs (A14). Same capsule styling as the sync banner so the top edge stays
+    /// one visual language.
+    private var importPendingPill: some View {
+        HStack(spacing: 8) {
+            ProgressView().controlSize(.small)
+            Text(drainState.pendingCount == 1 ? "Importing share…"
+                 : "Importing \(drainState.pendingCount) shares…")
+        }
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(Color.skText)
+        .padding(.horizontal, 14).padding(.vertical, 8)
+        .background(Color.skElev, in: .capsule)
+        .overlay(Capsule().stroke(Color.skBorder, lineWidth: 1))
+        .padding(.top, 6)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .accessibilityIdentifier("import-pending-pill")
+    }
 
     @ViewBuilder private var syncBannerView: some View {
         if let syncBanner {
