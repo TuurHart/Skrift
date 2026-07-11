@@ -67,17 +67,19 @@ actor TranscriptionService: Transcribing {
         try await ensureLoaded()
         guard let asr else { throw ASRError.notInitialized }
 
-        let rms = Self.averageRMS(url: audioURL)            // measured on the original
         let inputURL = Self.preprocessed(audioURL) ?? audioURL   // high-pass + normalize, else original
         let started = Date()
         var state = TdtDecoderState.make()
         let result = try await asr.transcribe(inputURL, decoderState: &state)
         let ms = Int(Date().timeIntervalSince(started) * 1000)
 
+        // RMS decodes the entire file and is only consulted for tiny transcripts —
+        // compute it lazily (on the ORIGINAL, not the preprocessed file).
         let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
         let wordCount = trimmed.isEmpty
             ? 0
             : trimmed.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
+        let rms = (!trimmed.isEmpty && wordCount <= 3) ? Self.averageRMS(url: audioURL) : nil
         if BPEMerge.shouldDropAsPhantom(rms: rms, wordCount: wordCount, isEmpty: trimmed.isEmpty) {
             return TranscriptionResult(text: "", confidence: Double(result.confidence),
                                        durationMs: ms, wordTimings: [], markersInjected: false)
