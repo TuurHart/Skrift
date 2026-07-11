@@ -114,7 +114,7 @@ enum Compiler {
 
         // Captures pin the shared-content block ABOVE the annotation body (C3 §compile).
         if input.sourceType == .capture, let sc {
-            return frontmatter + captureSharedBlock(sc) + body
+            return frontmatter + captureSharedBlock(sc, body: body) + body
         }
         // Audiobook quote memos italicise the quote + add the attribution line.
         let renderedBody = bookTitle.map {
@@ -158,8 +158,11 @@ enum Compiler {
     /// Build the pinned shared-content Markdown block for the three capture types (C3).
     /// - url:   bold title + full URL on its own line (intact, Obsidian imports as a link).
     /// - text:  the snippet as a Markdown blockquote.
-    /// - image: `![[filename]]` Obsidian embed (the actual file is copied by the exporter).
-    static func captureSharedBlock(_ sc: CompilerSharedContent) -> String {
+    /// - image: `![[filename]]` Obsidian embed (the actual file is copied by the exporter) —
+    ///          UNLESS the body already places the photos via `[[img_NNN]]` markers (share
+    ///          Wave 2: the phone inlines photos in the annotation like a recorded memo;
+    ///          the pinned embed would double-embed photo 1 under a stale share-time name).
+    static func captureSharedBlock(_ sc: CompilerSharedContent, body: String = "") -> String {
         var lines: [String] = []
         switch sc.type {
         case "url":
@@ -175,7 +178,7 @@ enum Compiler {
                 lines.append("")
             }
         case "image":
-            if let name = sc.fileName, !name.isEmpty {
+            if let name = sc.fileName, !name.isEmpty, !body.contains("[[img_") {
                 lines.append("![[" + name + "]]")
                 lines.append("")
             }

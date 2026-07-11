@@ -307,6 +307,18 @@ final class CaptureCompilerTests: XCTestCase {
         XCTAssertLessThan(embedRange.lowerBound, bodyRange.lowerBound, "embed before body")
     }
 
+    func testImageCaptureWithMarkersSkipsPinnedEmbed() {
+        // Share Wave 2: the phone inlines photos as [[img_NNN]] markers in the
+        // annotation — the pinned first-image embed would double-embed photo 1
+        // under its stale share-time name.
+        let pf = makeCapture(type: "image",
+            sc: ["type": "image", "fileName": "IMG_2041.jpeg", "mimeType": "image/jpeg"],
+            annotation: "Ramble about the day.\n\n[[img_001]]\n\n[[img_002]]")
+        let md = Compiler.compile(file: pf, author: "T", date: "2026-07-11")
+        XCTAssertFalse(md.contains("![[IMG_2041.jpeg]]"), "no pinned embed when markers place the photos")
+        XCTAssertTrue(md.contains("[[img_001]]"), "markers stay for the exporter to convert")
+    }
+
     // MARK: captureSharedBlock unit tests
 
     func testCaptureSharedBlockUrl() {
@@ -328,6 +340,14 @@ final class CaptureCompilerTests: XCTestCase {
         let sc = CompilerSharedContent(type: "image", fileName: "photo.jpg")
         let block = Compiler.captureSharedBlock(sc)
         XCTAssertTrue(block.contains("![[photo.jpg]]"))
+    }
+
+    func testCaptureSharedBlockImageSkippedWhenBodyHasMarkers() {
+        let sc = CompilerSharedContent(type: "image", fileName: "photo.jpg")
+        XCTAssertTrue(Compiler.captureSharedBlock(sc, body: "hi [[img_001]]").isEmpty,
+                      "markers in the body own the photo placement")
+        XCTAssertTrue(Compiler.captureSharedBlock(sc, body: "plain ramble").contains("![[photo.jpg]]"),
+                      "legacy marker-less body keeps the pinned embed")
     }
 
     func testCaptureSharedBlockUnknownTypeIsEmpty() {

@@ -57,11 +57,11 @@ enum VaultExporter {
         let imagesDir = workingFolder.appendingPathComponent("images")
         if !pf.path.isEmpty, FileManager.default.fileExists(atPath: imagesDir.path) {
             let attDir = vaultURL.appendingPathComponent(attFolder, isDirectory: true)
-            // For image captures the Compiler already emitted `![[filename]]` — the
-            // `convertImageMarkers` function rewrites `[[img_NNN]]` markers, which
-            // captures don't use. Image captures carry the file under its original name
-            // (sharedContent.fileName) without a marker, so we copy it directly here.
-            if pf.sourceType == .capture {
+            // Share-Wave-2 image captures inline photos as `[[img_NNN]]` markers in the
+            // annotation (same contract as recorded memos) → convert + copy exactly like
+            // memos. Legacy marker-less captures keep the copy-under-original-name path
+            // (their pinned `![[filename]]` embed references the original name).
+            if pf.sourceType == .capture, !finalMarkdown.contains("[[img_") {
                 (finalMarkdown, imageCount) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: finalMarkdown)
             } else {
                 (finalMarkdown, imageCount) = convertImageMarkers(markdown, imagesDir: imagesDir, safe: safe, into: attDir)
@@ -160,10 +160,10 @@ enum VaultExporter {
         return (out, copied)
     }
 
-    /// Copy images from a capture's `images/` folder to the vault attachments folder.
-    /// Captures use the original filename (from sharedContent.fileName) — no `[[img_NNN]]`
-    /// markers, so we just copy every file in the folder. The Compiler already emitted
-    /// `![[filename]]` in the body; we don't rewrite markdown here.
+    /// LEGACY (pre-Wave-2) captures: copy images from the capture's `images/` folder to
+    /// the vault attachments folder under their original names — no `[[img_NNN]]` markers
+    /// in the body, the Compiler emitted a pinned `![[filename]]` embed instead. Wave-2
+    /// captures carry markers and go through `convertImageMarkers` like memos.
     static func copyCaptureFolderImages(imagesDir: URL, into attDir: URL, markdown: String) -> (String, Int) {
         let fm = FileManager.default
         let files = ((try? fm.contentsOfDirectory(at: imagesDir, includingPropertiesForKeys: nil)) ?? [])

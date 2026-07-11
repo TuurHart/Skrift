@@ -173,6 +173,75 @@ final class VaultExporterTests: XCTestCase {
             atPath: vault.appendingPathComponent("Attachments/Trip_001.jpg").path))
     }
 
+    func testExportConvertsCaptureImageMarkers() throws {
+        // Share Wave 2: image captures inline photos as [[img_NNN]] in the annotation.
+        // A capture's `path` IS the working folder (images/ inside it) — markers must
+        // convert to ![[<title>_NNN.ext]] embeds exactly like memos, not export literally.
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: work) }
+
+        let captureFolder = work.appendingPathComponent("capture_1")
+        let imagesDir = captureFolder.appendingPathComponent("images")
+        try FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
+        try Data([9, 9]).write(to: imagesDir.appendingPathComponent("photo_AAA_001.jpg"))
+        try Data([8, 8]).write(to: imagesDir.appendingPathComponent("photo_AAA_002.jpg"))
+        let vault = work.appendingPathComponent("vault")
+
+        let pf = PipelineFile(id: "1", filename: "capture_1", path: captureFolder.path, size: 0, sourceType: .capture)
+        pf.enhancedTitle = "Whiteboard"
+        let meta: [String: Any] = ["sharedContent": ["type": "image", "fileName": "IMG_2041.jpeg"]]
+        pf.audioMetadataJSON = try JSONSerialization.data(withJSONObject: meta)
+        pf.transcript = "Nick's diagram.\n\n[[img_001]]\n\n[[img_002]]"
+
+        var settings = AppSettings.default
+        settings.noteFolder = vault.path
+        settings.attachmentsFolder = "Attachments"
+
+        let r = try VaultExporter.export(pf, settings: settings)
+        XCTAssertEqual(r.imageCount, 2)
+        let md = try String(contentsOf: r.markdownURL, encoding: .utf8)
+        XCTAssertTrue(md.contains("![[Whiteboard_001.jpg]]"))
+        XCTAssertTrue(md.contains("![[Whiteboard_002.jpg]]"))
+        XCTAssertFalse(md.contains("[[img_00"), "no literal markers in the vault note")
+        XCTAssertFalse(md.contains("IMG_2041"), "no stale pinned first-image embed")
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: vault.appendingPathComponent("Attachments/Whiteboard_001.jpg").path))
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: vault.appendingPathComponent("Attachments/Whiteboard_002.jpg").path))
+    }
+
+    func testExportLegacyCaptureCopiesImagesUnderOriginalNames() throws {
+        // Pre-Wave-2 captures: no markers in the body — the Compiler pins ![[fileName]]
+        // and the exporter copies the folder's images under their original names.
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: work) }
+
+        let captureFolder = work.appendingPathComponent("capture_1")
+        let imagesDir = captureFolder.appendingPathComponent("images")
+        try FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
+        try Data([9, 9]).write(to: imagesDir.appendingPathComponent("whiteboard.jpg"))
+        let vault = work.appendingPathComponent("vault")
+
+        let pf = PipelineFile(id: "1", filename: "capture_1", path: captureFolder.path, size: 0, sourceType: .capture)
+        pf.enhancedTitle = "Whiteboard"
+        let meta: [String: Any] = ["sharedContent": ["type": "image", "fileName": "whiteboard.jpg"]]
+        pf.audioMetadataJSON = try JSONSerialization.data(withJSONObject: meta)
+        pf.transcript = "Nick's diagram."
+
+        var settings = AppSettings.default
+        settings.noteFolder = vault.path
+        settings.attachmentsFolder = "Attachments"
+
+        let r = try VaultExporter.export(pf, settings: settings)
+        XCTAssertEqual(r.imageCount, 1)
+        let md = try String(contentsOf: r.markdownURL, encoding: .utf8)
+        XCTAssertTrue(md.contains("![[whiteboard.jpg]]"), "pinned embed under the original name")
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: vault.appendingPathComponent("Attachments/whiteboard.jpg").path))
+    }
+
     // MARK: - Locked notes (synced flag) never reach the plaintext vault
 
     func testLockedNoteRefusesExportAndWritesNothing() throws {

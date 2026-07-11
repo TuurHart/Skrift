@@ -151,10 +151,13 @@ struct NoteBody: View {
     }
 
     /// Resolve an `[[img_NNN]]` marker to its captured photo: the Nth entry in the
-    /// file's `image_manifest.json`, under the working folder's `images/`.
+    /// file's `image_manifest.json`, under the working folder's `images/`. For a
+    /// capture, `path` IS the working folder (manifest + images/ inside it); for
+    /// audio/notes it's the audio file — the folder is its parent.
     private func imageURL(_ num: Int) -> URL? {
         guard !file.path.isEmpty else { return nil }
-        let folder = URL(fileURLWithPath: file.path).deletingLastPathComponent()
+        let url = URL(fileURLWithPath: file.path)
+        let folder = file.sourceType == .capture ? url : url.deletingLastPathComponent()
         guard let data = try? Data(contentsOf: folder.appendingPathComponent("image_manifest.json")),
               let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               num >= 1, num <= arr.count,
