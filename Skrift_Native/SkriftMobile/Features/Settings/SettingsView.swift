@@ -17,6 +17,9 @@ struct SettingsView: View {
     // English); true = Multilingual (mel-off, fixes non-English drift). TranscriptionService
     // rebuilds the model when this flips.
     @AppStorage("transcriptionMultilingual") private var transcriptionMultilingual = false
+    // Opt-in deterministic hesitation strip (um/uh/hmm…) for voice memos —
+    // applied at save by MemoSaver via FillerFilter; audiobook quotes never.
+    @AppStorage(FillerFilter.settingKey) private var stripFillerWords = false
     @State private var showFeedback = false
     /// Global CloudKit (device↔device) sync activity → the honest "iCloud" status row.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
@@ -82,6 +85,8 @@ struct SettingsView: View {
                         Text("Multilingual").tag(true)
                     }
                     .accessibilityIdentifier("setting-transcription-language")
+                    Toggle("Remove filler words", isOn: $stripFillerWords)
+                        .accessibilityIdentifier("setting-strip-fillers")
                     NavigationLink {
                         CustomWordsView()
                     } label: {
@@ -95,7 +100,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Capture")
                 } footer: {
-                    Text("Language: keep English for the cleanest English; switch to Multilingual when recording Dutch or other languages (it stops the model drifting to English on non-English speech). When a transcription finishes, the final transcript is copied to the clipboard automatically. Custom words teach the transcriber names it mis-hears (like “Skrift”).")
+                    Text("Language: keep English for the cleanest English; switch to Multilingual when recording Dutch or other languages (it stops the model drifting to English on non-English speech). Remove filler words drops standalone um/uh/hmm from new voice-memo transcripts (never from audiobook quotes). When a transcription finishes, the final transcript is copied to the clipboard automatically. Custom words teach the transcriber names it mis-hears (like “Skrift”).")
                 }
 
                 Section {
