@@ -54,6 +54,56 @@ final class VideoImportTests: XCTestCase {
         XCTAssertEqual(memo?.recordedAt.timeIntervalSince1970 ?? 0, fallback.timeIntervalSince1970, accuracy: 1.0)
     }
 
+    /// A container AVFoundation can't read (.avi / garbage bytes) gets the honest
+    /// "format not supported" title — NOT the misleading "no audio track" (A9).
+    @MainActor
+    func testUnreadableContainerGetsHonestTitle() async {
+        let repo = NotesRepository(inMemory: true)
+        let saver = MemoSaver(
+            repository: repo,
+            transcriber: SeededTranscriber(text: "unused"),
+            wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService()
+        )
+        let id = UUID()
+        repo.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a",
+                         recordedAt: Date(), transcriptStatus: .transcribing))
+        let fake = FileManager.default.temporaryDirectory.appendingPathComponent("fake_\(UUID().uuidString).avi")
+        FileManager.default.createFile(atPath: fake.path, contents: Data([0x00, 0x01, 0x02]))
+
+        let ok = await saver.importVideoAsync(id: id, source: fake, fallbackDate: nil)
+
+        XCTAssertFalse(ok)
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.transcriptStatus, .failed)
+        XCTAssertEqual(memo?.title, "Video format not supported")
+    }
+
+    /// A READABLE video that genuinely has no audio track keeps the specific
+    /// "no audio track" title (the A9 split must not blur the two failures).
+    @MainActor
+    func testSilentVideoKeepsNoAudioTitle() async throws {
+        let repo = NotesRepository(inMemory: true)
+        let saver = MemoSaver(
+            repository: repo,
+            transcriber: SeededTranscriber(text: "unused"),
+            wordTimings: WordTimingsStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("wt_\(UUID().uuidString)", isDirectory: true)),
+            metadataProvider: MockMetadataService()
+        )
+        let id = UUID()
+        repo.insert(Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a",
+                         recordedAt: Date(), transcriptStatus: .transcribing))
+        let videoURL = FileManager.default.temporaryDirectory.appendingPathComponent("silent_\(UUID().uuidString).mov")
+        try makeVideoFile(at: videoURL, seconds: 0.5, withAudio: false)
+
+        let ok = await saver.importVideoAsync(id: id, source: videoURL, fallbackDate: nil)
+
+        XCTAssertFalse(ok)
+        XCTAssertEqual(repo.memo(id: id)?.title, "Video had no audio track")
+    }
+
     // MARK: - End-to-end with a real generated video
 
     @MainActor

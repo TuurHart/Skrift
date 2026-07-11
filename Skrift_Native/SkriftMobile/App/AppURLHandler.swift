@@ -15,11 +15,18 @@ enum AppURLHandler {
     static func handle(_ url: URL) {
         if url.isFileURL {
             let ext = url.pathExtension.lowercased()
+            // Land the user on the imported memo (A9): it relocates to the media's
+            // embedded date, so without the jump it "vanishes" down the list — the
+            // same rule the share-sheet drain path already follows.
             if MemoSaver.isVideoFile(url) {
                 // A video container (.mov/.mp4/…): strip the audio + grab a frame.
-                _ = MemoSaver().importVideo(from: url)
+                if let id = MemoSaver().importVideo(from: url) {
+                    MemoOpenBridge.shared.open(id)
+                }
             } else if audioExtensions.contains(ext) {
-                _ = MemoSaver().importAudio(from: url)
+                if let id = MemoSaver().importAudio(from: url) {
+                    MemoOpenBridge.shared.open(id)
+                }
             }
             return
         }

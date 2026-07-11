@@ -313,16 +313,25 @@ struct MemoSaver {
 
         // Extract the audio track to .m4a. If the asset has no audio (a silent clip)
         // there's nothing to transcribe — fail gracefully, and SAY WHY: a bare
-        // Error pill on an empty memo read as a mystery (2026-06-09 audit).
+        // Error pill on an empty memo read as a mystery (2026-06-09 audit). An
+        // unreadable container gets its own honest title (A9 — .avi/.mpg used to
+        // claim "no audio track").
         let extracted: Bool
+        var failTitle = "Video had no audio track"
         do { extracted = try await Self.extractAudio(from: asset, to: dest) }
-        catch { DevLog.log("processVideo[\(id)] extractAudio threw: \(error)"); extracted = false }
+        catch {
+            DevLog.log("processVideo[\(id)] extractAudio threw: \(error)")
+            if case VideoImportError.unreadableContainer = error {
+                failTitle = "Video format not supported"
+            }
+            extracted = false
+        }
         guard extracted else {
             DevLog.log("processVideo[\(id)] extract failed → .failed; memo present=\(repository.memo(id: id) != nil)")
             if let memo = repository.memo(id: id) {
                 memo.transcriptStatus = .failed
                 memo.recordedAt = recorded
-                memo.title = "Video had no audio track"
+                memo.title = failTitle
                 var meta = memo.metadata ?? MemoMetadata()
                 meta.sourceType = MemoMetadata.Source.video   // still a video → keep the source glyph
                 memo.metadata = meta
@@ -374,7 +383,11 @@ struct MemoSaver {
 
     // MARK: - Video helpers (pure AVFoundation — host-less testable)
 
-    /// Video container UTIs/extensions Skrift accepts for import.
+    /// Video container UTIs/extensions Skrift accepts for import. `avi`/`mpg`/`mpeg`
+    /// stay listed even though iOS AVFoundation can't demux them: the `public.movie`
+    /// doc type delivers them anyway, and routing them into `importVideo` yields the
+    /// honest "format not supported" memo — dropping them here would silently eat the
+    /// share (A9).
     nonisolated static let videoExtensions: Set<String> = ["mov", "mp4", "m4v", "qt", "avi", "mpg", "mpeg", "3gp", "3g2"]
 
     /// True when the URL's extension is a known video container. Used to route a
@@ -402,11 +415,16 @@ struct MemoSaver {
         return iso.date(from: s)
     }
 
-    private enum VideoImportError: Error { case noAudioTrack, exportFailed }
+    enum VideoImportError: Error { case unreadableContainer, noAudioTrack, exportFailed }
 
     /// Strip the audio track of `asset` into a standalone .m4a at `dest`. Throws when
     /// the asset has no audio or the export fails (caller marks the memo failed).
     private static func extractAudio(from asset: AVAsset, to dest: URL) async throws -> Bool {
+        // A container AVFoundation can't demux (.avi/.mpg arrive via the public.movie
+        // doc type) must fail as "format not supported", not "no audio track" (A9).
+        guard (try? await asset.load(.isReadable)) == true else {
+            throw VideoImportError.unreadableContainer
+        }
         let comp = AVMutableComposition()
         guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid),
               let audioTrack = try await asset.loadTracks(withMediaType: .audio).first else {
