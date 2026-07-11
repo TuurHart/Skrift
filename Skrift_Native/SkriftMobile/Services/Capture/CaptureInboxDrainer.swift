@@ -219,11 +219,33 @@ enum CaptureInboxDrainer {
             }
         }
 
+        // D4: a shared TEXT file (.md/.txt) becomes the note CONTENT, not a file
+        // card — its text lands as the body (below any typed ramble); no document
+        // blob is kept. Oversized or non-UTF-8 files stay documents (a novel-length
+        // txt isn't a note).
+        var textFileBody: String?
+        if contentType == .file,
+           let displayName = (entry.fileDisplayName ?? entry.fileName)?.lowercased(),
+           displayName.hasSuffix(".md") || displayName.hasSuffix(".markdown") || displayName.hasSuffix(".txt"),
+           let srcURL = CaptureInbox.fileURL(for: entry, entryDir: entryDir),
+           FileManager.default.fileExists(atPath: srcURL.path) {
+            let text = await offMain { () -> String? in
+                guard let data = try? Data(contentsOf: srcURL), data.count <= 512_000 else { return nil }
+                return String(data: data, encoding: .utf8)
+            }
+            if let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty {
+                textFileBody = trimmed
+                sharedContent = SharedContent(type: .text,
+                                              fileName: entry.fileDisplayName ?? entry.fileName)
+                DevLog.log("drain: text file \(entry.id) → note body (\(trimmed.count) chars)")
+            }
+        }
+
         // File capture (e.g. a shared PDF): copy the document from the inbox into
         // the recordings dir under the memo UUID so it persists. We store the
         // RELATIVE filename in `filePath` (resolved against recordingsDirectory at
         // open time) so it survives reinstall — same rule as audio/photos.
-        if contentType == .file,
+        if contentType == .file, textFileBody == nil,
            let srcURL = CaptureInbox.fileURL(for: entry, entryDir: entryDir),
            FileManager.default.fileExists(atPath: srcURL.path) {
             let ext = (entry.fileName.map { ($0 as NSString).pathExtension } ?? "")
@@ -317,6 +339,10 @@ enum CaptureInboxDrainer {
         // that"): one [[img_NNN]] marker per photo appended to the annotation;
         // the capture renders through the normal note-body inline pipeline.
         var annotation = entry.annotationText?.isEmpty == false ? entry.annotationText! : ""
+        // D4: the text file's content IS the note body, below the typed ramble.
+        if let textFileBody {
+            annotation = annotation.isEmpty ? textFileBody : annotation + "\n\n" + textFileBody
+        }
         if let manifest = imageManifest, !manifest.isEmpty {
             let markers = (1...manifest.count)
                 .map { "[[img_\(String(format: "%03d", $0))]]" }

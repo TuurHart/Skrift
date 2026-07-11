@@ -308,12 +308,37 @@ enum SharePayloadLoader {
 
     // MARK: - Text
 
+    /// Selected/clipboard text arrives as a String; a text FILE (.txt/.md from
+    /// Files) arrives as its file URL — that's a document share, so it routes as
+    /// a `.file` payload and the app's drainer turns its content into the note
+    /// body (D4). Before this, the URL case decoded as nil → an empty sheet.
     private static func loadText(from provider: NSItemProvider) async -> SharePayload {
-        let text: String? = await withCheckedContinuation { cont in
+        let result: SharePayload? = await withCheckedContinuation { cont in
             provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { data, _ in
-                cont.resume(returning: data as? String)
+                switch data {
+                case let s as String:
+                    cont.resume(returning: SharePayload(type: .text, text: s))
+                case let d as Data:
+                    cont.resume(returning: String(data: d, encoding: .utf8).map { SharePayload(type: .text, text: $0) })
+                case let u as URL:
+                    // Copy out INSIDE the closure — the provided URL is transient
+                    // (same rule as loadFile/loadVideo).
+                    let name = u.lastPathComponent
+                    let ext = u.pathExtension.isEmpty ? "txt" : u.pathExtension
+                    let dest = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("shared_\(UUID().uuidString).\(ext)")
+                    try? FileManager.default.removeItem(at: dest)
+                    if (try? FileManager.default.copyItem(at: u, to: dest)) != nil {
+                        let mime = UTType(filenameExtension: ext)?.preferredMIMEType ?? "text/plain"
+                        cont.resume(returning: SharePayload(type: .file, mimeType: mime, fileURL: dest, fileName: name))
+                    } else {
+                        cont.resume(returning: nil)
+                    }
+                default:
+                    cont.resume(returning: nil)
+                }
             }
         }
-        return SharePayload(type: .text, text: text)
+        return result ?? SharePayload(type: .text)
     }
 }

@@ -207,6 +207,62 @@ final class AudioShareDrainTests: XCTestCase {
         XCTAssertEqual(memo?.sharedContent?.url, src.absoluteString)
     }
 
+    /// D4: a shared .md/.txt file becomes the note CONTENT (body below the typed
+    /// ramble), not a file card — no document blob kept.
+    @MainActor
+    func testTextFileBecomesNoteBody() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "file", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: "text/markdown",
+            annotationText: "my ramble about this", significance: 0,
+            sharedAt: ISO8601.string(from: Date()),
+            fileName: "file_\(id.uuidString).md",
+            fileDisplayName: "Meeting Notes.md")
+        let src = FileManager.default.temporaryDirectory.appendingPathComponent("src_\(UUID().uuidString).md")
+        FileManager.default.createFile(atPath: src.path, contents: Data("# Standup\n\n- decided X".utf8))
+        defer { try? FileManager.default.removeItem(at: src) }
+        XCTAssertTrue(CaptureInbox.write(entry, fileSourceURL: src))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.sharedContent?.type, .text, "text file → text capture, not a file card")
+        XCTAssertEqual(memo?.sharedContent?.fileName, "Meeting Notes.md", "provenance kept")
+        XCTAssertNil(memo?.sharedContent?.text, "no pinned quote block — the text IS the body")
+        XCTAssertEqual(memo?.annotationText, "my ramble about this\n\n# Standup\n\n- decided X",
+                       "ramble first, file content as the body")
+    }
+
+    /// D4 guard: a text file that isn't UTF-8 stays a document card.
+    @MainActor
+    func testBinaryTxtStaysFileCard() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "file", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: "text/plain",
+            annotationText: nil, significance: 0,
+            sharedAt: ISO8601.string(from: Date()),
+            fileName: "file_\(id.uuidString).txt",
+            fileDisplayName: "weird.txt")
+        let src = FileManager.default.temporaryDirectory.appendingPathComponent("src_\(UUID().uuidString).txt")
+        FileManager.default.createFile(atPath: src.path, contents: Data([0xFF, 0xFE, 0x00, 0xD8]))
+        defer { try? FileManager.default.removeItem(at: src) }
+        XCTAssertTrue(CaptureInbox.write(entry, fileSourceURL: src))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let memo = repo.memo(id: id)
+        XCTAssertEqual(memo?.sharedContent?.type, .file, "undecodable text stays a document")
+        if let fileURL = memo?.sharedFileURL { try? FileManager.default.removeItem(at: fileURL) }
+    }
+
     /// A14 pending indicator: after a drain the published count is back to zero
     /// (the pill must never stick), and the entry landed as a memo.
     @MainActor
