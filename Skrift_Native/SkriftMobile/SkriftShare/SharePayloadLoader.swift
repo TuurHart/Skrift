@@ -91,6 +91,23 @@ enum SharePayloadLoader {
             $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) &&
             !$0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
         }) {
+            // A3: sharing SELECTED TEXT from Safari carries the quote AND the
+            // page url — the url branch used to win and the quote was DROPPED.
+            // Prefer the text; the url rides alongside (SharedContent carries
+            // both, and the compiler already exports a `url:` key for any
+            // capture that has one).
+            if let textProvider = attachments.first(where: {
+                $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) &&
+                !$0.hasItemConformingToTypeIdentifier(UTType.url.identifier)
+            }) {
+                var textPayload = await loadText(from: textProvider)
+                if textPayload.type == .text, textPayload.text?.isEmpty == false {
+                    let urlPayload = await loadURL(from: provider, item: item)
+                    textPayload.url = urlPayload.url
+                    textPayload.urlTitle = urlPayload.urlTitle
+                    return textPayload
+                }
+            }
             return await loadURL(from: provider, item: item)
         }
         // 3. Video (movie) — shared from Photos/Files. Checked before image so a
@@ -150,6 +167,20 @@ enum SharePayloadLoader {
             }
         }
         guard let result else { return SharePayload(type: .text) }
+        // D7: Signal/Telegram voice notes ride UTIs that don't conform to
+        // public.audio, so they fell through to here and became dead file
+        // cards. An audio EXTENSION is the tell — reroute as a single-clip
+        // audio share (transcribed memo, slim audio sheet).
+        let ext = result.url.pathExtension.lowercased()
+        if ["m4a", "mp3", "wav", "aac", "caf", "aiff", "aif", "opus", "ogg", "oga", "flac"].contains(ext) {
+            var duration: TimeInterval?
+            if let f = try? AVAudioFile(forReading: result.url) {
+                duration = Double(f.length) / f.fileFormat.sampleRate
+            }
+            let date = (try? FileManager.default.attributesOfItem(atPath: result.url.path))?[.modificationDate] as? Date
+            return SharePayload(type: .file, isAudio: true,
+                                audioItems: [SharedAudioItem(url: result.url, duration: duration, recordedAt: date)])
+        }
         let mime = UTType(filenameExtension: result.url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         return SharePayload(type: .file, mimeType: mime, fileURL: result.url, fileName: result.name)
     }
