@@ -451,12 +451,15 @@ nodes:
     win: "done when: Track A device-verifies (pdf-link→PDF, Maps place chip,
       text-file body, EXIF dates, 1h→Books routing, in-app Files import,
       import pill) and the Track B mock is signed + built"
-    note: "Track A CODE-FIRST built 2026-07-11, suite 632/632 — A9 A14 C5 D4
-      D6 D8 E2 A4 A6 + bg-task claims + the Mac capture-marker fix (Wave-1's
-      one unproven edge: literal [[img_NNN]] in Review + vault export — fixed,
-      desktop 345/345). Track B mock share-ingest-wave2.html AWAITS SIGN-OFF
-      (E1 unified sheet · PDF text-in-note · voice-annotate). Device round
-      owed (builds from 64)."
+    note: "Track A built 2026-07-11 + DEVICE-VERIFIED same day (rounds 1+2,
+      builds 64→66): drain half proven via staged inbox entries + pulled
+      store/devlog; Tuur's hands found 2 real bugs, both fixed (Safari-PDF
+      activation → predicate rule + sim probe; undeletable-entry re-import
+      spam → tombstones) + arxiv extensionless links → HEAD sniff, proven
+      live (89.5k chars extracted on-phone). Track B mock
+      share-ingest-wave2.html AWAITS SIGN-OFF (E1 unified sheet · PDF
+      text-in-note · voice-annotate). Books-chooser UI eyeball still owed
+      (needs a ≥1h file)."
     shipped:
       - >-
         2026-07-11 · Mac fix: Wave-2 capture photos render + export
