@@ -326,19 +326,20 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    below the ramble → 'Add another'. **v1 = dictation model (audio consumed):
    attaching playable audio flips the Mac capture-ingest discriminator (capture =
    memo WITHOUT audio) — Mac-counterpart chunk owed before that half.**
-   **VERIFICATION STATE:** everything through PDF-text-in-note = suite-green
-   (669/669). **voice-annotate = UNVERIFIED (not even compiled)** — the Mac's
-   build stack WEDGED (clang-stat-cache stall, then codesign stall; daemon kills
-   helped once; needs a machine restart) and the phone went unavailable
-   mid-session. **RESUME (next chat / after restart):** (1) suite run → expect
-   ~670 green, fix voice-annotate compile nits if any; (2) device build 67 (bump
-   ALREADY at 67 in project.yml) + install (UDID trap!) ; (3) push
-   `scripts/mklongm4a.swift`-generated 61-min m4a into the phone's Skrift Dev
-   Documents (Files-visible) → Tuur shares it → E2 Books CHOOSER eyeball; (4)
-   Tuur's Wave-3 retest: Safari selected-text → quote note w/ url · article link
-   → rich card + searchable text · WhatsApp voice+photo multi-select → one note ·
-   video/PDF share → sheet w/ thought+circles · PDF note → text disclosure ·
-   capture → mic pill ramble.
+   **VERIFICATION STATE (resolved 2026-07-12 morning):** the overnight "build-stack
+   wedge" was a PENDING macOS DEVELOPER-TOOLS AUTHORIZATION DIALOG — xcodebuild
+   sat silently alive at clang-stat-cache/codesign waiting for a GUI prompt no
+   terminal can see (Tuur accepted it → suite ran green in 6s). Durable lesson:
+   silent multi-minute stalls at stat-cache/codesign ⇒ check the Mac's screen for
+   an auth dialog BEFORE diagnosing a wedge. Voice-annotate's UNVERIFIED flag
+   LIFTED: suite 669/669 compiles + passes with it; **BUILD 67 INSTALLED**
+   (freshness: version 67 + Wave-3 strings in the dylib) and the 61-min chooser
+   test file is ON THE PHONE (Files → On My iPhone → Skrift Dev →
+   long_test_recording.m4a). **REMAINS: Tuur's Wave-3 retest** — Safari
+   selected-text → quote note w/ url · article link → rich card + searchable text ·
+   WhatsApp voice+photo multi-select → one note · video/PDF share → sheet w/
+   thought+circles · PDF note → text disclosure + reader · capture → mic-pill
+   voice ramble · share the 61-min file from Files → Books CHOOSER (E2 eyeball).
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →
