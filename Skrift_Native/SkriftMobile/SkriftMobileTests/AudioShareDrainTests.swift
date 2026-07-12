@@ -183,6 +183,17 @@ final class AudioShareDrainTests: XCTestCase {
         try? FileManager.default.removeItem(at: fileURL)
     }
 
+    /// C5 content-type gate (device round 2: arxiv's `/pdf/2406.19741` links are
+    /// EXTENSIONLESS — the HEAD sniff catches what the extension check can't).
+    func testPdfContentTypeGate() {
+        XCTAssertTrue(CaptureInboxDrainer.isPDFContentType("application/pdf"))
+        XCTAssertTrue(CaptureInboxDrainer.isPDFContentType("application/pdf; qs=0.001"), "arxiv's actual header")
+        XCTAssertTrue(CaptureInboxDrainer.isPDFContentType("APPLICATION/PDF; charset=binary"))
+        XCTAssertFalse(CaptureInboxDrainer.isPDFContentType("text/html; charset=utf-8"))
+        XCTAssertFalse(CaptureInboxDrainer.isPDFContentType("application/pdf-ish"))
+        XCTAssertFalse(CaptureInboxDrainer.isPDFContentType(nil))
+    }
+
     /// C5 fallback: a .pdf link whose payload ISN'T a PDF (or fails to fetch)
     /// stays a plain url capture — the link is never lost.
     @MainActor

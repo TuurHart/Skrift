@@ -40,6 +40,23 @@ enum CaptureInboxDrainer {
         await Task.detached(priority: .userInitiated) { work() }.value
     }
 
+    /// HEAD sniff for extensionless PDF links (C5): true when the server says the
+    /// resource is a PDF. The magic-byte check in `downloadPDF` stays the real gate.
+    private static func headSaysPDF(_ remote: URL) async -> Bool {
+        var request = URLRequest(url: remote)
+        request.httpMethod = "HEAD"
+        request.timeoutInterval = 10
+        guard let (_, response) = try? await URLSession.shared.data(for: request) else { return false }
+        return isPDFContentType((response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type"))
+    }
+
+    /// Pure content-type gate — "application/pdf" with any casing/parameters
+    /// (arxiv sends "application/pdf; qs=0.001").
+    nonisolated static func isPDFContentType(_ value: String?) -> Bool {
+        guard let first = value?.lowercased().split(separator: ";").first else { return false }
+        return first.trimmingCharacters(in: .whitespaces) == "application/pdf"
+    }
+
     /// Download a remote PDF into the recordings dir (C5). True only when the fetch
     /// succeeded AND the payload really is a PDF (magic bytes — content-type headers
     /// lie). `file://` URLs work too (Files-app links / unit tests).
@@ -70,6 +87,7 @@ enum CaptureInboxDrainer {
         guard !isDraining else { return }
         isDraining = true
         defer { isDraining = false }
+        CaptureInbox.log = { DevLog.log($0) }   // tombstone diagnostics (app-side only)
         await BackgroundTask.run(name: "skrift.share-drain") {
             await drainCore(into: repository)
         }
@@ -231,18 +249,29 @@ enum CaptureInboxDrainer {
 
         // C5: a URL that points AT a PDF (Safari shares the page URL, not the file) —
         // download it on drain (E4 policy: network in the app, never the extension)
-        // and land it as a normal file capture. Any failure falls back to the plain
-        // link card (the URL is never lost).
-        if contentType == .url, let raw = entry.url, let remote = URL(string: raw),
-           remote.pathExtension.lowercased() == "pdf" {
-            let destName = "file_\(memoID.uuidString).pdf"
-            if await downloadPDF(from: remote, toRecordingsAs: destName) {
-                sharedContent = SharedContent(type: .file, filePath: destName,
-                                              fileName: remote.lastPathComponent,
-                                              mimeType: "application/pdf")
-                DevLog.log("drain: pdf-url \(entry.id) downloaded → \(destName)")
+        // and land it as a normal file capture. Detection: `.pdf` extension (fast
+        // path), else a HEAD content-type sniff — arxiv-style links are
+        // extensionless (`/pdf/2406.19741`, device round 2 2026-07-11). Any
+        // failure falls back to the plain link card (the URL is never lost).
+        if contentType == .url, let raw = entry.url, let remote = URL(string: raw) {
+            let isPDF: Bool
+            if remote.pathExtension.lowercased() == "pdf" {
+                isPDF = true
+            } else if remote.scheme?.hasPrefix("http") == true {
+                isPDF = await headSaysPDF(remote)
             } else {
-                DevLog.log("drain: pdf-url \(entry.id) download failed — keeping link card")
+                isPDF = false
+            }
+            if isPDF {
+                let destName = "file_\(memoID.uuidString).pdf"
+                if await downloadPDF(from: remote, toRecordingsAs: destName) {
+                    sharedContent = SharedContent(type: .file, filePath: destName,
+                                                  fileName: remote.lastPathComponent,
+                                                  mimeType: "application/pdf")
+                    DevLog.log("drain: pdf-url \(entry.id) downloaded → \(destName)")
+                } else {
+                    DevLog.log("drain: pdf-url \(entry.id) download failed — keeping link card")
+                }
             }
         }
 

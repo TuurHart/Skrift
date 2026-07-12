@@ -325,6 +325,11 @@ enum CaptureInbox {
 
     // MARK: - Tombstones (undeletable entries)
 
+    /// App-side diagnostics hook — the DRAINER points this at DevLog before its
+    /// first delete. Stays nil in the extension (DevLog is app-target-only; this
+    /// file compiles into both).
+    static var log: ((String) -> Void)?
+
     private static let tombstoneKey = "skrift.captureInbox.tombstones"
     private static let tombstoneCap = 200
 
@@ -339,7 +344,7 @@ enum CaptureInbox {
         guard !ids.contains(id) else { return }
         ids.append(id)
         if ids.count > tombstoneCap { ids.removeFirst(ids.count - tombstoneCap) }
-        // No DevLog here — this file also compiles into the extension target.
         UserDefaults.standard.set(ids, forKey: tombstoneKey)
+        log?("inbox: tombstoned undeletable entry \(id)")
     }
 }
