@@ -430,6 +430,8 @@ private struct MemoPageView: View {
     @State private var showCameraCapture = false
     /// Memo↔memo links (chunk 5): the "[[" picker + who links here.
     @State private var showMemoLinkPicker = false
+    /// Track B: the full extracted-PDF-text reader (wave-2 mock m3).
+    @State private var showPDFTextReader = false
     /// Reminder chip → the sheet (chunk 7).
     @State private var showReminderSheet = false
     @State private var backlinks: [(id: UUID, title: String)] = []
@@ -1524,6 +1526,16 @@ private struct MemoPageView: View {
                         let target = QuickLookTarget(url: url, marker: nil)
                         markupQuickLook.present(url: url, anchor: nil) { edited in
                             if edited { photoWasEdited(target) }
+                        }
+                    }
+                    // Track B (wave-2 mock m3): the A6-extracted text, in the
+                    // note — collapsed by default, reader on "Show all".
+                    if let pdfText = sc.text, !pdfText.isEmpty {
+                        PDFTextDisclosure(text: pdfText, pageCount: entry.pageCount) {
+                            showPDFTextReader = true
+                        }
+                        .sheet(isPresented: $showPDFTextReader) {
+                            PDFTextReaderView(title: sc.fileName ?? "PDF text", text: pdfText)
                         }
                     }
                 } else {
