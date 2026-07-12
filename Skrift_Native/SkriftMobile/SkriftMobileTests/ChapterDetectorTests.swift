@@ -85,7 +85,8 @@ final class ChapterDetectorTests: XCTestCase {
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
-        XCTAssertEqual(chapters?.map(\.title), ["Chapter 23", "Chapter 3"])
+        // 23 → 3 is a numbered restart → the book separator announces it.
+        XCTAssertEqual(chapters?.map(\.title), ["Chapter 23", "Book 2", "Chapter 3"])
     }
 
     func testPartAndStandaloneSections() {
@@ -278,6 +279,37 @@ final class ChapterDetectorTests: XCTestCase {
         let words = stream(script)
         XCTAssertNil(ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                             bookDuration: (words.last?.end ?? 0) + 1))
+    }
+
+    func testBookSeparatorInsertedAtNumberReset() {
+        // A trilogy in one import: numbers restart where the next work begins —
+        // a "Book 2" separator explains the restart.
+        var script: [(TimeInterval, String)] = [(0.0, "Seven.")]
+        script += prose(900)
+        script += [(3.0, "Eight.")]; script += prose(900)
+        script += [(3.0, "One.")]; script += prose(900)
+        script += [(3.0, "Two.")]; script += prose(900)
+        let words = stream(script)
+        let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                              bookDuration: (words.last?.end ?? 0) + 1)
+        XCTAssertEqual(chapters?.map(\.title),
+                       ["Chapter 7", "Chapter 8", "Book 2", "Chapter 1", "Chapter 2"])
+        // The separator sits exactly at the resetting chapter's start.
+        XCTAssertEqual(chapters?[2].start, chapters?[3].start)
+    }
+
+    func testNoSeparatorWhenPartHeadingMarksTheReset() {
+        // A real announced "Part Two" already explains the restart — no extra entry.
+        var script: [(TimeInterval, String)] = [(0.0, "Chapter"), (0.1, "1.")]
+        script += prose(900)
+        script += [(3.0, "Chapter"), (0.1, "2.")]; script += prose(900)
+        script += [(3.0, "Part"), (0.1, "Two."), (0.8, "so")]; script += prose(100)
+        script += [(2.5, "Chapter"), (0.1, "1.")]; script += prose(900)
+        let words = stream(script)
+        let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                              bookDuration: (words.last?.end ?? 0) + 1)
+        XCTAssertEqual(chapters?.map(\.title),
+                       ["Chapter 1", "Chapter 2", "Part 2", "Chapter 1"])
     }
 
     // MARK: - Number parser units

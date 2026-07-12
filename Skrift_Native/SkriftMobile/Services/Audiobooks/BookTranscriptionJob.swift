@@ -245,7 +245,9 @@ final class BookTranscriptionJob: ObservableObject {
             progress = 1
             phase = .finished
             activeBookID = nil
-            detectChaptersIfNeeded(bookID: bookID)
+            // Force: a JUST-finished transcribe supersedes any earlier
+            // detection — re-derive chapters from the fresh sidecar.
+            detectChaptersIfNeeded(bookID: bookID, force: true)
         }
     }
 
@@ -257,8 +259,9 @@ final class BookTranscriptionJob: ObservableObject {
     /// before detection existed. No-op unless the book is FULLY transcribed
     /// and detection hasn't run yet (`detectedChapters == nil`; a ran-but-
     /// empty result is stored as [] so it never re-scans).
-    func detectChaptersIfNeeded(bookID: UUID) {
-        guard let book = library.book(id: bookID), book.detectedChapters == nil else { return }
+    func detectChaptersIfNeeded(bookID: UUID, force: Bool = false) {
+        guard let book = library.book(id: bookID),
+              force || book.detectedChapters == nil else { return }
         let urls = book.files.indices.map { library.audioURL(of: book, fileIndex: $0) }
         Task.detached(priority: .utility) { [weak self] in
             guard let result = Self.detectChapters(book: book, audioURLs: urls) else { return }

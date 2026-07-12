@@ -107,7 +107,42 @@ enum ChapterDetector {
         guard let chosen = vote(all, unmatchedGaps: unmatched, fileStartTimes: fileStartTimes,
                                 bookDuration: bookDuration)
         else { return nil }
-        return assemble(chosen, bookDuration: bookDuration)
+        return assemble(withBookSeparators(chosen), bookDuration: bookDuration)
+    }
+
+    /// A multi-work import (a trilogy in one audiobook) reads shuffled without
+    /// context: detected numbers legitimately RESTART where the next work
+    /// begins. Insert a "Book N" separator entry at each numbered RESET
+    /// (Ch n → Ch m, m ≤ n) so the restarts explain themselves — unless a real
+    /// part/section heading already marks that spot. N counts detected
+    /// segments, so with partial recall it can undercount the true book index
+    /// — still strictly clearer than an unexplained restart.
+    static func withBookSeparators(_ headings: [Heading]) -> [Heading] {
+        var out: [Heading] = []
+        var prevNumber: Int?
+        var segment = 1
+        for h in headings {
+            var number: Int?
+            if case .chapter(let n) = h.kind { number = n }
+            if case .bareNumber(let n) = h.kind { number = n }
+            if let n = number {
+                if let prev = prevNumber, n <= prev {
+                    let marked = out.contains {
+                        if case .part = $0.kind { return abs($0.start - h.start) < 60 }
+                        if case .standalone = $0.kind { return abs($0.start - h.start) < 60 }
+                        return false
+                    }
+                    if !marked {
+                        segment += 1
+                        out.append(Heading(kind: .standalone("Book \(segment)"),
+                                           start: h.start, title: nil, gapBefore: h.gapBefore))
+                    }
+                }
+                prevNumber = n
+            }
+            out.append(h)
+        }
+        return out
     }
 
     /// The style vote. Keyword chapters are trusted at quorum 2; bare numbers
