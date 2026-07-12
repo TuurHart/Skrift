@@ -340,6 +340,18 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    WhatsApp voice+photo multi-select → one note · video/PDF share → sheet w/
    thought+circles · PDF note → text disclosure + reader · capture → mic-pill
    voice ramble · share the 61-min file from Files → Books CHOOSER (E2 eyeball).
+   → **⭐ NEXT SESSION KICKOFF — B3 round 2: multi-ITEM WhatsApp bundles (found by
+   Tuur 2026-07-12 19:12, devlog-proven).** He multi-selected voice notes + a photo
+   + a link + a VIDEO in WhatsApp → only a video note appeared. Root cause: WhatsApp
+   ships a multi-select as MULTIPLE NSExtensionItems and `SharePayloadLoader.load`
+   reads `inputItems.FIRST` only — his first item was the video, so the voice
+   notes/photo/link never entered the loader. B3 merges multi-ATTACHMENT items only.
+   Build: (1) flatten attachments across ALL extensionItems before the type
+   dispatch; (2) decide video+link roles inside a mixed bundle (suggestion: video →
+   its own memo alongside the bundle note, link → rides the note like B3 text; OR
+   everything-in-one via markers — design call, mock if UI changes); (3) the sheet
+   must SAY what it's keeping (honesty line), never silently drop; (4) device round
+   with the same WhatsApp selection. Suite baseline 672/672; builds from 71.
    → **✅ CHAPTER CLOSED 2026-07-12 evening (last Fable-5 day; roadmap ShareW2 →
    done, now → NFeat).** Builds 64→70 shipped; crash loop fixed (dup CloudKit ids
    → tolerant dicts + MemoDeduper trash-sweep); no-bubble rule LOCKED + applied
