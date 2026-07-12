@@ -41,6 +41,13 @@ Research session → user picked the lot; all mobile unless said. **Device round
   and ALL index semantics (Ch N/M pill, sleep, attribution, current-highlight, prev/next) run on `playableChapters`
   (separators excluded). Sim-verified WITH VISION via the new `-seedDetectedChapters`/`-showTOCSheet` launch flags
   (self-serve sheet screenshots — no more shipping chapter UI unseen).
+- ✅ **Round-4 (same night): SENTENCE-anchored bare numbers — the recall breakthrough.** Fresh-sidecar probing showed
+  the missing headings have ZERO silence before them (this production never pauses; silence marks decorative stings
+  instead). The discriminator is the SENTENCE BOUNDARY: every true heading follows a finished sentence ("…their
+  example. | Two. Think process not product."), every prose number flows mid-sentence ("a nine to five job", "when he
+  saw one", "Ecclesiastes chapter one") — all die on the prev-word-ends-sentence test. New anchor: prev-punct + number
+  terminates + MANDATORY title sentence (hang waived at zero-gap); vote gates carry the rest. Trilogy probe: 8 → **21
+  chapters with real spoken titles** + Book 2/Book 3 separators at the RIGHT places, zero FPs. Suite 677/677.
   **Follow-ups parked:** manual "Re-transcribe book" affordance for pre-fix sidecars (no created-at in the sidecar to
   auto-detect age); consider a review-sheet UI for gap-only books that fail the vote (the reading-mode chat owns
   player IA).

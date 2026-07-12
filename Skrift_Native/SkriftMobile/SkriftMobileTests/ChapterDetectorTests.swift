@@ -334,6 +334,42 @@ final class ChapterDetectorTests: XCTestCase {
                        ["Chapter 1", "Chapter 2", "Part 2", "Chapter 1"])
     }
 
+    func testSentenceAnchoredNumbersInZeroGapProduction() {
+        // Kleon-style: NO silence before headings — the previous sentence's
+        // period is the anchor ("…their example. Two. Think process not product.").
+        func heading(_ n: String, _ title: [String]) -> [(TimeInterval, String)] {
+            var out: [(TimeInterval, String)] = [(0.08, n)]
+            for w in title { out.append((0.08, w)) }
+            return out
+        }
+        var script: [(TimeInterval, String)] = prose(6)   // ends with "words."
+        script += heading("One.", ["Steal", "like", "an", "artist."]); script += prose(900)
+        script += heading("Two.", ["Think", "process", "not", "product."]); script += prose(900)
+        script += heading("Three.", ["Tell", "good", "stories."]); script += prose(900)
+        let words = stream(script)
+        let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                              bookDuration: (words.last?.end ?? 0) + 1)
+        XCTAssertEqual(chapters?.map(\.title),
+                       ["Chapter 1 — Steal like an artist",
+                        "Chapter 2 — Think process not product",
+                        "Chapter 3 — Tell good stories"])
+    }
+
+    func testMidSentenceNumbersStayRejected() {
+        // "a nine to five job." / "when he saw one." — numbers mid-flow never
+        // follow a finished sentence, so the anchor rejects them.
+        var script: [(TimeInterval, String)] = prose(6)
+        script += [(0.08, "with"), (0.08, "a"), (0.08, "nine"), (0.08, "to"),
+                   (0.08, "five"), (0.08, "job.")]
+        script += prose(400)
+        script += [(0.08, "when"), (0.08, "he"), (0.08, "saw"), (0.08, "one."),
+                   (0.08, "He"), (0.08, "was"), (0.08, "not"), (0.08, "amused.")]
+        script += prose(400)
+        let words = stream(script)
+        XCTAssertNil(ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                            bookDuration: (words.last?.end ?? 0) + 1))
+    }
+
     // MARK: - Number parser units
 
     func testSpelledValues() {

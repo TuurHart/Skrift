@@ -265,6 +265,19 @@ enum ChapterDetector {
                     continue
                 }
                 if gap >= 2.0, i > 0 { unmatched.append(gap) }
+            } else if i > 0, Paragrapher.endsSentence(words[i - 1].word) {
+                // SENTENCE-anchored bare number: some productions read the
+                // heading with NO silence at all ("…their example. Two. Think
+                // process not product.") — the boundary that separates it from
+                // prose numbers ("a nine to five job", "when he saw one") is
+                // the finished sentence BEFORE it. Title mandatory here; the
+                // style vote's quorum/ascending/spacing gates carry the rest.
+                if let (heading, consumed) = matchSentenceAnchoredNumber(
+                    words, at: i, globalOrigin: globalOrigin) {
+                    found.append(heading)
+                    i += consumed
+                    continue
+                }
             }
             i += 1
         }
@@ -333,11 +346,29 @@ enum ChapterDetector {
         // Title-only ("A Lopsided Arms Race.") — a short utterance that ends
         // with sentence punctuation AND hangs. Only meaningful behind a real
         // silence; the vote demands quorum + dominance before trusting these.
-        if gap >= 2.0, let (utterance, consumed) = shortHangingUtterance(words, from: i) {
+        if gap >= 2.0, let (utterance, consumed) = shortUtterance(words, from: i, requireHang: true) {
             return (Heading(kind: .titleOnly, start: start, title: utterance,
                             gapBefore: gap), consumed)
         }
         return nil
+    }
+
+    /// Bare number announced with NO preceding silence, legitimised by the
+    /// sentence boundary before it plus a mandatory title sentence after —
+    /// "…their example. | Two. Think process not product." The title's hang
+    /// requirement is waived (these productions never pause), so local
+    /// precision is weaker; the vote's quorum + ascending + spacing gates are
+    /// the real filter for this anchor.
+    private static func matchSentenceAnchoredNumber(
+        _ words: [WordTiming], at i: Int,
+        globalOrigin: TimeInterval) -> (Heading, Int)? {
+        guard let (value, numberEnd) = parseNumber(words, from: i),
+              terminatesCleanly(words, lastIndex: numberEnd) else { return nil }
+        guard let (title, consumedTitle) = titleSentence(words, index: numberEnd + 1,
+                                                         requireHang: false) else { return nil }
+        return (Heading(kind: .bareNumber(value), start: globalOrigin + words[i].start,
+                        title: title, gapBefore: 0),
+                (numberEnd - i + 1) + consumedTitle)
     }
 
     private enum KeywordKind { case chapter, part }
@@ -368,24 +399,36 @@ enum ChapterDetector {
     /// silence follows it, the way narrators read titles. A short opening prose
     /// sentence flows straight on and is rejected.
     private static func titleAfter(_ words: [WordTiming], index: Int) -> (String?, Int) {
-        guard let (utterance, consumed) = shortHangingUtterance(words, from: index),
+        guard let (utterance, consumed) = titleSentence(words, index: index, requireHang: true)
+        else { return (nil, 0) }
+        return (utterance, consumed)
+    }
+
+    /// The short title sentence after a heading: ≤`maxTitleWords`, ends with
+    /// sentence punctuation, isn't itself a number (that's the NEXT heading),
+    /// and — when `requireHang` — is followed by ≥`titleEndGap` of silence, the
+    /// way narrators normally read titles. Zero-gap productions waive the hang
+    /// (the sentence-anchored number path).
+    private static func titleSentence(_ words: [WordTiming], index: Int,
+                                      requireHang: Bool) -> (String, Int)? {
+        guard let (utterance, consumed) = shortUtterance(words, from: index,
+                                                         requireHang: requireHang),
               Int(utterance) == nil,
               spelledValue(utterance.split(separator: " ").map { core(String($0)) }) == nil
-        else { return (nil, 0) }   // a bare number is the NEXT heading, not a title
+        else { return nil }
         return (utterance, consumed)
     }
 
     /// A ≤`maxTitleWords` run from `from` that ends with sentence punctuation
-    /// and HANGS (≥`titleEndGap` silence after, or transcript end). Returns the
-    /// cleaned text + words consumed.
-    private static func shortHangingUtterance(_ words: [WordTiming],
-                                              from: Int) -> (String, Int)? {
+    /// (and hangs, when required). Returns the cleaned text + words consumed.
+    private static func shortUtterance(_ words: [WordTiming], from: Int,
+                                       requireHang: Bool) -> (String, Int)? {
         var collected: [String] = []
         var i = from
         while i < words.count, collected.count < maxTitleWords {
             collected.append(words[i].word)
             if Paragrapher.endsSentence(words[i].word) {
-                let hangs = i + 1 >= words.count
+                let hangs = !requireHang || i + 1 >= words.count
                     || (words[i + 1].start - words[i].end) >= titleEndGap
                 let text = strippedSentence(collected)
                 guard hangs, !text.isEmpty else { return nil }
