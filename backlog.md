@@ -29,6 +29,13 @@ Research session → user picked the lot; all mobile unless said. **Device round
   fixed seams + 180s chunks should lift recall a lot); Digital Minimalism → Opening + Part 1 + Part 2 (its narrator
   never says "chapter"; its per-chapter titles are title-only style — sidecar only 41.7% covered, finish the
   transcribe and re-judge). 21 detector unit tests; suite 659/659.
+- ✅ **Round-2 device feedback (build 71, same evening): "Book N" separators** — the trilogy's restarting numbers
+  read as shuffled ("??") → a separator entry lands at every numbered reset (suppressed when a real Part heading
+  marks it), and a finished transcribe now FORCE-re-derives chapters (fresh sidecar supersedes old detection — no
+  more USB cache-clears). Device-proven same night: trilogy redo = 4.5h in 6.5min (~33× cumulative, ~1.8 min/hr vs
+  the June engine's ~3.2; per-chunk ~50× vs 21×), detection auto-fired → 8 real chapters (recall capped by this
+  narrator running numbers into titles without a beat — the number+title-as-one-unit loosening is the parked tuning
+  experiment, fresh sidecar pulled for offline iteration).
   **Follow-ups parked:** manual "Re-transcribe book" affordance for pre-fix sidecars (no created-at in the sidecar to
   auto-detect age); consider a review-sheet UI for gap-only books that fail the vote (the reading-mode chat owns
   player IA).
