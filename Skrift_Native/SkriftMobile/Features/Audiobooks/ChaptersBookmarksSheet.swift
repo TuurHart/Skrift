@@ -53,27 +53,52 @@ struct ChaptersBookmarksSheet: View {
             empty("No chapters", "This book has no chapter marks.")
         } else {
             let titles = book.displayChapterTitles
-            let current = book.chapterIndex(at: session.currentTime)
+            let current = book.chapterIndex(at: session.currentTime)   // playable index
+            // Row i → its index among PLAYABLE chapters (nil for separators),
+            // so the current-highlight matches `chapterIndex` semantics.
+            let playableIndex: [Int?] = {
+                var out: [Int?] = []
+                var p = 0
+                for ch in book.effectiveChapters {
+                    if ch.isSeparator == true { out.append(nil) } else { out.append(p); p += 1 }
+                }
+                return out
+            }()
             List {
                 ForEach(Array(book.effectiveChapters.enumerated()), id: \.offset) { i, ch in
-                    Button {
-                        session.seek(to: ch.start); dismiss()
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: i == current ? "play.fill" : "circle.fill")
-                                .font(.system(size: i == current ? 10 : 5))
-                                .foregroundStyle(i == current ? Color.skAccent : Color.skTextFaint)
-                                .frame(width: 14)
-                            Text(titles[i])
-                                .font(.system(size: 14.5, weight: i == current ? .semibold : .regular))
-                                .foregroundStyle(i == current ? Color.skText : Color.skTextDim)
-                            Spacer()
-                            Text(AudiobookTime.clock(ch.start))
-                                .font(.system(size: 12)).monospacedDigit()
-                                .foregroundStyle(Color.skTextFaint)
+                    if ch.isSeparator == true {
+                        // A divider between WORKS (multi-book import) — a
+                        // section header, not a chapter: no bullet, no time,
+                        // not tappable, excluded from every count.
+                        Text(titles[i].uppercased())
+                            .font(.system(size: 11.5, weight: .semibold))
+                            .kerning(1.1)
+                            .foregroundStyle(Color.skTextFaint)
+                            .padding(.top, 10).padding(.bottom, 2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .listRowBackground(Color.skBg)
+                            .listRowSeparator(.hidden)
+                    } else {
+                        let isCurrent = playableIndex[i] == current
+                        Button {
+                            session.seek(to: ch.start); dismiss()
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: isCurrent ? "play.fill" : "circle.fill")
+                                    .font(.system(size: isCurrent ? 10 : 5))
+                                    .foregroundStyle(isCurrent ? Color.skAccent : Color.skTextFaint)
+                                    .frame(width: 14)
+                                Text(titles[i])
+                                    .font(.system(size: 14.5, weight: isCurrent ? .semibold : .regular))
+                                    .foregroundStyle(isCurrent ? Color.skText : Color.skTextDim)
+                                Spacer()
+                                Text(AudiobookTime.clock(ch.start))
+                                    .font(.system(size: 12)).monospacedDigit()
+                                    .foregroundStyle(Color.skTextFaint)
+                            }
                         }
+                        .listRowBackground(Color.skBg)
                     }
-                    .listRowBackground(Color.skBg)
                 }
             }
             .listStyle(.plain)

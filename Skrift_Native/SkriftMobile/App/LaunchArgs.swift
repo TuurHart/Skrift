@@ -61,6 +61,13 @@ enum LaunchFlags {
     /// Seed the synthetic book WITHOUT arming a session — the Notes
     /// "Continue listening" card state (card-at-rest / pill-when-live).
     static var seedAudiobookIdle: Bool { args.boolFlag("-seedAudiobookIdle") }
+    /// Decorate the seeded book with transcript-DETECTED chapters incl. a
+    /// "Book 2" separator — the multi-work chapters-sheet state (screenshot
+    /// verification of the section-header treatment).
+    static var seedDetectedChapters: Bool { args.boolFlag("-seedDetectedChapters") }
+    /// Present the Chapters/Bookmarks sheet full-screen over the seeded book
+    /// on launch — a deterministic sheet render without UI-test taps.
+    static var showTOCSheet: Bool { args.boolFlag("-showTOCSheet") }
     /// Open the Settings tab on launch (screenshot routing).
     static var openSettings: Bool { args.boolFlag("-openSettings") }
     /// Run the journal index on MockEmbedder + an in-memory store (no model

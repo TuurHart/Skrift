@@ -67,6 +67,7 @@ enum ChapterDetector {
             case standalone(String)    // Prologue / Epilogue / …
             case bareNumber(Int)       // "Seven." (no keyword)
             case titleOnly             // a short hanging utterance, no number
+            case separator(Int)        // synthesized "Book N" divider (display-only)
         }
         let kind: Kind
         /// Global (whole-book) start second — the heading word's start.
@@ -134,7 +135,7 @@ enum ChapterDetector {
                     }
                     if !marked {
                         segment += 1
-                        out.append(Heading(kind: .standalone("Book \(segment)"),
+                        out.append(Heading(kind: .separator(segment),
                                            start: h.start, title: nil, gapBefore: h.gapBefore))
                     }
                 }
@@ -442,7 +443,9 @@ enum ChapterDetector {
             chapters.append(AudiobookChapter(title: "Opening", start: 0, duration: 0))
         }
         for h in headings {
-            chapters.append(AudiobookChapter(title: label(for: h), start: h.start, duration: 0))
+            var ch = AudiobookChapter(title: label(for: h), start: h.start, duration: 0)
+            if case .separator = h.kind { ch.isSeparator = true }
+            chapters.append(ch)
         }
         for i in chapters.indices {
             let end = i + 1 < chapters.count ? chapters[i + 1].start : max(bookDuration, chapters[i].start)
@@ -460,6 +463,7 @@ enum ChapterDetector {
         case .chapter(let n), .bareNumber(let n): base = "Chapter \(n)"
         case .part(let n): base = "Part \(n)"
         case .standalone(let s): base = s
+        case .separator(let n): return "Book \(n)"
         case .titleOnly: return h.title ?? "Chapter"
         }
         guard let title = h.title else { return base }

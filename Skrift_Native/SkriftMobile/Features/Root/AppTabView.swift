@@ -38,6 +38,8 @@ struct AppTabView: View {
     }
 
     @State private var selection: Tab = AppTabView.initialTab()
+    /// `-showTOCSheet` screenshot hook (see the `.sheet` below).
+    @State private var showSeededTOC = false
 
     var body: some View {
         TabView(selection: $selection) {
@@ -71,6 +73,14 @@ struct AppTabView: View {
         .task {
             if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen() }
             else if LaunchFlags.seedAudiobookIdle { AudiobookSeeder.seedOnly() }
+            if LaunchFlags.showTOCSheet { showSeededTOC = true }
+        }
+        // `-showTOCSheet`: render the Chapters/Bookmarks sheet over the seeded
+        // book — a deterministic screenshot without UI-test taps.
+        .sheet(isPresented: $showSeededTOC) {
+            if let book = AudiobookSession.shared.book {
+                ChaptersBookmarksSheet(book: book)
+            }
         }
     }
 }

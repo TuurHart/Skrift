@@ -5,6 +5,12 @@ struct AudiobookChapter: Codable, Equatable, Sendable {
     var title: String
     var start: TimeInterval
     var duration: TimeInterval
+    /// Display-only divider between WORKS in a multi-book import ("Book 2",
+    /// inserted by `ChapterDetector` at number resets). Rendered as a section
+    /// header in the chapters sheet; excluded from chapter counting, the
+    /// `Ch N/M` pill, navigation, and attribution. nil/absent = a real chapter
+    /// (synthesized Codable keeps old records decoding unchanged).
+    var isSeparator: Bool? = nil
 }
 
 /// An imported audiobook. The audio lives in `Documents/audiobooks/<id>/`
@@ -229,17 +235,24 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// True when transcript-detected chapters exist and win over `chapters`.
     private var usesDetected: Bool { detectedChapters?.isEmpty == false }
 
-    /// The chapter list the WHOLE UI renders (menu, chapter line, scrubber,
-    /// sleep timer, attribution): transcript-detected when available, else the
-    /// import chapters. Never read `chapters` directly for display.
+    /// The chapter list the sheet renders — INCLUDING display-only "Book N"
+    /// separators. Never read `chapters` directly for display.
     var effectiveChapters: [AudiobookChapter] {
         usesDetected ? detectedChapters! : chapters
     }
 
-    /// Index of the chapter playing at `time` (the last chapter starting at or
-    /// before it). nil when the book has no chapters from any source.
+    /// The chapters you can BE in: `effectiveChapters` minus separators. All
+    /// index-based semantics (current chapter, `Ch N/M` pill, sleep timer,
+    /// attribution, prev/next) run on THIS list, so a divider never counts.
+    var playableChapters: [AudiobookChapter] {
+        effectiveChapters.filter { $0.isSeparator != true }
+    }
+
+    /// Index (into `playableChapters`) of the chapter playing at `time` — the
+    /// last chapter starting at or before it. nil when the book has no
+    /// chapters from any source.
     func chapterIndex(at time: TimeInterval) -> Int? {
-        let list = effectiveChapters
+        let list = playableChapters
         guard !list.isEmpty else { return nil }
         var idx = 0
         for (i, ch) in list.enumerated() {
@@ -249,19 +262,25 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     }
 
     func chapter(at time: TimeInterval) -> AudiobookChapter? {
-        chapterIndex(at: time).map { effectiveChapters[$0] }
+        chapterIndex(at: time).map { playableChapters[$0] }
     }
 
-    /// Reader-facing chapter titles, same order as `effectiveChapters`.
-    /// Detected titles are already display-ready ("Chapter 7 — The Iron Duke",
-    /// "Prologue") and pass through; import-synthesized (filename) chapter
-    /// names get their common prefix stripped + numbered remainders prettified
-    /// ("Chapter 1"); real m4b-embedded titles pass through unchanged. Render
-    /// chapters with THESE everywhere — the attribution NUMBER comes from
-    /// `chapterNumberString`.
+    /// Reader-facing titles, same order/count as `effectiveChapters` (the
+    /// sheet indexes it row-for-row, separators included). Detected titles are
+    /// already display-ready ("Chapter 7 — The Iron Duke", "Prologue", "Book
+    /// 2") and pass through; import-synthesized (filename) chapter names get
+    /// their common prefix stripped + numbered remainders prettified
+    /// ("Chapter 1"); real m4b-embedded titles pass through unchanged.
     var displayChapterTitles: [String] {
         usesDetected
             ? effectiveChapters.map(\.title)
+            : ChapterDisplay.displayTitles(chapters.map(\.title))
+    }
+
+    /// Titles aligned to `playableChapters` — what the index-based labels use.
+    private var playableDisplayTitles: [String] {
+        usesDetected
+            ? playableChapters.map(\.title)
             : ChapterDisplay.displayTitles(chapters.map(\.title))
     }
 
@@ -271,8 +290,8 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// so they get the position appended instead of a second "Chapter n".
     func chapterLine(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
-        let title = displayChapterTitles[i]
-        let count = effectiveChapters.count
+        let title = playableDisplayTitles[i]
+        let count = playableChapters.count
         if usesDetected, !title.isEmpty {
             return title + "  ·  \(i + 1) of \(count)"
         }
@@ -288,7 +307,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     func chapterNumberString(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
         guard usesDetected else { return String(i + 1) }
-        let title = effectiveChapters[i].title
+        let title = playableChapters[i].title
         guard let match = title.firstMatch(of: #/(?i)^chapter (\d+)/#) else { return nil }
         return String(match.1)
     }
@@ -298,7 +317,7 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// compact their own heading ("Chapter 7 — X" → "ch. 7 — X").
     func shortChapterLabel(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
-        let title = displayChapterTitles[i]
+        let title = playableDisplayTitles[i]
         if usesDetected {
             guard !title.isEmpty else { return "ch. \(i + 1)" }
             return title.hasPrefix("Chapter ") ? "ch. " + title.dropFirst("Chapter ".count) : title

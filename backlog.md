@@ -36,6 +36,11 @@ Research session → user picked the lot; all mobile unless said. **Device round
   the June engine's ~3.2; per-chunk ~50× vs 21×), detection auto-fired → 8 real chapters (recall capped by this
   narrator running numbers into titles without a beat — the number+title-as-one-unit loosening is the parked tuning
   experiment, fresh sidecar pulled for offline iteration).
+- ✅ **Round-3 (same night): separator restyled as a real SECTION HEADER** (user: the peer-row "Book 2" read as a
+  ninth chapter). `AudiobookChapter.isSeparator` (display-only), sheet renders small-caps headers (no bullet/time/tap),
+  and ALL index semantics (Ch N/M pill, sleep, attribution, current-highlight, prev/next) run on `playableChapters`
+  (separators excluded). Sim-verified WITH VISION via the new `-seedDetectedChapters`/`-showTOCSheet` launch flags
+  (self-serve sheet screenshots — no more shipping chapter UI unseen).
   **Follow-ups parked:** manual "Re-transcribe book" affordance for pre-fix sidecars (no created-at in the sidecar to
   auto-detect age); consider a review-sheet UI for gap-only books that fail the vote (the reading-mode chat owns
   player IA).

@@ -294,8 +294,30 @@ final class ChapterDetectorTests: XCTestCase {
                                               bookDuration: (words.last?.end ?? 0) + 1)
         XCTAssertEqual(chapters?.map(\.title),
                        ["Chapter 7", "Chapter 8", "Book 2", "Chapter 1", "Chapter 2"])
-        // The separator sits exactly at the resetting chapter's start.
+        // The separator sits exactly at the resetting chapter's start, and is
+        // marked display-only.
         XCTAssertEqual(chapters?[2].start, chapters?[3].start)
+        XCTAssertEqual(chapters?[2].isSeparator, true)
+        XCTAssertNil(chapters?[3].isSeparator)
+    }
+
+    func testSeparatorExcludedFromChapterSemantics() {
+        var book = Audiobook(audioFilename: "b.mp3", title: "Trilogy", author: "A", duration: 400)
+        book.detectedChapters = [
+            AudiobookChapter(title: "Chapter 7", start: 0, duration: 100),
+            AudiobookChapter(title: "Chapter 8", start: 100, duration: 100),
+            AudiobookChapter(title: "Book 2", start: 200, duration: 0, isSeparator: true),
+            AudiobookChapter(title: "Chapter 1", start: 200, duration: 200),
+        ]
+        // Counting/navigation skip the separator…
+        XCTAssertEqual(book.playableChapters.count, 3)
+        XCTAssertEqual(book.chapterIndex(at: 250), 2)              // Chapter 1, not the divider
+        XCTAssertEqual(book.chapter(at: 250)?.title, "Chapter 1")
+        XCTAssertEqual(book.chapterLine(at: 250), "Chapter 1  ·  3 of 3")
+        XCTAssertEqual(book.chapterNumberString(at: 250), "1")     // announced number
+        // …but the sheet's row list still shows it.
+        XCTAssertEqual(book.effectiveChapters.count, 4)
+        XCTAssertEqual(book.displayChapterTitles[2], "Book 2")
     }
 
     func testNoSeparatorWhenPartHeadingMarksTheReset() {

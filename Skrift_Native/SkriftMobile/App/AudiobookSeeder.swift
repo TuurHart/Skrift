@@ -37,7 +37,7 @@ enum AudiobookSeeder {
     private static let title = "Seeded Audiobook"
 
     private static func makeBook(store: AudiobookLibraryStore) -> Audiobook? {
-        let book = Audiobook(
+        var book = Audiobook(
             audioFilename: "book.wav",
             title: title,
             author: "Simulator",
@@ -46,6 +46,19 @@ enum AudiobookSeeder {
             lastPlayedAt: Date(),       // restore/recents treat it as "yesterday's book"
             position: 12
         )
+        // `-seedDetectedChapters`: the multi-work detected list (trilogy shape) —
+        // Opening + chapters + a "Book 2" separator — for sheet screenshots.
+        if LaunchFlags.seedDetectedChapters {
+            book.detectedChapters = [
+                AudiobookChapter(title: "Opening", start: 0, duration: 8),
+                AudiobookChapter(title: "Chapter 2", start: 8, duration: 10),
+                AudiobookChapter(title: "Chapter 3", start: 18, duration: 8),
+                AudiobookChapter(title: "Chapter 7", start: 26, duration: 8),
+                AudiobookChapter(title: "Book 2", start: 34, duration: 0, isSeparator: true),
+                AudiobookChapter(title: "Chapter 1", start: 34, duration: 14),
+                AudiobookChapter(title: "Chapter 8", start: 48, duration: 12),
+            ]
+        }
         let folder = store.folder(for: book.id)
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
