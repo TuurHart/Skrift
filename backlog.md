@@ -340,6 +340,16 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    WhatsApp voice+photo multi-select → one note · video/PDF share → sheet w/
    thought+circles · PDF note → text disclosure + reader · capture → mic-pill
    voice ramble · share the 61-min file from Files → Books CHOOSER (E2 eyeball).
+   → **2026-07-12 17:00 — Tuur's first retest hit 'Couldn't save this' on EVERY
+   share: MY wipe's collateral.** A devicectl-created CaptureInbox dir is
+   IMMUTABLE to the app+extension → every extension write died at
+   createDirectory (and only print()'d — invisible). **FIXED in build 68
+   (installed):** write failures now extLog into the devlog; inboxURL SELF-HEALS
+   a file squatting on the inbox name (recovery = devicectl turns the poisoned
+   dir into a file; app OR extension unlinks + recreates it app-owned on next
+   use). The heal completes on Tuur's next app-open or share attempt. HARD RULE
+   FOR SESSIONS: never devicectl-write into app-group paths the extension must
+   own (staging test entries planted this twice); pull-only is safe.
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →
