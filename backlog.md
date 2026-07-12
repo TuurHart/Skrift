@@ -303,6 +303,42 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    next app-open (build-66 sniff e2e = watch for `drain: pdf-url ... downloaded`).
    E2's Books CHOOSER UI still unverified (no ≥1h file handy) — routing itself is
    device-proven.
+   → **⭐ WAVE 3 BUILT 2026-07-12 early-AM ("do everything that's left" — Tuur
+   green-lit Track B as drawn via the option pick).** Commits `51a483f`..`c0e8e99`:
+   **A3** selected-text beats url, link rides along (loader) · **D7** odd-UTI voice
+   notes (Signal/Telegram) reroute off the file branch by audio extension ·
+   **A1+C4** link enrichment ON DRAIN — one GET: og/title/description + og:image
+   downloaded LOCAL (`linkthumb_<id>.jpg`, offline rule) → url card grows thumb +
+   description; Readability-lite article text → `sharedContent.text` (searchable,
+   never rendered; 3-para/400-char floor, 60k cap; Maps + pdf-routed links skip);
+   pure parser = `HTMLMeta` (6 tests) · **B3** mixed bundles → ONE note: loader
+   collects photos+text alongside clips, sheet stacks the signed idioms + forces
+   combine, drainer manifests photos under the memo id (markers via the
+   transcription pass) + chat text → annotation · **E1 (Track B m1/m2)** video +
+   documents get the SLIM SHEET (preview cards w/ duration/filmed-at · pages/size,
+   honesty lines, typed thought + significance; silent imports + completeVideo/
+   completeFile RETIRED; thought lands as an annotation-lead above the transcript
+   — new non-capture annotation display) · **PDF text-in-note (m3)**
+   `PDFTextDisclosure` collapsed row under the inline PDF → expanded dimmed
+   preview w/ fade → full selectable reader sheet · **voice-annotate (m4)**
+   `CaptureVoiceAnnotate`: mic pill on audio-less captures → inline strip with
+   LIVE CAPTION (LiveRecordingService reused) → on-device transcribe → appends
+   below the ramble → 'Add another'. **v1 = dictation model (audio consumed):
+   attaching playable audio flips the Mac capture-ingest discriminator (capture =
+   memo WITHOUT audio) — Mac-counterpart chunk owed before that half.**
+   **VERIFICATION STATE:** everything through PDF-text-in-note = suite-green
+   (669/669). **voice-annotate = UNVERIFIED (not even compiled)** — the Mac's
+   build stack WEDGED (clang-stat-cache stall, then codesign stall; daemon kills
+   helped once; needs a machine restart) and the phone went unavailable
+   mid-session. **RESUME (next chat / after restart):** (1) suite run → expect
+   ~670 green, fix voice-annotate compile nits if any; (2) device build 67 (bump
+   ALREADY at 67 in project.yml) + install (UDID trap!) ; (3) push
+   `scripts/mklongm4a.swift`-generated 61-min m4a into the phone's Skrift Dev
+   Documents (Files-visible) → Tuur shares it → E2 Books CHOOSER eyeball; (4)
+   Tuur's Wave-3 retest: Safari selected-text → quote note w/ url · article link
+   → rich card + searchable text · WhatsApp voice+photo multi-select → one note ·
+   video/PDF share → sheet w/ thought+circles · PDF note → text disclosure ·
+   capture → mic pill ramble.
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →

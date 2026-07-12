@@ -448,18 +448,19 @@ nodes:
     deps:
       - ShareW1
     via: ShareW1
-    win: "done when: Track A device-verifies (pdf-link→PDF, Maps place chip,
-      text-file body, EXIF dates, 1h→Books routing, in-app Files import,
-      import pill) and the Track B mock is signed + built"
-    note: "Track A built 2026-07-11 + DEVICE-VERIFIED same day (rounds 1+2,
-      builds 64→66): drain half proven via staged inbox entries + pulled
-      store/devlog; Tuur's hands found 2 real bugs, both fixed (Safari-PDF
-      activation → predicate rule + sim probe; undeletable-entry re-import
-      spam → tombstones) + arxiv extensionless links → HEAD sniff, proven
-      live (89.5k chars extracted on-phone). Track B mock
-      share-ingest-wave2.html AWAITS SIGN-OFF (E1 unified sheet · PDF
-      text-in-note · voice-annotate). Books-chooser UI eyeball still owed
-      (needs a ≥1h file)."
+    win: "done when: the Wave-3 suite is green + build 67 device-round passes
+      (rich cards, mixed bundles, video/PDF sheets, PDF text disclosure,
+      voice-annotate, Books chooser eyeball)"
+    note: "Track A built + DEVICE-VERIFIED 2026-07-11 (rounds 1+2, builds
+      64→66; Safari-PDF activation + tombstones + arxiv HEAD-sniff fixed
+      live). WAVE 3 built 2026-07-12 (Tuur green-lit Track B as drawn): A3 ·
+      D7 · A1+C4 enrichment · B3 mixed bundles · E1 sheets · PDF
+      text-in-note · voice-annotate (dictation model v1 — playable-audio
+      attach needs the Mac ingest counterpart). Suite green through PDF
+      text-in-note (669); voice-annotate UNVERIFIED — the Mac's build stack
+      wedged (needs restart) + phone went unavailable. Resume board in
+      backlog: suite → build 67 (version already bumped) → install → 61-min
+      chooser file (scripts/mklongm4a.swift) → Tuur's Wave-3 retest."
     shipped:
       - >-
         2026-07-11 · Mac fix: Wave-2 capture photos render + export
@@ -474,6 +475,17 @@ nodes:
       - >-
         2026-07-11 · Track B mock share-ingest-wave2.html (4 states,
         vision-checked) — sign-off pending [f9386cf]
+      - >-
+        2026-07-11 · Device rounds 1+2 (builds 64→66): drain half verified via
+        staged inbox entries + pulled store; Safari-PDF activation → predicate
+        rule + ShareSheetActivationProbe; poison-pill tombstones; arxiv
+        extensionless links → HEAD content-type sniff [178cfb9, 0a14a47]
+      - >-
+        2026-07-12 · WAVE 3: A3 text-beats-url · D7 odd-UTI audio reroute ·
+        A1+C4 link enrichment (local og:image thumb, article text searchable) ·
+        B3 mixed bundles → one note · E1 video/PDF slim sheets (silent imports
+        retired) · PDF text-in-note disclosure + reader · voice-annotate strip
+        (live caption, dictation model) [51a483f..c0e8e99]
 
   - id: TrEngine
     title: Transcription-engine wave (chapters + perf)

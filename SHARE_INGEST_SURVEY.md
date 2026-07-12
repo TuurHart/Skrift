@@ -18,10 +18,17 @@ Device rounds 1–4 PASSED same day (builds 60→63), merged via PR #11.
 desktop 345/345): A9 ✅ · A14 ✅ · C5 ✅ · D4 ✅ (+loader file-URL fix) · D6 ✅ · D8 ✅ ·
 E2 ✅ · A4 ✅ · A6 ✅ · bg-task claims ✅ · Mac capture-marker fix ✅ (Wave-1's unproven
 edge was real — literal `[[img_NNN]]` in Mac Review + vault export, stale pinned embed).
-**Device round OWED (builds from 64)** — checklist in backlog.md. Track B mock
-`mocks/share-ingest-wave2.html` (E1 video/PDF sheets · PDF text-in-note · voice-annotate)
-**AWAITS SIGN-OFF**; A1/C4 link enrichment not yet picked up. Remaining decisions:
-C1 YouTube, C2 Insta/TikTok, B4 chat-export; C3 podcasts ⭐ = own lane on go.
+Device rounds 1+2 PASSED 2026-07-11 (builds 64→66): drain half machine-verified via
+staged inbox entries; Tuur's hands found + fixed the Safari-PDF activation rule and
+the undeletable-entry re-import spam; arxiv extensionless pdf links → HEAD sniff.
+
+**⭐ WAVE 3 BUILT 2026-07-12** (Tuur: "do everything that's left"; Track B green-lit
+as drawn): A3 ✅ · D7 ✅ · A1 ✅ · C4 ✅ · B3 ✅ · E1 ✅ (silent video/file imports
+retired — the slim sheet everywhere) · PDF text-in-note ✅ · voice-annotate ✅ built
+**UNVERIFIED** (build-stack wedge — see backlog resume). Voice-annotate v1 = the
+dictation model; attaching playable audio to captures needs the Mac ingest
+counterpart first. Remaining decisions: C1 YouTube, C2 Insta/TikTok, B4 chat-export;
+C3 podcasts ⭐ = own lane on go; E5 IngestKit/Mac surfaces = its own lane.
 
 **Mock SIGNED OFF 2026-07-10** (`mocks/share-ingest-wave1.html`) — locked rules from the
 sign-off round: (1) **every share jumps to its note on the next app-open** (extensions can't
