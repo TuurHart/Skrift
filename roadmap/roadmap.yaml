@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 16
-updated: 2026-07-12T19:30:00.000Z
+version: 17
+updated: 2026-07-12T21:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -205,7 +205,7 @@ nodes:
         (MemoLinkStems over ONE noteStem derivation)
       - 2026-07-11 · Journal-on-Mac mock v2 SIGNED OFF (map mode takes the
         column, slim in-flight row) — THE spec for the B-list + Journal builds
-        (backlog CONTINUE-HERE board); build waits only on quiet lanes
+        (backlog CONTINUE-HERE board); build = DParityB (Lane D)
     win: a note locked on the phone is locked on the Mac and never exported;
       Mac-exported memo-links point at real files; UnitTests 341 green + full
       MLX build green (device round-trip owed)
@@ -240,7 +240,8 @@ nodes:
     title: Note-editing overhaul
     lane: 0
     order: 5.5
-    status: inprogress
+    status: done
+    done: 2026-07-10
     shipped:
       - >-
         2026-07-07 · Chunk 1 — body re-founded on a scrolling text view
@@ -259,6 +260,12 @@ nodes:
         2026-07-07 · Chunk 3 — TagEditorSheet: chips with explicit ✕ (no more
         silent tap-delete), comma input kept, autocomplete from every library
         tag (pick, not retype)
+      - >-
+        2026-07-10 · CLOSED (sweep) — merged to main 2026-07-07 (PR #7 via
+        the Journal lane); device rounds 1–5 (builds 31→39) eyeballed the
+        editor chrome; the summary-card worry was the search-open raw-render
+        bug, fixed + device-verified build 59. Residual watch-item (selection
+        handles) lives on the NFeat board
     eff: M
     note: Re-found the note body on a natively-scrolling text view (fork B) —
       selection/undo/find/caret-follow come free; karaoke becomes attribute
@@ -269,11 +276,6 @@ nodes:
       pill, SF Symbols); no Save-highlight; summary card in the scrolling
       header; compact player pill. Build green-lit once the bug-fix chat
       wraps. Build plan = backlog.md EPIC 🏗 (chunks 1–3 here; 4–9 = NFeat).
-    backlog:
-      - Device eyeball — selection/caret/magnifier feel, accessory pill,
-        compact player, tag editor, name-tap-while-editing semantics
-      - Check the polished memo's summary card shows on phone (possible bug →
-        bugs chat)
     win: "editing a note feels like Apple Notes — selection autoscrolls, caret
       stays visible, undo/find/magnifier work — with transcript richness
       (karaoke, name tiers, inline photos) intact"
@@ -391,20 +393,17 @@ nodes:
       - "Selection handles: NOT retested since build 35 — build 39 carries
         armed probes (sel-during-scroll + frame-write guards); pull devlog
         on next repro"
-      - "Merge decision: branch is 41 commits ahead of main (user's call)"
       - "P2#12 viewer ZOOM built (build 38, MarkupQuickLook UIKit presenter,
         transitionViewFor off the tapped photo; edit chain still
         dismissal-deferred) — device eyeball owed"
       - P2#12 viewer zoom-open transition (re-flagged round 2; next polish)
       - Scan-into-this-note accessory verb (deferred design question)
-      - Checklists — DESKTOP parity (BodyTextView render/toggle; hard rule)
-      - Memo-links — DESKTOP precise resolver (compiler fallback [[Title]]
-        ships already; wire PipelineFile stems)
-      - Photo OCR — Mac SEARCH-UI wiring (the text already syncs in the
-        metadata blob)
+      - "Desktop body parity (checklist toggles + memo-link chips/backlinks +
+        PDF-inline display) → moved to DParityB (Lane D). Mac lock gate,
+        precise link resolver + OCR search already SHIPPED in DParityA;
+        merge decision resolved (PR #7 merged 2026-07-07)"
       - Reminders — Mac reconciler (same UserNotifications API; remindAt
         already syncs) + prod CloudKit schema deploy at promotion
-      - Locked notes — Mac gate (LocalAuthentication; flag already syncs)
     win: the six approved gap features run on BOTH apps from shared code —
       locked notes stay out of the vault, OCR'd photos are searchable,
       reminders ring on whichever device you're holding
@@ -457,11 +456,16 @@ nodes:
       live). WAVE 3 built 2026-07-12 (Tuur green-lit Track B as drawn): A3 ·
       D7 · A1+C4 enrichment · B3 mixed bundles · E1 sheets · PDF
       text-in-note · voice-annotate (dictation model v1 — playable-audio
-      attach needs the Mac ingest counterpart). Suite green through PDF
-      text-in-note (669); voice-annotate UNVERIFIED — the Mac's build stack
-      wedged (needs restart) + phone went unavailable. Resume board in
-      backlog: suite → build 67 (version already bumped) → install → 61-min
-      chooser file (scripts/mklongm4a.swift) → Tuur's Wave-3 retest."
+      attach needs the Mac ingest counterpart). CHAPTER CLOSED 2026-07-12
+      evening, builds 67→70 on device (backlog ✅ CHAPTER CLOSED). User
+      retest of the wave-3 paths PARKED, zero urgency — every path now fails
+      honestly (error states + extLog + tombstones)."
+    backlog:
+      - Multi-ITEM WhatsApp bundles — SharePayloadLoader reads only the FIRST
+        attachment of a multi-item share (Tuur-found, devlog-proven);
+        next-session kickoff = 9f31c26
+      - Voice-annotate playable-audio attach needs the Mac ingest counterpart
+        (dictation model v1 shipped)
     shipped:
       - >-
         2026-07-11 · Mac fix: Wave-2 capture photos render + export
@@ -487,6 +491,13 @@ nodes:
         B3 mixed bundles → one note · E1 video/PDF slim sheets (silent imports
         retired) · PDF text-in-note disclosure + reader · voice-annotate strip
         (live caption, dictation model) [51a483f..c0e8e99]
+      - >-
+        2026-07-12 · Chapter CLOSED, builds 67→70: wave-3 device-verified
+        (build-stack wedge = pending macOS auth dialog, root-caused); inbox
+        self-heal + extension-visible write logging (devicectl-owned dir
+        collateral) [1bd5d1b]; CloudKit dup-id launch crash-loop fix +
+        MemoDeduper trash-sweep [5acc049]; voice-annotate 'warming up' strip
+        [05e9fbe]
 
   - id: TrEngine
     title: Transcription-engine wave (chapters + perf)
@@ -510,7 +521,8 @@ nodes:
       - 2026-07-11 · Buffer-path book chunks + 180s + in-flight cancel;
         ChapterDetector + detectedChapters wiring; FillerFilter opt-in;
         trunk NoteBody unshadow [54aa983 + wave commits]
-      - 2026-07-11 · Detection v2 style-vote (bare numbers, LibriVox,
+      - >-
+        2026-07-11 · Detection v2 style-vote (bare numbers, LibriVox,
         title-only w/ gap-dominance; duration priors; seam-echo dedup;
         per-file number resets) — real-library probe: trilogy 0→5 real
         chapters [ce88435]
@@ -518,7 +530,7 @@ nodes:
   - id: RecHard
     title: Recording hardening + heat diet
     lane: 0
-    order: 5.8
+    order: 5.85
     status: inprogress
     eff: M
     note: "Fable audit 2026-07-07 off the user's freeze/half-recording report
@@ -549,6 +561,64 @@ nodes:
         rounds lock behavior
     win: "a hot old iPhone records a 10-min memo without freezing, and a
       call/Siri/alarm mid-recording never silently kills capture"
+  - id: DParityB
+    title: Desktop B-list + Journal on Mac
+    lane: 0
+    order: 5.9
+    status: inprogress
+    eff: M
+    ms: Standalone core
+    deps:
+      - DParityA
+      - P8
+    via: DParityA
+    note: "Lane D of the 2026-07-12 parallel board (backlog ⭐ PARALLEL BOARD
+      + desktop-parity board). Spec = mocks/journal-desktop.html v2, SIGNED
+      OFF 2026-07-11. Board A: memo-link chips + LINKED-FROM backlinks, live
+      checklist toggles (edit the SOURCE text + MacCloudEditSync), PDF-inline
+      capture display. Board B: Queue|Journal mode switch — share
+      LookbackProvider/PlaceCluster to Shared/ FIRST, rail + Looking-back
+      column + map mode, reads the cloud Memo store, journal is read-only.
+      Board C (SharedKit round 2) HELD until Lane P merges."
+    win: "the Mac renders checklists, memo-link chips and PDF captures like
+      the phone, and Journal mode shows Looking-back + map from the SAME
+      shared rules the phone compiles"
+  - id: CapNote
+    title: Capture reads as a note
+    lane: 4
+    order: 5.9
+    status: inprogress
+    eff: M
+    deps:
+      - NFeat
+      - ShareW2
+    via: ShareW2
+    note: "Lane P of the 2026-07-12 parallel board — capture-as-note +
+      note-editing follow-ups (verbatim brief = memory
+      project_capture_as_note_kickoff, deferred 2026-07-07), built on top of
+      the Wave-3 MemoDetail changes (borderless annotation, voice-annotate,
+      PDF disclosure, rich url card). Mock-first; touches C3 + the exporter +
+      the Mac."
+    win: "a capture opens as one normal editable note — the annotation folds
+      into the body and a file/PDF becomes a body block — on phone, export,
+      and Mac"
+  - id: Podcasts
+    title: Podcasts → Books
+    lane: 3
+    order: 4.9
+    status: inprogress
+    eff: M
+    deps:
+      - D4
+      - TrEngine
+    via: TrEngine
+    note: "Lane B of the 2026-07-12 parallel board — SHARE_INGEST_SURVEY C3
+      verdict ⭐ STRONG GO. Episode share/URL → RSS enclosure download →
+      lands in the Books tab: playable, whole-transcribed via the
+      BookTranscript infra, read-along + quote capture. Reuses ShareW2's
+      C5/enrichment plumbing. Audiobooks area only."
+    win: "a podcast episode shared into Skrift lands in Books, plays with
+      read-along, and quote-captures like any audiobook"
   - id: P4
     title: On-device Polish
     lane: -1
@@ -970,7 +1040,7 @@ detours:
           verb. Mock-first: mocks/books-tab-and-resume.html. Then 6 device
           rounds (builds 46–51, w/ designer Hendri): card-at-rest / pill-when-
           live bottom chrome, compact unified 30pt headers, ContinueCardUITests.
-          Branch sweet-goldstine, PR owed after the build-51 eyeball."
+          PR #6 (sweet-goldstine) MERGED to main 2026-07-07."
 ideas:
   - id: P4a
     text: Spike on the iPhone 13 FIRST (the gate)
@@ -1119,7 +1189,7 @@ ideas:
       as-is for now; the user will sort the layout out in Claude Code. (Just a
       note that this is a known thing, no action needed from Huginn.)
     source: voice
-  - id: i5
+  - id: i8
     text: "Print-to-wall (Tuur, 2026-07-07): a note crossing INTO the orange
       importance tier (≥0.8) silently prints a designed card to the home
       printer (saved AirPrint printer + printToPrinter, no dialog) — the
@@ -1130,17 +1200,6 @@ ideas:
       feed's first slot). Full design in backlog.md 🖨️ section."
     source: voice
     nodeHint: P6
-  - id: i4
-    text: "Shared-audio capture flow is broken + a batch enhancement. (1) BUG:
-      sharing an audio/voice message from a messenger app (WhatsApp etc.) into
-      Skrift imports it as a LINK, not as a voice message to transcribe — so you
-      can end up adding a voice memo on top of a voice memo. The share flow
-      needs to recognise shared audio as transcribable audio. (2) FEATURE:
-      select MULTIPLE messages in WhatsApp, share them all together, transcribe
-      them all — with a choice to either append them in order as ONE note or
-      split them into SEPARATE notes. Both relate to the same share-to-import /
-      capture-items flow."
-    source: voice
   - id: i5
     text: "Anti-drift tail of SharedKit — 5 more phone↔Mac twin copies found in the
       dedup research, still not unified (each needs its own care, per backlog
@@ -1177,5 +1236,12 @@ ideas:
       must not be forgotten at merge time.
     source: voice
     nodeHint: P9b
+  - id: i9
+    text: "Voice-over easter egg (Tuur, 2026-07-12): hidden Tuur voice-overs
+      throughout the app saying things; unlocked by tapping About ~3 times —
+      'everything goes weird'. Personality/delight for the standalone App
+      Store build. No spec yet — don't node it until a design pass."
+    source: voice
+    nodeHint: P11
 north: everything you say and read lands organized in your vault — so you can
   see how your thinking evolved

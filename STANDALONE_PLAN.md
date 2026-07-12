@@ -367,7 +367,7 @@ People tab: a person page = profile + voice sample + every memo mentioning them;
 unlinked mentions** panel (one-tap to link). Uses Phase-0 `Sanitiser` + the names DB + voice
 enrollment — near-free given the substrate already exists.
 
-### Phase 8 — Journal & retrieval  · effort L  *(steal: Day One, Mem/Reflect)*
+### Phase 8 — Journal & retrieval  · effort L  *(steal: Day One, Mem/Reflect)*  · ✅ DONE 2026-07-07 (roadmap P8 — engine + all surfaces built + device-verified builds 40–59; EmbeddingGemma-300M via CoreML-LLM, not NLContextualEmbedding; plan = JOURNAL_RETRIEVAL_PLAN.md)
 **On This Day** (memos from this date in prior years — pure presentation over existing timestamps);
 **map view** (geotagged memos); calendar/timeline view; **semantic "Related notes" + search** via
 on-device text embeddings (`NLContextualEmbedding`) — the north-star backbone, offline-reachable.

@@ -3206,3 +3206,13 @@ LOCKED design rule for all lanes: shared inputs never get bubble/box chrome (mem
   on TOP of tonight's Wave-3 MemoDetail changes (borderless annotation, voice-annotate, PDF disclosure, rich url card).
 - **Lane B (podcasts, C3 ⭐ STRONG GO)** — episode share/URL → RSS enclosure download → lands in the Books tab
   (playable, whole-transcribed via BookTranscript infra, read-along + quote capture). Audiobooks area only.
+
+**Roadmap sweep 2026-07-12 (Command Center chat, v17):** the three lanes got roadmap nodes —
+**DParityB** (Lane D) · **CapNote** (Lane P) · **Podcasts** (Lane B), all `inprogress`; **flip YOUR node
+to `done` in your final commit** (don't mint a new one). Same sweep: fixed roadmap.yaml being INVALID
+YAML since the 2026-07-11 TrEngine entry (unquoted `probe:` colon — the hub couldn't parse the file);
+NEdit → done 2026-07-10; ShareW2 note refreshed to the chapter close (+ multi-item WhatsApp follow-up
+in its backlog); duplicate idea id i5 → print-to-wall is now **i8**; i4 removed (shipped as ShareW1);
+new idea **i9** = Tuur voice-over easter egg (tap About ~3×, everything goes weird); SSOT §4 Mac + P8
+flipped done; STANDALONE_PLAN Phase 8 header marked done; stale NFeat desktop items pruned
+(lock gate / link resolver / OCR search shipped in DParityA; body parity → DParityB).
