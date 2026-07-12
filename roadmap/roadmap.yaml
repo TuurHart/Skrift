@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 16
-updated: 2026-07-11T21:30:00.000Z
+updated: 2026-07-12T19:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -281,7 +281,7 @@ nodes:
     title: Note feature wave
     lane: 0
     order: 5.7
-    status: inprogress
+    status: now
     eff: L
     deps:
       - NEdit
@@ -443,7 +443,8 @@ nodes:
     title: Share-ingest Wave 2 (routes + enrich)
     lane: 0
     order: 5.8
-    status: now
+    status: done
+    done: 2026-07-12
     eff: M
     deps:
       - ShareW1

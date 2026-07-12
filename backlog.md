@@ -340,6 +340,16 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    WhatsApp voice+photo multi-select → one note · video/PDF share → sheet w/
    thought+circles · PDF note → text disclosure + reader · capture → mic-pill
    voice ramble · share the 61-min file from Files → Books CHOOSER (E2 eyeball).
+   → **✅ CHAPTER CLOSED 2026-07-12 evening (last Fable-5 day; roadmap ShareW2 →
+   done, now → NFeat).** Builds 64→70 shipped; crash loop fixed (dup CloudKit ids
+   → tolerant dicts + MemoDeduper trash-sweep); no-bubble rule LOCKED + applied
+   (audiobook-quote idiom for shared text, borderless annotation); voice-annotate
+   cold-start now says "Warming up the transcriber…" (build 70). **PARKED, ZERO
+   URGENCY — user retest of the wave-3 share paths** (list stands below; every
+   path fails honestly now — error states + extLog + tombstones — so regressions
+   surface in normal use, no test session required). Parallel-board note: Lane P
+   builds ON these MemoDetail changes; Lane B (podcasts) reuses C5/enrichment
+   plumbing.
    → **2026-07-12 17:00 — Tuur's first retest hit 'Couldn't save this' on EVERY
    share: MY wipe's collateral.** A devicectl-created CaptureInbox dir is
    IMMUTABLE to the app+extension → every extension write died at
