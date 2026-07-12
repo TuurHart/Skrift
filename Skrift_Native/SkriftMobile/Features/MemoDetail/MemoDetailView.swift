@@ -1069,6 +1069,13 @@ private struct MemoPageView: View {
             captureAnnotationSection
                 .padding(.top, 14)
         }
+        // Track B (wave-2 mock m4): ramble by VOICE — the words append to the
+        // annotation. Audio-less captures only; a transcribing dictation keeps
+        // its own status row above.
+        if memo.audioFilename.isEmpty, memo.transcriptStatus != .transcribing {
+            CaptureVoiceAnnotate(memo: memo, repository: repository)
+                .padding(.top, 16)
+        }
     }
 
     /// Re-derive the name tiers off-main (pure Sanitiser scan). Ordinary voice
