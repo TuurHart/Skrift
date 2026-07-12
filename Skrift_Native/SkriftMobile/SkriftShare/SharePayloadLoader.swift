@@ -81,7 +81,26 @@ enum SharePayloadLoader {
         //    attachments are collected (A11 multi-select — activation allows 10).
         let audioProviders = attachments.filter { $0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) }
         if !audioProviders.isEmpty {
-            return await loadAudio(from: audioProviders)
+            var payload = await loadAudio(from: audioProviders)
+            // B3: a mixed chat selection (voice notes + photos + text) becomes ONE
+            // note — collect the other kinds alongside instead of dropping them.
+            let imageProviders = attachments.filter {
+                $0.hasItemConformingToTypeIdentifier(UTType.image.identifier) &&
+                !$0.hasItemConformingToTypeIdentifier(UTType.audio.identifier)
+            }
+            if !imageProviders.isEmpty {
+                payload.imageItems = (await loadImages(from: imageProviders)).imageItems
+            }
+            if let textProvider = attachments.first(where: {
+                $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) &&
+                !$0.hasItemConformingToTypeIdentifier(UTType.url.identifier) &&
+                !$0.hasItemConformingToTypeIdentifier(UTType.audio.identifier) &&
+                !$0.hasItemConformingToTypeIdentifier(UTType.image.identifier)
+            }) {
+                let t = await loadText(from: textProvider)
+                if t.type == .text { payload.text = t.text }
+            }
+            return payload
         }
         // 2. URL — WEB urls only. `public.file-url` CONFORMS to `public.url`, so
         //    without the exclusion every Files-app share (a PDF!) landed here and

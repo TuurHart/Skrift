@@ -189,11 +189,27 @@ enum CaptureInboxDrainer {
                     }
                     return out
                 }
+                // B3: bundled photos copy out WITH the clips (the entry dir is
+                // deleted next; same crash-safe ordering as the clips).
+                let imageSrcs = CaptureInbox.imageURLs(for: entry, entryDir: entryDir)
+                    .filter { FileManager.default.fileExists(atPath: $0.path) }
+                let imageTemps = imageSrcs.isEmpty ? [] : await offMain { () -> [URL] in
+                    var out: [URL] = []
+                    for (i, src) in imageSrcs.enumerated() {
+                        let temp = FileManager.default.temporaryDirectory
+                            .appendingPathComponent("shared_import_img_\(entryID)_\(i).jpg")
+                        try? FileManager.default.removeItem(at: temp)
+                        if (try? FileManager.default.copyItem(at: src, to: temp)) != nil {
+                            out.append(temp)
+                        }
+                    }
+                    return out
+                }
                 // Oldest clip's original date (index-aligned array) → the memo's
                 // recordedAt seed; the import upgrades to the embedded asset
                 // date when one exists (round-1: memos dated to upload time).
                 let clipDate = entry.audioRecordedAts?.first.flatMap { ISO8601.date(from: $0) }
-                DevLog.log("drain: audio copied=\(temps.count) clip(s); dates=\(entry.audioRecordedAts ?? []); deleting entry + importing")
+                DevLog.log("drain: audio copied=\(temps.count) clip(s) + \(imageTemps.count) photo(s); dates=\(entry.audioRecordedAts ?? []); deleting entry + importing")
                 CaptureInbox.delete(entryDir: entryDir)
                 // E2: the sheet routed this ≥1h share to the Books tab — import as
                 // an audiobook (clips = parts of ONE book). On failure fall through
@@ -211,9 +227,36 @@ enum CaptureInboxDrainer {
                     }
                 }
                 if let mid = MemoSaver(repository: repository).importAudioClips(from: temps, recordedAt: clipDate) {
-                    // The sheet's significance circles apply to the imported memo.
-                    if entry.significance > 0, let memo = repository.memo(id: mid) {
-                        memo.significance = entry.significance
+                    // B3: bundled photos land under the memo's own id — the manifest
+                    // is set BEFORE the transcription result arrives, so the shared
+                    // ImageMarkers pass drops [[img_NNN]] into the transcript exactly
+                    // like a recorded memo's photos.
+                    var savedNames: [String] = []
+                    if !imageTemps.isEmpty {
+                        let midString = mid.uuidString
+                        savedNames = await offMain { () -> [String] in
+                            var out: [String] = []
+                            for (i, src) in imageTemps.enumerated() {
+                                let name = "photo_\(midString)_\(String(format: "%03d", i + 1)).jpg"
+                                let dest = AppPaths.recordingsDirectory.appendingPathComponent(name)
+                                try? FileManager.default.removeItem(at: dest)
+                                if (try? FileManager.default.copyItem(at: src, to: dest)) != nil {
+                                    out.append(name)
+                                }
+                            }
+                            return out
+                        }
+                    }
+                    if let memo = repository.memo(id: mid) {
+                        if !savedNames.isEmpty {
+                            var meta = memo.metadata ?? MemoMetadata()
+                            meta.imageManifest = savedNames.map { ImageManifestEntry(filename: $0, offsetSeconds: 0) }
+                            memo.metadata = meta
+                        }
+                        // B3: the bundle's chat text leads the note as the annotation.
+                        if let chat = entry.text, !chat.isEmpty { memo.annotationText = chat }
+                        // The sheet's significance circles apply to the imported memo.
+                        if entry.significance > 0 { memo.significance = entry.significance }
                         repository.save()
                     }
                     return mid

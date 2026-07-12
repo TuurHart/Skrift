@@ -143,6 +143,15 @@ struct ShareSheetView: View {
     /// Sheet title: counts the incoming items so a multi-share says out loud what
     /// will happen ("4 photos → one note", "8 voice notes · 6:12" — signed mock).
     private var sheetTitle: String {
+        // B3: a mixed bundle spells out everything that will land in the one note.
+        if payload.isAudio, isMixedBundle {
+            let clips = payload.audioItems.count
+            var parts = [clips == 1 ? "1 voice note" : "\(clips) voice notes"]
+            let photos = payload.imageItems.count
+            if photos > 0 { parts.append(photos == 1 ? "1 photo" : "\(photos) photos") }
+            if payload.text?.isEmpty == false { parts.append("text") }
+            return parts.joined(separator: " + ") + " → one note"
+        }
         if payload.isAudio, payload.audioItems.count > 1 {
             let known = payload.audioItems.compactMap(\.duration)
             let total = known.reduce(0, +)
@@ -155,25 +164,31 @@ struct ShareSheetView: View {
         return "Save to Skrift"
     }
 
+    /// B3: photos and/or chat text arrived WITH the voice notes — one note takes
+    /// everything, so the 1-or-N chooser hides (like the Books route).
+    private var isMixedBundle: Bool {
+        payload.isAudio && (!payload.imageItems.isEmpty || payload.text?.isEmpty == false)
+    }
+
     @ViewBuilder private var previewBlock: some View {
         if payload.isAudio {
-            if payload.audioItems.count > 1 {
-                VStack(alignment: .leading, spacing: 8) {
-                    clipStack
-                    // Books routing outranks the 1-or-N chooser: a book import
-                    // takes every clip as parts of ONE book, so the split
-                    // question only applies on the voice-note route.
-                    if hasLongClip { booksChooser }
-                    if !(hasLongClip && sendToBooks) { chooser }
+            VStack(alignment: .leading, spacing: 8) {
+                if payload.audioItems.count > 1 { clipStack } else { audioCard }
+                // B3 mixed-bundle previews — the signed idioms, stacked.
+                if !payload.imageItems.isEmpty {
+                    if payload.imageItems.count > 1 { photoGrid } else { imageBlock }
                 }
-                .onAppear { if hasLongClip { sendToBooks = true } }
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    audioCard
-                    if hasLongClip { booksChooser }
+                if payload.text?.isEmpty == false { textQuoteBlock }
+                // Books routing outranks the 1-or-N chooser: a book import
+                // takes every clip as parts of ONE book, so the split
+                // question only applies on the voice-note route. A mixed
+                // bundle is ALWAYS one note (B3) — no chooser either.
+                if hasLongClip { booksChooser }
+                if payload.audioItems.count > 1, !(hasLongClip && sendToBooks), !isMixedBundle {
+                    chooser
                 }
-                .onAppear { if hasLongClip { sendToBooks = true } }
             }
+            .onAppear { if hasLongClip { sendToBooks = true } }
         } else {
             switch payload.type {
             case .url:
@@ -605,6 +620,7 @@ struct ShareSheetView: View {
         // entry per clip → N memos. The host maps clips to entries by index.
         if payload.isAudio {
             let items = payload.audioItems
+            let imageItems = payload.imageItems
             let sharedAt = ISO8601.string(from: Date())
             // Clip dates ride the entry, index-aligned to the names ("" = unknown)
             // — the import dates the memo to the voice note, not the share moment.
@@ -613,23 +629,32 @@ struct ShareSheetView: View {
             }
             func entry(id: UUID, names: [String], dates: [String]) -> CaptureInboxEntry {
                 CaptureInboxEntry(
-                    id: id, type: "audio", url: nil, urlTitle: nil, text: nil,
+                    id: id, type: "audio", url: nil, urlTitle: nil,
+                    // B3: the bundle's chat text rides the entry → the memo's
+                    // annotation (leads the note above the transcript).
+                    text: payload.text,
                     imageFileName: nil, mimeType: nil, annotationText: nil,
                     significance: significance, sharedAt: sharedAt,
                     audioFileNames: names, audioRecordedAts: dates,
                     // E2: ≥1h clips route to Books unless overridden in the sheet.
-                    routeToBooks: (hasLongClip && sendToBooks) ? true : nil
+                    routeToBooks: (hasLongClip && sendToBooks) ? true : nil,
+                    // B3: bundled photos ride the same entry, index-aligned datas.
+                    imageFileNames: imageItems.isEmpty ? nil : imageItems.map(\.fileName),
+                    imageRecordedAts: imageItems.isEmpty ? nil
+                        : imageItems.map { $0.recordedAt.map { ISO8601.string(from: $0) } ?? "" }
                 )
             }
             func ext(_ item: SharedAudioItem) -> String {
                 item.url.pathExtension.isEmpty ? "m4a" : item.url.pathExtension
             }
             // A Books-routed share is always ONE entry: the clips become the
-            // parts of one book (multi-file audiobook), never N notes.
-            if combineIntoOne || items.count == 1 || (hasLongClip && sendToBooks) {
+            // parts of one book (multi-file audiobook), never N notes. A mixed
+            // bundle (B3) is likewise always one note.
+            if combineIntoOne || items.count == 1 || (hasLongClip && sendToBooks) || isMixedBundle {
                 let id = UUID()
                 let names = items.enumerated().map { "audio_\(id.uuidString)_\($0.offset).\(ext($0.element))" }
-                onSave([entry(id: id, names: names, dates: items.map(iso))], [], nil)
+                onSave([entry(id: id, names: names, dates: items.map(iso))],
+                       imageItems.map(\.data), nil)
             } else {
                 let entries = items.map { item -> CaptureInboxEntry in
                     let id = UUID()

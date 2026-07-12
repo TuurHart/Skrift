@@ -427,6 +427,46 @@ final class AudioShareDrainTests: XCTestCase {
         try? FileManager.default.removeItem(at: garbage)
     }
 
+    /// B3: a mixed bundle (voice notes + photos + chat text in ONE entry) drains
+    /// into ONE memo — clips imported, photos manifested under the memo's id
+    /// (markers land via the transcription pass), chat text as the annotation.
+    @MainActor
+    func testMixedBundleDrainsIntoOneMemo() async throws {
+        _ = try cleanInbox()
+        let repo = NotesRepository(inMemory: true)
+
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "audio", url: nil, urlTitle: nil,
+            text: "Rui: check these from the site visit",
+            imageFileName: nil, mimeType: nil, annotationText: nil,
+            significance: 0.3, sharedAt: ISO8601.string(from: Date()),
+            audioFileNames: ["audio_\(id.uuidString)_0.m4a"],
+            audioRecordedAts: [""],
+            imageFileNames: ["a.jpg", "b.jpg"])
+        let clip = makeClipFile()
+        let datas = [Data("IMG-A".utf8), Data("IMG-B".utf8)]
+        XCTAssertTrue(CaptureInbox.write(entry, audioFileURLs: [clip], imageDatas: datas))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let imported = try XCTUnwrap(repo.allMemos().first { $0.audioFilename.hasPrefix("memo_") },
+                                     "one audio memo for the whole bundle")
+        XCTAssertEqual(imported.metadata?.imageManifest?.count, 2, "both photos manifested")
+        XCTAssertEqual(imported.metadata?.imageManifest?.first?.filename,
+                       "photo_\(imported.id.uuidString)_001.jpg", "photos keyed to the MEMO id")
+        XCTAssertEqual(imported.annotationText, "Rui: check these from the site visit",
+                       "chat text leads the note")
+        XCTAssertEqual(imported.significance, 0.3, accuracy: 0.001)
+        XCTAssertTrue(CaptureInbox.pendingEntries().isEmpty, "entry consumed")
+        for m in imported.metadata?.imageManifest ?? [] {
+            try? FileManager.default.removeItem(at: AppPaths.recordingsDirectory.appendingPathComponent(m.filename))
+        }
+        if let f = imported.audioURL { try? FileManager.default.removeItem(at: f) }
+        try? FileManager.default.removeItem(at: clip)
+        _ = MemoOpenBridge.shared.consume()
+    }
+
     /// Poison-pill guard (device round 2026-07-11): an entry whose dir can't be
     /// DELETED must be tombstoned and never drain again — video/audio entries
     /// mint fresh memo UUIDs, so before this an undeletable entry spawned a new

@@ -690,8 +690,24 @@ private struct MemoPageView: View {
                     repository.save()
                     recomputeSpans()
                 },
-                header: AnyView(noteHeaderCore(isCurrent: isCurrent)
-                    .padding(.horizontal, Theme.Space.margin).padding(.top, 6)
+                header: AnyView(VStack(alignment: .leading, spacing: 0) {
+                    noteHeaderCore(isCurrent: isCurrent)
+                        .padding(.horizontal, Theme.Space.margin).padding(.top, 6)
+                    // E1/B3: the typed thought (video sheet) or bundled chat text
+                    // (mixed share) LEADS the note, above the transcript — signed
+                    // mock share-ingest-wave2 m1. Captures keep their own layout
+                    // (there the annotation IS the body).
+                    if !memo.isShareCapture, let thought = memo.annotationText,
+                       !thought.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Text(thought)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.skTextDim)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, Theme.Space.margin)
+                            .padding(.top, 10)
+                            .accessibilityIdentifier("annotation-lead")
+                    }
+                }
                     .accessibilityHidden(!isCurrent)),
                 footer: AnyView(noteFooter(isCurrent: isCurrent).accessibilityHidden(!isCurrent)),
                 a11yHidden: !isCurrent,
