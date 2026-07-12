@@ -3151,3 +3151,17 @@ vanishes" report — both shipped, belt-and-suspenders. Compile + unit gate gree
 date-range pickers + the edited-sort over real edits). Not added to the Mac upload contract (local-only).
 Deferred edit-sites: conversation-turn text edits + C3 annotation don't bump `editedAt` yet (fall back to
 `createdAt` — fine; add if it matters).
+
+## ⭐ PARALLEL BOARD 2026-07-12 (last Fable-5 day — three lanes launched as separate chats)
+
+Base for ALL lanes: origin/main ≥ `8d65ea6` (base-proof file: `Skrift_Native/SkriftMobile/Services/MemoDeduper.swift` —
+if missing in your worktree, your base is stale: reset before any work). Every lane: OWN worktree branch,
+explicit-path staging, sim-green end state, **NO phone installs / NO CFBundleVersion bumps** (device rounds
+queue centrally — one phone), ledger edits only as small appends in the lane's FINAL commit, PR to main.
+LOCKED design rule for all lanes: shared inputs never get bubble/box chrome (memory feedback_no_bubbles_on_shared_input).
+- **Lane D (desktop)** — Boards A+B at "CONTINUE HERE — desktop-parity board" above (mock v2 = spec).
+  Board C is HELD until Lane P merges (SpeakerTranscript move touches MemoDetailView = Lane P territory).
+- **Lane P (phone editor)** — capture-as-note + note-editing follow-ups (memory project_capture_as_note_kickoff),
+  on TOP of tonight's Wave-3 MemoDetail changes (borderless annotation, voice-annotate, PDF disclosure, rich url card).
+- **Lane B (podcasts, C3 ⭐ STRONG GO)** — episode share/URL → RSS enclosure download → lands in the Books tab
+  (playable, whole-transcribed via BookTranscript infra, read-along + quote capture). Audiobooks area only.
