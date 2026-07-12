@@ -275,6 +275,22 @@ enum CaptureInboxDrainer {
             }
         }
 
+        // A1/C4: enrich a link ON DRAIN (one GET, E4 policy): page title /
+        // description / a locally-downloaded thumbnail → the rich card, plus the
+        // article's readable text → sharedContent.text (searchable, offline; url
+        // captures never render that field, so it stays search-side like A6).
+        // Skipped when C5 already turned the link into a PDF; Maps links skip via
+        // the D6 place match below (the place IS the enrichment).
+        if sharedContent.type == .url, let raw = entry.url, let remote = URL(string: raw),
+           PlaceLink.parse(raw) == nil,
+           let enriched = await LinkEnrichment.enrich(url: remote, memoID: memoID) {
+            if sharedContent.urlTitle?.isEmpty != false { sharedContent.urlTitle = enriched.title }
+            sharedContent.urlDescription = enriched.descriptionText
+            sharedContent.urlThumbnailUrl = enriched.thumbnailFile   // relative recordings name
+            if sharedContent.text?.isEmpty != false { sharedContent.text = enriched.articleText }
+            DevLog.log("drain: link enriched \(entry.id) title=\(enriched.title != nil) thumb=\(enriched.thumbnailFile != nil) article=\(enriched.articleText?.count ?? 0)ch")
+        }
+
         // D6: an Apple/Google Maps share → a place-anchored note. The parsed name
         // + pin land in the memo's location metadata (the same chip + place-search
         // a recorded memo gets); the link card stays for opening Maps.

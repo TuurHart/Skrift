@@ -1574,22 +1574,47 @@ private struct MemoPageView: View {
         .accessibilityIdentifier("capture-file-card")
     }
 
+    /// A shared link's thumbnail, downloaded on drain (A1 enrichment). The field
+    /// holds a RELATIVE recordings filename; legacy remote-url values are ignored
+    /// (offline rule — never fetch at render).
+    private var linkThumbnail: UIImage? {
+        guard let name = memo.sharedContent?.urlThumbnailUrl, !name.isEmpty,
+              !name.contains("://") else { return nil }
+        return UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(name).path)
+    }
+
     private func captureURLCard(sc: SharedContent) -> some View {
         HStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.skAccent.opacity(0.13))
-                .frame(width: 32, height: 32)
-                .overlay(
-                    Image(systemName: "globe")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.skAccent)
-                )
+            // A1: the og:image thumb when enrichment fetched one; globe otherwise.
+            if let thumb = linkThumbnail {
+                Image(uiImage: thumb)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.skAccent.opacity(0.13))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Image(systemName: "globe")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.skAccent)
+                    )
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(sc.urlTitle ?? memo.shareCaptureURLDomain ?? "Link")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.skText)
                     .lineLimit(2)
+                // A1: the page's own description, when enrichment found one.
+                if let desc = sc.urlDescription, !desc.isEmpty {
+                    Text(desc)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.skTextDim)
+                        .lineLimit(2)
+                }
                 if let domain = memo.shareCaptureURLDomain {
                     Text(domain)
                         .font(.system(size: 11))
