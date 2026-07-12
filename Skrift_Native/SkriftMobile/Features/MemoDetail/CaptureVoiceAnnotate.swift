@@ -19,6 +19,9 @@ struct CaptureVoiceAnnotate: View {
     @State private var transcribing = false
     @State private var addedThisSession = false
     @State private var micUnavailable = false
+    /// The ASR model's warm-up state — a cold engine means the live caption
+    /// takes a while; say so instead of a mute "Listening…" (Tuur, build 69).
+    @ObservedObject private var modelStatus = ModelLoadStatus.shared
 
     var body: some View {
         Group {
@@ -101,8 +104,10 @@ struct CaptureVoiceAnnotate: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("capture-voice-stop")
             }
-            // The live caption streaming — same engine as the recorder.
-            Text(service.liveCaption.isEmpty ? "Listening…" : service.liveCaption)
+            // The live caption streaming — same engine as the recorder. A cold
+            // model says so (the audio records fine regardless; only the caption
+            // waits — the note-appending pass re-transcribes the full clip anyway).
+            Text(captionLine)
                 .font(.system(size: 13))
                 .foregroundStyle(service.liveCaption.isEmpty ? Color.skTextFaint : Color.skTextDim)
                 .lineLimit(2)
@@ -119,6 +124,11 @@ struct CaptureVoiceAnnotate: View {
     }
 
     @State private var blink = false
+
+    private var captionLine: String {
+        if !service.liveCaption.isEmpty { return service.liveCaption }
+        return modelStatus.ready ? "Listening…" : "Warming up the transcriber — keep talking, the audio is recording…"
+    }
 
     private var transcribingStrip: some View {
         HStack(spacing: 8) {
