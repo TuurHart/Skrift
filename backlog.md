@@ -280,6 +280,29 @@ memos list / detail), floors calibration histogram, device perf run, Settings co
    open-in jump lands on the note. KNOWN GAP (pre-existing, logged): the phone's
    OWN Obsidian publish never copies images for ANY photo memo — Mac stays the
    attachment exporter.
+   → **ROUND 2 (Tuur's hands, 2026-07-11 evening) — 2 bugs found, both FIXED, build
+   66 installed:** (1) **Safari-PDF: Skrift absent from the share sheet** — the
+   DICTIONARY activation rule only matches homogeneous items; Safari shares a PDF
+   page as ONE item [web-URL + PDF]. Swapped to an explicit predicate string
+   (per-attachment OR over url/text/image/movie/audio/pdf/file-url/data, ≤10);
+   **sim-verified both ways** via the new `ShareSheetActivationProbe` UITest that
+   drives sim-Safari's share sheet (iOS-26 'Share under ···' path): arxiv PDF now
+   offers Skrift, plain pages still do. Run it explicitly after any rule change —
+   a bad predicate silently removes Skrift from EVERY sheet. (2) **'Video format
+   not supported' memo spam** — an inbox entry whose dir survives delete re-imports
+   on EVERY open (video/audio mint fresh memo UUIDs; hit via devicectl-staged test
+   entries whose dirs the app can't remove — NB devicectl-planted files are
+   app-undeletable; the wipe antidote is `devicectl ... copy to --remove-existing-
+   content true`). Fix: failed deletes TOMBSTONE the entry id (persisted, cap 200),
+   pendingEntries skips them; poisoned inbox wiped; Tuur already purged the junk
+   memos. (3) Bonus find: **arxiv links are extensionless** (`/pdf/2406.19741`) —
+   C5's .pdf check missed them → now a 10s HEAD content-type sniff catches any
+   `application/pdf` link (magic-byte gate unchanged; suite 661/661). Google-Maps
+   APP shares = opaque goo.gl short links → stay link cards BY DESIGN (needs a
+   fetch; parked with A1/C4 enrichment). Tuur's arxiv paper staged for drain on
+   next app-open (build-66 sniff e2e = watch for `drain: pdf-url ... downloaded`).
+   E2's Books CHOOSER UI still unverified (no ≥1h file handy) — routing itself is
+   device-proven.
 3. ⬜ **Stz020 #5 remainder — "every note is a conversation".** `dda494d` (C2) only fixed tag
    over-suggestion on turn bodies. Still open: WHY stored transcripts carry stale `**Name:**` turn
    markers, + a bulk un-diarize/re-transcribe path. (Workaround: sidebar right-click →
