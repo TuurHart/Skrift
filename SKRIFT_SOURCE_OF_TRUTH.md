@@ -356,7 +356,7 @@ Live action items that sat between §3 and §4. Each verified still‑open again
 - **Confirm the "always‑warm" engine isn't draining battery** (`backlog.md:179`): user noticed (prod + dev) the engine is now always warm + much faster + "not really taking battery" — an unexplained behaviour change to **confirm is intentional + measure for silent drain**. P1, open.
 - **Mac "name a speaker" review UI** (`backlog.md:1720`): backend done (diarization sidecar + `embedSpeaker`/`addVoiceEmbedding`); the desktop turn‑renderer → click‑to‑name → relabel `**[[Person]]:**` → enroll UI is **the remaining desktop build** (mock signed off). (§2 marks it 🟡.)
 - **Paragrapher built but inert** (`backlog.md:430`): `Models/Paragrapher.swift` (hybrid pause + sentence‑cap, 10 tests) is demoed but **not wired into the UI** — decision owed on where to apply (read‑along / memo‑detail / stored+exported) + threshold/cap.
-- **FluidAudio pinned to a moving `main` branch** (`backlog.md:419`): both apps pin FluidAudio to `main` → **should pin a fixed version (drift risk)**. Tech‑debt.
+- ~~**FluidAudio pinned to a moving `main` branch**~~ ✅ **RESOLVED 2026‑07‑11** — pinned to revision `7f963cdc` in the transcription‑engine wave (roadmap `TrEngine`, `[5493017]`).
 - **Audiobook unshare leaves a "phantom" entry** (`backlog.md:347`, #10): un‑sharing leaves an unplayable library entry on a device that got the carrier but never downloaded the audio; deferred fix = GC entries with no carrier AND no local audio.
 - **Whole‑book transcribe memory‑pressure lead** (`backlog.md:2116`): `.ips` disk‑write warnings flagged whole‑book transcribe + model downloads as memory‑pressure suspects — a profiling lead, "not a clear fix." *(Note: the acute 2026‑06‑10 mid‑recording SIGSEGV is fixed; this is the remaining pressure lead.)*
 - **Capture sentence‑split on abbreviations** (`backlog.md:1948`, suspected/awaiting‑screenshot): "sentence breaks up strangely" in text capture — likely Parakeet punctuation (e.g. "Dr.") tripping `SentenceSnap.isSentenceEnd`. *(Read‑along's split moved to `NLTokenizer(.sentence)` 2026‑06‑15; the capture path may still be affected.)*
@@ -415,10 +415,11 @@ conversion to `roadmap.yaml`: **`id · title · status · ms · deps · eff · n
 - **P3** · De‑Mac the UX · **inprogress** · ms:Standalone core · deps:[P1] · eff:M
   — Tab‑bar IA + "Importance" relabel done (build 14); de‑Mac phone Settings done 2026‑06‑22 `[fa458df]`.
   **Remaining:** significance→"Importance"/pin reframe (needs label nod) + standalone onboarding rewrite. (`STANDALONE_PLAN.md:287`)
-- **Mac** · Mac rejoins via CloudKit · **inprogress** *(roadmap: `planned`/future)* · ms:Standalone core · deps:[P1,P2,P3] · eff:L
-  — **MAJOR divergence from the roadmap:** 8a–8d **BUILT 2026‑06‑22** (`MAC_CLOUDKIT_PLAN.md:12‑40`),
-  device‑verified (73 memos synced), shipped in **0.2.0**. **Owed:** one Process→write‑back→phone‑export
-  round‑trip eyeball + prod CloudKit schema deploy + Release App‑ID iCloud/Push registration.
+- **Mac** · Mac rejoins via CloudKit · **done 2026‑07‑07** *(sweep 2026‑07‑12; was `inprogress`)* · ms:Standalone core · deps:[P1,P2,P3] · eff:L
+  — 8a–8d **BUILT 2026‑06‑22** (`MAC_CLOUDKIT_PLAN.md:12‑40`), device‑verified (73 memos synced), shipped
+  in **0.2.0**; Bonjour/HTTP LAN sync fully RETIRED 2026‑07‑06 (CloudKit = the only transport) + live
+  bidirectional edit sync (Part B). **Still owed (tracked in roadmap `Stz020`):** prod CloudKit schema
+  deploy + Release App‑ID iCloud/Push registration + one real prod round‑trip.
 
 ### Differentiator (worth $0.69)
 - **P4** · On‑device Polish · **planned** *(risk)* · ms:Differentiator · deps:[P0] · eff:L
@@ -434,7 +435,7 @@ conversion to `roadmap.yaml`: **`id · title · status · ms · deps · eff · n
 ### Enrichment (depth)
 - **P5** · Organization · **planned** · ms:Enrichment · deps:[P3] · eff:M — Pins, nested tags, smart folders. (**Folders model is an open decision — don't build until decided.**) Ideas P5a–P5d. (`STANDALONE_PLAN.md:349`)
 - **P7** · People & backlinks · **planned** · ms:Enrichment · deps:[P0] · eff:M — Person pages, linked/unlinked mentions. Near‑free given the Sanitiser substrate. Ideas P7a–P7b. (`STANDALONE_PLAN.md:365`)
-- **P8** · Journal / On‑This‑Day / search · **planned** · ms:Enrichment · deps:[P1] · eff:L — On This Day, map, calendar, semantic "Related notes" (on‑device `NLContextualEmbedding`). The north‑star backbone. Ideas P8a–P8d. (`STANDALONE_PLAN.md:370`)
+- **P8** · Journal / On‑This‑Day / search · **done 2026‑07‑07** *(sweep 2026‑07‑12; was `planned`)* · ms:Enrichment · deps:[P1] · eff:L — On This Day, map, calendar, semantic "Related notes". **Engine + all mock surfaces BUILT + device‑verified** (builds 40–59): EmbeddingGemma‑300M d512 via CoreML‑LLM won a measured bake‑off (10/10 vs Apple NL 5/10 — NOT `NLContextualEmbedding`); Journal tab (Looking back + calendar + map), semantic search + Thread view, Related card; floors calibrated on‑device; cold‑load stall fixed 2026‑07‑10. Plan = `JOURNAL_RETRIEVAL_PLAN.md`. Ideas P8a–P8d shipped inside. (`STANDALONE_PLAN.md:370`)
 - **P9b** · Audiobook player polish · **planned** · ms:Enrichment · deps:[D3] · eff:M — Sleep timer, clips, annotatable bookmarks, skip‑silence — after the reading‑mode redesign. Ideas P9b1–P9b6. (`STANDALONE_PLAN.md:375`) *(No `P9a` node — D1–D3 are effectively that work; see [§7 #25](#7-contradictions--reconciliations).)*
 
 ### Ship (App Store)
