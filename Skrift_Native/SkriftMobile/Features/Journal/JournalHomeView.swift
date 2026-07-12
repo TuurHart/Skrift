@@ -70,7 +70,7 @@ struct JournalHomeView: View {
         Task {
             let snapshot = memos
             if let pair = await JournalIndexService.shared.thenVsNow(repository: repository) {
-                let byID = Dictionary(uniqueKeysWithValues: snapshot.map { ($0.id, $0) })
+                let byID = Dictionary(snapshot.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
                 if let then = byID[pair.then], let nowMemo = byID[pair.now] {
                     thenNow = (then, nowMemo)
                     entries = LookbackProvider.entries(

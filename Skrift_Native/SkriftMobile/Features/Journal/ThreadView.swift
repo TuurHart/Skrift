@@ -37,7 +37,7 @@ struct ThreadView: View {
 
     private func load() async {
         let scores = await JournalIndexService.shared.relatedScores(to: seedID, repository: repository)
-        let byID = Dictionary(uniqueKeysWithValues: repository.allMemos().map { ($0.id, $0) })
+        let byID = Dictionary(repository.allMemos().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         thread = JournalIndexService.threadOrder(seedID: seedID, scores: scores, memosByID: byID)
         loaded = true
     }

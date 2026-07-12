@@ -972,7 +972,7 @@ private struct MemoPageView: View {
     private func loadRelated() async {
         guard JournalIndexService.shared.isActive else { return }
         let scores = await JournalIndexService.shared.relatedScores(to: memo.id, repository: repository)
-        let byID = Dictionary(uniqueKeysWithValues: repository.allMemos().map { ($0.id, $0) })
+        let byID = Dictionary(repository.allMemos().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         relatedMemos = JournalIndexService.relatedResults(
             scores: scores, excluding: [memo.id], memosByID: byID,
             floor: RetrievalTuning.relatedFloor, limit: RetrievalTuning.relatedK)
@@ -1686,23 +1686,22 @@ private struct MemoPageView: View {
         .accessibilityIdentifier("capture-link-card")
     }
 
+    /// Shared text renders as the AUDIOBOOK-QUOTE idiom (locked rule 2026-07-12:
+    /// shared inputs NEVER get bubble/box chrome): accent left bar, italic quote
+    /// at note-body size, borderless — it flows in the note, not in a card.
     private func captureTextQuote(text: String) -> some View {
-        HStack(spacing: 0) {
-            Rectangle()
-                .fill(Color.skAccent.opacity(0.5))
-                .frame(width: 2)
-            Text(text)
-                .font(.system(size: 14).italic())
-                .foregroundStyle(Color.skTextDim)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle.sk(Theme.Radius.card).stroke(Color.skBorder, lineWidth: 1)
-        )
-        .accessibilityIdentifier("capture-text-quote")
+        Text(text)
+            .font(.system(size: 15).italic())
+            .lineSpacing(4)
+            .foregroundStyle(Color.skText)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 14)
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 1.25)
+                    .fill(Color.skAccent.opacity(0.6))
+                    .frame(width: 2.5)
+            }
+            .accessibilityIdentifier("capture-text-quote")
     }
 
     @ViewBuilder private var captureImageEmbed: some View {
@@ -1746,8 +1745,9 @@ private struct MemoPageView: View {
     /// would clobber the landing text (same window the append flow closes).
     @ViewBuilder private var captureAnnotationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionLabel("ANNOTATION")
-
+            // NO section label, NO box (locked rule 2026-07-12: shared inputs
+            // never get bubble chrome) — the annotation IS the note body and
+            // reads like one.
             if memo.transcriptStatus == .transcribing {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
@@ -1780,6 +1780,9 @@ private struct MemoPageView: View {
 
 /// Simple editable body for C3 capture annotations — no karaoke, no markers.
 /// Matches the transcript-editor style (dark surface, tint accent, dismiss on drag).
+/// BORDERLESS (locked rule 2026-07-12: shared inputs never get bubble/box
+/// chrome) — the annotation reads and edits like the note body itself, exactly
+/// as the normal transcript editor does. Placeholder only when empty.
 private struct CaptureAnnotationEditor: View {
     @Binding var text: String
     @FocusState private var focused: Bool
@@ -1787,7 +1790,7 @@ private struct CaptureAnnotationEditor: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             if text.isEmpty {
-                Text("Add a note about this capture…")
+                Text("Add a note about this…")
                     .font(.system(size: 15))
                     .foregroundStyle(Color.skTextFaint)
                     .padding(.top, 9)
@@ -1803,12 +1806,6 @@ private struct CaptureAnnotationEditor: View {
                 .frame(minHeight: 80)
                 .focused($focused)
         }
-        .padding(4)
-        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.editBox, style: .continuous))
-        .overlay(
-            RoundedRectangle.sk(Theme.Radius.editBox)
-                .stroke(focused ? Color.skAccent.opacity(0.45) : Color.skBorder, lineWidth: 1)
-        )
         .accessibilityIdentifier("capture-annotation-editor")
     }
 }

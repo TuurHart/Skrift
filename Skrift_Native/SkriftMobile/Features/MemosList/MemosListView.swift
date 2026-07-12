@@ -635,7 +635,7 @@ struct MemosListView: View {
     }
 
     private var flatIndex: [UUID: Int] {
-        Dictionary(uniqueKeysWithValues: filtered.enumerated().map { ($0.element.id, $0.offset) })
+        Dictionary(filtered.enumerated().map { ($0.element.id, $0.offset) }, uniquingKeysWith: { a, _ in a })
     }
 
     private struct Group { let title: String; let memos: [Memo] }
@@ -699,7 +699,7 @@ struct MemosListView: View {
         }
         let scores = await JournalIndexService.shared.searchScores(q, repository: repository)
         guard !Task.isCancelled, q == search.trimmingCharacters(in: .whitespaces) else { return }
-        let byID = Dictionary(uniqueKeysWithValues: memos.map { ($0.id, $0) })
+        let byID = Dictionary(memos.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         related = JournalIndexService.relatedResults(scores: scores, excluding: [], memosByID: byID)
     }
 

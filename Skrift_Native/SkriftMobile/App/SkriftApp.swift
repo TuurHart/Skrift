@@ -74,6 +74,10 @@ struct SkriftApp: App {
                 // migrating pre-1c memos). Idempotent; mirrors the inbox drainer's
                 // launch + foreground cadence below.
                 .task {
+                    // FIRST: trash exact-clone rows CloudKit sync can materialize
+                    // (2026-07-12 crash loop — duplicate memo UUIDs trapped the
+                    // list's id-keyed dictionaries).
+                    MemoDeduper.run(repository)
                     AssetMaterializer.run(repository)
                     PhotoTextIndexer.run(repository)
                     ReminderScheduler.run(repository)
@@ -125,6 +129,7 @@ struct SkriftApp: App {
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
+                        MemoDeduper.run(repository)   // CloudKit dupes can land mid-session
                         Task { await CaptureInboxDrainer.drain(into: repository) }
                         AssetMaterializer.run(repository)
                         PhotoTextIndexer.run(repository)

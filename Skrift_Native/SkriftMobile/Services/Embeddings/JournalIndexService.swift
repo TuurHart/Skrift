@@ -129,7 +129,7 @@ final class JournalIndexService {
         let now = Date()
         guard let recentCut = calendar.date(byAdding: .day, value: -14, to: now),
               let gapCut = calendar.date(byAdding: .month, value: -6, to: now) else { return nil }
-        let dates = Dictionary(uniqueKeysWithValues: memos.map { ($0.id, $0.recordedAt) })
+        let dates = Dictionary(memos.map { ($0.id, $0.recordedAt) }, uniquingKeysWith: { a, _ in a })
         let recents = memos.filter { $0.recordedAt >= recentCut }
             .sorted { $0.recordedAt > $1.recordedAt }
             .prefix(6)

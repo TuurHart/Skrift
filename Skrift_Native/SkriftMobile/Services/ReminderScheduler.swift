@@ -30,7 +30,7 @@ enum ReminderPlan {
     /// `remove` (no longer desired, or rescheduled).
     static func diff(desired: [Entry],
                      pending: [(id: String, fireAt: Date?)]) -> (add: [Entry], remove: [String]) {
-        let desiredByID = Dictionary(uniqueKeysWithValues: desired.map { (idPrefix + $0.memoID.uuidString, $0) })
+        let desiredByID = Dictionary(desired.map { (idPrefix + $0.memoID.uuidString, $0) }, uniquingKeysWith: { a, _ in a })
         var add: [Entry] = []
         var remove: [String] = []
         var seen = Set<String>()
@@ -62,8 +62,9 @@ enum ReminderScheduler {
         let memos = repository.allMemosIncludingTrashed().map {
             (id: $0.id, remindAt: $0.remindAt, deleted: $0.deletedAt != nil)
         }
-        let titles: [UUID: String] = Dictionary(uniqueKeysWithValues:
-            repository.allMemos().map { ($0.id, $0.title ?? $0.firstTranscriptLine ?? "A note") })
+        let titles: [UUID: String] = Dictionary(
+            repository.allMemos().map { ($0.id, $0.title ?? $0.firstTranscriptLine ?? "A note") },
+            uniquingKeysWith: { a, _ in a })
         Task {
             let center = UNUserNotificationCenter.current()
             let pending = await center.pendingNotificationRequests().map { req in
