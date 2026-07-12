@@ -153,6 +153,36 @@ final class VideoImportTests: XCTestCase {
         XCTAssertGreaterThan(player.duration, 0, "extracted audio not playable")
     }
 
+    /// E1: a video entry now carries the sheet's typed thought + significance —
+    /// both land on the imported memo (the silent import lost them, A13).
+    @MainActor
+    func testVideoEntryCarriesThoughtAndSignificance() async throws {
+        guard let inbox = CaptureInbox.inboxURL else { throw XCTSkip("no App Group in test host") }
+        try? FileManager.default.removeItem(at: inbox)
+        let repo = NotesRepository(inMemory: true)
+
+        let videoURL = FileManager.default.temporaryDirectory.appendingPathComponent("e1_\(UUID().uuidString).mov")
+        try makeVideoFile(at: videoURL, seconds: 0.5, withAudio: true)
+        defer { try? FileManager.default.removeItem(at: videoURL) }
+
+        let id = UUID()
+        let entry = CaptureInboxEntry(
+            id: id, type: "video", url: nil, urlTitle: nil, text: nil,
+            imageFileName: nil, mimeType: nil,
+            annotationText: "life advice for future me",
+            significance: 0.6, sharedAt: ISO8601.string(from: Date()),
+            videoFileName: "video_\(id.uuidString).mov")
+        XCTAssertTrue(CaptureInbox.write(entry, videoFileURL: videoURL))
+
+        await CaptureInboxDrainer.drain(into: repo)
+
+        let imported = try XCTUnwrap(repo.allMemos().first { $0.audioFilename.hasPrefix("memo_") })
+        XCTAssertEqual(imported.annotationText, "life advice for future me")
+        XCTAssertEqual(imported.significance, 0.6, accuracy: 0.001)
+        _ = MemoOpenBridge.shared.consume()
+        if let f = imported.audioURL { try? FileManager.default.removeItem(at: f) }
+    }
+
     // MARK: - Synthetic video generator
 
     private func makeVideoFile(at url: URL, seconds: Double, withAudio: Bool, creationDate: Date? = nil) throws {

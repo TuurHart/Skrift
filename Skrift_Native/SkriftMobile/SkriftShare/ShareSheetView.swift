@@ -189,6 +189,9 @@ struct ShareSheetView: View {
                 }
             }
             .onAppear { if hasLongClip { sendToBooks = true } }
+        } else if payload.isVideo {
+            // E1 (mock m1): video gets the slim sheet instead of a silent import.
+            videoPreviewCard
         } else {
             switch payload.type {
             case .url:
@@ -202,11 +205,108 @@ struct ShareSheetView: View {
                     imageBlock
                 }
             case .file:
-                // File captures not shown in the share sheet v1 (activation rule
-                // doesn't include files; this is a defensive fallback).
-                EmptyView()
+                // E1 (mock m2): documents get the slim sheet too — no more
+                // silent file card.
+                docPreviewCard
             }
         }
+    }
+
+    // E1: video preview (mock m1) — thumb glyph, duration, filmed date, honesty.
+    private var videoPreviewCard: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.skAccent.opacity(0.14))
+                    .frame(width: 46, height: 34)
+                    .overlay(
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.skAccent)
+                    )
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(payload.videoDuration.map { "Video · \(fmtDuration($0))" } ?? "Video")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                    Text(payload.videoFilmedAt.map {
+                        "filmed \($0.formatted(date: .abbreviated, time: .shortened)) · audio becomes the note"
+                    } ?? "audio becomes the note")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.skTextFaint)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 4)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
+            )
+            honestyLine("Transcribes on-device · the video file itself isn't kept")
+        }
+        .accessibilityIdentifier("capture-video-card")
+    }
+
+    // E1: document preview (mock m2) — doc glyph, name, pages · size, honesty.
+    private var docPreviewCard: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.skAccent.opacity(0.14))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Image(systemName: "doc.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.skAccent)
+                    )
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(payload.fileName ?? "Document")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(1)
+                    Text(docSubtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.skTextFaint)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 4)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color.skSurface, in: .rect(cornerRadius: 13, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.09), lineWidth: 0.5)
+            )
+            honestyLine(payload.filePageCount != nil
+                        ? "Its text becomes searchable in Skrift · opens inline in the note"
+                        : "Opens from the note · Skrift opens on it next time")
+        }
+        .accessibilityIdentifier("capture-doc-card")
+    }
+
+    private var docSubtitle: String {
+        var parts: [String] = []
+        if let p = payload.filePageCount { parts.append(p == 1 ? "1 page" : "\(p) pages") }
+        if let s = payload.fileSizeBytes {
+            parts.append(ByteCountFormatter.string(fromByteCount: s, countStyle: .file))
+        }
+        parts.append("from Files")
+        return parts.joined(separator: " · ")
+    }
+
+    private func honestyLine(_ text: String) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(Color.skAccent.opacity(0.55))
+                .frame(width: 6, height: 6)
+            Text(text)
+                .font(.system(size: 10.5))
+                .foregroundStyle(Color.skTextFaint)
+        }
+        .padding(.leading, 2)
     }
 
     // Multi-audio: EVERY incoming clip, scrollable past 4 rows (device round 1:
@@ -670,6 +770,39 @@ struct ShareSheetView: View {
         // the entry field stays nil and CaptureDictation remains drain-side for
         // any legacy pending entries.
         let dictationData: Data? = nil
+
+        // E1 (mock m1): video rides its own entry type — the typed thought +
+        // significance now travel with it (the silent import lost both, A13).
+        if payload.isVideo, let videoURL = payload.videoURL {
+            let id = UUID()
+            let ext = videoURL.pathExtension.isEmpty ? "mov" : videoURL.pathExtension
+            let thought = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
+            onSave([CaptureInboxEntry(
+                id: id, type: "video", url: nil, urlTitle: nil, text: nil,
+                imageFileName: nil, mimeType: nil,
+                annotationText: thought.isEmpty ? nil : thought,
+                significance: significance, sharedAt: ISO8601.string(from: Date()),
+                videoFileName: "video_\(id.uuidString).\(ext)"
+            )], [], nil)
+            return
+        }
+        // E1 (mock m2): documents likewise — the sheet's thought becomes the
+        // capture's annotation body, significance flags it for sync.
+        if payload.type == .file, payload.fileURL != nil {
+            let id = UUID()
+            let ext = payload.fileURL?.pathExtension.isEmpty == false
+                ? payload.fileURL!.pathExtension : "pdf"
+            let thought = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
+            onSave([CaptureInboxEntry(
+                id: id, type: "file", url: nil, urlTitle: nil, text: nil,
+                imageFileName: nil, mimeType: payload.mimeType,
+                annotationText: thought.isEmpty ? nil : thought,
+                significance: significance, sharedAt: ISO8601.string(from: Date()),
+                fileName: "file_\(id.uuidString).\(ext)",
+                fileDisplayName: payload.fileName
+            )], [], nil)
+            return
+        }
 
         let trimmed = annotation.trimmingCharacters(in: .whitespacesAndNewlines)
         let imageItems = payload.imageItems

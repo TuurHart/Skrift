@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import ImageIO
+import PDFKit
 import UniformTypeIdentifiers
 import UIKit
 
@@ -35,17 +36,21 @@ struct SharePayload {
     /// Image captures (1..N — multiple photos ALWAYS combine into one note, B2).
     var imageItems: [SharedImageItem] = []
     var mimeType: String?
-    /// A shared movie was detected (Photos/Files). When true the host skips the
-    /// annotation sheet and imports it as a normal voice memo. `videoURL` is the
-    /// extension-temp copy of the movie (nil if the copy failed → host cancels).
+    /// A shared movie was detected (Photos/Files). E1 (Wave 2, mock m1): the host
+    /// shows the SLIM SHEET (preview + typed thought + significance) — no longer a
+    /// silent import. `videoURL` is the extension-temp copy (nil = load failed).
+    /// Duration/filmed-date are best-effort reads for the preview card.
     var isVideo: Bool = false
     var videoURL: URL?
-    /// A shared document (e.g. a PDF) was detected. The host skips the annotation
-    /// sheet and persists it as a `.file` capture (the user can ramble on it later
-    /// in the memo detail). `fileURL` is the extension-temp copy; `fileName` is the
-    /// original display name (e.g. "report.pdf").
+    var videoDuration: TimeInterval?
+    var videoFilmedAt: Date?
+    /// A shared document (e.g. a PDF) was detected. E1 (mock m2): gets the slim
+    /// sheet too. `fileURL` is the extension-temp copy; `fileName` the display
+    /// name; pages/size feed the preview card (pages nil for non-PDFs).
     var fileURL: URL?
     var fileName: String?
+    var filePageCount: Int?
+    var fileSizeBytes: Int64?
     /// Shared AUDIO was detected (WhatsApp voice note / Voice Memos / Files).
     /// The sheet shows a slim audio card — NO ramble UI (signed 2026-07-10: the
     /// voice note IS the content; append inside the note later). 2+ clips add
@@ -201,7 +206,12 @@ enum SharePayloadLoader {
                                 audioItems: [SharedAudioItem(url: result.url, duration: duration, recordedAt: date)])
         }
         let mime = UTType(filenameExtension: result.url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
-        return SharePayload(type: .file, mimeType: mime, fileURL: result.url, fileName: result.name)
+        // E1 preview-card metadata (mock m2): page count for PDFs, size for all.
+        let size = (try? FileManager.default.attributesOfItem(atPath: result.url.path))?[.size] as? Int64
+        var pages: Int?
+        if ext == "pdf", let doc = PDFDocument(url: result.url) { pages = doc.pageCount }
+        return SharePayload(type: .file, mimeType: mime, fileURL: result.url, fileName: result.name,
+                            filePageCount: pages, fileSizeBytes: size)
     }
 
     // MARK: - Audio
@@ -280,7 +290,21 @@ enum SharePayloadLoader {
                 }
             }
         }
-        return SharePayload(type: .file, isVideo: true, videoURL: tempURL)
+        // E1 preview-card metadata (mock m1) — best-effort, nil on odd containers.
+        var duration: TimeInterval?
+        var filmedAt: Date?
+        if let tempURL {
+            let asset = AVURLAsset(url: tempURL)
+            if let d = try? await asset.load(.duration) {
+                let secs = CMTimeGetSeconds(d)
+                if secs.isFinite, secs > 0 { duration = secs }
+            }
+            if let item = (try? await asset.load(.creationDate)) ?? nil {
+                filmedAt = (try? await item.load(.dateValue)) ?? nil
+            }
+        }
+        return SharePayload(type: .file, isVideo: true, videoURL: tempURL,
+                            videoDuration: duration, videoFilmedAt: filmedAt)
     }
 
     // MARK: - URL

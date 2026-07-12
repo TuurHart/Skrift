@@ -54,9 +54,17 @@ final class ShareViewController: UIViewController {
                                         canRetry: false))
                 }
             } else if payload.isVideo {
-                completeVideo(payload)
+                // E1 (Wave 2, mock m1): video gets the SHEET — preview + typed
+                // thought + significance. The silent import lost both (A13).
+                if payload.videoURL != nil {
+                    presentSheet(payload: payload)
+                } else {
+                    presentState(.error(message: "The video couldn't be read from the share.",
+                                        canRetry: false))
+                }
             } else if payload.type == .file, payload.fileURL != nil {
-                completeFile(payload)
+                // E1 (mock m2): documents get the sheet too.
+                presentSheet(payload: payload)
             } else if Self.isEmptyPayload(payload) {
                 // A16: unknown/empty payloads used to fall into an empty text
                 // sheet whose Save minted a husk note.
@@ -160,6 +168,10 @@ final class ShareViewController: UIViewController {
             }
             let ok = CaptureInbox.write(entry,
                                         dictationData: i == 0 ? dictationData : nil,
+                                        // E1: video/file entries come through the
+                                        // sheet now — their temp copies ride along.
+                                        videoFileURL: entry.videoFileName != nil ? payload.videoURL : nil,
+                                        fileSourceURL: entry.fileName != nil ? payload.fileURL : nil,
                                         audioFileURLs: audioFileURLs,
                                         imageDatas: entry.imageFileNames != nil ? imageDatas : nil)
             allOK = allOK && ok
@@ -176,6 +188,8 @@ final class ShareViewController: UIViewController {
         }
         // Everything is copied into the inbox now — drop the extension-temp files.
         for item in payload.audioItems { try? FileManager.default.removeItem(at: item.url) }
+        if let v = payload.videoURL { try? FileManager.default.removeItem(at: v) }
+        if let f = payload.fileURL { try? FileManager.default.removeItem(at: f) }
         presentState(.saved(summary: Self.savedSummary(for: entries, payload: payload)))
     }
 
@@ -188,69 +202,21 @@ final class ShareViewController: UIViewController {
             if clips > 1 { return "\(clips) voice notes → one note" }
             return "Voice note → a new note"
         }
+        if payload.isVideo { return "Video → a new note" }
         switch payload.type {
         case .image:
             let n = payload.imageItems.count
             return n > 1 ? "\(n) photos → one note" : "Photo saved"
         case .url:  return "Link saved"
         case .text: return "Text saved"
-        case .file: return "Document saved"
+        case .file: return payload.fileName.map { "\($0) saved" } ?? "Document saved"
         }
     }
 
-    /// A shared video bypasses the annotation sheet: write a "video" inbox entry
-    /// (the movie copied in) and finish via the Saved ✓ flash. The main app
-    /// imports it as a normal voice memo (audio + a frame thumbnail + transcribe)
-    /// on its next foreground drain. A12: a failed copy used to `cancel()` —
-    /// the sheet closed looking exactly like success.
-    private func completeVideo(_ payload: SharePayload) {
-        guard let videoURL = payload.videoURL else {
-            presentState(.error(message: "The video couldn't be read from the share.", canRetry: false))
-            return
-        }
-        let id = UUID()
-        let ext = videoURL.pathExtension.isEmpty ? "mov" : videoURL.pathExtension
-        let entry = CaptureInboxEntry(
-            id: id, type: "video", url: nil, urlTitle: nil, text: nil,
-            imageFileName: nil, mimeType: nil, annotationText: nil,
-            significance: 0, sharedAt: ISO8601.string(from: Date()),
-            videoFileName: "video_\(id.uuidString).\(ext)"
-        )
-        guard CaptureInbox.write(entry, videoFileURL: videoURL) else {
-            presentState(.error(message: "The video couldn't be handed to Skrift.", canRetry: true),
-                         retry: { [weak self] in self?.completeVideo(payload) })
-            return
-        }
-        try? FileManager.default.removeItem(at: videoURL)   // copied into the inbox now
-        presentState(.saved(summary: "Video → a new note"))
-    }
-
-    /// A shared document (PDF/etc.) bypasses the annotation sheet: write a "file"
-    /// inbox entry (the document copied in) and finish. The main app persists it as
-    /// a `.file` capture on its next foreground drain; the user can ramble on it in
-    /// the memo detail. (2026-06-21 device feedback: "share a PDF and have it live in there".)
-    private func completeFile(_ payload: SharePayload) {
-        guard let fileURL = payload.fileURL else {
-            presentState(.error(message: "The document couldn't be read from the share.", canRetry: false))
-            return
-        }
-        let id = UUID()
-        let ext = fileURL.pathExtension.isEmpty ? "pdf" : fileURL.pathExtension
-        let entry = CaptureInboxEntry(
-            id: id, type: "file", url: nil, urlTitle: nil, text: nil,
-            imageFileName: nil, mimeType: payload.mimeType, annotationText: nil,
-            significance: 0, sharedAt: ISO8601.string(from: Date()),
-            fileName: "file_\(id.uuidString).\(ext)",
-            fileDisplayName: payload.fileName
-        )
-        guard CaptureInbox.write(entry, fileSourceURL: fileURL) else {
-            presentState(.error(message: "The document couldn't be handed to Skrift.", canRetry: true),
-                         retry: { [weak self] in self?.completeFile(payload) })
-            return
-        }
-        try? FileManager.default.removeItem(at: fileURL)   // copied into the inbox now
-        presentState(.saved(summary: payload.fileName.map { "\($0) saved" } ?? "Document saved"))
-    }
+    // completeVideo/completeFile RETIRED 2026-07-12 (E1, mock share-ingest-wave2
+    // m1/m2): video + documents present the slim sheet like everything else —
+    // their entries come back through `complete` with the typed thought +
+    // significance attached, and the temp copies ride `payload.videoURL`/`fileURL`.
 
     private func cancel() {
         extensionContext?.cancelRequest(withError: CocoaError(.userCancelled))

@@ -153,6 +153,15 @@ enum CaptureInboxDrainer {
                 // video's filming date, so otherwise it "vanishes" from the
                 // top of the list (user-confirmed via DevLog 2026-06-14).
                 if copied, let mid = MemoSaver(repository: repository).importVideo(from: temp) {
+                    // E1: the sheet's typed thought + significance ride the entry
+                    // now (the silent import lost both — A13's hole).
+                    if let memo = repository.memo(id: mid) {
+                        if let thought = entry.annotationText, !thought.isEmpty {
+                            memo.annotationText = thought
+                        }
+                        if entry.significance > 0 { memo.significance = entry.significance }
+                        repository.save()
+                    }
                     return mid
                 }
             } else {
