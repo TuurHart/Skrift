@@ -108,42 +108,92 @@ enum ChapterDetector {
         guard let chosen = vote(all, unmatchedGaps: unmatched, fileStartTimes: fileStartTimes,
                                 bookDuration: bookDuration)
         else { return nil }
-        return assemble(withBookSeparators(chosen), bookDuration: bookDuration)
+        let display = collapseIncompleteSegments(chosen)
+        guard display.count >= minDetections else { return nil }
+        return assemble(display, bookDuration: bookDuration)
     }
 
-    /// A multi-work import (a trilogy in one audiobook) reads shuffled without
-    /// context: detected numbers legitimately RESTART where the next work
-    /// begins. Insert a "Book N" separator entry at each numbered RESET
-    /// (Ch n → Ch m, m ≤ n) so the restarts explain themselves — unless a real
-    /// part/section heading already marks that spot. N counts detected
-    /// segments, so with partial recall it can undercount the true book index
-    /// — still strictly clearer than an unexplained restart.
-    static func withBookSeparators(_ headings: [Heading]) -> [Heading] {
-        var out: [Heading] = []
+    /// "Better no information than bad information" (Tuur, build 74): ordinals
+    /// with HOLES (1,2,3,4 → 7) make listeners feel chapters went missing. Split
+    /// the numbered headings into SEGMENTS at number resets (a multi-work
+    /// import restarts at 1 where the next work begins), then judge each
+    /// segment: numbers contiguous from 1 → keep its chapters (with a "Book N"
+    /// section header when several segments exist); ANY hole → the segment
+    /// collapses to a single tappable "Book N" jump point. A lone incomplete
+    /// segment (a normal novel with holes) drops its numbers entirely — the
+    /// caller then keeps the book's existing chapters. Parts/standalone
+    /// sections carry no ordinal promise and always pass through.
+    static func collapseIncompleteSegments(_ headings: [Heading]) -> [Heading] {
+        var segments: [[Heading]] = []
+        var passthrough: [Heading] = []
         var prevNumber: Int?
-        var segment = 1
         for h in headings {
             var number: Int?
             if case .chapter(let n) = h.kind { number = n }
             if case .bareNumber(let n) = h.kind { number = n }
-            if let n = number {
-                if let prev = prevNumber, n <= prev {
-                    let marked = out.contains {
-                        if case .part = $0.kind { return abs($0.start - h.start) < 60 }
-                        if case .standalone = $0.kind { return abs($0.start - h.start) < 60 }
-                        return false
-                    }
-                    if !marked {
-                        segment += 1
-                        out.append(Heading(kind: .separator(segment),
-                                           start: h.start, title: nil, gapBefore: h.gapBefore))
-                    }
-                }
-                prevNumber = n
+            guard let n = number else { passthrough.append(h); continue }
+            if segments.isEmpty || (prevNumber.map { n <= $0 } ?? false) {
+                segments.append([])
             }
-            out.append(h)
+            segments[segments.count - 1].append(h)
+            prevNumber = n
         }
-        return out
+        guard !segments.isEmpty else { return headings }
+
+        func isComplete(_ segment: [Heading]) -> Bool {
+            let numbers: [Int] = segment.compactMap {
+                if case .chapter(let n) = $0.kind { return n }
+                if case .bareNumber(let n) = $0.kind { return n }
+                return nil
+            }
+            return numbers == Array(1...numbers.count)
+        }
+
+        // A real announced Part/section within a minute of a segment start
+        // already explains the boundary — no synthesized marker there.
+        func markedByStructure(_ start: TimeInterval) -> Bool {
+            passthrough.contains {
+                if case .part = $0.kind { return abs($0.start - start) < 60 }
+                if case .standalone = $0.kind { return abs($0.start - start) < 60 }
+                return false
+            }
+        }
+
+        let anyIncomplete = segments.contains { !isComplete($0) }
+        guard anyIncomplete else {
+            // All hole-free — keep every chapter, headers between works.
+            var out = passthrough
+            for (i, segment) in segments.enumerated() {
+                if i > 0, let first = segment.first, !markedByStructure(first.start) {
+                    out.append(Heading(kind: .separator(i + 1), start: first.start,
+                                       title: nil, gapBefore: first.gapBefore))
+                }
+                out.append(contentsOf: segment)
+            }
+            return out.sorted { $0.start < $1.start }
+        }
+
+        // A single hole-y segment = a normal novel with gaps: no honest way to
+        // show numbers → drop them (caller falls back via minDetections).
+        guard segments.count >= 2 else { return passthrough.sorted { $0.start < $1.start } }
+
+        // Multi-work: complete segments keep chapters (headered); incomplete
+        // ones become one "Book N" jump point each.
+        var out = passthrough
+        for (i, segment) in segments.enumerated() {
+            guard let first = segment.first else { continue }
+            if isComplete(segment) {
+                if segments.count >= 2, !markedByStructure(first.start) {
+                    out.append(Heading(kind: .separator(i + 1), start: first.start,
+                                       title: nil, gapBefore: first.gapBefore))
+                }
+                out.append(contentsOf: segment)
+            } else if !markedByStructure(first.start) {
+                out.append(Heading(kind: .standalone("Book \(i + 1)"), start: first.start,
+                                   title: nil, gapBefore: first.gapBefore))
+            }
+        }
+        return out.sorted { $0.start < $1.start }
     }
 
     /// The style vote. Keyword chapters are trusted at quorum 2; bare numbers

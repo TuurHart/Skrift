@@ -48,6 +48,13 @@ Research session → user picked the lot; all mobile unless said. **Device round
   saw one", "Ecclesiastes chapter one") — all die on the prev-word-ends-sentence test. New anchor: prev-punct + number
   terminates + MANDATORY title sentence (hang waived at zero-gap); vote gates carry the rest. Trilogy probe: 8 → **21
   chapters with real spoken titles** + Book 2/Book 3 separators at the RIGHT places, zero FPs. Suite 677/677.
+- ✅ **Round-5 (same night): completeness gate — "better no information than bad information" (user principle, now
+  law in the detector).** Ordinals with holes make listeners feel chapters went missing. Numbered headings split into
+  per-work SEGMENTS at resets; a segment shows its chapters ONLY when numbers run 1..k hole-free; any hole → the
+  segment collapses to one tappable "Book N" jump point; a lone hole-y segment (normal novel with gaps) suppresses
+  entirely (book keeps existing chapters). Real Part headings suppress synthesized markers. Trilogy now renders
+  Opening · Book 1 · Book 2 · Book 3 (probe-verified) — complete jump points, zero false implications; the full
+  21-chapter data stays in the sidecar for the day recall reaches 100% per book. Suite 677/677.
   **Follow-ups parked:** manual "Re-transcribe book" affordance for pre-fix sidecars (no created-at in the sidecar to
   auto-detect age); consider a review-sheet UI for gap-only books that fail the vote (the reading-mode chat owns
   player IA).

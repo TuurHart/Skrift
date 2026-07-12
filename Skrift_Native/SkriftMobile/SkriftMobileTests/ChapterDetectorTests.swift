@@ -46,37 +46,39 @@ final class ChapterDetectorTests: XCTestCase {
 
     func testSpelledNumberWithSpokenTitle() {
         // Title hangs (0.8 s beat) before prose begins — accepted.
-        let script = [(0.0, "Chapter"), (0.1, "Twenty-Three.")]
+        let script = [(0.0, "Chapter"), (0.1, "One.")]
             + [(0.6, "The"), (0.08, "Iron"), (0.08, "Duke.")]
             + [(0.8, "then")] + prose(19)
-            + [(2.5, "Chapter"), (0.1, "Twenty-Four.")] + prose(20)
+            + [(2.5, "Chapter"), (0.1, "Two.")] + prose(20)
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
         XCTAssertEqual(chapters?.count, 2)
-        XCTAssertEqual(chapters?[0].title, "Chapter 23 — The Iron Duke")
-        XCTAssertEqual(chapters?[1].title, "Chapter 24")
+        XCTAssertEqual(chapters?[0].title, "Chapter 1 — The Iron Duke")
+        XCTAssertEqual(chapters?[1].title, "Chapter 2")
     }
 
     func testShortOpeningProseSentenceIsNotATitle() {
         // "He woke early." flows straight into more prose (no hang) → no title.
-        let script = [(0.0, "Chapter"), (0.1, "5.")]
+        let script = [(0.0, "Chapter"), (0.1, "1.")]
             + [(0.5, "He"), (0.08, "woke"), (0.08, "early.")]
             + prose(15)
-            + [(2.5, "Chapter"), (0.1, "6.")] + prose(15)
+            + [(2.5, "Chapter"), (0.1, "2.")] + prose(15)
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
-        XCTAssertEqual(chapters?.map(\.title), ["Chapter 5", "Chapter 6"])
+        XCTAssertEqual(chapters?.map(\.title), ["Chapter 1", "Chapter 2"])
     }
 
-    func testTwoWordSpelledNumber() {
+    func testHoleyNumberingIsSuppressed() {
+        // "Better no information than bad information": a lone segment whose
+        // numbers don't run 1..k hole-free (here 23,24 — head missing) shows
+        // NO detected chapters at all.
         let script = [(0.0, "Chapter"), (0.1, "Twenty"), (0.1, "Three.")] + prose(10)
             + [(2.5, "Chapter"), (0.1, "Twenty"), (0.1, "Four.")] + prose(10)
         let words = stream(script)
-        let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
-                                              bookDuration: (words.last?.end ?? 0) + 1)
-        XCTAssertEqual(chapters?.map(\.title), ["Chapter 23", "Chapter 24"])
+        XCTAssertNil(ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
+                                            bookDuration: (words.last?.end ?? 0) + 1))
     }
 
     func testOrdinalAndDutch() {
@@ -85,8 +87,9 @@ final class ChapterDetectorTests: XCTestCase {
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
-        // 23 → 3 is a numbered restart → the book separator announces it.
-        XCTAssertEqual(chapters?.map(\.title), ["Chapter 23", "Book 2", "Chapter 3"])
+        // Both segments carry holes (23 alone; 3 alone) → each collapses to a
+        // book jump point. The PARSE of ordinals/Dutch is what this verifies.
+        XCTAssertEqual(chapters?.map(\.title), ["Book 1", "Book 2"])
     }
 
     func testPartAndStandaloneSections() {
@@ -174,13 +177,13 @@ final class ChapterDetectorTests: XCTestCase {
     }
 
     func testEchoWithinSpacingDropped() {
-        let script = [(0.0, "Chapter"), (0.1, "2.")] + prose(10)
-            + [(2.5, "Chapter"), (0.1, "2.")] + prose(10)          // echo ~7 s later
-            + [(3.0, "Chapter"), (0.1, "3.")] + prose(10)          // distinct number → kept
+        let script = [(0.0, "Chapter"), (0.1, "1.")] + prose(10)
+            + [(2.5, "Chapter"), (0.1, "1.")] + prose(10)          // echo ~7 s later
+            + [(3.0, "Chapter"), (0.1, "2.")] + prose(10)          // distinct number → kept
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
-        XCTAssertEqual(chapters?.map(\.title), ["Chapter 2", "Chapter 3"])
+        XCTAssertEqual(chapters?.map(\.title), ["Chapter 1", "Chapter 2"])
     }
 
     // MARK: - v2 styles: LibriVox, bare numbers, title-only
@@ -190,16 +193,16 @@ final class ChapterDetectorTests: XCTestCase {
         // the of-continuation must accept it (and not treat the book title as
         // a chapter title).
         let intro: [(TimeInterval, String)] = [
-            (0.0, "Chapter"), (0.1, "4"), (0.08, "of"), (0.08, "Pride"), (0.08, "and"), (0.08, "Prejudice."),
+            (0.0, "Chapter"), (0.1, "1"), (0.08, "of"), (0.08, "Pride"), (0.08, "and"), (0.08, "Prejudice."),
             (0.5, "This"), (0.08, "is"), (0.08, "a"), (0.08, "LibriVox"), (0.08, "recording."),
         ]
         let script = intro + prose(20)
-            + [(3.0, "Chapter"), (0.1, "5"), (0.08, "of"), (0.08, "Pride"), (0.08, "and"), (0.08, "Prejudice.")]
+            + [(3.0, "Chapter"), (0.1, "2"), (0.08, "of"), (0.08, "Pride"), (0.08, "and"), (0.08, "Prejudice.")]
             + prose(20)
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
-        XCTAssertEqual(chapters?.map(\.title), ["Chapter 4", "Chapter 5"])
+        XCTAssertEqual(chapters?.map(\.title), ["Chapter 1", "Chapter 2"])
     }
 
     func testBareNumberHeadings() {
@@ -213,15 +216,15 @@ final class ChapterDetectorTests: XCTestCase {
             return out
         }
         var script: [(TimeInterval, String)] = prose(6)
-        script += heading("Seven.", ["Don't", "turn", "into", "human", "spam."]) + [(0.8, "so")] + prose(900)
-        script += heading("Eight.", ["Learn", "to", "take", "a", "punch."]) + [(0.8, "so")] + prose(900)
-        script += heading("Nine.", ["Sell", "out."]) + [(0.8, "so")] + prose(300)
+        script += heading("One.", ["Don't", "turn", "into", "human", "spam."]) + [(0.8, "so")] + prose(900)
+        script += heading("Two.", ["Learn", "to", "take", "a", "punch."]) + [(0.8, "so")] + prose(900)
+        script += heading("Three.", ["Sell", "out."]) + [(0.8, "so")] + prose(300)
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
         XCTAssertEqual(chapters?.map(\.title),
-                       ["Chapter 7 — Don't turn into human spam",
-                        "Chapter 8 — Learn to take a punch", "Chapter 9 — Sell out"])
+                       ["Chapter 1 — Don't turn into human spam",
+                        "Chapter 2 — Learn to take a punch", "Chapter 3 — Sell out"])
     }
 
     func testCountingSceneIsNotChapters() {
@@ -292,13 +295,13 @@ final class ChapterDetectorTests: XCTestCase {
         let words = stream(script)
         let chapters = ChapterDetector.detect(fileWords: [words], fileStartTimes: [0],
                                               bookDuration: (words.last?.end ?? 0) + 1)
+        // Segment [7,8] has holes → collapses to a "Book 1" jump point;
+        // segment [1,2] is hole-free → keeps chapters under a Book 2 header.
         XCTAssertEqual(chapters?.map(\.title),
-                       ["Chapter 7", "Chapter 8", "Book 2", "Chapter 1", "Chapter 2"])
-        // The separator sits exactly at the resetting chapter's start, and is
-        // marked display-only.
-        XCTAssertEqual(chapters?[2].start, chapters?[3].start)
-        XCTAssertEqual(chapters?[2].isSeparator, true)
-        XCTAssertNil(chapters?[3].isSeparator)
+                       ["Book 1", "Book 2", "Chapter 1", "Chapter 2"])
+        XCTAssertNil(chapters?[0].isSeparator)          // tappable row
+        XCTAssertEqual(chapters?[1].isSeparator, true)  // section header
+        XCTAssertEqual(chapters?[1].start, chapters?[2].start)
     }
 
     func testSeparatorExcludedFromChapterSemantics() {
