@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 17
-updated: 2026-07-12T21:00:00.000Z
+updated: 2026-07-12T20:50:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -515,8 +515,14 @@ nodes:
       in-memory (no temp WAV, no vocab CTC pass) at 180s with capture/pause/
       conserve CANCELLING in-flight inference; lazy phantom-RMS both apps;
       opt-in filler filter (memos only, OFF); FluidAudio pinned 7f963cdc.
-      Device round owed. Detail: backlog.md 🎛."
+      Device rounds DONE 2026-07-12 (builds 71–75). Detail: backlog.md 🎛."
     shipped:
+      - >-
+        2026-07-12 · Device evening (builds 71–75): retro detection on open ·
+        Book separators → section headers + playable semantics + sim vision
+        hook · sentence-anchored numbers (recall 8→21 w/ titles) ·
+        completeness gate ('better no info than bad info') → trilogy renders
+        Opening·Book 1·2·3; re-transcribed 4.5h in 6.5min (~50×/chunk vs 21×)
       - 2026-07-11 · Lazy RMS both apps + FluidAudio pin [0fb274a e9b9681]
       - 2026-07-11 · Buffer-path book chunks + 180s + in-flight cancel;
         ChapterDetector + detectedChapters wiring; FillerFilter opt-in;
