@@ -120,10 +120,20 @@ enum CaptureInbox {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
     }
 
-    /// `<group>/CaptureInbox/` — created on first access.
+    /// `<group>/CaptureInbox/` — created on first access. Self-heals a FILE
+    /// squatting on the inbox name (unlink needs only parent-write — the group
+    /// root is ours) and recreates the dir app-owned. Context: a devicectl-
+    /// created CaptureInbox dir is IMMUTABLE to the app/extension (2026-07-12 —
+    /// every share died at write); the recovery turns it into a file with
+    /// devicectl, and this guard finishes the heal on next access.
     static var inboxURL: URL? {
         guard let base = containerURL else { return nil }
         let dir = base.appendingPathComponent("CaptureInbox", isDirectory: true)
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDir), !isDir.boolValue {
+            try? FileManager.default.removeItem(at: dir)
+            extLog("inbox: healed — removed a file squatting on CaptureInbox")
+        }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -189,7 +199,10 @@ enum CaptureInbox {
             try data.write(to: jsonURL, options: .atomic)
             return true
         } catch {
-            // Non-fatal: the app will just not drain this entry. Log and continue.
+            // Non-fatal: the sheet shows the honest error + retry. extLog so the
+            // REASON reaches the devlog on next app-open — a silent print left
+            // the 2026-07-12 write failures undiagnosable from the Mac.
+            extLog("inbox: WRITE FAILED for \(entry.id) (\(entry.type)): \(error)")
             print("[CaptureInbox] write failed: \(error)")
             return false
         }

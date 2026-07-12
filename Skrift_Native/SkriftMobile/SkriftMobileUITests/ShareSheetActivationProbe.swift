@@ -49,4 +49,35 @@ final class ShareSheetActivationProbe: XCTestCase {
         }
         XCTAssertTrue(appeared, "Skrift missing from the share sheet for this page")
     }
+
+    /// End-to-end: open the sheet, pick Skrift, tap Save, and require the
+    /// Saved ✓ state — proves the extension's WRITE path, not just activation.
+    func testShareSavesThroughTheSheet() throws {
+        let app = safari
+        app.activate()
+        openShareSheet(app)
+
+        let skrift = app.cells.matching(NSPredicate(format: "label CONTAINS[c] 'Skrift'")).firstMatch
+        XCTAssertTrue(skrift.waitForExistence(timeout: 12), "Skrift missing from the sheet")
+        skrift.tap()
+
+        let save = app.buttons["capture-save"].exists
+            ? app.buttons["capture-save"]
+            : app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Save to Skrift'")).firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 10), "share sheet did not present")
+        save.tap()
+
+        // Saved ✓ flashes ~0.9s; the error state ("Couldn't save this") sticks.
+        let saved = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Saved'")).firstMatch
+        let failed = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] \"Couldn't save\"")).firstMatch
+        let deadline = Date().addingTimeInterval(10)
+        var outcome = "timeout"
+        while Date() < deadline {
+            if saved.exists { outcome = "saved"; break }
+            if failed.exists { outcome = "failed"; break }
+            usleep(200_000)
+        }
+        print("PROBE save outcome: \(outcome)")
+        XCTAssertEqual(outcome, "saved", "the write path must land on Saved ✓")
+    }
 }
