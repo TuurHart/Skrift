@@ -34,7 +34,13 @@ enum MemoCloudReconciler {
                       processEverything: Bool,
                       people: [Person] = [], author: String = "", thisDeviceID: String = "",
                       now: Date = Date()) -> SweepOutcome {
-        let memos = (try? cloudContext.fetch(FetchDescriptor<Memo>())) ?? []
+        // Duplicate-tolerant: the cloud DB can hold same-id rows (the 2026-07-12 clone
+        // incident; divergent pairs are never auto-healed). Collapse each id onto its
+        // keeper (shared `MemoDuplicates` rule — the same row the phone's deduper keeps),
+        // else two rows would take turns rewriting ONE PipelineFile every sweep
+        // (recompile + re-export churn, forever).
+        let memos = MemoDuplicates.canonicalRows(
+            (try? cloudContext.fetch(FetchDescriptor<Memo>())) ?? [])
         var outcome = SweepOutcome()
         for memo in memos {
             let memoID = memo.id

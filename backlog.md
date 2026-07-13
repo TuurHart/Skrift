@@ -617,15 +617,17 @@ origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths on
 
 **Board C — SharedKit round 2 (UNBLOCKED 2026-07-13: all lanes done, no live branches; ONE chunk
 per commit, both suites green each time — the round-1 recipe):**
-0. **NEW · Mac sweep must become duplicate-tolerant (do FIRST — contract hardening, small).** The
-   2026-07-12 incident put SAME-ID clone Memo rows in the iCloud DB (phone side now heals via
-   `MemoDeduper`: keeper = most content; clones detached-then-trashed; differing-content rows left
-   alone). The Mac's `MemoCloudReconciler.sweep` iterates raw rows — with same-id duplicates it
-   applies/updates the ONE PipelineFile once per row (churn if contents differ), and a TRASHED
-   clone row can hit the delete path while the keeper is alive (pf delete → re-ingest flap).
-   Fix: group fetched memos by id first and pick the keeper with `MemoDeduper`'s exact rule
-   (consider moving that pure keeper/score logic into `Shared/Pipeline/` and calling it from both) —
-   host-less test: two same-id rows (one trashed clone) → ONE stable pf, no delete flap.
+0. ✅ **DONE 2026-07-13 — Mac sweep duplicate-tolerant.** Shared `MemoDuplicates` keeper rule
+   (alive > most content > latest edit > first; `Shared/Pipeline/MemoDuplicates.swift`);
+   `MemoDeduper` refactored onto it (677 mobile tests green); the Mac sweep iterates
+   `canonicalRows` (351 desktop tests green incl. the churn regression + trashed-clone-never-
+   shadows-keeper). CORRECTION to the original claim: there IS no Mac delete path keyed on
+   `memo.deletedAt` (MemoCloudUpdate's comment is aspirational) — so no delete-flap existed; the
+   real defect was divergent same-id rows flip-flopping ONE PipelineFile every sweep. Observed
+   gap left on record: a memo trashed on the phone is never trashed on the Mac (no delete sync —
+   pre-existing, deliberate for now). BONUS: full-scheme desktop build was red on ANY fresh
+   regenerate — swift-transformers floated to 1.3.3 (breaks vs Swift 5.9) and transitive Jinja
+   floated to 2.4.0 (ObjectKey API) → BOTH exact-pinned in project.yml (1.3.0 / 2.3.6).
 0b. **NEW · shared lazy-RMS helper**: 9d82c9b hand-mirrored the "full-file RMS decode only for tiny
    transcripts" logic into BOTH TranscriptionServices — `averageRMS` + the lazy gate is now a fresh
    drift surface; extract to `Shared/Pipeline/` (AVFoundation is fine on both platforms).

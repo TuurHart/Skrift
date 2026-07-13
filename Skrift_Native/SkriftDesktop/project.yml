@@ -21,7 +21,18 @@ packages:
     from: "0.9.0"
   swift-transformers:
     url: https://github.com/huggingface/swift-transformers
-    from: "1.3.0"
+    # Pinned 2026-07-13 (was from: "1.3.0" — floating): a fresh regenerate resolved
+    # 1.3.3, whose Hub/Config.swift doesn't compile against this project's Swift 5.9
+    # (ObjectKey dictionary-key error) → full-scheme build red. Package.resolved lives
+    # in the gitignored .xcodeproj, so ONLY exact pins are reproducible here.
+    exactVersion: "1.3.0"
+  # TRANSITIVE pin: transformers' Config.swift breaks against Jinja 2.4.0's ObjectKey
+  # API change, and transformers only demands jinja ≥2.0 — this top-level reference
+  # forces the resolver to the last compatible tag. Drop when transformers is bumped
+  # to a Jinja-2.4-aware release.
+  swift-jinja:
+    url: https://github.com/huggingface/swift-jinja.git
+    exactVersion: "2.3.6"
 
 targets:
   SkriftDesktop:

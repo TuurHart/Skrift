@@ -70,4 +70,63 @@ final class MemoCloudReconcilerTests: XCTestCase {
                        "the 'process everything' override ingests significance-0 memos")
         XCTAssertEqual(pipelineCount(local), 1)
     }
+
+    // MARK: - Same-id duplicate rows (the 2026-07-12 clone incident, Mac side)
+
+    /// Seed one memo row with explicit id/content into the cloud context.
+    private func seedRow(_ cloud: ModelContext, id: UUID, transcript: String,
+                         deletedAt: Date? = nil, withAsset: Bool = true) {
+        let memo = Memo(id: id, audioFilename: "memo_\(id.uuidString).m4a",
+                        recordedAt: Date(timeIntervalSince1970: 1_000_000),
+                        transcript: transcript, transcriptStatus: .done,
+                        transcriptConfidence: 0.9, significance: 0.5, deletedAt: deletedAt)
+        cloud.insert(memo)
+        if withAsset {
+            cloud.insert(MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.audio,
+                                   filename: MemoCloudIngest.audioFilename(for: memo),
+                                   blob: Data("AUDIO".utf8)))
+        }
+    }
+
+    /// Two ALIVE same-id rows with DIVERGING content (the pair the phone deliberately
+    /// never auto-heals): the sweep must reconcile against ONE keeper, and a repeat
+    /// sweep must be a no-op — before the canonical-rows fix the two rows took turns
+    /// rewriting the single PipelineFile every sweep (recompile + re-export churn).
+    func testDivergentSameIDRowsDoNotChurn() throws {
+        let cloud = try cloudContext(), local = try localContext()
+        let id = UUID()
+        seedRow(cloud, id: id, transcript: "short")
+        seedRow(cloud, id: id, transcript: "the considerably longer keeper transcript", withAsset: false)
+        try cloud.save()
+
+        let first = MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false)
+        XCTAssertEqual(first.created, 1, "one id → one PipelineFile")
+        XCTAssertEqual(pipelineCount(local), 1)
+        let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
+        XCTAssertEqual(pf.transcript, "the considerably longer keeper transcript",
+                       "the keeper (most content) wins, not fetch order")
+
+        let second = MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false)
+        XCTAssertEqual(second.created, 0)
+        XCTAssertTrue(second.updatedIDs.isEmpty,
+                      "repeat sweep is a NO-OP — no flip-flop between the divergent rows")
+        XCTAssertEqual(pf.transcript, "the considerably longer keeper transcript")
+    }
+
+    /// A healed pair (alive keeper + trashed, blob-detached clone) reconciles to the
+    /// keeper's content — the trashed clone never shadows it.
+    func testTrashedCloneNeverShadowsTheKeeper() throws {
+        let cloud = try cloudContext(), local = try localContext()
+        let id = UUID()
+        seedRow(cloud, id: id, transcript: "clone (already trashed by the phone)", deletedAt: Date(), withAsset: false)
+        seedRow(cloud, id: id, transcript: "keeper")
+        try cloud.save()
+
+        let outcome = MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false)
+        XCTAssertEqual(outcome.created, 1)
+        let pf = try XCTUnwrap((try? local.fetch(FetchDescriptor<PipelineFile>()))?.first)
+        XCTAssertEqual(pf.transcript, "keeper")
+        XCTAssertTrue(MemoCloudReconciler.sweep(from: cloud, into: local,
+                                                processEverything: false).updatedIDs.isEmpty)
+    }
 }
