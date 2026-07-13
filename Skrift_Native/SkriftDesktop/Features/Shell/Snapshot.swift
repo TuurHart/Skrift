@@ -30,6 +30,7 @@ enum Snapshot {
         if let p = path("-snapshot-names")          { MainActor.assumeIsolated { renderNames(to: p); exit(0) } }
         if let p = path("-snapshot-person-editor")  { MainActor.assumeIsolated { renderPersonEditor(to: p); exit(0) } }
         if let p = path("-snapshot-memolinks")      { MainActor.assumeIsolated { renderMemoLinks(to: p); exit(0) } }
+        if let p = path("-snapshot-journal")        { MainActor.assumeIsolated { renderJournal(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot")                { MainActor.assumeIsolated { renderReview(to: p); exit(0) } }
     }
@@ -66,15 +67,87 @@ enum Snapshot {
         .preferredColorScheme(.dark)
         .modelContainer(container)
 
+        hostPNG(view, size: NSSize(width: 940, height: 1581), to: path)
+    }
+
+    /// The Mac Journal (signed mock journal-desktop.html v2) over an injected demo
+    /// corpus — Looking-back cards, dot-density calendar, places, slim in-flight row.
+    /// Triggered by: `-snapshot-journal <path>`.
+    @MainActor private static func renderJournal(to path: String) {
+        let cal = Calendar.current
+        let now = Date()
+        func ago(days: Int = 0, months: Int = 0, years: Int = 0, hour: Int = 10) -> Date {
+            var d = cal.date(byAdding: .day, value: -days, to: now)!
+            d = cal.date(byAdding: .month, value: -months, to: d)!
+            d = cal.date(byAdding: .year, value: -years, to: d)!
+            return cal.date(bySettingHour: hour, minute: 12, second: 0, of: d) ?? d
+        }
+        func memo(_ title: String, _ transcript: String, at date: Date, sig: Double = 0,
+                  place: String? = nil, lat: Double = 38.71, lon: Double = -9.14,
+                  status: TranscriptStatus = .done, locked: Bool = false,
+                  duration: Double = 161) -> Memo {
+            let m = Memo(audioFilename: "memo_\(UUID().uuidString).m4a", duration: duration,
+                         recordedAt: date, title: title, transcript: transcript,
+                         transcriptStatus: status, transcriptConfidence: 0.9, significance: sig)
+            if let place {
+                m.metadata = MemoMetadata(location: LocationInfo(latitude: lat, longitude: lon, placeName: place))
+            }
+            m.locked = locked
+            return m
+        }
+        let memos: [Memo] = [
+            memo("Walking the Monsanto loop, product doubts",
+                 "Kept circling on whether the per-book capture pages are the wedge… the transcription is finally boring — which is the point.",
+                 at: ago(years: 1, hour: 9), sig: 0.7, place: "Monsanto trail", lat: 38.73, lon: -9.20),
+            memo("Late-night audiobook capture flow",
+                 "The quote + ramble pairing works. The reading mode should feel like an e-reader, not a player.",
+                 at: ago(months: 1, hour: 22), sig: 0.5, place: "Alfama, Lisbon"),
+            memo("Names model, re-derived",
+                 "Opt-out beats opt-in for a personal corpus — risk-tiering carries the rest.",
+                 at: ago(months: 3, hour: 14), sig: 0.8, place: "Good Friday HQ", lat: 38.72, lon: -9.15),
+            memo("Two apps, one contract",
+                 "The shared folder finally carries every wire struct. Next: the Mac honours the lock flag on export.",
+                 at: ago(hour: 8), sig: 0.8, place: "Good Friday HQ", lat: 38.72, lon: -9.15),
+            memo("Fado bar recommendation",
+                 "Shared from Maps with a voice ramble — the Tuesday sets are the ones.",
+                 at: ago(hour: 13), sig: 0.3, place: "Alfama, Lisbon"),
+            memo("", "", at: ago(hour: 17), status: .transcribing),   // in-flight → slim row
+            memo("Private thoughts", "should never show", at: ago(days: 1, hour: 21), sig: 0.4, locked: true),
+            memo("Café notes on the reading mode", "Margins, serif toggle, tap zones.",
+                 at: ago(days: 4, hour: 11), sig: 0.4, place: "Café Janis"),
+        ]
+        let model = AppModel()
+        model.surface = .journal
+        let view = JournalView(model: model, coordinator: ProcessingCoordinator(),
+                               injectedMemos: memos)
+            .frame(width: 1180, height: 940)
+            .background(Theme.bg)
+            .preferredColorScheme(.dark)
+        hostPNG(view, size: NSSize(width: 1180, height: 940), to: path)
+
+        // Second state: map mode (Places clicked) → <path>-map.png.
+        let mapModel = AppModel()
+        mapModel.surface = .journal
+        let mapView = JournalView(model: mapModel, coordinator: ProcessingCoordinator(),
+                                  injectedMemos: memos, debugStartInMap: true)
+            .frame(width: 1180, height: 940)
+            .background(Theme.bg)
+            .preferredColorScheme(.dark)
+        hostPNG(mapView, size: NSSize(width: 1180, height: 940),
+                to: (path as NSString).deletingPathExtension + "-map.png")
+    }
+
+    /// Offscreen HOSTED render (real AppKit — NSHostingView + cacheDisplay): the tool
+    /// for surfaces ImageRenderer can't draw (NSTextView bodies, MapKit views). Runs
+    /// the main runloop briefly so .task loads land before capture.
+    @MainActor private static func hostPNG<V: View>(_ view: V, size: NSSize, to path: String) {
         let host = NSHostingView(rootView: view)
-        host.frame = NSRect(x: 0, y: 0, width: 940, height: 1581)
+        host.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: host.frame, styleMask: [.borderless],
                               backing: .buffered, defer: false)
         window.contentView = host
         host.layoutSubtreeIfNeeded()
-        // Let the async pieces land (thumbnail splice is async; chips are sync, the
-        // backlinks .task needs a runloop turn).
-        RunLoop.main.run(until: Date().addingTimeInterval(1.0))
+        RunLoop.main.run(until: Date().addingTimeInterval(1.2))
         host.layoutSubtreeIfNeeded()
         guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: rep)

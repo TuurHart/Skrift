@@ -601,7 +601,12 @@ origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths on
 4. Verify: UnitTests scheme + full `-skipMacroValidation` build + `-snapshot` PNGs (see
    [[native-ui-verification]] memory: sidebar can't snapshot; live-drive via UITests if needed).
 
-**Board B — Journal on the Mac (mock v2 sections 1/1b are the spec):**
+**Board B — ✅ BUILT 2026-07-13 (chunks 1–5 in one pass; device/live eyeball owed):** shared
+`LookbackProvider` + `PlaceCluster` moved to `Shared/Pipeline/` FIRST (phone re-tested green — 677),
+then `JournalView.swift` to the mock: switch/rail/column/map-mode, cloud-store read-only w/
+`MemoDuplicates.canonicalRows`, in-flight slim row, locked = 🔒 title-only, `-snapshot-journal`
+hosted verification (lookback + map states eyeballed; annotation count-bubbles want a live-deploy
+look). Original spec follows:
 - Chunk order: (1) `Queue | Journal` mode switch (AppModel surface enum; RootView swaps the
   content pane; sidebar per mock). (2) SHARE FIRST, then build: move the phone's pure logic to
   `Shared/Pipeline/` — `LookbackProvider` (pure date math over [Memo]; Memo is shared) and the

@@ -1,6 +1,8 @@
 import Foundation
 
-/// "Looking back" logic for the Journal tab (P8, mock `journal-retrieval.html`).
+/// "Looking back" logic for the Journal surfaces (P8, mock `journal-retrieval.html`;
+/// desktop mock `journal-desktop.html`). SHARED: the Mac's Journal runs the SAME
+/// rules over the same synced memos — one provider, no drift.
 ///
 /// Generalizes On This Day for a young corpus: spaced lookbacks at 1/3/6/12
 /// months keep the tab alive from month one, and literal "On this day, <year>"
@@ -114,7 +116,7 @@ enum LookbackProvider {
                                 calendar: Calendar = .current, limit: Int = 4) -> [Memo] {
         guard let cutoff = calendar.date(byAdding: .day, value: -30, to: now) else { return [] }
         return memos
-            .filter { $0.significance >= WallPrinter.threshold && journalDate($0) >= cutoff }
+            .filter { $0.significance >= SignificanceScale.value(forStep: SignificanceScale.refineStep) && journalDate($0) >= cutoff }
             .sorted { journalDate($0) > journalDate($1) }
             .prefix(limit).map { $0 }
     }

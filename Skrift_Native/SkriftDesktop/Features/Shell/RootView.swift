@@ -21,16 +21,32 @@ struct RootView: View {
     private var activeFile: PipelineFile? { files.first { $0.id == model.activeID } }
 
     var body: some View {
-        HSplitView {
-            SidebarView(model: model, files: files, coordinator: coordinator,
-                        trashedCount: trashedFiles.count,
-                        onOpenSettings: { settingsOpen = true },
-                        onOpenTrash: { trashOpen = true })
-                .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
+        Group {
+            if model.surface == .journal {
+                // Journal (signed mock journal-desktop.html): rail + reading column.
+                // A card click jumps to that memo's row in the Queue when it exists.
+                JournalView(model: model, coordinator: coordinator, onOpenInQueue: { id in
+                    if files.contains(where: { $0.id == id }) {
+                        model.surface = .queue
+                        model.activeID = id
+                        model.selection = [id]
+                    } else {
+                        coordinator.flash("Not in the queue — this note hasn't been processed on the Mac")
+                    }
+                })
+            } else {
+                HSplitView {
+                    SidebarView(model: model, files: files, coordinator: coordinator,
+                                trashedCount: trashedFiles.count,
+                                onOpenSettings: { settingsOpen = true },
+                                onOpenTrash: { trashOpen = true })
+                        .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
 
-            NoteDisplayView(file: activeFile, coordinator: coordinator,
-                            onOpenMemo: { id in model.activeID = id; model.selection = [id] })
-                .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
+                    NoteDisplayView(file: activeFile, coordinator: coordinator,
+                                    onOpenMemo: { id in model.activeID = id; model.selection = [id] })
+                        .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
         }
         .frame(minWidth: 900, minHeight: 600)
         .background(Theme.bg)

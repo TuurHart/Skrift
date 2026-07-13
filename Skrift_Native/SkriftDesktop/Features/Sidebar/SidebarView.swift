@@ -30,6 +30,8 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            SurfaceSwitch(model: model)
+                .padding(.horizontal, 10).padding(.top, 10)
             header
             triageLine
             queue

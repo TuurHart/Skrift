@@ -32,6 +32,11 @@ enum SidebarSort: String, CaseIterable {
 @MainActor
 @Observable
 final class AppModel {
+    /// Which main surface fills the window: the processing Queue or the Journal
+    /// (mock journal-desktop.html — the Queue | Journal switch at the sidebar top).
+    enum MainSurface { case queue, journal }
+    var surface: MainSurface = .queue
+
     var filter: QueueFilter = .all
     /// Free-text query over the queue (title + transcript + summary). Empty = no filter.
     var searchText: String = ""
