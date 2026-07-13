@@ -210,6 +210,7 @@ struct BodyTextView: NSViewRepresentable {
                 string: model, attributes: [.font: BodyTextView.bodyFont, .foregroundColor: primary])
             tv.textStorage?.setAttributedString(attributed)
             spliceMemoLinkChips(tv)   // [[memo:UUID|Title]] → titled chip (model keeps the literal)
+            spliceTaskBoxes(tv)       // "- [ ]"/"- [x]" → toggleable checkbox (Obsidian task syntax)
             lastKaraoke = nil   // new text → force the next karaoke recolor
             // Refresh the roster used to color person links / resolve unlink (injected people
             // for snapshots, else the live names DB). Per-render, not per-keystroke.
@@ -305,6 +306,25 @@ struct BodyTextView: NSViewRepresentable {
             storage.endEditing()
         }
 
+        /// Replace every line-start `- [ ]` / `- [x]` with a toggleable checkbox
+        /// attachment (the phone's checklist idiom, shared `BodyTransform` syntax).
+        /// A click flips the box and writes the flipped syntax back through the
+        /// model — which persists AND rides the Part-B edit sync to the phone.
+        private func spliceTaskBoxes(_ tv: SelfSizingTextView) {
+            guard let storage = tv.textStorage else { return }
+            let tasks = BodyTransform.pieces(of: storage.string).filter {
+                if case .task = $0.segment { return true }; return false
+            }
+            guard !tasks.isEmpty else { return }
+            storage.beginEditing()
+            for piece in tasks.reversed() {
+                guard case .task(let checked) = piece.segment else { continue }
+                storage.replaceCharacters(in: piece.rawRange,
+                                          with: NSAttributedString(attachment: TaskBoxAttachment(checked: checked)))
+            }
+            storage.endEditing()
+        }
+
         private func splice(_ thumbs: [Int: NSImage], into tv: SelfSizingTextView) {
             guard let storage = tv.textStorage, let rx = BodyTextView.markerRegex else { return }
             let full = storage.string as NSString
@@ -338,9 +358,24 @@ struct BodyTextView: NSViewRepresentable {
             storage.removeAttribute(.toolTip, range: full)
             styleLeadingQuote(storage)
             // Memo-link chips: hover names the target (the chip shows the title only).
+            // Checked task lines: strike + mute the text after the box (Notes idiom).
+            storage.removeAttribute(.strikethroughStyle, range: full)
             storage.enumerateAttribute(.attachment, in: full) { value, range, _ in
                 if let chip = value as? MemoLinkChipAttachment {
                     storage.addAttribute(.toolTip, value: "Opens “\(chip.title)”", range: range)
+                } else if let box = value as? TaskBoxAttachment {
+                    storage.addAttribute(.toolTip,
+                        value: box.checked ? "Done — click to reopen" : "Click to check off",
+                        range: range)
+                    guard box.checked else { return }
+                    let ns = storage.string as NSString
+                    let line = ns.lineRange(for: NSRange(location: range.location, length: 0))
+                    let after = NSRange(location: NSMaxRange(range),
+                                        length: max(0, NSMaxRange(line) - NSMaxRange(range)))
+                    guard after.length > 0 else { return }
+                    storage.addAttribute(.strikethroughStyle,
+                                         value: NSUnderlineStyle.single.rawValue, range: after)
+                    storage.addAttribute(.foregroundColor, value: NSColor(Theme.textMuted), range: after)
                 }
             }
             // LINKED tier: a person `[[link]]` gets the accent-link color (#9d8ff7) + a
@@ -468,6 +503,8 @@ struct BodyTextView: NSViewRepresentable {
                 } else if let chip = value as? MemoLinkChipAttachment {
                     let len = (chip.literal as NSString).length
                     locs.append((modelLoc, len - 1)); modelLoc += len
+                } else if value is TaskBoxAttachment {
+                    locs.append((modelLoc, 4)); modelLoc += 5   // "- [ ]" → one glyph
                 } else {
                     modelLoc += range.length
                 }
@@ -495,6 +532,17 @@ struct BodyTextView: NSViewRepresentable {
             if let open = parent.onOpenMemoLink, idx < storage.length,
                let chip = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? MemoLinkChipAttachment {
                 open(chip.linkID)
+                return true
+            }
+            // Checklist box → toggle: flip the attachment, write the flipped syntax
+            // back through the model (persists + Part-B edit sync), restyle the line.
+            if idx < storage.length,
+               let box = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? TaskBoxAttachment {
+                storage.replaceCharacters(in: NSRange(location: idx, length: 1),
+                                          with: NSAttributedString(attachment: TaskBoxAttachment(checked: !box.checked)))
+                parent.text = modelString(tv)
+                restyle(tv)
+                tv.invalidateIntrinsicContentSize()
                 return true
             }
             // SUGGESTED (dotted) name → the which-person popover (state 2). Checked first so a
@@ -596,6 +644,8 @@ struct BodyTextView: NSViewRepresentable {
                     out += String(format: "[[img_%03d]]", att.imgNumber)
                 } else if let chip = value as? MemoLinkChipAttachment {
                     out += chip.literal
+                } else if let box = value as? TaskBoxAttachment {
+                    out += BodyTransform.rawTask(checked: box.checked)
                 } else {
                     out += storage.attributedSubstring(from: range).string
                 }
@@ -754,6 +804,44 @@ final class ImageMarkerAttachment: NSTextAttachment {
     let imgNumber: Int
     init(imgNumber: Int) { self.imgNumber = imgNumber; super.init(data: nil, ofType: nil) }
     required init?(coder: NSCoder) { self.imgNumber = 0; super.init(coder: coder) }
+}
+
+/// A checklist checkbox standing in for a line-start `- [ ]` / `- [x]` (the shared
+/// `BodyTransform` task syntax). One storage char; `modelString` reconstructs the
+/// raw prefix, so a toggle is a real text edit that exports + syncs.
+final class TaskBoxAttachment: NSTextAttachment {
+    let checked: Bool
+
+    init(checked: Bool) {
+        self.checked = checked
+        super.init(data: nil, ofType: nil)
+        let img = Self.boxImage(checked: checked)
+        image = img
+        bounds = CGRect(x: 0, y: -3.5, width: img.size.width, height: img.size.height)
+    }
+
+    required init?(coder: NSCoder) { self.checked = false; super.init(coder: coder) }
+
+    private static func boxImage(checked: Bool) -> NSImage {
+        let size = NSSize(width: 17, height: 17)
+        return NSImage(size: size, flipped: false) { rect in
+            let box = NSBezierPath(roundedRect: rect.insetBy(dx: 1.5, dy: 1.5), xRadius: 4.5, yRadius: 4.5)
+            if checked {
+                NSColor(Theme.accent).setFill(); box.fill()
+                let check = NSBezierPath()
+                check.move(to: NSPoint(x: 5, y: 8.6))
+                check.line(to: NSPoint(x: 7.4, y: 6.2))
+                check.line(to: NSPoint(x: 12.2, y: 11.2))
+                NSColor.white.setStroke()
+                check.lineWidth = 1.8; check.lineCapStyle = .round; check.lineJoinStyle = .round
+                check.stroke()
+            } else {
+                NSColor(Theme.textMuted).withAlphaComponent(0.55).setStroke()
+                box.lineWidth = 1.4; box.stroke()
+            }
+            return true
+        }
+    }
 }
 
 /// A memo↔memo link rendered as an atomic titled chip (the phone's idiom — the raw

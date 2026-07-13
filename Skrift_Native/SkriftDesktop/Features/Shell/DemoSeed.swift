@@ -84,6 +84,11 @@ enum DemoSeed {
         Idea: keep the body exactly what exports to Obsidian — brackets visible, karaoke on the real words. If Sam can test it next week, even better.
 
         Same trust-gate reasoning as [[memo:9E8B7C6D-1111-4222-8333-444455556666|Late-night audiobook capture flow]] — worth re-reading before the build.
+
+        Prep before the push:
+        - [x] Bump the build number
+        - [ ] Archive from Organizer (CLI export fails)
+        - [ ] Verify vocab sync on both devices
         """
         f1.enhancedCopyedit = f1.sanitised
         f1.tags = ["work", "ideas"]

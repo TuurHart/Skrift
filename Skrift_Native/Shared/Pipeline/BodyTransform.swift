@@ -1,6 +1,9 @@
 import Foundation
 
-/// The ONE raw⇄display transform for the note body: scans the raw text for
+/// The ONE raw⇄display transform for the note body — SHARED: the phone's editor
+/// and the Mac's body render the same tokens (photo markers, task prefixes,
+/// memo-link chips) from the same raw text, so the two displays can't drift.
+/// Scans the raw text for
 /// inline `[[img_NNN]]` photo markers AND `- [ ]` / `- [x]` task prefixes
 /// (line-start, Obsidian syntax), so the attributed builder and the raw↔display
 /// offset mapping can never drift apart (they were separate implementations

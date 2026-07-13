@@ -590,12 +590,12 @@ origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths on
    an offscreen NSHostingView + in-memory store (ImageRenderer can't) — chip + strip both
    eyeballed. GOTCHA fixed en route: `.task` on empty conditional content never fires (the strip
    kept itself empty) — keep a zero-height clear view rendered. `[[` creation picker still owed.
-2. **Live checklists**: render `- [ ]` / `- [x]` lines as toggleable rows. A toggle must edit the
-   SOURCE text (enhancedCopyedit if present, else transcript — the same precedence
-   `MemoCloudUpdate.resanitiseAndCompile` uses), re-derive, and push via the existing
-   `MacCloudEditSync.shared.note(file)` so the phone sees it. Mirror the phone's toggle semantics
-   in `SkriftMobile/Features/MemoDetail/BodyTransform.swift` — do NOT reinvent the line parse;
-   consider moving that pure line-toggle math to `Shared/Pipeline/` first (Board C pattern).
+2. ✅ **DONE 2026-07-13 — live checklists on the Mac.** `BodyTransform` (the ONE raw⇄display token
+   scan: tasks + img markers + memo-links) MOVED to `Shared/Pipeline/` first (phone re-green, 677);
+   desktop `TaskBoxAttachment` renders `- [ ]`/`- [x]` as toggleable checkboxes (checked = strike +
+   muted line), a click flips the box and writes the flipped syntax back through `modelString` →
+   `bodyBinding` → persists + `MacCloudEditSync` push (the phone sees the toggle). Hosted-snapshot
+   verified. Return-continuation stays phone-only for now.
 3. **PDF-inline capture display** in `Features/Review/CaptureViews.swift` (phone's signed variant A;
    mock panel 4). Render first page via PDFKit thumbnail + filename bar + Open.
 4. Verify: UnitTests scheme + full `-skipMacroValidation` build + `-snapshot` PNGs (see
