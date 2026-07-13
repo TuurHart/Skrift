@@ -646,14 +646,12 @@ per commit, both suites green each time — the round-1 recipe):**
 0b. **NEW · shared lazy-RMS helper**: 9d82c9b hand-mirrored the "full-file RMS decode only for tiny
    transcripts" logic into BOTH TranscriptionServices — `averageRMS` + the lazy gate is now a fresh
    drift surface; extract to `Shared/Pipeline/` (AVFoundation is fine on both platforms).
-1. **SpeakerTranscript → Shared** (highest value: the SHARED `Sanitiser` ~line 351 calls
-   `SpeakerTranscript.parseWithPreamble`, which today resolves to PER-APP twins — desktop
-   `Pipeline/Diarization/Diarizing.swift`, mobile `Features/MemoDetail/SpeakerTurnsView.swift`;
-   same regex, different helper sets). Reconcile `Turn`: desktop's is plain `{name,text}` Equatable
-   (tests compare Turns!), mobile's adds `id = UUID()` for ForEach — give the shared Turn a custom
-   `==` that ignores `id`, or keep id out of Shared and let mobile wrap. Superset the helpers
-   (desktop: isAttributed/flattened/mergeAdjacentTurns; mobile: withPreamble/isUnnamed/speakers/
-   setText/reassign — all pure, all belong in Shared).
+1. ✅ **DONE 2026-07-13 — SpeakerTranscript → Shared** (`Shared/Pipeline/SpeakerTranscript.swift`,
+   both twins deleted): the shared Sanitiser now parses conversations through ONE type. Turn =
+   Identifiable + content-only `==` (id ignored — desktop's equality tests pass, mobile's ForEach
+   works). Helper union, and the drift got FIXED in the merge rule: empty-safe join (Mac's rule) +
+   preamble preservation (phone's rule — the Mac's twin used to DROP a leading [[img]] preamble on
+   mergeAdjacentTurns). Both suites green (351/677) + full MLX build.
 2. **LockGate → Shared** (my 2026-07-07 twins: `#if canImport(UIKit)` picks the resign
    notification; unify the key on the memo-UUID String).
 3. **PDF text-extract → Shared/Pipeline** (phone impl inside
