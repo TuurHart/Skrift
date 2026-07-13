@@ -574,7 +574,10 @@ polish round on the physical print. Original design (still the spec):
 
 **Read this first.** The A-list shipped 2026-07-07 (section below). What remains is three boards, all
 **GATE (1) CLEARED — mock v2 ✅ SIGNED OFF 2026-07-11 (Tuur): `mocks/journal-desktop.html` IS the
-spec for Boards A+B.** Remaining gate: (2) check no other chat is mid-flight
+spec for Boards A+B.** Gate (2) ALSO CLEARED 2026-07-13 — Tuur confirmed all lanes done; verified: no
+live lane branches, board-cited files all present on main, desktop trunk build fixed (744cc0f),
+FluidAudio pinned 7f963cdc. BUILD FROM CURRENT origin/main (base-proof: MemoDeduper.swift exists).
+Stale-gate check for any future session: (2) check no other chat is mid-flight
 before touching app code (`git worktree list` + `git branch -a --sort=-committerdate`, merge
 origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths only).
 
@@ -612,8 +615,20 @@ origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths on
 - Respect the flag: journal is read-only — never mutate Memos from the Mac journal (the Mac's
   write path stays MemoEnhancement/edit-sync only).
 
-**Board C — SharedKit round 2 (safe when lanes are quiet; ONE chunk per commit, both suites green
-each time — the round-1 recipe):**
+**Board C — SharedKit round 2 (UNBLOCKED 2026-07-13: all lanes done, no live branches; ONE chunk
+per commit, both suites green each time — the round-1 recipe):**
+0. **NEW · Mac sweep must become duplicate-tolerant (do FIRST — contract hardening, small).** The
+   2026-07-12 incident put SAME-ID clone Memo rows in the iCloud DB (phone side now heals via
+   `MemoDeduper`: keeper = most content; clones detached-then-trashed; differing-content rows left
+   alone). The Mac's `MemoCloudReconciler.sweep` iterates raw rows — with same-id duplicates it
+   applies/updates the ONE PipelineFile once per row (churn if contents differ), and a TRASHED
+   clone row can hit the delete path while the keeper is alive (pf delete → re-ingest flap).
+   Fix: group fetched memos by id first and pick the keeper with `MemoDeduper`'s exact rule
+   (consider moving that pure keeper/score logic into `Shared/Pipeline/` and calling it from both) —
+   host-less test: two same-id rows (one trashed clone) → ONE stable pf, no delete flap.
+0b. **NEW · shared lazy-RMS helper**: 9d82c9b hand-mirrored the "full-file RMS decode only for tiny
+   transcripts" logic into BOTH TranscriptionServices — `averageRMS` + the lazy gate is now a fresh
+   drift surface; extract to `Shared/Pipeline/` (AVFoundation is fine on both platforms).
 1. **SpeakerTranscript → Shared** (highest value: the SHARED `Sanitiser` ~line 351 calls
    `SpeakerTranscript.parseWithPreamble`, which today resolves to PER-APP twins — desktop
    `Pipeline/Diarization/Diarizing.swift`, mobile `Features/MemoDetail/SpeakerTurnsView.swift`;
