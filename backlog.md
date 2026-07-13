@@ -3223,3 +3223,7 @@ in its backlog); duplicate idea id i5 → print-to-wall is now **i8**; i4 remove
 new idea **i9** = Tuur voice-over easter egg (tap About ~3×, everything goes weird); SSOT §4 Mac + P8
 flipped done; STANDALONE_PLAN Phase 8 header marked done; stale NFeat desktop items pruned
 (lock gate / link resolver / OCR search shipped in DParityA; body parity → DParityB).
+**v18 history fix (2026-07-13):** H_rn re-ordered AFTER the Electron desktop (Tuur: the phone
+companion came later — both sat at order -1.92); new first node **H_whisper** = the undated
+pre-repo whisper-fork tinkering (from memory, no dates). Hub-side: lane bands now absorb
+fractional rows into their parent lane (Tiuri-Command-Center PRs #82/#83).

@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 17
-updated: 2026-07-12T20:50:00.000Z
+version: 18
+updated: 2026-07-13T06:55:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -773,11 +773,21 @@ nodes:
     via: P11
     note: Fast-follow — own target + review. (User has no Watch.)
     win: one-tap Watch capture with presets, past App Store review
+  - id: H_whisper
+    title: Whisper-fork tinkering — the itch
+    lane: 0.55
+    order: -2.15
+    status: done
+    note: "Undated pre-history (before the 2025-10-18 initial commit): messing
+      with different whisper forks to transcribe voice memos — the experiments
+      that became the Electron transcription desktop. No repo, no dates;
+      recorded from memory (Tuur, 2026-07-13)."
   - id: H_elec
     title: Electron + Python — the transcription desktop
     lane: 0.55
     order: -1.92
     status: done
+    via: H_whisper
     note: "2025-10-18 → 2026-03-20 — the genesis app: React UI, Python FastAPI
       backend, batch pipeline. Everything downstream reacts to it. Archived
       intact under archive/."
@@ -834,7 +844,7 @@ nodes:
   - id: H_rn
     title: React Native iPhone companion — capture to sync
     lane: -0.55
-    order: -1.92
+    order: -1.5
     status: done
     note: "2026-04-02 → 2026-04-03 — five phases in two days: record, playback,
       phone→Mac sync, Lock Screen widget, skrift://record. The two-app
