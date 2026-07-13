@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import SwiftData
 
 /// The review surface (right pane): breadcrumb → pinned toolbar bar (transport +
 /// actions) → scrollable note content. The properties block, resolver, and the
@@ -11,6 +12,9 @@ struct NoteDisplayView: View {
     /// Snapshot mode renders the body without a ScrollView (ImageRenderer can't lay
     /// out scroll contents). The live app keeps `true` for real scrolling.
     var scrollable = true
+    /// Navigate to another memo's row (memo-link chip / LINKED FROM) — wired by
+    /// RootView to the AppModel selection; nil on snapshot hosts → inert.
+    var onOpenMemo: ((String) -> Void)? = nil
     @Environment(\.modelContext) private var ctx
     @State private var audio = AudioController()
     @State private var author = SettingsStore.shared.load().authorName
@@ -128,7 +132,11 @@ struct NoteDisplayView: View {
                      onSuggestionPlain: scrollable ? { a in plainName(file, alias: a) } : nil,
                      onLinkedUnlink: scrollable ? { c in unlinkName(file, canonical: c) } : nil,
                      onLinkedChange: scrollable ? { a, c in changeName(file, alias: a, newCanonical: c) } : nil,
-                     onOpenNote: scrollable ? { c in openNote(c) } : nil)
+                     onOpenNote: scrollable ? { c in openNote(c) } : nil,
+                     onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } })
+            if scrollable, let onOpenMemo {
+                MemoBacklinks(file: file, openMemo: onOpenMemo)
+            }
         }
     }
 
@@ -412,5 +420,67 @@ struct NoteDisplayView: View {
         guard file.sourceType != .note else { return false }
         if file.durationSeconds > 0 { return true }
         return !file.path.isEmpty && FileManager.default.fileExists(atPath: file.path)
+    }
+}
+
+/// "LINKED FROM" — the notes whose body links to THIS memo (`[[memo:<id>|…]]`),
+/// newest first (phone chunk-5 parity; mock panel 3). Refreshed per note switch;
+/// a plain contains-scan over the queue is instant at this scale.
+private struct MemoBacklinks: View {
+    let file: PipelineFile
+    var openMemo: (String) -> Void
+    @Environment(\.modelContext) private var ctx
+    @State private var rows: [(id: String, title: String, date: Date)] = []
+
+    var body: some View {
+        // The strip must stay a REAL view even with no rows — `.task` never fires on
+        // empty conditional content (the chicken-and-egg that hid the first render).
+        content
+            .task(id: file.id) { refresh() }
+    }
+
+    @ViewBuilder private var content: some View {
+        if rows.isEmpty {
+            Color.clear.frame(height: 0)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("LINKED FROM")
+                    .font(.system(size: 10, weight: .semibold)).tracking(0.5)
+                    .foregroundStyle(Theme.textMuted)
+                    .padding(.bottom, 3)
+                ForEach(rows, id: \.id) { row in
+                    Button { openMemo(row.id) } label: {
+                        HStack(spacing: 8) {
+                            Text("↩").font(.system(size: 12)).foregroundStyle(Theme.accent)
+                            Text(row.title).font(.system(size: 12.5))
+                                .foregroundStyle(Theme.textSecondary).lineLimit(1)
+                            Spacer()
+                            Text(row.date.formatted(date: .abbreviated, time: .omitted))
+                                .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .background(Theme.hairline.opacity(0.03), in: RoundedRectangle(cornerRadius: 7))
+                    .help("Open “\(row.title)”")
+                }
+            }
+            .padding(.top, 4)
+            .overlay(alignment: .top) { Divider().overlay(Theme.hairline.opacity(0.08)) }
+        }
+    }
+
+    private func refresh() {
+        let needle = "memo:\(file.id)"
+        let all: [PipelineFile] = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        var found: [(id: String, title: String, date: Date)] = []
+        for f in all where f.id != file.id {
+            let body = f.sanitised ?? f.enhancedCopyedit ?? f.transcript ?? ""
+            if body.contains(needle) {
+                found.append((id: f.id, title: f.queueTitle, date: f.uploadedAt))
+            }
+        }
+        rows = found.sorted { $0.date > $1.date }
     }
 }

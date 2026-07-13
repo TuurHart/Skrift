@@ -82,6 +82,8 @@ enum DemoSeed {
         Later Jack texted that the build's green again. De transcription en de enhancement draaien al, dus de vraag is echt hoe de review-kant aanvoelt.
 
         Idea: keep the body exactly what exports to Obsidian — brackets visible, karaoke on the real words. If Sam can test it next week, even better.
+
+        Same trust-gate reasoning as [[memo:9E8B7C6D-1111-4222-8333-444455556666|Late-night audiobook capture flow]] — worth re-reading before the build.
         """
         f1.enhancedCopyedit = f1.sanitised
         f1.tags = ["work", "ideas"]
@@ -156,6 +158,17 @@ enum DemoSeed {
         f6.transcribeStatus = .done; f6.sanitiseStatus = .done; f6.enhanceStatus = .done; f6.exportStatus = .done
         f6.enhancedTitle = "Groceries en het plan"
 
-        return [f1, f2, f3, f4, f5, f6]
+        // 7 — Memo-link TARGET (fixed UUID id so f1's [[memo:…]] chip resolves and this
+        // note's LINKED FROM strip lists f1). UUID-string id like a real synced memo.
+        let f7 = PipelineFile(id: "9E8B7C6D-1111-4222-8333-444455556666",
+                              filename: "Voice Memo 22-30.m4a", sourceType: .audio,
+                              uploadedAt: date(2026, 6, 7, 22))
+        f7.transcribeStatus = .done; f7.sanitiseStatus = .done; f7.enhanceStatus = .done
+        f7.enhancedTitle = "Late-night audiobook capture flow"
+        f7.titleSuggested = f7.enhancedTitle
+        f7.sanitised = "The quote + ramble pairing works. The reading mode should feel like an e-reader, not a player."
+        f7.audioMetadataJSON = meta(["duration": "00:04:07"])
+
+        return [f1, f2, f3, f4, f5, f6, f7]
     }
 }

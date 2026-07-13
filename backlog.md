@@ -582,12 +582,14 @@ before touching app code (`git worktree list` + `git branch -a --sort=-committer
 origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths only).
 
 **Board A — B-list body parity (desktop), mock panels 3/4 are the spec:**
-1. **Memo-link chips + LINKED FROM** in the Mac body: extend the styled-[[links]] pass in
-   `Features/Review/BodyTextView.swift`/`NoteBody.swift` to match `MemoLinkSyntax.occurrences` —
-   render the TITLE as a chip (never the UUID), click → select that row (id = UUID string).
-   Backlinks strip under the body: fetch PipelineFiles whose working text contains
-   `memo:<thisID>` (cheap contains-scan is fine at this scale). v1 is READ-ONLY — creating
-   links stays a phone gesture until the Mac editor grows a `[[` picker.
+1. ✅ **DONE 2026-07-13 — memo-link chips + LINKED FROM.** Atomic `MemoLinkChipAttachment`
+   (rides the img-marker attachment machinery — `modelString` reconstructs the literal, offset
+   math generalized to variable-length attachments); click → `onOpenMemo` → AppModel selection;
+   `MemoBacklinks` strip under the body (contains-scan, newest first). Demo seed grew a fixed-UUID
+   link pair; NEW verification tool: `-snapshot-memolinks` renders the LIVE NSTextView editor via
+   an offscreen NSHostingView + in-memory store (ImageRenderer can't) — chip + strip both
+   eyeballed. GOTCHA fixed en route: `.task` on empty conditional content never fires (the strip
+   kept itself empty) — keep a zero-height clear view rendered. `[[` creation picker still owed.
 2. **Live checklists**: render `- [ ]` / `- [x]` lines as toggleable rows. A toggle must edit the
    SOURCE text (enhancedCopyedit if present, else transcript — the same precedence
    `MemoCloudUpdate.resanitiseAndCompile` uses), re-derive, and push via the existing

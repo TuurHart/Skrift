@@ -22,6 +22,8 @@ struct NoteBody: View {
     var onLinkedUnlink: ((String) -> Void)? = nil
     var onLinkedChange: ((String, String) -> Void)? = nil
     var onOpenNote: ((String) -> Void)? = nil
+    /// Memo↔memo link chip clicked → open that memo (nil = inert chips).
+    var onOpenMemoLink: ((UUID) -> Void)? = nil
 
     private static let bodyFont = Font.system(size: 16)
     private static let bodyLineSpacing: CGFloat = 6
@@ -115,6 +117,7 @@ struct NoteBody: View {
             onLinkedUnlink: karaokeActive ? nil : onLinkedUnlink,
             onLinkedChange: karaokeActive ? nil : onLinkedChange,
             onOpenNote: karaokeActive ? nil : onOpenNote,
+            onOpenMemoLink: karaokeActive ? nil : onOpenMemoLink,
             karaoke: karaokeActive ? karaokePlayback : nil,
             quoteAttribution: file.bookCapture?.attribution
         )

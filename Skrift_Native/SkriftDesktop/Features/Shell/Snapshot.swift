@@ -1,6 +1,7 @@
 #if DEBUG
 import SwiftUI
 import AppKit
+import SwiftData
 
 /// Headless visual verification. Renders a view to a PNG via `ImageRenderer` and
 /// exits — no window, no Screen Recording permission. Modes:
@@ -28,8 +29,57 @@ enum Snapshot {
         if let p = path("-snapshot-trash")          { MainActor.assumeIsolated { renderTrash(to: p); exit(0) } }
         if let p = path("-snapshot-names")          { MainActor.assumeIsolated { renderNames(to: p); exit(0) } }
         if let p = path("-snapshot-person-editor")  { MainActor.assumeIsolated { renderPersonEditor(to: p); exit(0) } }
+        if let p = path("-snapshot-memolinks")      { MainActor.assumeIsolated { renderMemoLinks(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot")                { MainActor.assumeIsolated { renderReview(to: p); exit(0) } }
+    }
+
+    /// Memo-link chips + the LINKED FROM strip need the LIVE editor path (NSTextView) —
+    /// ImageRenderer draws a placeholder for NSViewRepresentable, so this render is
+    /// HOSTED: an offscreen `NSHostingView` (real AppKit) + `cacheDisplay`, with an
+    /// in-memory store so the backlinks fetch works. Triggered by:
+    /// `-snapshot-memolinks <path>` (the tool for any future NSTextView-backed surface).
+    @MainActor private static func renderMemoLinks(to path: String) {
+        guard let container = try? ModelContainer(
+            for: PipelineFile.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
+        else { return }
+        let ctx = container.mainContext
+        for f in DemoSeed.snapshotFiles() { ctx.insert(f) }
+        try? ctx.save()
+        let all = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        guard let source = all.first(where: { $0.id == "demo-1" }),
+              let target = all.first(where: { $0.id == "9E8B7C6D-1111-4222-8333-444455556666" })
+        else { return }
+
+        // Source (chip in the body, tall pane so nothing clips) stacked over the
+        // target (short — its LINKED FROM strip must list the source).
+        let view = VStack(spacing: 0) {
+            NoteDisplayView(file: source, coordinator: ProcessingCoordinator(), onOpenMemo: { _ in })
+                .frame(height: 880)
+            Divider().overlay(Theme.accent.opacity(0.4))
+            NoteDisplayView(file: target, coordinator: ProcessingCoordinator(), onOpenMemo: { _ in })
+                .frame(height: 700)
+        }
+        .frame(width: 940, height: 1581)
+        .background(Theme.bg)
+        .preferredColorScheme(.dark)
+        .modelContainer(container)
+
+        let host = NSHostingView(rootView: view)
+        host.frame = NSRect(x: 0, y: 0, width: 940, height: 1581)
+        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless],
+                              backing: .buffered, defer: false)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        // Let the async pieces land (thumbnail splice is async; chips are sync, the
+        // backlinks .task needs a runloop turn).
+        RunLoop.main.run(until: Date().addingTimeInterval(1.0))
+        host.layoutSubtreeIfNeeded()
+        guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
+        host.cacheDisplay(in: host.bounds, to: rep)
+        try? rep.representation(using: NSBitmapImageRep.FileType.png, properties: [:])?
+            .write(to: URL(fileURLWithPath: path))
     }
 
     @MainActor private static func renderReview(to path: String, scheme: ColorScheme = .dark) {

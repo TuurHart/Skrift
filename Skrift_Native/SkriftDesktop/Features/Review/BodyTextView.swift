@@ -40,6 +40,9 @@ struct BodyTextView: NSViewRepresentable {
     var onLinkedUnlink: ((_ canonical: String) -> Void)? = nil
     var onLinkedChange: ((_ alias: String, _ newCanonical: String) -> Void)? = nil
     var onOpenNote: ((_ canonical: String) -> Void)? = nil
+    /// Memo↔memo link chip clicked (phone chunk-5 parity) — open that memo in the
+    /// detail pane. nil on read-only hosts → the chip still renders, just inert.
+    var onOpenMemoLink: ((_ id: UUID) -> Void)? = nil
     /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
     /// THIS text view (no renderer swap → no reflow) + click-a-word-to-seek.
     var karaoke: KaraokePlayback? = nil
@@ -206,6 +209,7 @@ struct BodyTextView: NSViewRepresentable {
             let attributed = NSMutableAttributedString(
                 string: model, attributes: [.font: BodyTextView.bodyFont, .foregroundColor: primary])
             tv.textStorage?.setAttributedString(attributed)
+            spliceMemoLinkChips(tv)   // [[memo:UUID|Title]] → titled chip (model keeps the literal)
             lastKaraoke = nil   // new text → force the next karaoke recolor
             // Refresh the roster used to color person links / resolve unlink (injected people
             // for snapshots, else the live names DB). Per-render, not per-keystroke.
@@ -282,6 +286,25 @@ struct BodyTextView: NSViewRepresentable {
             }
         }
 
+        /// Replace every `[[memo:UUID|Title]]` with an atomic chip attachment showing
+        /// the TITLE (the raw syntax/UUID never renders — the phone's chip idiom).
+        /// Synchronous (pure drawing, no IO); `modelString` reconstructs the literal,
+        /// so the model/export keep the exact syntax and deleting a chip deletes the
+        /// whole link atomically.
+        private func spliceMemoLinkChips(_ tv: SelfSizingTextView) {
+            guard let storage = tv.textStorage else { return }
+            let occs = MemoLinkSyntax.occurrences(in: storage.string)
+            guard !occs.isEmpty else { return }
+            let ns = storage.string as NSString
+            storage.beginEditing()
+            for occ in occs.reversed() {
+                let att = MemoLinkChipAttachment(literal: ns.substring(with: occ.range),
+                                                 linkID: occ.id, title: occ.title)
+                storage.replaceCharacters(in: occ.range, with: NSAttributedString(attachment: att))
+            }
+            storage.endEditing()
+        }
+
         private func splice(_ thumbs: [Int: NSImage], into tv: SelfSizingTextView) {
             guard let storage = tv.textStorage, let rx = BodyTextView.markerRegex else { return }
             let full = storage.string as NSString
@@ -314,6 +337,12 @@ struct BodyTextView: NSViewRepresentable {
             storage.removeAttribute(.underlineColor, range: full)
             storage.removeAttribute(.toolTip, range: full)
             styleLeadingQuote(storage)
+            // Memo-link chips: hover names the target (the chip shows the title only).
+            storage.enumerateAttribute(.attachment, in: full) { value, range, _ in
+                if let chip = value as? MemoLinkChipAttachment {
+                    storage.addAttribute(.toolTip, value: "Opens “\(chip.title)”", range: range)
+                }
+            }
             // LINKED tier: a person `[[link]]` gets the accent-link color (#9d8ff7) + a
             // click-to-unlink hover tooltip; other wiki-links (places, etc.) keep the plain accent.
             if let rx = BodyTextView.linkRegex {
@@ -415,7 +444,7 @@ struct BodyTextView: NSViewRepresentable {
             let ns = storage.string as NSString
             var out: [(AmbiguousOccurrence, NSRange)] = []
             for occ in parent.suggested {
-                let shift = locs.reduce(0) { $0 + ($1 < occ.offset ? 10 : 0) }
+                let shift = locs.reduce(0) { $0 + ($1.loc < occ.offset ? $1.shift : 0) }
                 let loc = occ.offset - shift
                 guard loc >= 0, loc + occ.length <= ns.length else { continue }
                 let r = NSRange(location: loc, length: occ.length)
@@ -427,14 +456,21 @@ struct BodyTextView: NSViewRepresentable {
             return out
         }
 
-        /// Model-string start locations of each image attachment (each is the 11-char
-        /// `[[img_NNN]]` marker in the model but one char in storage), ascending.
-        private func attachmentModelLocs(_ storage: NSTextStorage) -> [Int] {
-            var locs: [Int] = []
+        /// Model-string start location + storage-shift of each attachment, ascending.
+        /// An image attachment stands for the 11-char `[[img_NNN]]` marker (shift 10);
+        /// a memo-link chip stands for its variable-length literal (shift len-1).
+        private func attachmentModelLocs(_ storage: NSTextStorage) -> [(loc: Int, shift: Int)] {
+            var locs: [(Int, Int)] = []
             var modelLoc = 0
             storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
-                if value is ImageMarkerAttachment { locs.append(modelLoc); modelLoc += 11 }
-                else { modelLoc += range.length }
+                if value is ImageMarkerAttachment {
+                    locs.append((modelLoc, 10)); modelLoc += 11
+                } else if let chip = value as? MemoLinkChipAttachment {
+                    let len = (chip.literal as NSString).length
+                    locs.append((modelLoc, len - 1)); modelLoc += len
+                } else {
+                    modelLoc += range.length
+                }
             }
             return locs
         }
@@ -455,6 +491,12 @@ struct BodyTextView: NSViewRepresentable {
                 return false
             }
             guard let storage = tv.textStorage else { return false }
+            // Memo-link chip → open that memo in the detail pane (read-only v1).
+            if let open = parent.onOpenMemoLink, idx < storage.length,
+               let chip = storage.attribute(.attachment, at: idx, effectiveRange: nil) as? MemoLinkChipAttachment {
+                open(chip.linkID)
+                return true
+            }
             // SUGGESTED (dotted) name → the which-person popover (state 2). Checked first so a
             // suggestion inside a link-free span wins; a fresh names read keeps candidates current.
             if parent.onSuggestionPick != nil {
@@ -544,13 +586,16 @@ struct BodyTextView: NSViewRepresentable {
             return r
         }
 
-        /// Reconstruct the model string: image attachments → `[[img_NNN]]`, rest verbatim.
+        /// Reconstruct the model string: image attachments → `[[img_NNN]]`, memo-link
+        /// chips → their literal `[[memo:UUID|Title]]`, rest verbatim.
         func modelString(_ tv: SelfSizingTextView) -> String {
             guard let storage = tv.textStorage else { return tv.string }
             var out = ""
             storage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: storage.length)) { value, range, _ in
                 if let att = value as? ImageMarkerAttachment {
                     out += String(format: "[[img_%03d]]", att.imgNumber)
+                } else if let chip = value as? MemoLinkChipAttachment {
+                    out += chip.literal
                 } else {
                     out += storage.attributedSubstring(from: range).string
                 }
@@ -709,6 +754,53 @@ final class ImageMarkerAttachment: NSTextAttachment {
     let imgNumber: Int
     init(imgNumber: Int) { self.imgNumber = imgNumber; super.init(data: nil, ofType: nil) }
     required init?(coder: NSCoder) { self.imgNumber = 0; super.init(coder: coder) }
+}
+
+/// A memo↔memo link rendered as an atomic titled chip (the phone's idiom — the raw
+/// `[[memo:UUID|Title]]` never shows). Remembers its LITERAL so `modelString`
+/// reconstructs the exact syntax; one storage char, so deleting it removes the whole
+/// link and the caret can't land inside the UUID.
+final class MemoLinkChipAttachment: NSTextAttachment {
+    let literal: String
+    let linkID: UUID
+    let title: String
+
+    init(literal: String, linkID: UUID, title: String) {
+        self.literal = literal
+        self.linkID = linkID
+        self.title = title
+        super.init(data: nil, ofType: nil)
+        let img = Self.chipImage(title: title.isEmpty ? "Untitled" : title)
+        image = img
+        // Sit the chip on the text baseline (slight descend so it optically centers
+        // in a 16pt body line).
+        bounds = CGRect(x: 0, y: -5, width: img.size.width, height: img.size.height)
+    }
+
+    required init?(coder: NSCoder) {
+        self.literal = ""; self.linkID = UUID(); self.title = ""
+        super.init(coder: coder)
+    }
+
+    /// The chip: rounded accent-tinted capsule, 🗒 + title (mock panel 3's idiom).
+    private static func chipImage(title: String) -> NSImage {
+        let font = NSFont.systemFont(ofSize: 12.5, weight: .medium)
+        let label = "🗒 \(title)" as NSString
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: font, .foregroundColor: NSColor(Theme.nameLink),
+        ]
+        let tsize = label.size(withAttributes: attrs)
+        let padH: CGFloat = 8
+        let size = NSSize(width: ceil(tsize.width) + padH * 2, height: 21)
+        return NSImage(size: size, flipped: false) { rect in
+            let accent = NSColor(Theme.nameLink)
+            let path = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: 6, yRadius: 6)
+            accent.withAlphaComponent(0.13).setFill(); path.fill()
+            accent.withAlphaComponent(0.35).setStroke(); path.lineWidth = 1; path.stroke()
+            label.draw(at: NSPoint(x: padH, y: (rect.height - tsize.height) / 2), withAttributes: attrs)
+            return true
+        }
+    }
 }
 
 /// NSTextView that reports its laid-out height as `intrinsicContentSize` (so SwiftUI
