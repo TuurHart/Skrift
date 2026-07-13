@@ -257,20 +257,27 @@ enum Snapshot {
     /// Triggered by: `-snapshot-capture <path>`
     @MainActor private static func renderCapture(to path: String, scheme: ColorScheme = .dark) {
         let files = DemoSeed.snapshotFiles()
-        // The contract url fixture is "demo-capture-url" (see DemoSeed).
-        let captureFile = files.first { $0.id == "demo-capture-url" } ?? files.first
+        // The contract url fixture is "demo-capture-url"; `-snapshot-capture pdf:<path>`
+        // renders the PDF file-capture card instead (A3).
+        var wanted = "demo-capture-url", out = path
+        if path.hasPrefix("pdf:") { wanted = "demo-capture-pdf"; out = String(path.dropFirst(4)) }
+        let path = out
+        let captureFile = files.first { $0.id == wanted } ?? files.first
         let model = AppModel()
         model.activeID = captureFile?.id
         if let id = captureFile?.id { model.selection = [id] }
         let coordinator = ProcessingCoordinator()
 
+        // HOSTED render (real AppKit): the sidebar's drop-catcher makes ImageRenderer
+        // paint the yellow 🚫 placeholder over the whole left pane — hostPNG doesn't.
         let view = HStack(spacing: 0) {
             SidebarView(model: model, files: files, coordinator: coordinator, scrollable: false).frame(width: 228)
             NoteDisplayView(file: captureFile, coordinator: coordinator, scrollable: false).frame(maxWidth: .infinity)
         }
         .frame(width: 1180, height: 780)
         .background(Theme.bg)
-        writePNG(view, to: path, scheme: scheme)
+        .preferredColorScheme(scheme)
+        hostPNG(view, size: NSSize(width: 1180, height: 780), to: path)
     }
 
     /// Recently Deleted sheet — a couple of demo files marked trashed with

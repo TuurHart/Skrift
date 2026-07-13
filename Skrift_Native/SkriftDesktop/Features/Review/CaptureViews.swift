@@ -156,6 +156,23 @@ struct CaptureSharedContentBlock: View {
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundStyle(Theme.textSecondary)
                     }
+                case "file":
+                    // The DOCUMENT itself lives on the phone (no `.document` asset kind
+                    // syncs yet — board follow-up); its extracted text is already in the
+                    // note body below (phone A6), which the Mac shows, searches, exports.
+                    HStack(spacing: 10) {
+                        Image(systemName: "doc.richtext")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Theme.blue)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(sc.fileName ?? "Shared document")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Theme.textPrimary)
+                            Text("\((sc.mimeType?.contains("pdf") == true) ? "PDF" : (sc.mimeType ?? "Document")) · on your iPhone — its text is captured in the note")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Theme.textMuted)
+                        }
+                    }
                 default:
                     Text(sc.fileName ?? "Shared file")
                         .font(.system(size: 12))

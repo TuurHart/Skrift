@@ -596,8 +596,16 @@ origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths on
    muted line), a click flips the box and writes the flipped syntax back through `modelString` →
    `bodyBinding` → persists + `MacCloudEditSync` push (the phone sees the toggle). Hosted-snapshot
    verified. Return-continuation stays phone-only for now.
-3. **PDF-inline capture display** in `Features/Review/CaptureViews.swift` (phone's signed variant A;
-   mock panel 4). Render first page via PDFKit thumbnail + filename bar + Open.
+3. ✅ **DONE 2026-07-13 — PDF/file capture card (honest variant).** The document BLOB never syncs
+   (no `MemoAsset.Kind.document`), so no fake first-page render: the card shows 📄 filename +
+   "PDF · on your iPhone — its text is captured in the note" (the phone's A6 extraction already put
+   the text in the body the Mac shows/searches/exports). Hosted-snapshot verified. NEW follow-up
+   below. BONUS: `-snapshot-capture` switched to the hosted renderer — the sidebar's yellow-🚫
+   ImageRenderer placeholder is GONE (sidebar snapshots work now); `pdf:<path>` arg renders the
+   file-capture fixture.
+3b. **NEW · sync `.file` capture documents** as `MemoAsset` `Kind.document` (additive kind — no
+   schema migration): phone `AssetMaterializer` writes it, Mac ingest materializes into the working
+   folder → THEN the mock's true first-page inline render + Open + vault copy become possible.
 4. Verify: UnitTests scheme + full `-skipMacroValidation` build + `-snapshot` PNGs (see
    [[native-ui-verification]] memory: sidebar can't snapshot; live-drive via UITests if needed).
 

@@ -174,6 +174,19 @@ enum DemoSeed {
         f7.sanitised = "The quote + ramble pairing works. The reading mode should feel like an e-reader, not a player."
         f7.audioMetadataJSON = meta(["duration": "00:04:07"])
 
-        return [f1, f2, f3, f4, f5, f6, f7]
+        // 8 — PDF file capture (Wave-2 share-ingest): the DOCUMENT stays on the phone;
+        // its extracted text is the note body (A6). The capture block shows the doc card.
+        let f8 = PipelineFile(id: "demo-capture-pdf", filename: "capture_2026-07-12",
+                              sourceType: .capture, uploadedAt: date(2026, 7, 12, 10))
+        f8.transcribeStatus = .done; f8.sanitiseStatus = .done; f8.enhanceStatus = .done
+        f8.enhancedTitle = "Attention Is All You Need"
+        f8.sanitised = "Shared from Safari with a voice ramble. The dominant sequence transduction models are based on complex recurrent or convolutional neural networks…"
+        f8.audioMetadataJSON = meta([
+            "sharedContent": ["type": "file", "fileName": "attention.pdf", "mimeType": "application/pdf"],
+            "annotationText": "Shared from Safari with a voice ramble.",
+            "source": "mobile",
+        ])
+
+        return [f1, f2, f3, f4, f5, f6, f7, f8]
     }
 }
