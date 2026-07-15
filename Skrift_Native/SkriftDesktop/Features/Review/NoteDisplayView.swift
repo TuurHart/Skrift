@@ -167,7 +167,8 @@ struct NoteDisplayView: View {
         let key = id.uuidString
         var d = FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == key })
         d.fetchLimit = 1
-        return (try? ctx.fetch(d))?.first?.queueTitle
+        let t = (try? ctx.fetch(d))?.first?.queueTitle.trimmingCharacters(in: .whitespaces)
+        return (t?.isEmpty == false) ? t : nil   // no real title → keep the link's snapshot
     }
 
     private func applyNaming(_ file: PipelineFile, _ message: String, _ mutate: () -> Void) {

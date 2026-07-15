@@ -802,19 +802,20 @@ Per-feature verdicts:
 2. **Tags — phone→Mac ✗ / Mac→phone ✓.** Mac tag add → phone gets ALL the Mac's tags ✓. Phone tag add
    AND phone tag delete → NOT reflected on the Mac ✗. Worse: a Mac tag write pushes the Mac's whole set
    down and OVERWRITES a tag the user had just deleted on the phone (the phone's deletion is lost).
-3. **Importance on the Mac — CAN'T EDIT ✗ (clear code bug).** The SignificanceCircles control is not
-   clickable on the Mac (no way to change importance), though the phone can. Cause is almost certainly
-   `SignificanceCircles(value:$file.significance, enabled: file.steps.enhance == .done)` in `NoteProperties`
-   — importance is gated behind enhancement-done, so a synced-but-unenhanced note can't be rated on the
-   Mac. So the Mac→phone importance sync can't even be exercised. FIX: let importance be editable
-   regardless of enhance status (or reconsider the gate).
-4. **Memo links `[[ ]]`:** Mac→phone ✓ (link made on Mac appears on phone; clicking on either opens the
-   SAME target — an Apple Maps note). BUGS: (a) the chip shows the note's real name on the Mac but
-   **"Untitled" on the phone** — the live-title resolve isn't landing on the phone (target is an Apple
-   Maps place note → its phone title resolves empty? check `liveLinkTitle` for map/place notes); (b)
-   **backlinks (LINKED FROM) show on the Mac but NOT on the phone** ✗; (c) transient: a Mac-made link
-   VANISHED once right after creation+click ("I just lost the link") — couldn't repro (2nd try kept it +
-   showed the backlink). Watch for link-persistence flakiness on the Mac.
+3. ✅ **FIXED 2026-07-15 — Importance now editable on the Mac.** Cause confirmed:
+   `SignificanceCircles(value:, enabled: file.steps.enhance == .done)` in `NoteProperties` disabled the
+   control (0.5 opacity + hit-testing off) until the note was enhanced. Dropped the gate → always
+   editable (phone parity + it now syncs back via MacCloudMetaSync). Device re-verify owed.
+4. **Memo links `[[ ]]`:** Mac→phone ✓ (link appears on phone; clicking on either opens the SAME target).
+   - (a) ✅ **FIXED — chip "Untitled" on the phone.** My live-title fix over-reached: `liveLinkTitle`
+     returned `title ?? firstTranscriptLine ?? "Untitled"`, so a title-less capture/Maps note resolved
+     to "Untitled" and CLOBBERED the good snapshot. Now returns nil when there's no REAL title → the chip
+     keeps the snapshot (the name the link was made with). Mac `liveTitle` made symmetric.
+   - (b) ✅ **FIXED — backlinks missing on the phone.** `recomputeBacklinks` scanned only `memo.transcript`,
+     but a Mac-made link lives in the enhancement COPYEDIT (not the transcript). Now scans transcript +
+     copyedit (new `NotesRepository.allEnhancements()`). Device re-verify owed.
+   - (c) ⬜ transient "lost the link" on the Mac once (couldn't repro; 2nd try kept it). Watch for
+     link-persistence flakiness — NOT fixed (unreproduced).
 5. **Photos — ✅ WORKS on device.** Materialization fix confirmed: photos render on the Mac.
 6. **PDFs (3b) — ✗ not synced to the Mac.** A shared PDF shows on the phone (first-page render + text);
    the Mac doesn't get it. LIKELY because the tested PDF is an OLD capture (pre-build-76) — 3b only

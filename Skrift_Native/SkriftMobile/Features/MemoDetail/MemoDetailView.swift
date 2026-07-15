@@ -985,14 +985,23 @@ private struct MemoPageView: View {
     /// Cheap contains() pre-filter, exact via MemoLinkSyntax; off-main.
     private func recomputeBacklinks() {
         let myID = memo.id
-        let others: [(UUID, String, String?)] = repository.allMemos()
+        // A memo-link can live in the raw transcript OR the Mac's polished copyedit — a Mac-made
+        // link syncs into the enhancement, not the transcript (2026-07-15 device finding: the Mac
+        // showed the backlink, the phone didn't because it only scanned transcripts). Scan BOTH.
+        let copyeditByID = Dictionary(
+            repository.allEnhancements().map { ($0.memoID, $0.copyedit) },
+            uniquingKeysWith: { a, _ in a })
+        let others: [(UUID, String, String)] = repository.allMemos()
             .filter { $0.id != myID }
-            .map { ($0.id, $0.title ?? $0.firstTranscriptLine ?? "Untitled", $0.transcript) }
+            .map { m in
+                let body = [m.transcript, copyeditByID[m.id]]
+                    .compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: "\n")
+                return (m.id, m.title ?? m.firstTranscriptLine ?? "Untitled", body)
+            }
         Task.detached(priority: .utility) {
             let marker = "[[memo:\(myID.uuidString)"
-            let found: [(id: UUID, title: String)] = others.compactMap { id, title, transcript in
-                guard let t = transcript, t.contains(marker),
-                      MemoLinkSyntax.targets(in: t).contains(myID) else { return nil }
+            let found: [(id: UUID, title: String)] = others.compactMap { id, title, body in
+                guard body.contains(marker), MemoLinkSyntax.targets(in: body).contains(myID) else { return nil }
                 return (id: id, title: String(title.prefix(60)))
             }
             await MainActor.run { backlinks = Array(found.prefix(6)) }
@@ -1030,7 +1039,11 @@ private struct MemoPageView: View {
     /// library → the chip keeps its snapshot. Called on display rebuild, not per keystroke.
     private func liveLinkTitle(_ id: UUID) -> String? {
         guard let m = repository.allMemos().first(where: { $0.id == id }) else { return nil }
-        return (m.title ?? m.firstTranscriptLine ?? "Untitled").trimmingCharacters(in: .whitespaces)
+        // Only a REAL title overrides the chip's snapshot. A capture / Maps note with no title +
+        // no transcript would otherwise resolve to "Untitled" and CLOBBER the good snapshot the
+        // link was made with (2026-07-15 device finding) — return nil so the snapshot stays.
+        let t = (m.title ?? m.firstTranscriptLine)?.trimmingCharacters(in: .whitespaces)
+        return (t?.isEmpty == false) ? t : nil
     }
 
     /// Everything linkable from here: most recent first, self excluded.

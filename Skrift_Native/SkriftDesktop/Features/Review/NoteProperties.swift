@@ -116,7 +116,10 @@ struct NoteProperties: View {
                 audioExportRow
             }
             divider
-            SignificanceCircles(value: $file.significance, enabled: file.steps.enhance == .done)
+            // Importance is editable ANY time (phone parity + it now syncs back via
+            // MacCloudMetaSync) — not gated behind enhancement, which left synced-but-unenhanced
+            // notes unratable on the Mac (2026-07-15 device finding).
+            SignificanceCircles(value: $file.significance)
             divider
             TagEditor(file: file)
         }

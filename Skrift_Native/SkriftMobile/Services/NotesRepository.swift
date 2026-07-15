@@ -139,6 +139,12 @@ final class NotesRepository {
         return (try? context.fetch(d))?.sorted { $0.enhancedAt > $1.enhancedAt }.first
     }
 
+    /// Every Mac-polish enhancement (for a bulk scan — e.g. backlinks, which must look in the
+    /// copyedit where a Mac-made memo-link lives, not just the raw transcript).
+    func allEnhancements() -> [MemoEnhancement] {
+        (try? context.fetch(FetchDescriptor<MemoEnhancement>())) ?? []
+    }
+
     /// Delete a memo's asset rows. Caller saves (`permanentlyDelete` does).
     func deleteAssets(forMemo id: UUID) {
         for asset in assets(forMemo: id) { context.delete(asset) }
