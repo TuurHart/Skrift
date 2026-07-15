@@ -29,8 +29,24 @@ enum MemoCloudUpdate {
     static func apply(memo: Memo, enhancement: MemoEnhancement?, to pf: PipelineFile,
                       people: [Person], author: String, thisDeviceID: String,
                       now: Date = Date()) -> Bool {
-        // Trashed memos are handled by the reconciler's delete path, not here.
-        guard memo.deletedAt == nil else { return false }
+        // Trash-state mirror (phone→Mac), watermarked. Reflect a phone trash/restore onto the row
+        // ONLY when `memo.deletedAt` differs from what we last reflected — so a phone trash arrives
+        // here (heals a note the Mac still shows after the phone binned it) and a phone restore
+        // clears it, WITHOUT a Mac-local trash (whose memo is still active) being un-trashed on the
+        // first post-upgrade sweep. The Mac's own trash writes `memo.deletedAt` (MacCloudDeleteSync),
+        // so that path lands here too — as a no-op reflect (the values already agree).
+        var trashChanged = false
+        if memo.deletedAt != pf.syncedSourceDeletedAt {
+            pf.deletedAt = memo.deletedAt
+            pf.syncedSourceDeletedAt = memo.deletedAt
+            trashChanged = true
+        }
+        // A trashed memo needs no text/photo reflect — it's in the bin. A restore falls through to
+        // the normal reflect below so its body/polish is fresh when it reappears.
+        guard memo.deletedAt == nil else {
+            if trashChanged { pf.lastActivityAt = now }
+            return trashChanged
+        }
 
         // A PHONE-authored enhancement edit. The Mac's own write-back echo is skipped by the
         // device-id check, so the Mac never re-reflects what it just wrote.
@@ -77,7 +93,7 @@ enum MemoCloudUpdate {
         let ocr = MemoCloudIngest.ocrText(for: memo)
         if pf.imageOCRText != ocr { pf.imageOCRText = ocr; metaChanged = true }
 
-        guard contentChanged || metaChanged else { return false }
+        guard contentChanged || metaChanged || trashChanged else { return false }
 
         if contentChanged {
             // Re-link + recompile once (no LLM) over the pristine working text (copy-edit →

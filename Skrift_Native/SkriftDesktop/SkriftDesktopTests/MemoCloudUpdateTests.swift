@@ -123,14 +123,21 @@ final class MemoCloudUpdateTests: XCTestCase {
                                              people: [], author: "", thisDeviceID: mac))
     }
 
-    func testTrashedMemoIsNotReflected() {
+    func testTrashedMemoMirrorsTrashButSkipsTextRecompile() {
         let id = UUID()
         let t0 = Date()
-        let pf = ingestedFile(id: id, at: t0)
+        let pf = ingestedFile(id: id, at: t0)   // active, transcript "Original transcript.", never compiled
         let m = memo(id, transcript: "Edited then deleted.", editedAt: t0.addingTimeInterval(10))
-        m.deletedAt = Date()
-        XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
-                                             people: [], author: "", thisDeviceID: mac))
+        let trashedAt = Date()
+        m.deletedAt = trashedAt
+
+        // The trash state DOES mirror onto the row (delete-sync)…
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertEqual(pf.deletedAt, trashedAt)
+        // …but the pending text edit is NOT reflected and nothing recompiles — it's in the bin.
+        XCTAssertEqual(pf.transcript, "Original transcript.", "a trashed memo's text edit is not reflected")
+        XCTAssertNil(pf.sanitised, "no recompile for a trashed memo")
     }
 
     // MARK: - Row mirrors (lock / reminder / photo OCR) — no recompile needed
@@ -190,5 +197,66 @@ final class MemoCloudUpdateTests: XCTestCase {
         XCTAssertEqual(pf.imageOCRText, "WHITEBOARD ROADMAP")
         XCTAssertEqual(pf.audioMetadataJSON, MemoCloudIngest.metadataJSON(for: m),
                        "stored blob refreshed to the new manifest")
+    }
+
+    // MARK: - Delete sync (trash + restore mirror, both ways)
+
+    func testPhoneTrashIsMirroredOntoTheRow() {
+        let id = UUID()
+        let t0 = Date()
+        let m = memo(id, transcript: "Original transcript.", editedAt: t0)
+        let pf = baselined(ingestedFile(id: id, at: t0), to: m)   // active on the Mac, watermark nil
+        let trashedAt = t0.addingTimeInterval(30)
+        m.deletedAt = trashedAt                                    // the phone binned it
+
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertEqual(pf.deletedAt, trashedAt, "the phone trash mirrors onto the Mac row")
+        XCTAssertEqual(pf.syncedSourceDeletedAt, trashedAt, "reflect watermark advanced")
+    }
+
+    func testPhoneRestoreIsMirrored() {
+        let id = UUID()
+        let t0 = Date()
+        let trashedAt = t0.addingTimeInterval(30)
+        let m = memo(id, transcript: "Original transcript.", editedAt: t0)   // active (deletedAt nil)
+        let pf = baselined(ingestedFile(id: id, at: t0), to: m)
+        pf.deletedAt = trashedAt                 // the Mac has it trashed…
+        pf.syncedSourceDeletedAt = trashedAt     // …reflected from an earlier phone trash
+
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertNil(pf.deletedAt, "the phone restore clears the Mac row's trash")
+        XCTAssertNil(pf.syncedSourceDeletedAt)
+    }
+
+    func testMacLocalTrashIsNotClobberedByAnActiveMemo() {
+        let id = UUID()
+        let t0 = Date()
+        let m = memo(id, transcript: "Original transcript.", editedAt: t0)   // active, unchanged
+        let pf = baselined(ingestedFile(id: id, at: t0), to: m)
+        let macTrashedAt = t0.addingTimeInterval(30)
+        pf.deletedAt = macTrashedAt              // trashed ONLY on the Mac (pre-delete-sync)…
+        pf.syncedSourceDeletedAt = nil           // …never reflected from the phone
+
+        XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                             people: [], author: "", thisDeviceID: mac),
+                       "an active memo whose deletedAt didn't change must not touch the row")
+        XCTAssertEqual(pf.deletedAt, macTrashedAt, "the Mac-local trash survives the sweep")
+    }
+
+    func testTrashReflectIsIdempotent() {
+        let id = UUID()
+        let t0 = Date()
+        let trashedAt = t0.addingTimeInterval(30)
+        let m = memo(id, transcript: "Original transcript.", editedAt: t0)
+        m.deletedAt = trashedAt
+        let pf = baselined(ingestedFile(id: id, at: t0), to: m)
+        pf.deletedAt = trashedAt
+        pf.syncedSourceDeletedAt = trashedAt     // already reflected
+
+        XCTAssertFalse(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                             people: [], author: "", thisDeviceID: mac),
+                       "same trash state → no work, no loop")
     }
 }

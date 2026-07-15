@@ -54,10 +54,7 @@ enum DesktopTrash {
     /// Safety: only ever trashes a per-file folder INSIDE the output dir — the
     /// same guard the old hard-delete used.
     static func trashWorkingFolder(of f: PipelineFile) {
-        guard !f.path.isEmpty else { return }
-        let folder: URL = f.sourceType == .capture
-            ? URL(fileURLWithPath: f.path)                                   // capture: path IS the folder
-            : URL(fileURLWithPath: f.path).deletingLastPathComponent()       // audio/note: parent of original.*
+        guard let folder = f.workingFolder else { return }   // capture: path IS the folder; audio/note: its parent
         let outRoot = AppPaths.audioOutputDirectory.standardizedFileURL.path
         let name = folder.lastPathComponent
         guard folder.standardizedFileURL.path.hasPrefix(outRoot),

@@ -96,7 +96,7 @@ struct RecentlyDeletedView: View {
             }
             Spacer(minLength: 8)
             if interactive {
-                Button("Restore") { DesktopTrash.restore([file], in: ctx) }
+                Button("Restore") { DesktopTrash.restore([file], in: ctx); MacCloudDeleteSync.mirror([file]) }
                     .buttonStyle(.plain)
                     .font(.system(size: 11.5, weight: .semibold)).foregroundStyle(Theme.accent)
                     .padding(.horizontal, 10).padding(.vertical, 4)

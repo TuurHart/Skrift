@@ -108,6 +108,7 @@ struct SidebarView: View {
         // Don't strand the selection/active note on a now-hidden file.
         let ids = Set(targets.map(\.id))
         DesktopTrash.softDelete(targets, in: ctx)
+        MacCloudDeleteSync.mirror(targets)   // push the trash to the phone (delete-sync)
         model.selection.subtract(ids)
         if let active = model.activeID, ids.contains(active) { model.activeID = nil }
         coordinator.flash("Moved to Recently Deleted")

@@ -78,7 +78,9 @@ extension MemoCloudReconciler {
             predicate: #Predicate { ids.contains($0.id) }))) ?? []
         // Locked rows are skipped outright (the exporter would refuse anyway — this keeps the
         // sweep quiet). A note UNLOCKED on the phone re-exports right here on the same sweep.
-        for pf in files where pf.exportStatus == .done && !pf.locked {
+        // Trashed rows are skipped too — a note the phone just binned must not be re-written into
+        // the vault (a restore clears `deletedAt`, so it re-exports on the sweep that restores it).
+        for pf in files where pf.exportStatus == .done && !pf.locked && pf.deletedAt == nil {
             if let result = try? VaultExporter.export(pf, settings: settings) {
                 pf.exported = result.markdownURL.path
                 pf.lastActivityAt = Date()

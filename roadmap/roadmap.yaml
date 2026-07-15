@@ -634,6 +634,12 @@ nodes:
         blobs + refreshes image_manifest.json each sweep (idempotent, heals on
         launch); PipelineFile.workingFolder = one derivation. VERIFIED on real
         data (a 3-photo note healed on the launch sweep). Desktop 358 green
+      - >-
+        2026-07-15 · phone↔Mac intertwining #1 — DELETE SYNC (trash + restore
+        mirror both ways). Memo.deletedAt is the carrier; MemoCloudUpdate reflects
+        phone→Mac (watermarked, no clobber/heal), MacCloudDeleteSync writes
+        Mac→phone; re-export skips trashed. Desktop 362 + MLX + mobile 678 green;
+        live round-trip owed. NEXT: widen Mac→phone channel (tags + importance)
   - id: CapNote
     title: Capture reads as a note
     lane: 4

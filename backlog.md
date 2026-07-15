@@ -730,6 +730,35 @@ materialized all 3 photos of the reported note (manifest + `images/photo_..._00{
   overwrite in the vault attachments folder. Uniquify by the note stem (which the .md already uniquifies)
   rather than the raw title. Low priority.
 
+## ⭐ Phone↔Mac intertwining — "a thing done in one happens in the other" (2026-07-15, Tuur direction)
+
+Audit of the two sync channels (2026-07-15): **phone→Mac is rich** (transcript, metadata blob, lock,
+reminder, photos, OCR); **Mac→phone is narrow** — `MemoEnhancement` carries only body/title/summary.
+That asymmetry is the root of the gaps. Order chosen by Tuur: **delete sync FIRST, then widen the
+Mac→phone metadata channel.**
+
+- ✅ **DONE 2026-07-15 — Delete sync (trash + restore mirror BOTH ways).** `Memo.deletedAt` is the
+  synced carrier. Phone→Mac: `MemoCloudUpdate` mirrors trash/restore onto the row, watermarked by
+  `PipelineFile.syncedSourceDeletedAt` (reflects only a real change → never un-trashes a pre-existing
+  Mac-local trash; heals a note the phone binned that the Mac still showed). Mac→phone:
+  `MacCloudDeleteSync` writes `memo.deletedAt` on a Mac trash/restore (wired at `SidebarView` softDelete
+  + `RecentlyDeletedView` restore). Re-export skips trashed rows. Permanent delete stays device-local
+  (both purge from the same 14-day stamp). Also folded the 4th working-folder derivation (`DesktopTrash`)
+  onto `pf.workingFolder`. Desktop 362 + MLX build + mobile 678 green; core logic unit-tested (5 tests).
+  **LIVE round-trip owed** (needs both Dev apps): trash on Mac → gone on phone; trash on phone → gone on
+  Mac; restore either way mirrors.
+- ⬜ **NEXT — widen the Mac→phone channel: tags + importance.** Today they're frozen at first ingest —
+  a phone tag/significance edit after sync doesn't refresh the Mac row (`MemoCloudUpdate` never touches
+  `pf.tags`/`pf.significance`), and a Mac tag/significance edit has no channel back (MemoEnhancement
+  carries only body/title/summary). Fix BOTH directions: (a) phone→Mac — reflect `memo.tags`/
+  `memo.significance` in `MemoCloudUpdate`; (b) Mac→phone — carry them (write to the `Memo` fields
+  directly like delete-sync, or extend the enhancement carrier), and wire the Mac tag/significance
+  edit sites (`NoteProperties`) to push.
+- ⬜ Later gaps from the audit: Mac `[[` link picker (create links on Mac); 3b (sync the PDF/file blob);
+  reminder alarm on the Mac; (by-design, NOT gaps: Mac shows `[[links]]`+polish, phone shows raw; Mac
+  has the LLM; Mac writes Obsidian). Open Q for a future chat: should trashing also DELETE the note's
+  Obsidian `.md`? (destructive to the vault — needs Tuur's call before building.)
+
 **Device-verify checklist owed (fold into the next device session):** Mac-added vocab word →
 phone (and deletion → Mac) [LWW fix 6f78ac1]; lock on phone → Mac refuses export + gates body,
 unlock → auto re-export; search a photo's OCR text ON THE MAC; Mac-exported memo-link opens the

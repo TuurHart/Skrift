@@ -68,6 +68,13 @@ final class PipelineFile {
     /// migration; nil on rows ingested before this shipped (treated as "reflect the next edit").
     var syncedSourceEditedAt: Date?
 
+    /// Trash-state sync watermark: the `Memo.deletedAt` this row last reflected. Lets the
+    /// reconciler mirror a phone trash/restore onto `deletedAt` WITHOUT clobbering a Mac-local
+    /// trash that predates delete-sync (it reflects only when `memo.deletedAt` differs from this
+    /// watermark — a real change on the phone — not merely from the row's current state). nil on
+    /// rows from before this shipped (treated as "reflect the next trash change").
+    var syncedSourceDeletedAt: Date?
+
     /// Mirror of the synced `Memo.locked` (phone feature wave chunk 8): a locked note is
     /// EXCLUDED from vault export (the vault is plaintext — `VaultExporter` refuses) and its
     /// body/copy actions are gated behind device-owner auth (`LockGate`). Processing keeps
