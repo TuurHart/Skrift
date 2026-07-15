@@ -167,8 +167,11 @@ struct NoteDisplayView: View {
         let key = id.uuidString
         var d = FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == key })
         d.fetchLimit = 1
-        let t = (try? ctx.fetch(d))?.first?.queueTitle.trimmingCharacters(in: .whitespaces)
-        return (t?.isEmpty == false) ? t : nil   // no real title → keep the link's snapshot
+        // Only the REAL (enhanced) title — NOT `queueTitle`, which falls back to the raw
+        // `memo_<UUID>` filename for a title-less note and showed as the chip label
+        // (2026-07-15 device). No enhanced title → nil → the chip keeps the link's snapshot.
+        let t = (try? ctx.fetch(d))?.first?.enhancedTitle?.trimmingCharacters(in: .whitespaces)
+        return (t?.isEmpty == false) ? t : nil
     }
 
     private func applyNaming(_ file: PipelineFile, _ message: String, _ mutate: () -> Void) {

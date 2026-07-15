@@ -191,7 +191,8 @@ actor TranscriptionService: Transcriber {
 
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult {
         isTranscribing = true
-        defer { isTranscribing = false }
+        TranscriptionActivity.begin()   // the embedder yields the ANE while this runs
+        defer { isTranscribing = false; TranscriptionActivity.end() }
         try await ensureLoaded()
         guard let asr else {
             throw ASRError.notInitialized
@@ -246,7 +247,8 @@ actor TranscriptionService: Transcriber {
     /// round-trip and the vocab/marker passes (see the protocol note).
     func transcribe(buffer: AVAudioPCMBuffer) async throws -> TranscriptionResult {
         isTranscribing = true
-        defer { isTranscribing = false }
+        TranscriptionActivity.begin()   // the embedder yields the ANE while this runs
+        defer { isTranscribing = false; TranscriptionActivity.end() }
         try await ensureLoaded()
         guard let asr else { throw ASRError.notInitialized }
 

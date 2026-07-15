@@ -774,7 +774,9 @@ Mac→phone metadata channel.**
 
 ### 🔴 CONTINUE HERE — device-test findings 2026-07-15 (Tuur, iPhone build 76 + latest Mac Dev)
 
-**🔧 FIX LANDED 2026-07-15 (needs device re-verify) — the sweep read STALE memos.** Root cause found:
+**✅ FIXED + DEVICE-CONFIRMED 2026-07-16 — the sweep read STALE memos.** Tuur re-tested: a phone edit
+(importance 0.1 + tags #testy/#more tags + text + photo + a link) synced to the Mac — *"took a while to
+sync but it worked."* phone→Mac is live now. Root cause found:
 `reconcile()` read the cloud store via `cloud.mainContext`, and a CloudKit import writes the STORE but
 does NOT refresh `mainContext`'s already-registered `Memo` objects — so the sweep saw a stale memo and
 never noticed the phone's later delete/tag/edit (a first-seen memo is fresh → ingest worked; Mac writes
@@ -816,6 +818,18 @@ Per-feature verdicts:
      copyedit (new `NotesRepository.allEnhancements()`). Device re-verify owed.
    - (c) ⬜ transient "lost the link" on the Mac once (couldn't repro; 2nd try kept it). Watch for
      link-persistence flakiness — NOT fixed (unreproduced).
+   - (d) ✅ **FIXED 2026-07-16 — Mac chip showed `memo_<UUID>`.** A phone-made link to a title-less
+     note rendered the raw filename on the Mac: `liveTitle` used `queueTitle`, which falls back to
+     `cleanFilename(filename)` (= `memo_<UUID>`). Switched to `enhancedTitle` only (the real title) →
+     no enhanced title → nil → the chip keeps the snapshot (the phone's title). Device re-verify owed.
+
+**🐛→✅ TRANSCRIPTION SLOWNESS 2026-07-16 — NOT the engine; the embedder starved the ANE.** Tuur saw
+a 13s clip take ~1 min. Device log showed `embedder: cold load DONE in 117.7s` — the P8 "Related notes"
+embedder (EmbeddingGemma-300M) cold-loading on the SAME Neural Engine as ASR, blocking the transcription
+until it finished (transcription completed right after the embedder). Fix: `TranscriptionActivity` flag
+(the transcriber raises it; `GemmaEmbedder.prepare` YIELDS its cold load while active, capped 30s so a
+long book transcribe can't defer Related notes forever). The transcription engine itself is fine.
+Desktop 365 + mobile 678 green. Device re-verify owed (record a clip while the embedder is cold).
 5. **Photos — ✅ WORKS on device.** Materialization fix confirmed: photos render on the Mac.
 6. **PDFs (3b) — ✗ not synced to the Mac.** A shared PDF shows on the phone (first-page render + text);
    the Mac doesn't get it. LIKELY because the tested PDF is an OLD capture (pre-build-76) — 3b only

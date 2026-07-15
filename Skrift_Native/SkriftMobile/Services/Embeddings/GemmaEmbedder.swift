@@ -60,6 +60,13 @@ actor GemmaEmbedder: EmbeddingEngine {
     func prepare() async throws {
         if model == nil {
             if loadTask == nil {
+                // Yield the Neural Engine to an active transcription: this cold load is ~2 min and
+                // would otherwise STARVE the ASR (device-found 2026-07-15 — a 13s clip waited ~2 min).
+                // Capped so a long book transcription can't defer Related notes forever.
+                var waited = 0.0
+                while TranscriptionActivity.isActive, waited < 30 {
+                    try? await Task.sleep(for: .milliseconds(400)); waited += 0.4
+                }
                 let t0 = Date()
                 DevLog.log("embedder: cold load START")
                 loadTask = Task {
