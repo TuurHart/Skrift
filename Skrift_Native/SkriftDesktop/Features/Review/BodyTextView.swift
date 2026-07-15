@@ -46,6 +46,10 @@ struct BodyTextView: NSViewRepresentable {
     /// The memos the `[[` picker can link to (phone parity). Evaluated LAZILY when the
     /// user types `[[`, so no per-render fetch; empty → the picker stays closed.
     var linkCandidates: () -> [MemoLinkCandidate] = { [] }
+    /// The target memo's CURRENT title, so a chip shows the live title — not the snapshot
+    /// frozen into `[[memo:UUID|Title]]` at creation (which goes stale when the target is
+    /// renamed / enhanced). nil → the target can't be resolved, so keep the snapshot.
+    var linkTitle: (UUID) -> String? = { _ in nil }
     /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
     /// THIS text view (no renderer swap → no reflow) + click-a-word-to-seek.
     var karaoke: KaraokePlayback? = nil
@@ -343,8 +347,13 @@ struct BodyTextView: NSViewRepresentable {
             let ns = storage.string as NSString
             storage.beginEditing()
             for occ in occs.reversed() {
+                // Show the target's LIVE title (falls back to the frozen snapshot when the
+                // target can't be resolved — deleted / other library), so a renamed note's
+                // chips stay current instead of showing whatever title they were made with.
+                let live = parent.linkTitle(occ.id)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let shown = (live?.isEmpty == false) ? live! : occ.title
                 let att = MemoLinkChipAttachment(literal: ns.substring(with: occ.range),
-                                                 linkID: occ.id, title: occ.title)
+                                                 linkID: occ.id, title: shown)
                 storage.replaceCharacters(in: occ.range, with: NSAttributedString(attachment: att))
             }
             storage.endEditing()

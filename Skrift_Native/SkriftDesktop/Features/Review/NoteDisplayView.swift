@@ -134,7 +134,8 @@ struct NoteDisplayView: View {
                      onLinkedChange: scrollable ? { a, c in changeName(file, alias: a, newCanonical: c) } : nil,
                      onOpenNote: scrollable ? { c in openNote(c) } : nil,
                      onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } },
-                     linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] })
+                     linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] },
+                     linkTitle: { id in liveTitle(of: id) })
             if scrollable, let onOpenMemo {
                 MemoBacklinks(file: file, openMemo: onOpenMemo)
             }
@@ -158,6 +159,15 @@ struct NoteDisplayView: View {
                 guard let id = UUID(uuidString: f.id) else { return nil }   // memo-links key on the memo UUID
                 return MemoLinkCandidate(id: id, title: f.queueTitle, subtitle: df.string(from: f.uploadedAt))
             }
+    }
+
+    /// A memo-link target's CURRENT title (so chips show the live title, not the frozen
+    /// snapshot). nil when the target isn't in this library → the chip keeps its snapshot.
+    private func liveTitle(of id: UUID) -> String? {
+        let key = id.uuidString
+        var d = FetchDescriptor<PipelineFile>(predicate: #Predicate { $0.id == key })
+        d.fetchLimit = 1
+        return (try? ctx.fetch(d))?.first?.queueTitle
     }
 
     private func applyNaming(_ file: PipelineFile, _ message: String, _ mutate: () -> Void) {
