@@ -821,7 +821,14 @@ Per-feature verdicts:
    the Mac doesn't get it. LIKELY because the tested PDF is an OLD capture (pre-build-76) — 3b only
    materializes a `.document` asset for captures made on the updated phone. RE-TEST with a FRESH PDF share
    before treating it as a bug.
-7. **Filter/sort — parity gap.** The phone's filter/sort options are far more extensive than the Mac's.
+7. **Filter/sort — parity gap (SCOPED 2026-07-15; mock-first before building).** They're different
+   models: Mac (`QueueFilter` All/NeedsWork/Done + sort Newest/Oldest/Title) is review-workflow;
+   phone (`MemoFilter`: place · has-photos · unsynced · date-range; `MemoSort`: added/edited/recorded/
+   oldest/longest, via `SortFilterSheet`) is content-browsing. The gap on the Mac = the phone's CONTENT
+   filters (place, has-photos, date-range) + the extra sorts (edited/recorded/longest). "Unsynced only"
+   doesn't map to the Mac (everything there is synced). NOT a blind port — the Mac sidebar is compact, so
+   where a richer filter set lives is a layout call → do a mock-first pass (which phone filters belong on
+   the Mac's review context) before building.
 
 Next-session order: (A) diagnose + fix the phone→Mac sweep/reflect (unblocks delete + tags + everything);
 (B) importance-editable-on-Mac (quick); (C) backlinks-on-phone + phone chip "Untitled"; (D) re-test 3b
