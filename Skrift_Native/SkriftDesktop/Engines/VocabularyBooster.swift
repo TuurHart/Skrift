@@ -83,17 +83,12 @@ actor VocabularyBooster {
             // (e.g. "hello"→"Tuur") drops the WHOLE boost → the clean unboosted transcript,
             // instead of a mangled mix. The old "keep if ANY trusted" let an over-firing
             // spotter through whenever one real custom word was also present.
-            let applied: [(original: String, canonical: String, aliases: [String])] = out.replacements
-                .filter(\.shouldReplace)
-                .compactMap { r in
-                    guard let canon = r.replacementWord else { return nil }
-                    let aliases = vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? []
-                    return (r.originalWord, canon, aliases)
-                }
-            let allTrusted = !applied.isEmpty && applied.allSatisfy {
-                VocabularyTrust.isTrusted(original: $0.original, canonical: $0.canonical, aliases: $0.aliases)
-            }
-            guard allTrusted else {
+            let applied = VocabularyBoostCore.appliedReplacements(
+                out.replacements.map { VocabularyReplacement(originalWord: $0.originalWord,
+                                                             replacementWord: $0.replacementWord,
+                                                             shouldReplace: $0.shouldReplace) },
+                aliasesFor: { canon in vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? [] })
+            guard VocabularyBoostCore.allTrusted(applied) else {
                 VocabLog.log("vocab: not every applied replacement trusted → dropped, unboosted")
                 return nil
             }

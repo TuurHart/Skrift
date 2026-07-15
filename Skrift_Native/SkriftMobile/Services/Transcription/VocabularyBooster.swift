@@ -117,14 +117,12 @@ actor VocabularyBooster {
             // through whenever one real custom word was also present (the user's
             // "Tuur Skrift Tiuri Tuur…" repro). A genuine correction IS trusted, so clean
             // boosts are untouched; add a mishear as an alias to make its rescue trusted.
-            let applied: [(original: String, canonical: String, aliases: [String])] = out.replacements
-                .filter(\.shouldReplace)
-                .compactMap { r in
-                    guard let canon = r.replacementWord else { return nil }
-                    let aliases = vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? []
-                    return (r.originalWord, canon, aliases)
-                }
-            guard Self.allReplacementsTrusted(applied) else {
+            let applied = VocabularyBoostCore.appliedReplacements(
+                out.replacements.map { VocabularyReplacement(originalWord: $0.originalWord,
+                                                             replacementWord: $0.replacementWord,
+                                                             shouldReplace: $0.shouldReplace) },
+                aliasesFor: { canon in vocab.terms.first { $0.text.caseInsensitiveCompare(canon) == .orderedSame }?.aliases ?? [] })
+            guard VocabularyBoostCore.allTrusted(applied) else {
                 DevLog.log("vocab: not every applied replacement trusted → dropped, unboosted (applied=\(applied.map { "\($0.original)→\($0.canonical)" }))")
                 return nil
             }
@@ -134,15 +132,6 @@ actor VocabularyBooster {
             DevLog.log("vocab: error \(error)")
             return nil
         }
-    }
-
-    /// The boost guard, factored out + pure so it's unit-testable: keep a boost ONLY when
-    /// there's ≥1 applied replacement and EVERY one is trusted (the original is string-
-    /// similar to its canonical, or hits a user alias — `VocabularyTrust`). One distant
-    /// spotter-rescue makes this false → the whole boost is dropped (clean unboosted text).
-    nonisolated static func allReplacementsTrusted(_ applied: [(original: String, canonical: String, aliases: [String])]) -> Bool {
-        guard !applied.isEmpty else { return false }
-        return applied.allSatisfy { VocabularyTrust.isTrusted(original: $0.original, canonical: $0.canonical, aliases: $0.aliases) }
     }
 
     /// Fire-and-forget background model prep — one at a time, off the

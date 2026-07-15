@@ -605,6 +605,11 @@ nodes:
         Shared/Pipeline/PDFTextExtract.swift (pure normalize core host-tested;
         phone drainer rewired). Mac-wire folded into 3b (the Mac has no PDF blob
         yet — no MemoAsset.Kind.document). Desktop 355 + MLX build + mobile 677 green
+      - >-
+        2026-07-15 · Board C4 — VocabularyBooster trust→apply decision →
+        Shared/Pipeline/VocabularyBoostCore.swift (neutral VocabularyReplacement;
+        aliasesFor closure keeps FluidAudio app-side; both boosters call it, CTC
+        engines stay app-side). Desktop 355 + MLX build + mobile 678 green
   - id: CapNote
     title: Capture reads as a note
     lane: 4

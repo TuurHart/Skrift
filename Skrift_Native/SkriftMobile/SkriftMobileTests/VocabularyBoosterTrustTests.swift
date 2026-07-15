@@ -1,7 +1,7 @@
 import XCTest
 @testable import SkriftMobile
 
-/// The custom-vocab booster trust guard (`VocabularyBooster.allReplacementsTrusted`).
+/// The custom-vocab booster trust guard (SHARED `VocabularyBoostCore`, Board C4).
 /// Tightened 2026-06-15 after the device repro where the spotter over-fired and mangled
 /// "hello testing testing my name is tiuri and my book is skrift" into
 /// "Tuur Skrift Tiuri Tuur and my book is Skrift Skrift": a boost is now kept ONLY when
@@ -10,19 +10,34 @@ import XCTest
 final class VocabularyBoosterTrustTests: XCTestCase {
     func testKeepsOnlyWhenEveryAppliedReplacementIsTrusted() {
         // A real correction (original ~ canonical, ignoring case) is trusted → kept.
-        XCTAssertTrue(VocabularyBooster.allReplacementsTrusted([("Skrift", "Skrift", [])]))
-        XCTAssertTrue(VocabularyBooster.allReplacementsTrusted([("skrift", "Skrift", [])]))
+        XCTAssertTrue(VocabularyBoostCore.allTrusted([("Skrift", "Skrift", [])]))
+        XCTAssertTrue(VocabularyBoostCore.allTrusted([("skrift", "Skrift", [])]))
 
         // One distant spotter-rescue mixed in ("hello"→"Tuur") drops the WHOLE boost.
-        XCTAssertFalse(VocabularyBooster.allReplacementsTrusted([
+        XCTAssertFalse(VocabularyBoostCore.allTrusted([
             ("skrift", "Skrift", []), ("hello", "Tuur", []),
         ]))
 
         // Nothing applied → nothing to keep.
-        XCTAssertFalse(VocabularyBooster.allReplacementsTrusted([]))
+        XCTAssertFalse(VocabularyBoostCore.allTrusted([]))
 
         // A registered ALIAS makes an otherwise-distant mishear trusted (the user's
         // "add 'cherry' as an alias of Tuur" path) → kept.
-        XCTAssertTrue(VocabularyBooster.allReplacementsTrusted([("cherry", "Tuur", ["cherry"])]))
+        XCTAssertTrue(VocabularyBoostCore.allTrusted([("cherry", "Tuur", ["cherry"])]))
+    }
+
+    func testAppliedReplacementsFiltersAndResolvesAliases() {
+        let reps = [
+            VocabularyReplacement(originalWord: "skrift", replacementWord: "Skrift", shouldReplace: true),
+            VocabularyReplacement(originalWord: "noise", replacementWord: "Rox", shouldReplace: false),  // dropped: not applied
+            VocabularyReplacement(originalWord: "cherry", replacementWord: nil, shouldReplace: true),      // dropped: no word
+        ]
+        let applied = VocabularyBoostCore.appliedReplacements(reps) { canon in
+            canon == "Skrift" ? ["script", "scrift"] : []
+        }
+        XCTAssertEqual(applied.count, 1)
+        XCTAssertEqual(applied.first?.original, "skrift")
+        XCTAssertEqual(applied.first?.canonical, "Skrift")
+        XCTAssertEqual(applied.first?.aliases, ["script", "scrift"])
     }
 }

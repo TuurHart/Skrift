@@ -672,8 +672,14 @@ per commit, both suites green each time — the round-1 recipe):**
    so there is nothing to extract at ingest — it already receives the phone-extracted `sharedContent.text`
    via sync (A3). Once 3b materializes the document blob on the Mac, wire `PDFTextExtract.text(of:)` at
    ingest as the fallback for memos missing the phone text.
-4. **VocabularyBooster core** (both `boost()` bodies are the same spot→rescore→trust→apply flow;
-   inject store + logger, keep engines app-side).
+4. ✅ **DONE 2026-07-15 — VocabularyBooster trust→apply core → Shared.** The identical tail of
+   both `boost()` bodies (filter shouldReplace → resolve each canonical's aliases → keep the boost
+   ONLY when ≥1 applied and EVERY replacement trusted) is now `Shared/Pipeline/VocabularyBoostCore.swift`
+   (neutral `VocabularyReplacement` struct; an `aliasesFor` closure keeps FluidAudio's `vocab.terms`
+   app-side). The phone's `allReplacementsTrusted` deleted; both boosters map their rescore output →
+   the shared core. CTC spot + rescore ENGINES and the DEBUG tuning knobs stay app-side (per the board).
+   Trust test repointed to the shared core + a new `appliedReplacements` test. Desktop 355 + MLX build
+   + mobile 678 green.
 5. **NamesCloudSync reconcile core** (round-1's `VocabularySyncCore` recipe applied to names:
    fold-carriers → `NamesMerge` → sorted-keys byte-compare → collapse dupes; adapters keep the
    gate/notification differences).
