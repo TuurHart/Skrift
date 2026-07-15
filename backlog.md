@@ -606,6 +606,9 @@ origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths on
 3b. **NEW · sync `.file` capture documents** as `MemoAsset` `Kind.document` (additive kind — no
    schema migration): phone `AssetMaterializer` writes it, Mac ingest materializes into the working
    folder → THEN the mock's true first-page inline render + Open + vault copy become possible.
+   **Also finish C3's Mac-wire here:** at ingest, run the shared `PDFTextExtract.text(of:)` on the
+   materialized PDF as a fallback when `sharedContent.text` is empty (older / no-phone-text memos),
+   so Mac search/body match the phone's A6 even without the phone extraction.
 4. Verify: UnitTests scheme + full `-skipMacroValidation` build + `-snapshot` PNGs (see
    [[native-ui-verification]] memory: sidebar can't snapshot; live-drive via UITests if needed).
 
@@ -661,9 +664,14 @@ per commit, both suites green each time — the round-1 recipe):**
    the id key is unified on the memo-UUID **String** (`unlockedIDs: Set<String>`, was `Set<UUID>`
    on the phone). Model-typed `isLocked` + the phone's `unlock(UUID)` live as thin per-app adapters
    (`LockGate+PipelineFile.swift` / `LockGate+Memo.swift`). Desktop 352 + MLX build + mobile 677 green.
-3. **PDF text-extract → Shared/Pipeline** (phone impl inside
-   `Services/Capture/CaptureInboxDrainer.swift`, PDFKit) + wire the Mac: apply it to PDF file
-   captures at ingest so Mac search/body match the phone's A6 behavior.
+3. ✅ **DONE 2026-07-15 (share + rewire) — PDF text-extract → Shared.** The phone's inline
+   PDFKit extraction is now `Shared/Pipeline/PDFTextExtract.swift` — a pure `normalize` core
+   (trim/drop-empty/120k-cap, host-tested ×3) + `text(of:)` that runs `PDFDocument`; the phone
+   drainer calls it (its now-unused `import PDFKit` dropped). Desktop 355 + MLX build + mobile 677 green.
+   **Mac-wire FOLDED INTO 3b (below):** the Mac has NO PDF blob today (no `MemoAsset.Kind.document`),
+   so there is nothing to extract at ingest — it already receives the phone-extracted `sharedContent.text`
+   via sync (A3). Once 3b materializes the document blob on the Mac, wire `PDFTextExtract.text(of:)` at
+   ingest as the fallback for memos missing the phone text.
 4. **VocabularyBooster core** (both `boost()` bodies are the same spot→rescore→trust→apply flow;
    inject store + logger, keep engines app-side).
 5. **NamesCloudSync reconcile core** (round-1's `VocabularySyncCore` recipe applied to names:

@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import PDFKit
 import SwiftData
 
 /// Observable pending-share state for the UI (A14): non-zero while the drainer is
@@ -412,12 +411,7 @@ enum CaptureInboxDrainer {
         if sharedContent.type == .file, let rel = sharedContent.filePath,
            rel.lowercased().hasSuffix(".pdf") {
             let pdfURL = AppPaths.recordingsDirectory.appendingPathComponent(rel)
-            let extracted = await offMain { () -> String? in
-                guard let doc = PDFDocument(url: pdfURL),
-                      let s = doc.string?.trimmingCharacters(in: .whitespacesAndNewlines),
-                      !s.isEmpty else { return nil }
-                return String(s.prefix(120_000))
-            }
+            let extracted = await offMain { PDFTextExtract.text(of: pdfURL) }   // SHARED with the Mac
             if let extracted {
                 sharedContent.text = extracted
                 DevLog.log("drain: pdf text extracted for \(entry.id) (\(extracted.count) chars)")

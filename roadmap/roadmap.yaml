@@ -600,6 +600,11 @@ nodes:
         Shared/Session/LockGate.swift (one #if canImport(UIKit) for the resign
         notification; unified id key = memo UUID string; per-app model-typed
         isLocked adapters). Desktop 352 + MLX build + mobile 677 green
+      - >-
+        2026-07-15 · Board C3 (share + rewire) — PDF text-extract →
+        Shared/Pipeline/PDFTextExtract.swift (pure normalize core host-tested;
+        phone drainer rewired). Mac-wire folded into 3b (the Mac has no PDF blob
+        yet — no MemoAsset.Kind.document). Desktop 355 + MLX build + mobile 677 green
   - id: CapNote
     title: Capture reads as a note
     lane: 4

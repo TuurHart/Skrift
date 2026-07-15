@@ -41,3 +41,25 @@ final class PipelineFileTests: XCTestCase {
         XCTAssertEqual(g.tags, ["work", "ideas"])
     }
 }
+
+/// Shared PDF text extraction (Board C3): the pure normalize core — the same
+/// trim/cap/drop-empty the phone applies on capture-drain and the Mac will apply
+/// once the document blob syncs.
+final class PDFTextExtractTests: XCTestCase {
+
+    func testNilAndBlankYieldNil() {
+        XCTAssertNil(PDFTextExtract.normalize(nil))          // unreadable / image-only PDF
+        XCTAssertNil(PDFTextExtract.normalize(""))
+        XCTAssertNil(PDFTextExtract.normalize("   \n\t "))    // whitespace-only
+    }
+
+    func testTrimsButKeepsInteriorWhitespace() {
+        XCTAssertEqual(PDFTextExtract.normalize("  hello\nworld  "), "hello\nworld")
+    }
+
+    func testCapsRunawayText() throws {
+        let huge = String(repeating: "a", count: PDFTextExtract.characterCap + 5_000)
+        let out = try XCTUnwrap(PDFTextExtract.normalize(huge))
+        XCTAssertEqual(out.count, PDFTextExtract.characterCap)
+    }
+}
