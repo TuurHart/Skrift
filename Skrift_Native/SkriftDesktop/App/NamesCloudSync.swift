@@ -30,7 +30,10 @@ enum NamesCloudSync {
     static func run(store: NamesStore = .shared) -> Bool {
         guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
               let container = MemoCloudStore.container else { return false }
-        let context = container.mainContext
+        // Fresh context: `mainContext` doesn't refresh registered rows after a CloudKit import,
+        // so a phone names edit (a NamesRecord blob update) would read stale (same trap as the
+        // memo sweep). A new context reads the latest import.
+        let context = ModelContext(container)
         let local = store.load()
         let records = (try? context.fetch(FetchDescriptor<NamesRecord>())) ?? []
 

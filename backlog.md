@@ -774,6 +774,16 @@ Mac→phone metadata channel.**
 
 ### 🔴 CONTINUE HERE — device-test findings 2026-07-15 (Tuur, iPhone build 76 + latest Mac Dev)
 
+**🔧 FIX LANDED 2026-07-15 (needs device re-verify) — the sweep read STALE memos.** Root cause found:
+`reconcile()` read the cloud store via `cloud.mainContext`, and a CloudKit import writes the STORE but
+does NOT refresh `mainContext`'s already-registered `Memo` objects — so the sweep saw a stale memo and
+never noticed the phone's later delete/tag/edit (a first-seen memo is fresh → ingest worked; Mac writes
+mutate the same context → Mac→phone worked). Fix: the sweep now reads through a fresh `ModelContext(cloud)`
+(empty row cache → every fetch hits the store). Same fix applied to `NamesCloudSync`/`VocabularyCloudSync`
+(same trap). Added an os.Logger line (`reconcile: ingested N, reflected M`) to confirm on the next device
+pull. Desktop 365 + MLX build green. **RE-TEST on device:** phone delete/tag/importance edit → the Mac
+reflects on the next sweep (refocus the Mac app to force one).
+
 **THE HEADLINE BUG — phone→Mac sync is one-directional right now.** Tuur's words: *"whatever I do on
 the Mac syncs to the phone, but what I do on the phone does NOT sync to the Mac."* Mac→phone works
 (the Mac writes the shared `Memo`/`MemoEnhancement` → phone auto-mirrors via NSPersistentCloudKitContainer).

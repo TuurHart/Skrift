@@ -13,7 +13,9 @@ enum VocabularyCloudSync {
     static func run() {
         var settings = SettingsStore.shared.load()
         guard settings.cloudKitMacSyncEnabled, let container = MemoCloudStore.container else { return }
-        let context = container.mainContext
+        // Fresh context — mainContext reads stale after a CloudKit import (same trap as the memo
+        // sweep); a phone vocab edit lands in a VocabularyRecord blob the Mac must read fresh.
+        let context = ModelContext(container)
         let records = (try? context.fetch(FetchDescriptor<VocabularyRecord>())) ?? []
 
         // One-time migration from the consume-only era: the Mac has words but no stamp

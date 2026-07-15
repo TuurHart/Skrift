@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import CoreData
 import AppKit
+import os
 
 /// App-only wiring for `MemoCloudReconciler` — the triggers + the `reconcile()` entry point
 /// that resolve the app's two containers (`MemoCloudStore` / `SharedStore`) and the user's
@@ -57,10 +58,19 @@ extension MemoCloudReconciler {
         NamesCloudSync.run()
         VocabularyCloudSync.run()
         let local = SharedStore.container.mainContext
-        let outcome = sweep(from: cloud.mainContext, into: local,
+        // READ THROUGH A FRESH CONTEXT. A CloudKit import writes to the persistent STORE but does
+        // NOT refresh `mainContext`'s already-registered `Memo` objects — so `cloud.mainContext`
+        // returns STALE memos and the sweep never sees a phone's LATER delete / tag / edit (only a
+        // first-seen memo is fresh — which is exactly why Mac→phone synced but phone→Mac didn't,
+        // 2026-07-15 device test). A brand-new context has an empty row cache, so every fetch hits
+        // the store and reads the latest import.
+        let cloudContext = ModelContext(cloud)
+        let outcome = sweep(from: cloudContext, into: local,
                             processEverything: settings.processAllSyncedMemosEnabled,
                             people: NamesStore.shared.livePeople(), author: settings.authorName,
                             thisDeviceID: DeviceID.current())
+        Logger(subsystem: "com.skrift.desktop", category: "cloudkit").log(
+            "reconcile: ingested \(outcome.created, privacy: .public), reflected \(outcome.updatedIDs.count, privacy: .public)")
         // A phone edit re-linked + recompiled an existing row (Part B). Persist it, and if it
         // was already in the vault, re-export so Obsidian reflects the edit too ("everywhere").
         if !outcome.updatedIDs.isEmpty {
