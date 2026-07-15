@@ -18,51 +18,19 @@ import SwiftData
 @MainActor
 enum NamesCloudSync {
 
-    /// Deterministic, sorted-keys encoding of a people list as `NamesData` — used both
-    /// to write the carrier and to compare for "did anything change" without relying on
-    /// `Equatable`. Deterministic (no `now()`): an unchanged set yields identical bytes.
-    private static func normalizedData(_ people: [Person]) -> NamesData {
-        NamesData(lastModifiedAt: NamesMerge.topLevelTimestamp(people),
-                  people: NamesMerge.sortPeople(people))
-    }
-
-    private static let encoder: JSONEncoder = {
-        let e = JSONEncoder()
-        e.outputFormatting = [.sortedKeys]
-        return e
-    }()
-
     static func run(_ repository: NotesRepository, store: NamesStore = .shared) {
         let local = store.load()
+        // The reconcile (fold carriers → NamesMerge → collapse to one row) is SHARED
+        // with the Mac — `NamesSyncCore`. This adapter owns the store + logging.
+        guard let outcome = NamesSyncCore.reconcile(
+            localPeople: local.people,
+            records: repository.allNamesRecords(),
+            insert: { repository.context.insert($0) },
+            delete: { repository.context.delete($0) }) else { return }
 
-        // Fold the local people together with every carrier row (handles the rare
-        // duplicate-carrier case). Order doesn't matter — the merge is commutative
-        // enough (LWW by timestamp + union), so the result converges.
-        let records = repository.allNamesRecords()
-        var people = local.people
-        for record in records {
-            guard let remote = try? JSONDecoder().decode(NamesData.self, from: record.blob) else { continue }
-            people = NamesMerge.mergeByCanonical(local: people, remote: remote.people)
-        }
-
-        let merged = normalizedData(people)
-        guard let mergedBlob = try? encoder.encode(merged) else { return }
-
-        // 1. Update the local names.json only if the merge actually changed it.
-        if (try? encoder.encode(normalizedData(local.people))) != mergedBlob {
-            _ = store.save(merged)
-            DevLog.log("names: merged remote → local (\(merged.people.count) people)")
-        }
-
-        // 2. Collapse to a single carrier holding the merged blob; delete extras.
-        if let primary = records.first {
-            if primary.blob != mergedBlob {
-                primary.blob = mergedBlob
-                primary.updatedAt = Date()
-            }
-            for extra in records.dropFirst() { repository.context.delete(extra) }
-        } else {
-            repository.context.insert(NamesRecord(blob: mergedBlob))
+        if outcome.localChanged {
+            _ = store.save(outcome.merged)
+            DevLog.log("names: merged remote → local (\(outcome.merged.people.count) people)")
         }
         repository.save()
     }

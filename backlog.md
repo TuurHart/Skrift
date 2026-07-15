@@ -680,9 +680,14 @@ per commit, both suites green each time — the round-1 recipe):**
    the shared core. CTC spot + rescore ENGINES and the DEBUG tuning knobs stay app-side (per the board).
    Trust test repointed to the shared core + a new `appliedReplacements` test. Desktop 355 + MLX build
    + mobile 678 green.
-5. **NamesCloudSync reconcile core** (round-1's `VocabularySyncCore` recipe applied to names:
-   fold-carriers → `NamesMerge` → sorted-keys byte-compare → collapse dupes; adapters keep the
-   gate/notification differences).
+5. ✅ **DONE 2026-07-15 — NamesCloudSync reconcile core → Shared.** The byte-identical phone + Mac
+   `run` bodies now delegate to `Shared/Naming/NamesSyncCore.reconcile` (fold carriers → `NamesMerge`
+   per-canonical LWW + voiceEmbeddings union → sorted-keys byte-compare → collapse to ONE carrier row
+   via injected insert/delete; returns merged + localChanged). One shared encoder so the two can't
+   churn-loop. Each adapter keeps its own differences: the phone's DevLog, the Mac's
+   `cloudKitMacSyncEnabled` gate + `.namesDidChangeFromSync` post. The 5 `NamesCloudSyncTests` (through
+   the phone adapter) cover the shared flow — first-sync, remote merge, embedding union, idempotent,
+   collapse-dupes. Desktop 355 + MLX build + mobile 678 green.
 6. **Desktop legacy readers** (`PhoneMetadata` + desktop `SharedContent` in CompilerBridge) —
    collapse onto the shared types only WITH golden ingest tests (old working-folder payloads are
    the reason they're lenient).
@@ -741,9 +746,10 @@ SpeakerFusion, BPEMerge (phone's inline mergeBPETokens/phantom-guard/alignWords 
   `VocabularySyncCore` (whole-list LWW) + Mac `customVocabularyModifiedAt` + push-on-edit + one-time
   union migration; both adapters are thin wrappers now. 8 new host-less core tests. Live phone↔Mac
   round-trip unverified — fold into the next device session.
-- ⬜ **NamesCloudSync reconcile core** — both halves run the same fold-carriers → NamesMerge →
-  byte-compare → collapse-duplicates algorithm with different store/gate/notify plumbing; an encoder
-  divergence would cause CloudKit churn loops. Extract one shared engine, keep thin app adapters.
+- ✅ **DONE 2026-07-15 (Board C5) — NamesCloudSync reconcile core** — one shared
+  `Shared/Naming/NamesSyncCore.reconcile` (fold-carriers → NamesMerge → sorted-keys byte-compare →
+  collapse-duplicates, injected insert/delete); one encoder so the halves can't churn-loop; thin
+  app adapters keep the store/gate/notify differences.
 - ⬜ **VocabularyBooster.boost() cores** — same spot→rescore→trust→apply flow both sides but drifted
   (VocabLog vs DevLog, tuning knobs, store injection). Unify around a small store/log seam.
 - ⬜ **Desktop legacy readers** — `PhoneMetadata` + desktop `SharedContent` (CompilerBridge) are lenient

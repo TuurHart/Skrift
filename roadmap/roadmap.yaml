@@ -610,6 +610,12 @@ nodes:
         Shared/Pipeline/VocabularyBoostCore.swift (neutral VocabularyReplacement;
         aliasesFor closure keeps FluidAudio app-side; both boosters call it, CTC
         engines stay app-side). Desktop 355 + MLX build + mobile 678 green
+      - >-
+        2026-07-15 · Board C5 — NamesCloudSync reconcile → ONE
+        Shared/Naming/NamesSyncCore.reconcile (fold carriers → NamesMerge →
+        sorted-keys byte-compare → collapse to one row; injected insert/delete;
+        one encoder, no churn-loop). Adapters keep their gate/log/notify.
+        Desktop 355 + MLX build + mobile 678 green
   - id: CapNote
     title: Capture reads as a note
     lane: 4
