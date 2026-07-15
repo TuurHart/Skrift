@@ -30,9 +30,29 @@ enum Snapshot {
         if let p = path("-snapshot-names")          { MainActor.assumeIsolated { renderNames(to: p); exit(0) } }
         if let p = path("-snapshot-person-editor")  { MainActor.assumeIsolated { renderPersonEditor(to: p); exit(0) } }
         if let p = path("-snapshot-memolinks")      { MainActor.assumeIsolated { renderMemoLinks(to: p); exit(0) } }
+        if let p = path("-snapshot-linkpicker")     { MainActor.assumeIsolated { renderLinkPicker(to: p); exit(0) } }
         if let p = path("-snapshot-journal")        { MainActor.assumeIsolated { renderJournal(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot")                { MainActor.assumeIsolated { renderReview(to: p); exit(0) } }
+    }
+
+    /// The `[[` memo-link picker popover, with injected candidates — the deterministic eyeball
+    /// for the new Mac link-creation UI (`-snapshot-linkpicker <path>`).
+    @MainActor private static func renderLinkPicker(to path: String) {
+        let df = DateFormatter(); df.dateStyle = .medium; df.timeStyle = .none
+        let cands = [
+            ("Rethinking the desktop rewrite as one native app", -1),
+            ("Journal on the Mac — map mode + Looking back", -3),
+            ("AirPods route bug — the 4-round P0", -8),
+            ("Custom vocab finally works on device", -12),
+            ("Books tab: reading mode + e-reader page", -20),
+        ].map { (title, days) in
+            MemoLinkCandidate(id: UUID(), title: title,
+                              subtitle: df.string(from: Calendar.current.date(byAdding: .day, value: days, to: Date())!))
+        }
+        let view = MemoLinkPopover(candidates: cands, onPick: { _, _ in }, onCancel: {})
+            .padding(24).background(Theme.surface)
+        hostPNG(view, size: NSSize(width: 348, height: 340), to: path)
     }
 
     /// Memo-link chips + the LINKED FROM strip need the LIVE editor path (NSTextView) —

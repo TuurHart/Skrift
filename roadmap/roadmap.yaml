@@ -646,6 +646,12 @@ nodes:
         writes memo.tags/significance on a Mac edit (.onChange on NoteProperties);
         MemoCloudUpdate reflects + MemoCloudIngest backfills the other way (were
         frozen at ingest). Desktop 364 + MLX build green; live round-trip owed.
+      - >-
+        2026-07-15 · Mac [[ link picker (phone parity) — typing [[ in the review
+        body opens MemoLinkPopover (search over other memos), pick inserts a
+        [[memo:UUID|Title]] chip that rides Part-B sync to the phone. The Mac can
+        now CREATE memo-links, not just render them. Popover snapshot-verified;
+        desktop 364 + MLX green; live trigger/insert eyeball owed.
   - id: CapNote
     title: Capture reads as a note
     lane: 4

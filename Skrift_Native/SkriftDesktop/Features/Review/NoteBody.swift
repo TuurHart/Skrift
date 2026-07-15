@@ -24,6 +24,8 @@ struct NoteBody: View {
     var onOpenNote: ((String) -> Void)? = nil
     /// Memo↔memo link chip clicked → open that memo (nil = inert chips).
     var onOpenMemoLink: ((UUID) -> Void)? = nil
+    /// The `[[` picker's link targets (lazily evaluated; empty = picker disabled).
+    var linkCandidates: () -> [MemoLinkCandidate] = { [] }
 
     private static let bodyFont = Font.system(size: 16)
     private static let bodyLineSpacing: CGFloat = 6
@@ -118,6 +120,7 @@ struct NoteBody: View {
             onLinkedChange: karaokeActive ? nil : onLinkedChange,
             onOpenNote: karaokeActive ? nil : onOpenNote,
             onOpenMemoLink: karaokeActive ? nil : onOpenMemoLink,
+            linkCandidates: karaokeActive ? { [] } : linkCandidates,
             karaoke: karaokeActive ? karaokePlayback : nil,
             quoteAttribution: file.bookCapture?.attribution
         )

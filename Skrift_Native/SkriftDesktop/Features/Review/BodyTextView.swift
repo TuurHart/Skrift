@@ -43,6 +43,9 @@ struct BodyTextView: NSViewRepresentable {
     /// Memo↔memo link chip clicked (phone chunk-5 parity) — open that memo in the
     /// detail pane. nil on read-only hosts → the chip still renders, just inert.
     var onOpenMemoLink: ((_ id: UUID) -> Void)? = nil
+    /// The memos the `[[` picker can link to (phone parity). Evaluated LAZILY when the
+    /// user types `[[`, so no per-render fetch; empty → the picker stays closed.
+    var linkCandidates: () -> [MemoLinkCandidate] = { [] }
     /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
     /// THIS text view (no renderer swap → no reflow) + click-a-word-to-seek.
     var karaoke: KaraokePlayback? = nil
@@ -150,6 +153,47 @@ struct BodyTextView: NSViewRepresentable {
             guard let tv = notification.object as? SelfSizingTextView else { return }
             parent.text = modelString(tv)   // attachments → [[img_NNN]] markers
             restyle(tv)                      // in-place recolor + ambiguous marks (keeps attachments + caret)
+            tv.invalidateIntrinsicContentSize()
+            maybeShowLinkPicker(tv)          // just typed `[[` → open the memo-link picker
+        }
+
+        /// The `[[` trigger (phone chunk-5 parity): when the two chars just before the caret are
+        /// `[[` (a fresh literal — rendered links are chip attachments, never literal `[[`), open a
+        /// searchable memo picker anchored there. Picking replaces the `[[` with a link chip.
+        private func maybeShowLinkPicker(_ tv: SelfSizingTextView) {
+            guard activePopover == nil else { return }
+            let caret = tv.selectedRange()
+            guard caret.length == 0, caret.location >= 2 else { return }
+            let ns = tv.string as NSString
+            guard ns.substring(with: NSRange(location: caret.location - 2, length: 2)) == "[[" else { return }
+            let candidates = parent.linkCandidates()
+            guard !candidates.isEmpty else { return }
+            let trigger = NSRange(location: caret.location - 2, length: 2)
+            presentPopover(MemoLinkPopover(
+                candidates: candidates,
+                onPick: { [weak self, weak tv] id, title in
+                    guard let self, let tv else { return }
+                    self.closePopover()
+                    self.insertMemoLink(id: id, title: title, replacing: trigger, in: tv)
+                },
+                onCancel: { [weak self] in self?.closePopover() }),
+                at: trigger, in: tv)
+        }
+
+        /// Replace the `[[` trigger with the full `[[memo:UUID|Title]]` literal, render it as a chip,
+        /// and drop the caret after it. Writing `parent.text` rides the Part-B edit sync to the phone.
+        private func insertMemoLink(id: UUID, title: String, replacing trigger: NSRange, in tv: SelfSizingTextView) {
+            guard let storage = tv.textStorage, NSMaxRange(trigger) <= storage.length else { return }
+            let literal = MemoLinkSyntax.link(id: id, title: title)
+            storage.replaceCharacters(in: trigger, with: NSAttributedString(
+                string: literal, attributes: [.font: BodyTextView.bodyFont,
+                                              .foregroundColor: NSColor(Theme.textPrimary)]))
+            spliceMemoLinkChips(tv)          // literal → atomic chip
+            restyle(tv)
+            parent.text = modelString(tv)    // persist + push (bodyBinding setter)
+            // The chip is one character where the `[[` began; put the caret just after it.
+            let after = min(trigger.location + 1, (tv.string as NSString).length)
+            tv.setSelectedRange(NSRange(location: after, length: 0))
             tv.invalidateIntrinsicContentSize()
         }
 
@@ -672,6 +716,74 @@ struct BodyTextView: NSViewRepresentable {
 /// State 2 (mocks/naming-review.html): click a dotted SUGGESTED name → which person? One
 /// candidate (a recognised common-word name) reads "Link "Rose"?"; 2+ (the ambiguous twins)
 /// read "Which "Jack"? · N people share this name". Plus New person… and Leave as plain text.
+/// A memo the `[[` picker can link to (phone parity: id + title + a date subtitle).
+struct MemoLinkCandidate: Identifiable, Equatable {
+    let id: UUID
+    let title: String
+    let subtitle: String
+}
+
+/// The `[[` memo-link picker popover (phone `MemoLinkPickerSheet` parity, the Obsidian idiom):
+/// a search field over titles + subtitles, most-recent first, picking inserts a chip. The search
+/// field auto-focuses so you keep typing straight after `[[`.
+struct MemoLinkPopover: View {
+    let candidates: [MemoLinkCandidate]
+    var onPick: (UUID, String) -> Void
+    var onCancel: () -> Void
+    @State private var query = ""
+    @FocusState private var focused: Bool
+
+    private var filtered: [MemoLinkCandidate] {
+        let q = query.lowercased().trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return Array(candidates.prefix(50)) }
+        return candidates.filter {
+            $0.title.lowercased().contains(q) || $0.subtitle.lowercased().contains(q)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "link").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                TextField("Link a note…", text: $query)
+                    .textFieldStyle(.plain).font(.system(size: 13)).focused($focused)
+                    .onSubmit { if let first = filtered.first { onPick(first.id, first.title) } else { onCancel() } }
+            }
+            .padding(.horizontal, 4).padding(.bottom, 8)
+
+            if filtered.isEmpty {
+                Text("No notes match").font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                    .padding(.leading, 2).padding(.vertical, 4)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(filtered) { c in
+                            Button { onPick(c.id, c.title) } label: {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(c.title.isEmpty ? "Untitled" : c.title)
+                                        .font(.system(size: 12.5)).foregroundStyle(Theme.textPrimary)
+                                        .lineLimit(1)
+                                    if !c.subtitle.isEmpty {
+                                        Text(c.subtitle).font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                                .padding(.horizontal, 6).padding(.vertical, 5)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .frame(maxHeight: 220)
+            }
+        }
+        .padding(11).frame(width: 300).background(Theme.surfaceHover)
+        .onAppear { focused = true }
+    }
+}
+
 struct SuggestionPopover: View {
     let spoken: String
     let candidates: [NameCandidate]

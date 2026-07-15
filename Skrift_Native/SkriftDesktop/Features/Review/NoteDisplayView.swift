@@ -133,7 +133,8 @@ struct NoteDisplayView: View {
                      onLinkedUnlink: scrollable ? { c in unlinkName(file, canonical: c) } : nil,
                      onLinkedChange: scrollable ? { a, c in changeName(file, alias: a, newCanonical: c) } : nil,
                      onOpenNote: scrollable ? { c in openNote(c) } : nil,
-                     onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } })
+                     onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } },
+                     linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] })
             if scrollable, let onOpenMemo {
                 MemoBacklinks(file: file, openMemo: onOpenMemo)
             }
@@ -145,6 +146,20 @@ struct NoteDisplayView: View {
     // which-person/silence), then re-derives the body via the deterministic Sanitiser.
 
     /// Snapshot the override sets, run `mutate`, re-derive + save, and arm the undo toast.
+    /// The `[[` picker's link targets: every other live memo (id must be a memo UUID; trashed
+    /// excluded), most-recent first, with a date subtitle. Built lazily when the picker opens.
+    private func linkCandidates(excluding file: PipelineFile) -> [MemoLinkCandidate] {
+        let all: [PipelineFile] = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        let df = DateFormatter(); df.dateStyle = .medium; df.timeStyle = .none
+        return all
+            .filter { $0.id != file.id && $0.deletedAt == nil }
+            .sorted { $0.uploadedAt > $1.uploadedAt }
+            .compactMap { f in
+                guard let id = UUID(uuidString: f.id) else { return nil }   // memo-links key on the memo UUID
+                return MemoLinkCandidate(id: id, title: f.queueTitle, subtitle: df.string(from: f.uploadedAt))
+            }
+    }
+
     private func applyNaming(_ file: PipelineFile, _ message: String, _ mutate: () -> Void) {
         let undo = NamingUndo(message: message, unlinkedNames: file.unlinkedNames, namePicks: file.namePicks)
         mutate()

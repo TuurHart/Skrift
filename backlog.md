@@ -756,7 +756,16 @@ Mac→phone metadata channel.**
   from the row, wired via `.onChange(of: file.tags/significance)` on `NoteProperties` (echo-guarded —
   no-op when the memo already matches). Desktop 364 + MLX build green (2 new reflect tests). **LIVE
   round-trip owed** (needs both Dev apps): tag/importance edit on Mac → phone, and phone → Mac.
-- ⬜ Later gaps from the audit: Mac `[[` link picker (create links on Mac); 3b (sync the PDF/file blob);
+- ✅ **DONE 2026-07-15 — Mac `[[` link picker** (create memo-links on the Mac, phone parity). Typing
+  `[[` in the review body (`BodyTextView` coordinator detects the two-char trigger at the caret) opens
+  `MemoLinkPopover` — a search field over every other live memo (title + date subtitle, most-recent
+  first; `NoteDisplayView.linkCandidates` lazily fetches, memo-UUID rows only, trashed excluded).
+  Picking inserts `[[memo:UUID|Title]]` → `spliceMemoLinkChips` renders the chip → `parent.text` write
+  rides the Part-B edit sync to the phone. Popover snapshot-verified (`-snapshot-linkpicker`); desktop
+  364 + MLX build green. **LIVE eyeball owed**: does `[[` open it + does pick insert the chip (NSTextView
+  typing isn't headless-drivable). Follow-up idea: also link to EXISTING vault notes (the Backlink-Weaver
+  title index — backlog line ~539), not just Skrift memos.
+- ⬜ Later gaps from the audit: 3b (sync the PDF/file blob);
   reminder alarm on the Mac; (by-design, NOT gaps: Mac shows `[[links]]`+polish, phone shows raw; Mac
   has the LLM; Mac writes Obsidian). Open Q for a future chat: should trashing also DELETE the note's
   Obsidian `.md`? (destructive to the vault — needs Tuur's call before building.)
