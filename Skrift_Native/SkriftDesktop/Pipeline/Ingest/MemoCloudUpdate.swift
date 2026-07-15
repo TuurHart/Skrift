@@ -84,6 +84,13 @@ enum MemoCloudUpdate {
             contentChanged = true
         }
 
+        // Tags + importance: the TYPED row fields the compiler frontmatter + the sidebar read
+        // (the blob above is just the frontmatter source). Reflect a phone edit so they're no
+        // longer frozen at first ingest. Content-based like the rest — a Mac edit writes the
+        // Memo synchronously (MacCloudMetaSync) so this compare has already converged, no clobber.
+        if pf.tags != memo.tags { pf.tags = memo.tags; contentChanged = true }
+        if pf.significance != memo.significance { pf.significance = memo.significance; contentChanged = true }
+
         // Row mirrors that need NO recompile — the lock flag, the reminder, the flat OCR
         // search text. Still count as a change so the caller saves (and re-export runs,
         // where the lock gate has the final word).

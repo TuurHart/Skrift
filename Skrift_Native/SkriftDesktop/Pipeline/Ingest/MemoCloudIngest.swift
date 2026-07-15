@@ -52,6 +52,10 @@ enum MemoCloudIngest {
             pf.locked = memo.locked
             pf.remindAt = memo.remindAt
             pf.imageOCRText = ocrText(for: memo)
+            // The phone's user-applied tags → the Mac's applied `tags` (the frontmatter set).
+            // The multipart shim doesn't carry them, and the Mac's own derivation lands in
+            // `tagSuggestions`, so without this the phone's tags never appear on the Mac.
+            if !memo.tags.isEmpty { pf.tags = memo.tags }
         }
         return pf
     }

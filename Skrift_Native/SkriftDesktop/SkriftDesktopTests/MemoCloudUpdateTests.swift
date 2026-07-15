@@ -147,6 +147,8 @@ final class MemoCloudUpdateTests: XCTestCase {
     private func baselined(_ pf: PipelineFile, to m: Memo) -> PipelineFile {
         pf.audioMetadataJSON = MemoCloudIngest.metadataJSON(for: m)
         pf.transcript = m.transcript
+        pf.tags = m.tags                 // as MemoCloudIngest now leaves them
+        pf.significance = m.significance
         return pf
     }
 
@@ -197,6 +199,34 @@ final class MemoCloudUpdateTests: XCTestCase {
         XCTAssertEqual(pf.imageOCRText, "WHITEBOARD ROADMAP")
         XCTAssertEqual(pf.audioMetadataJSON, MemoCloudIngest.metadataJSON(for: m),
                        "stored blob refreshed to the new manifest")
+    }
+
+    // MARK: - Tags + importance reflect (widen the Mac→phone channel; phone→Mac side)
+
+    func testPhoneTagEditIsReflectedOntoTheRow() {
+        let id = UUID()
+        let t0 = Date()
+        let m = memo(id, transcript: "Original transcript.", editedAt: t0)
+        let pf = baselined(ingestedFile(id: id, at: t0), to: m)   // tags match at baseline ([])
+        m.tags = ["work", "ideas"]
+        m.markEdited(t0.addingTimeInterval(10))
+
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertEqual(pf.tags, ["work", "ideas"], "a phone tag edit reflects onto the Mac row")
+    }
+
+    func testPhoneImportanceEditIsReflected() throws {
+        let id = UUID()
+        let t0 = Date()
+        let m = memo(id, transcript: "Original transcript.", editedAt: t0)   // significance 0.6
+        let pf = baselined(ingestedFile(id: id, at: t0), to: m)
+        m.significance = 0.9
+        m.markEdited(t0.addingTimeInterval(10))
+
+        XCTAssertTrue(MemoCloudUpdate.apply(memo: m, enhancement: nil, to: pf,
+                                            people: [], author: "", thisDeviceID: mac))
+        XCTAssertEqual(try XCTUnwrap(pf.significance), 0.9, accuracy: 0.0001, "a phone importance edit reflects")
     }
 
     // MARK: - Delete sync (trash + restore mirror, both ways)

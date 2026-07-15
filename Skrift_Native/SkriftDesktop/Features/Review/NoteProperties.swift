@@ -123,6 +123,9 @@ struct NoteProperties: View {
         .padding(.horizontal, 16).padding(.vertical, 14)
         .background(Theme.hairline.opacity(0.022), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.hairline.opacity(0.07), lineWidth: 1))
+        // Push a Mac tag / importance edit to the phone (widen the Mac→phone channel).
+        .onChange(of: file.tags) { MacCloudMetaSync.mirror([file]) }
+        .onChange(of: file.significance) { MacCloudMetaSync.mirror([file]) }
     }
 
     /// Per-note opt-out for copying the audio into the vault on export (ST8).

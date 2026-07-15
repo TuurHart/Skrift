@@ -639,7 +639,13 @@ nodes:
         mirror both ways). Memo.deletedAt is the carrier; MemoCloudUpdate reflects
         phone→Mac (watermarked, no clobber/heal), MacCloudDeleteSync writes
         Mac→phone; re-export skips trashed. Desktop 362 + MLX + mobile 678 green;
-        live round-trip owed. NEXT: widen Mac→phone channel (tags + importance)
+        live round-trip owed.
+      - >-
+        2026-07-15 · phone↔Mac intertwining #2 — TAGS + IMPORTANCE sync both ways
+        (the Mac→phone channel only carried body/title/summary). MacCloudMetaSync
+        writes memo.tags/significance on a Mac edit (.onChange on NoteProperties);
+        MemoCloudUpdate reflects + MemoCloudIngest backfills the other way (were
+        frozen at ingest). Desktop 364 + MLX build green; live round-trip owed.
   - id: CapNote
     title: Capture reads as a note
     lane: 4

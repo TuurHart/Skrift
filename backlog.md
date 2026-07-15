@@ -747,13 +747,15 @@ Mac→phone metadata channel.**
   onto `pf.workingFolder`. Desktop 362 + MLX build + mobile 678 green; core logic unit-tested (5 tests).
   **LIVE round-trip owed** (needs both Dev apps): trash on Mac → gone on phone; trash on phone → gone on
   Mac; restore either way mirrors.
-- ⬜ **NEXT — widen the Mac→phone channel: tags + importance.** Today they're frozen at first ingest —
-  a phone tag/significance edit after sync doesn't refresh the Mac row (`MemoCloudUpdate` never touches
-  `pf.tags`/`pf.significance`), and a Mac tag/significance edit has no channel back (MemoEnhancement
-  carries only body/title/summary). Fix BOTH directions: (a) phone→Mac — reflect `memo.tags`/
-  `memo.significance` in `MemoCloudUpdate`; (b) Mac→phone — carry them (write to the `Memo` fields
-  directly like delete-sync, or extend the enhancement carrier), and wire the Mac tag/significance
-  edit sites (`NoteProperties`) to push.
+- ✅ **DONE 2026-07-15 — widen the Mac→phone channel: tags + importance.** Both are plain `Memo`
+  fields that already sync, so — like delete-sync — the Mac just writes them onto the `Memo`. (a)
+  phone→Mac: `MemoCloudUpdate` now reflects `memo.tags`/`memo.significance` onto `pf.tags`/
+  `pf.significance` (content-based, like the rest); `MemoCloudIngest` also backfills `pf.tags = memo.tags`
+  at first ingest (the Mac's derivation only fills `tagSuggestions`, so the phone's applied tags never
+  appeared before). (b) Mac→phone: `App/MacCloudMetaSync.mirror` writes `memo.tags`/`memo.significance`
+  from the row, wired via `.onChange(of: file.tags/significance)` on `NoteProperties` (echo-guarded —
+  no-op when the memo already matches). Desktop 364 + MLX build green (2 new reflect tests). **LIVE
+  round-trip owed** (needs both Dev apps): tag/importance edit on Mac → phone, and phone → Mac.
 - ⬜ Later gaps from the audit: Mac `[[` link picker (create links on Mac); 3b (sync the PDF/file blob);
   reminder alarm on the Mac; (by-design, NOT gaps: Mac shows `[[links]]`+polish, phone shows raw; Mac
   has the LLM; Mac writes Obsidian). Open Q for a future chat: should trashing also DELETE the note's
