@@ -31,6 +31,25 @@ final class BPEMergeTests: XCTestCase {
         XCTAssertEqual(words.map(\.text), ["a"])
     }
 
+    func testPhantomGuardLazyGate() {
+        // A real transcript never consults the (expensive) RMS provider…
+        var probed = 0
+        let real = "one two three four five"
+        XCTAssertFalse(BPEMerge.shouldDropAsPhantom(text: real, rms: { probed += 1; return 0.001 }))
+        XCTAssertEqual(probed, 0, "RMS must stay lazy for a real-length transcript")
+
+        // …a tiny one does, and low energy drops it.
+        probed = 0
+        XCTAssertTrue(BPEMerge.shouldDropAsPhantom(text: "  hi  ", rms: { probed += 1; return 0.001 }))
+        XCTAssertEqual(probed, 1, "tiny transcript should consult RMS exactly once")
+
+        // Tiny but loud = keep; empty = drop without probing.
+        XCTAssertFalse(BPEMerge.shouldDropAsPhantom(text: "hi", rms: { 0.5 }))
+        probed = 0
+        XCTAssertTrue(BPEMerge.shouldDropAsPhantom(text: "   ", rms: { probed += 1; return 0.5 }))
+        XCTAssertEqual(probed, 0, "empty transcript short-circuits before RMS")
+    }
+
     func testPhantomGuard() {
         XCTAssertTrue(BPEMerge.shouldDropAsPhantom(rms: 0.5, wordCount: 0, isEmpty: true))     // empty
         XCTAssertTrue(BPEMerge.shouldDropAsPhantom(rms: 0.001, wordCount: 2, isEmpty: false))  // low + tiny

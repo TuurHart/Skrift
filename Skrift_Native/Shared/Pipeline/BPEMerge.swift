@@ -77,4 +77,18 @@ enum BPEMerge {
         let lowEnergy = rms.map { $0 < 0.0075 } ?? false
         return lowEnergy && wordCount <= 3
     }
+
+    /// The phantom guard with a LAZY energy source: RMS decodes the whole file and
+    /// is only consulted for tiny transcripts, so pass a provider — a real
+    /// transcript (every memo, import, book chunk) skips the extra decode pass.
+    /// Folds the identical `trimmed`/`wordCount`/lazy-gate that each app's
+    /// TranscriptionService used to inline (the drift surface behind `averageRMS`).
+    static func shouldDropAsPhantom(text: String, rms: () -> Float?) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let wordCount = trimmed.isEmpty
+            ? 0
+            : trimmed.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
+        let value = (!trimmed.isEmpty && wordCount <= 3) ? rms() : nil
+        return shouldDropAsPhantom(rms: value, wordCount: wordCount, isEmpty: trimmed.isEmpty)
+    }
 }

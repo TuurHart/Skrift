@@ -203,15 +203,10 @@ actor TranscriptionService: Transcriber {
         let ms = Int(Date().timeIntervalSince(started) * 1000)
 
         // Silence/phantom guard (shared BPEMerge — same rule as the Mac). RMS
-        // decodes the ENTIRE file and is only consulted for tiny transcripts,
-        // so compute it lazily — a real transcript (every memo, import, and
-        // book chunk) skips the extra full-file decode pass.
-        let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let wordCount = trimmed.isEmpty
-            ? 0
-            : trimmed.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
-        let rms = (!trimmed.isEmpty && wordCount <= 3) ? Self.averageRMS(url: audioURL) : nil
-        if BPEMerge.shouldDropAsPhantom(rms: rms, wordCount: wordCount, isEmpty: trimmed.isEmpty) {
+        // decodes the ENTIRE file and is only consulted for tiny transcripts, so
+        // the shared guard computes it lazily — a real transcript (every memo,
+        // import, and book chunk) skips the extra full-file decode pass.
+        if BPEMerge.shouldDropAsPhantom(text: result.text, rms: { AudioRMS.averageRMS(url: audioURL) }) {
             return TranscriptionResult(text: "", confidence: Double(result.confidence),
                                        durationMs: ms, wordTimings: [], markersInjected: false)
         }
@@ -260,12 +255,7 @@ actor TranscriptionService: Transcriber {
         let result = try await asr.transcribe(buffer, decoderState: &state)
         let ms = Int(Date().timeIntervalSince(started) * 1000)
 
-        let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let wordCount = trimmed.isEmpty
-            ? 0
-            : trimmed.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
-        let rms = (!trimmed.isEmpty && wordCount <= 3) ? Self.rms(of: buffer) : nil
-        if BPEMerge.shouldDropAsPhantom(rms: rms, wordCount: wordCount, isEmpty: trimmed.isEmpty) {
+        if BPEMerge.shouldDropAsPhantom(text: result.text, rms: { AudioRMS.rms(of: buffer) }) {
             return TranscriptionResult(text: "", confidence: Double(result.confidence),
                                        durationMs: ms, wordTimings: [], markersInjected: false)
         }
@@ -278,53 +268,8 @@ actor TranscriptionService: Transcriber {
             markersInjected: false)
     }
 
-    /// RMS of an in-memory buffer (first channel) — the buffer-path phantom guard.
-    private static func rms(of buffer: AVAudioPCMBuffer) -> Float? {
-        guard let channels = buffer.floatChannelData, buffer.frameLength > 0 else { return nil }
-        let n = Int(buffer.frameLength)
-        let samples = channels[0]
-        var sumSquares: Double = 0
-        for i in 0..<n {
-            let s = Double(samples[i])
-            sumSquares += s * s
-        }
-        return Float((sumSquares / Double(n)).squareRoot())
-    }
-
-    // MARK: - Helpers (ported verbatim from the RN ParakeetModule)
-
-    /// Mean RMS amplitude across the file, chunked so a long recording is never
-    /// fully loaded into memory. nil if unreadable.
-    private static func averageRMS(url: URL) -> Float? {
-        guard let file = try? AVAudioFile(forReading: url) else { return nil }
-        let format = file.processingFormat
-        let frameCapacity: AVAudioFrameCount = 16384
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCapacity) else { return nil }
-        var sumSquares: Double = 0
-        var totalFrames: Double = 0
-        while true {
-            do {
-                try file.read(into: buffer, frameCount: frameCapacity)
-            } catch {
-                break
-            }
-            let n = Int(buffer.frameLength)
-            if n == 0 { break }
-            guard let channels = buffer.floatChannelData else { break }
-            let samples = channels[0]
-            var i = 0
-            while i < n {
-                let s = Double(samples[i])
-                sumSquares += s * s
-                i += 1
-            }
-            totalFrames += Double(n)
-        }
-        if totalFrames == 0 { return nil }
-        return Float((sumSquares / totalFrames).squareRoot())
-    }
-
-    // (BPE token→word merging lives in the shared `BPEMerge` — one copy with the Mac.)
+    // (RMS energy for the phantom guard lives in the shared `AudioRMS`, and BPE
+    // token→word merging in the shared `BPEMerge` — one copy each with the Mac.)
 
     // MARK: - Live streaming (record-screen captions)
     //

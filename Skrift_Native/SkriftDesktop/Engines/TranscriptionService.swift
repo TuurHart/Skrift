@@ -74,13 +74,8 @@ actor TranscriptionService: Transcribing {
         let ms = Int(Date().timeIntervalSince(started) * 1000)
 
         // RMS decodes the entire file and is only consulted for tiny transcripts —
-        // compute it lazily (on the ORIGINAL, not the preprocessed file).
-        let trimmed = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let wordCount = trimmed.isEmpty
-            ? 0
-            : trimmed.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).count
-        let rms = (!trimmed.isEmpty && wordCount <= 3) ? Self.averageRMS(url: audioURL) : nil
-        if BPEMerge.shouldDropAsPhantom(rms: rms, wordCount: wordCount, isEmpty: trimmed.isEmpty) {
+        // the shared guard computes it lazily (on the ORIGINAL, not the preprocessed file).
+        if BPEMerge.shouldDropAsPhantom(text: result.text, rms: { AudioRMS.averageRMS(url: audioURL) }) {
             return TranscriptionResult(text: "", confidence: Double(result.confidence),
                                        durationMs: ms, wordTimings: [], markersInjected: false)
         }
@@ -131,23 +126,4 @@ actor TranscriptionService: Transcribing {
         return AudioPreprocessor.process(input: original, output: out, highpassHz: hp) ? out : nil
     }
 
-    /// Mean RMS amplitude across the file (chunked, never fully loaded). Drives the
-    /// phantom-transcript guard. nil if unreadable.
-    private static func averageRMS(url: URL) -> Float? {
-        guard let file = try? AVAudioFile(forReading: url) else { return nil }
-        let cap: AVAudioFrameCount = 16384
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: cap) else { return nil }
-        var sumSquares = 0.0
-        var total = 0.0
-        while (try? file.read(into: buffer, frameCount: cap)) != nil {
-            let n = Int(buffer.frameLength)
-            if n == 0 { break }
-            guard let ch = buffer.floatChannelData else { break }
-            let s = ch[0]
-            var i = 0
-            while i < n { let v = Double(s[i]); sumSquares += v * v; i += 1 }
-            total += Double(n)
-        }
-        return total == 0 ? nil : Float((sumSquares / total).squareRoot())
-    }
 }

@@ -589,6 +589,12 @@ nodes:
     win: "the Mac renders checklists, memo-link chips and PDF captures like
       the phone, and Journal mode shows Looking-back + map from the SAME
       shared rules the phone compiles"
+    shipped:
+      - >-
+        2026-07-15 · Board C0b (SharedKit round 2) — the hand-mirrored
+        phantom-guard RMS extracted to Shared/Pipeline/AudioRMS.swift + a pure
+        BPEMerge.shouldDropAsPhantom(text:rms:) lazy overload; both apps + the
+        buffer path call one copy. Desktop 352 + MLX build + mobile 677 green
   - id: CapNote
     title: Capture reads as a note
     lane: 4

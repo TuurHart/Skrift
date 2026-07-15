@@ -643,9 +643,12 @@ per commit, both suites green each time — the round-1 recipe):**
    pre-existing, deliberate for now). BONUS: full-scheme desktop build was red on ANY fresh
    regenerate — swift-transformers floated to 1.3.3 (breaks vs Swift 5.9) and transitive Jinja
    floated to 2.4.0 (ObjectKey API) → BOTH exact-pinned in project.yml (1.3.0 / 2.3.6).
-0b. **NEW · shared lazy-RMS helper**: 9d82c9b hand-mirrored the "full-file RMS decode only for tiny
-   transcripts" logic into BOTH TranscriptionServices — `averageRMS` + the lazy gate is now a fresh
-   drift surface; extract to `Shared/Pipeline/` (AVFoundation is fine on both platforms).
+0b. ✅ **DONE 2026-07-15 — shared lazy-RMS helper.** `averageRMS` (+ the buffer-path `rms(of:)`)
+   extracted to `Shared/Pipeline/AudioRMS.swift`; the lazy `trimmed`/`wordCount` gate folded into a
+   pure `BPEMerge.shouldDropAsPhantom(text:rms:)` overload (a lazy closure keeps BPEMerge
+   Foundation-only). All 3 call sites (desktop file, phone file, phone buffer) now hit the ONE copy;
+   both local copies deleted. New host-less test proves the RMS provider stays lazy for real
+   transcripts + fires once for tiny ones. Desktop 352 + full MLX build + mobile 677 green.
 1. ✅ **DONE 2026-07-13 — SpeakerTranscript → Shared** (`Shared/Pipeline/SpeakerTranscript.swift`,
    both twins deleted): the shared Sanitiser now parses conversations through ONE type. Turn =
    Identifiable + content-only `==` (id ignored — desktop's equality tests pass, mobile's ForEach
