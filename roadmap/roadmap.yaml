@@ -595,6 +595,11 @@ nodes:
         phantom-guard RMS extracted to Shared/Pipeline/AudioRMS.swift + a pure
         BPEMerge.shouldDropAsPhantom(text:rms:) lazy overload; both apps + the
         buffer path call one copy. Desktop 352 + MLX build + mobile 677 green
+      - >-
+        2026-07-15 · Board C2 — the two LockGate twins → ONE
+        Shared/Session/LockGate.swift (one #if canImport(UIKit) for the resign
+        notification; unified id key = memo UUID string; per-app model-typed
+        isLocked adapters). Desktop 352 + MLX build + mobile 677 green
   - id: CapNote
     title: Capture reads as a note
     lane: 4

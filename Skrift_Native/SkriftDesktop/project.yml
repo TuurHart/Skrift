@@ -53,6 +53,8 @@ targets:
       - path: ../Shared/Export
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
+      # Session: the shared LockGate (per-device unlock state for locked notes).
+      - path: ../Shared/Session
     settings:
       base:
         PRODUCT_NAME: SkriftDesktop

@@ -655,8 +655,12 @@ per commit, both suites green each time — the round-1 recipe):**
    works). Helper union, and the drift got FIXED in the merge rule: empty-safe join (Mac's rule) +
    preamble preservation (phone's rule — the Mac's twin used to DROP a leading [[img]] preamble on
    mergeAdjacentTurns). Both suites green (351/677) + full MLX build.
-2. **LockGate → Shared** (my 2026-07-07 twins: `#if canImport(UIKit)` picks the resign
-   notification; unify the key on the memo-UUID String).
+2. ✅ **DONE 2026-07-15 — LockGate → Shared.** The two byte-identical twins collapsed to
+   `Shared/Session/LockGate.swift` (new `Shared/Session` folder, added to both app targets);
+   one `#if canImport(UIKit)` picks `UIApplication`/`NSApplication.willResignActiveNotification`;
+   the id key is unified on the memo-UUID **String** (`unlockedIDs: Set<String>`, was `Set<UUID>`
+   on the phone). Model-typed `isLocked` + the phone's `unlock(UUID)` live as thin per-app adapters
+   (`LockGate+PipelineFile.swift` / `LockGate+Memo.swift`). Desktop 352 + MLX build + mobile 677 green.
 3. **PDF text-extract → Shared/Pipeline** (phone impl inside
    `Services/Capture/CaptureInboxDrainer.swift`, PDFKit) + wire the Mac: apply it to PDF file
    captures at ingest so Mac search/body match the phone's A6 behavior.

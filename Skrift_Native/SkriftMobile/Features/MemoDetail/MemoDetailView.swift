@@ -196,7 +196,7 @@ struct MemoDetailView: View {
         }
         // Unlocking (or re-locking on background) re-derives what the player
         // may touch — a locked memo's audio never loads.
-        .onChange(of: lockGate.unlockedMemoIDs) { _, _ in loadCurrentAudio() }
+        .onChange(of: lockGate.unlockedIDs) { _, _ in loadCurrentAudio() }
         // A VIDEO import inserts the memo and opens this screen BEFORE its audio
         // has been extracted (extraction is async), so the initial load() hit a
         // file that didn't exist yet and left the player with no audio — tapping

@@ -58,6 +58,8 @@ targets:
       # Retrieval brain (P8): engine protocol + gist/chunker — platform-neutral;
       # the Mac adopts this path in Phase 2 (JOURNAL_RETRIEVAL_PLAN.md).
       - path: ../Shared/Retrieval
+      # Session: the shared LockGate (per-device unlock state for locked notes).
+      - path: ../Shared/Session
     info:
       path: App/Info.plist
       properties:
