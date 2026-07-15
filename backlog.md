@@ -712,6 +712,24 @@ per commit, both suites green each time — the round-1 recipe):**
      is single-home consolidation, NOT a behavior change: both functions now live in one shared `Karaoke`
      enum, each app keeps calling the one it used. (see the Karaoke commit for the details.)
 
+**🐛→✅ DEVICE-FOUND FIX 2026-07-15 — Mac photos added-on-edit now materialize.** Tuur deployed the Dev
+Mac and saw a note's `[[img_001/002/003]]` rendered as LITERAL text (photos never showed, would've
+missed the vault). Root cause: the Mac writes a memo's photo files only on FIRST ingest
+(`MemoCloudIngest`); the phone→Mac update path (`MemoCloudUpdate`) reflected the markers/manifest but
+never wrote the image files, so any photo inserted while EDITING an already-synced note was orphaned.
+Fix: `Pipeline/Ingest/MemoPhotoMaterializer.swift` writes any missing photo blobs + refreshes
+`image_manifest.json` each sweep for already-ingested memos (idempotent; heals already-broken notes on
+next launch), wired into `MemoCloudReconciler.sweep`'s update branch (nudges `lastActivityAt` when it
+heals a row `apply` didn't touch). Also extracted `PipelineFile.workingFolder` — ONE derivation now
+used by the resolver (`NoteBody.imageURL`), the exporter (`VaultExporter`), and the materializer. 3 new
+host tests; desktop 358 + full MLX build green. **VERIFIED on real synced data:** the launch sweep
+materialized all 3 photos of the reported note (manifest + `images/photo_..._00{1,2,3}.jpg` written
+12:49:49, post-launch).
+- ⬜ **Minor follow-up (noted, not fixed):** export image collision when two notes share the EXACT same
+  title — `convertImageMarkers` names images `<safe-title>_NNN.ext`, so same-titled notes' images
+  overwrite in the vault attachments folder. Uniquify by the note stem (which the .md already uniquifies)
+  rather than the raw title. Low priority.
+
 **Device-verify checklist owed (fold into the next device session):** Mac-added vocab word →
 phone (and deletion → Mac) [LWW fix 6f78ac1]; lock on phone → Mac refuses export + gates body,
 unlock → auto re-export; search a photo's OCR text ON THE MAC; Mac-exported memo-link opens the

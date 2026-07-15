@@ -627,6 +627,13 @@ nodes:
         Karaoke twins → ONE Shared/Pipeline/Karaoke.swift (phone activeWordIndex +
         Mac wordTimes/activeCount/normalize under one enum; each app calls the
         same function as before). Desktop 355 + MLX build + mobile 678 green
+      - >-
+        2026-07-15 · device-found FIX — Mac photos added while EDITING an
+        already-synced note never materialized ([[img_NNN]] rendered as literal
+        text, missed the vault). New MemoPhotoMaterializer writes missing photo
+        blobs + refreshes image_manifest.json each sweep (idempotent, heals on
+        launch); PipelineFile.workingFolder = one derivation. VERIFIED on real
+        data (a 3-photo note healed on the launch sweep). Desktop 358 green
   - id: CapNote
     title: Capture reads as a note
     lane: 4

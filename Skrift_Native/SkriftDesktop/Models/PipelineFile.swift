@@ -276,3 +276,15 @@ struct BookCapture: Equatable, Sendable {
         return t
     }
 }
+
+extension PipelineFile {
+    /// The Mac working folder that holds `images/` + `image_manifest.json` (and the audio):
+    /// captures → `path` itself; audio/notes → the parent of `path` (which is `original.<ext>`).
+    /// nil when the row has no on-disk path yet. ONE derivation — the review body's `[[img_NNN]]`
+    /// resolver, `VaultExporter`, and the CloudKit photo materializer all read it.
+    var workingFolder: URL? {
+        guard !path.isEmpty else { return nil }
+        let url = URL(fileURLWithPath: path)
+        return sourceType == .capture ? url : url.deletingLastPathComponent()
+    }
+}

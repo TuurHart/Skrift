@@ -44,18 +44,13 @@ enum VaultExporter {
         let audFolder = settings.audioFolder.isEmpty ? "Voice Memos" : settings.audioFolder
 
         // Convert [[img_NNN]] markers → ![[<title>_NNN.ext]] Obsidian embeds and copy
-        // the matched images into the attachments subfolder.
-        // Path layout: audio uploads → `original.m4a` (images/ is the sibling folder).
-        //              captures     → the working folder itself (images/ is inside it).
-        //              So the images base is: captures → pf.path; audio/notes → parent of pf.path.
+        // the matched images into the attachments subfolder. The working folder (which holds
+        // `images/`) is the ONE `pf.workingFolder` derivation (captures → pf.path; audio/notes
+        // → its parent).
         var finalMarkdown = markdown
         var imageCount = 0
-        let workingFolder: URL = {
-            let url = URL(fileURLWithPath: pf.path)
-            return pf.sourceType == .capture ? url : url.deletingLastPathComponent()
-        }()
-        let imagesDir = workingFolder.appendingPathComponent("images")
-        if !pf.path.isEmpty, FileManager.default.fileExists(atPath: imagesDir.path) {
+        let imagesDir = pf.workingFolder?.appendingPathComponent("images")
+        if let imagesDir, FileManager.default.fileExists(atPath: imagesDir.path) {
             let attDir = vaultURL.appendingPathComponent(attFolder, isDirectory: true)
             // Share-Wave-2 image captures inline photos as `[[img_NNN]]` markers in the
             // annotation (same contract as recorded memos) → convert + copy exactly like

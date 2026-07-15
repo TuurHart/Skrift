@@ -54,11 +54,17 @@ enum MemoCloudReconciler {
                 guard let pf = existingFile(id: id, filename: filename, in: localContext) else { continue }
                 let enhancement = (try? cloudContext.fetch(
                     FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
-                if MemoCloudUpdate.apply(memo: memo, enhancement: enhancement.first, to: pf,
-                                         people: people, author: author,
-                                         thisDeviceID: thisDeviceID, now: now) {
-                    outcome.updatedIDs.append(pf.id)
-                }
+                let applied = MemoCloudUpdate.apply(memo: memo, enhancement: enhancement.first, to: pf,
+                                                    people: people, author: author,
+                                                    thisDeviceID: thisDeviceID, now: now)
+                // Materialize photos the phone added AFTER first ingest — the update path above
+                // reflects the [[img_NNN]] markers but never wrote the image files (they'd render
+                // as literal text + miss the vault). Idempotent; heals an already-broken note on
+                // the next sweep. When it heals a row `apply` didn't touch, nudge lastActivityAt so
+                // the open review body re-renders and resolves the markers.
+                let healed = MemoPhotoMaterializer.materializeMissing(memo: memo, assets: assets, pf: pf)
+                if healed && !applied { pf.lastActivityAt = now }
+                if applied || healed { outcome.updatedIDs.append(pf.id) }
             } else if (try? MemoCloudIngest.ingest(memo: memo, assets: assets, into: localContext,
                                                    processEverything: processEverything)) != nil {
                 outcome.created += 1
