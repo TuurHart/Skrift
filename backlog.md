@@ -844,9 +844,34 @@ Desktop 365 + mobile 678 green. Device re-verify owed (record a clip while the e
    where a richer filter set lives is a layout call → do a mock-first pass (which phone filters belong on
    the Mac's review context) before building.
 
-Next-session order: (A) diagnose + fix the phone→Mac sweep/reflect (unblocks delete + tags + everything);
-(B) importance-editable-on-Mac (quick); (C) backlinks-on-phone + phone chip "Untitled"; (D) re-test 3b
-with a fresh PDF capture; (E) Mac filter/sort parity. Then re-run the whole checklist.
+Next-session order: A/B/C all ✅ FIXED + DEPLOYED (see above). (D) re-test 3b with a fresh PDF capture
+[device — Tuur]; (E) Mac filter/sort parity [mock-first]. Then re-run the whole checklist.
+
+### 🖼️ CONTINUE HERE — image-at-sentence-end reflow (DESIGN APPROVED 2026-07-16, BUILD NEXT)
+
+Tuur's #1 next build. He approved the layout via an inline before/after mock. **Ship the shared rule +
+render a REAL hostPNG of the red-cup note before it goes to device.**
+
+- **The problem:** a photo's `[[img_NNN]]` marker is pinned to the exact moment it was taken, which
+  lands MID-SENTENCE. Both apps render it there — the Mac INLINE (text wraps around it + a giant
+  image-height caret), the phone as a block-at-marker (still splits the sentence). Both weird.
+- **APPROVED layout:** when a marker falls inside a sentence, render the sentence WHOLE, then drop the
+  photo to its own **full-width block** right after it (snap to the next `.`/`!`/`?`/newline). Rounded
+  corners already ship. This also kills the giant caret (photo no longer shares a line with text).
+- **Contract:** ONE shared rule (extend `Shared/Pipeline/BodyTransform.swift` — it already has
+  `imageBreaks`/`Piece` parsing), used by BOTH renderers AND the Obsidian export, so nothing drifts.
+  The RAW text keeps the marker at its exact spot (moment fidelity); only the DISPLAY + EXPORT snap.
+- **Edge cases (handle the obvious way):** photo before any sentence → block at top; two photos in one
+  sentence → both blocks in order after it; always snap to the sentence end, never mid-word.
+- **The hard part (why it's a real reflow, not a tweak):** the current architecture ties an image's
+  DISPLAY position to its raw marker position (the Mac's `splice` inserts the attachment AT the marker;
+  `modelString`/`reconstruct` maps it back by scanning). Snapping to the sentence end DECOUPLES display
+  position from raw position — the reconstruct + caret/edit handling must survive that. Mac render =
+  `BodyTextView` (`splice`, `spliceMemoLinkChips`, `modelString`); phone = `NoteBodyView`
+  (`attributed(from:)`, `reconstruct`, `BodyTransform.pieces`).
+- **Verify:** hostPNG the real note on the Mac (`-snapshot-memolinks` is the NSTextView-hosted mode; add
+  an image to its seed or a new `-snapshot-photoblock` mode), eyeball, THEN device round on both apps.
+  Mock-first is satisfied (design approved) — build to it.
 
 **Device-verify checklist owed (fold into the next device session):** Mac-added vocab word →
 phone (and deletion → Mac) [LWW fix 6f78ac1]; lock on phone → Mac refuses export + gates body,
