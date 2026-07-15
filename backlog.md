@@ -688,11 +688,28 @@ per commit, both suites green each time — the round-1 recipe):**
    `cloudKitMacSyncEnabled` gate + `.namesDidChangeFromSync` post. The 5 `NamesCloudSyncTests` (through
    the phone adapter) cover the shared flow — first-sync, remote merge, embedding union, idempotent,
    collapse-dupes. Desktop 355 + MLX build + mobile 678 green.
-6. **Desktop legacy readers** (`PhoneMetadata` + desktop `SharedContent` in CompilerBridge) —
-   collapse onto the shared types only WITH golden ingest tests (old working-folder payloads are
-   the reason they're lenient).
-7. Cheap/optional: FlowLayout → Shared/UI; check Karaoke overlap (mobile `Models/Karaoke.swift`
-   vs desktop `Models/KaraokeAlignment.swift`) before touching.
+6. ⚠️ **ANALYZED 2026-07-15 — do NOT collapse yet; the leniency is load-bearing.** Concrete finding
+   from comparing `PhoneMetadata`/`SharedContent` (CompilerBridge) to the shared `MemoMetadata`:
+   PhoneMetadata is DELIBERATELY looser — `Weather.temperature`/`Pressure.hPa` are `Double?` (shared:
+   non-optional **`Int`**), `dayPeriod`/`pressure.trend` are `String?` (shared: non-optional **enums**
+   `DayPeriod`/`PressureTrend`), and `Location` reads only `placeName` (shared requires lat/long). A
+   naive collapse would make the STRICT shared decoder THROW on legacy RN/Python working-folder
+   payloads (float temps, unknown enum values, lat/long-less locations) → silently drop ALL export
+   frontmatter for old notes. `SharedContent` likewise keeps a snake_case (`shared_content`) fallback
+   for demo seeds and stays desktop-side (mobile has its own; there is no shared `SharedContent`).
+   **To actually do C6:** first give the shared `MemoMetadata` a lenient `init(from:)` (float→Int
+   coercion, unknown-enum→nil, optional lat/long) — a CROSS-APP contract change the phone also decodes
+   through — backed by GOLDEN ingest tests over real old working-folder payloads on BOTH sides; only
+   then retire PhoneMetadata. That's its own deliberate chunk, not a mechanical dedup. Left as-is for now.
+7. Cheap/optional — **REVIEWED 2026-07-15:**
+   - **Karaoke: NO overlap, leave both.** Mobile `Karaoke.activeWordIndex` (active-word lookup at
+     time `t`) and desktop `KaraokeAlignment.wordTimes` (anchor+interpolate displayed-word→time map)
+     are DIFFERENT algorithms with different signatures — not twins, nothing to share.
+   - **FlowLayout: DEFERRED (optional, low value).** The two `FlowLayout` `Layout`s render identically
+     but aren't byte-identical, and the mobile copy is also compiled into the `SkriftShare` extension,
+     so a `Shared/UI` move needs 3-target re-membership + a cross-app chip-wrap vision check for a
+     stable ~35-line primitive with negligible drift. Skipped deliberately; pick up if Shared/UI is
+     created for another reason.
 
 **Device-verify checklist owed (fold into the next device session):** Mac-added vocab word →
 phone (and deletion → Mac) [LWW fix 6f78ac1]; lock on phone → Mac refuses export + gates body,
@@ -752,9 +769,10 @@ SpeakerFusion, BPEMerge (phone's inline mergeBPETokens/phantom-guard/alignWords 
   app adapters keep the store/gate/notify differences.
 - ⬜ **VocabularyBooster.boost() cores** — same spot→rescore→trust→apply flow both sides but drifted
   (VocabLog vs DevLog, tuning knobs, store injection). Unify around a small store/log seam.
-- ⬜ **Desktop legacy readers** — `PhoneMetadata` + desktop `SharedContent` (CompilerBridge) are lenient
-  decoders of the now-shared schemas kept for old working-folder payloads + snake_case demo seeds;
-  collapse onto the shared types once those payloads are gone (or wrap shared types w/ lenient init).
+- ⚠️ **Desktop legacy readers — ANALYZED 2026-07-15, kept by design** (see Board C6 above): `PhoneMetadata`'s
+  `Double?`/`String?` leniency vs the shared `MemoMetadata`'s `Int`/enum strictness is LOAD-BEARING for
+  legacy RN/Python payloads — a collapse needs a lenient shared `init(from:)` (cross-app contract change) +
+  golden tests FIRST, or old notes lose their export frontmatter. Not a mechanical dedup.
 - ⬜ (nice-to-have) shared `DevLog` for the desktop (it has only VocabLog; the devlog.txt discipline is
   mobile-only today).
 

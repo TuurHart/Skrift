@@ -616,6 +616,13 @@ nodes:
         sorted-keys byte-compare → collapse to one row; injected insert/delete;
         one encoder, no churn-loop). Adapters keep their gate/log/notify.
         Desktop 355 + MLX build + mobile 678 green
+      - >-
+        2026-07-15 · Board C6/C7 reviewed — C6 (legacy PhoneMetadata) kept by
+        design: its Double?/String? leniency vs shared MemoMetadata's Int/enum
+        strictness is load-bearing for legacy RN/Python payloads; a collapse
+        needs a lenient shared init(from:) + golden tests first (its own chunk).
+        C7: Karaoke = no overlap (different algorithms); FlowLayout deferred
+        (optional, share-extension re-membership + UI check for negligible drift)
   - id: CapNote
     title: Capture reads as a note
     lane: 4
