@@ -617,12 +617,16 @@ nodes:
         one encoder, no churn-loop). Adapters keep their gate/log/notify.
         Desktop 355 + MLX build + mobile 678 green
       - >-
-        2026-07-15 · Board C6/C7 reviewed — C6 (legacy PhoneMetadata) kept by
-        design: its Double?/String? leniency vs shared MemoMetadata's Int/enum
-        strictness is load-bearing for legacy RN/Python payloads; a collapse
-        needs a lenient shared init(from:) + golden tests first (its own chunk).
-        C7: Karaoke = no overlap (different algorithms); FlowLayout deferred
-        (optional, share-extension re-membership + UI check for negligible drift)
+        2026-07-15 · Board C6 (legacy PhoneMetadata) kept by design: its
+        Double?/String? leniency vs shared MemoMetadata's Int/enum strictness is
+        load-bearing for legacy RN/Python payloads; a collapse needs a lenient
+        shared init(from:) + golden tests first (its own chunk).
+      - >-
+        2026-07-15 · Board C7 — FlowLayout → Shared/UI/FlowLayout.swift (one copy
+        for both apps + the Share extension; chip-wrap vision-checked) and the
+        Karaoke twins → ONE Shared/Pipeline/Karaoke.swift (phone activeWordIndex +
+        Mac wordTimes/activeCount/normalize under one enum; each app calls the
+        same function as before). Desktop 355 + MLX build + mobile 678 green
   - id: CapNote
     title: Capture reads as a note
     lane: 4

@@ -701,15 +701,16 @@ per commit, both suites green each time — the round-1 recipe):**
    coercion, unknown-enum→nil, optional lat/long) — a CROSS-APP contract change the phone also decodes
    through — backed by GOLDEN ingest tests over real old working-folder payloads on BOTH sides; only
    then retire PhoneMetadata. That's its own deliberate chunk, not a mechanical dedup. Left as-is for now.
-7. Cheap/optional — **REVIEWED 2026-07-15:**
-   - **Karaoke: NO overlap, leave both.** Mobile `Karaoke.activeWordIndex` (active-word lookup at
-     time `t`) and desktop `KaraokeAlignment.wordTimes` (anchor+interpolate displayed-word→time map)
-     are DIFFERENT algorithms with different signatures — not twins, nothing to share.
-   - **FlowLayout: DEFERRED (optional, low value).** The two `FlowLayout` `Layout`s render identically
-     but aren't byte-identical, and the mobile copy is also compiled into the `SkriftShare` extension,
-     so a `Shared/UI` move needs 3-target re-membership + a cross-app chip-wrap vision check for a
-     stable ~35-line primitive with negligible drift. Skipped deliberately; pick up if Shared/UI is
-     created for another reason.
+7. Cheap/optional — **DONE 2026-07-15 (Tuur asked for both merged):**
+   - ✅ **FlowLayout → `Shared/UI/FlowLayout.swift`** — new `Shared/UI` folder added to both app
+     targets; the `SkriftShare` extension's `DesignSystem/FlowLayout.swift` path repointed to it (the
+     extension listed but never used it). Both app-local copies deleted. Desktop + mobile app + Share
+     extension all build; desktop 355 + mobile 678 green; chip-wrap vision-checked on the fresh desktop
+     `-snapshot` (tags row `#work ×`/`#ideas ×`/`+ #rewrite`/… flows cleanly, no clip/overlap).
+   - ✅ **Karaoke → ONE `Shared/Pipeline/Karaoke.swift`** — the two apps use DIFFERENT functions
+     (phone `activeWordIndex` lookup; desktop `wordTimes`/`activeCount`/`normalize` alignment), so this
+     is single-home consolidation, NOT a behavior change: both functions now live in one shared `Karaoke`
+     enum, each app keeps calling the one it used. (see the Karaoke commit for the details.)
 
 **Device-verify checklist owed (fold into the next device session):** Mac-added vocab word →
 phone (and deletion → Mac) [LWW fix 6f78ac1]; lock on phone → Mac refuses export + gates body,

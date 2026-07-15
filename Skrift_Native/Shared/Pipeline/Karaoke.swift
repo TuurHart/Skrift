@@ -1,10 +1,30 @@
 import Foundation
 
-/// Aligns the SHOWN note-body words to the raw ASR word-timings so karaoke highlights
-/// the ACTUAL spoken word — not a position scaled by a word count that the copy-edit,
-/// name-linking, or conversation `**Name:**` headers changed (the C3 drift). Pure +
-/// host-testable (lives in Models/, not the SwiftUI Features/ layer).
-enum KaraokeAlignment {
+/// Karaoke / read-along highlight math — pure, host-tested, and SHARED. The phone
+/// and Mac each drove read-along with a DIFFERENT function (the phone a simple
+/// active-word lookup over raw timings; the Mac a displayed-word→time alignment
+/// that survives copy-edit / name-linking / header word-count changes). They were
+/// never duplicated code, but they belong in ONE home so the read-along math has a
+/// single source of truth. `WordTiming` is the shared wire-contract struct
+/// (Shared/Model/WordTiming.swift).
+enum Karaoke {
+
+    // MARK: - Active-word lookup (phone read-along / capture-quote highlight)
+
+    /// Index of the word being spoken at `time` — the last word whose `start` is at
+    /// or before `time`. nil before the first word starts (no highlight yet).
+    /// `timings` must be in start order.
+    static func activeWordIndex(_ timings: [WordTiming], at time: TimeInterval) -> Int? {
+        guard let first = timings.first, time >= first.start else { return nil }
+        var idx = 0
+        for (i, t) in timings.enumerated() {
+            if t.start <= time { idx = i } else { break }
+        }
+        return idx
+    }
+
+    // MARK: - Displayed-word alignment (Mac review-body read-along)
+
     /// One playback time (seconds) per displayed word, monotonic non-decreasing.
     /// Content words (≥4 chars) that match a timed word IN ORDER become anchors with
     /// their real start time; everything else (short words, rephrasings, headers,

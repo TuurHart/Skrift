@@ -55,6 +55,8 @@ targets:
       - path: ../Shared/Pipeline
       # Session: the shared LockGate (per-device unlock state for locked notes).
       - path: ../Shared/Session
+      # UI: shared SwiftUI helpers (FlowLayout — one copy across both apps + the extension).
+      - path: ../Shared/UI
     settings:
       base:
         PRODUCT_NAME: SkriftDesktop

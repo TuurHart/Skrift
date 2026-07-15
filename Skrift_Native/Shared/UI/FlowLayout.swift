@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Wrapping horizontal layout (chips that flow onto new lines). Pure SwiftUI
-/// `Layout`, so it renders under ImageRenderer.
+/// Wrapping horizontal layout — chips/tags flow onto new lines. Pure SwiftUI
+/// `Layout` (iOS 16 / macOS 13+), so it renders under `ImageRenderer` for snapshots.
+/// SHARED: one copy for the phone app, the Mac app, and the Share extension (the
+/// two apps previously carried byte-equivalent-but-not-identical copies).
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
     var lineSpacing: CGFloat = 6

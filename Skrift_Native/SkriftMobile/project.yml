@@ -60,6 +60,8 @@ targets:
       - path: ../Shared/Retrieval
       # Session: the shared LockGate (per-device unlock state for locked notes).
       - path: ../Shared/Session
+      # UI: shared SwiftUI helpers (FlowLayout — one copy across both apps + the extension).
+      - path: ../Shared/UI
     info:
       path: App/Info.plist
       properties:
@@ -280,7 +282,7 @@ targets:
       - path: DesignSystem/Theme.swift
       - path: DesignSystem/Components.swift
       - path: DesignSystem/Haptics.swift
-      - path: DesignSystem/FlowLayout.swift
+      - path: ../Shared/UI/FlowLayout.swift
       # SharedContent + MemoMetadata types used by the share UI and CaptureInbox
       # (MemoMetadata is the shared schema; SharedContent stays mobile-side).
       - path: ../Shared/Model/MemoMetadata.swift

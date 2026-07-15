@@ -134,10 +134,10 @@ struct NoteBody: View {
         let timings = file.wordTimings
         let duration = effectiveDuration
         let displayedWords = file.bestBodyText.split(whereSeparator: { $0.isWhitespace }).map(String.init)
-        let times = timings.isEmpty ? [] : KaraokeAlignment.wordTimes(displayedWords: displayedWords, timings: timings)
+        let times = timings.isEmpty ? [] : Karaoke.wordTimes(displayedWords: displayedWords, timings: timings)
         let frac: Double = times.isEmpty
             ? BodyText.karaokeFraction(currentTime: audio.currentTime, duration: duration, timings: timings)
-            : min(1, Double(KaraokeAlignment.activeCount(times: times, currentTime: audio.currentTime)) / Double(max(1, displayedWords.count)))
+            : min(1, Double(Karaoke.activeCount(times: times, currentTime: audio.currentTime)) / Double(max(1, displayedWords.count)))
         return .init(fraction: frac) { wordIndex in
             let target: Double
             if wordIndex >= 0, wordIndex < times.count {
@@ -221,9 +221,9 @@ enum BodyText {
         // C3: when the SHOWN words are known, align them to the raw timings so the
         // highlight tracks the actual spoken word (not a count the copy-edit shifted).
         if let dw = displayedWords, !dw.isEmpty {
-            let times = KaraokeAlignment.wordTimes(displayedWords: dw, timings: timings)
+            let times = Karaoke.wordTimes(displayedWords: dw, timings: timings)
             if !times.isEmpty {
-                return min(1, Double(KaraokeAlignment.activeCount(times: times, currentTime: currentTime)) / Double(dw.count))
+                return min(1, Double(Karaoke.activeCount(times: times, currentTime: currentTime)) / Double(dw.count))
             }
         }
         // Fallback (no displayed-word list, e.g. a caller that only has the timings):

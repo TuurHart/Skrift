@@ -14,7 +14,7 @@ final class KaraokeAlignmentTests: XCTestCase {
     func testExactWhenBodyEqualsTranscript() {
         let t = timings([("hello", 0), ("world", 1), ("this", 2), ("is", 3), ("great", 4)])
         let words = ["hello", "world", "this", "is", "great"]
-        let times = KaraokeAlignment.wordTimes(displayedWords: words, timings: t)
+        let times = Karaoke.wordTimes(displayedWords: words, timings: t)
         XCTAssertEqual(times, [0, 1, 2, 3, 4], "each shown word aligns to its real start; got \(times)")
     }
 
@@ -24,7 +24,7 @@ final class KaraokeAlignmentTests: XCTestCase {
         let t = timings([("um", 0), ("the", 1), ("meeting", 2), ("you", 3),
                          ("know", 4), ("went", 5), ("really", 6), ("well", 7)])
         let words = ["the", "meeting", "went", "well"]   // the cleaned copy-edit
-        let times = KaraokeAlignment.wordTimes(displayedWords: words, timings: t)
+        let times = Karaoke.wordTimes(displayedWords: words, timings: t)
         XCTAssertEqual(times, [0, 2, 5, 7], "content words anchor to their spoken times; got \(times)")
         XCTAssertEqual(times, times.sorted(), "monotonic non-decreasing")
     }
@@ -34,7 +34,7 @@ final class KaraokeAlignmentTests: XCTestCase {
     func testConversationHeadersInterpolate() {
         let t = timings([("hello", 0), ("there", 1), ("hello", 2), ("back", 3)])
         let words = ["**Roksana:**", "hello", "there", "**Tuur:**", "hello", "back"]
-        let times = KaraokeAlignment.wordTimes(displayedWords: words, timings: t)
+        let times = Karaoke.wordTimes(displayedWords: words, timings: t)
         XCTAssertEqual(times, times.sorted(), "monotonic even with header tokens; got \(times)")
         XCTAssertEqual(times[1], 0, "first spoken 'hello' at its real time")
         XCTAssertEqual(times[5], 3, "last spoken 'back' at its real time")
@@ -45,22 +45,22 @@ final class KaraokeAlignmentTests: XCTestCase {
     /// count) — the boundary that drives which words are bright.
     func testActiveCountAtTime() {
         let times: [Double] = [0, 2, 5, 7]
-        XCTAssertEqual(KaraokeAlignment.activeCount(times: times, currentTime: -1), 0)
-        XCTAssertEqual(KaraokeAlignment.activeCount(times: times, currentTime: 2), 2)
-        XCTAssertEqual(KaraokeAlignment.activeCount(times: times, currentTime: 6), 3)
-        XCTAssertEqual(KaraokeAlignment.activeCount(times: times, currentTime: 99), 4)
+        XCTAssertEqual(Karaoke.activeCount(times: times, currentTime: -1), 0)
+        XCTAssertEqual(Karaoke.activeCount(times: times, currentTime: 2), 2)
+        XCTAssertEqual(Karaoke.activeCount(times: times, currentTime: 6), 3)
+        XCTAssertEqual(Karaoke.activeCount(times: times, currentTime: 99), 4)
     }
 
     /// No timings → empty (the caller falls back to a pure time/duration proportion).
     func testNoTimingsIsEmpty() {
-        XCTAssertTrue(KaraokeAlignment.wordTimes(displayedWords: ["a", "b"], timings: []).isEmpty)
-        XCTAssertTrue(KaraokeAlignment.wordTimes(displayedWords: [], timings: timings([("x", 0)])).isEmpty)
+        XCTAssertTrue(Karaoke.wordTimes(displayedWords: ["a", "b"], timings: []).isEmpty)
+        XCTAssertTrue(Karaoke.wordTimes(displayedWords: [], timings: timings([("x", 0)])).isEmpty)
     }
 
     /// Normalization: alias-display links show their SPOKEN half, headers drop markdown.
     func testNormalizeStripsMarkup() {
-        XCTAssertEqual(KaraokeAlignment.normalize("[[Tiuri Hartog|Tuur]]"), "tuur")
-        XCTAssertEqual(KaraokeAlignment.normalize("**Roksana:**"), "roksana")
-        XCTAssertEqual(KaraokeAlignment.normalize("world,"), "world")
+        XCTAssertEqual(Karaoke.normalize("[[Tiuri Hartog|Tuur]]"), "tuur")
+        XCTAssertEqual(Karaoke.normalize("**Roksana:**"), "roksana")
+        XCTAssertEqual(Karaoke.normalize("world,"), "world")
     }
 }
