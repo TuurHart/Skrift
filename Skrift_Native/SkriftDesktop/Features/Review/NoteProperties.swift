@@ -44,12 +44,12 @@ struct NoteProperties: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
         } else if interactive {
-            TextField("", text: titleBinding, prompt: Text(file.filename).foregroundStyle(Theme.textMuted), axis: .vertical)
+            TextField("", text: titleBinding, prompt: Text(file.displayTitle).foregroundStyle(Theme.textMuted), axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 19, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
         } else {
-            Text(file.enhancedTitle?.isEmpty == false ? file.enhancedTitle! : file.filename)
+            Text(file.displayTitle)
                 .font(.system(size: 19, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
         }

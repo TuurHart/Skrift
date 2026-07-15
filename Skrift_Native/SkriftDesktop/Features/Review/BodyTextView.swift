@@ -717,7 +717,22 @@ struct BodyTextView: NSViewRepresentable {
                       kCGImageSourceCreateThumbnailWithTransform: true,
                   ] as CFDictionary) else { return nil }
             // Display at half the pixel size → ~360pt wide, crisp on Retina.
-            return NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width) / 2, height: CGFloat(cg.height) / 2))
+            let img = NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width) / 2, height: CGFloat(cg.height) / 2))
+            return roundedCorners(img)
+        }
+
+        /// Clip an inline photo to soft rounded corners — reads better in the note body.
+        private static func roundedCorners(_ image: NSImage) -> NSImage {
+            let size = image.size
+            guard size.width > 0, size.height > 0 else { return image }
+            let radius = min(size.width, size.height) * 0.04
+            let out = NSImage(size: size)
+            out.lockFocus()
+            let rect = NSRect(origin: .zero, size: size)
+            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).addClip()
+            image.draw(in: rect)
+            out.unlockFocus()
+            return out
         }
     }
 }

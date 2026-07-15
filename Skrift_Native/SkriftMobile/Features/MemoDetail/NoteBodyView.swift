@@ -1209,7 +1209,7 @@ struct NoteBodyView: UIViewRepresentable {
             let width = contentWidth
             if let url = memo.imageURL(markerIndex: markerIndex),
                let img = MemoImageLoader.thumbnail(at: url, maxWidth: width) {
-                att.image = img
+                att.image = Self.roundedCorners(img)
                 // NSTextAttachment scales to FILL `bounds` (no aspect preserve),
                 // so bounds must match the image aspect. Fit width × 320-pt cap;
                 // a portrait frame shrinks WIDTH to keep aspect.
@@ -1224,6 +1224,19 @@ struct NoteBodyView: UIViewRepresentable {
                 att.bounds = CGRect(x: 0, y: -4, width: width, height: 150)
             }
             return att
+        }
+
+        /// Clip an inline photo to soft rounded corners — reads better in the note body.
+        private static func roundedCorners(_ image: UIImage) -> UIImage {
+            let size = image.size
+            guard size.width > 0, size.height > 0 else { return image }
+            let radius = min(size.width, size.height) * 0.04
+            let rect = CGRect(origin: .zero, size: size)
+            let r = UIGraphicsImageRendererFormat.default(); r.scale = image.scale
+            return UIGraphicsImageRenderer(size: size, format: r).image { _ in
+                UIBezierPath(roundedRect: rect, cornerRadius: radius).addClip()
+                image.draw(in: rect)
+            }
         }
 
         private static func placeholder(width: CGFloat) -> UIImage {

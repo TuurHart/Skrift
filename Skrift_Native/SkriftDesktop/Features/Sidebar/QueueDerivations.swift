@@ -98,10 +98,7 @@ extension PipelineFile {
     }
 
     /// Title shown in the queue row.
-    var queueTitle: String {
-        if let t = enhancedTitle, !t.isEmpty { return t }
-        return SkriftFormat.cleanFilename(filename)
-    }
+    var queueTitle: String { displayTitle }   // enhanced title → first body line → filename (phone parity)
 
     /// Secondary meta line: "06 Jun · 2:14" / "05 Jun · Link" / "03 Jun · Apple Note".
     var queueMeta: String {
