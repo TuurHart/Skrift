@@ -772,6 +772,50 @@ Mac→phone metadata channel.**
   has the LLM; Mac writes Obsidian). Open Q for a future chat: should trashing also DELETE the note's
   Obsidian `.md`? (destructive to the vault — needs Tuur's call before building.)
 
+### 🔴 CONTINUE HERE — device-test findings 2026-07-15 (Tuur, iPhone build 76 + latest Mac Dev)
+
+**THE HEADLINE BUG — phone→Mac sync is one-directional right now.** Tuur's words: *"whatever I do on
+the Mac syncs to the phone, but what I do on the phone does NOT sync to the Mac."* Mac→phone works
+(the Mac writes the shared `Memo`/`MemoEnhancement` → phone auto-mirrors via NSPersistentCloudKitContainer).
+Phone→Mac does NOT reflect. The phone's changes DO reach the Mac's `memo_cloud.store` (78 memos confirmed
+via sqlite), so the data arrives — but the Mac's PipelineFile never updates. **Leading hypotheses for
+next session (diagnose FIRST, everything below hangs off it):** (1) the reconciler SWEEP isn't triggered
+on a CloudKit import while the Mac app is already foregrounded (triggers = launch / active / CK-import —
+check the CK-import trigger actually fires + `cloudKitMacSync` gate is on); (2) CloudKit Mac↔iCloud
+propagation latency (the change hadn't landed in `memo_cloud.store` when checked — but Tuur tested over
+several minutes); (3) a bug in `MemoCloudUpdate.apply` reflect despite green unit tests. Instrument the
+sweep (does it run? does it find the memo with the new deletedAt/tags? does apply return true?).
+
+Per-feature verdicts:
+1. **Delete sync — phone→Mac ✗ / Mac→phone ✓.** Restore on Mac → back on phone ✓. Delete on phone →
+   still on the Mac (not reflected) ✗.
+2. **Tags — phone→Mac ✗ / Mac→phone ✓.** Mac tag add → phone gets ALL the Mac's tags ✓. Phone tag add
+   AND phone tag delete → NOT reflected on the Mac ✗. Worse: a Mac tag write pushes the Mac's whole set
+   down and OVERWRITES a tag the user had just deleted on the phone (the phone's deletion is lost).
+3. **Importance on the Mac — CAN'T EDIT ✗ (clear code bug).** The SignificanceCircles control is not
+   clickable on the Mac (no way to change importance), though the phone can. Cause is almost certainly
+   `SignificanceCircles(value:$file.significance, enabled: file.steps.enhance == .done)` in `NoteProperties`
+   — importance is gated behind enhancement-done, so a synced-but-unenhanced note can't be rated on the
+   Mac. So the Mac→phone importance sync can't even be exercised. FIX: let importance be editable
+   regardless of enhance status (or reconsider the gate).
+4. **Memo links `[[ ]]`:** Mac→phone ✓ (link made on Mac appears on phone; clicking on either opens the
+   SAME target — an Apple Maps note). BUGS: (a) the chip shows the note's real name on the Mac but
+   **"Untitled" on the phone** — the live-title resolve isn't landing on the phone (target is an Apple
+   Maps place note → its phone title resolves empty? check `liveLinkTitle` for map/place notes); (b)
+   **backlinks (LINKED FROM) show on the Mac but NOT on the phone** ✗; (c) transient: a Mac-made link
+   VANISHED once right after creation+click ("I just lost the link") — couldn't repro (2nd try kept it +
+   showed the backlink). Watch for link-persistence flakiness on the Mac.
+5. **Photos — ✅ WORKS on device.** Materialization fix confirmed: photos render on the Mac.
+6. **PDFs (3b) — ✗ not synced to the Mac.** A shared PDF shows on the phone (first-page render + text);
+   the Mac doesn't get it. LIKELY because the tested PDF is an OLD capture (pre-build-76) — 3b only
+   materializes a `.document` asset for captures made on the updated phone. RE-TEST with a FRESH PDF share
+   before treating it as a bug.
+7. **Filter/sort — parity gap.** The phone's filter/sort options are far more extensive than the Mac's.
+
+Next-session order: (A) diagnose + fix the phone→Mac sweep/reflect (unblocks delete + tags + everything);
+(B) importance-editable-on-Mac (quick); (C) backlinks-on-phone + phone chip "Untitled"; (D) re-test 3b
+with a fresh PDF capture; (E) Mac filter/sort parity. Then re-run the whole checklist.
+
 **Device-verify checklist owed (fold into the next device session):** Mac-added vocab word →
 phone (and deletion → Mac) [LWW fix 6f78ac1]; lock on phone → Mac refuses export + gates body,
 unlock → auto re-export; search a photo's OCR text ON THE MAC; Mac-exported memo-link opens the
