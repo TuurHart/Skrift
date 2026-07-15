@@ -114,6 +114,14 @@ struct CaptureSharedContentBlock: View {
 
     private var sc: SharedContent? { SharedContent.decode(from: file.audioMetadataJSON) }
 
+    /// The synced `.file` document, materialized under the capture folder's `files/` (3b) —
+    /// the single file there. nil until the document asset arrives (then the card gains "Open").
+    private var documentURL: URL? {
+        guard let dir = file.workingFolder?.appendingPathComponent("files") else { return nil }
+        return (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil))?
+            .first { !$0.lastPathComponent.hasPrefix(".") }
+    }
+
     var body: some View {
         if let sc {
             VStack(alignment: .leading, spacing: 9) {
@@ -157,9 +165,11 @@ struct CaptureSharedContentBlock: View {
                             .foregroundStyle(Theme.textSecondary)
                     }
                 case "file":
-                    // The DOCUMENT itself lives on the phone (no `.document` asset kind
-                    // syncs yet — board follow-up); its extracted text is already in the
-                    // note body below (phone A6), which the Mac shows, searches, exports.
+                    // The document itself now syncs (3b, `.document` asset) into the capture
+                    // folder's `files/`; when present the card OPENS the real file. Its text is
+                    // also in the note body below (phone A6), which the Mac shows/searches/exports.
+                    let kind = (sc.mimeType?.contains("pdf") == true) ? "PDF" : (sc.mimeType ?? "Document")
+                    let doc = documentURL
                     HStack(spacing: 10) {
                         Image(systemName: "doc.richtext")
                             .font(.system(size: 22))
@@ -168,9 +178,19 @@ struct CaptureSharedContentBlock: View {
                             Text(sc.fileName ?? "Shared document")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(Theme.textPrimary)
-                            Text("\((sc.mimeType?.contains("pdf") == true) ? "PDF" : (sc.mimeType ?? "Document")) · on your iPhone — its text is captured in the note")
+                            Text(doc != nil ? "\(kind) · captured in the note"
+                                            : "\(kind) · on your iPhone — its text is captured in the note")
                                 .font(.system(size: 11))
                                 .foregroundStyle(Theme.textMuted)
+                        }
+                        if let doc {
+                            Spacer(minLength: 8)
+                            Button("Open") { NSWorkspace.shared.open(doc) }
+                                .buttonStyle(.plain)
+                                .font(.system(size: 11.5, weight: .semibold))
+                                .foregroundStyle(Theme.accent)
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Theme.accent.opacity(0.12), in: Capsule())
                         }
                     }
                 default:

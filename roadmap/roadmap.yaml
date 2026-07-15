@@ -652,6 +652,16 @@ nodes:
         [[memo:UUID|Title]] chip that rides Part-B sync to the phone. The Mac can
         now CREATE memo-links, not just render them. Popover snapshot-verified;
         desktop 364 + MLX green; live trigger/insert eyeball owed.
+      - >-
+        2026-07-15 · memo-link chips show the target's LIVE title on BOTH apps
+        (device-found: two links to the same renamed note showed different frozen
+        snapshots). Raw payload keeps the snapshot as the export fallback.
+      - >-
+        2026-07-15 · 3b — .file capture documents SYNC (MemoAsset.Kind.document):
+        phone materializes it, Mac ingest writes it to capture/files/, and the Mac
+        card gains Open. The actual PDF reaches the Mac now, not just its text.
+        Desktop 365 + mobile 678 green; inline first-page render + C3 text fallback
+        = follow-ups; live round-trip owed.
   - id: CapNote
     title: Capture reads as a note
     lane: 4

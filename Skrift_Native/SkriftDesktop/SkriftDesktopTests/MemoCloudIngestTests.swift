@@ -194,6 +194,24 @@ final class MemoCloudIngestTests: XCTestCase {
         XCTAssertEqual(sc.url, "https://example.com")
     }
 
+    func testFileCaptureDocumentMaterializes() throws {
+        let memo = Memo(id: UUID(), audioFilename: "", recordedAt: Date(),
+                        transcriptStatus: .done, significance: 0.6, annotationText: "See the PDF.")
+        memo.sharedContentData = metadataBlob(["type": "file", "fileName": "attention.pdf",
+                                               "mimeType": "application/pdf"])
+        let name = "file_\(memo.id.uuidString).pdf"
+        let doc = MemoAsset(memoID: memo.id, kind: MemoAsset.Kind.document,
+                            filename: name, blob: Data("%PDF-1.4 fake".utf8))
+        let ctx = try memoryContext()
+        let pf = try XCTUnwrap(try MemoCloudIngest.ingest(memo: memo, assets: [doc],
+                                                          upload: UploadService(outputDir: tempDir()), into: ctx))
+        // 3b: the synced document lands under the capture folder's files/ so the Mac can open it.
+        let filesDir = URL(fileURLWithPath: pf.path).appendingPathComponent("files")
+        let contents = try FileManager.default.contentsOfDirectory(at: filesDir, includingPropertiesForKeys: nil)
+        XCTAssertEqual(contents.map(\.lastPathComponent), [name])
+        XCTAssertEqual(try Data(contentsOf: filesDir.appendingPathComponent(name)), Data("%PDF-1.4 fake".utf8))
+    }
+
     // MARK: - Word-timings / diarization sidecars (trusted only)
 
     func testWordTimingsAndDiarizationMaterialize() throws {

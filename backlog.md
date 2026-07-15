@@ -603,12 +603,14 @@ origin/main first, work in YOUR OWN worktree branch, `git add` explicit paths on
    below. BONUS: `-snapshot-capture` switched to the hosted renderer — the sidebar's yellow-🚫
    ImageRenderer placeholder is GONE (sidebar snapshots work now); `pdf:<path>` arg renders the
    file-capture fixture.
-3b. **NEW · sync `.file` capture documents** as `MemoAsset` `Kind.document` (additive kind — no
-   schema migration): phone `AssetMaterializer` writes it, Mac ingest materializes into the working
-   folder → THEN the mock's true first-page inline render + Open + vault copy become possible.
-   **Also finish C3's Mac-wire here:** at ingest, run the shared `PDFTextExtract.text(of:)` on the
-   materialized PDF as a fallback when `sharedContent.text` is empty (older / no-phone-text memos),
-   so Mac search/body match the phone's A6 even without the phone extraction.
+3b. ✅ **DONE 2026-07-15 (sync + Open) — `.file` capture documents sync as `MemoAsset.Kind.document`**
+   (additive kind, no migration). Phone `AssetMaterializer` captures the `.file` document; Mac
+   `MemoCloudIngest.buildParts` adds a `document` part; `UploadService.prepareCapture` writes it into
+   `capture_<id>/files/`; the Mac capture card (`CaptureSharedContentBlock`) gains an **Open** button
+   (`NSWorkspace`) when the file is present. Golden test `testFileCaptureDocumentMaterializes`; desktop
+   365 + mobile 678 green. **STILL OWED (follow-ups):** (a) the mock's true first-page inline render on
+   the Mac; (b) C3's Mac-wire — run `PDFTextExtract.text(of:)` on the materialized PDF as a fallback when
+   `sharedContent.text` is empty; (c) vault copy of the document on export. LIVE device round-trip owed.
 4. Verify: UnitTests scheme + full `-skipMacroValidation` build + `-snapshot` PNGs (see
    [[native-ui-verification]] memory: sidebar can't snapshot; live-drive via UITests if needed).
 
@@ -765,7 +767,7 @@ Mac→phone metadata channel.**
   364 + MLX build green. **LIVE eyeball owed**: does `[[` open it + does pick insert the chip (NSTextView
   typing isn't headless-drivable). Follow-up idea: also link to EXISTING vault notes (the Backlink-Weaver
   title index — backlog line ~539), not just Skrift memos.
-- ⬜ Later gaps from the audit: 3b (sync the PDF/file blob);
+- ⬜ Later gaps from the audit:
   reminder alarm on the Mac; (by-design, NOT gaps: Mac shows `[[links]]`+polish, phone shows raw; Mac
   has the LLM; Mac writes Obsidian). Open Q for a future chat: should trashing also DELETE the note's
   Obsidian `.md`? (destructive to the vault — needs Tuur's call before building.)

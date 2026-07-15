@@ -60,6 +60,7 @@ struct UploadService: Sendable {
 
         let imageParts = parts.filter { $0.name == "images" && $0.filename != nil }
         let manifest = (meta?["imageManifest"] as? [[String: Any]]) ?? []
+        let documentPart = parts.first { $0.name == "document" && $0.filename != nil }   // .file capture (3b)
 
         // C3 CAPTURE discriminator: zero audio `files` parts + `sharedContent` present
         // in the metadata → this is a capture (URL/text/image shared into Skrift from
@@ -69,7 +70,8 @@ struct UploadService: Sendable {
         if audioParts.isEmpty, meta?["sharedContent"] is [String: Any] {
             return [try prepareCapture(id: memoID ?? UUID().uuidString, meta: meta,
                                        metadataPart: metadataPart,
-                                       imageParts: imageParts, manifest: manifest)]
+                                       imageParts: imageParts, manifest: manifest,
+                                       documentPart: documentPart)]
         }
 
         var out: [PreparedUpload] = []
@@ -165,10 +167,19 @@ struct UploadService: Sendable {
     /// image-type captures) are saved under the working folder's `images/` using the
     /// same `saveImages` path as memo photo uploads.
     private func prepareCapture(id: String, meta: [String: Any]?, metadataPart: MultipartPart?,
-                                imageParts: [MultipartPart], manifest: [[String: Any]]) throws -> PreparedUpload {
+                                imageParts: [MultipartPart], manifest: [[String: Any]],
+                                documentPart: MultipartPart? = nil) throws -> PreparedUpload {
         let folderName = "capture_\(id)"
         let folder = outputDir.appendingPathComponent(folderName, isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        // A shared `.file` capture's document (3b): write it under the working folder's `files/`
+        // so the Mac can OPEN the real file — the phone's A6 already put its text in the body.
+        if let doc = documentPart, let name = doc.filename {
+            let dir = folder.appendingPathComponent("files", isDirectory: true)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try? doc.data.write(to: dir.appendingPathComponent(name))
+        }
 
         let annotation = (meta?["annotationText"] as? String) ?? ""
         var prepared = PreparedUpload(id: id, filename: folderName, path: folder.path,

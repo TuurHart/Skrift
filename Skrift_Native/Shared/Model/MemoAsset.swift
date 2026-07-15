@@ -67,5 +67,8 @@ final class MemoAsset {
         static let photo = "photo"
         static let wordTimings = "wordTimings"
         static let diarization = "diarization"
+        /// A shared `.file` capture's document (e.g. a PDF) — so the actual file, not just
+        /// its extracted text, reaches the Mac (3b). Additive; absent on every other memo.
+        static let document = "document"
     }
 }

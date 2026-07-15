@@ -136,6 +136,13 @@ enum MemoCloudIngest {
                                        contentType: "image/jpeg", data: photo.blob))
         }
 
+        // document — a shared `.file` capture's PDF/doc (3b), materialized into the capture
+        // folder so the Mac can OPEN the real file (not just show its extracted text).
+        if let doc = assets.first(where: { $0.kind == MemoAsset.Kind.document }), !doc.blob.isEmpty {
+            parts.append(MultipartPart(name: "document", filename: doc.filename,
+                                       contentType: "application/octet-stream", data: doc.blob))
+        }
+
         return parts
     }
 

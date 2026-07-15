@@ -95,6 +95,11 @@ enum AssetMaterializer {
             if captureFile(entry.filename, kind: MemoAsset.Kind.photo, memoID: memo.id,
                            existing: existing, repository: repository) { dirty = true }
         }
+        // A shared `.file` capture's document (e.g. a PDF) → a document asset, so the actual
+        // file reaches the Mac (3b), not just the text A6 already put in `sharedContent.text`.
+        if let sc = memo.sharedContent, sc.type == .file, let rel = sc.filePath, !rel.isEmpty,
+           captureFile(rel, kind: MemoAsset.Kind.document, memoID: memo.id,
+                       existing: existing, repository: repository) { dirty = true }
         // Per-memo JSON sidecars (Phase 1d): word-timings (karaoke/read-along) +
         // diarization (speaker turns/names). Small, in the same recordings dir, keyed
         // by memo id. Absent on most memos → captureFile no-ops. byteCount staleness
