@@ -63,6 +63,10 @@ struct NoteBodyView: UIViewRepresentable {
     /// "[[" was typed → the page presents the memo picker; the pick comes back
     /// through `proxy.insertMemoLink`.
     var onRequestMemoLink: () -> Void = {}
+    /// The target memo's CURRENT title, so a chip shows the live title — not the snapshot
+    /// frozen into `[[memo:UUID|Title]]` at creation (stale when the target is renamed /
+    /// enhanced). nil → keep the snapshot. The raw payload always keeps the snapshot.
+    var linkTitle: (UUID) -> String? = { _ in nil }
     /// The accessory bar's 📷 — the page presents the photo picker, then hands
     /// the image back through `proxy.insertPhoto`.
     var onRequestPhoto: () -> Void = {}
@@ -97,6 +101,7 @@ struct NoteBodyView: UIViewRepresentable {
         context.coordinator.player = player
         context.coordinator.nameSpans = nameSpans
         context.coordinator.onTapName = onTapName
+        context.coordinator.linkTitle = linkTitle   // before load(), which builds the display
         context.coordinator.polishedBinding = polishedBinding
         context.coordinator.tapToSeek = tapToSeek
 
@@ -123,6 +128,7 @@ struct NoteBodyView: UIViewRepresentable {
         c.onTapMemoLink = onTapMemoLink
         c.onRequestPhoto = onRequestPhoto
         c.onRequestMemoLink = onRequestMemoLink
+        c.linkTitle = linkTitle
         c.polishedBinding = polishedBinding
         c.tapToSeek = tapToSeek
         proxy?.coordinator = c
@@ -175,6 +181,7 @@ struct NoteBodyView: UIViewRepresentable {
         var onTapMemoLink: (UUID) -> Void = { _ in }
         var onRequestPhoto: () -> Void = {}
         var onRequestMemoLink: () -> Void = {}
+        var linkTitle: (UUID) -> String? = { _ in nil }
         var tapToSeek = true
         private var accessory: NoteAccessoryBar?
         /// Caret at the moment 📷 was tapped — the picker's insert target.
@@ -1000,11 +1007,15 @@ struct NoteBodyView: UIViewRepresentable {
 
         /// One memo-link chip as an attributed piece (attachment + the raw
         /// payload in `memoLinkKey`, so it round-trips byte-exact).
-        static func memoLinkPiece(id: UUID, title: String,
+        /// `title` is the raw snapshot (round-trips into `[[memo:UUID|title]]` via `memoLinkKey`);
+        /// `display` is what the CHIP shows — pass the target's live title so a renamed note's
+        /// chips stay current, while the raw payload keeps the snapshot as the export fallback.
+        static func memoLinkPiece(id: UUID, title: String, display: String? = nil,
                                   base: [NSAttributedString.Key: Any]) -> NSAttributedString {
-            let a = NSMutableAttributedString(attachment: memoLinkAttachment(title: title))
+            let shown = (display?.isEmpty == false) ? display! : title
+            let a = NSMutableAttributedString(attachment: memoLinkAttachment(title: shown))
             let r = NSRange(location: 0, length: a.length)
-            a.addAttribute(memoLinkKey, value: "\(id.uuidString)|\(title)", range: r)
+            a.addAttribute(memoLinkKey, value: "\(id.uuidString)|\(title)", range: r)   // raw keeps the snapshot
             a.addAttributes(base, range: r)
             return a
         }
@@ -1142,7 +1153,7 @@ struct NoteBodyView: UIViewRepresentable {
                     a.addAttributes(base, range: NSRange(location: 0, length: a.length))
                     result.append(a)
                 case .memoLink(let id, let title):
-                    result.append(Self.memoLinkPiece(id: id, title: title, base: base))
+                    result.append(Self.memoLinkPiece(id: id, title: title, display: linkTitle(id), base: base))
                 }
             }
             return result

@@ -722,6 +722,7 @@ private struct MemoPageView: View {
                 },
                 onTapMemoLink: { id in onOpenMemo(id) },
                 onRequestMemoLink: { showMemoLinkPicker = true },
+                linkTitle: { liveLinkTitle($0) },
                 onRequestPhoto: {
                     if CameraImagePicker.isAvailable { showPhotoSourceDialog = true }
                     else { showPhotoPicker = true }
@@ -1022,6 +1023,14 @@ private struct MemoPageView: View {
         AssetMaterializer.capture(memoID: memo.id, repository: repository)
         PhotoTextIndexer.run(repository)
         bodyProxy.refreshAttachments()
+    }
+
+    /// A memo-link target's CURRENT title (same rule as the picker), so chips show the live
+    /// title instead of the snapshot frozen at creation. nil when the target isn't in the
+    /// library → the chip keeps its snapshot. Called on display rebuild, not per keystroke.
+    private func liveLinkTitle(_ id: UUID) -> String? {
+        guard let m = repository.allMemos().first(where: { $0.id == id }) else { return nil }
+        return (m.title ?? m.firstTranscriptLine ?? "Untitled").trimmingCharacters(in: .whitespaces)
     }
 
     /// Everything linkable from here: most recent first, self excluded.
