@@ -927,6 +927,14 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   no-op check misfired because a mid-edit reconstruct isn't snap-stable. `BodyTextView.updateNSView` now
   re-renders only when `modelString` differs from BOTH the raw binding AND its snapped form. Device-confirmed
   fixed (flashing gone).
+- ✅ **Inline `#tags` in the Mac body (Obsidian idiom — user-picked after the typeahead)**: typing `#word`
+  opens a caret-anchored NATIVE completion popup of matching tags (no preview inserts while arrowing; Esc
+  keeps typed text; each keystroke narrows). Accepting inserts the tag inline AND files it → tags row →
+  frontmatter (the "inline tags copy to the YAML" answer). Inline `#tag` runs render accent. Pure core =
+  `Pipeline/Tags/TagComplete.swift` (Obsidian rules: no spaces, `_-/`, nested; `TagCompleteTests`),
+  candidates = the field's `TagLibrary` (one source). Device eyeball owed.
+  ⬜ follow-ups: phone inline-# popup (UITextView parity); move `TagMatcher` → `Shared/` and run the
+  deterministic tag step on the PHONE against its synced tag list (Tuur asked for this 2026-07-16).
 - ⬜ **NEXT — Mac Related notes + thread (DEFERRED to a design pass):** the phone shows a RELATED section
   (✨ embedding-suggested notes) + "View thread"; the Mac shows only LINKED FROM. Tuur wants this on the Mac
   but it "can be MORE POWERFUL on the Mac" → needs a features + UI thinking/mock session FIRST (mock-first),

@@ -401,6 +401,15 @@ nodes:
         binding too. 366+687 green, Mac hostPNG-verified. NEXT (deferred):
         Mac Related-notes + thread — its own features+UI design pass (can be more
         powerful on the Mac than the phone).
+      - >-
+        2026-07-16 · Inline #tags in the Mac body (Obsidian idiom, user-picked):
+        typing #word opens a caret-anchored native completion popup of matching
+        tags (no preview inserts; Esc keeps typed text; narrows per keystroke);
+        accepting inserts inline AND files the tag → frontmatter ("inline tags
+        copy to the YAML"); #tag runs render accent. Pure core
+        Pipeline/Tags/TagComplete.swift (Obsidian rules, host-tested); candidates
+        = the field's TagLibrary (one source). 369 green. Follow-ups parked:
+        phone inline-# popup; TagMatcher → Shared for a phone-side tag step.
     backlog:
       - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
         pipeline never broken (sim e2e test stays as the gate). Search-hit

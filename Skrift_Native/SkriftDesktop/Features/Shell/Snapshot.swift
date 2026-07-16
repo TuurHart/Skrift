@@ -159,7 +159,7 @@ enum Snapshot {
         f.enhancedSummary = "A quick flat white at the new place, then a walk back along the water."
         // The marker lands MID-SENTENCE (the injector places it at the nearest word);
         // the reflow must show the sentence whole, then the photo block beneath it.
-        f.sanitised = "I grabbed a coffee at the new place on the corner\n\n[[img_001]]\n\n and it was honestly the best flat white I have had in months. Then I walked back along the river and the light was perfect."
+        f.sanitised = "I grabbed a coffee at the new place on the corner\n\n[[img_001]]\n\n and it was honestly the best flat white I have had in months. Then I walked back along the river and the light was perfect. Filing this under #coffee for the archive."
         f.enhancedCopyedit = f.sanitised
         f.significance = 0.5
         f.audioMetadataJSON = try? JSONSerialization.data(withJSONObject: ["duration": "00:01:40"])
@@ -167,11 +167,11 @@ enum Snapshot {
         try? ctx.save()
 
         let view = NoteDisplayView(file: f, coordinator: ProcessingCoordinator(), onOpenMemo: { _ in })
-            .frame(width: 820, height: 760)
+            .frame(width: 820, height: 1150)
             .background(Theme.bg)
             .preferredColorScheme(.dark)
             .modelContainer(container)
-        hostPNG(view, size: NSSize(width: 820, height: 760), to: path)
+        hostPNG(view, size: NSSize(width: 820, height: 1150), to: path)
     }
 
     /// A red-toned stand-in "photo" (the real red-cup note is on-device) — enough to

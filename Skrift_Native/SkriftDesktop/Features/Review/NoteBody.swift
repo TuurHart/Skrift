@@ -124,10 +124,27 @@ struct NoteBody: View {
             onOpenMemoLink: karaokeActive ? nil : onOpenMemoLink,
             linkCandidates: karaokeActive ? { [] } : linkCandidates,
             linkTitle: linkTitle,
+            tagCandidates: karaokeActive ? { [] } : tagCandidates,
+            onInlineTag: onInlineTag,
             karaoke: karaokeActive ? karaokePlayback : nil,
             quoteAttribution: file.bookCapture?.attribution
         )
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Inline `#` completion source: the note's deterministic suggestions first, then
+    /// every library tag most-used-first (`TagLibrary` — the same source as the
+    /// properties typeahead, so the two suggestion surfaces can't disagree).
+    private func tagCandidates() -> [String] {
+        (file.tagSuggestions ?? []) + TagLibrary.mostUsedFirst(file.modelContext)
+    }
+
+    /// A tag completed in the body's `#` popup: FILE it too, so inline tags reach the
+    /// frontmatter on export. The properties card's `onChange(of: file.tags)` mirrors
+    /// the change to the phone (MacCloudMetaSync).
+    private func onInlineTag(_ tag: String) {
+        let t = tag.lowercased()
+        if !file.tags.contains(t) { file.tags.append(t) }
     }
 
     /// Karaoke state for the editor: how far through the words to brighten, and a

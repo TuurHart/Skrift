@@ -50,6 +50,12 @@ struct BodyTextView: NSViewRepresentable {
     /// frozen into `[[memo:UUID|Title]]` at creation (which goes stale when the target is
     /// renamed / enhanced). nil → the target can't be resolved, so keep the snapshot.
     var linkTitle: (UUID) -> String? = { _ in nil }
+    /// Inline `#` completion source (the body's Obsidian-style tag popup). Evaluated
+    /// lazily as a `#word` is typed; empty → no popup.
+    var tagCandidates: () -> [String] = { [] }
+    /// A tag completed from the inline `#` popup — the pick also FILES the tag
+    /// (→ tags row → frontmatter), so inline tags reach the YAML on export.
+    var onInlineTag: (String) -> Void = { _ in }
     /// Karaoke playback, or nil when not playing. Applied as an in-place recolor on
     /// THIS text view (no renderer swap → no reflow) + click-a-word-to-seek.
     var karaoke: KaraokePlayback? = nil
@@ -73,6 +79,10 @@ struct BodyTextView: NSViewRepresentable {
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
     fileprivate static let markerRegex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
     fileprivate static let linkRegex = try? NSRegularExpression(pattern: #"\[\[[^\]]+\]\]"#)
+    // An inline `#tag` run (Obsidian's alphabet; `#` at start-of-line or after
+    // whitespace; ≥1 word char after it, so "# heading" and mid-word "C#" never match).
+    fileprivate static let hashtagRegex = try? NSRegularExpression(
+        pattern: #"(?m)(?:^|(?<=[ \t\n]))#[\p{L}\p{N}_][\p{L}\p{N}_\-/]*"#)
     // A speaker turn header at the START of a line: `**Name:**` → group 1 the leading
     // `**`, group 2 the bolded `Name:`, group 3 the trailing `**`. Lets the review body
     // render a conversation as bold speaker labels instead of raw markdown asterisks.
@@ -107,6 +117,11 @@ struct BodyTextView: NSViewRepresentable {
         tv.onSingleClickAt = { [weak coordinator = context.coordinator, weak tv] idx in
             guard let coordinator, let tv else { return false }
             return coordinator.handleClick(idx, tv)
+        }
+        // A FINAL inline completion landed (Return/Tab/click in the `#` popup).
+        tv.onCompletionInserted = { [weak coordinator = context.coordinator, weak tv] word, range in
+            guard let coordinator, let tv else { return }
+            coordinator.completionInserted(word, range: range, in: tv)
         }
         tv.quoteAttribution = quoteAttribution
         context.coordinator.render(tv, model: text)
@@ -167,6 +182,64 @@ struct BodyTextView: NSViewRepresentable {
             restyle(tv)                      // in-place recolor + ambiguous marks (keeps attachments + caret)
             tv.invalidateIntrinsicContentSize()
             maybeShowLinkPicker(tv)          // just typed `[[` → open the memo-link picker
+            maybeShowTagComplete(tv)         // typing a `#word` → the inline tag popup
+        }
+
+        /// The inline `#` tag popup (Obsidian idiom): typing inside a `#word` run opens
+        /// the NATIVE completion list at the caret — arrow keys + Return, and the list
+        /// narrows as you keep typing (each keystroke re-triggers; the delegate below
+        /// supplies the tags). Only fired when there's something to show, so an
+        /// unmatched run never opens (or beeps) — and never right after an accepted
+        /// completion (the caret still sits in `#word` context then).
+        private func maybeShowTagComplete(_ tv: SelfSizingTextView) {
+            guard activePopover == nil, !tv.consumeTagCompleteSuppression() else { return }
+            let caret = tv.selectedRange()
+            guard caret.length == 0,
+                  let pr = TagComplete.hashtagPartialRange(in: tv.string, caret: caret.location) else { return }
+            let partial = (tv.string as NSString).substring(with: pr)
+            guard !TagComplete.completions(partial: partial, candidates: parent.tagCandidates()).isEmpty
+            else { return }
+            tv.complete(nil)
+        }
+
+        /// Completions for the inline `#` popup. AppKit picks the partial-word range
+        /// itself, so handle both shapes: the `#` INSIDE the range (the replacement
+        /// covers it → return `#`-prefixed completions) or just BEFORE it (word-only
+        /// completions). Any non-tag context keeps the system's normal words (manual F5).
+        func textView(_ textView: NSTextView, completions words: [String],
+                      forPartialWordRange charRange: NSRange,
+                      indexOfSelectedItem index: UnsafeMutablePointer<Int>?) -> [String] {
+            let ns = textView.string as NSString
+            guard NSMaxRange(charRange) <= ns.length else { return words }
+            let raw = ns.substring(with: charRange)
+            let prefixed = raw.hasPrefix("#")
+            if prefixed, charRange.location > 0 {
+                let prev = ns.character(at: charRange.location - 1)
+                guard prev == 32 || prev == 10 || prev == 9 else { return words }   // mid-word "C#…"
+            }
+            guard prefixed
+                || TagComplete.hashtagPartialRange(in: textView.string, caret: NSMaxRange(charRange)) != nil
+            else { return words }
+            let partial = prefixed ? String(raw.dropFirst()) : raw
+            let matches = TagComplete.completions(partial: partial, candidates: parent.tagCandidates())
+            index?.pointee = 0
+            return prefixed ? matches.map { "#" + $0 } : matches
+        }
+
+        /// A FINAL completion landed (routed by `SelfSizingTextView`): when it completed
+        /// a `#tag`, FILE the tag too — that's the "inline tags reach the YAML" half
+        /// (the body text itself was already updated by the insert).
+        func completionInserted(_ word: String, range: NSRange, in tv: SelfSizingTextView) {
+            var tag = word
+            if tag.hasPrefix("#") {
+                tag.removeFirst()
+            } else {
+                let ns = tv.string as NSString
+                guard range.location > 0, range.location - 1 < ns.length,
+                      ns.character(at: range.location - 1) == 35 /* # */ else { return }
+            }
+            guard !tag.isEmpty else { return }
+            parent.onInlineTag(tag)
         }
 
         /// The `[[` trigger (phone chunk-5 parity): when the two chars just before the caret are
@@ -479,6 +552,14 @@ struct BodyTextView: NSViewRepresentable {
                     storage.addAttribute(.font, value: boldName, range: m.range(at: 2))
                     storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 1))
                     storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 3))
+                }
+            }
+            // Inline #tags read as tags, not prose (the Obsidian idiom) — accent the
+            // run. Styling only: the characters stay verbatim in the model + export
+            // (Obsidian indexes inline tags natively).
+            if let trx = BodyTextView.hashtagRegex {
+                for m in trx.matches(in: storage.string, range: full) {
+                    storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: m.range)
                 }
             }
             // SUGGESTED tier: tan text + a dotted underline (mocks/naming-review.html).
@@ -1053,6 +1134,31 @@ final class SelfSizingTextView: NSTextView {
     /// Returns true if the click at the given character index was handled (a resolver
     /// popover opened) → the default cursor placement is suppressed.
     var onSingleClickAt: ((Int) -> Bool)?
+    /// A FINAL inline completion landed — (the inserted word, the partial range it
+    /// replaced). The coordinator files a completed `#tag`.
+    var onCompletionInserted: ((String, NSRange) -> Void)?
+    /// One-shot, set just before a final completion insert lands: the insert fires
+    /// textDidChange while the caret still sits in `#word` context, and without this
+    /// the popup would instantly re-open over the accepted tag.
+    private var suppressTagComplete = false
+    func consumeTagCompleteSuppression() -> Bool {
+        defer { suppressTagComplete = false }
+        return suppressTagComplete
+    }
+
+    /// Completion inserts, tamed for the inline `#` popup: NO preview inserts while
+    /// arrowing the list (a preview writes the candidate into the storage — and
+    /// through the model sync — on every selection move; the list's own highlight is
+    /// enough, the Obsidian feel), Esc keeps the typed text, and a real accept routes
+    /// through `onCompletionInserted`.
+    override func insertCompletion(_ word: String, forPartialWordRange charRange: NSRange,
+                                   movement: Int, isFinal flag: Bool) {
+        guard flag else { return }
+        guard NSTextMovement(rawValue: movement) != .cancel else { return }
+        suppressTagComplete = true
+        super.insertCompletion(word, forPartialWordRange: charRange, movement: movement, isFinal: true)
+        onCompletionInserted?(word, charRange)
+    }
     /// Audiobook capture: the attribution caption drawn under the leading C1 quote
     /// block (plus the accent bar beside it). nil = no quote decoration.
     var quoteAttribution: String? {

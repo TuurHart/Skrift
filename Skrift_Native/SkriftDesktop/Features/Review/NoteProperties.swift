@@ -245,6 +245,22 @@ struct NoteProperties: View {
     }
 }
 
+// ── Tag library ─────────────────────────────────────────────
+/// Every live tag across the library, most-used first — ONE source for the
+/// properties typeahead AND the body's inline `#` completion, so the two
+/// suggestion surfaces can't disagree.
+@MainActor enum TagLibrary {
+    static func mostUsedFirst(_ context: ModelContext?) -> [String] {
+        guard let context else { return [] }
+        let files = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        var counts: [String: Int] = [:]
+        for f in files where f.deletedAt == nil {
+            for t in f.tags { counts[t, default: 0] += 1 }
+        }
+        return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+    }
+}
+
 // ── Context chip (place · weather · daypart) ────────────────
 /// The Mac mirror of the phone's `ContextChip` (Components.swift): a small pill,
 /// icon + text, so the ambient metadata reads identically across the two apps.
@@ -288,14 +304,7 @@ struct TagEditor: View {
     }
 
     /// Every tag across the library, most-used first — the typeahead source.
-    private var libraryTags: [String] {
-        let files = (try? file.modelContext?.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        var counts: [String: Int] = [:]
-        for f in files where f.deletedAt == nil {
-            for t in f.tags { counts[t, default: 0] += 1 }
-        }
-        return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
-    }
+    private var libraryTags: [String] { TagLibrary.mostUsedFirst(file.modelContext) }
 
     private var typed: String { draft.trimmingCharacters(in: .whitespaces).lowercased() }
 
