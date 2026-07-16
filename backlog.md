@@ -965,9 +965,18 @@ desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev ins
 prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
 one `now`); mock-first for any NEW UI beyond these signed specs.
 
-### 🕸️ CONTINUE HERE — Mac Related + thread DESIGN PASS (mock BUILT 2026-07-16, awaiting sign-off)
+### 🕸️ CONTINUE HERE — Mac Connections panel: ✅ MOCK SIGNED OFF 2026-07-16 ("oke im down!") → BUILDING
 
-**MOCK ROUND 2 (Tuur's round-1 feedback folded in) — `mocks/related-panel.html`, AWAITING: O-pick + sign-off:**
+**THE SPEC = `mocks/related-panel.html` v3** (3 review rounds, all picks in the mock's decisions block):
+one panel + Date⇄Closest pill · P1 importance decimals (warm ≥0.8, unrated = nothing) · closeness =
+hover tooltip "58% match · shares: …" (raw cosine ×100, %-format, NEVER ambient) · hover ✕ "not related"
+per-note hide · in-panel consent gate (295 MB EmbeddingGemma, one consent also unlocks Mac Journal
+search) · collapsible w/ count badge ⌥⌘C · REPLACES the bottom LINKED FROM strip · #m6 polish parked.
+**Build phases:** (1) shared index port (`Shared/Retrieval`) + Mac embedder binding + consent/download;
+(2) panel UI (rail + closest + gate + collapse); (3) hostPNG + device verify rounds. Suites green per
+chunk, ledgers same commit.
+
+**MOCK ROUND 2 history (Tuur's round-1 feedback folded in):**
 - **A/B variants are DEAD → ONE panel + a Date ⇄ Closest sort pill** (Tuur's call: single click, exactly
   two orders, no click-then-select; same pill idiom as Queue|Review so it self-teaches). #m1 = Date mode
   (the arc: rail + line, first-mention sub-line); #m2 = Closest mode (flat best-first rows; hover swaps a

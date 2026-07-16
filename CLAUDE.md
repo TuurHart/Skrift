@@ -106,7 +106,10 @@ Rules:
   hybrid player, signed off + built 2026-06-13), **audiobook-player-reading-mode** (e-reader "reading
   mode" + tab-bar IA redesign, signed off 2026-06-19 — not yet built), **journal-desktop** (Journal on
   the Mac + iPad v2 — map mode behind Places, slim in-flight row, body-parity panels; signed off
-  2026-07-11 — not yet built; build board = backlog "CONTINUE HERE — desktop-parity"). A mock the
+  2026-07-11 — not yet built; build board = backlog "CONTINUE HERE — desktop-parity"),
+  **related-panel** (Mac Connections side-panel — ONE list + Date⇄Closest pill, P1 importance
+  decimals, closeness = hover-% tooltip, in-panel consent gate, collapsible w/ count badge; signed
+  off 2026-07-16 — build board = backlog "🕸️ CONTINUE HERE"). A mock the
   user approved IS the spec — build to it.
 - **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
   memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →
