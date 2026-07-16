@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-16T20:45:00.000Z
+updated: 2026-07-17T00:20:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -321,6 +321,12 @@ nodes:
       text is the source). Locked notes still SYNC (Mac too, locked);
       excluded from Obsidian PUBLISH only."
     shipped:
+      - >-
+        2026-07-17 · Review rail MINI-MAP (mock review-minimap.html, A picked
+        over map-first): static MKMapSnapshotter ambient map under PLACES,
+        merged pins + fit-all click-through; shared PlaceCluster.fitRegion.
+        Same session: map-mode camera glitch fixed (explicit binding),
+        Review label single-sourced (SharedCopy), phone note-swipe off (b82)
       - >-
         2026-07-16 · Mac CONNECTIONS PANEL shipped same-day from mock sign-off
         (related-panel.html v3, 3 review rounds): one list + Date⇄Closest pill,

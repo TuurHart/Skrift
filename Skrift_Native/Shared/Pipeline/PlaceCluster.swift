@@ -34,6 +34,23 @@ struct PlaceCluster: Identifiable {
         .sorted { $0.memos.count > $1.memos.count }
     }
 
+    /// The region that shows EVERY cluster: padded bounding box around the pins,
+    /// with a minimum span so a single place doesn't render street-level. Nil when
+    /// nothing is located. Drives the rail mini-map shot AND the full map's
+    /// fit-all entry (mock review-minimap.html #m1). Pure; unit-tested.
+    static func fitRegion(for clusters: [PlaceCluster],
+                          minSpan: Double = 0.05, padding: Double = 1.35) -> MKCoordinateRegion? {
+        let lats = clusters.map(\.coordinate.latitude)
+        let lons = clusters.map(\.coordinate.longitude)
+        guard let latMin = lats.min(), let latMax = lats.max(),
+              let lonMin = lons.min(), let lonMax = lons.max() else { return nil }
+        return MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: (latMin + latMax) / 2,
+                                           longitude: (lonMin + lonMax) / 2),
+            span: MKCoordinateSpan(latitudeDelta: max((latMax - latMin) * padding, minSpan),
+                                   longitudeDelta: max((lonMax - lonMin) * padding, minSpan)))
+    }
+
     /// Photos-style zoom clustering: base (name-grouped) clusters closer than
     /// ~12% of the visible span COLLECT into one pin — biggest first, weighted
     /// centroid, "Name +N" title. Zooming in shrinks the span → they pull

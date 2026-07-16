@@ -89,6 +89,18 @@ struct JournalView: View {
                     Text("Notes with a location land here.")
                         .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
                         .padding(.leading, 2)
+                } else {
+                    // Ambient mini-map (mock review-minimap.html #m1): geography is
+                    // always on screen; the river never moves. Click → full map,
+                    // fitted to every pin, no place pre-selected.
+                    RailMiniMap(clusters: clusters) {
+                        selectedPlace = nil
+                        mapMode = true
+                        if let region = PlaceCluster.fitRegion(for: clusters) {
+                            withAnimation { camera = .region(region) }
+                        }
+                    }
+                    .padding(.top, 12)
                 }
             }
             .padding(14)

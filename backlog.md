@@ -979,10 +979,12 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   place row while in map mode never moved the camera → now `focus()` flies to the place (0.3°
   span); (3) selection highlight vanished when zoom-out merged pins (compound "a+b" ids vs exact
   match) → id-component matching. Suites + MLX green, Dev redeployed.
-- 🎨 **Instant-map-on-Review mock round OPEN** (Tuur asked 2026-07-16 night): `mocks/review-minimap.html`
-  — #m1 Variant A (RECOMMENDED, rail mini-map under PLACES, static MKMapSnapshotter, river untouched)
-  vs #m2 Variant B (live map as landing hero, river demoted below). Vision-checked. AWAITING PICK —
-  no code until sign-off (locked process).
+- ✅ **Rail mini-map SHIPPED** (mock `review-minimap.html` #m1 — Tuur picked A 2026-07-17): ambient
+  `MKMapSnapshotter` shot in the rail under PLACES (static — no live Map idling), fitted to ALL pins
+  via new shared `PlaceCluster.fitRegion` (3 tests), same merged clusters drawn on top (+N badges),
+  POIs excluded, "click → full map" → map mode fitted to every pin, no place pre-selected; hidden
+  when nothing located; river untouched. Fixture vision-checked (real Lisbon tiles + pins); Dev
+  redeployed. ⬜ eyeball the click-through + reshoot-on-new-note live.
 - ℹ️ **Map on the Mac: already BUILT** (journal-desktop mock v2 shipped with the Journal lane) —
   click a place row under PLACES to swap the reading column for the map; clicking a calendar day
   swaps back. Not a gap, just undiscovered.
