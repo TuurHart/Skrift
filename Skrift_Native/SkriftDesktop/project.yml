@@ -57,6 +57,9 @@ targets:
       - path: ../Shared/Session
       # UI: shared SwiftUI helpers (FlowLayout — one copy across both apps + the extension).
       - path: ../Shared/UI
+      # Retrieval: the P8 embedding index core (EmbeddingIndex/Store/MemoEmbedding +
+      # engine seam + gist) — one copy; powers the Connections panel (mocks/related-panel.html).
+      - path: ../Shared/Retrieval
     settings:
       base:
         PRODUCT_NAME: SkriftDesktop
@@ -130,6 +133,7 @@ targets:
       - path: ../Shared/Export
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
+      - path: ../Shared/Retrieval
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skrift.desktop.unittests
