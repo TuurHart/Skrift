@@ -965,6 +965,41 @@ desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev ins
 prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
 one `now`); mock-first for any NEW UI beyond these signed specs.
 
+### 🕸️ CONTINUE HERE — Mac Related + thread DESIGN PASS (direction LOCKED 2026-07-16, mock next)
+
+Tuur picked the direction (AskUserQuestion, this session): **connections side-panel + thread-as-timeline +
+why-related chips** — unlinked mentions = later idea. MOCK-FIRST (locked process): no code until an HTML
+mock in `Skrift_Native/SkriftDesktop/mocks/` is signed off; the approved mock IS the spec. Vision-check
+mocks via the WKWebView snapshot script (no Chrome on this Mac — memory `reference_mock_vision_check`).
+
+**Investigation facts (verified this session — reuse, don't re-derive):**
+- Phone P8 (shipped): `JournalIndexService` sweeps memos → `EmbeddingIndex` (vectors from `GemmaEmbedder`,
+  gated on Journal-index consent + model download). Related card = top-K neighbours over
+  `RetrievalTuning.relatedFloor`/`relatedK`; thread = `threadOrder` (same scores, OLDEST-first, "the arc
+  of this idea") + first-mention date. UI in `MemoDetailView.relatedSection` (~L917) + thread sheet.
+- ALREADY SHARED: `Shared/Retrieval/` — `EmbeddingEngine` protocol, `RetrievalMath` (cosine), `MemoGist`
+  (gist compose/chunk/textHash). NOT shared: the embedder binding + the index store (phone-local).
+- Mac: NO embedder/index/UI today — but the Mac already runs MLX natively (Gemma enhancement), so the same
+  embedding model runs there. Each device builds its OWN LOCAL index (embeddings never sync — private by
+  construction, zero CloudKit contract change).
+
+**Design brief for the mock (the three locked powers):**
+1. **Connections side-panel** — persistent right-hand pane on the review surface: Related + backlinks
+   (LINKED FROM) + thread entry in ONE place (Obsidian panel idiom; the phone stacks them under the body).
+2. **Thread as a real timeline** — the arc rendered as a dated rail (importance dots, current note
+   highlighted, click to hop) — not a sheet list.
+3. **Why-related chips** — each related row shows WHAT connects it (shared people / tags / gist terms).
+   Needs a cheap explanation heuristic (overlap of MemoGist terms + people + tags) — design the UI first,
+   the heuristic can be dumb v1.
+Design questions the mock must answer: does the panel collapse? does it replace the bottom LINKED FROM
+strip (yes, presumably)? what does an EMPTY state look like (index not built / model not downloaded — the
+Mac needs its own consent/download flow mirroring the phone's Journal gate)?
+
+**Build phases AFTER sign-off:** (1) Mac embedder binding (mlx-swift, same model, download+consent) +
+`EmbeddingIndex` port over `PipelineFile`s (much of the phone index should move to `Shared/Retrieval` —
+same anti-drift move as BodyMarkdown); (2) panel UI + timeline + chips; (3) device/hostPNG verify rounds.
+Rules: suites green per chunk, commit explicit paths, ledgers same commit, hostPNG any NSTextView surface.
+
 ## ⭐ Desktop parity A-list — the Mac catches up to the phone waves (2026-07-07, roadmap `DParityA`)
 
 **2026-07-16 parity batch (from a phone/Mac screenshot compare — built + verified, device round owed):**
@@ -1000,8 +1035,16 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   most-used); typing narrows; the space of a `# ` heading breaks the run so the menu steps aside. PLUS
   **markdown headings render as titles** in the Mac body: `# ` H1 / `## ` H2 / `### +` H3 tier, marks dim
   (turn-header treatment), characters verbatim → the export stays plain markdown. Device re-eyeball owed.
-  ⬜ follow-ups: phone inline-# popup + phone heading rendering (UITextView parity); move `TagMatcher` →
-  `Shared/` and run the deterministic tag step on the PHONE against its synced tag list (Tuur 2026-07-16).
+  **Shared-core extraction done same day (Tuur: "make sure the last edit is shared")**: the RULES now live
+  in `Shared/Pipeline/BodyMarkdown.swift` (headings + inline-tag detection, host-tested) and
+  `Shared/Pipeline/TagComplete.swift` (moved from desktop Pipeline/Tags) — the Mac consumes them; the phone
+  compiles them (renderer wiring = i10).
+  ⬜ **PINNED (roadmap idea i10, Tuur 2026-07-16 — "not critical to our path")**: Obsidian-grade markdown
+  body — bold/italic/==highlight==/strike on BOTH apps by extending `BodyMarkdown` (font-trait merge for
+  nesting), dim-visible marks (NEVER Obsidian's vanish-off-caret-line — offset-math trap, phone-hostile),
+  phone heading/#tag rendering + inline-# popup, ⌘B/⌘I Mac + accessory B/i/🖍 phone. ~2-3 sessions.
+  ⬜ follow-up: move `TagMatcher` → `Shared/` and run the deterministic tag step on the PHONE against its
+  synced tag list (Tuur 2026-07-16).
 - ⬜ **NEXT — Mac Related notes + thread (DEFERRED to a design pass):** the phone shows a RELATED section
   (✨ embedding-suggested notes) + "View thread"; the Mac shows only LINKED FROM. Tuur wants this on the Mac
   but it "can be MORE POWERFUL on the Mac" → needs a features + UI thinking/mock session FIRST (mock-first),
