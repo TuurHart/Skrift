@@ -50,6 +50,12 @@ extension MemoCloudReconciler {
     /// memos ingested.
     @discardableResult
     static func reconcile() -> Int {
+        // The Connections index sweep rides every reconcile trigger (launch /
+        // foreground / CloudKit import) — AFTER the cloud work, so just-imported
+        // memos index in the same pass. Self-gated (consent + model on disk) and
+        // hash-diffed ⇒ a redundant fire is nearly free. Runs even when cloud
+        // sync is off: locally-ingested files need indexing too.
+        defer { ConnectionsIndexService.shared.sweepSoon(SharedStore.container.mainContext) }
         let settings = SettingsStore.shared.load()
         guard settings.cloudKitMacSyncEnabled, let cloud = MemoCloudStore.container else { return 0 }
         // Names (people + voiceprints) + custom vocab now flow over CloudKit (replacing the

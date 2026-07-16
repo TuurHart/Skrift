@@ -972,9 +972,15 @@ one panel + Date⇄Closest pill · P1 importance decimals (warm ≥0.8, unrated 
 hover tooltip "58% match · shares: …" (raw cosine ×100, %-format, NEVER ambient) · hover ✕ "not related"
 per-note hide · in-panel consent gate (295 MB EmbeddingGemma, one consent also unlocks Mac Journal
 search) · collapsible w/ count badge ⌥⌘C · REPLACES the bottom LINKED FROM strip · #m6 polish parked.
-**Build phases:** (1) shared index port (`Shared/Retrieval`) + Mac embedder binding + consent/download;
-(2) panel UI (rail + closest + gate + collapse); (3) hostPNG + device verify rounds. Suites green per
-chunk, ledgers same commit.
+**Build phases:** (1) ✅ DONE 2026-07-16 (chunks A/B/C, suites green each): index core →
+`Shared/Retrieval` (be75213); GemmaEmbedder + TranscriptionActivity shared, Mac binds the SAME
+CoreML-LLM EmbeddingGemma — deployment 15.0, model cache `~/Library/Application Support/Skrift/
+EmbeddingModels` shared dev+prod (5f5df0d); `ConnectionsIndexService` (consent key = phone's
+`journalIndexEnabled`, REAL download progress via the package's onProgress, sweep N-of-M progress,
+PipelineFile→MemoSnapshot with metadata `recordedAt` as the thread axis, sweeps ride reconcile+runs,
+Mac raises the shared ANE-yield flag around engine work).
+(2) ⬜ panel UI (rail + closest + gate + collapse) — NEXT; (3) ⬜ hostPNG + device verify rounds.
+Suites green per chunk, ledgers same commit.
 
 **MOCK ROUND 2 history (Tuur's round-1 feedback folded in):**
 - **A/B variants are DEAD → ONE panel + a Date ⇄ Closest sort pill** (Tuur's call: single click, exactly

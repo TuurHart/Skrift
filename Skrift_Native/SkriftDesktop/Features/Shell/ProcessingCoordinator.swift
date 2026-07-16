@@ -97,7 +97,15 @@ final class ProcessingCoordinator {
         isRunning = true
         idleUnloadTask?.cancel(); idleUnloadTask = nil   // don't unload mid-run
         runState = RunState(total: targets.count, done: 0, currentTitle: nil)
-        defer { isRunning = false; runState = nil; scheduleIdleUnload() }
+        // The ANE/GPU belong to the pipeline while a run is live — the shared
+        // embedder yields its cold load (the phone's 2026-07-15 starvation lesson).
+        TranscriptionActivity.begin()
+        defer {
+            isRunning = false; runState = nil; scheduleIdleUnload()
+            TranscriptionActivity.end()
+            // Fresh transcripts/polish just landed — index them.
+            ConnectionsIndexService.shared.sweepSoon(context)
+        }
 
         let settings = SettingsStore.shared.load()
         // Scan the vault for existing tag names so TagMatcher suggests real vault
@@ -323,7 +331,12 @@ final class ProcessingCoordinator {
         isRunning = true
         idleUnloadTask?.cancel(); idleUnloadTask = nil
         runState = RunState(total: 1, done: 0, currentTitle: pf.queueTitle)
-        defer { isRunning = false; runState = nil; scheduleIdleUnload() }
+        TranscriptionActivity.begin()
+        defer {
+            isRunning = false; runState = nil; scheduleIdleUnload()
+            TranscriptionActivity.end()
+            ConnectionsIndexService.shared.sweepSoon(context)
+        }
 
         let settings = SettingsStore.shared.load()
         let repo = settings.enhancementModelRepo

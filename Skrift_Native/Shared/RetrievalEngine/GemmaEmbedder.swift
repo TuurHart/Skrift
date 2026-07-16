@@ -22,6 +22,10 @@ actor GemmaEmbedder: EmbeddingEngine {
     /// App-wired log sink (phone → DevLog, Mac → its own trace). No-op default.
     nonisolated(unsafe) static var log: @Sendable (String) -> Void = { _ in }
 
+    /// App-wired download progress (bytesReceived, bytesTotal) — drives the consent
+    /// gates' "121 / 295 MB" bars. nil = nobody listening.
+    nonisolated(unsafe) static var downloadProgress: (@Sendable (Int64, Int64) -> Void)?
+
     nonisolated let modelRev = "embeddinggemma-300m-d512"
     private let dim = 512
     private var model: EmbeddingGemma?
@@ -88,7 +92,9 @@ actor GemmaEmbedder: EmbeddingEngine {
                 let t0 = Date()
                 Self.log("embedder: cold load START")
                 loadTask = Task {
-                    let m = try await EmbeddingGemma.downloadAndLoad(modelsDir: Self.modelsDir)
+                    let m = try await EmbeddingGemma.downloadAndLoad(modelsDir: Self.modelsDir) { p in
+                        Self.downloadProgress?(p.bytesReceived, p.bytesTotal)
+                    }
                     Self.log(String(format: "embedder: cold load DONE in %.1fs", Date().timeIntervalSince(t0)))
                     return m
                 }

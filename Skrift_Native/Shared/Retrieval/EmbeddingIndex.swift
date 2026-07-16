@@ -54,13 +54,16 @@ actor EmbeddingIndex {
     /// Hash-diff every snapshot against the stored rows: embed new/changed
     /// memos, skip unchanged ones, delete rows for memos that no longer exist
     /// (trash purge / prune). Saves per memo so an interrupted sweep resumes
-    /// where it left off.
-    func sweep(_ snapshots: [MemoSnapshot]) async throws -> SweepStats {
+    /// where it left off. `onProgress(done, total)` fires per snapshot (skips
+    /// included) — the Mac gate's "Building the index — N of M".
+    func sweep(_ snapshots: [MemoSnapshot],
+               onProgress: (@Sendable (Int, Int) -> Void)? = nil) async throws -> SweepStats {
         var stats = SweepStats()
         let existing = try groupedRows()
         var seen = Set<UUID>()
 
-        for snap in snapshots {
+        for (i, snap) in snapshots.enumerated() {
+            defer { onProgress?(i + 1, snapshots.count) }
             seen.insert(snap.id)
             let body = MemoGist.stripSpeakerHeaders(snap.body)
             let gist = MemoGist.compose(title: snap.title, summary: snap.summary,
