@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-16T18:05:00.000Z
+updated: 2026-07-16T18:25:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -171,6 +171,9 @@ nodes:
       moved to ONE compiled copy in Shared/ (the annotated 'mirrors the phone'
       duplicates had already drifted, e.g. the Mac's 'Significant' tier label).
     shipped:
+      - 2026-07-16 · WAVE 2b — AppPaths merged to ONE Shared/Model file with
+        platform sections (was two same-named types with different members);
+        names.json literal single-sourced. Suites + MLX build green
       - 2026-07-16 · WAVE 2a — SharedContent C3 wire struct unified →
         Shared/Model (typed enum both sides; goldens SharedContentParityTests
         in BOTH suites first; desktop's snake_case fallback found DEAD +

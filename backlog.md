@@ -1045,7 +1045,10 @@ RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rule
   `shared_content` fallback was DEAD code (wrapper decode always succeeds → fallback unreachable, no
   producer since the RN era): deleted, camelCase pinned as the contract; unknown `type` → nil (no
   junk-typed records). Desktop 376 + mobile 691 + full MLX build green.
-- ⬜ **AppPaths** — dev/prod container-path conventions duplicated; small.
+- ✅ **AppPaths** — DONE 2026-07-16: the name was declared per-app with DIFFERENT members (the
+  worst twin class — a shared file referencing it would silently bind either). Now ONE
+  `Shared/Model/AppPaths.swift` with `#if os(iOS)`/`#if os(macOS)` sections (LockGate pattern);
+  `names.json` literal hoisted to one `namesFileName` constant. Suites + MLX build green.
 - ⬜ **Theme palette values** — one palette family (0x7c6bf5…) maintained as two dyn tables; a shared
   hex-constants table (per-platform dynamic wrappers stay) prevents the warmFill-drift class of bug.
 - ⬜ **TranscriptionService/TranscriptionResult + DiarizationService/DiarizationOutput/Diarizing** —
