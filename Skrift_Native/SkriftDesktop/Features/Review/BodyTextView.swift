@@ -79,15 +79,9 @@ struct BodyTextView: NSViewRepresentable {
     fileprivate static let bodyFont = NSFont.systemFont(ofSize: 16)
     fileprivate static let markerRegex = try? NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
     fileprivate static let linkRegex = try? NSRegularExpression(pattern: #"\[\[[^\]]+\]\]"#)
-    // An inline `#tag` run (Obsidian's alphabet; `#` at start-of-line or after
-    // whitespace; ≥1 word char after it, so "# heading" and mid-word "C#" never match).
-    fileprivate static let hashtagRegex = try? NSRegularExpression(
-        pattern: #"(?m)(?:^|(?<=[ \t\n]))#[\p{L}\p{N}_][\p{L}\p{N}_\-/]*"#)
-    // Markdown headings at line start (`# ` / `## ` / `### …`, the Obsidian split:
-    // #+space = heading, #+word = tag): group 1 the marks, group 2 the title text.
-    fileprivate static let headingRegex = try? NSRegularExpression(
-        pattern: #"(?m)^(#{1,6}) (.+)$"#)
     // Heading tiers (H1/H2/H3+; deeper levels reuse the last). Body is 16pt.
+    // The RULES (what is a heading / an inline #tag) live in the shared
+    // `BodyMarkdown`; only the LOOK is platform-local.
     fileprivate static let headingFonts: [NSFont] = [
         .systemFont(ofSize: 23, weight: .bold),
         .systemFont(ofSize: 19.5, weight: .bold),
@@ -607,25 +601,18 @@ struct BodyTextView: NSViewRepresentable {
                     storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 3))
                 }
             }
-            // Markdown headings render as real TITLES (`# ` big, `## ` smaller — the
-            // Obsidian split: #+space = heading, #+word = tag); the `#` marks stay
-            // visible but recede, same treatment as the `**Name:**` turn headers.
-            // Characters stay verbatim — the export is already markdown.
-            if let hrx2 = BodyTextView.headingRegex {
-                let faint = NSColor(Theme.textPrimary).withAlphaComponent(0.25)
-                for m in hrx2.matches(in: storage.string, range: full) {
-                    let tier = min(m.range(at: 1).length, BodyTextView.headingFonts.count) - 1
-                    storage.addAttribute(.font, value: BodyTextView.headingFonts[tier], range: m.range(at: 2))
-                    storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 1))
-                }
+            // Markdown headings render as real TITLES (`# ` big, `## ` smaller) and
+            // inline #tags accent — the WHAT comes from the shared `BodyMarkdown`
+            // (one rule set with the phone), the LOOK is local. Characters stay
+            // verbatim — the export is already markdown.
+            let headingFaint = NSColor(Theme.textPrimary).withAlphaComponent(0.25)
+            for h in BodyMarkdown.headings(in: storage.string) {
+                let tier = min(h.level, BodyTextView.headingFonts.count) - 1
+                storage.addAttribute(.font, value: BodyTextView.headingFonts[tier], range: h.text)
+                storage.addAttribute(.foregroundColor, value: headingFaint, range: h.marks)
             }
-            // Inline #tags read as tags, not prose (the Obsidian idiom) — accent the
-            // run. Styling only: the characters stay verbatim in the model + export
-            // (Obsidian indexes inline tags natively).
-            if let trx = BodyTextView.hashtagRegex {
-                for m in trx.matches(in: storage.string, range: full) {
-                    storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: m.range)
-                }
+            for r in BodyMarkdown.inlineTags(in: storage.string) {
+                storage.addAttribute(.foregroundColor, value: NSColor(Theme.accent), range: r)
             }
             // SUGGESTED tier: tan text + a dotted underline (mocks/naming-review.html).
             let tan = NSColor(Theme.nameSuggest), line = NSColor(Theme.nameSuggestLine)

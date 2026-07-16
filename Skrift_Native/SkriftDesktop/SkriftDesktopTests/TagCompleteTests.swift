@@ -45,3 +45,23 @@ final class TagCompleteTests: XCTestCase {
                        "nested / stays inside the tag")
     }
 }
+
+/// The SHARED markdown rules (`BodyMarkdown`) — one WHAT for both renderers
+/// (the Obsidian split: `#`+space = heading, `#`+word = tag).
+final class BodyMarkdownTests: XCTestCase {
+
+    func testHeadingLevelsAndRanges() {
+        let text = "# Big\nprose\n## Smaller\n#tag not a heading"
+        let hs = BodyMarkdown.headings(in: text)
+        XCTAssertEqual(hs.map(\.level), [1, 2])
+        XCTAssertEqual((text as NSString).substring(with: hs[0].text), "Big")
+        XCTAssertEqual((text as NSString).substring(with: hs[1].marks), "##")
+        XCTAssertEqual((text as NSString).substring(with: hs[1].text), "Smaller")
+    }
+
+    func testInlineTagsMatchObsidianSplit() {
+        let text = "# Head\nfile under #coffee and #inbox/to-read but not C# or ## marks"
+        let tags = BodyMarkdown.inlineTags(in: text).map { (text as NSString).substring(with: $0) }
+        XCTAssertEqual(tags, ["#coffee", "#inbox/to-read"])
+    }
+}

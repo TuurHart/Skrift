@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-13T06:55:00.000Z
+updated: 2026-07-16T10:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -1298,6 +1298,20 @@ ideas:
     text: Review prep (graceful model download; plain AppIntent)
     source: import
     nodeHint: P11
+  - id: i10
+    text: "Obsidian-grade markdown body (Tuur, 2026-07-16 — PINNED, not critical
+      path): bold/italic/==highlight==/strikethrough render live in BOTH note
+      bodies the way headings + inline #tags now do on the Mac. Architecture
+      agreed: extend the shared BodyMarkdown core (pure text→semantic-ranges +
+      the font-trait MERGE for nesting like bold-inside-heading), thin per-app
+      look adapters; marks stay DIM-VISIBLE (layout-stable, zero offset math —
+      Obsidian's vanish-off-caret-line is the trap, phone-hostile). Includes
+      the phone parity half: render headings/#tags on iOS (Dynamic-Type fonts,
+      end-editing restyle), phone inline-# popup, ⌘B/⌘I on Mac + accessory
+      B/i/🖍 buttons on phone. ~2-3 sessions, phased Mac-first. Detail in
+      backlog 'Desktop parity A-list' round-3 bullet + FEATURES rows."
+    source: voice
+    nodeHint: NFeat
   - id: i1
     text: Export All button — one action that dumps everything to Markdown so a user
       can walk away from Skrift with all their data. The portability escape
