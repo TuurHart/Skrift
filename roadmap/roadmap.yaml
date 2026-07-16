@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-16T10:30:00.000Z
+updated: 2026-07-16T17:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -295,6 +295,18 @@ nodes:
       text is the source). Locked notes still SYNC (Mac too, locked);
       excluded from Obsidian PUBLISH only."
     shipped:
+      - >-
+        2026-07-16 · Mac CONNECTIONS PANEL shipped same-day from mock sign-off
+        (related-panel.html v3, 3 review rounds): one list + Date⇄Closest pill,
+        why-chips, P1 importance decimals, hover-% tooltip, hover-✕ hide,
+        in-panel consent gate with REAL download % → PREPARING (ANE compile,
+        device-found frozen-bar fix) → indexing N-of-M; LINKED FROM moved into
+        the panel; ⌥⌘C collapse + count badge. Plumbing: index core + the SAME
+        CoreML-LLM EmbeddingGemma now SHARED (Shared/Retrieval + RetrievalEngine,
+        macOS 15); shared RetrievalGate upgrades the PHONE gate too (%,
+        preparing, N-of-M). Mac search-jump parity (scroll+flash to match).
+        tools/twin-scan.py (+--clones) → SharedKit wave 2 triaged in backlog.
+        Live Dev round running; phone device round owed.
       - >-
         2026-07-07 · Chunk 4 — live checklists (mobile): BodyTransform (one
         raw⇄display transform for img markers + task prefixes), checkbox

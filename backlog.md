@@ -1034,6 +1034,14 @@ RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rule
 - ⬜ VocabularyBooster.boost() cores + SpeakerTranscript — already tracked above (SharedKit wave 1
   follow-ups), confirmed by the scan.
 
+**`--clones` mode (added same day — normalized-token shingles, catches RENAMED/adapted copies):**
+- ⬜ **PersonEditorView ↔ PersonEditor** (11 windows) — the person editor duplicated across apps.
+- ⬜ **NoteBodyView ↔ BodyTextView** (14) — the body renderers' shared logic; = the i10 premise,
+  fold into i10 rather than a separate job.
+- ⬜ **SpeakerVoiceStore ↔ DiarizationService** (11) — voice-embedding store logic adapted twice.
+- ⬜ **MemoSaver ↔ IngestService** (10) — the two ingest paths share adapted logic.
+- (Scores ≤9 vs SidebarView etc. = generic SwiftUI patterns — noise, no action.)
+
 **MOCK ROUND 2 history (Tuur's round-1 feedback folded in):**
 - **A/B variants are DEAD → ONE panel + a Date ⇄ Closest sort pill** (Tuur's call: single click, exactly
   two orders, no click-then-select; same pill idiom as Queue|Review so it self-teaches). #m1 = Date mode
