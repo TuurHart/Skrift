@@ -965,7 +965,20 @@ desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev ins
 prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
 one `now`); mock-first for any NEW UI beyond these signed specs.
 
-### 🕸️ CONTINUE HERE — Mac Related + thread DESIGN PASS (direction LOCKED 2026-07-16, mock next)
+### 🕸️ CONTINUE HERE — Mac Related + thread DESIGN PASS (mock BUILT 2026-07-16, awaiting sign-off)
+
+**MOCK BUILT + vision-checked (WKWebView rounds ×3): `mocks/related-panel.html` — Tuur picks a variant:**
+- **#m1 Variant A "one rail" (recommended)** — the thread timeline IS the related view. Grounds: verified
+  `threadOrder = related-above-floor + seed, oldest-first` ⇒ separate Related + thread lists show the same
+  notes twice. Why-chips per node (person/tag/term), **importance = rail-dot size** (journal-calendar
+  idiom), closest match = date-row flag (FIRST MENTION idiom).
+- **#m2 Variant B** — score-ordered Related list + thread as a panel TAKEOVER (richer nodes, 2-line
+  snippets; phone mental model; cost = same notes listed twice, arc a click away).
+- **#m3** — consent gate lives IN the panel (phone Journal-gate copy, 295 MB EmbeddingGemma, one consent
+  also unlocks Mac Journal search) + downloading / indexing / no-connections states.
+- **#m4** — collapsed: panel fully gone, toolbar toggle keeps a count badge, ⌥⌘C, app-wide persisted.
+- Decisions answered in-mock: panel REPLACES the bottom LINKED FROM strip; local per-device index.
+AFTER sign-off → build phases below (embedder binding → shared index port → panel UI).
 
 Tuur picked the direction (AskUserQuestion, this session): **connections side-panel + thread-as-timeline +
 why-related chips** — unlinked mentions = later idea. MOCK-FIRST (locked process): no code until an HTML
