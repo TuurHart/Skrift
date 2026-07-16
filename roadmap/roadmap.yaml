@@ -402,14 +402,17 @@ nodes:
         Mac Related-notes + thread — its own features+UI design pass (can be more
         powerful on the Mac than the phone).
       - >-
-        2026-07-16 · Inline #tags in the Mac body (Obsidian idiom, user-picked):
-        typing #word opens a caret-anchored native completion popup of matching
-        tags (no preview inserts; Esc keeps typed text; narrows per keystroke);
-        accepting inserts inline AND files the tag → frontmatter ("inline tags
-        copy to the YAML"); #tag runs render accent. Pure core
-        Pipeline/Tags/TagComplete.swift (Obsidian rules, host-tested); candidates
-        = the field's TagLibrary (one source). 369 green. Follow-ups parked:
-        phone inline-# popup; TagMatcher → Shared for a phone-side tag step.
+        2026-07-16 · Inline #tags in the Mac body (Obsidian idiom, user-picked),
+        round 2: typing #word opens a caret-anchored menu; accepting inserts
+        inline AND files the tag → frontmatter ("inline tags copy to the YAML");
+        #tag runs render accent. Round 1 fought NSTextView's built-in completion
+        session (suppressed previews desynced it: eaten keystrokes, dead
+        backspace, slow) → rebuilt as a PASSIVE non-activating child panel
+        (TagSuggestPanel, the Obsidian/Xcode way): text path fully native, only
+        ↑↓/Return/Esc intercepted, candidates cached per run. Pure core
+        Pipeline/Tags/TagComplete.swift (host-tested); one TagLibrary source with
+        the field. Follow-ups parked: phone inline-# popup; TagMatcher → Shared
+        for a phone-side tag step.
     backlog:
       - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
         pipeline never broken (sim e2e test stays as the gate). Search-hit

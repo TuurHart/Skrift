@@ -120,13 +120,16 @@ enum Snapshot {
         let view = VStack(alignment: .leading, spacing: 8) {
             Text("Tags — typing “te”").font(.system(size: 10)).tracking(0.6).foregroundStyle(Theme.textMuted)
             TagEditor(file: subject, seedAdding: true, seedDraft: "te")
+            Text("Body — inline “#te” menu").font(.system(size: 10)).tracking(0.6).foregroundStyle(Theme.textMuted)
+                .padding(.top, 10)
+            TagSuggestList(matches: ["testing", "testflight", "testy"], selected: 0, onPick: { _ in })
         }
         .frame(width: 380, alignment: .leading)
         .padding(28)
         .background(Theme.bg)
         .preferredColorScheme(.dark)
         .modelContainer(container)
-        hostPNG(view, size: NSSize(width: 436, height: 320), to: path)
+        hostPNG(view, size: NSSize(width: 436, height: 470), to: path)
     }
 
     /// Image-at-sentence-end reflow (2026-07-16): a photo marker that the injector

@@ -118,11 +118,6 @@ struct BodyTextView: NSViewRepresentable {
             guard let coordinator, let tv else { return false }
             return coordinator.handleClick(idx, tv)
         }
-        // A FINAL inline completion landed (Return/Tab/click in the `#` popup).
-        tv.onCompletionInserted = { [weak coordinator = context.coordinator, weak tv] word, range in
-            guard let coordinator, let tv else { return }
-            coordinator.completionInserted(word, range: range, in: tv)
-        }
         tv.quoteAttribution = quoteAttribution
         context.coordinator.render(tv, model: text)
         return tv
@@ -182,64 +177,108 @@ struct BodyTextView: NSViewRepresentable {
             restyle(tv)                      // in-place recolor + ambiguous marks (keeps attachments + caret)
             tv.invalidateIntrinsicContentSize()
             maybeShowLinkPicker(tv)          // just typed `[[` → open the memo-link picker
-            maybeShowTagComplete(tv)         // typing a `#word` → the inline tag popup
+            updateTagSuggest(tv)             // typing a `#word` → the inline tag menu
         }
 
-        /// The inline `#` tag popup (Obsidian idiom): typing inside a `#word` run opens
-        /// the NATIVE completion list at the caret — arrow keys + Return, and the list
-        /// narrows as you keep typing (each keystroke re-triggers; the delegate below
-        /// supplies the tags). Only fired when there's something to show, so an
-        /// unmatched run never opens (or beeps) — and never right after an accepted
-        /// completion (the caret still sits in `#word` context then).
-        private func maybeShowTagComplete(_ tv: SelfSizingTextView) {
-            guard activePopover == nil, !tv.consumeTagCompleteSuppression() else { return }
-            let caret = tv.selectedRange()
-            guard caret.length == 0,
-                  let pr = TagComplete.hashtagPartialRange(in: tv.string, caret: caret.location) else { return }
+        // MARK: inline `#` tag suggestions (Obsidian idiom)
+
+        /// The caret-anchored tag menu — a PASSIVE child panel (`TagSuggestPanel`): it
+        /// never takes key and never touches the text path, so typing/backspace/clicks
+        /// stay fully native; the only interception is ↑ ↓ Return Esc in `doCommandBy`
+        /// while it's visible.
+        private let tagSuggest = TagSuggestPanel()
+        /// Candidates fetched ONCE per `#word` run (a full-library fetch per keystroke
+        /// was the round-1 slowness), dropped when the menu hides.
+        private var tagSessionCandidates: [String]?
+        private var tagMatches: [String] = []
+        private var tagSel = 0
+        /// One-shot: accepting rewrites the run, which fires textDidChange with the
+        /// caret still inside `#word` — without this the menu would instantly re-open
+        /// over the accepted tag.
+        private var suppressTagSuggestOnce = false
+
+        /// Show/refresh/hide the menu for the caret's `#word` run. Called on every
+        /// text change (may OPEN) and — only while visible — on selection change
+        /// (follows the caret; hides when it leaves the run).
+        func updateTagSuggest(_ tv: SelfSizingTextView) {
+            if suppressTagSuggestOnce { suppressTagSuggestOnce = false; hideTagSuggest(); return }
+            guard activePopover == nil,
+                  tv.selectedRange().length == 0,
+                  let pr = TagComplete.hashtagPartialRange(in: tv.string, caret: tv.selectedRange().location)
+            else { hideTagSuggest(); return }
             let partial = (tv.string as NSString).substring(with: pr)
-            guard !TagComplete.completions(partial: partial, candidates: parent.tagCandidates()).isEmpty
+            let candidates = tagSessionCandidates ?? parent.tagCandidates()
+            tagSessionCandidates = candidates
+            let matches = TagComplete.completions(partial: partial, candidates: candidates)
+            guard !matches.isEmpty else { hideTagSuggest(); return }
+            if matches != tagMatches { tagSel = 0 }
+            tagMatches = matches
+            presentTagSuggest(tv, at: pr)
+        }
+
+        private func presentTagSuggest(_ tv: SelfSizingTextView, at range: NSRange) {
+            tagSuggest.onPick = { [weak self, weak tv] tag in
+                guard let self, let tv else { return }
+                self.acceptTag(tag, in: tv)
+            }
+            tagSuggest.show(matches: tagMatches, selected: tagSel,
+                            anchoredTo: boundingRect(range, in: tv), of: tv)
+        }
+
+        /// Accept: replace the partial with the tag (plain, undoable text edit) and
+        /// FILE it — inline tags reach the frontmatter through the tags row.
+        private func acceptTag(_ tag: String, in tv: SelfSizingTextView) {
+            defer { hideTagSuggest() }
+            guard let pr = TagComplete.hashtagPartialRange(in: tv.string, caret: tv.selectedRange().location)
             else { return }
-            tv.complete(nil)
-        }
-
-        /// Completions for the inline `#` popup. AppKit picks the partial-word range
-        /// itself, so handle both shapes: the `#` INSIDE the range (the replacement
-        /// covers it → return `#`-prefixed completions) or just BEFORE it (word-only
-        /// completions). Any non-tag context keeps the system's normal words (manual F5).
-        func textView(_ textView: NSTextView, completions words: [String],
-                      forPartialWordRange charRange: NSRange,
-                      indexOfSelectedItem index: UnsafeMutablePointer<Int>?) -> [String] {
-            let ns = textView.string as NSString
-            guard NSMaxRange(charRange) <= ns.length else { return words }
-            let raw = ns.substring(with: charRange)
-            let prefixed = raw.hasPrefix("#")
-            if prefixed, charRange.location > 0 {
-                let prev = ns.character(at: charRange.location - 1)
-                guard prev == 32 || prev == 10 || prev == 9 else { return words }   // mid-word "C#…"
-            }
-            guard prefixed
-                || TagComplete.hashtagPartialRange(in: textView.string, caret: NSMaxRange(charRange)) != nil
-            else { return words }
-            let partial = prefixed ? String(raw.dropFirst()) : raw
-            let matches = TagComplete.completions(partial: partial, candidates: parent.tagCandidates())
-            index?.pointee = 0
-            return prefixed ? matches.map { "#" + $0 } : matches
-        }
-
-        /// A FINAL completion landed (routed by `SelfSizingTextView`): when it completed
-        /// a `#tag`, FILE the tag too — that's the "inline tags reach the YAML" half
-        /// (the body text itself was already updated by the insert).
-        func completionInserted(_ word: String, range: NSRange, in tv: SelfSizingTextView) {
-            var tag = word
-            if tag.hasPrefix("#") {
-                tag.removeFirst()
-            } else {
-                let ns = tv.string as NSString
-                guard range.location > 0, range.location - 1 < ns.length,
-                      ns.character(at: range.location - 1) == 35 /* # */ else { return }
-            }
-            guard !tag.isEmpty else { return }
+            suppressTagSuggestOnce = true
+            tv.insertText(tag, replacementRange: pr)
             parent.onInlineTag(tag)
+        }
+
+        private func hideTagSuggest() {
+            tagSuggest.hide()
+            tagMatches = []
+            tagSel = 0
+            tagSessionCandidates = nil
+        }
+
+        /// ↑ ↓ Return Esc drive the tag menu while it's up; everything else —
+        /// including Backspace — stays native. (Esc arrives as `complete:`, the
+        /// NSTextView default binding; intercepting it also keeps the system
+        /// completion list from opening over ours.)
+        func textView(_ view: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            guard tagSuggest.isVisible, let tv = view as? SelfSizingTextView else { return false }
+            switch commandSelector {
+            case #selector(NSResponder.moveDown(_:)), #selector(NSResponder.moveUp(_:)):
+                let delta = commandSelector == #selector(NSResponder.moveDown(_:)) ? 1 : -1
+                tagSel = max(0, min(tagSel + delta, tagMatches.count - 1))
+                if let pr = TagComplete.hashtagPartialRange(in: tv.string, caret: tv.selectedRange().location) {
+                    presentTagSuggest(tv, at: pr)
+                }
+                return true
+            case #selector(NSResponder.insertNewline(_:)):
+                if tagSel < tagMatches.count { acceptTag(tagMatches[tagSel], in: tv) }
+                return true
+            case #selector(NSResponder.cancelOperation(_:)), #selector(NSTextView.complete(_:)):
+                hideTagSuggest()
+                return true
+            default:
+                return false
+            }
+        }
+
+        /// While the menu is up, a caret move re-validates it (hides when the caret
+        /// leaves the `#word` run — a click elsewhere, arrowing out). Never OPENS it:
+        /// opening happens only from typing.
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard tagSuggest.isVisible,
+                  let tv = notification.object as? SelfSizingTextView else { return }
+            updateTagSuggest(tv)
+        }
+
+        func textDidEndEditing(_ notification: Notification) {
+            hideTagSuggest()
         }
 
         /// The `[[` trigger (phone chunk-5 parity): when the two chars just before the caret are
@@ -339,6 +378,7 @@ struct BodyTextView: NSViewRepresentable {
             // stored `sanitised` keeps the marker at its moment until an edit; the
             // transform is idempotent, so the no-op check in `updateNSView` holds.
             let model = BodyTransform.snappedImageBody(rawModel)
+            hideTagSuggest()   // note switch / external change → the caret's run is gone
             // Synchronous: text + markers-as-text only — instant. Image disk-load +
             // thumbnailing (measured ~600ms EACH on the main thread, freezing the
             // note switch) is moved off-main below and spliced in when ready.
@@ -1134,31 +1174,6 @@ final class SelfSizingTextView: NSTextView {
     /// Returns true if the click at the given character index was handled (a resolver
     /// popover opened) → the default cursor placement is suppressed.
     var onSingleClickAt: ((Int) -> Bool)?
-    /// A FINAL inline completion landed — (the inserted word, the partial range it
-    /// replaced). The coordinator files a completed `#tag`.
-    var onCompletionInserted: ((String, NSRange) -> Void)?
-    /// One-shot, set just before a final completion insert lands: the insert fires
-    /// textDidChange while the caret still sits in `#word` context, and without this
-    /// the popup would instantly re-open over the accepted tag.
-    private var suppressTagComplete = false
-    func consumeTagCompleteSuppression() -> Bool {
-        defer { suppressTagComplete = false }
-        return suppressTagComplete
-    }
-
-    /// Completion inserts, tamed for the inline `#` popup: NO preview inserts while
-    /// arrowing the list (a preview writes the candidate into the storage — and
-    /// through the model sync — on every selection move; the list's own highlight is
-    /// enough, the Obsidian feel), Esc keeps the typed text, and a real accept routes
-    /// through `onCompletionInserted`.
-    override func insertCompletion(_ word: String, forPartialWordRange charRange: NSRange,
-                                   movement: Int, isFinal flag: Bool) {
-        guard flag else { return }
-        guard NSTextMovement(rawValue: movement) != .cancel else { return }
-        suppressTagComplete = true
-        super.insertCompletion(word, forPartialWordRange: charRange, movement: movement, isFinal: true)
-        onCompletionInserted?(word, charRange)
-    }
     /// Audiobook capture: the attribution caption drawn under the leading C1 quote
     /// block (plus the accent bar beside it). nil = no quote decoration.
     var quoteAttribution: String? {

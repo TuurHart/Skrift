@@ -984,12 +984,17 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   no-op check misfired because a mid-edit reconstruct isn't snap-stable. `BodyTextView.updateNSView` now
   re-renders only when `modelString` differs from BOTH the raw binding AND its snapped form. Device-confirmed
   fixed (flashing gone).
-- ✅ **Inline `#tags` in the Mac body (Obsidian idiom — user-picked after the typeahead)**: typing `#word`
-  opens a caret-anchored NATIVE completion popup of matching tags (no preview inserts while arrowing; Esc
-  keeps typed text; each keystroke narrows). Accepting inserts the tag inline AND files it → tags row →
-  frontmatter (the "inline tags copy to the YAML" answer). Inline `#tag` runs render accent. Pure core =
-  `Pipeline/Tags/TagComplete.swift` (Obsidian rules: no spaces, `_-/`, nested; `TagCompleteTests`),
-  candidates = the field's `TagLibrary` (one source). Device eyeball owed.
+- ✅ **Inline `#tags` in the Mac body (Obsidian idiom — user-picked after the typeahead), ROUND 2**:
+  typing `#word` opens a caret-anchored menu of matching tags. **Round 1 was buggy on device (Tuur: slow,
+  typed text vanished, backspace dead, popup churn)** — root cause: it drove NSTextView's BUILT-IN
+  completion session with its preview-inserts suppressed; the session's internal bookkeeping desynced and
+  consumed keystrokes, plus a full-library fetch ran per keystroke. **Rebuilt the way Obsidian/Xcode do
+  it**: a PASSIVE non-activating child panel (`TagSuggestPanel`) that never takes key and never touches the
+  text path — typing/backspace/clicks stay fully native; only ↑ ↓ Return Esc are intercepted (`doCommandBy`)
+  while it's up; candidates cached once per `#`-run. Accepting inserts the tag inline AND files it → tags
+  row → frontmatter ("inline tags copy to the YAML"). Inline `#tag` runs render accent. Pure core =
+  `Pipeline/Tags/TagComplete.swift` (Obsidian rules; `TagCompleteTests`), one `TagLibrary` source with the
+  field. Device re-eyeball owed.
   ⬜ follow-ups: phone inline-# popup (UITextView parity); move `TagMatcher` → `Shared/` and run the
   deterministic tag step on the PHONE against its synced tag list (Tuur asked for this 2026-07-16).
 - ⬜ **NEXT — Mac Related notes + thread (DEFERRED to a design pass):** the phone shows a RELATED section
