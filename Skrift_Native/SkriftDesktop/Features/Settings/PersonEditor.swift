@@ -46,15 +46,14 @@ struct PersonEditor: View {
         _fullName = State(initialValue: p.map { NamesMerge.keyName($0.canonical) } ?? request.prefillName)
         _aliases = State(initialValue: p?.aliases.joined(separator: ", ") ?? request.prefillAlias)
         _short = State(initialValue: p?.short ?? "")
-        self.enrolled = !(p?.voiceEmbeddings?.isEmpty ?? true)
+        self.enrolled = PersonEditCore.isEnrolled(p)
     }
 
     private var isNew: Bool { original == nil }
     private var canSave: Bool { !fullName.trimmingCharacters(in: .whitespaces).isEmpty }
     private var shortDisplay: String {
-        let s = short.trimmingCharacters(in: .whitespaces)
-        if !s.isEmpty { return s }
-        return fullName.trimmingCharacters(in: .whitespaces).split(separator: " ").first.map(String.init) ?? "—"
+        let s = PersonEditCore.displayShort(fullName: fullName, short: short)
+        return s.isEmpty ? "—" : s
     }
     private var firstAlias: String {
         aliases.split(separator: ",").first.map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
@@ -82,8 +81,9 @@ struct PersonEditor: View {
             field(label: "Aliases",
                   help: "Spoken words (comma-separated) that should be RECOGNISED as this person.",
                   text: $aliases, placeholder: "Bruno, Bru", font: .system(size: 12)) {
-                if !firstAlias.isEmpty, canSave {
-                    demo("saying “\(firstAlias)” → recognised as ", bold: fullName.trimmingCharacters(in: .whitespaces))
+                if canSave, let d = PersonEditCore.aliasDemo(firstAlias: firstAlias,
+                                                             fullName: fullName, short: short) {
+                    demo(d.prefix, bold: d.bold)
                 }
             }
             field(label: "Short name",
@@ -169,16 +169,14 @@ struct PersonEditor: View {
     }
 
     private func save() {
-        let canon = NamesMerge.normaliseCanonical(fullName.trimmingCharacters(in: .whitespaces))
-        guard !NamesMerge.keyName(canon).isEmpty else { return }
-        let aliasList = aliases.split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        let s = short.trimmingCharacters(in: .whitespaces)
-        // Carry the original voiceprints (preserved across an edit incl. a rename, where
-        // writeWithSmartBumps couldn't re-attach them by the new canonical).
-        let person = Person(canonical: canon, aliases: aliasList, short: s.isEmpty ? nil : s,
-                            voiceEmbeddings: original?.voiceEmbeddings, lastModifiedAt: ISO8601.now())
-        onSave(original?.canonical, person)
+        // One rulebook (Shared/Naming/PersonEditCore): normalise, default-alias (a
+        // person with no alias never links — the Mac previously allowed that),
+        // alias de-dupe, voiceprint carry across edits incl. renames.
+        guard let r = PersonEditCore.materialise(
+            fullName: fullName,
+            aliases: aliases.split(separator: ",").map(String.init),
+            short: short, original: original) else { return }
+        onSave(original?.canonical, r.person)
         onClose()
     }
 }

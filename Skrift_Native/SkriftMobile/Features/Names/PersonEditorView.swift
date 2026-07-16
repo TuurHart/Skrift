@@ -28,19 +28,16 @@ struct PersonEditorView: View {
     @State private var fullName = ""
     @State private var short = ""
     @State private var aliases: [String] = []
-    @State private var enrolled = false
+    @State private var original: Person?
     @State private var showAddAlias = false
     @State private var newAlias = ""
     @State private var loaded = false
 
     private var isNew: Bool { canonical == nil }
+    private var enrolled: Bool { PersonEditCore.isEnrolled(original) }
     private var trimmedName: String { fullName.trimmingCharacters(in: .whitespaces) }
     private var demoAlias: String { aliases.first ?? (prefillName.isEmpty ? trimmedName : prefillName) }
-    private var displayShort: String {
-        let s = short.trimmingCharacters(in: .whitespaces)
-        if !s.isEmpty { return s }
-        return trimmedName.split(separator: " ").first.map(String.init) ?? trimmedName
-    }
+    private var displayShort: String { PersonEditCore.displayShort(fullName: fullName, short: short) }
 
     var body: some View {
         NavigationStack {
@@ -120,11 +117,9 @@ struct PersonEditorView: View {
                     }
                     .accessibilityIdentifier("person-editor-add-alias")
                 }
-                if !demoAlias.isEmpty {
-                    (Text("saying “\(demoAlias)” → recognised as ")
-                        .foregroundStyle(Color.skTextDim)
-                     + Text(displayShort.isEmpty ? demoAlias : displayShort)
-                        .foregroundStyle(Color.skAccent).fontWeight(.semibold))
+                if let demo = PersonEditCore.aliasDemo(firstAlias: demoAlias, fullName: fullName, short: short) {
+                    (Text(demo.prefix).foregroundStyle(Color.skTextDim)
+                     + Text(demo.bold).foregroundStyle(Color.skAccent).fontWeight(.semibold))
                         .font(.system(size: 12))
                 }
             }
@@ -190,10 +185,10 @@ struct PersonEditorView: View {
         guard !loaded else { return }
         loaded = true
         if let canonical, let p = store.livePeople().first(where: { $0.canonical == canonical }) {
+            original = p
             fullName = p.displayName
             aliases = p.aliases
             short = p.short ?? ""
-            enrolled = NamesDisplay.isEnrolled(p)
         } else {
             fullName = prefillName
             aliases = prefillName.isEmpty ? [] : [prefillName]
@@ -208,20 +203,20 @@ struct PersonEditorView: View {
     }
 
     private func save() {
-        let name = trimmedName
-        guard !name.isEmpty else { return }
-        let newCanonical = NamesMerge.normaliseCanonical(name)
+        // One rulebook (Shared/Naming/PersonEditCore): normalise, default-alias,
+        // rename detection, voiceprint carry.
+        guard let r = PersonEditCore.materialise(fullName: fullName, aliases: aliases,
+                                                 short: short, original: original) else { return }
         // Rename: tombstone the old canonical so we don't leave a duplicate.
-        if let old = canonical, NamesMerge.normaliseCanonical(old) != newCanonical {
-            store.delete(canonical: old)
+        if let old = r.renamedFrom { store.delete(canonical: old) }
+        store.upsert(canonical: r.person.canonical, aliases: r.person.aliases, short: r.person.short)
+        // A rename writes a FRESH entry — re-attach the carried voiceprints so the
+        // enrollment survives (the desktop editor already did this; phone parity).
+        if r.renamedFrom != nil, let embeddings = r.person.voiceEmbeddings {
+            for e in embeddings { store.addVoiceEmbedding(canonical: r.person.canonical, embedding: e) }
         }
-        // A person with NO alias never links — default the alias to the name so a fresh
-        // person from the tapped word is actually recognised.
-        var cleanAliases = aliases.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        if cleanAliases.isEmpty { cleanAliases = [name] }
-        store.upsert(canonical: name, aliases: cleanAliases, short: short.trimmingCharacters(in: .whitespaces).nilIfBlank)
         NamesCloudSync.run(NotesRepository.shared)   // push to CloudKit so the Mac/iPad get it now
-        onSaved(newCanonical)
+        onSaved(r.person.canonical)
         dismiss()
     }
 
@@ -231,8 +226,4 @@ struct PersonEditorView: View {
         onDeleted()
         dismiss()
     }
-}
-
-private extension String {
-    var nilIfBlank: String? { trimmingCharacters(in: .whitespaces).isEmpty ? nil : self }
 }

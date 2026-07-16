@@ -1064,7 +1064,14 @@ RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rule
   follow-ups), confirmed by the scan.
 
 **`--clones` mode (added same day — normalized-token shingles, catches RENAMED/adapted copies):**
-- ⬜ **PersonEditorView ↔ PersonEditor** (11 windows) — the person editor duplicated across apps.
+- ✅ **PersonEditorView ↔ PersonEditor** — DONE 2026-07-16: editing SEMANTICS → one
+  `Shared/Naming/PersonEditCore.swift` (materialise/displayShort/aliasDemo/isEnrolled; 9 tests both
+  suites); chrome stays per-platform. THREE behavior drifts fixed by the unification: (1) phone
+  RENAME dropped the voice enrollment (tombstone + fresh upsert) — now carries + re-attaches
+  voiceprints (the Mac's rule); (2) Mac allowed saving a person with NO alias (who never links) —
+  now defaults alias to the name (the phone's rule) + case-insensitive de-dupe; (3) the alias demo
+  line bolded different things (Mac: full canonical, phone: short display) — unified on short
+  display, which now agrees with the [[Full|Short]] help line under it (Mac fixture vision-checked).
 - ⬜ **NoteBodyView ↔ BodyTextView** (14) — the body renderers' shared logic; = the i10 premise,
   fold into i10 rather than a separate job.
 - ⬜ **SpeakerVoiceStore ↔ DiarizationService** (11) — voice-embedding store logic adapted twice.

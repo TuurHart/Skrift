@@ -159,7 +159,7 @@ struct VoiceBars: View {
 /// Name/enrollment helpers.
 enum NamesDisplay {
     static func name(_ person: Person) -> String { person.displayName }
-    static func isEnrolled(_ person: Person) -> Bool { !(person.voiceEmbeddings?.isEmpty ?? true) }
+    static func isEnrolled(_ person: Person) -> Bool { PersonEditCore.isEnrolled(person) }
 }
 
 // MARK: - Add person (name only; aliases are Mac-side)
