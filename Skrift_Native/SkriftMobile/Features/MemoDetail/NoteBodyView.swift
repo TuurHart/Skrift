@@ -301,7 +301,12 @@ struct NoteBodyView: UIViewRepresentable {
         func load(force: Bool) {
             guard let tv = textView else { return }
             let t = bodyText
-            let display = protectedQuote?.ramble ?? t
+            // Photos snap to their sentence end for DISPLAY (shared with the Mac +
+            // the Obsidian export); the stored transcript keeps the marker at its
+            // recorded moment until the user edits (`reconstruct` then writes the
+            // snapped form, which edited/trusted notes carry harmlessly). Idempotent,
+            // so the equality check below never spuriously rebuilds.
+            let display = BodyTransform.snappedImageBody(protectedQuote?.ramble ?? t)
             if !force {
                 if t == loaded { return }
                 if tv.isFirstResponder || draftDirty { return }        // don't yank text mid-edit
@@ -475,9 +480,12 @@ struct NoteBodyView: UIViewRepresentable {
                 storage.addAttribute(.foregroundColor, value: UIColor(Color.skText), range: range)
             }
             var built: [(NSRange, NameSpan)] = []
-            let text = protectedQuote?.ramble ?? bodyText
+            // Name spans carry RAW offsets; the display is snapped, so map each span
+            // through the snap (raw → snapped) before collapsing markers → glyphs.
+            let snap = BodyTransform.snapImages(protectedQuote?.ramble ?? bodyText)
             for span in nameSpans {
-                guard let dr = displayRange(forRaw: span.range, transcript: text),
+                let snappedRange = snap.snapped(rawRange: span.range)
+                guard let dr = displayRange(forRaw: snappedRange, transcript: snap.text),
                       dr.location + dr.length <= storage.length else { continue }
                 NameTierStyle.apply(span.tier, to: storage, range: dr)
                 built.append((dr, span))

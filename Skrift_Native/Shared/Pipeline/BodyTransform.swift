@@ -124,4 +124,214 @@ enum BodyTransform {
     static func containsTaskSyntax(_ raw: String) -> Bool {
         pieces(of: raw).contains { if case .task = $0.segment { return true }; return false }
     }
+
+    // MARK: - Image-at-sentence-end snap (photo reflow)
+
+    /// Result of `snapImages`: the snapped DISPLAY/EXPORT string plus a forward
+    /// map from a location in the ORIGINAL raw to the matching location in `text`.
+    /// Snapping only RELOCATES image markers (and normalizes the whitespace that
+    /// wrapped them) — every other character keeps its order — so any location
+    /// that isn't inside a marker maps cleanly (a name span never overlaps one).
+    struct SnapResult: Equatable {
+        let text: String
+        fileprivate let segments: [Segment]
+
+        fileprivate enum Segment: Equatable {
+            case copy(rawLocation: Int, length: Int)   // text += raw[rawLocation ..< +length]
+            case insert(length: Int)                    // literal chars not present in raw
+        }
+
+        /// Map a raw UTF-16 location → the location in `text`. A raw location that
+        /// was dropped (marker / trimmed wrapping whitespace) lands on the seam.
+        func snapped(rawLocation loc: Int) -> Int {
+            var base = 0
+            for seg in segments {
+                switch seg {
+                case .copy(let cLoc, let len):
+                    if loc < cLoc { return base }               // dropped gap before this copy
+                    if loc < cLoc + len { return base + (loc - cLoc) }
+                    base += len
+                case .insert(let len):
+                    base += len
+                }
+            }
+            return base
+        }
+
+        /// Map a raw RANGE → snapped range (start & end mapped independently; safe
+        /// because name/suggested spans never straddle a relocated marker).
+        func snapped(rawRange r: NSRange) -> NSRange {
+            let s = snapped(rawLocation: r.location)
+            let e = snapped(rawLocation: r.location + r.length)
+            return NSRange(location: s, length: max(0, e - s))
+        }
+
+        static let empty = SnapResult(text: "", segments: [])
+    }
+
+    /// Sentence terminators the photo snap breaks on (`. ! ? …` and a newline).
+    private static func isSentenceTerminator(_ c: unichar) -> Bool {
+        c == 46 || c == 33 || c == 63 || c == 0x2026 || c == 10   // . ! ? … \n
+    }
+
+    /// A raw image marker literal, zero-padded to match the injector (`%03d`).
+    private static func imgMarker(_ n: Int) -> String { "[[img_\(String(format: "%03d", n))]]" }
+
+    /// Move every MID-SENTENCE `[[img_NNN]]` photo marker to the end of the
+    /// sentence it interrupts, rendered as its own `\n\n[[img_NNN]]\n\n` block, so
+    /// the sentence reads whole and the photo drops beneath it. Markers already at
+    /// a sentence/paragraph boundary are normalized to the same block in place.
+    /// Idempotent. SHARED by BOTH renderers AND the Obsidian export, so the display
+    /// and the exported markdown agree; the stored RAW transcript is untouched by
+    /// display (only a user EDIT rewrites it, and edited notes are trusted, never
+    /// re-injected — the photo's recorded moment lives in `imageManifest.offsetSeconds`).
+    static func snapImages(_ raw: String) -> SnapResult {
+        guard raw.contains("[[img_") else {
+            let ns = raw as NSString
+            return SnapResult(text: raw,
+                              segments: ns.length == 0 ? [] : [.copy(rawLocation: 0, length: ns.length)])
+        }
+        let ns = raw as NSString
+        let out = NSMutableString()
+        var segs: [SnapResult.Segment] = []
+        var deferred: [Int] = []            // markers awaiting flush at the sentence end
+        var suppressLeadingNewlines = false // just closed a block → eat the next text's leading \n
+        var tailStarted = false             // have we begun copying the current deferred sentence tail?
+        var justPlacedBlock = false         // the last thing emitted was a photo block → next photo is also at a boundary
+
+        func appendCopy(_ location: Int, _ length: Int) {
+            guard length > 0 else { return }
+            out.append(ns.substring(with: NSRange(location: location, length: length)))
+            if case .copy(let l, let n)? = segs.last, l + n == location {
+                segs[segs.count - 1] = .copy(rawLocation: l, length: n + length)
+            } else {
+                segs.append(.copy(rawLocation: location, length: length))
+            }
+        }
+        func appendInsert(_ s: String) {
+            let count = (s as NSString).length
+            guard count > 0 else { return }
+            out.append(s)
+            if case .insert(let n)? = segs.last {
+                segs[segs.count - 1] = .insert(length: n + count)
+            } else {
+                segs.append(.insert(length: count))
+            }
+        }
+        func trimTrailingWhitespace() {
+            while out.length > 0, isWhitespace(out.character(at: out.length - 1)) {
+                out.deleteCharacters(in: NSRange(location: out.length - 1, length: 1))
+                switch segs.last {
+                case .copy(let l, let n)?:
+                    if n <= 1 { segs.removeLast() } else { segs[segs.count - 1] = .copy(rawLocation: l, length: n - 1) }
+                case .insert(let n)?:
+                    if n <= 1 { segs.removeLast() } else { segs[segs.count - 1] = .insert(length: n - 1) }
+                case nil:
+                    return
+                }
+            }
+        }
+        /// Last non-whitespace char currently in `out`, or nil when the output is
+        /// still empty/blank (→ a boundary).
+        func trimmedLastChar() -> unichar? {
+            var i = out.length - 1
+            while i >= 0 {
+                let c = out.character(at: i)
+                if isWhitespace(c) { i -= 1; continue }
+                return c
+            }
+            return nil
+        }
+        /// Guard an edge input (marker between two words with no separating space,
+        /// e.g. Gemma-reflowed) from healing into one word: keep a single space at
+        /// the seam. The injector always leaves the following space, so this is belt-only.
+        func guardSeamSpace(nextChar: unichar) {
+            guard !tailStarted, out.length > 0,
+                  isWordChar(out.character(at: out.length - 1)), isWordChar(nextChar)
+            else { return }
+            appendInsert(" ")
+        }
+        func flushDeferred() {
+            guard !deferred.isEmpty else { return }
+            trimTrailingWhitespace()
+            appendInsert("\n\n" + deferred.map(imgMarker).joined(separator: "\n\n") + "\n\n")
+            deferred.removeAll()
+            suppressLeadingNewlines = true
+            tailStarted = false
+            justPlacedBlock = true
+        }
+
+        for piece in pieces(of: raw) {
+            switch piece.segment {
+            case .text:
+                let r = piece.rawRange
+                var start = r.location
+                let end = r.location + r.length
+                if deferred.isEmpty && suppressLeadingNewlines {
+                    while start < end, ns.character(at: start) == 10 { start += 1 }
+                }
+                suppressLeadingNewlines = false
+                if deferred.isEmpty {
+                    let copied = end - start
+                    appendCopy(start, copied)
+                    if copied > 0 { justPlacedBlock = false }
+                    break
+                }
+                // Collecting a sentence tail: strip the marker's leading wrapping
+                // newlines, then copy up to & including the first terminator, flush
+                // the deferred photo block(s), and continue with the remainder.
+                while start < end, ns.character(at: start) == 10 { start += 1 }
+                guard start < end else { break }        // wrapping-only piece; keep collecting
+                guardSeamSpace(nextChar: ns.character(at: start))
+                tailStarted = true
+                var term = -1
+                var i = start
+                while i < end { if isSentenceTerminator(ns.character(at: i)) { term = i; break }; i += 1 }
+                if term == -1 {
+                    appendCopy(start, end - start)          // tail not closed yet
+                } else {
+                    appendCopy(start, term + 1 - start)
+                    flushDeferred()
+                    suppressLeadingNewlines = false          // remainder is a fresh paragraph, copy verbatim
+                    let rest = end - (term + 1)
+                    appendCopy(term + 1, rest)
+                    if rest > 0 { justPlacedBlock = false }
+                }
+            case .image(let n):
+                suppressLeadingNewlines = false
+                if deferred.isEmpty, justPlacedBlock || isBoundaryChar(trimmedLastChar()) {
+                    // Already at a boundary (or right after another photo) → block in place.
+                    trimTrailingWhitespace()
+                    appendInsert((out.length == 0 ? "" : "\n\n") + imgMarker(n) + "\n\n")
+                    suppressLeadingNewlines = true
+                    justPlacedBlock = true
+                } else {
+                    // Mid-sentence → heal the marker's leading wrapping and defer.
+                    trimTrailingWhitespace()
+                    deferred.append(n)
+                }
+            case .task, .memoLink:
+                suppressLeadingNewlines = false
+                appendCopy(piece.rawRange.location, piece.rawRange.length)   // opaque token
+            }
+        }
+        flushDeferred()   // marker(s) in the final sentence with no terminator
+        // A trailing block leaves "…\n\n"; keep it — it matches an in-place block.
+        return SnapResult(text: out as String, segments: segs)
+    }
+
+    private static func isWhitespace(_ c: unichar) -> Bool { c == 32 || c == 9 || c == 10 }
+
+    private static func isWordChar(_ c: unichar) -> Bool {
+        (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c >= 128
+    }
+
+    /// `nil` (nothing before) OR a sentence terminator counts as a boundary.
+    private static func isBoundaryChar(_ c: unichar?) -> Bool {
+        guard let c else { return true }
+        return c == 46 || c == 33 || c == 63 || c == 0x2026   // . ! ? …  (\n handled by output state)
+    }
+
+    /// The snapped string alone (the Obsidian export path — no offset map needed).
+    static func snappedImageBody(_ raw: String) -> String { snapImages(raw).text }
 }

@@ -847,7 +847,30 @@ Desktop 365 + mobile 678 green. Device re-verify owed (record a clip while the e
 Next-session order: A/B/C all ✅ FIXED + DEPLOYED (see above). (D) re-test 3b with a fresh PDF capture
 [device — Tuur]; (E) Mac filter/sort parity [mock-first]. Then re-run the whole checklist.
 
-### 🖼️ CONTINUE HERE — image-at-sentence-end reflow (DESIGN APPROVED 2026-07-16, BUILD NEXT)
+### 🖼️ image-at-sentence-end reflow — ✅ BUILT + hostPNG-verified 2026-07-16 (DEVICE ROUND OWED)
+
+**Status:** BUILT + tested + Mac-hostPNG-eyeballed. Device round on both apps is the only thing owed.
+- **Shared rule:** `Shared/Pipeline/BodyTransform.swift` `snapImages(_:) -> SnapResult` (snapped display/export
+  string + a raw→snapped offset map). Moves each MID-SENTENCE `[[img_NNN]]` to its sentence end as a `\n\n`
+  block; boundary photos normalize in place; **idempotent**. Handles: `\n\n`-wrapped (injector) AND inline
+  (Gemma-reflowed) markers, two-in-a-sentence (both blocks in order), photo-before-any-sentence (block at top),
+  newline-as-terminator, and a word-merge seam guard. 10 host-less tests in `BodyTransformTests`.
+- **Both renderers:** mobile `NoteBodyView.load` builds from `snappedImageBody(...)` + `applyTierStyling` maps
+  name spans raw→snapped→display; desktop `BodyTextView.render` builds storage from the snapped model, the
+  `updateNSView` no-op check compares `modelString` vs `snappedImageBody(text)` (idempotent, no re-render loop),
+  and `suggestedRanges` maps `ambiguousNames` offsets raw→snapped. Killed the giant inline caret on the Mac.
+- **Export:** `VaultExporter` snaps the compiled markdown before `convertImageMarkers`, so the `![[…]]` embed
+  drops beneath the whole sentence, matching the screen. (Phone `ObsidianPublisher` doesn't embed inline photos
+  yet — separate pre-existing gap, no snap needed there until it does.)
+- **Design decision (honored):** display + export snap; the stored RAW keeps the marker at its recorded
+  moment — UNTIL a user EDIT, when `reconstruct`/`modelString` writes the snapped form. That's safe: edited
+  notes are `userEdited`-trusted and never re-injected/re-snapped, and the true moment lives in
+  `imageManifest.offsetSeconds`. So "raw keeps the marker" holds for the display path (the common case).
+- **Verify done:** 366 desktop UnitTests + 687 mobile SkriftMobileTests green; full MLX desktop build green;
+  Mac hostPNG `-snapshot-photoblock` eyeballed (sentence whole, photo block beneath, rounded corners) — see
+  `Features/Shell/Snapshot.swift` `renderPhotoBlock`. **DEVICE ROUND OWED** (both apps, build-number bump per push).
+
+_(original brief kept below for reference)_
 
 Tuur's #1 next build. He approved the layout via an inline before/after mock. **Ship the shared rule +
 render a REAL hostPNG of the red-cup note before it goes to device.**

@@ -30,6 +30,7 @@ enum Snapshot {
         if let p = path("-snapshot-names")          { MainActor.assumeIsolated { renderNames(to: p); exit(0) } }
         if let p = path("-snapshot-person-editor")  { MainActor.assumeIsolated { renderPersonEditor(to: p); exit(0) } }
         if let p = path("-snapshot-memolinks")      { MainActor.assumeIsolated { renderMemoLinks(to: p); exit(0) } }
+        if let p = path("-snapshot-photoblock")     { MainActor.assumeIsolated { renderPhotoBlock(to: p); exit(0) } }
         if let p = path("-snapshot-linkpicker")     { MainActor.assumeIsolated { renderLinkPicker(to: p); exit(0) } }
         if let p = path("-snapshot-journal")        { MainActor.assumeIsolated { renderJournal(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
@@ -88,6 +89,67 @@ enum Snapshot {
         .modelContainer(container)
 
         hostPNG(view, size: NSSize(width: 940, height: 1581), to: path)
+    }
+
+    /// Image-at-sentence-end reflow (2026-07-16): a photo marker that the injector
+    /// dropped MID-SENTENCE must render the sentence WHOLE, then the photo as its own
+    /// full-width block beneath it (shared `BodyTransform.snapImages`). HOSTED render
+    /// (real NSTextView) with a real on-disk image so the thumbnail actually decodes.
+    /// Triggered by: `-snapshot-photoblock <path>`.
+    @MainActor private static func renderPhotoBlock(to path: String) {
+        guard let container = try? ModelContainer(
+            for: PipelineFile.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
+        else { return }
+        let ctx = container.mainContext
+
+        // A working folder with a stand-in photo + manifest, so `imageURL` resolves.
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent("snap-photoblock")
+        try? FileManager.default.removeItem(at: work)
+        let imagesDir = work.appendingPathComponent("images")
+        try? FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
+        writeSamplePhoto(to: imagesDir.appendingPathComponent("photo_001.jpg"))
+        let manifest: [[String: Any]] = [["filename": "photo_001.jpg", "offsetSeconds": 4.0]]
+        try? JSONSerialization.data(withJSONObject: manifest).write(to: work.appendingPathComponent("image_manifest.json"))
+        let audio = work.appendingPathComponent("original.m4a")
+        try? Data([0]).write(to: audio)
+
+        let f = PipelineFile(id: "photoblock-1", filename: "Morning coffee.m4a", path: audio.path, size: 1, sourceType: .audio)
+        f.transcribeStatus = .done; f.sanitiseStatus = .done; f.enhanceStatus = .done
+        f.enhancedTitle = "Morning coffee by the river"
+        f.titleSuggested = f.enhancedTitle
+        f.enhancedSummary = "A quick flat white at the new place, then a walk back along the water."
+        // The marker lands MID-SENTENCE (the injector places it at the nearest word);
+        // the reflow must show the sentence whole, then the photo block beneath it.
+        f.sanitised = "I grabbed a coffee at the new place on the corner\n\n[[img_001]]\n\n and it was honestly the best flat white I have had in months. Then I walked back along the river and the light was perfect."
+        f.enhancedCopyedit = f.sanitised
+        f.significance = 0.5
+        f.audioMetadataJSON = try? JSONSerialization.data(withJSONObject: ["duration": "00:01:40"])
+        ctx.insert(f)
+        try? ctx.save()
+
+        let view = NoteDisplayView(file: f, coordinator: ProcessingCoordinator(), onOpenMemo: { _ in })
+            .frame(width: 820, height: 760)
+            .background(Theme.bg)
+            .preferredColorScheme(.dark)
+            .modelContainer(container)
+        hostPNG(view, size: NSSize(width: 820, height: 760), to: path)
+    }
+
+    /// A red-toned stand-in "photo" (the real red-cup note is on-device) — enough to
+    /// eyeball the block layout + rounded corners.
+    @MainActor private static func writeSamplePhoto(to url: URL, size: NSSize = NSSize(width: 1000, height: 640)) {
+        let img = NSImage(size: size)
+        img.lockFocus()
+        NSColor(calibratedRed: 0.80, green: 0.20, blue: 0.17, alpha: 1).setFill()
+        NSRect(origin: .zero, size: size).fill()
+        NSColor(calibratedRed: 0.96, green: 0.60, blue: 0.38, alpha: 1).setFill()
+        NSRect(x: 0, y: size.height * 0.60, width: size.width, height: size.height * 0.12).fill()
+        img.unlockFocus()
+        if let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+           let jpg = rep.representation(using: .jpeg, properties: [:]) {
+            try? jpg.write(to: url)
+        }
     }
 
     /// The Mac Journal (signed mock journal-desktop.html v2) over an injected demo

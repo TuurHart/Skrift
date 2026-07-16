@@ -139,8 +139,10 @@ final class NoteBodyTests: XCTestCase {
 
     @MainActor
     func testImageMarkersRoundTripThroughAttributedText() {
-        let (coordinator, tv) = makeEditor(transcript: "before [[img_001]] after")
-        XCTAssertEqual(coordinator.reconstruct(tv.attributedText), "before [[img_001]] after")
+        // A photo already at a sentence boundary round-trips byte-exact (the snap is
+        // a no-op) — proving the attachment ⇄ marker reconstruction still holds.
+        let (coordinator, tv) = makeEditor(transcript: "Before.\n\n[[img_001]]\n\nAfter.")
+        XCTAssertEqual(coordinator.reconstruct(tv.attributedText), "Before.\n\n[[img_001]]\n\nAfter.")
     }
 
     // MARK: mode precedence (ported from the TranscriptBodyView swap)
@@ -232,6 +234,76 @@ final class BodyTransformTests: XCTestCase {
         XCTAssertTrue(memo.transcriptUserEdited)
         coordinator.toggleTask(at: 0)
         XCTAssertEqual(memo.transcript, "- [ ] buy milk")
+    }
+
+    // MARK: image-at-sentence-end snap (photo reflow)
+
+    private func snap(_ raw: String) -> String { BodyTransform.snapImages(raw).text }
+
+    func testSnapMovesWrappedMidSentencePhotoToSentenceEnd() {
+        // The injector wraps a marker in \n\n at the closest WORD (mid-sentence).
+        XCTAssertEqual(snap("The cat sat\n\n[[img_001]]\n\n down. Later."),
+                       "The cat sat down.\n\n[[img_001]]\n\n Later.")
+    }
+
+    func testSnapMovesInlinePhotoAndKeepsSingleSpace() {
+        // A Gemma-reflowed body can carry the marker truly inline (no \n\n).
+        XCTAssertEqual(snap("The cat sat [[img_001]] down. Later."),
+                       "The cat sat down.\n\n[[img_001]]\n\n Later.")
+    }
+
+    func testSnapLeavesPhotoAlreadyAtSentenceEndInPlace() {
+        let already = "The cat sat down.\n\n[[img_001]]\n\n Later."
+        XCTAssertEqual(snap(already), already, "a boundary photo normalizes to itself")
+    }
+
+    func testSnapIsIdempotent() {
+        for raw in ["The cat sat\n\n[[img_001]]\n\n down. Later.",
+                    "The cat sat [[img_001]] down. Later.",
+                    "A [[img_001]] B [[img_002]] C. D.",
+                    "[[img_001]] Hello world."] {
+            let once = snap(raw)
+            XCTAssertEqual(snap(once), once, "snap(snap(x)) == snap(x) for \(raw)")
+        }
+    }
+
+    func testSnapTwoPhotosInOneSentenceBlockInOrderAfterIt() {
+        XCTAssertEqual(snap("A [[img_001]] B [[img_002]] C. D."),
+                       "A B C.\n\n[[img_001]]\n\n[[img_002]]\n\n D.")
+    }
+
+    func testSnapPhotoBeforeAnySentenceBlocksAtTop() {
+        XCTAssertEqual(snap("[[img_001]] Hello world."),
+                       "[[img_001]]\n\n Hello world.")
+    }
+
+    func testSnapNoImagesIsUnchanged() {
+        XCTAssertEqual(snap("Just some prose. No photos here."),
+                       "Just some prose. No photos here.")
+    }
+
+    func testSnapGuardsWordMergeWhenNoSeparatingSpace() {
+        // Degenerate input (marker glued between two words) must not merge them.
+        XCTAssertEqual(snap("thought[[img_001]]second. x"),
+                       "thought second.\n\n[[img_001]]\n\n x")
+    }
+
+    func testSnapOffsetMapPlacesTailAndRestSpans() {
+        let raw = "The cat sat\n\n[[img_001]]\n\n down. Later."
+        let result = BodyTransform.snapImages(raw)
+        // "down" lives in the pulled tail — it must land in the snapped sentence,
+        // BEFORE the relocated marker.
+        let downRaw = (raw as NSString).range(of: "down")
+        let downSnapped = result.snapped(rawRange: downRaw)
+        XCTAssertEqual((result.text as NSString).substring(with: downSnapped), "down")
+        XCTAssertLessThan(downSnapped.location,
+                          (result.text as NSString).range(of: "[[img_001]]").location)
+        // "Later" is the remainder — after the marker block.
+        let laterRaw = (raw as NSString).range(of: "Later")
+        let laterSnapped = result.snapped(rawRange: laterRaw)
+        XCTAssertEqual((result.text as NSString).substring(with: laterSnapped), "Later")
+        XCTAssertGreaterThan(laterSnapped.location,
+                             (result.text as NSString).range(of: "[[img_001]]").location)
     }
 }
 
@@ -745,10 +817,12 @@ final class SearchHitFlashTests: XCTestCase {
     }
 }
 
-/// Photo display-block (signed off 2026-07-07, mocks/accessory-bar-v2.html
-/// §#11): a mid-sentence photo renders as its own paragraph via TAGGED
-/// display-only newlines — the raw keeps the marker mid-sentence, and no
-/// inherited attribute can corrupt the round-trip.
+/// Photo display-block (image-at-sentence-end reflow, 2026-07-16): a mid-sentence
+/// photo renders the SENTENCE whole, then drops to its own `\n\n` block after it
+/// (shared `BodyTransform.snapImages`, matched by the Mac + the Obsidian export).
+/// The display snaps; `reconstruct` yields the snapped form (edited/trusted notes
+/// carry it, the moment lives in `imageManifest.offsetSeconds`); no inherited
+/// attribute can corrupt the round-trip.
 final class PhotoBlockDisplayTests: XCTestCase {
 
     @MainActor
@@ -763,38 +837,41 @@ final class PhotoBlockDisplayTests: XCTestCase {
     }
 
     @MainActor
-    func testMidSentencePhotoRendersAsBlockAndRoundTrips() {
-        let raw = "was fantastic [[img_001]] and then we walked"
+    func testMidSentencePhotoRendersAsBlockAfterTheSentence() {
+        let raw = "was fantastic [[img_001]] and then we walked."
         let (c, tv) = makeEditor(transcript: raw)
+        XCTAssertTrue(tv.text.contains("was fantastic and then we walked."),
+                      "the sentence reads whole")
         XCTAssertTrue(tv.text.contains("\n\u{FFFC}\n"),
-                      "the photo must sit on its own display line")
-        XCTAssertEqual(c.reconstruct(tv.attributedText), raw,
-                       "the raw keeps the marker mid-sentence — breaks are display-only")
+                      "the photo sits on its own display line, beneath the sentence")
+        XCTAssertEqual(c.reconstruct(tv.attributedText),
+                       "was fantastic and then we walked.\n\n[[img_001]]\n\n")
     }
 
     @MainActor
-    func testPhotoAlreadyOnOwnLineGainsNoExtraBreaks() {
-        let raw = "look\n[[img_001]]\nafter"
+    func testPhotoAlreadyAtSentenceEndIsACleanBlock() {
+        let raw = "look.\n\n[[img_001]]\n\nafter"
         let (c, tv) = makeEditor(transcript: raw)
-        XCTAssertEqual(tv.text, "look\n\u{FFFC}\nafter", "no doubled newlines")
-        XCTAssertEqual(c.reconstruct(tv.attributedText), raw)
+        XCTAssertEqual(tv.text, "look.\n\n\u{FFFC}\n\nafter", "no tripled newlines")
+        XCTAssertEqual(c.reconstruct(tv.attributedText), raw, "byte-exact — the snap is a no-op")
     }
 
     @MainActor
     func testTypedTextInheritingDisplayTagSurvivesReconstruct() {
-        let (c, tv) = makeEditor(transcript: "a [[img_001]] b")
+        let (c, tv) = makeEditor(transcript: "a [[img_001]] b.")
         // Simulate UIKit inheriting the display-only tag onto typed text.
         let typed = NSMutableAttributedString(string: "x")
         typed.addAttribute(NoteBodyView.Coordinator.displayOnlyKey, value: true,
                            range: NSRange(location: 0, length: 1))
         tv.textStorage.append(typed)
-        XCTAssertTrue(c.reconstruct(tv.attributedText).hasSuffix("bx"),
-                      "typed text must never vanish, even with a leaked display tag")
+        let out = c.reconstruct(tv.attributedText)
+        XCTAssertTrue(out.hasSuffix("x"), "typed text must never vanish, even with a leaked display tag")
+        XCTAssertTrue(out.contains("b."), "the pulled sentence text survives")
     }
 
     @MainActor
     func testInheritedMarkerKeyOnTypedTextEmitsNoSyntax() {
-        let (c, tv) = makeEditor(transcript: "a [[img_001]] b")
+        let (c, tv) = makeEditor(transcript: "a [[img_001]] b.")
         let typed = NSMutableAttributedString(string: "x")
         typed.addAttribute(NoteBodyView.Coordinator.markerKey, value: 1,
                            range: NSRange(location: 0, length: 1))
@@ -802,7 +879,7 @@ final class PhotoBlockDisplayTests: XCTestCase {
         let out = c.reconstruct(tv.attributedText)
         XCTAssertEqual(out.components(separatedBy: "[[img_001]]").count, 2,
                        "exactly ONE marker — inherited keys on plain text emit no syntax")
-        XCTAssertTrue(out.hasSuffix("bx"))
+        XCTAssertTrue(out.hasSuffix("x"))
     }
 }
 

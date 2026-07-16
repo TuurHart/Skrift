@@ -43,11 +43,15 @@ enum VaultExporter {
         let attFolder = settings.attachmentsFolder.isEmpty ? "Attachments" : settings.attachmentsFolder
         let audFolder = settings.audioFolder.isEmpty ? "Voice Memos" : settings.audioFolder
 
+        // Snap mid-sentence photo markers to their sentence end (shared with both
+        // app bodies) so the exported `![[…]]` embed drops beneath the whole sentence,
+        // exactly as the note reads on screen — only `[[img_NNN]]` moves; names,
+        // frontmatter and existing embeds pass through untouched.
         // Convert [[img_NNN]] markers → ![[<title>_NNN.ext]] Obsidian embeds and copy
         // the matched images into the attachments subfolder. The working folder (which holds
         // `images/`) is the ONE `pf.workingFolder` derivation (captures → pf.path; audio/notes
         // → its parent).
-        var finalMarkdown = markdown
+        var finalMarkdown = BodyTransform.snappedImageBody(markdown)
         var imageCount = 0
         let imagesDir = pf.workingFolder?.appendingPathComponent("images")
         if let imagesDir, FileManager.default.fileExists(atPath: imagesDir.path) {
@@ -59,7 +63,7 @@ enum VaultExporter {
             if pf.sourceType == .capture, !finalMarkdown.contains("[[img_") {
                 (finalMarkdown, imageCount) = copyCaptureFolderImages(imagesDir: imagesDir, into: attDir, markdown: finalMarkdown)
             } else {
-                (finalMarkdown, imageCount) = convertImageMarkers(markdown, imagesDir: imagesDir, safe: safe, into: attDir)
+                (finalMarkdown, imageCount) = convertImageMarkers(finalMarkdown, imagesDir: imagesDir, safe: safe, into: attDir)
             }
         }
 

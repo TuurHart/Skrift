@@ -124,7 +124,9 @@ struct BodyTextView: NSViewRepresentable {
         }
         // Re-render only on an EXTERNAL change (compare against the reconstructed
         // model so our own edits / thumbnail attachments don't trigger a clobber).
-        let textChanged = context.coordinator.modelString(tv) != text
+        // `modelString` reflects the snapped display, so compare against the snapped
+        // text (idempotent) — otherwise every update would re-render.
+        let textChanged = context.coordinator.modelString(tv) != BodyTransform.snappedImageBody(text)
         if textChanged {
             context.coordinator.render(tv, model: text)
             tv.invalidateIntrinsicContentSize()
@@ -249,8 +251,15 @@ struct BodyTextView: NSViewRepresentable {
         /// Build the text storage from the model: plain body + inline image thumbnails
         /// spliced where `[[img_NNN]]` markers resolve to a file, + accent `[[links]]`
         /// + ambiguous-name marks.
-        func render(_ tv: SelfSizingTextView, model: String) {
+        func render(_ tv: SelfSizingTextView, model rawModel: String) {
             let primary = NSColor(Theme.textPrimary)
+            // Photos snap to their sentence end for DISPLAY (shared with the phone +
+            // the Obsidian export): a mid-sentence marker lands on its own `\n\n` block
+            // beneath the whole sentence, so the sentence reads intact and the photo no
+            // longer shares a line with prose (killing the image-height caret). The
+            // stored `sanitised` keeps the marker at its moment until an edit; the
+            // transform is idempotent, so the no-op check in `updateNSView` holds.
+            let model = BodyTransform.snappedImageBody(rawModel)
             // Synchronous: text + markers-as-text only — instant. Image disk-load +
             // thumbnailing (measured ~600ms EACH on the main thread, freezing the
             // note switch) is moved off-main below and spliced in when ready.
@@ -521,19 +530,23 @@ struct BodyTextView: NSViewRepresentable {
             }
         }
 
-        /// Each `parent.suggested` occurrence (offset/length in MODEL coords — into
-        /// `PipelineFile.sanitised`, which equals `modelString`) mapped to its STORAGE range
-        /// (image attachments collapse an 11-char `[[img_NNN]]` marker → 1 char). A stale
-        /// offset (the body was hand-edited after sanitise, so `ambiguousNames` no longer
-        /// lines up) is dropped — the storage text there must still read as the alias.
+        /// Each `parent.suggested` occurrence (offset/length into the RAW
+        /// `PipelineFile.sanitised`) mapped to its STORAGE range. The display SNAPS
+        /// photos to their sentence end, so the raw offset is first mapped through the
+        /// snap (`rawSnap`), then the attachment collapse (an 11-char `[[img_NNN]]`
+        /// marker → 1 char). A stale offset (the body was hand-edited after sanitise,
+        /// so `ambiguousNames` no longer lines up) is dropped — the storage text there
+        /// must still read as the alias.
         func suggestedRanges(in storage: NSTextStorage) -> [(occ: AmbiguousOccurrence, range: NSRange)] {
             guard !parent.suggested.isEmpty else { return [] }
             let locs = attachmentModelLocs(storage)
+            let rawSnap = BodyTransform.snapImages(parent.text)
             let ns = storage.string as NSString
             var out: [(AmbiguousOccurrence, NSRange)] = []
             for occ in parent.suggested {
-                let shift = locs.reduce(0) { $0 + ($1.loc < occ.offset ? $1.shift : 0) }
-                let loc = occ.offset - shift
+                let snapOffset = rawSnap.snapped(rawLocation: occ.offset)
+                let shift = locs.reduce(0) { $0 + ($1.loc < snapOffset ? $1.shift : 0) }
+                let loc = snapOffset - shift
                 guard loc >= 0, loc + occ.length <= ns.length else { continue }
                 let r = NSRange(location: loc, length: occ.length)
                 // Guard stale offsets: the span must still start with the alias.

@@ -173,6 +173,37 @@ final class VaultExporterTests: XCTestCase {
             atPath: vault.appendingPathComponent("Attachments/Trip_001.jpg").path))
     }
 
+    func testExportSnapsMidSentencePhotoToSentenceEnd() throws {
+        // A photo marker landing mid-sentence must export as an embed BELOW the whole
+        // sentence (matching the on-screen reflow), not spliced into the prose.
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: work) }
+
+        let noteFolder = work.appendingPathComponent("note")
+        let imagesDir = noteFolder.appendingPathComponent("images")
+        try FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
+        let audio = noteFolder.appendingPathComponent("original.m4a")
+        try Data([1, 2, 3]).write(to: audio)
+        try Data([9, 9]).write(to: imagesDir.appendingPathComponent("img_001.jpg"))
+        let vault = work.appendingPathComponent("vault")
+
+        let pf = PipelineFile(id: "1", filename: "memo.m4a", path: audio.path, size: 3, sourceType: .audio)
+        pf.enhancedTitle = "Trip"
+        pf.sanitised = "The cat sat\n\n[[img_001]]\n\n down. Later."
+
+        var settings = AppSettings.default
+        settings.noteFolder = vault.path
+        settings.attachmentsFolder = "Attachments"
+
+        let r = try VaultExporter.export(pf, settings: settings)
+        XCTAssertEqual(r.imageCount, 1)
+        let md = try String(contentsOf: r.markdownURL, encoding: .utf8)
+        XCTAssertTrue(md.contains("The cat sat down."), "sentence reads whole")
+        XCTAssertTrue(md.contains("down.\n\n![[Trip_001.jpg]]"), "embed drops beneath the sentence")
+        XCTAssertFalse(md.contains("[[img_001]]"))
+    }
+
     func testExportConvertsCaptureImageMarkers() throws {
         // Share Wave 2: image captures inline photos as [[img_NNN]] in the annotation.
         // A capture's `path` IS the working folder (images/ inside it) — markers must

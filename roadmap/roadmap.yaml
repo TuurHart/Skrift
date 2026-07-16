@@ -378,6 +378,15 @@ nodes:
         search stall; 58/59 fixes apply); reminder-tap off-main assert fixed
         via @MainActor delegate (build 60) [2593da3]; build-48 0xDEAD10CC
         pair = pre-hardening, no recurrence, watch
+      - >-
+        2026-07-16 · Image-at-sentence-end reflow — a photo the injector dropped
+        MID-SENTENCE now renders the SENTENCE WHOLE, then the photo as its own
+        \n\n block beneath it. ONE shared idempotent rule
+        (BodyTransform.snapImages + raw→snapped offset map) drives BOTH renderers
+        AND the Obsidian export (VaultExporter); killed the Mac's giant inline
+        image caret. Raw keeps the marker at its moment until a (trusted) edit.
+        366 desktop + 687 mobile tests green, Mac hostPNG eyeballed
+        (-snapshot-photoblock); device round owed. backlog "🖼️".
     backlog:
       - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
         pipeline never broken (sim e2e test stays as the gate). Search-hit
