@@ -1,9 +1,10 @@
 import Foundation
 
 /// Inline `#` tag completion — the PURE half of the body's Obsidian-style tag
-/// popup (`BodyTextView` owns the AppKit completion session). Obsidian's tag
-/// rules apply: letters/numbers/`_`/`-`/`/` (nested), NO spaces, case-insensitive.
-/// Host-less (Pipeline, not Features) so the unit bundle tests it directly.
+/// popup, SHARED so the phone's future popup matches the Mac's (`BodyTextView` +
+/// `TagSuggestPanel` own the Mac UI; the phone UI is the pinned parity item).
+/// Obsidian's tag rules apply: letters/numbers/`_`/`-`/`/` (nested), NO spaces,
+/// case-insensitive. Pure Foundation → host-less-testable in both bundles.
 enum TagComplete {
 
     /// Prefix-matched candidates for the popup: original casing + caller order
