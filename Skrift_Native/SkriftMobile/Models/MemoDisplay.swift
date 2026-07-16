@@ -423,14 +423,5 @@ enum MemoDate {
 }
 
 /// Map a captured `DayPeriod` to an SF Symbol for the context chips.
-extension DayPeriod {
-    var symbol: String {
-        switch self {
-        case .morning: return "sunrise.fill"
-        case .afternoon: return "sun.max.fill"
-        case .evening: return "sunset.fill"
-        case .night: return "moon.stars.fill"
-        }
-    }
-    var label: String { rawValue.capitalized }
-}
+// DayPeriod.symbol / .label moved to the SHARED model (Shared/Model/MemoMetadata.swift)
+// so the phone header and the Mac properties share one definition.

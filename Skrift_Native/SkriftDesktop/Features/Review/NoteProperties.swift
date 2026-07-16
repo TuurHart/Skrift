@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The editable properties block: two-title chooser, grouped metadata + significance
 /// + tags card. Ported from `NoteProperties.tsx`. Edits mutate the SwiftData model
@@ -23,12 +24,26 @@ struct NoteProperties: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             titleSection
+            contextChipRow          // place · weather · daypart (phone parity)
             propertiesCard
         }
         .onChange(of: file.id, initial: true) { _, _ in
             selectedTitle = (file.enhancedTitle ?? "").trimmingCharacters(in: .whitespaces) == original ? .original : .suggested
+        }
+    }
+
+    /// The ambient context chips the phone shows under the title (place · weather ·
+    /// daypart). Hidden when the memo carries no context (captures, older uploads).
+    @ViewBuilder private var contextChipRow: some View {
+        let chips = file.contextChips
+        if !chips.isEmpty {
+            FlowLayout(spacing: 6) {
+                ForEach(chips, id: \.text) { chip in
+                    MacContextChip(text: chip.text, systemImage: chip.symbol)
+                }
+            }
         }
     }
 
@@ -186,16 +201,9 @@ struct NoteProperties: View {
         if !author.isEmpty { rows.append(("author", author)) }
         rows.append(("source", sourceLabel))
         if file.durationSeconds > 0 { rows.append(("duration", SkriftFormat.clock(file.durationSeconds))) }
-        let meta = (try? JSONSerialization.jsonObject(with: file.audioMetadataJSON ?? Data())) as? [String: Any]
-        if let loc = (meta?["phone_location"] as? [String: Any])?["placeName"] as? String, !loc.isEmpty {
-            var s = loc
-            if let w = meta?["phone_weather"] as? [String: Any],
-               let c = w["conditions"] as? String, let t = w["temperature"] {
-                let unit = (w["temperatureUnit"] as? String) ?? "°C"
-                s += " · \(c), \(t)\(unit)"
-            }
-            rows.append(("location", s))
-        }
+        // Place / weather / daypart now render as CONTEXT CHIPS above the card
+        // (`contextChipRow` → `PipelineFile.contextChips`) — phone parity. The old
+        // `phone_location` row only ever matched demo data, so real memos showed nothing.
         return rows
     }
 
@@ -237,14 +245,56 @@ struct NoteProperties: View {
     }
 }
 
+// ── Context chip (place · weather · daypart) ────────────────
+/// The Mac mirror of the phone's `ContextChip` (Components.swift): a small pill,
+/// icon + text, so the ambient metadata reads identically across the two apps.
+private struct MacContextChip: View {
+    let text: String
+    var systemImage: String?
+
+    var body: some View {
+        HStack(spacing: 3) {
+            if let systemImage { Image(systemName: systemImage).font(.system(size: 10)) }
+            Text(text).lineLimit(1).truncationMode(.tail)
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(Theme.textSecondary)
+        .padding(.horizontal, 7).padding(.vertical, 2)
+        .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+}
+
 // ── Tags ────────────────────────────────────────────────────
 private struct TagEditor: View {
     @Bindable var file: PipelineFile
     @State private var adding = false
     @State private var draft = ""
 
+    /// The note's own AI tag suggestions (always offered as quick-add chips).
     private var suggestions: [String] {
         (file.tagSuggestions ?? []).filter { !file.tags.contains($0) }
+    }
+
+    /// Every tag across the library, most-used first — the phone's "FROM YOUR NOTES"
+    /// autocomplete source (the Mac only offered the note's own AI suggestions before).
+    private var libraryTags: [String] {
+        let files = (try? file.modelContext?.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        var counts: [String: Int] = [:]
+        for f in files where f.deletedAt == nil {
+            for t in f.tags { counts[t, default: 0] += 1 }
+        }
+        return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
+    }
+
+    /// Library autocomplete shown WHILE adding: library tags the note lacks (and that
+    /// aren't already an AI chip), prefix-filtered by what's typed, capped so the card
+    /// stays compact. Phone parity (`TagEditorSheet` "FROM YOUR NOTES").
+    private var librarySuggestions: [String] {
+        let typed = draft.trimmingCharacters(in: .whitespaces).lowercased()
+        let exclude = Set(file.tags).union(suggestions)
+        return libraryTags
+            .filter { !exclude.contains($0) && (typed.isEmpty || $0.lowercased().hasPrefix(typed)) }
+            .prefix(10).map { $0 }
     }
 
     var body: some View {
@@ -256,6 +306,11 @@ private struct TagEditor: View {
                 suggestionChip(s)
             }
             addControl
+            if adding {
+                ForEach(librarySuggestions, id: \.self) { s in
+                    suggestionChip(s)
+                }
+            }
         }
     }
 
@@ -285,11 +340,11 @@ private struct TagEditor: View {
 
     @ViewBuilder private var addControl: some View {
         if adding {
-            TextField("tag…", text: $draft)
+            TextField("tag, tag", text: $draft)
                 .textFieldStyle(.plain)
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.textPrimary)
-                .frame(width: 80)
+                .frame(width: 110)
                 .padding(.horizontal, 9).padding(.vertical, 3)
                 .background(Theme.hairline.opacity(0.06), in: Capsule())
                 .onSubmit { commit() }
@@ -304,9 +359,8 @@ private struct TagEditor: View {
     }
 
     private func commit() {
-        let t = draft.trimmingCharacters(in: .whitespaces).lowercased()
-            .replacingOccurrences(of: "#", with: "")
-        if !t.isEmpty && !file.tags.contains(t) { file.tags.append(t) }
+        // Comma-separated multi-tag input, shared with the phone (`Memo.parseTagInput`).
+        for t in Memo.parseTagInput(draft) where !file.tags.contains(t) { file.tags.append(t) }
         draft = ""; adding = false
     }
 }

@@ -121,6 +121,18 @@ enum DayPeriod: String, Codable, Sendable {
     case afternoon
     case evening
     case night
+
+    /// SF Symbol + label for the context chip — SHARED so the phone header and the
+    /// Mac properties can't drift on how a daypart reads.
+    var symbol: String {
+        switch self {
+        case .morning: return "sunrise.fill"
+        case .afternoon: return "sun.max.fill"
+        case .evening: return "sunset.fill"
+        case .night: return "moon.stars.fill"
+        }
+    }
+    var label: String { rawValue.capitalized }
 }
 
 struct DaylightInfo: Codable, Equatable, Sendable {

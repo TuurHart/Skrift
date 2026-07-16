@@ -387,6 +387,16 @@ nodes:
         image caret. Raw keeps the marker at its moment until a (trusted) edit.
         366 desktop + 687 mobile tests green, Mac hostPNG eyeballed
         (-snapshot-photoblock); device round owed. backlog "🖼️".
+      - >-
+        2026-07-16 · Mac note-detail parity (phone→Mac): the Mac now SHOWS the
+        place · weather · daypart CONTEXT CHIPS under the title (decoded from the
+        synced typed metadata via PhoneMetadata — the old row read demo-only
+        phone_location keys, so real memos showed nothing; DayPeriod.symbol/label
+        moved to Shared). Tag editor gained LIBRARY autocomplete (all tags,
+        most-used-first, prefix-filtered) + comma multi-tag input (shared
+        Memo.parseTagInput). 366+687 green, Mac hostPNG-verified. NEXT (deferred):
+        Mac Related-notes + thread — its own features+UI design pass (can be more
+        powerful on the Mac than the phone).
     backlog:
       - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
         pipeline never broken (sim e2e test stays as the gate). Search-hit

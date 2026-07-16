@@ -910,6 +910,22 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
 
 ## ⭐ Desktop parity A-list — the Mac catches up to the phone waves (2026-07-07, roadmap `DParityA`)
 
+**2026-07-16 parity batch (from a phone/Mac screenshot compare — built + verified, device round owed):**
+- ✅ **Context chips on the Mac**: place · weather · daypart chips now render under the title
+  (`NoteProperties.contextChipRow` + `MacContextChip`; `PipelineFile.contextChips` decodes the synced TYPED
+  metadata via `PhoneMetadata`). ROOT CAUSE fixed: the old properties row read demo-only `phone_location`
+  keys, so REAL synced memos showed no location/weather and never showed daypart at all. `DayPeriod.symbol`/
+  `.label` moved to the SHARED model. hostPNG-verified (Amsterdam · 14° · Morning).
+- ✅ **Mac tag-adding parity**: the inline `TagEditor` now offers LIBRARY autocomplete (all tags, most-used
+  first, prefix-filtered while typing) on top of the note's AI suggestions, + comma multi-tag input via the
+  shared `Memo.parseTagInput`. (Mac took one tag + only AI suggestions before.)
+- ⬜ **NEXT — Mac Related notes + thread (DEFERRED to a design pass):** the phone shows a RELATED section
+  (✨ embedding-suggested notes) + "View thread"; the Mac shows only LINKED FROM. Tuur wants this on the Mac
+  but it "can be MORE POWERFUL on the Mac" → needs a features + UI thinking/mock session FIRST (mock-first),
+  not a straight port. Check whether the P8 related-notes embedder data is already available Mac-side.
+- Note: phone→Obsidian publish still doesn't embed inline photos (comment left in `ObsidianPublisher.swift`);
+  by design we export to Obsidian from the MAC only for now — revisit under the standalone push.
+
 The contract-level "musts" from the parity analysis (memory `project_desktop_parity_plan`), built same-day:
 - ✅ **Locked notes**: `PipelineFile.locked` mirror (ingest + update sweep), `VaultExporter` REFUSES export
   (typed error surfaces in the toast; auto re-export sweep skips locked and re-exports on unlock), note

@@ -235,6 +235,27 @@ final class PipelineFile {
                            author: BookCapture.trimmedNonEmpty(meta.bookAuthor),
                            chapter: BookCapture.trimmedNonEmpty(meta.bookChapter))
     }
+
+    /// Ambient CONTEXT chips — place · weather · daypart — the phone shows under the
+    /// title (`MemoDetailView.metaChips`). Decoded from the synced metadata blob through
+    /// the lenient `PhoneMetadata` (typed `location`/`weather`/`dayPeriod` keys, the shape
+    /// the phone actually syncs — the old Mac properties row read demo-only `phone_location`
+    /// keys, so real memos showed nothing). Empty for captures / older uploads with no context.
+    var contextChips: [(text: String, symbol: String)] {
+        guard sourceType != .capture, let data = audioMetadataJSON,
+              let meta = try? JSONDecoder().decode(PhoneMetadata.self, from: data) else { return [] }
+        var chips: [(String, String)] = []
+        if let place = meta.location?.placeName?.trimmingCharacters(in: .whitespaces), !place.isEmpty {
+            chips.append((place, "mappin.circle.fill"))
+        }
+        if let t = meta.weather?.temperature {
+            chips.append(("\(Int(t.rounded()))°", "cloud.sun.fill"))
+        }
+        if let raw = meta.dayPeriod, let period = DayPeriod(rawValue: raw) {
+            chips.append((period.label, period.symbol))   // shared label/symbol → phone parity
+        }
+        return chips
+    }
 }
 
 /// Audiobook quote-capture (contract C2): the book fields a capture memo rides on

@@ -93,6 +93,17 @@ struct ObsidianPublisher {
             let rel = stateStore.record(for: id)?.relativePath ?? Self.relativePath(for: target, people: people)
             stems[id] = ((rel as NSString).lastPathComponent as NSString).deletingPathExtension
         }
+        // ⚠️ PHOTOS NOT EMBEDDED YET (deferred — future chat starts here). A photo memo's
+        // body carries `[[img_NNN]]` TEXT markers, but this phone-side publish neither
+        // converts them to Obsidian embeds (`![[file.jpg]]`) NOR copies the image files
+        // into the vault — so a photo note published straight from the phone renders a
+        // broken/empty link in Obsidian. The Mac's `VaultExporter` is the ONLY
+        // photo-capable Obsidian export today (`convertImageMarkers` + copies the file,
+        // and it applies the image-at-sentence-end reflow via `BodyTransform.snapImages`).
+        // Current direction (2026-07-16): export to Obsidian from the MAC only, so this
+        // gap is fine. To make the phone standalone-publish photos, port the Mac's
+        // marker→embed conversion + image copy here, THEN snap with `snapImages` before
+        // converting — see STANDALONE_PLAN.md / memory `project_standalone_app_store`.
         let markdown = MemoExporter.markdown(for: memo, people: people, author: author, linkStems: stems)
         let hash = Self.sha256(markdown)
 

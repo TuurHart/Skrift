@@ -94,10 +94,14 @@ enum DemoSeed {
         f1.tags = ["work", "ideas"]
         f1.tagSuggestions = ["rewrite", "swift"]
         f1.significance = 0.7
+        // Typed metadata keys — the shape the phone actually syncs (location / weather /
+        // dayPeriod), so the context chips render like real data (not the old demo-only
+        // `phone_location` keys).
         f1.audioMetadataJSON = meta([
             "duration": "00:02:14",
-            "phone_location": ["placeName": "Amsterdam"],
-            "phone_weather": ["conditions": "Cloudy", "temperature": 14, "temperatureUnit": "°C"],
+            "location": ["placeName": "Amsterdam"],
+            "weather": ["conditions": "Cloudy", "temperature": 14, "temperatureUnit": "°C"],
+            "dayPeriod": "morning",
         ])
         // Ambiguous names for the review resolver: "Sam" (one mention, two people)
         // and "Jack" (two mentions — the smart per-occurrence case).
