@@ -32,37 +32,43 @@ extension Color {
         })
     }
 
-    // Surfaces                              light       dark
-    static let skSurface = skDynamic(light: 0xffffff, dark: 0x181a23)   // cards
-    static let skBg      = skDynamic(light: 0xf5f5f7, dark: 0x0f1117)   // window
-    static let skElev    = skDynamic(light: 0xebebf0, dark: 0x1e2130)   // chips / fields
+    /// Shared-palette overload — cross-app tokens come from `Palette`
+    /// (Shared/UI/Palette.swift), one hex table for both apps.
+    static func skDynamic(_ pair: PalettePair, alpha: Double = 1) -> Color {
+        skDynamic(light: pair.light, dark: pair.dark, alpha: alpha)
+    }
+
+    // Surfaces (cross-app values: Palette; phone-only: literal)
+    static let skSurface = skDynamic(Palette.surface)                    // cards
+    static let skBg      = skDynamic(Palette.bg.phone)                   // window
+    static let skElev    = skDynamic(light: 0xebebf0, dark: 0x1e2130)   // chips / fields (phone-only)
     /// Hairline: a faint dark line on light, a faint white line on dark.
     static let skBorder  = Color(uiColor: UIColor { tc in
         tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.06) : UIColor(white: 0, alpha: 0.09)
     })
 
-    // Text                                     light       dark
-    static let skText      = skDynamic(light: 0x1c1c1e, dark: 0xe4e4e7)   // t1 — primary
-    static let skTextDim   = skDynamic(light: 0x6c6c72, dark: 0x8b8b97)   // t2 — secondary
-    static let skTextFaint = skDynamic(light: 0xa3a3aa, dark: 0x55556a)   // t3 — tertiary
+    // Text
+    static let skText      = skDynamic(Palette.textPrimary.phone)     // t1 — primary
+    static let skTextDim   = skDynamic(Palette.textSecondary.phone)   // t2 — secondary
+    static let skTextFaint = skDynamic(Palette.textTertiary.phone)    // t3 — tertiary
 
-    // Accent + semantics                       light       dark
-    static let skAccent     = skDynamic(light: 0x6c5ce0, dark: 0x7c6bf5)
-    static let skAccentSoft = skDynamic(light: 0x6c5ce0, dark: 0x7c6bf5, alpha: 0.13)
+    // Accent + semantics
+    static let skAccent     = skDynamic(Palette.accent)
+    static let skAccentSoft = skDynamic(Palette.accent, alpha: 0.13)
     /// The lighter-purple accent used for small text/labels (e.g. tag text). On
-    /// light it deepens so it stays legible on white.
+    /// light it deepens so it stays legible on white. (Phone-only token.)
     static let skAccentText = skDynamic(light: 0x6051c8, dark: 0xb9acff)
-    static let skGreen      = skDynamic(light: 0x0f9d72, dark: 0x34d399)
-    static let skAmber      = skDynamic(light: 0xd97706, dark: 0xf59e0b)
-    static let skRed        = skDynamic(light: 0xdc2626, dark: 0xef4444)
+    static let skGreen      = skDynamic(Palette.green)
+    static let skAmber      = skDynamic(Palette.amber)
+    static let skRed        = skDynamic(Palette.red)
 
     // Name-linking tiers — the phone in-place linking surface
     // (mocks/phone-name-linking.html). Dark = the mock's exact values; light deepens for
     // contrast on white. LINKED is solid; SUGGESTED/AMBIGUOUS/PLAIN are dotted underlines.
-    static let skNameLinked      = skDynamic(light: 0x6c5ce0, dark: 0x9d8ff7)   // solid accent
-    static let skNameSuggest     = skDynamic(light: 0x8a6d3b, dark: 0xbda481)   // tan text
-    static let skNameSuggestLine = skDynamic(light: 0xa8843f, dark: 0xc4a982)   // tan dotted underline
-    static let skNameAmbigLine   = skDynamic(light: 0x6c5ce0, dark: 0x7c6bf5, alpha: 0.7)  // purple dotted
+    static let skNameLinked      = skDynamic(Palette.nameLinked)                 // solid accent
+    static let skNameSuggest     = skDynamic(Palette.nameSuggest.phone)          // tan text
+    static let skNameSuggestLine = skDynamic(Palette.nameSuggestLine.phone)      // tan dotted underline
+    static let skNameAmbigLine   = skDynamic(Palette.accent, alpha: 0.7)         // purple dotted
     /// Faint dotted underline for a kept-plain (leftplain) token.
     static let skNamePlainLine   = Color(uiColor: UIColor { tc in
         tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.26) : UIColor(white: 0, alpha: 0.28)

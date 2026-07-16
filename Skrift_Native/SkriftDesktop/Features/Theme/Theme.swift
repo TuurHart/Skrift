@@ -6,29 +6,29 @@ import AppKit
 /// *adaptive* (`NSColor` dynamic provider) so the whole app flips with the active
 /// `NSAppearance` — driven by Settings → Appearance (see RootView/SkriftDesktopApp).
 enum Theme {
-    // Surfaces                          light (r,g,b)        dark (r,g,b)
-    static let bg           = dyn(247, 247, 250,    15,  17,  23)   // window background
-    static let sidebar      = dyn(237, 238, 243,    21,  23,  31)   // recessed panel
-    static let surface      = dyn(255, 255, 255,    24,  26,  35)   // cards
-    static let surfaceHover = dyn(240, 241, 246,    30,  33,  48)
+    // Surfaces (cross-app values: Palette — Shared/UI; Mac-only: literal hex)
+    static let bg           = dyn(Palette.bg.mac)                     // window background
+    static let sidebar      = dyn(light: 0xedeef3, dark: 0x15171f)    // recessed panel (Mac-only)
+    static let surface      = dyn(Palette.surface)                    // cards
+    static let surfaceHover = dyn(light: 0xf0f1f6, dark: 0x1e2130)    // (Mac-only)
 
-    // Text                                light            dark
-    static let textPrimary   = dyn( 28,  28,  32,  228, 228, 231)
-    static let textSecondary = dyn(108, 108, 118,  139, 139, 151)
-    static let textMuted     = dyn(150, 150, 162,   85,  85, 106)
+    // Text
+    static let textPrimary   = dyn(Palette.textPrimary.mac)
+    static let textSecondary = dyn(Palette.textSecondary.mac)
+    static let textMuted     = dyn(Palette.textTertiary.mac)
 
-    // Accent + semantic / step colors     light            dark
-    static let accent      = dyn(108,  92, 224,  124, 107, 245)
-    static let green       = dyn( 15, 157, 114,   52, 211, 153)   // ready / check / export
-    static let blue        = dyn( 37,  99, 235,   96, 165, 250)   // transcribe
-    static let amber       = dyn(217, 119,   6,  245, 158,  11)   // enhance
-    static let violet      = dyn(108,  92, 224,  167, 139, 250)   // sanitise
-    static let destructive = dyn(220,  38,  38,  239,  68,  68)
+    // Accent + semantic / step colors
+    static let accent      = dyn(Palette.accent)
+    static let green       = dyn(Palette.green)                       // ready / check / export
+    static let blue        = dyn(light: 0x2563eb, dark: 0x60a5fa)     // transcribe (Mac-only)
+    static let amber       = dyn(Palette.amber)                       // enhance
+    static let violet      = dyn(light: 0x6c5ce0, dark: 0xa78bfa)     // sanitise (Mac-only)
+    static let destructive = dyn(Palette.red)
 
-    // Naming review tiers (mocks/naming-review.html)  light            dark
-    static let nameLink        = dyn(108,  92, 224,  157, 143, 247)  // linked subject (#9d8ff7 dark)
-    static let nameSuggest     = dyn(150, 110,  48,  189, 164, 129)  // dotted suggestion text (#bda481 dark)
-    static let nameSuggestLine = dyn(150, 110,  48,  171, 150, 118)  // dotted underline (#ab9676 dark)
+    // Naming review tiers (mocks/naming-review.html)
+    static let nameLink        = dyn(Palette.nameLinked)              // linked subject
+    static let nameSuggest     = dyn(Palette.nameSuggest.mac)         // dotted suggestion text
+    static let nameSuggestLine = dyn(Palette.nameSuggestLine.mac)     // dotted underline
 
     /// Hairline base — a faint dark line on light, a faint white line on dark.
     /// Used with `.opacity()` for borders / overlay tints (mirrors the web
@@ -47,17 +47,21 @@ enum Theme {
         ap.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
     }
 
-    /// A light/dark RGB pair → one adaptive Color that resolves against the active
-    /// appearance (so it follows the chosen theme).
-    private static func dyn(_ lr: Double, _ lg: Double, _ lb: Double,
-                            _ dr: Double, _ dg: Double, _ db: Double) -> Color {
+    /// A light/dark hex pair → one adaptive Color that resolves against the active
+    /// appearance (so it follows the chosen theme). Cross-app tokens pass a
+    /// `Palette` pair (Shared/UI/Palette.swift — one hex table for both apps).
+    private static func dyn(light: UInt32, dark: UInt32) -> Color {
         Color(nsColor: NSColor(name: nil) { ap in
-            let dark = isDark(ap)
-            return NSColor(srgbRed: (dark ? dr : lr) / 255,
-                           green:   (dark ? dg : lg) / 255,
-                           blue:    (dark ? db : lb) / 255,
+            let hex = isDark(ap) ? dark : light
+            return NSColor(srgbRed: CGFloat((hex >> 16) & 0xff) / 255,
+                           green:   CGFloat((hex >> 8) & 0xff) / 255,
+                           blue:    CGFloat(hex & 0xff) / 255,
                            alpha: 1)
         })
+    }
+
+    private static func dyn(_ pair: PalettePair) -> Color {
+        dyn(light: pair.light, dark: pair.dark)
     }
 }
 

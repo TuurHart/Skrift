@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-16T18:25:00.000Z
+updated: 2026-07-16T19:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -171,6 +171,11 @@ nodes:
       moved to ONE compiled copy in Shared/ (the annotated 'mirrors the phone'
       duplicates had already drifted, e.g. the Mac's 'Significant' tier label).
     shipped:
+      - 2026-07-16 · WAVE 2c — Theme palette hex values single-sourced
+        (Shared/UI/Palette.swift; dyn wrappers stay per-app). Six
+        already-drifted tokens surfaced as explicit DriftedPairs (reconcile
+        = eyeball round); zero pixels changed — 6 desktop snapshot fixtures
+        byte-identical pre/post
       - 2026-07-16 · WAVE 2b — AppPaths merged to ONE Shared/Model file with
         platform sections (was two same-named types with different members);
         names.json literal single-sourced. Suites + MLX build green

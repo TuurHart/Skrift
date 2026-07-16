@@ -1049,8 +1049,13 @@ RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rule
   worst twin class — a shared file referencing it would silently bind either). Now ONE
   `Shared/Model/AppPaths.swift` with `#if os(iOS)`/`#if os(macOS)` sections (LockGate pattern);
   `names.json` literal hoisted to one `namesFileName` constant. Suites + MLX build green.
-- ⬜ **Theme palette values** — one palette family (0x7c6bf5…) maintained as two dyn tables; a shared
-  hex-constants table (per-platform dynamic wrappers stay) prevents the warmFill-drift class of bug.
+- ✅ **Theme palette values** — DONE 2026-07-16: `Shared/UI/Palette.swift` = ONE hex table; both
+  Themes keep their dyn wrappers but source cross-app tokens from it (agreed: surface/accent/green/
+  amber/red/nameLinked). **FOUND 6 already-drifted tokens** (light columns tuned twice): bg,
+  textPrimary/Secondary/Tertiary, nameSuggest, nameSuggestLine — kept per-app as explicit
+  `DriftedPair`s so ZERO pixels changed (desktop PROVEN: 6 snapshot fixtures byte-identical
+  pre/post; deterministic renderer control). ⬜ RECONCILE the 6 DriftedPairs after an eyeball
+  round (each collapse = a one-line change now). Suites + MLX build green.
 - ⬜ **TranscriptionService/TranscriptionResult + DiarizationService/DiarizationOutput/Diarizing** —
   engine-wrapper + result-struct twins (conversation contract shapes).
 - ⬜ **NamesStore** — the store class itself is twinned (bytes-compatible names.json is shared, the

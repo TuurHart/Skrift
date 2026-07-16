@@ -280,7 +280,9 @@ targets:
       - path: Features/MemoDetail/SignificanceCircles.swift
       - path: ../Shared/Model/SignificanceScale.swift
       # DesignSystem (Theme colours, Components) — no UIKit/AppKit-only API here,
-      # so it builds cleanly in the extension process.
+      # so it builds cleanly in the extension process. Theme sources its cross-app
+      # hex values from the shared Palette table.
+      - path: ../Shared/UI/Palette.swift
       - path: DesignSystem/Theme.swift
       - path: DesignSystem/Components.swift
       - path: DesignSystem/Haptics.swift
