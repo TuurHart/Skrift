@@ -43,7 +43,8 @@ struct RootView: View {
                         .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
 
                     NoteDisplayView(file: activeFile, coordinator: coordinator,
-                                    onOpenMemo: { id in model.activeID = id; model.selection = [id] })
+                                    onOpenMemo: { id in model.activeID = id; model.selection = [id] },
+                                    searchQuery: model.searchText)
                         .frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
                 }
             }

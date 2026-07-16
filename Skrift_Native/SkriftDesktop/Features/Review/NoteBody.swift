@@ -28,6 +28,9 @@ struct NoteBody: View {
     var linkCandidates: () -> [MemoLinkCandidate] = { [] }
     /// Resolve a link target's CURRENT title so chips don't show a stale snapshot.
     var linkTitle: (UUID) -> String? = { _ in nil }
+    /// Note opened from an active sidebar search → scroll to + flash the first
+    /// match (phone parity). nil/empty = no jump.
+    var searchJumpToken: String? = nil
 
     private static let bodyFont = Font.system(size: 16)
     private static let bodyLineSpacing: CGFloat = 6
@@ -127,7 +130,8 @@ struct NoteBody: View {
             tagCandidates: karaokeActive ? { [] } : tagCandidates,
             onInlineTag: onInlineTag,
             karaoke: karaokeActive ? karaokePlayback : nil,
-            quoteAttribution: file.bookCapture?.attribution
+            quoteAttribution: file.bookCapture?.attribution,
+            searchJumpToken: searchJumpToken
         )
         .frame(maxWidth: .infinity, alignment: .leading)
     }

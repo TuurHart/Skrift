@@ -66,6 +66,11 @@ struct BodyTextView: NSViewRepresentable {
     /// storage, the model keeps the raw "> " lines verbatim, and editing can't
     /// corrupt either. nil = not a book capture → no quote styling.
     var quoteAttribution: String? = nil
+    /// Search-jump (phone parity): a note opened FROM an active sidebar search
+    /// scrolls to the first match and flashes it (native find indicator). The
+    /// token is `"<fileID>\u{1}<query>"` so each (note, query) pair jumps ONCE;
+    /// nil/empty = no jump. Case-insensitive.
+    var searchJumpToken: String? = nil
 
     /// How far through the body's words to brighten (0…1) + a click-a-word → seek
     /// callback (arg = the clicked word's INDEX, so the caller can seek to that word's
@@ -161,10 +166,30 @@ struct BodyTextView: NSViewRepresentable {
             // render() already restyled; otherwise we're leaving karaoke — restyle in place.
             if !textChanged { context.coordinator.restyle(tv) }
         }
+        // Search-jump (phone parity): once per (note, query) token, after the render
+        // above laid the text out — scroll the first case-insensitive match into view
+        // and flash it with the system find indicator.
+        if let token = searchJumpToken, !token.isEmpty,
+           context.coordinator.lastSearchJumpToken != token {
+            context.coordinator.lastSearchJumpToken = token
+            let query = token.components(separatedBy: "\u{1}").last ?? ""
+            if !query.isEmpty {
+                let hay = tv.string as NSString
+                let r = hay.range(of: query, options: [.caseInsensitive, .diacriticInsensitive])
+                if r.location != NSNotFound {
+                    DispatchQueue.main.async {
+                        tv.scrollRangeToVisible(r)
+                        tv.showFindIndicator(for: r)
+                    }
+                }
+            }
+        }
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: BodyTextView
+        /// The (note, query) pair already jumped to — one flash per open, not per render.
+        var lastSearchJumpToken: String?
         private var activePopover: NSPopover?
         /// Last applied karaoke boundary, so the ~20 Hz playback ticks skip a recolor
         /// unless the active-word count actually moved (cheap even on long notes).

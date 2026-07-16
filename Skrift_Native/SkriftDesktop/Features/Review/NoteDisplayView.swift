@@ -15,6 +15,9 @@ struct NoteDisplayView: View {
     /// Navigate to another memo's row (memo-link chip / LINKED FROM) — wired by
     /// RootView to the AppModel selection; nil on snapshot hosts → inert.
     var onOpenMemo: ((String) -> Void)? = nil
+    /// The sidebar's live search text — a note opened while it's non-empty scrolls
+    /// to the first match and flashes it (phone parity). "" on snapshot hosts.
+    var searchQuery: String = ""
     @Environment(\.modelContext) private var ctx
     @State private var audio = AudioController()
     @State private var author = SettingsStore.shared.load().authorName
@@ -154,7 +157,8 @@ struct NoteDisplayView: View {
                      onOpenNote: scrollable ? { c in openNote(c) } : nil,
                      onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } },
                      linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] },
-                     linkTitle: { id in liveTitle(of: id) })
+                     linkTitle: { id in liveTitle(of: id) },
+                     searchJumpToken: searchQuery.isEmpty ? nil : "\(file.id)\u{1}\(searchQuery)")
             // The bottom LINKED FROM strip is GONE — backlinks live in the
             // Connections panel now (mock decision, 2026-07-16).
         }
