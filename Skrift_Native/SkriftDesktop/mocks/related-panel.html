@@ -193,7 +193,7 @@
 
 <h1>Connections on the Mac</h1>
 <p class="thesis">One Connections panel on the review surface: a single list of this note's neighbourhood with a one-click Date ⇄ Closest sort toggle (Date = the arc of the idea, Closest = judge what the embedder found), why-chips on every row, backlinks below.</p>
-<span class="v1">round 2 · A/B merged into ONE panel + sort toggle (Tuur's call) · pick an importance treatment in #m3</span>
+<span class="v1">round 2 · one panel + Date⇄Closest pill · importance = O1 picked (Tuur, 16 Jul) · awaiting final sign-off</span>
 
 <!-- ═══════════════════ THE PANEL · DATE MODE ═══════════════════ -->
 <div class="label" id="m1">#m1 — THE PANEL · Date mode: one list, the arc of the idea, sort flips with ONE click</div>
@@ -312,7 +312,7 @@
   </div>
 </div>
 <p class="hint"><b style="color:#34D399">◆ green markers = mock-nicer-than-app</b> (your round-1 review; parked in backlog, NOT this build's scope): <b>◆1</b> tags directly under the context chips (live app has them under significance) · <b>◆2</b> compact significance dots (live control "might be a little too big") · <b>◆3</b> icons on the location/weather chips. Sidebar label Journal → <b>Review</b> = phone-tab parity, applied everywhere.</p>
-<p class="hint"><b>One list, two orders, one click.</b> Thread and Related are the same note set (verified in code), so the panel shows ONE list and the pill just re-sorts it: <b>Date</b> = the arc, first mention → today, rail + line; <b>Closest</b> = best match first (#m2). Exactly two orders, no menus — and it's the same pill idiom as Queue|Review, so it teaches itself. Default Date, remembered app-wide. Why-chips per row (<span style="color:#9D8FF7">person</span> / <span style="color:#7C6BF5">#tag</span> / term); importance = the app's own circles on the date row (pick the treatment in #m3); the best hit keeps its CLOSEST MATCH flag even in Date mode. Click a row → that memo opens in this pane, the highlight hops. The bottom LINKED FROM strip is gone — backlinks live here.</p>
+<p class="hint"><b>One list, two orders, one click.</b> Thread and Related are the same note set (verified in code), so the panel shows ONE list and the pill just re-sorts it: <b>Date</b> = the arc, first mention → today, rail + line; <b>Closest</b> = best match first (#m2). Exactly two orders, no menus — and it's the same pill idiom as Queue|Review, so it teaches itself. Default Date, remembered app-wide. Why-chips per row (<span style="color:#9D8FF7">person</span> / <span style="color:#7C6BF5">#tag</span> / term). <b>The ●●○ circles = the significance YOU gave that note</b> (read-only echo of the header control — never an AI number); the embedder's closeness is a decimal and shows ONLY as ordering in Closest mode + the CLOSEST MATCH flag. Click a row → that memo opens in this pane, the highlight hops. The bottom LINKED FROM strip is gone — backlinks live here.</p>
 
 <!-- ═══════════════════ CLOSEST MODE ═══════════════════ -->
 <div class="label" id="m2">#m2 — the SAME panel, toggle flipped to CLOSEST: judge what the embedder found</div>
@@ -361,7 +361,7 @@
 <div class="label" id="m3">#m3 — importance on the rail WITHOUT a legend: pick one</div>
 <div class="row">
   <div class="closeup">
-    <div class="cap">O1 · circles on the date row — <b>recommended</b></div>
+    <div class="cap">O1 · circles on the date row — <b>PICKED (Tuur, 16 Jul)</b></div>
     <div class="inner" style="min-height:240px">
       <div class="csec" style="padding-top:14px">
         <div class="rail">
@@ -439,7 +439,7 @@
     </div>
   </div>
 </div>
-<p class="hint"><b>Why no legend is needed:</b> the ●●○ circles are the app's OWN significance control — the same glyph sits in this note's header a hand-width to the left, so the mapping is already learned. <b>O1</b> keeps the rail dots as calm, uniform anchors and puts the circles on each date row (zero new idiom — recommended). <b>O2</b> additionally scales the rail dot like the Journal calendar does (far-glance skimming, slightly busier — this was round 1's confusing bit, now self-explained by the circles beside it). <b>O3</b> makes the circle-triplet itself the node marker — boldest and most compact, but 4.5 px circles get fiddly and the first-mention/this-note dot cues lose their anchor.</p>
+<p class="hint"><b>Why no legend is needed:</b> the ●●○ circles are the app's OWN significance control — the same glyph sits in this note's header a hand-width to the left, so the mapping is already learned. <b>O1</b> keeps the rail dots as calm, uniform anchors and puts the circles on each date row (zero new idiom) — <b style="color:#34D399">PICKED</b>: "the three dots to the right are in line with everything else"; the left-side circle-triplets (O3) felt like possible confusion. <b>O2</b> additionally scales the rail dot like the Journal calendar does (far-glance skimming, slightly busier — this was round 1's confusing bit, now self-explained by the circles beside it). <b>O3</b> makes the circle-triplet itself the node marker — boldest and most compact, but 4.5 px circles get fiddly and the first-mention/this-note dot cues lose their anchor.</p>
 
 <!-- ═══════════════════ GATE + EMPTY ═══════════════════ -->
 <div class="label" id="m4">#m4 — Empty states: the consent gate (no index yet) + downloading / indexing / no-connections</div>
@@ -585,10 +585,10 @@
   <ul>
     <li><b>One list + a sort toggle</b> (your call, round 1): Date ⇄ Closest, single click, same pill idiom as Queue|Review. Default Date; remembered app-wide. Date = timeline rail (#m1), Closest = flat best-first rows (#m2). Exactly two orders, ever.</li>
     <li><b>Weird embedder matches</b>: 0.45 floor gates junk; Closest mode makes ranking judgeable; hover ✕ = "not related" hides a pairing per note (v1 hide-only).</li>
-    <li><b>Importance without a legend</b>: pick O1 / O2 / O3 in #m3 — O1 recommended (the app's own circles on each date row, zero new idiom).</li>
+    <li><b>Importance without a legend</b>: <b>O1 PICKED</b> (Tuur, 16 Jul) — the app's own circles on each date row; they always mean the significance YOU set on that note, never an embedder number (closeness = ordering + the flag only). O2/O3 passed on.</li>
     <li><b>Panel replaces the bottom LINKED FROM strip</b>; collapses (#m5) with a count badge, ⌥⌘C, app-wide persisted.</li>
     <li><b>Consent gate in-panel</b> (#m4): phone Journal-gate mirror, one consent also unlocks Mac Journal search; local per-device index, embeddings never sync.</li>
-    <li><b>◆ green markers</b> (#m1) = reading-column micro-improvements you liked in review — parked in backlog, not this build's scope. Sidebar Journal → Review applied (phone parity).</li>
+    <li><b>◆ green markers</b> (#m1), verdicts in: <b>◆1 tags-under-context YES</b> · <b>◆2 compact significance — re-confirm</b> (Tuur's hesitation was a feared clash with an "embedder significance"; no such number exists — circles are always the user's rating — so the objection dissolves, pending his OK) · <b>◆3 chip icons YES</b>. All parked in backlog, not this build's scope. Sidebar Journal → Review applied (phone parity).</li>
     <li><b>Unlinked mentions</b> — out (locked, later idea).</li>
   </ul>
 </div>

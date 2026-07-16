@@ -973,9 +973,12 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   (the arc: rail + line, first-mention sub-line); #m2 = Closest mode (flat best-first rows; hover swaps a
   row's date for **✕ "not related"** = per-note hide — the weird-embedder-match remedy, v1 hide-only,
   on top of the 0.45 floor).
-- **Importance without a legend** = #m3, Tuur picks: **O1** circles on the date row (recommended — the
-  app's own significance idiom, zero new glyphs) / **O2** circles + sized rail dots (calendar idiom) /
-  **O3** circles AS the node marker (experiment). Round-1 size-only dots were confusing → killed.
+- **Importance = O1 PICKED (Tuur, same session)** — circles on the date row ("the three dots to the right
+  are in line with everything else"); O3's left-side triplets felt confusing → out. SEMANTICS LOCKED: the
+  ●●○ circles ALWAYS mean the user-set significance of that note (read-only echo of the header control);
+  the embedder's closeness is a decimal shown ONLY as Closest-mode ordering + the CLOSEST MATCH flag —
+  never circles. (Tuur briefly read the circles as an embedder score → the mock hint now spells it out.
+  Option shelved: a faint per-row % in Closest mode if he ever wants closeness visible.)
 - **#m4** consent gate in-panel (phone Journal-gate copy, 295 MB EmbeddingGemma, same consent unlocks Mac
   Journal search) + downloading/indexing/no-connections; **#m5** collapsed w/ count badge (⌥⌘C) — both
   states Tuur-liked in round 1.
@@ -984,11 +987,10 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
 AFTER sign-off → build phases below (embedder binding → shared index port → panel UI).
 
 **Main-column design notes from Tuur's mock review (2026-07-16 — NOT this feature's scope, park for a
-polish pass; now marked ◆ green in the mock's #m1):** the mock's reading column drifted from the live app
-and Tuur *liked* some of the drift — ⬜ ◆1 tags row directly under the context chips (mock placement)
-instead of under significance; ⬜ ◆2 the live app's significance control "might be a little too big"
-(mock's compact dots read nicer); ⬜ ◆3 maybe icons on the location/weather chips (mock has them, app
-doesn't).
+polish pass; marked ◆ green in the mock's #m1). VERDICTS in (round 2):** ⬜ ◆1 tags row directly under
+the context chips — **YES, liked**; ⬜ ◆2 compact significance dots — **re-confirm**: his hesitation was
+a feared user-vs-embedder significance clash, which doesn't exist (circles = user rating only, see
+semantics above), so likely yes pending his OK; ⬜ ◆3 icons on the location/weather chips — **YES, liked**.
 
 Tuur picked the direction (AskUserQuestion, this session): **connections side-panel + thread-as-timeline +
 why-related chips** — unlinked mentions = later idea. MOCK-FIRST (locked process): no code until an HTML
