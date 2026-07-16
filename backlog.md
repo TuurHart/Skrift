@@ -965,7 +965,7 @@ desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev ins
 prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
 one `now`); mock-first for any NEW UI beyond these signed specs.
 
-### 🕸️ CONTINUE HERE — Connections SHIPPED same-day (2026-07-16); NEXT CHAT = SharedKit wave 2, phone round owed
+### 🕸️ CONTINUE HERE — Connections SHIPPED (2026-07-16); 🧭 SharedKit wave 2 SHIPPED same evening (all 6 ranked items ✅ below + 2 clone-mode items; i10/MemoSaver items fold into their own lanes); STILL OWED: Tuur's Dev eyeball round (Dev at /Applications is ~10 commits behind — redeploy first: build → pkill → ditto → open), the phone device round (blocked on iPhone attached), and the 6 Palette DriftedPair reconciles (one eyeball round, then each collapse is a one-liner)
 
 **SESSION-END STATE (2026-07-16 eve — all committed, main @ 522cae5, 31 local/unpushed):**
 - ✅ VERIFIED this session: shared index+embedder+gate (both unit suites green per chunk: 372 desktop /
@@ -1064,8 +1064,14 @@ RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rule
   closure; SpeakerClustering moved to Shared). FluidAudio bindings stay per-app in the engine layer.
   BONUS: the Mac engine now honors `targetSpeakers` (force-to-N was phone-only) — substrate for the
   "per-note Split speakers on Mac" fast-follow (FEATURES row 29), UI still owed.
-- ⬜ **NamesStore** — the store class itself is twinned (bytes-compatible names.json is shared, the
-  code isn't); largest job.
+- ✅ **NamesStore** — DONE 2026-07-16: ONE `Shared/Naming/NamesStore.swift` (the twins' load/save/
+  livePeople/addVoiceEmbedding were already line-identical; desktop's writeWithSmartBumps/
+  upsert(replacing:)/seedRoster/prune are now the one superset + the phone's convenience upsert kept).
+  Phone editor now saves through `upsert(_:replacing:)` — same path as the Mac (rename keeps
+  enrollment via replace, no tombstone+re-attach dance). Semantics note: delete now tombstones
+  WITHOUT voiceprints on both apps (was: phone kept them on the tombstone) — deleted people don't
+  carry voices, matching what LWW sync already made effective. Phone additionally GAINS (inert,
+  unwired): seedRoster + pruneOldTombstones (the phone never pruned tombstones).
 - ⬜ VocabularyBooster.boost() cores + SpeakerTranscript — already tracked above (SharedKit wave 1
   follow-ups), confirmed by the scan.
 

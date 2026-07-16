@@ -1,11 +1,16 @@
 import Foundation
 
-/// The desktop's source-of-truth `names.json` store — the Mac side of the phone
-/// sync. Mirrors `backend/utils/names_store.py` so the file round-trips verbatim:
-/// contract-faithful encoding, recomputed top-level `lastModifiedAt`, smart
-/// per-entry timestamp bumps on UI saves, tombstones for deletions, and 90-day
-/// tombstone pruning. Pure merge math lives in `NamesMerge`.
+/// THE `names.json` store — ONE class for both apps (SharedKit wave 2; previously
+/// twinned mobile Services/NamesStore.swift vs desktop Pipeline/Sanitisation/
+/// NamesStore.swift — load/save/livePeople/addVoiceEmbedding had already been
+/// hand-mirrored line-for-line). The on-disk schema mirrors the retired
+/// `backend/utils/names_store.py` so the file round-trips verbatim: contract-
+/// faithful encoding, recomputed top-level `lastModifiedAt`, smart per-entry
+/// timestamp bumps on UI saves, tombstones for deletions, 90-day tombstone
+/// pruning. Pure merge math lives in `NamesMerge`; cross-device sync in
+/// `NamesCloudSync` (CloudKit) merges into this local source of truth.
 final class NamesStore {
+
     static let shared = NamesStore()
 
     private let fileURL: URL
@@ -118,6 +123,28 @@ final class NamesStore {
         } else {
             data.people.append(Person(canonical: c, aliases: [], short: nil,
                                       voiceEmbeddings: [embedding], lastModifiedAt: ISO8601.now()))
+        }
+        _ = save(data)
+    }
+
+    /// Add or update a person by canonical (phone convenience — the quick-add
+    /// flow and tests). Partial update: replaces aliases/short, bumps
+    /// `lastModifiedAt`, resurrects a tombstone IN PLACE (keeping voiceprints).
+    func upsert(canonical: String, aliases: [String], short: String?) {
+        let c = NamesMerge.normaliseCanonical(canonical)
+        guard !c.isEmpty else { return }
+        var data = load()
+        let cleanedAliases = aliases.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let cleanedShort = (short?.trimmingCharacters(in: .whitespaces)).flatMap { $0.isEmpty ? nil : $0 }
+        if let idx = data.people.firstIndex(where: { $0.canonical == c }) {
+            var p = data.people[idx]
+            p.aliases = cleanedAliases
+            p.short = cleanedShort
+            p.lastModifiedAt = ISO8601.now()
+            p.deleted = nil
+            data.people[idx] = p
+        } else {
+            data.people.append(Person(canonical: c, aliases: cleanedAliases, short: cleanedShort, lastModifiedAt: ISO8601.now()))
         }
         _ = save(data)
     }

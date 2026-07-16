@@ -204,17 +204,12 @@ struct PersonEditorView: View {
 
     private func save() {
         // One rulebook (Shared/Naming/PersonEditCore): normalise, default-alias,
-        // rename detection, voiceprint carry.
+        // rename detection, voiceprint carry. The shared store upsert replaces the
+        // original entry on a rename (no duplicate, enrollment survives) — same
+        // path as the Mac editor.
         guard let r = PersonEditCore.materialise(fullName: fullName, aliases: aliases,
                                                  short: short, original: original) else { return }
-        // Rename: tombstone the old canonical so we don't leave a duplicate.
-        if let old = r.renamedFrom { store.delete(canonical: old) }
-        store.upsert(canonical: r.person.canonical, aliases: r.person.aliases, short: r.person.short)
-        // A rename writes a FRESH entry — re-attach the carried voiceprints so the
-        // enrollment survives (the desktop editor already did this; phone parity).
-        if r.renamedFrom != nil, let embeddings = r.person.voiceEmbeddings {
-            for e in embeddings { store.addVoiceEmbedding(canonical: r.person.canonical, embedding: e) }
-        }
+        store.upsert(r.person, replacing: original?.canonical)
         NamesCloudSync.run(NotesRepository.shared)   // push to CloudKit so the Mac/iPad get it now
         onSaved(r.person.canonical)
         dismiss()

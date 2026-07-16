@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-16T20:10:00.000Z
+updated: 2026-07-16T20:45:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -171,6 +171,11 @@ nodes:
       moved to ONE compiled copy in Shared/ (the annotated 'mirrors the phone'
       duplicates had already drifted, e.g. the Mac's 'Significant' tier label).
     shipped:
+      - 2026-07-16 · WAVE 2f — NamesStore unified: ONE Shared/Naming class
+        (desktop superset + phone convenience); phone editor saves via
+        upsert(replacing:) like the Mac; phone gains (inert) seedRoster +
+        tombstone pruning. WAVE 2 COMPLETE — every ranked twin-scan item
+        closed, both suites + MLX build green throughout
       - 2026-07-16 · WAVE 2e — engine contracts unified: ONE Transcribing +
         Diarizing protocol pair + result structs + pure clip/identify/cluster
         passes in Shared/Pipeline (embed-closure seam; FluidAudio stays in
