@@ -16,7 +16,7 @@
   ::-webkit-scrollbar{width:8px;background:transparent}
   ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:4px}
   body{margin:0;background:#060608;color:var(--text);
-       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:28px;}
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:14px;}
   h1{font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-.3px;}
   .thesis{color:var(--namelink);font-size:13.5px;margin:0 0 8px;max-width:980px;}
   .v1{display:inline-block;font-size:11px;color:var(--green);background:rgba(52,211,153,.12);padding:2px 9px;border-radius:20px;margin-bottom:20px;}
@@ -26,7 +26,7 @@
   .num{font-variant-numeric:tabular-nums}
 
   /* ── The Mac window (v5 shell) ─────────────────────────────── */
-  .mac{width:1240px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;
+  .mac{width:1150px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;
        box-shadow:0 24px 70px rgba(0,0,0,.55);}
   .titlebar{height:38px;display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--sidebar);border-bottom:1px solid var(--hairline);}
   .dot{width:11px;height:11px;border-radius:50%;}
@@ -360,7 +360,7 @@
   </div>
 </div>
 <p class="hint"><b>The reading column is now the LIVE app</b>, drawn from NoteProperties.swift + SignificanceCircles.swift: context chips (no icons — as shipped), then the properties card — metadata, Include-audio/Export, the 10-circle importance control with the amber <b>refine wall before circle 8</b> (0.8+ notes get a refine pass before export, hence 🔥 REFINE PASS), warm-blended fills past the wall, tier labels, "0.8 · Important" readout — then tags with ✕. Your liked rearrangements live in <b>#m6</b> as an explicit proposal, no longer drawn as if real.</p>
-<p class="hint"><b>Panel rows show P1 (pending your pick in #m3):</b> each row's faint decimal = the importance its owner set on THAT note — the control's own top-right readout, shortened; warm-tinted past the refine wall; <b>unrated notes show nothing</b> (no fake "0.0" — Greywater above). Closeness stays a separate thing: ordering in Closest mode + the CLOSEST MATCH flag, never a number-glyph of its own.</p>
+<p class="hint"><b>Panel rows show P1 (your pick):</b> each row's faint decimal at the date-row's right edge = the importance you set on THAT note — the control's own top-right readout, shortened; warm-tinted past the refine wall; <b>unrated notes show nothing</b> (no fake "0.0" — Greywater above). Closeness stays a separate thing: ordering in Closest mode + the CLOSEST MATCH flag + the hover tooltip (%).</p>
 
 <!-- ═══════════════════ CLOSEST MODE ═══════════════════ -->
 <div class="label" id="m2">#m2 — the SAME panel, toggle flipped to CLOSEST: judge what the embedder found</div>
