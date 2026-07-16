@@ -973,12 +973,15 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   (the arc: rail + line, first-mention sub-line); #m2 = Closest mode (flat best-first rows; hover swaps a
   row's date for **✕ "not related"** = per-note hide — the weird-embedder-match remedy, v1 hide-only,
   on top of the 0.45 floor).
-- **Importance = O1 PICKED (Tuur, same session)** — circles on the date row ("the three dots to the right
-  are in line with everything else"); O3's left-side triplets felt confusing → out. SEMANTICS LOCKED: the
-  ●●○ circles ALWAYS mean the user-set significance of that note (read-only echo of the header control);
-  the embedder's closeness is a decimal shown ONLY as Closest-mode ordering + the CLOSEST MATCH flag —
-  never circles. (Tuur briefly read the circles as an embedder score → the mock hint now spells it out.
-  Option shelved: a faint per-row % in Closest mode if he ever wants closeness visible.)
+- **⚠️ ROUND-3 CORRECTION — the O1 "3-circle" pick is VOID.** The mock had drawn importance as 3 circles
+  (fiction cribbed from an old journal mock); Tuur flagged the mismatch repeatedly and finally
+  screenshotted the app. REAL control = shared `SignificanceScale` (10 steps, 0–1 on a 0.1 grid, tiers
+  Passing/Useful/Important, **0.8 refine wall** + flame tag, nil = Not rated; gates phone→Mac sync).
+  Mock v3: reading column redrawn FROM SOURCE (NoteProperties + SignificanceCircles); row echo options
+  rebuilt honestly — **Tuur re-picks in #m3: P1** decimal readout (recommended) / **P2** micro-bar /
+  **P3** flame-only past the wall; unrated rows show nothing (no fake 0.0). Lesson memorized:
+  `feedback_mock_as_is_from_source`. SEMANTICS unchanged: rows echo USER-set importance; embedder
+  closeness = Closest-mode ordering + CLOSEST MATCH flag only. (Shelved: faint per-row % in Closest mode.)
 - **#m4** consent gate in-panel (phone Journal-gate copy, 295 MB EmbeddingGemma, same consent unlocks Mac
   Journal search) + downloading/indexing/no-connections; **#m5** collapsed w/ count badge (⌥⌘C) — both
   states Tuur-liked in round 1.
@@ -986,11 +989,12 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   (phone-tab parity — memory `feedback_shared_code_first`).
 AFTER sign-off → build phases below (embedder binding → shared index port → panel UI).
 
-**Main-column design notes from Tuur's mock review (2026-07-16 — NOT this feature's scope, park for a
-polish pass; marked ◆ green in the mock's #m1). VERDICTS in (round 2):** ⬜ ◆1 tags row directly under
-the context chips — **YES, liked**; ⬜ ◆2 compact significance dots — **re-confirm**: his hesitation was
-a feared user-vs-embedder significance clash, which doesn't exist (circles = user rating only, see
-semantics above), so likely yes pending his OK; ⬜ ◆3 icons on the location/weather chips — **YES, liked**.
+**Main-column polish proposal (2026-07-16 — NOT this feature's scope; now an explicit boxed proposal =
+mock #m6, no longer drawn as if real):** ⬜ ① tags move UP under the context chips (today: bottom of the
+properties card) — Tuur liked; ⬜ ② importance control one size down (10px circles, drop the tier caption
+row; today's full-size row IS the signed-off significance-circles spec — this is a feel question, "might
+be a little too big", not a bug); ⬜ ③ icons on the context chips (code already passes a symbol per chip —
+`MacContextChip(systemImage:)` — but Tuur's chips render without; check why + turn on) — Tuur liked.
 
 Tuur picked the direction (AskUserQuestion, this session): **connections side-panel + thread-as-timeline +
 why-related chips** — unlinked mentions = later idea. MOCK-FIRST (locked process): no code until an HTML

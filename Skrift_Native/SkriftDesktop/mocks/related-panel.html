@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Connections on the Mac — Related + thread + backlinks (mock v2)</title>
+<title>Connections on the Mac — Related + thread + backlinks (mock v3)</title>
 <style>
   /* Desktop Theme.swift tokens (dark), 1:1 — same set as journal-desktop.html */
   :root{
     --bg:#0F1117; --sidebar:#15171F; --surface:#181A23; --hover:#1E2130;
     --text:#E4E4E7; --dim:#8B8B97; --faint:#55556A;
     --accent:#7C6BF5; --green:#34D399; --amber:#F59E0B; --namelink:#9D8FF7;
+    --warmfill:#C2896D; --warmtext:#B98480; /* SignificanceCircles oklab-blend approximations */
     --hairline:rgba(255,255,255,.07); --hairline2:rgba(255,255,255,.12);
   }
   *{box-sizing:border-box}
@@ -30,7 +31,7 @@
   .titlebar{height:38px;display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--sidebar);border-bottom:1px solid var(--hairline);}
   .dot{width:11px;height:11px;border-radius:50%;}
   .titlebar .appname{margin-left:10px;font-size:11.5px;color:var(--faint);font-weight:600;}
-  .win{display:flex;height:660px;}
+  .win{display:flex;height:720px;}
 
   /* App sidebar with the Queue | Review mode switch (phone-tab parity) */
   .side{width:212px;background:var(--sidebar);border-right:1px solid var(--hairline);padding:12px 10px;flex:none;display:flex;flex-direction:column;}
@@ -71,16 +72,36 @@
 
   .scroll{flex:1;overflow:auto;display:flex;justify-content:center;}
   .col{width:640px;max-width:calc(100% - 72px);padding:26px 0 40px;}
-  .ntitle{font-size:21px;font-weight:750;letter-spacing:-.2px;margin:0 0 8px;}
-  .ctx{display:flex;gap:7px;margin-bottom:9px;align-items:center;}
-  .cchip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--dim);
-         background:rgba(255,255,255,.045);border-radius:11px;padding:2.5px 9px;}
-  .tagrow{display:flex;gap:7px;align-items:center;margin-bottom:20px;}
-  .tag{font-size:10.5px;color:var(--namelink);background:rgba(124,107,245,.12);border-radius:11px;padding:2.5px 9px;}
+  .ntitle{font-size:21px;font-weight:750;letter-spacing:-.2px;margin:0 0 10px;}
+  .ctx{display:flex;gap:6px;margin-bottom:14px;align-items:center;}
+  .cchip{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:var(--dim);
+         background:rgba(255,255,255,.045);border-radius:7px;padding:2px 7px;}
+
+  /* ── The properties card — drawn from NoteProperties.swift + SignificanceCircles.swift ── */
+  .pcard{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.022);border-radius:12px;
+         padding:14px 16px;margin:0 0 18px;}
+  .pmeta{display:flex;gap:28px;font-size:11px;color:var(--dim);}
+  .pmeta b{display:block;font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:1px;}
+  .pdiv{height:1px;background:rgba(255,255,255,.05);margin:12px 0;}
+  .prow{display:flex;align-items:center;font-size:11.5px;color:var(--dim);gap:8px;}
+  .prow .exp{margin-left:auto;color:var(--accent);font-size:11px;font-weight:600;}
+  .sighead{display:flex;align-items:baseline;}
+  .sighead .lbl{font-size:11px;color:var(--faint);}
+  .sighead .val{margin-left:auto;font-size:11.5px;font-weight:650;color:var(--warmtext);font-variant-numeric:tabular-nums;}
+  .sig10{display:flex;align-items:center;gap:7px;margin-top:9px;}
+  .sig10 .c{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(255,255,255,.14);}
+  .sig10 .c.lit{background:var(--accent);border-color:var(--accent);box-shadow:0 1px 2.5px rgba(124,107,245,.35);}
+  .sig10 .c.warm{background:var(--warmfill);border-color:var(--warmfill);box-shadow:0 0 4px rgba(245,158,11,.3);}
+  .sig10 .wall{width:1px;height:18px;background:rgba(245,158,11,.35);border-radius:.5px;}
+  .sig10 .flame{color:var(--amber);font-size:9px;font-weight:800;letter-spacing:.54px;margin-left:6px;white-space:nowrap;}
+  .tierrow{display:flex;gap:7px;margin-top:7px;font-size:9px;letter-spacing:.63px;color:var(--faint);}
+  .tierrow span{text-align:center;}
+  .tierrow .active{color:var(--amber);}
+  .tagline{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--namelink);background:rgba(124,107,245,.12);border-radius:11px;padding:2.5px 9px;}
+  .tag .x{color:var(--faint);font-size:9px;}
   .addtag{font-size:10.5px;color:var(--faint);border:1px dashed var(--hairline2);border-radius:11px;padding:2px 9px;}
-  .imp{display:flex;gap:2.5px;margin-left:auto;}
-  .imp i{width:6px;height:6px;border-radius:50%;background:var(--accent);font-style:normal;}
-  .imp i.off{background:var(--hairline2);}
+
   .summary{border-left:2px solid rgba(124,107,245,.5);padding:2px 0 2px 12px;margin:0 0 18px;}
   .summary .k{font-size:9.5px;letter-spacing:.5px;color:var(--accent);font-weight:700;margin-bottom:2px;}
   .summary p{margin:0;font-size:12px;color:var(--dim);font-style:italic;}
@@ -111,10 +132,15 @@
   .sortpill .on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.4);}
   .sortsub{font-size:9.5px;color:var(--faint);margin:0 0 10px;}
 
-  /* importance circles on a row — the app's own significance idiom, no legend needed */
-  .rimp{display:flex;gap:2px;margin-left:auto;align-self:center;}
-  .rimp i{width:4px;height:4px;border-radius:50%;background:var(--accent);font-style:normal;}
-  .rimp i.off{background:var(--hairline2);}
+  /* importance echo on a row — P1: the control's own decimal readout (warm ≥ 0.8, nothing when unrated) */
+  .sig{margin-left:auto;align-self:center;font-size:9px;font-weight:700;color:var(--accent);opacity:.9;font-variant-numeric:tabular-nums;}
+  .sig.warm{color:var(--warmtext);}
+  /* P2: micro-bar (the control's silhouette) */
+  .sbar{width:24px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-left:auto;align-self:center;position:relative;overflow:hidden;}
+  .sbar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--accent);}
+  .sbar i.warm{background:var(--warmfill);}
+  /* P3: flame-only (refine tier is the one threshold with downstream meaning) */
+  .sfl{margin-left:auto;align-self:center;font-size:9px;}
 
   /* thread rail (Date mode) */
   .rail{position:relative;}
@@ -123,22 +149,12 @@
   .rnode:last-child::before{display:none;}
   .rdot{position:absolute;left:.25px;top:4px;width:10px;height:10px;border-radius:50%;
         border:2px solid var(--faint);background:var(--sidebar);}
-  .rdot.i1{width:7px;height:7px;left:1.75px;top:5.5px;}
-  .rdot.i3{width:13px;height:13px;left:-1.25px;top:2.5px;box-shadow:0 0 7px rgba(124,107,245,.4);}
   .rnode.first .rdot{border-color:var(--accent);}
   .rnode.this .rdot{border-color:var(--accent);background:var(--accent);box-shadow:0 0 8px rgba(124,107,245,.55);top:11px;}
   .rwhen{display:flex;gap:6px;align-items:baseline;font-size:9px;letter-spacing:.4px;font-weight:700;color:var(--faint);text-transform:uppercase;margin-bottom:2px;}
   .rwhen .flag{color:var(--accent);}
   .rtitle{font-size:12px;font-weight:600;color:var(--text);line-height:1.3;}
   .rnode.this .card{background:rgba(124,107,245,.10);border:1px solid rgba(124,107,245,.4);border-radius:9px;padding:7px 9px;}
-
-  /* O3 experiment: the circles ARE the node marker */
-  .rtrip{position:absolute;left:-3.5px;top:7px;display:flex;gap:1.5px;background:var(--sidebar);padding:1px 2px;border-radius:4px;}
-  .rtrip i{width:4.5px;height:4.5px;border-radius:50%;background:var(--accent);font-style:normal;}
-  .rtrip i.off{background:var(--hairline2);}
-
-  /* ◆ green = reading-column details the mock does BETTER than the live app (marked, parked) */
-  .prop{color:var(--green);font-weight:800;font-size:9px;vertical-align:super;margin-left:3px;}
 
   /* why-related chips */
   .why{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
@@ -153,7 +169,7 @@
   .rrow .top{display:flex;align-items:baseline;gap:6px;}
   .rrow .top .ti{font-size:12px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .rrow .top .d{font-size:9.5px;color:var(--faint);}
-  .rrow .top .rimp{margin-left:0;}
+  .rrow .top .sig{margin-left:0;}
   .rrow.hov{background:var(--hover);border-color:var(--hairline2);}
 
   /* linked-from rows */
@@ -180,7 +196,8 @@
   .closeup{width:300px;background:var(--sidebar);border:1px solid #000;border-radius:12px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.45);}
   .closeup .cap{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);background:#101219;padding:7px 12px;border-bottom:1px solid var(--hairline);font-weight:700;}
   .closeup .cap b{color:var(--green);}
-  .closeup .inner{min-height:340px;display:flex;flex-direction:column;}
+  .closeup .inner{min-height:240px;display:flex;flex-direction:column;}
+  .closeup.wide{width:600px;background:var(--bg);}
 
   /* decisions footer */
   .decisions{max-width:1180px;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:16px 20px;margin-top:30px;}
@@ -192,11 +209,11 @@
 <body>
 
 <h1>Connections on the Mac</h1>
-<p class="thesis">One Connections panel on the review surface: a single list of this note's neighbourhood with a one-click Date ⇄ Closest sort toggle (Date = the arc of the idea, Closest = judge what the embedder found), why-chips on every row, backlinks below.</p>
-<span class="v1">round 2 · one panel + Date⇄Closest pill · importance = O1 picked (Tuur, 16 Jul) · awaiting final sign-off</span>
+<p class="thesis">One Connections panel on the review surface: a single list of this note's neighbourhood with a one-click Date ⇄ Closest sort toggle, why-chips on every row, backlinks below. Round 3: the reading column is now drawn from the REAL app code (10-step importance, refine wall, tags-with-×) — the earlier 3-circle importance echo was fiction and its pick is void.</p>
+<span class="v1">round 3 · properties = real SignificanceScale (10 steps, 0–1, refine wall 0.8) · re-pick the row echo in #m3 (P1/P2/P3)</span>
 
 <!-- ═══════════════════ THE PANEL · DATE MODE ═══════════════════ -->
-<div class="label" id="m1">#m1 — THE PANEL · Date mode: one list, the arc of the idea, sort flips with ONE click</div>
+<div class="label" id="m1">#m1 — THE PANEL · Date mode — reading column now matches the live app</div>
 <div class="mac">
   <div class="titlebar">
     <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
@@ -225,7 +242,7 @@
           <div class="track"><i></i></div>
           <span class="time num">1:47</span>
           <div class="acts">
-            <span>✨</span><span>⧉</span><span>↥</span>
+            <span title="Enhance">✨</span><span title="Copy">⧉</span><span title="Export">↥</span>
             <div class="ptoggle on" title="Connections"><i></i></div>
           </div>
         </div>
@@ -233,12 +250,39 @@
       <div class="scroll"><div class="col">
         <div class="ntitle">Drip irrigation for the rooftop planters</div>
         <div class="ctx">
-          <span class="cchip">📍 Lisbon</span><span class="cchip">☀️ 24°</span><span class="cchip">Afternoon</span><span class="prop">◆3</span>
+          <span class="cchip">Lisbon</span><span class="cchip">24°</span><span class="cchip">Afternoon</span>
         </div>
-        <div class="tagrow">
-          <span class="tag">#garden</span><span class="tag">#home</span><span class="addtag">+ add tag</span><span class="prop">◆1</span>
-          <div class="imp"><i></i><i></i><i class="off"></i></div><span class="prop">◆2</span>
+
+        <div class="pcard">
+          <div class="pmeta">
+            <div><b>recorded</b>Wed 16 Jul, 14:32</div>
+            <div><b>duration</b><span class="num">1:47</span></div>
+          </div>
+          <div class="pdiv"></div>
+          <div class="prow"><span>☑︎ Include audio file</span><span class="exp">Export ↥</span></div>
+          <div class="pdiv"></div>
+          <div class="sighead"><span class="lbl">importance</span><span class="val">0.8 · Important</span></div>
+          <div class="sig10">
+            <div class="c lit"></div><div class="c lit"></div><div class="c lit"></div>
+            <div class="c lit"></div><div class="c lit"></div><div class="c lit"></div>
+            <div class="c lit"></div>
+            <div class="wall"></div>
+            <div class="c warm"></div><div class="c"></div><div class="c"></div>
+            <span class="flame">🔥 REFINE PASS</span>
+          </div>
+          <div class="tierrow">
+            <span style="width:53px">PASSING</span>
+            <span style="width:53px">USEFUL</span>
+            <span style="width:81px" class="active">IMPORTANT</span>
+          </div>
+          <div class="pdiv"></div>
+          <div class="tagline">
+            <span class="tag">#garden <span class="x">✕</span></span>
+            <span class="tag">#home <span class="x">✕</span></span>
+            <span class="addtag">+ add tag</span>
+          </div>
         </div>
+
         <div class="summary">
           <div class="k">SUMMARY</div>
           <p>Gravity-fed drip plan for the rooftop planters — parts list, and a pressure fallback before buying a pump.</p>
@@ -266,38 +310,38 @@
         <div class="rail">
           <div class="rnode first">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
+            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="sig">0.3</span></div>
             <div class="rtitle">Rooftop garden — first sketch</div>
             <div class="why"><span class="wchip tag">#garden</span><span class="wchip term">planters</span></div>
           </div>
           <div class="rnode">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">3 Apr</span><span class="rimp"><i></i><i></i><i class="off"></i></span></div>
+            <div class="rwhen"><span class="num">3 Apr</span><span class="sig">0.6</span></div>
             <div class="rtitle">Planter boxes with Jack</div>
             <div class="why"><span class="wchip person">Jack W.</span><span class="wchip tag">#garden</span></div>
           </div>
           <div class="rnode">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">14 Apr</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
+            <div class="rwhen"><span class="num">14 Apr</span><span class="sig">0.4</span></div>
             <div class="rtitle">Balcony herbs from seed</div>
             <div class="why"><span class="wchip person">Sofia</span><span class="wchip tag">#garden</span></div>
           </div>
           <div class="rnode">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="rimp"><i></i><i></i><i></i></span></div>
+            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="sig warm">0.9</span></div>
             <div class="rtitle">Water butt + pump sizing</div>
             <div class="why"><span class="wchip term">pump</span><span class="wchip term">water butt</span><span class="wchip more">+1</span></div>
           </div>
           <div class="rnode">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">30 Jun</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
+            <div class="rwhen"><span class="num">30 Jun</span></div>
             <div class="rtitle">Greywater reuse idea</div>
             <div class="why"><span class="wchip term">water</span></div>
           </div>
           <div class="rnode this">
             <div class="rdot"></div>
             <div class="card">
-              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="rimp"><i></i><i></i><i class="off"></i></span></div>
+              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="sig warm">0.8</span></div>
               <div class="rtitle">Drip irrigation for the rooftop planters</div>
             </div>
           </div>
@@ -311,15 +355,15 @@
     </div>
   </div>
 </div>
-<p class="hint"><b style="color:#34D399">◆ green markers = mock-nicer-than-app</b> (your round-1 review; parked in backlog, NOT this build's scope): <b>◆1</b> tags directly under the context chips (live app has them under significance) · <b>◆2</b> compact significance dots (live control "might be a little too big") · <b>◆3</b> icons on the location/weather chips. Sidebar label Journal → <b>Review</b> = phone-tab parity, applied everywhere.</p>
-<p class="hint"><b>One list, two orders, one click.</b> Thread and Related are the same note set (verified in code), so the panel shows ONE list and the pill just re-sorts it: <b>Date</b> = the arc, first mention → today, rail + line; <b>Closest</b> = best match first (#m2). Exactly two orders, no menus — and it's the same pill idiom as Queue|Review, so it teaches itself. Default Date, remembered app-wide. Why-chips per row (<span style="color:#9D8FF7">person</span> / <span style="color:#7C6BF5">#tag</span> / term). <b>The ●●○ circles = the significance YOU gave that note</b> (read-only echo of the header control — never an AI number); the embedder's closeness is a decimal and shows ONLY as ordering in Closest mode + the CLOSEST MATCH flag. Click a row → that memo opens in this pane, the highlight hops. The bottom LINKED FROM strip is gone — backlinks live here.</p>
+<p class="hint"><b>The reading column is now the LIVE app</b>, drawn from NoteProperties.swift + SignificanceCircles.swift: context chips (no icons — as shipped), then the properties card — metadata, Include-audio/Export, the 10-circle importance control with the amber <b>refine wall before circle 8</b> (0.8+ notes get a refine pass before export, hence 🔥 REFINE PASS), warm-blended fills past the wall, tier labels, "0.8 · Important" readout — then tags with ✕. Your liked rearrangements live in <b>#m6</b> as an explicit proposal, no longer drawn as if real.</p>
+<p class="hint"><b>Panel rows show P1 (pending your pick in #m3):</b> each row's faint decimal = the importance its owner set on THAT note — the control's own top-right readout, shortened; warm-tinted past the refine wall; <b>unrated notes show nothing</b> (no fake "0.0" — Greywater above). Closeness stays a separate thing: ordering in Closest mode + the CLOSEST MATCH flag, never a number-glyph of its own.</p>
 
 <!-- ═══════════════════ CLOSEST MODE ═══════════════════ -->
 <div class="label" id="m2">#m2 — the SAME panel, toggle flipped to CLOSEST: judge what the embedder found</div>
 <div class="row">
   <div class="closeup">
     <div class="cap">panel · closest mode</div>
-    <div class="inner">
+    <div class="inner" style="min-height:340px">
       <div class="chead"><b>Connections</b><span class="cnt num">7</span><span class="fold">»</span></div>
       <div class="csec">
         <div class="sortrow">
@@ -327,23 +371,23 @@
         </div>
         <div class="sortsub">best match first · odd matches sink to the bottom</div>
         <div class="rrow">
-          <div class="top"><span class="ti">Water butt + pump sizing</span><span class="rimp"><i></i><i></i><i></i></span><span class="d num">26 May</span></div>
+          <div class="top"><span class="ti">Water butt + pump sizing</span><span class="sig warm">0.9</span><span class="d num">26 May</span></div>
           <div class="why"><span class="wchip term">pump</span><span class="wchip term">water butt</span><span class="wchip tag">#garden</span></div>
         </div>
         <div class="rrow">
-          <div class="top"><span class="ti">Planter boxes with Jack</span><span class="rimp"><i></i><i></i><i class="off"></i></span><span class="d num">3 Apr</span></div>
+          <div class="top"><span class="ti">Planter boxes with Jack</span><span class="sig">0.6</span><span class="d num">3 Apr</span></div>
           <div class="why"><span class="wchip person">Jack W.</span><span class="wchip tag">#garden</span></div>
         </div>
         <div class="rrow">
-          <div class="top"><span class="ti">Balcony herbs from seed</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span><span class="d num">14 Apr</span></div>
+          <div class="top"><span class="ti">Balcony herbs from seed</span><span class="sig">0.4</span><span class="d num">14 Apr</span></div>
           <div class="why"><span class="wchip person">Sofia</span><span class="wchip tag">#garden</span></div>
         </div>
         <div class="rrow">
-          <div class="top"><span class="ti">Rooftop garden — first sketch</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span><span class="d num">12 Mar</span></div>
+          <div class="top"><span class="ti">Rooftop garden — first sketch</span><span class="sig">0.3</span><span class="d num">12 Mar</span></div>
           <div class="why"><span class="wchip tag">#garden</span><span class="wchip term">planters</span></div>
         </div>
         <div class="rrow hov">
-          <div class="top"><span class="ti">Greywater reuse idea</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span><span class="d" style="font-size:11.5px;color:var(--dim)">✕</span></div>
+          <div class="top"><span class="ti">Greywater reuse idea</span><span class="d" style="font-size:11.5px;color:var(--dim)">✕</span></div>
           <div class="why"><span class="wchip term">water</span></div>
         </div>
 
@@ -355,30 +399,35 @@
     </div>
   </div>
 </div>
-<p class="hint"><b>The "weird embedder matches" answer, in three layers:</b> the index already floor-gates junk (cosine ≥ 0.45 or a note never appears); Closest mode makes the ranking <b>visible</b> so a strange match is judgeable at a glance (it sits low, its why-chips look thin); and on hover a row's date swaps for <b>✕ — "not related"</b>, which hides that pairing for good (bottom row shown hovered; v1 = a per-note hide list, nothing fancier). No timeline chrome in this mode — dates sit right, flat rows, LINKED FROM unchanged below.</p>
+<p class="hint"><b>The "weird embedder matches" answer, in three layers:</b> the index floor-gates junk (cosine ≥ 0.45 or a note never appears); Closest mode makes the ranking <b>visible</b> so a strange match is judgeable at a glance (it sits low, its why-chips look thin); and on hover a row's date swaps for <b>✕ — "not related"</b>, which hides that pairing for good (bottom row shown hovered; v1 = a per-note hide list). Greywater is unrated, so no importance decimal — nothing shown beats a fake 0.0.</p>
 
-<!-- ═══════════════════ IMPORTANCE TREATMENTS ═══════════════════ -->
-<div class="label" id="m3">#m3 — importance on the rail WITHOUT a legend: pick one</div>
+<!-- ═══════════════════ IMPORTANCE ECHO — RE-PICK ═══════════════════ -->
+<div class="label" id="m3">#m3 — how a row echoes the REAL 0–1 importance (O1 was void — pick again)</div>
 <div class="row">
   <div class="closeup">
-    <div class="cap">O1 · circles on the date row — <b>PICKED (Tuur, 16 Jul)</b></div>
-    <div class="inner" style="min-height:240px">
+    <div class="cap">P1 · the decimal readout — <b>recommended</b></div>
+    <div class="inner">
       <div class="csec" style="padding-top:14px">
         <div class="rail">
           <div class="rnode first">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
+            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="sig">0.3</span></div>
             <div class="rtitle">Rooftop garden — first sketch</div>
           </div>
           <div class="rnode">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="rimp"><i></i><i></i><i></i></span></div>
+            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="sig warm">0.9</span></div>
             <div class="rtitle">Water butt + pump sizing</div>
+          </div>
+          <div class="rnode">
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">30 Jun</span></div>
+            <div class="rtitle">Greywater reuse idea <span style="font-size:9px;color:var(--faint)">(unrated — shows nothing)</span></div>
           </div>
           <div class="rnode this">
             <div class="rdot"></div>
             <div class="card">
-              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="rimp"><i></i><i></i><i class="off"></i></span></div>
+              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="sig warm">0.8</span></div>
               <div class="rtitle">Drip irrigation for the rooftop planters</div>
             </div>
           </div>
@@ -387,24 +436,29 @@
     </div>
   </div>
   <div class="closeup">
-    <div class="cap">O2 · circles + dot size (calendar idiom kept)</div>
-    <div class="inner" style="min-height:240px">
+    <div class="cap">P2 · micro-bar (the control's silhouette)</div>
+    <div class="inner">
       <div class="csec" style="padding-top:14px">
         <div class="rail">
           <div class="rnode first">
-            <div class="rdot i1"></div>
-            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="sbar"><i style="width:30%"></i></span></div>
             <div class="rtitle">Rooftop garden — first sketch</div>
           </div>
           <div class="rnode">
-            <div class="rdot i3"></div>
-            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="rimp"><i></i><i></i><i></i></span></div>
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="sbar"><i class="warm" style="width:90%"></i></span></div>
             <div class="rtitle">Water butt + pump sizing</div>
+          </div>
+          <div class="rnode">
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">30 Jun</span></div>
+            <div class="rtitle">Greywater reuse idea</div>
           </div>
           <div class="rnode this">
             <div class="rdot"></div>
             <div class="card">
-              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="rimp"><i></i><i></i><i class="off"></i></span></div>
+              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="sbar"><i class="warm" style="width:80%"></i></span></div>
               <div class="rtitle">Drip irrigation for the rooftop planters</div>
             </div>
           </div>
@@ -413,24 +467,29 @@
     </div>
   </div>
   <div class="closeup">
-    <div class="cap">O3 · the circles ARE the node marker (experiment)</div>
-    <div class="inner" style="min-height:240px">
+    <div class="cap">P3 · flame only past the refine wall</div>
+    <div class="inner">
       <div class="csec" style="padding-top:14px">
         <div class="rail">
           <div class="rnode first">
-            <div class="rtrip"><i></i><i class="off"></i><i class="off"></i></div>
+            <div class="rdot"></div>
             <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span></div>
             <div class="rtitle">Rooftop garden — first sketch</div>
           </div>
           <div class="rnode">
-            <div class="rtrip"><i></i><i></i><i></i></div>
-            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span></div>
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="sfl">🔥</span></div>
             <div class="rtitle">Water butt + pump sizing</div>
           </div>
+          <div class="rnode">
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">30 Jun</span></div>
+            <div class="rtitle">Greywater reuse idea</div>
+          </div>
           <div class="rnode this">
-            <div class="rtrip"><i></i><i></i><i class="off"></i></div>
+            <div class="rdot"></div>
             <div class="card">
-              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span></div>
+              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="sfl">🔥</span></div>
               <div class="rtitle">Drip irrigation for the rooftop planters</div>
             </div>
           </div>
@@ -439,7 +498,7 @@
     </div>
   </div>
 </div>
-<p class="hint"><b>Why no legend is needed:</b> the ●●○ circles are the app's OWN significance control — the same glyph sits in this note's header a hand-width to the left, so the mapping is already learned. <b>O1</b> keeps the rail dots as calm, uniform anchors and puts the circles on each date row (zero new idiom) — <b style="color:#34D399">PICKED</b>: "the three dots to the right are in line with everything else"; the left-side circle-triplets (O3) felt like possible confusion. <b>O2</b> additionally scales the rail dot like the Journal calendar does (far-glance skimming, slightly busier — this was round 1's confusing bit, now self-explained by the circles beside it). <b>O3</b> makes the circle-triplet itself the node marker — boldest and most compact, but 4.5 px circles get fiddly and the first-mention/this-note dot cues lose their anchor.</p>
+<p class="hint"><b>All three are honest echoes of the real scale</b> (0–1 decimal, refine wall at 0.8, unrated = nothing shown). <b>P1</b> reuses the control's own readout — exact, tiny, zero new glyphs; warm color = past the wall. <b>P2</b> is the control's shape as a 24 px bar — glanceable "how full", less exact. <b>P3</b> is the quietest: only the one threshold that changes behavior (refine pass) gets a mark, everything else stays unmarked. A 10-circle miniature per row was rejected outright — unreadable at row size.</p>
 
 <!-- ═══════════════════ GATE + EMPTY ═══════════════════ -->
 <div class="label" id="m4">#m4 — Empty states: the consent gate (no index yet) + downloading / indexing / no-connections</div>
@@ -470,7 +529,7 @@
       </div>
       <div class="scroll"><div class="col">
         <div class="ntitle">Drip irrigation for the rooftop planters</div>
-        <div class="ctx"><span class="cchip">📍 Lisbon</span><span class="cchip">☀️ 24°</span><span class="cchip">Afternoon</span></div>
+        <div class="ctx"><span class="cchip">Lisbon</span><span class="cchip">24°</span><span class="cchip">Afternoon</span></div>
         <div class="prose">
           <p>Walked the rooftop with <span class="nl">Jack W.</span> this afternoon — the planters on the south edge dry out by lunchtime, so hand-watering is officially over…</p>
         </div>
@@ -492,7 +551,7 @@
 <div class="row" style="margin-top:14px">
   <div class="closeup">
     <div class="cap">panel · downloading</div>
-    <div class="inner">
+    <div class="inner" style="min-height:340px">
       <div class="chead"><b>Connections</b><span class="fold">»</span></div>
       <div class="gate" style="padding-top:70px">
         <div class="glyph">✨</div>
@@ -504,7 +563,7 @@
   </div>
   <div class="closeup">
     <div class="cap">panel · building the index</div>
-    <div class="inner">
+    <div class="inner" style="min-height:340px">
       <div class="chead"><b>Connections</b><span class="fold">»</span></div>
       <div class="gate" style="padding-top:70px">
         <div class="glyph">🕸</div>
@@ -516,7 +575,7 @@
   </div>
   <div class="closeup">
     <div class="cap">panel · index on, nothing yet</div>
-    <div class="inner">
+    <div class="inner" style="min-height:340px">
       <div class="chead"><b>Connections</b><span class="cnt num">0</span><span class="fold">»</span></div>
       <div class="gate" style="padding-top:60px">
         <div class="glyph" style="opacity:.5">🕸</div>
@@ -564,11 +623,7 @@
       </div>
       <div class="scroll"><div class="col" style="width:720px">
         <div class="ntitle">Drip irrigation for the rooftop planters</div>
-        <div class="ctx"><span class="cchip">📍 Lisbon</span><span class="cchip">☀️ 24°</span><span class="cchip">Afternoon</span></div>
-        <div class="tagrow">
-          <span class="tag">#garden</span><span class="tag">#home</span><span class="addtag">+ add tag</span>
-          <div class="imp"><i></i><i></i><i class="off"></i></div>
-        </div>
+        <div class="ctx"><span class="cchip">Lisbon</span><span class="cchip">24°</span><span class="cchip">Afternoon</span></div>
         <div class="prose">
           <p>Walked the rooftop with <span class="nl">Jack W.</span> this afternoon — the planters on the south edge dry out by lunchtime, so hand-watering is officially over. We're going with a gravity-fed drip line off the water butt, one loop per row.</p>
           <p>If the pressure off the butt is too low we raise it onto breeze blocks before buying a pump. <span class="nl">Sofia</span> thinks the herbs should move to the east wall either way. <span class="itag">#garden</span></p>
@@ -579,16 +634,48 @@
 </div>
 <p class="hint"><b>Collapsed = fully gone</b> — the reading column takes the width back; no backlinks strip returns (the panel owns connections, hidden means hidden). The toolbar toggle keeps a <b>count badge</b> so a folded panel still whispers that this note connects somewhere. Toggle = click or <b>⌥⌘C</b>; the state is app-wide (not per note) and persists across launches. The header » chevron folds it too.</p>
 
+<!-- ═══════════════════ PARKED POLISH PROPOSAL ═══════════════════ -->
+<div class="label" id="m6">#m6 — PARKED polish proposal (your round-1 likes) — explicitly NOT the current app, NOT this build</div>
+<div class="row">
+  <div class="closeup wide">
+    <div class="cap">proposal · reading-column rearrangement (park for a later pass)</div>
+    <div class="inner" style="min-height:0;padding:18px 22px">
+      <div class="ntitle" style="font-size:17px">Drip irrigation for the rooftop planters</div>
+      <div class="ctx">
+        <span class="cchip">📍 Lisbon</span><span class="cchip">☀️ 24°</span><span class="cchip">Afternoon</span>
+      </div>
+      <div class="tagline" style="margin-bottom:14px">
+        <span class="tag">#garden <span class="x">✕</span></span>
+        <span class="tag">#home <span class="x">✕</span></span>
+        <span class="addtag">+ add tag</span>
+      </div>
+      <div class="pcard" style="margin-bottom:0">
+        <div class="sighead"><span class="lbl">importance</span><span class="val">0.8 · Important</span></div>
+        <div class="sig10" style="margin-top:8px">
+          <div class="c lit" style="width:10px;height:10px"></div><div class="c lit" style="width:10px;height:10px"></div><div class="c lit" style="width:10px;height:10px"></div>
+          <div class="c lit" style="width:10px;height:10px"></div><div class="c lit" style="width:10px;height:10px"></div><div class="c lit" style="width:10px;height:10px"></div>
+          <div class="c lit" style="width:10px;height:10px"></div>
+          <div class="wall" style="height:14px"></div>
+          <div class="c warm" style="width:10px;height:10px"></div><div class="c" style="width:10px;height:10px"></div><div class="c" style="width:10px;height:10px"></div>
+          <span class="flame">🔥 REFINE PASS</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>What this box proposes</b> (all parked in backlog): <b>①</b> tags move UP, directly under the context chips (today they sit at the bottom of the properties card); <b>②</b> the importance control drawn one size down (10 px circles, no tier caption row — the tier still reads from the value text) for your "mine might be a little too big"; <b>③</b> icons on the context chips (the code already supports a symbol per chip; yours render without). The current live layout stays the signed-off significance-circles spec until you decide this.</p>
+
 <!-- ═══════════════════ DECISIONS ═══════════════════ -->
 <div class="decisions">
-  <h3>Design decisions — round 2 state</h3>
+  <h3>Design decisions — round 3 state</h3>
   <ul>
-    <li><b>One list + a sort toggle</b> (your call, round 1): Date ⇄ Closest, single click, same pill idiom as Queue|Review. Default Date; remembered app-wide. Date = timeline rail (#m1), Closest = flat best-first rows (#m2). Exactly two orders, ever.</li>
+    <li><b>One list + a sort toggle</b>: Date ⇄ Closest, single click, same pill idiom as Queue|Review. Default Date; remembered app-wide. Date = timeline rail (#m1), Closest = flat best-first rows (#m2). Exactly two orders, ever.</li>
+    <li><b>Importance echo on rows — RE-PICK OPEN (#m3)</b>: the earlier O1 "three circles" pick is <b>void</b> — it was drawn against a control that doesn't exist. Real scale = shared 10-step 0–1 SignificanceScale (tiers Passing/Useful/Important, refine wall 0.8, nil = Not rated). Honest options: <b>P1</b> decimal readout (recommended) / <b>P2</b> micro-bar / <b>P3</b> flame-only. Unrated rows always show nothing.</li>
+    <li><b>Semantics unchanged</b>: rows echo the USER-set importance of that note; the embedder's closeness shows only as Closest-mode ordering + the CLOSEST MATCH flag.</li>
     <li><b>Weird embedder matches</b>: 0.45 floor gates junk; Closest mode makes ranking judgeable; hover ✕ = "not related" hides a pairing per note (v1 hide-only).</li>
-    <li><b>Importance without a legend</b>: <b>O1 PICKED</b> (Tuur, 16 Jul) — the app's own circles on each date row; they always mean the significance YOU set on that note, never an embedder number (closeness = ordering + the flag only). O2/O3 passed on.</li>
     <li><b>Panel replaces the bottom LINKED FROM strip</b>; collapses (#m5) with a count badge, ⌥⌘C, app-wide persisted.</li>
     <li><b>Consent gate in-panel</b> (#m4): phone Journal-gate mirror, one consent also unlocks Mac Journal search; local per-device index, embeddings never sync.</li>
-    <li><b>◆ green markers</b> (#m1), verdicts in: <b>◆1 tags-under-context YES</b> · <b>◆2 compact significance — re-confirm</b> (Tuur's hesitation was a feared clash with an "embedder significance"; no such number exists — circles are always the user's rating — so the objection dissolves, pending his OK) · <b>◆3 chip icons YES</b>. All parked in backlog, not this build's scope. Sidebar Journal → Review applied (phone parity).</li>
+    <li><b>Reading-column polish</b> = #m6, an explicit parked proposal (tags-under-chips ① / slimmer importance ② / chip icons ③); the live layout is the signed-off spec until then. Sidebar Journal → Review applied (phone parity).</li>
     <li><b>Unlinked mentions</b> — out (locked, later idea).</li>
   </ul>
 </div>
