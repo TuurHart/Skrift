@@ -967,18 +967,28 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
 
 ### 🕸️ CONTINUE HERE — Mac Related + thread DESIGN PASS (mock BUILT 2026-07-16, awaiting sign-off)
 
-**MOCK BUILT + vision-checked (WKWebView rounds ×3): `mocks/related-panel.html` — Tuur picks a variant:**
-- **#m1 Variant A "one rail" (recommended)** — the thread timeline IS the related view. Grounds: verified
-  `threadOrder = related-above-floor + seed, oldest-first` ⇒ separate Related + thread lists show the same
-  notes twice. Why-chips per node (person/tag/term), **importance = rail-dot size** (journal-calendar
-  idiom), closest match = date-row flag (FIRST MENTION idiom).
-- **#m2 Variant B** — score-ordered Related list + thread as a panel TAKEOVER (richer nodes, 2-line
-  snippets; phone mental model; cost = same notes listed twice, arc a click away).
-- **#m3** — consent gate lives IN the panel (phone Journal-gate copy, 295 MB EmbeddingGemma, one consent
-  also unlocks Mac Journal search) + downloading / indexing / no-connections states.
-- **#m4** — collapsed: panel fully gone, toolbar toggle keeps a count badge, ⌥⌘C, app-wide persisted.
-- Decisions answered in-mock: panel REPLACES the bottom LINKED FROM strip; local per-device index.
+**MOCK ROUND 2 (Tuur's round-1 feedback folded in) — `mocks/related-panel.html`, AWAITING: O-pick + sign-off:**
+- **A/B variants are DEAD → ONE panel + a Date ⇄ Closest sort pill** (Tuur's call: single click, exactly
+  two orders, no click-then-select; same pill idiom as Queue|Review so it self-teaches). #m1 = Date mode
+  (the arc: rail + line, first-mention sub-line); #m2 = Closest mode (flat best-first rows; hover swaps a
+  row's date for **✕ "not related"** = per-note hide — the weird-embedder-match remedy, v1 hide-only,
+  on top of the 0.45 floor).
+- **Importance without a legend** = #m3, Tuur picks: **O1** circles on the date row (recommended — the
+  app's own significance idiom, zero new glyphs) / **O2** circles + sized rail dots (calendar idiom) /
+  **O3** circles AS the node marker (experiment). Round-1 size-only dots were confusing → killed.
+- **#m4** consent gate in-panel (phone Journal-gate copy, 295 MB EmbeddingGemma, same consent unlocks Mac
+  Journal search) + downloading/indexing/no-connections; **#m5** collapsed w/ count badge (⌥⌘C) — both
+  states Tuur-liked in round 1.
+- Panel REPLACES the bottom LINKED FROM strip; local per-device index; sidebar label Journal→"Review"
+  (phone-tab parity — memory `feedback_shared_code_first`).
 AFTER sign-off → build phases below (embedder binding → shared index port → panel UI).
+
+**Main-column design notes from Tuur's mock review (2026-07-16 — NOT this feature's scope, park for a
+polish pass; now marked ◆ green in the mock's #m1):** the mock's reading column drifted from the live app
+and Tuur *liked* some of the drift — ⬜ ◆1 tags row directly under the context chips (mock placement)
+instead of under significance; ⬜ ◆2 the live app's significance control "might be a little too big"
+(mock's compact dots read nicer); ⬜ ◆3 maybe icons on the location/weather chips (mock has them, app
+doesn't).
 
 Tuur picked the direction (AskUserQuestion, this session): **connections side-panel + thread-as-timeline +
 why-related chips** — unlinked mentions = later idea. MOCK-FIRST (locked process): no code until an HTML

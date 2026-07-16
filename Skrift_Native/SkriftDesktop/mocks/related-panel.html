@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Connections on the Mac — Related + thread + backlinks (mock v1)</title>
+<title>Connections on the Mac — Related + thread + backlinks (mock v2)</title>
 <style>
   /* Desktop Theme.swift tokens (dark), 1:1 — same set as journal-desktop.html */
   :root{
@@ -20,7 +20,6 @@
   .thesis{color:var(--namelink);font-size:13.5px;margin:0 0 8px;max-width:980px;}
   .v1{display:inline-block;font-size:11px;color:var(--green);background:rgba(52,211,153,.12);padding:2px 9px;border-radius:20px;margin-bottom:20px;}
   .label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);margin:30px 0 9px;font-weight:600;}
-  .label .rec{color:var(--green);letter-spacing:0;text-transform:none;font-weight:700;margin-left:8px;}
   .hint{font-size:10.5px;color:var(--faint);margin:8px 2px 0;line-height:1.6;max-width:1180px;}
   .hint b{color:#9a96c9;font-weight:600;}
   .num{font-variant-numeric:tabular-nums}
@@ -33,7 +32,7 @@
   .titlebar .appname{margin-left:10px;font-size:11.5px;color:var(--faint);font-weight:600;}
   .win{display:flex;height:660px;}
 
-  /* App sidebar with the Queue | Journal mode switch */
+  /* App sidebar with the Queue | Review mode switch (phone-tab parity) */
   .side{width:212px;background:var(--sidebar);border-right:1px solid var(--hairline);padding:12px 10px;flex:none;display:flex;flex-direction:column;}
   .mode{display:flex;background:rgba(255,255,255,.04);border-radius:8px;padding:3px;margin-bottom:14px;}
   .mode div{flex:1;text-align:center;font-size:11.5px;font-weight:600;padding:5px 0;border-radius:6px;color:var(--dim);}
@@ -73,7 +72,7 @@
   .scroll{flex:1;overflow:auto;display:flex;justify-content:center;}
   .col{width:640px;max-width:calc(100% - 72px);padding:26px 0 40px;}
   .ntitle{font-size:21px;font-weight:750;letter-spacing:-.2px;margin:0 0 8px;}
-  .ctx{display:flex;gap:7px;margin-bottom:9px;}
+  .ctx{display:flex;gap:7px;margin-bottom:9px;align-items:center;}
   .cchip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--dim);
          background:rgba(255,255,255,.045);border-radius:11px;padding:2.5px 9px;}
   .tagrow{display:flex;gap:7px;align-items:center;margin-bottom:20px;}
@@ -104,9 +103,20 @@
   .chead .fold{margin-left:auto;color:var(--faint);font-size:13px;}
   .csec{padding:2px 14px 14px;}
   .cslabel{display:flex;align-items:baseline;gap:6px;font-size:9.5px;letter-spacing:.45px;text-transform:uppercase;color:var(--faint);font-weight:700;margin:8px 0 9px;}
-  .cslabel .sub{letter-spacing:0;text-transform:none;font-weight:500;color:var(--faint);opacity:.85}
 
-  /* thread rail — dot SIZE encodes the note's importance (journal-calendar idiom) */
+  /* the sort toggle — same idiom as the Queue|Review pill, one click flips it */
+  .sortrow{display:flex;align-items:center;gap:8px;margin:2px 0 4px;}
+  .sortpill{display:inline-flex;background:rgba(255,255,255,.05);border-radius:7px;padding:2px;}
+  .sortpill span{font-size:9.5px;font-weight:700;padding:3px 10px;border-radius:5px;color:var(--dim);}
+  .sortpill .on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.4);}
+  .sortsub{font-size:9.5px;color:var(--faint);margin:0 0 10px;}
+
+  /* importance circles on a row — the app's own significance idiom, no legend needed */
+  .rimp{display:flex;gap:2px;margin-left:auto;align-self:center;}
+  .rimp i{width:4px;height:4px;border-radius:50%;background:var(--accent);font-style:normal;}
+  .rimp i.off{background:var(--hairline2);}
+
+  /* thread rail (Date mode) */
   .rail{position:relative;}
   .rnode{position:relative;padding:0 0 14px 20px;}
   .rnode::before{content:"";position:absolute;left:4.5px;top:12px;bottom:-2px;width:1.5px;background:var(--hover);}
@@ -121,8 +131,14 @@
   .rwhen .flag{color:var(--accent);}
   .rtitle{font-size:12px;font-weight:600;color:var(--text);line-height:1.3;}
   .rnode.this .card{background:rgba(124,107,245,.10);border:1px solid rgba(124,107,245,.4);border-radius:9px;padding:7px 9px;}
-  .rsnip{font-size:10.5px;color:var(--dim);line-height:1.45;margin-top:2px;
-         display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+  /* O3 experiment: the circles ARE the node marker */
+  .rtrip{position:absolute;left:-3.5px;top:7px;display:flex;gap:1.5px;background:var(--sidebar);padding:1px 2px;border-radius:4px;}
+  .rtrip i{width:4.5px;height:4.5px;border-radius:50%;background:var(--accent);font-style:normal;}
+  .rtrip i.off{background:var(--hairline2);}
+
+  /* ◆ green = reading-column details the mock does BETTER than the live app (marked, parked) */
+  .prop{color:var(--green);font-weight:800;font-size:9px;vertical-align:super;margin-left:3px;}
 
   /* why-related chips */
   .why{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
@@ -132,11 +148,13 @@
   .wchip.term{color:var(--dim);background:rgba(255,255,255,.05);}
   .wchip.more{color:var(--faint);background:transparent;padding:1px 2px;}
 
-  /* related rows (variant B) */
+  /* related rows (Closest mode) */
   .rrow{border:1px solid var(--hairline);background:rgba(255,255,255,.02);border-radius:9px;padding:7px 10px;margin-bottom:6px;}
   .rrow .top{display:flex;align-items:baseline;gap:6px;}
   .rrow .top .ti{font-size:12px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .rrow .top .d{font-size:9.5px;color:var(--faint);}
+  .rrow .top .rimp{margin-left:0;}
+  .rrow.hov{background:var(--hover);border-color:var(--hairline2);}
 
   /* linked-from rows */
   .lrow{display:flex;align-items:baseline;gap:7px;padding:5px 8px;border-radius:7px;background:rgba(255,255,255,.025);margin-bottom:4px;}
@@ -144,13 +162,6 @@
   .lrow .ti{flex:1;font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .lrow .d{font-size:9.5px;color:var(--faint);}
   .divider{height:1px;background:var(--hairline);margin:4px 0 10px;}
-
-  /* view-thread footer entry (variant B) */
-  .tentry{display:flex;align-items:center;gap:7px;margin-top:4px;padding:8px 10px;border-radius:9px;
-          background:rgba(124,107,245,.09);border:1px solid rgba(124,107,245,.25);}
-  .tentry .arc{color:var(--accent);font-size:12px;}
-  .tentry .t{font-size:11.5px;font-weight:650;color:var(--accent);}
-  .tentry .d{margin-left:auto;font-size:9.5px;color:var(--faint);}
 
   /* gate / empty states */
   .gate{display:flex;flex-direction:column;align-items:center;text-align:center;padding:60px 22px 0;}
@@ -168,17 +179,8 @@
   .row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
   .closeup{width:300px;background:var(--sidebar);border:1px solid #000;border-radius:12px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.45);}
   .closeup .cap{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);background:#101219;padding:7px 12px;border-bottom:1px solid var(--hairline);font-weight:700;}
+  .closeup .cap b{color:var(--green);}
   .closeup .inner{min-height:340px;display:flex;flex-direction:column;}
-
-  /* thread takeover (variant B close-up) */
-  .tkhead{display:flex;align-items:center;gap:8px;padding:12px 14px 4px;}
-  .tkhead .back{color:var(--accent);font-size:13px;}
-  .tkhead b{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);font-weight:700;}
-  .tkmeta{padding:2px 14px 12px;}
-  .tkmeta h4{font-size:14px;font-weight:750;margin:0 0 3px;}
-  .tkmeta .stats{font-size:10.5px;color:var(--dim);margin-bottom:8px;}
-  .caps{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:700;color:var(--accent);
-        background:rgba(124,107,245,.13);border-radius:10px;padding:2.5px 9px;}
 
   /* decisions footer */
   .decisions{max-width:1180px;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:16px 20px;margin-top:30px;}
@@ -190,11 +192,11 @@
 <body>
 
 <h1>Connections on the Mac</h1>
-<p class="thesis">Related + LINKED FROM + thread, one right-hand panel on the review surface — the phone stacks these under the body; the Mac gets a persistent pane with the thread as a dated timeline and why-related chips on every row.</p>
-<span class="v1">direction locked 2026-07-16 · mock v1 · two layout variants — pick one</span>
+<p class="thesis">One Connections panel on the review surface: a single list of this note's neighbourhood with a one-click Date ⇄ Closest sort toggle (Date = the arc of the idea, Closest = judge what the embedder found), why-chips on every row, backlinks below.</p>
+<span class="v1">round 2 · A/B merged into ONE panel + sort toggle (Tuur's call) · pick an importance treatment in #m3</span>
 
-<!-- ═══════════════════ VARIANT A ═══════════════════ -->
-<div class="label" id="m1">#m1 — Variant A · ONE RAIL: the thread IS the related view<span class="rec">← recommended</span></div>
+<!-- ═══════════════════ THE PANEL · DATE MODE ═══════════════════ -->
+<div class="label" id="m1">#m1 — THE PANEL · Date mode: one list, the arc of the idea, sort flips with ONE click</div>
 <div class="mac">
   <div class="titlebar">
     <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
@@ -202,7 +204,7 @@
   </div>
   <div class="win">
     <div class="side">
-      <div class="mode"><div class="on">Queue</div><div>Journal</div></div>
+      <div class="mode"><div class="on">Queue</div><div>Review</div></div>
       <div class="sideLabel">Today</div>
       <div class="qrow on"><div class="t">Drip irrigation for the rooftop planters</div><div class="m"><span class="st done"></span><span class="num">14:32 · 1:47</span></div></div>
       <div class="qrow"><div class="t">Call notes — Sofia re: east wall</div><div class="m"><span class="st work"></span><span class="num">11:05 · 4:12</span></div></div>
@@ -231,11 +233,11 @@
       <div class="scroll"><div class="col">
         <div class="ntitle">Drip irrigation for the rooftop planters</div>
         <div class="ctx">
-          <span class="cchip">📍 Lisbon</span><span class="cchip">☀️ 24°</span><span class="cchip">Afternoon</span>
+          <span class="cchip">📍 Lisbon</span><span class="cchip">☀️ 24°</span><span class="cchip">Afternoon</span><span class="prop">◆3</span>
         </div>
         <div class="tagrow">
-          <span class="tag">#garden</span><span class="tag">#home</span><span class="addtag">+ add tag</span>
-          <div class="imp"><i></i><i></i><i class="off"></i></div>
+          <span class="tag">#garden</span><span class="tag">#home</span><span class="addtag">+ add tag</span><span class="prop">◆1</span>
+          <div class="imp"><i></i><i></i><i class="off"></i></div><span class="prop">◆2</span>
         </div>
         <div class="summary">
           <div class="k">SUMMARY</div>
@@ -257,42 +259,45 @@
     <div class="cpanel">
       <div class="chead"><b>Connections</b><span class="cnt num">7</span><span class="fold">»</span></div>
       <div class="csec">
-        <div class="cslabel">Thread <span class="sub">· the arc of this idea</span></div>
+        <div class="sortrow">
+          <div class="sortpill"><span class="on">Date</span><span>Closest</span></div>
+        </div>
+        <div class="sortsub">the arc of this idea · first mentioned 12 Mar</div>
         <div class="rail">
           <div class="rnode first">
-            <div class="rdot i1"></div>
-            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span></div>
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
             <div class="rtitle">Rooftop garden — first sketch</div>
             <div class="why"><span class="wchip tag">#garden</span><span class="wchip term">planters</span></div>
           </div>
           <div class="rnode">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">3 Apr</span></div>
+            <div class="rwhen"><span class="num">3 Apr</span><span class="rimp"><i></i><i></i><i class="off"></i></span></div>
             <div class="rtitle">Planter boxes with Jack</div>
             <div class="why"><span class="wchip person">Jack W.</span><span class="wchip tag">#garden</span></div>
           </div>
           <div class="rnode">
-            <div class="rdot i1"></div>
-            <div class="rwhen"><span class="num">14 Apr</span></div>
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">14 Apr</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
             <div class="rtitle">Balcony herbs from seed</div>
             <div class="why"><span class="wchip person">Sofia</span><span class="wchip tag">#garden</span></div>
           </div>
           <div class="rnode">
-            <div class="rdot i3"></div>
-            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span></div>
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="rimp"><i></i><i></i><i></i></span></div>
             <div class="rtitle">Water butt + pump sizing</div>
             <div class="why"><span class="wchip term">pump</span><span class="wchip term">water butt</span><span class="wchip more">+1</span></div>
           </div>
           <div class="rnode">
-            <div class="rdot i1"></div>
-            <div class="rwhen"><span class="num">30 Jun</span></div>
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">30 Jun</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
             <div class="rtitle">Greywater reuse idea</div>
             <div class="why"><span class="wchip term">water</span></div>
           </div>
           <div class="rnode this">
             <div class="rdot"></div>
             <div class="card">
-              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span></div>
+              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="rimp"><i></i><i></i><i class="off"></i></span></div>
               <div class="rtitle">Drip irrigation for the rooftop planters</div>
             </div>
           </div>
@@ -306,150 +311,124 @@
     </div>
   </div>
 </div>
-<p class="hint"><b>One neighbourhood, one view.</b> Thread and Related are the same score set (verified: <b>threadOrder = related-above-floor + seed, oldest-first</b>) — so listing "Related" rows AND a thread would show the same notes twice. Variant A merges them: the dated rail IS the related view, every node carries <b>why-chips</b> (<span style="color:#9D8FF7">person</span> / <span style="color:#7C6BF5">#tag</span> / term — gist-overlap heuristic, dumb v1). <b>Importance = dot size</b> on the rail (the journal-calendar idiom); the highest-cosine note gets a <b>closest match</b> flag on its date row. Click any node → that memo opens in this pane and the highlight hops. The bottom LINKED FROM strip is <b>gone</b> — backlinks live here now. Panel = 280 px, sidebar tint, own scroll.</p>
+<p class="hint"><b style="color:#34D399">◆ green markers = mock-nicer-than-app</b> (your round-1 review; parked in backlog, NOT this build's scope): <b>◆1</b> tags directly under the context chips (live app has them under significance) · <b>◆2</b> compact significance dots (live control "might be a little too big") · <b>◆3</b> icons on the location/weather chips. Sidebar label Journal → <b>Review</b> = phone-tab parity, applied everywhere.</p>
+<p class="hint"><b>One list, two orders, one click.</b> Thread and Related are the same note set (verified in code), so the panel shows ONE list and the pill just re-sorts it: <b>Date</b> = the arc, first mention → today, rail + line; <b>Closest</b> = best match first (#m2). Exactly two orders, no menus — and it's the same pill idiom as Queue|Review, so it teaches itself. Default Date, remembered app-wide. Why-chips per row (<span style="color:#9D8FF7">person</span> / <span style="color:#7C6BF5">#tag</span> / term); importance = the app's own circles on the date row (pick the treatment in #m3); the best hit keeps its CLOSEST MATCH flag even in Date mode. Click a row → that memo opens in this pane, the highlight hops. The bottom LINKED FROM strip is gone — backlinks live here.</p>
 
-<!-- ═══════════════════ VARIANT B ═══════════════════ -->
-<div class="label" id="m2">#m2 — Variant B · RELATED LIST + thread takeover (phone mental model, richer thread)</div>
-<div class="mac">
-  <div class="titlebar">
-    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
-    <span class="appname">Skrift</span>
-  </div>
-  <div class="win">
-    <div class="side">
-      <div class="mode"><div class="on">Queue</div><div>Journal</div></div>
-      <div class="sideLabel">Today</div>
-      <div class="qrow on"><div class="t">Drip irrigation for the rooftop planters</div><div class="m"><span class="st done"></span><span class="num">14:32 · 1:47</span></div></div>
-      <div class="qrow"><div class="t">Call notes — Sofia re: east wall</div><div class="m"><span class="st work"></span><span class="num">11:05 · 4:12</span></div></div>
-      <div class="sideLabel">Yesterday</div>
-      <div class="qrow"><div class="t">Weekend build plan</div><div class="m"><span class="st done"></span><span class="num">18:40 · 2:31</span></div></div>
-      <div class="qrow"><div class="t">Standup ramble — sensor housing</div><div class="m"><span class="st done"></span><span class="num">09:12 · 6:03</span></div></div>
-      <div class="sideLabel">Earlier</div>
-      <div class="qrow"><div class="t">Greywater reuse idea</div><div class="m"><span class="st done"></span><span class="num">30 Jun</span></div></div>
-      <div class="qrow"><div class="t">Shopping list — garden centre</div><div class="m"><span class="st done"></span><span class="num">28 Jun</span></div></div>
-    </div>
-
-    <div class="main">
-      <div class="crumb"><span class="src">Voice memo</span><span>·</span><span>Wed 16 Jul, 14:32</span></div>
-      <div class="toolwrap">
-        <div class="toolbar">
-          <div class="play">▶</div>
-          <span class="time num">0:36</span>
-          <div class="track"><i></i></div>
-          <span class="time num">1:47</span>
-          <div class="acts">
-            <span>✨</span><span>⧉</span><span>↥</span>
-            <div class="ptoggle on" title="Connections"><i></i></div>
-          </div>
-        </div>
-      </div>
-      <div class="scroll"><div class="col">
-        <div class="ntitle">Drip irrigation for the rooftop planters</div>
-        <div class="ctx">
-          <span class="cchip">📍 Lisbon</span><span class="cchip">☀️ 24°</span><span class="cchip">Afternoon</span>
-        </div>
-        <div class="tagrow">
-          <span class="tag">#garden</span><span class="tag">#home</span><span class="addtag">+ add tag</span>
-          <div class="imp"><i></i><i></i><i class="off"></i></div>
-        </div>
-        <div class="summary">
-          <div class="k">SUMMARY</div>
-          <p>Gravity-fed drip plan for the rooftop planters — parts list, and a pressure fallback before buying a pump.</p>
-        </div>
-        <div class="prose">
-          <p>Walked the rooftop with <span class="nl">Jack W.</span> this afternoon — the planters on the south edge dry out by lunchtime, so hand-watering is officially over. We're going with a gravity-fed drip line off the water butt, one loop per row.</p>
-          <div class="h2"><span class="mark">##</span>Parts list</div>
-          <ul>
-            <li>8 m drip line, 12 emitters</li>
-            <li>timer valve — the brass one from <span class="mlchip">🗒 Shopping list — garden centre</span></li>
-            <li>filter washer for the butt outlet</li>
-          </ul>
-          <p>If the pressure off the butt is too low we raise it onto breeze blocks before buying a pump. <span class="nl">Sofia</span> thinks the herbs should move to the east wall either way. <span class="itag">#garden</span></p>
-        </div>
-      </div></div>
-    </div>
-
-    <div class="cpanel">
+<!-- ═══════════════════ CLOSEST MODE ═══════════════════ -->
+<div class="label" id="m2">#m2 — the SAME panel, toggle flipped to CLOSEST: judge what the embedder found</div>
+<div class="row">
+  <div class="closeup">
+    <div class="cap">panel · closest mode</div>
+    <div class="inner">
       <div class="chead"><b>Connections</b><span class="cnt num">7</span><span class="fold">»</span></div>
       <div class="csec">
-        <div class="cslabel">Related <span class="sub">· closest first</span></div>
+        <div class="sortrow">
+          <div class="sortpill"><span>Date</span><span class="on">Closest</span></div>
+        </div>
+        <div class="sortsub">best match first · odd matches sink to the bottom</div>
         <div class="rrow">
-          <div class="top"><span class="ti">Water butt + pump sizing</span><span class="d num">26 May</span></div>
+          <div class="top"><span class="ti">Water butt + pump sizing</span><span class="rimp"><i></i><i></i><i></i></span><span class="d num">26 May</span></div>
           <div class="why"><span class="wchip term">pump</span><span class="wchip term">water butt</span><span class="wchip tag">#garden</span></div>
         </div>
         <div class="rrow">
-          <div class="top"><span class="ti">Planter boxes with Jack</span><span class="d num">3 Apr</span></div>
+          <div class="top"><span class="ti">Planter boxes with Jack</span><span class="rimp"><i></i><i></i><i class="off"></i></span><span class="d num">3 Apr</span></div>
           <div class="why"><span class="wchip person">Jack W.</span><span class="wchip tag">#garden</span></div>
         </div>
         <div class="rrow">
-          <div class="top"><span class="ti">Greywater reuse idea</span><span class="d num">30 Jun</span></div>
-          <div class="why"><span class="wchip term">water</span></div>
-        </div>
-        <div class="rrow">
-          <div class="top"><span class="ti">Balcony herbs from seed</span><span class="d num">14 Apr</span></div>
+          <div class="top"><span class="ti">Balcony herbs from seed</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span><span class="d num">14 Apr</span></div>
           <div class="why"><span class="wchip person">Sofia</span><span class="wchip tag">#garden</span></div>
         </div>
         <div class="rrow">
-          <div class="top"><span class="ti">Rooftop garden — first sketch</span><span class="d num">12 Mar</span></div>
+          <div class="top"><span class="ti">Rooftop garden — first sketch</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span><span class="d num">12 Mar</span></div>
           <div class="why"><span class="wchip tag">#garden</span><span class="wchip term">planters</span></div>
+        </div>
+        <div class="rrow hov">
+          <div class="top"><span class="ti">Greywater reuse idea</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span><span class="d" style="font-size:11.5px;color:var(--dim)">✕</span></div>
+          <div class="why"><span class="wchip term">water</span></div>
         </div>
 
         <div class="divider" style="margin-top:10px"></div>
         <div class="cslabel">Linked from</div>
         <div class="lrow"><span class="back">↩</span><span class="ti">Weekend build plan</span><span class="d num">5 Jul</span></div>
         <div class="lrow"><span class="back">↩</span><span class="ti">Shopping list — garden centre</span><span class="d num">28 Jun</span></div>
-
-        <div class="tentry"><span class="arc">⤴</span><span class="t">View thread</span><span class="d">first mentioned 12 Mar</span></div>
       </div>
     </div>
   </div>
 </div>
+<p class="hint"><b>The "weird embedder matches" answer, in three layers:</b> the index already floor-gates junk (cosine ≥ 0.45 or a note never appears); Closest mode makes the ranking <b>visible</b> so a strange match is judgeable at a glance (it sits low, its why-chips look thin); and on hover a row's date swaps for <b>✕ — "not related"</b>, which hides that pairing for good (bottom row shown hovered; v1 = a per-note hide list, nothing fancier). No timeline chrome in this mode — dates sit right, flat rows, LINKED FROM unchanged below.</p>
 
-<div class="label" style="margin-top:14px" id="m2b">#m2 continued — the thread takeover (clicking "View thread" slides the panel content)</div>
+<!-- ═══════════════════ IMPORTANCE TREATMENTS ═══════════════════ -->
+<div class="label" id="m3">#m3 — importance on the rail WITHOUT a legend: pick one</div>
 <div class="row">
   <div class="closeup">
-    <div class="cap">panel · thread takeover</div>
-    <div class="inner">
-      <div class="tkhead"><span class="back">‹</span><b>Thread</b></div>
-      <div class="tkmeta">
-        <h4>Rooftop garden</h4>
-        <div class="stats">6 notes · Mar → Jul · 2 places</div>
-        <span class="caps">First mentioned 12 March 2026</span>
-      </div>
-      <div class="csec" style="padding-top:6px">
+    <div class="cap">O1 · circles on the date row — <b>recommended</b></div>
+    <div class="inner" style="min-height:240px">
+      <div class="csec" style="padding-top:14px">
         <div class="rail">
           <div class="rnode first">
-            <div class="rdot i1"></div>
-            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span></div>
+            <div class="rdot"></div>
+            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
             <div class="rtitle">Rooftop garden — first sketch</div>
-            <div class="rsnip">South edge gets the most sun. Could line the parapet with planter boxes if the load is fine…</div>
           </div>
           <div class="rnode">
             <div class="rdot"></div>
-            <div class="rwhen"><span class="num">3 Apr</span></div>
-            <div class="rtitle">Planter boxes with Jack</div>
-            <div class="rsnip">Jack says cedar over pine, twice the life. Six boxes, staggered so the drainage lines up…</div>
-          </div>
-          <div class="rnode">
-            <div class="rdot i1"></div>
-            <div class="rwhen"><span class="num">14 Apr</span></div>
-            <div class="rtitle">Balcony herbs from seed</div>
-            <div class="rsnip">Basil and coriander trays on the balcony rail until the roof is ready — Sofia's picks…</div>
-          </div>
-          <div class="rnode">
-            <div class="rdot i3"></div>
-            <div class="rwhen"><span class="num">26 May</span></div>
+            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="rimp"><i></i><i></i><i></i></span></div>
             <div class="rtitle">Water butt + pump sizing</div>
-            <div class="rsnip">210 L butt fits behind the stair shed. Gravity might be enough for one loop…</div>
-          </div>
-          <div class="rnode">
-            <div class="rdot i1"></div>
-            <div class="rwhen"><span class="num">30 Jun</span></div>
-            <div class="rtitle">Greywater reuse idea</div>
-            <div class="rsnip">Rinse water from the kitchen could top the butt up — needs a filter first…</div>
           </div>
           <div class="rnode this">
             <div class="rdot"></div>
+            <div class="card">
+              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="rimp"><i></i><i></i><i class="off"></i></span></div>
+              <div class="rtitle">Drip irrigation for the rooftop planters</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="closeup">
+    <div class="cap">O2 · circles + dot size (calendar idiom kept)</div>
+    <div class="inner" style="min-height:240px">
+      <div class="csec" style="padding-top:14px">
+        <div class="rail">
+          <div class="rnode first">
+            <div class="rdot i1"></div>
+            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span><span class="rimp"><i></i><i class="off"></i><i class="off"></i></span></div>
+            <div class="rtitle">Rooftop garden — first sketch</div>
+          </div>
+          <div class="rnode">
+            <div class="rdot i3"></div>
+            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span><span class="rimp"><i></i><i></i><i></i></span></div>
+            <div class="rtitle">Water butt + pump sizing</div>
+          </div>
+          <div class="rnode this">
+            <div class="rdot"></div>
+            <div class="card">
+              <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span><span class="rimp"><i></i><i></i><i class="off"></i></span></div>
+              <div class="rtitle">Drip irrigation for the rooftop planters</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="closeup">
+    <div class="cap">O3 · the circles ARE the node marker (experiment)</div>
+    <div class="inner" style="min-height:240px">
+      <div class="csec" style="padding-top:14px">
+        <div class="rail">
+          <div class="rnode first">
+            <div class="rtrip"><i></i><i class="off"></i><i class="off"></i></div>
+            <div class="rwhen"><span class="num">12 Mar</span><span class="flag">first mention</span></div>
+            <div class="rtitle">Rooftop garden — first sketch</div>
+          </div>
+          <div class="rnode">
+            <div class="rtrip"><i></i><i></i><i></i></div>
+            <div class="rwhen"><span class="num">26 May</span><span class="flag">closest match</span></div>
+            <div class="rtitle">Water butt + pump sizing</div>
+          </div>
+          <div class="rnode this">
+            <div class="rtrip"><i></i><i></i><i class="off"></i></div>
             <div class="card">
               <div class="rwhen"><span class="num">16 Jul</span><span class="flag">this note</span></div>
               <div class="rtitle">Drip irrigation for the rooftop planters</div>
@@ -460,11 +439,10 @@
     </div>
   </div>
 </div>
-<p class="hint"><b>Variant B keeps the phone's mental model</b> — a score-ordered RELATED list up top (closest first, why-chips per row), backlinks, and the thread behind an entry row. The takeover gives the timeline the full panel height, so nodes afford <b>2-line snippets</b> (variant A's inline rail can't). Cost: the same notes appear in Related <i>and</i> the thread — visible duplication once you open it — and the arc is a click away instead of ambient. ‹ returns to the list; hopping to a note also returns.</p>
-<p class="hint" style="margin-top:4px"><b>Same neighbourhood in both variants</b> — 5 related + 2 backlinks = the 7 in the header; only the arrangement differs.</p>
+<p class="hint"><b>Why no legend is needed:</b> the ●●○ circles are the app's OWN significance control — the same glyph sits in this note's header a hand-width to the left, so the mapping is already learned. <b>O1</b> keeps the rail dots as calm, uniform anchors and puts the circles on each date row (zero new idiom — recommended). <b>O2</b> additionally scales the rail dot like the Journal calendar does (far-glance skimming, slightly busier — this was round 1's confusing bit, now self-explained by the circles beside it). <b>O3</b> makes the circle-triplet itself the node marker — boldest and most compact, but 4.5 px circles get fiddly and the first-mention/this-note dot cues lose their anchor.</p>
 
 <!-- ═══════════════════ GATE + EMPTY ═══════════════════ -->
-<div class="label" id="m3">#m3 — Empty states: the consent gate (no index yet) + downloading / indexing / no-connections</div>
+<div class="label" id="m4">#m4 — Empty states: the consent gate (no index yet) + downloading / indexing / no-connections</div>
 <div class="mac">
   <div class="titlebar">
     <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
@@ -472,7 +450,7 @@
   </div>
   <div class="win" style="height:520px">
     <div class="side">
-      <div class="mode"><div class="on">Queue</div><div>Journal</div></div>
+      <div class="mode"><div class="on">Queue</div><div>Review</div></div>
       <div class="sideLabel">Today</div>
       <div class="qrow on"><div class="t">Drip irrigation for the rooftop planters</div><div class="m"><span class="st done"></span><span class="num">14:32 · 1:47</span></div></div>
       <div class="qrow"><div class="t">Call notes — Sofia re: east wall</div><div class="m"><span class="st work"></span><span class="num">11:05 · 4:12</span></div></div>
@@ -555,7 +533,7 @@
 <p class="hint"><b>The gate lives in the panel itself</b> — mirrors the phone's Journal consent flow (same model, near-same copy), no trip to Settings. One consent covers Related + thread + Journal search on the Mac. Each device builds its <b>own local index</b>; embeddings never sync (private by construction, zero CloudKit change). Indexing yields while a transcription runs — the phone's <b>TranscriptionActivity</b> lesson, stated in the copy.</p>
 
 <!-- ═══════════════════ COLLAPSED ═══════════════════ -->
-<div class="label" id="m4">#m4 — Collapsed: the panel folds away, the toolbar toggle keeps the count</div>
+<div class="label" id="m5">#m5 — Collapsed: the panel folds away, the toolbar toggle keeps the count</div>
 <div class="mac">
   <div class="titlebar">
     <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
@@ -563,7 +541,7 @@
   </div>
   <div class="win" style="height:440px">
     <div class="side">
-      <div class="mode"><div class="on">Queue</div><div>Journal</div></div>
+      <div class="mode"><div class="on">Queue</div><div>Review</div></div>
       <div class="sideLabel">Today</div>
       <div class="qrow on"><div class="t">Drip irrigation for the rooftop planters</div><div class="m"><span class="st done"></span><span class="num">14:32 · 1:47</span></div></div>
       <div class="qrow"><div class="t">Call notes — Sofia re: east wall</div><div class="m"><span class="st work"></span><span class="num">11:05 · 4:12</span></div></div>
@@ -603,15 +581,15 @@
 
 <!-- ═══════════════════ DECISIONS ═══════════════════ -->
 <div class="decisions">
-  <h3>Design questions from the brief — answered</h3>
+  <h3>Design decisions — round 2 state</h3>
   <ul>
-    <li><b>Does the panel collapse?</b> Yes — toolbar toggle + header », ⌥⌘C, app-wide persisted (#m4). Collapsed keeps a count badge.</li>
-    <li><b>Does it replace the bottom LINKED FROM strip?</b> Yes, fully — backlinks render only in the panel (both variants).</li>
-    <li><b>Empty state?</b> The consent gate renders inside the panel — phone Journal-gate copy, one CTA, then downloading → indexing → live (#m3). One consent also unlocks Journal search on the Mac.</li>
-    <li><b>Why-chips</b> — three kinds: <b>person</b> (namelink lilac) / <b>#tag</b> (accent) / <b>gist term</b> (plain). Overlap heuristic v1: shared linked names + shared tags + top shared MemoGist terms, cap 3 + "+N".</li>
-    <li><b>Importance on the rail</b> — dot size (small / regular / large-with-glow), the journal-calendar idiom; the closest match gets a date-row flag, like FIRST MENTION / THIS NOTE.</li>
-    <li><b>The layout call (pick one):</b> A = one dated rail carries everything (no duplication, arc always visible). B = score-ordered Related list + thread takeover with snippets (phone-familiar, richer thread, but the same notes list twice).</li>
-    <li><b>Unlinked mentions</b> — out, parked as a later idea (locked).</li>
+    <li><b>One list + a sort toggle</b> (your call, round 1): Date ⇄ Closest, single click, same pill idiom as Queue|Review. Default Date; remembered app-wide. Date = timeline rail (#m1), Closest = flat best-first rows (#m2). Exactly two orders, ever.</li>
+    <li><b>Weird embedder matches</b>: 0.45 floor gates junk; Closest mode makes ranking judgeable; hover ✕ = "not related" hides a pairing per note (v1 hide-only).</li>
+    <li><b>Importance without a legend</b>: pick O1 / O2 / O3 in #m3 — O1 recommended (the app's own circles on each date row, zero new idiom).</li>
+    <li><b>Panel replaces the bottom LINKED FROM strip</b>; collapses (#m5) with a count badge, ⌥⌘C, app-wide persisted.</li>
+    <li><b>Consent gate in-panel</b> (#m4): phone Journal-gate mirror, one consent also unlocks Mac Journal search; local per-device index, embeddings never sync.</li>
+    <li><b>◆ green markers</b> (#m1) = reading-column micro-improvements you liked in review — parked in backlog, not this build's scope. Sidebar Journal → Review applied (phone parity).</li>
+    <li><b>Unlinked mentions</b> — out (locked, later idea).</li>
   </ul>
 </div>
 
