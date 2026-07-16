@@ -122,11 +122,17 @@ struct BodyTextView: NSViewRepresentable {
             tv.quoteAttribution = quoteAttribution   // note switch capture ↔ plain
             tv.invalidateIntrinsicContentSize()
         }
-        // Re-render only on an EXTERNAL change (compare against the reconstructed
-        // model so our own edits / thumbnail attachments don't trigger a clobber).
-        // `modelString` reflects the snapped display, so compare against the snapped
-        // text (idempotent) — otherwise every update would re-render.
-        let textChanged = context.coordinator.modelString(tv) != BodyTransform.snappedImageBody(text)
+        // Re-render only on an EXTERNAL change. `modelString` must differ from BOTH:
+        //  • the raw binding — our own edit already wrote `text = modelString`, so equal
+        //    here means "this is our own keystroke", skip (this is the load-bearing guard
+        //    while editing NEXT TO a snapped photo: mid-edit the reconstruct isn't
+        //    snap-stable, so a snapped-only compare re-rendered on every keystroke — the
+        //    photo flashed and typed text jumped before the image); AND
+        //  • its snapped form — a pure display has `modelString == snapped(text)`, so a
+        //    raw-only compare would loop forever (raw ≠ snapped when a photo is mid-sentence).
+        // Differ from both ⇒ the text genuinely changed under us (a phone sync).
+        let ms = context.coordinator.modelString(tv)
+        let textChanged = ms != text && ms != BodyTransform.snappedImageBody(text)
         if textChanged {
             context.coordinator.render(tv, model: text)
             tv.invalidateIntrinsicContentSize()

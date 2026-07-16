@@ -31,6 +31,7 @@ enum Snapshot {
         if let p = path("-snapshot-person-editor")  { MainActor.assumeIsolated { renderPersonEditor(to: p); exit(0) } }
         if let p = path("-snapshot-memolinks")      { MainActor.assumeIsolated { renderMemoLinks(to: p); exit(0) } }
         if let p = path("-snapshot-photoblock")     { MainActor.assumeIsolated { renderPhotoBlock(to: p); exit(0) } }
+        if let p = path("-snapshot-tags")           { MainActor.assumeIsolated { renderTags(to: p); exit(0) } }
         if let p = path("-snapshot-linkpicker")     { MainActor.assumeIsolated { renderLinkPicker(to: p); exit(0) } }
         if let p = path("-snapshot-journal")        { MainActor.assumeIsolated { renderJournal(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
@@ -89,6 +90,43 @@ enum Snapshot {
         .modelContainer(container)
 
         hostPNG(view, size: NSSize(width: 940, height: 1581), to: path)
+    }
+
+    /// Tag typeahead (design #1, 2026-07-16): the "+ add tag" field open with a draft,
+    /// so the dropdown of matching library tags + the "Create #x" row renders. HOSTED
+    /// (real AppKit TextField). Triggered by: `-snapshot-tags <path>`.
+    @MainActor private static func renderTags(to path: String) {
+        guard let container = try? ModelContainer(
+            for: PipelineFile.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
+        else { return }
+        let ctx = container.mainContext
+        // A small library of tagged notes so the typeahead has real matches.
+        let libraries: [[String]] = [
+            ["work", "ideas", "rewrite"], ["work", "testflight"], ["testing", "device"],
+            ["testing", "bugfix"], ["ideas", "product"], ["work", "meeting"], ["reading", "books"],
+        ]
+        for (i, tags) in libraries.enumerated() {
+            let f = PipelineFile(id: "tagseed-\(i)", filename: "n\(i).m4a", sourceType: .audio, uploadedAt: Date())
+            f.tags = tags
+            ctx.insert(f)
+        }
+        let subject = PipelineFile(id: "tag-subject", filename: "Subject.m4a", sourceType: .audio, uploadedAt: Date())
+        subject.tags = ["testy", "more tags"]
+        subject.tagSuggestions = ["rewrite", "swift"]
+        ctx.insert(subject)
+        try? ctx.save()
+
+        let view = VStack(alignment: .leading, spacing: 8) {
+            Text("Tags — typing “te”").font(.system(size: 10)).tracking(0.6).foregroundStyle(Theme.textMuted)
+            TagEditor(file: subject, seedAdding: true, seedDraft: "te")
+        }
+        .frame(width: 380, alignment: .leading)
+        .padding(28)
+        .background(Theme.bg)
+        .preferredColorScheme(.dark)
+        .modelContainer(container)
+        hostPNG(view, size: NSSize(width: 436, height: 320), to: path)
     }
 
     /// Image-at-sentence-end reflow (2026-07-16): a photo marker that the injector

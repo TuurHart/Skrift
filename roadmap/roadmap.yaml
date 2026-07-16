@@ -392,9 +392,13 @@ nodes:
         place · weather · daypart CONTEXT CHIPS under the title (decoded from the
         synced typed metadata via PhoneMetadata — the old row read demo-only
         phone_location keys, so real memos showed nothing; DayPeriod.symbol/label
-        moved to Shared). Tag editor gained LIBRARY autocomplete (all tags,
-        most-used-first, prefix-filtered) + comma multi-tag input (shared
-        Memo.parseTagInput). 366+687 green, Mac hostPNG-verified. NEXT (deferred):
+        moved to Shared). Tag input redesigned to a TYPEAHEAD dropdown after
+        device feedback (auto-focused field; prefix matches most-used-first +
+        "Create #x" row; deterministic suggestions rank first; comma input via
+        shared Memo.parseTagInput — the first-cut chip WALL didn't scale). Also
+        device-found + fixed: typing next to a snapped photo re-rendered per
+        keystroke (photo flash) — the reflow no-op check now compares the raw
+        binding too. 366+687 green, Mac hostPNG-verified. NEXT (deferred):
         Mac Related-notes + thread — its own features+UI design pass (can be more
         powerful on the Mac than the phone).
     backlog:

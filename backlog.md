@@ -916,9 +916,17 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   metadata via `PhoneMetadata`). ROOT CAUSE fixed: the old properties row read demo-only `phone_location`
   keys, so REAL synced memos showed no location/weather and never showed daypart at all. `DayPeriod.symbol`/
   `.label` moved to the SHARED model. hostPNG-verified (Amsterdam · 14° · Morning).
-- ✅ **Mac tag-adding parity**: the inline `TagEditor` now offers LIBRARY autocomplete (all tags, most-used
-  first, prefix-filtered while typing) on top of the note's AI suggestions, + comma multi-tag input via the
-  shared `Memo.parseTagInput`. (Mac took one tag + only AI suggestions before.)
+- ✅ **Mac tag-adding — redesigned to a TYPEAHEAD (design #1, user-picked)**: first cut showed the library
+  as a chip WALL (Tuur: doesn't scale past a handful; "tag, tag" placeholder weird) → now "+ add tag" opens
+  an AUTO-FOCUSED field (device finding: it needed a 2nd click; Esc closes) and typing shows a dropdown of
+  prefix-matching tags (most-used first, capped) + a "Create #x" row. Deterministic `tagSuggestions` rank
+  first + show as ≤4 quick chips only while the field is open + empty. Return commits, comma-splits via the
+  shared `Memo.parseTagInput`. hostPNG'd (`-snapshot-tags`).
+- ✅ **Editing-next-to-a-snapped-photo re-render bug (device-found)**: typing after a photo re-rendered the
+  whole body EVERY keystroke (photo flashed, typed text jumped before the image) — the reflow's snapped-only
+  no-op check misfired because a mid-edit reconstruct isn't snap-stable. `BodyTextView.updateNSView` now
+  re-renders only when `modelString` differs from BOTH the raw binding AND its snapped form. Device-confirmed
+  fixed (flashing gone).
 - ⬜ **NEXT — Mac Related notes + thread (DEFERRED to a design pass):** the phone shows a RELATED section
   (✨ embedding-suggested notes) + "View thread"; the Mac shows only LINKED FROM. Tuur wants this on the Mac
   but it "can be MORE POWERFUL on the Mac" → needs a features + UI thinking/mock session FIRST (mock-first),
