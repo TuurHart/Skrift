@@ -979,7 +979,18 @@ EmbeddingModels` shared dev+prod (5f5df0d); `ConnectionsIndexService` (consent k
 `journalIndexEnabled`, REAL download progress via the package's onProgress, sweep N-of-M progress,
 PipelineFile→MemoSnapshot with metadata `recordedAt` as the thread axis, sweeps ride reconcile+runs,
 Mac raises the shared ANE-yield flag around engine work).
-(2) ⬜ panel UI (rail + closest + gate + collapse) — NEXT; (3) ⬜ hostPNG + device verify rounds.
+(2) ✅ BUILT 2026-07-16 — `ConnectionsPanel.swift` (pure `ConnectionsPanelBody` + live wrapper +
+`ConnectionsModel`): Date⇄Closest pill, rail w/ this-note card + FIRST MENTION/CLOSEST MATCH flags,
+flat closest rows w/ hover-✕ hide (per-note defaults list), P1 importance decimals (warm ≥0.8, unrated
+= nothing), why-chips (people ∩ via [[wikilinks]], tags ∩, shared ≥5-char terms), closeness = `.help`
+tooltip "N% match · shares: …", in-panel gate → REAL download % → indexing N-of-M → empty, LINKED FROM
+moved in (bottom strip DELETED from NoteDisplayView), collapse ⌥⌘C + count badge (app-wide AppStorage).
+hostPNG fixture mode `-snapshot-connections` (4 states) — vision-checked, 2 rounds (count-chip contrast,
+CTA/progress offscreen-render fixes). DEVIATION from mock, deliberate: backlinks render below the gate
+even pre-consent — consent must not cost the old LINKED FROM strip.
+(3) ⬜ NEXT — verify rounds: live-app eyeball (Dev deploy → real corpus: turn on, download, sweep,
+panel on real notes), then the device/phone round. ⬜ FEATURES.md row + roadmap tick owed — BLOCKED on
+the other session's uncommitted edits to those files; fold in when they land.
 Suites green per chunk, ledgers same commit.
 
 **MOCK ROUND 2 history (Tuur's round-1 feedback folded in):**

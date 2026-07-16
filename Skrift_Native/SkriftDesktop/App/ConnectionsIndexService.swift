@@ -159,8 +159,13 @@ final class ConnectionsIndexService {
             body: body,
             place: meta?.location?.placeName,
             tags: file.tags,
-            // Journal/thread axis = the phone's recorded moment when synced;
-            // locally-ingested files fall back to their upload time.
-            createdAt: meta?.recordedAt.flatMap { ISO8601.date(from: $0) } ?? file.uploadedAt)
+            createdAt: journalDate(file))
+    }
+
+    /// The journal/thread axis (panel dates + thread order): the phone's recorded
+    /// moment when synced; locally-ingested files fall back to their upload time.
+    nonisolated static func journalDate(_ file: PipelineFile) -> Date {
+        let meta = file.audioMetadataJSON.flatMap { try? JSONDecoder().decode(PhoneMetadata.self, from: $0) }
+        return meta?.recordedAt.flatMap { ISO8601.date(from: $0) } ?? file.uploadedAt
     }
 }

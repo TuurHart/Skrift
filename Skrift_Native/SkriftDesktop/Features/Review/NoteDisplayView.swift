@@ -27,6 +27,11 @@ struct NoteDisplayView: View {
     @State private var editorRequest: PersonEditorRequest?
     /// Locked-note session gate (synced `locked` flag; Touch ID/password unlocks per session).
     @ObservedObject private var lockGate = LockGate.shared
+    /// The Connections panel's per-note data (rows + backlinks + gate state). Lives
+    /// here — not in the panel — so the toolbar badge has the count while collapsed.
+    @State private var connections = ConnectionsModel()
+    /// Panel visibility — app-wide + persisted (mock #m5 decision), ⌥⌘C toggles.
+    @AppStorage("connectionsPanelVisible") private var connectionsVisible = true
 
     /// What "Undo" restores after a naming action: the note's override sets as they were.
     struct NamingUndo {
@@ -88,21 +93,35 @@ struct NoteDisplayView: View {
     }
 
     @ViewBuilder private func unlockedContent(_ file: PipelineFile) -> some View {
-        VStack(spacing: 0) {
-            breadcrumb(file)
-            toolbarBar(file)
-            GeometryReader { geo in
-                let colW = min(820, max(320, geo.size.width - 72))
-                let body = column(file)
-                    .frame(width: colW, alignment: .leading)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 30)
-                if scrollable {
-                    ScrollView { body }
-                } else {
-                    body
+        HStack(spacing: 0) {
+            VStack(spacing: 0) {
+                breadcrumb(file)
+                toolbarBar(file)
+                GeometryReader { geo in
+                    let colW = min(820, max(320, geo.size.width - 72))
+                    let body = column(file)
+                        .frame(width: colW, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 30)
+                    if scrollable {
+                        ScrollView { body }
+                    } else {
+                        body
+                    }
                 }
             }
+            // The Connections panel (mocks/related-panel.html) — live app only
+            // (snapshot hosts render the body via their own fixture mode).
+            if scrollable, connectionsVisible {
+                ConnectionsPanel(file: file, model: connections,
+                                 onOpenMemo: { onOpenMemo?($0) },
+                                 onCollapse: { connectionsVisible = false })
+            }
+        }
+        .task(id: file.id) { await connections.refresh(for: file, context: ctx) }
+        // A sweep just finished → fresh rows may exist for this note; re-query.
+        .onChange(of: ConnectionsIndexService.shared.sweeping) { _, sweeping in
+            if !sweeping { Task { await connections.refresh(for: file, context: ctx) } }
         }
     }
 
@@ -136,9 +155,8 @@ struct NoteDisplayView: View {
                      onOpenMemoLink: onOpenMemo.map { open in { id in open(id.uuidString) } },
                      linkCandidates: scrollable ? { linkCandidates(excluding: file) } : { [] },
                      linkTitle: { id in liveTitle(of: id) })
-            if scrollable, let onOpenMemo {
-                MemoBacklinks(file: file, openMemo: onOpenMemo)
-            }
+            // The bottom LINKED FROM strip is GONE — backlinks live in the
+            // Connections panel now (mock decision, 2026-07-16).
         }
     }
 
@@ -395,6 +413,7 @@ struct NoteDisplayView: View {
                 Spacer()
             }
             NoteActions(file: file, coordinator: coordinator)
+            connectionsToggle
         }
         .padding(.horizontal, 18)
         .frame(height: 44)
@@ -428,6 +447,30 @@ struct NoteDisplayView: View {
         .padding(.vertical, 8)
     }
 
+    /// Panel toggle (⌥⌘C) — collapsed keeps a count badge so a folded panel still
+    /// whispers that this note connects somewhere (mock #m5).
+    private var connectionsToggle: some View {
+        Button { connectionsVisible.toggle() } label: {
+            Image(systemName: "sidebar.right")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(connectionsVisible ? Theme.accent : Theme.textSecondary)
+                .overlay(alignment: .topTrailing) {
+                    if !connectionsVisible, connections.count > 0 {
+                        Text("\(connections.count)")
+                            .font(.system(size: 8, weight: .heavy).monospacedDigit())
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 3.5).padding(.vertical, 1)
+                            .background(Theme.accent, in: Capsule())
+                            .offset(x: 8, y: -7)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut("c", modifiers: [.command, .option])
+        .help(connectionsVisible ? "Hide Connections (⌥⌘C)" : "Show Connections (⌥⌘C)")
+        .accessibilityIdentifier("connections-toggle")
+    }
+
     private var emptyState: some View {
         VStack(spacing: 6) {
             Image(systemName: "sparkles")
@@ -447,67 +490,5 @@ struct NoteDisplayView: View {
         guard file.sourceType != .note else { return false }
         if file.durationSeconds > 0 { return true }
         return !file.path.isEmpty && FileManager.default.fileExists(atPath: file.path)
-    }
-}
-
-/// "LINKED FROM" — the notes whose body links to THIS memo (`[[memo:<id>|…]]`),
-/// newest first (phone chunk-5 parity; mock panel 3). Refreshed per note switch;
-/// a plain contains-scan over the queue is instant at this scale.
-private struct MemoBacklinks: View {
-    let file: PipelineFile
-    var openMemo: (String) -> Void
-    @Environment(\.modelContext) private var ctx
-    @State private var rows: [(id: String, title: String, date: Date)] = []
-
-    var body: some View {
-        // The strip must stay a REAL view even with no rows — `.task` never fires on
-        // empty conditional content (the chicken-and-egg that hid the first render).
-        content
-            .task(id: file.id) { refresh() }
-    }
-
-    @ViewBuilder private var content: some View {
-        if rows.isEmpty {
-            Color.clear.frame(height: 0)
-        } else {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("LINKED FROM")
-                    .font(.system(size: 10, weight: .semibold)).tracking(0.5)
-                    .foregroundStyle(Theme.textMuted)
-                    .padding(.bottom, 3)
-                ForEach(rows, id: \.id) { row in
-                    Button { openMemo(row.id) } label: {
-                        HStack(spacing: 8) {
-                            Text("↩").font(.system(size: 12)).foregroundStyle(Theme.accent)
-                            Text(row.title).font(.system(size: 12.5))
-                                .foregroundStyle(Theme.textSecondary).lineLimit(1)
-                            Spacer()
-                            Text(row.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-                        }
-                        .padding(.horizontal, 8).padding(.vertical, 5)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .background(Theme.hairline.opacity(0.03), in: RoundedRectangle(cornerRadius: 7))
-                    .help("Open “\(row.title)”")
-                }
-            }
-            .padding(.top, 4)
-            .overlay(alignment: .top) { Divider().overlay(Theme.hairline.opacity(0.08)) }
-        }
-    }
-
-    private func refresh() {
-        let needle = "memo:\(file.id)"
-        let all: [PipelineFile] = (try? ctx.fetch(FetchDescriptor<PipelineFile>())) ?? []
-        var found: [(id: String, title: String, date: Date)] = []
-        for f in all where f.id != file.id {
-            let body = f.sanitised ?? f.enhancedCopyedit ?? f.transcript ?? ""
-            if body.contains(needle) {
-                found.append((id: f.id, title: f.queueTitle, date: f.uploadedAt))
-            }
-        }
-        rows = found.sorted { $0.date > $1.date }
     }
 }

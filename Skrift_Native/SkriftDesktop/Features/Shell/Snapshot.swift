@@ -33,9 +33,52 @@ enum Snapshot {
         if let p = path("-snapshot-photoblock")     { MainActor.assumeIsolated { renderPhotoBlock(to: p); exit(0) } }
         if let p = path("-snapshot-tags")           { MainActor.assumeIsolated { renderTags(to: p); exit(0) } }
         if let p = path("-snapshot-linkpicker")     { MainActor.assumeIsolated { renderLinkPicker(to: p); exit(0) } }
+        if let p = path("-snapshot-connections")    { MainActor.assumeIsolated { renderConnections(to: p); exit(0) } }
         if let p = path("-snapshot-journal")        { MainActor.assumeIsolated { renderJournal(to: p); exit(0) } }
         if let p = path("-snapshot-light")          { MainActor.assumeIsolated { renderReview(to: p, scheme: .light); exit(0) } }
         if let p = path("-snapshot")                { MainActor.assumeIsolated { renderReview(to: p); exit(0) } }
+    }
+
+    /// The Connections panel (mocks/related-panel.html) in four states — pure
+    /// `ConnectionsPanelBody` fixtures, no engine, mock-story rows.
+    /// Triggered by: `-snapshot-connections <path>`.
+    @MainActor private static func renderConnections(to path: String) {
+        func days(_ n: Int) -> Date { Calendar.current.date(byAdding: .day, value: n, to: Date())! }
+        let rows = [
+            ConnectionRow(id: UUID(), fileID: "a", title: "Rooftop garden — first sketch",
+                          date: days(-126), score: 0.52, importance: 0.3,
+                          why: [ConnectionWhy(kind: .tag, text: "#garden"), ConnectionWhy(kind: .term, text: "planters")]),
+            ConnectionRow(id: UUID(), fileID: "b", title: "Planter boxes with Jack",
+                          date: days(-104), score: 0.61, importance: 0.6,
+                          why: [ConnectionWhy(kind: .person, text: "Jack W."), ConnectionWhy(kind: .tag, text: "#garden")]),
+            ConnectionRow(id: UUID(), fileID: "c", title: "Water butt + pump sizing",
+                          date: days(-51), score: 0.87, importance: 0.9,
+                          why: [ConnectionWhy(kind: .term, text: "pump"), ConnectionWhy(kind: .term, text: "water"),
+                                ConnectionWhy(kind: .tag, text: "#garden"), ConnectionWhy(kind: .term, text: "gravity")]),
+            ConnectionRow(id: UUID(), fileID: "d", title: "Greywater reuse idea",
+                          date: days(-16), score: 0.49, importance: nil,
+                          why: [ConnectionWhy(kind: .term, text: "water")]),
+        ].sorted { $0.score > $1.score }
+        let backlinks = [
+            ConnectionBacklink(id: "x", title: "Weekend build plan", date: days(-11)),
+            ConnectionBacklink(id: "y", title: "Shopping list — garden centre", date: days(-18)),
+        ]
+        func panel(_ state: ConnectionsState, related: [ConnectionRow], byDate: Bool) -> some View {
+            ConnectionsPanelBody(state: state, related: related, backlinks: backlinks,
+                                 currentTitle: "Drip irrigation for the rooftop planters",
+                                 currentDate: Date(), currentImportance: 0.8,
+                                 sortByDate: .constant(byDate))
+        }
+        let view = HStack(alignment: .top, spacing: 1) {
+            panel(.ready, related: rows, byDate: true)     // Date mode — the rail
+            panel(.ready, related: rows, byDate: false)    // Closest mode — flat rows
+            panel(.gate, related: [], byDate: true)        // consent gate
+            panel(.indexing(done: 34, total: 78), related: [], byDate: true)
+        }
+        .frame(height: 640)
+        .background(Theme.bg)
+        .preferredColorScheme(.dark)
+        hostPNG(view, size: NSSize(width: 280 * 4 + 3, height: 640), to: path)
     }
 
     /// The `[[` memo-link picker popover, with injected candidates — the deterministic eyeball
