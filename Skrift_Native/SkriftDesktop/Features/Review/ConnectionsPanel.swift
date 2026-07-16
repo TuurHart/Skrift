@@ -39,7 +39,13 @@ struct ConnectionBacklink: Identifiable, Equatable {
 enum ConnectionsState: Equatable {
     case gate
     case downloading(Double)
+    /// Bytes done, `prepare()` not returned — the CoreML compile/ANE load
+    /// (device-found 2026-07-16: the bar froze at 295/295 with no explanation).
+    case preparing
     case indexing(done: Int, total: Int)
+    /// The engine is cold-loading / the first query is in flight — showing
+    /// "No connections yet" here would be false info.
+    case finding
     case ready
 }
 
@@ -53,23 +59,35 @@ enum ConnectionsState: Equatable {
 final class ConnectionsModel {
     private(set) var related: [ConnectionRow] = []     // floor-gated, unhidden, score-DESC
     private(set) var backlinks: [ConnectionBacklink] = []
+    /// A query for the CURRENT note is in flight (covers the engine cold load).
+    private(set) var querying = false
+    private var currentFileID: String?
     var count: Int { related.count + backlinks.count }
 
     private static let hiddenDefaultsKey = "connectionsHiddenPairs"
 
-    /// The state of the AI zone right now (gate/downloading/indexing/ready) —
-    /// reads the service live, so views re-render as it moves.
+    /// The state of the AI zone right now — reads the service live, so views
+    /// re-render as it moves.
     var state: ConnectionsState {
         let svc = ConnectionsIndexService.shared
-        if let f = svc.downloadFraction { return .downloading(f) }
+        if let f = svc.downloadFraction {
+            // Bytes complete but prepare() hasn't returned = the CoreML
+            // compile/ANE load — name it, don't look frozen.
+            return f >= 0.999 ? .preparing : .downloading(f)
+        }
         guard svc.isActive else { return .gate }
         if related.isEmpty, svc.sweeping, let p = svc.sweepProgress {
             return .indexing(done: p.done, total: p.total)
         }
+        if related.isEmpty, querying { return .finding }
         return .ready
     }
 
     func refresh(for file: PipelineFile, context: ModelContext) async {
+        if currentFileID != file.id {
+            currentFileID = file.id
+            related = []          // never show the previous note's rows
+        }
         let all = (try? context.fetch(FetchDescriptor<PipelineFile>())) ?? []
         backlinks = Self.backlinkScan(for: file, in: all)
 
@@ -79,7 +97,10 @@ final class ConnectionsModel {
             return
         }
         svc.warmUp()
+        querying = true
+        defer { querying = false }
         let scores = await svc.relatedScores(to: uuid)
+        guard currentFileID == file.id else { return }   // switched away mid-query
         let byID = Dictionary(uniqueKeysWithValues: all.compactMap { f in
             UUID(uuidString: f.id).map { ($0, f) }
         })
@@ -210,7 +231,9 @@ struct ConnectionsPanelBody: View {
                     switch state {
                     case .gate: gate
                     case .downloading(let f): downloading(f)
+                    case .preparing: preparing
                     case .indexing(let done, let total): indexing(done, total)
+                    case .finding: finding
                     case .ready:
                         if related.isEmpty { noConnections } else { relatedSection }
                     }
@@ -556,6 +579,41 @@ struct ConnectionsPanelBody: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.bottom, 16)
+    }
+
+    /// Bytes done, model compiling for the ANE — the one-time step after the
+    /// download that otherwise looks like a freeze (device-found 2026-07-16).
+    private var preparing: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 24)).foregroundStyle(Theme.accent.opacity(0.9))
+                .padding(.top, 56)
+            Text("Preparing model…")
+                .font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.textPrimary)
+            progressBar(1, fill: Theme.accent)
+            Text("Compiling for the Neural Engine —\na one-time step, then indexing starts")
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 16)
+    }
+
+    /// The engine is cold-loading / the first query runs — quiet and honest
+    /// (never "No connections yet" while the answer is still unknown).
+    private var finding: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "circle.hexagongrid")
+                .font(.system(size: 22)).foregroundStyle(Theme.textMuted.opacity(0.6))
+                .padding(.top, 48)
+            Text("Finding connections…")
+                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
+            Text("Warming the on-device model —\nquick once it's loaded.")
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 8)
     }
 
     private func indexing(_ done: Int, _ total: Int) -> some View {

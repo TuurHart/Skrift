@@ -988,9 +988,13 @@ moved in (bottom strip DELETED from NoteDisplayView), collapse ⌥⌘C + count b
 hostPNG fixture mode `-snapshot-connections` (4 states) — vision-checked, 2 rounds (count-chip contrast,
 CTA/progress offscreen-render fixes). DEVIATION from mock, deliberate: backlinks render below the gate
 even pre-consent — consent must not cost the old LINKED FROM strip.
-(3) ⬜ NEXT — verify rounds: live-app eyeball (Dev deploy → real corpus: turn on, download, sweep,
-panel on real notes), then the device/phone round. ⬜ FEATURES.md row + roadmap tick owed — BLOCKED on
-the other session's uncommitted edits to those files; fold in when they land.
+(3) 🌓 LIVE ROUND STARTED 2026-07-16 (Tuur, Dev app): download→index→panel flow WORKS end-to-end
+(19-note Dev corpus). FIRST FINDING fixed same hour: after 295/295 MB the CoreML compile/ANE load ran
+with the bar looking FROZEN → new `.preparing` state ("Compiling for the Neural Engine…"), plus
+`.finding` ("Finding connections…") so a cold engine on a first query never shows a false "No
+connections yet". Mock synced (#m4 preparing close-up). ⬜ rest of the eyeball: rows on real notes,
+pill, hover-✕, tooltip, ⌥⌘C/badge. ⬜ then the phone round. ⬜ FEATURES.md row + roadmap tick owed —
+BLOCKED on the other session's uncommitted edits; fold in when they land.
 Suites green per chunk, ledgers same commit.
 
 **MOCK ROUND 2 history (Tuur's round-1 feedback folded in):**

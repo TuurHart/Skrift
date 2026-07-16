@@ -569,6 +569,18 @@
     </div>
   </div>
   <div class="closeup">
+    <div class="cap">panel · preparing (after download — device-found 16 Jul)</div>
+    <div class="inner" style="min-height:340px">
+      <div class="chead"><b>Connections</b><span class="fold">»</span></div>
+      <div class="gate" style="padding-top:70px">
+        <div class="glyph">✨</div>
+        <h4>Preparing model…</h4>
+        <div class="prog"><i style="width:100%"></i></div>
+        <p style="margin-bottom:0">Compiling for the Neural Engine —<br>a one-time step, then indexing starts</p>
+      </div>
+    </div>
+  </div>
+  <div class="closeup">
     <div class="cap">panel · building the index</div>
     <div class="inner" style="min-height:340px">
       <div class="chead"><b>Connections</b><span class="fold">»</span></div>
@@ -596,7 +608,7 @@
     </div>
   </div>
 </div>
-<p class="hint"><b>The gate lives in the panel itself</b> — mirrors the phone's Journal consent flow (same model, near-same copy), no trip to Settings. One consent covers Related + thread + Journal search on the Mac. Each device builds its <b>own local index</b>; embeddings never sync (private by construction, zero CloudKit change). Indexing yields while a transcription runs — the phone's <b>TranscriptionActivity</b> lesson, stated in the copy.</p>
+<p class="hint"><b>The gate lives in the panel itself</b> — mirrors the phone's Journal consent flow (same model, near-same copy), no trip to Settings. One consent covers Related + thread + Journal search on the Mac. Each device builds its <b>own local index</b>; embeddings never sync (private by construction, zero CloudKit change). Indexing yields while a transcription runs — the phone's <b>TranscriptionActivity</b> lesson, stated in the copy. <b>PREPARING added after the live round (16 Jul)</b>: bytes hit 295/295 and the CoreML compile/ANE load ran with the bar looking frozen — the gap now has its own label; likewise a cold engine on a first query shows "Finding connections…" instead of a false "No connections yet".</p>
 
 <!-- ═══════════════════ COLLAPSED ═══════════════════ -->
 <div class="label" id="m5">#m5 — Collapsed: the panel folds away, the toolbar toggle keeps the count</div>
