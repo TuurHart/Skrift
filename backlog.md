@@ -1009,9 +1009,30 @@ uncommitted edits; fold in when they land.
   but opening a result lands at the TOP of the note — no scroll-to-match + flash like the phone. Needs
   an NSTextView ranged scroll + temporary highlight in BodyTextView; device-eyeball verify (hostPNG
   can't capture the flash).
-- ⬜ **Decide**: the hover-✕ "not related" hide list is per-device UserDefaults — a pairing hidden on
-  the Mac still shows on the phone. Sync it over CloudKit later, or accept per-device divergence?
+- ✅ **DECIDED (2026-07-16, v1)**: the hover-✕ hide list stays **per-device** — consistent with the
+  per-device index (the pairing it hides only exists in THIS device's ranking), and syncing it would
+  grow the CloudKit contract (the spine) for marginal value. Revisit only if device use shows it
+  annoying in practice.
 Suites green per chunk, ledgers same commit.
+
+## 🧭 SharedKit wave 2 — twin-scan triage (2026-07-16, tool: `python3 tools/twin-scan.py`)
+
+First run: 13 file twins · 21 type twins · 40 string twins. Deliberate twins (no action): parity
+test files both suites; NamesCloudSync/VocabularyCloudSync thin adapters (cores shared 2026-07);
+RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rules already shared).
+**Extraction candidates, ranked:**
+- ⬜ **SharedContent** — the C3 capture WIRE STRUCT duplicated (mobile `Models/SharedContent.swift` vs
+  desktop `CompilerBridge.swift`, "field names intentionally identical") — contract shape in two
+  files; cheap, high value, do first.
+- ⬜ **AppPaths** — dev/prod container-path conventions duplicated; small.
+- ⬜ **Theme palette values** — one palette family (0x7c6bf5…) maintained as two dyn tables; a shared
+  hex-constants table (per-platform dynamic wrappers stay) prevents the warmFill-drift class of bug.
+- ⬜ **TranscriptionService/TranscriptionResult + DiarizationService/DiarizationOutput/Diarizing** —
+  engine-wrapper + result-struct twins (conversation contract shapes).
+- ⬜ **NamesStore** — the store class itself is twinned (bytes-compatible names.json is shared, the
+  code isn't); largest job.
+- ⬜ VocabularyBooster.boost() cores + SpeakerTranscript — already tracked above (SharedKit wave 1
+  follow-ups), confirmed by the scan.
 
 **MOCK ROUND 2 history (Tuur's round-1 feedback folded in):**
 - **A/B variants are DEAD → ONE panel + a Date ⇄ Closest sort pill** (Tuur's call: single click, exactly
