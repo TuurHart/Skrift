@@ -45,9 +45,17 @@ struct SignificanceCircles: View {
         tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.22)
                                        : UIColor(white: 0, alpha: 0.18)
     })
-    /// Past-the-wall warm tone (mock: oklab color-mix of accent + amber) — FILLS only;
-    /// warm text is plain skAmber so every warm label shares one color (Tuur 2026-07-16).
-    private static let warmFill = Color.skAccent.mix(with: .skAmber, by: 0.58)
+    /// Past-the-wall warm fill — FILLS only; warm text is plain skAmber (one color
+    /// with the flame tag, Tuur 2026-07-16). DARK = the mock's accent+amber mix;
+    /// LIGHT = plain amber — the mix reads as dirty brown on white (same rule as
+    /// the Mac, device-found 2026-07-16).
+    private static let warmFill = Color(uiColor: UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: (124 * 0.42 + 245 * 0.58) / 255,
+                      green: (107 * 0.42 + 158 * 0.58) / 255,
+                      blue: (245 * 0.42 + 11 * 0.58) / 255, alpha: 1)
+            : UIColor(red: 217 / 255, green: 119 / 255, blue: 6 / 255, alpha: 1)   // skAmber light
+    })
 
     private var step: Int { SignificanceScale.step(for: value) }
     private var isRefine: Bool { SignificanceScale.isRefine(step: step) }

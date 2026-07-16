@@ -992,9 +992,25 @@ even pre-consent — consent must not cost the old LINKED FROM strip.
 (19-note Dev corpus). FIRST FINDING fixed same hour: after 295/295 MB the CoreML compile/ANE load ran
 with the bar looking FROZEN → new `.preparing` state ("Compiling for the Neural Engine…"), plus
 `.finding` ("Finding connections…") so a cold engine on a first query never shows a false "No
-connections yet". Mock synced (#m4 preparing close-up). ⬜ rest of the eyeball: rows on real notes,
-pill, hover-✕, tooltip, ⌥⌘C/badge. ⬜ then the phone round. ⬜ FEATURES.md row + roadmap tick owed —
-BLOCKED on the other session's uncommitted edits; fold in when they land.
+connections yet". Mock synced (#m4 preparing close-up). SECOND FINDING fixed: warm circle FILL in
+LIGHT mode = dirty brown (the accent+amber mix on white) → light shows plain amber, dark keeps the
+mix — BOTH apps. ⬜ rest of the eyeball: rows on real notes, pill, hover-✕, tooltip, ⌥⌘C/badge.
+⬜ then the phone round. ⬜ FEATURES.md row + roadmap tick owed — BLOCKED on the other session's
+uncommitted edits; fold in when they land.
+
+**NEXT CHUNK (Tuur's live-round Qs, 2026-07-16):**
+- ⬜ **Shared `RetrievalGate` core** (Shared/Retrieval): the state machine gate/downloading/preparing/
+  indexing/finding/ready + the user-facing copy strings, ONE source; Mac panel re-renders from it and
+  the **phone's Journal gate adopts it** — real download % (the `GemmaEmbedder.downloadProgress` hook
+  exists, phone shows an indeterminate spinner today), PREPARING during the ~2-min A15 ANE compile
+  (today the spinner sits frozen across download AND compile — worse than the Mac's bug), sweep N-of-M
+  (shared `sweep(onProgress:)` exists).
+- ⬜ **Mac search-jump parity (VERIFIED GAP)**: Mac search filters the sidebar (incl. photo-OCR text ✓)
+  but opening a result lands at the TOP of the note — no scroll-to-match + flash like the phone. Needs
+  an NSTextView ranged scroll + temporary highlight in BodyTextView; device-eyeball verify (hostPNG
+  can't capture the flash).
+- ⬜ **Decide**: the hover-✕ "not related" hide list is per-device UserDefaults — a pairing hidden on
+  the Mac still shows on the phone. Sync it over CloudKit later, or accept per-device divergence?
 Suites green per chunk, ledgers same commit.
 
 **MOCK ROUND 2 history (Tuur's round-1 feedback folded in):**

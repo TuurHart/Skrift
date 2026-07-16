@@ -164,22 +164,18 @@ struct SignificanceCircles: View {
             .animation(.easeOut(duration: 0.15), value: active)
     }
 
-    // ── Warm blend color (mock: color-mix of accent + amber) — FILLS only; warm
-    // text is plain Theme.amber so every warm label shares one color. ──
-    /// `color-mix(in oklab, accent 42%, amber)` — fill for lit circles 8–10.
-    private static let warmFill = blend(accentWeight: 0.42)
-
-    /// sRGB approximation of the mock's oklab color-mix, adaptive light/dark using
-    /// the same palette literals as `Theme.accent` / `Theme.amber`.
-    private static func blend(accentWeight w: CGFloat) -> Color {
-        Color(nsColor: NSColor(name: nil) { ap in
-            let dark = ap.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            let accent: (r: CGFloat, g: CGFloat, b: CGFloat) = dark ? (124, 107, 245) : (108, 92, 224)
-            let amber: (r: CGFloat, g: CGFloat, b: CGFloat) = dark ? (245, 158, 11) : (217, 119, 6)
-            return NSColor(srgbRed: (accent.r * w + amber.r * (1 - w)) / 255,
-                           green: (accent.g * w + amber.g * (1 - w)) / 255,
-                           blue: (accent.b * w + amber.b * (1 - w)) / 255,
-                           alpha: 1)
-        })
-    }
+    /// Warm fill for lit circles 8–10. DARK = the mock's oklab accent+amber mix
+    /// (soft, deliberate); LIGHT = plain amber — the mix reads as dirty brown on
+    /// white (device-found 2026-07-16). Same rule on the phone.
+    private static let warmFill = Color(nsColor: NSColor(name: nil) { ap in
+        let dark = ap.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        guard dark else {
+            return NSColor(srgbRed: 217 / 255, green: 119 / 255, blue: 6 / 255, alpha: 1)   // Theme.amber light
+        }
+        let w: CGFloat = 0.42   // accent weight of the mix
+        return NSColor(srgbRed: (124 * w + 245 * (1 - w)) / 255,
+                       green: (107 * w + 158 * (1 - w)) / 255,
+                       blue: (245 * w + 11 * (1 - w)) / 255,
+                       alpha: 1)
+    })
 }
