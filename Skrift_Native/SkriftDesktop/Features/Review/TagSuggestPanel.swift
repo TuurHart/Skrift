@@ -58,34 +58,50 @@ final class TagSuggestPanel {
 }
 
 /// The menu rows: matching tags, keyboard-selected row highlighted, click to pick.
+/// SCROLLS past ~11 rows (a bare `#` browses the whole library, Obsidian-style);
+/// the keyboard selection stays in view.
 struct TagSuggestList: View {
     let matches: [String]
     let selected: Int
     var onPick: (String) -> Void
 
+    private static let rowHeight: CGFloat = 26
+    private static let maxListHeight: CGFloat = 286   // 11 rows
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(matches.enumerated()), id: \.element) { i, tag in
-                Button { onPick(tag) } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "number").font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(i == selected ? Theme.accent : Theme.textMuted)
-                        Text(tag).font(.system(size: 12.5)).foregroundStyle(Theme.textPrimary)
-                            .lineLimit(1)
-                        Spacer(minLength: 0)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(matches.enumerated()), id: \.element) { i, tag in
+                        row(i, tag).id(i)
                     }
-                    .padding(.horizontal, 9).padding(.vertical, 4.5)
-                    .background(i == selected ? Theme.accent.opacity(0.16) : .clear,
-                                in: RoundedRectangle(cornerRadius: 6))
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
             }
+            .frame(width: 190,
+                   height: min(CGFloat(matches.count) * Self.rowHeight, Self.maxListHeight))
+            .onAppear { if selected > 0 { proxy.scrollTo(selected) } }
         }
         .padding(5)
-        .frame(width: 190, alignment: .leading)
         .background(Theme.surfaceHover)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline.opacity(0.12), lineWidth: 1))
+    }
+
+    private func row(_ i: Int, _ tag: String) -> some View {
+        Button { onPick(tag) } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "number").font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(i == selected ? Theme.accent : Theme.textMuted)
+                Text(tag).font(.system(size: 12.5)).foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 9)
+            .frame(height: Self.rowHeight)
+            .background(i == selected ? Theme.accent.opacity(0.16) : .clear,
+                        in: RoundedRectangle(cornerRadius: 6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

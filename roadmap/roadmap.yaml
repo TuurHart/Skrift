@@ -411,8 +411,12 @@ nodes:
         (TagSuggestPanel, the Obsidian/Xcode way): text path fully native, only
         ↑↓/Return/Esc intercepted, candidates cached per run. Pure core
         Pipeline/Tags/TagComplete.swift (host-tested); one TagLibrary source with
-        the field. Follow-ups parked: phone inline-# popup; TagMatcher → Shared
-        for a phone-side tag step.
+        the field. Round 3 (Obsidian parity, user screenshot): a BARE # browses
+        the full library (scrollable menu, selection stays in view); the space of
+        a "# " heading breaks the run — and markdown HEADINGS now render as real
+        titles in the Mac body (H1/H2/H3 tiers, dim marks, characters verbatim →
+        export stays markdown). Follow-ups parked: phone inline-# popup + phone
+        headings; TagMatcher → Shared for a phone-side tag step.
     backlog:
       - "PHOTO-SEARCH CLOSED round 5: user was in find-in-note all along —
         pipeline never broken (sim e2e test stays as the gate). Search-hit

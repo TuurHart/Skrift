@@ -83,6 +83,16 @@ struct BodyTextView: NSViewRepresentable {
     // whitespace; ≥1 word char after it, so "# heading" and mid-word "C#" never match).
     fileprivate static let hashtagRegex = try? NSRegularExpression(
         pattern: #"(?m)(?:^|(?<=[ \t\n]))#[\p{L}\p{N}_][\p{L}\p{N}_\-/]*"#)
+    // Markdown headings at line start (`# ` / `## ` / `### …`, the Obsidian split:
+    // #+space = heading, #+word = tag): group 1 the marks, group 2 the title text.
+    fileprivate static let headingRegex = try? NSRegularExpression(
+        pattern: #"(?m)^(#{1,6}) (.+)$"#)
+    // Heading tiers (H1/H2/H3+; deeper levels reuse the last). Body is 16pt.
+    fileprivate static let headingFonts: [NSFont] = [
+        .systemFont(ofSize: 23, weight: .bold),
+        .systemFont(ofSize: 19.5, weight: .bold),
+        .systemFont(ofSize: 17, weight: .semibold),
+    ]
     // A speaker turn header at the START of a line: `**Name:**` → group 1 the leading
     // `**`, group 2 the bolded `Name:`, group 3 the trailing `**`. Lets the review body
     // render a conversation as bold speaker labels instead of raw markdown asterisks.
@@ -533,6 +543,9 @@ struct BodyTextView: NSViewRepresentable {
             let full = NSRange(location: 0, length: storage.length)
             storage.beginEditing()
             storage.addAttribute(.foregroundColor, value: NSColor(Theme.textPrimary), range: full)
+            // Fonts reset every pass (headings/turn-headers/quote re-apply below) —
+            // editing a heading line back to prose must drop its big font.
+            storage.addAttribute(.font, value: BodyTextView.bodyFont, range: full)
             storage.removeAttribute(.backgroundColor, range: full)
             storage.removeAttribute(.underlineStyle, range: full)
             storage.removeAttribute(.underlineColor, range: full)
@@ -592,6 +605,18 @@ struct BodyTextView: NSViewRepresentable {
                     storage.addAttribute(.font, value: boldName, range: m.range(at: 2))
                     storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 1))
                     storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 3))
+                }
+            }
+            // Markdown headings render as real TITLES (`# ` big, `## ` smaller — the
+            // Obsidian split: #+space = heading, #+word = tag); the `#` marks stay
+            // visible but recede, same treatment as the `**Name:**` turn headers.
+            // Characters stay verbatim — the export is already markdown.
+            if let hrx2 = BodyTextView.headingRegex {
+                let faint = NSColor(Theme.textPrimary).withAlphaComponent(0.25)
+                for m in hrx2.matches(in: storage.string, range: full) {
+                    let tier = min(m.range(at: 1).length, BodyTextView.headingFonts.count) - 1
+                    storage.addAttribute(.font, value: BodyTextView.headingFonts[tier], range: m.range(at: 2))
+                    storage.addAttribute(.foregroundColor, value: faint, range: m.range(at: 1))
                 }
             }
             // Inline #tags read as tags, not prose (the Obsidian idiom) — accent the

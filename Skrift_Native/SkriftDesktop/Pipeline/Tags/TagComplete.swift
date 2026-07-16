@@ -8,9 +8,10 @@ enum TagComplete {
 
     /// Prefix-matched candidates for the popup: original casing + caller order
     /// preserved (pass most-used-first), case-insensitively deduped, SPACE-FREE
-    /// only (a spaced tag like "more tags" can't be an inline hashtag), capped
-    /// so the list stays a menu.
-    static func completions(partial: String, candidates: [String], max: Int = 8) -> [String] {
+    /// only (a spaced tag like "more tags" can't be an inline hashtag), capped.
+    /// An EMPTY partial (a bare `#`, the Obsidian browse) lists everything up to
+    /// the cap — the menu scrolls.
+    static func completions(partial: String, candidates: [String], max: Int = 50) -> [String] {
         let p = partial.lowercased()
         var seen = Set<String>()
         var out: [String] = []
@@ -29,15 +30,16 @@ enum TagComplete {
     /// The word-portion range of a `#word` run ending at `caret` (UTF-16) — the
     /// partial the completion replaces — or nil when the caret isn't in one.
     /// The `#` must be preceded by whitespace/newline or start-of-text (so "C#"
-    /// never triggers) and followed by ≥1 tag char (so a markdown "# " heading
-    /// never does).
+    /// never triggers). A BARE `#` counts (empty range at the caret): the menu
+    /// opens with the full list, Obsidian-style — and typing the space of a
+    /// markdown `# ` heading breaks the run, so the menu steps out of the way.
     static func hashtagPartialRange(in text: String, caret: Int) -> NSRange? {
         let ns = text as NSString
         guard caret > 0, caret <= ns.length else { return nil }
         var i = caret - 1
         var count = 0
         while i >= 0, isTagChar(ns.character(at: i)) { i -= 1; count += 1 }
-        guard count >= 1, i >= 0, ns.character(at: i) == 35 /* # */ else { return nil }
+        guard i >= 0, ns.character(at: i) == 35 /* # */ else { return nil }
         if i > 0 {
             let prev = ns.character(at: i - 1)
             guard prev == 32 || prev == 10 || prev == 9 else { return nil }

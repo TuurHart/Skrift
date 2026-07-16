@@ -995,8 +995,13 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   row → frontmatter ("inline tags copy to the YAML"). Inline `#tag` runs render accent. Pure core =
   `Pipeline/Tags/TagComplete.swift` (Obsidian rules; `TagCompleteTests`), one `TagLibrary` source with the
   field. Device re-eyeball owed.
-  ⬜ follow-ups: phone inline-# popup (UITextView parity); move `TagMatcher` → `Shared/` and run the
-  deterministic tag step on the PHONE against its synced tag list (Tuur asked for this 2026-07-16).
+  **ROUND 3 (Obsidian-parity, Tuur's screenshot ask "just the way Obsidian works"):** a BARE `#` now opens
+  the FULL library list immediately (browse; scrolls past 11 rows; keyboard selection stays in view; cap 50
+  most-used); typing narrows; the space of a `# ` heading breaks the run so the menu steps aside. PLUS
+  **markdown headings render as titles** in the Mac body: `# ` H1 / `## ` H2 / `### +` H3 tier, marks dim
+  (turn-header treatment), characters verbatim → the export stays plain markdown. Device re-eyeball owed.
+  ⬜ follow-ups: phone inline-# popup + phone heading rendering (UITextView parity); move `TagMatcher` →
+  `Shared/` and run the deterministic tag step on the PHONE against its synced tag list (Tuur 2026-07-16).
 - ⬜ **NEXT — Mac Related notes + thread (DEFERRED to a design pass):** the phone shows a RELATED section
   (✨ embedding-suggested notes) + "View thread"; the Mac shows only LINKED FROM. Tuur wants this on the Mac
   but it "can be MORE POWERFUL on the Mac" → needs a features + UI thinking/mock session FIRST (mock-first),
