@@ -67,7 +67,7 @@ final class BookTranscriptionJob: ObservableObject {
 
     private let library: AudiobookLibraryStore
     private let store: BookTranscriptStore
-    private let makeTranscriber: () -> any Transcriber
+    private let makeTranscriber: () -> any Transcribing
 
     private var task: Task<Void, Never>?
     /// The in-flight chunk's transcribe, cancellable mid-inference (FluidAudio
@@ -81,7 +81,7 @@ final class BookTranscriptionJob: ObservableObject {
 
     init(library: AudiobookLibraryStore = .shared,
          store: BookTranscriptStore = BookTranscriptStore(),
-         makeTranscriber: @escaping () -> any Transcriber = { TranscriberFactory.make() }) {
+         makeTranscriber: @escaping () -> any Transcribing = { TranscriberFactory.make() }) {
         self.library = library
         self.store = store
         self.makeTranscriber = makeTranscriber
@@ -303,7 +303,7 @@ final class BookTranscriptionJob: ObservableObject {
     /// Returns nil on export/transcribe failure; THROWS `CancellationError` when
     /// cancelled mid-chunk (capture yield / pause / job cancel) — the caller must
     /// redo from the same frontier, never skip-past.
-    private func transcribeChunk(transcriber: any Transcriber, audioURL: URL,
+    private func transcribeChunk(transcriber: any Transcribing, audioURL: URL,
                                  chunkStart: TimeInterval, chunkEnd: TimeInterval,
                                  isFinal: Bool) async throws -> ChunkFusion.Fused? {
         do {

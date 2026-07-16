@@ -7,7 +7,7 @@ import XCTest
 final class QuoteCaptureSaveTests: XCTestCase {
 
     @MainActor
-    private func makeSaver(repo: NotesRepository, sidecarDir: URL, transcriber: any Transcriber = SeededTranscriber(text: "unused")) -> MemoSaver {
+    private func makeSaver(repo: NotesRepository, sidecarDir: URL, transcriber: any Transcribing = SeededTranscriber(text: "unused")) -> MemoSaver {
         MemoSaver(
             repository: repo,
             transcriber: transcriber,

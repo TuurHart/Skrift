@@ -388,7 +388,7 @@ final class MemoSaverTests: XCTestCase {
 
     @MainActor
     private func makeAppendSaver(repo: NotesRepository,
-                                 transcriber: any Transcriber,
+                                 transcriber: any Transcribing,
                                  retryDelays: [TimeInterval] = [0]) -> MemoSaver {
         MemoSaver(
             repository: repo,
@@ -507,9 +507,9 @@ final class MemoSaverTests: XCTestCase {
     }
 }
 
-/// Transcriber stub that throws for the first `failures` calls, then returns
+/// Transcribing stub that throws for the first `failures` calls, then returns
 /// `text` — the cold/failed-engine shape the append retry loop must survive.
-private actor FlakyTranscriber: Transcriber {
+private actor FlakyTranscriber: Transcribing {
     struct NotReady: Error {}
 
     private var failuresLeft: Int

@@ -4,13 +4,13 @@ import UIKit
 
 /// Persists a finished recording as a `Memo` and runs transcription, writing the
 /// transcript + confidence + markers onto the memo and the word timings to the
-/// sidecar. Transcription runs off the UI (the `Transcriber` is an actor for the
+/// sidecar. Transcription runs off the UI (the `Transcribing` is an actor for the
 /// real engine); the memo appears immediately as `.transcribing` and updates when
 /// the transcript lands.
 @MainActor
 struct MemoSaver {
     var repository: NotesRepository = .shared
-    var transcriber: any Transcriber = TranscriberFactory.make()
+    var transcriber: any Transcribing = TranscriberFactory.make()
     var diarizer: any Diarizing = DiarizerFactory.make()
     var wordTimings = WordTimingsStore()
     var metadataProvider: any MetadataProviding = MetadataProviderFactory.make()

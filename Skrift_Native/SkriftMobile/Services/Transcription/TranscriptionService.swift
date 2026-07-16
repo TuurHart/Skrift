@@ -4,50 +4,10 @@ import FluidAudio
 import Foundation
 import UIKit
 
-/// Result of transcribing one memo. `wordTimings` go to the per-memo sidecar;
-/// `text` carries `[[img_NNN]]` markers when a photo manifest was supplied.
-struct TranscriptionResult: Sendable {
-    let text: String
-    let confidence: Double
-    let durationMs: Int
-    let wordTimings: [WordTiming]
-    let markersInjected: Bool
-}
-
-/// Abstraction so the recording flow can be driven by a seeded transcript in UI
-/// tests (the Simulator has no Neural Engine and FluidAudio pulls ~600MB). The
-/// real engine runs only on device.
-protocol Transcriber: Sendable {
-    func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult
-    /// Transcribe raw PCM directly — the whole-book chunk path. No temp-file
-    /// round-trip, no image markers, and no custom-vocab rescore (that's a
-    /// second CTC pass over the same audio, and FP-prone on book prose).
-    func transcribe(buffer: AVAudioPCMBuffer) async throws -> TranscriptionResult
-}
-
-extension Transcriber {
-    func transcribe(audioURL: URL) async throws -> TranscriptionResult {
-        try await transcribe(audioURL: audioURL, imageManifest: [])
-    }
-
-    /// Default: spill to a temp WAV and take the file path — for conformers
-    /// without a native buffer path (the seeded/test transcribers).
-    func transcribe(buffer: AVAudioPCMBuffer) async throws -> TranscriptionResult {
-        let temp = FileManager.default.temporaryDirectory
-            .appendingPathComponent("bufferspill_\(UUID().uuidString).wav")
-        defer { try? FileManager.default.removeItem(at: temp) }
-        try writeWAV(buffer, to: temp)
-        return try await transcribe(audioURL: temp, imageManifest: [])
-    }
-}
-
-/// Write `buffer` to `url` as WAV. A standalone function so the writing
-/// `AVAudioFile` deallocates (and flushes) on return, before anyone reads it.
-private func writeWAV(_ buffer: AVAudioPCMBuffer, to url: URL) throws {
-    try? FileManager.default.removeItem(at: url)
-    let out = try AVAudioFile(forWriting: url, settings: buffer.format.settings)
-    try out.write(from: buffer)
-}
+// `TranscriptionResult` + the `Transcribing` protocol (with the spill-to-WAV
+// buffer default) are SHARED (Shared/Pipeline/TranscribingContract.swift) — this
+// file keeps only the FluidAudio engine + the seeded/sim transcriber. The sim
+// runs seeded because it has no Neural Engine and FluidAudio pulls ~600MB.
 
 /// On-device ASR via FluidAudio (Parakeet TDT v3). Ported from the RN
 /// `ParakeetModule.swift`, adapted to FluidAudio `main` (`loadModels`,
@@ -55,7 +15,7 @@ private func writeWAV(_ buffer: AVAudioPCMBuffer, to url: URL) throws {
 /// native fixes from the RN module: model teardown on memory pressure, and the
 /// RMS/word-count silence guard. The BPE→word merge + `[[img_NNN]]` insertion are
 /// bit-for-bit ports of the desktop `_insert_image_markers`.
-actor TranscriptionService: Transcriber {
+actor TranscriptionService: Transcribing {
     static let shared = TranscriptionService()
 
     private var asr: AsrManager?
@@ -460,7 +420,7 @@ actor TranscriptionService: Transcriber {
 /// Deterministic transcriber for UI tests, fed by the `-seedTranscript` launch
 /// arg. Produces evenly-spaced word timings so the sidecar + downstream code see
 /// a realistic shape without the Neural Engine.
-struct SeededTranscriber: Transcriber {
+struct SeededTranscriber: Transcribing {
     let text: String
 
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult {
@@ -482,7 +442,7 @@ struct SeededTranscriber: Transcriber {
 
 enum TranscriberFactory {
     /// Seeded in tests (`-seedTranscript`), real FluidAudio engine otherwise.
-    static func make() -> any Transcriber {
+    static func make() -> any Transcribing {
         if let seed = LaunchFlags.seedTranscript {
             return SeededTranscriber(text: seed)
         }

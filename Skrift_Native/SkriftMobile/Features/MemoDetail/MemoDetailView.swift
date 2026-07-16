@@ -1203,7 +1203,7 @@ private struct MemoPageView: View {
         defer { Task { @MainActor in DiarizationStatus.shared.finish() } }
 
         guard let samples = try? AudioConverter(sampleRate: 16000).resampleAudioFile(audioURL) else { return }
-        let clip = DiarizationService.clip(data.segments.filter { $0.speaker == slot }, from: samples)
+        let clip = SpeakerAudio.clip(data.segments.filter { $0.speaker == slot }, from: samples)
         await VoiceEnroller.enroll(name: new, clip: clip, using: EmbedderFactory.make())
     }
 

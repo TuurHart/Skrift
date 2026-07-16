@@ -29,9 +29,10 @@ actor SpeakerEmbedder: SpeakerEmbedding {
     /// Min clip for a TRUSTWORTHY embedding: under ~2s the spike showed unstable cosines
     /// (0.16–0.49 same-speaker). Max = the wespeaker model's fixed 160k-sample (10s)
     /// waveform window — `EmbeddingExtractor` repeat-pads shorter clips; longer would
-    /// overflow the buffer, so the caller must cap.
-    static let minSamples = 32_000
-    static let maxSamples = 160_000
+    /// overflow the buffer, so the caller must cap. Values = the shared window
+    /// (SpeakerAudio, Shared/Pipeline) so the two apps can't diverge.
+    static let minSamples = SpeakerAudio.minSamples
+    static let maxSamples = SpeakerAudio.maxSamples
 
     private var manager: DiarizerManager?
     private init() {}

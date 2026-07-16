@@ -34,7 +34,7 @@ enum CaptureDictation {
     /// Kick off (or resume) transcription for a capture with pending dictation.
     /// Fire-and-forget from the drain; safe to call repeatedly.
     static func transcribe(memoID: UUID, repository: NotesRepository,
-                           transcriber: any Transcriber = TranscriberFactory.make()) {
+                           transcriber: any Transcribing = TranscriberFactory.make()) {
         guard !inFlight.contains(memoID) else { return }
         inFlight.insert(memoID)
         Task { @MainActor in
@@ -45,7 +45,7 @@ enum CaptureDictation {
 
     /// Awaitable core (used directly by tests).
     static func transcribeNow(memoID: UUID, repository: NotesRepository,
-                              transcriber: any Transcriber) async {
+                              transcriber: any Transcribing) async {
         let audioURL = pendingAudioURL(for: memoID)
         guard let memo = repository.memo(id: memoID) else {
             try? FileManager.default.removeItem(at: audioURL)
@@ -106,7 +106,7 @@ enum CaptureDictation {
     /// → stuck `.transcribing`; terminal failure → `.failed` with audio kept).
     /// Called from every inbox drain, so recovery rides app foreground.
     static func resumePending(repository: NotesRepository,
-                              transcriber: any Transcriber = TranscriberFactory.make()) {
+                              transcriber: any Transcribing = TranscriberFactory.make()) {
         for memo in repository.allMemos()
         where memo.audioFilename.isEmpty
             && (memo.transcriptStatus == .transcribing || memo.transcriptStatus == .failed)

@@ -2,7 +2,7 @@ import MessageUI
 import SwiftUI
 import UIKit
 
-/// Capture app feedback (ported from Shhhcribble, adapted to Skrift's Transcriber).
+/// Capture app feedback (ported from Shhhcribble, adapted to Skrift's Transcribing).
 /// Flow: dictate (record → on-device transcribe, re-record appends) and/or type a
 /// note, optionally paste a screenshot → Send → persist to FeedbackStore + open the
 /// mail composer; mark sent on a real send. If Mail isn't set up, the draft is kept.
@@ -17,7 +17,7 @@ struct FeedbackCaptureView: View {
     @State private var pendingMailItem: FeedbackItem?
     @State private var showNoMailAlert = false
 
-    private let transcriber: any Transcriber = TranscriberFactory.make()
+    private let transcriber: any Transcribing = TranscriberFactory.make()
 
     enum Phase { case idle, recording, transcribing, review }
 

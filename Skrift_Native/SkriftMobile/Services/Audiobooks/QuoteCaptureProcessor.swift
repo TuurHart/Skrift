@@ -63,7 +63,7 @@ enum QuoteCaptureError: LocalizedError {
 
 /// Span-on-demand transcription (LOCKED: never the whole book): export the
 /// marked span ± 20 s to a temp file, run it through the existing on-device
-/// `Transcriber` (Parakeet), sentence-snap both edges OUTWARD, then trim the
+/// `Transcribing` (Parakeet), sentence-snap both edges OUTWARD, then trim the
 /// quote audio to the snapped span.
 ///
 /// Times here are LOCAL to `bookAudio` — for a multi-file book the flow passes
@@ -71,7 +71,7 @@ enum QuoteCaptureError: LocalizedError {
 /// a span already rebased into it; a span can never cross a file boundary.
 @MainActor
 struct QuoteCaptureProcessor {
-    var transcriber: any Transcriber = TranscriberFactory.make()
+    var transcriber: any Transcribing = TranscriberFactory.make()
 
     func process(bookAudio: URL, span: CaptureSpan.Span, bookDuration: TimeInterval) async throws -> QuoteCaptureOutput {
         let buffer = CaptureSpan.transcriptionBuffer(for: span, duration: bookDuration)

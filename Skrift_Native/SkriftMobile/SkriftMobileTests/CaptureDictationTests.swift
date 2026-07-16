@@ -2,7 +2,7 @@ import XCTest
 @testable import SkriftMobile
 
 /// A transcriber that always throws — drives the terminal-failure paths.
-private struct FailingTranscriber: Transcriber {
+private struct FailingTranscriber: Transcribing {
     struct Err: Error {}
     func transcribe(audioURL: URL, imageManifest: [ImageManifestEntry]) async throws -> TranscriptionResult {
         throw Err()

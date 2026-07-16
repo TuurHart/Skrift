@@ -3,7 +3,7 @@ import Foundation
 
 /// Standalone `AVAudioRecorder` for the feedback capture flow (ported from
 /// Shhhcribble). Records a temp 16 kHz mono WAV; the caller transcribes it via
-/// Skrift's `Transcriber`, then calls `discard()`. Separate from the main
+/// Skrift's `Transcribing`, then calls `discard()`. Separate from the main
 /// `LiveRecordingService` — a one-shot batch flow with its own `.record` session.
 @MainActor
 final class FeedbackRecorder: ObservableObject {

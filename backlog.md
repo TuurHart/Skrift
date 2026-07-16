@@ -1056,8 +1056,14 @@ RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rule
   `DriftedPair`s so ZERO pixels changed (desktop PROVEN: 6 snapshot fixtures byte-identical
   pre/post; deterministic renderer control). ⬜ RECONCILE the 6 DriftedPairs after an eyeball
   round (each collapse = a one-line change now). Suites + MLX build green.
-- ⬜ **TranscriptionService/TranscriptionResult + DiarizationService/DiarizationOutput/Diarizing** —
-  engine-wrapper + result-struct twins (conversation contract shapes).
+- ✅ **TranscriptionService/TranscriptionResult + DiarizationService/DiarizationOutput/Diarizing** —
+  DONE 2026-07-16: contracts + pure passes → `Shared/Pipeline/{TranscribingContract,DiarizingContract}.swift`
+  (TranscriptionResult, ONE `Transcribing` protocol — mobile's `Transcriber` renamed, buffer path a
+  requirement w/ spill-to-WAV default; DiarizationOutput + unified `Diarizing` w/ `targetSpeakers`;
+  SpeakerAudio clip+window constants; SpeakerIdentification identify/clusterToTarget behind an embed
+  closure; SpeakerClustering moved to Shared). FluidAudio bindings stay per-app in the engine layer.
+  BONUS: the Mac engine now honors `targetSpeakers` (force-to-N was phone-only) — substrate for the
+  "per-note Split speakers on Mac" fast-follow (FEATURES row 29), UI still owed.
 - ⬜ **NamesStore** — the store class itself is twinned (bytes-compatible names.json is shared, the
   code isn't); largest job.
 - ⬜ VocabularyBooster.boost() cores + SpeakerTranscript — already tracked above (SharedKit wave 1
@@ -1074,7 +1080,11 @@ RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rule
   display, which now agrees with the [[Full|Short]] help line under it (Mac fixture vision-checked).
 - ⬜ **NoteBodyView ↔ BodyTextView** (14) — the body renderers' shared logic; = the i10 premise,
   fold into i10 rather than a separate job.
-- ⬜ **SpeakerVoiceStore ↔ DiarizationService** (11) — voice-embedding store logic adapted twice.
+- ✅ **SpeakerVoiceStore ↔ DiarizationService** — RESOLVED 2026-07-16 by DELETION: SpeakerVoiceStore
+  (per-person PCM samples for Sortformer enrollment) had ZERO callers — dead since the identity pivot
+  to embedding-cosine (`Person.voiceEmbeddings` + VoiceMatcher). Removed; git history keeps it. Any
+  old `recordings/voices/` dirs on devices are orphaned bytes, harmless. The clip-math overlap it was
+  flagged for is now the one shared `SpeakerAudio.clip`.
 - ⬜ **MemoSaver ↔ IngestService** (10) — the two ingest paths share adapted logic.
 - (Scores ≤9 vs SidebarView etc. = generic SwiftUI patterns — noise, no action.)
 

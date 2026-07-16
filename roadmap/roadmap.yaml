@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-16T19:35:00.000Z
+updated: 2026-07-16T20:10:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -171,6 +171,11 @@ nodes:
       moved to ONE compiled copy in Shared/ (the annotated 'mirrors the phone'
       duplicates had already drifted, e.g. the Mac's 'Significant' tier label).
     shipped:
+      - 2026-07-16 · WAVE 2e — engine contracts unified: ONE Transcribing +
+        Diarizing protocol pair + result structs + pure clip/identify/cluster
+        passes in Shared/Pipeline (embed-closure seam; FluidAudio stays in
+        each app's engine layer). Mac gains force-to-N substrate; dead
+        SpeakerVoiceStore (pre-pivot PCM enrollment, zero callers) deleted
       - 2026-07-16 · WAVE 2d — person-editor semantics → ONE PersonEditCore
         (Shared/Naming; 9 tests both suites). Fixes real drift: phone rename
         dropped voice enrollment; Mac allowed no-alias (never-linking) people;

@@ -96,7 +96,7 @@ final class DiarizationTests: XCTestCase {
     }
     private struct StubDiarizer: Diarizing {
         let output: DiarizationOutput
-        func diarize(audioURL: URL) async throws -> DiarizationOutput { output }
+        func diarize(audioURL: URL, targetSpeakers: Int?) async throws -> DiarizationOutput { output }
     }
     /// Simulates the real Gemma copy-edit stripping the `**` bold markers (it drops the
     /// `**Name:**` speaker prefixes — verified on the fixture).
