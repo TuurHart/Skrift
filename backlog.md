@@ -1013,6 +1013,10 @@ uncommitted edits; fold in when they land.
   per-device index (the pairing it hides only exists in THIS device's ranking), and syncing it would
   grow the CloudKit contract (the spine) for marginal value. Revisit only if device use shows it
   annoying in practice.
+- ⬜ (small, from Tuur's Q) **photo-OCR search edges on the Mac**: search MATCHES OCR text of synced
+  memos (`imageOCRText` mirror ✓, phone runs the OCR), but (a) Mac-local ingests never get OCR'd (no
+  Mac-side indexer), and (b) an OCR-only match can't flash in the body (the text isn't there) — could
+  scroll to the matching `[[img_N]]` attachment instead.
 Suites green per chunk, ledgers same commit.
 
 ## 🧭 SharedKit wave 2 — twin-scan triage (2026-07-16, tool: `python3 tools/twin-scan.py`)
