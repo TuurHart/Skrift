@@ -17,6 +17,10 @@ struct SkriftApp: App {
         NamesSeeder.seedIfRequested()
         repository = repo
 
+        // The shared embedder logs through an app-wired sink (it moved to
+        // Shared/RetrievalEngine and can't see DevLog directly).
+        GemmaEmbedder.log = { DevLog.log($0) }
+
         #if DEBUG
         // P0 recovery hook (2026-07-10): restore a clobbered enhancement copy-edit
         // passed as a launch argument. Newest `enhancedAt` wins everywhere, so the

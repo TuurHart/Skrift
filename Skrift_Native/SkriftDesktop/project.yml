@@ -2,7 +2,9 @@ name: SkriftDesktop
 options:
   bundleIdPrefix: com.skrift
   deploymentTarget:
-    macOS: "14.0"
+    # 15.0 since 2026-07-16: the CoreML-LLM package (shared GemmaEmbedder for the
+    # Connections panel) declares macOS 15 as its floor. Was 14.0.
+    macOS: "15.0"
   createIntermediateGroups: true
 
 packages:
@@ -33,6 +35,11 @@ packages:
   swift-jinja:
     url: https://github.com/huggingface/swift-jinja.git
     exactVersion: "2.3.6"
+  # EmbeddingGemma-300M on the ANE (Connections panel / P8) — same pin as the iOS
+  # app (one engine, two apps; its swift-transformers ≥1.0 range accepts our 1.3.0 pin).
+  CoreMLLLM:
+    url: https://github.com/john-rocky/CoreML-LLM
+    from: "1.9.0"
 
 targets:
   SkriftDesktop:
@@ -60,10 +67,13 @@ targets:
       # Retrieval: the P8 embedding index core (EmbeddingIndex/Store/MemoEmbedding +
       # engine seam + gist) — one copy; powers the Connections panel (mocks/related-panel.html).
       - path: ../Shared/Retrieval
+      # RetrievalEngine: the CoreML-LLM-bound GemmaEmbedder — APP target only,
+      # never the test bundles (tests use MockEmbedder; the package link stays out).
+      - path: ../Shared/RetrievalEngine
     settings:
       base:
         PRODUCT_NAME: SkriftDesktop
-        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
         SWIFT_VERSION: "5.9"
         GENERATE_INFOPLIST_FILE: YES
         MARKETING_VERSION: "0.1.0"
@@ -115,6 +125,8 @@ targets:
         product: HuggingFace
       - package: swift-transformers
         product: Tokenizers
+      - package: CoreMLLLM
+        product: CoreMLLLM
 
   # Host-less logic test bundle — proves `xcodebuild test` runs the unit harness.
   # Host-less logic tests: macOS hosted tests flakily hang on the testmanagerd

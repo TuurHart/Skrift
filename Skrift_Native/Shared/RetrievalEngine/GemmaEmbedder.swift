@@ -1,6 +1,8 @@
 import Foundation
 import CoreMLLLM
+#if canImport(UIKit)
 import UIKit
+#endif
 
 /// Production engine: EmbeddingGemma-300M via CoreML-LLM, on the ANE.
 ///
@@ -10,10 +12,15 @@ import UIKit
 /// two Matryoshka dims on one live instance was flaky in the spike; one dim is
 /// 100% stable.
 ///
-/// App-side (not `Shared/Retrieval/`) only because the CoreML-LLM package is
-/// mobile-only until the Mac adopts it in Phase 2 — then this file moves.
+/// `Shared/RetrievalEngine/` — compiled by BOTH app targets, NEVER by the
+/// host-less test bundles (it links the CoreML-LLM package; tests use
+/// `MockEmbedder`). One engine + one `modelRev` ⇒ the two devices' local
+/// indexes stay comparable.
 actor GemmaEmbedder: EmbeddingEngine {
     static let shared = GemmaEmbedder()
+
+    /// App-wired log sink (phone → DevLog, Mac → its own trace). No-op default.
+    nonisolated(unsafe) static var log: @Sendable (String) -> Void = { _ in }
 
     nonisolated let modelRev = "embeddinggemma-300m-d512"
     private let dim = 512
@@ -30,17 +37,28 @@ actor GemmaEmbedder: EmbeddingEngine {
     private let idleUnloadAfter: TimeInterval = 600
 
     private init() {
+        // iOS: a suspended app holding 295 MB is first in line for jetsam — free it
+        // on background. macOS has no jetsam pressure; the idle timer suffices.
+        #if canImport(UIKit)
         NotificationCenter.default.addObserver(
             forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil
         ) { _ in
             Task { await GemmaEmbedder.shared.unloadNow() }
         }
+        #endif
     }
 
     /// ~295 MB, cached here after the first download.
     static var modelsDir: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("EmbeddingModels", isDirectory: true)
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        #if os(macOS)
+        // Non-sandboxed Mac: ~/Library/Application Support is shared ground — nest
+        // under Skrift/. Deliberately ONE dir for dev+prod (read-only model assets,
+        // version-keyed inside; download the 295 MB once, both builds use it).
+        return appSupport.appendingPathComponent("Skrift/EmbeddingModels", isDirectory: true)
+        #else
+        return appSupport.appendingPathComponent("EmbeddingModels", isDirectory: true)
+        #endif
     }
 
     /// True once the model files exist on disk — the sweep must NOT trigger a
@@ -68,10 +86,10 @@ actor GemmaEmbedder: EmbeddingEngine {
                     try? await Task.sleep(for: .milliseconds(400)); waited += 0.4
                 }
                 let t0 = Date()
-                DevLog.log("embedder: cold load START")
+                Self.log("embedder: cold load START")
                 loadTask = Task {
                     let m = try await EmbeddingGemma.downloadAndLoad(modelsDir: Self.modelsDir)
-                    DevLog.log(String(format: "embedder: cold load DONE in %.1fs", Date().timeIntervalSince(t0)))
+                    Self.log(String(format: "embedder: cold load DONE in %.1fs", Date().timeIntervalSince(t0)))
                     return m
                 }
             }
@@ -105,7 +123,7 @@ actor GemmaEmbedder: EmbeddingEngine {
     private func unloadIfIdle() {
         if model != nil, Date().timeIntervalSince(lastUse) >= idleUnloadAfter {
             model = nil
-            DevLog.log("embedder: unloaded after idle")
+            Self.log("embedder: unloaded after idle")
         }
     }
 
@@ -114,7 +132,7 @@ actor GemmaEmbedder: EmbeddingEngine {
     func unloadNow() {
         if model != nil {
             model = nil
-            DevLog.log("embedder: unloaded on background")
+            Self.log("embedder: unloaded on background")
         }
     }
 

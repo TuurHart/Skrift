@@ -55,9 +55,11 @@ targets:
       # Pipeline: pure parity algorithms both apps must run identically (vocab
       # parsing/trust, fusion, voice match, BPE merge, image markers).
       - path: ../Shared/Pipeline
-      # Retrieval brain (P8): engine protocol + gist/chunker — platform-neutral;
-      # the Mac adopts this path in Phase 2 (JOURNAL_RETRIEVAL_PLAN.md).
+      # Retrieval brain (P8): engine protocol + gist/chunker + index core — platform-neutral.
       - path: ../Shared/Retrieval
+      # RetrievalEngine: the CoreML-LLM-bound GemmaEmbedder — APP targets only,
+      # never test bundles (tests use MockEmbedder; the package link stays out).
+      - path: ../Shared/RetrievalEngine
       # Session: the shared LockGate (per-device unlock state for locked notes).
       - path: ../Shared/Session
       # UI: shared SwiftUI helpers (FlowLayout — one copy across both apps + the extension).
