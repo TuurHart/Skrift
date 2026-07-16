@@ -965,7 +965,21 @@ desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev ins
 prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
 one `now`); mock-first for any NEW UI beyond these signed specs.
 
-### 🕸️ CONTINUE HERE — Mac Connections panel: ✅ MOCK SIGNED OFF 2026-07-16 ("oke im down!") → BUILDING
+### 🕸️ CONTINUE HERE — Connections SHIPPED same-day (2026-07-16); NEXT CHAT = SharedKit wave 2, phone round owed
+
+**SESSION-END STATE (2026-07-16 eve — all committed, main @ 522cae5, 31 local/unpushed):**
+- ✅ VERIFIED this session: shared index+embedder+gate (both unit suites green per chunk: 372 desktop /
+  687 phone); full MLX desktop builds green; panel hostPNG fixture vision-checked; Tuur's LIVE Dev round:
+  download→PREPARING→indexing→panel all work on the real 19-note Dev corpus; amber warm-text eyeballed.
+- 🌓 BUILT, NOT YET EYEBALLED: the ~2s lingering search-highlight (582cdfd — flash-too-fast fix,
+  deployed, one look owed); ⌥⌘C/badge/hover-✕/tooltip on real corpus; light-mode amber fill on Mac.
+- ⛔ BLOCKED on iPhone attached: the phone device round — upgraded Journal gate (real % + PREPARING +
+  N-of-M, sim-compiled only), phone light-mode warm fill, panel↔phone cross-checks.
+- Next chat's HEAVY work = **🧭 SharedKit wave 2** (list below, ranked; SharedContent first) — the
+  scanning/triage is DONE, only the fixing remains; tree is clean, tool = `python3 tools/twin-scan.py`
+  (+ `--clones`).
+
+### (history) Mac Connections panel: ✅ MOCK SIGNED OFF 2026-07-16 ("oke im down!") → BUILT same day
 
 **THE SPEC = `mocks/related-panel.html` v3** (3 review rounds, all picks in the mock's decisions block):
 one panel + Date⇄Closest pill · P1 importance decimals (warm ≥0.8, unrated = nothing) · closeness =
