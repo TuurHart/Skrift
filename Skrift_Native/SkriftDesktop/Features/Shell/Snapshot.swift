@@ -63,7 +63,7 @@ enum Snapshot {
             ConnectionBacklink(id: "x", title: "Weekend build plan", date: days(-11)),
             ConnectionBacklink(id: "y", title: "Shopping list — garden centre", date: days(-18)),
         ]
-        func panel(_ state: ConnectionsState, related: [ConnectionRow], byDate: Bool) -> some View {
+        func panel(_ state: RetrievalGate, related: [ConnectionRow], byDate: Bool) -> some View {
             ConnectionsPanelBody(state: state, related: related, backlinks: backlinks,
                                  currentTitle: "Drip irrigation for the rooftop planters",
                                  currentDate: Date(), currentImportance: 0.8,

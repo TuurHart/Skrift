@@ -11,6 +11,7 @@ import Foundation
 /// demo axes matching `-seedJournal`, so search/threads are demoable without
 /// model assets.
 @MainActor
+@Observable
 final class JournalIndexService {
     static let shared = JournalIndexService()
 
@@ -19,6 +20,9 @@ final class JournalIndexService {
     private var index: EmbeddingIndex?
     private var sweeping = false
     private var mockSeeded = false
+    /// Live "N of M" while a sweep runs (the settings gate's indexing row —
+    /// shared-gate parity with the Mac panel); nil when idle.
+    private(set) var sweepProgress: (done: Int, total: Int)?
 
     var isEnabled: Bool {
         UserDefaults.standard.bool(forKey: Self.enabledDefaultsKey)
@@ -47,10 +51,13 @@ final class JournalIndexService {
         let snapshots = Self.snapshots(from: repository)
         let index = resolvedIndex()
         sweeping = true
+        sweepProgress = (0, snapshots.count)
         Task.detached(priority: .utility) { [weak self] in
             let t0 = Date()
             do {
-                let stats = try await index.sweep(snapshots)
+                let stats = try await index.sweep(snapshots) { done, total in
+                    Task { @MainActor in self?.sweepProgress = (done, total) }
+                }
                 // The chunk-8 perf trace: pull via devlog after a device sweep.
                 DevLog.log(String(format: "JournalIndex sweep: %d embedded · %d skipped · %d removed · %.1fs for %d memos",
                                   stats.embedded, stats.skipped, stats.removed,
@@ -58,7 +65,10 @@ final class JournalIndexService {
             } catch {
                 DevLog.log("JournalIndex sweep failed: \(error)")
             }
-            await MainActor.run { self?.sweeping = false }
+            await MainActor.run {
+                self?.sweeping = false
+                self?.sweepProgress = nil
+            }
         }
     }
 

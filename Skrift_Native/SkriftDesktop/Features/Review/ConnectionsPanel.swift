@@ -33,21 +33,9 @@ struct ConnectionBacklink: Identifiable, Equatable {
     let date: Date
 }
 
-/// What the panel renders in the "related" zone. Backlinks render regardless —
-/// they never depended on the AI index, so consent must not cost them (the mock
-/// drew the gate full-panel; function wins over the drawing here).
-enum ConnectionsState: Equatable {
-    case gate
-    case downloading(Double)
-    /// Bytes done, `prepare()` not returned — the CoreML compile/ANE load
-    /// (device-found 2026-07-16: the bar froze at 295/295 with no explanation).
-    case preparing
-    case indexing(done: Int, total: Int)
-    /// The engine is cold-loading / the first query is in flight — showing
-    /// "No connections yet" here would be false info.
-    case finding
-    case ready
-}
+// The AI-zone state + its copy live in the SHARED RetrievalGate (one machine for
+// this panel and the phone's settings gate). Backlinks render regardless of state —
+// they never depended on the AI index, so consent must not cost them.
 
 // MARK: - Model
 
@@ -67,20 +55,14 @@ final class ConnectionsModel {
     private static let hiddenDefaultsKey = "connectionsHiddenPairs"
 
     /// The state of the AI zone right now — reads the service live, so views
-    /// re-render as it moves.
-    var state: ConnectionsState {
+    /// re-render as it moves; derivation = the shared RetrievalGate machine.
+    var state: RetrievalGate {
         let svc = ConnectionsIndexService.shared
-        if let f = svc.downloadFraction {
-            // Bytes complete but prepare() hasn't returned = the CoreML
-            // compile/ANE load — name it, don't look frozen.
-            return f >= 0.999 ? .preparing : .downloading(f)
-        }
-        guard svc.isActive else { return .gate }
-        if related.isEmpty, svc.sweeping, let p = svc.sweepProgress {
-            return .indexing(done: p.done, total: p.total)
-        }
-        if related.isEmpty, querying { return .finding }
-        return .ready
+        return RetrievalGate.derive(
+            enabled: svc.isEnabled, modelDownloaded: svc.isModelDownloaded,
+            downloadFraction: svc.downloadFraction,
+            sweeping: svc.sweeping, sweepProgress: svc.sweepProgress,
+            hasRows: !related.isEmpty, querying: querying)
     }
 
     func refresh(for file: PipelineFile, context: ModelContext) async {
@@ -208,7 +190,7 @@ final class ConnectionsModel {
 // MARK: - Panel (pure body — snapshot-friendly)
 
 struct ConnectionsPanelBody: View {
-    let state: ConnectionsState
+    let state: RetrievalGate
     let related: [ConnectionRow]
     let backlinks: [ConnectionBacklink]
     /// The open note, drawn as the highlighted card on the Date rail.
@@ -539,18 +521,18 @@ struct ConnectionsPanelBody: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 24)).foregroundStyle(Theme.accent.opacity(0.9))
                 .padding(.top, 40)
-            Text("Find connections between your notes")
+            Text(RetrievalGate.Copy.gateTitle)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
                 .multilineTextAlignment(.center)
-            Text("Related notes, threads, and search by meaning — not just keywords. Runs fully on this Mac; nothing leaves the device. The language model is a one-time 295 MB download.")
+            Text(RetrievalGate.Copy.gateBody(device: "Mac"))
                 .font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             // Custom accent capsule (not .borderedProminent — offscreen renders draw
             // system buttons in the inactive-window gray, hiding the CTA).
             Button(action: onEnable) {
-                Text("Turn on Connections")
+                Text(RetrievalGate.Copy.gateCTA)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16).padding(.vertical, 7)
@@ -559,7 +541,7 @@ struct ConnectionsPanelBody: View {
             .buttonStyle(.plain)
             .padding(.top, 4)
             .accessibilityIdentifier("connections-enable")
-            Text("Downloads EmbeddingGemma · 295 MB")
+            Text(RetrievalGate.Copy.gateFootnote)
                 .font(.system(size: 9.5)).foregroundStyle(Theme.textMuted)
         }
         .frame(maxWidth: .infinity)
@@ -571,10 +553,10 @@ struct ConnectionsPanelBody: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 24)).foregroundStyle(Theme.accent.opacity(0.9))
                 .padding(.top, 56)
-            Text("Downloading model…")
+            Text(RetrievalGate.Copy.downloadingTitle)
                 .font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.textPrimary)
             progressBar(fraction, fill: Theme.accent)
-            Text("\(Int(fraction * 295)) / 295 MB · you can keep working")
+            Text(RetrievalGate.Copy.downloadingSub(fraction: fraction))
                 .font(.system(size: 10.5).monospacedDigit()).foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -588,10 +570,10 @@ struct ConnectionsPanelBody: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 24)).foregroundStyle(Theme.accent.opacity(0.9))
                 .padding(.top, 56)
-            Text("Preparing model…")
+            Text(RetrievalGate.Copy.preparingTitle)
                 .font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.textPrimary)
             progressBar(1, fill: Theme.accent)
-            Text("Compiling for the Neural Engine —\na one-time step, then indexing starts")
+            Text(RetrievalGate.Copy.preparingSub)
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -606,9 +588,9 @@ struct ConnectionsPanelBody: View {
             Image(systemName: "circle.hexagongrid")
                 .font(.system(size: 22)).foregroundStyle(Theme.textMuted.opacity(0.6))
                 .padding(.top, 48)
-            Text("Finding connections…")
+            Text(RetrievalGate.Copy.findingTitle)
                 .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
-            Text("Warming the on-device model —\nquick once it's loaded.")
+            Text(RetrievalGate.Copy.findingSub)
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                 .multilineTextAlignment(.center)
         }
@@ -621,10 +603,10 @@ struct ConnectionsPanelBody: View {
             Image(systemName: "circle.hexagongrid")
                 .font(.system(size: 24)).foregroundStyle(Theme.textSecondary)
                 .padding(.top, 56)
-            Text("Building the index")
+            Text(RetrievalGate.Copy.indexingTitle)
                 .font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.textPrimary)
             progressBar(total > 0 ? Double(done) / Double(total) : 0, fill: Theme.green)
-            Text("\(done) of \(total) notes · runs in the background,\npauses while transcribing")
+            Text(RetrievalGate.Copy.indexingSub(done: done, total: total))
                 .font(.system(size: 10.5).monospacedDigit()).foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -637,9 +619,9 @@ struct ConnectionsPanelBody: View {
             Image(systemName: "circle.hexagongrid")
                 .font(.system(size: 22)).foregroundStyle(Theme.textMuted.opacity(0.6))
                 .padding(.top, 48)
-            Text("No connections yet")
+            Text(RetrievalGate.Copy.emptyTitle)
                 .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
-            Text("As more notes touch this idea,\nits arc shows up here.")
+            Text(RetrievalGate.Copy.emptySub)
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                 .multilineTextAlignment(.center)
         }
