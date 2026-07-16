@@ -180,6 +180,19 @@ struct BodyTextView: NSViewRepresentable {
                     DispatchQueue.main.async {
                         tv.scrollRangeToVisible(r)
                         tv.showFindIndicator(for: r)
+                        // The system indicator blooms for ~a second and vanishes
+                        // (device feedback: "super fast") — ALSO tint the match for
+                        // a couple of seconds so the eye can land, phone-style.
+                        tv.textStorage?.addAttribute(
+                            .backgroundColor,
+                            value: NSColor(Theme.accent).withAlphaComponent(0.30), range: r)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [weak tv] in
+                            // Length guard: an edit inside the window may shift offsets —
+                            // worst case a stray tint survives until the next restyle.
+                            guard let tv, let storage = tv.textStorage,
+                                  NSMaxRange(r) <= storage.length else { return }
+                            storage.removeAttribute(.backgroundColor, range: r)
+                        }
                     }
                 }
             }
