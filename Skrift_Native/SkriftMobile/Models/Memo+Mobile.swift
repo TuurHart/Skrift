@@ -5,10 +5,9 @@ import Foundation
 /// The core `Memo` is compiled by BOTH apps (the Mac is a CloudKit client of the phone's
 /// note store — `MAC_CLOUDKIT_PLAN.md`), so it carries no iOS types. This extension adds
 /// back the phone-side pieces the desktop must NOT see:
-/// - the typed `sharedContent` accessor over the raw JSON blob (the `SharedContent`
-///   struct stays mobile-only — it would collide with the desktop's lenient legacy
-///   `SharedContent` decoder in CompilerBridge.swift; `metadata`/`MemoMetadata` are
-///   SHARED and live on the shared `Memo`),
+/// - the typed `sharedContent` accessor over the raw JSON blob (`SharedContent` is the
+///   shared C3 wire struct — Shared/Model — but only the phone WRITES the blob, so the
+///   accessor lives here; `metadata`/`MemoMetadata` are on the shared `Memo`),
 /// - the on-disk path helpers (`audioURL` / `sharedFileURL`) that resolve against the iOS
 ///   app-container `AppPaths.recordingsDirectory`,
 /// - `Memo.make(…)`, a typed convenience factory matching the old initializer's signature.

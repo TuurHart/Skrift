@@ -212,7 +212,7 @@ struct NoteProperties: View {
     private var captureURLDisplayValue: String? {
         guard file.sourceType == .capture else { return nil }
         let sc = SharedContent.decode(from: file.audioMetadataJSON)
-        guard sc?.type == "url", let urlStr = sc?.url, !urlStr.isEmpty else { return nil }
+        guard sc?.type == .url, let urlStr = sc?.url, !urlStr.isEmpty else { return nil }
         if let u = URL(string: urlStr) {
             let host = u.host ?? ""
             let path = u.path.isEmpty ? "" : u.path

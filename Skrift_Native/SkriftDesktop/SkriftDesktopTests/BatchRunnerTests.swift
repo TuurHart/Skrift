@@ -222,13 +222,13 @@ final class CaptureRunnerTests: XCTestCase {
     }
 
     func testEmptyAnnotationFallsBackToTextSnippet() {
-        let sc = SharedContent(type: "text", text: "one two three four five six seven eight nine")
+        let sc = SharedContent(type: .text, text: "one two three four five six seven eight nine")
         let title = BatchRunner.captureFallbackTitle(sc, existingTitle: nil)
         XCTAssertEqual(title, "one two three four five six seven eight…", "8-word truncation + ellipsis")
     }
 
     func testEmptyAnnotationFallsBackToImageFilename() {
-        let sc = SharedContent(type: "image", fileName: "whiteboard.jpg")
+        let sc = SharedContent(type: .image, fileName: "whiteboard.jpg")
         let title = BatchRunner.captureFallbackTitle(sc, existingTitle: nil)
         XCTAssertEqual(title, "whiteboard.jpg")
     }
@@ -239,7 +239,7 @@ final class CaptureRunnerTests: XCTestCase {
     }
 
     func testPresetTitleHonoredForCapture() {
-        let sc = SharedContent(type: "url", urlTitle: "Page Title")
+        let sc = SharedContent(type: .url, urlTitle: "Page Title")
         let title = BatchRunner.captureFallbackTitle(sc, existingTitle: "User Set Title")
         XCTAssertEqual(title, "User Set Title", "preset title wins over urlTitle")
     }

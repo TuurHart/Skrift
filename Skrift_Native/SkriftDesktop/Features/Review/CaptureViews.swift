@@ -13,13 +13,13 @@ struct CaptureSourceStrip: View {
 
     private var label: String {
         switch sc?.type {
-        case "url":
+        case .url:
             let domain = sc?.url.flatMap { URL(string: $0)?.host } ?? ""
             return "Shared link\(domain.isEmpty ? "" : " · \(domain)")"
-        case "text": return "Shared text"
-        case "image": return "Shared image"
-        case "file": return "Shared file"
-        default: return "Capture"
+        case .text: return "Shared text"
+        case .image: return "Shared image"
+        case .file: return "Shared file"
+        case nil: return "Capture"
         }
     }
 
@@ -71,10 +71,10 @@ struct CaptureBanner: View {
     private var bannerText: String {
         let typePhrase: String
         switch sc?.type {
-        case "url":   typePhrase = "The URL exports to Obsidian intact."
-        case "text":  typePhrase = "The snippet exports as a blockquote above your annotation."
-        case "image": typePhrase = "The image is copied to your vault attachments folder."
-        default:      typePhrase = "The shared content exports to Obsidian alongside your annotation."
+        case .url:   typePhrase = "The URL exports to Obsidian intact."
+        case .text:  typePhrase = "The snippet exports as a blockquote above your annotation."
+        case .image: typePhrase = "The image is copied to your vault attachments folder."
+        default:     typePhrase = "The shared content exports to Obsidian alongside your annotation."
         }
         return "Capture — skipped transcription & diarization. Enhancement-lite still ran: title, tags, summary + name-linking on your annotation. \(typePhrase)"
     }
@@ -135,7 +135,7 @@ struct CaptureSharedContentBlock: View {
                 .foregroundStyle(Theme.textMuted)
 
                 switch sc.type {
-                case "url":
+                case .url:
                     VStack(alignment: .leading, spacing: 2) {
                         if let title = sc.urlTitle, !title.isEmpty {
                             Text(title)
@@ -149,13 +149,13 @@ struct CaptureSharedContentBlock: View {
                                 .textSelection(.enabled)
                         }
                     }
-                case "text":
+                case .text:
                     Text(sc.text ?? "")
                         .font(.system(size: 13.5))
                         .italic()
                         .foregroundStyle(Theme.textPrimary.opacity(0.85))
                         .fixedSize(horizontal: false, vertical: true)
-                case "image":
+                case .image:
                     HStack(spacing: 8) {
                         Image(systemName: "photo")
                             .font(.system(size: 14))
@@ -164,7 +164,7 @@ struct CaptureSharedContentBlock: View {
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundStyle(Theme.textSecondary)
                     }
-                case "file":
+                case .file:
                     // The document itself now syncs (3b, `.document` asset) into the capture
                     // folder's `files/`; when present the card OPENS the real file. Its text is
                     // also in the note body below (phone A6), which the Mac shows/searches/exports.
@@ -193,10 +193,6 @@ struct CaptureSharedContentBlock: View {
                                 .background(Theme.accent.opacity(0.12), in: Capsule())
                         }
                     }
-                default:
-                    Text(sc.fileName ?? "Shared file")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Theme.textSecondary)
                 }
             }
             .padding(.horizontal, 16)

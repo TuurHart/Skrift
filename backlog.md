@@ -1039,9 +1039,12 @@ First run: 13 file twins · 21 type twins · 40 string twins. Deliberate twins (
 test files both suites; NamesCloudSync/VocabularyCloudSync thin adapters (cores shared 2026-07);
 RootView/SettingsView/RecentlyDeletedView/NoteBody = per-platform surfaces (rules already shared).
 **Extraction candidates, ranked:**
-- ⬜ **SharedContent** — the C3 capture WIRE STRUCT duplicated (mobile `Models/SharedContent.swift` vs
-  desktop `CompilerBridge.swift`, "field names intentionally identical") — contract shape in two
-  files; cheap, high value, do first.
+- ✅ **SharedContent** — DONE 2026-07-16: ONE typed struct `Shared/Model/SharedContent.swift` (enum
+  `ShareContentType` both sides; desktop consumers flipped string→enum; SkriftShare target repointed).
+  Goldens FIRST (`SharedContentParityTests`, both suites) — which caught that the desktop's snake_case
+  `shared_content` fallback was DEAD code (wrapper decode always succeeds → fallback unreachable, no
+  producer since the RN era): deleted, camelCase pinned as the contract; unknown `type` → nil (no
+  junk-typed records). Desktop 376 + mobile 691 + full MLX build green.
 - ⬜ **AppPaths** — dev/prod container-path conventions duplicated; small.
 - ⬜ **Theme palette values** — one palette family (0x7c6bf5…) maintained as two dyn tables; a shared
   hex-constants table (per-platform dynamic wrappers stay) prevents the warmFill-drift class of bug.

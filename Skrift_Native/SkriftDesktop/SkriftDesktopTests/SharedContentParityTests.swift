@@ -21,21 +21,32 @@ final class SharedContentParityTests: XCTestCase {
 
     func testEnvelopeDecodesCamelCase() throws {
         let sc = try XCTUnwrap(SharedContent.decode(from: envelope()))
-        XCTAssertEqual(sc.type, "url")
+        XCTAssertEqual(sc.type, .url)
         XCTAssertEqual(sc.url, "https://example.com/a")
         XCTAssertEqual(sc.urlTitle, "Example Page")
         XCTAssertEqual(sc.urlDescription, "A description")
+        XCTAssertEqual(sc.urlThumbnailUrl, "https://example.com/t.jpg")
         XCTAssertEqual(sc.text, "INVOICE 7788")
+        XCTAssertEqual(sc.filePath, "file_7.pdf")
         XCTAssertEqual(sc.fileName, "Scan.pdf")
         XCTAssertEqual(sc.mimeType, "application/pdf")
     }
 
     func testSnakeCaseKeyIsNotTheContract() {
-        // Golden finding (2026-07-16): the snake_case "fallback" in the old decoder was
-        // DEAD code — the Codable wrapper succeeds (sharedContent: nil) on any JSON
-        // object, so `shared_content` never decoded. No producer exists (the demo seeds
-        // died with the RN era). Pinned as unsupported: camelCase is the C3 contract.
+        // Golden finding (2026-07-16): the snake_case "fallback" in the old desktop
+        // decoder was DEAD code — the Codable wrapper succeeds (sharedContent: nil) on
+        // any JSON object, so `shared_content` never decoded. No producer exists (the
+        // demo seeds died with the RN era). camelCase is the C3 contract; the shared
+        // decoder carries no fallback.
         XCTAssertNil(SharedContent.decode(from: envelope(key: "shared_content")))
+    }
+
+    func testUnknownTypeYieldsNil() {
+        // Strict enum: a type outside the C3 contract decodes to nil rather than a
+        // junk-typed record (better no info than bad info). Adding a capture type =
+        // extending the ONE shared ShareContentType — both apps move together.
+        let data = Data(#"{"sharedContent":{"type":"hologram","urlTitle":"X"}}"#.utf8)
+        XCTAssertNil(SharedContent.decode(from: data))
     }
 
     func testAbsentOrJunkYieldsNil() {

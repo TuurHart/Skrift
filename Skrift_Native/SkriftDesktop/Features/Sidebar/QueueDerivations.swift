@@ -49,12 +49,13 @@ extension PipelineFile {
     }
 
     /// `sharedContent.type` from the phone metadata blob (url/image/text/file), if
-    /// any. The phone sends camelCase `sharedContent` (C3 contract); snake_case is
-    /// tolerated for hand-built fixtures, matching `SharedContent.decode`.
+    /// any. camelCase `sharedContent` only — the C3 contract, matching
+    /// `SharedContent.decode` (the snake_case tolerance was dead leniency with no
+    /// producer; goldens: SharedContentParityTests).
     var sharedContentType: String? {
         guard let data = audioMetadataJSON,
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let sc = (obj["sharedContent"] ?? obj["shared_content"]) as? [String: Any] else { return nil }
+              let sc = obj["sharedContent"] as? [String: Any] else { return nil }
         return sc["type"] as? String
     }
 

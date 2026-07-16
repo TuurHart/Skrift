@@ -286,9 +286,9 @@ targets:
       - path: DesignSystem/Haptics.swift
       - path: ../Shared/UI/FlowLayout.swift
       # SharedContent + MemoMetadata types used by the share UI and CaptureInbox
-      # (MemoMetadata is the shared schema; SharedContent stays mobile-side).
+      # (both are the shared C3/metadata schema — Shared/Model, one copy).
       - path: ../Shared/Model/MemoMetadata.swift
-      - path: Models/SharedContent.swift
+      - path: ../Shared/Model/SharedContent.swift
       # ISO8601 formatter (same UTC/fractional-seconds format as the Mac contract).
       - path: ../Shared/Model/ISO8601.swift
     info:

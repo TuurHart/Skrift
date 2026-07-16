@@ -190,7 +190,7 @@ final class MemoCloudIngestTests: XCTestCase {
         XCTAssertEqual(pf.transcript, "Worth reading.", "annotation becomes the transcript")
         XCTAssertEqual(pf.transcribeStatus, .done)
         let sc = try XCTUnwrap(SharedContent.decode(from: pf.audioMetadataJSON))
-        XCTAssertEqual(sc.type, "url")
+        XCTAssertEqual(sc.type, .url)
         XCTAssertEqual(sc.url, "https://example.com")
     }
 

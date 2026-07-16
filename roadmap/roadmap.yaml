@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-16T17:00:00.000Z
+updated: 2026-07-16T18:05:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -171,6 +171,10 @@ nodes:
       moved to ONE compiled copy in Shared/ (the annotated 'mirrors the phone'
       duplicates had already drifted, e.g. the Mac's 'Significant' tier label).
     shipped:
+      - 2026-07-16 · WAVE 2a — SharedContent C3 wire struct unified →
+        Shared/Model (typed enum both sides; goldens SharedContentParityTests
+        in BOTH suites first; desktop's snake_case fallback found DEAD +
+        deleted). Desktop 376 + mobile 691 + full MLX build green
       - 2026-07-07 · SignificanceScale unified (fixes the Mac's residual
         'Significant' value label; phone gains the clamp hardening) [0192947]
       - 2026-07-07 · MemoMetadata/WordTiming/DiarizedSegment/ISO8601 + the 0.7

@@ -44,8 +44,10 @@ A CAPTURE upload differs from a memo upload in exactly these ways:
        "mimeType": "image/jpeg"       // image captures
      }
      ```
-     All keys optional except `type`. (This is mobile's existing `SharedContent`
-     Codable — field names are already on both the model and `UploadMetadata`.)
+     All keys optional except `type`. (This is THE shared `SharedContent` Codable —
+     `Shared/Model/SharedContent.swift`, one copy both apps; goldens =
+     `SharedContentParityTests` in both suites. Adding a capture type = extend the
+     shared `ShareContentType` enum; an unknown `type` decodes to nil on the Mac.)
    - `annotationText` — OPTIONAL string. The user's typed thought. May be absent
      or empty (a bare capture is legal).
    - `source`: `"mobile"`, `recordedAt`: ISO8601 share time, `duration`: `0`.

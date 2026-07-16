@@ -4,10 +4,10 @@ import SwiftData
 // Desktop bridge to the shared `Compiler` (Skrift_Native/Shared/Export). The pure compiler
 // moved to Shared behind the neutral `CompilerInput` so the phone compiles the SAME engine
 // (standalone Phase 2). This file keeps the desktop-only pieces:
-//   • `PhoneMetadata` / `SharedContent` — the decode helpers several desktop surfaces still
-//     use directly (BatchRunner, QueueDerivations, NoteProperties, NoteDisplayView,
-//     CaptureViews, tests). They mirror the PHONE's metadata shape and stay desktop-side
-//     (mobile already has its own `SharedContent`, so they can't move to Shared).
+//   • `PhoneMetadata` — the metadata decode helper several desktop surfaces still use
+//     directly (BatchRunner, QueueDerivations, NoteProperties, NoteDisplayView,
+//     CaptureViews, tests). It mirrors the PHONE's metadata shape. (`SharedContent`
+//     itself is the ONE shared wire struct now — Shared/Model/SharedContent.swift.)
 //   • `PipelineFile.compilerInput` — maps a queue item into the neutral DTO.
 //   • `Compiler.compile(file:)` — byte-identical shim so every existing call site is unchanged.
 
@@ -32,42 +32,6 @@ struct PhoneMetadata: Codable, Sendable {
     var bookTitle: String?
     var bookAuthor: String?
     var bookChapter: String?
-}
-
-/// The `sharedContent` object from `PipelineFile.audioMetadataJSON` for C3 captures.
-/// Mirrors mobile's `SharedContent` Codable — field names are intentionally identical.
-/// Decoded on-demand (not stored on PipelineFile — avoids the SwiftData Codable trap).
-struct SharedContent: Codable, Sendable {
-    var type: String          // "url" | "text" | "image" | "file"
-    var url: String?          // url captures
-    var urlTitle: String?     // url captures (from share payload, no network fetch)
-    var urlDescription: String?
-    var text: String?         // text captures (the quoted snippet)
-    var fileName: String?     // image captures (the image part's filename)
-    var mimeType: String?     // image captures
-
-    /// Decode from the raw metadata JSON blob.
-    static func decode(from metadataJSON: Data?) -> SharedContent? {
-        guard let data = metadataJSON else { return nil }
-        // Try Codable first (standard JSON keys), then fall back to manual extraction
-        // (the demo seeds use a raw dict with snake_case `shared_content` key).
-        if let wrapper = try? JSONDecoder().decode(_Wrapper.self, from: data) { return wrapper.sharedContent }
-        if let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-           let sc = (obj["sharedContent"] ?? obj["shared_content"]) as? [String: Any] {
-            return SharedContent(
-                type: sc["type"] as? String ?? "",
-                url: sc["url"] as? String,
-                urlTitle: sc["urlTitle"] as? String,
-                urlDescription: sc["urlDescription"] as? String,
-                text: sc["text"] as? String,
-                fileName: sc["fileName"] as? String,
-                mimeType: sc["mimeType"] as? String
-            )
-        }
-        return nil
-    }
-
-    private struct _Wrapper: Codable { var sharedContent: SharedContent? }
 }
 
 extension PipelineFile {
@@ -102,7 +66,7 @@ extension PipelineFile {
                     bookChapter: m.bookChapter
                 )
             },
-            sharedContent: sc.map { .init(type: $0.type, url: $0.url, urlTitle: $0.urlTitle, text: $0.text, fileName: $0.fileName) },
+            sharedContent: sc.map { .init(type: $0.type.rawValue, url: $0.url, urlTitle: $0.urlTitle, text: $0.text, fileName: $0.fileName) },
             rawRecordedAt: Self.rawMetaString(audioMetadataJSON, key: "recordedAt")
         )
     }

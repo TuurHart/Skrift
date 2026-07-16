@@ -38,10 +38,11 @@ struct CompilerMetadata: Sendable {
     var bookChapter: String? = nil
 }
 
-/// The shared-content fields a C3 capture pins above its annotation body. Neutral rename of
-/// the desktop decode-helper `SharedContent` (and distinct from mobile's capture-payload
-/// `SharedContent`). Only the fields the Compiler reads are carried (no `urlDescription`/
-/// `mimeType`). Optionals default to `nil` so partial construction is ergonomic.
+/// The shared-content fields a C3 capture pins above its annotation body. Deliberately
+/// distinct from the shared wire struct `SharedContent` (Shared/Model): this is the
+/// Compiler's INPUT seam, not the contract — only the fields the Compiler reads are
+/// carried (no `urlDescription`/`mimeType`), `type` stays a plain string so the Compiler
+/// never gates on the contract enum. Optionals default to `nil` for partial construction.
 struct CompilerSharedContent: Sendable {
     var type: String          // "url" | "text" | "image" | "file"
     var url: String? = nil
