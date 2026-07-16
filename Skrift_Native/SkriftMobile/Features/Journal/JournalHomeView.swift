@@ -19,7 +19,7 @@ struct JournalHomeView: View {
             VStack(spacing: 0) {
             // Unified 30pt screen title (device round 4: all four tabs match).
             HStack {
-                ScreenTitle("Review")
+                ScreenTitle(SharedCopy.reviewTitle)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
@@ -192,7 +192,7 @@ struct JournalHomeView: View {
             Image(systemName: "clock.arrow.circlepath")
                 .font(.system(size: 34))
                 .foregroundStyle(Color.skAccent.opacity(0.85))
-            Text("Review")
+            Text(SharedCopy.reviewTitle)
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Color.skText)
             Text("As your notes age, past thinking resurfaces here —\na month ago, a year ago, on this day.")

@@ -965,6 +965,18 @@ desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev ins
 prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
 one `now`); mock-first for any NEW UI beyond these signed specs.
 
+### 📱 Live round findings — 2026-07-16 night (Tuur, Mac Dev @ HEAD + phone build 82) — ALL FIXED SAME SESSION
+- ✅ **Mac still said "Journal"** (sidebar pill + column header) while the phone says "Review" —
+  the label had forked AGAIN (the 2026-07-07 rename only landed on the phone). Fixed by
+  single-sourcing: `Shared/UI/SharedCopy.reviewTitle` now feeds the phone tab + screen title AND
+  the Mac pill + header (5 sites, zero literals left). Snapshot-verified on the Mac fixture.
+- ✅ **Swipe-between-notes OFF** (phone) — horizontal page-swipes fought text editing (Tuur).
+  `.scrollDisabled(true)` on the detail pager; structure kept — memo-link hops + initial jump
+  still work programmatically. Deployed in build 82.
+- ℹ️ **Map on the Mac: already BUILT** (journal-desktop mock v2 shipped with the Journal lane) —
+  click a place row under PLACES to swap the reading column for the map; clicking a calendar day
+  swaps back. Not a gap, just undiscovered.
+
 ### 🕸️ CONTINUE HERE — Connections SHIPPED (2026-07-16); 🧭 SharedKit wave 2 SHIPPED same evening (all 6 ranked items ✅ below + 2 clone-mode items; i10/MemoSaver items fold into their own lanes); STILL OWED: Tuur's Dev eyeball round (Dev at /Applications is ~10 commits behind — redeploy first: build → pkill → ditto → open), the phone device round (blocked on iPhone attached), and the 6 Palette DriftedPair reconciles (one eyeball round, then each collapse is a one-liner)
 
 **SESSION-END STATE (2026-07-16 eve — all committed, main @ 522cae5, 31 local/unpushed):**

@@ -71,6 +71,11 @@ struct MemoDetailView: View {
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $selection)
             .scrollIndicators(.hidden)
+            // Swipe-between-notes OFF (Tuur, 2026-07-16): horizontal drags fought
+            // text editing (caret drags / selection ate page swipes). The pager
+            // structure stays — memo-link hops + the initial jump still drive
+            // `selection` programmatically; only the drag gesture is disabled.
+            .scrollDisabled(true)
             .onAppear {
                 guard let selection else { return }
                 DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }

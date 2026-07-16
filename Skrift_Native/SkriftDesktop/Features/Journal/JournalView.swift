@@ -147,7 +147,7 @@ struct JournalView: View {
     private var lookbackColumn: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Journal").font(.system(size: 17, weight: .bold))
+                Text(SharedCopy.reviewTitle).font(.system(size: 17, weight: .bold))
                 Text("As your notes age, past thinking resurfaces here — a month ago, a year ago, on this day.")
                     .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
                     .padding(.bottom, 10)
@@ -371,7 +371,7 @@ struct SurfaceSwitch: View {
     var body: some View {
         HStack(spacing: 3) {
             segment("Queue", .queue)
-            segment("Journal", .journal)
+            segment(SharedCopy.reviewTitle, .journal)
         }
         .padding(3)
         .background(Theme.hairline.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
