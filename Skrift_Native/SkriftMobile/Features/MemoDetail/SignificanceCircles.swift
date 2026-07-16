@@ -45,9 +45,9 @@ struct SignificanceCircles: View {
         tc.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.22)
                                        : UIColor(white: 0, alpha: 0.18)
     })
-    /// Past-the-wall warm tones (mock: oklab color-mix of accent + amber).
+    /// Past-the-wall warm tone (mock: oklab color-mix of accent + amber) — FILLS only;
+    /// warm text is plain skAmber so every warm label shares one color (Tuur 2026-07-16).
     private static let warmFill = Color.skAccent.mix(with: .skAmber, by: 0.58)
-    private static let warmText = Color.skAccent.mix(with: .skAmber, by: 0.5)
 
     private var step: Int { SignificanceScale.step(for: value) }
     private var isRefine: Bool { SignificanceScale.isRefine(step: step) }
@@ -89,7 +89,7 @@ struct SignificanceCircles: View {
                 .font(.system(size: 11.5, weight: step == 0 ? .medium : .semibold))
                 .monospacedDigit()
                 .foregroundStyle(step == 0 ? Color.skTextFaint
-                                 : isRefine ? Self.warmText : Color.skAccent)
+                                 : isRefine ? Color.skAmber : Color.skAccent)
                 .accessibilityIdentifier("significance-value")
         }
     }

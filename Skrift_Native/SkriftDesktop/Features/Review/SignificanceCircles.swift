@@ -56,7 +56,9 @@ struct SignificanceCircles: View {
             } else if lit > 0 {
                 Text(SignificanceScale.valueText(forStep: lit))
                     .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(warm ? Self.warmText : Theme.accent)
+                    // Pure amber past the wall — ONE warm text color with the flame tag +
+                    // active tier label (Tuur 2026-07-16; the old 50% blend was a third orange).
+                    .foregroundStyle(warm ? Theme.amber : Theme.accent)
             } else {
                 Text("Not rated").font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textMuted)
             }
@@ -162,11 +164,10 @@ struct SignificanceCircles: View {
             .animation(.easeOut(duration: 0.15), value: active)
     }
 
-    // ── Warm blend colors (mock: color-mix of accent + amber) ──
+    // ── Warm blend color (mock: color-mix of accent + amber) — FILLS only; warm
+    // text is plain Theme.amber so every warm label shares one color. ──
     /// `color-mix(in oklab, accent 42%, amber)` — fill for lit circles 8–10.
     private static let warmFill = blend(accentWeight: 0.42)
-    /// `color-mix(in oklab, accent 50%, amber)` — the warm value text.
-    private static let warmText = blend(accentWeight: 0.50)
 
     /// sRGB approximation of the mock's oklab color-mix, adaptive light/dark using
     /// the same palette literals as `Theme.accent` / `Theme.amber`.
