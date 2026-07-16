@@ -165,7 +165,11 @@
   .wchip.more{color:var(--faint);background:transparent;padding:1px 2px;}
 
   /* related rows (Closest mode) */
-  .rrow{border:1px solid var(--hairline);background:rgba(255,255,255,.02);border-radius:9px;padding:7px 10px;margin-bottom:6px;}
+  .rrow{position:relative;border:1px solid var(--hairline);background:rgba(255,255,255,.02);border-radius:9px;padding:7px 10px;margin-bottom:6px;}
+  /* hover tooltip: the exact closeness lives HERE (always %, never 0.x — can't be misread as importance) */
+  .tip{position:absolute;right:6px;top:-24px;background:#262940;border:1px solid var(--hairline2);border-radius:7px;
+       padding:2.5px 9px;font-size:9.5px;color:var(--dim);box-shadow:0 6px 16px rgba(0,0,0,.45);white-space:nowrap;z-index:3;}
+  .tip b{color:var(--text);font-weight:650;}
   .rrow .top{display:flex;align-items:baseline;gap:6px;}
   .rrow .top .ti{font-size:12px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .rrow .top .d{font-size:9.5px;color:var(--faint);}
@@ -210,7 +214,7 @@
 
 <h1>Connections on the Mac</h1>
 <p class="thesis">One Connections panel on the review surface: a single list of this note's neighbourhood with a one-click Date ⇄ Closest sort toggle, why-chips on every row, backlinks below. Round 3: the reading column is now drawn from the REAL app code (10-step importance, refine wall, tags-with-×) — the earlier 3-circle importance echo was fiction and its pick is void.</p>
-<span class="v1">round 3 · properties = real SignificanceScale (10 steps, 0–1, refine wall 0.8) · re-pick the row echo in #m3 (P1/P2/P3)</span>
+<span class="v1">round 3 · properties = real SignificanceScale · row echo = P1 PICKED · closeness = hover tooltip (%, never ambient) · awaiting final sign-off</span>
 
 <!-- ═══════════════════ THE PANEL · DATE MODE ═══════════════════ -->
 <div class="label" id="m1">#m1 — THE PANEL · Date mode — reading column now matches the live app</div>
@@ -387,6 +391,7 @@
           <div class="why"><span class="wchip tag">#garden</span><span class="wchip term">planters</span></div>
         </div>
         <div class="rrow hov">
+          <div class="tip"><b>58% match</b> · shares: water</div>
           <div class="top"><span class="ti">Greywater reuse idea</span><span class="d" style="font-size:11.5px;color:var(--dim)">✕</span></div>
           <div class="why"><span class="wchip term">water</span></div>
         </div>
@@ -400,12 +405,13 @@
   </div>
 </div>
 <p class="hint"><b>The "weird embedder matches" answer, in three layers:</b> the index floor-gates junk (cosine ≥ 0.45 or a note never appears); Closest mode makes the ranking <b>visible</b> so a strange match is judgeable at a glance (it sits low, its why-chips look thin); and on hover a row's date swaps for <b>✕ — "not related"</b>, which hides that pairing for good (bottom row shown hovered; v1 = a per-note hide list). Greywater is unrated, so no importance decimal — nothing shown beats a fake 0.0.</p>
+<p class="hint"><b>Exact closeness = the hover tooltip</b> (shown on the hovered row above): "<b>58% match</b> · shares: water" — the score plus the why-overlap, right at the ✕-decision moment. Never ambient: rows already carry the P1 importance decimal, and a second always-on number would recreate the which-number-is-this confusion. Formatting is the guard — closeness is always a <b>%</b>, importance always <b>0.x</b> — and if device use ever wants it ambient, promoting the tooltip is a trivial, reversible step.</p>
 
 <!-- ═══════════════════ IMPORTANCE ECHO — RE-PICK ═══════════════════ -->
 <div class="label" id="m3">#m3 — how a row echoes the REAL 0–1 importance (O1 was void — pick again)</div>
 <div class="row">
   <div class="closeup">
-    <div class="cap">P1 · the decimal readout — <b>recommended</b></div>
+    <div class="cap">P1 · the decimal readout — <b>PICKED (Tuur, 16 Jul)</b></div>
     <div class="inner">
       <div class="csec" style="padding-top:14px">
         <div class="rail">
@@ -670,8 +676,8 @@
   <h3>Design decisions — round 3 state</h3>
   <ul>
     <li><b>One list + a sort toggle</b>: Date ⇄ Closest, single click, same pill idiom as Queue|Review. Default Date; remembered app-wide. Date = timeline rail (#m1), Closest = flat best-first rows (#m2). Exactly two orders, ever.</li>
-    <li><b>Importance echo on rows — RE-PICK OPEN (#m3)</b>: the earlier O1 "three circles" pick is <b>void</b> — it was drawn against a control that doesn't exist. Real scale = shared 10-step 0–1 SignificanceScale (tiers Passing/Useful/Important, refine wall 0.8, nil = Not rated). Honest options: <b>P1</b> decimal readout (recommended) / <b>P2</b> micro-bar / <b>P3</b> flame-only. Unrated rows always show nothing.</li>
-    <li><b>Semantics unchanged</b>: rows echo the USER-set importance of that note; the embedder's closeness shows only as Closest-mode ordering + the CLOSEST MATCH flag.</li>
+    <li><b>Importance echo on rows = P1 PICKED</b> (Tuur, 16 Jul — after the O1 3-circle pick was voided as fiction): the control's own decimal readout, warm past the 0.8 refine wall; unrated rows show nothing. Real scale = shared 10-step 0–1 SignificanceScale (tiers Passing/Useful/Important, nil = Not rated).</li>
+    <li><b>Closeness = hover tooltip, never ambient</b> (Tuur asked, 16 Jul): hovering a row shows "<b>58% match</b> · shares: …" next to the ✕ decision. Always a %, never 0.x — so it can't be misread as importance. Promote to ambient later only if device use demands it.</li>
     <li><b>Weird embedder matches</b>: 0.45 floor gates junk; Closest mode makes ranking judgeable; hover ✕ = "not related" hides a pairing per note (v1 hide-only).</li>
     <li><b>Panel replaces the bottom LINKED FROM strip</b>; collapses (#m5) with a count badge, ⌥⌘C, app-wide persisted.</li>
     <li><b>Consent gate in-panel</b> (#m4): phone Journal-gate mirror, one consent also unlocks Mac Journal search; local per-device index, embeddings never sync.</li>

@@ -978,10 +978,11 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   screenshotted the app. REAL control = shared `SignificanceScale` (10 steps, 0–1 on a 0.1 grid, tiers
   Passing/Useful/Important, **0.8 refine wall** + flame tag, nil = Not rated; gates phone→Mac sync).
   Mock v3: reading column redrawn FROM SOURCE (NoteProperties + SignificanceCircles); row echo options
-  rebuilt honestly — **Tuur re-picks in #m3: P1** decimal readout (recommended) / **P2** micro-bar /
-  **P3** flame-only past the wall; unrated rows show nothing (no fake 0.0). Lesson memorized:
-  `feedback_mock_as_is_from_source`. SEMANTICS unchanged: rows echo USER-set importance; embedder
-  closeness = Closest-mode ordering + CLOSEST MATCH flag only. (Shelved: faint per-row % in Closest mode.)
+  rebuilt honestly — **P1 PICKED (Tuur, same session)**: the control's own decimal readout, warm past the
+  0.8 wall; unrated rows show nothing (no fake 0.0). Lesson memorized: `feedback_mock_as_is_from_source`.
+  SEMANTICS: rows echo USER-set importance; embedder closeness = Closest-mode ordering + CLOSEST MATCH
+  flag + **hover tooltip "58% match · shares: …" (Tuur-approved: tooltip only, never ambient; % format
+  vs importance's 0.x so the two numbers can't be confused).**
 - **#m4** consent gate in-panel (phone Journal-gate copy, 295 MB EmbeddingGemma, same consent unlocks Mac
   Journal search) + downloading/indexing/no-connections; **#m5** collapsed w/ count badge (⌥⌘C) — both
   states Tuur-liked in round 1.
