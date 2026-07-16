@@ -27,6 +27,11 @@ struct JournalView: View {
     @State private var mapMode = false
     @State private var selectedPlace: PlaceCluster?
     @State private var span = MKCoordinateSpan(latitudeDelta: 40, longitudeDelta: 40)
+    /// Explicit camera position — WITHOUT it the Map runs in automatic framing,
+    /// and every span-driven re-cluster (annotation content change) makes the
+    /// automatic camera re-fit all pins, snapping the map back mid-gesture
+    /// (the "glitchy" 2026-07-16 device finding).
+    @State private var camera: MapCameraPosition = .automatic
 
     private var calendar: Calendar { .current }
     private var clusters: [PlaceCluster] { PlaceCluster.build(from: memos) }
@@ -45,9 +50,8 @@ struct JournalView: View {
         .background(Theme.bg)
         .task {
             refresh()
-            if debugStartInMap {
-                selectedPlace = clusters.first
-                mapMode = true
+            if debugStartInMap, let first = clusters.first {
+                focus(first)
             }
         }
     }
@@ -110,11 +114,23 @@ struct JournalView: View {
         if let next = calendar.date(byAdding: .month, value: by, to: month) { month = next }
     }
 
+    /// Select a place and fly the camera to it — the rail click and the map-mode
+    /// entry path. An explicit region also takes the Map out of `.automatic`, so
+    /// pin re-clustering can never re-frame the user's view.
+    private func focus(_ cluster: PlaceCluster) {
+        selectedPlace = cluster
+        mapMode = true
+        withAnimation {
+            camera = .region(MKCoordinateRegion(
+                center: cluster.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.3, longitudeDelta: 0.3)))
+        }
+    }
+
     private func placeRow(_ cluster: PlaceCluster) -> some View {
-        let isOn = mapMode && selectedPlace?.id == cluster.id
+        let isOn = mapMode && selectedPlaceShownBy(cluster)
         return Button {
-            selectedPlace = cluster
-            mapMode = true
+            focus(cluster)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "smallcircle.filled.circle")
@@ -218,7 +234,7 @@ struct JournalView: View {
                 }
                 .buttonStyle(.plain)
             }
-            Map {
+            Map(position: $camera) {
                 ForEach(PlaceCluster.merged(clusters, span: span)) { cluster in
                     Annotation(cluster.name, coordinate: cluster.coordinate) {
                         pin(cluster)
@@ -253,8 +269,17 @@ struct JournalView: View {
         .padding(.vertical, 24).padding(.horizontal, 30)
     }
 
+    /// Does this (possibly merged) pin show the selected place? Merged pins carry
+    /// compound "a+b" ids, so exact id equality goes false the moment the user
+    /// zooms out — match on the id COMPONENT instead (2026-07-16 device finding:
+    /// the selection highlight silently vanished across a merge).
+    private func selectedPlaceShownBy(_ cluster: PlaceCluster) -> Bool {
+        guard let sel = selectedPlace else { return false }
+        return cluster.id.split(separator: "+").contains(Substring(sel.id))
+    }
+
     private func pin(_ cluster: PlaceCluster) -> some View {
-        let isOn = selectedPlace?.id == cluster.id
+        let isOn = selectedPlaceShownBy(cluster)
         return Text("\(cluster.memos.count)")
             .font(.system(size: 11, weight: .bold))
             .foregroundStyle(isOn ? Theme.accent : .white)

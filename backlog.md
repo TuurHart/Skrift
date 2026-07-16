@@ -973,6 +973,12 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
 - ✅ **Swipe-between-notes OFF** (phone) — horizontal page-swipes fought text editing (Tuur).
   `.scrollDisabled(true)` on the detail pager; structure kept — memo-link hops + initial jump
   still work programmatically. Deployed in build 82.
+- ✅ **Map glitchiness (Tuur report) — 3 bugs found by code-read, all fixed**: (1) `Map` had NO
+  camera binding → automatic framing re-fit ALL pins on every span-driven re-cluster, snapping the
+  view back mid-gesture (THE glitch; mechanism-certain, feel-verify on next wiggle); (2) clicking a
+  place row while in map mode never moved the camera → now `focus()` flies to the place (0.3°
+  span); (3) selection highlight vanished when zoom-out merged pins (compound "a+b" ids vs exact
+  match) → id-component matching. Suites + MLX green, Dev redeployed.
 - ℹ️ **Map on the Mac: already BUILT** (journal-desktop mock v2 shipped with the Journal lane) —
   click a place row under PLACES to swap the reading column for the map; clicking a calendar day
   swaps back. Not a gap, just undiscovered.
