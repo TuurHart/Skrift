@@ -31,6 +31,9 @@ struct JournalView: View {
     @State private var mapMode = false
     @State private var selectedPlace: PlaceCluster?
     @State private var span = MKCoordinateSpan(latitudeDelta: 40, longitudeDelta: 40)
+    /// The map viewport — with no explicit place selected, the list under the map
+    /// shows the notes IN FRAME (the map is the filter; Tuur 2026-07-17).
+    @State private var visibleRegion: MKCoordinateRegion?
     /// Explicit camera position — WITHOUT it the Map runs in automatic framing,
     /// and every span-driven re-cluster (annotation content change) makes the
     /// automatic camera re-fit all pins, snapping the map back mid-gesture
@@ -131,16 +134,16 @@ struct JournalView: View {
         if let next = calendar.date(byAdding: .month, value: by, to: month) { month = next }
     }
 
-    /// Select a place and fly the camera to it — the rail click and the map-mode
-    /// entry path. An explicit region also takes the Map out of `.automatic`, so
-    /// pin re-clustering can never re-frame the user's view.
+    /// Select a place and fly the camera DOWN to it — the rail click and the
+    /// map-mode entry path (same dive depth as a pin tap: explicit place intent =
+    /// city-level, not regional; "zoom in deep" is one click). An explicit region
+    /// also takes the Map out of `.automatic`, so pin re-clustering can never
+    /// re-frame the user's view.
     private func focus(_ cluster: PlaceCluster) {
         selectedPlace = cluster
         mapMode = true
-        withAnimation {
-            camera = .region(MKCoordinateRegion(
-                center: cluster.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.3, longitudeDelta: 0.3)))
+        if let region = PlaceCluster.fitRegion(for: [cluster]) {
+            withAnimation { camera = .region(region) }
         }
     }
 
@@ -260,8 +263,11 @@ struct JournalView: View {
             }
             .mapStyle(.standard)
             .onMapCameraChange(frequency: .onEnd) { context in
-                // Re-cluster only on a MEANINGFUL zoom change (>20%): each span
-                // commit tears down + rebuilds every annotation, and rapid
+                // The viewport always updates (drives the in-frame notes list —
+                // cheap, no Map content change)…
+                visibleRegion = context.region
+                // …but re-cluster only on a MEANINGFUL zoom change (>20%): each
+                // span commit tears down + rebuilds every annotation, and rapid
                 // zoom-in/out fired one per gesture end — the stutter Tuur felt.
                 // Panning (span unchanged) never re-clusters.
                 let new = context.region.span
@@ -272,13 +278,12 @@ struct JournalView: View {
             .frame(height: 330)
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            // No selection (mini-map fit-all entry) = EVERY located note, so the
-            // column never goes empty under the map (2026-07-17 device finding:
-            // "it replaces the previously displayed notes" — with nothing below).
-            // Picking a pin/place narrows to that place.
-            let shownTitle = selectedPlace?.name ?? "All places"
-            let shownMemos = selectedPlace?.memos
-                ?? clusters.flatMap(\.memos).sorted { LookbackProvider.journalDate($0) > LookbackProvider.journalDate($1) }
+            // No selection = the notes IN FRAME (the map is the filter — pan/zoom
+            // refines the list; the fit-all entry starts with everything visible,
+            // so the column is never empty). Picking a pin/place pins that place;
+            // tapping the selected pin again returns to frame mode.
+            let shownTitle = selectedPlace?.name ?? "In view"
+            let shownMemos = selectedPlace?.memos ?? inFrameMemos
             HStack(alignment: .firstTextBaseline) {
                 Text(shownTitle).font(.system(size: 13.5, weight: .bold))
                 Spacer()
@@ -309,6 +314,38 @@ struct JournalView: View {
         return cluster.id.split(separator: "+").contains(Substring(sel.id))
     }
 
+    /// Notes whose place pin sits inside the current viewport — the no-selection
+    /// list under the map. Before the first camera event (nil region): everything.
+    private var inFrameMemos: [Memo] {
+        let inFrame: [PlaceCluster]
+        if let r = visibleRegion {
+            inFrame = clusters.filter {
+                abs($0.coordinate.latitude - r.center.latitude) <= r.span.latitudeDelta / 2 &&
+                abs($0.coordinate.longitude - r.center.longitude) <= r.span.longitudeDelta / 2
+            }
+        } else {
+            inFrame = clusters
+        }
+        return inFrame.flatMap(\.memos)
+            .sorted { LookbackProvider.journalDate($0) > LookbackProvider.journalDate($1) }
+    }
+
+    /// Pin tap: DIVE — fly down far enough that a merged pin splits into its
+    /// members (the fast path for "zoom in deep"; scroll-zoom speed isn't ours to
+    /// tune). Tapping the already-selected pin deselects back to frame mode.
+    private func dive(into cluster: PlaceCluster) {
+        if selectedPlaceShownBy(cluster) {
+            selectedPlace = nil
+            return
+        }
+        selectedPlace = cluster
+        let members = Set(cluster.id.split(separator: "+").map(String.init))
+        let constituents = clusters.filter { members.contains($0.id) }
+        if let region = PlaceCluster.fitRegion(for: constituents.isEmpty ? [cluster] : constituents) {
+            withAnimation { camera = .region(region) }
+        }
+    }
+
     private func pin(_ cluster: PlaceCluster) -> some View {
         let isOn = selectedPlaceShownBy(cluster)
         return Text("\(cluster.memos.count)")
@@ -319,7 +356,7 @@ struct JournalView: View {
             .background(Circle().fill(isOn ? Color.white : Theme.accent))
             .overlay(Circle().strokeBorder(Theme.accent, lineWidth: isOn ? 2.5 : 0))
             .shadow(color: Theme.accent.opacity(0.45), radius: 5, y: 2)
-            .onTapGesture { selectedPlace = cluster }
+            .onTapGesture { dive(into: cluster) }
     }
 
     // ── Cards ──────────────────────────────────────────────────────────

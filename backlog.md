@@ -988,7 +988,11 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   (1) fit-all entry showed NOTHING below the map (selectedPlace nil) → now lists ALL located notes
   newest-first, narrowing on pin/place pick; (2) rapid zoom in/out stuttered → clusters cached per
   refresh (build() was in every body eval) + span commits only on >20% zoom change (each commit
-  tears down every annotation). ⬜ re-wiggle owed.
+  tears down every annotation). Round 3 (same night): "All places" → **IN-FRAME list** (map = the filter, Tuur's intuited model:
+  pan/zoom refines the notes below; fit-all entry starts with everything); **pin tap = DIVE** (flies
+  down to split a merged pin — the fast path for deep zoom, scroll speed isn't tunable; tap the
+  selected pin again = back to frame mode); rail place click dives city-level too (was regional 0.3°).
+  ⬜ re-wiggle owed.
 - ℹ️ **Map on the Mac: already BUILT** (journal-desktop mock v2 shipped with the Journal lane) —
   click a place row under PLACES to swap the reading column for the map; clicking a calendar day
   swaps back. Not a gap, just undiscovered.
