@@ -22,6 +22,10 @@ struct JournalView: View {
     var debugStartInMap = false
 
     @State private var memos: [Memo] = []
+    /// Cached per refresh — recomputing name-grouping on every body eval put
+    /// PlaceCluster.build in the map-gesture hot path (freeze-y rapid zoom,
+    /// 2026-07-17 device finding).
+    @State private var clusters: [PlaceCluster] = []
     @State private var month: Date = Date()
     @State private var selectedDay: Date = Date()
     @State private var mapMode = false
@@ -34,7 +38,6 @@ struct JournalView: View {
     @State private var camera: MapCameraPosition = .automatic
 
     private var calendar: Calendar { .current }
-    private var clusters: [PlaceCluster] { PlaceCluster.build(from: memos) }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -59,11 +62,13 @@ struct JournalView: View {
     private func refresh() {
         if let injected = injectedMemos {
             memos = MemoDuplicates.canonicalRows(injected).filter { $0.deletedAt == nil }
-            return
+        } else if let cloud = MemoCloudStore.container {
+            let all = (try? cloud.mainContext.fetch(FetchDescriptor<Memo>())) ?? []
+            memos = MemoDuplicates.canonicalRows(all).filter { $0.deletedAt == nil }
+        } else {
+            memos = []
         }
-        guard let cloud = MemoCloudStore.container else { memos = []; return }
-        let all = (try? cloud.mainContext.fetch(FetchDescriptor<Memo>())) ?? []
-        memos = MemoDuplicates.canonicalRows(all).filter { $0.deletedAt == nil }
+        clusters = PlaceCluster.build(from: memos)
     }
 
     // ── Rail: mini month calendar + places ─────────────────────────────
@@ -254,25 +259,39 @@ struct JournalView: View {
                 }
             }
             .mapStyle(.standard)
-            .onMapCameraChange(frequency: .onEnd) { context in span = context.region.span }
+            .onMapCameraChange(frequency: .onEnd) { context in
+                // Re-cluster only on a MEANINGFUL zoom change (>20%): each span
+                // commit tears down + rebuilds every annotation, and rapid
+                // zoom-in/out fired one per gesture end — the stutter Tuur felt.
+                // Panning (span unchanged) never re-clusters.
+                let new = context.region.span
+                let relLat = abs(new.latitudeDelta - span.latitudeDelta) / max(span.latitudeDelta, 0.0001)
+                let relLon = abs(new.longitudeDelta - span.longitudeDelta) / max(span.longitudeDelta, 0.0001)
+                if relLat > 0.2 || relLon > 0.2 { span = new }
+            }
             .frame(height: 330)
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            if let place = selectedPlace {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(place.name).font(.system(size: 13.5, weight: .bold))
-                    Spacer()
-                    Text("\(place.memos.count) notes · newest first")
-                        .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-                }
-                .padding(.top, 10)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(place.memos.prefix(20), id: \.persistentModelID) { memo in
-                            card(memo,
-                                 kick: LookbackProvider.journalDate(memo).formatted(date: .abbreviated, time: .shortened),
-                                 warmKick: true)
-                        }
+            // No selection (mini-map fit-all entry) = EVERY located note, so the
+            // column never goes empty under the map (2026-07-17 device finding:
+            // "it replaces the previously displayed notes" — with nothing below).
+            // Picking a pin/place narrows to that place.
+            let shownTitle = selectedPlace?.name ?? "All places"
+            let shownMemos = selectedPlace?.memos
+                ?? clusters.flatMap(\.memos).sorted { LookbackProvider.journalDate($0) > LookbackProvider.journalDate($1) }
+            HStack(alignment: .firstTextBaseline) {
+                Text(shownTitle).font(.system(size: 13.5, weight: .bold))
+                Spacer()
+                Text("\(shownMemos.count) note\(shownMemos.count == 1 ? "" : "s") · newest first")
+                    .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+            }
+            .padding(.top, 10)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(shownMemos.prefix(20), id: \.persistentModelID) { memo in
+                        card(memo,
+                             kick: LookbackProvider.journalDate(memo).formatted(date: .abbreviated, time: .shortened),
+                             warmKick: true)
                     }
                 }
             }

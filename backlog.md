@@ -984,7 +984,11 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   via new shared `PlaceCluster.fitRegion` (3 tests), same merged clusters drawn on top (+N badges),
   POIs excluded, "click → full map" → map mode fitted to every pin, no place pre-selected; hidden
   when nothing located; river untouched. Fixture vision-checked (real Lisbon tiles + pins); Dev
-  redeployed. ⬜ eyeball the click-through + reshoot-on-new-note live.
+  redeployed. ✅ click-through eyeballed by Tuur 2026-07-17 → 2 findings, FIXED same hour:
+  (1) fit-all entry showed NOTHING below the map (selectedPlace nil) → now lists ALL located notes
+  newest-first, narrowing on pin/place pick; (2) rapid zoom in/out stuttered → clusters cached per
+  refresh (build() was in every body eval) + span commits only on >20% zoom change (each commit
+  tears down every annotation). ⬜ re-wiggle owed.
 - ℹ️ **Map on the Mac: already BUILT** (journal-desktop mock v2 shipped with the Journal lane) —
   click a place row under PLACES to swap the reading column for the map; clicking a calendar day
   swaps back. Not a gap, just undiscovered.
