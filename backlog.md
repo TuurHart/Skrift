@@ -965,6 +965,13 @@ desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev ins
 prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
 one `now`); mock-first for any NEW UI beyond these signed specs.
 
+- 🎨 **Review note-detail mock round OPEN** (the dead-end fix, Tuur said "detail" 2026-07-17):
+  `mocks/review-note-detail.html` — read-only detail as a COLUMN SWAP (breadcrumb back, exact prior
+  state restored), RAW-labeled transcript + inline photos, "Process on this Mac" folded in (explicit
+  one-note ingest; gate keeps the automatic flow), LockGate before a locked body ("Process" hidden
+  pre-unlock). AWAITING SIGN-OFF + 2 open Qs (processed notes also land here first? · keep "Copy
+  text"?). No code until sign-off.
+
 ### 📱 Live round findings — 2026-07-16 night (Tuur, Mac Dev @ HEAD + phone build 82) — ALL FIXED SAME SESSION
 - ✅ **Mac still said "Journal"** (sidebar pill + column header) while the phone says "Review" —
   the label had forked AGAIN (the 2026-07-07 rename only landed on the phone). Fixed by

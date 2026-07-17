@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review — read-only note detail</title>
+<style>
+  :root{
+    --bg:#0F1117; --sidebar:#15171F; --surface:#181A23; --hover:#1E2130;
+    --text:#E4E4E7; --dim:#8B8B97; --mut:#55556A; --hairline:rgba(255,255,255,.07);
+    --accent:#7C6BF5; --green:#34D399; --amber:#F59E0B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0A0B10;color:var(--text);font:13px/1.45 -apple-system,'SF Pro Text',sans-serif;
+       padding:34px 40px 80px;}
+  h1{font-size:19px;margin-bottom:6px;}
+  .thesis{color:var(--dim);font-size:12.5px;max-width:880px;margin-bottom:10px;}
+  .v1{display:inline-block;font-size:11px;color:var(--amber);border:1px solid rgba(245,158,11,.35);
+      padding:3px 10px;border-radius:6px;margin-bottom:26px;}
+  .label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);
+         margin:34px 0 10px;}
+  .hint{color:var(--dim);font-size:12px;max-width:920px;margin-top:10px;}
+  .hint b{color:var(--text);}
+
+  .mac{width:1150px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;
+       box-shadow:0 24px 70px rgba(0,0,0,.5);}
+  .titlebar{height:34px;display:flex;align-items:center;padding:0 12px;background:var(--sidebar);
+            border-bottom:1px solid var(--hairline);}
+  .dot{width:11px;height:11px;border-radius:50%;margin-right:7px;}
+  .win{display:flex;height:560px;}
+  .rail{width:252px;background:rgba(21,23,31,.55);border-right:1px solid var(--hairline);
+        padding:14px;font-size:12px;color:var(--dim);}
+  .railghost{opacity:.5;font-size:11px;line-height:2.1;}
+
+  .main{flex:1;padding:24px 30px;overflow:hidden;}
+  /* breadcrumb row */
+  .crumb{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--dim);margin-bottom:14px;}
+  .crumb .back{color:var(--accent);font-weight:600;}
+  .crumb .sep{color:var(--mut);}
+  .crumb .flag{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+               color:var(--amber);border:1px solid rgba(245,158,11,.3);padding:2px 8px;border-radius:5px;}
+
+  .ntitle{font-size:19px;font-weight:700;max-width:760px;margin-bottom:6px;}
+  .nmeta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--mut);margin-bottom:18px;flex-wrap:wrap;}
+  .imp{display:flex;gap:2.5px;}
+  .imp i{width:5px;height:5px;border-radius:50%;background:var(--accent);font-style:normal;}
+  .imp i.off{background:rgba(255,255,255,.12);}
+  .chip{background:rgba(255,255,255,.05);padding:1.5px 8px;border-radius:99px;}
+
+  .rawtag{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mut);
+          margin-bottom:8px;}
+  .bodytxt{max-width:700px;font-size:13.5px;line-height:1.7;color:var(--text);}
+  .bodytxt p{margin-bottom:12px;}
+  .photo{width:210px;height:140px;border-radius:9px;margin:4px 0 12px;
+         background:linear-gradient(140deg,#2A2F42 0%,#1B2030 60%,#232941 100%);
+         display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:10.5px;}
+
+  .actions{display:flex;gap:10px;margin-top:22px;}
+  .btn{display:inline-block;background:var(--accent);color:#fff;font-size:12px;font-weight:650;
+       padding:7px 16px;border-radius:8px;}
+  .btn.ghost{background:transparent;color:var(--dim);border:1px solid var(--hairline);}
+  .actionnote{font-size:11px;color:var(--mut);margin-top:8px;max-width:560px;}
+
+  /* locked state */
+  .lockpane{max-width:700px;border:1px solid var(--hairline);border-radius:12px;background:var(--surface);
+            padding:38px 30px;text-align:center;margin-top:8px;}
+  .lockpane .ic{font-size:26px;margin-bottom:10px;}
+  .lockpane h4{font-size:14px;margin-bottom:5px;}
+  .lockpane p{font-size:12px;color:var(--dim);max-width:380px;margin:0 auto 16px;}
+
+  .rec{color:var(--green);font-weight:700;}
+  .decis{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+         padding:16px 20px;max-width:920px;margin-bottom:6px;font-size:12.5px;color:var(--dim);}
+  .decis b{color:var(--text);}
+  .decis li{margin:4px 0 4px 18px;}
+</style>
+</head>
+<body>
+
+<h1>Review — read-only note detail (the dead-end fix)</h1>
+<p class="thesis">Found 2026-07-17: Review surfaces the FULL synced corpus, but a card click can only jump to the Queue —
+an unprocessed (never-flagged) note dead-ends in a toast. Fix: clicking a note the Queue doesn't have opens it
+<b>right here, read-only</b> — the column-swap idiom Review already uses for the map. Processed notes keep jumping to
+their Queue row (unchanged).</p>
+<span class="v1">mock v1 · awaiting sign-off — detail = column swap · raw transcript labeled honestly · "Process on this Mac" inside</span>
+
+<div class="decis">
+  <b>What's being decided</b>
+  <li><b>Where it opens:</b> the detail REPLACES the reading column (river/map/day list), with ← back returning exactly
+      where you came from — same idiom as map mode. No new windows, no sheets.</li>
+  <li><b>What it shows:</b> the synced note as the phone carries it — title, date, metadata chips, importance, RAW
+      transcript (labeled RAW — honest: no Mac polish exists for this note), inline photos. Read-only: Review never
+      mutates memos.</li>
+  <li><b>“Process on this Mac”</b> (option B folded in): explicit button → creates the PipelineFile, runs the pipeline,
+      jumps to the new Queue row. The significance gate stays honest — it gates AUTOMATIC ingest; this is you deliberately
+      pulling one note in.</li>
+  <li><b>Locked notes:</b> the detail respects the lock — Touch ID gate before the body renders (the hard rule).</li>
+</div>
+
+<!-- ── m1: the read view ── -->
+<div class="label" id="m1">m1 · The detail — reached from the map's Benfica list (breadcrumb returns there)</div>
+<div class="mac">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--dim);margin-left:8px;">Skrift Dev</span>
+  </div>
+  <div class="win">
+    <div class="rail">
+      <div class="railghost">Queue | <b style="color:var(--text)">Review</b><br><br>July 2026 calendar<br>PLACES · mini-map<br><br>(rail unchanged —<br>never swaps)</div>
+    </div>
+    <div class="main">
+      <div class="crumb">
+        <span class="back">← Places · Benfica</span>
+        <span class="sep">/</span><span>note</span>
+        <span class="flag">not processed on this Mac</span>
+      </div>
+      <div class="ntitle">That um it it started at oh what the fuck it has a lot of languages in there but</div>
+      <div class="nmeta">
+        <span>12 Jun 2026 at 15:35</span>
+        <div class="imp"><i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i></div>
+        <span class="chip">Benfica</span>
+        <span class="chip">☀︎ 24° clear</span>
+        <span class="chip">4 812 steps</span>
+        <span>0:06</span>
+      </div>
+      <div class="rawtag">Raw transcript · as recorded on your iPhone</div>
+      <div class="bodytxt">
+        <p>That um it it started at oh what the fuck it has a lot of languages in there but it started like this um so
+        you can just talk anything and then this all happens real time on device …</p>
+        <div class="photo">[[img_001]] — synced photo renders inline</div>
+        <p>… and then this all happens real time on device. So that's the whole point.</p>
+      </div>
+      <div class="actions">
+        <span class="btn">Process on this Mac</span>
+        <span class="btn ghost">Copy text</span>
+      </div>
+      <p class="actionnote">Process = create the Queue row + run transcribe-skip → enhance → name-link on THIS note only,
+      then jump to it in the Queue. One-time, explicit — the significance gate keeps deciding the automatic flow.</p>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>Behaviour:</b> reached from ANY Review card whose note has no Queue row (river, day list, map's in-frame
+or place list) — cards WITH a row keep jumping to the Queue exactly as today. ← returns to the exact prior column state
+(map keeps its camera + selection). Esc = back. Read-only: title, tags, body are NOT editable here — editing stays a
+Queue/phone activity.</p>
+
+<!-- ── m2: locked ── -->
+<div class="label" id="m2">m2 · Locked note — the gate renders INSTEAD of the body (Touch ID, same as the Queue)</div>
+<div class="mac" style="width:928px;">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--dim);margin-left:8px;">Skrift Dev</span>
+  </div>
+  <div class="win" style="height:430px;">
+    <div class="rail">
+      <div class="railghost">(rail unchanged)</div>
+    </div>
+    <div class="main">
+      <div class="crumb">
+        <span class="back">← Review</span>
+        <span class="sep">/</span><span>note</span>
+      </div>
+      <div class="ntitle" style="color:var(--dim);">Locked note</div>
+      <div class="nmeta">
+        <span>3 Jul 2026 at 22:41</span>
+        <span class="chip">🔒 locked on your iPhone</span>
+      </div>
+      <div class="lockpane">
+        <div class="ic">🔒</div>
+        <h4>This note is locked</h4>
+        <p>Unlock with Touch ID to read it here. It stays locked everywhere else — and locked notes never
+        publish to Obsidian.</p>
+        <span class="btn">Unlock with Touch ID</span>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>Behaviour:</b> the shared LockGate (same per-device unlock as the Queue's note view) — title stays
+generic, body never renders pre-unlock, metadata shows only date + the lock chip. "Process on this Mac" is HIDDEN
+until unlocked (processing a locked note's text without unlock would leak it into the pipeline).</p>
+
+<div class="decis" style="margin-top:30px;">
+  <b>Recommendation — ship as drawn.</b> The column-swap + breadcrumb keeps Review one coherent surface; the RAW label
+  keeps the no-bad-info rule (nobody mistakes an unpolished transcript for Mac output); Process-on-demand turns the
+  dead-end toast into the one action it was hiding.
+  <br><br><b>Open for the pick:</b> ① should processed notes ALSO open here first (read view with an "Open in Queue"
+  button) instead of jumping straight to the Queue? ② "Copy text" worth keeping, or is that clutter?
+</div>
+
+</body>
+</html>
