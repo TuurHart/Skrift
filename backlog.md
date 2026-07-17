@@ -972,6 +972,36 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   pre-unlock). AWAITING SIGN-OFF + 2 open Qs (processed notes also land here first? · keep "Copy
   text"?). No code until sign-off.
 
+### 🍂 NOTE LIFECYCLE — "Fading" auto-cleanup · DESIGN LOCKED 2026-07-17 (Tuur + chat session), mock round next
+**The rule: a note you never invested in fades out by itself; anything you touched stays until you say otherwise.**
+- **Touch-list (LOCKED — any of these = never fades):** significance > 0 · transcriptUserEdited ·
+  title set · manual tags · locked · remindAt · typed capture annotation · linked-to by another note
+  ([[memo:]] backlink, scanned at sweep time) · keptAt (rescued). Explicitly NOT touches (Tuur):
+  photos attached, bare share-captures. Guards: in-flight + already-trashed excluded.
+- **Timers (LOCKED "for now"): 30 → 30 → 14.** Untouched 30d → Fading shelf (leaves river/day/map/
+  search defaults); 30d more → auto-move to Recently Deleted (existing deletedAt); existing 14d purge
+  ends it. Every stage visible + one-tap rescue; rescue sets keptAt (permanent).
+- **Sync shape:** fading is DERIVED (no stored state, no migration, retroactive for free); ONE new
+  additive synced field `keptAt: Date?`; the 60d sweep just sets `deletedAt` (already syncs/restores/
+  purges; idempotent per device). Shared rule module (`MemoLifecycle.isFading(...)` in Shared/) —
+  phone + Mac filter through ONE copy, tests both suites.
+- **First-run guard (P0-trauma rule):** the inaugural sweep NEVER auto-trashes — everything eligible
+  lands visible on the shelf with an explicit "sweep now?" prompt; timers only run after that.
+- **Placement input (Tuur):** phone Recently Deleted's scroll-to-bottom spot is BAD ("stupid
+  position"); Mac's bottom placement is fine. The Fading shelf must not inherit the bad spot — fix
+  Recently Deleted's phone placement in the same mock round.
+- ⬜ NEXT: mock the shelf (Mac column + phone placement) → sign-off → build (cross-app, Shared-first).
+
+### 🔭 PARKED DIRECTION — read the Obsidian vault INTO the app (Tuur, 2026-07-17)
+Use vault content (hand-written notes) for linking/Connections/Related, maybe Review. Constraints +
+sketch from the chat think-pass: app's-own-code scans only, on-device models only (the privacy rule
+allows exactly this — no cloud AI ever); NEW separate consent ("index my vault" ≠ journal consent);
+Mac-first (the phone has no vault; embeddings never sync by design); the indexer MUST dedupe/exclude
+Skrift's own published exports or every note matches its own export (frontmatter/stem identifies
+them); vault-note identity across renames + FSEvents change-watching are the hard bits; start with
+Connections/Related + search rows (surface exists), Review-resurfacing of vault notes = later/maybe.
+Aligns with the standing "push / pull-for-search" model. Roadmap node = a Huginn conversation.
+
 ### 📱 Live round findings — 2026-07-16 night (Tuur, Mac Dev @ HEAD + phone build 82) — ALL FIXED SAME SESSION
 - ✅ **Mac still said "Journal"** (sidebar pill + column header) while the phone says "Review" —
   the label had forked AGAIN (the 2026-07-07 rename only landed on the phone). Fixed by
