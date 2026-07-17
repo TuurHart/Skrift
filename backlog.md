@@ -990,7 +990,11 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
 - **Placement input (Tuur):** phone Recently Deleted's scroll-to-bottom spot is BAD ("stupid
   position"); Mac's bottom placement is fine. The Fading shelf must not inherit the bad spot — fix
   Recently Deleted's phone placement in the same mock round.
-- ⬜ NEXT: mock the shelf (Mac column + phone placement) → sign-off → build (cross-app, Shared-first).
+- 🎨 MOCK ROUND OPEN: `mocks/fading-shelf.html` — Mac shelf (column swap; rail row paired with
+  Recently Deleted at the rail bottom, count-badged, hidden when empty), first-run sweep prompt,
+  Keep-only actions, countdown colors; phone: BOTH shelves as chips under the search field
+  (Recently Deleted leaves the scroll-to-bottom spot). 2 open Qs: phone chips vs Review tab ·
+  search "include fading" toggle. AWAITING SIGN-OFF → then build (cross-app, Shared-first).
 
 ### 🔭 PARKED DIRECTION — read the Obsidian vault INTO the app (Tuur, 2026-07-17)
 Use vault content (hand-written notes) for linking/Connections/Related, maybe Review. Constraints +

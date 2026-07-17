@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fading shelf — the note lifecycle surface</title>
+<style>
+  :root{
+    --bg:#0F1117; --sidebar:#15171F; --surface:#181A23; --hover:#1E2130;
+    --text:#E4E4E7; --dim:#8B8B97; --mut:#55556A; --hairline:rgba(255,255,255,.07);
+    --accent:#7C6BF5; --green:#34D399; --amber:#F59E0B; --red:#EF4444;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0A0B10;color:var(--text);font:13px/1.45 -apple-system,'SF Pro Text',sans-serif;
+       padding:34px 40px 80px;}
+  h1{font-size:19px;margin-bottom:6px;}
+  .thesis{color:var(--dim);font-size:12.5px;max-width:880px;margin-bottom:10px;}
+  .v1{display:inline-block;font-size:11px;color:var(--amber);border:1px solid rgba(245,158,11,.35);
+      padding:3px 10px;border-radius:6px;margin-bottom:26px;}
+  .label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);
+         margin:34px 0 10px;}
+  .hint{color:var(--dim);font-size:12px;max-width:920px;margin-top:10px;}
+  .hint b{color:var(--text);}
+
+  .mac{width:1150px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;
+       box-shadow:0 24px 70px rgba(0,0,0,.5);}
+  .titlebar{height:34px;display:flex;align-items:center;padding:0 12px;background:var(--sidebar);
+            border-bottom:1px solid var(--hairline);}
+  .dot{width:11px;height:11px;border-radius:50%;margin-right:7px;}
+  .win{display:flex;height:560px;}
+  .rail{width:252px;background:rgba(21,23,31,.55);border-right:1px solid var(--hairline);
+        padding:14px;font-size:12px;color:var(--dim);display:flex;flex-direction:column;}
+  .railghost{opacity:.5;font-size:11px;line-height:2.0;}
+  .shelves-rail{margin-top:auto;}
+  .shelfrow{display:flex;justify-content:space-between;align-items:center;font-size:12px;
+            color:var(--dim);padding:6px 8px;border-radius:7px;}
+  .shelfrow.on{background:rgba(124,107,245,.13);color:var(--text);}
+  .shelfrow .n{color:var(--mut);font-size:10.5px;}
+  .leaf{color:var(--amber);margin-right:6px;font-size:11px;}
+
+  .main{flex:1;padding:24px 30px;overflow:hidden;}
+  .jhead{font-size:17px;font-weight:700;margin-bottom:2px;}
+  .jsub{color:var(--dim);font-size:12px;margin-bottom:16px;max-width:660px;}
+
+  .firstrun{max-width:760px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.06);
+            border-radius:11px;padding:12px 16px;font-size:12px;color:var(--dim);margin-bottom:16px;
+            display:flex;align-items:center;gap:12px;}
+  .firstrun b{color:var(--amber);}
+  .btn{display:inline-block;background:var(--accent);color:#fff;font-size:12px;font-weight:650;
+       padding:6px 14px;border-radius:8px;white-space:nowrap;}
+  .btn.ghost{background:transparent;color:var(--dim);border:1px solid var(--hairline);}
+
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+        padding:12px 16px;margin-bottom:9px;max-width:760px;display:flex;align-items:center;gap:14px;}
+  .card .body{flex:1;min-width:0;}
+  .card h3{font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card p{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card .meta{font-size:10.5px;color:var(--mut);margin-top:4px;display:flex;gap:10px;}
+  .fadein{font-size:10.5px;color:var(--amber);white-space:nowrap;}
+  .keep{font-size:11.5px;font-weight:650;color:var(--accent);border:1px solid rgba(124,107,245,.4);
+        padding:4px 12px;border-radius:7px;white-space:nowrap;}
+
+  .footline{font-size:11px;color:var(--mut);max-width:760px;margin-top:14px;}
+
+  /* phone frame */
+  .phones{display:flex;gap:26px;align-items:flex-start;}
+  .phone{width:300px;background:var(--bg);border:8px solid #000;border-radius:34px;overflow:hidden;
+         box-shadow:0 18px 50px rgba(0,0,0,.5);}
+  .pscreen{height:520px;padding:16px 14px;}
+  .ptitle{font-size:24px;font-weight:800;margin-bottom:10px;}
+  .search{background:var(--hover);border-radius:9px;padding:7px 11px;font-size:12px;color:var(--mut);
+          margin-bottom:10px;}
+  .shelves{display:flex;gap:8px;margin-bottom:12px;}
+  .shelfchip{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:11.5px;
+             color:var(--dim);background:rgba(255,255,255,.04);border:1px solid var(--hairline);
+             padding:7px 0;border-radius:9px;}
+  .shelfchip b{color:var(--text);font-weight:650;}
+  .prow{background:var(--surface);border:1px solid var(--hairline);border-radius:11px;
+        padding:10px 12px;margin-bottom:8px;}
+  .prow h4{font-size:12.5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .prow p{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pcap{font-size:10.5px;color:var(--mut);text-align:center;margin-top:10px;max-width:300px;}
+
+  .decis{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+         padding:16px 20px;max-width:920px;margin-bottom:6px;font-size:12.5px;color:var(--dim);}
+  .decis b{color:var(--text);}
+  .decis li{margin:4px 0 4px 18px;}
+</style>
+</head>
+<body>
+
+<h1>The Fading shelf — where untouched notes go to be forgotten (visibly)</h1>
+<p class="thesis">Design locked 2026-07-17: untouched notes (no dots / edits / title / tags / lock / reminder /
+annotation / backlink) leave the main surfaces after 30 days, sit HERE 30 more, then flow into Recently Deleted (14d)
+and out. Never a tab — a shelf: one row with a count, one click away, one-tap rescue. Doing nothing IS the cleanup.</p>
+<span class="v1">mock v1 · awaiting sign-off — shelf row in each app + the shelf view + first-run sweep prompt</span>
+
+<div class="decis">
+  <b>What's being decided</b>
+  <li><b>Not a tab; fading notes leave the main body.</b> They vanish from river/day lists/map/search-by-default —
+      the shelf row (with its count) is the only trace, so nothing disappears silently.</li>
+  <li><b>Mac placement:</b> a "Fading" row pinned at the rail BOTTOM (under the mini-map), paired with Recently
+      Deleted — the two shelves live together.</li>
+  <li><b>Phone placement — fixes your gripe:</b> Recently Deleted leaves the scroll-to-bottom spot; BOTH shelves
+      become two compact chips under the search field, visible only when non-empty.</li>
+  <li><b>The only actions are Keep (rescue, permanent) and Sweep now (skip the wait, into Recently Deleted).</b>
+      No delete button here — real deletion only ever happens through Recently Deleted's countdown.</li>
+</div>
+
+<!-- m1: Mac shelf -->
+<div class="label" id="m1">m1 · Mac — the shelf view (column swap, like map mode) + the rail row + FIRST-RUN prompt</div>
+<div class="mac">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--dim);margin-left:8px;">Skrift Dev</span>
+  </div>
+  <div class="win">
+    <div class="rail">
+      <div class="railghost">Queue | <b style="color:var(--text)">Review</b><br><br>July 2026 calendar<br>PLACES list<br>mini-map</div>
+      <div class="shelves-rail">
+        <div class="shelfrow on"><span><span class="leaf">🍂</span>Fading</span><span class="n">23</span></div>
+        <div class="shelfrow"><span><span class="leaf" style="color:var(--mut)">🗑</span>Recently Deleted</span><span class="n">4</span></div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="jhead">Fading · 23 notes</div>
+      <p class="jsub">Untouched for 30+ days. Do nothing and they move to Recently Deleted on their day —
+      or Keep the ones that still matter.</p>
+
+      <div class="firstrun">
+        <span><b>First sweep.</b> These 23 notes qualified from your existing corpus. Nothing moves automatically
+        until you've seen this once.</span>
+        <span class="btn">Start the timers</span>
+        <span class="btn ghost">Sweep all now</span>
+      </div>
+
+      <div class="card">
+        <div class="body">
+          <h3>Hello, hello, hello, testing, testing, testing.</h3>
+          <p>Hello, hello, hello, testing, testing, testing, testing.</p>
+          <div class="meta"><span>15 Jul 2026</span><span>Benfica</span><span>0:06</span></div>
+        </div>
+        <span class="fadein">fades in 26 days</span>
+        <span class="keep">Keep</span>
+      </div>
+      <div class="card">
+        <div class="body">
+          <h3>That um it it started at oh what the fuck it has a lot of…</h3>
+          <p>That um it it started at oh what the fuck it has a lot of languages in there…</p>
+          <div class="meta"><span>12 Jun 2026</span><span>Benfica</span><span>0:06</span></div>
+        </div>
+        <span class="fadein">fades in 4 days</span>
+        <span class="keep">Keep</span>
+      </div>
+      <div class="card" style="opacity:.85;">
+        <div class="body">
+          <h3>Okay. Yeah. No. Right. Test two.</h3>
+          <p>Okay. Yeah. No. Right. Test two. Nothing here.</p>
+          <div class="meta"><span>2 Jun 2026</span><span>0:04</span></div>
+        </div>
+        <span class="fadein" style="color:var(--red)">fades today</span>
+        <span class="keep">Keep</span>
+      </div>
+
+      <p class="footline">Keep = never fades again (one tap, done — it returns to the main surfaces). A kept or
+      re-touched note can't come back here. Clicking a card opens the read-only detail. Sorted soonest-first.</p>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>Behaviour:</b> the rail row shows only when the shelf is non-empty (zero junk = zero chrome —
+same rule as the mini-map). The shelf is a column swap with ← back, like map mode. "Sweep all now" moves everything
+to Recently Deleted immediately (still 14 more reversible days). The count is the honesty mechanism: nothing ever
+leaves the main surfaces without a number appearing here.</p>
+
+<!-- m2: phone placement -->
+<div class="label" id="m2">m2 · Phone — both shelves move UP: chips under the search field (fixes the scroll-to-bottom gripe)</div>
+<div class="phones">
+  <div>
+    <div class="phone"><div class="pscreen">
+      <div class="ptitle">Notes</div>
+      <div class="search">🔍 Search notes</div>
+      <div class="shelves">
+        <div class="shelfchip"><span class="leaf">🍂</span><b>Fading</b> 23</div>
+        <div class="shelfchip"><span class="leaf" style="color:var(--mut)">🗑</span><b>Deleted</b> 4</div>
+      </div>
+      <div class="prow"><h4>Two apps, one contract</h4><p>The shared folder finally carries every wire struct…</p></div>
+      <div class="prow"><h4>Fado bar recommendation</h4><p>Shared from Maps with a voice ramble — the Tuesday…</p></div>
+      <div class="prow"><h4>Souvenir. [[img_001]] Good find.</h4><p>Souvenir. Good find. Put in your scrapbook…</p></div>
+      <div class="prow" style="opacity:.6"><h4>Walking the Monsanto loop</h4><p>Kept circling on whether the per-book capture…</p></div>
+    </div></div>
+    <p class="pcap">Chips render only when non-empty. Tap → the same shelf list as the Mac (Keep / countdown /
+    first-run prompt). Recently Deleted's old bottom row is REMOVED.</p>
+  </div>
+</div>
+
+<div class="decis" style="margin-top:30px;">
+  <b>Recommendation — ship as drawn.</b> The shelf makes "do nothing" safe and visible: a count you can always
+  audit, two reversible stages, no delete button outside the trash you already have.
+  <br><br><b>Open for the pick:</b> ① phone chips under search — or would you rather they live in the Review tab?
+  ② should search have an "include fading" toggle, or is opening the shelf enough?
+</div>
+
+</body>
+</html>
