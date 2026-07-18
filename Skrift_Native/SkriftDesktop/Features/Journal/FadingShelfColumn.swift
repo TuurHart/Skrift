@@ -9,13 +9,10 @@ import SwiftData
 /// the Mac never hard-deletes.
 @MainActor
 enum MacFadingSweep {
-    static let armedKey = "fadingTimersArmed"   // same key string as the phone; per-device value
-    static var armed: Bool { UserDefaults.standard.bool(forKey: armedKey) }
-    static func arm() { UserDefaults.standard.set(true, forKey: armedKey) }
-
-    /// Timed sweep (60d) — armed-gated, idempotent; rides Review's refresh.
+    /// Timed sweep (60d) — fully automatic (Tuur, 2026-07-18: the arming gate
+    /// read as friction; the 14-day trash + shelf counts are the safety),
+    /// idempotent; rides Review's refresh.
     static func run(memos: [Memo], context: ModelContext, now: Date = Date()) {
-        guard armed else { return }
         let live = memos.filter { $0.deletedAt == nil }
         let backlinked = MemoLifecycle.backlinkedIDs(in: live)
         var swept = 0
@@ -33,12 +30,9 @@ struct FadingShelfColumn: View {
     var onChanged: () -> Void
     var onBack: () -> Void
 
-    @State private var armed = MacFadingSweep.armed
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
-            if !armed && !fading.isEmpty { firstRun }
             if fading.isEmpty {
                 Text("Nothing is fading. Untouched notes land here after \(MemoLifecycle.fadeAfterDays) days.")
                     .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
@@ -51,7 +45,7 @@ struct FadingShelfColumn: View {
                     }
                 }
             }
-            Text("Do nothing and each note moves to Recently Deleted on its day — restorable there for \(TrashPolicy.retentionDays) more days. Keep = never fades again.")
+            Text("Automatic: each note moves to Recently Deleted on its day — restorable there for \(TrashPolicy.retentionDays) more days. Keep = never fades again.")
                 .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
             Spacer(minLength: 0)
         }
@@ -63,33 +57,15 @@ struct FadingShelfColumn: View {
             Text("Fading · \(fading.count) note\(fading.count == 1 ? "" : "s")")
                 .font(.system(size: 17, weight: .bold))
             Spacer()
+            if !fading.isEmpty {
+                capsuleButton("Sweep all now", prominent: false) { sweepAll() }
+            }
             Button { onBack() } label: {
                 Label("Back", systemImage: "xmark")
                     .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
             }
             .buttonStyle(.plain)
         }
-    }
-
-    private var firstRun: some View {
-        HStack(spacing: 12) {
-            (Text("First sweep. ").foregroundStyle(Theme.amber).bold()
-             + Text("These \(fading.count) notes qualified from your existing corpus. Nothing moves automatically until you've seen this once."))
-                .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
-            Spacer()
-            capsuleButton("Start the timers", prominent: true) {
-                MacFadingSweep.arm(); armed = true
-                if let context { MacFadingSweep.run(memos: fading, context: context) }
-                onChanged()
-            }
-            capsuleButton("Sweep all now", prominent: false) {
-                MacFadingSweep.arm(); armed = true
-                sweepAll()
-            }
-        }
-        .padding(12)
-        .background(Theme.amber.opacity(0.06), in: RoundedRectangle(cornerRadius: 11))
-        .overlay(RoundedRectangle(cornerRadius: 11).stroke(Theme.amber.opacity(0.3), lineWidth: 1))
     }
 
     private func row(_ memo: Memo) -> some View {

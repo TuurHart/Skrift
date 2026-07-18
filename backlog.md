@@ -998,8 +998,14 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   bottom Recently Deleted row. Remaining open Q: search "include fading" toggle (recommend SKIP).
   ✅ SIGNED OFF ("good!") + BUILT SAME SESSION 2026-07-18 — see FEATURES.md "Fading lifecycle" row:
   Shared MemoLifecycle (+keptAt) · phone ⋯/shelf/sweep (b83) · Mac shelves + sweep. Search toggle
-  SKIPPED per recommendation. ⬜ device eyeball: first-run prompt on real corpus (phone + Mac), a
-  Keep, a sweep-all, the ⋯ dot.
+  SKIPPED per recommendation. 📱 b83 round findings, FIXED same hour (b84 + Mac redeployed):
+  (1) the ⋯ amber dot rendered SQUARE sometimes — an out-of-bounds overlay offset gets mangled by
+  the menu-source preview snapshot; dot now lives INSIDE the label frame (+compositingGroup). Menu
+  open latency = system Menu behavior, not tunable — revisit as Button+sheet only if it keeps
+  annoying. (2) "Start the timers" arming gate CUT on Tuur's call ("why is it not automatic?") —
+  sweeps are fully automatic from install; the 14d reversible trash + shelf counts + the dot are
+  the safety; "Sweep all now" stays as a plain shelf action both apps. Mock's first-run section is
+  now historical. ⬜ re-eyeball: dot shape, Keep, sweep-all, cross-device convergence.
 
 ### 🔭 PARKED DIRECTION — read the Obsidian vault INTO the app (Tuur, 2026-07-17)
 Use vault content (hand-written notes) for linking/Connections/Related, maybe Review. Constraints +

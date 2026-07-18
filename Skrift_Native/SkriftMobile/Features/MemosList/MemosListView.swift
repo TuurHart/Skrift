@@ -462,13 +462,18 @@ struct MemosListView: View {
                         Label("Recently Deleted (\(trashedMemos.count))", systemImage: "trash")
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 17))
-                        .overlay(alignment: .topTrailing) {
-                            if !lifecycle.fading.isEmpty {
-                                Circle().fill(Color.skAmber).frame(width: 6, height: 6).offset(x: 2, y: -1)
-                            }
+                    // Dot INSIDE the label bounds (an out-of-frame offset gets
+                    // mangled square by the menu-source preview snapshot —
+                    // 2026-07-18 device finding) + one flattened layer.
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "ellipsis.circle").font(.system(size: 17))
+                        if !lifecycle.fading.isEmpty {
+                            Circle().fill(Color.skAmber).frame(width: 6, height: 6)
                         }
+                    }
+                    .frame(width: 26, height: 24, alignment: .center)
+                    .compositingGroup()
+                    .contentShape(Rectangle())
                 }
                 .tint(.skAccent)
                 .accessibilityIdentifier("shelves-menu")
