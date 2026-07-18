@@ -2,6 +2,35 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 📍 Place notes with feeling — "the pin you actually act on" (Tuur direction 2026-07-18; NEEDS DESIGN SESSION before code)
+
+The thesis (verbatim intent): a Maps pin ("to eat") is a dead TODO — it never gets acted on. A voice note
+recorded AT the moment ("we walked past a restaurant, Brooks said we should eat there") carries the feeling,
+so browsing your notes re-evokes why you cared and you actually engage. Skrift already half-does this;
+make it explicit and close the loop.
+
+What EXISTS today (so the design session starts from truth, not memory):
+- Recording auto-attaches location + placeName (`MetadataService`); rows carry place chips; place filter + search.
+- Share an Apple/Google Maps pin INTO Skrift (D6, `PlaceLink.swift`) → capture item with the same location
+  metadata + chip; voice-annotatable. Gap: short `maps.app.goo.gl` links stay plain link cards (opaque
+  without a fetch, E4) — and the Google Maps iOS app shares exactly those short links.
+- Places map on the phone (`JournalMapView`, Journal tab v1 2026-07-07): pins clustered by place → that
+  place's notes. Mac/iPad map-behind-Places is in the signed-off journal-desktop v2 mock (not yet built).
+- Reminders are TIME-only (`remindAt` + ReminderScheduler, synced). NOTHING resurfaces a note by PLACE.
+
+Candidate directions for the design session (none decided):
+1. **Place-triggered resurfacing** — the literal fix for "and then it doesn't really happen": near the
+   restaurant → the note (with your voice from the moment) knocks. iOS geofencing / UNLocationNotificationTrigger;
+   fits the existing reminder model as a WHERE alongside remindAt's WHEN. Region limits (~20 monitored) need
+   a nearest-N strategy. Privacy: all on-device.
+2. **Explicit intent facet** — "I was here" (journal) vs "I want to go back" (to eat / to visit / to try).
+   Makes "places I still owe a visit" browsable on the map + filterable; folds into the unified source
+   taxonomy work. Could be as small as a tag idiom the UI understands.
+3. **Capture friction** — resolve short goo.gl links (needs one fetch — revisits E4); surface the
+   share-a-pin flow in onboarding/empty states so the D6 path is discoverable at all.
+Related ledger: journal-desktop board (backlog "CONTINUE HERE — desktop-parity"), unified source taxonomy
+(CLAUDE.md open cross-app work). Mock-first applies — no code before a signed-off design.
+
 ## 🐛 List thumbnail stale after deleting photos (reported 2026-07-18, ✅ FIXED same day — branch `claude/note-thumbnail-update-bug-tuhrp3`)
 
 Repro: record with several photos → row thumb = first photo; delete the first photo(s) in the editor →
