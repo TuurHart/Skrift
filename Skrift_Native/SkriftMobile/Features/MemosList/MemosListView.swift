@@ -64,6 +64,7 @@ struct MemosListView: View {
     @State private var showVideoImporter = false
     @State private var showSortFilter = false
     @State private var showTrash = false
+    @State private var showFading = false
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
@@ -172,6 +173,7 @@ struct MemosListView: View {
             // memo detail, which a non-memo destination can't join. (Settings +
             // the audiobook Library moved out to root tabs — see AppTabView.)
             .sheet(isPresented: $showTrash) { RecentlyDeletedView() }
+            .sheet(isPresented: $showFading) { FadingShelfView() }
             // D8: Files import (audio + video) — routes through the same
             // AppURLHandler path as open-in/AirDrop: video → strip audio +
             // frame, audio → transcribed memo, both jump to the new note.
@@ -330,15 +332,6 @@ struct MemosListView: View {
                         .accessibilityIdentifier("related-section-header")
                     }
                 }
-                // Trash entry point, Voice Memos-style: a quiet footer row that
-                // only exists while the trash is non-empty. Hidden during
-                // multi-select so it can't collect a selection circle.
-                if !trashedMemos.isEmpty && !editMode.isEditing {
-                    recentlyDeletedRow
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
-                }
                 Color.clear.frame(height: 80)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -404,39 +397,9 @@ struct MemosListView: View {
                 description: Text("Tap the mic to record your first note.")
             )
             .accessibilityIdentifier("memos-empty")
-            // The trash must stay reachable when the main list is empty (e.g.
-            // everything was just deleted) — otherwise Restore is unreachable.
-            if !trashedMemos.isEmpty {
-                recentlyDeletedRow
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 110)   // clear the record FAB
-            }
         }
     }
 
-    /// "Recently Deleted (N)" card row → the trash screen.
-    private var recentlyDeletedRow: some View {
-        Button { showTrash = true } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "trash")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.skTextDim)
-                Text("Recently Deleted")
-                    .font(.system(size: 14.5, weight: .medium))
-                    .foregroundStyle(Color.skText)
-                Spacer()
-                Text("\(trashedMemos.count)")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.skTextDim)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.skTextFaint)
-            }
-            .skCard()
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("recently-deleted-row")
-    }
 
     // MARK: - Toolbar
 
@@ -488,6 +451,27 @@ struct MemosListView: View {
                 }
                 .tint(.skAccent)
                 .accessibilityIdentifier("sort-filter-button")
+                // The shelves (mock fading-shelf.html v3): zero standing space —
+                // Fading + Recently Deleted live behind this ⋯; the amber dot is
+                // the "something is fading" honesty signal.
+                Menu {
+                    Button { showFading = true } label: {
+                        Label("Fading (\(lifecycle.fading.count))", systemImage: "leaf")
+                    }
+                    Button { showTrash = true } label: {
+                        Label("Recently Deleted (\(trashedMemos.count))", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 17))
+                        .overlay(alignment: .topTrailing) {
+                            if !lifecycle.fading.isEmpty {
+                                Circle().fill(Color.skAmber).frame(width: 6, height: 6).offset(x: 2, y: -1)
+                            }
+                        }
+                }
+                .tint(.skAccent)
+                .accessibilityIdentifier("shelves-menu")
             }
         }
         .padding(.horizontal, 16)
@@ -630,8 +614,12 @@ struct MemosListView: View {
 
     // MARK: - Derived
 
+    /// The lifecycle split (MemoLifecycle, 2026-07-17): fading notes leave the
+    /// main list + search entirely; the ⋯ shelf is their only surface.
+    private var lifecycle: (live: [Memo], fading: [Memo]) { MemoLifecycle.partition(memos) }
+
     private var filtered: [Memo] {
-        memos.filter { matchesSearch($0) && matchesFilter($0) }.sorted(by: sortComparator)
+        lifecycle.live.filter { matchesSearch($0) && matchesFilter($0) }.sorted(by: sortComparator)
     }
 
     private var flatIndex: [UUID: Int] {

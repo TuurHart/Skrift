@@ -85,6 +85,10 @@ struct SkriftApp: App {
                     AssetMaterializer.run(repository)
                     PhotoTextIndexer.run(repository)
                     ReminderScheduler.run(repository)
+                    // Fading lifecycle (MemoLifecycle, 2026-07-17): move 60-day
+                    // untouched notes into Recently Deleted. Armed-gated — inert
+                    // until the shelf's first-run prompt is answered.
+                    FadingSweep.run(repository: repository)
                 }
                 // Reconcile the names/people DB across devices (Phase 1e): merge the
                 // CloudKit-synced carrier with the local names.json via the same

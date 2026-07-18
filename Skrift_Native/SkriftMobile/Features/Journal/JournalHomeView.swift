@@ -61,7 +61,9 @@ struct JournalHomeView: View {
     }
 
     private func reload() {
-        memos = repository.allMemos()
+        // Fading notes leave Review too (MemoLifecycle) — the ⋯ shelf in Notes
+        // is their only surface.
+        memos = MemoLifecycle.partition(repository.allMemos()).live
         important = LookbackProvider.importantLately(for: memos)
         entries = LookbackProvider.entries(for: memos,
                                            excluding: Set(important.map(\.id)))
