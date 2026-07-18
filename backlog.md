@@ -31,6 +31,33 @@ Candidate directions for the design session (none decided):
 Related ledger: journal-desktop board (backlog "CONTINUE HERE — desktop-parity"), unified source taxonomy
 (CLAUDE.md open cross-app work). Mock-first applies — no code before a signed-off design.
 
+## 📤 Full exportability — markdown as the durable home (Tuur principle 2026-07-18)
+
+The principle (verbatim intent): as features get more complicated, ALL data stays fully exportable — as
+much as possible lives in markdown, the app is a smart VIEWER over it. Honest boundary: CloudKit stays the
+sync spine (locked 2026-06-15, STANDALONE_PLAN — file-based sync explicitly rejected), so the realistic
+form is **the vault is a complete, continuously-published MIRROR**: if Skrift vanished tomorrow, the
+markdown + files beside it carry everything human-meaningful. App-internal by nature (document, don't
+pretend): word-timing JSON (karaoke), voice embeddings, sync/provenance state; locked notes stay out of
+the plaintext vault BY DESIGN.
+
+Already true today: one-way create-only publish into `<vault>/Skrift/` (`ObsidianPublisher`, sticky paths +
+hash idempotency + user-edit backoff); body syntax is portable markdown (tasks `- [ ]`, `[[Name]]` links,
+photo embeds); Mac polish auto-upgrades the export; speaker turns survive as `**Name:**` text.
+
+Export-completeness GAPS (2026-07-18 code check — the audit's starting list):
+1. **Attachments never reach the vault** — publish writes ONLY the `.md`; photo embeds dangle, audio stays
+   app-only (`ObsidianPublisher` has no file copy at all). Audio-in-vault = a size/scope decision to make.
+2. **Location coordinates dropped** — frontmatter carries placeName only (`MemoExporter.compilerMetadata`);
+   a place note loses its pin outside the app. Direct dependency of the 📍 place-notes direction above.
+3. Not exported: `remindAt`, createdAt/editedAt, imageManifest OCR text, audiobook domain (positions,
+   bookmarks, book transcripts — captures already export as memos).
+4. No completeness surface — nothing answers "is my vault a full mirror?" (published/skipped/backed-off counts).
+
+First chunk when picked up: field-by-field audit table (→ lands in frontmatter / body / file beside /
+app-internal-documented), then attachments-in-vault + lat/lon frontmatter. New frontmatter keys = contract
+change → mirror in the Mac Compiler in the same pass (no drift).
+
 ## 🐛 List thumbnail stale after deleting photos (reported 2026-07-18, ✅ FIXED same day — branch `claude/note-thumbnail-update-bug-tuhrp3`)
 
 Repro: record with several photos → row thumb = first photo; delete the first photo(s) in the editor →
