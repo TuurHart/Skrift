@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-17T00:20:00.000Z
+updated: 2026-07-18T00:45:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -321,6 +321,14 @@ nodes:
       text is the source). Locked notes still SYNC (Mac too, locked);
       excluded from Obsidian PUBLISH only."
     shipped:
+      - >-
+        2026-07-18 · FADING LIFECYCLE shipped cross-app (design locked
+        2026-07-17, mock fading-shelf.html v3): untouched notes (locked
+        touch-list) fade at 30d into count-badged shelves (Mac rail rows ·
+        phone Notes-header ⋯ w/ amber dot), auto-trash at 60d via the
+        EXISTING 14d Recently Deleted (phone owns permanent deletion);
+        derived state + one additive keptAt field; armed-gated first-run
+        sweep. Shared MemoLifecycle, 9 tests/suite. Device eyeball owed
       - >-
         2026-07-17 · Review rail MINI-MAP (mock review-minimap.html, A picked
         over map-first): static MKMapSnapshotter ambient map under PLACES,

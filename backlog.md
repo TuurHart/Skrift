@@ -996,7 +996,10 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   Review-stack row both rejected — vertical space): behind a ⋯ in the Notes header actions
   cluster, amber dot when something's fading, both shelves as menu items; Notes loses its old
   bottom Recently Deleted row. Remaining open Q: search "include fading" toggle (recommend SKIP).
-  AWAITING final sign-off → then build (cross-app, Shared-first).
+  ✅ SIGNED OFF ("good!") + BUILT SAME SESSION 2026-07-18 — see FEATURES.md "Fading lifecycle" row:
+  Shared MemoLifecycle (+keptAt) · phone ⋯/shelf/sweep (b83) · Mac shelves + sweep. Search toggle
+  SKIPPED per recommendation. ⬜ device eyeball: first-run prompt on real corpus (phone + Mac), a
+  Keep, a sweep-all, the ⋯ dot.
 
 ### 🔭 PARKED DIRECTION — read the Obsidian vault INTO the app (Tuur, 2026-07-17)
 Use vault content (hand-written notes) for linking/Connections/Related, maybe Review. Constraints +
