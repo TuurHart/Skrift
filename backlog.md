@@ -46,17 +46,34 @@ hash idempotency + user-edit backoff); body syntax is portable markdown (tasks `
 photo embeds); Mac polish auto-upgrades the export; speaker turns survive as `**Name:**` text.
 
 Export-completeness GAPS (2026-07-18 code check — the audit's starting list):
-1. **Attachments never reach the vault** — publish writes ONLY the `.md`; photo embeds dangle, audio stays
-   app-only (`ObsidianPublisher` has no file copy at all). Audio-in-vault = a size/scope decision to make.
-2. **Location coordinates dropped** — frontmatter carries placeName only (`MemoExporter.compilerMetadata`);
-   a place note loses its pin outside the app. Direct dependency of the 📍 place-notes direction above.
-3. Not exported: `remindAt`, createdAt/editedAt, imageManifest OCR text, audiobook domain (positions,
-   bookmarks, book transcripts — captures already export as memos).
-4. No completeness surface — nothing answers "is my vault a full mirror?" (published/skipped/backed-off counts).
+1. **Attachments never reach the vault FROM THE PHONE** — phone publish writes ONLY the `.md`. The MAC
+   already does this right (`VaultExporter`): `.md` at vault root, audio → audio subfolder, images →
+   attachments subfolder (Settings: vault + "Audio subfolder"/"Voice Memos" + "Attachments subfolder"/
+   "Attachments"), `[[img_NNN]]` → `![[<title>_NNN.ext]]` embeds. So this is a PHONE-PARITY chunk, and the
+   Mac's settings model + embed-naming scheme is the prior art — phone must converge on the SAME filenames
+   so both devices publishing one memo don't fork. Tuur 2026-07-18: ✅ wanted; **brainstorm session owed on
+   the phone mechanics** (subfolder scheme, audio-by-default or not, security-scoped copy costs, idempotency
+   for binaries).
+2. **Location coordinates dropped** — frontmatter carries placeName only (`MemoExporter.compilerMetadata`
+   AND desktop path); a place note loses its pin outside the app. Direct dependency of the 📍 place-notes
+   direction above.
+3. **YAML carries ALL metadata — Tuur decision 2026-07-18** ("even steps if we want to" — steps ALREADY
+   exports, Compiler.swift:104 😄). In today: title/date/author/source/people/book·bookAuthor·chapter/url/
+   location(name)/weather/pressure+trend/dayPeriod/daylight/steps/tags/significance/summary. To ADD:
+   lat/lon, duration, createdAt/editedAt, remindAt. Stays internal: sync/provenance state, confidence,
+   OCR text (derived; revisit if search-outside-app matters).
+4. **Audiobooks — export the USER'S layer, not the book** (answer to "what of the book do we need?"):
+   quote captures already export as memos with book frontmatter ✓; **bookmarks don't** (per-book
+   `bookmarks.json` — position markers by design, `Bookmark.swift`) — export them into a **per-book index
+   note** ("Book — Author.md": book frontmatter, bookmark list ch·timestamp, links to that book's capture
+   notes) = the vault face of the roadmap **Commonplace Book** node. NOT exported by default: the audio
+   (user's imported property, huge), the whole-book transcript (derived, bulk — on-demand at most),
+   positions/detected chapters (ephemeral/app data).
+5. No completeness surface — nothing answers "is my vault a full mirror?" (published/skipped/backed-off counts).
 
 First chunk when picked up: field-by-field audit table (→ lands in frontmatter / body / file beside /
-app-internal-documented), then attachments-in-vault + lat/lon frontmatter. New frontmatter keys = contract
-change → mirror in the Mac Compiler in the same pass (no drift).
+app-internal-documented), then phone attachments-parity + lat/lon frontmatter. New frontmatter keys =
+contract change → mirror phone `MemoExporter` + Mac `Compiler` in the same pass (no drift).
 
 ## 🐛 List thumbnail stale after deleting photos (reported 2026-07-18, ✅ FIXED same day — branch `claude/note-thumbnail-update-bug-tuhrp3`)
 
