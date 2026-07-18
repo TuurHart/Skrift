@@ -992,9 +992,11 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   Recently Deleted's phone placement in the same mock round.
 - 🎨 MOCK ROUND OPEN: `mocks/fading-shelf.html` — Mac shelf (column swap; rail row paired with
   Recently Deleted at the rail bottom, count-badged, hidden when empty), first-run sweep prompt,
-  Keep-only actions, countdown colors; phone: BOTH shelves as chips under the search field
-  (Recently Deleted leaves the scroll-to-bottom spot). 2 open Qs: phone chips vs Review tab ·
-  search "include fading" toggle. AWAITING SIGN-OFF → then build (cross-app, Shared-first).
+  Keep-only actions, countdown colors; phone v2 (Tuur: conservative with vertical
+  space → Notes must stay untouched): the shelves are the LAST row of the Review tab's card stack
+  (short stack, one flick); Notes LOSES its old bottom Recently Deleted row entirely — net space
+  gain. 2 open Qs: Review-stack row (as drawn) vs fully hidden behind the Notes ⋯ menu · search
+  "include fading" toggle. AWAITING SIGN-OFF → then build (cross-app, Shared-first).
 
 ### 🔭 PARKED DIRECTION — read the Obsidian vault INTO the app (Tuur, 2026-07-17)
 Use vault content (hand-written notes) for linking/Connections/Related, maybe Review. Constraints +
