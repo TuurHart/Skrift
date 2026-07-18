@@ -37,6 +37,12 @@ final class MemoLifecycleTests: XCTestCase {
         XCTAssertEqual(MemoLifecycle.daysUntilSweep(bareMemo(days: 56), now: now), 4)
     }
 
+    func testFadeEntersAtIsThe30DayLine() {
+        let m = bareMemo(days: 0)
+        XCTAssertEqual(MemoLifecycle.fadeEntersAt(m).timeIntervalSince(m.recordedAt),
+                       30 * 86_400, accuracy: 1)
+    }
+
     // MARK: the touch-list (each signal alone prevents fading)
 
     func testEachTouchSignalPreventsFading() {

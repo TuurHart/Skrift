@@ -1005,7 +1005,11 @@ one `now`); mock-first for any NEW UI beyond these signed specs.
   annoying. (2) "Start the timers" arming gate CUT on Tuur's call ("why is it not automatic?") —
   sweeps are fully automatic from install; the 14d reversible trash + shelf counts + the dot are
   the safety; "Sweep all now" stays as a plain shelf action both apps. Mock's first-run section is
-  now historical. ⬜ re-eyeball: dot shape, Keep, sweep-all, cross-device convergence.
+  now historical. (b84 round) Tuur: "is the dot always there?" — it was (steady 30-60d trickle = permanently lit =
+  no signal). b85: UNREAD semantics — the ⋯ dot lights only for notes that ENTERED fading since the
+  shelf was last opened (shared `fadeEntersAt` + per-device lastSeen stamp; opening the shelf clears
+  it). ⬜ re-eyeball: dot lights fresh → opens shelf → goes dark; Keep; sweep-all; cross-device
+  convergence.
 
 ### 🔭 PARKED DIRECTION — read the Obsidian vault INTO the app (Tuur, 2026-07-17)
 Use vault content (hand-written notes) for linking/Connections/Related, maybe Review. Constraints +
