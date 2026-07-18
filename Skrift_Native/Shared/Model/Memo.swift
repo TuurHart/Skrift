@@ -149,6 +149,10 @@ final class Memo {
     /// nil default → legacy/local memos (nil) stay recoverable. Syncs as a plain field.
     var recordingDeviceID: String? = nil
 
+    /// Rescued from the Fading shelf ("Keep" — MemoLifecycle): a kept note never
+    /// auto-fades again. ADDITIVE, nil default → lightweight SwiftData migration.
+    var keptAt: Date? = nil
+
     /// In-flight marker for "Split speakers" (diarization). Non-nil = a diarization
     /// was started and hasn't completed: `0` = Auto, `N > 0` = forced to N speakers.
     /// Set before the diarize call, cleared (nil) when it completes — so a diarization
