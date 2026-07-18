@@ -120,4 +120,76 @@ final class MemoModelTests: XCTestCase {
         let failed = Memo(transcriptStatus: .failed, significance: 0)
         XCTAssertEqual(failed.statusKind, .error)
     }
+
+    // MARK: - List thumbnail (visible-photo rule)
+
+    private func manifest(_ filenames: String...) -> MemoMetadata {
+        MemoMetadata(imageManifest: filenames.map { ImageManifestEntry(filename: $0, offsetSeconds: 0) })
+    }
+
+    func testThumbnailFollowsSurvivingMarkerAfterDeletes() {
+        // The 2026-07-18 repro: photos in a recording, the first two deleted in
+        // the editor — the manifest keeps all entries (markers are indexes into
+        // it), so the thumb must follow the marker still in the body.
+        let memo = Memo(transcript: "Only the last photo remains [[img_003]]",
+                        transcriptStatus: .done, transcriptMarkersInjected: true)
+        memo.metadata = manifest("a.jpg", "b.jpg", "c.jpg")
+        XCTAssertEqual(memo.thumbnailPhotoFilename, "c.jpg")
+    }
+
+    func testThumbnailUsesBodyOrderNotManifestOrder() {
+        let memo = Memo(transcript: "Intro [[img_002]] then [[img_001]]",
+                        transcriptStatus: .done, transcriptMarkersInjected: true)
+        memo.metadata = manifest("a.jpg", "b.jpg")
+        XCTAssertEqual(memo.thumbnailPhotoFilename, "b.jpg")
+    }
+
+    func testThumbnailGoneWhenEveryMarkerDeleted() {
+        let memo = Memo(transcript: "No photos left in this note",
+                        transcriptStatus: .done, transcriptMarkersInjected: true)
+        memo.metadata = manifest("a.jpg")
+        XCTAssertNil(memo.thumbnailPhotoFilename)
+    }
+
+    func testThumbnailSkipsUnresolvableMarker() {
+        let memo = Memo(transcript: "[[img_009]] junk survives [[img_001]]",
+                        transcriptStatus: .done, transcriptMarkersInjected: true)
+        memo.metadata = manifest("a.jpg")
+        XCTAssertEqual(memo.thumbnailPhotoFilename, "a.jpg")
+    }
+
+    func testThumbnailPendingTranscriptionShowsFirstManifestEntry() {
+        // Photo taken while recording: the body doesn't exist yet, the thumb
+        // must not wait for the markers.
+        let memo = Memo(transcriptStatus: .transcribing)
+        memo.metadata = manifest("a.jpg", "b.jpg")
+        XCTAssertEqual(memo.thumbnailPhotoFilename, "a.jpg")
+    }
+
+    func testThumbnailShareCaptureRendersOffManifest() {
+        // C3 image captures stack manifest photos without body markers — the
+        // marker rules must not strip their thumb.
+        let memo = Memo.make(audioFilename: "",
+                             sharedContent: SharedContent(type: .image))
+        memo.metadata = manifest("shared.jpg")
+        XCTAssertEqual(memo.thumbnailPhotoFilename, "shared.jpg")
+    }
+
+    func testThumbnailEditorPhotosWorkWithoutInjectedFlag() {
+        // Editor-inserted photos never set transcriptMarkersInjected: the body
+        // marker still drives the thumb, and a typed body whose photo was
+        // deleted shows none.
+        let with = Memo(transcript: "Typed note [[img_001]]", transcriptStatus: .done)
+        with.metadata = manifest("a.jpg")
+        XCTAssertEqual(with.thumbnailPhotoFilename, "a.jpg")
+
+        let without = Memo(transcript: "Typed note, photo deleted", transcriptStatus: .done)
+        without.metadata = manifest("a.jpg")
+        XCTAssertNil(without.thumbnailPhotoFilename)
+    }
+
+    func testThumbnailNilWithoutManifest() {
+        XCTAssertNil(Memo(transcript: "hello [[img_001]]").thumbnailPhotoFilename)
+        XCTAssertNil(Memo().thumbnailPhotoFilename)
+    }
 }

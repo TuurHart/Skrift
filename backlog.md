@@ -2,6 +2,18 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🐛 List thumbnail stale after deleting photos (reported 2026-07-18, ✅ FIXED same day — branch `claude/note-thumbnail-update-bug-tuhrp3`)
+
+Repro: record with several photos → row thumb = first photo; delete the first photo(s) in the editor →
+thumb stays the DELETED photo. Cause: deleting a photo removes its `[[img_NNN]]` marker from the body but
+never its manifest entry (markers are 1-based indexes into the manifest — pruning would renumber every later
+marker on both apps), and the row blindly showed `imageManifest.first`. Fix: new `Memo.thumbnailPhotoFilename`
+(MemoDisplay.swift) = first marker in BODY order that resolves; all markers deleted → no thumb; marker-less
+bodies keep manifest-first (share captures render off-manifest, pending/failed transcriptions have no body
+yet). Row tile + `hasPhoto` + the "Has photos" filter all ride it (MemosListView). 8 unit tests added
+(MemoModelTests). **OWED (written on Linux, no Mac to build): iPhone 17 sim `xcodebuild test` + a device
+eyeball of the repro** — delete photos 1–2 of 3, row should show photo 3; delete all → no tile.
+
 ## 🎛 Transcription-engine wave — ✅ BUILT 2026-07-11 (worktree `transcription-engine-wave`; roadmap `TrEngine`)
 
 Research session → user picked the lot; all mobile unless said. **Device round owed on everything below.**

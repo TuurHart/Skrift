@@ -705,7 +705,7 @@ struct MemosListView: View {
 
     private func matchesFilter(_ memo: Memo) -> Bool {
         if filter.unsyncedOnly && memo.syncStatus == .synced { return false }
-        if filter.hasPhotosOnly && (memo.metadata?.imageManifest?.isEmpty ?? true) { return false }
+        if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { return false }
         if let place = filter.place, memo.metadata?.location?.placeName != place { return false }
         if filter.from != nil || filter.to != nil {
             let cal = Calendar.current
@@ -1009,8 +1009,8 @@ private struct MemoCard: View {
     }
 
     @ViewBuilder private var photoThumb: some View {
-        if let first = memo.metadata?.imageManifest?.first,
-           let img = UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(first.filename).path) {
+        if let filename = memo.thumbnailPhotoFilename,
+           let img = UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(filename).path) {
             Image(uiImage: img).resizable().scaledToFill()
                 .frame(width: 48, height: 48)
                 .clipShape(.rect(cornerRadius: 11, style: .continuous))
@@ -1048,7 +1048,9 @@ private struct MemoCard: View {
     }
 
     private var hasTranscript: Bool { !(memo.transcript ?? "").isEmpty }
-    private var hasPhoto: Bool { !(memo.metadata?.imageManifest?.isEmpty ?? true) }
+    /// A photo tile shows iff the NOTE visibly carries a photo (deleting every
+    /// photo from the body must clear the tile too, not just swap it).
+    private var hasPhoto: Bool { memo.thumbnailPhotoFilename != nil }
     /// True when the user gave the memo an explicit (non-blank) title.
     private var hasTitle: Bool {
         !(memo.title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
