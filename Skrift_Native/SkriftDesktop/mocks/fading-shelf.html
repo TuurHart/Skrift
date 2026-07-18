@@ -100,9 +100,10 @@ and out. Never a tab — a shelf: one row with a count, one click away, one-tap 
       the shelf row (with its count) is the only trace, so nothing disappears silently.</li>
   <li><b>Mac placement:</b> a "Fading" row pinned at the rail BOTTOM (under the mini-map), paired with Recently
       Deleted — the two shelves live together.</li>
-  <li><b>Phone placement — zero cost in Notes (v2, vertical-space concern):</b> the shelves live at the END of the
-      Review tab's card stack — the river literally runs out into them. Notes keeps nothing (and LOSES its old
-      bottom Recently Deleted row — net space gain); Review's stack is short, so the row is one flick away.</li>
+  <li><b>Phone placement (v3, PICKED): behind a ⋯ in the Notes header.</b> Zero standing space anywhere —
+      "Fading (23)" + "Recently Deleted (4)" as menu items; a small amber dot on the ⋯ when something is
+      fading keeps the honesty mechanism. Notes LOSES its old bottom Recently Deleted row (net space gain);
+      the Review stack stays purely editorial.</li>
   <li><b>The only actions are Keep (rescue, permanent) and Sweep now (skip the wait, into Recently Deleted).</b>
       No delete button here — real deletion only ever happens through Recently Deleted's countdown.</li>
 </div>
@@ -172,34 +173,45 @@ same rule as the mini-map). The shelf is a column swap with ← back, like map m
 to Recently Deleted immediately (still 14 more reversible days). The count is the honesty mechanism: nothing ever
 leaves the main surfaces without a number appearing here.</p>
 
-<!-- m2: phone placement (v2 — zero vertical cost in Notes) -->
-<div class="label" id="m2">m2 · Phone — the shelves end the Review tab's card stack · Notes stays untouched (v2)</div>
+<!-- m2: phone placement (v3 — behind the Notes header ⋯, PICKED) -->
+<div class="label" id="m2">m2 · Phone — behind a ⋯ in the Notes header (zero standing space) · v3, picked</div>
 <div class="phones">
   <div>
     <div class="phone"><div class="pscreen">
-      <div class="ptitle">Review</div>
-      <div class="prow"><h4>IMPORTANT LATELY</h4><p>Names model, re-derived · Two apps, one contract…</p></div>
-      <div class="prow"><h4>1 WEEK AGO — Souvenir. [[img_001]] Good find.</h4><p>Souvenir. Good find. Put in your scrapbook…</p></div>
-      <div class="prow"><h4>📅 Calendar</h4><p>July · dots on 10 11 12 15 16…</p></div>
-      <div class="prow"><h4>📍 Places</h4><p>Barcarena 4 · Carnaxide 3 · Benfica 2…</p></div>
-      <div class="shelves" style="margin-top:10px;">
-        <div class="shelfchip"><span class="leaf">🍂</span><b>Fading</b> 23</div>
-        <div class="shelfchip"><span class="leaf" style="color:var(--mut)">🗑</span><b>Deleted</b> 4</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">
+        <div class="ptitle" style="margin-bottom:0;">Notes</div>
+        <span style="margin-left:auto;font-size:13px;color:var(--accent);">Select</span>
+        <span style="font-size:13px;color:var(--dim);">⤵</span>
+        <span style="font-size:13px;color:var(--dim);">⌸</span>
+        <span style="position:relative;font-size:15px;color:var(--dim);">⋯<i style="position:absolute;top:-1px;right:-4px;width:5px;height:5px;border-radius:50%;background:var(--amber);"></i></span>
+      </div>
+      <div class="search">🔍 Search notes</div>
+      <div style="position:relative;">
+        <div class="prow"><h4>Two apps, one contract</h4><p>The shared folder finally carries every wire struct…</p></div>
+        <div class="prow" style="opacity:.35"><h4>Fado bar recommendation</h4><p>Shared from Maps with a voice ramble…</p></div>
+        <div class="prow" style="opacity:.25"><h4>Souvenir. [[img_001]] Good find.</h4><p>Souvenir. Good find. Put in your scrapbook…</p></div>
+        <div style="position:absolute;top:-6px;right:0;width:200px;background:var(--hover);border:1px solid var(--hairline);
+                    border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:5px;font-size:12.5px;">
+          <div style="display:flex;justify-content:space-between;padding:8px 10px;color:var(--text);">
+            <span><span class="leaf">🍂</span>Fading</span><span style="color:var(--mut);">23</span></div>
+          <div style="height:1px;background:var(--hairline);margin:0 6px;"></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 10px;color:var(--text);">
+            <span><span class="leaf" style="color:var(--mut)">🗑</span>Recently Deleted</span><span style="color:var(--mut);">4</span></div>
+        </div>
       </div>
     </div></div>
-    <p class="pcap">The river runs out into the shelves — the LAST row of the Review stack (a short stack: one
-    flick, not the Notes list's endless scroll). Hidden when both are empty. Tap → the same shelf list as the
-    Mac (Keep / countdown / first-run prompt). The Notes list LOSES its old bottom Recently Deleted row —
-    net vertical-space GAIN where you're conservative about it.</p>
+    <p class="pcap">The ⋯ joins the header's existing actions cluster (Select · import · scan · filter); a small
+    amber dot on it whenever something is fading — the count is one tap away, never on screen. Tap an item →
+    the same shelf list as the Mac (Keep / countdown / first-run prompt). The old bottom Recently Deleted row
+    is REMOVED from the list. Review stack stays purely editorial.</p>
   </div>
 </div>
 
 <div class="decis" style="margin-top:30px;">
   <b>Recommendation — ship as drawn.</b> The shelf makes "do nothing" safe and visible: a count you can always
   audit, two reversible stages, no delete button outside the trash you already have.
-  <br><br><b>Open for the pick:</b> ① phone shelves at the end of the Review stack (as drawn) — or fully hidden
-  behind the Notes ⋯ menu (zero presence anywhere, badge on the menu)? ② should search have an "include fading"
-  toggle, or is opening the shelf enough?
+  <br><br><b>Picked:</b> ① phone = behind the Notes ⋯ (as drawn above). <b>Still open:</b> ② search "include
+  fading" toggle — recommendation: SKIP it, the shelf is the junk's search scope; veto if you disagree.
 </div>
 
 </body>
