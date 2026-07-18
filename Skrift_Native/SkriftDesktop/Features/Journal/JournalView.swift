@@ -26,6 +26,12 @@ struct JournalView: View {
     /// PlaceCluster.build in the map-gesture hot path (freeze-y rapid zoom,
     /// 2026-07-17 device finding).
     @State private var clusters: [PlaceCluster] = []
+    /// The lifecycle shelves (MemoLifecycle + mock fading-shelf.html): fading
+    /// notes leave every main surface; trashed = the memo trash (cloud store).
+    @State private var fadingMemos: [Memo] = []
+    @State private var trashedMemos: [Memo] = []
+    enum Shelf { case fading, trash }
+    @State private var shelf: Shelf?
     @State private var month: Date = Date()
     @State private var selectedDay: Date = Date()
     @State private var mapMode = false
@@ -63,14 +69,21 @@ struct JournalView: View {
     }
 
     private func refresh() {
+        let rows: [Memo]
         if let injected = injectedMemos {
-            memos = MemoDuplicates.canonicalRows(injected).filter { $0.deletedAt == nil }
+            rows = MemoDuplicates.canonicalRows(injected)
         } else if let cloud = MemoCloudStore.container {
             let all = (try? cloud.mainContext.fetch(FetchDescriptor<Memo>())) ?? []
-            memos = MemoDuplicates.canonicalRows(all).filter { $0.deletedAt == nil }
+            // Timed sweep rides the refresh (armed-gated, idempotent).
+            MacFadingSweep.run(memos: all, context: cloud.mainContext)
+            rows = MemoDuplicates.canonicalRows(all)
         } else {
-            memos = []
+            rows = []
         }
+        trashedMemos = rows.filter { $0.deletedAt != nil }
+        let split = MemoLifecycle.partition(rows)
+        memos = split.live
+        fadingMemos = split.fading
         clusters = PlaceCluster.build(from: memos)
     }
 
@@ -85,7 +98,7 @@ struct JournalView: View {
                 MiniMonthGrid(month: month,
                               counts: LookbackProvider.dayCounts(for: memos, month: month),
                               selectedDay: $selectedDay,
-                              onPick: { mapMode = false })
+                              onPick: { mapMode = false; shelf = nil })
                 Text("PLACES")
                     .font(.system(size: 10, weight: .semibold)).tracking(0.5)
                     .foregroundStyle(Theme.textMuted)
@@ -102,6 +115,7 @@ struct JournalView: View {
                     // always on screen; the river never moves. Click → full map,
                     // fitted to every pin, no place pre-selected.
                     RailMiniMap(clusters: clusters) {
+                        shelf = nil
                         selectedPlace = nil
                         mapMode = true
                         if let region = PlaceCluster.fitRegion(for: clusters) {
@@ -110,9 +124,42 @@ struct JournalView: View {
                     }
                     .padding(.top, 12)
                 }
+                // The lifecycle shelves (mock fading-shelf.html): paired rows,
+                // shown only when non-empty — zero junk, zero chrome.
+                if !fadingMemos.isEmpty || !trashedMemos.isEmpty {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if !fadingMemos.isEmpty {
+                            shelfRow("🍂", "Fading", fadingMemos.count, .fading)
+                        }
+                        if !trashedMemos.isEmpty {
+                            shelfRow("🗑", "Recently Deleted", trashedMemos.count, .trash)
+                        }
+                    }
+                    .padding(.top, 14)
+                }
             }
             .padding(14)
         }
+    }
+
+    private func shelfRow(_ glyph: String, _ title: String, _ count: Int, _ target: Shelf) -> some View {
+        Button {
+            mapMode = false
+            shelf = target
+        } label: {
+            HStack(spacing: 6) {
+                Text(glyph).font(.system(size: 10))
+                Text(title).font(.system(size: 12))
+                    .foregroundStyle(shelf == target ? Theme.textPrimary : Theme.textSecondary)
+                Spacer()
+                Text("\(count)").font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            }
+            .padding(.horizontal, 8).padding(.vertical, 6)
+            .background(shelf == target ? Theme.accent.opacity(0.13) : .clear,
+                        in: RoundedRectangle(cornerRadius: 7))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var monthHeader: some View {
@@ -140,6 +187,7 @@ struct JournalView: View {
     /// also takes the Map out of `.automatic`, so pin re-clustering can never
     /// re-frame the user's view.
     private func focus(_ cluster: PlaceCluster) {
+        shelf = nil
         selectedPlace = cluster
         mapMode = true
         if let region = PlaceCluster.fitRegion(for: [cluster]) {
@@ -173,7 +221,20 @@ struct JournalView: View {
     // ── Column: Looking back river ⇄ map mode ──────────────────────────
 
     @ViewBuilder private var column: some View {
-        if mapMode {
+        if let shelf {
+            switch shelf {
+            case .fading:
+                FadingShelfColumn(fading: fadingMemos,
+                                  context: injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil,
+                                  onChanged: { refresh() },
+                                  onBack: { self.shelf = nil })
+            case .trash:
+                MacTrashColumn(trashed: trashedMemos,
+                               context: injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil,
+                               onChanged: { refresh() },
+                               onBack: { self.shelf = nil })
+            }
+        } else if mapMode {
             mapColumn
         } else {
             lookbackColumn
