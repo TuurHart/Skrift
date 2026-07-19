@@ -397,7 +397,12 @@ struct NoteBodyView: UIViewRepresentable {
                 guard let player, player.duration > 0 else { return nil }
                 return min(wordRanges.count - 1, Int(t / player.duration * Double(wordRanges.count)))
             }
-            guard !timings.isEmpty, let global = Karaoke.activeWordIndex(timings, at: t) else { return nil }
+            // Cursor hint = last painted word (mapped back to global): the 20Hz
+            // clock's scan resumes there instead of walking from index 0.
+            guard !timings.isEmpty,
+                  let global = Karaoke.activeWordIndex(timings, at: t,
+                                                       hint: lastActive.map { $0 + sidecarOffset })
+            else { return nil }
             let local = global - sidecarOffset
             guard local >= 0 else { return nil }                  // still inside the quote block
             return min(local, wordRanges.count - 1)
@@ -485,10 +490,14 @@ struct NoteBodyView: UIViewRepresentable {
             // Name spans carry RAW offsets; the display is snapped, so map each span
             // through the snap (raw → snapped) before collapsing markers → glyphs.
             let snap = BodyTransform.snapImages(protectedQuote?.ramble ?? bodyText)
-            for span in nameSpans {
-                let snappedRange = snap.snapped(rawRange: span.range)
-                guard let dr = displayRange(forRaw: snappedRange, transcript: snap.text),
-                      dr.location + dr.length <= storage.length else { continue }
+            // ONE pieces() pass for all spans (the per-span displayRange re-scanned
+            // the whole document each call — S+1 full regex passes for S names).
+            let snappedRanges = nameSpans.map { snap.snapped(rawRange: $0.range) }
+            let displayRanges: [NSRange?] = snap.text.isEmpty
+                ? snappedRanges
+                : BodyTransform.displayRanges(forRaw: snappedRanges, in: snap.text)
+            for (span, dr) in zip(nameSpans, displayRanges) {
+                guard let dr, dr.location + dr.length <= storage.length else { continue }
                 NameTierStyle.apply(span.tier, to: storage, range: dr)
                 built.append((dr, span))
             }

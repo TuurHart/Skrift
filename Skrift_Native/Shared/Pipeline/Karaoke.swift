@@ -23,6 +23,20 @@ enum Karaoke {
         return idx
     }
 
+    /// Cursor-resuming variant for per-tick callers (the 20Hz playback clock):
+    /// pass the previous result as `hint` — playback advances monotonically, so
+    /// the scan resumes at the current word instead of index 0 every tick.
+    /// A backward seek (or invalid hint) falls back to the full scan.
+    static func activeWordIndex(_ timings: [WordTiming], at time: TimeInterval, hint: Int?) -> Int? {
+        guard let hint, hint >= 0, hint < timings.count, timings[hint].start <= time else {
+            return activeWordIndex(timings, at: time)
+        }
+        var idx = hint
+        var i = hint + 1
+        while i < timings.count, timings[i].start <= time { idx = i; i += 1 }
+        return idx
+    }
+
     // MARK: - Displayed-word alignment (Mac review-body read-along)
 
     /// One playback time (seconds) per displayed word, monotonic non-decreasing.

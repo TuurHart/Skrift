@@ -135,9 +135,14 @@ final class ConnectionsIndexService {
     func relatedScores(to memoID: UUID) async -> [(memoID: UUID, score: Float)] {
         guard isActive else { return [] }
         do {
-            return try await resolvedIndex().related(to: memoID)
+            let out = try await resolvedIndex().related(to: memoID)
+            lastError = nil
+            return out
         } catch {
             logger.error("Connections related \(memoID.uuidString.prefix(8), privacy: .public) failed: \(error, privacy: .public)")
+            // Observable, not just logged — an empty panel with lastError set is
+            // "Connections unavailable", NOT "no matches" (the no-bad-info rule).
+            lastError = "Related lookup failed: \(error.localizedDescription)"
             return []
         }
     }

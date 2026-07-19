@@ -625,14 +625,28 @@ struct ConnectionsPanelBody: View {
 
     private var noConnections: some View {
         VStack(spacing: 8) {
-            Image(systemName: "circle.hexagongrid")
-                .font(.system(size: 22)).foregroundStyle(Theme.textMuted.opacity(0.6))
-                .padding(.top, 48)
-            Text(RetrievalGate.Copy.emptyTitle)
-                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
-            Text(RetrievalGate.Copy.emptySub)
-                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
-                .multilineTextAlignment(.center)
+            // A FAILED lookup must not masquerade as an honest empty result
+            // (no-bad-info): when the service recorded a query error, say
+            // "unavailable", not "no connections yet".
+            if let err = ConnectionsIndexService.shared.lastError {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 22)).foregroundStyle(.red.opacity(0.7))
+                    .padding(.top, 48)
+                Text("Connections unavailable")
+                    .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
+                Text(err)
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .multilineTextAlignment(.center)
+            } else {
+                Image(systemName: "circle.hexagongrid")
+                    .font(.system(size: 22)).foregroundStyle(Theme.textMuted.opacity(0.6))
+                    .padding(.top, 48)
+                Text(RetrievalGate.Copy.emptyTitle)
+                    .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.textSecondary)
+                Text(RetrievalGate.Copy.emptySub)
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                    .multilineTextAlignment(.center)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.bottom, 8)

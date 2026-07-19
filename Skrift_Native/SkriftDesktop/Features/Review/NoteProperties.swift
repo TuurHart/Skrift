@@ -304,7 +304,10 @@ struct TagEditor: View {
     }
 
     /// Every tag across the library, most-used first — the typeahead source.
-    private var libraryTags: [String] { TagLibrary.mostUsedFirst(file.modelContext) }
+    /// Snapshot per OPEN of the add-field: the computed form re-fetched and
+    /// re-tallied the entire library on every keystroke (twice — `matches` and
+    /// `exactExists` both read it).
+    @State private var libraryTags: [String] = []
 
     private var typed: String { draft.trimmingCharacters(in: .whitespaces).lowercased() }
 
@@ -349,7 +352,12 @@ struct TagEditor: View {
         .onAppear { if seedAdding { adding = true; draft = seedDraft } }
         // The field auto-focuses the moment it appears — clicking "+ add tag" should let
         // you type immediately (device finding: it opened unfocused, needing a 2nd click).
-        .onChange(of: adding) { _, now in if now { fieldFocused = true } }
+        .onChange(of: adding) { _, now in
+            if now {
+                fieldFocused = true
+                libraryTags = TagLibrary.mostUsedFirst(file.modelContext)
+            }
+        }
     }
 
     private func chip(_ tag: String) -> some View {

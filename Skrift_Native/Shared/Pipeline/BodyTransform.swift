@@ -119,6 +119,32 @@ enum BodyTransform {
         return loc >= 0 ? NSRange(location: loc, length: raw.length) : nil
     }
 
+    /// Batch form of `displayRange(forRaw:in:)`: ONE `pieces` pass shared by all
+    /// ranges — the per-span form re-ran the full regex scan per call (S+1 whole-
+    /// document passes for S name spans). Result order mirrors the input; nil
+    /// entries mean exactly what the single-range form's nil means.
+    static func displayRanges(forRaw raws: [NSRange], in text: String) -> [NSRange?] {
+        guard !raws.isEmpty else { return [] }
+        var cumulative: [(end: Int, delta: Int, start: Int)] = []
+        var delta = 0
+        for piece in pieces(of: text) {
+            if case .text = piece.segment { continue }
+            let r = piece.rawRange
+            delta += r.length - displayLength(of: piece, in: text)
+            cumulative.append((end: r.location + r.length, delta: delta, start: r.location))
+        }
+        return raws.map { raw in
+            var applied = 0
+            for entry in cumulative {
+                if entry.end <= raw.location { applied = entry.delta }
+                else if entry.start < raw.location + raw.length { return nil }
+                else { break }
+            }
+            let loc = raw.location - applied
+            return loc >= 0 ? NSRange(location: loc, length: raw.length) : nil
+        }
+    }
+
     /// True when the raw text contains task syntax not yet materialized as
     /// attachments (i.e. typed since the last render).
     static func containsTaskSyntax(_ raw: String) -> Bool {
