@@ -75,28 +75,29 @@ struct SidebarView: View {
 
     private func ingest(_ urls: [URL]) {
         guard !urls.isEmpty else { return }
-        do {
-            let created = try IngestService().ingest(localURLs: urls, into: ctx)
-            if let first = created.first {
-                model.activeID = first.id
-                model.selection = [first.id]
-            }
-            // Backfill the real RECORDING date from the audio's embedded metadata —
-            // the filesystem date is the import/copy date, not when it was recorded.
-            // (Async; survives copies because the date lives inside the m4a.)
-            let audio = created.filter { $0.sourceType == .audio }
-            if !audio.isEmpty {
-                Task { @MainActor in
-                    for pf in audio {
-                        if let d = await AudioMetadata.recordingDate(of: URL(fileURLWithPath: pf.path)) {
-                            pf.uploadedAt = d
-                        }
-                    }
-                    try? ctx.save()
+        // Async: the heavy file work (copies, video-audio export) runs off-main
+        // inside IngestService — dropping a video used to beachball the whole
+        // UI for the duration of the export.
+        Task { @MainActor in
+            do {
+                let created = try await IngestService().ingest(localURLs: urls, into: ctx)
+                if let first = created.first {
+                    model.activeID = first.id
+                    model.selection = [first.id]
                 }
+                // Backfill the real RECORDING date from the audio's embedded metadata —
+                // the filesystem date is the import/copy date, not when it was recorded.
+                // (Async; survives copies because the date lives inside the m4a.)
+                let audio = created.filter { $0.sourceType == .audio }
+                for pf in audio {
+                    if let d = await AudioMetadata.recordingDate(of: URL(fileURLWithPath: pf.path)) {
+                        pf.uploadedAt = d
+                    }
+                }
+                if !audio.isEmpty { try? ctx.save() }
+            } catch {
+                coordinator.lastError = "Import failed: \(error.localizedDescription)"
             }
-        } catch {
-            coordinator.lastError = "Import failed: \(error.localizedDescription)"
         }
     }
 

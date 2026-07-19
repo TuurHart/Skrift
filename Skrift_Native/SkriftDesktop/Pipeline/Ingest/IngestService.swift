@@ -24,15 +24,19 @@ struct IngestService: Sendable {
     /// when audio-only, so an audio-only `.mp4`/`.m4a-in-mov` is never mis-extracted.
     static let supportedVideo: Set<String> = ["mov", "mp4", "m4v", "qt", "avi", "mpg", "mpeg", "3gp", "3g2", "webm", "mkv"]
 
+    /// ASYNC: heavy file work (copies, container probes, the video-audio export)
+    /// runs on detached tasks; only the SwiftData inserts run on the caller's
+    /// (main) actor. The old fully-synchronous form froze the UI for the whole
+    /// video export when invoked from drag-drop / open-panel handlers.
     @discardableResult
-    func ingest(localURLs: [URL], into context: ModelContext) throws -> [PipelineFile] {
+    func ingest(localURLs: [URL], into context: ModelContext) async throws -> [PipelineFile] {
         var created: [PipelineFile] = []
         for url in localURLs {
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
             if isDir.boolValue {
-                created.append(contentsOf: try ingestFolder(url, into: context))
-            } else if let pf = try ingestFile(url, into: context) {
+                created.append(contentsOf: try await ingestFolder(url, into: context))
+            } else if let pf = try await ingestFile(url, into: context) {
                 created.append(pf)
             }
         }
@@ -40,29 +44,38 @@ struct IngestService: Sendable {
         return created
     }
 
+    /// Run throwing file work on a detached task so a slow copy never parks the
+    /// caller's actor.
+    private static func offMain<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
+        try await Task.detached(priority: .userInitiated) { try work() }.value
+    }
+
     /// A single file → one PipelineFile (audio, video, or Apple-Note markdown).
     /// Unsupported types are skipped (returns nil). A video container is probed for
     /// an actual video track: if present, its audio is extracted; if absent (an
     /// audio-only `.mp4`/`.mov`), it's ingested as plain audio.
-    func ingestFile(_ url: URL, into context: ModelContext) throws -> PipelineFile? {
+    func ingestFile(_ url: URL, into context: ModelContext) async throws -> PipelineFile? {
         let ext = url.pathExtension.lowercased()
-        if Self.supportedVideo.contains(ext), Self.hasVideoTrack(url) {
-            return try ingestVideo(url, into: context)
+        if Self.supportedVideo.contains(ext),
+           await Task.detached(operation: { Self.hasVideoTrack(url) }).value {
+            return try await ingestVideo(url, into: context)
         }
-        if Self.supportedAudio.contains(ext) { return try ingestAudio(url, into: context) }
-        if ext == "md" || ext == "markdown" { return try ingestNote(url, into: context) }
+        if Self.supportedAudio.contains(ext) { return try await ingestAudio(url, into: context) }
+        if ext == "md" || ext == "markdown" { return try await ingestNote(url, into: context) }
         return nil
     }
 
-    private func ingestAudio(_ url: URL, into context: ModelContext) throws -> PipelineFile {
+    private func ingestAudio(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
         let (folder, _) = try makeFolder(id: id, filename: filename)
         var ext = url.pathExtension
         if ext.isEmpty { ext = "m4a" }
         let dest = folder.appendingPathComponent("original.\(ext)")
-        try FileManager.default.copyItem(at: url, to: dest)
-        let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
+        let size = try await Self.offMain {
+            try FileManager.default.copyItem(at: url, to: dest)
+            return ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
+        }
         // Baseline date: a date in the filename (WhatsApp/Signal/recorder names),
         // else the source file's creation date (right for fresh memos), else now. The
         // app then backfills the EMBEDDED recording date (AudioMetadata) when present,
@@ -81,13 +94,13 @@ struct IngestService: Sendable {
     /// unchanged. The recording date comes from the VIDEO's embedded creation date
     /// (survives the copy) or a date in the filename, NOT the import time. The
     /// original video is NOT kept — audio is all the pipeline needs.
-    private func ingestVideo(_ url: URL, into context: ModelContext) throws -> PipelineFile {
+    private func ingestVideo(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
         let (folder, _) = try makeFolder(id: id, filename: filename)
         let dest = folder.appendingPathComponent("original.m4a")
 
-        try Self.extractAudioSync(from: url, to: dest)
+        try await Self.extractAudio(from: url, to: dest)
         let size = ((try? FileManager.default.attributesOfItem(atPath: dest.path))?[.size] as? Int) ?? 0
 
         // One representative frame → `images/img_001.jpg` + `image_manifest.json`
@@ -96,14 +109,15 @@ struct IngestService: Sendable {
         // exports it. Mirrors the phone's video import (`MemoSaver.processVideo`).
         // A failed grab never fails the ingest (the audio is the point) but is logged.
         do {
-            try Self.writeVideoThumbnail(from: url, into: folder)
+            try await Self.offMain { try Self.writeVideoThumbnail(from: url, into: folder) }
         } catch {
             Self.log.error("video thumbnail failed for \(filename, privacy: .public): \(String(describing: error), privacy: .public)")
         }
 
         // Embedded recording date from the ORIGINAL video (the extracted m4a may lose
         // it), then a filename date, then the file's creation date, then now.
-        let recorded = Self.embeddedRecordingDate(of: url)
+        let embedded = await Task.detached(operation: { Self.embeddedRecordingDate(of: url) }).value
+        let recorded = embedded
             ?? Self.dateFromFilename(filename)
             ?? (try? url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
             ?? Date()
@@ -117,27 +131,29 @@ struct IngestService: Sendable {
         return pf
     }
 
-    private func ingestNote(_ url: URL, into context: ModelContext) throws -> PipelineFile {
+    private func ingestNote(_ url: URL, into context: ModelContext) async throws -> PipelineFile {
         let filename = url.lastPathComponent
         let id = UUID().uuidString
         let (folder, _) = try makeFolder(id: id, filename: filename)
         let dest = folder.appendingPathComponent("original.md")
-        try FileManager.default.copyItem(at: url, to: dest)
-        var content = (try? String(contentsOf: dest, encoding: .utf8)) ?? ""
-        // Title from the first `# ` heading, else the filename stem (apple_notes_importer.py).
-        let title = Self.appleNoteTitle(content, fallback: (filename as NSString).deletingPathExtension)
-
-        // Copy the note's sibling `Attachments/` into the working folder, renamed to
-        // "<safe title> - <index>.<ext>" (HEIC/HEIF → JPG via sips), and rewrite the
-        // markdown refs. Mirrors apple_notes_importer.parse_markdown_note, but COPIES
-        // (never mutates the user's source export). Re-persist the rewritten markdown.
-        content = Self.importAttachments(
-            content: content,
-            from: url.deletingLastPathComponent().appendingPathComponent("Attachments", isDirectory: true),
-            into: folder.appendingPathComponent("Attachments", isDirectory: true),
-            safeTitle: Self.sanitizeTitle(title)
-        )
-        try? Data(content.utf8).write(to: dest)
+        // Whole file phase off-main: copy + attachment import (HEIC conversion
+        // included) + rewritten-markdown persist. Mirrors
+        // apple_notes_importer.parse_markdown_note, but COPIES (never mutates the
+        // user's source export).
+        let (content, title) = try await Self.offMain { () -> (String, String) in
+            try FileManager.default.copyItem(at: url, to: dest)
+            var content = (try? String(contentsOf: dest, encoding: .utf8)) ?? ""
+            // Title from the first `# ` heading, else the filename stem (apple_notes_importer.py).
+            let title = Self.appleNoteTitle(content, fallback: (filename as NSString).deletingPathExtension)
+            content = Self.importAttachments(
+                content: content,
+                from: url.deletingLastPathComponent().appendingPathComponent("Attachments", isDirectory: true),
+                into: folder.appendingPathComponent("Attachments", isDirectory: true),
+                safeTitle: Self.sanitizeTitle(title)
+            )
+            try? Data(content.utf8).write(to: dest)
+            return (content, title)
+        }
 
         let pf = PipelineFile(id: id, filename: filename, path: dest.path,
                               size: content.utf8.count, sourceType: .note)
@@ -180,10 +196,38 @@ struct IngestService: Sendable {
 
     enum VideoIngestError: Error, Equatable { case noAudioTrack, exportFailed, thumbnailFailed }
 
-    /// Strip `source`'s audio track into a standalone `.m4a` at `dest`, synchronously.
-    /// Throws `noAudioTrack` for a silent clip and `exportFailed` on an export error.
-    /// The legacy `exportAsynchronously` completion fires on an internal (non-main)
-    /// queue, so the semaphore wait is safe even when called from the main thread.
+    /// Strip `source`'s audio track into a standalone `.m4a` at `dest`. Throws
+    /// `noAudioTrack` for a silent clip and `exportFailed` on an export error.
+    /// Everything — the container parse AND the export — runs inside one
+    /// detached task; the old sync form parked the CALLING thread on a
+    /// semaphore for the whole export, a beachball when that thread was main.
+    static func extractAudio(from source: URL, to dest: URL) async throws {
+        try await Task.detached(priority: .userInitiated) {
+            let asset = AVURLAsset(url: source)
+            guard let audioTrack = asset.tracks(withMediaType: .audio).first else {
+                throw VideoIngestError.noAudioTrack
+            }
+            let comp = AVMutableComposition()
+            guard let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+                throw VideoIngestError.exportFailed
+            }
+            try track.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: audioTrack, at: .zero)
+
+            guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
+                throw VideoIngestError.exportFailed
+            }
+            try? FileManager.default.removeItem(at: dest)
+            do { try await export.export(to: dest, as: .m4a) }
+            catch { throw VideoIngestError.exportFailed }
+            guard FileManager.default.fileExists(atPath: dest.path) else {
+                throw VideoIngestError.exportFailed
+            }
+        }.value
+    }
+
+    /// SYNC variant for OFF-MAIN callers only (UploadService's prepare phase) —
+    /// the semaphore parks the calling thread for the whole export, which is the
+    /// exact beachball the async `extractAudio` exists to avoid on main.
     static func extractAudioSync(from source: URL, to dest: URL) throws {
         let asset = AVURLAsset(url: source)
         guard let audioTrack = asset.tracks(withMediaType: .audio).first else {
@@ -194,18 +238,15 @@ struct IngestService: Sendable {
             throw VideoIngestError.exportFailed
         }
         try track.insertTimeRange(CMTimeRange(start: .zero, duration: asset.duration), of: audioTrack, at: .zero)
-
         guard let export = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetAppleM4A) else {
             throw VideoIngestError.exportFailed
         }
         try? FileManager.default.removeItem(at: dest)
         export.outputURL = dest
         export.outputFileType = .m4a
-
         let semaphore = DispatchSemaphore(value: 0)
         export.exportAsynchronously { semaphore.signal() }
         semaphore.wait()
-
         guard export.status == .completed,
               FileManager.default.fileExists(atPath: dest.path) else {
             throw VideoIngestError.exportFailed
@@ -352,14 +393,14 @@ struct IngestService: Sendable {
     /// exports, audio recordings, AND video clips (e.g. dropping a folder of voice
     /// memos / self-recorded videos). Skips subfolders (an Apple Notes export's
     /// `Attachments/` images aren't notes).
-    private func ingestFolder(_ url: URL, into context: ModelContext) throws -> [PipelineFile] {
+    private func ingestFolder(_ url: URL, into context: ModelContext) async throws -> [PipelineFile] {
         let items = ((try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? [])
             .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
         var created: [PipelineFile] = []
         for item in items {
             let ext = item.pathExtension.lowercased()
             guard ["md", "markdown"].contains(ext) || Self.supportedAudio.contains(ext) || Self.supportedVideo.contains(ext) else { continue }
-            if let pf = try ingestFile(item, into: context) { created.append(pf) }
+            if let pf = try await ingestFile(item, into: context) { created.append(pf) }
         }
         return created
     }

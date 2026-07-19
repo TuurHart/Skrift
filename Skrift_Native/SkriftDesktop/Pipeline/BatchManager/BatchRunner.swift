@@ -85,6 +85,16 @@ struct BatchRunner {
 
         // 2. Enhance — every LLM step runs on the RAW transcript.
         pf.enhanceStatus = .processing
+        // MID-RUN EDIT GUARD: the review editor writes straight into
+        // sanitised/copyedit/transcript, and this run's multi-second LLM awaits
+        // used to end in an unconditional overwrite — silently clobbering
+        // anything typed meanwhile. Snapshot the editable body; if it changes
+        // under us the stale derivation is DISCARDED (status back to .pending,
+        // a reprocess re-derives from the edited body).
+        var bodySnapshot = pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript
+        func bodyEditedMidRun() -> Bool {
+            (pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript) != bodySnapshot
+        }
         let prompts = settings.prompts
         let repo = settings.enhancementModelRepo
 
@@ -111,7 +121,15 @@ struct BatchRunner {
             Self.log.warning("file \(pf.id, privacy: .public): quote block mutated by copy-edit — keeping the unedited transcript")
             copyedit = transcript
         }
+        if bodyEditedMidRun() {
+            Self.log.warning("file \(pf.id, privacy: .public): body edited during copy-edit — stale run discarded, reprocess to re-derive")
+            pf.enhanceStatus = .pending
+            return
+        }
         pf.enhancedCopyedit = copyedit
+        // Our own write above IS the editable body now — rebase the guard so it
+        // only trips on an outside (user) edit, not on this pipeline write.
+        bodySnapshot = pf.sanitised ?? pf.enhancedCopyedit ?? pf.transcript
         let suggestedTitle = try await enhancer.title(transcript, prompts: prompts, modelRepo: repo)
         pf.titleSuggested = suggestedTitle
         // Keep a title the user/phone already set; only fill from the LLM if empty.
@@ -121,9 +139,17 @@ struct BatchRunner {
         // Skip the summary on SHORT notes (user 2026-06-15) — a brief memo doesn't need
         // one. A manual "Redo summary" still generates it regardless (deliberate override).
         let bodyWordCount = transcript.split(whereSeparator: \.isWhitespace).count
-        pf.enhancedSummary = bodyWordCount >= settings.effectiveSummaryMinWords
+        let summaryText = bodyWordCount >= settings.effectiveSummaryMinWords
             ? try await enhancer.summary(transcript, prompts: prompts, modelRepo: repo)
             : ""
+        // Last await is behind us — final guard before the destructive writes
+        // (sanitise + compile would bake a body the user has since replaced).
+        if bodyEditedMidRun() {
+            Self.log.warning("file \(pf.id, privacy: .public): body edited during enhance — stale run discarded, reprocess to re-derive")
+            pf.enhanceStatus = .pending
+            return
+        }
+        pf.enhancedSummary = summaryText
 
         // Deterministic steps work on the cleaned copy-edit (fall back to transcript).
         let working = copyedit.isEmpty ? transcript : copyedit
