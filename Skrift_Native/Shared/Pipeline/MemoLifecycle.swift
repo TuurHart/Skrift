@@ -51,6 +51,13 @@ enum MemoLifecycle {
         memo.recordedAt.addingTimeInterval(days(trashAfterDays))
     }
 
+    /// When this note crossed (or will cross) onto the Fading shelf — drives the
+    /// phone's unread-style ⋯ dot: lit only for entries NEWER than the last
+    /// shelf visit, dark otherwise (an always-on light is no signal).
+    static func fadeEntersAt(_ memo: Memo) -> Date {
+        memo.recordedAt.addingTimeInterval(days(fadeAfterDays))
+    }
+
     /// Whole days until the auto-move (0 = "fades today"; never negative).
     static func daysUntilSweep(_ memo: Memo, now: Date = Date()) -> Int {
         max(0, Int(ceil(fadesAt(memo).timeIntervalSince(now) / 86_400)))

@@ -34,6 +34,8 @@ struct FadingShelfView: View {
             }
             .navigationTitle("Fading · \(fading.count)")
             .navigationBarTitleDisplayMode(.inline)
+            // Opening the shelf clears the ⋯ dot (unread semantics).
+            .onAppear { UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "fadingLastSeenAt") }
             .toolbar {
                 if !fading.isEmpty {
                     ToolbarItem(placement: .topBarLeading) {

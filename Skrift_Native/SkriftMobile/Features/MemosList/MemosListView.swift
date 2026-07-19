@@ -65,6 +65,8 @@ struct MemosListView: View {
     @State private var showSortFilter = false
     @State private var showTrash = false
     @State private var showFading = false
+    /// Last shelf visit — the ⋯ dot lights only for fade-entries newer than this.
+    @AppStorage("fadingLastSeenAt") private var fadingLastSeenTs: Double = 0
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
@@ -467,7 +469,12 @@ struct MemosListView: View {
                     // 2026-07-18 device finding) + one flattened layer.
                     ZStack(alignment: .topTrailing) {
                         Image(systemName: "ellipsis.circle").font(.system(size: 17))
-                        if !lifecycle.fading.isEmpty {
+                        // Unread semantics (2026-07-18): lit only when something
+                        // ENTERED fading since the shelf was last opened — a
+                        // steady trickle would otherwise keep it on forever.
+                        if lifecycle.fading.contains(where: {
+                            MemoLifecycle.fadeEntersAt($0).timeIntervalSince1970 > fadingLastSeenTs
+                        }) {
                             Circle().fill(Color.skAmber).frame(width: 6, height: 6)
                         }
                     }
