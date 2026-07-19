@@ -2,6 +2,17 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ CONTINUE HERE (2026-07-18, remote/Linux session → next LOCAL chat)
+
+Session ran remotely (no Xcode) on branch `claude/note-thumbnail-update-bug-tuhrp3` — 4 commits, pushed.
+1. **Merge the branch into `main`** (trunk workflow), then **verify the thumbnail fix — UNVERIFIED**:
+   `xcodegen generate` + `xcodebuild test` (SkriftMobile, iPhone 17 sim; 8 new tests in MemoModelTests),
+   then device-eyeball the repro (3-photo memo: delete photos 1–2 in the editor → row thumb becomes photo 3;
+   delete all → tile disappears; share-capture + still-transcribing rows keep their thumbs).
+2. Then pick up the three 2026-07-18 sections below: 📤 exportability (attachments = phone-parity chunk,
+   brainstorm owed on phone mechanics; lat/lon frontmatter = small buildable chunk), 📍 place notes
+   (design session), 🐛 thumbnail (close after verify).
+
 ## 📍 Place notes with feeling — "the pin you actually act on" (Tuur direction 2026-07-18; NEEDS DESIGN SESSION before code)
 
 The thesis (verbatim intent): a Maps pin ("to eat") is a dead TODO — it never gets acted on. A voice note
