@@ -46,7 +46,10 @@ struct MemoSaver {
             // (device round 1, build 31).
             PhotoTextIndexer.run(repository)
         }
-        Task { await runTranscription(id: id) }
+        // Background-task assertion like every import path has: without it, record →
+        // stop → immediately background the app suspends this Task mid-transcribe and
+        // the memo sits at "Transcribing…" until the next launch's recovery sweep.
+        Task { await BackgroundTask.run(name: "skrift.save-transcribe") { await runTranscription(id: id) } }
         // Capture the recording (+ any photos) as CloudKit-mirrored MemoAssets right
         // away (Phase 1c) so a fresh memo syncs its media without waiting for the next
         // foreground sweep. Off the synchronous return path so navigation isn't blocked.
@@ -739,7 +742,17 @@ struct MemoSaver {
         let filename = "memo_\(id.uuidString).m4a"
         let dest = AppPaths.recordingsDirectory.appendingPathComponent(filename)
         try? FileManager.default.removeItem(at: dest)
-        try? FileManager.default.moveItem(at: tempURL, to: dest)
+        do {
+            try FileManager.default.moveItem(at: tempURL, to: dest)
+        } catch {
+            // A silent move failure here used to insert a Memo pointing at a file that
+            // was never written. Rescue with a copy (leaves the tmp original in place);
+            // if that also fails the insert still happens so the memo surfaces as
+            // .failed instead of the recording vanishing without a trace.
+            DevLog.log("persist[\(id)]: audio move FAILED (\(error)) — trying copy fallback")
+            do { try FileManager.default.copyItem(at: tempURL, to: dest) }
+            catch { DevLog.log("persist[\(id)]: copy fallback FAILED — \(filename) missing: \(error)") }
+        }
 
         let manifest = movePhotos(photos, memoID: id)
         let metadata = manifest.isEmpty ? nil : MemoMetadata(imageManifest: manifest)
@@ -815,6 +828,7 @@ struct MemoSaver {
             // never gated on remembering a toggle, and the slow diarization model only
             // loads when you actually ask to split.
         } catch {
+            DevLog.log("runTranscription[\(id)] FAILED: \(error)")
             if let memo = repository.memo(id: id) {
                 memo.transcriptStatus = .failed
                 repository.save()

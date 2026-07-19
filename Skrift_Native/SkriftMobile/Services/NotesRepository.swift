@@ -241,6 +241,13 @@ final class NotesRepository {
     }
 
     func save() {
-        try? context.save()
+        // The single persistence chokepoint for the notes store: a swallowed failure
+        // here is indistinguishable from success, so retry once, then log loudly.
+        do { try context.save() }
+        catch {
+            DevLog.log("save FAILED (retrying once): \(error)")
+            do { try context.save() }
+            catch { DevLog.log("save FAILED after retry — pending changes NOT persisted: \(error)") }
+        }
     }
 }
