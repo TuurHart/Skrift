@@ -44,13 +44,16 @@ final class MemoPhotoMaterializerTests: XCTestCase {
                                 ["filename": "p_002.jpg", "offsetSeconds": 3.0]])
         let assets = [photoAsset(m, "p_001.jpg", bytes: "ONE"), photoAsset(m, "p_002.jpg", bytes: "TWO")]
 
-        XCTAssertTrue(MemoPhotoMaterializer.materializeMissing(memo: m, assets: assets, pf: audioFile()))
+        XCTAssertTrue(MemoPhotoMaterializer.materializeMissing(memo: m, pf: audioFile(), fetchAssets: { assets }))
         XCTAssertTrue(imageExists("p_001.jpg"))
         XCTAssertTrue(imageExists("p_002.jpg"))
         XCTAssertEqual(manifestFilenames(), ["p_001.jpg", "p_002.jpg"], "marker N → the Nth manifest entry")
 
-        // Second sweep: everything is already on disk → no writes.
-        XCTAssertFalse(MemoPhotoMaterializer.materializeMissing(memo: m, assets: assets, pf: audioFile()))
+        // Second sweep: everything is already on disk → no writes, and the lazy
+        // fetch must never fire (that's the blob-faulting guarantee).
+        XCTAssertFalse(MemoPhotoMaterializer.materializeMissing(memo: m, pf: audioFile(), fetchAssets: {
+            XCTFail("steady-state sweep fetched asset blobs"); return assets
+        }))
     }
 
     func testHealsANoteMissingItsLaterPhoto() throws {
@@ -66,13 +69,13 @@ final class MemoPhotoMaterializerTests: XCTestCase {
                                 ["filename": "p_002.jpg", "offsetSeconds": 3.0]])
         let assets = [photoAsset(m, "p_001.jpg", bytes: "ONE"), photoAsset(m, "p_002.jpg", bytes: "TWO")]
 
-        XCTAssertTrue(MemoPhotoMaterializer.materializeMissing(memo: m, assets: assets, pf: audioFile()))
+        XCTAssertTrue(MemoPhotoMaterializer.materializeMissing(memo: m, pf: audioFile(), fetchAssets: { assets }))
         XCTAssertTrue(imageExists("p_002.jpg"), "the missing later photo is now on disk")
         XCTAssertEqual(manifestFilenames(), ["p_001.jpg", "p_002.jpg"], "manifest grew so img_002 resolves")
     }
 
     func testNoPhotosIsANoOp() {
         let m = memo(manifest: [])
-        XCTAssertFalse(MemoPhotoMaterializer.materializeMissing(memo: m, assets: [], pf: audioFile()))
+        XCTAssertFalse(MemoPhotoMaterializer.materializeMissing(memo: m, pf: audioFile(), fetchAssets: { [] }))
     }
 }

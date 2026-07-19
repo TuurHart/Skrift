@@ -33,15 +33,27 @@ extension MemoCloudReconciler {
             guard let event = note.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey]
                     as? NSPersistentCloudKitContainer.Event else { return }
             let importDone = event.endDate != nil && event.type == .import && event.succeeded
-            if importDone { Task { @MainActor in _ = reconcile() } }
+            if importDone { Task { @MainActor in reconcileSoon() } }
         }
 
         // App became active — the desktop analogue of the phone's foreground sweep.
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
-        ) { _ in Task { @MainActor in _ = reconcile() } }
+        ) { _ in Task { @MainActor in reconcileSoon() } }
 
         Task { @MainActor in _ = reconcile() }   // launch sweep — async, doesn't block App.init()
+    }
+
+    /// One pending sweep, re-armed per trigger: CloudKit import events land in
+    /// bursts (see the phone's identical coalescing in CloudSyncMonitor), and
+    /// each used to dispatch its own full-store sweep back-to-back.
+    @MainActor static func reconcileSoon() {
+        pendingReconcile?.cancel()
+        pendingReconcile = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            _ = reconcile()
+        }
     }
 
     /// Pull every eligible synced memo into the local pipeline store, and reconcile the

@@ -543,6 +543,15 @@ struct ConnectionsPanelBody: View {
             .accessibilityIdentifier("connections-enable")
             Text(RetrievalGate.Copy.gateFootnote)
                 .font(.system(size: 9.5)).foregroundStyle(Theme.textMuted)
+            // A failed download/sweep used to silently re-show this gate with no
+            // explanation (the phone's enable flow surfaces its failure; parity).
+            if let err = ConnectionsIndexService.shared.lastError {
+                Text(err)
+                    .font(.system(size: 10)).foregroundStyle(.red.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 2)
+                    .accessibilityIdentifier("connections-error")
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.bottom, 16)
