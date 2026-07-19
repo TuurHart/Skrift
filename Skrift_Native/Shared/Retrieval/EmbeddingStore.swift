@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 /// Owns the retrieval index's SwiftData container — a fully SEPARATE container
 /// from `NotesRepository`'s CloudKit store (the plan's sanctioned shape: local
@@ -18,7 +19,11 @@ final class EmbeddingStore {
             container = try ModelContainer(for: schema, configurations: config)
         } catch {
             // Derived data: on any store-level failure, start clean in memory
-            // rather than crash — the sweep rebuilds from the memos.
+            // rather than crash — the sweep rebuilds from the memos. LOG it:
+            // if this fires every launch, the user pays the full cold-start +
+            // re-embed each time and the trace is the only way to know why.
+            Logger(subsystem: "com.skrift.retrieval", category: "store")
+                .error("embedding store open FAILED — falling back to in-memory (index rebuilds each launch): \(error)")
             let fallback = ModelConfiguration("SkriftEmbeddings",
                                               schema: schema,
                                               isStoredInMemoryOnly: true,

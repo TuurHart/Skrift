@@ -107,10 +107,20 @@ struct AudiobookSyncSheet: View {
     }
 
     private var note: some View {
-        Text(noteText)
-            .font(.system(size: 11.5)).foregroundStyle(Color.skTextFaint)
-            .fixedSize(horizontal: false, vertical: true)
-            .lineSpacing(1.5)
+        VStack(alignment: .leading, spacing: 6) {
+            // A permanent CloudKit failure (iCloud full / signed out) pauses this
+            // book's transfers; say so instead of silently never syncing. The
+            // toggle-off-and-on below is the retry.
+            if let failure = cloudSync.bookSyncFailures[book.id] {
+                Text(failure)
+                    .font(.system(size: 11.5, weight: .semibold)).foregroundStyle(.red.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(noteText)
+                .font(.system(size: 11.5)).foregroundStyle(Color.skTextFaint)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(1.5)
+        }
     }
 
     private var noteText: String {
@@ -122,6 +132,7 @@ struct AudiobookSyncSheet: View {
         guard on != isOn else { return }
         isOn = on
         if on {
+            cloudSync.clearBookSyncFailure(book.id)   // re-toggle = explicit retry
             AudiobookCloudSync.enableSync(book: book)
             Task { await AudiobookCloudSync.reconcile() }
         } else {

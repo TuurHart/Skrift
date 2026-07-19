@@ -62,6 +62,13 @@ actor EmbeddingIndex {
         let existing = try groupedRows()
         var seen = Set<UUID>()
 
+        // Callers hand us [] when their memo fetch FAILED (the `try? … ?? []`
+        // idiom) — indistinguishable from "no memos exist". Treating it as the
+        // latter would orphan-purge the whole index and silently re-pay the
+        // cold-start + full re-embed. A truly empty library has an empty index
+        // anyway, so skipping the sweep is always safe here.
+        if snapshots.isEmpty, !existing.isEmpty { return stats }
+
         for (i, snap) in snapshots.enumerated() {
             defer { onProgress?(i + 1, snapshots.count) }
             seen.insert(snap.id)
@@ -119,7 +126,8 @@ actor EmbeddingIndex {
     /// date, floor-gated) Threads.
     func related(to memoID: UUID) throws -> [(memoID: UUID, score: Float)] {
         let rows = try groupedRows()
-        guard let gist = rows[memoID]?.first(where: { $0.chunkIndex == 0 }) else { return [] }
+        guard let gist = rows[memoID]?.first(where: { $0.chunkIndex == 0 && $0.modelRev == engine.modelRev })
+        else { return [] }
         return try scores(against: gist.floats, excluding: memoID)
     }
 
@@ -131,7 +139,9 @@ actor EmbeddingIndex {
     /// Calibration sample: cosine over random distinct GIST pairs (up to
     /// `limit`) — the raw material for the floor histogram.
     func gistPairScores(limit: Int) throws -> [Float] {
-        let gists = try groupedRows().compactMap { $0.value.first { $0.chunkIndex == 0 }?.floats }
+        let gists = try groupedRows().compactMap {
+            $0.value.first { $0.chunkIndex == 0 && $0.modelRev == engine.modelRev }?.floats
+        }
         guard gists.count > 1 else { return [] }
         var out: [Float] = []
         out.reserveCapacity(limit)
@@ -145,9 +155,13 @@ actor EmbeddingIndex {
     }
 
     private func scores(against qv: [Float], excluding: UUID?) throws -> [(memoID: UUID, score: Float)] {
+        // Mid-migration (model-rev bump, sweep still re-embedding) the store holds
+        // MIXED-generation vectors; comparing across generations produces garbage
+        // rankings. Not-yet-migrated memos drop out of results ("not indexed yet")
+        // rather than scoring as fake zeros — the no-bad-info rule.
         var best: [UUID: Float] = [:]
         for (memoID, rows) in try groupedRows() where memoID != excluding {
-            for row in rows {
+            for row in rows where row.modelRev == engine.modelRev {
                 let s = RetrievalMath.dot(qv, row.floats)
                 if s > (best[memoID] ?? -1) { best[memoID] = s }
             }

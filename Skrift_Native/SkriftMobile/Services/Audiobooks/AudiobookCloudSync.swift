@@ -1,4 +1,5 @@
 import Foundation
+import CloudKit
 import SwiftData
 
 /// Per-book audiobook sync (standalone Phase 1g/1h). Books are local-only by
@@ -29,6 +30,48 @@ enum AudiobookCloudSync {
 
     private static func makeTransport() -> AudiobookAudioTransport {
         CloudKitAudiobookTransport(containerID: containerID)
+    }
+
+    // MARK: - CKError-aware retry policy
+
+    /// Transient-failure cooldowns (zone busy / rate limited / no network):
+    /// retried automatically, but not before this date — the server's own
+    /// `retryAfterSeconds` when it sent one. In-memory; a relaunch retries.
+    private static var cooldownUntil: [UUID: Date] = [:]
+
+    /// Classify a transfer failure. Transient → cooldown; permanent (iCloud
+    /// full, signed out) → auto-retry stops and the sync sheet shows why
+    /// (previously EVERY failure was DevLog-only and retried forever).
+    private static func noteFailure(_ error: Error, book bookID: UUID, op: String) {
+        guard let ck = error as? CKError else {
+            DevLog.log("audiobook \(op) failed \(bookID): \(error)")   // unknown → retried next reconcile
+            return
+        }
+        switch ck.code {
+        case .zoneBusy, .requestRateLimited, .serviceUnavailable, .networkUnavailable, .networkFailure:
+            let delay = ck.retryAfterSeconds ?? 60
+            cooldownUntil[bookID] = Date().addingTimeInterval(delay)
+            DevLog.log("audiobook \(op) transient CKError \(ck.code.rawValue) \(bookID) — cooldown \(Int(delay))s")
+        case .quotaExceeded:
+            CloudSyncMonitor.shared.setBookSyncFailure(bookID, reason: "iCloud storage is full — sync paused for this book.")
+            DevLog.log("audiobook \(op) PERMANENT (quotaExceeded) \(bookID) — auto-retry stopped")
+        case .notAuthenticated:
+            CloudSyncMonitor.shared.setBookSyncFailure(bookID, reason: "Not signed in to iCloud — sync paused for this book.")
+            DevLog.log("audiobook \(op) PERMANENT (notAuthenticated) \(bookID) — auto-retry stopped")
+        default:
+            DevLog.log("audiobook \(op) failed CKError \(ck.code.rawValue) \(bookID): \(error)")
+        }
+    }
+
+    /// One choke point for every transfer entry: paused-permanent or cooling-down
+    /// books skip the raw-CloudKit ops (state-blob sync via SwiftData continues).
+    private static func transfersPaused(for bookID: UUID) -> Bool {
+        if CloudSyncMonitor.shared.bookSyncFailures[bookID] != nil { return true }
+        if let until = cooldownUntil[bookID] {
+            if until > Date() { return true }
+            cooldownUntil[bookID] = nil
+        }
+        return false
     }
 
     // MARK: - Opt in / out (the "Sync this book" toggle calls these)
@@ -221,6 +264,7 @@ enum AudiobookCloudSync {
     private static func uploadBook(_ book: Audiobook, parts: [AudiobookAudioPart],
                                    transport: AudiobookAudioTransport, repository: NotesRepository) async {
         let bookID = book.id
+        if transfersPaused(for: bookID) { return }
         let epoch = CloudSyncMonitor.shared.beginBookTransfer(bookID, direction: .up)
         do {
             try await transport.upload(parts) { fraction in
@@ -234,7 +278,7 @@ enum AudiobookCloudSync {
                 repository.save()
             }
         } catch {
-            DevLog.log("audiobook upload failed \(bookID): \(error)")   // stays nil → retried next reconcile
+            noteFailure(error, book: bookID, op: "upload")   // stamp stays nil → retried per policy
         }
         CloudSyncMonitor.shared.endBookTransfer(bookID, epoch: epoch)
     }
@@ -242,13 +286,14 @@ enum AudiobookCloudSync {
     private static func downloadBook(_ book: Audiobook, refs: [AudiobookAudioRef],
                                      folder: URL, transport: AudiobookAudioTransport) async {
         let bookID = book.id
+        if transfersPaused(for: bookID) { return }
         let epoch = CloudSyncMonitor.shared.beginBookTransfer(bookID, direction: .down)
         do {
             try await transport.download(refs, into: folder) { fraction in
                 Task { @MainActor in CloudSyncMonitor.shared.updateBookTransfer(bookID, epoch: epoch, fraction: fraction) }
             }
         } catch {
-            DevLog.log("audiobook download failed \(bookID): \(error)")
+            noteFailure(error, book: bookID, op: "download")
         }
         // The cover file may have just landed — drop its cached placeholder so the row
         // redraws the real art (the cache never stores nil, so this only matters for a
@@ -327,9 +372,11 @@ enum AudiobookCloudSync {
         let folder = library.folder(for: book.id)
         var parts: [String] = []
         for (i, name) in book.files.enumerated() {
-            if let ft = store.fileTranscript(bookID: book.id, fileIndex: i,
-                                             audioURL: folder.appendingPathComponent(name)) {
-                parts.append("\(i):\(Int(ft.coveredUpTo)):\(ft.words.count)")
+            // frontierStats = the two scalars this signature needs, cache-served —
+            // this used to full-decode every sidecar per reconcile, on main.
+            let sig = store.signature(forFileAt: folder.appendingPathComponent(name))
+            if let stats = store.frontierStats(bookID: book.id, fileIndex: i, expectedSignature: sig) {
+                parts.append("\(i):\(Int(stats.covered)):\(stats.wordCount)")
             }
         }
         return parts.joined(separator: "|")
