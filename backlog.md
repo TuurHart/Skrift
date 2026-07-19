@@ -98,15 +98,15 @@ yet). Row tile + `hasPhoto` + the "Has photos" filter all ride it (MemosListView
 (MemoModelTests). **OWED (written on Linux, no Mac to build): iPhone 17 sim `xcodebuild test` + a device
 eyeball of the repro** — delete photos 1–2 of 3, row should show photo 3; delete all → no tile.
 
-## ⚡ Perf + reliability audit — 2026-07-16 (5-lane Sonnet sweep, top claims Fable-verified in code; UNBUILT unless ticked)
+## ⚡ Perf + reliability audit — 2026-07-16, VERIFIED 2026-07-19 (5 Sonnet lanes → 5 Opus falsifiers → Fable adjudication; UNBUILT unless ticked)
 
-Wide-net audit of both apps by area. Every item below was confirmed at the cited line, not inferred. Effort S/M per item. Lanes: recording+transcription, audiobooks, notes UI, sync spine, desktop.
+Wide-net audit of both apps by area; every item confirmed at the cited line. Verification tally: 33/41 confirmed as filed (several understated), 6 downgraded, 1 dropped, 2 corrected, 1 widened — all folded in below. Line numbers drift with ongoing work; items are mechanism-anchored. NEW unaudited surface since the sweep: Connections/retrieval stack (`Shared/Retrieval/` 6 files + `ConnectionsIndexService`) — auditor dispatched 2026-07-19.
 
 **Cross-cutting theme — failures are invisible (`try?` everywhere on the write surface):**
 - [ ] **P0 `NotesRepository.save()` = `try? context.save()`** (`SkriftMobile/Services/NotesRepository.swift:244`) — the ONE save path for every mobile write incl. the editor's debounced text commit; a throw = user edit silently lost. Log + surface on the editor path. S
 - [ ] **P1 `MemoSaver.persist()` swallows the temp→dest audio move** (`Features/Recording/MemoSaver.swift:741-742`) — on failure it still inserts a Memo pointing at a file that was never written (phantom memo, orphaned audio). `saveQuoteCapture` ~:511 already does it right (do/catch + abort). S
 - [ ] **P1 Mac reconciler `try?`-swallows ingest + all saves** (`SkriftDesktop/Pipeline/Ingest/MemoCloudReconciler.swift:70-73`, `+Wiring.swift:77,99`, desktop `NamesCloudSync.swift:46`, `VocabularyCloudSync.swift:58`) — a memo that always fails ingest = silent black hole retried forever, zero trace. Count+log failures. S
-- [ ] **P2 `VaultExporter` `try?`-swallows image copies (`:152,176,202`) and the phone-edit re-export swallows entirely** (`+Wiring.swift:94`) — vault silently stale/incomplete, `![[embed]]` refs written with no file behind them. S
+- [ ] **P2 `VaultExporter` `try?`-swallows image copies (`:152,176,202`) and the phone-edit re-export swallows entirely** (`+Wiring.swift:94`) — vault silently stale/incomplete, `![[embed]]` refs written with no file behind them. Verify bonus: the `:84-85` comment claiming "an export failure is logged by the caller path" is FALSE — nothing logs it; fix the comment with the code. S
 - [ ] **P2 audiobook raw-CK transport has no CKError-code handling** (`Services/Audiobooks/CloudKitAudiobookTransport.swift`, `AudiobookCloudSync.swift:236-252`) — permanent failures (quota, auth) retry forever, no retryAfterSeconds honored, no terminal UI state. M
 - [ ] **P3 `runTranscription` catch has no DevLog** (`MemoSaver.swift:817-822`) — `.failed` memos undiagnosable from a device pull. S
 
@@ -114,40 +114,40 @@ Wide-net audit of both apps by area. Every item below was confirmed at the cited
 - [ ] **P1 `save()`'s transcription lacks `BackgroundTask.run` wrap** (`MemoSaver.swift:39-55`) — every import path has it (`:101,141,297`); ordinary record→stop→background-the-app = stuck "Transcribing…" until next launch. S
 - [ ] P2 per-buffer `Task { feedStream(out) }` has no ordering guarantee into the caption accumulator (`LiveRecordingService.swift:479-499`) — display-only garble risk; verify on device before hardening. M
 - [ ] P2 live-caption rebuilds full AttributedString per poll (`RecordView.swift:644-676`) — only bites when auto-off is disabled (long lectures). M
-- [ ] P3 `SpeakerVoiceStore.swift` is dead code (superseded by embedder path) — delete. S
+- [x] P3 `SpeakerVoiceStore.swift` dead code — DONE for free: deleted by SharedKit wave 2e (28efb35).
 
 **Notes UI (mobile):**
-- [ ] **P1 `MemosListView.filtered`/`flatIndex` recompute the full filter+sort PER ROW** via `.accessibilityIdentifier` (`MemosListView.swift:253,633-639`) — O(N²) per list render; compute once per body eval. S
-- [ ] **P1 list photo thumbs decode full-res on main, uncached** (`MemosListView.swift:1011-1020`) — `MemoImageLoader.thumbnail` exists for exactly this (the "600× with a picture" fix); one-line swap. S
-- [ ] **P1 `NoteBodyView.load()` runs `snappedImageBody` regex pass BEFORE the `t == loaded` no-op check** (`NoteBodyView.swift:301-314`) — reorder two lines. S
+- [ ] **P1 `MemosListView.filtered`/`flatIndex` recompute the full filter+sort PER ROW** via `.accessibilityIdentifier` (`MemosListView.swift:253,633-639`) — O(N²) per list render; verify found it WORSE: `matches(query:)` JSON-decodes metadata inside the filter, and `groups`/`relatedDisplay` re-access `filtered` in the same body pass. Compute once per body eval. S
+- [ ] **P1 list photo thumbs decode full-res on main, uncached** (`MemosListView.swift` photoThumb — now keyed off `thumbnailPhotoFilename` since the 2026-07-18 stale-thumb fix) — `MemoImageLoader.thumbnail` exists for exactly this (the "600× with a picture" fix); one-line swap. S
+- [ ] P2 (was P1 — `[[img_` fast-path covers image-less notes) `NoteBodyView.load()` runs `snappedImageBody` BEFORE the `t == loaded` no-op check (`NoteBodyView.swift:301-314`) — reorder two lines. S
 - [ ] P2 `Memo.metadata` re-decodes JSON per access (`Shared/Model/Memo.swift:248-251`) — 4-5 decodes per list row per render; cache keyed on data identity. S/M
 - [ ] P2 `applyTierStyling` re-runs `BodyTransform.pieces(of:)` once PER name span (`NoteBodyView.swift:483-492`) — compute once per pass. M
-- [ ] P2 `Karaoke.activeWordIndex` O(words) scan from 0 at 20Hz (`Shared/Pipeline/Karaoke.swift:17-24`) — resume from last index. S
-- [ ] P2 `purgeExpiredTrash()` runs sync in `SkriftApp.init()` before first frame (`App/SkriftApp.swift:41`) — move to `.task` like every other sweep. S
+- [ ] P3 (was P2 — early-break scan, tiny constant; repaint already minimal-diff) `Karaoke.activeWordIndex` scans from 0 at 20Hz (`Shared/Pipeline/Karaoke.swift:17-24`) — resume from last index. S
+- [ ] P3 (was P2 — fetch is trash-only, usually empty) `purgeExpiredTrash()` runs sync in `SkriftApp.init()` before first frame (`App/SkriftApp.swift:45`) — move to `.task` like every other sweep. S
 - [ ] P3 Release builds compute `photoHits` corpus scan per search keystroke to feed a DEBUG-only log (`MemosListView.swift:158-167`) — wrap in `#if DEBUG`. S
 - [ ] P3 detail pager `@Query` = whole non-trashed corpus (`MemoDetailView.swift:20-21`) — fine now, window it when corpus grows. M/L
 
 **Audiobooks (mobile) — root cause shared by top two: `BookTranscriptStore` has no lightweight read, every consumer decodes the full word array:**
 - [ ] **P1 `ReadAlongModel.reloadIfNeeded` full-sidecar decode at ~2Hz on main whenever playhead is ahead of the transcribe frontier** (`ReadAlongView.swift:31-49,142-146`) — a designed-for common state. Store-layer fix (cheap `coveredUpTo` read or frontier-advanced signal). M
 - [ ] **P1 `BookTranscriptionJob.publishValue` re-decodes EVERY file's full sidecar after EVERY chunk, on main** (`BookTranscriptionJob.swift:381-399`) — track covered-seconds in memory. S
-- [ ] **P2 `QuoteCaptureProcessor.exportSpan` still uses the drift-proven `AVAssetExportSession` path** (`QuoteCaptureProcessor.swift:368-389`) — same root cause fixed in the chunker (`BookTranscriptionJob.swift:310-318` documents the measurements); deep-book captures get ~1s-off spans. Route through the sample-accurate extract. M
+- [ ] P2 `QuoteCaptureProcessor.exportSpan` drift — CORRECTED by verify: production passes `PreferPreciseDurationAndTiming` (`:373`), which the measured-bad `-chunksim` export lane did NOT, and live capture paths are self-consistent (audio + word-times shift together). Only `buildOutputFromSidecar` (sidecar times paired with exported audio) is exposed. STEP 0 before any code change: add a chunksim third lane — export WITH the flag — and measure. M
 - [ ] **P2 failed chunk = permanent silent gap marked covered-with-zero-words, no retry** (`BookTranscriptionJob.swift:226-233`) — retry once or flag for next `start()`. M
-- [ ] P2 `BookCoverCache.image(for:)` sync JPEG decode on main in body (`BookCoverView.swift:66-73`) — decode off-main into the existing NSCache. S
+- [ ] P3 (was P2 — NSCache hit after first miss; pixel decode deferred to draw) `BookCoverCache.image(for:)` on-main file read in body (`BookCoverView.swift:66-73`) — decode off-main into the existing NSCache. S
 - [ ] P2 `MergedCaptureView.load()` sentence-parses the ENTIRE covered transcript for a ~90s window (`MergedCaptureView.swift:360-370`) — `ft.words(inWindow:)` exists, unused here. S
-- [ ] P3 read-along `setCurrent` linear-scans sentences from 0 at 10Hz (`ReadAlongView.swift:56-60`); P3 `AudiobookCloudSync.localTranscriptSignature` full decode for two scalars (`:325-336`); P3 chunker reopens `AVAudioFile` per chunk (`BookTranscriptionJob.swift:358-368`). All S.
+- [ ] P3 read-along `setCurrent` linear-scans sentences from 0 at 10Hz (`ReadAlongView.swift:56-60`); P3 `AudiobookCloudSync.localTranscriptSignature` full decode for two scalars (`:325-336`, and it runs on the MAIN actor). Both S. (Dropped by verify: AVAudioFile-reopen-per-chunk — negligible vs the transcribe itself.)
 
 **Sync spine (cross-app):**
-- [ ] **P1 Mac reconcile sweep faults FULL audio/photo blobs into memory for every memo, every sweep** (`MemoCloudReconciler.swift:42-49` + `MemoPhotoMaterializer.swift:19-22`) — `MemoAsset.blob` can't be externalStorage (CloudKit), so touching any attribute fault-fills the whole row; mobile's `AssetMaterializer.swift:40-44` explicitly guards this, Mac doesn't. Plus N+1: 2-3 fetches per memo per sweep. Watermark-skip unchanged rows + batch the fetches. M
+- [ ] **P1 sync sweeps fault FULL audio/photo blobs into memory — BOTH apps** (WIDENED by verify): Mac `MemoCloudReconciler.swift:42-49` fetches every memo's assets even for already-ingested rows, BEFORE the ingest check, plus N+1 (2-3 fetches per memo); mobile `AssetMaterializer.swift:42` touches `.filename` before its exists-guard and faulting is ROW-level, so its protective doc comment is WRONG (fix the comment too). `MemoAsset.blob` can't be externalStorage (CloudKit). Fix: metadata-only reads (`propertiesToFetch`) + skip unchanged rows. M
 - [ ] **P1 CloudKit import bursts re-run full-library sweeps un-debounced on BOTH apps** (`SkriftMobile/Services/CloudSyncMonitor.swift:101-136`, `SkriftDesktop/App/MemoCloudReconciler+Wiring.swift:30-81`) — the `isSyncing` UI flag is debounced 1s, the actual work isn't; initial device sync = dozens of back-to-back O(n) main-actor passes. Coalesce the sweep dispatch. S/M
-- [ ] **P2 `ExportStateStore.persist()` rewrites the whole ledger per record → `publishAll()` O(n²) on main** (`Services/Export/ExportStateStore.swift:56-69`, `PublishCoordinator.swift:68-85`) — dirty-batch, persist once. S
+- [ ] P3 (was P2) `ExportStateStore.persist()` whole-ledger rewrite per record (`Services/Export/ExportStateStore.swift:56-69`) — verify found `publishAll()` has NO production caller (unwired standalone publish path; and it's O(k·n), skip-unchanged short-circuits). Dirty-batch it WHEN wiring the publish phase. S
 - [ ] P3 `NamesMerge` millisecond-tie always favors remote (`Shared/Naming/NamesData.swift:172-178`); P3 `MacCloudWriteBack` wall-clock LWW has no skew tolerance (single-Mac fine, `:60-65`); P3 `MemoCloudIngest.swift:83-89` Bonjour double-ingest comment likely dead — verify + prune.
 - Clean bills: SharePayloadLoader (extension memory ceiling handled textbook), CaptureInbox/Drainer (crash-safe ordering + poison pill), MemoDeduper, VaultExporter locked-note gate, MemoCloudUpdate content-based echo guard.
 
 **Desktop:**
 - [ ] **P1 drag-drop/open-panel ingest runs on main incl. a semaphore-blocked video export** (`Features/Sidebar/SidebarView.swift:76-101` → `Pipeline/Ingest/IngestService.swift:205-207`) — comment at `:186` only proves no-deadlock, not no-freeze; multi-minute beachball on video drop. `UploadService`'s prepare/commit split is the right pattern next door. M
 - [ ] **P1 no guard against editing a note the pipeline is actively processing** (`ProcessingCoordinator.swift:158-180`, `BatchRunner.swift:150-156` unconditional overwrite vs `NoteBody.swift:183-194` live editor) — user edits during the multi-second LLM window get clobbered; none of the sync paths' LWW care applies here. Disable editor for the in-flight file or skip final write if hand-edited mid-run. M
-- [ ] **P1 no second-instance store guard** (`App/` — nothing; only a comment at `RunFile.swift:514` + CLAUDE.md discipline) — `NSRunningApplication` check at launch. S
-- [ ] P2 tag typeahead refetches + re-tallies the whole library per keystroke (`Features/Review/NoteProperties.swift:252-325`) — compute once when the field opens. S
+- [ ] P2 (was P1 — dev/prod stores isolated, needs two SAME-config instances) no second-instance store guard (only the `RunFile.swift:514` comment + discipline) — `NSRunningApplication` check at launch. S
+- [ ] P3 (was P2 — bounded by library size, active-typing only; and it's 2 full fetches per keystroke via `matches`+`exactExists`) tag typeahead re-tallies the whole library per keystroke (`Features/Review/NoteProperties.swift:252-325`) — compute once when the field opens. S
 - [ ] P2 LINKED-FROM backlinks full-corpus body scan per note switch (`NoteDisplayView.swift:501-511`) — maintain a backlink index on save. M
 - [ ] P3 `BodyTextView.restyle` full-doc regex per keystroke (`BodyTextView.swift:417-496`) — fine now (fast paths), scope-limit for long pasted transcripts. M
 - [ ] P3 `Sanitiser.wordRegex` recompiles per alias per call, uncached (`Shared/Naming/Sanitiser.swift:759-763`) — not hot-path; memoize. S
