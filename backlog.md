@@ -89,6 +89,100 @@ First chunk when picked up: field-by-field audit table (→ lands in frontmatter
 app-internal-documented), then phone attachments-parity + lat/lon frontmatter. New frontmatter keys =
 contract change → mirror phone `MemoExporter` + Mac `Compiler` in the same pass (no drift).
 
+## 📖 ePub ↔ audiobook alignment — the book text becomes the source of truth (Tuur idea 2026-07-19; RESEARCHED same session, 4-agent fan-out; spike board ready, NOT built)
+
+The idea (verbatim intent): attach the book's ePub alongside the audio; after transcribing, match
+transcript ↔ ePub and use the ePub as the source of truth. Read-along/reading mode then shows the
+REAL book text (names, punctuation, paragraphs), quote captures export the VERBATIM published
+sentence, chapters come from the real TOC; the transcript degrades to a timing layer. Cheap because
+the hard half exists: `BookTranscript` sidecars already carry word timings — this is pure
+text-to-text alignment, no ML. Prior art ships exactly this pipeline (Storyteller = Whisper + fuzzy
+match, sentence-level; we'd be word-level). Amazon/Apple dodge mismatch entirely (matching editions
+required / self-generated audio only) — graceful partial alignment would EXCEED the commercial products.
+
+DESIGN (locked by the research):
+1. **Aligner**: unique n-gram anchors → LIS monotonicity filter (patience-diff trick) → banded DP in
+   the gaps → timestamps onto ePub words, interpolate small holes. Phonetic second signal
+   (Metaphone-ish) beside edit distance — ASR mishearings are REAL words ("shore"/"sure",
+   Storyteller's lesson). Optional timestamps BOTH directions: transcript-only spans (narrator
+   credits) keep ASR text; ePub-only spans (front matter, footnotes) render unhighlighted.
+   Per-sentence confidence → per-sentence fallback. Coverage verdicts aligned/partial/rejected; a
+   wrong ePub self-detects at attach (near-zero unique anchors). Chapters located INDEPENDENTLY
+   (narrators reorder/skip front matter); short generic text (ToC pages) = false-positive bait.
+   ePub = ONE continuous text across audio-file cuts (file splits are arbitrary vs book structure)
+   even though storage stays per-file.
+2. **In-repo ancestor + consolidation**: `Karaoke.wordTimes` (Shared/Pipeline/Karaoke.swift:34)
+   already solves the miniature; word-list matching exists in TRIPLICATE (+ `RunFile.anchorDrift`:20,
+   inline block RunFile.swift:140) — AlignmentCore is the consolidation point, NOT a 4th copy.
+   Adaptations: indexed next-occurrence lookup (kill the linear scan), per-file windowing.
+3. **Integration surface is TINY**: `BufferSentence` (QuoteCaptureProcessor.swift:6) is the
+   boundary — read-along (ReadAlongView.swift:42) + capture (MergedCaptureView.swift:362) both
+   consume `[BufferSentence]` and don't care where `.text` came from. Alignment-backed sentence
+   builder at those TWO call sites; seek/bookmark/capture audio-export math untouched
+   (`.start/.end/.words` stay from `FileTranscript`). Chapters: ePub TOC just populates
+   `detectedChapters` → every consumer follows (`Audiobook.effectiveChapters`:236). DECIDE
+   precedence: ePub TOC > transcript-detected > embedded (ChapterDetector doc currently claims
+   "THE standard", ChapterDetector.swift:5).
+4. **Storage/sync** (mirrors transcripts exactly): `alignment_f<n>.json` beside `transcript_f<n>.json`;
+   `FileAlignment{schema, fileIndex, transcriptSignature, epubSignature, alignedUpTo, sentences:
+   [AlignedSentence{text, start, end, wordStart, wordEnd, confidence, epubAnchor}]}`. Sync =
+   `AudiobookAudioTransport` verbatim: `ab_<bookID>_a<n>` records + additive
+   `AudiobookSyncRecord.alignmentSignature`; send/receive/RESTAMP mirroring
+   AudiobookCloudSync.swift:356-409. Triggers: BookTranscriptionJob.swift:250 (beside
+   `detectChaptersIfNeeded`) + the `AudiobookSession.open` retro-hook (:120) + on ePub attach.
+   ePub file: new additive `Audiobook` field; attach UX reuses the `PendingAudiobookImport`
+   confirm-sheet pattern.
+5. **ePub parsing (HARD PREREQUISITE — zero zip capability exists in the project today)**:
+   ZIPFoundation (MIT, zero transitive deps — SPM dep #2 after FluidAudio) + strict `XMLParser`
+   for container/OPF/NCX/nav; LENIENT fallback for spine XHTML bodies (real files: `&nbsp;`-style
+   entities + malformed markup hard-fail XMLParser) — libxml2's own HTMLparser is on-device
+   (bridging header, no new dep) or SwiftSoup. Readium REJECTED (iOS-only, 8-package graph,
+   rendering-shaped); EPUBKit doesn't solve the hard part. Footnote exclusion: `epub:type="noteref"`
+   + class/id heuristics (semantic markup inconsistently used in the wild). Also accept .txt/plain
+   HTML as book text (Gutenberg; dodges DRM). DRM: `encryption.xml` alone ≠ DRM (allowlist the two
+   font-obfuscation algorithm URIs); ADEPT = `rights.xml` present; unknown algorithm → treat as
+   protected, honest message, never bypass. FairPlay ePubs don't exist as loose files — no detector.
+6. **ASR reality check (the load-bearing surprises)**:
+   - PUNCTUATION CONTRADICTION: FluidAudio's own Benchmarks.md says Parakeet TDT v3 = "no
+     punctuation"; NVIDIA's card + OUR device history say otherwise (lost-period truncation bug
+     ChunkFusion.swift:66, the "Dr."-split report backlog:3768 — both only make sense if periods
+     are normally present). Settle empirically via `-asrsweep` BEFORE designing sentence segmentation.
+   - WORD-GLUING upstream bug (FluidAudio #683), confirmed on our pinned v0.15.2: long-form chunk
+     merge splices ignoring SentencePiece `▁` word starts → "wordonewordtwo" possible at every ~15s
+     INTERNAL seam. FIXED upstream v0.15.3 + v0.15.5 — our 2026-07-11 pin (7f963cdc) predates both.
+     Aligner must tolerate glued tokens regardless; consider a pin-bump chunk (device-verify,
+     TrEngine precedent).
+   - NUMBERS are confidence-dependent, not guaranteed digits: "ITN usually emits digits"
+     (ChapterDetector.swift:590) BUT the spelled-out EN+NL parser exists because both occur; the
+     Dutch `-asrsweep` A/B showed the SAME years as correct digits when decoding well, Dutch
+     number-words when drifting. Canonicalizer = port/reuse `ChapterDetector.parseNumber`
+     (EN+NL cardinals/ordinals + glued Dutch compounds).
+   - FluidAudio ships an UNWIRED `TextNormalizer`/ITN (deferred, backlog:2244) — decide: wire it
+     pre-aligner vs normalize inside the aligner.
+   - Timings run slightly LATE (the ReadAlongView 0.1–0.2s `lead`, :8) — display tuning only,
+     alignment math unaffected.
+   Normalization ruleset: case-fold; strip punctuation to MATCH KEYS (display keeps original);
+   number canonicalization EN+NL; tolerate glued/duplicated/mis-substituted seam words. NOT needed:
+   filler stripping, contraction expansion, hyphen-specific rules.
+
+SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
+1. ⬜ Gather 2–3 real DRM-free book+ePub pairs from the library.
+2. ⬜ ASR ground truth (cheapest, FIRST): `-asrsweep` a real audiobook chunk → does OUR build emit
+   punctuation? + grep an existing `transcript_f*.json` for glued words (is #683 present in practice?).
+3. ⬜ FluidAudio pin-bump decision (≥0.15.5 seam fixes) — own chunk + device round if taken.
+4. ⬜ EPubExtract (ZIPFoundation + lenient fallback) → `[Block]` + TOC + DRM verdict; fixture tests.
+5. ⬜ AlignmentCore (Shared/Pipeline — zero project.yml edits, both apps + both test suites see it)
+   + desktop `-aligncheck` (RunFile family; raw paths + the shared core — desktop still doesn't
+   learn what an "Audiobook" is): prints coverage %, anchor density, 10 biggest unmatched spans, on
+   the real pairs → **GO/NO-GO + thresholds**.
+6. ⬜ Productize on GO: sidecar + triggers + BufferSentence builder swap + chapter precedence +
+   attach-ePub UX + CK sync; read-along/reading-mode surfaces switch to true text via the builder
+   swap (no re-plumb later).
+
+Open decisions for Tuur: chapter precedence (ePub TOC wins?); TextNormalizer wiring vs
+aligner-internal normalization; pin bump now or with this; OK with ZIPFoundation as SPM dep #2;
+any book-text formats beyond .epub/.txt?
+
 ## 🐛 List thumbnail stale after deleting photos (reported 2026-07-18, ✅ FIXED same day — branch `claude/note-thumbnail-update-bug-tuhrp3`)
 
 Repro: record with several photos → row thumb = first photo; delete the first photo(s) in the editor →
