@@ -15,6 +15,9 @@ testmanagerd runner crash mass-kill — unrelated areas incl. Safari-ext/vocab; 
 2. Then pick a lane from the two 2026-07-18 sections below: 📤 exportability (attachments = phone-parity
    chunk, brainstorm owed on phone mechanics; lat/lon frontmatter = small buildable chunk), 📍 place notes
    (design session).
+3. NEW LANE (2026-07-19 remote session): 📖 ePub↔audiobook alignment — researched + spike-boarded
+   (section below). Spikes 1–2 first: Tuur supplies 2–3 real book+ePub pairs; `-asrsweep` ground
+   truth on the Mac (punctuation? glued words?). 5 open decisions at the section bottom.
 
 ## 📍 Place notes with feeling — "the pin you actually act on" (Tuur direction 2026-07-18; NEEDS DESIGN SESSION before code)
 
