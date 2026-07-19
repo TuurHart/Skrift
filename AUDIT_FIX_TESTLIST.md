@@ -74,6 +74,15 @@ KNOWN pre-existing iOS-26 failures (deferred 2026-06-18) — unrelated to this b
 - `ExportStateStore` O(k·n) persist: `publishAll()` has no production caller (unwired
   standalone publish phase) — fix lands when that phase is wired.
 
+## Discovered during final verification
+
+- **`mlx-swift-lm` is pinned to `branch: main` (floating)** — a fresh checkout/worktree
+  resolves today's upstream, which currently does NOT compile against the resolved
+  mlx-swift (`DType.greatestFiniteMagnitudeArray`). Your main checkout only builds
+  because its resolution is cached. The worktree build was fixed by copying main's
+  `Package.resolved`. Durable fix (your call on revision): pin mlx-swift-lm to an exact
+  revision in `project.yml`, like FluidAudio already is. Backlogged.
+
 ## Known-issue notes for this branch
 
 - The 6 failing UI tests (Smoke launch, Settings inventory, Share probes, VoiceEnroll)

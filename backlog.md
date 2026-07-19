@@ -154,6 +154,9 @@ Wide-net audit of both apps by area; every item confirmed at the cited line. Ver
 - [x] P3 `Sanitiser.wordRegex` recompiles per alias per call, uncached (`Shared/Naming/Sanitiser.swift:759-763`) — not hot-path; memoize. S
 - Clean bills: engine lifecycle (load-once + 60s idle unload of the ~9GB weights), all Mac↔phone write-back LWW/echo guards, serial batch model, `RunReconciler` crash recovery.
 
+**⚡ Found during final verification (2026-07-19):**
+- [ ] **P1 `mlx-swift-lm` pinned to floating `branch: main`** (desktop `project.yml`) — a fresh checkout/worktree resolves today's upstream, which currently fails to compile against the resolved mlx-swift; the working Mac only builds off its cached resolution. Pin an exact revision (like FluidAudio's `7f963cdc`) — needs Tuur's pick of revision. S
+
 **⚡ Connections/retrieval surface (Sonnet audit 2026-07-19, built same day unless noted):**
 - [x] P1 empty-snapshot sweep wipes the whole embedding index on a failed fetch (`EmbeddingIndex.sweep` guard added)
 - [x] P1 query failure rendered identically to "no matches" — Mac: `lastError` observable + gate line + "Connections unavailable" empty-state; PHONE PARITY still owed (Related in search)
