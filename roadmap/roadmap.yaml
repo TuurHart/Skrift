@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-18T00:45:00.000Z
+updated: 2026-07-18T02:10:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -327,8 +327,9 @@ nodes:
         touch-list) fade at 30d into count-badged shelves (Mac rail rows ·
         phone Notes-header ⋯ w/ amber dot), auto-trash at 60d via the
         EXISTING 14d Recently Deleted (phone owns permanent deletion);
-        derived state + one additive keptAt field; armed-gated first-run
-        sweep. Shared MemoLifecycle, 9 tests/suite. Device eyeball owed
+        derived state + one additive keptAt field; timers fully automatic
+        (b84) + unread-semantics ⋯ dot (b85). Shared MemoLifecycle,
+        10 tests/suite. Device eyeball owed
       - >-
         2026-07-17 · Review rail MINI-MAP (mock review-minimap.html, A picked
         over map-first): static MKMapSnapshotter ambient map under PLACES,

@@ -965,12 +965,24 @@ desktop full build REQUIRES `-skipMacroValidation`; never run two Skrift Dev ins
 prod deliberately (idle) only; roadmap.yaml updated in the SAME change as shipped work (exactly
 one `now`); mock-first for any NEW UI beyond these signed specs.
 
-- 🎨 **Review note-detail mock round OPEN** (the dead-end fix, Tuur said "detail" 2026-07-17):
-  `mocks/review-note-detail.html` — read-only detail as a COLUMN SWAP (breadcrumb back, exact prior
-  state restored), RAW-labeled transcript + inline photos, "Process on this Mac" folded in (explicit
-  one-note ingest; gate keeps the automatic flow), LockGate before a locked body ("Process" hidden
-  pre-unlock). AWAITING SIGN-OFF + 2 open Qs (processed notes also land here first? · keep "Copy
-  text"?). No code until sign-off.
+- 🅿️ **Review note-detail mock PARKED** (Tuur, 2026-07-18): `mocks/review-note-detail.html` — the
+  read-only detail + "Process on this Mac" fix for the purple "Not in the queue" dead-end. Parked
+  because the Fading lifecycle ATE most of its audience (untouched old notes — the alert's main
+  source — now drain themselves out of Review). REVIVE TRIGGER: the alert annoys again in practice
+  (clicking a <30d untouched note, or a touched-but-unflagged note — those still dead-end). Mock is
+  sign-off-shaped; build as drawn when revived. Its 2 open Qs ride the revival.
+
+### ⭐ CONTINUE HERE — session end 2026-07-18 ~2am (the wave-2 + lifecycle marathon chat)
+**Everything committed + PUSHED; both Dev apps at HEAD (Mac redeployed · phone b85).**
+- ✅ THIS CHAT: SharedKit wave 2 complete (6 extractions, 3 drift bugs fixed, 2 dead-code deletes) ·
+  Review label single-sourced · phone note-swipe off · map camera/dive/in-frame round · rail
+  mini-map (mock→picked→shipped) · **FADING LIFECYCLE end-to-end** (design→mock v3→shipped
+  cross-app→3 device fix rounds: auto timers, un-squared ⋯ dot, unread-dot semantics).
+- 🅿️ PARKED: review-note-detail mock (below, revive trigger inside) · vault-read direction (🔭
+  below, Huginn-shaped) · 6 Palette DriftedPair reconciles (one eyeball round → one-liners).
+- ⬜ TUUR'S EYES (casual, no chat needed): fading round (dot→shelf→dark, Keep, sweep-all, phone↔Mac
+  convergence) · the b81-era carried items (Journal gate arc %/PREPARING/N-of-M, ~2s search
+  highlight, ⌥⌘C/badge/hover-✕/tooltip, light-mode fills) · map dive re-wiggle.
 
 ### 🍂 NOTE LIFECYCLE — "Fading" auto-cleanup · DESIGN LOCKED 2026-07-17 (Tuur + chat session), mock round next
 **The rule: a note you never invested in fades out by itself; anything you touched stays until you say otherwise.**
