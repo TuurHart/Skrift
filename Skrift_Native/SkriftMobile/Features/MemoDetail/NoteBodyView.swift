@@ -301,17 +301,19 @@ struct NoteBodyView: UIViewRepresentable {
         func load(force: Bool) {
             guard let tv = textView else { return }
             let t = bodyText
+            // Cheap no-op checks FIRST — this runs on every updateUIView, and the
+            // snap pass below used to be computed even when t == loaded.
+            if !force {
+                if t == loaded { return }
+                if tv.isFirstResponder || draftDirty { return }        // don't yank text mid-edit
+            }
             // Photos snap to their sentence end for DISPLAY (shared with the Mac +
             // the Obsidian export); the stored transcript keeps the marker at its
             // recorded moment until the user edits (`reconstruct` then writes the
             // snapped form, which edited/trusted notes carry harmlessly). Idempotent,
             // so the equality check below never spuriously rebuilds.
             let display = BodyTransform.snappedImageBody(protectedQuote?.ramble ?? t)
-            if !force {
-                if t == loaded { return }
-                if tv.isFirstResponder || draftDirty { return }        // don't yank text mid-edit
-                if display == reconstruct(tv.attributedText) { loaded = t; return }
-            }
+            if !force, display == reconstruct(tv.attributedText) { loaded = t; return }
             // Carry the (clamped) selection across the rebuild so the caret —
             // and with it the visible spot — stays put.
             DevLog.log("noteBody: load rebuild force=\(force) len=\(display.count)")

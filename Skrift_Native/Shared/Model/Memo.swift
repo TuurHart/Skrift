@@ -249,8 +249,28 @@ final class Memo {
     /// Typed contextual metadata, decoded from / encoded to the raw `metadataData` blob
     /// (the blob persists — SwiftData can't store the Codable struct directly, see
     /// `metadataData`). Shared: the phone writes it, the Mac's ingest reads it.
+    ///
+    /// Decode is cached process-wide, keyed by the blob bytes: a list row reads
+    /// this 6-8× per render and every access used to re-run JSONDecoder. Content
+    /// keying makes invalidation automatic — any write (local or CloudKit merge)
+    /// is a new key. NSCache = thread-safe, evicts under pressure.
+    private static let metadataCache: NSCache<NSData, MetadataBox> = {
+        let c = NSCache<NSData, MetadataBox>()
+        c.countLimit = 1024
+        return c
+    }()
+    private final class MetadataBox {
+        let value: MemoMetadata?
+        init(_ value: MemoMetadata?) { self.value = value }
+    }
     var metadata: MemoMetadata? {
-        get { Self.decodeJSON(metadataData) }
+        get {
+            guard let data = metadataData else { return nil }
+            if let hit = Self.metadataCache.object(forKey: data as NSData) { return hit.value }
+            let value: MemoMetadata? = Self.decodeJSON(data)
+            Self.metadataCache.setObject(MetadataBox(value), forKey: data as NSData)
+            return value
+        }
         set { metadataData = Self.encodeJSON(newValue) }
     }
 
