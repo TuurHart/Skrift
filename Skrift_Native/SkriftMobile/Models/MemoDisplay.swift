@@ -88,6 +88,41 @@ extension Memo {
         return AppPaths.recordingsDirectory.appendingPathComponent(manifest[n - 1].filename)
     }
 
+    private static let imgMarkerRegex = try! NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
+
+    /// The photo the LIST ROW thumbnails — the note's first VISIBLE photo, not
+    /// blindly the first manifest entry. Deleting a photo in the editor removes
+    /// its `[[img_NNN]]` marker from the body but NEVER its manifest entry
+    /// (markers are 1-based indexes into the manifest, so pruning an entry would
+    /// renumber every later marker on both apps) — so visibility comes from the
+    /// body:
+    /// - Body carries markers → the first marker in body order that resolves.
+    /// - Markers were injected but none survive → every photo was deleted from
+    ///   the note → no thumbnail.
+    /// - A marker-less body: share captures keep the first manifest entry (their
+    ///   photos render straight off the manifest, no markers), as does a memo
+    ///   with no body yet (pending/failed transcription — the photo taken while
+    ///   recording should thumbnail immediately). A TYPED body without markers
+    ///   shows no photos, so no thumbnail.
+    var thumbnailPhotoFilename: String? {
+        guard let manifest = metadata?.imageManifest, !manifest.isEmpty else { return nil }
+        if let transcript, transcript.contains("[[img_") {
+            let ns = transcript as NSString
+            let matches = Self.imgMarkerRegex.matches(in: transcript,
+                                                      range: NSRange(location: 0, length: ns.length))
+            for m in matches {
+                guard let n = Int(ns.substring(with: m.range(at: 1))),
+                      n >= 1, n <= manifest.count else { continue }
+                return manifest[n - 1].filename
+            }
+            return nil
+        }
+        if transcriptMarkersInjected { return nil }
+        if isShareCapture { return manifest.first?.filename }
+        let body = transcript?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return body.isEmpty ? manifest.first?.filename : nil
+    }
+
     /// Honest status for the list pill, or `nil` when no pill should show.
     ///
     /// Only the transcript states (`transcribing` / `error`) drive a per-memo pill.

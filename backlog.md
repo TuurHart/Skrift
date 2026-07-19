@@ -2,6 +2,102 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ CONTINUE HERE (2026-07-18, remote/Linux session → next LOCAL chat)
+
+Session ran remotely (no Xcode) on branch `claude/note-thumbnail-update-bug-tuhrp3` — 4 commits, pushed.
+1. **Merge the branch into `main`** (trunk workflow), then **verify the thumbnail fix — UNVERIFIED**:
+   `xcodegen generate` + `xcodebuild test` (SkriftMobile, iPhone 17 sim; 8 new tests in MemoModelTests),
+   then device-eyeball the repro (3-photo memo: delete photos 1–2 in the editor → row thumb becomes photo 3;
+   delete all → tile disappears; share-capture + still-transcribing rows keep their thumbs).
+2. Then pick up the three 2026-07-18 sections below: 📤 exportability (attachments = phone-parity chunk,
+   brainstorm owed on phone mechanics; lat/lon frontmatter = small buildable chunk), 📍 place notes
+   (design session), 🐛 thumbnail (close after verify).
+
+## 📍 Place notes with feeling — "the pin you actually act on" (Tuur direction 2026-07-18; NEEDS DESIGN SESSION before code)
+
+The thesis (verbatim intent): a Maps pin ("to eat") is a dead TODO — it never gets acted on. A voice note
+recorded AT the moment ("we walked past a restaurant, Brooks said we should eat there") carries the feeling,
+so browsing your notes re-evokes why you cared and you actually engage. Skrift already half-does this;
+make it explicit and close the loop.
+
+What EXISTS today (so the design session starts from truth, not memory):
+- Recording auto-attaches location + placeName (`MetadataService`); rows carry place chips; place filter + search.
+- Share an Apple/Google Maps pin INTO Skrift (D6, `PlaceLink.swift`) → capture item with the same location
+  metadata + chip; voice-annotatable. Gap: short `maps.app.goo.gl` links stay plain link cards (opaque
+  without a fetch, E4) — and the Google Maps iOS app shares exactly those short links.
+- Places map on the phone (`JournalMapView`, Journal tab v1 2026-07-07): pins clustered by place → that
+  place's notes. Mac/iPad map-behind-Places is in the signed-off journal-desktop v2 mock (not yet built).
+- Reminders are TIME-only (`remindAt` + ReminderScheduler, synced). NOTHING resurfaces a note by PLACE.
+
+Candidate directions for the design session (none decided):
+1. **Place-triggered resurfacing** — the literal fix for "and then it doesn't really happen": near the
+   restaurant → the note (with your voice from the moment) knocks. iOS geofencing / UNLocationNotificationTrigger;
+   fits the existing reminder model as a WHERE alongside remindAt's WHEN. Region limits (~20 monitored) need
+   a nearest-N strategy. Privacy: all on-device.
+2. **Explicit intent facet** — "I was here" (journal) vs "I want to go back" (to eat / to visit / to try).
+   Makes "places I still owe a visit" browsable on the map + filterable; folds into the unified source
+   taxonomy work. Could be as small as a tag idiom the UI understands.
+3. **Capture friction** — resolve short goo.gl links (needs one fetch — revisits E4); surface the
+   share-a-pin flow in onboarding/empty states so the D6 path is discoverable at all.
+Related ledger: journal-desktop board (backlog "CONTINUE HERE — desktop-parity"), unified source taxonomy
+(CLAUDE.md open cross-app work). Mock-first applies — no code before a signed-off design.
+
+## 📤 Full exportability — markdown as the durable home (Tuur principle 2026-07-18)
+
+The principle (verbatim intent): as features get more complicated, ALL data stays fully exportable — as
+much as possible lives in markdown, the app is a smart VIEWER over it. Honest boundary: CloudKit stays the
+sync spine (locked 2026-06-15, STANDALONE_PLAN — file-based sync explicitly rejected), so the realistic
+form is **the vault is a complete, continuously-published MIRROR**: if Skrift vanished tomorrow, the
+markdown + files beside it carry everything human-meaningful. App-internal by nature (document, don't
+pretend): word-timing JSON (karaoke), voice embeddings, sync/provenance state; locked notes stay out of
+the plaintext vault BY DESIGN.
+
+Already true today: one-way create-only publish into `<vault>/Skrift/` (`ObsidianPublisher`, sticky paths +
+hash idempotency + user-edit backoff); body syntax is portable markdown (tasks `- [ ]`, `[[Name]]` links,
+photo embeds); Mac polish auto-upgrades the export; speaker turns survive as `**Name:**` text.
+
+Export-completeness GAPS (2026-07-18 code check — the audit's starting list):
+1. **Attachments never reach the vault FROM THE PHONE** — phone publish writes ONLY the `.md`. The MAC
+   already does this right (`VaultExporter`): `.md` at vault root, audio → audio subfolder, images →
+   attachments subfolder (Settings: vault + "Audio subfolder"/"Voice Memos" + "Attachments subfolder"/
+   "Attachments"), `[[img_NNN]]` → `![[<title>_NNN.ext]]` embeds. So this is a PHONE-PARITY chunk, and the
+   Mac's settings model + embed-naming scheme is the prior art — phone must converge on the SAME filenames
+   so both devices publishing one memo don't fork. Tuur 2026-07-18: ✅ wanted; **brainstorm session owed on
+   the phone mechanics** (subfolder scheme, audio-by-default or not, security-scoped copy costs, idempotency
+   for binaries).
+2. **Location coordinates dropped** — frontmatter carries placeName only (`MemoExporter.compilerMetadata`
+   AND desktop path); a place note loses its pin outside the app. Direct dependency of the 📍 place-notes
+   direction above.
+3. **YAML carries ALL metadata — Tuur decision 2026-07-18** ("even steps if we want to" — steps ALREADY
+   exports, Compiler.swift:104 😄). In today: title/date/author/source/people/book·bookAuthor·chapter/url/
+   location(name)/weather/pressure+trend/dayPeriod/daylight/steps/tags/significance/summary. To ADD:
+   lat/lon, duration, createdAt/editedAt, remindAt. Stays internal: sync/provenance state, confidence,
+   OCR text (derived; revisit if search-outside-app matters).
+4. **Audiobooks — export the USER'S layer, not the book** (answer to "what of the book do we need?"):
+   quote captures already export as memos with book frontmatter ✓; **bookmarks don't** (per-book
+   `bookmarks.json` — position markers by design, `Bookmark.swift`) — export them into a **per-book index
+   note** ("Book — Author.md": book frontmatter, bookmark list ch·timestamp, links to that book's capture
+   notes) = the vault face of the roadmap **Commonplace Book** node. NOT exported by default: the audio
+   (user's imported property, huge), the whole-book transcript (derived, bulk — on-demand at most),
+   positions/detected chapters (ephemeral/app data).
+5. No completeness surface — nothing answers "is my vault a full mirror?" (published/skipped/backed-off counts).
+
+First chunk when picked up: field-by-field audit table (→ lands in frontmatter / body / file beside /
+app-internal-documented), then phone attachments-parity + lat/lon frontmatter. New frontmatter keys =
+contract change → mirror phone `MemoExporter` + Mac `Compiler` in the same pass (no drift).
+
+## 🐛 List thumbnail stale after deleting photos (reported 2026-07-18, ✅ FIXED same day — branch `claude/note-thumbnail-update-bug-tuhrp3`)
+
+Repro: record with several photos → row thumb = first photo; delete the first photo(s) in the editor →
+thumb stays the DELETED photo. Cause: deleting a photo removes its `[[img_NNN]]` marker from the body but
+never its manifest entry (markers are 1-based indexes into the manifest — pruning would renumber every later
+marker on both apps), and the row blindly showed `imageManifest.first`. Fix: new `Memo.thumbnailPhotoFilename`
+(MemoDisplay.swift) = first marker in BODY order that resolves; all markers deleted → no thumb; marker-less
+bodies keep manifest-first (share captures render off-manifest, pending/failed transcriptions have no body
+yet). Row tile + `hasPhoto` + the "Has photos" filter all ride it (MemosListView). 8 unit tests added
+(MemoModelTests). **OWED (written on Linux, no Mac to build): iPhone 17 sim `xcodebuild test` + a device
+eyeball of the repro** — delete photos 1–2 of 3, row should show photo 3; delete all → no tile.
+
 ## ⚡ Perf + reliability audit — 2026-07-16 (5-lane Sonnet sweep, top claims Fable-verified in code; UNBUILT unless ticked)
 
 Wide-net audit of both apps by area. Every item below was confirmed at the cited line, not inferred. Effort S/M per item. Lanes: recording+transcription, audiobooks, notes UI, sync spine, desktop.
