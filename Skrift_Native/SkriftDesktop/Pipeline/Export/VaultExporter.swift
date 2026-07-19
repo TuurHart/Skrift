@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Writes a compiled note to the Obsidian vault: the `.md` (frontmatter + body) at
 /// the vault root, the original audio into the audio subfolder, and any captured
@@ -149,7 +150,7 @@ enum VaultExporter {
             try? fm.createDirectory(at: attDir, withIntermediateDirectories: true)
             let dest = attDir.appendingPathComponent(newName)
             try? fm.removeItem(at: dest)
-            if (try? fm.copyItem(at: file, to: dest)) != nil { copied += 1 }
+            if loggedCopy(fm, from: file, to: dest) { copied += 1 }
             replacements.append((m.range, "![[\(newName)]]"))
         }
         var out = markdown
@@ -157,6 +158,17 @@ enum VaultExporter {
             out = (out as NSString).replacingCharacters(in: range, with: repl)
         }
         return (out, copied)
+    }
+
+    /// One attachment copy with the failure LOGGED — a `try?` here made a missing
+    /// attachment indistinguishable from success (the embed got written either way).
+    private static func loggedCopy(_ fm: FileManager, from src: URL, to dest: URL) -> Bool {
+        do { try fm.copyItem(at: src, to: dest); return true }
+        catch {
+            Logger(subsystem: "com.skrift.desktop", category: "export")
+                .error("attachment copy FAILED \(src.lastPathComponent, privacy: .public) — embed will dangle: \(error)")
+            return false
+        }
     }
 
     /// LEGACY (pre-Wave-2) captures: copy images from the capture's `images/` folder to
@@ -173,7 +185,7 @@ enum VaultExporter {
         for file in files {
             let dest = attDir.appendingPathComponent(file.lastPathComponent)
             try? fm.removeItem(at: dest)
-            if (try? fm.copyItem(at: file, to: dest)) != nil { copied += 1 }
+            if loggedCopy(fm, from: file, to: dest) { copied += 1 }
         }
         return (markdown, copied)
     }
@@ -199,7 +211,7 @@ enum VaultExporter {
             try? fm.createDirectory(at: attDir, withIntermediateDirectories: true)
             let dest = attDir.appendingPathComponent(name)
             try? fm.removeItem(at: dest)
-            if (try? fm.copyItem(at: src, to: dest)) != nil { copied += 1 }
+            if loggedCopy(fm, from: src, to: dest) { copied += 1 }
             replacements.append((m.range, "\(bang)[[\(name)]]"))
         }
         var out = markdown

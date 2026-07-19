@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 /// The reconcile loop for the Mac→CloudKit client (`MAC_CLOUDKIT_PLAN.md`, 8d): pull memos
 /// the phone synced over CloudKit into the local pipeline queue, so the Mac processes them
@@ -22,6 +23,7 @@ enum MemoCloudReconciler {
     struct SweepOutcome: Equatable {
         var created = 0
         var updatedIDs: [String] = []
+        var ingestFailures = 0
     }
 
     /// Sweep every `Memo` in `cloudContext` into `localContext` (the pipeline store): fetch each
@@ -67,9 +69,20 @@ enum MemoCloudReconciler {
                     && MemoPhotoMaterializer.materializeMissing(memo: memo, assets: assets, pf: pf)
                 if healed && !applied { pf.lastActivityAt = now }
                 if applied || healed { outcome.updatedIDs.append(pf.id) }
-            } else if (try? MemoCloudIngest.ingest(memo: memo, assets: assets, into: localContext,
-                                                   processEverything: processEverything)) != nil {
-                outcome.created += 1
+            } else {
+                // nil = gated/trashed (a legitimate no-op); a THROW is a real failure —
+                // previously `try?`-swallowed, making a memo that fails every sweep an
+                // invisible black hole. Count + name it for the reconcile summary.
+                do {
+                    if try MemoCloudIngest.ingest(memo: memo, assets: assets, into: localContext,
+                                                  processEverything: processEverything) != nil {
+                        outcome.created += 1
+                    }
+                } catch {
+                    outcome.ingestFailures += 1
+                    Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                        .error("ingest FAILED memo \(memo.id, privacy: .public): \(error)")
+                }
             }
         }
         return outcome

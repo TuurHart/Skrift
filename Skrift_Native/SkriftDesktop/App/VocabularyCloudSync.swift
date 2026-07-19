@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 /// Mac adapter for the shared `VocabularySyncCore` reconcile: the local store is
 /// `AppSettings.customVocabulary` (+ `customVocabularyModifiedAt`, the Mac's LWW stamp).
@@ -55,6 +56,10 @@ enum VocabularyCloudSync {
         case .pushedLocal, .noop:
             break
         }
-        try? context.save()
+        do { try context.save() }
+        catch {
+            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                .error("vocab sync save FAILED — carrier not persisted: \(error)")
+        }
     }
 }

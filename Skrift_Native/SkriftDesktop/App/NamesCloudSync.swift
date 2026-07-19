@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import os
 
 extension Notification.Name {
     /// Posted when a CloudKit names reconcile changes the local roster, so open UI (the
@@ -43,7 +44,11 @@ enum NamesCloudSync {
             delete: { context.delete($0) }) else { return false }
 
         if outcome.localChanged { _ = store.save(outcome.merged) }
-        try? context.save()
+        do { try context.save() }
+        catch {
+            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                .error("names sync save FAILED — carrier not persisted: \(error)")
+        }
         // Live-refresh any open Settings names list (the reconcile runs in the background
         // off a CloudKit import, so the view has no other way to know the roster changed).
         if outcome.localChanged { NotificationCenter.default.post(name: .namesDidChangeFromSync, object: nil) }

@@ -76,11 +76,15 @@ extension MemoCloudReconciler {
                             people: NamesStore.shared.livePeople(), author: settings.authorName,
                             thisDeviceID: DeviceID.current())
         Logger(subsystem: "com.skrift.desktop", category: "cloudkit").log(
-            "reconcile: ingested \(outcome.created, privacy: .public), reflected \(outcome.updatedIDs.count, privacy: .public)")
+            "reconcile: ingested \(outcome.created, privacy: .public), reflected \(outcome.updatedIDs.count, privacy: .public), ingest-failures \(outcome.ingestFailures, privacy: .public)")
         // A phone edit re-linked + recompiled an existing row (Part B). Persist it, and if it
         // was already in the vault, re-export so Obsidian reflects the edit too ("everywhere").
         if !outcome.updatedIDs.isEmpty {
-            try? local.save()
+            do { try local.save() }
+            catch {
+                Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                    .error("reconcile: reflect save FAILED — phone edits not persisted: \(error)")
+            }
             reexportEdited(outcome.updatedIDs, in: local, settings: settings)
         }
         return outcome.created
@@ -88,7 +92,7 @@ extension MemoCloudReconciler {
 
     /// Re-export the vault markdown for rows a phone edit just changed — but only those already
     /// exported (`.done`), so we never push an un-reviewed note into the vault. Best-effort:
-    /// an export failure is logged by the caller path, never fatal to the sweep.
+    /// a failed export is logged RIGHT HERE (nothing upstream logs it), never fatal to the sweep.
     private static func reexportEdited(_ ids: [String], in context: ModelContext, settings: AppSettings) {
         let files = (try? context.fetch(FetchDescriptor<PipelineFile>(
             predicate: #Predicate { ids.contains($0.id) }))) ?? []
@@ -97,11 +101,19 @@ extension MemoCloudReconciler {
         // Trashed rows are skipped too — a note the phone just binned must not be re-written into
         // the vault (a restore clears `deletedAt`, so it re-exports on the sweep that restores it).
         for pf in files where pf.exportStatus == .done && !pf.locked && pf.deletedAt == nil {
-            if let result = try? VaultExporter.export(pf, settings: settings) {
+            do {
+                let result = try VaultExporter.export(pf, settings: settings)
                 pf.exported = result.markdownURL.path
                 pf.lastActivityAt = Date()
+            } catch {
+                Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                    .error("re-export FAILED \(pf.id, privacy: .public) — vault now stale for this note: \(error)")
             }
         }
-        try? context.save()
+        do { try context.save() }
+        catch {
+            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                .error("re-export save FAILED: \(error)")
+        }
     }
 }
