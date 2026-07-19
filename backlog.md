@@ -2,16 +2,17 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
-## ⭐ CONTINUE HERE (2026-07-18, remote/Linux session → next LOCAL chat)
+## ⭐ CONTINUE HERE (2026-07-18 remote session; merged + sim-verified LOCALLY 2026-07-19)
 
-Session ran remotely (no Xcode) on branch `claude/note-thumbnail-update-bug-tuhrp3` — 4 commits, pushed.
-1. **Merge the branch into `main`** (trunk workflow), then **verify the thumbnail fix — UNVERIFIED**:
-   `xcodegen generate` + `xcodebuild test` (SkriftMobile, iPhone 17 sim; 8 new tests in MemoModelTests),
-   then device-eyeball the repro (3-photo memo: delete photos 1–2 in the editor → row thumb becomes photo 3;
-   delete all → tile disappears; share-capture + still-transcribing rows keep their thumbs).
-2. Then pick up the three 2026-07-18 sections below: 📤 exportability (attachments = phone-parity chunk,
-   brainstorm owed on phone mechanics; lat/lon frontmatter = small buildable chunk), 📍 place notes
-   (design session), 🐛 thumbnail (close after verify).
+Branch `claude/note-thumbnail-update-bug-tuhrp3` ✅ MERGED to main 2026-07-19 (conflict in this file
+resolved: 07-18 sections stacked above the ⚡ perf audit). Thumbnail fix ✅ SIM-VERIFIED: all 8 new
+MemoModelTests green, unit suite 742 green (19 UI-suite fails = the known iOS-26 cluster + a
+testmanagerd runner crash mass-kill — unrelated areas incl. Safari-ext/vocab; not this change).
+1. **Device eyeball owed (build 86)**: 3-photo memo → delete photos 1–2 in the editor → row thumb
+   becomes photo 3; delete all → tile disappears; share-capture + still-transcribing rows keep thumbs.
+2. Then pick a lane from the two 2026-07-18 sections below: 📤 exportability (attachments = phone-parity
+   chunk, brainstorm owed on phone mechanics; lat/lon frontmatter = small buildable chunk), 📍 place notes
+   (design session).
 
 ## 📍 Place notes with feeling — "the pin you actually act on" (Tuur direction 2026-07-18; NEEDS DESIGN SESSION before code)
 
@@ -95,8 +96,8 @@ marker on both apps), and the row blindly showed `imageManifest.first`. Fix: new
 (MemoDisplay.swift) = first marker in BODY order that resolves; all markers deleted → no thumb; marker-less
 bodies keep manifest-first (share captures render off-manifest, pending/failed transcriptions have no body
 yet). Row tile + `hasPhoto` + the "Has photos" filter all ride it (MemosListView). 8 unit tests added
-(MemoModelTests). **OWED (written on Linux, no Mac to build): iPhone 17 sim `xcodebuild test` + a device
-eyeball of the repro** — delete photos 1–2 of 3, row should show photo 3; delete all → no tile.
+(MemoModelTests). ✅ SIM-VERIFIED 2026-07-19 (all 8 green, unit suite 742 green). **OWED: device eyeball
+(build 86)** — delete photos 1–2 of 3, row should show photo 3; delete all → no tile.
 
 ## ⚡ Perf + reliability audit — 2026-07-16, VERIFIED 2026-07-19 (5 Sonnet lanes → 5 Opus falsifiers → Fable adjudication; UNBUILT unless ticked)
 
