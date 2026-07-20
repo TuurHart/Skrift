@@ -204,6 +204,15 @@ struct ConnectionsPanelBody: View {
     var onCollapse: () -> Void = {}
 
     @State private var hoveredRow: UUID?
+    /// Expanded past the top-`relatedKMac` cap ("Show all N"). Per-note — the
+    /// live wrapper re-ids the body on note switch.
+    @State private var showAll = false
+
+    /// What both modes actually list: capped to the closest `relatedKMac`
+    /// (earliest-guaranteed, see `RetrievalTuning.cappedRelated`) until expanded.
+    private var visibleRelated: [ConnectionRow] {
+        showAll ? related : RetrievalTuning.cappedRelated(related, date: \.date)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -264,10 +273,24 @@ struct ConnectionsPanelBody: View {
             }
             Text(sortByDate
                  ? "the arc of this idea · first mentioned \(Self.day(threadRows.first?.date))"
-                 : "best match first · odd matches sink to the bottom")
+                 : (visibleRelated.count < related.count
+                    ? "best match first · showing \(visibleRelated.count) of \(related.count)"
+                    : "best match first · odd matches sink to the bottom"))
                 .font(.system(size: 9.5)).foregroundStyle(Theme.textMuted)
                 .padding(.top, 4).padding(.bottom, 10)
             if sortByDate { rail } else { flatRows }
+            if related.count > RetrievalTuning.relatedKMac {
+                Button { showAll.toggle() } label: {
+                    Text(showAll ? "Show fewer" : "Show all \(related.count)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .padding(.vertical, 3)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, sortByDate ? 0 : 4)
+                .accessibilityIdentifier("connections-show-all")
+            }
         }
         .padding(.top, 2)
     }
@@ -301,7 +324,7 @@ struct ConnectionsPanelBody: View {
     }
 
     private var threadRows: [ThreadEntry] {
-        var entries = related.map { ThreadEntry(id: $0.id, row: $0, date: $0.date) }
+        var entries = visibleRelated.map { ThreadEntry(id: $0.id, row: $0, date: $0.date) }
         entries.append(ThreadEntry(id: UUID(), row: nil, date: currentDate))
         return entries.sorted { $0.date < $1.date }
     }
@@ -374,7 +397,7 @@ struct ConnectionsPanelBody: View {
 
     private var flatRows: some View {
         VStack(spacing: 6) {
-            ForEach(related) { row in
+            ForEach(visibleRelated) { row in
                 Button { onOpen(row.fileID) } label: {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
@@ -698,5 +721,6 @@ struct ConnectionsPanel: View {
             onHide: { model.hide($0, for: file) },
             onEnable: { ConnectionsIndexService.shared.enableAndDownload(ctx) },
             onCollapse: onCollapse)
+            .id(file.id)   // fresh body per note — resets the "Show all" expansion
     }
 }

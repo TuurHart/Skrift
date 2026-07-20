@@ -1181,6 +1181,14 @@ Aligns with the standing "push / pull-for-search" model. Roadmap node = a Huginn
 
 ### 🕸️ CONTINUE HERE — Connections SHIPPED (2026-07-16); 🧭 SharedKit wave 2 SHIPPED same evening (all 6 ranked items ✅ below + 2 clone-mode items; i10/MemoSaver items fold into their own lanes); STILL OWED: Tuur's Dev eyeball round (Dev at /Applications is ~10 commits behind — redeploy first: build → pkill → ditto → open), the phone device round (blocked on iPhone attached), and the 6 Palette DriftedPair reconciles (one eyeball round, then each collapse is a one-liner)
 
+**2026-07-20 (panel polish chat):** Tuur's eyeball caught the panel's hot borders — root cause:
+`Theme.hairline` (pure white) used at 0.25–0.6 where house/mock = 0.02–0.08; fixed (606dd35,
+before/after snapshot-verified). Same session: **top-K cap** — Mac showed EVERY ≥0.45 match
+(phone caps at 4; unbounded at corpus scale) → new `RetrievalTuning.cappedRelated` (shared,
+unit-tested): closest `relatedKMac`=7 shown, the genuinely EARLIEST match always swapped in so
+the Date rail's FIRST MENTION can't lie, "Show all N" expander (per-note reset), Closest
+subtitle → "showing 7 of N" when capped. Dev at /Applications redeployed this session.
+
 **SESSION-END STATE (2026-07-16 eve — all committed, main @ 522cae5, 31 local/unpushed):**
 - ✅ VERIFIED this session: shared index+embedder+gate (both unit suites green per chunk: 372 desktop /
   687 phone); full MLX desktop builds green; panel hostPNG fixture vision-checked; Tuur's LIVE Dev round:

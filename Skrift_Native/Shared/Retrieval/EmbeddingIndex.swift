@@ -28,6 +28,25 @@ enum RetrievalTuning {
     static let searchFloor: Float = 0.25
     static let relatedFloor: Float = 0.45
     static let relatedK = 4
+    /// Mac Connections panel: rows shown before "Show all N" (the phone's
+    /// related strip keeps `relatedK`).
+    static let relatedKMac = 7
+
+    /// The visible subset of a score-DESC related list: the top `cap` matches,
+    /// except the genuinely earliest row always makes the cut (swapped in for
+    /// the weakest) — the Date rail claims "first mentioned", and a cap must
+    /// not make that claim false. Order stays score-DESC; the swapped-in
+    /// earliest is by definition the weakest shown, so it lands last.
+    static func cappedRelated<Row>(_ rows: [Row], cap: Int = relatedKMac,
+                                   date: (Row) -> Date) -> [Row] {
+        guard cap > 0, rows.count > cap else { return rows }
+        var shown = Array(rows.prefix(cap))
+        if let earliestIdx = rows.indices.min(by: { date(rows[$0]) < date(rows[$1]) }),
+           earliestIdx >= cap {
+            shown[cap - 1] = rows[earliestIdx]
+        }
+        return shown
+    }
 }
 
 /// The retrieval index (P8): sweep-maintained embeddings + brute-force cosine

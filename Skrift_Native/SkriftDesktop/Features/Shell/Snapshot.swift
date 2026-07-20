@@ -58,6 +58,23 @@ enum Snapshot {
             ConnectionRow(id: UUID(), fileID: "d", title: "Greywater reuse idea",
                           date: days(-16), score: 0.49, importance: nil,
                           why: [ConnectionWhy(kind: .term, text: "water")]),
+            // Past the relatedKMac cap: 9 rows, and the EARLIEST is the WEAKEST
+            // match — proves the first-mention guarantee swaps it into the seven.
+            ConnectionRow(id: UUID(), fileID: "e", title: "Allotment daydream — the original spark",
+                          date: days(-260), score: 0.46, importance: nil,
+                          why: [ConnectionWhy(kind: .term, text: "garden")]),
+            ConnectionRow(id: UUID(), fileID: "f", title: "Balcony vs rooftop — where to build",
+                          date: days(-140), score: 0.58, importance: nil,
+                          why: [ConnectionWhy(kind: .tag, text: "#garden")]),
+            ConnectionRow(id: UUID(), fileID: "g", title: "Drip lines vs sprinkler heads",
+                          date: days(-33), score: 0.72, importance: 0.4,
+                          why: [ConnectionWhy(kind: .term, text: "drip"), ConnectionWhy(kind: .term, text: "irrigation")]),
+            ConnectionRow(id: UUID(), fileID: "h", title: "Compost bin placement",
+                          date: days(-90), score: 0.55, importance: nil,
+                          why: [ConnectionWhy(kind: .tag, text: "#garden")]),
+            ConnectionRow(id: UUID(), fileID: "i", title: "Rainwater capture maths",
+                          date: days(-70), score: 0.66, importance: 0.2,
+                          why: [ConnectionWhy(kind: .term, text: "water")]),
         ].sorted { $0.score > $1.score }
         let backlinks = [
             ConnectionBacklink(id: "x", title: "Weekend build plan", date: days(-11)),
@@ -75,10 +92,10 @@ enum Snapshot {
             panel(.gate, related: [], byDate: true)        // consent gate
             panel(.indexing(done: 34, total: 78), related: [], byDate: true)
         }
-        .frame(height: 640)
+        .frame(height: 860)
         .background(Theme.bg)
         .preferredColorScheme(.dark)
-        hostPNG(view, size: NSSize(width: 280 * 4 + 3, height: 640), to: path)
+        hostPNG(view, size: NSSize(width: 280 * 4 + 3, height: 860), to: path)
     }
 
     /// The `[[` memo-link picker popover, with injected candidates — the deterministic eyeball
