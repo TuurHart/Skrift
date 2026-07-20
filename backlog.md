@@ -8,10 +8,12 @@ Branch `claude/note-thumbnail-update-bug-tuhrp3` ✅ MERGED to main 2026-07-19 (
 resolved: 07-18 sections stacked above the ⚡ perf audit). Thumbnail fix ✅ SIM-VERIFIED: all 8 new
 MemoModelTests green, unit suite 742 green (19 UI-suite fails = the known iOS-26 cluster + a
 testmanagerd runner crash mass-kill — unrelated areas incl. Safari-ext/vocab; not this change).
-1. **Device eyeball owed (build 86 BUILT + nm-verified 2026-07-19, NOT yet installed — phone went
-   `unavailable` mid-session; unlock/replug, rebuild is a 2-min incremental)**: 3-photo memo → delete
-   photos 1–2 in the editor → row thumb becomes photo 3; delete all → tile disappears; share-capture +
-   still-transcribing rows keep thumbs.
+1. **Device eyeball owed — build 87 INSTALLED on the phone 2026-07-20** (supersedes 86; includes the
+   audit fix waves — one build serves BOTH rounds: this repro + AUDIT_FIX_TESTLIST's top-4 smoke).
+   Thumbnail repro: 3-photo memo → delete photos 1–2 in the editor → row thumb becomes photo 3; delete
+   all → tile disappears; share-capture + still-transcribing rows keep thumbs. (Audit waves verified
+   composed with this fix 2026-07-20: wave 2 rebuilt the row thumb ON `thumbnailPhotoFilename`;
+   718/718 unit green re-run independently at audit HEAD, all thumbnail tests in.)
 2. Then pick a lane from the two 2026-07-18 sections below: 📤 exportability (attachments = phone-parity
    chunk, brainstorm owed on phone mechanics; lat/lon frontmatter = small buildable chunk), 📍 place notes
    (design session).
