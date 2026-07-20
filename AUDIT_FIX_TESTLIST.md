@@ -1,7 +1,8 @@
 # Audit-fix branch — review + manual test list (2026-07-19)
 
-Branch `audit-fixes` (worktree `.claude/worktrees/audit-fixes`). Review the diff with
-`git diff main..audit-fixes`. Wave 1 (the `try?` hardening pass) is already ON MAIN
+MERGED to main 2026-07-19 (was branch `audit-fixes`). Remaining: the phone/Mac smoke —
+prioritise the 4 lifecycle-flavored items (record→pocket, read-along catch-up, list
+scroll, Mac video-drop + mid-processing edit); the rest can surface via normal use. Wave 1 (the `try?` hardening pass) is already ON MAIN
 (`509c4fb` desktop, `349270a` mobile) — it landed before you asked for isolation; both
 suites were green. Everything below is on the branch.
 

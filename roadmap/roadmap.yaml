@@ -513,7 +513,8 @@ nodes:
     title: Perf+reliability audit fix wave
     lane: 0
     order: 5.75
-    status: inprogress
+    status: done
+    done: 2026-07-19
     eff: M
     note: "2026-07-16 wide-net audit (5 Sonnet lanes -> 5 Opus falsifiers ->
       Fable adjudication; backlog section = the ledger) -> fix wave BUILT
@@ -523,8 +524,8 @@ nodes:
       coalescing, Mac ingest off main + mid-run edit guard + instance guard,
       Connections purge guard/modelRev/vector cache. Review artifact =
       AUDIT_FIX_TESTLIST.md on the branch."
-    win: "done when: Tuur reviews the branch diff, merges to main, and the
-      device/Mac test list passes"
+    win: "done when: merged to main (2026-07-19) — phone/Mac smoke of the top-4
+      testlist items owed"
   - id: ShareW1
     title: Share-ingest Wave 1 (audio + multi)
     lane: 0

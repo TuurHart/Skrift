@@ -103,7 +103,7 @@ yet). Row tile + `hasPhoto` + the "Has photos" filter all ride it (MemosListView
 
 ## ⚡ Perf + reliability audit — 2026-07-16, VERIFIED 2026-07-19 (5 Sonnet lanes → 5 Opus falsifiers → Fable adjudication; UNBUILT unless ticked)
 
-Wide-net audit of both apps by area; every item confirmed at the cited line. Verification tally: 33/41 confirmed as filed (several understated), 6 downgraded, 1 dropped, 2 corrected, 1 widened — all folded in below. Line numbers drift with ongoing work; items are mechanism-anchored. NEW unaudited surface since the sweep: Connections/retrieval stack (`Shared/Retrieval/` 6 files + `ConnectionsIndexService`) — auditor dispatched 2026-07-19 — findings in the subsection at the end. **FIX WAVE BUILT 2026-07-19 on branch `audit-fixes`** (worktree; Tuur review + device round owed; wave 1 landed on main directly). Ticked = fixed on that branch; review artifact = `AUDIT_FIX_TESTLIST.md` on the branch.
+Wide-net audit of both apps by area; every item confirmed at the cited line. Verification tally: 33/41 confirmed as filed (several understated), 6 downgraded, 1 dropped, 2 corrected, 1 widened — all folded in below. Line numbers drift with ongoing work; items are mechanism-anchored. NEW unaudited surface since the sweep: Connections/retrieval stack (`Shared/Retrieval/` 6 files + `ConnectionsIndexService`) — auditor dispatched 2026-07-19 — findings in the subsection at the end. **FIX WAVE MERGED TO MAIN 2026-07-19** (built on branch `audit-fixes`; Tuur-approved merge; phone/Mac smoke of the testlist top-4 owed). Ticked = fixed on that branch; review artifact = `AUDIT_FIX_TESTLIST.md` on the branch.
 
 **Cross-cutting theme — failures are invisible (`try?` everywhere on the write surface):**
 - [x] **P0 `NotesRepository.save()` = `try? context.save()`** (`SkriftMobile/Services/NotesRepository.swift:244`) — the ONE save path for every mobile write incl. the editor's debounced text commit; a throw = user edit silently lost. Log + surface on the editor path. S
@@ -157,7 +157,7 @@ Wide-net audit of both apps by area; every item confirmed at the cited line. Ver
 - Clean bills: engine lifecycle (load-once + 60s idle unload of the ~9GB weights), all Mac↔phone write-back LWW/echo guards, serial batch model, `RunReconciler` crash recovery.
 
 **⚡ Found during final verification (2026-07-19):**
-- [ ] **P1 `mlx-swift-lm` pinned to floating `branch: main`** (desktop `project.yml`) — a fresh checkout/worktree resolves today's upstream, which currently fails to compile against the resolved mlx-swift; the working Mac only builds off its cached resolution. Pin an exact revision (like FluidAudio's `7f963cdc`) — needs Tuur's pick of revision. S
+- [x] **P1 `mlx-swift-lm` pinned to floating `branch: main`** — PINNED a47894a1 on main 2026-07-19; (desktop `project.yml`) — a fresh checkout/worktree resolves today's upstream, which currently fails to compile against the resolved mlx-swift; the working Mac only builds off its cached resolution. Pin an exact revision (like FluidAudio's `7f963cdc`) — needs Tuur's pick of revision. S
 
 **⚡ Connections/retrieval surface (Sonnet audit 2026-07-19, built same day unless noted):**
 - [x] P1 empty-snapshot sweep wipes the whole embedding index on a failed fetch (`EmbeddingIndex.sweep` guard added)
