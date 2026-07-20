@@ -17,7 +17,7 @@ packages:
   # the downloader/tokenizer → swift-huggingface + swift-transformers integrations.
   mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm
-    branch: main
+    revision: a47894a1e7e963b24bd48c030f5fc1d1627e60e9  # pinned 2026-07-19 (was branch: main — upstream broke fresh checkouts vs resolved mlx-swift); the revision every green build ran
   swift-huggingface:
     url: https://github.com/huggingface/swift-huggingface
     from: "0.9.0"
