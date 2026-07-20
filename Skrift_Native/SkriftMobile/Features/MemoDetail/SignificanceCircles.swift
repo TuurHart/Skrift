@@ -14,7 +14,7 @@ extension SignificanceScale {
     static func syncCopy(forStep step: Int) -> String {
         if step == 0 { return "Not flagged — the Mac will leave it alone" }
         if isRefine(step: step) { return "Flagged for a refine pass" }
-        return "Flagged — the Mac will polish this"
+        return "Flagged — the Mac will process this"
     }
 }
 
