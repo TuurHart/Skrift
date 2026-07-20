@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unrated shelf — the notes the Mac isn't processing</title>
+<style>
+  :root{
+    --bg:#0F1117; --sidebar:#15171F; --surface:#181A23; --hover:#1E2130;
+    --text:#E4E4E7; --dim:#8B8B97; --mut:#55556A; --hairline:rgba(255,255,255,.07);
+    --accent:#7C6BF5; --green:#34D399; --amber:#F59E0B; --red:#EF4444;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0A0B10;color:var(--text);font:13px/1.45 -apple-system,'SF Pro Text',sans-serif;
+       padding:34px 40px 80px;}
+  h1{font-size:19px;margin-bottom:6px;}
+  .thesis{color:var(--dim);font-size:12.5px;max-width:900px;margin-bottom:10px;}
+  .v1{display:inline-block;font-size:11px;color:var(--amber);border:1px solid rgba(245,158,11,.35);
+      padding:3px 10px;border-radius:6px;margin-bottom:26px;}
+  .label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);
+         margin:34px 0 10px;}
+  .hint{color:var(--dim);font-size:12px;max-width:920px;margin-top:10px;}
+  .hint b{color:var(--text);}
+
+  /* ── mac frame (source: RootView → JournalView HStack{rail 252 | column}) ── */
+  .mac{width:1150px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;
+       box-shadow:0 24px 70px rgba(0,0,0,.5);}
+  .titlebar{height:34px;display:flex;align-items:center;padding:0 12px;background:var(--sidebar);
+            border-bottom:1px solid var(--hairline);}
+  .dot{width:11px;height:11px;border-radius:50%;margin-right:7px;}
+  .win{display:flex;height:600px;}
+  .rail{width:252px;background:rgba(21,23,31,.55);border-right:1px solid var(--hairline);
+        padding:14px;font-size:12px;color:var(--dim);display:flex;flex-direction:column;}
+
+  /* SurfaceSwitch — source: JournalView.swift:522 (Queue | Review, on = surface + shadow) */
+  .swch{display:flex;gap:3px;padding:3px;background:rgba(255,255,255,.05);border-radius:8px;
+        margin-bottom:16px;}
+  .swch div{flex:1;text-align:center;font-size:11.5px;font-weight:600;color:var(--mut);
+            padding:5px 0;border-radius:6px;}
+  .swch div.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.3);}
+
+  .mhead{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;
+         font-weight:700;color:var(--text);padding-bottom:8px;}
+  .mhead span{color:var(--mut);font-size:11px;font-weight:600;letter-spacing:2px;}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+  .grid i{height:19px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+          font-size:9.5px;color:var(--mut);font-style:normal;}
+  .grid i.has{color:var(--dim);}
+  .grid i.sel{background:rgba(124,107,245,.20);color:var(--text);}
+  .grid i b{display:block;width:3px;height:3px;border-radius:50%;background:var(--accent);
+            position:relative;top:6px;}
+
+  .plabel{font-size:10px;font-weight:600;letter-spacing:.5px;color:var(--mut);
+          padding:18px 0 6px 2px;}
+  .prow{display:flex;align-items:center;gap:6px;padding:5px 2px;font-size:12px;color:var(--dim);}
+  .prow em{width:9px;height:9px;border-radius:50%;border:2.5px solid var(--accent);
+           font-style:normal;flex:none;}
+  .prow .n{margin-left:auto;font-size:10.5px;color:var(--mut);}
+  .minimap{height:74px;border-radius:10px;margin-top:12px;border:1px solid rgba(255,255,255,.07);
+           background:linear-gradient(160deg,#1a1d29,#141620);position:relative;overflow:hidden;}
+  .minimap b{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--accent);
+             box-shadow:0 0 0 2px rgba(124,107,245,.25);}
+
+  /* shelf rows — source: JournalView.swift:145 shelfRow() */
+  .shelves-rail{margin-top:14px;display:flex;flex-direction:column;gap:2px;}
+  .shelfrow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);
+            padding:6px 8px;border-radius:7px;}
+  .shelfrow.on{background:rgba(124,107,245,.13);color:var(--text);}
+  .shelfrow .g{font-size:10px;width:13px;}
+  /* the ○ is a thin monochrome stroke — at the emoji's 10px it reads as a speck.
+     Sized up + brightened for equal presence; in the app this is the SF Symbol
+     "circle", not an emoji string (shelfRow takes a String glyph today). */
+  .shelfrow .g.ring{font-size:13px;color:var(--dim);line-height:1;}
+  .shelfrow .n{margin-left:auto;color:var(--mut);font-size:10.5px;}
+  .newring{outline:1px dashed rgba(245,158,11,.55);outline-offset:2px;}
+
+  /* ── column (source: FadingShelfColumn — padding 24/30, rows 760 max) ── */
+  .main{flex:1;padding:24px 30px;overflow:hidden;}
+  .chead{display:flex;align-items:center;gap:10px;max-width:760px;margin-bottom:10px;}
+  .chead h2{font-size:17px;font-weight:700;}
+  .chead .sp{flex:1;}
+  .back{font-size:11px;color:var(--mut);}
+  /* capsuleButton — source: FadingShelfColumn.swift:190 (accent text on accent@.12, capsule) */
+  .cap{font-size:11px;font-weight:600;color:var(--accent);background:rgba(124,107,245,.12);
+       padding:5px 12px;border-radius:999px;white-space:nowrap;}
+  .cap.prom{background:var(--accent);color:#fff;}
+  .csub{font-size:12px;color:var(--dim);max-width:660px;margin-bottom:14px;}
+
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+        padding:11px 16px;margin-bottom:9px;max-width:760px;display:flex;align-items:center;gap:14px;}
+  .card .body{flex:1;min-width:0;}
+  .card h3{font-size:13px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;
+           text-overflow:ellipsis;}
+  .card .meta{font-size:10.5px;color:var(--mut);display:flex;gap:10px;}
+  .fadein{font-size:10.5px;color:var(--amber);white-space:nowrap;}
+  .fadein.soon{color:var(--red);}
+  .held{font-size:10.5px;color:var(--mut);white-space:nowrap;}
+  .footline{font-size:11px;color:var(--mut);max-width:760px;margin-top:14px;}
+
+  /* tier chips — TEXT, never circles (the 10-circle control is the only circle idiom) */
+  .tiers{display:flex;gap:5px;}
+  .tier{font-size:10.5px;font-weight:600;color:var(--dim);background:rgba(255,255,255,.05);
+        border:1px solid var(--hairline);padding:4px 9px;border-radius:7px;white-space:nowrap;}
+  .tier.a{color:var(--accent);border-color:rgba(124,107,245,.4);}
+
+  .row2{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;}
+  .opt{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:14px 16px;
+       width:560px;}
+  .opt h4{font-size:12.5px;margin-bottom:3px;}
+  .opt p{font-size:11.5px;color:var(--dim);margin-bottom:12px;}
+  .opt .card{margin-bottom:0;max-width:none;}
+  .verdict{font-size:11px;margin-top:11px;padding-top:10px;border-top:1px solid var(--hairline);
+           color:var(--dim);}
+  .verdict b{color:var(--green);}
+  .verdict.no b{color:var(--red);}
+
+  .decis{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+         padding:16px 20px;max-width:940px;margin-bottom:6px;font-size:12.5px;color:var(--dim);}
+  .decis b{color:var(--text);}
+  .decis li{margin:5px 0 5px 18px;}
+  .decis .q{color:var(--amber);font-weight:600;}
+</style>
+</head>
+<body>
+
+<h1>The Unrated shelf — the notes the Mac isn’t processing</h1>
+<p class="thesis">The Mac only pulls a memo into the queue when you’ve rated it (<code>MemoCloudIngest</code>
+skips significance&nbsp;0). Everything else syncs down and sits there <b>invisible</b> — which is how a note
+recorded on the phone can be “missing” on the Mac. This adds a third shelf next to Fading and Recently Deleted,
+using the same idiom: one row, one count, one click. Rating from here does <b>double duty</b> — it queues the
+note for processing <i>and</i> rescues it from fading, because <code>significance&nbsp;&gt;&nbsp;0</code> is
+both the process gate and the first touch signal in <code>MemoLifecycle.isTouched</code>.</p>
+<span class="v1">mock v1 · awaiting sign-off — drawn from source (JournalView / FadingShelfColumn / Palette), not from earlier mocks</span>
+
+<!-- ══════════════════ m1 ══════════════════ -->
+<div class="label" id="m1">#m1 · the rail — a third shelf row, nothing else moves</div>
+<div class="mac">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div>
+    <div class="dot" style="background:#28C840"></div>
+  </div>
+  <div class="win">
+    <div class="rail">
+      <div class="swch"><div>Queue</div><div class="on">Review</div></div>
+      <div class="mhead">July 2026 <span>‹ ›</span></div>
+      <div class="grid">
+        <i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i><i>S</i>
+        <i class="has">13<b></b></i><i>14</i><i class="has">15<b></b></i><i class="has">16<b></b></i>
+        <i class="has">17<b></b></i><i>18</i><i>19</i>
+        <i class="sel">20<b></b></i><i>21</i><i>22</i><i>23</i><i>24</i><i>25</i><i>26</i>
+      </div>
+      <div class="plabel">PLACES</div>
+      <div class="prow"><em></em>Benfica<span class="n">14</span></div>
+      <div class="prow"><em></em>Alcântara<span class="n">6</span></div>
+      <div class="prow"><em></em>Cais do Sodré<span class="n">3</span></div>
+      <div class="minimap">
+        <b style="left:64px;top:26px"></b><b style="left:96px;top:40px"></b><b style="left:130px;top:22px"></b>
+      </div>
+      <div class="shelves-rail">
+        <div class="shelfrow newring"><span class="g ring">○</span>Unrated<span class="n">23</span></div>
+        <div class="shelfrow"><span class="g" style="color:var(--amber)">🍂</span>Fading<span class="n">8</span></div>
+        <div class="shelfrow"><span class="g">🗑</span>Recently Deleted<span class="n">2</span></div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="chead"><h2>Review</h2></div>
+      <p class="csub">As your notes age, past thinking resurfaces here — a month ago, a year ago, on this day.</p>
+      <div class="card">
+        <div class="body"><h3>Hey, this name is Harry, what’s going on?</h3>
+          <div class="meta"><span>17 Jul</span><span>Benfica</span><span>0:05</span></div></div>
+        <span class="held">0.8 · Important</span>
+      </div>
+      <div class="card">
+        <div class="body"><h3>Finding Purpose: Gravitating toward the work</h3>
+          <div class="meta"><span>16 Jul</span><span>Alcântara</span><span>3:41</span></div></div>
+        <span class="held">0.5 · Useful</span>
+      </div>
+      <div class="card">
+        <div class="body"><h3>We’re gonna do all these little tests</h3>
+          <div class="meta"><span>15 Jul</span><span>Benfica</span><span>1:12</span></div></div>
+        <span class="held">0.3 · Passing</span>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint">The dashed ring is just this mock pointing at what’s new. <b>The row appears in the same
+place, with the same shape, as the two shelves you already shipped</b> — and like them it only renders when
+non-empty. Unlike them it will usually be non-empty, which is the honest signal: unrated <i>is</i> the
+default state of a new note. Nothing auto-opens; the column stays on Review until you click.</p>
+
+<!-- ══════════════════ m2 ══════════════════ -->
+<div class="label" id="m2">#m2 · the shelf open — what the Mac is ignoring, and what it costs</div>
+<div class="mac">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div>
+    <div class="dot" style="background:#28C840"></div>
+  </div>
+  <div class="win">
+    <div class="rail">
+      <div class="swch"><div>Queue</div><div class="on">Review</div></div>
+      <div class="mhead">July 2026 <span>‹ ›</span></div>
+      <div class="grid">
+        <i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i><i>S</i>
+        <i class="has">13<b></b></i><i>14</i><i class="has">15<b></b></i><i class="has">16<b></b></i>
+        <i class="has">17<b></b></i><i>18</i><i>19</i>
+        <i class="sel">20<b></b></i><i>21</i><i>22</i><i>23</i><i>24</i><i>25</i><i>26</i>
+      </div>
+      <div class="plabel">PLACES</div>
+      <div class="prow"><em></em>Benfica<span class="n">14</span></div>
+      <div class="prow"><em></em>Alcântara<span class="n">6</span></div>
+      <div class="minimap">
+        <b style="left:64px;top:26px"></b><b style="left:96px;top:40px"></b><b style="left:130px;top:22px"></b>
+      </div>
+      <div class="shelves-rail">
+        <div class="shelfrow on"><span class="g ring">○</span>Unrated<span class="n">23</span></div>
+        <div class="shelfrow"><span class="g" style="color:var(--amber)">🍂</span>Fading<span class="n">8</span></div>
+        <div class="shelfrow"><span class="g">🗑</span>Recently Deleted<span class="n">2</span></div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="chead">
+        <h2>Unrated · 23 notes</h2>
+        <div class="sp"></div>
+        <span class="cap">Process all 23</span>
+        <span class="back">✕ Back</span>
+      </div>
+      <p class="csub">Synced here, but not in the queue — the Mac only processes notes you’ve rated.
+        Rate one and it joins the queue on the next sweep.</p>
+
+      <div class="card">
+        <div class="body"><h3>Alright let’s do a little test. Take a picture of this bed…</h3>
+          <div class="meta"><span>20 Jul</span><span>Benfica</span><span>0:11</span></div></div>
+        <span class="fadein">starts fading in 30 days</span>
+        <span class="cap">Process</span>
+      </div>
+      <div class="card">
+        <div class="body"><h3>Voice note</h3>
+          <div class="meta"><span>18 Jul</span><span>Cais do Sodré</span><span>2:47</span></div></div>
+        <span class="fadein">starts fading in 28 days</span>
+        <span class="cap">Process</span>
+      </div>
+      <div class="card">
+        <div class="body"><h3>Shopping list — garden centre</h3>
+          <div class="meta"><span>22 Jun</span><span>0:34</span></div></div>
+        <span class="fadein soon">starts fading in 2 days</span>
+        <span class="cap">Process</span>
+      </div>
+      <div class="card">
+        <div class="body"><h3>Thoughts on the ROS-LLM paper retry loop</h3>
+          <div class="meta"><span>28 Jun</span><span>Benfica</span><span>4:02</span></div></div>
+        <span class="held">tagged · won’t fade</span>
+        <span class="cap">Process</span>
+      </div>
+      <p class="footline">Rating a note flags it for processing <b>and</b> stops it fading — one action,
+        both effects. Notes you never rate fade after 30 days and clear themselves.</p>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>The fourth row is the honesty case.</b> That note is unrated but <i>tagged</i>, so
+<code>isTouched</code> is already true and it will never fade — showing it a “fades in N days” countdown
+would be false. It reads <b>“tagged · won’t fade”</b> instead. Same rule as the Connections panel’s
+first-mention flag: the shelf may not claim a deadline it can’t keep.<br><br>
+<b>Note the verb is “starts fading”, not “fades”.</b> The Fading shelf already uses “fades in N days” for the
+<i>60-day</i> move to Recently Deleted (<code>daysUntilSweep</code>); this shelf counts to the <i>30-day</i>
+moment a note lands on that shelf. Two different events — they must not share a phrase.</p>
+
+<!-- ══════════════════ m3 ══════════════════ -->
+<div class="label" id="m3">#m3 · the one decision — what does the row button actually set?</div>
+<div class="row2">
+  <div class="opt">
+    <h4>A · one button, minimum flag</h4>
+    <p>“Process” sets the lowest rating (0.1) — enough to pass the gate, no judgement put in your mouth.
+      Matches the Keep / Restore idiom exactly: one shelf, one verb.</p>
+    <div class="card">
+      <div class="body"><h3>Voice note</h3>
+        <div class="meta"><span>18 Jul</span><span>2:47</span></div></div>
+      <span class="fadein">starts fading in 28 days</span>
+      <span class="cap">Process</span>
+    </div>
+    <p class="verdict"><b>For:</b> one click, zero thinking, consistent with the other two shelves.
+      <b style="color:var(--red)">Against:</b> 0.1 is a real value on your scale — the queue now shows a
+      “Passing” note you never actually judged.</p>
+  </div>
+  <div class="opt">
+    <h4>B · pick the tier as you rescue it</h4>
+    <p>Three text chips using the real tier names (<code>tierName</code>: Passing / Useful / Important →
+      0.3 / 0.6 / 0.9). The full 10-step control still lives in the note itself.</p>
+    <div class="card">
+      <div class="body"><h3>Voice note</h3>
+        <div class="meta"><span>18 Jul</span><span>2:47</span></div></div>
+      <div class="tiers"><span class="tier a">Passing</span><span class="tier">Useful</span><span class="tier">Important</span></div>
+    </div>
+    <p class="verdict"><b>For:</b> the value you set is one you chose; triage and rating become one pass.
+      <b style="color:var(--red)">Against:</b> three targets per row is busier, and the shelf stops
+      matching the one-verb shape of Fading / Recently Deleted.</p>
+  </div>
+</div>
+<p class="hint"><b>Recommendation: A</b>, with the note’s own 10-circle control unchanged for when you
+actually care. The shelf’s job is “stop ignoring this”, not “grade this” — and 0.1 · Passing is an honest
+description of a note you rescued without reading. B is the better idea if you expect to rate most notes
+from this shelf rather than opening them. <span class="q">This is the pick I need from you.</span></p>
+
+<!-- ══════════════════ m4 ══════════════════ -->
+<div class="label" id="m4">#m4 · empty state — the shelf that should be able to disappear</div>
+<div class="mac" style="width:760px">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div>
+    <div class="dot" style="background:#28C840"></div>
+  </div>
+  <div class="win" style="height:220px">
+    <div class="main">
+      <div class="chead"><h2>Unrated · 0 notes</h2><div class="sp"></div><span class="back">✕ Back</span></div>
+      <p class="csub">Nothing is waiting. Every synced note has a rating, so the Mac is processing all of them.</p>
+      <p class="footline">The row disappears from the rail while this is true — same rule as Fading.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ decisions ══════════════════ -->
+<div class="label">decisions this mock is asking you to lock</div>
+<div class="decis">
+  <ul>
+    <li><b>Third shelf, not a new tab.</b> Unrated joins Fading + Recently Deleted in the Review rail, same
+      row shape, same count, same click-to-open. Nothing auto-opens.</li>
+    <li><b>Glyph <code>○</code></b> — an empty circle, echoing the unfilled significance circles. Fading keeps
+      🍂, Deleted keeps 🗑.</li>
+    <li><b>Membership = <code>significance == 0</code></b>, transcribed, not trashed — literally “what the
+      Mac’s gate is skipping”, not a second fading rule.</li>
+    <li><b>Fade countdown only when it’s true.</b> An unrated-but-touched note (tags, title, lock, reminder…)
+      shows “won’t fade” instead of a deadline it doesn’t have.</li>
+    <li><b>“Starts fading in N days”</b> — deliberately NOT the Fading shelf’s “fades in N days”, which already
+      means the 60-day trash move. Different event, different phrase.</li>
+    <li><b>“Process all N”</b> in the header, mirroring the Queue’s own Process button — the bulk escape
+      hatch, replacing the buried “Process every synced memo” setting as the thing you actually reach for.</li>
+    <li class="q">OPEN — the row action: <b>A</b> (one “Process” button → 0.1) or <b>B</b> (three tier chips
+      → 0.3 / 0.6 / 0.9). Recommendation: A.</li>
+  </ul>
+</div>
+<p class="hint">Everything above is drawn from the shipped source — rail width 252, shelf row padding 6/8 at
+radius 7, capsule buttons as accent-on-accent@12%, cards at 760 max on <code>--surface</code> with a 7%
+hairline. If any of it doesn’t match what you see in Skrift Dev, that’s a defect in the mock and I want to
+know before building.</p>
+
+</body>
+</html>
