@@ -53,7 +53,7 @@ final class QuoteCaptureSaveTests: XCTestCase {
         XCTAssertEqual(memo.recordedAt.timeIntervalSince1970,
                        capturedAt.timeIntervalSince1970, accuracy: 0.001)
         XCTAssertEqual(memo.audioFilename, "memo_\(id.uuidString).m4a")
-        XCTAssertEqual(memo.significance, 0, "unrated → stays on the phone until the circles are set")
+        XCTAssertEqual(memo.significance, 0, "unrated → the Mac skips it until the circles are set")
 
         // C2: book fields ride MemoMetadata.
         XCTAssertEqual(memo.metadata?.bookTitle, "The Beginning of Infinity")

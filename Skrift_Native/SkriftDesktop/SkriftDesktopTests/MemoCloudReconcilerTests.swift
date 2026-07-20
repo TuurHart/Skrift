@@ -45,7 +45,7 @@ final class MemoCloudReconcilerTests: XCTestCase {
         try cloud.save()
 
         let created = MemoCloudReconciler.sweep(from: cloud, into: local, processEverything: false).created
-        XCTAssertEqual(created, 2, "two rated memos ingest; the significance-0 one stays on the phone")
+        XCTAssertEqual(created, 2, "two rated memos ingest; the significance-0 one syncs but is skipped")
         XCTAssertEqual(pipelineCount(local), 2)
     }
 

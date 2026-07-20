@@ -125,7 +125,7 @@ final class MemoCloudIngestTests: XCTestCase {
         let ctx = try memoryContext()
         XCTAssertNil(try MemoCloudIngest.ingest(memo: memo, assets: [audioAsset(memo)],
                                                 upload: UploadService(outputDir: tempDir()), into: ctx),
-                     "significance 0 stays on the phone")
+                     "significance 0 syncs but never enters the queue")
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<PipelineFile>()), 0)
     }
 

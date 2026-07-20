@@ -7,12 +7,14 @@ import SwiftUI
 // scale gates phone→Mac sync and must never drift. Only the phone-specific
 // flag-to-send microcopy lives here, next to the view that shows it.
 extension SignificanceScale {
-    /// Flag-to-send microcopy: 0 = stays on the phone, >0 = syncs, 0.8+ =
-    /// syncs + flagged for a refine pass.
+    /// Flag-to-process microcopy. CloudKit mirrors EVERY memo regardless of
+    /// rating — what the rating gates is the Mac's pipeline pickup
+    /// (`MemoCloudIngest`): 0 = the Mac ignores it, >0 = polish, 0.8+ =
+    /// polish + refine pass. The copy must not claim sync behavior.
     static func syncCopy(forStep step: Int) -> String {
-        if step == 0 { return "Stays on this phone — rate to flag for sync" }
-        if isRefine(step: step) { return "Will sync · flagged for a refine pass" }
-        return "Will sync to the Mac"
+        if step == 0 { return "Not flagged — the Mac will leave it alone" }
+        if isRefine(step: step) { return "Flagged for a refine pass" }
+        return "Flagged — the Mac will polish this"
     }
 }
 
@@ -191,7 +193,7 @@ struct SignificanceCircles: View {
             .frame(width: width)
     }
 
-    /// Flag-to-send: 0 = stays on the phone, >0 = syncs, 0.8+ = syncs + refine flag.
+    /// Flag-to-process: 0 = the Mac ignores it, >0 = polish, 0.8+ = refine flag.
     private var syncLine: some View {
         HStack(spacing: 6) {
             if isRefine {

@@ -70,14 +70,15 @@ final class SignificanceCirclesTests: XCTestCase {
         XCTAssertTrue(SignificanceScale.isRefine(step: 10))
     }
 
-    // MARK: flag-to-send microcopy
+    // MARK: flag-to-process microcopy (CloudKit syncs everything — the rating
+    // gates the Mac's pipeline pickup, and the copy must not claim sync)
 
     func testSyncCopy() {
         XCTAssertEqual(SignificanceScale.syncCopy(forStep: 0),
-                       "Stays on this phone — rate to flag for sync")
-        XCTAssertEqual(SignificanceScale.syncCopy(forStep: 1), "Will sync to the Mac")
-        XCTAssertEqual(SignificanceScale.syncCopy(forStep: 7), "Will sync to the Mac")
+                       "Not flagged — the Mac will leave it alone")
+        XCTAssertEqual(SignificanceScale.syncCopy(forStep: 1), "Flagged — the Mac will polish this")
+        XCTAssertEqual(SignificanceScale.syncCopy(forStep: 7), "Flagged — the Mac will polish this")
         XCTAssertEqual(SignificanceScale.syncCopy(forStep: 8),
-                       "Will sync · flagged for a refine pass")
+                       "Flagged for a refine pass")
     }
 }

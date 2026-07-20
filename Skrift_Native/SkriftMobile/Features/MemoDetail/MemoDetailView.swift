@@ -810,7 +810,7 @@ private struct MemoPageView: View {
 
             // The 10-circle significance control (SignificanceCircles.swift —
             // mocks/significance-circles.html): tap circle N → 0.N, re-tap →
-            // Not rated. Flag-to-send: 0 stays on the phone, >0 syncs.
+            // Not rated. Flag-to-process: 0 = the Mac ignores it, >0 = polish.
             SignificanceCircles(value: $memo.significance) {
                 repository.save()
                 // Print-to-wall: an orange-tier rating enqueues a card (once, ever).

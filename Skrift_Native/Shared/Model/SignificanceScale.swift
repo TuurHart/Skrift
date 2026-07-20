@@ -3,7 +3,8 @@ import Foundation
 /// The 10-step importance scale behind both apps' circle controls
 /// (`mocks/significance-circles.html` — desktop card + iOS panel). ONE copy for
 /// both apps: the scale is contract semantics, not UI — `significance` gates
-/// phone→Mac sync (flag-to-send: 0 stays on the phone, > 0 syncs) and the same
+/// the Mac's pipeline pickup (flag-to-process: CloudKit syncs every memo, but
+/// `MemoCloudIngest` skips 0 — the Mac only polishes rated ones) and the same
 /// 0.1-grid value round-trips through `Memo.significance` ↔
 /// `PipelineFile.significance`, so the grid, tier boundaries (0.4 / 0.7) and
 /// the 0.8 refine wall must never drift between the apps. (They did once:

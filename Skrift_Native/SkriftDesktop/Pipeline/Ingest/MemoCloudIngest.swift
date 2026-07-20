@@ -26,7 +26,7 @@ enum MemoCloudIngest {
     ///
     /// `processEverything` is the 8d opt-in override for the "process every synced memo,
     /// not just significance > 0" Mac setting; the default preserves the phone's
-    /// flag-to-send intent (`significance > 0` only — `0` stays on the phone).
+    /// flag-to-process intent (`significance > 0` only — `0` is synced but skipped).
     @discardableResult
     static func ingest(memo: Memo, assets: [MemoAsset],
                        upload: UploadService = UploadService(),
@@ -34,7 +34,8 @@ enum MemoCloudIngest {
                        processEverything: Bool = false) throws -> PipelineFile? {
         // Trashed memos never process (the phone hid them; mirror the HTTP list filter).
         guard memo.deletedAt == nil else { return nil }
-        // Flag-to-send: significance 0 stays on the phone (unless the Mac opts into all).
+        // Flag-to-process: significance 0 is synced but never enters the queue
+        // (unless the Mac opts into all).
         guard processEverything || memo.significance > 0 else { return nil }
 
         let id = memo.id.uuidString
