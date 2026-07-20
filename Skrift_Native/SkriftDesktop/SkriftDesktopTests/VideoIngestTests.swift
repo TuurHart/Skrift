@@ -39,7 +39,7 @@ final class VideoIngestTests: XCTestCase {
         XCTAssertNil(IngestService.parseISODate("not a date"))
     }
 
-    func testHasVideoTrackFalseForAudioOnly() throws {
+    func testHasVideoTrackFalseForAudioOnly() async throws {
         // An audio-only m4a: no video track → falls through to plain-audio ingest.
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let audioURL = work.appendingPathComponent("voice.m4a")
@@ -49,20 +49,20 @@ final class VideoIngestTests: XCTestCase {
 
     // MARK: - End-to-end (real generated video)
 
-    func testHasVideoTrackTrueForRealVideo() throws {
+    func testHasVideoTrackTrueForRealVideo() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("clip.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true)
         XCTAssertTrue(IngestService.hasVideoTrack(videoURL))
     }
 
-    func testExtractAudioFromVideoProducesPlayableM4A() throws {
+    func testExtractAudioFromVideoProducesPlayableM4A() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("clip.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true)
 
         let out = work.appendingPathComponent("original.m4a")
-        try IngestService.extractAudioSync(from: videoURL, to: out)
+        try await IngestService.extractAudio(from: videoURL, to: out)
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: out.path))
         // The extracted file has an audio track and no video track.
@@ -71,18 +71,21 @@ final class VideoIngestTests: XCTestCase {
         XCTAssertTrue(asset.tracks(withMediaType: .video).isEmpty, "extracted m4a should have no video")
     }
 
-    func testExtractAudioThrowsForVideoWithoutAudio() throws {
+    func testExtractAudioThrowsForVideoWithoutAudio() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let videoURL = work.appendingPathComponent("silent.mov")
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: false)
 
         let out = work.appendingPathComponent("original.m4a")
-        XCTAssertThrowsError(try IngestService.extractAudioSync(from: videoURL, to: out)) { error in
+        do {
+            try await IngestService.extractAudio(from: videoURL, to: out)
+            XCTFail("expected noAudioTrack to throw")
+        } catch {
             XCTAssertEqual(error as? IngestService.VideoIngestError, .noAudioTrack)
         }
     }
 
-    func testIngestVideoCreatesAudioPipelineFileWithFilenameDate() throws {
+    func testIngestVideoCreatesAudioPipelineFileWithFilenameDate() async throws {
         // A synthetic AVAssetWriter .mov is auto-stamped with an embedded creation date
         // (now) that correctly wins over the filename, so we assert the filename-date
         // FALLBACK helper directly below — the path real videos lacking metadata use.
@@ -91,7 +94,7 @@ final class VideoIngestTests: XCTestCase {
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true, creationDate: nil)
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [videoURL], into: ctx)
 
         XCTAssertEqual(created.count, 1)
@@ -106,7 +109,7 @@ final class VideoIngestTests: XCTestCase {
         XCTAssertEqual([ymd.year, ymd.month, ymd.day], [2025, 12, 18])
     }
 
-    func testIngestVideoUsesEmbeddedRecordingDate() throws {
+    func testIngestVideoUsesEmbeddedRecordingDate() async throws {
         // An embedded creation date wins over the filename / filesystem date.
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let embedded = ISO8601DateFormatter().date(from: "2023-07-04T09:30:00Z")!
@@ -119,13 +122,13 @@ final class VideoIngestTests: XCTestCase {
         XCTAssertEqual(readBack!.timeIntervalSince1970, embedded.timeIntervalSince1970, accuracy: 1.0)
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [videoURL], into: ctx)
         let pf = try XCTUnwrap(created.first)
         XCTAssertEqual(pf.uploadedAt.timeIntervalSince1970, embedded.timeIntervalSince1970, accuracy: 1.0)
     }
 
-    func testIngestVideoWritesThumbnailAndManifest() throws {
+    func testIngestVideoWritesThumbnailAndManifest() async throws {
         // Video ingest grabs ONE representative frame into `images/img_001.jpg` and
         // writes a phone-shaped `image_manifest.json` (offset 0) — so the existing
         // [[img_001]] marker pipeline renders + exports the frame.
@@ -134,7 +137,7 @@ final class VideoIngestTests: XCTestCase {
         try makeVideoFile(at: videoURL, seconds: 1.0, withAudio: true)
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [videoURL], into: ctx)
         let pf = try XCTUnwrap(created.first)
         let folder = URL(fileURLWithPath: pf.path).deletingLastPathComponent()
@@ -147,7 +150,7 @@ final class VideoIngestTests: XCTestCase {
         XCTAssertEqual(entries, [ImageManifestEntry(filename: "img_001.jpg", offsetSeconds: 0)])
     }
 
-    func testThumbnailFailureDoesNotFailIngest() throws {
+    func testThumbnailFailureDoesNotFailIngest() async throws {
         // A video whose frame can't be grabbed still ingests its audio (the thumbnail
         // is best-effort and logged) — exercised via the helper on a non-video file.
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }

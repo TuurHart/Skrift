@@ -44,6 +44,20 @@ actor EmbeddingIndex {
     private let engine: EmbeddingEngine
     private lazy var context = ModelContext(store.container)
 
+    /// Decoded query vectors, rebuilt lazily after any sweep write — every query
+    /// used to re-fetch the whole store AND re-decode each row's Data blob
+    /// (JournalHome's then-vs-now alone did 6 full passes per appearance).
+    private var vectorCache: [UUID: [(chunkIndex: Int, modelRev: String, floats: [Float])]]?
+
+    private func vectors() throws -> [UUID: [(chunkIndex: Int, modelRev: String, floats: [Float])]] {
+        if let hit = vectorCache { return hit }
+        let built = try groupedRows().mapValues { rows in
+            rows.map { (chunkIndex: $0.chunkIndex, modelRev: $0.modelRev, floats: $0.floats) }
+        }
+        vectorCache = built
+        return built
+    }
+
     init(store: EmbeddingStore, engine: EmbeddingEngine) {
         self.store = store
         self.engine = engine
@@ -59,8 +73,19 @@ actor EmbeddingIndex {
     func sweep(_ snapshots: [MemoSnapshot],
                onProgress: (@Sendable (Int, Int) -> Void)? = nil) async throws -> SweepStats {
         var stats = SweepStats()
+        // Any sweep can mutate rows — drop the query cache now AND on exit so
+        // mid-sweep queries read live state and post-sweep queries rebuild.
+        vectorCache = nil
+        defer { vectorCache = nil }
         let existing = try groupedRows()
         var seen = Set<UUID>()
+
+        // Callers hand us [] when their memo fetch FAILED (the `try? … ?? []`
+        // idiom) — indistinguishable from "no memos exist". Treating it as the
+        // latter would orphan-purge the whole index and silently re-pay the
+        // cold-start + full re-embed. A truly empty library has an empty index
+        // anyway, so skipping the sweep is always safe here.
+        if snapshots.isEmpty, !existing.isEmpty { return stats }
 
         for (i, snap) in snapshots.enumerated() {
             defer { onProgress?(i + 1, snapshots.count) }
@@ -118,8 +143,9 @@ actor EmbeddingIndex {
     /// Memos ranked against a memo's gist vector — powers Related and (sorted by
     /// date, floor-gated) Threads.
     func related(to memoID: UUID) throws -> [(memoID: UUID, score: Float)] {
-        let rows = try groupedRows()
-        guard let gist = rows[memoID]?.first(where: { $0.chunkIndex == 0 }) else { return [] }
+        guard let gist = try vectors()[memoID]?
+            .first(where: { $0.chunkIndex == 0 && $0.modelRev == engine.modelRev })
+        else { return [] }
         return try scores(against: gist.floats, excluding: memoID)
     }
 
@@ -131,7 +157,9 @@ actor EmbeddingIndex {
     /// Calibration sample: cosine over random distinct GIST pairs (up to
     /// `limit`) — the raw material for the floor histogram.
     func gistPairScores(limit: Int) throws -> [Float] {
-        let gists = try groupedRows().compactMap { $0.value.first { $0.chunkIndex == 0 }?.floats }
+        let gists = try vectors().compactMap {
+            $0.value.first { $0.chunkIndex == 0 && $0.modelRev == engine.modelRev }?.floats
+        }
         guard gists.count > 1 else { return [] }
         var out: [Float] = []
         out.reserveCapacity(limit)
@@ -145,9 +173,13 @@ actor EmbeddingIndex {
     }
 
     private func scores(against qv: [Float], excluding: UUID?) throws -> [(memoID: UUID, score: Float)] {
+        // Mid-migration (model-rev bump, sweep still re-embedding) the store holds
+        // MIXED-generation vectors; comparing across generations produces garbage
+        // rankings. Not-yet-migrated memos drop out of results ("not indexed yet")
+        // rather than scoring as fake zeros — the no-bad-info rule.
         var best: [UUID: Float] = [:]
-        for (memoID, rows) in try groupedRows() where memoID != excluding {
-            for row in rows {
+        for (memoID, rows) in try vectors() where memoID != excluding {
+            for row in rows where row.modelRev == engine.modelRev {
                 let s = RetrievalMath.dot(qv, row.floats)
                 if s > (best[memoID] ?? -1) { best[memoID] = s }
             }

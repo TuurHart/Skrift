@@ -158,6 +158,9 @@ struct MemosListView: View {
             // Round-3 evidence for "photo search finds nothing": per query,
             // how many memos match at all, and how many via photo OCR text —
             // separates 'Vision read nothing' from 'search doesn't match'.
+            // DEBUG-only: the photoHits corpus scan fed a log line that never
+            // prints in Release, but the scan itself ran there per keystroke.
+            #if DEBUG
             .onChange(of: search) { _, q in
                 let query = q.trimmingCharacters(in: .whitespaces).lowercased()
                 guard !query.isEmpty else { return }
@@ -168,6 +171,7 @@ struct MemosListView: View {
                 }.count
                 DevLog.log("search '\(query)' → \(filtered.count)/\(memos.count) hits, \(photoHits) via photoText")
             }
+            #endif
             .sheet(isPresented: $showSortFilter) {
                 SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
             }
@@ -227,6 +231,9 @@ struct MemosListView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 6)
 
+            // ONE derived pass for the whole body eval — the per-row flatIndex
+            // access used to re-run the entire filter+sort each time (O(N²)).
+            let d = derived
             // Native List → reliable swipe-to-delete (.swipeActions) + native
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
@@ -239,7 +246,7 @@ struct MemosListView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 8, trailing: 16))
-                ForEach(groups, id: \.title) { group in
+                ForEach(d.groups, id: \.title) { group in
                     Section {
                         ForEach(group.memos) { memo in
                             MemoRow(memo: memo) {
@@ -254,7 +261,7 @@ struct MemosListView: View {
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
-                                .accessibilityIdentifier("memo-row-\(flatIndex[memo.id] ?? 0)")
+                                .accessibilityIdentifier("memo-row-\(d.flatIndex[memo.id] ?? 0)")
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) { deleteMemo(memo) } label: {
                                         Label("Delete", systemImage: "trash")
@@ -301,7 +308,7 @@ struct MemosListView: View {
                             .foregroundStyle(Color.skTextDim)
                     }
                 }
-                if groups.isEmpty && relatedDisplay.isEmpty {
+                if d.groups.isEmpty && d.related.isEmpty {
                     Text("No matches")
                         .font(.subheadline)
                         .foregroundStyle(Color.skTextDim)
@@ -313,9 +320,9 @@ struct MemosListView: View {
                 // P8: semantic "Related" under the exact matches — appears only
                 // when the journal index is active (or -mockJournalIndex) and
                 // something clears the floor; passes the same filter sheet.
-                if !relatedDisplay.isEmpty {
+                if !d.related.isEmpty {
                     Section {
-                        ForEach(relatedDisplay) { memo in
+                        ForEach(d.related) { memo in
                             MemoRow(memo: memo) { path.append(memo.id) }
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
@@ -634,13 +641,23 @@ struct MemosListView: View {
         lifecycle.live.filter { matchesSearch($0) && matchesFilter($0) }.sorted(by: sortComparator)
     }
 
-    private var flatIndex: [UUID: Int] {
-        Dictionary(filtered.enumerated().map { ($0.element.id, $0.offset) }, uniquingKeysWith: { a, _ in a })
-    }
-
     private struct Group { let title: String; let memos: [Memo] }
 
-    private var groups: [Group] {
+    /// Everything the list body derives from one filter+sort pass. These were
+    /// separate computed properties, and the per-ROW `flatIndex` access re-ran
+    /// the whole filter+sort (metadata decodes included) once per visible row.
+    private struct Derived { let groups: [Group]; let flatIndex: [UUID: Int]; let related: [Memo] }
+
+    private var derived: Derived {
+        let f = filtered
+        return Derived(
+            groups: groups(from: f),
+            flatIndex: Dictionary(f.enumerated().map { ($0.element.id, $0.offset) },
+                                  uniquingKeysWith: { a, _ in a }),
+            related: relatedDisplay(excluding: Set(f.map(\.id))))
+    }
+
+    private func groups(from filtered: [Memo]) -> [Group] {
         if sort == .longest {
             return filtered.isEmpty ? [] : [Group(title: "Longest first", memos: filtered)]
         }
@@ -664,9 +681,8 @@ struct MemosListView: View {
 
     /// The rendered Related section: raw semantic hits minus exact matches,
     /// passed through the same filter sheet as everything else.
-    private var relatedDisplay: [Memo] {
+    private func relatedDisplay(excluding exact: Set<UUID>) -> [Memo] {
         guard !related.isEmpty else { return [] }
-        let exact = Set(filtered.map(\.id))
         return related.filter { !exact.contains($0.id) && matchesFilter($0) }
     }
 
@@ -1009,8 +1025,11 @@ private struct MemoCard: View {
     }
 
     @ViewBuilder private var photoThumb: some View {
+        // Downsampled + cached decode (MemoImageLoader is the "600× with a
+        // picture" fix from the editor) — a full-res UIImage here decoded the
+        // whole photo at compositing time for a 48pt tile, per row, uncached.
         if let filename = memo.thumbnailPhotoFilename,
-           let img = UIImage(contentsOfFile: AppPaths.recordingsDirectory.appendingPathComponent(filename).path) {
+           let img = MemoImageLoader.thumbnail(at: AppPaths.recordingsDirectory.appendingPathComponent(filename), maxWidth: 96) {
             Image(uiImage: img).resizable().scaledToFill()
                 .frame(width: 48, height: 48)
                 .clipShape(.rect(cornerRadius: 11, style: .continuous))

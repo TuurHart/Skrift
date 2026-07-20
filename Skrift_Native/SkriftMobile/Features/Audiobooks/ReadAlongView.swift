@@ -35,6 +35,18 @@ final class ReadAlongModel: ObservableObject {
         // (the view drives that on a wall-clock timer), instead of waiting for
         // playback to advance past a threshold (device bug 2026-06-13).
         guard fileIndex != loadedFileIndex || fileLocal > loadedUpTo || !covered else { return }
+        // Cheap frontier peek FIRST: while the playhead runs ahead of an active
+        // transcribe (the routine "the page catches up" state) this used to
+        // full-decode the growing sidecar at ~2Hz on the main actor. The cached
+        // frontier answers "still uncovered" for the cost of a stat().
+        if !covered, fileIndex == loadedFileIndex, let audioURL {
+            let sig = store.signature(forFileAt: audioURL)
+            let frontier = store.coveredUpTo(bookID: book.id, fileIndex: fileIndex, expectedSignature: sig)
+            if fileLocal > frontier + 0.05 {          // mirrors FileTranscript.isCovered
+                loadedUpTo = fileLocal + 2            // keep the existing re-check throttle
+                return
+            }
+        }
         loadedFileIndex = fileIndex
         if let audioURL,
            let ft = store.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),

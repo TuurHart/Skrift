@@ -28,6 +28,14 @@ final class CloudSyncMonitor: ObservableObject {
     /// thing SwiftData's auto-mirror couldn't give. Cleared when the transfer settles.
     @Published private(set) var bookTransfers: [UUID: AudiobookTransfer] = [:]
 
+    /// Books whose last sync hit a PERMANENT CloudKit error (iCloud full, signed
+    /// out): auto-retry is stopped and the sync sheet shows the reason. Cleared
+    /// when the user re-toggles sync for the book — an explicit "try again".
+    @Published private(set) var bookSyncFailures: [UUID: String] = [:]
+
+    func setBookSyncFailure(_ bookID: UUID, reason: String) { bookSyncFailures[bookID] = reason }
+    func clearBookSyncFailure(_ bookID: UUID) { bookSyncFailures.removeValue(forKey: bookID) }
+
     struct AudiobookTransfer: Equatable {
         enum Direction { case up, down }
         var direction: Direction
@@ -41,6 +49,7 @@ final class CloudSyncMonitor: ObservableObject {
 
     private var inFlight: Set<UUID> = []
     private var hideTask: Task<Void, Never>?
+    private var sweepTask: Task<Void, Never>?
     /// Per-book transfer epoch. CloudKit's progress callbacks fire off-main + out of
     /// order, so each is dispatched as an unstructured MainActor Task — a LATE one
     /// could otherwise re-populate `bookTransfers` after the transfer was cleared,
@@ -116,23 +125,38 @@ final class CloudSyncMonitor: ObservableObject {
             isSyncing = true
         }
         if importDone {
-            // Blobs/rows just arrived — write them to disk + converge names/vocab now.
-            AssetMaterializer.run(.shared)
-            PhotoTextIndexer.run(.shared)
-            ReminderScheduler.run(.shared)
-            NamesCloudSync.run(.shared)
-            VocabularyCloudSync.run(.shared)
-            // A synced audiobook that just arrived materializes here too (hands-off
-            // receive — no manual pull): the carrier's audioUploadedAt push triggers
-            // this import, and reconcile fetches the audio by id. No-op when nothing's
-            // synced; async (raw-CloudKit transfer) so it runs in a detached Task.
-            // Then adopt a newer resume position into an already-open (paused) session
-            // — fixes the cold-launch case where you opened the book before its newer
-            // position finished importing.
-            Task {
-                await AudiobookCloudSync.reconcile()
-                await MainActor.run { AudiobookSession.shared.adoptSyncedPosition() }
+            // COALESCED, like the hide above: import events land in bursts, and
+            // this used to run five full-library sweeps synchronously PER EVENT —
+            // an initial device sync meant dozens of back-to-back main-actor
+            // passes. One pending run, re-armed while events keep arriving.
+            sweepTask?.cancel()
+            sweepTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                self?.runImportSweeps()
             }
+        }
+    }
+
+    /// The post-import convergence pass: blobs to disk, names/vocab merge,
+    /// audiobook receive. Guarded + idempotent throughout, so one coalesced run
+    /// after a burst does exactly what N per-event runs did.
+    private func runImportSweeps() {
+        AssetMaterializer.run(.shared)
+        PhotoTextIndexer.run(.shared)
+        ReminderScheduler.run(.shared)
+        NamesCloudSync.run(.shared)
+        VocabularyCloudSync.run(.shared)
+        // A synced audiobook that just arrived materializes here too (hands-off
+        // receive — no manual pull): the carrier's audioUploadedAt push triggers
+        // this import, and reconcile fetches the audio by id. No-op when nothing's
+        // synced; async (raw-CloudKit transfer) so it runs in a detached Task.
+        // Then adopt a newer resume position into an already-open (paused) session
+        // — fixes the cold-launch case where you opened the book before its newer
+        // position finished importing.
+        Task {
+            await AudiobookCloudSync.reconcile()
+            await MainActor.run { AudiobookSession.shared.adoptSyncedPosition() }
         }
     }
 }

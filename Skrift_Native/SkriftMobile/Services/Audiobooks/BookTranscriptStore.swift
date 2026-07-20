@@ -38,6 +38,54 @@ struct BookTranscriptStore: Sendable {
         return "\(size):\(Int(mtime))"
     }
 
+    // MARK: - Frontier cache (cheap reads)
+
+    /// Process-wide (signature, frontier, word count) per sidecar, primed by
+    /// `load`/`save`. Lets the ~2Hz read-along tick and the per-chunk progress
+    /// publish ask "how far is this file transcribed?" without decoding the
+    /// whole word array every time. NSCache — thread-safe across the background
+    /// job and the main-actor players.
+    private final class Frontier: NSObject {
+        let signature: String
+        let covered: TimeInterval
+        let wordCount: Int
+        init(signature: String, covered: TimeInterval, wordCount: Int) {
+            self.signature = signature; self.covered = covered; self.wordCount = wordCount
+        }
+    }
+    private static let frontierCache = NSCache<NSString, Frontier>()
+    private static func frontierKey(_ id: UUID, _ fileIndex: Int) -> NSString {
+        "\(id.uuidString):\(fileIndex)" as NSString
+    }
+    private static func prime(_ ft: FileTranscript, bookID: UUID) {
+        frontierCache.setObject(
+            Frontier(signature: ft.signature, covered: ft.coveredUpTo, wordCount: ft.words.count),
+            forKey: frontierKey(bookID, ft.fileIndex))
+    }
+
+    /// Covered-up-to seconds for one file (0 when absent/stale) — cache-served;
+    /// one full decode primes a cold entry.
+    func coveredUpTo(bookID: UUID, fileIndex: Int, expectedSignature: String) -> TimeInterval {
+        frontier(bookID: bookID, fileIndex: fileIndex, expectedSignature: expectedSignature)?.covered ?? 0
+    }
+
+    /// Frontier + word count without the full decode on the cached path — the
+    /// cloud-sync change signature reads exactly these two scalars.
+    func frontierStats(bookID: UUID, fileIndex: Int,
+                       expectedSignature: String) -> (covered: TimeInterval, wordCount: Int)? {
+        guard let f = frontier(bookID: bookID, fileIndex: fileIndex,
+                               expectedSignature: expectedSignature) else { return nil }
+        return (f.covered, f.wordCount)
+    }
+
+    private func frontier(bookID: UUID, fileIndex: Int, expectedSignature: String) -> Frontier? {
+        if let hit = Self.frontierCache.object(forKey: Self.frontierKey(bookID, fileIndex)),
+           hit.signature == expectedSignature { return hit }
+        guard let ft = load(bookID: bookID, fileIndex: fileIndex,
+                            expectedSignature: expectedSignature) else { return nil }
+        return Frontier(signature: ft.signature, covered: ft.coveredUpTo, wordCount: ft.words.count)
+    }
+
     // MARK: - Load / save
 
     /// Load the sidecar for one file. Returns nil when missing, unreadable, of an
@@ -50,6 +98,7 @@ struct BookTranscriptStore: Sendable {
               ft.schema == FileTranscript.currentSchema,
               ft.signature == expectedSignature
         else { return nil }
+        Self.prime(ft, bookID: bookID)
         return ft
     }
 
@@ -61,6 +110,7 @@ struct BookTranscriptStore: Sendable {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(ft)
         try data.write(to: sidecarURL(bookID: bookID, fileIndex: ft.fileIndex), options: .atomic)
+        Self.prime(ft, bookID: bookID)
     }
 
     /// The freshest (staleness-checked) file transcript, or nil. Used by the
@@ -94,6 +144,11 @@ struct BookTranscriptStore: Sendable {
             at: folder, includingPropertiesForKeys: nil) else { return }
         for url in entries where url.lastPathComponent.hasPrefix("transcript_f") {
             try? FileManager.default.removeItem(at: url)
+            // Drop the frontier entry too — the AUDIO signature is unchanged, so
+            // a stale cache hit would otherwise keep answering "covered".
+            if let n = Int(url.deletingPathExtension().lastPathComponent.dropFirst("transcript_f".count)) {
+                Self.frontierCache.removeObject(forKey: Self.frontierKey(id, n))
+            }
         }
     }
 }

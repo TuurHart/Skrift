@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-18T02:10:00.000Z
+updated: 2026-07-19T10:45:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -171,40 +171,50 @@ nodes:
       moved to ONE compiled copy in Shared/ (the annotated 'mirrors the phone'
       duplicates had already drifted, e.g. the Mac's 'Significant' tier label).
     shipped:
-      - 2026-07-16 · WAVE 2f — NamesStore unified: ONE Shared/Naming class
+      - >-
+        2026-07-16 · WAVE 2f — NamesStore unified: ONE Shared/Naming class
         (desktop superset + phone convenience); phone editor saves via
         upsert(replacing:) like the Mac; phone gains (inert) seedRoster +
         tombstone pruning. WAVE 2 COMPLETE — every ranked twin-scan item
         closed, both suites + MLX build green throughout
-      - 2026-07-16 · WAVE 2e — engine contracts unified: ONE Transcribing +
+      - >-
+        2026-07-16 · WAVE 2e — engine contracts unified: ONE Transcribing +
         Diarizing protocol pair + result structs + pure clip/identify/cluster
         passes in Shared/Pipeline (embed-closure seam; FluidAudio stays in
         each app's engine layer). Mac gains force-to-N substrate; dead
         SpeakerVoiceStore (pre-pivot PCM enrollment, zero callers) deleted
-      - 2026-07-16 · WAVE 2d — person-editor semantics → ONE PersonEditCore
+      - >-
+        2026-07-16 · WAVE 2d — person-editor semantics → ONE PersonEditCore
         (Shared/Naming; 9 tests both suites). Fixes real drift: phone rename
         dropped voice enrollment; Mac allowed no-alias (never-linking) people;
         demo-line bold disagreed. Chrome stays per-platform
-      - 2026-07-16 · WAVE 2c — Theme palette hex values single-sourced
+      - >-
+        2026-07-16 · WAVE 2c — Theme palette hex values single-sourced
         (Shared/UI/Palette.swift; dyn wrappers stay per-app). Six
         already-drifted tokens surfaced as explicit DriftedPairs (reconcile
         = eyeball round); zero pixels changed — 6 desktop snapshot fixtures
         byte-identical pre/post
-      - 2026-07-16 · WAVE 2b — AppPaths merged to ONE Shared/Model file with
+      - >-
+        2026-07-16 · WAVE 2b — AppPaths merged to ONE Shared/Model file with
         platform sections (was two same-named types with different members);
         names.json literal single-sourced. Suites + MLX build green
-      - 2026-07-16 · WAVE 2a — SharedContent C3 wire struct unified →
+      - >-
+        2026-07-16 · WAVE 2a — SharedContent C3 wire struct unified →
         Shared/Model (typed enum both sides; goldens SharedContentParityTests
         in BOTH suites first; desktop's snake_case fallback found DEAD +
         deleted). Desktop 376 + mobile 691 + full MLX build green
-      - 2026-07-07 · SignificanceScale unified (fixes the Mac's residual
+      - >-
+        2026-07-07 · SignificanceScale unified (fixes the Mac's residual
         'Significant' value label; phone gains the clamp hardening) [0192947]
-      - 2026-07-07 · MemoMetadata/WordTiming/DiarizedSegment/ISO8601 + the 0.7
+      - >-
+        2026-07-07 · MemoMetadata/WordTiming/DiarizedSegment/ISO8601 + the 0.7
         trust rule → Shared/Model [a5d3d5b]
-      - 2026-07-07 · New Shared/Pipeline — VocabularyTermParsing+Trust+Tuning
+      - >-
+        2026-07-07 · New Shared/Pipeline — VocabularyTermParsing+Trust+Tuning
         [c73643d], VoiceMatcher+SpeakerFusion [e53b50d], BPEMerge+ImageMarkers
         (phone drops its inline copies) [6e4ab09]
-      - 2026-07-07 · FIX Mac custom vocab consume-only → full whole-list LWW via
+      - >-
+        2026-07-07 · FIX Mac custom vocab consume-only → full whole-list LWW via
         shared VocabularySyncCore (+push-on-edit, union migration; device
         round-trip owed) [6f78ac1]
     win: no algorithm or wire struct the sync contract depends on exists twice; both
@@ -499,6 +509,22 @@ nodes:
     win: the six approved gap features run on BOTH apps from shared code —
       locked notes stay out of the vault, OCR'd photos are searchable,
       reminders ring on whichever device you're holding
+  - id: AuditFix
+    title: Perf+reliability audit fix wave
+    lane: 0
+    order: 5.75
+    status: inprogress
+    eff: M
+    note: "2026-07-16 wide-net audit (5 Sonnet lanes -> 5 Opus falsifiers ->
+      Fable adjudication; backlog section = the ledger) -> fix wave BUILT
+      2026-07-19 on branch audit-fixes (worktree): try?-swallow hardening both
+      apps (wave 1 = on main), CKError retry policy, BookTranscriptStore
+      frontier cache, list O(N^2) + thumb decode, sweep blob diet + burst
+      coalescing, Mac ingest off main + mid-run edit guard + instance guard,
+      Connections purge guard/modelRev/vector cache. Review artifact =
+      AUDIT_FIX_TESTLIST.md on the branch."
+    win: "done when: Tuur reviews the branch diff, merges to main, and the
+      device/Mac test list passes"
   - id: ShareW1
     title: Share-ingest Wave 1 (audio + multi)
     lane: 0

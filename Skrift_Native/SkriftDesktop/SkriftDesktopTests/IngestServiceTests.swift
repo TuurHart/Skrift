@@ -14,13 +14,13 @@ final class IngestServiceTests: XCTestCase {
         return dir
     }
 
-    func testIngestMarkdownNote() throws {
+    func testIngestMarkdownNote() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let noteURL = work.appendingPathComponent("Groceries en het plan.md")
         try "Buy milk and eggs".write(to: noteURL, atomically: true, encoding: .utf8)
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [noteURL], into: ctx)
 
         XCTAssertEqual(created.count, 1)
@@ -33,13 +33,13 @@ final class IngestServiceTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: pf.path))
     }
 
-    func testIngestAudioCopiesIntoPerFileFolder() throws {
+    func testIngestAudioCopiesIntoPerFileFolder() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let audioURL = work.appendingPathComponent("Voice Memo 09-14.m4a")
         try Data([0x00, 0x01, 0x02, 0x03]).write(to: audioURL)
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [audioURL], into: ctx)
 
         let pf = try XCTUnwrap(created.first)
@@ -51,19 +51,19 @@ final class IngestServiceTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: pf.path))
     }
 
-    func testUnsupportedTypeSkipped() throws {
+    func testUnsupportedTypeSkipped() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let pdf = work.appendingPathComponent("doc.pdf")
         try Data([0x25, 0x50, 0x44, 0x46]).write(to: pdf)   // %PDF
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [pdf], into: ctx)
 
         XCTAssertTrue(created.isEmpty)
     }
 
-    func testIngestFolderOfNotes() throws {
+    func testIngestFolderOfNotes() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let notes = work.appendingPathComponent("AppleNotesExport", isDirectory: true)
         try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
@@ -72,14 +72,14 @@ final class IngestServiceTests: XCTestCase {
         try "ignore".write(to: notes.appendingPathComponent("c.txt"), atomically: true, encoding: .utf8)
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [notes], into: ctx)
 
         XCTAssertEqual(created.count, 2)
         XCTAssertTrue(created.allSatisfy { $0.sourceType == .note })
     }
 
-    func testIngestFolderWithAudioAndNotes() throws {
+    func testIngestFolderWithAudioAndNotes() async throws {
         // Dropping a folder of recordings (+ a note) imports the audio AND the .md,
         // skips other types — the path used to port the old app's recordings.
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
@@ -91,7 +91,7 @@ final class IngestServiceTests: XCTestCase {
         try "skip".write(to: folder.appendingPathComponent("readme.txt"), atomically: true, encoding: .utf8)
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [folder], into: ctx)
 
         XCTAssertEqual(created.count, 3)
@@ -121,7 +121,7 @@ final class IngestServiceTests: XCTestCase {
         XCTAssertEqual(IngestService.sanitizeTitle("////"), "note")          // all illegal → empty → fallback
     }
 
-    func testIngestNoteImportsAndRenamesAttachment() throws {
+    func testIngestNoteImportsAndRenamesAttachment() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let noteURL = work.appendingPathComponent("export.md")
         try "# My Trip\n\nLook: ![](Attachments/IMG_1.png)".write(to: noteURL, atomically: true, encoding: .utf8)
@@ -130,7 +130,7 @@ final class IngestServiceTests: XCTestCase {
         try Data([0x89, 0x50, 0x4E, 0x47]).write(to: srcAtt.appendingPathComponent("IMG_1.png"))
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [noteURL], into: ctx)
 
         let pf = try XCTUnwrap(created.first)
@@ -145,13 +145,13 @@ final class IngestServiceTests: XCTestCase {
             "source export left untouched (copy, not move)")
     }
 
-    func testIngestNoteParsesHeadingTitle() throws {
+    func testIngestNoteParsesHeadingTitle() async throws {
         let work = try tempDir(); defer { try? FileManager.default.removeItem(at: work) }
         let noteURL = work.appendingPathComponent("export-2026-06-07.md")
         try "# Hotel du Vin plan\n\nBook the table for Friday.".write(to: noteURL, atomically: true, encoding: .utf8)
 
         let ctx = try makeContext()
-        let created = try IngestService(outputDir: work.appendingPathComponent("out"))
+        let created = try await IngestService(outputDir: work.appendingPathComponent("out"))
             .ingest(localURLs: [noteURL], into: ctx)
 
         let pf = try XCTUnwrap(created.first)

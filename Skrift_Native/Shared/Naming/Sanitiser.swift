@@ -756,10 +756,19 @@ enum Sanitiser {
         return core.split(separator: " ").first.map(String.init) ?? ""
     }
 
+    /// Compiled-pattern cache — every process()/nameSpans() call used to build a
+    /// fresh NSRegularExpression per alias. Key includes the two config flags so
+    /// a test flipping them can't get a stale pattern. NSCache = thread-safe.
+    private static let wordRegexCache = NSCache<NSString, NSRegularExpression>()
+
     private static func wordRegex(_ alias: String) -> NSRegularExpression? {
+        let key = "\(wholeWord ? 1 : 0)|\(preservePossessive ? 1 : 0)|\(alias)" as NSString
+        if let hit = wordRegexCache.object(forKey: key) { return hit }
         let wb = wholeWord ? "\\b" : ""
         let pat = "\(wb)\(NSRegularExpression.escapedPattern(for: alias))\(wb)\(preservePossessive ? possPattern : "")"
-        return try? NSRegularExpression(pattern: pat, options: [.caseInsensitive])
+        guard let rx = try? NSRegularExpression(pattern: pat, options: [.caseInsensitive]) else { return nil }
+        wordRegexCache.setObject(rx, forKey: key)
+        return rx
     }
 
     private static func possText(_ m: NSTextCheckingResult, in text: String) -> String {

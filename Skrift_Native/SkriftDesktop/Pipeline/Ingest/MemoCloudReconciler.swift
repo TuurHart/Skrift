@@ -18,6 +18,10 @@ enum MemoCloudReconciler {
     /// only once.
     static var didStart = false
 
+    /// The one pending coalesced sweep (see `reconcileSoon` in the app wiring) —
+    /// stored here because extensions can't hold stored statics.
+    @MainActor static var pendingReconcile: Task<Void, Never>?
+
     /// What a sweep did: how many NEW rows were ingested, and the ids of EXISTING rows a phone
     /// edit updated (Part B) — the latter drive a re-export so the vault reflects the edit too.
     struct SweepOutcome: Equatable {
@@ -44,19 +48,35 @@ enum MemoCloudReconciler {
         let memos = MemoDuplicates.canonicalRows(
             (try? cloudContext.fetch(FetchDescriptor<Memo>())) ?? [])
         var outcome = SweepOutcome()
+        // ONE local fetch + ONE enhancement fetch up front, instead of 2-3
+        // fetches per memo — and NO MemoAsset fetch unless a memo actually
+        // needs its blobs: asset rows fault-fill their multi-MB audio/photo
+        // blobs on touch (row-level faulting, no external storage under
+        // CloudKit), so the steady-state sweep must never realize them.
+        let localFiles = (try? localContext.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        var fileByID: [String: PipelineFile] = [:]
+        var fileByFilename: [String: PipelineFile] = [:]
+        for pf in localFiles {
+            if fileByID[pf.id] == nil { fileByID[pf.id] = pf }
+            if !pf.filename.isEmpty, fileByFilename[pf.filename] == nil { fileByFilename[pf.filename] = pf }
+        }
+        let enhancements = (try? cloudContext.fetch(FetchDescriptor<MemoEnhancement>())) ?? []
+        let enhancementByMemo = Dictionary(enhancements.map { ($0.memoID, $0) },
+                                           uniquingKeysWith: { a, _ in a })
         for memo in memos {
             let memoID = memo.id
-            let assets = (try? cloudContext.fetch(
-                FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
             let id = memo.id.uuidString
             let filename = MemoCloudIngest.audioFilename(for: memo)
+            let fetchAssets: () -> [MemoAsset] = {
+                (try? cloudContext.fetch(
+                    FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
+            }
 
-            if MemoCloudIngest.alreadyIngested(id: id, filename: filename, in: localContext) {
+            // Same match rule as `alreadyIngested`/`existingFile` (id OR embedded
+            // filename), minus the empty-filename cross-match those allowed.
+            if let pf = fileByID[id] ?? (filename.isEmpty ? nil : fileByFilename[filename]) {
                 // Already have a row — reflect a phone edit into it (no-op when up to date).
-                guard let pf = existingFile(id: id, filename: filename, in: localContext) else { continue }
-                let enhancement = (try? cloudContext.fetch(
-                    FetchDescriptor<MemoEnhancement>(predicate: #Predicate { $0.memoID == memoID }))) ?? []
-                let applied = MemoCloudUpdate.apply(memo: memo, enhancement: enhancement.first, to: pf,
+                let applied = MemoCloudUpdate.apply(memo: memo, enhancement: enhancementByMemo[memoID], to: pf,
                                                     people: people, author: author,
                                                     thisDeviceID: thisDeviceID, now: now)
                 // Materialize photos the phone added AFTER first ingest — the update path above
@@ -66,7 +86,7 @@ enum MemoCloudReconciler {
                 // the open review body re-renders and resolves the markers. Skip a trashed memo —
                 // no point materializing photos for something in the bin.
                 let healed = memo.deletedAt == nil
-                    && MemoPhotoMaterializer.materializeMissing(memo: memo, assets: assets, pf: pf)
+                    && MemoPhotoMaterializer.materializeMissing(memo: memo, pf: pf, fetchAssets: fetchAssets)
                 if healed && !applied { pf.lastActivityAt = now }
                 if applied || healed { outcome.updatedIDs.append(pf.id) }
             } else {
@@ -74,9 +94,16 @@ enum MemoCloudReconciler {
                 // previously `try?`-swallowed, making a memo that fails every sweep an
                 // invisible black hole. Count + name it for the reconcile summary.
                 do {
-                    if try MemoCloudIngest.ingest(memo: memo, assets: assets, into: localContext,
-                                                  processEverything: processEverything) != nil {
+                    if let created = try MemoCloudIngest.ingest(memo: memo, assets: fetchAssets(),
+                                                                into: localContext,
+                                                                processEverything: processEverything) {
                         outcome.created += 1
+                        // Keep the lookup maps live so a same-sweep duplicate
+                        // (Bonjour-era filename twin) can't double-ingest.
+                        if fileByID[created.id] == nil { fileByID[created.id] = created }
+                        if !created.filename.isEmpty, fileByFilename[created.filename] == nil {
+                            fileByFilename[created.filename] = created
+                        }
                     }
                 } catch {
                     outcome.ingestFailures += 1

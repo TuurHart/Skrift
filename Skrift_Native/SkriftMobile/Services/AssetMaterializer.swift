@@ -35,11 +35,16 @@ enum AssetMaterializer {
 
     /// Write each `MemoAsset` whose target file is absent to `recordings/<filename>`.
     /// Never overwrites an existing file (the source device already has it, and a
-    /// half-synced blob must not clobber a good local file). The existence check runs
-    /// BEFORE touching `asset.blob`, so files already present don't fault multi-MB
-    /// blobs into memory.
+    /// half-synced blob must not clobber a good local file).
+    ///
+    /// The fetch is METADATA-ONLY (`propertiesToFetch`): faulting is row-level, so a
+    /// plain fetch realizes every multi-MB blob the moment ANY attribute is touched —
+    /// the old "existence check runs before touching .blob" comment was wrong about
+    /// that. With a scoped fetch, `.blob` faults in only for files actually written.
     static func materializeMissing(_ repository: NotesRepository) {
-        for asset in repository.allAssets() where !asset.filename.isEmpty {
+        var descriptor = FetchDescriptor<MemoAsset>()
+        descriptor.propertiesToFetch = [\.filename, \.kind, \.byteCount]
+        for asset in (try? repository.context.fetch(descriptor)) ?? [] where !asset.filename.isEmpty {
             let url = fileURL(asset.filename)
             guard !FileManager.default.fileExists(atPath: url.path) else { continue }
             do {

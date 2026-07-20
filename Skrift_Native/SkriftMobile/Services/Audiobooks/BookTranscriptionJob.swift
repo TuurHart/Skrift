@@ -192,6 +192,7 @@ final class BookTranscriptionJob: ObservableObject {
             var ft = store.load(bookID: bookID, fileIndex: fileIndex, expectedSignature: signature)
                 ?? FileTranscript(fileIndex: fileIndex, signature: signature)
 
+            var retriedChunk = false
             while ft.coveredUpTo < fileDuration - 0.05 {
                 if Task.isCancelled { return }
                 await awaitRunnable()
@@ -224,13 +225,25 @@ final class BookTranscriptionJob: ObservableObject {
                 }
                 chunkTask = nil
                 guard let kept = fused else {
-                    // Export/transcribe FAILED for this chunk — skip past it so the
-                    // job doesn't wedge; the gap stays an un-chunked (wave-1) spot.
+                    // Export/transcribe FAILED for this chunk. Retry ONCE from the
+                    // same frontier (nothing was saved) — a transient failure used
+                    // to permanently zero this span: the frontier moved past it and
+                    // no code path ever re-transcribes a covered-but-empty stretch.
+                    if !retriedChunk {
+                        retriedChunk = true
+                        DevLog.log("bookJob[\(bookID)] chunk \(Int(chunkStart))s failed — retrying once")
+                        continue
+                    }
+                    // Second failure: skip past so the job doesn't wedge; the gap
+                    // stays an un-chunked (wave-1) spot.
+                    retriedChunk = false
+                    DevLog.log("bookJob[\(bookID)] chunk \(Int(chunkStart))s failed twice — skipping span")
                     ft = ft.appending([], upTo: chunkEnd)
                     try? store.save(ft, bookID: bookID)
                     publishProgress(book: book, starts: starts)
                     continue
                 }
+                retriedChunk = false
 
                 // Save-after-complete: only now does the frontier advance on disk.
                 ft = ft.appending(kept.kept, upTo: kept.newFrontier)
@@ -392,7 +405,9 @@ final class BookTranscriptionJob: ObservableObject {
             guard dur > 0 else { continue }
             let url = library.audioURL(of: book, fileIndex: fileIndex)
             let sig = store.signature(forFileAt: url)
-            let c = store.load(bookID: book.id, fileIndex: fileIndex, expectedSignature: sig)?.coveredUpTo ?? 0
+            // Cache-served frontier — this used to full-decode EVERY file's
+            // sidecar (whole word array) after every chunk, on the main actor.
+            let c = store.coveredUpTo(bookID: book.id, fileIndex: fileIndex, expectedSignature: sig)
             covered += min(c, dur)
         }
         return min(1, covered / total)

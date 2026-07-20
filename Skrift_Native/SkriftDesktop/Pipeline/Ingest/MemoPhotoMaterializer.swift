@@ -15,22 +15,35 @@ enum MemoPhotoMaterializer {
     /// `images/` folder, and bring `image_manifest.json` in line with the memo's
     /// manifest. Returns true only when it actually wrote something (so the caller
     /// can re-export + nudge the UI). No-op without photos/manifest or an on-disk path.
+    /// `fetchAssets` is LAZY on purpose: `MemoAsset.blob` can't be external
+    /// storage (CloudKit) and faulting is row-level, so merely fetching the
+    /// asset rows pulls every photo/audio blob into memory. The manifest on the
+    /// Memo row says which files SHOULD exist; assets are only fetched when one
+    /// is actually missing from disk — the steady-state sweep touches no blobs.
     @discardableResult
-    static func materializeMissing(memo: Memo, assets: [MemoAsset], pf: PipelineFile) -> Bool {
+    static func materializeMissing(memo: Memo, pf: PipelineFile,
+                                   fetchAssets: () -> [MemoAsset]) -> Bool {
         let manifest = memo.metadata?.imageManifest ?? []
-        let photos = assets.filter { $0.kind == MemoAsset.Kind.photo && !$0.filename.isEmpty }
-        guard !manifest.isEmpty || !photos.isEmpty, let folder = pf.workingFolder else { return false }
+        guard !manifest.isEmpty, let folder = pf.workingFolder else { return false }
 
         let fm = FileManager.default
         let imagesDir = folder.appendingPathComponent("images", isDirectory: true)
         var wrote = false
 
-        // 1. Write any photo blob whose file isn't on disk yet.
-        for photo in photos {
-            let dest = imagesDir.appendingPathComponent(photo.filename)
-            guard !fm.fileExists(atPath: dest.path) else { continue }
-            try? fm.createDirectory(at: imagesDir, withIntermediateDirectories: true)
-            if (try? photo.blob.write(to: dest)) != nil { wrote = true }
+        // 1. Write any manifest photo whose file isn't on disk yet — fetching
+        //    the blob rows only when something is missing.
+        let missing = Set(manifest.map(\.filename).filter {
+            !$0.isEmpty && !fm.fileExists(atPath: imagesDir.appendingPathComponent($0).path)
+        })
+        if !missing.isEmpty {
+            let photos = fetchAssets().filter {
+                $0.kind == MemoAsset.Kind.photo && missing.contains($0.filename)
+            }
+            for photo in photos {
+                let dest = imagesDir.appendingPathComponent(photo.filename)
+                try? fm.createDirectory(at: imagesDir, withIntermediateDirectories: true)
+                if (try? photo.blob.write(to: dest)) != nil { wrote = true }
+            }
         }
 
         // 2. Bring image_manifest.json in line with the memo's manifest — but only when

@@ -40,6 +40,21 @@ struct SkriftDesktopApp: App {
         RunFile.runProcessFileIfRequested()
         RunFile.runIfRequested()
         #endif
+        // SECOND-INSTANCE GUARD — two processes on one SwiftData store race it
+        // (was only a "quit the app first" discipline rule). Normal GUI launches
+        // only: headless modes pass arguments and XCTest sets its env; both keep
+        // their own lifecycle. The existing instance is activated instead.
+        if ProcessInfo.processInfo.arguments.count == 1,
+           ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+            let others = NSRunningApplication.runningApplications(
+                withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+                .filter { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
+            if let existing = others.first {
+                existing.activate()
+                exit(0)
+            }
+        }
+
         // Apply the saved theme to the AppKit layer at launch so EVERY system-drawn
         // control (text-field placeholders, carets, menus) matches — they follow
         // NSApp.appearance, not SwiftUI's colorScheme. RootView keeps it in sync on
