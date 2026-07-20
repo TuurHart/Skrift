@@ -226,7 +226,7 @@ struct ConnectionsPanelBody: View {
         }
         .frame(width: 280)
         .background(Theme.sidebar)
-        .overlay(alignment: .leading) { Theme.hairline.opacity(0.5).frame(width: 1) }
+        .overlay(alignment: .leading) { Theme.hairline.opacity(0.07).frame(width: 1) }
     }
 
     private var header: some View {
@@ -278,7 +278,7 @@ struct ConnectionsPanelBody: View {
             pillSegment("Closest", on: !sortByDate) { sortByDate = false }
         }
         .padding(2)
-        .background(Theme.hairline.opacity(0.25), in: RoundedRectangle(cornerRadius: 7))
+        .background(Theme.hairline.opacity(0.05), in: RoundedRectangle(cornerRadius: 7))
     }
 
     private func pillSegment(_ label: String, on: Bool, action: @escaping () -> Void) -> some View {
@@ -405,9 +405,10 @@ struct ConnectionsPanelBody: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .background((hoveredRow == row.id ? Theme.surfaceHover : Theme.hairline.opacity(0.08)),
+                .background((hoveredRow == row.id ? Theme.surfaceHover : Theme.hairline.opacity(0.02)),
                             in: RoundedRectangle(cornerRadius: 9))
-                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.hairline.opacity(0.5), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 9)
+                    .strokeBorder(Theme.hairline.opacity(hoveredRow == row.id ? 0.12 : 0.07), lineWidth: 1))
                 .onHover { inside in hoveredRow = inside ? row.id : (hoveredRow == row.id ? nil : hoveredRow) }
                 .help(rowTooltip(row))
                 .accessibilityIdentifier("connections-flat-row")
@@ -481,7 +482,7 @@ struct ConnectionsPanelBody: View {
     @ViewBuilder private var backlinkSection: some View {
         if state == .ready || !backlinks.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
-                Divider().overlay(Theme.hairline.opacity(0.4)).padding(.vertical, 8)
+                Divider().overlay(Theme.hairline.opacity(0.07)).padding(.vertical, 8)
                 Text("LINKED FROM")
                     .font(.system(size: 9.5, weight: .bold)).tracking(0.45)
                     .foregroundStyle(Theme.textMuted)
@@ -505,7 +506,7 @@ struct ConnectionsPanelBody: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .background(Theme.hairline.opacity(0.1), in: RoundedRectangle(cornerRadius: 7))
+                        .background(Theme.hairline.opacity(0.025), in: RoundedRectangle(cornerRadius: 7))
                         .help("Open “\(link.title)”")
                         .accessibilityIdentifier("connections-backlink")
                     }
@@ -657,7 +658,7 @@ struct ConnectionsPanelBody: View {
     private func progressBar(_ fraction: Double, fill: Color) -> some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Theme.hairline.opacity(0.6))
+                Capsule().fill(Theme.hairline.opacity(0.10))
                 Capsule().fill(fill)
                     .frame(width: max(0, min(1, fraction)) * geo.size.width)
             }
