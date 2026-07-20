@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-19T10:45:00.000Z
+updated: 2026-07-20T13:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -331,6 +331,16 @@ nodes:
       text is the source). Locked notes still SYNC (Mac too, locked);
       excluded from Obsidian PUBLISH only."
     shipped:
+      - >-
+        2026-07-20 · Connections + significance POLISH: Mac panel hairline pass
+        (borders were 7× house/mock values); Mac Connections TOP-K CAP (was
+        unbounded — every ≥0.45 match) — shared RetrievalTuning.cappedRelated
+        shows the closest 7 but always keeps the earliest match so the rail's
+        FIRST MENTION can't lie, "Show all N" expander, unit-tested; phone
+        significance microcopy fixed to flag-to-PROCESS (CloudKit syncs all;
+        the rating gates the Mac's pickup) — the old "Will sync"/"stays on the
+        phone" copy went stale at mirror-everything. Mac Dev redeployed; phone
+        string change is device-build-owed
       - >-
         2026-07-18 · FADING LIFECYCLE shipped cross-app (design locked
         2026-07-17, mock fading-shelf.html v3): untouched notes (locked
