@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lifecycle IA — three ways to make every note tell one truth</title>
+<style>
+  :root{
+    --bg:#0F1117; --sidebar:#15171F; --surface:#181A23; --hover:#1E2130;
+    --text:#E4E4E7; --dim:#8B8B97; --mut:#55556A; --hairline:rgba(255,255,255,.07);
+    --accent:#7C6BF5; --green:#34D399; --amber:#F59E0B; --red:#EF4444; --blue:#60A5FA;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0A0B10;color:var(--text);font:13px/1.45 -apple-system,'SF Pro Text',sans-serif;
+       padding:34px 40px 90px;}
+  h1{font-size:19px;margin-bottom:6px;}
+  .thesis{color:var(--dim);font-size:12.5px;max-width:960px;margin-bottom:10px;}
+  .thesis b{color:var(--text);}
+  .v1{display:inline-block;font-size:11px;color:var(--amber);border:1px solid rgba(245,158,11,.35);
+      padding:3px 10px;border-radius:6px;margin-bottom:26px;}
+  .label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);
+         margin:40px 0 10px;}
+  .hint{color:var(--dim);font-size:12px;max-width:960px;margin-top:10px;}
+  .hint b{color:var(--text);}
+  .hint .q{color:var(--amber);font-weight:600;}
+  code{font:11.5px ui-monospace,Menlo,monospace;color:#B8B2E8;background:rgba(124,107,245,.08);
+       padding:0 4px;border-radius:4px;}
+  .src{font-size:10px;color:var(--mut);font-family:ui-monospace,Menlo,monospace;}
+
+  /* ── shared mac frame (source: RootView / JournalView / SidebarView) ── */
+  .mac{width:1150px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;
+       box-shadow:0 24px 70px rgba(0,0,0,.5);}
+  .titlebar{height:34px;display:flex;align-items:center;padding:0 12px;background:var(--sidebar);
+            border-bottom:1px solid var(--hairline);}
+  .dot{width:11px;height:11px;border-radius:50%;margin-right:7px;}
+  .win{display:flex;height:600px;}
+
+  /* Review rail — source: JournalView.swift rail (252pt, sidebar@55%, padding 14) */
+  .rail{width:252px;background:rgba(21,23,31,.55);border-right:1px solid var(--hairline);
+        padding:14px;font-size:12px;color:var(--dim);display:flex;flex-direction:column;flex:none;}
+  .swch{display:flex;gap:3px;padding:3px;background:rgba(255,255,255,.05);border-radius:8px;
+        margin-bottom:16px;}
+  .swch div{flex:1;text-align:center;font-size:11.5px;font-weight:600;color:var(--mut);
+            padding:5px 0;border-radius:6px;}
+  .swch div.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.3);}
+  .mhead{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;
+         font-weight:700;color:var(--text);padding-bottom:8px;}
+  .mhead span{color:var(--mut);font-size:11px;font-weight:600;letter-spacing:2px;}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+  .grid i{height:19px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+          font-size:9.5px;color:var(--mut);font-style:normal;}
+  .grid i.has{color:var(--dim);}
+  .grid i.sel{background:rgba(124,107,245,.20);color:var(--text);}
+  .grid i b{display:block;width:3px;height:3px;border-radius:50%;background:var(--accent);
+            position:relative;top:6px;}
+  .plabel{font-size:10px;font-weight:600;letter-spacing:.5px;color:var(--mut);padding:18px 0 6px 2px;}
+  .prow{display:flex;align-items:center;gap:6px;padding:5px 2px;font-size:12px;color:var(--dim);}
+  .prow em{width:9px;height:9px;border-radius:50%;border:2.5px solid var(--accent);
+           font-style:normal;flex:none;}
+  .prow .n{margin-left:auto;font-size:10.5px;color:var(--mut);}
+  .minimap{height:74px;border-radius:10px;margin-top:12px;border:1px solid rgba(255,255,255,.07);
+           background:linear-gradient(160deg,#1a1d29,#141620);position:relative;overflow:hidden;flex:none;}
+  .minimap b{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--accent);
+             box-shadow:0 0 0 2px rgba(124,107,245,.25);}
+  .shelves-rail{margin-top:14px;display:flex;flex-direction:column;gap:2px;}
+  .shelfrow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);
+            padding:6px 8px;border-radius:7px;}
+  .shelfrow.on{background:rgba(124,107,245,.13);color:var(--text);}
+  .shelfrow .g{font-size:10px;width:13px;}
+  .shelfrow .n{margin-left:auto;color:var(--mut);font-size:10.5px;}
+
+  /* Queue sidebar — source: SidebarView.swift (HSplitView ideal 228–320; drawn at its 320 max) */
+  .qside{width:320px;background:var(--sidebar);border-right:1px solid var(--hairline);flex:none;
+         display:flex;flex-direction:column;font-size:12px;}
+  .qhead{padding:10px 12px 11px;border-bottom:1px solid rgba(255,255,255,.06);}
+  .qbrand{display:flex;align-items:center;gap:8px;margin:10px 0 12px;}
+  .qlogo{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+         background:linear-gradient(135deg,rgb(142,125,255),rgb(106,89,239));color:#fff;
+         font-size:13px;font-weight:800;box-shadow:0 1px 3px rgba(124,107,245,.45);}
+  .qbrand b{font-size:15px;font-weight:700;}
+  .qgear{margin-left:auto;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,.05);
+         display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:12px;}
+  .qbtns{display:flex;gap:7px;margin-bottom:12px;}
+  .qbtn{flex:1;text-align:center;font-size:12.5px;font-weight:600;padding:7px 0;border-radius:8px;
+        background:rgba(255,255,255,.06);color:var(--text);}
+  .qbtn.acc{background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .qbtn.acc i{font-style:normal;font-size:11px;background:rgba(255,255,255,.22);border-radius:5px;padding:0 5px;}
+  .qsearch{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);
+           border:.5px solid rgba(255,255,255,.08);border-radius:7px;padding:5px 8px;font-size:12px;
+           color:var(--mut);margin-bottom:12px;}
+  .qchips{display:flex;gap:5px;align-items:center;}
+  .qchip{font-size:11px;color:var(--dim);padding:4px 9px;border-radius:6px;}
+  .qchip.on{color:var(--accent);background:rgba(124,107,245,.14);border:1px solid rgba(124,107,245,.22);}
+  .qsort{margin-left:auto;font-size:10.5px;color:var(--dim);background:rgba(255,255,255,.06);
+         border-radius:6px;padding:4px 8px;}
+  .qtriage{font-size:11px;padding:9px 14px 4px;}
+  .qtriage b{color:var(--accent);font-weight:600;}
+  .qtriage span{color:var(--mut);}
+  .qlist{padding:8px;flex:1;overflow:hidden;}
+  .qrow{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:8px;}
+  .qrow.sel{background:rgba(124,107,245,.13);outline:1px solid rgba(124,107,245,.2);}
+  .qrow .top{display:flex;align-items:center;gap:7px;}
+  .qrow .gl{width:14px;font-size:11px;filter:grayscale(1);opacity:.55;flex:none;text-align:center;}
+  .qrow.sel .gl{filter:none;opacity:.9;}
+  .qrow .t{flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .qrow .meta{font-size:11px;color:var(--mut);padding-left:21px;}
+  .pill{font-size:10px;font-weight:600;border-radius:999px;padding:2px 7px;white-space:nowrap;flex:none;}
+  .pill.ready{color:var(--green);background:rgba(52,211,153,.16);}
+  .pill.enh{color:var(--amber);background:rgba(245,158,11,.16);}
+  .pill.tra{color:var(--blue);background:rgba(96,165,250,.16);}
+  .pill.qd{color:var(--dim);background:rgba(139,139,151,.16);}
+  .pill.exp{color:var(--mut);}
+  .pill.err{color:var(--red);background:rgba(239,68,68,.16);}
+  .pdot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:1px;}
+  .qfoot{border-top:.5px solid rgba(255,255,255,.06);padding:9px 16px;display:flex;gap:14px;align-items:center;}
+  .qfoot .eng{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--dim);}
+  .qfoot .eng i{width:6px;height:6px;border-radius:50%;background:var(--green);font-style:normal;}
+  .qtrashrow{border-top:.5px solid rgba(255,255,255,.06);padding:8px 16px;display:flex;gap:7px;
+             align-items:center;font-size:11.5px;color:var(--dim);}
+  .qtrashrow .n{margin-left:auto;font-size:11px;font-weight:600;color:var(--mut);}
+  .qdetail{flex:1;display:flex;align-items:center;justify-content:center;color:var(--mut);
+           font-size:12px;background:var(--bg);}
+
+  /* column (source: FadingShelfColumn — padding 24/30, rows 760 max) */
+  .main{flex:1;padding:24px 30px;overflow:hidden;}
+  .chead{display:flex;align-items:center;gap:10px;max-width:760px;margin-bottom:10px;}
+  .chead h2{font-size:17px;font-weight:700;}
+  .chead .sp{flex:1;}
+  .back{font-size:11px;color:var(--mut);}
+  .cap{font-size:11px;font-weight:600;color:var(--accent);background:rgba(124,107,245,.12);
+       padding:5px 12px;border-radius:999px;white-space:nowrap;}
+  .csub{font-size:12px;color:var(--dim);max-width:660px;margin-bottom:14px;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+        padding:11px 16px;margin-bottom:9px;max-width:760px;display:flex;align-items:center;gap:14px;}
+  .card .body{flex:1;min-width:0;}
+  .card h3{font-size:13px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;
+           text-overflow:ellipsis;}
+  .card .meta{font-size:10.5px;color:var(--mut);display:flex;gap:10px;}
+  .footline{font-size:11px;color:var(--mut);max-width:760px;margin-top:14px;}
+  .amberlbl{font-size:10.5px;color:var(--amber);white-space:nowrap;}
+  .redlbl{font-size:10.5px;color:var(--red);white-space:nowrap;}
+  .mutlbl{font-size:10.5px;color:var(--mut);white-space:nowrap;}
+  .dimlbl{font-size:10.5px;color:var(--dim);white-space:nowrap;}
+
+  .newring{outline:1.5px dashed rgba(245,158,11,.55);outline-offset:3px;border-radius:8px;}
+  .newtag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.6px;color:var(--amber);
+          border:1px solid rgba(245,158,11,.45);padding:1px 6px;border-radius:5px;vertical-align:2px;
+          margin-left:8px;}
+
+  /* ── problem section ── */
+  .axes{display:flex;flex-direction:column;gap:8px;max-width:1040px;}
+  .axis{display:flex;gap:14px;align-items:flex-start;background:var(--surface);
+        border:1px solid var(--hairline);border-radius:10px;padding:11px 16px;}
+  .axis .no{font-size:16px;font-weight:800;color:var(--mut);width:20px;flex:none;padding-top:1px;}
+  .axis .ax{flex:1;}
+  .axis h4{font-size:12.5px;margin-bottom:2px;}
+  .axis p{font-size:11.5px;color:var(--dim);}
+  .axis.hot{border-color:rgba(239,68,68,.35);}
+  .axis.hot .no{color:var(--red);}
+  .tie{font-size:11.5px;color:var(--red);max-width:1040px;background:rgba(239,68,68,.06);
+       border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px 16px;margin-top:8px;}
+  .tie b{color:var(--text);}
+
+  .quad{display:grid;grid-template-columns:190px 320px 320px;gap:6px;max-width:840px;margin-top:14px;}
+  .quad .h{font-size:10.5px;font-weight:700;letter-spacing:.4px;color:var(--mut);align-self:center;
+           text-transform:uppercase;}
+  .quad .h.top{text-align:center;padding-bottom:2px;}
+  .qcell{background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
+         padding:11px 14px;font-size:11.5px;color:var(--dim);min-height:74px;}
+  .qcell b{display:block;color:var(--text);font-size:12px;margin-bottom:3px;}
+  .qcell.dead{opacity:.45;background:transparent;border-style:dashed;}
+  .qcell.zombie{border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.05);}
+  .qcell.zombie b{color:var(--red);}
+
+  .evi{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;align-items:flex-start;}
+  .evicard{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+           padding:13px 16px;width:490px;}
+  .evicard h5{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+              color:var(--mut);margin-bottom:9px;}
+  .toast{display:inline-flex;align-items:center;gap:8px;background:#20222E;border:1px solid var(--hairline);
+         border-radius:9px;padding:8px 13px;font-size:11.5px;color:var(--dim);box-shadow:0 8px 22px rgba(0,0,0,.4);}
+  .minitrash{border:1px solid var(--hairline);border-radius:9px;padding:9px 11px;margin-bottom:8px;}
+  .minitrash .mh{display:flex;align-items:center;font-size:11.5px;font-weight:700;margin-bottom:6px;}
+  .minitrash .mh span{margin-left:auto;font-size:10px;color:var(--mut);font-weight:400;
+                      font-family:ui-monospace,Menlo,monospace;}
+  .minitrash .mr{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim);padding:3px 0;}
+  .minitrash .mr .cap{padding:2px 8px;font-size:10px;}
+  .minitrash .mr .d{margin-left:auto;font-size:10px;color:var(--mut);}
+
+  /* ── spine / track diagram ── */
+  .spine{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+         padding:20px 24px;max-width:1040px;}
+  .trk{display:flex;align-items:center;max-width:960px;}
+  .stn{display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;width:118px;}
+  .stn .d{width:12px;height:12px;border-radius:50%;border:2px solid var(--dim);}
+  .stn .d.f{border:none;}
+  .stn .nm{font-size:11.5px;font-weight:700;}
+  .stn .pr{font-size:9.5px;color:var(--mut);text-align:center;line-height:1.35;}
+  .seg{flex:1;height:2px;background:rgba(255,255,255,.12);position:relative;top:-17px;min-width:20px;}
+  .seg span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9.5px;
+            color:var(--mut);white-space:nowrap;}
+  .switchrow{display:flex;gap:26px;margin:10px 0 10px 40px;font-size:11px;color:var(--dim);}
+  .switchrow b{color:var(--accent);}
+  .switchrow .alt b{color:var(--dim);}
+  .lawline{font-size:11.5px;color:var(--dim);border-top:1px solid var(--hairline);margin-top:16px;
+           padding-top:12px;max-width:960px;}
+  .lawline b{color:var(--text);}
+  .homes{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .home{font-size:10.5px;color:var(--dim);background:rgba(255,255,255,.04);border:1px solid var(--hairline);
+        border-radius:7px;padding:3px 9px;}
+  .home b{color:var(--text);font-weight:600;}
+
+  /* one-liner chips used across directions */
+  .sl{font-size:10.5px;white-space:nowrap;flex:none;}
+  .sl.new{color:var(--dim);}
+  .sl.fade{color:var(--amber);}
+  .sl.gone{color:var(--red);}
+  .sl.park{color:var(--mut);}
+  .sl.ok{color:var(--green);}
+  .sl.done{color:var(--mut);}
+
+  /* D1 ledger */
+  .scopes .srow{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);
+                padding:5px 8px;border-radius:7px;}
+  .scopes .srow.on{background:rgba(124,107,245,.13);color:var(--text);}
+  .scopes .srow .n{margin-left:auto;font-size:10.5px;color:var(--mut);}
+  .scopes .srow .sd{width:7px;height:7px;border-radius:50%;flex:none;}
+  .ldr-day{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--mut);margin:14px 0 6px;}
+  .ldr-day:first-child{margin-top:0;}
+  .lrow{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;max-width:800px;}
+  .lrow:hover{background:rgba(255,255,255,.03);}
+  .lrow .gl{width:14px;font-size:11px;filter:grayscale(1);opacity:.55;flex:none;text-align:center;}
+  .lrow .t{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lrow .m{font-size:10.5px;color:var(--mut);white-space:nowrap;flex:none;}
+  .lrow .sp{flex:1;}
+  .ldots{display:flex;gap:2px;flex:none;}
+  .ldots i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.12);}
+  .ldots i.on{background:var(--accent);}
+
+  /* D2 band */
+  .band{margin:10px 8px 0;border:1px solid var(--hairline);border-radius:9px;overflow:hidden;}
+  .bandhead{display:flex;align-items:center;gap:7px;padding:8px 11px;font-size:11.5px;color:var(--dim);
+            background:rgba(255,255,255,.025);}
+  .bandhead .ring{font-size:12px;color:var(--dim);line-height:1;flex:none;}
+  .bandhead .bt1{white-space:nowrap;}
+  .bandhead .bt1 i{font-style:normal;color:var(--mut);font-size:10.5px;}
+  .bandhead .cap{margin-left:auto;flex:none;}
+  .bandhead .disc{color:var(--mut);font-size:9px;flex:none;}
+  .bandsub{font-size:10.5px;color:var(--mut);padding:7px 11px 2px;line-height:1.45;}
+  .bandrow{display:flex;align-items:center;gap:8px;padding:7px 11px;}
+  .bandrow .gl{width:14px;font-size:11px;filter:grayscale(1);opacity:.5;flex:none;text-align:center;}
+  .bandrow .bt{flex:1;min-width:0;}
+  .bandrow .bt h6{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bandrow .bt p{font-size:10px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bandrow .cap{padding:3px 10px;font-size:10.5px;flex:none;}
+  .bandfoot{font-size:10px;color:var(--mut);padding:6px 11px 9px;line-height:1.45;}
+
+  /* D3 desk bands + conveyor */
+  .dhead{display:flex;align-items:baseline;gap:9px;font-size:11px;font-weight:800;letter-spacing:.5px;
+         margin:16px 0 6px;}
+  .dhead:first-child{margin-top:0;}
+  .dhead .cnt{font-size:10.5px;color:var(--mut);font-weight:600;}
+  .dhead.vault{color:var(--accent);}
+  .dhead.out{color:var(--amber);}
+  .dhead.stay{color:var(--dim);}
+  .drow{display:flex;align-items:center;gap:9px;padding:7px 12px;border-radius:8px;max-width:760px;
+        background:var(--surface);border:1px solid var(--hairline);margin-bottom:5px;}
+  .drow .gl{width:14px;font-size:11px;filter:grayscale(1);opacity:.55;flex:none;text-align:center;}
+  .drow .t{flex:1;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .drow .m{font-size:10.5px;color:var(--mut);flex:none;}
+  .drow.quiet{background:transparent;}
+  .arrived{font-size:11px;color:var(--mut);padding:7px 12px;max-width:760px;}
+  .convrow{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+           padding:11px 16px;margin-bottom:9px;max-width:760px;display:flex;align-items:center;gap:14px;}
+  .convrow .body{flex:1;min-width:0;}
+  .convrow h3{font-size:13px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;
+              text-overflow:ellipsis;}
+  .convrow .meta{font-size:10.5px;color:var(--mut);display:flex;gap:10px;}
+  .mini3{display:flex;align-items:center;gap:0;flex:none;width:96px;}
+  .mini3 .md{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.14);flex:none;}
+  .mini3 .md.here{background:var(--amber);box-shadow:0 0 5px rgba(245,158,11,.6);}
+  .mini3 .md.here.tr{background:var(--red);box-shadow:0 0 5px rgba(239,68,68,.6);}
+  .mini3 .md.x{background:transparent;border:1.5px dashed var(--mut);width:9px;height:9px;}
+  .mini3 .ml{flex:1;height:1.5px;background:rgba(255,255,255,.12);}
+  .convsec{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--mut);margin:14px 0 7px;
+           text-transform:uppercase;max-width:760px;}
+
+  /* direction summary cards */
+  .dirmap{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+          padding:15px 20px;max-width:1040px;margin-top:14px;font-size:12px;color:var(--dim);}
+  .dirmap b{color:var(--text);}
+  .dirmap .row{display:flex;gap:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+  .dirmap .row:last-child{border-bottom:none;}
+  .dirmap .k{width:170px;flex:none;font-size:10.5px;font-weight:700;letter-spacing:.4px;color:var(--mut);
+             text-transform:uppercase;padding-top:2px;}
+  .dirmap .kill b{color:var(--green);}
+  .dirmap .cost b{color:var(--amber);}
+  .dirmap .fail b{color:var(--red);}
+
+  /* comparison table */
+  table.cmp{border-collapse:collapse;max-width:1040px;font-size:11.5px;color:var(--dim);}
+  table.cmp th,table.cmp td{border:1px solid rgba(255,255,255,.07);padding:8px 12px;text-align:left;
+                            vertical-align:top;}
+  table.cmp th{background:rgba(255,255,255,.03);color:var(--text);font-size:11px;}
+  table.cmp td.k{color:var(--mut);font-size:10.5px;font-weight:700;text-transform:uppercase;
+                 letter-spacing:.4px;white-space:nowrap;}
+  table.cmp td b{color:var(--text);}
+  table.cmp td.pick{background:rgba(52,211,153,.05);}
+
+  .decis{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;
+         padding:16px 20px;max-width:1040px;margin-bottom:6px;font-size:12.5px;color:var(--dim);}
+  .decis b{color:var(--text);}
+  .decis li{margin:6px 0 6px 18px;}
+  .decis .q{color:var(--amber);font-weight:600;}
+  .reco{background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.3);border-radius:12px;
+        padding:16px 20px;max-width:1040px;font-size:12.5px;color:var(--dim);margin-bottom:14px;}
+  .reco b{color:var(--green);}
+  .reco .t{color:var(--text);}
+</style>
+</head>
+<body>
+
+<h1>Lifecycle IA — three ways to make every note tell one truth</h1>
+<p class="thesis">The Unrated-shelf sketch (<code>mocks/unrated-shelf.html</code>) exposed a structural
+problem, not a copy bug: the Mac now has <b>five overlapping state axes</b>, and they can put two
+true-but-contradicting labels on one row — "the Mac is ignoring this" and "safe forever" at once. This doc
+explores <b>three genuinely different information architectures</b> that each leave every note with exactly
+<b>one honest status</b>. All three are derived-only: no store migration, no re-rating of existing notes,
+buildable against today's <code>Memo</code> + <code>PipelineFile</code> data.</p>
+<span class="v1">exploration v1 · three directions + a recommendation — current-app elements drawn from source (receipts inline), new UI marked</span>
+
+<!-- ══════════════════ m0 ══════════════════ -->
+<div class="label" id="m0">#m0 · the problem, from source — five axes, one row, two truths</div>
+
+<div class="axes">
+  <div class="axis hot"><div class="no">1</div><div class="ax">
+    <h4>The process gate <span class="src">MemoCloudIngest.swift:39</span></h4>
+    <p><code>guard processEverything || memo.significance &gt; 0</code> — CloudKit syncs EVERY memo; this
+    gate only decides whether one becomes a <code>PipelineFile</code> (a Queue row). An unrated memo is on
+    the Mac's disk and in Review's river, but has no queue row, no enhancement, no export. The override is a
+    buried Settings toggle, off by default (<span class="src">AppSettings.swift processAllSyncedMemos</span>).</p>
+  </div></div>
+  <div class="axis"><div class="no">2</div><div class="ax">
+    <h4>Importance <span class="src">Shared/Model/SignificanceScale.swift</span></h4>
+    <p>10 circles (0.1–1.0), tiers Passing / Useful / Important at 0.4 / 0.7, refine wall at 0.8,
+    0&nbsp;=&nbsp;Not rated. Fine as a control — the trouble is what else the value secretly does.</p>
+  </div></div>
+  <div class="axis hot"><div class="no">3</div><div class="ax">
+    <h4>The fade lifecycle <span class="src">Shared/Pipeline/MemoLifecycle.swift</span></h4>
+    <p>Untouched notes fade at 30d, auto-move to Recently Deleted at 60d, purge 14d later. But "touched" is
+    ANY of <b>nine</b> signals — significance&nbsp;&gt;&nbsp;0, edits, title, tags, lock, reminder,
+    annotation, keptAt, backlink. So <b>significance is both the process gate AND just one of nine fade
+    shields</b> — "unrated" and "will fade" are different sets.</p>
+  </div></div>
+  <div class="axis"><div class="no">4</div><div class="ax">
+    <h4>Queue processing state <span class="src">QueueDerivations.swift · AppModel.swift:5</span></h4>
+    <p>Seven derived states (Queued → Transcribing → Transcribed → Enhancing → Ready → Exported / Error)
+    plus the All / Needs Work / Done filter. Honest and unbroken — but it only exists for the rated
+    minority that made it through axis 1.</p>
+  </div></div>
+  <div class="axis hot"><div class="no">5</div><div class="ax">
+    <h4>Two "Recently Deleted"s <span class="src">RecentlyDeletedView.swift · FadingShelfColumn.swift (MacTrashColumn)</span></h4>
+    <p>Same name, same 14-day countdown (<span class="src">DesktopTrash.swift:6 · Memo.swift:23</span>),
+    different stores: a Queue-footer sheet over <code>PipelineFile</code> (only ever rated notes) and a
+    Review shelf over <code>Memo</code> (everything). One deletion of a synced note puts a row in BOTH;
+    they re-converge only via two mirror hops (<span class="src">MacCloudDeleteSync.swift ↑ ·
+    MemoCloudUpdate.swift:39 ↓</span>). A deleted unrated note exists only in the second.</p>
+  </div></div>
+</div>
+
+<p class="tie"><b>The collision:</b> significance appears on axis 1 (the gate) and axis 3 (one of nine touch
+signals). Cross them and you get a quadrant nobody designed:</p>
+
+<div class="quad">
+  <div></div><div class="h top">RATED (significance &gt; 0)</div><div class="h top">UNRATED (0)</div>
+  <div class="h">TOUCHED<br>(any of the other 8 signals)</div>
+  <div class="qcell"><b>In the pipeline</b>Queue row, status pill, never fades. The designed path — fine.</div>
+  <div class="qcell zombie"><b>The zombie quadrant</b>Never processed, never fades, no place, no name.
+    Clicking its Review card flashes <i>"Not in the queue — this note hasn't been processed on the Mac"</i>
+    <span class="src">RootView.swift:34</span> — a dead end.</div>
+  <div class="h">UNTOUCHED</div>
+  <div class="qcell dead"><b>Impossible</b>Rating IS a touch (<span class="src">MemoLifecycle.swift:23</span>)
+    — proof the two axes are entangled, not independent.</div>
+  <div class="qcell"><b>Fades</b>River → Fading shelf (30d) → Recently Deleted (60d) → gone (+14d).
+    Has a path — but invisible in the Queue the whole way.</div>
+</div>
+
+<div class="evi">
+  <div class="evicard">
+    <h5>Exhibit A — the row that reads as nonsense (unrated-shelf.html #m2)</h5>
+    <div class="card" style="max-width:none;margin-bottom:0;">
+      <div class="body"><h3>Thoughts on the ROS-LLM paper retry loop</h3>
+        <div class="meta"><span>28 Jun</span><span>Benfica</span><span>4:02</span></div></div>
+      <span class="mutlbl">tagged · won’t fade</span>
+      <span class="cap">Process</span>
+    </div>
+    <p style="font-size:11px;color:var(--dim);margin-top:9px;">Both labels are TRUE. The row is still
+    absurd: the shelf's frame says <i>"the Mac is ignoring this, rescue it"</i> while the label says
+    <i>"safe forever, needs nothing"</i>. A frame that mixes two axes forces every row to answer two
+    questions at once.</p>
+  </div>
+  <div class="evicard">
+    <h5>Exhibit B — one delete, two lists with one name</h5>
+    <div class="minitrash">
+      <div class="mh">Recently Deleted <span>Queue footer sheet · PipelineFile</span></div>
+      <div class="mr"><span style="filter:grayscale(1);opacity:.55">🎙</span> Hotel Du Vin
+        <span class="d">12 days left</span><span class="cap">Restore</span>
+        <span style="color:var(--red);font-size:10px;">🗑</span></div>
+    </div>
+    <div class="minitrash">
+      <div class="mh">Recently Deleted · 2 <span>Review shelf column · Memo</span></div>
+      <div class="mr"><span style="filter:grayscale(1);opacity:.55">🎙</span> Hotel Du Vin
+        <span class="d">12 days left</span><span class="cap">Restore</span></div>
+      <div class="mr"><span style="filter:grayscale(1);opacity:.55">🎙</span> Voice note <i style="font-style:normal;font-size:9.5px;color:var(--mut);">(unrated — only here)</i>
+        <span class="d">6 days left</span><span class="cap">Restore</span></div>
+    </div>
+    <p style="font-size:11px;color:var(--dim);">Two Restore buttons, two purge paths (Mac launch purge vs
+    iPhone startup purge), one user concept. Owner decision already locked: <b style="color:var(--text)">ONE
+    Recently Deleted, in Review, backed by <code>Memo</code></b> — all three directions below honor it.</p>
+  </div>
+</div>
+
+<p class="hint"><b>What must be true after this redesign</b> (the locked decisions): everything syncs — the
+rating gates processing only, and copy may never claim otherwise · the verb is <b>"Process"</b> · one
+Recently Deleted, in Review · notes fade by neglect, doing nothing IS the cleanup, rescue is one click ·
+and <b>never show a countdown or flag that isn't true</b>.</p>
+
+<!-- ══════════════════ spine ══════════════════ -->
+<div class="label" id="spine">the shared spine · one status, computed once — every direction runs on this</div>
+
+<div class="spine">
+  <p style="font-size:12px;color:var(--dim);margin-bottom:18px;">A single priority chain over
+  <code>Memo ⟕ PipelineFile</code> (they already share an id by construction —
+  <span class="src">MemoCloudIngest.swift:41</span>). First match wins, so <b style="color:var(--text)">no
+  note can ever carry two labels</b>. This isn't a new stored state — it's the five axes read in one
+  deterministic order. Nine stations, two tracks and a siding:</p>
+
+  <div class="trk">
+    <div class="stn"><span class="d" style="border-color:var(--dim)"></span><span class="nm">New</span>
+      <span class="pr">untouched, &lt; 30d<br>"starts fading 19 Aug"</span></div>
+    <div class="seg"><span>30 days untouched</span></div>
+    <div class="stn"><span class="d" style="border-color:var(--amber)"></span><span class="nm" style="color:var(--amber)">Fading</span>
+      <span class="pr">off the main surfaces<br>"moves to Deleted in 6d"</span></div>
+    <div class="seg"><span>60 days</span></div>
+    <div class="stn"><span class="d" style="border-color:var(--red)"></span><span class="nm" style="color:var(--red)">Deleted</span>
+      <span class="pr">restorable<br>"gone for good in ~9d"</span></div>
+    <div class="seg"><span>+14 days (iPhone purges)</span></div>
+    <div class="stn"><span class="d f" style="background:transparent;border:1.5px dashed var(--mut)"></span>
+      <span class="nm" style="color:var(--mut)">gone</span><span class="pr">&nbsp;</span></div>
+  </div>
+
+  <div class="switchrow">
+    <span>⤷ <b>rate it</b> (any value) → jumps to the active track — the ONE verb that moves a note between tracks</span>
+    <span class="alt">⤷ <b>touch it</b> (tag · title · lock · reminder · annotation · edit · backlink · Keep) → the siding</span>
+  </div>
+
+  <div class="trk">
+    <div class="stn"><span class="d" style="border-color:var(--dim)"></span><span class="nm">To process</span>
+      <span class="pr">queue row waiting<br>"processes on next run"</span></div>
+    <div class="seg"><span>Process</span></div>
+    <div class="stn"><span class="d" style="border-color:var(--blue)"></span><span class="nm" style="color:var(--blue)">Processing</span>
+      <span class="pr">transcribe / enhance<br>(or <span style="color:var(--red)">Stuck</span> on error)</span></div>
+    <div class="seg"><span></span></div>
+    <div class="stn"><span class="d" style="border-color:var(--green)"></span><span class="nm" style="color:var(--green)">Ready</span>
+      <span class="pr">"waiting for your review"</span></div>
+    <div class="seg"><span>Export</span></div>
+    <div class="stn"><span class="d f" style="background:var(--accent)"></span><span class="nm" style="color:var(--accent)">In Obsidian</span>
+      <span class="pr">arrived — kept forever</span></div>
+  </div>
+
+  <div class="switchrow" style="margin-top:12px;">
+    <span class="alt">the siding — ⏺ <b>Parked</b>: touched but never rated. Stays indefinitely, processed never.
+    <i>This is the zombie quadrant, finally named.</i> One-liner: "kept — tagged" / "kept — locked", no countdown ever.</span>
+  </div>
+
+  <p class="lawline"><b>The one-home law:</b> every station gets exactly ONE counting surface — one list
+  whose number is that station's truth. Editorial views (the river, day lists, map, search) may show any
+  live note, but no station is ever counted in two places, and no two surfaces may share a name over
+  different stores. A countdown may only appear on stations that have one (Fading, Deleted — computed, so
+  it can't lie).</p>
+  <div class="homes">
+    <span class="home"><b>New · Parked</b> → direction-specific (the fight below)</span>
+    <span class="home"><b>To process → In Obsidian</b> → the Queue / desk</span>
+    <span class="home"><b>Fading</b> → its shelf</span>
+    <span class="home"><b>Deleted</b> → ONE Recently Deleted (Review)</span>
+  </div>
+  <p style="font-size:10.5px;color:var(--mut);margin-top:12px;">Fine print: Mac-local uploads (drag-drop —
+  <code>PipelineFile</code> with no <code>Memo</code>) live on the active track only and never fade. A phone
+  note still transcribing is New (the river's slim row). A rated note whose queue row hasn't reconciled yet
+  counts as To process. All derived — <code>keptAt</code> stays the only stored lifecycle bit.</p>
+</div>
+
+<p class="hint">The three directions below all compute THIS. They differ in <b>what the user sees</b>: one
+kills the rooms, one keeps the rooms and fixes their lies, one reorganizes around what happens next.</p>
+
+<!-- ══════════════════ m1 ══════════════════ -->
+<div class="label" id="m1">#m1 · direction 1 — ONE LEDGER <span class="newtag">NEW SURFACE</span></div>
+<p class="thesis"><b>Core idea:</b> there are no places, only filters — kill the Queue&nbsp;|&nbsp;Review
+split and every shelf; one chronological ledger of ALL notes with the spine status as a chip on each row;
+"Fading", "Deleted", "Ready" become <b>scopes</b> (saved filters with counts) over the same list, and the
+calendar and places become filters too.</p>
+
+<div class="mac">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div>
+    <div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--mut);margin-left:8px;">Skrift — one surface, no switch</span>
+  </div>
+  <div class="win">
+    <div class="rail">
+      <div class="qsearch" style="margin-bottom:12px;">🔍 Search everything</div>
+      <div class="plabel" style="padding-top:0;">SCOPES</div>
+      <div class="scopes">
+        <div class="srow on"><span class="sd" style="background:var(--text)"></span>Notes<span class="n">148</span></div>
+        <div class="srow"><span class="sd" style="background:var(--green)"></span>Needs me<span class="n">9</span></div>
+        <div class="srow"><span class="sd" style="background:var(--blue)"></span>In motion<span class="n">3</span></div>
+        <div class="srow"><span class="sd" style="background:var(--mut)"></span>Parked<span class="n">12</span></div>
+        <div class="srow"><span class="sd" style="background:var(--amber)"></span>Fading<span class="n">8</span></div>
+        <div class="srow"><span class="sd" style="background:var(--red)"></span>Recently Deleted<span class="n">4</span></div>
+      </div>
+      <div class="mhead" style="padding-top:16px;">July 2026 <span>‹ ›</span></div>
+      <div class="grid">
+        <i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i><i>S</i>
+        <i class="has">13<b></b></i><i>14</i><i class="has">15<b></b></i><i class="has">16<b></b></i>
+        <i class="has">17<b></b></i><i>18</i><i>19</i>
+        <i class="sel">20<b></b></i><i>21</i><i>22</i><i>23</i><i>24</i><i>25</i><i>26</i>
+      </div>
+      <div class="plabel">PLACES</div>
+      <div class="prow"><em></em>Benfica<span class="n">14</span></div>
+      <div class="prow"><em></em>Alcântara<span class="n">6</span></div>
+      <div class="minimap">
+        <b style="left:64px;top:26px"></b><b style="left:96px;top:40px"></b><b style="left:130px;top:22px"></b>
+      </div>
+    </div>
+    <div class="main">
+      <div class="chead" style="max-width:800px;">
+        <h2>Notes</h2><span style="font-size:11px;color:var(--mut);">calendar + places filter this list</span>
+        <div class="sp"></div>
+        <span class="cap" style="background:rgba(255,255,255,.06);color:var(--text);">+ Upload</span>
+        <span class="cap" style="background:var(--accent);color:#fff;">▶ Process 2</span>
+        <span class="qsort">↕ Newest</span>
+      </div>
+      <div class="ldr-day">SUNDAY 20 JULY</div>
+      <div class="lrow"><span class="gl">🎙</span><span class="t">Alright let’s do a little test. Take a picture of this bed…</span>
+        <span class="m">0:11 · Benfica</span><span class="sp"></span>
+        <span class="ldots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="sl new">untouched — starts fading 19 Aug</span></div>
+      <div class="lrow"><span class="gl">🎙</span><span class="t">Hotel Du Vin</span>
+        <span class="m">2:14 · Benfica</span><span class="sp"></span>
+        <span class="ldots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>
+        <span class="pill ready">Ready</span></div>
+      <div class="lrow"><span class="gl">📖</span><span class="t">Quote — The Hard Thing About Hard Things</span>
+        <span class="m">0:48</span><span class="sp"></span>
+        <span class="ldots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="pill enh"><span class="pdot" style="background:var(--amber)"></span>Enhancing</span></div>
+      <div class="ldr-day">FRIDAY 18 JULY</div>
+      <div class="lrow"><span class="gl">📝</span><span class="t">Thoughts on the ROS-LLM paper retry loop</span>
+        <span class="m">4:02 · Benfica</span><span class="sp"></span>
+        <span class="ldots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="sl park">kept — tagged</span></div>
+      <div class="lrow"><span class="gl">🔗</span><span class="t">Fado bar recommendation — shared from Maps</span>
+        <span class="m">Link</span><span class="sp"></span>
+        <span class="ldots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="pill exp">Exported</span></div>
+      <div class="ldr-day">THURSDAY 17 JULY</div>
+      <div class="lrow"><span class="gl">🎙</span><span class="t">Hey, this name is Harry, what’s going on?</span>
+        <span class="m">0:05 · Benfica</span><span class="sp"></span>
+        <span class="ldots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>
+        <span class="pill exp">Exported</span></div>
+      <p class="footline" style="max-width:800px;">Default scope "Notes" excludes Fading + Deleted (fade
+      still empties the room — the locked behavior). "Needs me" = Ready + Stuck + fades-within-7-days: the
+      one triage view. Every row: rate, Process, tag, delete in place. One row idiom everywhere — the
+      river's cards and the queue's rows stop being two renderings of the same thing.</p>
+    </div>
+  </div>
+</div>
+
+<div class="dirmap">
+  <div class="row"><span class="k">Axis 1 · gate</span><span>Stops being invisible: an unrated note is an
+    ordinary row whose chip says why it isn't moving ("untouched — starts fading 19 Aug"). Process action on
+    every row. Nothing is hidden, so nothing is "missing".</span></div>
+  <div class="row"><span class="k">Axis 2 · importance</span><span>Ten dots ON the row
+    (<span class="src">drawn from JournalView.swift:486 importanceDots</span>) — metadata, not a place. The
+    10-circle control stays in the note detail, unchanged.</span></div>
+  <div class="row"><span class="k">Axis 3 · fade</span><span>The Fading scope + honest chips from the spine.
+    Sweep mechanics unchanged.</span></div>
+  <div class="row"><span class="k">Axis 4 · queue state</span><span>The pills survive as the chip for
+    active-track rows; the All / Needs Work / Done chips die in favor of the "Needs me" and "In motion"
+    scopes.</span></div>
+  <div class="row"><span class="k">Axis 5 · trashes</span><span>One "Recently Deleted" scope over
+    <code>Memo</code>, with Mac-only local uploads unioned in as a tail. The Queue footer sheet dies.</span></div>
+  <div class="row kill"><span class="k">Kills</span><span><b>The Queue|Review switch, both shelf rows, the
+    second trash, the row/card duality, and the dead-end click</b> — a card IS the row.</span></div>
+  <div class="row cost"><span class="k">Costs</span><span><b>The biggest rebuild of the three</b> (a new
+    shell), and the Lookback river — "a month ago, a year ago" — loses its home: it would shrink to a strip
+    above the ledger. Connections, map mode, day view all re-anchor to scopes.</span></div>
+  <div class="row fail"><span class="k">Honest failure mode</span><span><b>Skrift becomes inventory
+    software.</b> The journal's designed calm — thinking that resurfaces on its own — inverts into you
+    managing rows with chips. If the north is "notes that come back to you", the ledger is where that dies
+    quietly, one status chip at a time.</span></div>
+</div>
+
+<!-- ══════════════════ m2 ══════════════════ -->
+<div class="label" id="m2">#m2 · direction 2 — TWO ROOMS, ONE SPINE <span class="newtag">MOSTLY EXISTING — NEW PARTS RINGED</span></div>
+<p class="thesis"><b>Core idea:</b> keep the two rooms — the Queue is the machine's room, Review is yours —
+but bind every label in both to the one spine and give every station exactly one home. The Queue stops
+hiding notes: a collapsed <b>"Not in the pipeline"</b> band shows what the gate is skipping, right where you
+look for a missing note. The trash count drops to one. The rooms stay; the lies between them go.</p>
+
+<div class="mac">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div>
+    <div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--mut);margin-left:8px;">Skrift — Queue surface (sidebar from source, band is new)</span>
+  </div>
+  <div class="win" style="height:720px;">
+    <div class="qside">
+      <div class="qhead">
+        <div class="swch" style="margin-bottom:0;"><div class="on">Queue</div><div>Review</div></div>
+        <div class="qbrand"><span class="qlogo">S</span><b>Skrift</b><span class="qgear">⚙</span></div>
+        <div class="qbtns"><span class="qbtn">+ Upload</span><span class="qbtn acc">▶ Process <i>2</i></span></div>
+        <div class="qsearch">🔍 Search memos</div>
+        <div class="qchips"><span class="qchip on">All</span><span class="qchip">Needs Work</span>
+          <span class="qchip">Done</span><span class="qsort">↕ Newest</span></div>
+      </div>
+      <div class="qtriage"><b>3 ready to review</b><span> · 2 to process</span></div>
+      <div class="qlist">
+        <div class="qrow sel"><div class="top"><span class="gl">🎙</span><span class="t">Hotel Du Vin</span>
+          <span class="pill ready">Ready</span></div><div class="meta">17 Jul · 2:14</div></div>
+        <div class="qrow"><div class="top"><span class="gl">📖</span><span class="t">Quote — The Hard Thing About…</span>
+          <span class="pill enh"><span class="pdot" style="background:var(--amber)"></span>Enhancing</span></div>
+          <div class="meta">20 Jul · 0:48</div></div>
+        <div class="qrow"><div class="top"><span class="gl">📝</span><span class="t">Kitchen reno walkthrough</span>
+          <span class="pill qd">Queued</span></div><div class="meta">19 Jul · Apple Note</div></div>
+
+        <div class="band newring">
+          <div class="bandhead"><span class="ring">○</span><span class="bt1">Not in the pipeline <i>· 23</i></span>
+            <span class="cap" style="padding:2px 9px;font-size:10px;">Process all 23</span><span class="disc">▾</span></div>
+          <div class="bandsub">Synced to this Mac — not rated, so not processed. Rating one starts
+            processing; <b style="color:var(--dim)">sync is never gated.</b></div>
+          <div class="bandrow"><span class="gl">🎙</span><div class="bt">
+            <h6>Alright let’s do a little test. Take a picture…</h6>
+            <p>20 Jul · 0:11 · <span class="sl new">starts fading 19 Aug</span></p></div>
+            <span class="cap">Process</span></div>
+          <div class="bandrow"><span class="gl">🎙</span><div class="bt">
+            <h6>Voice note</h6>
+            <p>18 Jul · 2:47 · <span class="sl new">starts fading 17 Aug</span></p></div>
+            <span class="cap">Process</span></div>
+          <div class="bandrow"><span class="gl">📝</span><div class="bt">
+            <h6>Thoughts on the ROS-LLM paper retry loop</h6>
+            <p>28 Jun · 4:02 · <span class="sl park">kept — tagged</span></p></div>
+            <span class="cap">Process</span></div>
+          <div class="bandfoot">Fading notes aren’t here — they’re on their shelf in Review (one home per
+            station). Collapsed by default; the count is the standing signal.</div>
+        </div>
+      </div>
+      <div class="qfoot">
+        <span class="eng"><i></i>Parakeet</span><span class="eng"><i></i>Gemma 4</span>
+      </div>
+    </div>
+    <div class="qdetail">
+      <div style="max-width:420px;text-align:left;">
+        <p style="font-size:12px;color:var(--dim);margin-bottom:14px;">Note detail unchanged. Two spine
+        consequences land here and in Review:</p>
+        <div class="card" style="max-width:none;">
+          <div class="body"><h3>Hey, this name is Harry, what’s going on?</h3>
+            <div class="meta"><span>17 Jul</span><span>Benfica</span><span>0:05</span>
+              <span style="color:var(--dim);">○ not processed</span></div></div>
+        </div>
+        <p style="font-size:11px;color:var(--dim);margin-top:6px;">① River cards of unpipelined notes get a
+        quiet ring in the meta — no words, hover says "Not processed — rate to process". Clicking opens
+        <b style="color:var(--text)">read-only detail</b> instead of today's
+        <i>"Not in the queue"</i> flash (<span class="src">RootView.swift:34</span>).</p>
+        <div class="toast" style="margin-top:14px;">Moved to Recently Deleted — find it in Review</div>
+        <p style="font-size:11px;color:var(--dim);margin-top:6px;">② Deleting from the Queue keeps working
+        (it already mirrors to the memo — <span class="src">MacCloudDeleteSync.swift</span>) but the LIST
+        lives only in Review now. The footer trash row and its sheet retire.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="dirmap">
+  <div class="row"><span class="k">Axis 1 · gate</span><span>Made visible instead of enforced silently: the
+    band boundary IS the gate, drawn inside the queue. "Where's my memo" is answered at the exact place you
+    look for it. The buried <code>processEverything</code> toggle becomes the band's "Process all N".</span></div>
+  <div class="row"><span class="k">Axis 2 · importance</span><span>Unchanged. The band's Process = one-click
+    minimum flag (0.1 — option A of <code>unrated-shelf.html #m3</code>, still your pick to lock). New small
+    write: the Mac sets <code>Memo.significance</code> through the cloud container — same write lane as
+    Keep/Restore (<span class="src">FadingShelfColumn.swift keptAt precedent</span>).</span></div>
+  <div class="row"><span class="k">Axis 3 · fade</span><span>Shelves exactly as shipped (Fading + Recently
+    Deleted rows in the Review rail); all copy generated from the spine, so a countdown can only appear
+    where it's true. Parked notes read "kept — tagged", never a deadline.</span></div>
+  <div class="row"><span class="k">Axis 4 · queue state</span><span>Pills and filter chips untouched — this
+    axis was never broken.</span></div>
+  <div class="row"><span class="k">Axis 5 · trashes</span><span>Review's Memo-backed column becomes THE list
+    (locked decision honored); the queue sheet retires; Mac-only local uploads surface as a small tail
+    section there ("Mac-only files") since they have no Memo.</span></div>
+  <div class="row kill"><span class="k">Kills</span><span><b>The invisible-note mystery, the contradictory
+    row</b> (the band's frame is a fact — "not in the pipeline" — not a judgment like "rescue this"),
+    <b>the second trash, and the dead-end flash.</b></span></div>
+  <div class="row cost"><span class="k">Costs</span><span><b>The queue hosts non-actionable rows</b> — the
+    band must stay collapsed by default or worklist clarity erodes. The same note still renders in two rooms
+    (queue row + river card): accepted, that's what rooms are. Plus the new significance write-back.</span></div>
+  <div class="row fail"><span class="k">Honest failure mode</span><span><b>It's the least-change direction
+    — the five axes still exist under the floor.</b> If the band never gets expanded it's today's app plus
+    a number, and nothing structural stops a sixth axis appearing next year. It fixes the worst anatomy
+    (gate visibility, double trash) and all the symptoms, but keeps the anatomy's shape.</span></div>
+</div>
+
+<!-- ══════════════════ m3 ══════════════════ -->
+<div class="label" id="m3">#m3 · direction 3 — DEPARTURES <span class="newtag">NEW SURFACE — pills/cards from source</span></div>
+<p class="thesis"><b>Core idea:</b> a note's one status is its <b>forecast</b> — what happens next if you do
+nothing, and roughly when. The desk groups by destiny (→ Obsidian / → out / staying) instead of by filter;
+and Fading + Recently Deleted collapse into ONE "On its way out" conveyor with one verb:
+<b>Bring back</b>. Status stops describing the past and starts describing the future — which is the only
+thing a lifecycle app actually owes you.</p>
+
+<div class="mac">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div>
+    <div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--mut);margin-left:8px;">Skrift — the desk, grouped by destiny</span>
+  </div>
+  <div class="win" style="height:560px;">
+    <div class="rail">
+      <div class="swch"><div class="on">Desk</div><div>Review</div></div>
+      <div class="qbtns" style="margin-bottom:12px;"><span class="qbtn">+ Upload</span>
+        <span class="qbtn acc">▶ Process <i>2</i></span></div>
+      <div class="qsearch" style="margin-bottom:0;">🔍 Search memos</div>
+      <div class="plabel">DESTINIES</div>
+      <div class="scopes">
+        <div class="srow on"><span class="sd" style="background:var(--accent)"></span>→ Obsidian<span class="n">6</span></div>
+        <div class="srow"><span class="sd" style="background:var(--amber)"></span>→ out<span class="n">26</span></div>
+        <div class="srow"><span class="sd" style="background:var(--mut)"></span>staying<span class="n">12</span></div>
+      </div>
+      <div style="margin-top:auto;font-size:10px;color:var(--mut);line-height:1.5;">rating a note = steering
+      it: any rating moves it from "→ out" to "→ Obsidian". The gate is no longer a hidden filter — it's
+      which band you're in.</div>
+    </div>
+    <div class="main">
+      <div class="dhead vault">→ OBSIDIAN <span class="cnt">· 6 — heading to your vault</span></div>
+      <div class="drow"><span class="gl">🎙</span><span class="t">Hotel Du Vin</span>
+        <span class="m">17 Jul · 2:14</span><span class="sl ok">ready — waiting for your review</span></div>
+      <div class="drow"><span class="gl">📖</span><span class="t">Quote — The Hard Thing About Hard Things</span>
+        <span class="m">20 Jul · 0:48</span><span class="sl" style="color:var(--blue)">processing now</span></div>
+      <div class="drow"><span class="gl">📝</span><span class="t">Kitchen reno walkthrough</span>
+        <span class="m">19 Jul</span><span class="sl new">processes on the next run</span></div>
+      <div class="drow"><span class="gl">🎙</span><span class="t">Retry-loop paper ramble</span>
+        <span class="m">14 Jul · 6:51</span><span class="sl gone">stuck — retry</span></div>
+      <div class="arrived">▸ In Obsidian · 89 — arrived, collapsed</div>
+
+      <div class="dhead out">→ OUT <span class="cnt">· 26 — will leave by themselves (quiet; only &lt;7d get color)</span></div>
+      <div class="drow quiet"><span class="gl">🎙</span><span class="t">Alright let’s do a little test. Take a picture…</span>
+        <span class="m">20 Jul · 0:11</span><span class="sl new">starts fading 19 Aug</span></div>
+      <div class="drow quiet"><span class="gl">🎙</span><span class="t">Voice note</span>
+        <span class="m">18 Jul · 2:47</span><span class="sl new">starts fading 17 Aug</span></div>
+      <div class="arrived">▸ 24 more, sorted by departure — fading + deleted live on the Review conveyor, not here</div>
+
+      <div class="dhead stay">STAYING <span class="cnt">· 12 — touched, never rated; goes nowhere by itself</span></div>
+      <div class="drow quiet"><span class="gl">📝</span><span class="t">Thoughts on the ROS-LLM paper retry loop</span>
+        <span class="m">28 Jun · 4:02</span><span class="sl park">stays — tagged, never rated</span></div>
+    </div>
+  </div>
+</div>
+
+<p class="hint" style="margin-bottom:14px;"><b>And in Review, the two shelves become one conveyor</b> — the
+fade → trash → purge pipeline is ONE journey the current UI cuts into two shelves with two verbs (Keep /
+Restore) that both mean "bring back":</p>
+
+<div class="mac" style="width:1000px;">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div>
+    <div class="dot" style="background:#28C840"></div>
+    <span style="font-size:12px;color:var(--mut);margin-left:8px;">Review — the "On its way out" conveyor replaces BOTH shelf rows</span>
+  </div>
+  <div class="win" style="height:470px;">
+    <div class="rail">
+      <div class="swch"><div>Desk</div><div class="on">Review</div></div>
+      <div class="mhead">July 2026 <span>‹ ›</span></div>
+      <div class="grid">
+        <i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i><i>S</i>
+        <i class="has">13<b></b></i><i>14</i><i class="has">15<b></b></i><i class="has">16<b></b></i>
+        <i class="has">17<b></b></i><i>18</i><i>19</i>
+        <i class="sel">20<b></b></i><i>21</i><i>22</i><i>23</i><i>24</i><i>25</i><i>26</i>
+      </div>
+      <div class="plabel">PLACES</div>
+      <div class="prow"><em></em>Benfica<span class="n">14</span></div>
+      <div class="prow"><em></em>Alcântara<span class="n">6</span></div>
+      <div class="shelves-rail newring" style="margin-top:16px;">
+        <div class="shelfrow on"><span class="g" style="color:var(--amber)">🍂</span>On its way out<span class="n">12</span></div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="chead"><h2>On its way out · 12</h2><div class="sp"></div><span class="back">✕ Back</span></div>
+      <p class="csub">Everything leaving, on one line, soonest first. Untouched notes drift here on their
+      own; <b style="color:var(--dim)">Bring back</b> rescues from any point of the journey.</p>
+      <div class="convsec">Still visible → moving to Recently Deleted</div>
+      <div class="convrow">
+        <div class="body"><h3>Okay. Yeah. No. Right. Test two.</h3>
+          <div class="meta"><span>24 May</span><span>0:04</span></div></div>
+        <span class="mini3"><span class="md here"></span><span class="ml"></span><span class="md"></span><span class="ml"></span><span class="md x"></span></span>
+        <span class="redlbl">moves to Deleted in 3d</span><span class="cap">Bring back</span>
+      </div>
+      <div class="convrow">
+        <div class="body"><h3>That um it it started at oh what the fuck…</h3>
+          <div class="meta"><span>12 Jun</span><span>Benfica</span><span>0:06</span></div></div>
+        <span class="mini3"><span class="md here"></span><span class="ml"></span><span class="md"></span><span class="ml"></span><span class="md x"></span></span>
+        <span class="amberlbl">moves to Deleted in 22d</span><span class="cap">Bring back</span>
+      </div>
+      <div class="convsec">In Recently Deleted → gone for good</div>
+      <div class="convrow">
+        <div class="body"><h3>Shopping list — garden centre</h3>
+          <div class="meta"><span>deleted 7 Jul</span><span>0:34</span></div></div>
+        <span class="mini3"><span class="md"></span><span class="ml"></span><span class="md here tr"></span><span class="ml"></span><span class="md x"></span></span>
+        <span class="redlbl">gone for good in ~1d</span><span class="cap">Bring back</span>
+      </div>
+      <div class="convrow">
+        <div class="body"><h3>Voice note</h3>
+          <div class="meta"><span>deleted 14 Jul</span><span>1:03</span></div></div>
+        <span class="mini3"><span class="md"></span><span class="ml"></span><span class="md here tr"></span><span class="ml"></span><span class="md x"></span></span>
+        <span class="mutlbl">gone for good in ~8d</span><span class="cap">Bring back</span>
+      </div>
+      <p class="footline">One list, one ordering, one verb. "Bring back" = Keep for a fading note, Restore
+      for a deleted one — the user never needed two words for that. Purge dates keep the "~": your iPhone
+      does the deleting (<span class="src">TrashPolicy 14d, Memo.swift:23</span>).</p>
+    </div>
+  </div>
+</div>
+
+<div class="dirmap">
+  <div class="row"><span class="k">Axis 1 · gate</span><span>Becomes the board's columns: rated → Obsidian
+    band, untouched → out, touched-unrated → staying. Not a hidden filter — the fork itself is the
+    top-level structure.</span></div>
+  <div class="row"><span class="k">Axis 2 · importance</span><span>The steering wheel: rating moves a note
+    between destinies; the value still tunes the refine wall (0.8) and export exactly as today. Control
+    unchanged.</span></div>
+  <div class="row"><span class="k">Axis 3 · fade</span><span>The "→ out" band's forecasts + the conveyor.
+    Fade / trash / purge = one line with visible position (the 3-dot mini-track).</span></div>
+  <div class="row"><span class="k">Axis 4 · queue state</span><span>Progress within "→ Obsidian";
+    the pills survive as secondary detail ("processing now" / "ready").</span></div>
+  <div class="row"><span class="k">Axis 5 · trashes</span><span>Dissolved: the conveyor's far end IS the
+    trash. One list, one verb; Mac-only files tail again.</span></div>
+  <div class="row kill"><span class="k">Kills</span><span><b>The Fading/Deleted split, both trash
+    duplicates, "unrated" as an on-screen concept</b> (it's a destiny, not a place), <b>and past-tense
+    status as the primary signal.</b></span></div>
+  <div class="row cost"><span class="k">Costs</span><span><b>A forecast copy matrix that must be exactly
+    true.</b> Hard prerequisite: the sweep currently rides Review's refresh
+    (<span class="src">JournalView.swift:78 MacFadingSweep</span>) — shown dates require moving it to a
+    daily timer, and phone-owned purges keep a "~". Bands break pure chronology; boldest relearn; the
+    phone's ⋯ menu should mirror the merged shelf.</span></div>
+  <div class="row fail"><span class="k">Honest failure mode</span><span><b>Forecast fatigue.</b> A corpus
+    that is mostly untouched makes "→ out" the biggest band, and the app reads as a losing battle against
+    entropy — every session feels like triage duty. The quiet styling (color only under 7 days) is the
+    mitigation; if it fails, the metaphor collapses into nagging.</span></div>
+</div>
+
+<!-- ══════════════════ m4 ══════════════════ -->
+<div class="label" id="m4">#m4 · side by side, then the pick</div>
+
+<table class="cmp">
+  <tr><th style="width:150px;"></th><th>1 · One Ledger</th><th>2 · Two Rooms, One Spine</th><th>3 · Departures</th></tr>
+  <tr><td class="k">The gate (axis 1)</td><td>a chip on every row</td><td class="pick"><b>a drawn band inside the queue</b></td><td>the board's columns</td></tr>
+  <tr><td class="k">Importance (2)</td><td>row dots + action</td><td class="pick">unchanged</td><td>unchanged ("steering")</td></tr>
+  <tr><td class="k">Fade (3)</td><td>a scope</td><td>shelves as shipped</td><td class="pick"><b>one conveyor, one verb</b></td></tr>
+  <tr><td class="k">Queue state (4)</td><td>chips in one list</td><td class="pick">pills unchanged</td><td>progress within → Obsidian</td></tr>
+  <tr><td class="k">Two trashes (5)</td><td>one scope</td><td class="pick">one list in Review</td><td class="pick">the conveyor's far end</td></tr>
+  <tr><td class="k">Rooms</td><td>none — one surface</td><td class="pick"><b>two, as designed</b></td><td>two, desk regrouped</td></tr>
+  <tr><td class="k">Build size</td><td>largest (new shell)</td><td class="pick">smallest (band + retire sheet)</td><td>medium (+ timer-driven sweep)</td></tr>
+  <tr><td class="k">Risk to the journal's calm</td><td><b style="color:var(--red)">high</b></td><td class="pick"><b style="color:var(--green)">none</b></td><td><b style="color:var(--amber)">medium</b></td></tr>
+</table>
+
+<div class="reco" style="margin-top:18px;">
+  <b>RECOMMENDATION — Direction 2 as the chassis, adopting Direction 3's conveyor as its shelf model.</b><br><br>
+  <span class="t">Why 2:</span> the two rooms are load-bearing — Queue|Review encodes working-vs-remembering,
+  signed in <code>journal-desktop.html</code> and lived in daily; Direction 1 buys "one truth" by killing the
+  thing the app is actually for. And 2 attacks exactly the three broken axes (1, 3, 5) while leaving the two
+  healthy ones (2, 4) alone.<br><br>
+  <span class="t">Why borrow the conveyor:</span> Direction 2 alone leaves the prettiest redundancy standing —
+  Fading and Recently Deleted are one journey cut in half, with two verbs that both mean "bring back". The
+  conveyor is separable and composes cleanly: it's a Review column swap, exactly like today's shelves. (If it
+  feels like too much at once, ship 2 with the shelves as-is; the spine makes the merge a later drop-in.)<br><br>
+  <span class="t">Build order (each commit-sized, all derived):</span> ① the spine as a Shared type
+  (status enum + one-liner strings, unit-tested — the copy matrix is a test table) → ② the queue band +
+  read-only detail for unpipelined cards (kills the RootView:34 flash) → ③ retire the queue trash sheet →
+  ④ merge the shelves into "On its way out" + move the sweep to a daily timer. Direction 3's destiny bands
+  stay open as a later re-grouping of the same spine — nothing in ①–④ closes that door.
+</div>
+
+<!-- ══════════════════ decisions ══════════════════ -->
+<div class="label">the decisions this doc needs from you</div>
+<div class="decis">
+  <ul>
+    <li><span class="q">Q1 — May the Queue show unpipelined notes at all?</span> The band is my pick because
+      "where's my note" gets asked AT the queue. If you want the queue pipeline-pure, the fallback is the
+      Unrated shelf (<code>unrated-shelf.html</code>) in Review — but then the mystery survives in the room
+      where it's felt.</li>
+    <li><span class="q">Q2 — Band "Process" = set 0.1?</span> (Option A of <code>unrated-shelf.html #m3</code>,
+      carried over.) Note this makes the Mac write <code>Memo.significance</code> up through CloudKit — same
+      lane as Keep/Restore, but a new field for Mac-side writes. OK?</li>
+    <li><span class="q">Q3 — The zombie's name.</span> "Parked"? (alternatives: Held / Kept out). And does it
+      deserve a counting surface anywhere, or is honest per-row copy enough? My pick: copy only — a place
+      would re-create the shelf problem we're killing.</li>
+    <li><span class="q">Q4 — Merge Fading + Recently Deleted into "On its way out" with one "Bring back"
+      verb?</span> If yes: the sweep moves off Review-refresh onto a daily timer (so shown dates are true),
+      and the phone's ⋯ menu shows one item instead of two.</li>
+    <li><span class="q">Q5 — Retiring the queue trash sheet</span> (the locked one-trash decision): OK that
+      Mac-only local uploads (no Memo) appear as a small "Mac-only files" tail in Review's list?</li>
+    <li><span class="q">Q6 — processEverything's fate:</span> keep the Settings toggle as an escape hatch, or
+      retire it once the band's "Process all N" exists? My pick: retire — one visible control beats one
+      buried one.</li>
+    <li><span class="q">Q7 — The copy trio.</span> Everything above uses three phrases for three events:
+      <b>"starts fading"</b> (day 30, leaves the main surfaces) · <b>"moves to Recently Deleted"</b>
+      (day 60) · <b>"gone for good ~"</b> (day 74, iPhone purges). Sign the trio off and every surface reuses
+      it verbatim from the spine.</li>
+  </ul>
+</div>
+
+<p class="hint">Receipts — everything current-app in this doc is drawn from:
+<span class="src">MemoCloudIngest.swift:39,41 · AppSettings.swift (processAllSyncedMemos) ·
+SignificanceScale.swift · MemoLifecycle.swift:22–33,38–47 · AppModel.swift:5 · QueueDerivations.swift ·
+SidebarView.swift (header/chips/triage/rows/footer) · JournalView.swift:92–163 (rail) :145 (shelfRow)
+:486 (importanceDots) :522 (SurfaceSwitch) · RootView.swift:34,43 · FadingShelfColumn.swift ·
+RecentlyDeletedView.swift · MacCloudDeleteSync.swift · MemoCloudUpdate.swift:39 · DesktopTrash.swift:6 ·
+Memo.swift:23 · Palette.swift / Theme.swift (tokens)</span>. If anything drawn here differs from Skrift Dev
+on screen, that's a defect in this mock — flag it before any of it is built.</p>
+
+</body>
+</html>
