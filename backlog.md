@@ -64,6 +64,13 @@ full unit suite + MLX build, phone full unit suite; conveyor snapshot vision-che
   to the count line for width); count line reads "N ready · M to process · K not rated"; "Flag
   all K" appears only in Not-rated mode. Conveyor centered like the river. Verbs locked: **Flag
   adds to the pile, Process runs the pile.**
+- **✅ Q-PLACEMENT locked 2026-07-21 (b91): pick B** (mock `wayout-phone-placement.html`,
+  Tuur: "B for sure — mac and phone are similar; fading is 3 days old, no habit to protect").
+  The phone conveyor's one home = a quiet row at the BOTTOM of the Review feed (Mac-rail
+  idiom, non-empty only, amber unread dot moved onto the row — a custom tab-icon dot isn't
+  drawable in SwiftUI tabItems); the Notes ⋯ shelf entry + its dot RETIRED. Same session:
+  b89 map port (owned camera, dive, in-frame card) + b90 fixes (card scrolls all notes,
+  dive never zooms out, gestures clear selection, WayOut rows peek w/ Bring back — Mac parity).
 - **✅ Build 88 ON DEVICE 2026-07-21** (iPhone 13, install verified via dylib string-grep):
   merged "On its way out" shelf, flag-to-process microcopy, shared taxonomy glyphs, spine
   one-liners. Device eyeball = Tuur's next phone session. Round 4/5 same-day extras: shared
