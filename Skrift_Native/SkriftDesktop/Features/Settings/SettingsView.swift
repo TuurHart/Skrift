@@ -111,10 +111,6 @@ struct SettingsView: View {
             section("Sync") {
                 toggleRow("CloudKit sync with the Mac", \.cloudKitMacSync,
                           help: "Process memos your phone synced over iCloud — no Wi-Fi pairing, no app foregrounded — and sync the Mac's polished title/summary/copy-edit back to your phone. Needs the Mac signed into the same iCloud account. The local-network “Pair a Mac” path still works as a fallback when this is off.")
-                if settings.cloudKitMacSync ?? false {
-                    toggleRow("Process every synced memo", \.processAllSyncedMemos,
-                              help: "Every memo syncs here regardless of rating — this only controls what enters the queue. By default the Mac processes memos you rated (importance > 0); turn this on to process unrated ones too.")
-                }
             }
             section("Names · \(displayPeople.count)") {
                 Text("Tap a person to edit their full name, aliases, short name, and voice. Aliases are the spoken nicknames that link to them; the full name becomes the [[link]].")

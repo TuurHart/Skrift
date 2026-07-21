@@ -28,6 +28,15 @@ struct SidebarView: View {
     private var pendingCount: Int { pendingFiles.count }
     @State private var dragOver = false
 
+    // ── the Queue band (mocks/lifecycle-ia-explorations.html #m2) ───────────
+    /// Cloud memos, refreshed on appear / when `files` changes / after any band
+    /// Process action — the source for both the band's membership and (once
+    /// step ③ lands) the one-trash footer count.
+    @State private var cloudMemos: [Memo] = []
+    @AppStorage("queueBandExpanded") private var bandExpanded = false
+    private var unpipelinedMemos: [Memo] { WayOutRules.unpipelined(memos: cloudMemos, files: files) }
+    private var backlinkedIDs: Set<UUID> { MemoLifecycle.backlinkedIDs(in: cloudMemos) }
+
     var body: some View {
         VStack(spacing: 0) {
             SurfaceSwitch(model: model)
@@ -35,10 +44,13 @@ struct SidebarView: View {
             header
             triageLine
             queue
+            band
             bottomBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.sidebar)
+        .task { refreshCloudMemos() }
+        .onChange(of: files.count) { _, _ in refreshCloudMemos() }
         .overlay(alignment: .trailing) {
             Rectangle().fill(Theme.hairline.opacity(0.07)).frame(width: 0.5)
         }
@@ -313,6 +325,98 @@ struct SidebarView: View {
                 VStack(spacing: 0) { content; Spacer(minLength: 0) }
             }
         }
+    }
+
+    // ── The Queue band — "Not in the pipeline" (mocks/lifecycle-ia-explorations.html #m2) ──
+    // A fixed element between the queue list and the footer (not nested inside the row
+    // ScrollView, unlike the mock's raw HTML): it must stay reachable even in the
+    // emptyQueue/noMatches states — a first-sync, never-rated-anything corpus is exactly
+    // the case the band exists to surface, and files.isEmpty must not hide it.
+    @ViewBuilder private var band: some View {
+        let rows = unpipelinedMemos
+        if !rows.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                bandHeader(rows: rows)
+                if bandExpanded {
+                    VStack(alignment: .leading, spacing: 7) {
+                        ForEach(rows, id: \.persistentModelID) { memo in bandRow(memo) }
+                        Text("Synced to this Mac — not rated, so not processed. Rating one starts processing; sync is never gated.")
+                            .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 12).padding(.top, 2).padding(.bottom, 10)
+                }
+            }
+            .background(Theme.hairline.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
+            .padding(.horizontal, 8).padding(.top, 4)
+            .overlay(alignment: .top) { Rectangle().fill(Theme.hairline.opacity(0.06)).frame(height: 0.5) }
+            .accessibilityIdentifier("sidebar.band")
+        }
+    }
+
+    private func bandHeader(rows: [Memo]) -> some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "circle").font(.system(size: 10)).foregroundStyle(Theme.textMuted)
+                Text("Not in the pipeline · \(rows.count)")
+                    .font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textSecondary)
+                Image(systemName: bandExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(Theme.textMuted)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { bandExpanded.toggle() }
+            Spacer(minLength: 6)
+            capsuleButton("Process all \(rows.count)", prominent: false) { processAll(rows) }
+                .accessibilityIdentifier("sidebar.band.process-all")
+        }
+        .padding(.horizontal, 12).padding(.vertical, 9)
+    }
+
+    private func bandRow(_ memo: Memo) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: memo.audioFilename.isEmpty ? "note.text" : "mic.fill")
+                .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted).frame(width: 14)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(WayOutRules.displayTitle(memo))
+                    .font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textPrimary).lineLimit(1)
+                Text(bandRowMeta(memo)).font(.system(size: 10)).foregroundStyle(Theme.textMuted).lineLimit(1)
+            }
+            Spacer(minLength: 6)
+            capsuleButton("Process", prominent: false) { process(memo) }
+                .accessibilityIdentifier("band-row-process")
+        }
+        .padding(.vertical, 3)
+    }
+
+    private func bandRowMeta(_ memo: Memo) -> String {
+        let date = memo.recordedAt.formatted(.dateTime.day().month(.abbreviated))
+        let one = WayOutRules.oneLiner(for: memo, backlinked: backlinkedIDs)
+        guard memo.duration > 0 else { return "\(date) · \(one)" }
+        return "\(date) · \(SkriftFormat.clock(memo.duration)) · \(one)"
+    }
+
+    private func refreshCloudMemos() {
+        guard let cloudCtx = MemoCloudStore.container?.mainContext else { cloudMemos = []; return }
+        cloudMemos = (try? cloudCtx.fetch(FetchDescriptor<Memo>())) ?? []
+    }
+
+    /// Q2: the one-click minimum flag — same cloud write lane as Keep/Restore
+    /// (FadingShelfColumn's `keptAt` precedent), just a different field. Then
+    /// kick the reconcile sweep (read-only call into `MemoCloudReconciler`,
+    /// which LANE_AUTHOR owns) so the new queue row appears promptly.
+    private func process(_ memo: Memo) {
+        memo.significance = 0.1
+        try? MemoCloudStore.container?.mainContext.save()
+        MemoCloudReconciler.reconcileSoon()
+        refreshCloudMemos()
+    }
+
+    private func processAll(_ memos: [Memo]) {
+        guard !memos.isEmpty else { return }
+        for memo in memos { memo.significance = 0.1 }
+        try? MemoCloudStore.container?.mainContext.save()
+        MemoCloudReconciler.reconcileSoon()
+        refreshCloudMemos()
     }
 
     /// Search/filter excluded every memo (the queue itself isn't empty). Mirrors

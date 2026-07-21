@@ -64,6 +64,8 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// When on, the Mac processes EVERY synced memo, ignoring the phone's significance>0
     /// flag-to-send gate (the `MemoCloudIngest` `processEverything` override). OFF by default
     /// → honor the phone's intent (significance 0 is synced but skipped). Optional for legacy-decode.
+    /// DEAD since 2026-07-21 — the Queue band's "Process all N" replaced it as the one
+    /// visible control (Q6, mocks/lifecycle-ia-explorations.html); field kept for legacy decode.
     var processAllSyncedMemos: Bool? = nil
     var processAllSyncedMemosEnabled: Bool { processAllSyncedMemos ?? false }
 

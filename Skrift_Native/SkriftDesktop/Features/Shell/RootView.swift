@@ -10,6 +10,10 @@ struct RootView: View {
     @State private var settingsOpen = false
     @State private var showWizard = false
     @State private var trashOpen = false
+    /// The memo id behind the "not processed yet" peek sheet — set when a Journal
+    /// river card points at a memo with no queue row (mocks/lifecycle-ia-explorations.html
+    /// #m2, kills the old RootView:34 dead-end flash).
+    @State private var unpipelinedSheetID: String?
     @AppStorage(AppTheme.key) private var appTheme = "dark"
     // Live queue = NOT trashed (Recently Deleted is its own sheet). The predicate
     // keeps soft-deleted files out of the sidebar, selection, and active note.
@@ -31,7 +35,7 @@ struct RootView: View {
                         model.activeID = id
                         model.selection = [id]
                     } else {
-                        coordinator.flash("Not in the queue — this note hasn't been processed on the Mac")
+                        unpipelinedSheetID = id
                     }
                 })
             } else {
@@ -60,6 +64,20 @@ struct RootView: View {
         }
         .sheet(isPresented: $trashOpen) {
             RecentlyDeletedView(files: trashedFiles, onClose: { trashOpen = false })
+        }
+        .sheet(isPresented: Binding(
+            get: { unpipelinedSheetID != nil },
+            set: { if !$0 { unpipelinedSheetID = nil } }
+        )) {
+            UnpipelinedMemoSheet(
+                memoID: unpipelinedSheetID ?? "",
+                onClose: { unpipelinedSheetID = nil },
+                onProcessed: { id in
+                    unpipelinedSheetID = nil
+                    model.surface = .queue
+                    model.activeID = id
+                    model.selection = [id]
+                })
         }
         .overlay {
             if showWizard {
