@@ -64,6 +64,13 @@ full unit suite + MLX build, phone full unit suite; conveyor snapshot vision-che
   to the count line for width); count line reads "N ready · M to process · K not rated"; "Flag
   all K" appears only in Not-rated mode. Conveyor centered like the river. Verbs locked: **Flag
   adds to the pile, Process runs the pile.**
+- **✅ b92 (same eve) — discoverability without a tour:** search finds FADING notes again
+  (no-bad-info: "no results" about a recoverable note was the worst answer to "where did my
+  note go" — phone hits wear an amber 'fading' capsule, Mac quiet rows self-mark via the
+  one-liner; browse mode untouched, conveyor stays the one home) + an untouched note's
+  DETAIL narrates its own lifecycle ("starts fading 19 Aug — rating or editing keeps it",
+  live-hidden on any touch). PARKED → standalone onboarding phase: first-launch framing +
+  a once-ever first-fade explainer card (STANDALONE_PLAN / standalone-onboarding.html).
 - **✅ Q-PLACEMENT locked 2026-07-21 (b91): pick B** (mock `wayout-phone-placement.html`,
   Tuur: "B for sure — mac and phone are similar; fading is 3 days old, no habit to protect").
   The phone conveyor's one home = a quiet row at the BOTTOM of the Review feed (Mac-rail
