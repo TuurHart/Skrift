@@ -1,28 +1,32 @@
 import Foundation
 import SwiftData
 import AVFoundation
-import os
 
 /// The Mac AUTHORS Memos ⑤ (`MAC_CLOUDKIT_PLAN.md` direction, Q5 2026-07-21 lock): a file
-/// ingested locally on the Mac (the +Upload button / drag-drop, `IngestService`; a future
-/// `UploadService` local caller) becomes a synced `Memo` like any phone capture — "Mac-only
-/// files" stop existing. Before this, ZERO desktop code constructed a `Memo`; local uploads
-/// made only `PipelineFile`s, invisible to the phone.
+/// ingested locally on the Mac (the +Upload button / drag-drop, `IngestService`) becomes a
+/// synced `Memo` like any phone capture — "Mac-only files" stop existing. Before this, ZERO
+/// desktop code constructed a `Memo`; local uploads made only `PipelineFile`s, invisible to
+/// the phone.
 ///
 /// **Pure + host-less testable**, like `MemoCloudIngest`/`MacCloudWriteBack`: every entry point
-/// takes its `ModelContext` explicitly rather than touching `MemoCloudStore.container` itself, so
-/// the core logic unit-tests with a plain in-memory container. Only `authorLocalUpload` (the
-/// `UploadService` hook) resolves the real container, gated exactly like `MacCloudMetaSync`.
+/// takes its `ModelContext` explicitly rather than touching `MemoCloudStore.container` itself —
+/// deliberately so. This file lives under `Pipeline/`, which `project.yml`'s
+/// `SkriftDesktopTests` target compiles HOST-LESS, straight into the test bundle, with NO
+/// `App/`/`Features/` sources (see that target's own comment: "compile the pure-logic sources
+/// straight into the test bundle instead of @testable-importing the app"). `MemoCloudStore`/
+/// `SettingsStore`-as-a-sync-gate are only ever referenced from `App/`/`Features/` throughout
+/// this codebase (`MacCloudMetaSync`, `MemoCloudReconciler+Wiring`) — never from here — so this
+/// enum stays reachable with a plain in-memory container, matching `MemoCloudIngest`'s own style.
 ///
-/// **Two ways a local file gets authored:**
-/// - INSTANT: `UploadService.ingest(parts:memoID:)`'s local branch (`memoID == nil`) calls
-///   `authorLocalUpload` per created row. In the current app this branch has no real caller yet
-///   (Bonjour, its historical caller, is retired) — it's forward-compatible plumbing.
-/// - SWEPT: `backfill`, hooked into `MemoCloudReconciler`'s reconcile sweep, scans every local
-///   `PipelineFile` with a UUID id and no `Memo` yet. This is what actually covers the live
-///   +Upload-button/drag-drop path (`IngestService`), which mints `UUID().uuidString` ids but
-///   never touches `UploadService` — the sweep picks those rows up on the next reconcile,
-///   whichever local path created them, without this file ever depending on `IngestService`.
+/// **How a local file actually gets authored:** `backfill`, hooked into `MemoCloudReconciler`'s
+/// reconcile sweep (`MemoCloudReconciler+Wiring.reconcile`, `App/`-domain — that's where the
+/// `MemoCloudStore`/`cloudKitMacSyncEnabled` gate lives), scans every local `PipelineFile` with a
+/// UUID id and no `Memo` yet. This is what covers the live +Upload-button/drag-drop path
+/// (`IngestService`, which mints `UUID().uuidString` ids) — the sweep picks a row up on the next
+/// reconcile, whichever local path created it, without this file ever depending on
+/// `IngestService` or `UploadService`. (`UploadService.ingest`'s `memoID == nil` local branch has
+/// no live caller today — Bonjour, its historical caller, is retired — so there is nothing to
+/// hook there; see the note in `UploadService.ingest`'s doc comment.)
 ///
 /// `reflectTranscripts` is the companion: once a Mac-authored memo's `PipelineFile` gets
 /// transcribed by the normal pipeline (BatchRunner), copy that transcript back onto the `Memo` so
@@ -119,27 +123,6 @@ enum MacMemoAuthor {
             }
         }
         return count
-    }
-
-    // MARK: - UploadService's local-ingest hook (gated)
-
-    /// `UploadService.ingest(parts:memoID:)`'s local branch (`memoID == nil` — the CloudKit
-    /// re-ingest path always passes one and must never double-author, see `MemoCloudIngest`).
-    /// Gated exactly like `MacCloudMetaSync`: settings + container, so a host-less/XCTest run (the
-    /// container is `nil` under `XCTestConfigurationFilePath`, see `MemoCloudStore`) or CloudKit-Mac
-    /// sync being off just skips authoring — the `PipelineFile` itself is created either way, this
-    /// is a pure side effect on top of it. Best-effort: an authoring hiccup is logged, never thrown
-    /// back at the upload caller (a local file must always become a `PipelineFile` whether or not
-    /// it also becomes a synced Memo).
-    static func authorLocalUpload(for pf: PipelineFile) {
-        guard SettingsStore.shared.load().cloudKitMacSyncEnabled,
-              let container = MemoCloudStore.container else { return }
-        do {
-            _ = try author(for: pf, audioURL: resolvedAudioURL(for: pf), into: container.mainContext)
-        } catch {
-            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
-                .error("local-upload author FAILED \(pf.id, privacy: .public): \(error)")
-        }
     }
 
     // MARK: - Privates

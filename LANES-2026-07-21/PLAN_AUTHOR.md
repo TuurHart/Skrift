@@ -17,12 +17,10 @@ DeviceID.swift) before writing this.
    Bonjour HTTP path. This does NOT block the brief: `backfill(files:into:)`, hooked into the
    reconciler sweep (step 3), is the general-purpose mechanism — it scans ALL local PipelineFiles
    with a UUID id and no Memo, which catches IngestService-created rows (they mint
-   `UUID().uuidString` ids) on the next sweep regardless of which local path created them. Step 2
-   (the UploadService hook) is still implemented exactly as specified — it's correct,
-   forward-compatible, and makes authoring INSTANT for anything that does call
-   `UploadService.ingest` with no memoID — but `backfill` is the one that actually delivers Q5 for
-   the real +Upload/drag-drop path. No escalation needed; this is implementation-mapping, not a
-   contract gap.
+   `UUID().uuidString` ids) on the next sweep regardless of which local path created them. See
+   finding 8 below for why step 2 ended up NOT calling `MacMemoAuthor` after all — `backfill` is
+   the one that actually delivers Q5 for the real +Upload/drag-drop path either way. No
+   escalation needed; this is implementation-mapping, not a contract gap.
 2. **`PipelineFile` has no `duration` field.** The brief's "duration/recordedAt from the pf" reads
    `recordedAt` as `pf.uploadedAt` (the closest analogue — IngestService's own comments call it
    "the CONTENT date"), but there's no `pf.duration` to copy. Leaving `Memo.duration` at its
@@ -62,15 +60,38 @@ DeviceID.swift) before writing this.
    transcript. `.done` + a real trust-worthy confidence value keeps `Memo.isTrustedTranscript`
    coherent without lying about who wrote it (`transcriptUserEdited` stays false — nobody edited
    it).
+8. **Step 2 (the UploadService hook) was built, then REVERTED — a real compile-boundary bug caught
+   while writing tests, not a style choice.** `project.yml`'s `SkriftDesktopTests` target compiles
+   `Pipeline/`, `Models/`, and `../Shared/*` sources HOST-LESS, straight into the test bundle —
+   explicitly excluding `App/`/`Features/`/`Engines/` (its own comment: "compile the pure-logic
+   sources straight into the test bundle instead of @testable-importing the app"). `MemoCloudStore`
+   (the CloudKit container) lives in `App/MemoCloudContainer.swift`; grepped the WHOLE codebase —
+   it is referenced ONLY from `App/`/`Features/` files (`MacCloudMetaSync`, `MemoCloudReconciler
+   +Wiring`, `JournalView`, `ProcessingCoordinator`), NEVER from `Pipeline/`/`Models/`/`Shared/`.
+   My first draft of `authorLocalUpload` (gated like `MacCloudMetaSync`, called from
+   `UploadService.ingest`) referenced `MemoCloudStore.container` from `MacMemoAuthor.swift`, which
+   lives under `Pipeline/` — that would have failed "cannot find 'MemoCloudStore' in scope" the
+   moment `xcodebuild test -scheme UnitTests` tried to compile the test bundle, REGARDLESS of
+   whether any test exercised that function (the whole file has to compile). Fixed by reverting
+   `UploadService.ingest` to its original one-line body and deleting `authorLocalUpload` entirely
+   — `MacMemoAuthor.swift` is now 100% pure (Foundation/SwiftData/AVFoundation +
+   Memo/MemoAsset/PipelineFile/DeviceID only, all host-less-compiled types). Given finding 1
+   (step 2's hook had zero live callers anyway), this costs nothing functionally — `backfill`
+   (step 3, wired from the ALREADY `App/`-domain `MemoCloudReconciler+Wiring.swift`, which is
+   correctly excluded from the test target and free to depend on `MemoCloudStore`) is the complete,
+   correctly-layered, and only mechanism that ships. Not an escalation: no contract file changed,
+   a fully-tested working alternative already existed, and the alternative (adding `App/` to the
+   test target's sources, or building a DI seam into `UploadService`) is a bigger, riskier,
+   out-of-scope change to shared build config this lane has no business making unilaterally.
 
 ## Build steps (small commits, explicit paths)
 
 1. `Skrift_Native/SkriftDesktop/Pipeline/Ingest/MacMemoAuthor.swift` (NEW) — `author`,
-   `reflectTranscripts`, `backfill`, `authorLocalUpload` (the UploadService gate wrapper),
-   `resolvedAudioURL`/`markTranscribed`/`audioDuration` privates.
-2. `Skrift_Native/SkriftDesktop/Pipeline/Ingest/UploadService.swift` — `ingest(parts:into:memoID:)`
-   calls `MacMemoAuthor.authorLocalUpload` per created row when `memoID == nil`. `commit`/`prepare`
-   untouched (HTTP-parity structure intact).
+   `reflectTranscripts`, `backfill`, `resolvedAudioURL`/`markTranscribed`/`audioDuration` privates.
+   Pure — no `MemoCloudStore`/`SettingsStore` dependency (see finding 8).
+2. `Skrift_Native/SkriftDesktop/Pipeline/Ingest/UploadService.swift` — doc-comment-only change:
+   `ingest(parts:into:memoID:)` explains why it does NOT hook `MacMemoAuthor` (finding 8). Body is
+   byte-identical to before this lane touched it.
 3. `Skrift_Native/SkriftDesktop/App/MemoCloudReconciler+Wiring.swift` — Q6 flip
    (`processEverything: false` + retirement comment) + hook `backfill`/`reflectTranscripts` into
    `reconcile()` after the existing sweep, same gated block, best-effort logged.
