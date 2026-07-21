@@ -27,21 +27,29 @@ problem, worse room — keep as the artifact that exposed it).
 - Q7 copy trio SIGNED: "starts fading <date>" (30d) · "moves to Recently Deleted in Nd" (60d) ·
   "gone for good in ~Nd" (74d) — every surface both apps, verbatim from the spine.
 
-**Build order (each commit-sized):**
-- [x] ① the spine — `Shared/Pipeline/MemoSpine.swift` (9 stations + Parked reasons + one-liners;
-      priority chain, all derived, keptAt stays the only stored bit) + twin `MemoSpineTests`
-      (desktop 11 green 2026-07-21; phone twin run pending in this session).
-- [ ] ② Queue band "Not in the pipeline · N" + Process(=0.1, cloud write-back) + read-only detail
-      for unpipelined river cards (kills the RootView:34 flash). Retire the toggle (Q6) here too.
-- [ ] ③ ONE trash: Review's Memo-backed list absorbs the queue sheet (footer row → link; keep
-      MacCloudDeleteSync mirroring; transitional Mac-local tail).
-- [ ] ④ conveyor: merge Fading + Recently Deleted → "On its way out" + Bring back; DAILY TIMER
-      sweep replaces Review-refresh sweep; phone ⋯ menu goes to one item; wire spine one-liners.
-- [ ] ⑤ Mac authors Memos for local uploads (+ backfill); Mac-authored uploads get significance 0.1
-      at authoring (they're user-initiated processing — an unrated Memo the Mac processes would lie
-      on the phone). Then the Q5 tail dies.
-- [ ] Phone parity pass: spine one-liners on phone rows/detail (its flag line already matches),
-      shelf merge. Then FEATURES.md rows + device round both apps.
+**Build order — ✅ ALL BUILT 2026-07-21 via a 3-lane Sonnet batch (SURF ②③④ / AUTHOR ⑤ /
+PHONE parity; briefs = `LANES-2026-07-21/`), Fable conducting. Integrated gate green: desktop
+full unit suite + MLX build, phone full unit suite; conveyor snapshot vision-checked.**
+- [x] ① the spine — `Shared/Pipeline/MemoSpine.swift` + twin `MemoSpineTests` (11 green each app).
+- [x] ② Queue band "○ Not in the pipeline · N" (collapsed, hidden at 0) + per-row/all Process
+      (=0.1 + `reconcileSoon()`) + `UnpipelinedMemoSheet` replaces the RootView:34 dead-end flash;
+      Q6 toggle UI removed. Testable logic in `Pipeline/WayOutRules.swift` (27 tests).
+- [x] ③ ONE trash: queue sheet + footer retired (footer row now jumps to the Review shelf via
+      `AppModel.reviewShelf`); `RecentlyDeletedView` (Mac) deleted; MacCloudDeleteSync kept.
+- [x] ④ conveyor: `WayOutColumn` = "On its way out" (fading + deleted + Mac-only tail, soonest
+      first, ONE verb Bring back = keptAt+undelete); `LifecycleSweepScheduler` daily-timer sweep
+      (launch + day-change + 24h) replaces sweep-on-Review-refresh; spine one-liners throughout.
+- [x] ⑤ Mac authors Memos: `MacMemoAuthor` (author/backfill/reflectTranscripts, 0.1 floor,
+      idempotent, demo-row guard) hooked into the reconcile sweep + instant on upload; 13 tests.
+      NOTE: the in-UploadService instant hook was REVERTED by the lane (Pipeline/→App/ breaks the
+      host-less test compile) — instant authoring is via reconcileSoon() post-ingest instead.
+- [x] Phone parity: ⋯ menu → ONE "On its way out (N)" (`WayOutView` absorbs FadingShelfView +
+      phone RecentlyDeletedView; unread-dot semantics untouched; hard-delete kept phone-side).
+- **Conductor catches at the gate:** #Predicate can't capture a model property (hoist first);
+  `-snapshot-trash` had to move writePNG→hostPNG (ImageRenderer blanks ScrollView rows — the
+  header said 5 over an empty body until vision caught it).
+- **OWED:** Dev-app live eyeball of the BAND (sidebar can't snapshot) + a phone device build
+  (b88+) for the merged shelf; prod promotion later as usual.
 
 ## ⭐ CONTINUE HERE (2026-07-18 remote session; merged + sim-verified LOCALLY 2026-07-19)
 
