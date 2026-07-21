@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>On its way out — where does it live on the phone?</title>
+<style>
+  :root{
+    --bg:#0F1117; --surface:#181A23; --hover:#1E2130; --text:#E4E4E7; --dim:#8B8B97;
+    --mut:#55556A; --hairline:rgba(255,255,255,.07); --accent:#7C6BF5; --amber:#F59E0B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0A0B10;color:var(--text);font:13px/1.45 -apple-system,'SF Pro Text',sans-serif;padding:34px 40px 80px;}
+  h1{font-size:19px;margin-bottom:6px;}
+  .thesis{color:var(--dim);font-size:12.5px;max-width:900px;margin-bottom:10px;}
+  .v1{display:inline-block;font-size:11px;color:var(--amber);border:1px solid rgba(245,158,11,.35);padding:3px 10px;border-radius:6px;margin-bottom:26px;}
+  .label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);margin:30px 0 10px;}
+  .row{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;}
+  .phone{width:300px;background:var(--bg);border:8px solid #000;border-radius:34px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.5);}
+  .pscreen{height:560px;padding:14px 14px 0;display:flex;flex-direction:column;position:relative;}
+  .ptitle{font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .dots{position:relative;width:30px;height:30px;border-radius:9px;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--dim);font-weight:700;}
+  .dots i{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--amber);font-style:normal;}
+  .menu{position:absolute;background:#232636;border-radius:12px;padding:6px;box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:12.5px;width:200px;right:12px;top:54px;z-index:3;}
+  .menu div{padding:8px 10px;border-radius:8px;display:flex;justify-content:space-between;color:var(--text);}
+  .menu div.on{background:rgba(124,107,245,.15);}
+  .search{background:var(--hover);border-radius:9px;padding:7px 11px;font-size:12px;color:var(--mut);margin-bottom:10px;}
+  .prow{background:var(--surface);border:1px solid var(--hairline);border-radius:11px;padding:10px 12px;margin-bottom:8px;}
+  .prow h4{font-size:12.5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .prow p{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jcard{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:12px;margin-bottom:10px;}
+  .jkick{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--accent);margin-bottom:3px;}
+  .jcard h4{font-size:13px;margin-bottom:2px;}
+  .jcard p{font-size:11.5px;color:var(--dim);}
+  .calgrid{display:flex;gap:4px;margin-top:6px;}
+  .calgrid b{width:20px;height:20px;border-radius:5px;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim);font-weight:600;}
+  .maplite{height:64px;border-radius:9px;background:linear-gradient(160deg,#1a1d29,#141620);margin-top:6px;position:relative;}
+  .maplite b{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  /* the candidate row — Mac rail idiom, phone-carded */
+  .wayrow{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--hairline);border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;color:var(--dim);}
+  .wayrow .leaf{color:var(--amber);font-size:12px;}
+  .wayrow .n{margin-left:auto;color:var(--mut);font-size:11px;}
+  .wayrow.newmark{outline:1px dashed rgba(245,158,11,.55);outline-offset:2px;}
+  .cap{font-size:10.5px;color:var(--mut);text-align:center;margin:10px 0 24px;max-width:300px;}
+  .decis{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:16px 20px;max-width:940px;font-size:12.5px;color:var(--dim);}
+  .decis b{color:var(--text);}
+  .decis li{margin:5px 0 5px 18px;}
+  .q{color:var(--amber);font-weight:600;}
+  .tabbar{margin-top:auto;display:flex;justify-content:space-around;background:var(--surface);border-radius:16px 16px 0 0;padding:10px 0 14px;font-size:10px;color:var(--mut);}
+  .tabbar span.on{color:var(--accent);font-weight:700;}
+  .tabbar span i{display:block;text-align:center;font-size:14px;font-style:normal;margin-bottom:2px;}
+  .tabbar span b{color:var(--amber);}
+</style>
+</head>
+<body>
+
+<h1>“On its way out” — where does it live on the phone?</h1>
+<p class="thesis">July 17 you rejected a Review-feed row and picked the Notes ⋯ menu — but that was for the
+FADING shelf alone, before the conveyor existed and before the Mac put it in ITS Review rail. The overhaul
+reopens the question. Three options, drawn from the shipped screens (MemosListView ⋯ / JournalHomeView cards).</p>
+<span class="v1">placement mock v1 · pick one — A keeps your July choice, B mirrors the Mac, C does both</span>
+
+<div class="label">the three options</div>
+<div class="row">
+
+  <!-- A: status quo -->
+  <div>
+    <div class="phone"><div class="pscreen">
+      <div class="ptitle">Notes <span class="dots">⋯<i></i></span></div>
+      <div class="menu">
+        <div class="on">🍂 On its way out <span>40</span></div>
+        <div>Select</div>
+        <div>Sort · Newest</div>
+      </div>
+      <div class="search">Search notes</div>
+      <div class="prow"><h4>Hey, this name is Harry…</h4><p>17 Jul · 0:05</p></div>
+      <div class="prow"><h4>Finding Purpose: Gravitating…</h4><p>16 Jul · 3:41</p></div>
+      <div class="prow"><h4>We're gonna do all these…</h4><p>15 Jul · 1:12</p></div>
+      <div class="prow"><h4>capture_A7F5F0CC…</h4><p>15 Jul · Link</p></div>
+      <div class="tabbar">
+        <span class="on"><i>▤</i>Notes</span><span><i>📖</i>Books</span><span><i>↻</i>Review</span><span><i>⚙</i>Settings</span>
+      </div>
+    </div></div>
+    <p class="cap"><b>A — as shipped (your July pick).</b> Behind ⋯ on Notes, amber unread dot.
+    Nothing changes. Divergence: the Mac's lives in Review.</p>
+  </div>
+
+  <!-- B: Review row, mirror the Mac -->
+  <div>
+    <div class="phone"><div class="pscreen">
+      <div class="ptitle">Review</div>
+      <div class="jcard"><div class="jkick">1 WEEK AGO</div><h4>Hey, this name is Harry…</h4><p>Hey, this name is Harry, what's going on?</p></div>
+      <div class="jcard"><h4>July</h4><div class="calgrid"><b>14</b><b>15</b><b>16</b><b>17</b><b>18</b><b>19</b><b>20</b><b>21</b></div></div>
+      <div class="jcard"><h4>Places</h4><div class="maplite"><b style="left:60px;top:22px"></b><b style="left:110px;top:38px"></b></div></div>
+      <div class="wayrow newmark"><span class="leaf">🍂</span>On its way out<span class="n">40</span></div>
+      <div class="tabbar">
+        <span><i>▤</i>Notes</span><span><i>📖</i>Books</span><span class="on"><i>↻</i>Review<b>·</b></span><span><i>⚙</i>Settings</span>
+      </div>
+    </div></div>
+    <p class="cap"><b>B — mirror the Mac.</b> One quiet row at the bottom of Review (same spot as the Mac
+    rail), shown only when non-empty. The ⋯ item leaves Notes; the unread dot moves to the Review tab icon.</p>
+  </div>
+
+  <!-- C: both -->
+  <div>
+    <div class="phone"><div class="pscreen">
+      <div class="ptitle">Review</div>
+      <div class="jcard"><div class="jkick">1 WEEK AGO</div><h4>Hey, this name is Harry…</h4><p>Hey, this name is Harry, what's going on?</p></div>
+      <div class="jcard"><h4>July</h4><div class="calgrid"><b>14</b><b>15</b><b>16</b><b>17</b><b>18</b><b>19</b><b>20</b><b>21</b></div></div>
+      <div class="jcard"><h4>Places</h4><div class="maplite"><b style="left:60px;top:22px"></b><b style="left:110px;top:38px"></b></div></div>
+      <div class="wayrow newmark"><span class="leaf">🍂</span>On its way out<span class="n">40</span></div>
+      <div class="tabbar">
+        <span><i>▤</i>Notes <b>⋯</b></span><span><i>📖</i>Books</span><span class="on"><i>↻</i>Review</span><span><i>⚙</i>Settings</span>
+      </div>
+    </div></div>
+    <p class="cap"><b>C — both doors.</b> The Review row AND the Notes ⋯ item. Two entry points, one
+    counting surface (the shelf itself) — legal under the one-home law, but it's the pattern we just
+    killed on the Mac (the footer row).</p>
+  </div>
+</div>
+
+<div class="label">the decision</div>
+<div class="decis">
+  <ul>
+    <li><b>Recommendation: B.</b> "Keep Mac and phone working similarly" was your own instruction today —
+      Review is the lifecycle's home on the Mac, and the phone's July placement predates both the conveyor
+      and that decision. The unread-dot semantics survive intact, just on the Review tab icon instead of ⋯.</li>
+    <li><b>Against B:</b> the ⋯ dot on Notes is where you've been trained to look for two weeks; the
+      Review feed was deliberately kept a calm, shelf-free surface in July.</li>
+    <li><b>C</b> works but re-creates the two-doors pattern the Mac just retired.</li>
+    <li class="q">Pick A / B / C — build follows the pick, phone-side only, one commit.</li>
+  </ul>
+</div>
+
+</body>
+</html>

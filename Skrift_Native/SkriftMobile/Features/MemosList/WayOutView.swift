@@ -22,6 +22,9 @@ struct WayOutView: View {
     /// The memo a Delete-Now is pending confirmation for (deleted section only —
     /// the phone-owned destructive control the old trash screen had).
     @State private var confirmDelete: Memo?
+    /// Row-tap peek (Mac parity, Tuur 2026-07-21): read the note before
+    /// deciding to Bring back — a popup, not a push to the full editor.
+    @State private var peek: Memo?
 
     private var fading: [Memo] {
         Self.orderedByImminence(fading: MemoLifecycle.partition(liveMemos).fading)
@@ -55,6 +58,14 @@ struct WayOutView: View {
                         .accessibilityIdentifier("wayout-done-button")
                 }
             }
+            .sheet(item: $peek) { memo in
+                WayOutPeekSheet(memo: memo,
+                                oneLiner: Self.oneLiner(for: memo),
+                                onBringBack: {
+                                    Self.bringBack(memo, repository: repository)
+                                    peek = nil
+                                })
+            }
             .confirmationDialog(
                 "Delete this note permanently? Its audio and photos will be gone for good.",
                 isPresented: Binding(
@@ -86,7 +97,8 @@ struct WayOutView: View {
                 Section {
                     ForEach(fading) { memo in
                         WayOutRow(memo: memo, kind: .fading,
-                                  bringBack: { Self.bringBack(memo, repository: repository) })
+                                  bringBack: { Self.bringBack(memo, repository: repository) },
+                                  onPeek: { peek = memo })
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
@@ -100,7 +112,8 @@ struct WayOutView: View {
                     ForEach(deleted) { memo in
                         WayOutRow(memo: memo, kind: .deleted,
                                   bringBack: { Self.bringBack(memo, repository: repository) },
-                                  onDeleteNow: { confirmDelete = memo })
+                                  onDeleteNow: { confirmDelete = memo },
+                                  onPeek: { peek = memo })
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
@@ -133,6 +146,7 @@ private struct WayOutRow: View {
     let kind: Kind
     let bringBack: () -> Void
     var onDeleteNow: (() -> Void)? = nil
+    var onPeek: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -145,6 +159,8 @@ private struct WayOutRow: View {
                     .font(.system(size: 11.5))
                     .foregroundStyle(Color.skTextFaint)
             }
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onPeek)
             Spacer(minLength: 8)
             // A fixed-width trailing column (not a flat HStack): the spine's
             // one-liners run noticeably longer than the old per-screen copy
@@ -258,5 +274,63 @@ extension WayOutView {
     /// the ONE place either row kind reads its countdown from.
     static func oneLiner(for memo: Memo, now: Date = Date()) -> String {
         MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: []), now: now), now: now)
+    }
+}
+
+
+// MARK: - Peek
+
+/// Read-only popup for a conveyor row (Mac parity — the Mac's peek sheet with
+/// Bring back inside): title, meta, the spine one-liner, the full body, one verb.
+private struct WayOutPeekSheet: View {
+    let memo: Memo
+    let oneLiner: String
+    let onBringBack: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.skBg.ignoresSafeArea()
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(memo.displayTitle)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(2)
+                    HStack(spacing: 10) {
+                        Text(memo.recordedAt.formatted(date: .abbreviated, time: .omitted))
+                        if let place = memo.metadata?.location?.placeName { Text(place) }
+                        if memo.duration > 0 { Text(Duration.seconds(memo.duration).formatted(.time(pattern: .minuteSecond))) }
+                    }
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.skTextFaint)
+                    Text(oneLiner)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.skAmber)
+                    ScrollView {
+                        Text((memo.transcript?.isEmpty == false) ? memo.transcript! : "No transcript.")
+                            .font(.system(size: 14.5))
+                            .foregroundStyle(Color.skTextDim)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                    }
+                    Button(action: onBringBack) {
+                        Text("Bring back")
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.skAccent)
+                    .accessibilityIdentifier("wayout-peek-bringback")
+                }
+                .padding(16)
+            }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }

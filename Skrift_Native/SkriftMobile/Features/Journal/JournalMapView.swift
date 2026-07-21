@@ -25,6 +25,11 @@ struct JournalMapView: View {
     @State private var visibleRegion: MKCoordinateRegion?
     /// Explicit camera — never `.automatic` after the first gesture (see above).
     @State private var camera: MapCameraPosition = .automatic
+    /// True while a dive animation is landing — its onEnd must not clear the
+    /// selection the tap just made; every REAL gesture does clear it, so the
+    /// card always tracks the view unless you just tapped a pin (Tuur's b89
+    /// round: a pinned card kept saying "4 notes" over an empty viewport).
+    @State private var programmaticMove = false
 
     private var displayed: [PlaceCluster] {
         PlaceCluster.merged(clusters, span: span)
@@ -43,6 +48,10 @@ struct JournalMapView: View {
             .onMapCameraChange(frequency: .onEnd) { context in
                 // Viewport always updates (cheap, feeds the in-frame list)…
                 visibleRegion = context.region
+                // A real gesture returns the card to frame mode; a dive's own
+                // landing doesn't.
+                if programmaticMove { programmaticMove = false }
+                else if selected != nil { selected = nil }
                 // …but re-cluster only on a MEANINGFUL zoom change (>20%) —
                 // every span commit rebuilds all annotations (the Mac's rapid-
                 // zoom stutter). Panning never re-clusters.
@@ -81,7 +90,18 @@ struct JournalMapView: View {
         let members = Set(cluster.id.split(separator: "+").map(String.init))
         let constituents = clusters.filter { members.contains($0.id) }
         if let region = PlaceCluster.fitRegion(for: constituents.isEmpty ? [cluster] : constituents) {
-            withAnimation { camera = .region(region) }
+            // Dive means DOWN: if the target frame is WIDER than what's on
+            // screen, don't move — tapping a pin while already zoomed deep used
+            // to fly back OUT (Tuur's b89 round). Selecting alone is enough.
+            let current = visibleRegion
+            let tighter = current.map {
+                region.span.latitudeDelta < $0.span.latitudeDelta * 0.95
+                    || region.span.longitudeDelta < $0.span.longitudeDelta * 0.95
+            } ?? true
+            if tighter {
+                programmaticMove = true
+                withAnimation { camera = .region(region) }
+            }
         }
     }
 
@@ -122,7 +142,14 @@ struct JournalMapView: View {
             JournalCard {
                 VStack(alignment: .leading, spacing: 8) {
                     JournalCardHeader(title: title)
-                    ForEach(memos.prefix(3), id: \.id) { JournalMemoRow(memo: $0) }
+                    // ALL the notes, scrollable — the fixed 3 with no scroll was
+                    // "in view 8, shows 3" (Tuur's b89 round).
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 8) {
+                            ForEach(memos, id: \.id) { JournalMemoRow(memo: $0) }
+                        }
+                    }
+                    .frame(maxHeight: 230)
                 }
             }
             .padding(12)
