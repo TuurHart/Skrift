@@ -63,8 +63,9 @@ struct MemosListView: View {
     @State private var showMediaFileImporter = false
     @State private var showVideoImporter = false
     @State private var showSortFilter = false
-    @State private var showTrash = false
-    @State private var showFading = false
+    /// Presents WayOutView — the merged Fading + Recently Deleted shelf (Q4,
+    /// 2026-07-20). One sheet now instead of two (`showTrash` retired).
+    @State private var showWayOut = false
     /// Last shelf visit — the ⋯ dot lights only for fade-entries newer than this.
     @AppStorage("fadingLastSeenAt") private var fadingLastSeenTs: Double = 0
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
@@ -178,8 +179,7 @@ struct MemosListView: View {
             // A sheet rather than a push: the stack's path is typed [UUID] for
             // memo detail, which a non-memo destination can't join. (Settings +
             // the audiobook Library moved out to root tabs — see AppTabView.)
-            .sheet(isPresented: $showTrash) { RecentlyDeletedView() }
-            .sheet(isPresented: $showFading) { FadingShelfView() }
+            .sheet(isPresented: $showWayOut) { WayOutView() }
             // D8: Files import (audio + video) — routes through the same
             // AppURLHandler path as open-in/AirDrop: video → strip audio +
             // frame, audio → transcribed memo, both jump to the new note.
@@ -460,15 +460,13 @@ struct MemosListView: View {
                 }
                 .tint(.skAccent)
                 .accessibilityIdentifier("sort-filter-button")
-                // The shelves (mock fading-shelf.html v3): zero standing space —
-                // Fading + Recently Deleted live behind this ⋯; the amber dot is
-                // the "something is fading" honesty signal.
+                // The merged shelf (Q4, 2026-07-20 — mocks/lifecycle-ia-explorations.html):
+                // Fading + Recently Deleted collapsed into ONE "On its way out" surface
+                // behind this ⋯; the amber dot is the "something is fading" honesty signal.
                 Menu {
-                    Button { showFading = true } label: {
-                        Label("Fading (\(lifecycle.fading.count))", systemImage: "leaf")
-                    }
-                    Button { showTrash = true } label: {
-                        Label("Recently Deleted (\(trashedMemos.count))", systemImage: "trash")
+                    Button { showWayOut = true } label: {
+                        Label("On its way out (\(lifecycle.fading.count + trashedMemos.count))",
+                              systemImage: "leaf")
                     }
                 } label: {
                     // Dot INSIDE the label bounds (an out-of-frame offset gets
@@ -490,7 +488,7 @@ struct MemosListView: View {
                     .contentShape(Rectangle())
                 }
                 .tint(.skAccent)
-                .accessibilityIdentifier("shelves-menu")
+                .accessibilityIdentifier("notes-menu-wayout")
             }
         }
         .padding(.horizontal, 16)
