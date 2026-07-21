@@ -9,14 +9,15 @@ struct RootView: View {
     @State private var coordinator = ProcessingCoordinator()
     @State private var settingsOpen = false
     @State private var showWizard = false
-    @State private var trashOpen = false
     /// The memo id behind the "not processed yet" peek sheet — set when a Journal
     /// river card points at a memo with no queue row (mocks/lifecycle-ia-explorations.html
     /// #m2, kills the old RootView:34 dead-end flash).
     @State private var unpipelinedSheetID: String?
     @AppStorage(AppTheme.key) private var appTheme = "dark"
-    // Live queue = NOT trashed (Recently Deleted is its own sheet). The predicate
-    // keeps soft-deleted files out of the sidebar, selection, and active note.
+    // Live queue = NOT trashed. The predicate keeps soft-deleted files out of the
+    // sidebar, selection, and active note; trashedFiles feeds the ONE Recently
+    // Deleted list now — Review's memo-backed conveyor (mocks/lifecycle-ia-explorations.html
+    // #m3) absorbs the queue's old trash sheet, with these as its Mac-local tail.
     @Query(filter: #Predicate<PipelineFile> { $0.deletedAt == nil },
            sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
     @Query(filter: #Predicate<PipelineFile> { $0.deletedAt != nil },
@@ -41,9 +42,8 @@ struct RootView: View {
             } else {
                 HSplitView {
                     SidebarView(model: model, files: files, coordinator: coordinator,
-                                trashedCount: trashedFiles.count,
-                                onOpenSettings: { settingsOpen = true },
-                                onOpenTrash: { trashOpen = true })
+                                trashedFiles: trashedFiles,
+                                onOpenSettings: { settingsOpen = true })
                         .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
 
                     NoteDisplayView(file: activeFile, coordinator: coordinator,
@@ -61,9 +61,6 @@ struct RootView: View {
         .onChange(of: appTheme) { _, new in AppTheme.applyToApp(new) }
         .sheet(isPresented: $settingsOpen) {
             SettingsView(onClose: { settingsOpen = false })
-        }
-        .sheet(isPresented: $trashOpen) {
-            RecentlyDeletedView(files: trashedFiles, onClose: { trashOpen = false })
         }
         .sheet(isPresented: Binding(
             get: { unpipelinedSheetID != nil },

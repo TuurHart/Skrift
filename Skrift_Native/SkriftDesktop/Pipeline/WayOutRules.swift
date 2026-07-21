@@ -1,13 +1,15 @@
 import Foundation
 
 /// Pure lifecycle-IA logic (mocks/lifecycle-ia-explorations.html #m2/#m3, locked
-/// 2026-07-21) shared by the Queue band (`SidebarView` / `UnpipelinedMemoSheet`)
-/// and — once step ③/④ land — the "one trash" footer count and the "On its way
-/// out" conveyor. Kept dependency-free of both views AND of `App/` (no
-/// `MemoCloudStore`, no `ModelContext` mutation — callers fetch/save), so it
-/// compiles into the MLX-free `SkriftDesktopTests` bundle exactly like
-/// `DesktopTrash` — see `Pipeline/DesktopTrash.swift` for the sibling
-/// precedent this follows.
+/// 2026-07-21) shared by the Queue band (`SidebarView` / `UnpipelinedMemoSheet`),
+/// the "one trash" footer count (`SidebarView`), and — once step ④ lands — the
+/// "On its way out" conveyor (`WayOutColumn`). Kept dependency-free of both
+/// views AND of `App/` (no `MemoCloudStore`, no `ModelContext` mutation —
+/// callers fetch/save), so it compiles into the MLX-free `SkriftDesktopTests`
+/// bundle exactly like `DesktopTrash` — see `Pipeline/DesktopTrash.swift` for
+/// the sibling precedent this follows. `MacCloudWriteBack` (Pipeline/Ingest,
+/// LANE_AUTHOR's — read-only use of its pure `memoID(for:)` helper) is also
+/// visible to both targets, so the mac-only test below can call it directly.
 enum WayOutRules {
 
     // MARK: - ② the Queue band
@@ -51,5 +53,33 @@ enum WayOutRules {
     static func oneLiner(for memo: Memo, backlinked: Set<UUID> = [], now: Date = Date()) -> String {
         let station = MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now)
         return MemoSpine.oneLiner(for: station, now: now)
+    }
+
+    // MARK: - ③ one Recently Deleted (memo trash + the Mac-local tail)
+
+    /// A trashed `PipelineFile` with no backing `Memo` — a Mac-local upload from
+    /// before captures synced (Q5's transitional tail, dissolved once step ⑤
+    /// ships `MacMemoAuthor`). NOTE: `PipelineFile.id` defaults to a random UUID
+    /// string for a LOCAL upload too (`PipelineFile.init`), not just a CloudKit-
+    /// ingested one — so `MacCloudWriteBack.memoID(for:)` (designed for callers
+    /// who already know a file is memo-sourced) can derive a UUID-shaped
+    /// *candidate* from either kind of row. The only real test is whether that
+    /// candidate is a memo that's ACTUALLY in `memoIDs` (the live cloud fetch).
+    static func isMacOnly(_ pf: PipelineFile, memoIDs: Set<UUID>) -> Bool {
+        guard let candidate = MacCloudWriteBack.memoID(for: pf) else { return true }
+        return !memoIDs.contains(candidate)
+    }
+
+    /// The transitional tail: trashed, Mac-local-only files.
+    static func macOnlyTrashed(_ files: [PipelineFile], memoIDs: Set<UUID>) -> [PipelineFile] {
+        files.filter { $0.deletedAt != nil && isMacOnly($0, memoIDs: memoIDs) }
+    }
+
+    /// "Recently Deleted · in Review" footer count — the ONE trash (Q5, the
+    /// locked one-trash decision): every deleted memo (whether it arrived via
+    /// the fade sweep or a direct delete) plus the Mac-local tail.
+    static func wayOutFooterCount(memos: [Memo], trashedFiles: [PipelineFile]) -> Int {
+        let memoIDs = Set(memos.map(\.id))
+        return memos.filter { $0.deletedAt != nil }.count + macOnlyTrashed(trashedFiles, memoIDs: memoIDs).count
     }
 }

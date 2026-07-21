@@ -37,6 +37,13 @@ final class AppModel {
     enum MainSurface { case queue, journal }
     var surface: MainSurface = .queue
 
+    /// Which Review column shows over the rail (mocks/lifecycle-ia-explorations.html
+    /// #m3 — the ONE trash / conveyor, replacing the old Fading + Recently Deleted
+    /// pair). `nil` = the Looking-back river / map. Single case by design: the whole
+    /// point of step ③/④ is that Fading and Recently Deleted stop being two places.
+    enum ReviewShelf { case wayOut }
+    var reviewShelf: ReviewShelf?
+
     var filter: QueueFilter = .all
     /// Free-text query over the queue (title + transcript + summary). Empty = no filter.
     var searchText: String = ""

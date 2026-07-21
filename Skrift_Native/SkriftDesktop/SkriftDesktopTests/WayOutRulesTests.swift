@@ -92,4 +92,73 @@ final class WayOutRulesTests: XCTestCase {
         m.tags = ["garden"]
         XCTAssertEqual(WayOutRules.oneLiner(for: m, now: now), "kept — tagged")
     }
+
+    // MARK: - ③ the footer count (memo trash + Mac-local tail)
+
+    func testIsMacOnlyTrueForAFileWithNoDerivableIDAtAll() {
+        // No memo_/capture_ filename, and the id itself isn't UUID-shaped —
+        // MacCloudWriteBack.memoID(for:) can't even produce a candidate.
+        let pf = pipelineFile(id: "demo-legacy-1")
+        XCTAssertTrue(WayOutRules.isMacOnly(pf, memoIDs: []))
+    }
+
+    func testIsMacOnlyTrueForARandomUUIDThatMatchesNoRealMemo() {
+        // The important regression case: PipelineFile.init's OWN default also
+        // mints a random UUID string for a purely LOCAL upload — a UUID-shaped
+        // id alone must NOT read as memo-linked unless it's actually IN the
+        // live memo set.
+        let pf = pipelineFile(id: UUID().uuidString)
+        XCTAssertTrue(WayOutRules.isMacOnly(pf, memoIDs: []))
+    }
+
+    func testIsMacOnlyFalseWhenTheIdIsAKnownMemoUUID() {
+        // MemoCloudIngest sets id = memo.id.uuidString.
+        let memoID = UUID()
+        let pf = pipelineFile(id: memoID.uuidString)
+        XCTAssertFalse(WayOutRules.isMacOnly(pf, memoIDs: [memoID]))
+    }
+
+    func testIsMacOnlyFalseWhenTheFilenameEmbedsAKnownMemoUUID() {
+        let memoID = UUID()
+        let pf = PipelineFile(id: "some-random-id", filename: "memo_\(memoID.uuidString).m4a",
+                              sourceType: .audio, uploadedAt: now)
+        XCTAssertFalse(WayOutRules.isMacOnly(pf, memoIDs: [memoID]))
+    }
+
+    func testMacOnlyTrashedRequiresBothDeletedAndMacOnly() {
+        let knownMemoID = UUID()
+        let notDeleted = pipelineFile(id: UUID().uuidString)
+        let deletedMacOnly = pipelineFile(id: UUID().uuidString)
+        deletedMacOnly.deletedAt = now
+        let deletedAndMemoLinked = pipelineFile(id: knownMemoID.uuidString)
+        deletedAndMemoLinked.deletedAt = now
+
+        let result = WayOutRules.macOnlyTrashed([notDeleted, deletedMacOnly, deletedAndMemoLinked],
+                                                 memoIDs: [knownMemoID])
+        XCTAssertEqual(result.map(\.id), [deletedMacOnly.id])
+    }
+
+    func testWayOutFooterCountSumsMemoTrashAndMacOnlyTail() {
+        let deletedMemo1 = memo(significance: 0, deletedDaysAgo: 1)
+        let deletedMemo2 = memo(significance: 0.5, deletedDaysAgo: 3)
+        let liveMemo = memo(significance: 0)
+        let macOnly = pipelineFile(id: UUID().uuidString)   // random id, matches no memo above
+        macOnly.deletedAt = now
+        let notDeleted = pipelineFile(id: UUID().uuidString)
+
+        let count = WayOutRules.wayOutFooterCount(memos: [deletedMemo1, deletedMemo2, liveMemo],
+                                                   trashedFiles: [macOnly, notDeleted])
+        XCTAssertEqual(count, 3)   // 2 deleted memos + 1 mac-only trashed file
+    }
+
+    func testWayOutFooterCountDoesNotDoubleCountAMemoLinkedTrashedFile() {
+        // A trashed PipelineFile whose id happens to match a memo THAT'S ALSO
+        // counted on the memo side must not be double-counted via the tail.
+        let deletedMemo = memo(significance: 0, deletedDaysAgo: 1)
+        let linkedFile = pipelineFile(id: deletedMemo.id.uuidString)
+        linkedFile.deletedAt = now
+
+        let count = WayOutRules.wayOutFooterCount(memos: [deletedMemo], trashedFiles: [linkedFile])
+        XCTAssertEqual(count, 1)
+    }
 }

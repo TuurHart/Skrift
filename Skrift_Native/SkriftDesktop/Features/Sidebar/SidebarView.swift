@@ -9,10 +9,12 @@ struct SidebarView: View {
     @Bindable var model: AppModel
     let files: [PipelineFile]
     @Bindable var coordinator: ProcessingCoordinator
-    /// Count of soft-deleted files — drives the footer "Recently Deleted (N)" row.
-    var trashedCount: Int = 0
+    /// Local-store trashed PipelineFiles — feeds the footer "Recently Deleted · in
+    /// Review" count together with the cloud memo trash (the ONE trash, Q5:
+    /// mocks/lifecycle-ia-explorations.html #m3). Its action jumps straight to
+    /// Review's conveyor now; no queue-owned trash sheet left to open.
+    var trashedFiles: [PipelineFile] = []
     var onOpenSettings: () -> Void = {}
-    var onOpenTrash: () -> Void = {}
     /// Snapshot mode renders the queue without a ScrollView (ImageRenderer can't
     /// lay out scroll contents). The live app keeps `true` for real scrolling.
     var scrollable = true
@@ -36,6 +38,8 @@ struct SidebarView: View {
     @AppStorage("queueBandExpanded") private var bandExpanded = false
     private var unpipelinedMemos: [Memo] { WayOutRules.unpipelined(memos: cloudMemos, files: files) }
     private var backlinkedIDs: Set<UUID> { MemoLifecycle.backlinkedIDs(in: cloudMemos) }
+    /// The ONE trash count (Q5): every deleted memo + the Mac-local tail.
+    private var wayOutFooterCount: Int { WayOutRules.wayOutFooterCount(memos: cloudMemos, trashedFiles: trashedFiles) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -510,18 +514,22 @@ struct SidebarView: View {
     private var footer: some View {
         VStack(spacing: 0) {
             // Recently Deleted — only when the trash is non-empty (Apple Voice
-            // Memos / the phone idiom). Opens the restore sheet.
-            if trashedCount > 0 {
-                Button(action: onOpenTrash) {
+            // Memos / the phone idiom). Jumps to Review's ONE conveyor now (Q5:
+            // the queue's own trash sheet retired — mocks/lifecycle-ia-explorations.html #m3).
+            if wayOutFooterCount > 0 {
+                Button {
+                    model.surface = .journal
+                    model.reviewShelf = .wayOut
+                } label: {
                     HStack(spacing: 7) {
                         Image(systemName: "trash")
                             .font(.system(size: 10.5))
                             .foregroundStyle(Theme.textSecondary)
-                        Text("Recently Deleted")
+                        Text("Recently Deleted · in Review")
                             .font(.system(size: 11.5))
                             .foregroundStyle(Theme.textSecondary)
                         Spacer(minLength: 0)
-                        Text("\(trashedCount)")
+                        Text("\(wayOutFooterCount)")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(Theme.textMuted)
                     }

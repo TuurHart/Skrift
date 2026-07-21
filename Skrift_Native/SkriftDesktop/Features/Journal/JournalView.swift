@@ -28,10 +28,10 @@ struct JournalView: View {
     @State private var clusters: [PlaceCluster] = []
     /// The lifecycle shelves (MemoLifecycle + mock fading-shelf.html): fading
     /// notes leave every main surface; trashed = the memo trash (cloud store).
+    /// Which one shows over the rail lives on `AppModel.reviewShelf` now (was a
+    /// local `Shelf` enum) — the sidebar footer needs to jump here directly.
     @State private var fadingMemos: [Memo] = []
     @State private var trashedMemos: [Memo] = []
-    enum Shelf { case fading, trash }
-    @State private var shelf: Shelf?
     @State private var month: Date = Date()
     @State private var selectedDay: Date = Date()
     @State private var mapMode = false
@@ -98,7 +98,7 @@ struct JournalView: View {
                 MiniMonthGrid(month: month,
                               counts: LookbackProvider.dayCounts(for: memos, month: month),
                               selectedDay: $selectedDay,
-                              onPick: { mapMode = false; shelf = nil })
+                              onPick: { mapMode = false; model.reviewShelf = nil })
                 Text("PLACES")
                     .font(.system(size: 10, weight: .semibold)).tracking(0.5)
                     .foregroundStyle(Theme.textMuted)
@@ -115,7 +115,7 @@ struct JournalView: View {
                     // always on screen; the river never moves. Click → full map,
                     // fitted to every pin, no place pre-selected.
                     RailMiniMap(clusters: clusters) {
-                        shelf = nil
+                        model.reviewShelf = nil
                         selectedPlace = nil
                         mapMode = true
                         if let region = PlaceCluster.fitRegion(for: clusters) {
@@ -124,16 +124,12 @@ struct JournalView: View {
                     }
                     .padding(.top, 12)
                 }
-                // The lifecycle shelves (mock fading-shelf.html): paired rows,
-                // shown only when non-empty — zero junk, zero chrome.
+                // The ONE conveyor (Q4, mocks/lifecycle-ia-explorations.html #m3):
+                // Fading + Recently Deleted collapse into a single row — shown only
+                // when non-empty. (The Mac-local tail joins this count in step ④.)
                 if !fadingMemos.isEmpty || !trashedMemos.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
-                        if !fadingMemos.isEmpty {
-                            shelfRow("🍂", "Fading", fadingMemos.count, .fading)
-                        }
-                        if !trashedMemos.isEmpty {
-                            shelfRow("🗑", "Recently Deleted", trashedMemos.count, .trash)
-                        }
+                        shelfRow("🍂", "On its way out", fadingMemos.count + trashedMemos.count, .wayOut)
                     }
                     .padding(.top, 14)
                 }
@@ -142,20 +138,20 @@ struct JournalView: View {
         }
     }
 
-    private func shelfRow(_ glyph: String, _ title: String, _ count: Int, _ target: Shelf) -> some View {
+    private func shelfRow(_ glyph: String, _ title: String, _ count: Int, _ target: AppModel.ReviewShelf) -> some View {
         Button {
             mapMode = false
-            shelf = target
+            model.reviewShelf = target
         } label: {
             HStack(spacing: 6) {
                 Text(glyph).font(.system(size: 10))
                 Text(title).font(.system(size: 12))
-                    .foregroundStyle(shelf == target ? Theme.textPrimary : Theme.textSecondary)
+                    .foregroundStyle(model.reviewShelf == target ? Theme.textPrimary : Theme.textSecondary)
                 Spacer()
                 Text("\(count)").font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
             }
             .padding(.horizontal, 8).padding(.vertical, 6)
-            .background(shelf == target ? Theme.accent.opacity(0.13) : .clear,
+            .background(model.reviewShelf == target ? Theme.accent.opacity(0.13) : .clear,
                         in: RoundedRectangle(cornerRadius: 7))
             .contentShape(Rectangle())
         }
@@ -187,7 +183,7 @@ struct JournalView: View {
     /// also takes the Map out of `.automatic`, so pin re-clustering can never
     /// re-frame the user's view.
     private func focus(_ cluster: PlaceCluster) {
-        shelf = nil
+        model.reviewShelf = nil
         selectedPlace = cluster
         mapMode = true
         if let region = PlaceCluster.fitRegion(for: [cluster]) {
@@ -221,18 +217,25 @@ struct JournalView: View {
     // ── Column: Looking back river ⇄ map mode ──────────────────────────
 
     @ViewBuilder private var column: some View {
-        if let shelf {
+        if let shelf = model.reviewShelf {
             switch shelf {
-            case .fading:
-                FadingShelfColumn(fading: fadingMemos,
-                                  context: injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil,
-                                  onChanged: { refresh() },
-                                  onBack: { self.shelf = nil })
-            case .trash:
-                MacTrashColumn(trashed: trashedMemos,
-                               context: injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil,
-                               onChanged: { refresh() },
-                               onBack: { self.shelf = nil })
+            case .wayOut:
+                // STOPGAP for step ③: the real merged "On its way out" conveyor
+                // (WayOutColumn, one list, one "Bring back" verb, Mac-local tail)
+                // is step ④ — this just repoints the now-single rail row at the
+                // two EXISTING columns (each already internally scrollable) so
+                // nothing regresses in between.
+                VStack(spacing: 0) {
+                    FadingShelfColumn(fading: fadingMemos,
+                                      context: injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil,
+                                      onChanged: { refresh() },
+                                      onBack: { model.reviewShelf = nil })
+                    Divider().overlay(Theme.hairline.opacity(0.1))
+                    MacTrashColumn(trashed: trashedMemos,
+                                   context: injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil,
+                                   onChanged: { refresh() },
+                                   onBack: { model.reviewShelf = nil })
+                }
             }
         } else if mapMode {
             mapColumn
