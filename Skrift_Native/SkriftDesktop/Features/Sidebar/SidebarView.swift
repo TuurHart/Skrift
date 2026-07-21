@@ -297,25 +297,26 @@ struct SidebarView: View {
                     .foregroundStyle(Theme.textSecondary).fontWeight(.semibold)
                 Spacer(minLength: 6)
                 if !unpipelinedMemos.isEmpty {
-                    capsuleButton("Flag all \(unpipelinedMemos.count)", prominent: false) {
+                    capsuleButton("Flag all", prominent: false) {
                         processAll(unpipelinedMemos)
                     }
                     .accessibilityIdentifier("sidebar.flag-all")
                 }
-                sortControl.padding(.leading, 6)
+                sortControl.padding(.leading, 6).fixedSize()
             } else {
+                // Two counts + sort ONLY — a third count wrapped the line
+                // (Tuur's screenshot; the Unrated chip carries that number now).
                 Text("\(readyCount) ready to review")
                     .foregroundStyle(Theme.accent).fontWeight(.semibold)
                 if pendingCount > 0 {
                     Text(" · \(pendingCount) to process").foregroundStyle(Theme.textMuted)
                 }
-                if !unpipelinedMemos.isEmpty {
-                    Text(" · \(unpipelinedMemos.count) not rated").foregroundStyle(Theme.textMuted)
-                }
                 Spacer(minLength: 0)
-                sortControl
+                sortControl.fixedSize()
             }
         }
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
         .font(.system(size: 11))
         .help("Ready = processed, waiting for your review. To process = still needs transcribe + enhance. Not rated = synced but the Mac skips it — flag to process.")
         .padding(.horizontal, 14)
@@ -382,7 +383,7 @@ struct SidebarView: View {
 
     private func quietMemoRow(_ memo: Memo) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: memo.audioFilename.isEmpty ? "note.text" : "mic.fill")
+            Image(systemName: WayOutRules.sourceGlyph(for: memo))
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted).frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
                 Text(WayOutRules.displayTitle(memo))
