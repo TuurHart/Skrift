@@ -2,6 +2,47 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🧬 CONTINUE HERE — lifecycle IA overhaul (locked 2026-07-21; spine BUILT)
+
+**THE SPEC = `mocks/lifecycle-ia-explorations.html`** (Fable-agent exploration, Tuur-approved):
+Direction 2 (Two Rooms, One Spine) + Direction 3's exit conveyor. Root diagnosis: significance was
+BOTH the process gate (MemoCloudIngest:39) and one of nine touch signals (MemoLifecycle:23) → the
+zombie quadrant (touched-unrated: never processed, never fades, RootView:34 dead-end) + two
+same-named trashes over different stores. Superseded on arrival: `mocks/unrated-shelf.html` (same
+problem, worse room — keep as the artifact that exposed it).
+
+**Tuur's Q-picks (all locked 2026-07-21):**
+- Q1 band YES — the Queue grows a collapsed "○ Not in the pipeline · N" band (gate drawn as a boundary).
+- Q2 band "Process" writes significance **0.1** — NEW Mac→cloud write direction for that field (same
+  lane as Keep/Restore); phone will show Mac-set "0.1 · Passing". Accepted.
+- Q3 zombie = **"Parked"**, per-row copy only ("kept — tagged"), NO counting surface.
+- Q4 merge Fading + Recently Deleted into ONE "On its way out" conveyor, verb **"Bring back"**;
+  sweep moves off Review-refresh onto a DAILY TIMER (shown dates must be true). Phone ⋯ = one item.
+- Q5 answered by DISSOLVING the premise: Mac-only files exist only because the Bonjour-era upload
+  path predates CloudKit and nobody taught it to author a Memo (verified: zero `Memo(` constructions
+  in the desktop app). Direction: **Mac captures author a Memo (+ audio MemoAsset) and sync like any
+  note** — both devices are collectors; new build step ⑤ + one-time backfill for existing UUID-id
+  local rows. Until ⑤ lands, deleted Mac-local files ride the Review trash as a tiny transitional tail.
+- Q6 retire the `processAllSyncedMemos` Settings toggle once the band's "Process all N" exists.
+- Q7 copy trio SIGNED: "starts fading <date>" (30d) · "moves to Recently Deleted in Nd" (60d) ·
+  "gone for good in ~Nd" (74d) — every surface both apps, verbatim from the spine.
+
+**Build order (each commit-sized):**
+- [x] ① the spine — `Shared/Pipeline/MemoSpine.swift` (9 stations + Parked reasons + one-liners;
+      priority chain, all derived, keptAt stays the only stored bit) + twin `MemoSpineTests`
+      (desktop 11 green 2026-07-21; phone twin run pending in this session).
+- [ ] ② Queue band "Not in the pipeline · N" + Process(=0.1, cloud write-back) + read-only detail
+      for unpipelined river cards (kills the RootView:34 flash). Retire the toggle (Q6) here too.
+- [ ] ③ ONE trash: Review's Memo-backed list absorbs the queue sheet (footer row → link; keep
+      MacCloudDeleteSync mirroring; transitional Mac-local tail).
+- [ ] ④ conveyor: merge Fading + Recently Deleted → "On its way out" + Bring back; DAILY TIMER
+      sweep replaces Review-refresh sweep; phone ⋯ menu goes to one item; wire spine one-liners.
+- [ ] ⑤ Mac authors Memos for local uploads (+ backfill); Mac-authored uploads get significance 0.1
+      at authoring (they're user-initiated processing — an unrated Memo the Mac processes would lie
+      on the phone). Then the Q5 tail dies.
+- [ ] Phone parity pass: spine one-liners on phone rows/detail (its flag line already matches),
+      shelf merge. Then FEATURES.md rows + device round both apps.
+
 ## ⭐ CONTINUE HERE (2026-07-18 remote session; merged + sim-verified LOCALLY 2026-07-19)
 
 Branch `claude/note-thumbnail-update-bug-tuhrp3` ✅ MERGED to main 2026-07-19 (conflict in this file

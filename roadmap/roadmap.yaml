@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-20T13:30:00.000Z
+updated: 2026-07-21T08:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -319,7 +319,7 @@ nodes:
     title: Note feature wave
     lane: 0
     order: 5.7
-    status: now
+    status: inprogress
     eff: L
     deps:
       - NEdit
@@ -519,6 +519,30 @@ nodes:
     win: the six approved gap features run on BOTH apps from shared code —
       locked notes stay out of the vault, OCR'd photos are searchable,
       reminders ring on whichever device you're holding
+  - id: LifeIA
+    title: Lifecycle IA — one spine
+    lane: 0
+    order: 5.8
+    status: now
+    eff: M
+    deps:
+      - NFeat
+    via: NFeat
+    win: "every note carries ONE honest status on both apps — the Queue's gate
+      drawn as a visible band, one Recently Deleted, one exit conveyor, the
+      signed phrase trio everywhere; no zombie quadrant, no twin trashes"
+    note: "Spec = mocks/lifecycle-ia-explorations.html (Direction 2 + 3's
+      conveyor; Q1–Q7 locked 2026-07-21; board = backlog 🧬). Next: ② Queue
+      band → ③ one trash → ④ conveyor+daily-timer sweep → ⑤ Mac authors Memos
+      (both devices are collectors) → phone parity."
+    shipped:
+      - >-
+        2026-07-21 · ① THE SPINE — Shared/Pipeline/MemoSpine.swift: 9 stations
+        (New→Fading→Deleted / Parked siding / To process→…→In Obsidian) as one
+        first-match-wins chain over the five old axes, all derived (keptAt
+        stays the only stored bit); Parked = the zombie named, per-row copy
+        only; the signed Q7 copy trio lives here verbatim. Twin MemoSpineTests
+        green both apps (11 each)
   - id: AuditFix
     title: Perf+reliability audit fix wave
     lane: 0
