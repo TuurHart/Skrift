@@ -12,7 +12,7 @@ packages:
   # iOS app (one engine, two apps); upgrade both together, deliberately.
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    revision: 7f963cdc43ba89c5993654f1e138047d517a818d  # pinned 2026-07-11 (was branch: main — irreproducible); the commit every device build ran
+    revision: 19600a485baa4998812e4654b70d2bab8f2c9949  # v0.15.5, bumped 2026-07-21 (📖 spike 3: #683 seam-glue fixes in 0.15.3+0.15.5; was 7f963cdc = v0.15.2)
   # mlx-swift LLM stack for enhancement (gemma4 registered on main). 3.x decoupled
   # the downloader/tokenizer → swift-huggingface + swift-transformers integrations.
   mlx-swift-lm:

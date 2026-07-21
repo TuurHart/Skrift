@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-21T14:05:00.000Z
+updated: 2026-07-21T15:05:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -523,7 +523,7 @@ nodes:
     title: Lifecycle IA — one spine
     lane: 0
     order: 5.8
-    status: now
+    status: inprogress
     eff: M
     deps:
       - NFeat
@@ -991,6 +991,31 @@ nodes:
         + fixed, 70c3714); 'try' top 0.42, results land [2026-07-10]
     win: On This Day + timeline + semantic 'related notes' work on-device — a
       years-old thought resurfaces next to today's
+  - id: EPubAlign
+    title: ePub ↔ audiobook alignment
+    lane: 3
+    order: 5.5
+    status: now
+    eff: L
+    via: P9b
+    win: "read-along + quote captures show the PUBLISHED text wherever the book
+      aligns; wrong/partial ePubs degrade gracefully (per-file verdicts);
+      chapters come from the real TOC"
+    note: "Graduated from idea i11 2026-07-21: all 5 decisions LOCKED by Tuur
+      (ePub TOC wins · aligner-internal normalization · pin bumped v0.15.5 ·
+      ZIPFoundation approved as SPM dep #2 · .epub primary + .txt freebie,
+      .mobi = convert first). Board = backlog 📖. Next: spikes 4–5
+      (EPubExtract + AlignmentCore + -aligncheck) — first LANE_PLAYBOOK batch."
+    shipped:
+      - >-
+        2026-07-21 · spikes 2–3 + probe: punctuation CONFIRMED present both
+        apps (~650 periods/hr real sidecars; Benchmarks.md claim refuted);
+        #683 seam-glue = 1 artifact/4.5h on v0.15.2; FluidAudio pin bumped
+        v0.15.2→v0.15.5 both apps (desktop suite + 743 mobile unit tests
+        green, asrsweep output word-identical, phone b93 installed).
+        Python probe on Tuur's real pair (Steal ePub vs the trilogy
+        sidecars): f0 = 6,515 anchors 96% monotonic ≈98% coverage;
+        f1–f3 = noise → wrong-book self-detect at 150:1. GO.
   - id: P9b
     title: Audiobook player polish
     lane: 3
@@ -1543,7 +1568,8 @@ ideas:
       book-scale sibling, Shared/Pipeline), alignment_f<n>.json sidecars over
       the existing raw-CK transport, ZIPFoundation ePub extraction, desktop
       -aligncheck harness = the GO/NO-GO gate. Don't node until the harness
-      verdict on real book+ePub pairs."
+      verdict on real book+ePub pairs. NODED 2026-07-21 → EPubAlign (probe on
+      a real pair = GO; all 5 decisions locked)."
     source: voice
     nodeHint: P9b
 north: everything you say and read lands organized in your vault — so you can

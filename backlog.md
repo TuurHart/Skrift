@@ -322,7 +322,13 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    - Sweep variants: mel-off (B/C) diverges 14% of words from the old default; dual-decode
      alone (D) = 0% — knob effects confirmed on audiobook audio. (Sweep's one-shot API covered
      the opening ~2 min of the chunk; enough for the punctuation verdict.)
-3. ⬜ FluidAudio pin-bump decision (≥0.15.5 seam fixes) — own chunk + device round if taken.
+3. ✅ Pin BUMPED v0.15.2 → v0.15.5 (2026-07-21, Tuur-approved "fix the bug"): both project.ymls
+   → 19600a48 (the v0.15.5 tag). Gate: desktop full build + suite green, mobile 743 unit tests
+   green (the 2 UI fails = the known iOS-26 cluster), `-asrsweep` C-variant output
+   WORD-IDENTICAL old-vs-new on the preface chunk (seam fixes only touch long-form merges),
+   phone b93 built + installed (device lists 93), Mac Dev redeployed on v0.15.5. OWED: next
+   real whole-book transcribe should show works.eep-class artifacts gone (falsifiable on the
+   next book Tuur transcribes; don't re-transcribe 4.5h just for this).
 4. ⬜ EPubExtract (ZIPFoundation + lenient fallback) → `[Block]` + TOC + DRM verdict; fixture tests.
 5. ⬜ AlignmentCore (Shared/Pipeline — zero project.yml edits, both apps + both test suites see it)
    + desktop `-aligncheck` (RunFile family; raw paths + the shared core — desktop still doesn't
@@ -332,20 +338,21 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    attach-ePub UX + CK sync; read-along/reading-mode surfaces switch to true text via the builder
    swap (no re-plumb later).
 
-Open decisions (status 2026-07-21 pm):
-1. ✅ **Chapter precedence — LOCKED (Tuur): ePub TOC wins when attached** ("if an EPUB is
-   attached, we're gonna use its chapters"); transcript-detected > embedded remains the
-   fallback order; ChapterDetector.swift:5's "THE standard" doc gets amended in spike 6.
-2. ⏳ TextNormalizer vs aligner-internal — explained to Tuur (rec: aligner-internal; raw
-   transcript stays untouched, matcher treats "2026"≡"twenty twenty-six").
-3. ⏳ Pin bump ≥0.15.5 — explained (rec: own small chunk + device round, not bundled;
-   spike-2 data says 1 artifact/4.5h = not urgent).
-4. ⏳ ZIPFoundation as SPM dep #2 — explained (an .epub IS a zip; no system unzip API;
-   MIT, zero transitive deps; rec: yes).
-5. ✅ **Formats — settled: .epub primary** (Tuur: books come as epub, maybe mobi).
-   .mobi = dead format, skip in v1 (Calibre converts in one step); keep .txt as a freebie
-   (trivial, Gutenberg). Images inside ePubs: invisible to ALIGNMENT (no text); reading-mode
-   display of them = a spike-6 display question, not an alignment risk (probe confirmed).
+Open decisions — **ALL 5 LOCKED (Tuur, 2026-07-21 pm)**:
+1. ✅ **Chapter precedence: ePub TOC wins when attached** ("if an EPUB is attached, we're
+   gonna use its chapters"); transcript-detected > embedded remains the fallback order;
+   ChapterDetector.swift:5's "THE standard" doc gets amended in spike 6.
+2. ✅ **Aligner-internal normalization** (raw transcript stays untouched; the matcher treats
+   "2026"≡"twenty twenty-six"). FluidAudio's TextNormalizer stays unwired.
+3. ✅ **Pin bump: DONE** ("fix the bug, we will do it again" = re-verify round accepted) —
+   executed same day, see spike 3 above.
+4. ✅ **ZIPFoundation approved as SPM dep #2.**
+5. ✅ **Formats: .epub primary** (Tuur: books come as epub, maybe mobi). .mobi = dead format,
+   skip in v1 (Calibre converts in one step); keep .txt as a freebie (trivial, Gutenberg).
+   Images inside ePubs: invisible to ALIGNMENT; **showing pictures in the reader = PARKED
+   for later (Tuur: "we may consider putting pictures in the reader, but we'll push that
+   for later")** — a display question for after spike 6, never an alignment risk (probe
+   confirmed; alt-texts are filenames, never book text).
 
 ## 🐛 List thumbnail stale after deleting photos (reported 2026-07-18, ✅ FIXED same day — branch `claude/note-thumbnail-update-bug-tuhrp3`)
 
