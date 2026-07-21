@@ -1520,5 +1520,19 @@ ideas:
       Store build. No spec yet — don't node it until a design pass."
     source: voice
     nodeHint: P11
+  - id: i11
+    text: "ePub ↔ audiobook alignment (Tuur, 2026-07-19): attach the book's ePub;
+      align it against the whole-book transcript (word timings already exist —
+      pure text alignment, no ML) so the BOOK text becomes the source of truth:
+      read-along/reading mode show real names + punctuation, quote captures
+      export the VERBATIM published sentence, chapters come from the real TOC.
+      Researched same day (4-agent fan-out) — full design + spike board in
+      backlog.md 📖: anchors+LIS+banded-DP aligner (Karaoke.wordTimes's
+      book-scale sibling, Shared/Pipeline), alignment_f<n>.json sidecars over
+      the existing raw-CK transport, ZIPFoundation ePub extraction, desktop
+      -aligncheck harness = the GO/NO-GO gate. Don't node until the harness
+      verdict on real book+ePub pairs."
+    source: voice
+    nodeHint: P9b
 north: everything you say and read lands organized in your vault — so you can
   see how your thinking evolved
