@@ -192,12 +192,19 @@ final class AlignmentCoreTests: XCTestCase {
     // MARK: - Reordered front matter (monotonicity filter)
 
     func testReorderedFrontMatterFilteredByMonotonicity() {
+        // MOVED, not copied (conductor fix at the merge gate): a duplicated
+        // preview's 4-grams appear twice in the transcript, so anchor
+        // UNIQUENESS already suppresses them and LIS never sees a candidate —
+        // monotonicFraction stays exactly 1.0 (the original assertion's wrong
+        // mechanism-expectation). Moving a closing block to the front keeps
+        // its shingles unique on both sides but off-diagonal, which is the
+        // case the LIS pass exists to filter.
         let bookToks = words(baseText)
-        let previewSnippet = Array(bookToks.suffix(10))   // narrator reads a closing-line preview upfront
-        let transcriptToks = previewSnippet + bookToks
+        let moved = Array(bookToks.suffix(30))
+        let transcriptToks = moved + Array(bookToks.dropLast(30))
         let result = AlignmentCore.align(transcript: makeTranscript(transcriptToks), book: makeBook(baseText))
-        XCTAssertEqual(result.verdict, .aligned, "the reordered snippet shouldn't derail the main alignment")
-        XCTAssertLessThan(result.monotonicFraction, 1.0, "the out-of-order preview anchors should get filtered by the LIS pass")
+        XCTAssertEqual(result.verdict, .aligned, "the reordered block shouldn't derail the main alignment")
+        XCTAssertLessThan(result.monotonicFraction, 1.0, "the out-of-order block's anchors should get filtered by the LIS pass")
         XCTAssertGreaterThan(result.monotonicFraction, 0.8, "but the vast majority of anchors (main content) still survive")
     }
 
