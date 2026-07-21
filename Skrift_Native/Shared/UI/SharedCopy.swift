@@ -9,4 +9,9 @@ enum SharedCopy {
     /// sidebar mode pill + column header. Display name "Review" (Tuur,
     /// 2026-07-07; Mac holdouts fixed 2026-07-16).
     static let reviewTitle = "Review"
+
+    /// The notes-list surface: the phone's first tab + the Mac's sidebar mode
+    /// pill (was "Queue" on the Mac — Tuur 2026-07-21: match the phone; the
+    /// pipeline machinery keeps its internal names).
+    static let notesTitle = "Notes"
 }

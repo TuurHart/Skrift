@@ -22,6 +22,9 @@ struct WayOutColumn: View {
     var onRestoreMacLocal: (PipelineFile) -> Void = { _ in }
     var onDeleteMacLocal: (PipelineFile) -> Void = { _ in }
     var onBack: () -> Void = {}
+    /// Fired after the peek sheet's own Bring back write — the caller refreshes
+    /// its arrays (the row buttons refresh via their own callbacks).
+    var onChanged: () -> Void = {}
 
     @State private var confirmDeleteMacLocal: PipelineFile?
 
@@ -83,6 +86,11 @@ struct WayOutColumn: View {
         } message: {
             Text("This removes the note and its audio from disk. This can’t be undone.")
         }
+        .sheet(item: $peek) { target in
+            UnpipelinedMemoSheet(memoID: target.id, action: .bringBack,
+                                 onClose: { peek = nil },
+                                 onProcessed: { _ in peek = nil; onChanged() })
+        }
         .accessibilityIdentifier("wayout.root")
     }
 
@@ -90,11 +98,7 @@ struct WayOutColumn: View {
         HStack {
             Text("On its way out · \(total)").font(.system(size: 17, weight: .bold))
             Spacer()
-            Button { onBack() } label: {
-                Label("Back", systemImage: "xmark")
-                    .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-            }
-            .buttonStyle(.plain)
+            backCapsule(action: onBack)
         }
     }
 
@@ -107,6 +111,8 @@ struct WayOutColumn: View {
     }
 
     // ── Fading / Deleted rows (Memo-backed, cloud) ───────────────────────
+
+    @State private var peek: WayOutPeek?
 
     private func memoRow(_ memo: Memo) -> some View {
         let station = MemoSpine.station(for: .from(memo, backlinked: []))
@@ -130,6 +136,10 @@ struct WayOutColumn: View {
                 .accessibilityIdentifier("wayout-row-bringback")
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
+        .contentShape(Rectangle())
+        // Peek before you rescue (Tuur, 2026-07-21): the row opens read-only;
+        // the buttons keep their own taps.
+        .onTapGesture { peek = WayOutPeek(id: memo.id.uuidString) }
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.hairline.opacity(0.07), lineWidth: 1))
         .frame(maxWidth: 760, alignment: .leading)
@@ -179,6 +189,28 @@ struct WayOutColumn: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.hairline.opacity(0.07), lineWidth: 1))
         .frame(maxWidth: 760, alignment: .leading)
     }
+}
+
+/// Sheet target for the row peek (Identifiable string id).
+struct WayOutPeek: Identifiable { let id: String }
+
+/// The clear column-back affordance (Tuur, 2026-07-21: the tiny top-right
+/// "✕ Back" was easy to miss) — a real capsule with a leading chevron, shared
+/// by the conveyor and the Places map.
+@ViewBuilder
+func backCapsule(action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+        HStack(spacing: 5) {
+            Image(systemName: "chevron.left").font(.system(size: 10, weight: .bold))
+            Text("Back").font(.system(size: 11.5, weight: .semibold))
+        }
+        .foregroundStyle(Theme.accent)
+        .padding(.horizontal, 12).padding(.vertical, 5)
+        .background(Theme.accent.opacity(0.12), in: Capsule())
+        .contentShape(Capsule())
+    }
+    .buttonStyle(.plain)
+    .accessibilityIdentifier("column-back")
 }
 
 /// hostPNG-safe capsule button (system button styles render wrong offscreen —

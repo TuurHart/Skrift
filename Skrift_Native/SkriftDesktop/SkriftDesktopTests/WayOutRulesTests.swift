@@ -138,28 +138,14 @@ final class WayOutRulesTests: XCTestCase {
         XCTAssertEqual(result.map(\.id), [deletedMacOnly.id])
     }
 
-    func testWayOutFooterCountSumsMemoTrashAndMacOnlyTail() {
-        let deletedMemo1 = memo(significance: 0, deletedDaysAgo: 1)
-        let deletedMemo2 = memo(significance: 0.5, deletedDaysAgo: 3)
-        let liveMemo = memo(significance: 0)
-        let macOnly = pipelineFile(id: UUID().uuidString)   // random id, matches no memo above
-        macOnly.deletedAt = now
-        let notDeleted = pipelineFile(id: UUID().uuidString)
-
-        let count = WayOutRules.wayOutFooterCount(memos: [deletedMemo1, deletedMemo2, liveMemo],
-                                                   trashedFiles: [macOnly, notDeleted])
-        XCTAssertEqual(count, 3)   // 2 deleted memos + 1 mac-only trashed file
-    }
-
-    func testWayOutFooterCountDoesNotDoubleCountAMemoLinkedTrashedFile() {
-        // A trashed PipelineFile whose id happens to match a memo THAT'S ALSO
-        // counted on the memo side must not be double-counted via the tail.
-        let deletedMemo = memo(significance: 0, deletedDaysAgo: 1)
-        let linkedFile = pipelineFile(id: deletedMemo.id.uuidString)
-        linkedFile.deletedAt = now
-
-        let count = WayOutRules.wayOutFooterCount(memos: [deletedMemo], trashedFiles: [linkedFile])
-        XCTAssertEqual(count, 1)
+    func testBandExcludesFadingNotes() {
+        // One-home law: a fading unrated note lives on the Review conveyor, so
+        // the band must NOT list it too (Tuur's eyeball round, 2026-07-21 —
+        // the double home read as "are those the fading ones?").
+        let fresh = memo(significance: 0)                       // New → band
+        let fading = memo(days: 40, significance: 0)            // Fading → conveyor only
+        let out = WayOutRules.unpipelined(memos: [fresh, fading], files: [], now: now)
+        XCTAssertEqual(out.map(\.id), [fresh.id])
     }
 
     // MARK: - ④ the conveyor

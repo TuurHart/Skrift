@@ -48,8 +48,16 @@ full unit suite + MLX build, phone full unit suite; conveyor snapshot vision-che
 - **Conductor catches at the gate:** #Predicate can't capture a model property (hoist first);
   `-snapshot-trash` had to move writePNG→hostPNG (ImageRenderer blanks ScrollView rows — the
   header said 5 over an empty body until vision caught it).
-- **OWED:** Dev-app live eyeball of the BAND (sidebar can't snapshot) + a phone device build
-  (b88+) for the merged shelf; prod promotion later as usual.
+- **✅ Tuur's live eyeball round (2026-07-21, same day) — 7 findings, all fixed:** (1) band
+  double-homed FADING notes (one-home violation — now New+Parked only, fading-exclusion test
+  added); (2) band expanded list unbounded/unscrollable → bounded ScrollView; (3) rows now
+  open a read-only PEEK (band → Process, conveyor → Bring back; same UnpipelinedMemoSheet,
+  action-parameterized); (4) "✕ Back" text → clear "‹ Back" accent capsule (conveyor + map);
+  (5) Review-card importance dots uneven → whole-pixel pitch (5+3); (6) Mac "Queue" renamed
+  **"Notes"** to match the phone (SharedCopy.notesTitle, single-sourced both apps); (7) the
+  Queue-side "Recently Deleted · in Review" footer row CUT (one home = the conveyor row) +
+  dead plumbing removed (wayOutFooterCount, trashedFiles pass-through).
+- **OWED:** phone device build (b88+) for the merged shelf; prod promotion later as usual.
 
 ## ⭐ CONTINUE HERE (2026-07-18 remote session; merged + sim-verified LOCALLY 2026-07-19)
 

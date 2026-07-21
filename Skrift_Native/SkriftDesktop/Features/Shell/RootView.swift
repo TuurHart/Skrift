@@ -15,13 +15,11 @@ struct RootView: View {
     @State private var unpipelinedSheetID: String?
     @AppStorage(AppTheme.key) private var appTheme = "dark"
     // Live queue = NOT trashed. The predicate keeps soft-deleted files out of the
-    // sidebar, selection, and active note; trashedFiles feeds the ONE Recently
+    // sidebar, selection, and active note.
     // Deleted list now — Review's memo-backed conveyor (mocks/lifecycle-ia-explorations.html
     // #m3) absorbs the queue's old trash sheet, with these as its Mac-local tail.
     @Query(filter: #Predicate<PipelineFile> { $0.deletedAt == nil },
            sort: \PipelineFile.uploadedAt, order: .reverse) private var files: [PipelineFile]
-    @Query(filter: #Predicate<PipelineFile> { $0.deletedAt != nil },
-           sort: \PipelineFile.deletedAt, order: .reverse) private var trashedFiles: [PipelineFile]
 
     private var activeFile: PipelineFile? { files.first { $0.id == model.activeID } }
 
@@ -42,7 +40,6 @@ struct RootView: View {
             } else {
                 HSplitView {
                     SidebarView(model: model, files: files, coordinator: coordinator,
-                                trashedFiles: trashedFiles,
                                 onOpenSettings: { settingsOpen = true })
                         .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
 

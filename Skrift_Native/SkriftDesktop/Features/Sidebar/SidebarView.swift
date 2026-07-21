@@ -9,11 +9,6 @@ struct SidebarView: View {
     @Bindable var model: AppModel
     let files: [PipelineFile]
     @Bindable var coordinator: ProcessingCoordinator
-    /// Local-store trashed PipelineFiles — feeds the footer "Recently Deleted · in
-    /// Review" count together with the cloud memo trash (the ONE trash, Q5:
-    /// mocks/lifecycle-ia-explorations.html #m3). Its action jumps straight to
-    /// Review's conveyor now; no queue-owned trash sheet left to open.
-    var trashedFiles: [PipelineFile] = []
     var onOpenSettings: () -> Void = {}
     /// Snapshot mode renders the queue without a ScrollView (ImageRenderer can't
     /// lay out scroll contents). The live app keeps `true` for real scrolling.
@@ -36,10 +31,10 @@ struct SidebarView: View {
     /// step ③ lands) the one-trash footer count.
     @State private var cloudMemos: [Memo] = []
     @AppStorage("queueBandExpanded") private var bandExpanded = false
+    /// Row-tap peek (read-only + Process) — same sheet the Review river uses.
+    @State private var bandPeek: WayOutPeek?
     private var unpipelinedMemos: [Memo] { WayOutRules.unpipelined(memos: cloudMemos, files: files) }
     private var backlinkedIDs: Set<UUID> { MemoLifecycle.backlinkedIDs(in: cloudMemos) }
-    /// The ONE trash count (Q5): every deleted memo + the Mac-local tail.
-    private var wayOutFooterCount: Int { WayOutRules.wayOutFooterCount(memos: cloudMemos, trashedFiles: trashedFiles) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -57,6 +52,11 @@ struct SidebarView: View {
         .onChange(of: files.count) { _, _ in refreshCloudMemos() }
         .overlay(alignment: .trailing) {
             Rectangle().fill(Theme.hairline.opacity(0.07)).frame(width: 0.5)
+        }
+        .sheet(item: $bandPeek) { target in
+            UnpipelinedMemoSheet(memoID: target.id,
+                                 onClose: { bandPeek = nil },
+                                 onProcessed: { _ in bandPeek = nil; refreshCloudMemos() })
         }
         .dropDestination(for: URL.self) { urls, _ in ingest(urls); return true } isTargeted: { dragOver = $0 }
         // Photos (and Mail/Safari) drag PROMISED files, not real URLs — the URL
@@ -345,13 +345,19 @@ struct SidebarView: View {
             VStack(alignment: .leading, spacing: 0) {
                 bandHeader(rows: rows)
                 if bandExpanded {
-                    VStack(alignment: .leading, spacing: 7) {
-                        ForEach(rows, id: \.persistentModelID) { memo in bandRow(memo) }
-                        Text("Synced to this Mac — not rated, so not processed. Rating one starts processing; sync is never gated.")
-                            .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
-                            .fixedSize(horizontal: false, vertical: true)
+                    // Bounded + scrollable (Tuur's eyeball round: 24 rows ate the
+                    // whole sidebar and wouldn't scroll).
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 7) {
+                            ForEach(rows, id: \.persistentModelID) { memo in bandRow(memo) }
+                        }
+                        .padding(.horizontal, 12).padding(.top, 2)
                     }
-                    .padding(.horizontal, 12).padding(.top, 2).padding(.bottom, 10)
+                    .frame(maxHeight: 264)
+                    Text("Synced to this Mac — not rated, so not processed. Rating one starts processing; sync is never gated.")
+                        .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.top, 6).padding(.bottom, 10)
                 }
             }
             .background(Theme.hairline.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
@@ -393,6 +399,8 @@ struct SidebarView: View {
                 .accessibilityIdentifier("band-row-process")
         }
         .padding(.vertical, 3)
+        .contentShape(Rectangle())
+        .onTapGesture { bandPeek = WayOutPeek(id: memo.id.uuidString) }
     }
 
     private func bandRowMeta(_ memo: Memo) -> String {
@@ -516,36 +524,10 @@ struct SidebarView: View {
 
     private var footer: some View {
         VStack(spacing: 0) {
-            // Recently Deleted — only when the trash is non-empty (Apple Voice
-            // Memos / the phone idiom). Jumps to Review's ONE conveyor now (Q5:
-            // the queue's own trash sheet retired — mocks/lifecycle-ia-explorations.html #m3).
-            if wayOutFooterCount > 0 {
-                Button {
-                    model.surface = .journal
-                    model.reviewShelf = .wayOut
-                } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 10.5))
-                            .foregroundStyle(Theme.textSecondary)
-                        Text("Recently Deleted · in Review")
-                            .font(.system(size: 11.5))
-                            .foregroundStyle(Theme.textSecondary)
-                        Spacer(minLength: 0)
-                        Text("\(wayOutFooterCount)")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Theme.textMuted)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("recently-deleted-button")
-                .overlay(alignment: .top) {
-                    Rectangle().fill(Theme.hairline.opacity(0.06)).frame(height: 0.5)
-                }
-            }
+            // (The "Recently Deleted · in Review" footer row lived here 2026-07-21
+            // for a few hours — Tuur's eyeball round cut it: Recently Deleted has
+            // ONE home, the Review conveyor row, and a second entry point from the
+            // notes list read as a second place.)
             HStack(spacing: 14) {
                 engineDot("Parakeet")
                 engineDot("Gemma 4")

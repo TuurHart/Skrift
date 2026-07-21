@@ -44,7 +44,7 @@ struct AppTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             MemosListView()
-                .tabItem { Label("Notes", systemImage: "note.text") }
+                .tabItem { Label(SharedCopy.notesTitle, systemImage: "note.text") }
                 .tag(Tab.notes)
 
             AudiobookLibraryView()

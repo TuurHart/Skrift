@@ -20,9 +20,17 @@ enum WayOutRules {
     /// `PipelineFile.id` that ISN'T a well-formed UUID can never collide with
     /// one, so it's naturally excluded from the "already ingested" set with no
     /// extra filtering needed.
-    static func unpipelined(memos: [Memo], files: [PipelineFile]) -> [Memo] {
+    static func unpipelined(memos: [Memo], files: [PipelineFile], now: Date = Date()) -> [Memo] {
         let ingested = Set(files.compactMap { UUID(uuidString: $0.id) })
-        return memos.filter { $0.deletedAt == nil && $0.significance == 0 && !ingested.contains($0.id) }
+        // One-home law (the spine): a FADING note's counting surface is the
+        // Review conveyor — the band listing it too made it double-homed
+        // ("are those the fading ones?", Tuur's 2026-07-21 eyeball round).
+        // The band = New + Parked only: what the Mac is quietly ignoring.
+        let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
+        return memos.filter {
+            $0.deletedAt == nil && $0.significance == 0 && !ingested.contains($0.id)
+                && !MemoLifecycle.isFading($0, backlinked: backlinked, now: now)
+        }
     }
 
     /// The band row / peek-sheet title: phone-set title → transcript's first
@@ -73,14 +81,6 @@ enum WayOutRules {
     /// The transitional tail: trashed, Mac-local-only files.
     static func macOnlyTrashed(_ files: [PipelineFile], memoIDs: Set<UUID>) -> [PipelineFile] {
         files.filter { $0.deletedAt != nil && isMacOnly($0, memoIDs: memoIDs) }
-    }
-
-    /// "Recently Deleted · in Review" footer count — the ONE trash (Q5, the
-    /// locked one-trash decision): every deleted memo (whether it arrived via
-    /// the fade sweep or a direct delete) plus the Mac-local tail.
-    static func wayOutFooterCount(memos: [Memo], trashedFiles: [PipelineFile]) -> Int {
-        let memoIDs = Set(memos.map(\.id))
-        return memos.filter { $0.deletedAt != nil }.count + macOnlyTrashed(trashedFiles, memoIDs: memoIDs).count
     }
 
     // MARK: - ④ the conveyor

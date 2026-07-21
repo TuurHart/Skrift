@@ -9,7 +9,14 @@ import SwiftData
 /// unpipelined river card in Review now opens this instead. Modest by design —
 /// this is a peek, not the editor.
 struct UnpipelinedMemoSheet: View {
+    /// What the peek's one button does. `.process` = the band/river case
+    /// (rate 0.1 + reconcile); `.bringBack` = the conveyor case (keptAt +
+    /// undelete — Tuur's 2026-07-21 round: "I have the urge to click a note
+    /// to see what's in it before I decide to Bring back").
+    enum PeekAction { case process, bringBack }
+
     let memoID: String
+    var action: PeekAction = .process
     var onClose: () -> Void = {}
     /// Fired after Process writes `significance = 0.1` and kicks the reconcile
     /// sweep — the caller dismisses and jumps to the queue row, which appears
@@ -41,7 +48,8 @@ struct UnpipelinedMemoSheet: View {
 
     private var header: some View {
         HStack {
-            Text("Not processed").font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.textPrimary)
+            Text(action == .process ? "Not processed" : "On its way out")
+                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.textPrimary)
             Spacer()
             Button(action: onClose) {
                 Text("Done").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(.white)
@@ -73,8 +81,14 @@ struct UnpipelinedMemoSheet: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
             }
-            capsuleButton("Process", prominent: true) { process(memo) }
-                .accessibilityIdentifier("unpipelined-sheet.process")
+            switch action {
+            case .process:
+                capsuleButton("Process", prominent: true) { process(memo) }
+                    .accessibilityIdentifier("unpipelined-sheet.process")
+            case .bringBack:
+                capsuleButton("Bring back", prominent: true) { bringBack(memo) }
+                    .accessibilityIdentifier("unpipelined-sheet.bringback")
+            }
         }
         .padding(.horizontal, 20).padding(.vertical, 16)
     }
@@ -91,6 +105,14 @@ struct UnpipelinedMemoSheet: View {
         memo.significance = 0.1
         try? MemoCloudStore.container?.mainContext.save()
         MemoCloudReconciler.reconcileSoon()
+        onProcessed(memoID)
+    }
+
+    /// The conveyor's rescue, same semantics as the row button (Q4: keptAt
+    /// always + undelete when set).
+    private func bringBack(_ memo: Memo) {
+        WayOutRules.bringBack(memo)
+        try? MemoCloudStore.container?.mainContext.save()
         onProcessed(memoID)
     }
 }

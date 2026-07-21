@@ -257,7 +257,8 @@ struct JournalView: View {
                         DesktopTrash.deleteForever([pf], in: localCtx)
                         refresh()
                     },
-                    onBack: { model.reviewShelf = nil })
+                    onBack: { model.reviewShelf = nil },
+                    onChanged: { refresh() })
             }
         } else if mapMode {
             mapColumn
@@ -332,13 +333,7 @@ struct JournalView: View {
             HStack {
                 Text("Places").font(.system(size: 17, weight: .bold))
                 Spacer()
-                Button {
-                    mapMode = false
-                } label: {
-                    Label("Back to Looking back", systemImage: "xmark")
-                        .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-                }
-                .buttonStyle(.plain)
+                backCapsule { mapMode = false }
             }
             Map(position: $camera) {
                 ForEach(PlaceCluster.merged(clusters, span: span)) { cluster in
@@ -510,7 +505,9 @@ struct JournalView: View {
 
     private func importanceDots(_ memo: Memo) -> some View {
         let lit = SignificanceScale.step(for: memo.significance)
-        return HStack(spacing: 2.5) {
+        // Whole-pixel pitch (5pt dot + 3pt gap): at 2.5 the 7.5pt pitch landed on
+        // half-pixels and rasterized as visibly uneven gaps (Tuur, 2026-07-21).
+        return HStack(spacing: 3) {
             ForEach(1...SignificanceScale.stepCount, id: \.self) { i in
                 Circle()
                     .fill(i <= lit ? Theme.accent : Theme.hairline.opacity(0.12))
@@ -549,7 +546,7 @@ struct SurfaceSwitch: View {
 
     var body: some View {
         HStack(spacing: 3) {
-            segment("Queue", .queue)
+            segment(SharedCopy.notesTitle, .queue)
             segment(SharedCopy.reviewTitle, .journal)
         }
         .padding(3)
