@@ -64,6 +64,9 @@ full unit suite + MLX build, phone full unit suite; conveyor snapshot vision-che
   to the count line for width); count line reads "N ready · M to process · K not rated"; "Flag
   all K" appears only in Not-rated mode. Conveyor centered like the river. Verbs locked: **Flag
   adds to the pile, Process runs the pile.**
+- **LOCKED (Tuur, 2026-07-21): search does NOT include Recently Deleted.** Considered after a
+  live "searched a deleted note, no matches" moment and rejected — the trash-excluded idiom
+  stands (fading ≠ trash: fading IS searchable per b92). Don't reintroduce.
 - **✅ b92 (same eve) — discoverability without a tour:** search finds FADING notes again
   (no-bad-info: "no results" about a recoverable note was the worst answer to "where did my
   note go" — phone hits wear an amber 'fading' capsule, Mac quiet rows self-mark via the
