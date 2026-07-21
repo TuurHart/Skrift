@@ -119,6 +119,9 @@ struct RootView: View {
             // Purge trash older than the retention window (mirrors the phone's
             // launch purge) — permanently drops the record + trashes its folder.
             DesktopTrash.purgeExpired(in: ctx)
+            // The 60d fading→Recently-Deleted auto-move — a standing heartbeat now
+            // (launch + day-change + 24h), not tied to opening Review (Q4).
+            LifecycleSweepScheduler.start()
         }
         .onChange(of: files.count, initial: true) { _, _ in ensureSelection() }
     }

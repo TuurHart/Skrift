@@ -32,6 +32,11 @@ struct JournalView: View {
     /// local `Shelf` enum) — the sidebar footer needs to jump here directly.
     @State private var fadingMemos: [Memo] = []
     @State private var trashedMemos: [Memo] = []
+    /// The Mac-local transitional tail (Q5) — trashed PipelineFiles with no
+    /// backing Memo, from the LOCAL SharedStore container (not the cloud one
+    /// everything else on this screen reads from).
+    @Environment(\.modelContext) private var localCtx
+    @State private var macLocalTrash: [PipelineFile] = []
     @State private var month: Date = Date()
     @State private var selectedDay: Date = Date()
     @State private var mapMode = false
@@ -74,8 +79,9 @@ struct JournalView: View {
             rows = MemoDuplicates.canonicalRows(injected)
         } else if let cloud = MemoCloudStore.container {
             let all = (try? cloud.mainContext.fetch(FetchDescriptor<Memo>())) ?? []
-            // Timed sweep rides the refresh (armed-gated, idempotent).
-            MacFadingSweep.run(memos: all, context: cloud.mainContext)
+            // The 60d auto-move sweep no longer rides this refresh — it's a
+            // standing heartbeat now (LifecycleSweepScheduler), so a shown
+            // countdown is true without opening Review (Q4).
             rows = MemoDuplicates.canonicalRows(all)
         } else {
             rows = []
@@ -85,6 +91,14 @@ struct JournalView: View {
         memos = split.live
         fadingMemos = split.fading
         clusters = PlaceCluster.build(from: memos)
+
+        if injectedMemos == nil {
+            let trashedPFs = (try? localCtx.fetch(FetchDescriptor<PipelineFile>(
+                predicate: #Predicate<PipelineFile> { $0.deletedAt != nil }))) ?? []
+            macLocalTrash = WayOutRules.macOnlyTrashed(trashedPFs, memoIDs: Set(rows.map(\.id)))
+        } else {
+            macLocalTrash = []
+        }
     }
 
     // ── Rail: mini month calendar + places ─────────────────────────────
@@ -125,11 +139,12 @@ struct JournalView: View {
                     .padding(.top, 12)
                 }
                 // The ONE conveyor (Q4, mocks/lifecycle-ia-explorations.html #m3):
-                // Fading + Recently Deleted collapse into a single row — shown only
-                // when non-empty. (The Mac-local tail joins this count in step ④.)
-                if !fadingMemos.isEmpty || !trashedMemos.isEmpty {
+                // Fading + Recently Deleted + the Mac-local tail collapse into a
+                // single row — shown only when non-empty.
+                if !fadingMemos.isEmpty || !trashedMemos.isEmpty || !macLocalTrash.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
-                        shelfRow("🍂", "On its way out", fadingMemos.count + trashedMemos.count, .wayOut)
+                        shelfRow("🍂", "On its way out",
+                                fadingMemos.count + trashedMemos.count + macLocalTrash.count, .wayOut)
                     }
                     .padding(.top, 14)
                 }
@@ -216,26 +231,33 @@ struct JournalView: View {
 
     // ── Column: Looking back river ⇄ map mode ──────────────────────────
 
+    /// The cloud context for the conveyor's Bring-back writes — nil in
+    /// snapshot/test mode (`injectedMemos` set), matching every other
+    /// cloud-write guard on this screen.
+    private var cloudContext: ModelContext? { injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil }
+
     @ViewBuilder private var column: some View {
         if let shelf = model.reviewShelf {
             switch shelf {
             case .wayOut:
-                // STOPGAP for step ③: the real merged "On its way out" conveyor
-                // (WayOutColumn, one list, one "Bring back" verb, Mac-local tail)
-                // is step ④ — this just repoints the now-single rail row at the
-                // two EXISTING columns (each already internally scrollable) so
-                // nothing regresses in between.
-                VStack(spacing: 0) {
-                    FadingShelfColumn(fading: fadingMemos,
-                                      context: injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil,
-                                      onChanged: { refresh() },
-                                      onBack: { model.reviewShelf = nil })
-                    Divider().overlay(Theme.hairline.opacity(0.1))
-                    MacTrashColumn(trashed: trashedMemos,
-                                   context: injectedMemos == nil ? MemoCloudStore.container?.mainContext : nil,
-                                   onChanged: { refresh() },
-                                   onBack: { model.reviewShelf = nil })
-                }
+                WayOutColumn(
+                    fading: fadingMemos,
+                    deleted: trashedMemos,
+                    macOnlyFiles: macLocalTrash,
+                    onBringBack: { memo in
+                        WayOutRules.bringBack(memo)
+                        try? cloudContext?.save()
+                        refresh()
+                    },
+                    onRestoreMacLocal: { pf in
+                        DesktopTrash.restore([pf], in: localCtx)
+                        refresh()
+                    },
+                    onDeleteMacLocal: { pf in
+                        DesktopTrash.deleteForever([pf], in: localCtx)
+                        refresh()
+                    },
+                    onBack: { model.reviewShelf = nil })
             }
         } else if mapMode {
             mapColumn

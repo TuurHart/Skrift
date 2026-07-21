@@ -82,4 +82,30 @@ enum WayOutRules {
         let memoIDs = Set(memos.map(\.id))
         return memos.filter { $0.deletedAt != nil }.count + macOnlyTrashed(trashedFiles, memoIDs: memoIDs).count
     }
+
+    // MARK: - ④ the conveyor
+
+    /// The one rescue verb for both a fading and a deleted note (Q4): sets
+    /// `keptAt` ALWAYS (an explicit rescue is a touch — the note must not
+    /// re-fade the next second) and clears `deletedAt` when it was set. Caller
+    /// saves the cloud context.
+    static func bringBack(_ memo: Memo, now: Date = Date()) {
+        memo.keptAt = now
+        memo.deletedAt = nil
+    }
+
+    /// Fading rows, soonest-to-move-to-Recently-Deleted first (imminence
+    /// ordering — mirrors `FadingShelfColumn`'s prior comparator, unchanged).
+    static func fadingOrdered(_ memos: [Memo]) -> [Memo] {
+        memos.sorted { MemoLifecycle.fadesAt($0) < MemoLifecycle.fadesAt($1) }
+    }
+
+    /// Deleted rows, soonest-to-purge-for-good first (imminence ordering —
+    /// oldest `deletedAt` first). Deliberately NOT `MacTrashColumn`'s old
+    /// newest-deleted-first comparator: the mock's worked example ("deleted
+    /// 7 Jul · ~1d" listed above "deleted 14 Jul · ~8d") shows the conveyor
+    /// orders by what happens next, not by what you did most recently.
+    static func deletedOrdered(_ memos: [Memo]) -> [Memo] {
+        memos.sorted { ($0.deletedAt ?? .distantPast) < ($1.deletedAt ?? .distantPast) }
+    }
 }

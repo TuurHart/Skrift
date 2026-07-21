@@ -161,4 +161,41 @@ final class WayOutRulesTests: XCTestCase {
         let count = WayOutRules.wayOutFooterCount(memos: [deletedMemo], trashedFiles: [linkedFile])
         XCTAssertEqual(count, 1)
     }
+
+    // MARK: - ④ the conveyor
+
+    func testBringBackSetsKeptAtAndClearsDeletedAt() {
+        let m = memo(significance: 0, deletedDaysAgo: 5)
+        XCTAssertNil(m.keptAt)
+        XCTAssertNotNil(m.deletedAt)
+        WayOutRules.bringBack(m, now: now)
+        XCTAssertEqual(m.keptAt, now)
+        XCTAssertNil(m.deletedAt)
+    }
+
+    func testBringBackSetsKeptAtEvenWhenNotDeleted() {
+        // A fading (not yet deleted) note's Bring back: still a touch, still
+        // must stamp keptAt, even though there's no deletedAt to clear.
+        let m = memo(days: 40, significance: 0)
+        WayOutRules.bringBack(m, now: now)
+        XCTAssertEqual(m.keptAt, now)
+        XCTAssertNil(m.deletedAt)
+    }
+
+    func testFadingOrderedIsSoonestToMoveFirst() {
+        let soon = memo(days: 59)     // 1 day from the 60d auto-move
+        let later = memo(days: 31)    // 29 days from the 60d auto-move
+        XCTAssertEqual(WayOutRules.fadingOrdered([later, soon]).map(\.id), [soon.id, later.id])
+    }
+
+    func testDeletedOrderedIsSoonestToPurgeFirst() {
+        // Mirrors the mock's worked example: "deleted 7 Jul · ~1d" listed
+        // ABOVE "deleted 14 Jul · ~8d" — the OLDER deletedAt purges sooner and
+        // sorts first. This is a deliberate reversal of MacTrashColumn's old
+        // newest-deleted-first comparator.
+        let deletedLongAgo = memo(significance: 0, deletedDaysAgo: 13)   // ~1d left of the 14d retention
+        let deletedRecently = memo(significance: 0, deletedDaysAgo: 6)   // ~8d left
+        XCTAssertEqual(WayOutRules.deletedOrdered([deletedRecently, deletedLongAgo]).map(\.id),
+                       [deletedLongAgo.id, deletedRecently.id])
+    }
 }

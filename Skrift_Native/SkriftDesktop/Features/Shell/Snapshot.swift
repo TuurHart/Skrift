@@ -463,14 +463,35 @@ enum Snapshot {
         hostPNG(view, size: NSSize(width: 1180, height: 780), to: path)
     }
 
-    /// Recently Deleted sheet — a couple of demo files marked trashed with
-    /// staggered ages so the days-remaining countdown shows.
+    /// The "On its way out" conveyor (mocks/lifecycle-ia-explorations.html #m3) —
+    /// fixture rows in all three sections (fading / deleted / mac-only), a pure-
+    /// view fixture injection (like `ConnectionsPanelBody`'s — no engine, no
+    /// ModelContext, mock-story rows). The day offsets below reproduce the
+    /// mock's own worked example verbatim (3d/22d fading, ~1d/~8d deleted) as a
+    /// cheap cross-check that the arithmetic lines up. NOTE: the sidebar band
+    /// has no fixture here — the sidebar can't snapshot (known repo
+    /// limitation) — the conductor eyeballs it live. Triggered by:
+    /// `-snapshot-trash <path>`.
     @MainActor private static func renderTrash(to path: String, scheme: ColorScheme = .dark) {
-        let files = DemoSeed.snapshotFiles().prefix(3).enumerated().map { i, f -> PipelineFile in
-            f.deletedAt = Date(timeIntervalSinceNow: -Double(i) * 4 * 86_400)   // 0/4/8 days ago
-            return f
-        }
-        let view = RecentlyDeletedView(files: Array(files), interactive: false)
+        func daysAgo(_ n: Int) -> Date { Date(timeIntervalSinceNow: -Double(n) * 86_400) }
+        let fading = [
+            Memo(audioFilename: "memo_1.m4a", duration: 4, recordedAt: daysAgo(57),
+                 transcript: "Okay. Yeah. No. Right. Test two.", transcriptStatus: .done),
+            Memo(audioFilename: "memo_2.m4a", duration: 6, recordedAt: daysAgo(38),
+                 transcript: "That um it it started at oh what the fuck…", transcriptStatus: .done),
+        ]
+        let deleted = [
+            Memo(audioFilename: "memo_3.m4a", duration: 34, recordedAt: daysAgo(90),
+                 transcript: "Shopping list — garden centre", transcriptStatus: .done, deletedAt: daysAgo(13)),
+            Memo(audioFilename: "memo_4.m4a", duration: 63, recordedAt: daysAgo(100),
+                 transcript: "Voice note", transcriptStatus: .done, deletedAt: daysAgo(6)),
+        ]
+        let macOnly = PipelineFile(id: "legacy-bonjour-1", filename: "Old Bonjour upload.m4a",
+                                   sourceType: .audio, uploadedAt: daysAgo(120))
+        macOnly.deletedAt = daysAgo(3)
+
+        let view = WayOutColumn(fading: fading, deleted: deleted, macOnlyFiles: [macOnly])
+            .frame(width: 860, height: 680)
             .background(Theme.bg)
         writePNG(view, to: path, scheme: scheme)
     }
