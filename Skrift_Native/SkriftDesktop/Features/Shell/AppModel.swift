@@ -3,7 +3,7 @@ import AppKit
 import Observation
 
 enum QueueFilter: String, CaseIterable {
-    case all = "All", needsWork = "Needs Work", done = "Done", notRated = "Not rated"
+    case all = "All", needsWork = "Needs Work", done = "Done", notRated = "Unrated"
 }
 
 /// Sidebar queue ordering. Desktop-appropriate subset of the phone's `MemoSort`

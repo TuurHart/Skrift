@@ -256,6 +256,7 @@ struct SidebarView: View {
                 let on = model.filter == f
                 Text(f.rawValue)
                     .font(.system(size: 11))
+                    .lineLimit(1).fixedSize()
                     .foregroundStyle(on ? Theme.accent : Theme.textSecondary)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)
@@ -266,7 +267,6 @@ struct SidebarView: View {
                     .onTapGesture { model.filter = f }
             }
             Spacer(minLength: 0)
-            sortControl
         }
     }
 
@@ -302,6 +302,7 @@ struct SidebarView: View {
                     }
                     .accessibilityIdentifier("sidebar.flag-all")
                 }
+                sortControl.padding(.leading, 6)
             } else {
                 Text("\(readyCount) ready to review")
                     .foregroundStyle(Theme.accent).fontWeight(.semibold)
@@ -312,6 +313,7 @@ struct SidebarView: View {
                     Text(" · \(unpipelinedMemos.count) not rated").foregroundStyle(Theme.textMuted)
                 }
                 Spacer(minLength: 0)
+                sortControl
             }
         }
         .font(.system(size: 11))
