@@ -1519,7 +1519,7 @@ private struct MemoPageView: View {
         }
         // Video imports show a "Video" source chip (no location/weather was captured).
         if memo.isVideoImport {
-            chips.append(MetaChip(text: "Video", symbol: "video.fill"))
+            chips.append(MetaChip(text: SourceKind.video.label, symbol: SourceKind.video.glyph))
         }
         if let place = memo.metadata?.location?.placeName, !place.isEmpty {
             chips.append(MetaChip(text: place, symbol: "mappin.circle.fill"))

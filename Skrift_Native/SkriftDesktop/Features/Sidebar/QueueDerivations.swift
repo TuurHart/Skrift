@@ -74,20 +74,25 @@ extension PipelineFile {
     /// `sourceType`/`sharedContentType`. A book capture + a video both sync as
     /// `.audio`, so type alone can't tell them apart — the markers do.
     private var sourceDescriptor: (glyph: String, label: String) {
-        if bookCapture != nil { return ("book.closed.fill", "Audiobook quote") }
-        if mediaSource == "video" { return ("video.fill", "Video") }
-        switch sourceType {
-        case .note:  return ("note.text", "Apple Note")
-        case .audio: return ("mic.fill", "Voice memo")
-        case .capture:
-            switch sharedContentType {
-            case "url":   return ("link", "Link")
-            case "image": return ("photo", "Image")
-            case "text":  return ("text.quote", "Text")
-            case "file":  return ("doc", "File")
-            default:      return ("square.and.arrow.down", "Capture")
+        let kind: SourceKind
+        if bookCapture != nil { kind = .audiobookQuote }
+        else if mediaSource == "video" { kind = .video }
+        else {
+            switch sourceType {
+            case .note:  kind = .appleNote
+            case .audio: kind = .voiceMemo
+            case .capture:
+                switch sharedContentType {
+                case "url":   kind = .captureURL
+                case "image": kind = .captureImage
+                case "text":  kind = .captureText
+                case "file":  kind = .captureFile
+                default:      kind = .captureOther
+                }
             }
         }
+        // Glyph + label come from the SHARED taxonomy — one copy, both apps.
+        return (kind.glyph, kind.label)
     }
 
     /// Duration like "2:14" pulled from the phone metadata blob, if present.

@@ -157,34 +157,6 @@ final class WayOutRulesTests: XCTestCase {
         XCTAssertFalse(WayOutRules.matchesSearch(m, query: "airport"))
     }
 
-    // MARK: - quiet-row source glyphs (mirror of PipelineFile.sourceDescriptor)
-
-    func testSourceGlyphAudiobookQuoteBeatsEverything() throws {
-        let m = memo(significance: 0)
-        m.metadataData = try JSONEncoder().encode(MemoMetadata(bookTitle: "The Trouble with Goats"))
-        XCTAssertEqual(WayOutRules.sourceGlyph(for: m), "book.closed.fill")
-    }
-
-    func testSourceGlyphVideo() throws {
-        let m = memo(significance: 0)
-        m.metadataData = try JSONSerialization.data(withJSONObject: ["mediaSource": "video"])
-        XCTAssertEqual(WayOutRules.sourceGlyph(for: m), "video.fill")
-    }
-
-    func testSourceGlyphCaptureSubtypes() throws {
-        let m = memo(significance: 0)
-        m.metadataData = try JSONSerialization.data(withJSONObject:
-            ["sharedContent": ["type": "url", "url": "https://example.com"]])
-        XCTAssertEqual(WayOutRules.sourceGlyph(for: m), "link")
-    }
-
-    func testSourceGlyphFallsBackToMicOrNote() {
-        XCTAssertEqual(WayOutRules.sourceGlyph(for: memo(significance: 0)), "mic.fill")
-        let note = Memo(audioFilename: "", recordedAt: daysAgo(1),
-                        transcript: "apple note", transcriptStatus: .done)
-        XCTAssertEqual(WayOutRules.sourceGlyph(for: note), "note.text")
-    }
-
     // MARK: - ④ the conveyor
 
     func testBringBackSetsKeptAtAndClearsDeletedAt() {

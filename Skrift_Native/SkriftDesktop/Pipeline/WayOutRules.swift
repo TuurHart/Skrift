@@ -83,25 +83,10 @@ enum WayOutRules {
         files.filter { $0.deletedAt != nil && isMacOnly($0, memoIDs: memoIDs) }
     }
 
-    /// SF Symbol for a quiet row — the SAME unified source taxonomy as
-    /// `PipelineFile.sourceDescriptor` (QueueDerivations.swift), mirrored for a
-    /// `Memo`, same priority order: audiobook quote → video → capture subtype →
-    /// audio/no-audio. Tuur's 2026-07-21 round caught the old two-way guess
-    /// (every quote and capture drew a mic or a note glyph).
+    /// SF Symbol for a quiet row — delegates to the SHARED taxonomy
+    /// (`Shared/Pipeline/SourceTaxonomy.swift`), the one copy both apps read.
     static func sourceGlyph(for memo: Memo) -> String {
-        if let book = memo.metadata?.bookTitle, !book.isEmpty { return "book.closed.fill" }
-        if let data = memo.metadataData,
-           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           obj["mediaSource"] as? String == "video" { return "video.fill" }
-        if let shared = SharedContent.decode(from: memo.metadataData) {
-            switch shared.type {
-            case .url:   return "link"
-            case .image: return "photo"
-            case .text:  return "text.quote"
-            case .file:  return "doc"
-            }
-        }
-        return memo.audioFilename.isEmpty ? "note.text" : "mic.fill"
+        SourceKind.of(memo).glyph
     }
 
     /// Free-text match for a quiet (unrated) row — title + transcript, the

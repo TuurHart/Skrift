@@ -318,7 +318,12 @@ struct SidebarView: View {
         .lineLimit(1)
         .minimumScaleFactor(0.85)
         .font(.system(size: 11))
-        .help("Ready = processed, waiting for your review. To process = still needs transcribe + enhance. Not rated = synced but the Mac skips it — flag to process.")
+        .contentShape(Rectangle())   // whole-line hover target — the tooltip was unreachable between texts
+        .help("""
+        Ready to review — the Mac finished these: transcript cleaned, title + summary written. Open one to check it; export sends it to Obsidian.
+        To process — waiting for the Process button (transcribe + enhance).
+        Unrated — synced from your phone without a rating; the Mac skips them until you flag one.
+        """)
         .padding(.horizontal, 14)
         .padding(.top, 9)
         .padding(.bottom, 4)

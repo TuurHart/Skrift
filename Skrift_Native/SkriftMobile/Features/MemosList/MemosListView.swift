@@ -995,7 +995,7 @@ private struct MemoCard: View {
             .fill(Color.skElev)
             .frame(width: 32, height: 32)
             .overlay(
-                Image(systemName: "video.fill")
+                Image(systemName: SourceKind.video.glyph)
                     .font(.system(size: 13))
                     .foregroundStyle(Color.skTextDim)
             )
@@ -1009,7 +1009,7 @@ private struct MemoCard: View {
             .fill(Color.skAccentSoft)
             .frame(width: 32, height: 32)
             .overlay(
-                Image(systemName: "book.closed.fill")
+                Image(systemName: SourceKind.audiobookQuote.glyph)
                     .font(.system(size: 14))
                     .foregroundStyle(Color.skAccent)
             )
@@ -1050,11 +1050,11 @@ private struct MemoCard: View {
         }
         // Audiobook captures lead the meta line with "Book · ch. N".
         if let book = memo.bookCaptionLabel {
-            out.append(Chip(text: book, symbol: "book.closed.fill"))
+            out.append(Chip(text: book, symbol: SourceKind.audiobookQuote.glyph))
         }
         // Video imports lead the meta line with a "Video" source chip.
         if memo.isVideoImport {
-            out.append(Chip(text: "Video", symbol: "video.fill"))
+            out.append(Chip(text: SourceKind.video.label, symbol: SourceKind.video.glyph))
         }
         out.append(Chip(text: memo.durationLabel, symbol: nil))
         if let place = memo.metadata?.location?.placeName, !place.isEmpty {
