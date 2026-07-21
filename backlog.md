@@ -288,8 +288,21 @@ DESIGN (locked by the research):
 
 SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
 1. ⬜ Gather 2–3 real DRM-free book+ePub pairs from the library.
-2. ⬜ ASR ground truth (cheapest, FIRST): `-asrsweep` a real audiobook chunk → does OUR build emit
-   punctuation? + grep an existing `transcript_f*.json` for glued words (is #683 present in practice?).
+2. ✅ ASR ground truth (2026-07-21, real device sidecars + Mac `-asrsweep` on a real audiobook
+   chunk — findings):
+   - **PUNCTUATION: PRESENT, both apps.** Phone sidecars (Steal Like an Artist ×4, on the
+     7f963cdc pin): ~650 periods/hour + commas + question marks + capitalization. Mac
+     `-asrsweep` on Man's-Search preface mp3: same. Benchmarks.md's "no punctuation" claim is
+     REFUTED for our path — sentence segmentation MAY use ASR punctuation as a signal.
+   - **#683 gluing on our pin: REAL but RARE.** 4.5 h of current-pin transcripts → ONE true
+     seam artifact: `works.eep` ("works. Keep" with the K eaten). Old-pin June transcript adds
+     `Co.oper` ("Cooper" split by an inserted period). So the damage class = glue + eaten
+     leading letter + seam-local punctuation corruption, ~1 per 4.5 h — the aligner's
+     tolerate-glued-tokens requirement stands, and per-sentence confidence absorbs the rest.
+     Pin-bump (spike 3) is thus justified-but-not-urgent, data in hand.
+   - Sweep variants: mel-off (B/C) diverges 14% of words from the old default; dual-decode
+     alone (D) = 0% — knob effects confirmed on audiobook audio. (Sweep's one-shot API covered
+     the opening ~2 min of the chunk; enough for the punctuation verdict.)
 3. ⬜ FluidAudio pin-bump decision (≥0.15.5 seam fixes) — own chunk + device round if taken.
 4. ⬜ EPubExtract (ZIPFoundation + lenient fallback) → `[Block]` + TOC + DRM verdict; fixture tests.
 5. ⬜ AlignmentCore (Shared/Pipeline — zero project.yml edits, both apps + both test suites see it)
