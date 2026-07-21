@@ -64,8 +64,13 @@ full unit suite + MLX build, phone full unit suite; conveyor snapshot vision-che
   to the count line for width); count line reads "N ready · M to process · K not rated"; "Flag
   all K" appears only in Not-rated mode. Conveyor centered like the river. Verbs locked: **Flag
   adds to the pile, Process runs the pile.**
-- **OWED:** phone device build (b88+) for the merged shelf; prod promotion later as usual. The
-  unified Notes list needs Tuur's live eyeball (sidebar unsnapshotable + no screen-rec permission).
+- **✅ Build 88 ON DEVICE 2026-07-21** (iPhone 13, install verified via dylib string-grep):
+  merged "On its way out" shelf, flag-to-process microcopy, shared taxonomy glyphs, spine
+  one-liners. Device eyeball = Tuur's next phone session. Round 4/5 same-day extras: shared
+  SourceTaxonomy (4 hardcoded copies → 1 Shared file + twin tests incl. SF-Symbol-validity),
+  count-line tooltip fixed (whole-line hover) + 3-state explainer, quiet-row icons taxonomy-true,
+  count line unwrappable. **OWED:** Tuur's live eyeball of the unified Notes list (Mac) + the
+  phone b88 walkthrough; prod promotion later as usual.
 
 ## ⭐ CONTINUE HERE (2026-07-18 remote session; merged + sim-verified LOCALLY 2026-07-19)
 
