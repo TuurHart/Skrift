@@ -25,6 +25,7 @@ names database (bidirectional last-write-wins):
 | `FEATURES.md` | Feature matrix (every feature × {mobile, desktop} × file × status) |
 | `CHANGELOG.md` | Released versions |
 | `STANDALONE_PLAN.md` | The App Store direction (standalone SkriftMobile) |
+| `LANE_PLAYBOOK.md` | Standing contract for parallel executor lanes (Sonnet executes, Fable conducts) |
 | `NAMING_MODEL.md` | The locked naming / people-linking design |
 | `archive/` | History — the Electron/Python/RN era, plus `archive/handoffs/` (the native-rewrite session ledgers + plans; the SSOT's cited deep tier) |
 

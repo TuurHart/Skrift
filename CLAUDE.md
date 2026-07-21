@@ -40,6 +40,9 @@ The previous apps are preserved **intact** under `archive/` for reference
   over CloudKit (`NamesRecord` carrier ↔ local `names.json`) via `NamesMerge` LWW
   (**union** voiceEmbeddings); custom vocab likewise. Keep `names.json` byte-compatible
   across both apps.
+- **Parallel lane batches run under `LANE_PLAYBOOK.md`** (standing contract: Sonnet
+  executes in per-lane worktrees off short briefs in `LANES-<date>/`, Fable conducts +
+  judges). Don't re-derive lane rules per batch — hand every lane the playbook.
 - **Keep it simple. Commit per chunk. Verify each chunk** (xcodebuild build+test on
   the iPhone 17 sim for mobile; `-skipMacroValidation` full scheme for desktop). For
   new UI, mock first.
