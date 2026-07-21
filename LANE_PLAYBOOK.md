@@ -17,9 +17,10 @@ a short per-lane brief. This file is the standing contract — briefs stay short
 - Isolation, not exclusion: every writer owns its own git worktree. You were spawned into one —
   never write outside it.
 - The ownership map in BASE.md is law: writes outside your file set are FORBIDDEN. Always
-  READ-ONLY for every lane: `Skrift_Native/Shared/**` (contracts — escalate if insufficient,
-  never edit), `roadmap/`, `backlog.md`, `FEATURES.md`, `SKRIFT_SOURCE_OF_TRUTH.md`, the mocks,
-  other lanes' files.
+  READ-ONLY for every lane: EXISTING files under `Skrift_Native/Shared/**` (contracts —
+  escalate if insufficient, never edit; NEW Shared files only when your ownership map
+  explicitly grants them), `roadmap/`, `backlog.md`, `FEATURES.md`, `SKRIFT_SOURCE_OF_TRUTH.md`,
+  the mocks, other lanes' files.
 - EDIT-ONLY: do NOT run xcodebuild/simulators/devices (one machine; builds serialize at the
   conductor's merge gate). Swift correctness = your care + the conductor's compile gate.
   Hardware-flavored work (device installs, audio routes, BT, eyeballs) is NEVER lane work.
