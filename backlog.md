@@ -16,6 +16,10 @@ Deferred ideas and features, captured during the 2026-06 overhaul planning so th
 3. **Daily-timer sweep** (`LifecycleSweepScheduler`) — fires on launch/day-change/24h;
    the timer path itself is unverified (needs a day boundary or a clock poke).
 4. **Q2 write-back visible on phone**: Flag a note on the Mac → phone shows "0.1 · Passing".
+**Branch note (2026-07-21 remote):** `origin/claude/app-data-phone-switch-q3kv2n` (the 📖 docs
+commits) is already merged on `claude/skrift-roundtrip-verify-wvnpbn` (pushed) — merge THAT
+branch to main; don't re-merge q3kv2n. The 5 📖 open decisions were put to Tuur remotely and
+deferred — still open at the 📖 section bottom.
 Everything below = the build record of how we got here.
 
 ## 🧬 (build record) lifecycle IA overhaul (locked 2026-07-21; spine BUILT)
