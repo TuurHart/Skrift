@@ -111,6 +111,9 @@ struct SidebarView: View {
                     }
                 }
                 if !audio.isEmpty { try? ctx.save() }
+                // A Mac capture becomes a synced Memo NOW, not on the next sweep
+                // trigger — reconcile runs MacMemoAuthor.backfill for the new rows.
+                MemoCloudReconciler.reconcileSoon()
             } catch {
                 coordinator.lastError = "Import failed: \(error.localizedDescription)"
             }

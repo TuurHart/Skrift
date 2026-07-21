@@ -67,7 +67,6 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// DEAD since 2026-07-21 — the Queue band's "Process all N" replaced it as the one
     /// visible control (Q6, mocks/lifecycle-ia-explorations.html); field kept for legacy decode.
     var processAllSyncedMemos: Bool? = nil
-    var processAllSyncedMemosEnabled: Bool { processAllSyncedMemos ?? false }
 
     static let `default` = AppSettings()
 

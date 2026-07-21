@@ -26,14 +26,4 @@ enum FadingSweep {
         if swept > 0 { DevLog.log("FadingSweep: \(swept) note(s) → Recently Deleted") }
         return swept
     }
-
-    /// "Sweep all now" (the shelf button): every currently-fading note straight
-    /// to Recently Deleted, ahead of its timer.
-    @discardableResult
-    static func sweepAllFading(repository: NotesRepository, now: Date = Date()) -> Int {
-        let fading = MemoLifecycle.partition(repository.allMemos(), now: now).fading
-        for memo in fading { repository.softDelete(memo, at: now) }
-        if !fading.isEmpty { DevLog.log("FadingSweep: sweep-all → \(fading.count) note(s)") }
-        return fading.count
-    }
 }
