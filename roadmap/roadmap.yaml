@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-21T12:15:00.000Z
+updated: 2026-07-21T12:25:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -548,6 +548,15 @@ nodes:
         Memos w/ backfill + transcript-reflect (both devices collectors).
         Gate catches: #Predicate model-property capture; snapshot
         writePNG→hostPNG (ImageRenderer blanks ScrollView rows)
+      - >-
+        2026-07-21 pm · FIVE same-day eyeball fix waves off Tuur's live
+        rounds (Mac Dev + phone b88–92): band dissolved into ONE Notes list
+        (quiet rows, Flag/Process verbs, Unrated chip), shared SourceTaxonomy
+        (4 glyph copies → 1 + SF-Symbol-validity tests), phone map ported to
+        the Mac interaction model + 3 device-found fixes, WayOut peeks both
+        apps, placement B (phone conveyor row lives in Review, ⋯ retired),
+        search finds FADING notes + untouched notes narrate their fade date;
+        LOCKED: trash stays out of search
       - >-
         2026-07-21 · ① THE SPINE — Shared/Pipeline/MemoSpine.swift: 9 stations
         (New→Fading→Deleted / Parked siding / To process→…→In Obsidian) as one
