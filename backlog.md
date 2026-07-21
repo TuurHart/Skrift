@@ -19,6 +19,11 @@ diffed against the Mac's; new DEBUG dev hooks below):**
 3. **Timer sweep ✅** — `lifecycle sweep ran` on launch, on an in-process NSCalendarDayChanged
    poke, and on a 25s-shrunk heartbeat tick (loop machinery sound; real midnight/24h = OS
    contract, unpokeable without moving the system clock).
+4a. **✅ Tuur 2026-07-21 pm: b92 fading-search CONFIRMED on device** ("I can look up the
+   notes that are about to fade away by searching for them"). ⚠️ Same round: **phone Dev
+   feels SLOW** ("not very well optimized… better than the non-dev version") — NOTE the Dev
+   build is Debug (-Onone), so part of this is build config, but don't hide behind that:
+   profile the list/search paths on device before prod promotion; ⚡ audit follow-up candidate.
 4. **REMAINING — Tuur walkthroughs (eyes only):** phone b92 (amber 'fading' search hits ·
    untouched note's detail "starts fading <date>" line · WayOut row peek + Bring back · b90 map
    trio: card scrolls all in-view notes, pin tap never zooms out, gestures clear selection ·
@@ -287,7 +292,21 @@ DESIGN (locked by the research):
    filler stripping, contraction expansion, hyphen-specific rules.
 
 SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
-1. ⬜ Gather 2–3 real DRM-free book+ePub pairs from the library.
+1. 🟡 Pair #1 DELIVERED (Tuur, 2026-07-21): Steal Like an Artist ePub (in ~/Downloads,
+   libgen filename with a LEADING SPACE; keep OUT of git — copyrighted). DRM-free (bare
+   container.xml), EPUB2 (OPF+NCX), 10 real chapter titles in the NCX, 9,767 words + 108
+   images. 1–2 more pairs still wanted — ideally one matching-edition pair and one messy one.
+   **⭐ PYTHON PROBE (2026-07-21, scratchpad — pre-spike-5 de-risk, vs the REAL phone
+   sidecars):** the audiobook is the TRILOGY (4 files, ~39,400 words); the ePub is book 1 only —
+   and per-file verdicts resolve it perfectly: f0 matched 6,515 unique 4-gram anchors, 96%
+   monotonic, spanning words 121–9102 of 9106 (≈98% coverage; ~1 anchor per 1.4 words); f1–f3
+   matched ~40 non-monotonic anchors each = noise floor. RIGHT-vs-WRONG book separation ≈
+   150:1 — the attach-time self-detect is empirical fact, thresholding is trivial. Only TWO
+   >30-word unmatched spans in the whole hour: the 121-word narrator/publisher intro (the
+   predicted transcript-only span) + one 35-word epigraph quirk at 3.6min. Kleon's
+   hand-lettered image pages = NON-issue here (narrator doesn't read them / text also in
+   body). Image alt texts are all FILENAMES → alt is never book text. Spike 5 (Swift
+   AlignmentCore + -aligncheck + thresholds) proceeds on a de-risked bet.
 2. ✅ ASR ground truth (2026-07-21, real device sidecars + Mac `-asrsweep` on a real audiobook
    chunk — findings):
    - **PUNCTUATION: PRESENT, both apps.** Phone sidecars (Steal Like an Artist ×4, on the
@@ -313,9 +332,20 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    attach-ePub UX + CK sync; read-along/reading-mode surfaces switch to true text via the builder
    swap (no re-plumb later).
 
-Open decisions for Tuur: chapter precedence (ePub TOC wins?); TextNormalizer wiring vs
-aligner-internal normalization; pin bump now or with this; OK with ZIPFoundation as SPM dep #2;
-any book-text formats beyond .epub/.txt?
+Open decisions (status 2026-07-21 pm):
+1. ✅ **Chapter precedence — LOCKED (Tuur): ePub TOC wins when attached** ("if an EPUB is
+   attached, we're gonna use its chapters"); transcript-detected > embedded remains the
+   fallback order; ChapterDetector.swift:5's "THE standard" doc gets amended in spike 6.
+2. ⏳ TextNormalizer vs aligner-internal — explained to Tuur (rec: aligner-internal; raw
+   transcript stays untouched, matcher treats "2026"≡"twenty twenty-six").
+3. ⏳ Pin bump ≥0.15.5 — explained (rec: own small chunk + device round, not bundled;
+   spike-2 data says 1 artifact/4.5h = not urgent).
+4. ⏳ ZIPFoundation as SPM dep #2 — explained (an .epub IS a zip; no system unzip API;
+   MIT, zero transitive deps; rec: yes).
+5. ✅ **Formats — settled: .epub primary** (Tuur: books come as epub, maybe mobi).
+   .mobi = dead format, skip in v1 (Calibre converts in one step); keep .txt as a freebie
+   (trivial, Gutenberg). Images inside ePubs: invisible to ALIGNMENT (no text); reading-mode
+   display of them = a spike-6 display question, not an alignment risk (probe confirmed).
 
 ## 🐛 List thumbnail stale after deleting photos (reported 2026-07-18, ✅ FIXED same day — branch `claude/note-thumbnail-update-bug-tuhrp3`)
 
