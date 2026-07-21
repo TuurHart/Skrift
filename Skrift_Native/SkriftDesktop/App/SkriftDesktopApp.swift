@@ -40,6 +40,7 @@ struct SkriftDesktopApp: App {
         RunFile.runProcessFileIfRequested()
         RunFile.runIngestFileIfRequested()
         RunFile.runFlagMemoIfRequested()
+        RunFile.runAlignCheckIfRequested()
         RunFile.runIfRequested()
         #endif
         // SECOND-INSTANCE GUARD — two processes on one SwiftData store race it

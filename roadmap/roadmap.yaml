@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-21T15:05:00.000Z
+updated: 2026-07-21T15:55:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -1004,9 +1004,19 @@ nodes:
     note: "Graduated from idea i11 2026-07-21: all 5 decisions LOCKED by Tuur
       (ePub TOC wins · aligner-internal normalization · pin bumped v0.15.5 ·
       ZIPFoundation approved as SPM dep #2 · .epub primary + .txt freebie,
-      .mobi = convert first). Board = backlog 📖. Next: spikes 4–5
-      (EPubExtract + AlignmentCore + -aligncheck) — first LANE_PLAYBOOK batch."
+      .mobi = convert first). Board = backlog 📖. Spikes 1–5 DONE, verdict GO.
+      Next: spike 6 productize (sidecar + triggers + BufferSentence builder
+      swap + chapter precedence + attach UX + CK sync)."
     shipped:
+      - >-
+        2026-07-21 eve · spikes 4–5 SHIPPED via the first LANE_PLAYBOOK batch
+        (2 Sonnet lanes, Fable gate): EPubParse (pure Shared parser — spine
+        blocks, dual-generation TOC, lenient fallback, DRM verdict) +
+        AlignmentCore (anchors→LIS→banded DP, glue-tolerant, EN+NL numbers)
+        + desktop -aligncheck harness + ZIPFoundation 0.9.20 pinned. 24 twin
+        tests green both apps. REAL-PAIR GO: Steal ePub × trilogy sidecars →
+        f0 ALIGNED 86.9%/7639 anchors/95.5% monotonic/123ms; f1–f3 REJECTED;
+        default thresholds held (monotonic gate = the discriminator)
       - >-
         2026-07-21 · spikes 2–3 + probe: punctuation CONFIRMED present both
         apps (~650 periods/hr real sidecars; Benchmarks.md claim refuted);

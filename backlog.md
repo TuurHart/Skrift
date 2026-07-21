@@ -329,14 +329,28 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    phone b93 built + installed (device lists 93), Mac Dev redeployed on v0.15.5. OWED: next
    real whole-book transcribe should show works.eep-class artifacts gone (falsifiable on the
    next book Tuur transcribes; don't re-transcribe 4.5h just for this).
-4. ⬜ EPubExtract (ZIPFoundation + lenient fallback) → `[Block]` + TOC + DRM verdict; fixture tests.
-5. ⬜ AlignmentCore (Shared/Pipeline — zero project.yml edits, both apps + both test suites see it)
-   + desktop `-aligncheck` (RunFile family; raw paths + the shared core — desktop still doesn't
-   learn what an "Audiobook" is): prints coverage %, anchor density, 10 biggest unmatched spans, on
-   the real pairs → **GO/NO-GO + thresholds**.
-6. ⬜ Productize on GO: sidecar + triggers + BufferSentence builder swap + chapter precedence +
-   attach-ePub UX + CK sync; read-along/reading-mode surfaces switch to true text via the builder
-   swap (no re-plumb later).
+4. ✅ **EPubParse SHIPPED 2026-07-21 eve** (LANE_EPUB, first LANE_PLAYBOOK batch =
+   `LANES-2026-07-21B/`): `Shared/Pipeline/EPubParse.swift` — PURE Foundation (unzip stays
+   app-side; ZIPFoundation 0.9.20 revision-pinned, desktop target only for now), spine-ordered
+   blocks, NCX+EPUB3-nav TOC, lenient entity/malformed-markup fallback, DRM verdict w/
+   font-obfuscation allowlist, footnote/img exclusion. 12 twin tests green both apps.
+   REAL-BOOK smoke (Steal ePub): DRM none, 314 blocks / 9,670 words, all 18 TOC titles clean.
+5. ✅ **AlignmentCore + `-aligncheck` SHIPPED same eve** (LANE_ALIGN + conductor harness):
+   `Shared/Pipeline/AlignmentCore.swift` — unique-n-gram anchors → LIS → banded per-gap DP
+   (match/sub/ins/del + glue ops incl. eaten-letter), EN+NL number keys, interpolation,
+   Config-tunable thresholds, 10-largest-spans reporting. 12 twin tests green both apps
+   (1 gate catch: an LIS test must MOVE a block, not COPY it — duplicated shingles lose
+   uniqueness before LIS ever runs). **REAL-PAIR VERDICT (the board's GO/NO-GO): GO.**
+   `-aligncheck` on the Steal ePub × all 4 trilogy sidecars: f0 ALIGNED (coverageBook 86.9%,
+   7,639 anchors, 95.5% monotonic, 123 ms for 9k×9.7k words); f1/f2/f3 REJECTED (2–7%
+   coverage, ~25% monotonic). DEFAULT THRESHOLDS HELD — note: wrong-book coverage can reach
+   ~7% (trilogy-sibling phrase bleed), the MONOTONIC gate is the real discriminator. The
+   narrated-but-image-only pages (logbook / What Now? lists) surface exactly as honest
+   unmatched transcript spans.
+6. ⬜ **NEXT — productize on the GO**: `alignment_f<n>.json` sidecar + triggers +
+   BufferSentence builder swap + chapter precedence (ePub TOC wins — amend
+   ChapterDetector.swift:5's doc) + attach-ePub UX (phone; ZIPFoundation joins the iOS
+   target then) + CK sync; read-along/reading-mode switch to true text via the builder swap.
 
 Open decisions — **ALL 5 LOCKED (Tuur, 2026-07-21 pm)**:
 1. ✅ **Chapter precedence: ePub TOC wins when attached** ("if an EPUB is attached, we're

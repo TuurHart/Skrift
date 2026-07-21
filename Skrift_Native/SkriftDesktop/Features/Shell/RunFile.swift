@@ -4,6 +4,7 @@ import CoreML
 import FluidAudio
 import Foundation
 import SwiftData
+import ZIPFoundation
 
 /// Headless end-to-end pipeline run. Launched with `-runfile <audioPath>`, builds
 /// a transient PipelineFile, runs the real BatchRunner (FluidAudio + mlx-swift) on
@@ -502,6 +503,67 @@ enum RunFile {
             } catch {
                 log(">>> ERROR: \(error)")
             }
+            exit(0)
+        }
+    }
+
+    /// `-aligncheck <epub> <transcript_f.json>…` → the 📖 spike-5 GO/NO-GO harness
+    /// (backlog 📖 board): unzip the ePub (ZIPFoundation), `EPubParse.parse` it, bridge
+    /// `EPubBlock` → `AlignmentCore.Block` (the deliberate seam — the two Shared cores never
+    /// import each other), and `AlignmentCore.align` each transcript sidecar against the book.
+    /// Prints verdict, coverages, anchor density, monotonic fraction, and the 10 largest
+    /// unmatched spans each side. Raw paths only — the desktop still doesn't learn what an
+    /// "Audiobook" is. Exits when done.
+    nonisolated static func runAlignCheckIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-aligncheck"), i + 2 < args.count else { return }
+        let epubPath = args[i + 1]
+        let transcriptPaths = Array(args[(i + 2)...]).filter { !$0.hasPrefix("-") }
+        Task.detached(priority: .userInitiated) {
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            do {
+                let archive = try Archive(url: URL(fileURLWithPath: epubPath), accessMode: .read)
+                var entries: [String: Data] = [:]
+                for entry in archive where entry.type == .file {
+                    var data = Data()
+                    _ = try archive.extract(entry) { data.append($0) }
+                    entries[entry.path] = data
+                }
+                let book = try EPubParse.parse(entries: entries)
+                let blocks = book.blocks.map { AlignmentCore.Block(text: $0.text, sourceFile: $0.sourceFile) }
+                let bookWords = book.blocks.map { $0.text.split(separator: " ").count }.reduce(0, +)
+                log("== ALIGNCHECK \(URL(fileURLWithPath: epubPath).lastPathComponent) ==")
+                log("book: \(book.blocks.count) blocks, \(bookWords) words, toc \(book.toc.count) entries, drm \(book.drm)")
+
+                struct Sidecar: Decodable {
+                    struct W: Decodable { let word: String; let start: Double; let end: Double }
+                    let words: [W]
+                }
+                for tp in transcriptPaths {
+                    let sc = try JSONDecoder().decode(Sidecar.self, from: Data(contentsOf: URL(fileURLWithPath: tp)))
+                    let words = sc.words.map { AlignmentCore.Word(text: $0.word, start: $0.start, end: $0.end) }
+                    let t0 = Date()
+                    let r = AlignmentCore.align(transcript: words, book: blocks)
+                    let ms = Int(Date().timeIntervalSince(t0) * 1000)
+                    log("\n──── \(URL(fileURLWithPath: tp).lastPathComponent): \(words.count) words ────")
+                    log(String(format: "verdict: %@   coverageBook %.1f%%  coverageTranscript %.1f%%  anchors %d  monotonic %.1f%%   [%d ms]",
+                               r.verdict.rawValue.uppercased(), 100 * r.coverageBook, 100 * r.coverageTranscript,
+                               r.anchorCount, 100 * r.monotonicFraction, ms))
+                    if !r.largestUnmatchedTranscriptSpans.isEmpty {
+                        log("  unmatched TRANSCRIPT spans:")
+                        for s in r.largestUnmatchedTranscriptSpans {
+                            let t = words[s.wordStart].start
+                            log(String(format: "    %6.1fs  %4d words  «%@…»", t, s.wordEnd - s.wordStart, String(s.preview.prefix(70))))
+                        }
+                    }
+                    if !r.largestUnmatchedBookSpans.isEmpty {
+                        log("  unmatched BOOK spans:")
+                        for s in r.largestUnmatchedBookSpans {
+                            log(String(format: "    %@ [%d–%d]  «%@…»", s.sourceFile, s.wordStart, s.wordEnd, String(s.preview.prefix(70))))
+                        }
+                    }
+                }
+            } catch { log(">>> ERROR: \(error)"); exit(1) }
             exit(0)
         }
     }
