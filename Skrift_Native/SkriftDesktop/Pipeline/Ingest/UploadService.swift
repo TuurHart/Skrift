@@ -42,9 +42,18 @@ struct UploadService: Sendable {
     /// both run on the caller's thread. Behavior is byte-identical to the pre-split
     /// version. `memoID` forces the row id (the CloudKit bridge keys on the memo UUID,
     /// the contract spine, so it dedups across transports); HTTP uploads pass nil.
+    ///
+    /// LOCAL path only (`memoID == nil` — the CloudKit re-ingest path above always passes
+    /// one): the Mac AUTHORS a synced `Memo` for each row this call creates, same as any
+    /// phone capture (`MacMemoAuthor`, Q5 2026-07-21). Best-effort + gated internally —
+    /// never throws, never blocks this ingest from succeeding.
     @discardableResult
     func ingest(parts: [MultipartPart], into context: ModelContext, memoID: String? = nil) throws -> [PipelineFile] {
-        try commit(prepare(parts: parts, memoID: memoID), into: context)
+        let created = try commit(prepare(parts: parts, memoID: memoID), into: context)
+        if memoID == nil {
+            for pf in created { MacMemoAuthor.authorLocalUpload(for: pf) }
+        }
+        return created
     }
 
     // MARK: Phase 1 — disk I/O (no ModelContext; safe off the main actor)
