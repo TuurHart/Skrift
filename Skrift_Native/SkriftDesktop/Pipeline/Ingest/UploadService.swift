@@ -42,6 +42,21 @@ struct UploadService: Sendable {
     /// both run on the caller's thread. Behavior is byte-identical to the pre-split
     /// version. `memoID` forces the row id (the CloudKit bridge keys on the memo UUID,
     /// the contract spine, so it dedups across transports); HTTP uploads pass nil.
+    ///
+    /// NOTE on Q5 (the Mac authors Memos, 2026-07-21): this file is intentionally NOT the
+    /// hook point. `UploadService` lives under `Pipeline/`, which `project.yml`'s
+    /// `SkriftDesktopTests` target compiles HOST-LESS (straight into the test bundle,
+    /// no `App/`/`Features/`) — every existing `Pipeline/Models/Shared` file is reachable
+    /// with zero dependency on `MemoCloudStore`/`SettingsStore`-as-a-gate (both of which are
+    /// only ever referenced from `App/`/`Features/`, see `MacCloudMetaSync`/
+    /// `MemoCloudReconciler+Wiring`). Calling into a container-resolving gate from here would
+    /// break that boundary — and there is no live caller of this `memoID == nil` branch today
+    /// to wire it to anyway (Bonjour, its historical caller, is retired; the current
+    /// +Upload-button/drag-drop path is `IngestService`, which never touches
+    /// `UploadService`). `MacMemoAuthor.backfill`, hooked into the reconcile sweep
+    /// (`MemoCloudReconciler+Wiring.reconcile`), is the actual live mechanism — it scans every
+    /// local `PipelineFile` with a UUID id and no `Memo` yet, so it picks up a row created by
+    /// ANY local path, this one included, without this file needing to know about it.
     @discardableResult
     func ingest(parts: [MultipartPart], into context: ModelContext, memoID: String? = nil) throws -> [PipelineFile] {
         try commit(prepare(parts: parts, memoID: memoID), into: context)

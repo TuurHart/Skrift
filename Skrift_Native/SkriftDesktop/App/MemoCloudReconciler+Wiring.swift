@@ -84,7 +84,9 @@ extension MemoCloudReconciler {
         // the store and reads the latest import.
         let cloudContext = ModelContext(cloud)
         let outcome = sweep(from: cloudContext, into: local,
-                            processEverything: settings.processAllSyncedMemosEnabled,
+                            // toggle retired 2026-07-21 — the Queue band's Process all N is
+                            // the visible override now (Q6).
+                            processEverything: false,
                             people: NamesStore.shared.livePeople(), author: settings.authorName,
                             thisDeviceID: DeviceID.current())
         Logger(subsystem: "com.skrift.desktop", category: "cloudkit").log(
@@ -99,6 +101,25 @@ extension MemoCloudReconciler {
             }
             reexportEdited(outcome.updatedIDs, in: local, settings: settings)
         }
+
+        // Q5 (2026-07-21): the Mac AUTHORS a Memo for any local PipelineFile that doesn't have
+        // one yet (the +Upload button / drag-drop / folder import — none of those mint a Memo at
+        // ingest time), and reflects a Mac-completed transcript onto an already-authored Memo so
+        // it reaches the phone. Same gate as everything above (already passed). Best-effort: a
+        // failure here must never take down the ingest/reflect sweep this function exists for.
+        let localFiles = (try? local.fetch(FetchDescriptor<PipelineFile>())) ?? []
+        do {
+            let authored = try MacMemoAuthor.backfill(files: localFiles, into: cloudContext)
+            let reflected = try MacMemoAuthor.reflectTranscripts(files: localFiles, into: cloudContext)
+            if authored > 0 || reflected > 0 {
+                Logger(subsystem: "com.skrift.desktop", category: "cloudkit").log(
+                    "reconcile: authored \(authored, privacy: .public), reflected-transcripts \(reflected, privacy: .public)")
+            }
+        } catch {
+            Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
+                .error("reconcile: author/reflect FAILED: \(error)")
+        }
+
         return outcome.created
     }
 
