@@ -506,6 +506,72 @@ enum RunFile {
         }
     }
 
+    /// `-ingestfile <path>` → run the REAL import verb (`IngestService.ingest` — the same
+    /// call the sidebar's drop target / + Upload panel makes) over ONE local file into the
+    /// REAL SwiftData store, print the created PipelineFile id, and exit. Closes the headless
+    /// loop for Mac-local captures: relaunch the GUI app afterwards and its reconcile sweep
+    /// authors the synced Memo for the new row (`MacMemoAuthor.backfill`), then `-processfile`
+    /// the id and relaunch again for the transcript reflect. QUIT the GUI app first — a
+    /// second instance races the shared store.
+    nonisolated static func runIngestFileIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-ingestfile"), i + 1 < args.count else { return }
+        let path = args[i + 1]
+        Task { @MainActor in
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            guard FileManager.default.fileExists(atPath: path) else {
+                log(">>> file not found: \(path)"); exit(1)
+            }
+            let ctx = SharedStore.container.mainContext
+            do {
+                let created = try await IngestService().ingest(localURLs: [URL(fileURLWithPath: path)], into: ctx)
+                // Mirror SidebarView.ingest: the real RECORDING date lives inside the m4a;
+                // the filesystem date is just the import/copy date.
+                for pf in created where pf.sourceType == .audio {
+                    if let d = await AudioMetadata.recordingDate(of: URL(fileURLWithPath: pf.path)) {
+                        pf.uploadedAt = d
+                    }
+                }
+                try ctx.save()
+                for pf in created {
+                    log(">>> INGESTED id=\(pf.id) filename=\(pf.filename) source=\(pf.sourceType.rawValue)")
+                }
+            } catch {
+                log(">>> ERROR: \(error)"); exit(1)
+            }
+            exit(0)
+        }
+    }
+
+    /// `-flagmemo <memo-uuid>` → run the REAL Q2 flag verb (`UnpipelinedMemoSheet`'s
+    /// "Flag for processing": `significance = 0.1` on the CLOUD memo + save + a reconcile)
+    /// headlessly, wait a beat so NSPersistentCloudKitContainer exports the write, and exit.
+    /// Verifies the Mac→cloud significance write direction without GUI automation (the
+    /// export queue also persists, so a relaunch finishes any remainder). QUIT the GUI app
+    /// first — a second instance races the shared store.
+    nonisolated static func runFlagMemoIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-flagmemo"), i + 1 < args.count else { return }
+        let idString = args[i + 1]
+        Task { @MainActor in
+            func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
+            guard let uuid = UUID(uuidString: idString) else { log(">>> not a UUID: \(idString)"); exit(1) }
+            guard let cloud = MemoCloudStore.container else { log(">>> no cloud container"); exit(1) }
+            let ctx = cloud.mainContext
+            guard let memo = try? ctx.fetch(FetchDescriptor<Memo>(
+                predicate: #Predicate { $0.id == uuid })).first else {
+                log(">>> no Memo \(idString)"); exit(1)
+            }
+            log(">>> before: significance=\(memo.significance)")
+            memo.significance = 0.1
+            do { try ctx.save() } catch { log(">>> SAVE FAILED: \(error)"); exit(1) }
+            MemoCloudReconciler.reconcileSoon()
+            log(">>> flagged 0.1 — holding 25s for the CloudKit export…")
+            try? await Task.sleep(for: .seconds(25))
+            exit(0)
+        }
+    }
+
     /// `-processfile <id> [-exportafter]` → run the REAL Process verb (enhance /
     /// name-link / compile; ASR only for audio sources) over ONE PipelineFile in
     /// the REAL SwiftData store, optionally export it to the configured vault,

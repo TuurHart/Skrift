@@ -2,24 +2,33 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
-## 🧬 CONTINUE HERE — lifecycle IA overhaul: ALL BUILT + ON BOTH DEVICES (session end 2026-07-21 ~12:15)
+## 🧬 CONTINUE HERE — lifecycle IA overhaul: BUILT + MACHINE-VERIFIED LIVE (2026-07-21 eve); Tuur walkthroughs = the only gate left
 
-**NEXT CHAT'S HEAVY WORK (owed verifications, in order):**
-1. **MacMemoAuthor live round-trip** — NEVER device-verified end-to-end: drag an audio file
-   into Mac Dev → it should author a synced Memo (0.1 floor) → appears on the phone with
-   audio playable; then check transcript-reflect after Mac processing. Unit-tested only.
-2. **Tuur walkthroughs**: phone b92 (search shows amber-'fading' hits · untouched note's
-   detail says "starts fading <date> — rating or editing keeps it" · WayOut row peek +
-   Bring back · b90 map fixes: card scrolls all in-view notes, pin tap never zooms out,
-   gestures clear selection) + Mac (unified Notes list quiet rows / Flag verbs / Unrated
-   chip / peeks — sidebar can't snapshot, only eyes gate it).
-3. **Daily-timer sweep** (`LifecycleSweepScheduler`) — fires on launch/day-change/24h;
-   the timer path itself is unverified (needs a day boundary or a clock poke).
-4. **Q2 write-back visible on phone**: Flag a note on the Mac → phone shows "0.1 · Passing".
-**Branch note (2026-07-21 remote):** `origin/claude/app-data-phone-switch-q3kv2n` (the 📖 docs
-commits) is already merged on `claude/skrift-roundtrip-verify-wvnpbn` (pushed) — merge THAT
-branch to main; don't re-merge q3kv2n. The 5 📖 open decisions were put to Tuur remotely and
-deferred — still open at the 📖 section bottom.
+**✅ Owed verifications CLOSED 2026-07-21 pm (machine-verified over USB — phone store pulled +
+diffed against the Mac's; new DEBUG dev hooks below):**
+1. **MacMemoAuthor live round-trip ✅** — fresh `Mac roundtrip 21 Jul.m4a` ingested headlessly
+   (real IngestService) → launch reconcile authored the Memo (sig 0.1 floor, transcript
+   `pending`, 300,654-byte audio asset) → arrived on the iPhone byte-identical → Mac
+   `-processfile` transcribed it → next sweep logged `reflected-transcripts 1` → phone got the
+   474-char transcript (`done`, confidence 1.0). Blob re-extracted from the PHONE store =
+   valid m4af (afinfo). **Backfill ✅**: 12 old Mac-only rows (incl. Hotel Du Vin, New
+   Recording, an .mp4, a pathless capture → correctly text-only) all authored + on the phone;
+   real ratings preserved (0.5/0.6/0.2), unrated floored to exactly 0.1.
+2. **Q2 write-back ✅ (data leg)** — `-flagmemo` ran the real sheet verb on unrated
+   `memo_B122966B…` (0.0→0.1) → phone store shows 0.1. The "0.1 · Passing" RENDER = Tuur's eyes.
+3. **Timer sweep ✅** — `lifecycle sweep ran` on launch, on an in-process NSCalendarDayChanged
+   poke, and on a 25s-shrunk heartbeat tick (loop machinery sound; real midnight/24h = OS
+   contract, unpokeable without moving the system clock).
+4. **REMAINING — Tuur walkthroughs (eyes only):** phone b92 (amber 'fading' search hits ·
+   untouched note's detail "starts fading <date>" line · WayOut row peek + Bring back · b90 map
+   trio: card scrolls all in-view notes, pin tap never zooms out, gestures clear selection ·
+   NEW: play "Mac roundtrip 21 Jul" + see "0.1 · Passing" on the flagged B122966B memo) + Mac
+   (unified Notes list quiet rows / Flag verbs / Unrated chip / peeks). Then LifeIA = done.
+**New DEBUG dev hooks (desktop, RunFile family):** `-ingestfile <path>` (real import verb,
+headless), `-flagmemo <uuid>` (real Q2 flag verb + export hold), `-poke-daychange <sec>` +
+`-sweepHeartbeatSeconds <n>` (LifecycleSweepScheduler verification). Quit the GUI first, as ever.
+**Branch note:** `claude/skrift-roundtrip-verify-wvnpbn` merged to main 2026-07-21 (fast-forward,
+contains q3kv2n). The 5 📖 open decisions remain with Tuur — 📖 section bottom.
 Everything below = the build record of how we got here.
 
 ## 🧬 (build record) lifecycle IA overhaul (locked 2026-07-21; spine BUILT)

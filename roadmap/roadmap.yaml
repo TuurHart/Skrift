@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-21T12:25:00.000Z
+updated: 2026-07-21T14:05:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -534,9 +534,21 @@ nodes:
     note: "Spec = mocks/lifecycle-ia-explorations.html (Direction 2 + 3's
       conveyor; Q1–Q7 locked 2026-07-21; board = backlog 🧬). ALL BUILT + ON BOTH
       DEVICES (Mac Dev + phone b92) incl. 5 same-day eyeball fix waves +
-      placement B. Owed: MacMemoAuthor live round-trip, timer-sweep firing,
-      Tuur walkthroughs — then done."
+      placement B. Machine-verified LIVE 2026-07-21 pm: MacMemoAuthor
+      round-trip (fresh ingest → 0.1 memo + audio ON THE PHONE, backfill ×12,
+      transcript-reflect), Q2 flag write-back (phone shows 0.1), timer sweep
+      (launch + day-change poke + heartbeat). Owed: Tuur walkthroughs only —
+      then done."
     shipped:
+      - >-
+        2026-07-21 eve · owed verifications CLOSED live over USB (headless
+        -ingestfile/-flagmemo/-poke-daychange dev hooks, phone store pulled +
+        diffed): fresh Mac ingest authored sig 0.1 + 300KB audio asset →
+        arrived on iPhone byte-identical, Mac ASR reflected back → phone got
+        the 474-char transcript; 12 old Mac-only rows backfilled + synced;
+        Q2 flag 0.0→0.1 landed on the phone; lifecycle sweep fired on
+        launch + NSCalendarDayChanged + heartbeat. Eyes-only walkthrough
+        remains
       - >-
         2026-07-21 · ②–⑤ + PHONE PARITY built in one 3-lane Sonnet batch
         (briefs LANES-2026-07-21/, Fable conducting; integrated gate green

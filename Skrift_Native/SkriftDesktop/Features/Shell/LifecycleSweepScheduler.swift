@@ -51,11 +51,37 @@ enum LifecycleSweepScheduler {
 
         heartbeat = Task { @MainActor in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(24 * 60 * 60))
+                try? await Task.sleep(for: .seconds(heartbeatSeconds))
                 guard !Task.isCancelled else { return }
                 runNow()
             }
         }
+
+        #if DEBUG
+        // `-poke-daychange <sec>`: post NSCalendarDayChanged in-process after <sec>
+        // seconds so the observer wiring can be watched firing live — the real
+        // notification needs a midnight, and the system clock is not ours to move.
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "-poke-daychange"), i + 1 < args.count,
+           let delay = Double(args[i + 1]) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(delay))
+                log.log("poke: posting NSCalendarDayChanged in-process")
+                NotificationCenter.default.post(name: NSNotification.Name.NSCalendarDayChanged, object: nil)
+            }
+        }
+        #endif
+    }
+
+    /// 24h in production. DEBUG `-sweepHeartbeatSeconds <n>` shrinks it so the
+    /// heartbeat loop can be watched completing a cycle without waiting a day.
+    private static var heartbeatSeconds: Double {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "-sweepHeartbeatSeconds"), i + 1 < args.count,
+           let s = Double(args[i + 1]), s > 0 { return s }
+        #endif
+        return 24 * 60 * 60
     }
 
     /// Same stale-mainContext avoidance as `MemoCloudReconciler.reconcile()`

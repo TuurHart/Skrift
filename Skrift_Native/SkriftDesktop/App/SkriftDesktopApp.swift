@@ -38,6 +38,8 @@ struct SkriftDesktopApp: App {
         RunFile.runAudioDateProbeIfRequested()
         RunFile.runVoiceLoopIfRequested()
         RunFile.runProcessFileIfRequested()
+        RunFile.runIngestFileIfRequested()
+        RunFile.runFlagMemoIfRequested()
         RunFile.runIfRequested()
         #endif
         // SECOND-INSTANCE GUARD — two processes on one SwiftData store race it
