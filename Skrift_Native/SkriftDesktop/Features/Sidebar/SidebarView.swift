@@ -354,7 +354,7 @@ struct SidebarView: View {
                         .padding(.horizontal, 12).padding(.top, 2)
                     }
                     .frame(maxHeight: 264)
-                    Text("Synced to this Mac — not rated, so not processed. Rating one starts processing; sync is never gated.")
+                    Text("Synced here, but the Mac only processes rated notes. Flag = rate 0.1 — the note joins the list above, and Process runs the pile. Sync is never gated.")
                         .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.top, 6).padding(.bottom, 10)
@@ -371,7 +371,7 @@ struct SidebarView: View {
         HStack(spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "circle").font(.system(size: 10)).foregroundStyle(Theme.textMuted)
-                Text("Not in the pipeline · \(rows.count)")
+                Text("Not rated · \(rows.count)")
                     .font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textSecondary)
                 Image(systemName: bandExpanded ? "chevron.up" : "chevron.down")
                     .font(.system(size: 9, weight: .semibold)).foregroundStyle(Theme.textMuted)
@@ -379,7 +379,7 @@ struct SidebarView: View {
             .contentShape(Rectangle())
             .onTapGesture { bandExpanded.toggle() }
             Spacer(minLength: 6)
-            capsuleButton("Process all \(rows.count)", prominent: false) { processAll(rows) }
+            capsuleButton("Flag all \(rows.count)", prominent: false) { processAll(rows) }
                 .accessibilityIdentifier("sidebar.band.process-all")
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
@@ -395,7 +395,7 @@ struct SidebarView: View {
                 Text(bandRowMeta(memo)).font(.system(size: 10)).foregroundStyle(Theme.textMuted).lineLimit(1)
             }
             Spacer(minLength: 6)
-            capsuleButton("Process", prominent: false) { process(memo) }
+            capsuleButton("Flag", prominent: false) { process(memo) }
                 .accessibilityIdentifier("band-row-process")
         }
         .padding(.vertical, 3)

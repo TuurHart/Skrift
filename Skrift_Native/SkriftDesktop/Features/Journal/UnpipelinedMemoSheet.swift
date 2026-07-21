@@ -48,7 +48,7 @@ struct UnpipelinedMemoSheet: View {
 
     private var header: some View {
         HStack {
-            Text(action == .process ? "Not processed" : "On its way out")
+            Text(action == .process ? "Not rated" : "On its way out")
                 .font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.textPrimary)
             Spacer()
             Button(action: onClose) {
@@ -83,7 +83,7 @@ struct UnpipelinedMemoSheet: View {
             }
             switch action {
             case .process:
-                capsuleButton("Process", prominent: true) { process(memo) }
+                capsuleButton("Flag for processing", prominent: true) { process(memo) }
                     .accessibilityIdentifier("unpipelined-sheet.process")
             case .bringBack:
                 capsuleButton("Bring back", prominent: true) { bringBack(memo) }

@@ -76,6 +76,10 @@ struct WayOutColumn: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, 24).padding(.horizontal, 30)
+        // Centered reading column, same feel as the Looking-back river (Tuur's
+        // 2026-07-21 round: rows hugged the left with dead space right).
+        .frame(maxWidth: 820, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .alert("Delete permanently?",
                isPresented: Binding(get: { confirmDeleteMacLocal != nil }, set: { if !$0 { confirmDeleteMacLocal = nil } })) {
             Button("Delete Now", role: .destructive) {
