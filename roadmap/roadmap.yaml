@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-21T10:05:00.000Z
+updated: 2026-07-21T12:15:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -532,8 +532,10 @@ nodes:
       drawn as a visible band, one Recently Deleted, one exit conveyor, the
       signed phrase trio everywhere; no zombie quadrant, no twin trashes"
     note: "Spec = mocks/lifecycle-ia-explorations.html (Direction 2 + 3's
-      conveyor; Q1–Q7 locked 2026-07-21; board = backlog 🧬). ALL STEPS BUILT
-      2026-07-21 — owed: Dev-app band eyeball + phone device build, then done."
+      conveyor; Q1–Q7 locked 2026-07-21; board = backlog 🧬). ALL BUILT + ON BOTH
+      DEVICES (Mac Dev + phone b92) incl. 5 same-day eyeball fix waves +
+      placement B. Owed: MacMemoAuthor live round-trip, timer-sweep firing,
+      Tuur walkthroughs — then done."
     shipped:
       - >-
         2026-07-21 · ②–⑤ + PHONE PARITY built in one 3-lane Sonnet batch

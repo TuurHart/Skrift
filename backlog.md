@@ -2,7 +2,23 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
-## 🧬 CONTINUE HERE — lifecycle IA overhaul (locked 2026-07-21; spine BUILT)
+## 🧬 CONTINUE HERE — lifecycle IA overhaul: ALL BUILT + ON BOTH DEVICES (session end 2026-07-21 ~12:15)
+
+**NEXT CHAT'S HEAVY WORK (owed verifications, in order):**
+1. **MacMemoAuthor live round-trip** — NEVER device-verified end-to-end: drag an audio file
+   into Mac Dev → it should author a synced Memo (0.1 floor) → appears on the phone with
+   audio playable; then check transcript-reflect after Mac processing. Unit-tested only.
+2. **Tuur walkthroughs**: phone b92 (search shows amber-'fading' hits · untouched note's
+   detail says "starts fading <date> — rating or editing keeps it" · WayOut row peek +
+   Bring back · b90 map fixes: card scrolls all in-view notes, pin tap never zooms out,
+   gestures clear selection) + Mac (unified Notes list quiet rows / Flag verbs / Unrated
+   chip / peeks — sidebar can't snapshot, only eyes gate it).
+3. **Daily-timer sweep** (`LifecycleSweepScheduler`) — fires on launch/day-change/24h;
+   the timer path itself is unverified (needs a day boundary or a clock poke).
+4. **Q2 write-back visible on phone**: Flag a note on the Mac → phone shows "0.1 · Passing".
+Everything below = the build record of how we got here.
+
+## 🧬 (build record) lifecycle IA overhaul (locked 2026-07-21; spine BUILT)
 
 **THE SPEC = `mocks/lifecycle-ia-explorations.html`** (Fable-agent exploration, Tuur-approved):
 Direction 2 (Two Rooms, One Spine) + Direction 3's exit conveyor. Root diagnosis: significance was
