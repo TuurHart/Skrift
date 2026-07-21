@@ -39,7 +39,6 @@ struct MemosListView: View {
     // Recently Deleted screen until restored or purged.
     @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
            sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
-    @Query(filter: #Predicate<Memo> { $0.deletedAt != nil }) private var trashedMemos: [Memo]
     @Environment(\.modelContext) private var context
     private let repository = NotesRepository.shared
 
@@ -65,9 +64,7 @@ struct MemosListView: View {
     @State private var showSortFilter = false
     /// Presents WayOutView — the merged Fading + Recently Deleted shelf (Q4,
     /// 2026-07-20). One sheet now instead of two (`showTrash` retired).
-    @State private var showWayOut = false
     /// Last shelf visit — the ⋯ dot lights only for fade-entries newer than this.
-    @AppStorage("fadingLastSeenAt") private var fadingLastSeenTs: Double = 0
     /// CloudKit (device↔device) sync activity — drives the "Syncing with iCloud…"
     /// strip below the search field. Distinct from the Mac `syncBanner` above.
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
@@ -179,7 +176,6 @@ struct MemosListView: View {
             // A sheet rather than a push: the stack's path is typed [UUID] for
             // memo detail, which a non-memo destination can't join. (Settings +
             // the audiobook Library moved out to root tabs — see AppTabView.)
-            .sheet(isPresented: $showWayOut) { WayOutView() }
             // D8: Files import (audio + video) — routes through the same
             // AppURLHandler path as open-in/AirDrop: video → strip audio +
             // frame, audio → transcribed memo, both jump to the new note.
@@ -460,35 +456,9 @@ struct MemosListView: View {
                 }
                 .tint(.skAccent)
                 .accessibilityIdentifier("sort-filter-button")
-                // The merged shelf (Q4, 2026-07-20 — mocks/lifecycle-ia-explorations.html):
-                // Fading + Recently Deleted collapsed into ONE "On its way out" surface
-                // behind this ⋯; the amber dot is the "something is fading" honesty signal.
-                Menu {
-                    Button { showWayOut = true } label: {
-                        Label("On its way out (\(lifecycle.fading.count + trashedMemos.count))",
-                              systemImage: "leaf")
-                    }
-                } label: {
-                    // Dot INSIDE the label bounds (an out-of-frame offset gets
-                    // mangled square by the menu-source preview snapshot —
-                    // 2026-07-18 device finding) + one flattened layer.
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "ellipsis.circle").font(.system(size: 17))
-                        // Unread semantics (2026-07-18): lit only when something
-                        // ENTERED fading since the shelf was last opened — a
-                        // steady trickle would otherwise keep it on forever.
-                        if lifecycle.fading.contains(where: {
-                            MemoLifecycle.fadeEntersAt($0).timeIntervalSince1970 > fadingLastSeenTs
-                        }) {
-                            Circle().fill(Color.skAmber).frame(width: 6, height: 6)
-                        }
-                    }
-                    .frame(width: 26, height: 24, alignment: .center)
-                    .compositingGroup()
-                    .contentShape(Rectangle())
-                }
-                .tint(.skAccent)
-                .accessibilityIdentifier("notes-menu-wayout")
+                // (The ⋯ shelf entry lived here 2026-07-18 → 2026-07-21. Q-placement
+                // pick B, mocks/wayout-phone-placement.html: the conveyor's one home
+                // is the Review feed now — same room as the Mac.)
             }
         }
         .padding(.horizontal, 16)

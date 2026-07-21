@@ -11,6 +11,13 @@ struct JournalHomeView: View {
     @State private var entries: [LookbackProvider.Entry] = []
     @State private var important: [Memo] = []
     @State private var thenNow: (then: Memo, now: Memo)?
+    /// The conveyor's Review-feed row (Q-placement B, 2026-07-21 —
+    /// mocks/wayout-phone-placement.html): fading + deleted feed its count;
+    /// the amber dot keeps the ⋯ button's unread semantics, moved here.
+    @State private var wayOutFading: [Memo] = []
+    @State private var wayOutDeletedCount = 0
+    @State private var showWayOut = false
+    @AppStorage("fadingLastSeenAt") private var fadingLastSeenTs: Double = 0
 
     enum Route: Hashable { case calendar, map }
 
@@ -40,6 +47,7 @@ struct JournalHomeView: View {
                         }
                         calendarCard
                         if !placeMemos.isEmpty { placesCard }
+                        if wayOutFading.count + wayOutDeletedCount > 0 { wayOutRow }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -57,13 +65,47 @@ struct JournalHomeView: View {
                 }
             }
             .onAppear(perform: reload)
+            .sheet(isPresented: $showWayOut, onDismiss: reload) { WayOutView() }
         }
+    }
+
+    /// One quiet row, same spot as the Mac rail — shown only when non-empty.
+    /// The dot lights only for fade-entries newer than the last shelf visit
+    /// (the 2026-07-18 unread semantics, verbatim; opening the shelf clears it).
+    private var wayOutRow: some View {
+        Button { showWayOut = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "leaf")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.skAmber)
+                Text("On its way out")
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundStyle(Color.skTextDim)
+                if wayOutFading.contains(where: {
+                    MemoLifecycle.fadeEntersAt($0).timeIntervalSince1970 > fadingLastSeenTs
+                }) {
+                    Circle().fill(Color.skAmber).frame(width: 6, height: 6)
+                }
+                Spacer(minLength: 8)
+                Text("\(wayOutFading.count + wayOutDeletedCount)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.skTextFaint)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(Color.skElev, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("review-wayout-row")
     }
 
     private func reload() {
         // Fading notes leave Review too (MemoLifecycle) — the ⋯ shelf in Notes
         // is their only surface.
-        memos = MemoLifecycle.partition(repository.allMemos()).live
+        let split = MemoLifecycle.partition(repository.allMemos())
+        memos = split.live
+        wayOutFading = split.fading
+        wayOutDeletedCount = repository.deletedMemos().count
         important = LookbackProvider.importantLately(for: memos)
         entries = LookbackProvider.entries(for: memos,
                                            excluding: Set(important.map(\.id)))
