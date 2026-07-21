@@ -128,7 +128,8 @@ final class MacMemoAuthorTests: XCTestCase {
         let ctx = try cloudContext()
         let memo = try XCTUnwrap(try MacMemoAuthor.author(for: pf, audioURL: audioURL, into: ctx))
 
-        let assets = try ctx.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memo.id }))
+        let memoID = memo.id   // hoisted — the #Predicate macro can't capture a model's property
+        let assets = try ctx.fetch(FetchDescriptor<MemoAsset>(predicate: #Predicate { $0.memoID == memoID }))
         let asset = try XCTUnwrap(assets.first)
         XCTAssertEqual(asset.kind, MemoAsset.Kind.audio, "must match the phone's own constant byte-for-byte")
         XCTAssertEqual(asset.filename, "clip.m4a")
