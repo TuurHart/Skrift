@@ -83,6 +83,16 @@ enum WayOutRules {
         files.filter { $0.deletedAt != nil && isMacOnly($0, memoIDs: memoIDs) }
     }
 
+    /// Free-text match for a quiet (unrated) row — title + transcript, the
+    /// memo-side mirror of `AppModel.matchesSearch`. Empty query matches all.
+    static func matchesSearch(_ memo: Memo, query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return true }
+        if displayTitle(memo).lowercased().contains(q) { return true }
+        if memo.transcript?.lowercased().contains(q) == true { return true }
+        return false
+    }
+
     // MARK: - ④ the conveyor
 
     /// The one rescue verb for both a fading and a deleted note (Q4): sets

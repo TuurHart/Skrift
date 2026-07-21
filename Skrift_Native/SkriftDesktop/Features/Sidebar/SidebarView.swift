@@ -30,8 +30,7 @@ struct SidebarView: View {
     /// Process action — the source for both the band's membership and (once
     /// step ③ lands) the one-trash footer count.
     @State private var cloudMemos: [Memo] = []
-    @AppStorage("queueBandExpanded") private var bandExpanded = false
-    /// Row-tap peek (read-only + Process) — same sheet the Review river uses.
+    /// Row-tap peek (read-only + Flag) — same sheet the Review river uses.
     @State private var bandPeek: WayOutPeek?
     private var unpipelinedMemos: [Memo] { WayOutRules.unpipelined(memos: cloudMemos, files: files) }
     private var backlinkedIDs: Set<UUID> { MemoLifecycle.backlinkedIDs(in: cloudMemos) }
@@ -43,13 +42,13 @@ struct SidebarView: View {
             header
             triageLine
             queue
-            band
             bottomBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.sidebar)
         .task { refreshCloudMemos() }
         .onChange(of: files.count) { _, _ in refreshCloudMemos() }
+        .onChange(of: model.filter) { _, _ in refreshCloudMemos() }
         .overlay(alignment: .trailing) {
             Rectangle().fill(Theme.hairline.opacity(0.07)).frame(width: 0.5)
         }
@@ -293,15 +292,30 @@ struct SidebarView: View {
     // ── Triage line — what needs ME right now ───────────────
     @ViewBuilder private var triageLine: some View {
         HStack(spacing: 0) {
-            Text("\(readyCount) ready to review")
-                .foregroundStyle(Theme.accent).fontWeight(.semibold)
-            if pendingCount > 0 {
-                Text(" · \(pendingCount) to process").foregroundStyle(Theme.textMuted)
+            if model.filter == .notRated {
+                Text("\(unpipelinedMemos.count) not rated")
+                    .foregroundStyle(Theme.textSecondary).fontWeight(.semibold)
+                Spacer(minLength: 6)
+                if !unpipelinedMemos.isEmpty {
+                    capsuleButton("Flag all \(unpipelinedMemos.count)", prominent: false) {
+                        processAll(unpipelinedMemos)
+                    }
+                    .accessibilityIdentifier("sidebar.flag-all")
+                }
+            } else {
+                Text("\(readyCount) ready to review")
+                    .foregroundStyle(Theme.accent).fontWeight(.semibold)
+                if pendingCount > 0 {
+                    Text(" · \(pendingCount) to process").foregroundStyle(Theme.textMuted)
+                }
+                if !unpipelinedMemos.isEmpty {
+                    Text(" · \(unpipelinedMemos.count) not rated").foregroundStyle(Theme.textMuted)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
         }
         .font(.system(size: 11))
-        .help("Ready = processed, waiting for your review. To process = still needs transcribe + enhance.")
+        .help("Ready = processed, waiting for your review. To process = still needs transcribe + enhance. Not rated = synced but the Mac skips it — flag to process.")
         .padding(.horizontal, 14)
         .padding(.top, 9)
         .padding(.bottom, 4)
@@ -309,19 +323,25 @@ struct SidebarView: View {
 
     // ── Queue ───────────────────────────────────────────────
     @ViewBuilder private var queue: some View {
-        if files.isEmpty {
+        let rows = entries
+        if files.isEmpty && unpipelinedMemos.isEmpty {
             emptyQueue
-        } else if filtered.isEmpty {
+        } else if rows.isEmpty {
             noMatches
         } else {
             // Plain VStack (not Lazy) is fine for a personal-scale vault; revisit
             // windowing (List / lazy) only if a very large queue shows scroll jank.
             let content = VStack(spacing: 2) {
-                ForEach(filtered) { f in
-                    QueueRowView(file: f, selected: model.selection.contains(f.id)) {
-                        model.handleClick(f.id, in: orderedIDs)
+                ForEach(rows) { entry in
+                    switch entry {
+                    case .file(let f):
+                        QueueRowView(file: f, selected: model.selection.contains(f.id)) {
+                            model.handleClick(f.id, in: orderedIDs)
+                        }
+                        .contextMenu { rowMenu(f) }
+                    case .memo(let m):
+                        quietMemoRow(m)
                     }
-                    .contextMenu { rowMenu(f) }
                 }
             }
             .padding(8)
@@ -334,76 +354,51 @@ struct SidebarView: View {
         }
     }
 
-    // ── The Queue band — "Not in the pipeline" (mocks/lifecycle-ia-explorations.html #m2) ──
-    // A fixed element between the queue list and the footer (not nested inside the row
-    // ScrollView, unlike the mock's raw HTML): it must stay reachable even in the
-    // emptyQueue/noMatches states — a first-sync, never-rated-anything corpus is exactly
-    // the case the band exists to surface, and files.isEmpty must not hide it.
-    @ViewBuilder private var band: some View {
-        let rows = unpipelinedMemos
-        if !rows.isEmpty {
-            VStack(alignment: .leading, spacing: 0) {
-                bandHeader(rows: rows)
-                if bandExpanded {
-                    // Bounded + scrollable (Tuur's eyeball round: 24 rows ate the
-                    // whole sidebar and wouldn't scroll).
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 7) {
-                            ForEach(rows, id: \.persistentModelID) { memo in bandRow(memo) }
-                        }
-                        .padding(.horizontal, 12).padding(.top, 2)
-                    }
-                    .frame(maxHeight: 264)
-                    Text("Synced here, but the Mac only processes rated notes. Flag = rate 0.1 — the note joins the list above, and Process runs the pile. Sync is never gated.")
-                        .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 12).padding(.top, 6).padding(.bottom, 10)
-                }
-            }
-            .background(Theme.hairline.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal, 8).padding(.top, 4)
-            .overlay(alignment: .top) { Rectangle().fill(Theme.hairline.opacity(0.06)).frame(height: 0.5) }
-            .accessibilityIdentifier("sidebar.band")
-        }
+    // ── Quiet rows — unrated notes IN the list (Tuur, 2026-07-21 round 3:
+    // the separate band container confused even the owner; the phone's Notes
+    // list shows everything, so this one does too). Membership stays
+    // WayOutRules.unpipelined (New + Parked; fading lives on the conveyor).
+    // No selection semantics — a quiet row taps open the peek, where Flag
+    // lives. Rated rows keep the full click/selection machinery.
+
+    private var visibleMemoRows: [Memo] {
+        guard model.filter == .all || model.filter == .notRated else { return [] }
+        return unpipelinedMemos.filter { WayOutRules.matchesSearch($0, query: model.searchText) }
     }
 
-    private func bandHeader(rows: [Memo]) -> some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "circle").font(.system(size: 10)).foregroundStyle(Theme.textMuted)
-                Text("Not rated · \(rows.count)")
-                    .font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textSecondary)
-                Image(systemName: bandExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(Theme.textMuted)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture { bandExpanded.toggle() }
-            Spacer(minLength: 6)
-            capsuleButton("Flag all \(rows.count)", prominent: false) { processAll(rows) }
-                .accessibilityIdentifier("sidebar.band.process-all")
+    /// One list, two row kinds, interleaved by the active sort.
+    private var entries: [SidebarEntry] {
+        var out: [SidebarEntry] = filtered.map { .file($0) }
+        out.append(contentsOf: visibleMemoRows.map { .memo($0) })
+        switch model.sort {
+        case .newest: out.sort { $0.date > $1.date }
+        case .oldest: out.sort { $0.date < $1.date }
+        case .title:  out.sort { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        return out
     }
 
-    private func bandRow(_ memo: Memo) -> some View {
+    private func quietMemoRow(_ memo: Memo) -> some View {
         HStack(spacing: 8) {
             Image(systemName: memo.audioFilename.isEmpty ? "note.text" : "mic.fill")
                 .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted).frame(width: 14)
             VStack(alignment: .leading, spacing: 1) {
                 Text(WayOutRules.displayTitle(memo))
-                    .font(.system(size: 11.5, weight: .medium)).foregroundStyle(Theme.textPrimary).lineLimit(1)
-                Text(bandRowMeta(memo)).font(.system(size: 10)).foregroundStyle(Theme.textMuted).lineLimit(1)
+                    .font(.system(size: 12.5)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+                Text(quietMeta(memo)).font(.system(size: 10)).foregroundStyle(Theme.textMuted).lineLimit(1)
             }
             Spacer(minLength: 6)
-            capsuleButton("Flag", prominent: false) { process(memo) }
-                .accessibilityIdentifier("band-row-process")
+            // The hollow circle = the unfilled significance circles' own idiom.
+            Image(systemName: "circle")
+                .font(.system(size: 8)).foregroundStyle(Theme.textMuted.opacity(0.7))
         }
-        .padding(.vertical, 3)
+        .padding(.horizontal, 9).padding(.vertical, 6)
         .contentShape(Rectangle())
         .onTapGesture { bandPeek = WayOutPeek(id: memo.id.uuidString) }
+        .accessibilityIdentifier("quiet-memo-row")
     }
 
-    private func bandRowMeta(_ memo: Memo) -> String {
+    private func quietMeta(_ memo: Memo) -> String {
         let date = memo.recordedAt.formatted(.dateTime.day().month(.abbreviated))
         let one = WayOutRules.oneLiner(for: memo, backlinked: backlinkedIDs)
         guard memo.duration > 0 else { return "\(date) · \(one)" }
@@ -876,5 +871,31 @@ private struct PulseDot: View {
             .opacity(reduceMotion ? 1 : (on ? 1 : 0.35))
             .animation(reduceMotion ? nil : .easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: on)
             .onAppear { if !reduceMotion { on = true } }
+    }
+}
+
+
+/// One list, two row kinds (rated pipeline rows + quiet unrated memos).
+enum SidebarEntry: Identifiable {
+    case file(PipelineFile)
+    case memo(Memo)
+
+    var id: String {
+        switch self {
+        case .file(let f): return "pf-" + f.id
+        case .memo(let m): return "memo-" + m.id.uuidString
+        }
+    }
+    var date: Date {
+        switch self {
+        case .file(let f): return f.uploadedAt
+        case .memo(let m): return m.recordedAt
+        }
+    }
+    var title: String {
+        switch self {
+        case .file(let f): return f.queueTitle
+        case .memo(let m): return WayOutRules.displayTitle(m)
+        }
     }
 }

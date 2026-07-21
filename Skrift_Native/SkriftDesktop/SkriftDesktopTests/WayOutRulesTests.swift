@@ -148,6 +148,15 @@ final class WayOutRulesTests: XCTestCase {
         XCTAssertEqual(out.map(\.id), [fresh.id])
     }
 
+    func testQuietRowSearchMatchesTitleAndTranscript() {
+        let m = memo(significance: 0, title: "Rooftop drip plan",
+                     transcript: "the pump needs a finer nozzle")
+        XCTAssertTrue(WayOutRules.matchesSearch(m, query: ""))
+        XCTAssertTrue(WayOutRules.matchesSearch(m, query: "rooftop"))
+        XCTAssertTrue(WayOutRules.matchesSearch(m, query: "NOZZLE"))
+        XCTAssertFalse(WayOutRules.matchesSearch(m, query: "airport"))
+    }
+
     // MARK: - ④ the conveyor
 
     func testBringBackSetsKeptAtAndClearsDeletedAt() {

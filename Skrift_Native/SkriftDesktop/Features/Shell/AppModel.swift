@@ -3,7 +3,7 @@ import AppKit
 import Observation
 
 enum QueueFilter: String, CaseIterable {
-    case all = "All", needsWork = "Needs Work", done = "Done"
+    case all = "All", needsWork = "Needs Work", done = "Done", notRated = "Not rated"
 }
 
 /// Sidebar queue ordering. Desktop-appropriate subset of the phone's `MemoSort`
@@ -65,6 +65,9 @@ final class AppModel {
         case .all:       return true
         case .needsWork: return !isComplete(f)
         case .done:      return isComplete(f)
+        // No PipelineFile is unrated by definition (the gate rates on entry) —
+        // the Not-rated chip shows the quiet Memo rows instead (SidebarView).
+        case .notRated:  return false
         }
     }
 

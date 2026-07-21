@@ -57,7 +57,15 @@ full unit suite + MLX build, phone full unit suite; conveyor snapshot vision-che
   **"Notes"** to match the phone (SharedCopy.notesTitle, single-sourced both apps); (7) the
   Queue-side "Recently Deleted · in Review" footer row CUT (one home = the conveyor row) +
   dead plumbing removed (wayOutFooterCount, trashedFiles pass-through).
-- **OWED:** phone device build (b88+) for the merged shelf; prod promotion later as usual.
+- **✅ Round 3 (2026-07-21): the band is DEAD — one list, like the phone.** Tuur: "flag = it just
+  moves into the notes, right?" = correct, and proof the two-container model failed. Unrated memos
+  now render as QUIET ROWS interleaved by date in the Notes list itself (dimmed, hollow ○, no
+  badge; tap → peek with "Flag for processing"); chips gain **Not rated** (sort control moved up
+  to the count line for width); count line reads "N ready · M to process · K not rated"; "Flag
+  all K" appears only in Not-rated mode. Conveyor centered like the river. Verbs locked: **Flag
+  adds to the pile, Process runs the pile.**
+- **OWED:** phone device build (b88+) for the merged shelf; prod promotion later as usual. The
+  unified Notes list needs Tuur's live eyeball (sidebar unsnapshotable + no screen-rec permission).
 
 ## ⭐ CONTINUE HERE (2026-07-18 remote session; merged + sim-verified LOCALLY 2026-07-19)
 
