@@ -98,13 +98,22 @@ enum MacMemoAuthor {
     /// One-shot (idempotent by construction — no stored "ran once" flag) sweep over every LIVE
     /// local `PipelineFile`: author a `Memo` for each one with a UUID id and no memo yet. Skips
     /// non-UUID ids (demo/synthetic rows — `DemoSeed`'s handful of fixed string ids like
-    /// `"demo-1"`) UP FRONT so `author`'s own idempotency fetch never runs for them. `author`'s
-    /// own UUID + idempotency guards make this safe to call on every reconcile sweep.
+    /// `"demo-1"`) UP FRONT so `author`'s own idempotency fetch never runs for them.
+    ///
+    /// ALSO requires a real on-disk `path` — every genuine local ingest sets one, regardless of
+    /// `sourceType` (`UploadService`/`IngestService` always pass `path:`), so an empty path can
+    /// only be a synthetic row. This matters because `DemoSeed` has exactly one row (`f7`, built
+    /// to make a memo-link chip resolve in `-snapshot`/`-demo` renders) with a deliberately
+    /// UUID-shaped id but NO path — without this check `author`'s own "no audio → author
+    /// text-only anyway" fallback (correct for a real pathless-audio edge case) would let that
+    /// demo row's fabricated title/transcript leak into a real CloudKit Memo store under
+    /// `-demo` + CloudKit-Mac-sync-on. `author`'s own UUID + idempotency guards make this
+    /// otherwise safe to call on every reconcile sweep.
     @discardableResult
     static func backfill(files: [PipelineFile], into ctx: ModelContext) throws -> Int {
         var count = 0
         for pf in files {
-            guard UUID(uuidString: pf.id) != nil else { continue }
+            guard UUID(uuidString: pf.id) != nil, !pf.path.isEmpty else { continue }
             if try author(for: pf, audioURL: resolvedAudioURL(for: pf), into: ctx) != nil {
                 count += 1
             }
