@@ -2,9 +2,9 @@ import Foundation
 
 /// Pure lifecycle-IA logic (mocks/lifecycle-ia-explorations.html #m2/#m3, locked
 /// 2026-07-21) shared by the Queue band (`SidebarView` / `UnpipelinedMemoSheet`),
-/// the "one trash" footer count (`SidebarView`), and — once step ④ lands — the
-/// "On its way out" conveyor (`WayOutColumn`). Kept dependency-free of both
-/// views AND of `App/` (no `MemoCloudStore`, no `ModelContext` mutation —
+/// the "one trash" footer count (`SidebarView`), and the "On its way out"
+/// conveyor (`WayOutColumn`). Kept dependency-free of both views AND of
+/// `App/` (no `MemoCloudStore`, no `ModelContext` mutation —
 /// callers fetch/save), so it compiles into the MLX-free `SkriftDesktopTests`
 /// bundle exactly like `DesktopTrash` — see `Pipeline/DesktopTrash.swift` for
 /// the sibling precedent this follows. `MacCloudWriteBack` (Pipeline/Ingest,
@@ -42,14 +42,14 @@ enum WayOutRules {
         return "Voice note"
     }
 
-    /// The spine one-liner for a `Memo` (band rows, the peek sheet, and —
-    /// once step ④ lands — the conveyor's fading/deleted rows) — builds the
-    /// `MemoSpine.Input` and reads its station in one call, so every caller
-    /// stays byte-identical to the signed copy trio. `backlinked` only matters
-    /// when the memo might still be on the untouched lifecycle track (band
-    /// rows); a memo already known deleted-or-fading short-circuits the chain
-    /// before backlink status is ever consulted, so a caller that already
-    /// knows that can pass the default empty set.
+    /// The spine one-liner for a `Memo` (band rows, the peek sheet, and the
+    /// conveyor's fading/deleted rows) — builds the `MemoSpine.Input` and reads
+    /// its station in one call, so every caller stays byte-identical to the
+    /// signed copy trio. `backlinked` only matters when the memo might still be
+    /// on the untouched lifecycle track (band rows); a memo already known
+    /// deleted-or-fading short-circuits the chain before backlink status is
+    /// ever consulted, so a caller that already knows that can pass the
+    /// default empty set.
     static func oneLiner(for memo: Memo, backlinked: Set<UUID> = [], now: Date = Date()) -> String {
         let station = MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now)
         return MemoSpine.oneLiner(for: station, now: now)
