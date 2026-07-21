@@ -245,7 +245,7 @@ struct MemosListView: View {
                 ForEach(d.groups, id: \.title) { group in
                     Section {
                         ForEach(group.memos) { memo in
-                            MemoRow(memo: memo) {
+                            MemoRow(memo: memo, fading: searchFadingIDs.contains(memo.id)) {
                                 // Opening a SEARCH RESULT carries the query
                                 // along — the note flashes where it matched
                                 // (text range, or the photo whose OCR hit).
@@ -602,11 +602,25 @@ struct MemosListView: View {
     // MARK: - Derived
 
     /// The lifecycle split (MemoLifecycle, 2026-07-17): fading notes leave the
-    /// main list + search entirely; the ⋯ shelf is their only surface.
+    /// main LIST — but not SEARCH (no-bad-info, 2026-07-21): "no results" about
+    /// a note that exists-and-is-recoverable is the worst possible answer to
+    /// "where did my note go?". A fading search hit wears an amber tag.
     private var lifecycle: (live: [Memo], fading: [Memo]) { MemoLifecycle.partition(memos) }
 
+    private var searchingNow: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
+
     private var filtered: [Memo] {
-        lifecycle.live.filter { matchesSearch($0) && matchesFilter($0) }.sorted(by: sortComparator)
+        var out = lifecycle.live.filter { matchesSearch($0) && matchesFilter($0) }
+        if searchingNow {
+            out += lifecycle.fading.filter { matchesSearch($0) && matchesFilter($0) }
+        }
+        return out.sorted(by: sortComparator)
+    }
+
+    /// Ids of fading notes currently surfaced by search — drives the row tag.
+    private var searchFadingIDs: Set<UUID> {
+        guard searchingNow else { return [] }
+        return Set(lifecycle.fading.map(\.id))
     }
 
     private struct Group { let title: String; let memos: [Memo] }
@@ -732,12 +746,13 @@ struct MemosListView: View {
 /// so no disclosure chevron over the card.
 private struct MemoRow: View {
     let memo: Memo
+    var fading: Bool = false
     let onTap: () -> Void
     @Environment(\.editMode) private var editMode
 
     var body: some View {
         if editMode?.wrappedValue.isEditing == true {
-            MemoCard(memo: memo)
+            MemoCard(memo: memo, fading: fading)
         } else {
             // A Button, NOT .onTapGesture: a tap gesture on a List row fights
             // the context-menu lift on iOS 26 — a long-press just started the
@@ -745,7 +760,7 @@ private struct MemoRow: View {
             // round 1). The system resolves Button-tap vs long-press-menu vs
             // scroll natively.
             Button(action: onTap) {
-                MemoCard(memo: memo)
+                MemoCard(memo: memo, fading: fading)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -757,6 +772,8 @@ private struct MemoRow: View {
 
 private struct MemoCard: View {
     let memo: Memo
+    /// Surfaced by SEARCH while fading — wears the honest amber tag.
+    var fading: Bool = false
 
     var body: some View {
         HStack(spacing: 11) {
@@ -829,13 +846,22 @@ private struct MemoCard: View {
                 // ramble as the dim second line; a phone-set title still wins
                 // the top line, with the quote taking the secondary line.
                 } else if hasTitle {
-                    Text(memo.displayTitle)
-                        .font(.system(size: 14.5, weight: .semibold))
-                        .foregroundStyle(Color.skText)
-                        .lineLimit(1)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 6)
+                    HStack(spacing: 6) {
+                        Text(memo.displayTitle)
+                            .font(.system(size: 14.5, weight: .semibold))
+                            .foregroundStyle(Color.skText)
+                            .lineLimit(1)
+                            .multilineTextAlignment(.leading)
+                        if fading {
+                            Text("fading")
+                                .font(.system(size: 9.5, weight: .semibold))
+                                .foregroundStyle(Color.skAmber)
+                                .padding(.horizontal, 6).padding(.vertical, 1.5)
+                                .background(Color.skAmber.opacity(0.13), in: Capsule())
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 6)
 
                     if memo.isBookCapture, let quote = memo.quoteSnippet {
                         quoteText(quote)

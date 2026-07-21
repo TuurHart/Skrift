@@ -377,6 +377,9 @@ private struct MemoPageView: View {
     /// hide their UIKit editor subtree from accessibility (see NoteBodyView).
     var isCurrent: Bool = true
     private let repository = NotesRepository.shared
+    /// One corpus scan per open (never per row) — feeds the lifecycle line's
+    /// touch check (backlinked notes never fade).
+    @State private var detailBacklinkedIDs: Set<UUID> = []
     @State private var showTagEditor = false
     @State private var libraryTags: [String] = []
     /// What the QuickLook viewer is showing: an inline photo (marker set — an
@@ -484,6 +487,8 @@ private struct MemoPageView: View {
             people = NamesStore.shared.livePeople()
             recomputeSpans()
             recomputeBacklinks()
+            // One corpus scan for the lifecycle line's touch check.
+            detailBacklinkedIDs = MemoLifecycle.backlinkedIDs(in: repository.allMemos())
             await loadRelated()
         }
         // The arc of this idea (P8) — from the Related card's CTA.
@@ -817,6 +822,19 @@ private struct MemoPageView: View {
                 WallPrinter.shared.ratingCommitted(memo, repository: repository)
             }
                 .padding(.top, 14)
+
+            // The note narrates its own lifecycle (2026-07-21 — new-user
+            // discoverability without a tour): an untouched note quietly says
+            // when it starts fading and how to keep it, exactly where the rule
+            // applies. Live field checks hide it the moment any touch lands.
+            if memo.deletedAt == nil, memo.transcriptStatus == .done,
+               !MemoLifecycle.isTouched(memo, backlinked: detailBacklinkedIDs) {
+                Text("\(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: detailBacklinkedIDs)))) — rating or editing keeps it")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skAmber.opacity(0.9))
+                    .padding(.top, 8)
+                    .accessibilityIdentifier("detail-lifecycle-line")
+            }
 
             // Mac's polish: the summary card (when present) above the body.
             if let summary = macPolish?.summary.trimmingCharacters(in: .whitespacesAndNewlines),

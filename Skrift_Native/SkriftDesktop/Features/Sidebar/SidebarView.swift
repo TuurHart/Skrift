@@ -371,7 +371,18 @@ struct SidebarView: View {
 
     private var visibleMemoRows: [Memo] {
         guard model.filter == .all || model.filter == .notRated else { return [] }
-        return unpipelinedMemos.filter { WayOutRules.matchesSearch($0, query: model.searchText) }
+        var rows = unpipelinedMemos
+        // Search honesty (no-bad-info, 2026-07-21): while SEARCHING, fading
+        // notes are findable here too — their one-liner ("moves to Recently
+        // Deleted in Nd") is the marker. Browse mode keeps the one-home law
+        // (fading's surface is the conveyor).
+        if !model.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            let ingested = Set(files.compactMap { UUID(uuidString: $0.id) })
+            rows += MemoLifecycle.partition(cloudMemos).fading.filter {
+                $0.significance == 0 && !ingested.contains($0.id)
+            }
+        }
+        return rows.filter { WayOutRules.matchesSearch($0, query: model.searchText) }
     }
 
     /// One list, two row kinds, interleaved by the active sort.
