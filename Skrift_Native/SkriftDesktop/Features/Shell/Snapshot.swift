@@ -490,10 +490,13 @@ enum Snapshot {
                                    sourceType: .audio, uploadedAt: daysAgo(120))
         macOnly.deletedAt = daysAgo(3)
 
+        // hostPNG, not writePNG: the column scrolls, and ImageRenderer can't lay
+        // out ScrollView contents (the header rendered over an empty body).
         let view = WayOutColumn(fading: fading, deleted: deleted, macOnlyFiles: [macOnly])
             .frame(width: 860, height: 680)
             .background(Theme.bg)
-        writePNG(view, to: path, scheme: scheme)
+            .preferredColorScheme(scheme)
+        hostPNG(view, size: NSSize(width: 860, height: 680), to: path)
     }
 
 
