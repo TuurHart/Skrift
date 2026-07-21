@@ -13,6 +13,12 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     revision: 19600a485baa4998812e4654b70d2bab8f2c9949  # v0.15.5, bumped 2026-07-21 (📖 spike 3: #683 seam-glue fixes in 0.15.3+0.15.5; was 7f963cdc = v0.15.2)
+  # 📖 ePub extraction (spike 4): an .epub is a zip; no system unzip API. Approved as
+  # SPM dep #2 (Tuur 2026-07-21). MIT, zero transitive deps. Desktop-only until the
+  # phone's attach-ePub UX lands (spike 6). Revision = the 0.9.20 tag.
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation.git
+    revision: 86fc841708997c5bce8545e23845125f4eb28493  # 0.9.20, pinned 2026-07-21
   # mlx-swift LLM stack for enhancement (gemma4 registered on main). 3.x decoupled
   # the downloader/tokenizer → swift-huggingface + swift-transformers integrations.
   mlx-swift-lm:
@@ -115,6 +121,8 @@ targets:
     dependencies:
       - package: FluidAudio
         product: FluidAudio
+      - package: ZIPFoundation
+        product: ZIPFoundation
       - package: mlx-swift-lm
         product: MLXLLM
       - package: mlx-swift-lm
