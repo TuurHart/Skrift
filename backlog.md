@@ -53,10 +53,12 @@ aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-t
 on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
 
 **NEXT CHAT'S WORK (in order):**
-0. **📖 ROUND 5 fix VERIFY + merge (branch `claude/epub-chapter-discrepancy-wlgvhd`, written
-   from a Linux session — no xcodebuild there):** run the iPhone 17 sim suite, then build+
-   install Dev and open the Odyssey book — chapters must flip to the ePub TOC on their own
-   (re-adopt + self-heal), surviving relaunch. Full record: 📖 ROUND 5 block below.
+0. **📖 ROUND 5+6 fixes VERIFY + merge (branch `claude/epub-chapter-discrepancy-wlgvhd`,
+   written from a Linux session — no xcodebuild there):** run the iPhone 17 sim suite, then
+   build+install Dev and open the Odyssey book — (R5) chapters must flip to the ePub TOC on
+   their own (re-adopt + self-heal), surviving relaunch; (R6) the read-along must show ASR
+   text where the aligner has holes — Tuur's repro spots: ~3:00 (after "(andra).") and
+   ~5:35 (the Trojan War sentence). Full records: 📖 ROUND 5/6 blocks below.
 1. **Pull phone feedback if Tuur recorded any** (/pull-phone-feedback) — 4 live rounds today
    means fresh findings likely.
 2. **🧬 walkthrough tail (eyes, guided — b92-era items still unconfirmed):** untouched-note
@@ -474,6 +476,27 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    files" (the trilogy: file 1 = book 1, rest honestly rejected) → read-along shows
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
+
+**📖 ROUND 6 (Tuur 2026-07-22 ~23:11–23:16, Odyssey): read-along DROPS spoken text —
+FIXED (same branch `claude/epub-chapter-discrepancy-wlgvhd`).** Two sightings, one bug:
+(a) red-line at ~3:00 — narration between "(andra)." and "The poem tells us…" never
+displayed; (b) Apple-Books-vs-Skrift at ~5:35 — "It is not the start of the Trojan War,
+which began with the Judgment of Paris…" is in the ePub AND the audio, absent in Skrift.
+Cause: the aligned view REPLACED the transcript wholesale — `assembleSentences` drops
+zero-timed sentences (aligner holes), and `AlignedSentenceSource` had per-sentence ASR
+fallback only for LOW-CONFIDENCE sentences, never for spans with no sentence at all →
+silent jumps while the audio plays (Tuur's exact insight: "the transcript is better in
+some ways… it has replaced the transcript"). Fix: the display is now a UNION —
+`uncoveredWordRanges` finds transcript-word runs no aligned sentence's splice range
+covers; runs ≥ 3 words render as ASR sentences via the same builder (1–2-word runs =
+boundary fuzz, stay silent). Also fills leading/trailing narration (Audible credits, end
+matter) and a partially-matched sentence's untimed tail; capture (`MergedCaptureView`)
+inherits it via the shared source. Tests: hole-between-sentences, fuzz threshold,
+leading/trailing, no-duplication-with-low-confidence-splices, union/clamp math. Eyes owed
+(Tuur, tomorrow): Odyssey ~3:00 and ~5:35 — the missing lines should read along in ASR
+text. NOTE the shown ASR fills are the transcript's words (no book punctuation/casing) —
+if a fill looks garbled there, that's the aligner MISSING a matchable sentence: next lever
+is aligner recall, not display.
 
 **📖 ROUND 5 (Tuur 2026-07-22 ~23:00, Odyssey screenshots): chapters ≠ ePub TOC after
 relaunch — ROOT CAUSE FOUND + FIXED (branch `claude/epub-chapter-discrepancy-wlgvhd`).**
