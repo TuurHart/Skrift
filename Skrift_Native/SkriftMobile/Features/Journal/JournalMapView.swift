@@ -1,7 +1,19 @@
 import SwiftUI
 import MapKit
 
-/// Places map — brought up to the Mac's signed 2026-07-17 interaction model
+/// Places map — the compact push destination (`JournalHomeView`'s `Route.map`).
+/// Thin wrapper: all the interaction logic lives in `JournalMapCanvas`, shared
+/// with the iPad wave's `JournalSidePane` map mode (host-agnostic — see that
+/// struct's doc comment below).
+struct JournalMapView: View {
+    var body: some View {
+        JournalMapCanvas()
+            .navigationTitle("Places")
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Places map, brought up to the Mac's signed 2026-07-17 interaction model
 /// (ported 2026-07-21 after Tuur's device round found the phone a generation
 /// behind: no dive-on-tap, and the bottom card auto-pinned the biggest place
 /// regardless of where you panned — "Leiden notes while I'm looking at
@@ -13,8 +25,17 @@ import MapKit
 ///   the selected pin again deselects;
 /// - with NO selection, the card shows the notes IN FRAME — the map is the
 ///   filter, pan/zoom refines the list. No auto-selection, ever.
-struct JournalMapView: View {
+///
+/// Host-agnostic (iPad wave, 2026-07-22): no navigation chrome of its own, so
+/// `JournalSidePane`'s map mode can embed it under its own "⨯ back to
+/// calendar" header — dive-focused on a specific place when entered via a
+/// place row (`initialFocus`).
+struct JournalMapCanvas: View {
     private let repository = NotesRepository.shared
+    /// Pre-selected place when entering already focused on one place (the
+    /// iPad pane's "tap a place row" path). Nil = the generic "Places" entry —
+    /// open unfocused, the in-frame card drives the list.
+    var initialFocus: PlaceCluster?
     @State private var clusters: [PlaceCluster] = []
     @State private var selected: PlaceCluster?
     /// Current camera span — drives Photos-style zoom-adaptive clustering
@@ -62,10 +83,12 @@ struct JournalMapView: View {
             }
             bottomCard
         }
-        .navigationTitle("Places")
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             clusters = PlaceCluster.build(from: repository.allMemos())
+            // Enter already focused on the place that was tapped (iPad pane).
+            if let focus = initialFocus, let match = clusters.first(where: { $0.id == focus.id }) {
+                dive(into: match)
+            }
         }
     }
 
