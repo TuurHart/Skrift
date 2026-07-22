@@ -22,6 +22,10 @@ final class ReadAlongModel: ObservableObject {
     @Published private(set) var currentIndex = 0
 
     private let store = BookTranscriptStore()
+    /// 📖 True-text source (spike 6): the same audiobooks root `store` reads,
+    /// scoped to the alignment sidecars — `AlignedSentenceSource` reads
+    /// through this before falling back to the ASR-only builder below.
+    private let alignmentStore = BookAlignmentStore(directory: AudiobookLibraryStore.shared.directory)
     private var loadedFileIndex = -1
     private var loadedUpTo: TimeInterval = -1
 
@@ -51,7 +55,17 @@ final class ReadAlongModel: ObservableObject {
         if let audioURL,
            let ft = store.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),
            ft.isCovered(upTo: fileLocal) {
-            sentences = QuoteCaptureProcessor.buildSentences(from: ft.words, snappedStart: 0, snappedEnd: 0)
+            // 📖 True text where the ePub aligned trustworthily; nil (missing /
+            // stale / not `.aligned`) falls straight back to the ASR-only line
+            // this replaced — same coverage/frontier logic either way.
+            let fa = alignmentStore.fileAlignment(bookID: book.id, fileIndex: fileIndex)
+            let fresh = fa.map {
+                alignmentStore.isFresh($0, bookID: book.id, fileIndex: fileIndex, audioURL: audioURL)
+            } ?? false
+            sentences = AlignedSentenceSource.sentences(
+                alignment: fa, isFresh: fresh, transcriptWords: ft.words,
+                snappedStart: 0, snappedEnd: 0
+            ) ?? QuoteCaptureProcessor.buildSentences(from: ft.words, snappedStart: 0, snappedEnd: 0)
             covered = !sentences.isEmpty
             loadedUpTo = ft.coveredUpTo
         } else {
