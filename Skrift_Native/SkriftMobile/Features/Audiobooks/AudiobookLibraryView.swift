@@ -44,6 +44,10 @@ struct AudiobookLibraryView: View {
     /// `fileImporter` pick resolves onto.
     @State private var attachBook: Audiobook?
     @State private var showAttachImporter = false
+    /// Long-press → "Book text…" target (mock `book-text-sheet.html` variant B,
+    /// timeline-first, 2026-07-22): the sheet OWNS Add from here on — this view's
+    /// fileImporter/`runAttach`/alerts below stay put and present over it (`onAdd`).
+    @State private var bookTextSheetBook: Audiobook?
     /// The picked file couldn't be read/copied at all (I/O-level failure).
     @State private var attachError: String?
     /// Success/partial attach outcome — an ALERT (2026-07-22 device round: the
@@ -144,6 +148,16 @@ struct AudiobookLibraryView: View {
         }
         .sheet(item: $syncSheetBook, onDismiss: { syncToggleTick += 1 }) { book in
             AudiobookSyncSheet(book: book)
+        }
+        // 📖 The "Book text" sheet (mock variant B) — owns Add; this view's existing
+        // attach fileImporter/`runAttach`/alerts present OVER it unchanged (busyMessage
+        // threads `attachToast` through since a plain overlay on THIS view is hidden
+        // once the sheet covers the screen).
+        .sheet(item: $bookTextSheetBook) { book in
+            BookTextSheet(book: book, busyMessage: attachToast) {
+                attachBook = book
+                showAttachImporter = true
+            }
         }
         .alert("Import failed", isPresented: .init(
             get: { importError != nil },
@@ -372,15 +386,13 @@ struct AudiobookLibraryView: View {
                         Button { transcribeBook = book } label: {
                             Label("Transcribe book", systemImage: "text.book.closed")
                         }
-                        // 📖 Attach the book's own published text (spike 6) — an
-                        // already-attached ePub re-attaches as an overwrite (no
-                        // separate detach verb this spike).
+                        // 📖 The "Book text" sheet (mock variant B, 2026-07-22) — ONE label
+                        // whether zero or several texts are attached; the sheet itself owns
+                        // Add (fileImporter presents over it) and each row's Remove/Re-check.
                         Button {
-                            attachBook = book
-                            showAttachImporter = true
+                            bookTextSheetBook = book
                         } label: {
-                            Label(book.epubFilename != nil ? "Replace book text…" : "Attach book text…",
-                                  systemImage: "doc.badge.plus")
+                            Label("Book text…", systemImage: "doc.badge.plus")
                         }
                         // Per-book sync (Phase 1h): open the "Turn it on" sheet (cover +
                         // size + the toggle + a live transfer %). The sheet owns the
