@@ -384,7 +384,15 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    Mobile 808/0 + desktop suite green. Sync note (accepted, iPad-scale): a receiver
    holding v1 sidecars whose source signature didn't change won't re-pull until the
    next signature change — irrelevant while the phone is the only aligner.
-   **REMAINING (eyes, b95):** AirDrop the Steal ePub to the phone (Files) →
+   **✅ b95 DEVICE-CONFIRMED (Tuur, same hour): "way more fucking aligned… chapters are
+   better" — sync fix + phantom-chapter fix both pass ears/eyes.** Follow-up caught by his
+   trilogy question: "ePub TOC wins" was WHOLE-BOOK, silently deleting books 2–3's
+   transcript-detected chapters (no-bad-info violation) → partial-match MERGE shipped
+   (ePub chapters inside aligned files' spans + detected chapters/separators outside;
+   boundary entries belong to the next file). 809/0. **b96 BUILT + signed — phone went
+   offline again mid-install; one `devicectl install` when it's back**, then the chapters
+   sheet shows book 1's real TOC AND books 2–3's detected chapters with their Book-N
+   separators. REMAINING (eyes, b96):** AirDrop the Steal ePub to the phone (Files) →
    Books → long-press Steal Like an Artist → Attach book text… → expect "Aligned 1 of 4
    files" (the trilogy: file 1 = book 1, rest honestly rejected) → read-along shows
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
