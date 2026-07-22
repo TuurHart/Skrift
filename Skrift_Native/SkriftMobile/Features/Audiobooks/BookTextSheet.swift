@@ -113,18 +113,23 @@ struct BookTextSheet: View {
     // MARK: - Bar
 
     private var bar: some View {
+        // STRICTLY TIME-TRUE (device round 4, 2026-07-22: the mock-copied 2 pt
+        // inter-segment spacing rendered a 44 s real gap ~5× too wide — "that's like
+        // ten minutes of gap"). Grey is the background; colored spans overlay at
+        // exact fractions; nothing is spaced, padded, or minimum-widthed. The truth,
+        // at pixel resolution.
         let segments = BookTextDisplay.barSegments(perText: perText, bookDuration: bookDuration)
         return GeometryReader { geo in
-            let gap: CGFloat = 2
-            let usable = max(0, geo.size.width - gap * CGFloat(max(0, segments.count - 1)))
-            HStack(spacing: gap) {
+            ZStack(alignment: .leading) {
+                Color.skElev
                 ForEach(Array(segments.enumerated()), id: \.offset) { _, seg in
-                    (seg.textIndex.map(colorFor) ?? Color.skElev)
-                        .frame(width: max(0, usable * seg.widthFraction))
+                    if let idx = seg.textIndex {
+                        colorFor(idx)
+                            .frame(width: max(0, geo.size.width * seg.widthFraction))
+                            .offset(x: geo.size.width * seg.startFraction)
+                    }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.skElev)
         }
         .frame(height: 14)
         .clipShape(RoundedRectangle.sk(7))
