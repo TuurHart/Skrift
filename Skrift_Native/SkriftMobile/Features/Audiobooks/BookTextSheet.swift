@@ -310,8 +310,10 @@ enum BookTextDisplay {
     /// Fraction of the aligned files' duration a text's `coveredSeconds` must reach to read as
     /// "full match" rather than "partial" (the aligner will essentially never claim literally
     /// 100% of a file down to the millisecond — the last sliver of silence/tail audio
-    /// shouldn't read as a partial match).
-    static let matchTolerance = 0.97
+    /// shouldn't read as a partial match). 0.97→0.95, 2026-07-22 device round: the real Steal
+    /// file 1 sits at 96.7% — the missing ~2 min are narrator credits + unnarrated front
+    /// matter, exactly what this tolerance exists to absorb, and it read "partial".
+    static let matchTolerance = 0.95
 
     static func isFullMatch(coveredSeconds: TimeInterval, alignedFilesDuration: TimeInterval) -> Bool {
         guard alignedFilesDuration > 0 else { return false }
