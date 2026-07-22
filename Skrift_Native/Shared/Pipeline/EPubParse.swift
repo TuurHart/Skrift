@@ -226,12 +226,16 @@ enum EPubParse {
 
     private static func resolveTOC(manifest: [String: ManifestItem], spineTOCAttr: String?,
                                     opfDir: String, entries: [String: Data]) -> [EPubTOCEntry] {
-        // EPUB3 nav doc preferred.
+        // EPUB3 nav doc preferred. Lenient parse (2026-07-22, the Odyssey chapter report):
+        // the nav doc is XHTML like any spine file, so the header's `&nbsp;` hazard applies
+        // to it too — a strict-parse failure here used to silently produce an EMPTY TOC
+        // (→ no chapter marks → the attach alert's "chapters come from its real table of
+        // contents" promise broke with no trace) whenever the NCX was absent or ill too.
         if let navItem = manifest.values.first(where: {
             $0.properties.split(separator: " ").map(String.init).contains("nav")
         }) {
             let navPath = resolvePath(base: opfDir, href: navItem.href)
-            if let data = entries[navPath], let root = parseXMLTree(data) {
+            if let data = entries[navPath], let root = parseXMLTreeLenient(data) {
                 let found = navTOCEntries(root, base: directory(of: navPath))
                 if !found.isEmpty { return found }
             }
@@ -244,7 +248,7 @@ enum EPubParse {
         }
         if let ncxItem {
             let ncxPath = resolvePath(base: opfDir, href: ncxItem.href)
-            if let data = entries[ncxPath], let root = parseXMLTree(data) {
+            if let data = entries[ncxPath], let root = parseXMLTreeLenient(data) {
                 return ncxTOCEntries(root, base: directory(of: ncxPath))
             }
         }
@@ -440,6 +444,30 @@ enum EPubParse {
         let ok = parser.parse()
         guard ok, !builder.failed else { return nil }
         return builder.root
+    }
+
+    /// XML-predefined entities — the ONLY named entities bare XML defines. These must
+    /// survive `parseXMLTreeLenient`'s substitution untouched or it would corrupt markup
+    /// (`&lt;` becoming a real `<` mid-text).
+    private static let xmlPredefinedEntities: Set<String> = ["amp", "lt", "gt", "quot", "apos"]
+
+    /// Strict parse, then — on failure — one retry with non-XML named entities substituted
+    /// out (`&nbsp;` → space via `namedEntities`; unknown names dropped). Real nav/NCX docs
+    /// are XHTML and carry the same named-entity hazard the file header describes for spine
+    /// files; unlike spine bodies (which have `lenientParse`), TOC extraction needs the real
+    /// tree, so the retry repairs the input instead of abandoning the parser. Numeric
+    /// character references are valid XML already and pass through untouched.
+    private static func parseXMLTreeLenient(_ data: Data) -> MiniNode? {
+        if let root = parseXMLTree(data) { return root }
+        guard let s = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
+            return nil
+        }
+        let cleaned = replaceRegexTransform(s, pattern: "&([a-zA-Z][a-zA-Z0-9]*);") { name in
+            if xmlPredefinedEntities.contains(name) { return "&\(name);" }
+            return namedEntities[name] ?? ""
+        }
+        guard let data = cleaned.data(using: .utf8) else { return nil }
+        return parseXMLTree(data)
     }
 
     private static func findFirst(_ node: MiniNode, localName target: String) -> MiniNode? {
