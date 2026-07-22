@@ -97,7 +97,7 @@ enum AudiobookCloudSync {
         let names: [String]
         if let record = repository.audiobookRecord(bookID: bookID),
            let book = try? JSONDecoder().decode(Audiobook.self, from: record.blob) {
-            names = audioRecordNames(for: book) + transcriptRecordNames(for: book)
+            names = audioRecordNames(for: book) + transcriptRecordNames(for: book) + alignmentRecordNames(for: book)
         } else {
             names = []
         }
@@ -105,6 +105,7 @@ enum AudiobookCloudSync {
         var s = removedDownloads(defaults); s.remove(bookID.uuidString)
         defaults.set(Array(s), forKey: removedDownloadsKey)
         defaults.removeObject(forKey: transcriptAppliedKey(bookID))   // re-pull transcripts if re-synced later
+        defaults.removeObject(forKey: alignmentAppliedKey(bookID))    // 📖 re-pull alignment if re-synced later
         CloudSyncMonitor.shared.cancelBookTransfer(bookID)   // supersede any in-flight transfer's late callbacks
         if !names.isEmpty {
             let t = transport ?? makeTransport()
@@ -227,6 +228,10 @@ enum AudiobookCloudSync {
                 // Read-along transcript sidecars (once the audio is present to re-stamp against).
                 await receiveTranscripts(remote, record: record, folder: folder,
                                          transport: transport, defaults: defaults, library: library)
+                // 📖 spike 6: alignment sidecars (chapter marks derive once they're fresh
+                // against whatever transcript just landed above).
+                await receiveAlignments(remote, record: record, folder: folder,
+                                        transport: transport, defaults: defaults, library: library)
             }
         }
 
@@ -255,6 +260,8 @@ enum AudiobookCloudSync {
             // book transcribed AFTER it was synced still propagates — not gated by the
             // audio upload-once).
             await sendTranscripts(local, record: record, library: library, transport: transport)
+            // 📖 spike 6: same for alignment sidecars — also ungated by the audio upload-once.
+            await sendAlignments(local, record: record, library: library, transport: transport)
         }
         repository.save()
     }
@@ -453,5 +460,95 @@ enum AudiobookCloudSync {
             ft.signature = sig
             try? store.save(ft, bookID: book.id)
         }
+    }
+
+    // MARK: - Alignment sidecars (📖 spike 6 — synced like transcripts, never restamped)
+
+    private static func alignmentRecordName(bookID: UUID, index: Int) -> String { "ab_\(bookID.uuidString)_al\(index)" }
+    private static func alignmentFilename(_ index: Int) -> String { "alignment_f\(index).json" }
+    private static func alignmentRecordNames(for book: Audiobook) -> [String] {
+        book.files.indices.map { alignmentRecordName(bookID: book.id, index: $0) }
+    }
+
+    /// Content signature of the local alignment sidecars — `FileAlignment.cloudSignaturePart()`
+    /// joined with "|", mirroring `localTranscriptSignature`'s shape exactly.
+    private static func localAlignmentSignature(_ book: Audiobook, library: AudiobookLibraryStore) -> String {
+        let store = BookAlignmentStore(directory: library.directory)
+        var parts: [String] = []
+        for i in book.files.indices {
+            if let fa = store.fileAlignment(bookID: book.id, fileIndex: i) {
+                parts.append(fa.cloudSignaturePart())
+            }
+        }
+        return parts.joined(separator: "|")
+    }
+
+    private static func alignmentParts(for book: Audiobook, folder: URL) -> [AudiobookAudioPart] {
+        book.files.indices.compactMap { i in
+            let url = folder.appendingPathComponent(alignmentFilename(i))
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            return AudiobookAudioPart(recordName: alignmentRecordName(bookID: book.id, index: i),
+                                      filename: alignmentFilename(i), fileURL: url)
+        }
+    }
+
+    private static func alignmentRefs(for book: Audiobook) -> [AudiobookAudioRef] {
+        book.files.indices.map { i in
+            AudiobookAudioRef(recordName: alignmentRecordName(bookID: book.id, index: i),
+                              filename: alignmentFilename(i))
+        }
+    }
+
+    /// SOURCE: upload the alignment sidecars when they exist + changed since the carrier's
+    /// recorded signature (tiny JSON → no progress UI) — mirrors `sendTranscripts`.
+    private static func sendAlignments(_ book: Audiobook, record: AudiobookSyncRecord,
+                                       library: AudiobookLibraryStore, transport: AudiobookAudioTransport) async {
+        let sig = localAlignmentSignature(book, library: library)
+        guard !sig.isEmpty, sig != record.alignmentSignature else { return }
+        let folder = library.folder(for: book.id)
+        let parts = alignmentParts(for: book, folder: folder)
+        guard !parts.isEmpty else { return }
+        do {
+            try await transport.upload(parts) { _ in }
+            record.alignmentSignature = sig
+        } catch {
+            DevLog.log("audiobook alignment upload failed \(book.id): \(error)")
+        }
+    }
+
+    private static func alignmentAppliedKey(_ bookID: UUID) -> String {
+        "audiobookAlignmentApplied.\(bookID.uuidString)"
+    }
+
+    /// RECEIVER: pull the alignment sidecars when the carrier's signature is new to THIS
+    /// device. UNLIKE transcripts, alignment sidecars are NEVER restamped — they key off
+    /// TRANSCRIPT CONTENT, not audio mtime — so the applied-key (→ `epubChapters` derived) only
+    /// gets set once every file whose sidecar landed is `isFresh` against THIS device's own
+    /// transcript sidecar. A receiver has no ePub to re-align locally, so a mismatch just holds;
+    /// the unset key makes the next reconcile retry for the cost of a small re-download.
+    private static func receiveAlignments(_ book: Audiobook, record: AudiobookSyncRecord, folder: URL,
+                                          transport: AudiobookAudioTransport, defaults: UserDefaults,
+                                          library: AudiobookLibraryStore) async {
+        guard !record.alignmentSignature.isEmpty else { return }
+        let appliedKey = alignmentAppliedKey(book.id)
+        guard defaults.string(forKey: appliedKey) != record.alignmentSignature else { return }
+        try? await transport.download(alignmentRefs(for: book), into: folder) { _ in }
+
+        let store = BookAlignmentStore(directory: library.directory)
+        let fileAlignments = book.files.indices.map { store.fileAlignment(bookID: book.id, fileIndex: $0) }
+        let allFresh = zip(book.files.indices, fileAlignments).allSatisfy { i, fa in
+            guard let fa else { return true }   // nothing landed for this file yet — not a blocker
+            return store.isFresh(fa, bookID: book.id, fileIndex: i,
+                                 audioURL: folder.appendingPathComponent(book.files[i]))
+        }
+        guard allFresh else { return }
+
+        let chapters = BookAlignmentRunner.epubChapters(from: fileAlignments, fileStartTimes: book.fileStartTimes,
+                                                         bookDuration: book.duration)
+        if !chapters.isEmpty, var fresh = library.book(id: book.id) {
+            fresh.epubChapters = chapters
+            library.update(fresh)
+        }
+        defaults.set(record.alignmentSignature, forKey: appliedKey)
     }
 }

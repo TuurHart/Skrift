@@ -31,14 +31,21 @@ final class AudiobookSyncRecord {
     /// sidecars whenever this changes (so a book transcribed AFTER it was synced still
     /// propagates), then re-stamps them to its own audio. Empty = no transcript yet.
     var transcriptSignature: String = ""
+    /// 📖 spike 6: content signature of the alignment sidecars the SOURCE has uploaded
+    /// (`"<fileIndex>:<verdict>:<sentenceCount>"` joined — `FileAlignment.cloudSignaturePart()`).
+    /// The receiver pulls them whenever this changes, same idea as `transcriptSignature`, but
+    /// only APPLIES them (derives `epubChapters`) once every landed sidecar is fresh against
+    /// this device's own transcript — alignment sidecars are never restamped. Empty = none yet.
+    var alignmentSignature: String = ""
 
     init(bookID: UUID, blob: Data, modifiedAt: Date = Date(), audioUploadedAt: Date? = nil,
-         transcriptSignature: String = "") {
+         transcriptSignature: String = "", alignmentSignature: String = "") {
         self.bookID = bookID
         self.blob = blob
         self.modifiedAt = modifiedAt
         self.audioUploadedAt = audioUploadedAt
         self.transcriptSignature = transcriptSignature
+        self.alignmentSignature = alignmentSignature
     }
 }
 
