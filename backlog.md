@@ -365,9 +365,8 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
      MergedCaptureView swaps (trim/audio-export math untouched) + library context-menu
      "Attach book text…" (fileImporter .epub/.txt, verdict toast, wrong-book alert
      Keep-anyway/Remove, "Replace book text…" when attached).
-   **OWED — device round (b94 BUILT + signed, install blocked: phone went unavailable
-   mid-push; install with `xcrun devicectl device install app --device A9195A77-… …/
-   SkriftMobile.app` when it's back):** AirDrop the Steal ePub to the phone (Files) →
+   **OWED — device round (✅ b94 INSTALLED 2026-07-21 night, device lists version 94 —
+   only Tuur's eyes left):** AirDrop the Steal ePub to the phone (Files) →
    Books → long-press Steal Like an Artist → Attach book text… → expect "Aligned 1 of 4
    files" (the trilogy: file 1 = book 1, rest honestly rejected) → read-along shows
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
