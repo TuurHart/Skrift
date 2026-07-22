@@ -2,6 +2,38 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⏱ One-clock lifecycle: BUILT 2026-07-22 (suites green both apps) — Dev-deploy eyeball owed
+
+**Spec = `Skrift_Native/SkriftDesktop/mocks/lifecycle-triage-peek.html`** (committed d27a047; m6 = the
+build panel, m5 = the model; Q-block records the verdicts: m2+m5 adopted, **Lock demoted to a
+background verb** — Tuur, 2026-07-22). **DOCTRINE:** supersedes 2026-07-17 "touched never fades" →
+*touch restarts the 30-day clock*; only rated/locked/reminder/backlinked sit off the clock. Memory =
+`project_lifecycle_one_clock`; roadmap node = `LifeClock` (done).
+
+**Built (commits cbf87ff → a3fb3ae → c14daf5, desktop 487 + mobile 863 green, full MLX build green):**
+- **Shared:** `clockStart = max(recordedAt, keptAt)`; `markEdited()` bumps `keptAt` (all 19 call
+  sites audited = genuine investments; 3 speaker-turn paths that skipped it now call it);
+  `MemoSpine` lost Parked → `held(locked/reminder/linked)`, gained `chipText` + `peekSentence`;
+  once-per-device migration (`oneClockMigrated.v1`) gives old parked notes a fresh clock — phone
+  runs it BEFORE FadingSweep in the same launch task (ordering is load-bearing).
+- **Mac:** `UnpipelinedMemoSheet` = m6 (clock chip · sentence · photos at `[[img_NNN]]` via
+  manifest→`MemoAsset` blob · circles AS the flag — silent-0.1 button GONE · soft Delete + "14 days
+  to undo"); quiet rows right-click **Flag for processing / Lock / Open / Delete**; band excludes
+  locked; conveyor renamed **Fading** + fading rows get a trash button; **the Mac can delete a
+  synced note for the first time**.
+- **Phone:** Fading renames (nav title, Journal shelf, empty state, clock copy); WayOut peek renders
+  photos + Delete (soft for fading / confirm-purge for deleted); detail hint = "rate it to keep it".
+
+**OWED (next session, rides the 🧬 walkthrough tail):**
+1. Deploy Dev both apps + eyeball: peek (chip/sentence/photo/circles/Delete) on the bed-photo memo
+   B122966B-era case · quiet-row menu verbs · Fading renames everywhere · phone peek photos+Delete ·
+   migration actually bumped the old parked notes (check a "kept — edited"-era memo now reads
+   "starts fading <date>").
+2. 🧬 walkthrough items phrased in the old vocabulary are OBSOLETE: "kept — edited" chips no longer
+   exist — expect "starts fading <date>" / held lines instead.
+3. Prod promotion: one-clock rides along with the 🧬+📖 promotion (nothing extra beyond the
+   standing checklist).
+
 ## ⭐ CONTINUE HERE (session end 2026-07-22 ~15:00 — the 📖 marathon session)
 
 **THE 📖 LANE IS DONE** (roadmap EPubAlign = done 2026-07-22): spikes 1–6 + batch D + FOUR live
@@ -27,9 +59,9 @@ on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the f
 5. **Next build lane candidates** (Tuur picks): reading-mode redesign (signed mock 2026-06-19,
    never built; now also the home for ePub images-in-reader + coverage visibility) · Journal
    desktop build board · Connections owed items.
-**Standing:** another session owns `mocks/lifecycle-triage-peek.html` (UNTRACKED here — it
-must commit it) + its ⏱ one-clock lifecycle spec (memory `project_lifecycle_one_clock`) —
-coordinate before touching lifecycle code. LANE_PLAYBOOK.md = the standing lane contract
+**Standing:** ~~another session owns `mocks/lifecycle-triage-peek.html`~~ → RESOLVED: that
+session committed the mock (d27a047) AND built the whole ⏱ one-clock lifecycle same day —
+see the ⏱ section at the top of this file. LANE_PLAYBOOK.md = the standing lane contract
 (3 batches ran under it today; pinned-contract seams compiled first-try twice).
 
 ## 🧬 (previous CONTINUE HERE) lifecycle IA overhaul: BUILT + MACHINE-VERIFIED LIVE (2026-07-21 eve); Tuur walkthroughs = the only gate left

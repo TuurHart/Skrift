@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 18
-updated: 2026-07-22T15:05:00.000Z
+version: 19
+updated: 2026-07-22T16:20:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -538,7 +538,8 @@ nodes:
       round-trip (fresh ingest → 0.1 memo + audio ON THE PHONE, backfill ×12,
       transcript-reflect), Q2 flag write-back (phone shows 0.1), timer sweep
       (launch + day-change poke + heartbeat). Owed: Tuur walkthroughs only —
-      then done."
+      now over the ONE-CLOCK vocabulary (LifeClock landed on top 2026-07-22:
+      'kept — edited' chips no longer exist) — then done."
     shipped:
       - >-
         2026-07-21 eve · owed verifications CLOSED live over USB (headless
@@ -576,6 +577,37 @@ nodes:
         stays the only stored bit); Parked = the zombie named, per-row copy
         only; the signed Q7 copy trio lives here verbatim. Twin MemoSpineTests
         green both apps (11 each)
+  - id: LifeClock
+    title: One clock — touch restarts the fade
+    lane: 0
+    order: 5.9
+    status: done
+    done: 2026-07-22
+    eff: M
+    deps:
+      - LifeIA
+    via: LifeIA
+    win: "ONE fade clock per note (anchor = last touch) — no immortal Parked
+      limbo, the peek explains itself in one sentence and can say no (Delete
+      on the Mac at last), the circles ARE the flag (no silent 0.1), photos
+      render in both peeks, and Fading is the one decay word everywhere"
+    note: "Spec = mocks/lifecycle-triage-peek.html m5+m6 (mocked, signed AND
+      built 2026-07-22; supersedes the 2026-07-17 'touched never fades'
+      doctrine — Tuur explicit yes; Lock demoted to a background verb:
+      right-click + phone toggle only). Board = backlog ⏱. Owed: Dev-deploy
+      eyeball both apps — rides the LifeIA walkthrough tail."
+    shipped:
+      - >-
+        2026-07-22 · built in 3 verified chunks same-day as the mock (desktop
+        487 + mobile 863 green, full MLX build green): Shared clock
+        (clockStart = max(recordedAt, keptAt); markEdited bumps keptAt —
+        19 call sites audited; held = locked/reminder/backlinked; migration
+        gives old parked notes a fresh clock, ordered BEFORE the phone
+        sweep); Mac m6 peek (clock chip + peekSentence + photos at
+        [[img_NNN]] markers + SignificanceCircles as the flag + soft
+        Delete) + quiet-row menu Flag/Lock/Open/Delete + Fading conveyor w/
+        row Delete; phone Fading renames + peek photos/Delete. The Mac can
+        delete a synced note for the first time
   - id: AuditFix
     title: Perf+reliability audit fix wave
     lane: 0
