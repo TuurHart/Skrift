@@ -32,7 +32,8 @@ final class AudiobookSyncRecord {
     /// propagates), then re-stamps them to its own audio. Empty = no transcript yet.
     var transcriptSignature: String = ""
     /// 📖 spike 6: content signature of the alignment sidecars the SOURCE has uploaded
-    /// (`"<fileIndex>:<verdict>:<sentenceCount>"` joined — `FileAlignment.cloudSignaturePart()`).
+    /// (`"<fileIndex>:<verdict>:<sentenceCount>:<textCount>"` joined —
+    /// `FileAlignment.cloudSignaturePart()`; 4th field added with schema-3 multi-text).
     /// The receiver pulls them whenever this changes, same idea as `transcriptSignature`, but
     /// only APPLIES them (derives `epubChapters`) once every landed sidecar is fresh against
     /// this device's own transcript — alignment sidecars are never restamped. Empty = none yet.

@@ -55,8 +55,11 @@ struct AudiobookLibraryView: View {
     /// anything changed"). One message string; fixed title.
     @State private var attachOutcome: String?
     /// `attach()` ran but every file's verdict was `.rejected` — offer to
-    /// keep it (try again after transcribing more) or remove it now.
-    @State private var attachRejected: Audiobook?
+    /// keep it (try again after transcribing more) or remove it now. Carries
+    /// the just-attached FILENAME so Remove strips exactly that text
+    /// (multi-text gate fix 2026-07-22 — the legacy single-slot clear would
+    /// have nuked an earlier, GOOD text's record too).
+    @State private var attachRejected: (book: Audiobook, filename: String)?
     @State private var attachToast: String?
 
     private static let importTypes: [UTType] = {
@@ -200,14 +203,18 @@ struct AudiobookLibraryView: View {
         // certainly doesn't match this audio. "Keep anyway" (.cancel role, so
         // it gets the alert's default/bold treatment) leaves everything as
         // attached in case a later re-transcribe changes the picture; "Remove"
-        // clears the ePub fields only — sidecars stay (a rejected verdict is
-        // honest data, not corruption).
+        // detaches exactly THIS text via `removeText` (other attached texts +
+        // their sidecar contributions untouched — multi-text semantics).
         .alert("This doesn\u{2019}t look like this audiobook\u{2019}s text", isPresented: .init(
             get: { attachRejected != nil },
             set: { if !$0 { attachRejected = nil } }
-        ), presenting: attachRejected) { book in
+        ), presenting: attachRejected.map(\.book)) { book in
             Button("Keep anyway", role: .cancel) {}
-            Button("Remove", role: .destructive) { removeAttachedText(book) }
+            Button("Remove", role: .destructive) {
+                if let rejected = attachRejected {
+                    Task { await BookAlignmentRunner.removeText(filename: rejected.filename, bookID: rejected.book.id) }
+                }
+            }
         } message: { _ in
             Text("Checking it against the transcript didn\u{2019}t find a match. You can keep it and try again later, or remove it now.")
         }
@@ -637,7 +644,7 @@ struct AudiobookLibraryView: View {
             if summary.totalFiles == 0 {
                 attachOutcome = "No transcript yet — the text will align on its own when transcription finishes."
             } else if summary.alignedFiles == 0 {
-                attachRejected = book
+                attachRejected = (book, url.lastPathComponent)
             } else if summary.alignedFiles == summary.totalFiles {
                 attachOutcome = summary.totalFiles == 1
                     ? "The text matches this audiobook. Read-along and quote captures now use the book\u{2019}s own words, and chapters come from its real table of contents."
@@ -655,13 +662,6 @@ struct AudiobookLibraryView: View {
     /// case something else changed it while the alignment ran). The alignment
     /// sidecars themselves are left in place — a `.rejected` verdict is honest
     /// data, not corruption, and re-attaching later can only overwrite it.
-    private func removeAttachedText(_ book: Audiobook) {
-        guard var fresh = store.book(id: book.id) else { return }
-        fresh.epubFilename = nil
-        fresh.epubChapters = nil
-        store.update(fresh)
-    }
-
 }
 
 /// One-time editable confirm sheet, shown ONLY when the file's tags were
