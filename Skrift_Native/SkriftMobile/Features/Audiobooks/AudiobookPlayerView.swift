@@ -16,6 +16,10 @@ struct AudiobookPlayerView: View {
     @State private var showEditBook = false
     @State private var showTranscribe = false
     @State private var showSyncSheet = false
+    /// ⋯ → "Book text…" (device finding 2026-07-22: the verb only lived on the
+    /// library's long-press; the player is where you actually are). Same shared
+    /// `BookTextFlow` as the library.
+    @State private var bookTextBook: Audiobook?
     @State private var showTOC = false
     @State private var showTextSettings = false
     @State private var tocInitialTab: ChaptersBookmarksSheet.Tab = .chapters
@@ -68,6 +72,7 @@ struct AudiobookPlayerView: View {
         .sheet(isPresented: $showSyncSheet) {
             if let book = session.book { AudiobookSyncSheet(book: book) }
         }
+        .bookTextFlow(book: $bookTextBook)
         .sheet(isPresented: $showTOC, onDismiss: {
             // The sheet can delete bookmarks (swipe) over its own store copy; reload
             // ours so the Mark chip + margin glyphs don't show ghosts.
@@ -253,6 +258,7 @@ struct AudiobookPlayerView: View {
             Button { tocInitialTab = .chapters; showTOC = true } label: { Label("Chapters & bookmarks", systemImage: "list.bullet") }
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
             Button { showTranscribe = true } label: { Label("Transcribe book", systemImage: "text.book.closed") }
+            Button { bookTextBook = book } label: { Label("Book text\u{2026}", systemImage: "doc.badge.plus") }
             // Per-book sync (Phase 1h) — same "Turn it on" sheet as the library long-press.
             Button { showSyncSheet = true } label: {
                 Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
