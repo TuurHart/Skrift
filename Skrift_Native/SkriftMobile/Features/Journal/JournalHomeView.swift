@@ -18,44 +18,25 @@ struct JournalHomeView: View {
     @State private var wayOutDeletedCount = 0
     @State private var showWayOut = false
     @AppStorage("fadingLastSeenAt") private var fadingLastSeenTs: Double = 0
+    /// Layout law (iPad wave, `LANES-2026-07-22-ipad/BASE.md`): branch on the
+    /// size class, never device idiom — Split View/Stage Manager can make an
+    /// iPad compact, and compact must stay pixel-identical to the phone.
+    @Environment(\.horizontalSizeClass) private var hSizeClass
+    /// The river column's fixed width at regular width (mock `ipad-app.html`
+    /// m4: `.jriver{width:520px}`).
+    private let riverWidth: CGFloat = 520
 
     enum Route: Hashable { case calendar, map }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-            // Unified 30pt screen title (device round 4: all four tabs match).
-            HStack {
-                ScreenTitle(SharedCopy.reviewTitle)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 6)
-            ScrollView {
-                VStack(spacing: 10) {
-                    if entries.isEmpty && memos.isEmpty {
-                        emptyState
-                    } else {
-                        if wall.queuedCount > 0 { wallQueueRow }
-                        if !important.isEmpty { importantCard }
-                        if let pair = thenNow { thenNowCard(pair) }
-                        ForEach(entries) { entry in
-                            if let memo = memo(entry.id) {
-                                LookbackCard(entry: entry, memo: memo)
-                            }
-                        }
-                        calendarCard
-                        if !placeMemos.isEmpty { placesCard }
-                        if wayOutFading.count + wayOutDeletedCount > 0 { wayOutRow }
-                    }
+            Group {
+                if hSizeClass == .regular {
+                    regularSplit
+                } else {
+                    compactStack
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
             }
-            .background(Color.skBg)
-            }
-            .background(Color.skBg)
             .toolbar(.hidden, for: .navigationBar)   // root only; pushes keep bars
             .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
             .navigationDestination(for: Route.self) { route in
@@ -67,6 +48,81 @@ struct JournalHomeView: View {
             .onAppear(perform: reload)
             .sheet(isPresented: $showWayOut, onDismiss: reload) { WayOutView() }
         }
+    }
+
+    /// Compact width — unchanged (byte-for-byte the pre-iPad-wave layout): a
+    /// fixed screen title over a scrolling river, calendar/places as cards
+    /// that push `Route.calendar`/`Route.map`.
+    private var compactStack: some View {
+        VStack(spacing: 0) {
+        // Unified 30pt screen title (device round 4: all four tabs match).
+        HStack {
+            ScreenTitle(SharedCopy.reviewTitle)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+        ScrollView {
+            VStack(spacing: 10) {
+                if entries.isEmpty && memos.isEmpty {
+                    emptyState
+                } else {
+                    if wall.queuedCount > 0 { wallQueueRow }
+                    if !important.isEmpty { importantCard }
+                    if let pair = thenNow { thenNowCard(pair) }
+                    ForEach(entries) { entry in
+                        if let memo = memo(entry.id) {
+                            LookbackCard(entry: entry, memo: memo)
+                        }
+                    }
+                    calendarCard
+                    if !placeMemos.isEmpty { placesCard }
+                    if wayOutFading.count + wayOutDeletedCount > 0 { wayOutRow }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+        }
+        .background(Color.skBg)
+        }
+        .background(Color.skBg)
+    }
+
+    /// Regular width (mock `ipad-app.html` m4/m4b, signed journal-desktop §2
+    /// built out): the river keeps the left, calendar + places stand as
+    /// `JournalSidePane` on the right. calendarCard/placesCard LEAVE the
+    /// river — the pane always shows them, never gated by whether the river
+    /// itself has cards (day-select/map-mode are in-pane state, not pushes).
+    private var regularSplit: some View {
+        HStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ScreenTitle(SharedCopy.reviewTitle)
+                        .padding(.bottom, 2)
+                    if entries.isEmpty && memos.isEmpty {
+                        emptyState
+                    } else {
+                        if wall.queuedCount > 0 { wallQueueRow }
+                        if !important.isEmpty { importantCard }
+                        if let pair = thenNow { thenNowCard(pair) }
+                        ForEach(entries) { entry in
+                            if let memo = memo(entry.id) {
+                                LookbackCard(entry: entry, memo: memo)
+                            }
+                        }
+                        if wayOutFading.count + wayOutDeletedCount > 0 { wayOutRow }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 40)
+            }
+            .frame(width: riverWidth)
+            Rectangle().fill(Color.skBorder).frame(width: 0.5)
+            JournalSidePane(memos: memos)
+        }
+        .background(Color.skBg)
     }
 
     /// One quiet row, same spot as the Mac rail — shown only when non-empty.
