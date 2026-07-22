@@ -118,6 +118,9 @@ final class AudiobookSession: ObservableObject {
         // Retro path: a book fully transcribed before transcript-chapter
         // detection shipped gets its chapters on first open (no-op otherwise).
         BookTranscriptionJob.shared.detectChaptersIfNeeded(bookID: startBook.id)
+        // 📖 spike 6: same retro idea for alignment — cheap no-op unless an
+        // ePub is attached and some file's sidecar is stale.
+        Task { await BookAlignmentRunner.alignIfNeeded(bookID: startBook.id) }
         return true
     }
 

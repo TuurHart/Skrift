@@ -261,6 +261,10 @@ final class BookTranscriptionJob: ObservableObject {
             // Force: a JUST-finished transcribe supersedes any earlier
             // detection — re-derive chapters from the fresh sidecar.
             detectChaptersIfNeeded(bookID: bookID, force: true)
+            // 📖 spike 6: a book with an attached ePub gets its alignment sidecars
+            // (re)computed now that more transcript is covered — cheap no-op when
+            // no ePub is attached or nothing is stale.
+            Task { await BookAlignmentRunner.alignIfNeeded(bookID: bookID) }
         }
     }
 
