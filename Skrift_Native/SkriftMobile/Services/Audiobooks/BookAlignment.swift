@@ -54,6 +54,32 @@ struct AlignedSentence: Codable, Equatable, Sendable {
     /// The ePub spine path (or the plain-text filename for a `.txt` attach) this sentence's text
     /// came from.
     var sourceFile: String?
+    /// Which ATTACHED TEXT (an entry in `Audiobook.attachedTextFilenames`) produced this
+    /// sentence (schema 3, multi-text, 2026-07-22). Distinct from `sourceFile` (that text's OWN
+    /// internal spine path) — `textFile` is the outer attached filename, the key
+    /// `mergeSentences`/`textSummary`/`removeText` filter and merge by once a book can carry
+    /// more than one text. Always non-nil on anything produced by `assembleSentences` when a
+    /// real `textFile` is passed; the schema gate keeps pre-3 sidecars from ever decoding into
+    /// a live `FileAlignment`, so a merged, on-disk sentence is never found with this nil.
+    var textFile: String? = nil
+}
+
+/// One attached text's alignment outcome for ONE audio file (schema 3, pinned —
+/// `LANES-2026-07-22D/BASE.md`). One entry per `(fileIndex, textFilename)` pair lives in that
+/// file's `FileAlignment.sources`; `BookTextSummary` reads these to build the "Book text" sheet
+/// without touching any sentence data.
+struct AlignmentSource: Codable, Equatable, Sendable {
+    /// The attached file in the book folder (an entry in `Audiobook.attachedTextFilenames`).
+    var textFilename: String
+    /// `EPubBook.title` (OPF `dc:title`) at alignment time — display name; nil → caller falls
+    /// back to the filename (a `.txt` attach, or an ePub with no `dc:title`).
+    var title: String?
+    /// `AlignmentCore.Verdict.rawValue` for THIS text against THIS file specifically (distinct
+    /// from `FileAlignment.verdict`, which is the file-level best-of across every source).
+    var verdict: String
+    /// `AlignmentCore.Result.coverageBook` for THIS file — fraction of this text's book words
+    /// that got a time from this file's transcript (0…1).
+    var coverage: Double
 }
 
 /// One TOC entry resolved to a place in the timed sentence stream — `sentenceIndex` is LOCAL to
@@ -73,22 +99,40 @@ struct FileAlignment: Codable, Equatable, Sendable {
     /// direct-matched fraction. The schema-gated load treats v1 sidecars as missing, so
     /// every attached book silently re-aligns on its next open (alignIfNeeded) — the
     /// drifted-highlight fix reaches existing installs without any user action.
-    static let currentSchema = 2
+    /// 2→3 (2026-07-22): MULTI-TEXT — `sources` (per-attached-text verdict/coverage) and
+    /// `AlignedSentence.textFile` (which attached text a sentence came from) are new; a v2
+    /// sidecar has neither, so it reads as absent and every attached text re-aligns fresh on
+    /// the book's next open (`alignIfNeeded` iterates `Audiobook.attachedTextFilenames` —
+    /// `LANES-2026-07-22D/BASE.md`).
+    static let currentSchema = 3
 
     var schema: Int = currentSchema
     /// Which file of the book this covers (`Audiobook.files` index).
     var fileIndex: Int
     /// `"<Int(coveredUpTo)>:<wordCount>"` of the transcript sidecar THIS alignment was computed
     /// against — `BookAlignmentStore.isFresh` recomputes this from the CURRENT local transcript
-    /// and compares (see `signature(forTranscript:)`).
+    /// and compares (see `signature(forTranscript:)`). ONE value shared by every attached text's
+    /// contribution to this file (a property of the audio file's transcript, not of a text) — a
+    /// transcript change re-aligns EVERY attached text against this file, not just one.
     var transcriptSignature: String
-    /// SHA-256 hex of the attached ePub's bytes at alignment time (diagnostic / future
-    /// invalidation hook — not currently compared anywhere; the ePub itself never syncs).
+    /// SHA-256 hex of the MOST RECENTLY (re)aligned text's bytes for this file (diagnostic /
+    /// future invalidation hook — not currently compared anywhere; text files themselves never
+    /// sync). Schema 3: with multiple texts this is no longer "the" ePub's signature, just
+    /// whichever text's pass touched this file last — harmless given it's unused.
     var epubSignature: String
-    /// `AlignmentCore.Verdict.rawValue` ("aligned" / "partial" / "rejected").
+    /// File-level verdict — the BEST across `sources` (aligned > partial > rejected), schema 3.
+    /// One poorly-matching attached text must never regress what another, better-matching text
+    /// already achieved for this file: `AlignedSentenceSource`/`epubChapters` both gate on this
+    /// being `.aligned` before trusting/showing ANY of this file's `sentences` at all.
     var verdict: String
     var chapterMarks: [ChapterMark] = []
+    /// Every attached text's sentences for this file, MERGED (schema 3) — collisions (time
+    /// overlap between two different texts' sentences) resolved by higher `confidence`, tie by
+    /// earlier attach order (`BookAlignmentRunner.mergeSentences`). Internally non-overlapping.
     var sentences: [AlignedSentence] = []
+    /// One entry per attached text that has been aligned against this file (schema 3) — the
+    /// "Book text" sheet's data source (`BookTextSummary`), and what `verdict` is derived from.
+    var sources: [AlignmentSource] = []
 
     /// The staleness key: matches `signature(forTranscript:)` computed from the transcript
     /// sidecar this alignment was run against. A CURRENT transcript sidecar's signature
@@ -98,11 +142,37 @@ struct FileAlignment: Codable, Equatable, Sendable {
     }
 
     /// This file's contribution to `AudiobookCloudSync`'s alignment change-signature
-    /// (`"<fileIndex>:<verdict>:<sentenceCount>"`) — joined with "|" across a book's files
-    /// there, mirroring `localTranscriptSignature`'s shape exactly.
+    /// (`"<fileIndex>:<verdict>:<sentenceCount>:<textCount>"`) — joined with "|" across a
+    /// book's files there, mirroring `localTranscriptSignature`'s shape exactly. Schema 3 adds
+    /// `textCount` (`sources.count`, 2026-07-22): the old three fields keep their exact prefix
+    /// shape (minimal disruption to existing sync history), `textCount` adds visibility when the
+    /// NUMBER of texts contributing to a file changes even if that happens to leave the other
+    /// three scalars unchanged (a cheap aggregate signature, not a content hash — same
+    /// imprecision `localTranscriptSignature` already accepts).
     func cloudSignaturePart() -> String {
-        "\(fileIndex):\(verdict):\(sentences.count)"
+        "\(fileIndex):\(verdict):\(sentences.count):\(sources.count)"
     }
+}
+
+/// The "Book text" sheet's data (schema 3, pinned — `LANES-2026-07-22D/BASE.md`) — produced by
+/// `BookAlignmentRunner.textSummary(bookID:)`, a pure read over the on-disk sidecars.
+struct BookTextSummary: Equatable, Sendable {
+    struct PerText: Equatable, Sendable {
+        var filename: String
+        /// nil → caller shows the filename.
+        var title: String?
+        /// Sum of `spans`' lengths (the gap-bridged numbers — "one segment, not confetti").
+        var coveredSeconds: TimeInterval
+        /// GLOBAL book time, merged/sorted — the sheet's timeline bar draws these directly (the
+        /// mock's variant B: real aligned spans, never a per-file approximation).
+        var spans: [ClosedRange<TimeInterval>]
+        /// 1-based audio files this text aligned (verdict `.aligned`) against.
+        var fileNumbers: [Int]
+    }
+    /// Attach order (`Audiobook.attachedTextFilenames`'s order).
+    var perText: [PerText]
+    var totalCoveredSeconds: TimeInterval
+    var bookDuration: TimeInterval
 }
 
 // MARK: - Store
@@ -184,11 +254,14 @@ enum BookAlignmentRunner {
 
     // MARK: Attach
 
-    /// Copy the picked file into the book folder (original filename kept), parse it, align every
-    /// file with a covered transcript sidecar against it, save the sidecars, derive
-    /// `epubChapters`, and update the book (`epubFilename` + `epubChapters`, `modifiedAt`
-    /// bumped). Rejected-everywhere still writes sidecars (verdict recorded) — the UI decides
-    /// what to tell the user from `AttachSummary`/the sidecars' verdicts.
+    /// Copy the picked file into the book folder (original filename kept), parse it, align it
+    /// against every file with a covered transcript sidecar, MERGE its contribution into
+    /// whatever's already on disk (schema 3 — additive, multi-text), derive `epubChapters`, and
+    /// update the book (`epubFilenames`/`epubFilename`, `epubChapters`, `modifiedAt` bumped).
+    /// Re-attaching an ALREADY-attached filename replaces only that text's own sentences/source
+    /// entries (its position in `attachedTextFilenames` — and so its collision tie-break rank —
+    /// is unchanged). Rejected-everywhere still writes sidecars (verdict recorded) — the UI
+    /// decides what to tell the user from `AttachSummary`/the sidecars' verdicts.
     static func attach(bookFileAt url: URL, bookID: UUID) async throws -> AttachSummary {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else {
             throw AttachError.bookMissing
@@ -215,7 +288,8 @@ enum BookAlignmentRunner {
             let epubSig = (try? Data(contentsOf: dest)).map(sha256Hex) ?? ""
 
             let transcriptStore = BookTranscriptStore()
-            var fileAlignments: [Int: FileAlignment] = [:]
+            var perFile: [Int: FileAlignResult] = [:]
+            var transcriptSigs: [Int: String] = [:]
             var aligned = 0, rejected = 0, total = 0
             for i in book.files.indices {
                 let audioURL = folder.appendingPathComponent(book.files[i])
@@ -223,30 +297,39 @@ enum BookAlignmentRunner {
                 guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
                       !ft.words.isEmpty else { continue }
                 total += 1
-                let fileResult = alignFile(ft: ft, against: alignBlocks)
-                fileAlignments[i] = FileAlignment(
-                    fileIndex: i,
-                    transcriptSignature: FileAlignment.signature(forTranscript: ft),
-                    epubSignature: epubSig,
-                    verdict: fileResult.verdict.rawValue,
-                    sentences: fileResult.sentences
-                )
+                let fileResult = alignFile(ft: ft, against: alignBlocks, textFilename: filename)
+                perFile[i] = fileResult
+                transcriptSigs[i] = FileAlignment.signature(forTranscript: ft)
                 if fileResult.verdict == .aligned { aligned += 1 }
                 if fileResult.verdict == .rejected { rejected += 1 }
             }
-            return AttachOutcome(fileAlignments: fileAlignments, toc: epubBook.toc,
-                                 aligned: aligned, rejected: rejected, total: total)
+            return AttachOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig,
+                                 transcriptSigs: transcriptSigs, aligned: aligned, rejected: rejected, total: total)
         }.value
 
-        await finishAlign(bookID: bookID, toc: outcome.toc, justAligned: outcome.fileAlignments,
-                          epubFilename: filename)
+        var order = book.attachedTextFilenames
+        if !order.contains(filename) { order.append(filename) }
+
+        await mergeAndFinish(
+            bookID: bookID,
+            results: [filename: outcome.perFile],
+            titles: [filename: outcome.title],
+            epubSignatures: [filename: outcome.epubSig],
+            transcriptSignatures: outcome.transcriptSigs,
+            attachOrder: order,
+            precomputedTOC: [filename: outcome.toc],
+            newlyAttachedFilename: filename
+        )
         return AttachSummary(alignedFiles: outcome.aligned, rejectedFiles: outcome.rejected,
                              totalFiles: outcome.total)
     }
 
-    private struct AttachOutcome {
-        var fileAlignments: [Int: FileAlignment]
+    private struct AttachOutcome: Sendable {
+        var perFile: [Int: FileAlignResult]
         var toc: [EPubTOCEntry]
+        var title: String?
+        var epubSig: String
+        var transcriptSigs: [Int: String]
         var aligned: Int
         var rejected: Int
         var total: Int
@@ -254,18 +337,21 @@ enum BookAlignmentRunner {
 
     // MARK: Incremental re-align
 
-    /// Cheap no-op-guarded re-align: no `epubFilename` on the book, the attached file missing
-    /// from disk (receiver device — nothing to compute locally), or every file's sidecar already
-    /// fresh ⇒ returns fast. Otherwise re-parses the (already-attached) file and re-runs
-    /// alignment for the stale files only, then reconciles chapter marks + `epubChapters` across
-    /// the WHOLE book (not just the files touched this pass) so the "first TOC match wins,
-    /// globally" invariant can't drift between files aligned now and files aligned earlier.
+    /// Cheap no-op-guarded re-align: no text attached, none of the attached texts' files present
+    /// locally (a receiver device — text files never sync, only sidecars do; nothing to compute
+    /// locally), or every file's sidecar already fresh ⇒ returns fast. Otherwise re-parses every
+    /// LOCALLY-present attached text and re-runs alignment for the stale files only (schema 3:
+    /// "stale" is a FILE-level, transcript-driven staleness — a stale file re-tries EVERY
+    /// attached text against it, not just one), then reconciles chapter marks + `epubChapters`
+    /// across the WHOLE book (not just the files touched this pass) so the "first TOC match
+    /// wins, globally" invariant can't drift between files aligned now and files aligned earlier.
     static func alignIfNeeded(bookID: UUID) async {
-        guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }),
-              let epubFilename = book.epubFilename else { return }
+        guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else { return }
+        let names = book.attachedTextFilenames
+        guard !names.isEmpty else { return }
         let folder = BookTranscriptStore().folder(forBookID: bookID)
-        let bookFileURL = folder.appendingPathComponent(epubFilename)
-        guard FileManager.default.fileExists(atPath: bookFileURL.path) else { return }
+        let localNames = names.filter { FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
+        guard !localNames.isEmpty else { return }
 
         let transcriptStore = BookTranscriptStore()
         let alignmentStore = BookAlignmentStore()
@@ -311,83 +397,339 @@ enum BookAlignmentRunner {
         // Bare closure, as in `attach` — the outer `let` annotation supplies the async+throws-
         // free effect signature the compiler needs (this closure only ever returns, never throws;
         // `parseBookFile`'s error is swallowed via `try?` since `alignIfNeeded` has no error path).
-        let realigned: (fa: [Int: FileAlignment], toc: [EPubTOCEntry])? = await Task.detached(priority: .utility) {
-            guard let epubBook = try? parseBookFile(at: bookFileURL) else {
-                DevLog.log("bookAlign[\(bookID)] re-parse failed for \(epubFilename) — skipping re-align")
-                return nil
+        let realigned: [String: TextAlignOutcome] = await Task.detached(priority: .utility) { () -> [String: TextAlignOutcome] in
+            var out: [String: TextAlignOutcome] = [:]
+            for textName in localNames {
+                let url = folder.appendingPathComponent(textName)
+                guard let epubBook = try? parseBookFile(at: url) else {
+                    DevLog.log("bookAlign[\(bookID)] re-parse failed for \(textName) — skipping re-align")
+                    continue
+                }
+                let alignBlocks = mergeBlocksByFile(epubBook.blocks)
+                let epubSig = (try? Data(contentsOf: url)).map(sha256Hex) ?? ""
+                var perFile: [Int: FileAlignResult] = [:]
+                for i in staleIndices {
+                    let audioURL = folder.appendingPathComponent(book.files[i])
+                    let sig = transcriptStore.signature(forFileAt: audioURL)
+                    guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
+                          !ft.words.isEmpty else { continue }
+                    perFile[i] = alignFile(ft: ft, against: alignBlocks, textFilename: textName)
+                }
+                out[textName] = TextAlignOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig)
             }
-            let alignBlocks = mergeBlocksByFile(epubBook.blocks)
-            var fileAlignments: [Int: FileAlignment] = [:]
-            let epubSig = (try? Data(contentsOf: bookFileURL)).map(sha256Hex) ?? ""
-            for i in staleIndices {
-                let audioURL = folder.appendingPathComponent(book.files[i])
-                let sig = transcriptStore.signature(forFileAt: audioURL)
-                guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
-                      !ft.words.isEmpty else { continue }
-                let fileResult = alignFile(ft: ft, against: alignBlocks)
-                fileAlignments[i] = FileAlignment(
-                    fileIndex: i,
-                    transcriptSignature: FileAlignment.signature(forTranscript: ft),
-                    epubSignature: epubSig,
-                    verdict: fileResult.verdict.rawValue,
-                    sentences: fileResult.sentences
-                )
-            }
-            return (fileAlignments, epubBook.toc)
+            return out
         }.value
 
-        guard let realigned, !realigned.fa.isEmpty else { return }
-        await finishAlign(bookID: bookID, toc: realigned.toc, justAligned: realigned.fa)
+        guard !realigned.isEmpty else { return }
+
+        var transcriptSigs: [Int: String] = [:]
+        for i in staleIndices {
+            let audioURL = folder.appendingPathComponent(book.files[i])
+            let sig = transcriptStore.signature(forFileAt: audioURL)
+            if let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig) {
+                transcriptSigs[i] = FileAlignment.signature(forTranscript: ft)
+            }
+        }
+
+        await mergeAndFinish(
+            bookID: bookID,
+            results: realigned.mapValues(\.perFile),
+            titles: realigned.mapValues(\.title),
+            epubSignatures: realigned.mapValues(\.epubSig),
+            transcriptSignatures: transcriptSigs,
+            attachOrder: names,
+            precomputedTOC: realigned.mapValues(\.toc)
+        )
+    }
+
+    private struct TextAlignOutcome: Sendable {
+        var perFile: [Int: FileAlignResult]
+        var toc: [EPubTOCEntry]
+        var title: String?
+        var epubSig: String
+    }
+
+    // MARK: - Text summary + removal (📖 multi-text, schema 3 — LANES-2026-07-22D/BASE.md)
+
+    /// The "Book text" sheet's data — one call, pure assembly from the on-disk sidecars + the
+    /// book record. `library` defaults to the live singleton; overridable for test isolation
+    /// (mirrors `AudiobookCloudSync`'s DI pattern) — callers just write `textSummary(bookID:)`.
+    /// nil when the book doesn't exist or has no attached text at all (the sheet's empty state).
+    @MainActor
+    static func textSummary(bookID: UUID, library: AudiobookLibraryStore = .shared) -> BookTextSummary? {
+        guard let book = library.book(id: bookID) else { return nil }
+        let names = book.attachedTextFilenames
+        guard !names.isEmpty else { return nil }
+
+        let store = BookAlignmentStore(directory: library.directory)
+        let fileAlignments: [FileAlignment?] = book.files.indices.map { store.fileAlignment(bookID: bookID, fileIndex: $0) }
+        let fileStarts = book.fileStartTimes
+
+        var perText: [BookTextSummary.PerText] = []
+        for name in names {
+            var intervals: [ClosedRange<TimeInterval>] = []
+            var fileNumbers: [Int] = []
+            var title: String?
+            for (i, fa) in fileAlignments.enumerated() {
+                guard let fa else { continue }
+                if let src = fa.sources.first(where: { $0.textFilename == name }) {
+                    if title == nil { title = src.title }
+                    if src.verdict == AlignmentCore.Verdict.aligned.rawValue { fileNumbers.append(i + 1) }
+                }
+                let base = fileStarts.indices.contains(i) ? fileStarts[i] : 0
+                for s in fa.sentences where s.textFile == name {
+                    let lo = base + min(s.start, s.end), hi = base + max(s.start, s.end)
+                    intervals.append(lo...hi)
+                }
+            }
+            let spans = mergedSpans(intervals, gapBridge: 30)
+            let covered = spans.reduce(0) { $0 + ($1.upperBound - $1.lowerBound) }
+            perText.append(BookTextSummary.PerText(filename: name, title: title, coveredSeconds: covered,
+                                                    spans: spans, fileNumbers: fileNumbers))
+        }
+
+        return BookTextSummary(perText: perText,
+                               totalCoveredSeconds: perText.reduce(0) { $0 + $1.coveredSeconds },
+                               bookDuration: book.duration)
+    }
+
+    /// Detach ONE text: strip its `sources`/sentences from every file's sidecar (other texts
+    /// untouched), remove it from the book record (array + legacy-slot fixup —
+    /// `detachedTextFields`), delete the file on disk, and re-derive chapters. A file left with
+    /// zero remaining sources has its `transcriptSignature` cleared (`strippingText`) so a
+    /// future `alignIfNeeded` retries every SURVIVING text against it — otherwise a file whose
+    /// ONLY source was the removed text would look "fresh" forever with nothing in it.
+    static func removeText(filename: String, bookID: UUID) async {
+        guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else { return }
+        let folder = BookTranscriptStore().folder(forBookID: bookID)
+        let store = BookAlignmentStore()
+
+        var current: [FileAlignment?] = book.files.indices.map { store.fileAlignment(bookID: bookID, fileIndex: $0) }
+        for i in current.indices {
+            guard let fa = current[i] else { continue }
+            let stripped = strippingText(filename, from: fa)
+            guard stripped != fa else { continue }
+            try? store.save(stripped, bookID: bookID)
+            current[i] = stripped
+        }
+
+        let fields = detachedTextFields(removing: filename, from: book.attachedTextFilenames)
+        current = await reconcileChapters(bookID: bookID, folder: folder,
+                                          textFilenames: fields.epubFilenames ?? [], current: current)
+
+        try? FileManager.default.removeItem(at: folder.appendingPathComponent(filename))
+
+        let chapters = epubChapters(from: current, fileStartTimes: book.fileStartTimes,
+                                    bookDuration: book.duration, detected: book.detectedChapters,
+                                    fileDurations: book.fileDurations)
+        await MainActor.run {
+            guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
+            fresh.epubFilenames = fields.epubFilenames
+            fresh.epubFilename = fields.epubFilename
+            fresh.epubChapters = chapters
+            fresh.modifiedAt = Date()
+            AudiobookLibraryStore.shared.update(fresh)
+            AudiobookSession.shared.refreshFromStore()
+        }
     }
 
     // MARK: - One-file alignment (transcript → AlignmentCore → sentences)
 
-    private struct FileAlignResult {
+    private struct FileAlignResult: Sendable {
         var verdict: AlignmentCore.Verdict
+        /// `AlignmentCore.Result.coverageBook` — feeds `AlignmentSource.coverage` (schema 3).
+        var coverage: Double
         var sentences: [AlignedSentence]
     }
 
-    /// Run `AlignmentCore.align` (defaults) for one audio file's transcript against the whole
-    /// book, then assemble sentences per epub source file from the result.
-    private static func alignFile(ft: FileTranscript, against alignBlocks: [AlignmentCore.Block]) -> FileAlignResult {
+    /// Run `AlignmentCore.align` (defaults) for one audio file's transcript against one text's
+    /// blocks, then assemble sentences per epub source file from the result — each stamped
+    /// `textFile: textFilename` (schema 3) so the merge step can filter/replace by text.
+    private static func alignFile(ft: FileTranscript, against alignBlocks: [AlignmentCore.Block],
+                                  textFilename: String) -> FileAlignResult {
         let transcript = ft.words.map { AlignmentCore.Word(text: $0.word, start: $0.start, end: $0.end) }
         let result = AlignmentCore.align(transcript: transcript, book: alignBlocks)
         var sentences: [AlignedSentence] = []
         for block in alignBlocks {
             sentences += assembleSentences(text: block.text, sourceFile: block.sourceFile,
-                                           matchedRanges: result.matchedRanges, transcriptWords: ft.words)
+                                           matchedRanges: result.matchedRanges, transcriptWords: ft.words,
+                                           textFile: textFilename)
         }
-        return FileAlignResult(verdict: result.verdict, sentences: sentences)
+        return FileAlignResult(verdict: result.verdict, coverage: result.coverageBook, sentences: sentences)
+    }
+
+    // MARK: - Multi-text merge (schema 3 — pure, unit-tested)
+
+    /// File-level verdict = the BEST across a file's `sources` (aligned > partial > rejected).
+    /// One poorly-matching attached text must never regress what another, better-matching text
+    /// already achieved for that file — `AlignedSentenceSource`/`epubChapters` both gate on the
+    /// file-level verdict being `.aligned` before trusting/showing ANY of that file's sentences.
+    static func bestVerdict(_ verdicts: [String]) -> String {
+        let aligned = AlignmentCore.Verdict.aligned.rawValue
+        let partial = AlignmentCore.Verdict.partial.rawValue
+        if verdicts.contains(aligned) { return aligned }
+        if verdicts.contains(partial) { return partial }
+        return AlignmentCore.Verdict.rejected.rawValue
+    }
+
+    /// Merges `incoming` (one text's freshly-computed sentences for one file, every entry
+    /// sharing `textFile`) into `keep` (that file's current sentences from OTHER texts, assumed
+    /// mutually non-overlapping — the caller has already dropped this text's own previous
+    /// entries from `keep`). Each incoming sentence either lands cleanly (no time overlap with
+    /// anything in `keep`) or CONTESTS every `keep` entry it overlaps AT ONCE: it wins —
+    /// displacing all of them — only if its `confidence` beats the toughest of them, tie broken
+    /// by `textRank` (lower = earlier attach = tougher to beat). Never a partial swap: a losing
+    /// incoming sentence can't blow a hole in another text's coverage for nothing in return.
+    /// Deterministic (BASE.md's collision rule).
+    static func mergeSentences(into keep: [AlignedSentence], adding incoming: [AlignedSentence],
+                               textRank: [String: Int]) -> [AlignedSentence] {
+        var result = keep
+        for ns in incoming {
+            let conflicts = result.indices.filter { result[$0].start < ns.end && ns.start < result[$0].end }
+            guard !conflicts.isEmpty else { result.append(ns); continue }
+            let maxConfidence = conflicts.map { result[$0].confidence }.max()!
+            let tiedAtMax = conflicts.filter { result[$0].confidence == maxConfidence }
+            let toughestRank = tiedAtMax.map { textRank[result[$0].textFile ?? ""] ?? Int.max }.min()!
+            let nsRank = textRank[ns.textFile ?? ""] ?? Int.max
+            let nsWins = ns.confidence > maxConfidence || (ns.confidence == maxConfidence && nsRank < toughestRank)
+            guard nsWins else { continue }
+            for idx in conflicts.sorted(by: >) { result.remove(at: idx) }
+            result.append(ns)
+        }
+        return result
+    }
+
+    /// Merges ONE text's freshly-computed per-file result into `existing` (that file's current
+    /// on-disk state, nil if this is the first text ever aligned against it): this text's own
+    /// PREVIOUS contribution (`sources`/`sentences` tagged `textFilename`) is dropped wholesale
+    /// and replaced by the fresh one (re-attaching the SAME filename "replaces only its own
+    /// sentences" — BASE.md); other texts' entries are kept, collisions resolved by
+    /// `mergeSentences`. The file-level `verdict` becomes the best-of across all `sources`. Pure
+    /// — no I/O.
+    static func mergedFileAlignment(
+        existing: FileAlignment?, fileIndex: Int, textFilename: String, title: String?,
+        verdict: AlignmentCore.Verdict, coverage: Double, sentences: [AlignedSentence],
+        transcriptSignature: String, epubSignature: String, textRank: [String: Int]
+    ) -> FileAlignment {
+        var fa = existing ?? FileAlignment(fileIndex: fileIndex, transcriptSignature: transcriptSignature,
+                                           epubSignature: epubSignature,
+                                           verdict: AlignmentCore.Verdict.rejected.rawValue)
+        let others = fa.sentences.filter { $0.textFile != textFilename }
+        fa.sentences = mergeSentences(into: others, adding: sentences, textRank: textRank)
+        fa.sources.removeAll { $0.textFilename == textFilename }
+        fa.sources.append(AlignmentSource(textFilename: textFilename, title: title,
+                                          verdict: verdict.rawValue, coverage: coverage))
+        fa.verdict = bestVerdict(fa.sources.map(\.verdict))
+        fa.transcriptSignature = transcriptSignature
+        fa.epubSignature = epubSignature
+        return fa
+    }
+
+    /// The inverse of `mergedFileAlignment` — strips ONE text's `sources`/`sentences` entries
+    /// from `fa` (other texts, including their sentences/sources, untouched); the file-level
+    /// `verdict` becomes the best-of whatever `sources` remain (`.rejected` if none do). A file
+    /// left with zero sources has `transcriptSignature` cleared to `""` (never a real signature
+    /// shape) so a future `alignIfNeeded` treats it as stale and retries every SURVIVING
+    /// attached text against it — otherwise it would look permanently "fresh" with nothing in
+    /// it. No-op (returns `fa` unchanged) when this text never touched this file.
+    static func strippingText(_ textFilename: String, from fa: FileAlignment) -> FileAlignment {
+        var fa = fa
+        let touches = fa.sources.contains { $0.textFilename == textFilename }
+            || fa.sentences.contains { $0.textFile == textFilename }
+        guard touches else { return fa }
+        fa.sources.removeAll { $0.textFilename == textFilename }
+        fa.sentences.removeAll { $0.textFile == textFilename }
+        if fa.sources.isEmpty {
+            fa.verdict = AlignmentCore.Verdict.rejected.rawValue
+            fa.transcriptSignature = ""
+        } else {
+            fa.verdict = bestVerdict(fa.sources.map(\.verdict))
+        }
+        return fa
+    }
+
+    /// The book-record fields to write after detaching `filename` from `names` (the book's
+    /// CURRENT `attachedTextFilenames`, attach order): the legacy `epubFilename` slot always
+    /// mirrors the FIRST remaining text (both nil once none remain) — BASE.md's "legacy slot
+    /// fixup." Pure.
+    static func detachedTextFields(removing filename: String, from names: [String]) -> (epubFilenames: [String]?, epubFilename: String?) {
+        var remaining = names
+        remaining.removeAll { $0 == filename }
+        return remaining.isEmpty ? (nil, nil) : (remaining, remaining.first)
+    }
+
+    /// Merges `intervals` (any order) into sorted, non-overlapping `ClosedRange`s, bridging a
+    /// gap of `gapBridge` seconds or less between consecutive kept intervals into one span (so a
+    /// handful of narrator-skip-sized gaps reads as one segment, not confetti — the mock's
+    /// stated behavior). `gapBridge: 0` simply coalesces true overlaps/adjacencies.
+    static func mergedSpans(_ intervals: [ClosedRange<TimeInterval>], gapBridge: TimeInterval) -> [ClosedRange<TimeInterval>] {
+        guard !intervals.isEmpty else { return [] }
+        let sorted = intervals.sorted { $0.lowerBound < $1.lowerBound }
+        var out: [ClosedRange<TimeInterval>] = [sorted[0]]
+        for r in sorted.dropFirst() {
+            let last = out[out.count - 1]
+            if r.lowerBound <= last.upperBound + gapBridge {
+                out[out.count - 1] = last.lowerBound...max(last.upperBound, r.upperBound)
+            } else {
+                out.append(r)
+            }
+        }
+        return out
     }
 
     // MARK: - Chapter-mark reconciliation (shared tail for attach / alignIfNeeded)
 
-    /// After (re)aligning `justAligned` (index → freshly-computed `FileAlignment`, not yet
-    /// saved), reconcile EVERY file's `chapterMarks` against `toc` — loading the rest from their
-    /// existing sidecars — so a TOC entry's "first match" stays correct even when only SOME
-    /// files were touched this pass. Saves whichever sidecars' marks changed (including
-    /// untouched ones, if reconciliation moved a mark), rebuilds + persists `book.epubChapters`,
-    /// optionally stamps `epubFilename`, bumps `modifiedAt`, and refreshes the live session.
-    private static func finishAlign(bookID: UUID, toc: [EPubTOCEntry], justAligned: [Int: FileAlignment],
-                                    epubFilename: String? = nil) async {
+    /// Merges freshly-computed per-`(fileIndex, textFilename)` alignment results into the book's
+    /// on-disk sidecars (`mergedFileAlignment`, one call per touched `(file, text)` pair — texts
+    /// processed in `attachOrder` so the collision tie-break is deterministic regardless of
+    /// dictionary iteration order), saves whichever changed, reconciles chapter marks book-wide
+    /// (`reconcileChapters`), rebuilds + persists `book.epubChapters`, optionally stamps the
+    /// book's attached-text list (`attach` only — `newlyAttachedFilename`), bumps `modifiedAt`,
+    /// and refreshes the live session. `results`/`titles`/`epubSignatures` are keyed by TEXT
+    /// FILENAME (not file index); `transcriptSignatures` by file index (one value per file,
+    /// shared by every text touching it — a property of the audio file's transcript).
+    private static func mergeAndFinish(
+        bookID: UUID,
+        results: [String: [Int: FileAlignResult]],
+        titles: [String: String?],
+        epubSignatures: [String: String],
+        transcriptSignatures: [Int: String],
+        attachOrder: [String],
+        precomputedTOC: [String: [EPubTOCEntry]] = [:],
+        newlyAttachedFilename: String? = nil
+    ) async {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else { return }
         let store = BookAlignmentStore()
+        let folder = BookTranscriptStore().folder(forBookID: bookID)
+        // Built by hand (not `Dictionary(uniqueKeysWithValues:)`) — `attachOrder` SHOULD be
+        // unique by construction (`attach`'s append is duplicate-guarded), but a rank lookup
+        // used only to break sentence-collision ties is never worth a crash over; first
+        // occurrence wins on the (should-never-happen) duplicate.
+        var textRank: [String: Int] = [:]
+        for (offset, name) in attachOrder.enumerated() where textRank[name] == nil {
+            textRank[name] = offset
+        }
 
-        for fa in justAligned.values {
+        var current: [FileAlignment?] = book.files.indices.map { store.fileAlignment(bookID: bookID, fileIndex: $0) }
+        for textName in attachOrder {
+            guard let perFile = results[textName] else { continue }
+            for (i, result) in perFile {
+                guard current.indices.contains(i) else { continue }
+                current[i] = mergedFileAlignment(
+                    existing: current[i], fileIndex: i, textFilename: textName,
+                    title: titles[textName] ?? nil, verdict: result.verdict, coverage: result.coverage,
+                    sentences: result.sentences,
+                    transcriptSignature: transcriptSignatures[i] ?? current[i]?.transcriptSignature ?? "",
+                    epubSignature: epubSignatures[textName] ?? current[i]?.epubSignature ?? "",
+                    textRank: textRank)
+            }
+        }
+        for fa in current.compactMap({ $0 }) {
             try? store.save(fa, bookID: bookID)
         }
 
-        var current: [FileAlignment?] = book.files.indices.map { i in
-            justAligned[i] ?? store.fileAlignment(bookID: bookID, fileIndex: i)
-        }
-        let marks = assignChapterMarks(toc: toc, sentencesByFile: current.map { $0?.sentences ?? [] },
-                                       verdicts: current.map { $0?.verdict ?? "" })
-        for i in current.indices {
-            guard var fa = current[i], fa.chapterMarks != marks[i] else { continue }
-            fa.chapterMarks = marks[i]
-            try? store.save(fa, bookID: bookID)
-            current[i] = fa
-        }
+        current = await reconcileChapters(bookID: bookID, folder: folder, textFilenames: attachOrder,
+                                          current: current, precomputedTOC: precomputedTOC)
 
         let chapters = epubChapters(from: current, fileStartTimes: book.fileStartTimes,
                                     bookDuration: book.duration,
@@ -395,11 +737,95 @@ enum BookAlignmentRunner {
                                     fileDurations: book.fileDurations)
         await MainActor.run {
             guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
-            if let epubFilename { fresh.epubFilename = epubFilename }
+            if let newlyAttachedFilename {
+                var names = fresh.attachedTextFilenames
+                if !names.contains(newlyAttachedFilename) { names.append(newlyAttachedFilename) }
+                fresh.epubFilenames = names
+                fresh.epubFilename = names.first
+            }
             fresh.epubChapters = chapters
             fresh.modifiedAt = Date()
             AudiobookLibraryStore.shared.update(fresh)
             AudiobookSession.shared.refreshFromStore()
+        }
+    }
+
+    /// Rebuilds `chapterMarks` for every file, book-wide, from EVERY text in `textFilenames`:
+    /// re-parses each (to recover its TOC — `precomputedTOC` skips a re-parse for texts the
+    /// caller already has in hand from this same pass) and calls `perTextChapterMarks` against
+    /// ONLY that text's own sentences + own per-file source verdict, unioning the (remapped)
+    /// results across texts (marks from different texts can't collide — each names a different,
+    /// text-owned sentence). When a text's file ISN'T present locally (attached-text files never
+    /// sync — only the sidecars do, so a receiver device can be missing some), its TOC can't be
+    /// re-derived; that text's EXISTING on-disk marks are preserved unchanged rather than
+    /// dropped, so a partial local re-align can never wipe-and-resync (`sendAlignments` is
+    /// ungated) another device's chapters away. Saves whichever sidecars' marks changed.
+    private static func reconcileChapters(
+        bookID: UUID, folder: URL, textFilenames: [String], current: [FileAlignment?],
+        precomputedTOC: [String: [EPubTOCEntry]] = [:]
+    ) async -> [FileAlignment?] {
+        var unioned = Array(repeating: [ChapterMark](), count: current.count)
+        for textName in textFilenames {
+            if let toc = precomputedTOC[textName] ?? (try? parseBookFile(at: folder.appendingPathComponent(textName)))?.toc {
+                guard !toc.isEmpty else { continue }
+                let sourceVerdicts = current.map { $0?.sources.first { $0.textFilename == textName }?.verdict ?? "" }
+                let marks = perTextChapterMarks(forText: textName, toc: toc,
+                                                fullSentencesByFile: current.map { $0?.sentences ?? [] },
+                                                sourceVerdicts: sourceVerdicts)
+                for i in marks.indices where unioned.indices.contains(i) { unioned[i].append(contentsOf: marks[i]) }
+            } else {
+                DevLog.log("bookAlign[\(bookID)] chapter reconcile: \(textName) not present locally — preserving its existing marks")
+                for i in current.indices where unioned.indices.contains(i) {
+                    guard let fa = current[i] else { continue }
+                    for m in fa.chapterMarks where fa.sentences.indices.contains(m.sentenceIndex)
+                                                  && fa.sentences[m.sentenceIndex].textFile == textName {
+                        unioned[i].append(m)
+                    }
+                }
+            }
+        }
+
+        var out = current
+        let store = BookAlignmentStore()
+        for i in out.indices {
+            guard var fa = out[i], fa.chapterMarks != unioned[i] else { continue }
+            fa.chapterMarks = unioned[i]
+            try? store.save(fa, bookID: bookID)
+            out[i] = fa
+        }
+        return out
+    }
+
+    /// One text's chapter marks against the FULL (multi-text) sentence array for each file:
+    /// filters to `textFilename`'s own sentences before calling `assignChapterMarks` (unchanged)
+    /// — its returned `sentenceIndex` is then LOCAL TO THAT FILTERED SUBARRAY, remapped here back
+    /// to indices into `fullSentencesByFile` (what `ChapterMark.sentenceIndex` is always
+    /// consumed against downstream, e.g. `epubChapters`'s `fa.sentences[mark.sentenceIndex]`).
+    /// Gated on `sourceVerdicts` — THIS TEXT's own per-file verdict, not the file's merged
+    /// best-of — so a text that came back rejected against a file never claims that file's TOC
+    /// entries even when another, better text made the file's OVERALL verdict "aligned" (the
+    /// phantom-chapters protection, generalized to multi-text). Pure — no I/O, no re-parsing;
+    /// the caller supplies an already-parsed `toc`.
+    static func perTextChapterMarks(forText textFilename: String, toc: [EPubTOCEntry],
+                                    fullSentencesByFile: [[AlignedSentence]], sourceVerdicts: [String]) -> [[ChapterMark]] {
+        var filteredByFile: [[AlignedSentence]] = []
+        var originalIndex: [[Int]] = []
+        for full in fullSentencesByFile {
+            var filtered: [AlignedSentence] = []
+            var idxMap: [Int] = []
+            for (idx, s) in full.enumerated() where s.textFile == textFilename {
+                filtered.append(s); idxMap.append(idx)
+            }
+            filteredByFile.append(filtered)
+            originalIndex.append(idxMap)
+        }
+        let localMarks = assignChapterMarks(toc: toc, sentencesByFile: filteredByFile, verdicts: sourceVerdicts)
+        return localMarks.indices.map { i in
+            localMarks[i].compactMap { m in
+                originalIndex[i].indices.contains(m.sentenceIndex)
+                    ? ChapterMark(title: m.title, sentenceIndex: originalIndex[i][m.sentenceIndex])
+                    : nil
+            }
         }
     }
 
@@ -464,7 +890,8 @@ enum BookAlignmentRunner {
         text: String,
         sourceFile: String,
         matchedRanges: [AlignmentCore.Result.MatchedRange],
-        transcriptWords: [WordTiming]
+        transcriptWords: [WordTiming],
+        textFile: String? = nil
     ) -> [AlignedSentence] {
         let words = tokenizeWithRanges(text)
         guard !words.isEmpty else { return [] }
@@ -518,7 +945,7 @@ enum BookAlignmentRunner {
             sentences.append(AlignedSentence(
                 text: sentenceText, start: sStart, end: sEnd,
                 wordStart: asrRange.lowerBound, wordEnd: asrRange.upperBound,
-                confidence: confidence, words: timed, sourceFile: sourceFile
+                confidence: confidence, words: timed, sourceFile: sourceFile, textFile: textFile
             ))
         }
         return sentences
