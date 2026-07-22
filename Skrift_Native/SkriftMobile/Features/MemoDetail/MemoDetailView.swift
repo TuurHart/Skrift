@@ -824,12 +824,13 @@ private struct MemoPageView: View {
                 .padding(.top, 14)
 
             // The note narrates its own lifecycle (2026-07-21 — new-user
-            // discoverability without a tour): an untouched note quietly says
+            // discoverability without a tour): a clock-run note quietly says
             // when it starts fading and how to keep it, exactly where the rule
-            // applies. Live field checks hide it the moment any touch lands.
+            // applies. One clock (2026-07-22): touches only restart the clock,
+            // so the line stays for touched notes too — only rating/holds hide it.
             if memo.deletedAt == nil, memo.transcriptStatus == .done,
-               !MemoLifecycle.isTouched(memo, backlinked: detailBacklinkedIDs) {
-                Text("\(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: detailBacklinkedIDs)))) — rating or editing keeps it")
+               !MemoLifecycle.neverFades(memo, backlinked: detailBacklinkedIDs) {
+                Text("\(MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: detailBacklinkedIDs)))) — rate it to keep it")
                     .font(.system(size: 11.5))
                     .foregroundStyle(Color.skAmber.opacity(0.9))
                     .padding(.top, 8)

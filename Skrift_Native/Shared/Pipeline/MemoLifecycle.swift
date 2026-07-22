@@ -1,43 +1,52 @@
 import Foundation
 
-/// The note lifecycle — ONE rulebook for both apps (design locked 2026-07-17,
-/// mock `mocks/fading-shelf.html`):
+/// The note lifecycle — ONE rulebook for both apps. Design v2 **"one clock"**
+/// (mocks/lifecycle-triage-peek.html #m5/#m6, signed 2026-07-22; supersedes the
+/// 2026-07-17 "anything you touched stays until you say otherwise"):
 ///
-///   **a note you never invested in fades out by itself; anything you touched
-///   stays until you say otherwise.**
+///   **every unrated note is on one fade clock; touching it restarts the clock,
+///   rating it keeps it forever. Only locks, reminders and backlinks hold a
+///   note off the clock.**
 ///
-/// Untouched notes leave the main surfaces after `fadeAfterDays` (the Fading
-/// shelf), auto-move to Recently Deleted at `trashAfterDays` (the sweep sets
-/// `deletedAt` — the existing soft-delete: visible, restorable, purged after
-/// `TrashPolicy.retentionDays`). Fading is DERIVED — no stored state, no
-/// migration, retroactive; the only stored bit is `Memo.keptAt` (rescue).
-/// Deletion is never automatic beyond that existing trash countdown.
+/// The clock runs from `clockStart` = max(recordedAt, keptAt): any investment
+/// (edit / title / tag / annotate / keep / bring back) writes `keptAt = now`
+/// via `touch(_:)` — 30 fresh days, not immortality. A clock-run note leaves
+/// the main surfaces at `fadeAfterDays` (Fading), auto-moves to Recently
+/// Deleted at `trashAfterDays` (the sweep sets `deletedAt` — the existing
+/// soft-delete: visible, restorable, purged after `TrashPolicy.retentionDays`).
+/// Everything stays DERIVED; `keptAt` remains the only stored lifecycle bit.
 enum MemoLifecycle {
 
     static let fadeAfterDays = 30
     static let trashAfterDays = 60
 
-    /// Any explicit investment — a touched note NEVER fades. Photos and bare
-    /// share-captures are deliberately NOT touches (Tuur, 2026-07-17).
-    static func isTouched(_ memo: Memo, backlinked: Set<UUID>) -> Bool {
+    /// The one clock: recording started it; the freshest touch restarted it.
+    static func clockStart(of memo: Memo) -> Date {
+        max(memo.recordedAt, memo.keptAt ?? .distantPast)
+    }
+
+    /// The bump — call at every investment site (transcript-edit / title / tag /
+    /// annotation commits, Keep, Bring back). 30 fresh days from `now`.
+    static func touch(_ memo: Memo, now: Date = Date()) {
+        memo.keptAt = now
+    }
+
+    /// Held OFF the clock entirely: rated (the active track), locked, pending
+    /// reminder, or backlinked from a living note. Everything else fades.
+    static func neverFades(_ memo: Memo, backlinked: Set<UUID>) -> Bool {
         if memo.significance > 0 { return true }
-        if memo.transcriptUserEdited { return true }
-        if !(memo.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
-        if !memo.tags.isEmpty { return true }
         if memo.locked { return true }
         if memo.remindAt != nil { return true }
-        if !(memo.annotationText ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
-        if memo.keptAt != nil { return true }
         if backlinked.contains(memo.id) { return true }
         return false
     }
 
-    /// On the Fading shelf: untouched, done processing, not trashed, and past
-    /// `fadeAfterDays`. (Also true past `trashAfterDays` until the sweep runs —
-    /// the shelf keeps showing a note the sweep hasn't reached yet.)
+    /// On the Fading conveyor: a clock-run note past `fadeAfterDays`, done
+    /// processing, not trashed. (Also true past `trashAfterDays` until the sweep
+    /// runs — the surface keeps showing a note the sweep hasn't reached yet.)
     static func isFading(_ memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> Bool {
         guard memo.deletedAt == nil, memo.transcriptStatus == .done else { return false }
-        guard !isTouched(memo, backlinked: backlinked) else { return false }
+        guard !neverFades(memo, backlinked: backlinked) else { return false }
         return age(of: memo, at: now) >= days(fadeAfterDays)
     }
 
@@ -48,14 +57,14 @@ enum MemoLifecycle {
 
     /// When this note will auto-move to Recently Deleted (the countdown label).
     static func fadesAt(_ memo: Memo) -> Date {
-        memo.recordedAt.addingTimeInterval(days(trashAfterDays))
+        clockStart(of: memo).addingTimeInterval(days(trashAfterDays))
     }
 
-    /// When this note crossed (or will cross) onto the Fading shelf — drives the
-    /// phone's unread-style ⋯ dot: lit only for entries NEWER than the last
-    /// shelf visit, dark otherwise (an always-on light is no signal).
+    /// When this note crossed (or will cross) onto the Fading conveyor — drives
+    /// the phone's unread-style ⋯ dot: lit only for entries NEWER than the last
+    /// visit, dark otherwise (an always-on light is no signal).
     static func fadeEntersAt(_ memo: Memo) -> Date {
-        memo.recordedAt.addingTimeInterval(days(fadeAfterDays))
+        clockStart(of: memo).addingTimeInterval(days(fadeAfterDays))
     }
 
     /// Whole days until the auto-move (0 = "fades today"; never negative).
@@ -75,7 +84,7 @@ enum MemoLifecycle {
         return out
     }
 
-    /// Convenience: the corpus split once — (main surfaces, fading shelf).
+    /// Convenience: the corpus split once — (main surfaces, fading conveyor).
     static func partition(_ memos: [Memo], now: Date = Date()) -> (live: [Memo], fading: [Memo]) {
         let backlinked = backlinkedIDs(in: memos)
         var live: [Memo] = [], fading: [Memo] = []
@@ -85,8 +94,31 @@ enum MemoLifecycle {
         return (live, fading)
     }
 
+    // MARK: - one-clock migration (2026-07-22, run once per device)
+
+    /// Old-doctrine parked notes — touched-but-unrated, where edit/title/tag/
+    /// annotation used to BE immortality and never wrote `keptAt` — get a fresh
+    /// clock once, so the doctrine switch can't fade anything out from under the
+    /// user. Idempotent per note (`keptAt == nil` guard); the caller gates the
+    /// pass with a defaults flag and saves the context.
+    @discardableResult
+    static func migrateParkedToOneClock(_ memos: [Memo], now: Date = Date()) -> Int {
+        var bumped = 0
+        for m in memos where m.deletedAt == nil && m.significance == 0 && m.keptAt == nil {
+            let wasParked = m.transcriptUserEdited
+                || !(m.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !m.tags.isEmpty
+                || !(m.annotationText ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            if wasParked {
+                m.keptAt = now
+                bumped += 1
+            }
+        }
+        return bumped
+    }
+
     private static func age(of memo: Memo, at now: Date) -> TimeInterval {
-        now.timeIntervalSince(memo.recordedAt)
+        now.timeIntervalSince(clockStart(of: memo))
     }
     private static func days(_ n: Int) -> TimeInterval { TimeInterval(n) * 86_400 }
 }

@@ -87,10 +87,14 @@ final class WayOutRulesTests: XCTestCase {
                       "got: \(WayOutRules.oneLiner(for: fresh, now: now))")
     }
 
-    func testOneLinerReflectsATouchedMemoAsParked() {
+    func testOneLinerPutsATouchedMemoOnTheClock() {
+        // One clock (2026-07-22): a touch restarts the clock instead of
+        // parking the note — tags alone hold nothing.
         let m = memo(days: 400, significance: 0)
         m.tags = ["garden"]
-        XCTAssertEqual(WayOutRules.oneLiner(for: m, now: now), "kept — tagged")
+        m.keptAt = now.addingTimeInterval(-5 * 86_400)
+        XCTAssertTrue(WayOutRules.oneLiner(for: m, now: now).hasPrefix("starts fading "),
+                      "got: \(WayOutRules.oneLiner(for: m, now: now))")
     }
 
     // MARK: - ③ the footer count (memo trash + Mac-local tail)
