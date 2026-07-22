@@ -78,6 +78,17 @@ enum AlignmentCore {
     /// `AlignmentCore.align`'s output. Nested span/range types are this lane's own
     /// naming (not pinned by BASE.md — only `Result`/`Verdict` are).
     struct Result: Sendable {
+        /// One book word's time span. `direct` = copied verbatim from the transcript
+        /// word the DP matched it to; `!direct` = interpolated between direct
+        /// neighbors. ADDED 2026-07-22 (device catch: collapsing a run to its range
+        /// endpoints and re-distributing linearly drifted mid-range words by SECONDS
+        /// across natural pauses — the read-along highlight trailed the narrator).
+        struct WordTime: Equatable, Sendable {
+            var start: Double
+            var end: Double
+            var direct: Bool
+        }
+
         /// A contiguous run of book words (within ONE `sourceFile`) that got a time,
         /// directly matched or interpolated.
         struct MatchedRange: Equatable, Sendable {
@@ -88,6 +99,10 @@ enum AlignmentCore {
             var bookWordEnd: Int
             var start: Double
             var end: Double
+            /// Per-word times, parallel to `bookWordStart..<bookWordEnd` (same count).
+            /// Defaulted empty so pre-existing fixture constructions stay valid;
+            /// `align` always fills it.
+            var wordTimes: [WordTime] = []
         }
 
         /// An unmatched run of TRANSCRIPT words (e.g. narrator credits with no book
@@ -180,7 +195,11 @@ enum AlignmentCore {
         let matchedRanges = matchedRuns.map { run in
             Result.MatchedRange(sourceFile: run.sourceFile, bookWordStart: run.localStart,
                                  bookWordEnd: run.localEnd, start: bookTime[run.globalStart]!.start,
-                                 end: bookTime[run.globalEnd - 1]!.end)
+                                 end: bookTime[run.globalEnd - 1]!.end,
+                                 wordTimes: (run.globalStart..<run.globalEnd).map {
+                                     let t = bookTime[$0]!
+                                     return Result.WordTime(start: t.start, end: t.end, direct: t.direct)
+                                 })
         }
 
         let unmatchedBookRuns = blockScopedRuns(bookWords) { bookTime[$0] == nil }
@@ -419,6 +438,9 @@ enum AlignmentCore {
     private struct WordSpanTime {
         var start: Double
         var end: Double
+        /// True = copied verbatim from a matched transcript word; false = filled in by
+        /// `interpolateHoles`. Surfaces publicly as `Result.WordTime.direct`.
+        var direct: Bool = true
     }
 
     private enum DPOp: UInt8 {
@@ -535,7 +557,7 @@ enum AlignmentCore {
                 for k in 0..<holeLen {
                     let frac = Double(k + 1) / Double(holeLen + 1)
                     let t = left.end + (right.start - left.end) * frac
-                    bookTime[i + k] = WordSpanTime(start: t, end: t)
+                    bookTime[i + k] = WordSpanTime(start: t, end: t, direct: false)
                 }
             }
             i = j

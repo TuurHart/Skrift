@@ -67,7 +67,12 @@ struct ChapterMark: Codable, Equatable, Sendable {
 /// (`alignment_f<n>.json`, beside `transcript_f<n>.json`).
 struct FileAlignment: Codable, Equatable, Sendable {
     /// Bumped if the on-disk shape changes — an older sidecar then reads as absent (re-aligned).
-    static let currentSchema = 1
+    /// 1→2 (2026-07-22): word times became EXACT (per-word from the aligner) instead of
+    /// linearly re-distributed across matched ranges, and `confidence` became the
+    /// direct-matched fraction. The schema-gated load treats v1 sidecars as missing, so
+    /// every attached book silently re-aligns on its next open (alignIfNeeded) — the
+    /// drifted-highlight fix reaches existing installs without any user action.
+    static let currentSchema = 2
 
     var schema: Int = currentSchema
     /// Which file of the book this covers (`Audiobook.files` index).
@@ -276,7 +281,29 @@ enum BookAlignmentRunner {
             }
             staleIndices.append(i)
         }
-        guard !staleIndices.isEmpty else { return }
+        guard !staleIndices.isEmpty else {
+            // SELF-HEAL (2026-07-22 device catch): nothing to re-align, but the DERIVED
+            // chapter list may still disagree with what's stored — e.g. sidecars written
+            // by a build whose derivation let rejected files claim TOC entries (the
+            // phantom-chapters bug). Recomputing from disk is a cheap pure pass; persist
+            // only on a real difference, so the routine book-open case writes nothing.
+            let current: [FileAlignment?] = book.files.indices.map {
+                alignmentStore.fileAlignment(bookID: bookID, fileIndex: $0)
+            }
+            let derived = epubChapters(from: current, fileStartTimes: book.fileStartTimes,
+                                       bookDuration: book.duration)
+            if !derived.isEmpty || book.epubChapters?.isEmpty == false, book.epubChapters != derived {
+                await MainActor.run {
+                    guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
+                    fresh.epubChapters = derived
+                    fresh.modifiedAt = Date()
+                    AudiobookLibraryStore.shared.update(fresh)
+                    AudiobookSession.shared.refreshFromStore()
+                }
+                DevLog.log("bookAlign[\(bookID)] self-heal: epubChapters re-derived (\(derived.count) entries)")
+            }
+            return
+        }
 
         // Bare closure, as in `attach` — the outer `let` annotation supplies the async+throws-
         // free effect signature the compiler needs (this closure only ever returns, never throws;
@@ -350,7 +377,8 @@ enum BookAlignmentRunner {
         var current: [FileAlignment?] = book.files.indices.map { i in
             justAligned[i] ?? store.fileAlignment(bookID: bookID, fileIndex: i)
         }
-        let marks = assignChapterMarks(toc: toc, sentencesByFile: current.map { $0?.sentences ?? [] })
+        let marks = assignChapterMarks(toc: toc, sentencesByFile: current.map { $0?.sentences ?? [] },
+                                       verdicts: current.map { $0?.verdict ?? "" })
         for i in current.indices {
             guard var fa = current[i], fa.chapterMarks != marks[i] else { continue }
             fa.chapterMarks = marks[i]
@@ -436,16 +464,32 @@ enum BookAlignmentRunner {
         guard !words.isEmpty else { return [] }
 
         var wordTimes = [WordTiming?](repeating: nil, count: words.count)
+        var wordDirect = [Bool](repeating: false, count: words.count)
         for range in matchedRanges where range.sourceFile == sourceFile {
             let lo = max(0, range.bookWordStart)
             let hi = min(words.count, range.bookWordEnd)
             guard hi > lo else { continue }
             let count = hi - lo
-            let span = range.end - range.start
-            for k in 0..<count {
-                let t0 = range.start + span * Double(k) / Double(count)
-                let t1 = range.start + span * Double(k + 1) / Double(count)
-                wordTimes[lo + k] = WordTiming(word: words[lo + k].word, start: t0, end: t1)
+            if range.wordTimes.count == count {
+                // Exact per-word times from the aligner (2026-07-22 device fix: the old
+                // linear re-distribution across the range drifted mid-range words by
+                // SECONDS over natural pauses — median sentence-end lag ~1 s, p90 +5.6 s
+                // measured on the real Steal f0 sidecar; the highlight trailed the voice).
+                for k in 0..<count {
+                    let wt = range.wordTimes[k]
+                    wordTimes[lo + k] = WordTiming(word: words[lo + k].word, start: wt.start, end: wt.end)
+                    wordDirect[lo + k] = wt.direct
+                }
+            } else {
+                // Defensive fallback (hand-built fixtures / any future range without the
+                // parallel array): the old linear distribution, all words counted direct.
+                let span = range.end - range.start
+                for k in 0..<count {
+                    let t0 = range.start + span * Double(k) / Double(count)
+                    let t1 = range.start + span * Double(k + 1) / Double(count)
+                    wordTimes[lo + k] = WordTiming(word: words[lo + k].word, start: t0, end: t1)
+                    wordDirect[lo + k] = true
+                }
             }
         }
 
@@ -459,7 +503,11 @@ enum BookAlignmentRunner {
             let sentenceText = String(text[words[s].range.lowerBound..<words[e - 1].range.upperBound])
             let sStart = timed.first!.start
             let sEnd = timed.last!.end
-            let confidence = Double(timed.count) / Double(e - s)
+            // DIRECT-matched fraction (2026-07-22, with the exact-times fix): an
+            // interpolated word is a guess, not a match — a sentence that's mostly
+            // guesses should fall back to ASR text, which timed-count never captured.
+            let direct = (s..<e).filter { wordDirect[$0] && wordTimes[$0] != nil }.count
+            let confidence = Double(direct) / Double(e - s)
             let asrRange = transcriptIndexRange(transcriptWords, start: sStart, end: sEnd)
             sentences.append(AlignedSentence(
                 text: sentenceText, start: sStart, end: sEnd,
@@ -528,10 +576,17 @@ enum BookAlignmentRunner {
     /// sentences in order. Returns one `[ChapterMark]` per file (same count/order as
     /// `sentencesByFile`); a TOC entry with no match anywhere is skipped entirely (front matter
     /// the aligner never covered, or an epub-internal file this book's audio never reached).
-    static func assignChapterMarks(toc: [EPubTOCEntry], sentencesByFile: [[AlignedSentence]]) -> [[ChapterMark]] {
+    /// ONLY `aligned` files may claim a TOC entry (device catch, 2026-07-22: a REJECTED
+    /// trilogy-sibling file still carries spurious matched sentences — on the real Steal
+    /// pair, 6 front-matter TOC entries f0 couldn't claim were grabbed by rejected f1,
+    /// planting phantom chapters with junk times in the book-2 region). `verdicts` runs
+    /// parallel to `sentencesByFile`; anything but `aligned` contributes nothing.
+    static func assignChapterMarks(toc: [EPubTOCEntry], sentencesByFile: [[AlignedSentence]],
+                                   verdicts: [String]) -> [[ChapterMark]] {
         var marks = Array(repeating: [ChapterMark](), count: sentencesByFile.count)
+        let aligned = AlignmentCore.Verdict.aligned.rawValue
         for entry in toc {
-            for fileIdx in sentencesByFile.indices {
+            for fileIdx in sentencesByFile.indices where verdicts.indices.contains(fileIdx) && verdicts[fileIdx] == aligned {
                 if let si = sentencesByFile[fileIdx].firstIndex(where: { $0.sourceFile == entry.sourceFile }) {
                     marks[fileIdx].append(ChapterMark(title: entry.title, sentenceIndex: si))
                     break
@@ -552,7 +607,10 @@ enum BookAlignmentRunner {
                              bookDuration: TimeInterval) -> [AudiobookChapter] {
         var entries: [(title: String, start: TimeInterval)] = []
         for (i, fa) in fileAlignments.enumerated() {
-            guard let fa else { continue }
+            // Non-aligned files never contribute chapters, even if stale sidecars still
+            // carry marks (same device catch as `assignChapterMarks` — belt and braces so
+            // a receiver deriving from OLD synced sidecars is immune too).
+            guard let fa, fa.verdict == AlignmentCore.Verdict.aligned.rawValue else { continue }
             let base = fileStartTimes.indices.contains(i) ? fileStartTimes[i] : 0
             for mark in fa.chapterMarks where fa.sentences.indices.contains(mark.sentenceIndex) {
                 entries.append((mark.title, base + fa.sentences[mark.sentenceIndex].start))

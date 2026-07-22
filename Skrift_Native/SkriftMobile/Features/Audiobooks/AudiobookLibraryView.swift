@@ -46,6 +46,10 @@ struct AudiobookLibraryView: View {
     @State private var showAttachImporter = false
     /// The picked file couldn't be read/copied at all (I/O-level failure).
     @State private var attachError: String?
+    /// Success/partial attach outcome — an ALERT (2026-07-22 device round: the
+    /// 1.6 s toast was invisible in practice; the user saw "no indication that
+    /// anything changed"). One message string; fixed title.
+    @State private var attachOutcome: String?
     /// `attach()` ran but every file's verdict was `.rejected` — offer to
     /// keep it (try again after transcribing more) or remove it now.
     @State private var attachRejected: Audiobook?
@@ -158,6 +162,15 @@ struct AudiobookLibraryView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importNotice ?? "")
+        }
+        // 📖 Attach worked (fully or partially) — explicit, user-dismissed.
+        .alert("Book text attached", isPresented: .init(
+            get: { attachOutcome != nil },
+            set: { if !$0 { attachOutcome = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(attachOutcome ?? "")
         }
         // 📖 The picked file itself couldn't be read/copied — kept separate
         // from "Import failed" above (that one's copy is audio-import-specific).
@@ -601,14 +614,24 @@ struct AudiobookLibraryView: View {
     /// partially) or when there's no transcript yet to align against, or the
     /// reject-confirm alert when every file came back rejected.
     private func runAttach(url: URL, book: Audiobook) async {
+        // The busy toast persists for the whole run (unzip + parse + N alignments can take
+        // several seconds) — the 2026-07-22 device round found a silent gap here: the picker
+        // dismissed, nothing visibly happened, and the outcome was a 1.6 s toast that had
+        // already come and gone. Outcomes are ALERTS now — explicit, user-dismissed.
+        withAnimation(.easeOut(duration: 0.2)) { attachToast = "Checking the text against this audiobook…" }
+        defer { withAnimation(.easeIn(duration: 0.3)) { attachToast = nil } }
         do {
             let summary = try await BookAlignmentRunner.attach(bookFileAt: url, bookID: book.id)
             if summary.totalFiles == 0 {
-                showAttachToast("Attached — aligns after transcription")
+                attachOutcome = "No transcript yet — the text will align on its own when transcription finishes."
             } else if summary.alignedFiles == 0 {
                 attachRejected = book
+            } else if summary.alignedFiles == summary.totalFiles {
+                attachOutcome = summary.totalFiles == 1
+                    ? "The text matches this audiobook. Read-along and quote captures now use the book\u{2019}s own words, and chapters come from its real table of contents."
+                    : "All \(summary.totalFiles) files match this text. Read-along and quote captures now use the book\u{2019}s own words, and chapters come from its real table of contents."
             } else {
-                showAttachToast("Aligned \(summary.alignedFiles) of \(summary.totalFiles) files")
+                attachOutcome = "The text matches \(summary.alignedFiles) of \(summary.totalFiles) audio files — most likely one book of a multi-book audiobook. Where it matches, read-along and captures use the published text and chapters come from its table of contents; the other files keep the transcript."
             }
         } catch {
             attachError = error.localizedDescription
@@ -627,13 +650,6 @@ struct AudiobookLibraryView: View {
         store.update(fresh)
     }
 
-    private func showAttachToast(_ text: String) {
-        withAnimation(.easeOut(duration: 0.2)) { attachToast = text }
-        Task {
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
-            withAnimation(.easeIn(duration: 0.3)) { attachToast = nil }
-        }
-    }
 }
 
 /// One-time editable confirm sheet, shown ONLY when the file's tags were

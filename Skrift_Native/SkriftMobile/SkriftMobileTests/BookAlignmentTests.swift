@@ -155,6 +155,33 @@ final class SentenceAssemblyTests: XCTestCase {
         XCTAssertEqual(s.wordEnd, 5)
     }
 
+    /// 2026-07-22 drift fix: when the range carries the aligner's per-word times, assembly
+    /// uses them VERBATIM (no linear re-distribution — that drifted mid-range words by
+    /// seconds across pauses), and confidence counts only DIRECT-matched words.
+    func testExactWordTimesUsedVerbatimAndConfidenceCountsDirectOnly() {
+        let text = "Alpha beta gamma delta."
+        // 4 words: alpha exact [0,1], beta exact [1,2], then a LONG PAUSE — gamma
+        // interpolated at ~9.5, delta exact [10,11]. Linear distribution over the range
+        // [0,11] would have put beta at ~2.75 and gamma at ~5.5 (seconds off).
+        let wt: [AlignmentCore.Result.WordTime] = [
+            .init(start: 0, end: 1, direct: true),
+            .init(start: 1, end: 2, direct: true),
+            .init(start: 9.5, end: 9.5, direct: false),
+            .init(start: 10, end: 11, direct: true),
+        ]
+        let ranges = [AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 0,
+                                                        bookWordEnd: 4, start: 0, end: 11,
+                                                        wordTimes: wt)]
+        let sentences = BookAlignmentRunner.assembleSentences(text: text, sourceFile: "f",
+                                                               matchedRanges: ranges, transcriptWords: [])
+        XCTAssertEqual(sentences.count, 1)
+        let s = sentences[0]
+        XCTAssertEqual(s.words[1].start, 1, accuracy: 0.001)      // exact, not 2.75
+        XCTAssertEqual(s.words[2].start, 9.5, accuracy: 0.001)    // interpolated point time
+        XCTAssertEqual(s.end, 11, accuracy: 0.001)
+        XCTAssertEqual(s.confidence, 0.75, accuracy: 0.001)       // 3 direct of 4
+    }
+
     func testPartialConfidenceWhenSomeWordsUnmatched() {
         let text = "Alpha beta gamma delta."
         // Only "gamma" (word index 2 of 4) gets a time; the rest of the sentence stays untimed.
@@ -217,7 +244,8 @@ final class ChapterDerivationTests: XCTestCase {
                    EPubTOCEntry(title: "Ch 2", sourceFile: "b.xhtml", fragment: nil)]
         let file0 = [sentence("a.xhtml", start: 0), sentence("a.xhtml", start: 10)]
         let file1 = [sentence("b.xhtml", start: 0)]
-        let marks = BookAlignmentRunner.assignChapterMarks(toc: toc, sentencesByFile: [file0, file1])
+        let marks = BookAlignmentRunner.assignChapterMarks(toc: toc, sentencesByFile: [file0, file1],
+                                                           verdicts: ["aligned", "aligned"])
         XCTAssertEqual(marks[0], [ChapterMark(title: "Ch 1", sentenceIndex: 0)])
         XCTAssertEqual(marks[1], [ChapterMark(title: "Ch 2", sentenceIndex: 0)])
     }
@@ -225,12 +253,36 @@ final class ChapterDerivationTests: XCTestCase {
     func testSkipsTocEntryWithNoAlignedSentenceAnywhere() {
         let toc = [EPubTOCEntry(title: "Missing", sourceFile: "nope.xhtml", fragment: nil),
                    EPubTOCEntry(title: "Found", sourceFile: "a.xhtml", fragment: nil)]
-        let marks = BookAlignmentRunner.assignChapterMarks(toc: toc, sentencesByFile: [[sentence("a.xhtml", start: 5)]])
+        let marks = BookAlignmentRunner.assignChapterMarks(toc: toc, sentencesByFile: [[sentence("a.xhtml", start: 5)]],
+                                                           verdicts: ["aligned"])
         XCTAssertEqual(marks[0], [ChapterMark(title: "Found", sentenceIndex: 0)])
     }
 
+    /// Regression (2026-07-22 device catch, the phantom-chapters bug): a REJECTED file's
+    /// spurious matched sentences must never claim a TOC entry — on the real Steal pair,
+    /// 6 front-matter entries the aligned file couldn't claim were grabbed by a rejected
+    /// trilogy-sibling file, planting real-titled chapters at junk times.
+    func testRejectedFileNeverClaimsTocEntries() {
+        let toc = [EPubTOCEntry(title: "Copyright", sourceFile: "fm.xhtml", fragment: nil)]
+        let rejectedOnly = BookAlignmentRunner.assignChapterMarks(
+            toc: toc, sentencesByFile: [[], [sentence("fm.xhtml", start: 7)]],
+            verdicts: ["aligned", "rejected"])
+        XCTAssertEqual(rejectedOnly, [[], []], "the rejected file's sentence must not claim the entry")
+    }
+
+    func testEpubChaptersIgnoresRejectedFileAlignments() {
+        var rejected = FileAlignment(fileIndex: 0, transcriptSignature: "", epubSignature: "",
+                                     verdict: "rejected")
+        rejected.sentences = [sentence("fm.xhtml", start: 7)]
+        rejected.chapterMarks = [ChapterMark(title: "Phantom", sentenceIndex: 0)]   // stale v1-era mark
+        XCTAssertEqual(BookAlignmentRunner.epubChapters(from: [rejected], fileStartTimes: [0],
+                                                        bookDuration: 100), [],
+                       "marks stored on a rejected sidecar must be inert")
+    }
+
     func testEmptyTocProducesNoMarks() {
-        let marks = BookAlignmentRunner.assignChapterMarks(toc: [], sentencesByFile: [[sentence("a.xhtml", start: 0)]])
+        let marks = BookAlignmentRunner.assignChapterMarks(toc: [], sentencesByFile: [[sentence("a.xhtml", start: 0)]],
+                                                           verdicts: ["aligned"])
         XCTAssertEqual(marks, [[]])
     }
 
