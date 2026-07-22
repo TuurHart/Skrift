@@ -40,6 +40,8 @@ struct AppTabView: View {
     @State private var selection: Tab = AppTabView.initialTab()
     /// `-showTOCSheet` screenshot hook (see the `.sheet` below).
     @State private var showSeededTOC = false
+    /// Keyboard `.commands` (⌘1–⌘4 + the tab-switch half of ⌘N/⌘F) post here.
+    @ObservedObject private var tabBridge = TabSelectionBridge.shared
 
     var body: some View {
         TabView(selection: $selection) {
@@ -63,6 +65,15 @@ struct AppTabView: View {
                 .tag(Tab.settings)
         }
         .tint(.skAccent)
+        // iPadOS 18 top tab strip (+ a free sidebar the user can pull open);
+        // compact width falls back to the standard bottom tab bar, so the phone
+        // is pixel-untouched. `selection`/`-openTab` routing is unaffected.
+        .tabViewStyle(.sidebarAdaptable)
+        // Let the app-level keyboard shortcuts switch tabs (⌘1–⌘4, and the
+        // tab-focus half of ⌘N/⌘F). One-shot: consume + clear.
+        .onChange(of: tabBridge.requestedTab) { _, tab in
+            if let tab { selection = tab; tabBridge.requestedTab = nil }
+        }
         // Sim seed hooks only (screenshots/UITests — a real book is device-only,
         // which is how the build-40 overlap shipped unseen): `-seedAudiobook`
         // fabricates a LIVE session (the V2a pill state); `-seedAudiobookIdle`
