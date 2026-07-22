@@ -127,7 +127,7 @@ struct BookTextSheet: View {
             .background(Color.skElev)
         }
         .frame(height: 14)
-        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .clipShape(RoundedRectangle.sk(7))
         .accessibilityLabel(barAccessibilityLabel)
     }
 
@@ -162,7 +162,7 @@ struct BookTextSheet: View {
 
     private func legendChip(color: Color, label: String) -> some View {
         HStack(spacing: 5) {
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
+            RoundedRectangle.sk(3)
                 .fill(color)
                 .frame(width: 9, height: 9)
             Text(label)
@@ -213,7 +213,7 @@ struct BookTextSheet: View {
                 .foregroundStyle(Color.skTextDim)
         }
         .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
-        .background(Color.skElev, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color.skElev, in: RoundedRectangle.sk(14))
         .accessibilityIdentifier("book-text-row-\(text.filename)")
     }
 
@@ -239,7 +239,7 @@ struct BookTextSheet: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle.sk(14)
                         .strokeBorder(Color.skAccent.opacity(0.45), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
                 )
         }
