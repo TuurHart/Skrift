@@ -818,3 +818,44 @@ final class CloudSignaturePartTests: XCTestCase {
         XCTAssertNotEqual(before, fa.cloudSignaturePart())
     }
 }
+
+// MARK: - orphanedAttachedTexts (re-adoption after the attach fields were lost)
+
+/// 2026-07-22 Odyssey report: pre-persistence-fix builds forgot the attachment on relaunch
+/// while the text file + sidecars stayed in the book folder. `alignIfNeeded` re-adopts from
+/// disk — this pins what counts as an orphaned attached text.
+final class OrphanedAttachedTextsTests: XCTestCase {
+    private func makeFolder(files: [String]) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("orphan_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        for f in files {
+            try Data("x".utf8).write(to: dir.appendingPathComponent(f))
+        }
+        return dir
+    }
+
+    func testFindsEpubAndTxtButNeverAudioSidecarsOrCover() throws {
+        let dir = try makeFolder(files: [
+            "odyssey.epub", "notes.txt", "book.m4b", "cover.jpg",
+            "transcript_f0.json", "alignment_f0.json",
+        ])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        XCTAssertEqual(BookAlignmentRunner.orphanedAttachedTexts(inFolder: dir, audioFiles: ["book.m4b"]),
+                       ["notes.txt", "odyssey.epub"], "sorted; only attachable text types")
+    }
+
+    func testAudioFilesWithTextExtensionsAreExcluded() throws {
+        // A (pathological) book whose AUDIO list claims a .txt name must not re-adopt it.
+        let dir = try makeFolder(files: ["weird.txt", "real.epub"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        XCTAssertEqual(BookAlignmentRunner.orphanedAttachedTexts(inFolder: dir, audioFiles: ["weird.txt"]),
+                       ["real.epub"])
+    }
+
+    func testMissingFolderYieldsNothing() {
+        let gone = FileManager.default.temporaryDirectory
+            .appendingPathComponent("orphan_missing_\(UUID().uuidString)", isDirectory: true)
+        XCTAssertEqual(BookAlignmentRunner.orphanedAttachedTexts(inFolder: gone, audioFiles: []), [])
+    }
+}

@@ -347,9 +347,30 @@ enum BookAlignmentRunner {
     /// wins, globally" invariant can't drift between files aligned now and files aligned earlier.
     static func alignIfNeeded(bookID: UUID) async {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else { return }
-        let names = book.attachedTextFilenames
-        guard !names.isEmpty else { return }
         let folder = BookTranscriptStore().folder(forBookID: bookID)
+        var names = book.attachedTextFilenames
+        if names.isEmpty {
+            // RE-ADOPT (2026-07-22 Odyssey device report): builds before the Codable
+            // persistence fix encoded Audiobook WITHOUT the attach fields, so a plain
+            // relaunch forgot the attachment — while the attached file + sidecars still
+            // sit in the book folder (attach copies the file there; removeText deletes
+            // it, so a text file present on disk always means "attached"). Adopt what's
+            // on disk and continue; the fresh-sidecar self-heal below then restores
+            // `epubChapters` without recomputing anything. Alphabetical order — the
+            // original attach order is unrecoverable, and order only tie-breaks
+            // sentence collisions between multiple texts.
+            names = orphanedAttachedTexts(inFolder: folder, audioFiles: book.files)
+            guard !names.isEmpty else { return }
+            let adopted = names
+            await MainActor.run {
+                guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
+                fresh.epubFilenames = adopted
+                fresh.epubFilename = adopted.first
+                fresh.modifiedAt = Date()
+                AudiobookLibraryStore.shared.update(fresh)
+            }
+            DevLog.log("bookAlign[\(bookID)] re-adopted orphaned attached texts: \(adopted)")
+        }
         let localNames = names.filter { FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
         guard !localNames.isEmpty else { return }
 
@@ -741,6 +762,10 @@ enum BookAlignmentRunner {
                                     bookDuration: book.duration,
                                     detected: book.detectedChapters,
                                     fileDurations: book.fileDurations)
+        // Pullable trace for chapter-source bugs (the Odyssey report was undiagnosable
+        // from the devlog): TOC size per text, how many marks landed, what got derived.
+        let markCount = current.reduce(0) { $0 + ($1?.chapterMarks.count ?? 0) }
+        DevLog.log("bookAlign[\(bookID)] chapters: toc \(precomputedTOC.mapValues(\.count)) → \(markCount) marks → \(chapters.count) epub chapters")
         await MainActor.run {
             guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
             if let newlyAttachedFilename {
@@ -859,6 +884,20 @@ enum BookAlignmentRunner {
             throw AttachError.unreadable
         }
         return EPubBook(blocks: [EPubBlock(text: text, sourceFile: url.lastPathComponent)], toc: [], drm: .none)
+    }
+
+    /// Attachable text files (`.epub`/`.txt`) sitting in the book folder that aren't audio
+    /// files — the disk is the durable truth for "what's attached" (`attach` copies the file
+    /// in, `removeText` deletes it; nothing else ever puts a text file there). Used by
+    /// `alignIfNeeded` to re-adopt an attachment a pre-persistence-fix build forgot.
+    /// Sorted for determinism.
+    static func orphanedAttachedTexts(inFolder folder: URL, audioFiles: [String]) -> [String] {
+        let attachable: Set<String> = ["epub", "txt"]
+        let audio = Set(audioFiles)
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return entries
+            .filter { attachable.contains(URL(fileURLWithPath: $0).pathExtension.lowercased()) && !audio.contains($0) }
+            .sorted()
     }
 
     // MARK: - Block merge (the local-word-index fix — see file header)
