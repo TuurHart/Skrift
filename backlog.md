@@ -365,8 +365,26 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
      MergedCaptureView swaps (trim/audio-export math untouched) + library context-menu
      "Attach book text…" (fileImporter .epub/.txt, verdict toast, wrong-book alert
      Keep-anyway/Remove, "Replace book text…" when attached).
-   **OWED — device round (✅ b94 INSTALLED 2026-07-21 night, device lists version 94 —
-   only Tuur's eyes left):** AirDrop the Steal ePub to the phone (Files) →
+   **✅ DEVICE ROUND 1 (Tuur, 2026-07-22 am) → fix wave SHIPPED same hour (b95 INSTALLED):**
+   three findings, all fixed + verified: (1) **highlight trailed the narrator** — the
+   sentence assembly linearly re-distributed each matched range's time span across its
+   words, drifting seconds over natural pauses (measured on the phone's own f0 sidecar:
+   85.4% of words >0.3s off, sentence-END lag median +1s / p90 +5.6s). AlignmentCore now
+   surfaces the DP's per-word times verbatim (`MatchedRange.wordTimes` + `direct` flag),
+   assembly consumes them, confidence = direct fraction; re-measured offline on the same
+   real pair: **median drift 0.0000s, 2.07% >0.3s**. `FileAlignment` schema 1→2 →
+   attached books silently re-align on next open. (2) **phantom chapters** — REJECTED
+   trilogy-sibling files claimed the 6 front-matter TOC entries f0 couldn't
+   (`assignChapterMarks`/`epubChapters` had no verdict gate; f1 carried 6 junk-timed
+   marks). Both derivation points now aligned-only + a cheap self-heal re-derives
+   `epubChapters` on book open. (3) **"no indication anything changed"** — the outcome
+   was a 1.6s toast fired after seconds of silent processing; now a persistent
+   "Checking the text…" busy toast + explicit user-dismissed ALERTS, incl. honest
+   multi-book copy ("matches N of M — likely one book of a multi-book audiobook").
+   Mobile 808/0 + desktop suite green. Sync note (accepted, iPad-scale): a receiver
+   holding v1 sidecars whose source signature didn't change won't re-pull until the
+   next signature change — irrelevant while the phone is the only aligner.
+   **REMAINING (eyes, b95):** AirDrop the Steal ePub to the phone (Files) →
    Books → long-press Steal Like an Artist → Attach book text… → expect "Aligned 1 of 4
    files" (the trilogy: file 1 = book 1, rest honestly rejected) → read-along shows
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
