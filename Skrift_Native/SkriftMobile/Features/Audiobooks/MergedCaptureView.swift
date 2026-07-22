@@ -60,6 +60,10 @@ struct MergedCaptureView: View {
     private static let liveForwardSeconds: TimeInterval = 45
 
     private let transcripts = BookTranscriptStore()
+    /// 📖 True-text source (spike 6) — see `AlignedSentenceSource`; the sidecar
+    /// branch below tries it first so the saved quote is the VERBATIM published
+    /// sentence wherever the alignment trusts its own match.
+    private let alignmentStore = BookAlignmentStore(directory: AudiobookLibraryStore.shared.directory)
     @ObservedObject private var session = AudiobookSession.shared
     @State private var state: LoadState = .loading
     @State private var sel = TextCaptureSelection(lo: 0, hi: 0)
@@ -359,12 +363,35 @@ struct MergedCaptureView: View {
         // (the rest stay hidden — no infinite scroll). Sidecar = instant.
         if let ft = transcripts.fileTranscript(bookID: book.id, fileIndex: fileIndex, audioURL: audioURL),
            ft.isCovered(upTo: winEnd) {
-            // Window the words BEFORE sentence-building — this used to run the
-            // NLTokenizer over the entire covered book to display ~90s. Pads keep
-            // the sentences spanning the window edges intact (display range below
-            // never reaches past them).
-            let windowed = ft.words(inWindow: winStart - 30, end: winEnd + 150)
-            let all = QuoteCaptureProcessor.buildSentences(from: windowed, snappedStart: 0, snappedEnd: 0)
+            // 📖 True text first (spike 6): the aligned sentence list is keyed
+            // off the FULL file transcript (its wordStart/wordEnd splice
+            // indices are into `ft.words`, not a windowed slice — matching
+            // ReadAlongView's usage), then trimmed to the same ±window the
+            // un-aligned path below transcribes/displays so the capIdx/
+            // displayLo/displayHi math (incl. its rare empty-window fallback)
+            // behaves identically either way. This never re-runs NLTokenizer
+            // over the whole book — the aligned branch does no per-load
+            // sentence-splitting at all (LANE_CORE split once, into the
+            // sidecar); only a low-confidence sentence's own small ASR splice
+            // ever calls buildSentences here.
+            let fa = alignmentStore.fileAlignment(bookID: book.id, fileIndex: fileIndex)
+            let fresh = fa.map {
+                alignmentStore.isFresh($0, bookID: book.id, fileIndex: fileIndex, audioURL: audioURL)
+            } ?? false
+            let all: [BufferSentence]
+            if let aligned = AlignedSentenceSource.sentences(
+                alignment: fa, isFresh: fresh, transcriptWords: ft.words,
+                snappedStart: 0, snappedEnd: 0
+            ) {
+                all = aligned.filter { $0.end > winStart - 30 && $0.start < winEnd + 150 }
+            } else {
+                // Window the words BEFORE sentence-building — this used to run
+                // the NLTokenizer over the entire covered book to display
+                // ~90s. Pads keep the sentences spanning the window edges
+                // intact (display range below never reaches past them).
+                let windowed = ft.words(inWindow: winStart - 30, end: winEnd + 150)
+                all = QuoteCaptureProcessor.buildSentences(from: windowed, snappedStart: 0, snappedEnd: 0)
+            }
             guard !all.isEmpty else { state = .empty; return }
             let capIdx = all.lastIndex(where: { $0.start <= winEnd }) ?? (all.count - 1)
             sel = TextCaptureSelection(lo: capIdx, hi: capIdx)
