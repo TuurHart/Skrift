@@ -54,6 +54,11 @@ struct SkriftApp: App {
         // Register the whole-book background-transcribe handler before the scene
         // connects (BGTaskScheduler requires registration at launch).
         BookBackgroundScheduler.register()
+
+        // Polish on this iPad (wave 1): installs the on-demand engine on capable
+        // pads; a no-op everywhere else (PolishCenter stays unavailable and no
+        // polish UI appears).
+        PolishBootstrap.installEngineIfSupported()
     }
 
     var body: some Scene {

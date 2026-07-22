@@ -10,8 +10,9 @@ import SwiftData
 ///
 /// Carries the enhanced **pieces** (copy-edit / title / summary), not a pre-compiled
 /// markdown blob — the phone re-compiles + re-links from them via the shared `Compiler` +
-/// `MemoLinking` (deterministic, no drift). Written ONLY by the Mac (the phone has no
-/// enhancement engine); LWW by `enhancedAt` if two Macs ever write.
+/// `MemoLinking` (deterministic, no drift). Any device may author one — the Mac's batch
+/// polisher and, since iPad wave 1 (2026-07-22), the iPad's on-demand `PolishCenter`
+/// (same model, same `PolishPrompts`); LWW by `enhancedAt` between writers.
 ///
 /// CloudKit shape rules (mirror `Memo`/`MemoAsset`): every attribute has a default, and
 /// there is NO `@Attribute(.unique)` (uniqueness is app-level — one enhancement per memo,
