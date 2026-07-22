@@ -398,6 +398,15 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
 
+**📖 ROUND 4 (b101+b102): sheet DEVICE-CONFIRMED end-to-end.** b100 bar verified (one block +
+sliver, 22%); "partial"→"full match" tolerance 0.97→0.95 (real f1 = 96.7%, credits absorb);
+the 44s calendar-art gap (narrator reads Kleon's hand-lettered calendar page — image-only in
+the ePub: "…Don't break the chain." → gap → "Just as you need a chart of past…") was rendering
+~5× too wide — the mock-copied 2pt inter-segment spacing is GONE, bar = grey background +
+colored overlays at exact fractions, strictly time-true (Tuur: "I do like the truth in this
+player"). Interleaved-trilogy theory REFUTED with data (95.5% monotonic = sequential).
+Reaffirmed parked: ePub images in the reader (the calendar gap = the demo case).
+
 **📖 ROUND 3 (same session, b100 INSTALLED):** re-attach WORKED on b99 (alert + sheet live on
 device) but the bar sprinkled confetti + "37% / 1 h 41" — `textSummary` counted the text's
 sentences from files whose per-text verdict was REJECTED; now aligned-files-only (regression
