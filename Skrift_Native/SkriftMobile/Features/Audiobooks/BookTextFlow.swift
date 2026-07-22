@@ -47,42 +47,15 @@ struct BookTextFlow: ViewModifier {
                     attachBook = book
                     showImporter = true
                 }
-            }
-            .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.attachTypes) { result in
-                guard let book = attachBook, case .success(let url) = result else { return }
-                Task { await runAttach(url: url, book: book) }
-            }
-            .alert("Book text attached", isPresented: .init(
-                get: { outcome != nil },
-                set: { if !$0 { outcome = nil } }
-            )) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(outcome ?? "")
-            }
-            .alert("Couldn\u{2019}t attach book text", isPresented: .init(
-                get: { attachError != nil },
-                set: { if !$0 { attachError = nil } }
-            )) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(attachError ?? "")
-            }
-            // "Keep anyway" (.cancel role → the alert's default/bold treatment) leaves it
-            // attached in case a later re-transcribe changes the picture; "Remove" detaches
-            // exactly THIS text via `removeText` (other attached texts untouched).
-            .alert("This doesn\u{2019}t look like this audiobook\u{2019}s text", isPresented: .init(
-                get: { rejected != nil },
-                set: { if !$0 { rejected = nil } }
-            ), presenting: rejected.map(\.book)) { _ in
-                Button("Keep anyway", role: .cancel) {}
-                Button("Remove", role: .destructive) {
-                    if let rejected {
-                        Task { await BookAlignmentRunner.removeText(filename: rejected.filename, bookID: rejected.book.id) }
-                    }
+                // The picker + alerts hang OFF THE SHEET's own content (device finding
+                // 2026-07-22: "that button does not function" — a fileImporter attached
+                // to the covered presenting view silently refuses to present on iOS 26;
+                // presentations must originate from the topmost presented controller).
+                .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.attachTypes) { result in
+                    guard let book = attachBook, case .success(let url) = result else { return }
+                    Task { await runAttach(url: url, book: book) }
                 }
-            } message: { _ in
-                Text("Checking it against the transcript didn\u{2019}t find a match. You can keep it and try again later, or remove it now.")
+                .bookTextAlerts(outcome: $outcome, attachError: $attachError, rejected: $rejected)
             }
     }
 
@@ -114,5 +87,44 @@ extension View {
     /// Attach the full "Book text" flow (sheet + picker + alerts) to this surface.
     func bookTextFlow(book: Binding<Audiobook?>) -> some View {
         modifier(BookTextFlow(sheetBook: book))
+    }
+
+    /// The three attach-outcome alerts, hung off the SHEET's content (they must
+    /// originate from the topmost presented controller to show over it).
+    func bookTextAlerts(outcome: Binding<String?>, attachError: Binding<String?>,
+                        rejected: Binding<(book: Audiobook, filename: String)?>) -> some View {
+        self
+            .alert("Book text attached", isPresented: .init(
+                get: { outcome.wrappedValue != nil },
+                set: { if !$0 { outcome.wrappedValue = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(outcome.wrappedValue ?? "")
+            }
+            .alert("Couldn\u{2019}t attach book text", isPresented: .init(
+                get: { attachError.wrappedValue != nil },
+                set: { if !$0 { attachError.wrappedValue = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(attachError.wrappedValue ?? "")
+            }
+            // "Keep anyway" (.cancel role → the alert's default/bold treatment) leaves it
+            // attached in case a later re-transcribe changes the picture; "Remove" detaches
+            // exactly THIS text via `removeText` (other attached texts untouched).
+            .alert("This doesn\u{2019}t look like this audiobook\u{2019}s text", isPresented: .init(
+                get: { rejected.wrappedValue != nil },
+                set: { if !$0 { rejected.wrappedValue = nil } }
+            ), presenting: rejected.wrappedValue.map(\.book)) { _ in
+                Button("Keep anyway", role: .cancel) {}
+                Button("Remove", role: .destructive) {
+                    if let r = rejected.wrappedValue {
+                        Task { await BookAlignmentRunner.removeText(filename: r.filename, bookID: r.book.id) }
+                    }
+                }
+            } message: { _ in
+                Text("Checking it against the transcript didn\u{2019}t find a match. You can keep it and try again later, or remove it now.")
+            }
     }
 }

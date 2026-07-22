@@ -80,7 +80,7 @@ final class AudiobookSession: ObservableObject {
         // opening on the iPad lands where you left off on the phone — even before
         // reconcile runs. A late-arriving newer position is handled by
         // adoptSyncedPosition() on CloudKit import.
-        let startBook = newerSyncedBook(than: newBook) ?? newBook
+        let startBook = newerSyncedBook(than: newBook)?.keepingLocalTextFields(from: newBook) ?? newBook
         if startBook.modifiedAt > newBook.modifiedAt { store.update(startBook) }   // converge library.json
         let resume = min(startBook.position, startBook.duration)
         let location = startBook.fileLocation(at: resume)
@@ -141,7 +141,7 @@ final class AudiobookSession: ObservableObject {
     /// CloudKit import.
     func adoptSyncedPosition() {
         guard let b = book, !isPlaying,
-              let synced = newerSyncedBook(than: b),
+              let synced = newerSyncedBook(than: b)?.keepingLocalTextFields(from: b),
               abs(synced.position - currentTime) > 5 else { return }
         store.update(synced)
         book = synced

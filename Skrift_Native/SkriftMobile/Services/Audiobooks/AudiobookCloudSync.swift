@@ -81,7 +81,7 @@ enum AudiobookCloudSync {
     /// "Uploading…" feedback on the row.
     static func enableSync(book: Audiobook, repository: NotesRepository = .shared) {
         guard repository.audiobookRecord(bookID: book.id) == nil,
-              let blob = try? JSONEncoder().encode(book) else { return }
+              let blob = try? JSONEncoder().encode(book.sanitizedForSync()) else { return }
         repository.context.insert(AudiobookSyncRecord(bookID: book.id, blob: blob))
         repository.save()
         _ = CloudSyncMonitor.shared.beginBookTransfer(book.id, direction: .up)   // immediate feedback until reconcile's upload starts
@@ -212,10 +212,14 @@ enum AudiobookCloudSync {
                 // LWW by modifiedAt — adopt the remote position/rate/etc. if newer.
                 // (modifiedAt, not lastPlayedAt, so a speed-only change also wins.)
                 if remote.modifiedAt > local.modifiedAt {
-                    library.update(remote)
+                    // Local-only text/chapter fields survive the adopt (2026-07-22:
+                    // whole-blob LWW erased them via an older writer).
+                    library.update(remote.keepingLocalTextFields(from: local))
                 }
             } else {
-                library.add(remote)   // receiver: the book appears (audio materializes below)
+                // First appearance on this device: strip any legacy blob's local-only
+                // fields (they'd point at files that only exist on the source device).
+                library.add(remote.sanitizedForSync())   // receiver: the book appears (audio materializes below)
             }
             if record.audioUploadedAt != nil, !removed.contains(remote.id.uuidString) {
                 let folder = library.folder(for: remote.id)
@@ -243,7 +247,7 @@ enum AudiobookCloudSync {
             guard let local = library.book(id: record.bookID) else { continue }
             let recorded = try? JSONDecoder().decode(Audiobook.self, from: record.blob)
             if local.modifiedAt > (recorded?.modifiedAt ?? .distantPast),
-               let blob = try? JSONEncoder().encode(local) {
+               let blob = try? JSONEncoder().encode(local.sanitizedForSync()) {
                 record.blob = blob
                 record.modifiedAt = Date()
             }

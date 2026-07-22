@@ -83,6 +83,32 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         return epubFilename.map { [$0] } ?? []
     }
 
+    /// LOCAL-ONLY fields (device finding 2026-07-22: the attach fields VANISHED —
+    /// a whole-blob LWW write from any device running an older build re-encodes the
+    /// record without additive fields and erases them). The attached text FILES exist
+    /// only on this device, and both chapter lists derive from LOCAL sidecars — so
+    /// these fields never ride the sync blob, and an adopted remote record always
+    /// keeps THIS device's values. Belt and braces: strip on send, preserve on adopt.
+    func sanitizedForSync() -> Audiobook {
+        var copy = self
+        copy.epubFilename = nil
+        copy.epubFilenames = nil
+        copy.epubChapters = nil
+        copy.detectedChapters = nil
+        return copy
+    }
+
+    /// The adopt-side half: a remote record about to overwrite `local` inherits every
+    /// local-only field from it (remote values for these are meaningless off-device).
+    func keepingLocalTextFields(from local: Audiobook) -> Audiobook {
+        var copy = self
+        copy.epubFilename = local.epubFilename
+        copy.epubFilenames = local.epubFilenames
+        copy.epubChapters = local.epubChapters
+        copy.detectedChapters = local.detectedChapters
+        return copy
+    }
+
     init(
         id: UUID = UUID(),
         files: [String],
