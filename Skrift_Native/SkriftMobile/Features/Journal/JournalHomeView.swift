@@ -78,7 +78,7 @@ struct JournalHomeView: View {
                 Image(systemName: "leaf")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.skAmber)
-                Text("On its way out")
+                Text("Fading")
                     .font(.system(size: 13.5, weight: .medium))
                     .foregroundStyle(Color.skTextDim)
                 if wayOutFading.contains(where: {

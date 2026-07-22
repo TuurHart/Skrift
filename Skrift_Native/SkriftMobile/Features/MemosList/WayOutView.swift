@@ -38,16 +38,16 @@ struct WayOutView: View {
                 Color.skBg.ignoresSafeArea()
                 if total == 0 {
                     ContentUnavailableView(
-                        "Nothing on its way out",
+                        "Nothing is fading",
                         systemImage: "leaf",
-                        description: Text("Untouched notes start fading after \(MemoLifecycle.fadeAfterDays) days.")
+                        description: Text("Quiet notes start fading \(MemoLifecycle.fadeAfterDays) days after you last touch them.")
                     )
                     .accessibilityIdentifier("wayout-empty")
                 } else {
                     list
                 }
             }
-            .navigationTitle("On its way out · \(total)")
+            .navigationTitle("Fading · \(total)")
             .navigationBarTitleDisplayMode(.inline)
             // Opening the merged shelf clears the ⋯ dot — same stamp + key
             // FadingShelfView used (the dot's unread semantics are untouched).
@@ -61,9 +61,24 @@ struct WayOutView: View {
             .sheet(item: $peek) { memo in
                 WayOutPeekSheet(memo: memo,
                                 oneLiner: Self.oneLiner(for: memo),
+                                isDeleted: memo.deletedAt != nil,
                                 onBringBack: {
                                     Self.bringBack(memo, repository: repository)
                                     peek = nil
+                                },
+                                onDelete: {
+                                    // Fading → soft (skip the rest of the fade,
+                                    // straight to Recently Deleted, no confirm);
+                                    // deleted → the phone-owned purge, through
+                                    // the existing confirm dialog.
+                                    if memo.deletedAt == nil {
+                                        memo.deletedAt = Date()
+                                        repository.save()
+                                        peek = nil
+                                    } else {
+                                        peek = nil
+                                        confirmDelete = memo
+                                    }
                                 })
             }
             .confirmationDialog(
@@ -86,7 +101,7 @@ struct WayOutView: View {
 
     private var list: some View {
         List {
-            Text("Untouched notes leave on their own — Bring back rescues one at any point.")
+            Text("Quiet notes leave on their own when their clock runs out — Bring back rescues one at any point.")
                 .font(.system(size: 11.5))
                 .foregroundStyle(Color.skTextFaint)
                 .listRowBackground(Color.clear)
@@ -281,12 +296,29 @@ extension WayOutView {
 // MARK: - Peek
 
 /// Read-only popup for a conveyor row (Mac parity — the Mac's peek sheet with
-/// Bring back inside): title, meta, the spine one-liner, the full body, one verb.
+/// Bring back inside): title, meta, the spine one-liner, the full body with
+/// photos rendered at their `[[img_NNN]]` markers (m4/m6 2026-07-22 — the
+/// marker used to print literally), and the verbs. Delete joins Bring back:
+/// soft for a fading note, the confirm-gated purge for a deleted one — the
+/// peek shouldn't lose a verb the row underneath has.
 private struct WayOutPeekSheet: View {
     let memo: Memo
     let oneLiner: String
+    let isDeleted: Bool
     let onBringBack: () -> Void
+    let onDelete: () -> Void
     @Environment(\.dismiss) private var dismiss
+
+    /// A displayable slice of the body: a text run or a resolved photo.
+    private enum BodyRun: Identifiable {
+        case text(id: Int, String)
+        case photo(id: Int, UIImage)
+        var id: Int {
+            switch self {
+            case .text(let id, _), .photo(let id, _): return id
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -308,11 +340,7 @@ private struct WayOutPeekSheet: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Color.skAmber)
                     ScrollView {
-                        Text((memo.transcript?.isEmpty == false) ? memo.transcript! : "No transcript.")
-                            .font(.system(size: 14.5))
-                            .foregroundStyle(Color.skTextDim)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
+                        bodyView
                     }
                     Button(action: onBringBack) {
                         Text("Bring back")
@@ -322,6 +350,15 @@ private struct WayOutPeekSheet: View {
                     .buttonStyle(.borderedProminent)
                     .tint(.skAccent)
                     .accessibilityIdentifier("wayout-peek-bringback")
+                    Button(action: onDelete) {
+                        Text(isDeleted ? "Delete now" : "Delete")
+                            .font(.system(size: 12.5, weight: .medium))
+                            .foregroundStyle(Color.skRed)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 9)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("wayout-peek-delete")
                 }
                 .padding(16)
             }
@@ -332,5 +369,66 @@ private struct WayOutPeekSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    @ViewBuilder private var bodyView: some View {
+        let runs = bodyRuns()
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(runs) { run in
+                switch run {
+                case .text(_, let str):
+                    Text(str)
+                        .font(.system(size: 14.5))
+                        .foregroundStyle(Color.skTextDim)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                case .photo(_, let image):
+                    Image(uiImage: image)
+                        .resizable().aspectRatio(contentMode: .fit)
+                        .frame(maxHeight: 160)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            if runs.isEmpty {
+                Text("No transcript.")
+                    .font(.system(size: 14.5))
+                    .foregroundStyle(Color.skTextDim)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    /// Split the raw transcript into text/photo runs — marker `[[img_NNN]]`
+    /// resolves through the manifest to its on-disk file (`Memo.imageURL`,
+    /// the same rule every transcript renderer uses). Unresolvable markers
+    /// are dropped, never printed.
+    private func bodyRuns() -> [BodyRun] {
+        let raw = memo.transcript ?? ""
+        guard !raw.isEmpty else { return [] }
+        let ns = raw as NSString
+        var out: [BodyRun] = []
+        var textBuffer = ""
+        func flushText() {
+            let trimmed = textBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { out.append(.text(id: out.count, trimmed)) }
+            textBuffer = ""
+        }
+        for piece in BodyTransform.pieces(of: raw) {
+            switch piece.segment {
+            case .text(let str):
+                textBuffer += str
+            case .image(let n):
+                if let url = memo.imageURL(markerIndex: n),
+                   let image = UIImage(contentsOfFile: url.path) {
+                    flushText()
+                    out.append(.photo(id: out.count, image))
+                }
+            case .task, .memoLink:
+                textBuffer += ns.substring(with: piece.rawRange)
+            }
+        }
+        flushText()
+        return out
     }
 }

@@ -1161,6 +1161,7 @@ private struct MemoPageView: View {
         guard let updated = SpeakerTranscript.reassign(memo.transcript, turnAt: index, to: other) else { return }
         memo.transcript = updated
         memo.transcriptUserEdited = true
+        memo.markEdited()
         repository.save()
     }
 
@@ -1170,6 +1171,7 @@ private struct MemoPageView: View {
               updated != memo.transcript else { return }
         memo.transcript = updated
         memo.transcriptUserEdited = true       // Mac trusts the edited transcript
+        memo.markEdited()
         repository.save()
     }
 
@@ -1204,6 +1206,7 @@ private struct MemoPageView: View {
             memo.transcript = SpeakerTranscript.mergeAdjacentTurns(relabeled)
         }
         memo.transcriptUserEdited = true
+        memo.markEdited()
         repository.save()
         if enroll {
             Task { await Self.learnVoice(memoID: memo.id, audioURL: memo.audioURL, old: old, new: new, slot: slot) }

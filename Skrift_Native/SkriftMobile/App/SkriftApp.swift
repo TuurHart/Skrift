@@ -85,9 +85,14 @@ struct SkriftApp: App {
                     AssetMaterializer.run(repository)
                     PhotoTextIndexer.run(repository)
                     ReminderScheduler.run(repository)
-                    // Fading lifecycle (MemoLifecycle, 2026-07-17): move 60-day
-                    // untouched notes into Recently Deleted. Armed-gated — inert
-                    // until the shelf's first-run prompt is answered.
+                    // One-clock doctrine switch (2026-07-22): old parked notes
+                    // get a fresh clock once. MUST run before FadingSweep — the
+                    // same launch must never sweep a note the migration was
+                    // about to rescue.
+                    MemoLifecycle.runOneClockMigrationOnce(context: repository.container.mainContext)
+                    // Fading lifecycle (one clock, 2026-07-22): move notes whose
+                    // clock ran out 60 days ago into Recently Deleted. Armed-gated —
+                    // inert until the shelf's first-run prompt is answered.
                     FadingSweep.run(repository: repository)
                 }
                 // Reconcile the names/people DB across devices (Phase 1e): merge the

@@ -222,7 +222,12 @@ final class Memo {
 
     /// Bump the edited timestamp. Call from content-edit sites (title, transcript,
     /// tags, append, trim) — NOT from sync-status / significance changes.
-    func markEdited(_ date: Date = Date()) { editedAt = date }
+    /// One clock (2026-07-22): a user edit is also a TOUCH — it restarts the
+    /// 30-day fade clock (`keptAt` is the anchor bump `MemoLifecycle.clockStart`
+    /// reads; edits stopped being immortality when Parked died). Every caller
+    /// is a genuine user investment (audited 2026-07-22), so the coupling is
+    /// safe — system writes never call this.
+    func markEdited(_ date: Date = Date()) { editedAt = date; keptAt = date }
 
     /// Parse a tag-entry string into individual tags: COMMA / newline separated (a
     /// tag may contain spaces, so we don't split on whitespace), each trimmed and
