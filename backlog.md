@@ -53,6 +53,10 @@ aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-t
 on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
 
 **NEXT CHAT'S WORK (in order):**
+0. **📖 ROUND 5 fix VERIFY + merge (branch `claude/epub-chapter-discrepancy-wlgvhd`, written
+   from a Linux session — no xcodebuild there):** run the iPhone 17 sim suite, then build+
+   install Dev and open the Odyssey book — chapters must flip to the ePub TOC on their own
+   (re-adopt + self-heal), surviving relaunch. Full record: 📖 ROUND 5 block below.
 1. **Pull phone feedback if Tuur recorded any** (/pull-phone-feedback) — 4 live rounds today
    means fresh findings likely.
 2. **🧬 walkthrough tail (eyes, guided — b92-era items still unconfirmed):** untouched-note
@@ -470,6 +474,32 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    files" (the trilogy: file 1 = book 1, rest honestly rejected) → read-along shows
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
+
+**📖 ROUND 5 (Tuur 2026-07-22 ~23:00, Odyssey screenshots): chapters ≠ ePub TOC after
+relaunch — ROOT CAUSE FOUND + FIXED (branch `claude/epub-chapter-discrepancy-wlgvhd`).**
+Symptom: Odyssey ePub attached + read-along shows the REAL book text (intro), but the
+chapters sheet still shows the detected list ("Opening / Part 6 / Part 11 / Part 19 /
+Part 20 / Part 24", Ch 1/6 — the detector's structural vote caught only 5 of the 24 spoken
+"Book N" announcements; "book" keyword maps to the Part kind, hence "Part N" labels). Root
+cause: **`Audiobook`'s hand-written Codable never carried
+`epubFilename`/`epubFilenames`/`epubChapters`** — every library.json persist dropped them, so
+ANY relaunch forgot the attachment while the sidecars (and read-along) kept working. This is
+the SECOND cause of round 2's "fields VANISHED" (the iPad-LWW theory was real but partial —
+"re-attach once and it sticks" could never stick; a lone device reproduces it). Fix (5
+chunks): (1) the three keys now encode/decode (sync blob still stripped via
+`sanitizedForSync` — regression-tested); (2) `alignIfNeeded` RE-ADOPTS orphaned attached
+texts from the book folder (disk = durable truth: attach copies in, removeText deletes), so
+every already-bitten book self-heals on open — no manual re-attach; (3) title accessors keyed
+off `usesDetected` alone → now `titlesAreDisplayReady` (ePub OR detected): with ePub chapters
++ nil detection the sheet rendered EMBEDDED titles against ePub rows (mismatch + index-crash
+when the ePub list is longer); (4) `mergeAndFinish` DevLogs toc-counts → marks → derived
+chapters (round 5 was undiagnosable from the devlog); (5) TOC parse got the lenient retry the
+spine bodies always had — a nav/NCX doc with `&nbsp;`-class entities hard-failed strict XML
+and silently yielded an EMPTY TOC (zero marks, broken "real table of contents" promise) — the
+OTHER way this same symptom arises with no relaunch at all (both EPubParseTests copies
+extended). Tests added (Codable round-trip, store reload, sanitize-strip, ePub-title
+accessors, orphan scan, entity-laden nav/NCX). ⚠️ Fixed from a Linux session —
+**xcodebuild suite NOT run; next chat verifies** + device-checks the Odyssey book heals.
 
 **📖 ROUND 4 (b101+b102): sheet DEVICE-CONFIRMED end-to-end.** b100 bar verified (one block +
 sliver, 22%); "partial"→"full match" tolerance 0.97→0.95 (real f1 = 96.7%, credits absorb);
