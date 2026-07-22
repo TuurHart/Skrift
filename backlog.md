@@ -398,8 +398,23 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
 
-**📖 NEXT CHUNK — multi-text per audiobook + the "Book text" sheet (design session 2026-07-22,
-mock = `mocks/book-text-sheet.html`, AWAITING TUUR'S PICK):** Tuur keeps listening to the
+**📖 ✅ MULTI-TEXT + "Book text" SHEET SHIPPED 2026-07-22 pm (batch D = `LANES-2026-07-22D/`;
+mock B signed "yess. ur reccomendation"; the pinned-contract seam compiled FIRST TRY again —
+858/0):** schema-3 sidecars (per-text sources w/ verdict+coverage, sentences tagged by text,
+collision = higher confidence wins/tie = attach order), additive attach (append, re-attach
+same file replaces itself), per-text TOC marks unioned, `textSummary` (real global spans,
+30s gap-bridge) + `removeText` (surgical detach), 4-field cloud signature. UI: long-press →
+"Book text…" opens the timeline-first sheet (bar = real aligned spans colored per text, grey
+= transcript; rows w/ dc:title + Remove/Re-check; ＋ Add; busy toast threads into the sheet).
+Gate catches: reject-alert Remove now detaches exactly the failed text (lane-flagged), doc
+drift fixed. Conductor pre-ship: EPubBook.title (dc:title) + Audiobook.epubFilenames+accessor.
+**b97 INSTALLED (device lists 97; includes the b96 chapter merge Tuur never got).
+EYES OWED (b97):** open Steal → the schema-3 gate re-aligns silently → long-press → Book
+text… → the bar shows book 1's span colored + 3-hour grey tail; chapters sheet = real TOC
+then detected Book-2/3 chapters; then someday attach Show Your Work! and watch the bar fill.
+CORE2 tabled (fine to leave): 30s gap-bridge untuned; epubChapters' detected-merge span
+suppression stays whole-file (revisit only if a partially-covered file miscounts chapters).
+(design record, superseded:) mock = `mocks/book-text-sheet.html` — Tuur keeps listening to the
 trilogy and will want book 2's/3's ePubs → one-text-per-book graduates to a LIST. Semantics
 settled in the chat: alignment is already per-file/per-span, so each new text aligns the spans
 it matches and leaves the rest; if two texts claim the same span, the higher-confidence match
