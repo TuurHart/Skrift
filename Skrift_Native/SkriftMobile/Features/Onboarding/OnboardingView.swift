@@ -65,6 +65,9 @@ struct OnboardingView: View {
                 .padding(.bottom, 26)
             }
             .padding(.horizontal, 22)
+            // iPad: keep the first-run column at a reading measure instead of
+            // stretching edge-to-edge. A no-op at phone width.
+            .readingMeasure()
         }
     }
 

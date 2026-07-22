@@ -70,6 +70,11 @@ struct RecordView: View {
                     startingContent
                 }
             }
+            // iPad (m7): the record surface is a centered card, so its content
+            // never runs wall-to-wall. A no-op at phone width (620 > the screen),
+            // so the phone recorder is unchanged. The camera overlay below stays
+            // full-bleed (it dims the whole card).
+            .readingMeasure(620)
 
             if showCamera {
                 cameraOverlay
