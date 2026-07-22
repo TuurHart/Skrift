@@ -2,7 +2,37 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
-## 🧬 CONTINUE HERE — lifecycle IA overhaul: BUILT + MACHINE-VERIFIED LIVE (2026-07-21 eve); Tuur walkthroughs = the only gate left
+## ⭐ CONTINUE HERE (session end 2026-07-22 ~15:00 — the 📖 marathon session)
+
+**THE 📖 LANE IS DONE** (roadmap EPubAlign = done 2026-07-22): spikes 1–6 + batch D + FOUR live
+device rounds in one session — attach ePub, true-text read-along (device: "way more fucking
+aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-true bar, all
+on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
+
+**NEXT CHAT'S WORK (in order):**
+1. **Pull phone feedback if Tuur recorded any** (/pull-phone-feedback) — 4 live rounds today
+   means fresh findings likely.
+2. **🧬 walkthrough tail (eyes, guided — b92-era items still unconfirmed):** untouched-note
+   detail fade line · WayOut row peek + Bring back · b90 map trio · "0.1 · Passing" on the
+   flagged B122966B memo · Mac unified Notes list (quiet rows / Flag verbs / Unrated chip).
+   Fading-search WAS confirmed 2026-07-21. Then LifeIA (roadmap now) = done.
+3. **Prod promotion decision** (still Dev-only: 🧬 overhaul + everything 📖): deliberate step —
+   Release builds both apps while prod idle, CloudKit prod schema deploy (Reminders note in
+   NFeat), the Release bundle-ID App-Groups one-time Xcode visit (capture-items lesson).
+   Profile the phone list/search paths first (Tuur: Dev "not very well optimized"; Debug build
+   caveat noted).
+4. **iPad: update its old Skrift Dev build** (it erased additive sync fields once — the
+   local-only doctrine now protects those, but old writers + new fields stay a standing risk).
+   iPad UDID via `xcrun devicectl list devices` when it's reachable.
+5. **Next build lane candidates** (Tuur picks): reading-mode redesign (signed mock 2026-06-19,
+   never built; now also the home for ePub images-in-reader + coverage visibility) · Journal
+   desktop build board · Connections owed items.
+**Standing:** another session owns `mocks/lifecycle-triage-peek.html` (UNTRACKED here — it
+must commit it) + its ⏱ one-clock lifecycle spec (memory `project_lifecycle_one_clock`) —
+coordinate before touching lifecycle code. LANE_PLAYBOOK.md = the standing lane contract
+(3 batches ran under it today; pinned-contract seams compiled first-try twice).
+
+## 🧬 (previous CONTINUE HERE) lifecycle IA overhaul: BUILT + MACHINE-VERIFIED LIVE (2026-07-21 eve); Tuur walkthroughs = the only gate left
 
 **✅ Owed verifications CLOSED 2026-07-21 pm (machine-verified over USB — phone store pulled +
 diffed against the Mac's; new DEBUG dev hooks below):**

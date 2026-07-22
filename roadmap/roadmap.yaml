@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-21T17:20:00.000Z
+updated: 2026-07-22T15:05:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -523,7 +523,7 @@ nodes:
     title: Lifecycle IA — one spine
     lane: 0
     order: 5.8
-    status: inprogress
+    status: now
     eff: M
     deps:
       - NFeat
@@ -995,7 +995,8 @@ nodes:
     title: ePub ↔ audiobook alignment
     lane: 3
     order: 5.5
-    status: now
+    status: done
+    done: 2026-07-22
     eff: L
     via: P9b
     win: "read-along + quote captures show the PUBLISHED text wherever the book
@@ -1005,11 +1006,27 @@ nodes:
       (ePub TOC wins · aligner-internal normalization · pin bumped v0.15.5 ·
       ZIPFoundation approved as SPM dep #2 · .epub primary + .txt freebie,
       .mobi = convert first). Board = backlog 📖. Spikes 1–6 BUILT — the
-      feature is code-complete on main. Owed: the b94 device round (install
-      blocked mid-push, phone went offline; binary built + signed) — attach
-      the real Steal ePub on the phone, eyeball true-text read-along +
-      verbatim capture + real-TOC chapters. Then done."
+      feature is DEVICE-CONFIRMED across four live rounds 2026-07-22
+      (attach flow + true-text read-along 'way more fucking aligned' +
+      real-TOC chapters + multi-text Book-text sheet w/ time-true bar,
+      b95–b102). Remaining = future work, parked by choice: book 2/3
+      ePubs when found (multi-text ready), ePub images in the reader
+      (reading-mode design pass — the 44s calendar-art gap is the demo)."
     shipped:
+      - >-
+        2026-07-22 pm/eve · batch D + four device rounds (b95–b102):
+        multi-text per audiobook (schema-3 sidecars, per-text verdicts,
+        surgical removeText) + the timeline-first Book-text sheet (mock B) +
+        player ⋯ entry via one shared BookTextFlow. Round catches, all
+        fixed same-hour: exact per-word times replace linear distribution
+        (median drift 0.0000s, was p90 +5.6s late), verdict-gated chapters
+        + coverage (phantom chapters / confetti bar), attach outcome =
+        alerts (1.6s toast invisible), LOCAL-ONLY sync doctrine for
+        epub*/detectedChapters (whole-blob LWW from an old-build device
+        erased them — sanitize on send, preserve on adopt), fileImporter
+        must hang off the sheet (iOS 26), dc:title reads #text children,
+        time-true bar (no cosmetic spacing). Interleaved-trilogy theory
+        refuted with data (95.5% monotonic).
       - >-
         2026-07-21 night · spike 6 PRODUCTIZED (batch C: conductor pre-ship +
         CORE/UI Sonnet lanes; the pinned-contract seam compiled FIRST TRY,
