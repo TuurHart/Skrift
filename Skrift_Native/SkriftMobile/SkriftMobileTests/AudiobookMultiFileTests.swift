@@ -78,6 +78,65 @@ final class AudiobookMultiFileTests: XCTestCase {
                        "older builds reading the new library.json still find a file")
     }
 
+    // MARK: - 📖 Attach-field persistence (2026-07-22, the Odyssey chapter report)
+
+    /// Root cause of "chapters revert after relaunch": the hand-written Codable never
+    /// carried the attach fields, so every library.json persist silently dropped the
+    /// attachment + its derived chapters while the sidecars stayed on disk.
+    func testAttachedTextFieldsRoundTripThroughCodable() throws {
+        var book = Audiobook(audioFilename: "odyssey.m4b", title: "The Odyssey",
+                             author: "Homer", duration: 47154)
+        book.epubFilenames = ["odyssey.epub"]
+        book.epubFilename = "odyssey.epub"
+        book.epubChapters = [
+            AudiobookChapter(title: "Introduction", start: 30, duration: 12000),
+            AudiobookChapter(title: "Book 1: The Boy and the Goddess", start: 12030, duration: 2000),
+        ]
+        book.detectedChapters = [AudiobookChapter(title: "Opening", start: 0, duration: 47154)]
+
+        let decoded = try JSONDecoder().decode(Audiobook.self, from: JSONEncoder().encode(book))
+        XCTAssertEqual(decoded.epubFilenames, ["odyssey.epub"])
+        XCTAssertEqual(decoded.epubFilename, "odyssey.epub")
+        XCTAssertEqual(decoded.epubChapters, book.epubChapters)
+        XCTAssertEqual(decoded, book)
+        XCTAssertEqual(decoded.effectiveChapters.map(\.title),
+                       ["Introduction", "Book 1: The Boy and the Goddess"],
+                       "the ePub TOC must still win after a persist→relaunch round trip")
+    }
+
+    /// The sync blob must NOT gain the fields from the persistence fix — every send
+    /// path encodes `sanitizedForSync()`, which nils them all first.
+    func testSanitizedForSyncBlobOmitsAttachFields() throws {
+        var book = Audiobook(audioFilename: "b.m4b", title: "T", author: "A", duration: 10)
+        book.epubFilenames = ["x.epub"]
+        book.epubFilename = "x.epub"
+        book.epubChapters = [AudiobookChapter(title: "Ch", start: 0, duration: 10)]
+        book.detectedChapters = [AudiobookChapter(title: "D", start: 0, duration: 10)]
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(book.sanitizedForSync())
+        ) as? [String: Any])
+        XCTAssertNil(json["epubFilenames"])
+        XCTAssertNil(json["epubFilename"])
+        XCTAssertNil(json["epubChapters"])
+        XCTAssertNil(json["detectedChapters"])
+    }
+
+    @MainActor
+    func testAttachedTextFieldsSurviveAStoreReload() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("audiobooks_\(UUID().uuidString)", isDirectory: true)
+        var book = Audiobook(audioFilename: "b.m4b", title: "T", author: "A", duration: 10)
+        book.epubFilenames = ["x.epub"]
+        book.epubFilename = "x.epub"
+        book.epubChapters = [AudiobookChapter(title: "Ch 1", start: 0, duration: 10)]
+        AudiobookLibraryStore(directory: dir).add(book)
+
+        let reloaded = try XCTUnwrap(AudiobookLibraryStore(directory: dir).book(id: book.id))
+        XCTAssertEqual(reloaded.attachedTextFilenames, ["x.epub"])
+        XCTAssertEqual(reloaded.epubChapters?.map(\.title), ["Ch 1"],
+                       "a relaunch (fresh store on the same directory) must keep ePub chapters")
+    }
+
     func testMismatchedDurationTableIsRepairedOnDecode() throws {
         // A files list without (or with a wrong-sized) duration table spreads
         // the total evenly instead of trapping the mapping helpers.
