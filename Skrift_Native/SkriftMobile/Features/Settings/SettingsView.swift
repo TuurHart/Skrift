@@ -112,6 +112,19 @@ struct SettingsView: View {
                     Text("While audio plays, tap a word in the transcript to jump there.")
                 }
 
+                // "Polish on this iPad" (m5) — only on capable iPads; the gate keeps it
+                // invisible on the phone + simulator, so this Section is a no-op there.
+                if PolishCenter.shared.isAvailable {
+                    Section {
+                        NavigationLink {
+                            PolishSettingsView()
+                        } label: {
+                            Label("Polish on this iPad", systemImage: "sparkles")
+                        }
+                        .accessibilityIdentifier("ipad-polish-settings-link")
+                    }
+                }
+
                 // P8: consent flow for the on-device semantic index.
                 JournalIndexSettingsSection()
 
