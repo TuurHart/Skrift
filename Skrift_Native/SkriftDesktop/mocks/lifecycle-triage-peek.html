@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Triage peek repair — say no, say why, show the photo</title>
+<style>
+  :root{
+    --bg:#0F1117; --sidebar:#15171F; --surface:#181A23; --hover:#1E2130;
+    --text:#E4E4E7; --dim:#8B8B97; --mut:#55556A; --hairline:rgba(255,255,255,.07);
+    --accent:#7C6BF5; --green:#34D399; --amber:#F59E0B; --red:#EF4444; --blue:#60A5FA;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0A0B10;color:var(--text);font:13px/1.45 -apple-system,'SF Pro Text',sans-serif;
+       padding:34px 40px 90px;}
+  h1{font-size:19px;margin-bottom:6px;}
+  .thesis{color:var(--dim);font-size:12.5px;max-width:980px;margin-bottom:10px;}
+  .thesis b{color:var(--text);}
+  .v1{display:inline-block;font-size:11px;color:var(--amber);border:1px solid rgba(245,158,11,.35);
+      padding:3px 10px;border-radius:6px;margin-bottom:8px;}
+  .nav{font-size:11px;color:var(--mut);margin-bottom:26px;}
+  .nav a{color:var(--accent);text-decoration:none;margin-right:14px;}
+  .label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);
+         margin:44px 0 10px;}
+  .label .pick{color:var(--green);border:1px solid rgba(52,211,153,.4);border-radius:5px;
+               padding:1px 7px;margin-left:8px;letter-spacing:.3px;}
+  .hint{color:var(--dim);font-size:12px;max-width:980px;margin-top:12px;}
+  .hint b{color:var(--text);}
+  .hint .q{color:var(--amber);font-weight:600;}
+  code{font:11.5px ui-monospace,Menlo,monospace;color:#B8B2E8;background:rgba(124,107,245,.08);
+       padding:0 4px;border-radius:4px;}
+  .src{font-size:10px;color:var(--mut);font-family:ui-monospace,Menlo,monospace;margin-top:8px;}
+  .row{display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap;}
+
+  /* ── the peek sheet (source: UnpipelinedMemoSheet.swift — 460×520, bg, header 20/14) ── */
+  .sheet{width:460px;height:520px;background:var(--bg);border:1px solid rgba(255,255,255,.09);
+         border-radius:13px;box-shadow:0 30px 80px rgba(0,0,0,.55);display:flex;flex-direction:column;
+         overflow:hidden;flex:none;position:relative;}
+  .shead{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;
+         border-bottom:.5px solid var(--hairline);}
+  .shead b{font-size:15px;font-weight:600;}
+  .done{font-size:12.5px;font-weight:600;color:#fff;background:var(--accent);
+        padding:6px 14px;border-radius:7px;}
+  .sbody{padding:16px 20px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;}
+  .stitle{font-size:16px;font-weight:700;line-height:1.3;}
+  .smeta{display:flex;gap:10px;font-size:11px;color:var(--mut);}
+  .sline{font-size:11px;color:var(--amber);}
+  .stx{font-size:13px;color:var(--dim);overflow:hidden;flex:1;line-height:1.5;}
+  .stx p{margin-bottom:10px;}
+  .cap{align-self:flex-start;font-size:11px;font-weight:600;color:#fff;background:var(--accent);
+       padding:5px 12px;border-radius:999px;}
+  .cap.ghost{color:var(--accent);background:rgba(124,107,245,.12);}
+  .cap.red{color:#F87171;background:rgba(239,68,68,.10);display:inline-flex;gap:6px;align-items:center;}
+  .cap.red svg{width:11px;height:11px;fill:none;stroke:#F87171;stroke-width:1.8;}
+
+  /* defect badges on the AS-IS sheet */
+  .bad{position:absolute;width:19px;height:19px;border-radius:50%;background:var(--red);color:#fff;
+       font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;
+       box-shadow:0 0 0 3px rgba(239,68,68,.25);}
+  .legend{max-width:430px;font-size:12.5px;color:var(--dim);display:flex;flex-direction:column;gap:13px;}
+  .legend div{display:flex;gap:10px;}
+  .legend div > i{flex:none;width:19px;height:19px;border-radius:50%;background:var(--red);color:#fff;
+            font-size:11px;font-weight:700;font-style:normal;display:flex;align-items:center;justify-content:center;}
+  .legend b{color:var(--text);}
+
+  /* the photo (rendered where [[img_002]] sits) */
+  .photo{width:150px;height:104px;border-radius:8px;border:1px solid rgba(255,255,255,.09);
+         background:linear-gradient(160deg,#4a3d2c,#5c4a33 48%,#2e2822 100%);position:relative;overflow:hidden;}
+  .photo::before{content:"";position:absolute;left:12%;right:14%;top:52%;height:26%;
+                 background:linear-gradient(180deg,rgba(233,221,199,.75),rgba(196,180,152,.5));
+                 border-radius:5px;filter:blur(.4px);}
+  .photo::after{content:"";position:absolute;left:18%;top:34%;width:26%;height:17%;
+                background:rgba(240,232,214,.65);border-radius:4px;transform:rotate(-3deg);}
+  .photo.small{width:118px;height:82px;}
+
+  /* the one status sentence */
+  .why{font-size:12px;color:var(--dim);background:rgba(255,255,255,.035);border:1px solid var(--hairline);
+       border-radius:9px;padding:9px 12px;line-height:1.5;}
+  .why b{color:var(--text);font-weight:600;}
+  .why .ok{color:var(--green);font-weight:600;}
+  .why .no{color:var(--amber);font-weight:600;}
+  .chip{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.5px;padding:2px 8px;
+        border-radius:5px;vertical-align:1px;margin-left:8px;}
+  .chip.park{color:var(--amber);background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.3);}
+
+  /* footer verbs */
+  .verbs{border-top:.5px solid var(--hairline);padding:12px 20px 14px;display:flex;
+         align-items:flex-start;justify-content:space-between;gap:14px;}
+  .verbs .col{display:flex;flex-direction:column;gap:4px;}
+  .verbs .col.r{align-items:flex-end;}
+  .micro{font-size:10px;color:var(--mut);white-space:nowrap;}
+
+  /* ── importance circles (source: SignificanceCircles.swift — 13px dots, gap 7, wall tick) ── */
+  .imp{display:flex;flex-direction:column;gap:0;}
+  .imp .top{display:flex;justify-content:space-between;align-items:baseline;}
+  .imp .top span{font-size:11px;color:var(--mut);}
+  .imp .top em{font-size:11.5px;font-weight:500;color:var(--mut);font-style:normal;}
+  .dots{display:flex;align-items:center;gap:7px;margin-top:9px;}
+  .dots i{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);}
+  .dots .tick{width:1px;height:18px;border-radius:.5px;background:rgba(245,158,11,.35);border:none;}
+  .tiers{display:flex;gap:7px;margin-top:7px;}
+  .tiers span{font-size:9px;letter-spacing:.63px;color:var(--mut);text-align:center;}
+  .tiers .t3{width:53px;} .tiers .t4{width:81px;}
+
+  /* ── sidebar one-list clone (source: SidebarView quietMemoRow) ── */
+  .panel{width:300px;background:var(--sidebar);border:1px solid rgba(255,255,255,.08);border-radius:12px;
+         padding:10px 8px;box-shadow:0 20px 60px rgba(0,0,0,.45);flex:none;}
+  .qrow{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:7px;position:relative;}
+  .qrow svg{width:11px;height:11px;flex:none;stroke:var(--mut);fill:none;stroke-width:1.6;}
+  .qrow .tt{min-width:0;flex:1;}
+  .qrow .tt b{display:block;font-size:12.5px;font-weight:400;color:var(--dim);white-space:nowrap;
+              overflow:hidden;text-overflow:ellipsis;}
+  .qrow .tt span{display:block;font-size:10px;color:var(--mut);white-space:nowrap;
+                 overflow:hidden;text-overflow:ellipsis;}
+  .qrow .o{width:8px;height:8px;border-radius:50%;border:1px solid rgba(85,85,106,.7);flex:none;}
+  .qrow.sel{background:rgba(124,107,245,.14);}
+  .qrow .chipTx{font-size:9.5px;font-weight:600;color:var(--green);background:rgba(52,211,153,.1);
+                border:1px solid rgba(52,211,153,.25);padding:1.5px 7px;border-radius:5px;flex:none;}
+  .menu{position:absolute;right:-176px;top:4px;width:188px;background:rgba(30,33,48,.97);
+        border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:4px;z-index:3;
+        box-shadow:0 14px 40px rgba(0,0,0,.55);}
+  .menu div{font-size:12.5px;color:var(--text);padding:5px 10px;border-radius:5px;}
+  .menu div.hov{background:var(--accent);color:#fff;}
+  .menu div.red{color:#F87171;}
+  .menu hr{border:none;border-top:1px solid var(--hairline);margin:4px 6px;}
+
+  /* ── phone peek clone (source: WayOutView.swift WayOutPeekSheet) ── */
+  .phone{width:330px;background:var(--bg);border:1px solid rgba(255,255,255,.10);border-radius:24px;
+         padding:14px 16px 18px;box-shadow:0 26px 70px rgba(0,0,0,.5);flex:none;}
+  .phone .grab{width:36px;height:4.5px;border-radius:3px;background:rgba(255,255,255,.16);margin:0 auto 12px;}
+  .phone .nav2{display:flex;justify-content:flex-end;margin-bottom:6px;}
+  .phone .nav2 span{color:var(--accent);font-size:14px;font-weight:600;}
+  .phone h3{font-size:17px;font-weight:700;line-height:1.3;margin-bottom:8px;}
+  .phone .pm{display:flex;gap:10px;font-size:12px;color:var(--mut);margin-bottom:6px;}
+  .phone .pl{font-size:12px;color:var(--amber);margin-bottom:10px;}
+  .phone .ptx{font-size:14.5px;color:var(--dim);line-height:1.5;margin-bottom:12px;}
+  .phone .ptx p{margin-bottom:10px;}
+  .pbtn{display:block;text-align:center;font-size:14px;font-weight:600;color:#fff;background:var(--accent);
+        border-radius:11px;padding:11px 0;}
+  .pbtn.ghost{background:none;color:#F87171;font-size:12.5px;font-weight:500;padding:9px 0 0;}
+</style>
+</head>
+<body>
+
+<h1>Triage peek repair — say no, say why, show the photo</h1>
+<div class="thesis">The 2026-07-21 IA (spine + band + conveyor) holds; the seams Tuur hit are in the <b>peek</b>.
+Today it can only say <b>yes</b> (no Delete anywhere on the Mac — a parked note has no exit), shows two
+contradicting chips (<code>Not rated</code> + <code>kept — edited</code>) instead of one explanation, writes a
+silent <code>0.1 · Passing</code>, and prints <code>[[img_002]]</code> instead of the photo.
+Repair pass only — no new lifecycle doctrine.</div>
+<div class="v1">v3 · 2026-07-22 · Tuur picked m2 + m5 → <b style="color:var(--text);">m6 is the build spec</b> · lock demoted to a background verb (Tuur review)</div>
+<div class="nav">
+  <a href="#m0">m0 as-is</a> <a href="#m1">m1 two verbs</a> <a href="#m2">m2 rate-it-here</a>
+  <a href="#m3">m3 row menu</a> <a href="#m4">m4 phone</a> <a href="#m5">m5 one clock</a>
+  <a href="#m6">m6 combined ★</a> <a href="#q">questions</a>
+</div>
+
+<!-- ═══════════════ m0 · AS-IS ═══════════════ -->
+<div class="label" id="m0">m0 · As-is (drawn from source, the note from Tuur's screenshot)</div>
+<div class="row">
+  <div class="sheet">
+    <div class="shead"><b>Not rated</b><span class="done">Done</span></div>
+    <div class="sbody">
+      <div class="stitle">Alright let's do a little test. Take a picture of this bed, I'm gonna take a pic</div>
+      <div class="smeta"><span>20 Jul 2026</span><span>Benfica</span><span>0:11</span></div>
+      <div class="sline">kept — edited</div>
+      <div class="stx">
+        <p>Alright let's do a little test. Take a picture of this bed, I'm gonna take a picture of this
+        wall and then Atex I'm gonna delete the last picture, the picture that's the thumbnail and see
+        if the thumbnail updates.</p>
+        <p>[[img_002]]</p>
+      </div>
+      <span class="cap">Flag for processing</span>
+    </div>
+    <div class="bad" style="top:10px;left:118px;">2</div>
+    <div class="bad" style="top:148px;left:96px;">2</div>
+    <div class="bad" style="top:264px;left:110px;">1</div>
+    <div class="bad" style="bottom:36px;left:168px;">3</div>
+    <div class="bad" style="bottom:36px;left:200px;">4</div>
+  </div>
+  <div class="legend">
+    <div><i>1</i><span><b>The photo is a marker.</b> <code>[[img_002]]</code> prints literally — the sheet
+      renders <code>memo.transcript</code> as plain text, never touching <code>MemoAsset</code>.</span></div>
+    <div><i>2</i><span><b>Two truths, zero explanation.</b> Header says <b>Not rated</b> (the processing gate),
+      the amber line says <b>kept — edited</b> (lifecycle safety). Both are true — touch and rating are
+      independent axes — but shown as bare chips they read as a contradiction.</span></div>
+    <div><i>3</i><span><b>One verb.</b> Flag is the only action. There is <b>no way to delete a synced note
+      anywhere on the Mac</b> — and an edited ("parked") note never fades either, so this note sits in the
+      band forever unless rated, or deleted from the phone.</span></div>
+    <div><i>4</i><span><b>The silent 0.1.</b> Flag writes <code>significance = 0.1</code> without saying so;
+      the note then surfaces as "0.1 · Passing" as if Tuur had scored it.</span></div>
+    <div class="src">source: UnpipelinedMemoSheet.swift · MemoSpine.swift:117–140 · WayOutRules.swift:28</div>
+  </div>
+</div>
+
+<!-- ═══════════════ m1 · two verbs ═══════════════ -->
+<div class="label" id="m1">m1 · "Two verbs, one sentence" — the minimal repair</div>
+<div class="row">
+  <div class="sheet" style="height:560px;">
+    <div class="shead"><b>Not processed<span class="chip park">PARKED</span></b><span class="done">Done</span></div>
+    <div class="sbody">
+      <div class="stitle">Alright let's do a little test. Take a picture of this bed, I'm gonna take a pic</div>
+      <div class="smeta"><span>20 Jul 2026</span><span>Benfica</span><span>0:11</span></div>
+      <div class="why">You <b>edited this on your iPhone</b>, so it's <span class="ok">safe — it never fades</span>.
+        But it's <span class="no">not rated</span>, so the Mac won't polish or export it.</div>
+      <div class="stx">
+        <p>Alright let's do a little test. Take a picture of this bed, I'm gonna take a picture of this
+        wall and then Atex I'm gonna delete the last picture, the picture that's the thumbnail and see
+        if the thumbnail updates.</p>
+        <div class="photo"></div>
+      </div>
+    </div>
+    <div class="verbs">
+      <div class="col">
+        <span class="cap red"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg>Delete</span>
+        <span class="micro">to Recently Deleted · 14 days to undo</span>
+      </div>
+      <div class="col r">
+        <span class="cap">Flag for processing</span>
+        <span class="micro">rates it 0.1 · Passing — adjust in Review</span>
+      </div>
+    </div>
+  </div>
+  <div class="legend">
+    <div><i style="background:var(--green);">✓</i><span><b>The header names the station</b> ("Not processed" +
+      the spine's <b>PARKED</b> chip) and the amber one-liner grows into <b>one sentence that holds both
+      truths</b> — safe <i>and</i> ignored — instead of two chips fighting.</span></div>
+    <div><i style="background:var(--green);">✓</i><span><b>Delete arrives</b> — quiet, left, red-tinted, same
+      one-field cloud write lane as Flag (<code>deletedAt = now</code>), through the existing Recently
+      Deleted net. The peek finally supports "no".</span></div>
+    <div><i style="background:var(--green);">✓</i><span><b>The 0.1 says its name</b> in microcopy under the
+      button. One click stays one click.</span></div>
+    <div><i style="background:var(--green);">✓</i><span><b>The photo renders at its marker.</b> Tap = Quick
+      Look, as elsewhere.</span></div>
+    <div class="src">sheet grows 520→560 to seat the verbs row; everything else byte-identical</div>
+  </div>
+</div>
+<div class="hint">Copy matrix for the sentence (peek only — rows keep the terse one-liners):
+<b>New</b>: "Not rated, so the Mac won't polish it. Untouched, it <span style="color:var(--amber)">starts fading 19 Aug</span>." ·
+<b>Parked/edited</b>: as shown ·
+<b>Parked/kept</b>: "You kept this, so it never fades — but it's not rated, so the Mac won't polish it." ·
+same skeleton for titled / tagged / linked.</div>
+
+<!-- ═══════════════ m2 · rate it here ═══════════════ -->
+<div class="label" id="m2">m2 · "Rate it here" — the peek becomes the rating moment <span class="pick">FOLDED INTO M6</span></div>
+<div class="row">
+  <div class="sheet" style="height:592px;">
+    <div class="shead"><b>Not processed<span class="chip park">PARKED</span></b><span class="done">Done</span></div>
+    <div class="sbody">
+      <div class="stitle">Alright let's do a little test. Take a picture of this bed, I'm gonna take a pic</div>
+      <div class="smeta"><span>20 Jul 2026</span><span>Benfica</span><span>0:11</span></div>
+      <div class="why">You <b>edited this on your iPhone</b>, so it's <span class="ok">safe — it never fades</span>.
+        But it's <span class="no">not rated</span>, so the Mac won't polish or export it.</div>
+      <div class="stx" style="flex:1;">
+        <p>Alright let's do a little test. Take a picture of this bed, I'm gonna take a picture of this
+        wall and then Atex I'm gonna delete the last picture, the picture that's the thumbnail and see
+        if the thumbnail updates.</p>
+        <div class="photo small"></div>
+      </div>
+      <div class="imp">
+        <div class="top"><span>importance</span><em>Not rated</em></div>
+        <div class="dots">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="tick"></span><i></i><i></i><i></i>
+        </div>
+        <div class="tiers"><span class="t3">PASSING</span><span class="t3">USEFUL</span><span class="t4">IMPORTANT</span></div>
+      </div>
+    </div>
+    <div class="verbs" style="padding-top:11px;">
+      <div class="col">
+        <span class="cap red"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg>Delete</span>
+        <span class="micro">to Recently Deleted · 14d</span>
+      </div>
+      <div class="col r">
+        <span class="micro" style="font-size:11px;color:var(--dim);">tap a circle — <b style="color:var(--text);">any rating queues it</b></span>
+        <span class="micro">the rating IS the flag — no hidden 0.1</span>
+      </div>
+    </div>
+  </div>
+  <div class="legend">
+    <div><i style="background:var(--green);">✓</i><span><b>The exact circles row from Review</b>
+      (13px dots, refine wall, tier labels — the app's one rating idiom) seated in the peek. Hover previews,
+      click sets 0.N, the note queues instantly — the same star-rating rules as everywhere else.</span></div>
+    <div><i style="background:var(--green);">✓</i><span><b>Kills the silent 0.1 outright.</b> Nothing is scored
+      for you; "Flag for processing" stops existing as a separate concept. Flag-to-process stays the contract —
+      the user just states the number themselves.</span></div>
+    <div><i style="background:var(--amber);">→</i><span><b>Cost:</b> one decision ("how much?") replaces one
+      click. For a lazy yes, clicking circle 1 is the same single click the old button was — the
+      microcopy says so.</span></div>
+    <div><i style="background:var(--amber);">→</i><span>Delete + sentence + photo carry over from m1
+      unchanged; the sheet grows a little for the circles row.</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════ m3 · row menu ═══════════════ -->
+<div class="label" id="m3">m3 · Quiet rows get a right-click (and what a flagged row becomes)</div>
+<div class="row">
+  <div class="panel" style="margin-right:150px;">
+    <div class="qrow">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3"/></svg>
+      <div class="tt"><b>So I'm thinking about a clock that t…</b><span>20 Jul · 1:35 · starts fading 19 Aug</span></div>
+      <span class="o"></span>
+    </div>
+    <div class="qrow sel">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3"/></svg>
+      <div class="tt"><b>Hey, this name is Harry,…</b><span>17 Jul · 0:05 · kept — edited</span></div>
+      <span class="o"></span>
+      <div class="menu">
+        <div class="hov">Flag for processing</div>
+        <div>Open</div>
+        <hr>
+        <div class="red">Delete</div>
+      </div>
+    </div>
+    <div class="qrow">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3"/></svg>
+      <div class="tt"><b>Okay, let's go. Oh yeah. Bye roll. S…</b><span>16 Jul · 7:06 · starts fading 15 Aug</span></div>
+      <span class="o"></span>
+    </div>
+    <div style="height:14px;"></div>
+    <div style="font-size:9.5px;letter-spacing:.5px;color:var(--mut);padding:0 9px 6px;">AFTER FLAGGING ↓</div>
+    <div class="qrow">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3"/></svg>
+      <div class="tt"><b>Hey, this name is Harry,…</b><span>17 Jul · 0:05 · processes on next run</span></div>
+      <span class="chipTx">Transcribed</span>
+    </div>
+  </div>
+  <div class="legend">
+    <div><i style="background:var(--green);">✓</i><span><b>Pipeline rows already have this menu</b>
+      (<code>rowMenu</code>); quiet rows get their two verbs + Open. Delete without opening anything —
+      the "can't right-click them" gap, closed.</span></div>
+    <div><i style="background:var(--green);">✓</i><span><b>After flagging</b> the row simply becomes a normal
+      pipeline row: hollow circle → status chip, one-liner → <i>processes on next run</i>. Same list,
+      one row changed state — no jump-cut to another surface.</span></div>
+    <div><i style="background:var(--amber);">→</i><span>Also add <b>Delete</b> (with the same 14-day microcopy)
+      to the conveyor's cloud-memo rows — today their only verb is Bring back; the trash icon there exists
+      solely for Mac-local files.</span></div>
+    <div class="src">rows drawn from SidebarView.quietMemoRow (glyph 10.5 · title 12.5 · meta 10 · hollow circle)</div>
+  </div>
+</div>
+
+<!-- ═══════════════ m4 · phone ═══════════════ -->
+<div class="label" id="m4">m4 · Same repairs on the phone's WayOut peek</div>
+<div class="row">
+  <div class="phone">
+    <div class="grab"></div>
+    <div class="nav2"><span>Done</span></div>
+    <h3>Alright let's do a little test. Take a picture of this bed, I'm gonna take a pic</h3>
+    <div class="pm"><span>20 Jul 2026</span><span>Benfica</span><span>0:11</span></div>
+    <div class="pl">gone for good in ~13d</div>
+    <div class="ptx">
+      <p>Alright let's do a little test. Take a picture of this bed, I'm gonna take a picture of this wall
+      and then Atex I'm gonna delete the last picture…</p>
+      <div class="photo small"></div>
+    </div>
+    <span class="pbtn">Bring back</span>
+    <span class="pbtn ghost">Delete now</span>
+  </div>
+  <div class="legend">
+    <div><i style="background:var(--green);">✓</i><span><b>Photo renders here too</b> — <code>WayOutPeekSheet</code>
+      has the same plain-<code>Text(transcript)</code> gap as the Mac sheet.</span></div>
+    <div><i style="background:var(--green);">✓</i><span><b>Delete now joins Bring back</b> in the peek — the
+      conveyor rows already have it; the peek shouldn't lose a verb the row underneath has.</span></div>
+    <div><i style="background:var(--amber);">→</i><span>The phone's main-list rows already delete fine
+      (swipe / context menu) — no change there. This panel is the conveyor peek only.</span></div>
+    <div><i style="background:var(--amber);">→</i><span><b>Shown: the bed note after Deleting it on the
+      Mac</b> — it lands in the shared Recently Deleted, restorable from either device for 14 days.
+      That's the whole loop the new verb buys.</span></div>
+    <div class="src">source: WayOutView.swift WayOutPeekSheet (title 17 · meta 12 · one-liner amber · body 14.5)</div>
+  </div>
+</div>
+
+<!-- ═══════════════ m5 · one clock ═══════════════ -->
+<style>
+  .phys{width:520px;background:var(--sidebar);border:1px solid rgba(255,255,255,.08);border-radius:12px;
+        padding:18px;flex:none;display:flex;flex-direction:column;gap:12px;}
+  .force{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:10px;
+         background:rgba(255,255,255,.03);border:1px solid var(--hairline);}
+  .force .sym{font-size:16px;width:24px;text-align:center;flex:none;line-height:1.2;}
+  .force b{color:var(--text);}
+  .force .d{font-size:12px;color:var(--dim);line-height:1.5;}
+  .force.up{border-color:rgba(124,107,245,.35);}
+  .force.pin{border-color:rgba(52,211,153,.3);}
+  .force.dn{border-color:rgba(245,158,11,.3);}
+  .rail2{display:flex;align-items:center;gap:0;font-size:10px;color:var(--mut);margin:2px 0 0 36px;}
+  .rail2 span{padding:3px 8px;border:1px solid var(--hairline);border-radius:5px;white-space:nowrap;}
+  .rail2 i{font-style:normal;color:var(--mut);padding:0 5px;}
+  .rail2 .f1{color:var(--dim);}
+  .rail2 .f2{color:var(--amber);border-color:rgba(245,158,11,.3);}
+  .rail2 .f3{color:var(--red);border-color:rgba(239,68,68,.3);}
+  .tbl{border-collapse:collapse;font-size:11.5px;width:520px;}
+  .tbl th{font-size:9.5px;letter-spacing:.5px;color:var(--mut);text-align:left;font-weight:600;
+          padding:5px 10px;border-bottom:1px solid var(--hairline);}
+  .tbl td{padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--dim);}
+  .tbl td:first-child{color:var(--mut);}
+  .tbl td b{color:var(--text);font-weight:600;}
+  .tbl td.gone{color:var(--mut);text-decoration:line-through;text-decoration-color:rgba(239,68,68,.5);}
+</style>
+<div class="label" id="m5">m5 · One clock — the simpler model underneath <span class="pick">FOLDED INTO M6</span></div>
+<div class="row">
+  <div style="display:flex;flex-direction:column;gap:16px;flex:none;">
+    <div class="phys">
+      <div class="force up"><span class="sym" style="color:var(--accent);">⤴</span>
+        <span class="d"><b>Rate it</b> — kept forever, the Mac polishes it into the vault.
+        The rating IS the flag (m2). The only way up.</span></div>
+      <div class="force pin"><span class="sym" style="color:var(--green);">⏸</span>
+        <span class="d"><b>Lock it</b> — kept on your devices, never polished, never fades.
+        The explicit "keep but don't process". Rare by design (Tuur: locked one note ever) —
+        a background verb: the phone's existing toggle + row right-click, <b>no button in the peek</b>.</span></div>
+      <div class="force dn"><span class="sym" style="color:var(--amber);">⤵</span>
+        <span class="d"><b>Do nothing</b> — every unrated, unlocked note is on ONE fade clock that
+        restarts each time you touch it (edit, title, tag, keep, bring back):</span></div>
+      <div class="rail2">
+        <span class="f1">quiet · 30d</span><i>→</i><span class="f2">fading · 30d</span><i>→</i>
+        <span class="f3">Recently Deleted · 14d</span><i>→</i><i style="color:var(--red);">gone</i>
+      </div>
+      <div class="why" style="margin-top:2px;">The whole system in two lines: <b>"Notes you do nothing with
+        fade away. Rate what matters — the Mac polishes anything you rate."</b> (And Lock for the rare
+        keep-but-don't-polish note.)</div>
+    </div>
+    <table class="tbl">
+      <tr><th>TODAY (7 WORDS)</th><th>ONE CLOCK (2 WORDS + 2 VERBS)</th></tr>
+      <tr><td class="gone">Parked / "kept — edited"</td><td>gone — a touch just restarts the clock: <b>"fades 19 Sep"</b></td></tr>
+      <tr><td>"On its way out" (conveyor title)</td><td><b>Fading</b> — Tuur's rename, the one decay word</td></tr>
+      <tr><td>New · "starts fading 19 Aug"</td><td>same copy — it's already the fading word</td></tr>
+      <tr><td>Fading shelf / band split</td><td><b>Fading</b>, one surface, count badge</td></tr>
+      <tr><td>Recently Deleted</td><td>Recently Deleted (Apple-standard, keep)</td></tr>
+      <tr><td>"Not rated" + "Flag for processing"</td><td><b>rate it</b> (m2's circles — no separate flag concept)</td></tr>
+    </table>
+  </div>
+  <div class="legend">
+    <div><i style="background:var(--green);">✓</i><span><b>Kills the third state.</b> Today ANY touch grants
+      immortality (<code>MemoLifecycle.isTouched</code>) — the "kept — edited" zombie that confused the peek,
+      accumulates crap forever, and has no exit on the Mac. One clock = no immortal middle: touched notes
+      just get <b>30 fresh days</b>, then fade like everything else.</span></div>
+    <div><i style="background:var(--green);">✓</i><span><b>Cheap to build.</b> No new fields: every touch
+      writes <code>keptAt = now</code>; the fade anchor becomes <code>max(recordedAt, keptAt)</code> in
+      <code>fadesAt()</code>. Still fully derived. One-time migration: today's parked notes get
+      <code>keptAt = now</code> so nothing fades out from under you.</span></div>
+    <div><i style="background:var(--amber);">→</i><span><b>Exceptions that never fade</b> (all explicit or
+      structural): <b>locked</b>, <b>pending reminder</b>, <b>backlinked</b> from a living note. Everything
+      else is the clock.</span></div>
+    <div><i style="background:var(--amber);">→</i><span><b>The honest cost:</b> an edited-but-never-rated note
+      now dies at ~74 quiet days (30 quiet + 30 visibly fading + 14 restorable) instead of living forever.
+      If it mattered, you'd have rated or locked it — that's the bet.</span></div>
+    <div><i style="background:var(--red);">!</i><span><b>Doctrine change:</b> revises the locked 2026-07-17 rule
+      "anything you touched stays until you say otherwise" → <b>"anything you touch gets a fresh 30 days"</b>.
+      Needs your explicit yes.</span></div>
+    <div class="src">peek copy under one clock: "You edited this 20 Jul, so it's around until 19 Aug —
+      then it fades unless you rate it." (replaces m1/m2's "never fades" line)</div>
+  </div>
+</div>
+
+<!-- ═══════════════ m6 · combined ═══════════════ -->
+<style>
+  .cap.grn{color:#4ADE9E;background:rgba(52,211,153,.10);display:inline-flex;gap:6px;align-items:center;}
+  .cap.grn svg{width:11px;height:11px;fill:none;stroke:#4ADE9E;stroke-width:1.8;}
+  .chip.clock{color:var(--amber);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);
+              font-weight:600;letter-spacing:0;text-transform:none;font-size:10.5px;}
+  .strip{display:flex;gap:18px;align-items:center;margin-top:14px;}
+  .strip .st{display:flex;flex-direction:column;gap:5px;}
+  .strip .st b{font-size:9px;letter-spacing:.6px;color:var(--mut);font-weight:600;}
+  .strip .pillc{font-size:10.5px;padding:3px 10px;border-radius:6px;white-space:nowrap;}
+  .strip .c1{color:var(--amber);border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.07);}
+  .strip .c2{color:var(--amber);border:1px solid rgba(245,158,11,.5);background:rgba(245,158,11,.13);}
+  .strip .c3{color:#F87171;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.10);}
+  .strip i{font-style:normal;color:var(--mut);font-size:11px;}
+</style>
+<div class="label" id="m6">m6 · The combination — one clock in the peek, circles as the flag <span class="pick">THE SPEC — BUILD THIS</span></div>
+<div class="row">
+  <div style="display:flex;flex-direction:column;flex:none;">
+    <div class="sheet" style="height:566px;">
+      <div class="shead"><b>Not processed<span class="chip clock" style="margin-left:8px;">fades 19 Aug</span></b><span class="done">Done</span></div>
+      <div class="sbody">
+        <div class="stitle">Alright let's do a little test. Take a picture of this bed, I'm gonna take a pic</div>
+        <div class="smeta"><span>20 Jul 2026</span><span>Benfica</span><span>0:11</span></div>
+        <div class="why">You <b>edited this on 20 Jul</b>, which restarted its clock — it
+          <span class="no">starts fading 19 Aug</span> unless you rate it.</div>
+        <div class="stx" style="flex:1;">
+          <p>Alright let's do a little test. Take a picture of this bed, I'm gonna take a picture of this
+          wall and then Atex I'm gonna delete the last picture, the picture that's the thumbnail and see
+          if the thumbnail updates.</p>
+          <div class="photo small"></div>
+        </div>
+        <div class="imp">
+          <div class="top"><span>importance</span><em>Not rated</em></div>
+          <div class="dots">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="tick"></span><i></i><i></i><i></i>
+          </div>
+          <div class="tiers"><span class="t3">PASSING</span><span class="t3">USEFUL</span><span class="t4">IMPORTANT</span></div>
+          <div class="micro" style="margin-top:8px;">tap a circle — <b style="color:var(--dim);">any rating queues it</b> · the rating IS the flag, no hidden 0.1</div>
+        </div>
+      </div>
+      <div class="verbs" style="padding-top:11px;align-items:center;">
+        <span class="cap red"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2m-8 0 1 13h8l1-13"/></svg>Delete</span>
+        <span class="micro">to Recently Deleted · 14 days to undo</span>
+      </div>
+    </div>
+    <div class="strip">
+      <div class="st"><b>QUIET</b><span class="pillc c1">fades 19 Aug</span></div><i>→</i>
+      <div class="st"><b>FADING</b><span class="pillc c2">moves to Recently Deleted in 12d</span></div><i>→</i>
+      <div class="st"><b>RECENTLY DELETED</b><span class="pillc c3">gone for good in ~9d</span></div>
+    </div>
+    <div class="src" style="margin-top:6px;">the header chip walks the signed copy trio verbatim — it was already the fading vocabulary</div>
+  </div>
+  <div class="legend">
+    <div><i style="background:var(--green);">✓</i><span><b>From m2:</b> the circles are the flag — nothing is
+      scored for you, a lazy flag is one click on circle 1. Photo at its marker. Delete in the footer.</span></div>
+    <div><i style="background:var(--green);">✓</i><span><b>From m5:</b> the header chip + sentence read off ONE
+      clock (no PARKED chip, no "kept — edited"). The peek's verbs: <b>rate</b> ⤴ · <b>delete</b> ⤵ —
+      and Done means "let the clock run".</span></div>
+    <div><i style="background:var(--amber);">→</i><span><b>Lock is background, not a button</b> (Tuur,
+      2026-07-22 — locked one note ever): it stays the never-fades exemption in the model, reachable via
+      the quiet-row right-click and the phone's existing toggle. Nothing in the peek advertises it.</span></div>
+    <div><i style="background:var(--amber);">→</i><span><b>Same clock everywhere else:</b> quiet rows read
+      "fades 16 Aug" instead of "kept — edited"; the conveyor renames to <b>Fading</b>; the band lists
+      quiet unrated notes only (locked ones are resolved — they don't nag). m3's menu becomes
+      Flag / Lock / Open / Delete.</span></div>
+    <div><i style="background:var(--amber);">→</i><span><b>Build notes:</b> fade anchor =
+      <code>max(recordedAt, keptAt)</code>; edit/title/tag/keep/bring-back write <code>keptAt = now</code>;
+      exemptions (locked · pending reminder · backlinked) unchanged; one-time migration marks today's
+      parked notes freshly kept. Copy trio + circle idiom reused verbatim — no new components.</span></div>
+    <div class="src">phone gets the same peek treatment (m4) + its rows/one-liners read the same clock</div>
+  </div>
+</div>
+
+<!-- ═══════════════ questions ═══════════════ -->
+<div class="label" id="q">Decisions</div>
+<div class="hint">
+<span class="q">Q1</span> — <b>m1 (button + honest microcopy) or m2 (circles in the peek)?</b> I'd take m2: it deletes the
+"strange system" (a score you never chose) instead of captioning it, reuses the one rating idiom, and a lazy
+flag is still a single click on circle 1.<br><br>
+<span class="q">Q2</span> — <b>Where does Delete live?</b> Proposal: everywhere the note is triaged — peek footer + quiet-row
+right-click + conveyor rows. Always soft (Recently Deleted, 14 days), so no confirm dialog on the Mac.<br><br>
+<span class="q">Q3</span> — <b>Does the explanatory sentence replace "kept — edited" everywhere?</b> Proposal: no — rows keep the
+terse spine one-liners; only the peek (where there's room and the confusion happened) expands to the sentence.<br><br>
+<span class="q">Q4</span> — <b>Photos:</b> render at the <code>[[img_NNN]]</code> marker position (as mocked), tap for Quick Look —
+same rule both apps. Multi-photo memos just render each marker.<br><br>
+<span class="q">Q5</span> — <b>Adopt the one-clock model (m5)?</b> It's the version of fading that actually keeps crap from
+piling up (Parked hoards forever today), and it shrinks the vocabulary to two words + two verbs. Cost: touched-but-never-rated
+notes eventually fade (~74 visible, restorable days). This revises the 2026-07-17 "touched never fades" doctrine — your call.
+If yes: "On its way out" → <b>Fading</b> everywhere, "kept — edited" chips → <b>"fades 19 Sep"</b>, and m1/m2's peek sentence
+swaps to the clock wording.<br>
+<b style="color:var(--green);">✔ VERDICT (Tuur, 2026-07-22): yes — m2 + m5 combined. m6 above is the build spec.
+Second pass: Lock = background only (right-click + phone toggle), no peek button.</b>
+</div>
+
+</body>
+</html>
