@@ -24,6 +24,17 @@ background verb** — Tuur, 2026-07-22). **DOCTRINE:** supersedes 2026-07-17 "to
 - **Phone:** Fading renames (nav title, Journal shelf, empty state, clock copy); WayOut peek renders
   photos + Delete (soft for fading / confirm-purge for deleted); detail hint = "rate it to keep it".
 
+**Eyeball waves (2026-07-22, live round with Tuur):**
+- Wave 1 (b103→104): Mac list confirmed working — migration proven on sight (old "kept — edited"
+  memos read "starts fading 21 Aug" = fresh clock; untouched one kept 15 Aug). Phone list rows
+  briefly got an always-on clock line (68dbcc2) — overshoot, trimmed by wave 2.
+- Wave 2 (b105, 6a096bb) — **ASYMMETRY DOCTRINE LOCKED (Tuur):** the Mac list = the deciding room
+  (always-on per-row state: chips, hollow circles, clock lines); the phone list = the NOTEBOOK —
+  unrated is the default state there, not an alarm, so rows stay clean. Phone clock line =
+  urgency-only (amber, fading ≤7d away or already fading); couch-triage = the new **"Not rated"
+  toggle** in Sort & Filter (unrated + unlocked, the Mac band's membership). The two lists are
+  deliberately NOT twins — surface role, not drift.
+
 **OWED (next session, rides the 🧬 walkthrough tail):**
 1. Deploy Dev both apps + eyeball: peek (chip/sentence/photo/circles/Delete) on the bed-photo memo
    B122966B-era case · quiet-row menu verbs · Fading renames everywhere · phone peek photos+Delete ·
