@@ -398,6 +398,20 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
 
+**📖 NEXT CHUNK — multi-text per audiobook + the "Book text" sheet (design session 2026-07-22,
+mock = `mocks/book-text-sheet.html`, AWAITING TUUR'S PICK):** Tuur keeps listening to the
+trilogy and will want book 2's/3's ePubs → one-text-per-book graduates to a LIST. Semantics
+settled in the chat: alignment is already per-file/per-span, so each new text aligns the spans
+it matches and leaves the rest; if two texts claim the same span, the higher-confidence match
+wins; NOTHING is ever deleted (un-narrated intros simply get no time; narrated-but-unmatched
+spans keep ASR — same as today). Coverage visibility gets a HOME instead of a fleeting alert:
+variant A = list-first sheet (rows per text + dimmed "not attached" remainder), B =
+timeline-first (one bar = whole audiobook, colored per source, grey = transcript), C = a
+"Book text · 2 texts · covers 45% ›" row inside a per-book options screen (placement, opens
+A/B as detail). Persist per-file coverage % in the sidecar at the next schema touch (free,
+feeds the sheet). Build after the mock pick — likely one lane batch (schema 3: sources array
+per sidecar + sheet UI).
+
 Open decisions — **ALL 5 LOCKED (Tuur, 2026-07-21 pm)**:
 1. ✅ **Chapter precedence: ePub TOC wins when attached** ("if an EPUB is attached, we're
    gonna use its chapters"); transcript-detected > embedded remains the fallback order;

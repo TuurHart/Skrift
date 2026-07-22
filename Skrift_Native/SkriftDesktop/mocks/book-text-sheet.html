@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Book text sheet — 3 variants (multi-ePub + coverage)</title>
+<style>
+  :root{
+    --bg:#0C0C12; --surface:#17171F; --elev:#23232E; --elev2:#2B2B38;
+    --accent:#7E74F0; --text:#F3F3F7; --dim:#9A9AA8; --faint:#6A6A78; --tan:#C9A87C;
+    --green:#6FBF8F; --asr:#3A3A48;
+  }
+  body{background:#060609; color:var(--text); font-family:-apple-system,'SF Pro Text',Helvetica,sans-serif; margin:0; padding:34px; display:flex; gap:44px; flex-wrap:wrap; align-items:flex-start;}
+  h2{font-size:13px; font-weight:600; color:var(--dim); margin:0 0 10px 2px; letter-spacing:.4px;}
+  h2 b{color:var(--text);}
+  .note{font-size:11px; color:var(--faint); max-width:322px; line-height:1.5; margin:8px 2px 0;}
+  .phone{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px; overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.55);}
+  .dimmed{height:86px; background:linear-gradient(#15151d,#0C0C12); opacity:.45; display:flex; align-items:flex-end; padding:0 18px 10px; font-size:12px; color:var(--faint);}
+  .sheet{background:var(--surface); border-radius:22px 22px 34px 34px; padding:6px 16px 22px; min-height:390px;}
+  .grab{width:38px; height:5px; border-radius:3px; background:var(--elev2); margin:8px auto 14px;}
+  .sh-title{font-size:16px; font-weight:700; margin:0 2px 2px;}
+  .sh-sub{font-size:11.5px; color:var(--faint); margin:0 2px 16px;}
+  /* segmented audiobook bar */
+  .bar{display:flex; height:14px; border-radius:7px; overflow:hidden; gap:2px; margin:2px 2px 6px;}
+  .seg{height:100%;}
+  .seg.b1{background:var(--accent);}
+  .seg.b2{background:var(--tan);}
+  .seg.asr{background:var(--asr);}
+  .barlab{display:flex; justify-content:space-between; font-size:10.5px; color:var(--faint); margin:0 2px 18px; font-variant-numeric:tabular-nums;}
+  .legend{display:flex; gap:12px; font-size:10.5px; color:var(--dim); margin:0 2px 18px; flex-wrap:wrap;}
+  .legend>span{white-space:nowrap;}
+  .legend .sw{width:9px; height:9px; border-radius:3px; display:inline-block; margin-right:5px; vertical-align:-1px;}
+  /* text rows */
+  .trow{background:var(--elev); border-radius:14px; padding:12px 14px; margin-bottom:10px;}
+  .trow .t{font-size:13.5px; font-weight:600;}
+  .trow .m{font-size:11.5px; color:var(--dim); margin-top:3px; line-height:1.45;}
+  .trow .m .ok{color:var(--green);}
+  .trow .m .tanc{color:var(--tan);}
+  .trow-head{display:flex; justify-content:space-between; align-items:baseline;}
+  .trow-head .x{color:var(--faint); font-size:15px;}
+  .add{border:1.5px dashed var(--elev2); color:var(--accent); border-radius:14px; padding:13px 14px; font-size:13px; font-weight:600; text-align:center; margin-top:4px;}
+  .foot{font-size:10.5px; color:var(--faint); text-align:center; margin-top:14px; line-height:1.5;}
+  /* variant C — options list style */
+  .opt-row{display:flex; justify-content:space-between; align-items:center; padding:13px 2px; border-bottom:1px solid #1E1E28; font-size:13.5px;}
+  .opt-row .r{color:var(--faint); font-size:12px;}
+  .chev{color:var(--faint);}
+  .mini-cover{width:44px; height:44px; border-radius:8px; background:linear-gradient(135deg,#C9B79A,#8A7A5C); margin-right:12px;}
+  .headrow{display:flex; align-items:center; padding:14px 2px 16px;}
+  .headrow .bt{font-size:15px; font-weight:700;}
+  .headrow .ba{font-size:11.5px; color:var(--faint);}
+</style></head>
+<body>
+
+<!-- ───────────────────────── m1: the TEXTS sheet, list-first ───────────────────────── -->
+<div id="m1">
+  <h2><b>A · "Book text" sheet — list-first</b> (opens from Attach + from the book's ⋯)</h2>
+  <div class="phone">
+    <div class="dimmed">Books · Steal Like an Artist (Audio Trilogy)</div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="sh-title">Book text</p>
+      <p class="sh-sub">2 texts attached · covering 2 h 04 of 4 h 33</p>
+
+      <div class="trow">
+        <div class="trow-head"><span class="t">Steal Like an Artist</span><span class="x">⋯</span></div>
+        <div class="m"><span class="ok">Matches file 1</span> · 58 min · read-along &amp; captures use the book's words</div>
+      </div>
+      <div class="trow">
+        <div class="trow-head"><span class="t">Show Your Work!</span><span class="x">⋯</span></div>
+        <div class="m"><span class="ok">Matches files 2–3</span> · 1 h 06 · chapters from its table of contents</div>
+      </div>
+      <div class="trow" style="opacity:.62">
+        <div class="trow-head"><span class="t">Keep Going</span><span class="x"></span></div>
+        <div class="m"><span class="tanc">Not attached</span> — the last 2 h 29 use the transcript</div>
+      </div>
+
+      <div class="add">＋ Add book text…</div>
+      <div class="foot">Texts never change your audio or transcript.<br>Remove a text any time — everything falls back.</div>
+    </div>
+  </div>
+  <p class="note">Rows per text, plain words per row ("matches file 1 · 58 min"). The un-attached remainder shows as a dimmed placeholder row so the gap is honest. ⋯ on a row → Remove / Re-check.</p>
+</div>
+
+<!-- ───────────────────────── m2: timeline-first ───────────────────────── -->
+<div id="m2">
+  <h2><b>B · Timeline-first</b> — one bar = the whole audiobook</h2>
+  <div class="phone">
+    <div class="dimmed">Books · Steal Like an Artist (Audio Trilogy)</div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="sh-title">Book text</p>
+      <p class="sh-sub">Real book text covers 45% of this audiobook</p>
+
+      <div class="bar">
+        <div class="seg b1" style="width:21%"></div>
+        <div class="seg b2" style="width:24%"></div>
+        <div class="seg asr" style="width:55%"></div>
+      </div>
+      <div class="barlab"><span>0:00</span><span>4:33:12</span></div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--accent)"></span>Steal Like an Artist</span>
+        <span><span class="sw" style="background:var(--tan)"></span>Show Your Work!</span>
+        <span><span class="sw" style="background:var(--asr)"></span>transcript</span>
+      </div>
+
+      <div class="trow">
+        <div class="trow-head"><span class="t">Steal Like an Artist</span><span class="x">⋯</span></div>
+        <div class="m">58 min · full match</div>
+      </div>
+      <div class="trow">
+        <div class="trow-head"><span class="t">Show Your Work!</span><span class="x">⋯</span></div>
+        <div class="m">1 h 06 · full match</div>
+      </div>
+
+      <div class="add">＋ Add book text…</div>
+      <div class="foot">Grey = the transcript still narrates there.<br>Add "Keep Going" to fill the rest.</div>
+    </div>
+  </div>
+  <p class="note">The bar answers "how much is real text?" in one glance, colored per source; the rows carry the verbs. Segment positions are the real aligned spans, so a mid-file book boundary draws exactly where it lands.</p>
+</div>
+
+<!-- ───────────────────────── m3: inside the book's options ───────────────────────── -->
+<div id="m3">
+  <h2><b>C · No sheet — a "Book text" row inside the book's options</b></h2>
+  <div class="phone">
+    <div class="dimmed">Books · long-press menu → Book options</div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="headrow"><div class="mini-cover"></div><div><div class="bt">Steal Like an Artist</div><div class="ba">Audio Trilogy · 4 h 33</div></div></div>
+      <div class="opt-row"><span>Transcribe book</span><span class="r">done ✓</span></div>
+      <div class="opt-row"><span>Book text</span><span class="r">2 texts · covers 45% <span class="chev">›</span></span></div>
+      <div class="opt-row"><span>Chapters</span><span class="r">TOC + detected <span class="chev">›</span></span></div>
+      <div class="opt-row"><span>Sleep timer</span><span class="r">off <span class="chev">›</span></span></div>
+      <div class="foot" style="text-align:left; padding:14px 2px;">"Book text" opens variant A or B as its detail page — this variant is about WHERE it lives: one options home per book instead of a one-off sheet on the attach button.</div>
+    </div>
+  </div>
+  <p class="note">Your "options / an overview" idea: the book gets a proper options screen, "Book text" is one row with the coverage % inline, tap → the full sheet. Costs one more tap but gives every future per-book setting a home.</p>
+</div>
+
+</body></html>
