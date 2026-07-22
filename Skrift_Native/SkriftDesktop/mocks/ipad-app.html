@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skrift on the iPad — wave 1 mock</title>
+<style>
+  /* Phone Theme.swift / Shared Palette tokens (dark), 1:1 */
+  :root{
+    --bg:#0F1117; --surface:#181A23; --elev:#1E2130; --hover:#232637;
+    --text:#E4E4E7; --dim:#8B8B97; --faint:#55556A;
+    --accent:#7C6BF5; --accentsoft:rgba(124,107,245,.13); --accenttext:#B9ACFF;
+    --green:#34D399; --amber:#F59E0B; --red:#EF4444; --namelink:#9D8FF7;
+    --hairline:rgba(255,255,255,.07); --hairline2:rgba(255,255,255,.12);
+  }
+  *{box-sizing:border-box}
+  ::-webkit-scrollbar{width:8px;background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.10);border-radius:4px}
+  body{margin:0;background:#060608;color:var(--text);
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:28px;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-.3px;}
+  .thesis{color:var(--namelink);font-size:13.5px;margin:0 0 8px;max-width:1020px;}
+  .v1{display:inline-block;font-size:11px;color:var(--green);background:rgba(52,211,153,.12);padding:2px 9px;border-radius:20px;margin-bottom:6px;}
+  .label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);margin:30px 0 9px;font-weight:600;}
+  .hint{font-size:10.5px;color:var(--faint);margin:6px 2px 0;line-height:1.5;max-width:1120px;}
+  .hint b{color:#9a96c9;font-weight:600;}
+  .num{font-variant-numeric:tabular-nums}
+  .verdict{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:20px;margin-left:8px;vertical-align:1px;}
+  .verdict.pick{color:var(--green);background:rgba(52,211,153,.12);}
+  .verdict.no{color:var(--dim);background:rgba(255,255,255,.05);}
+
+  /* ── iPad frame (13", landscape, scaled) ─────────── */
+  .pad{width:1120px;height:800px;background:var(--bg);border:12px solid #000;border-radius:30px;
+       overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.5);position:relative;}
+  .pad.small{width:760px;height:560px;}
+
+  /* iPadOS 18 floating top tab strip */
+  .tabstrip{display:flex;justify-content:center;padding:10px 0 4px;flex:none;}
+  .tabs{display:flex;gap:4px;background:rgba(255,255,255,.05);border:1px solid var(--hairline);
+        border-radius:22px;padding:4px;}
+  .tab{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--dim);
+       padding:6px 16px;border-radius:18px;}
+  .tab.on{background:var(--accentsoft);color:var(--accenttext);}
+  .tab .ic{font-size:13px;}
+  .sidebtn{position:absolute;left:18px;top:16px;color:var(--faint);font-size:15px;}
+
+  .split{flex:1;display:flex;min-height:0;}
+
+  /* ── Notes list column (the phone list, verbatim) ── */
+  .listcol{width:375px;border-right:1px solid var(--hairline);display:flex;flex-direction:column;min-height:0;}
+  .lhead{display:flex;align-items:center;gap:15px;padding:10px 16px 6px;}
+  .lhead h2{font-size:30px;font-weight:800;margin:0;letter-spacing:-.5px;flex:1;}
+  .lhead .a{color:var(--accenttext);font-size:15px;}
+  .lhead .ico{color:var(--accenttext);font-size:15px;}
+  .search{margin:4px 16px 6px;background:var(--elev);border-radius:11px;padding:8px 12px;
+          font-size:13px;color:var(--faint);display:flex;gap:7px;align-items:center;}
+  .rows{flex:1;overflow:auto;padding:2px 10px 90px;}
+  .dayhead{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);margin:14px 8px 6px;}
+  .mrow{display:flex;gap:11px;padding:10px 10px;border-radius:14px;margin-bottom:2px;}
+  .mrow.sel{background:var(--accentsoft);}
+  .mrow .glyph{width:30px;height:30px;border-radius:9px;background:var(--elev);display:flex;align-items:center;
+               justify-content:center;font-size:13px;color:var(--dim);flex:none;margin-top:2px;}
+  .mrow .glyph.book{color:var(--accenttext);}
+  .mrow .body{flex:1;min-width:0;}
+  .mrow .top{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--faint);font-weight:600;}
+  .mrow .top .clock{color:var(--amber);opacity:.9;font-weight:400;}
+  .mrow .pill{margin-left:auto;font-size:10px;font-weight:600;padding:1px 7px;border-radius:9px;}
+  .pill.synced{color:var(--green);background:rgba(52,211,153,.10);}
+  .pill.waiting{color:var(--amber);background:rgba(245,158,11,.10);}
+  .mrow .title{font-size:14.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:5px;}
+  .mrow .snip{font-size:12.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:2px;}
+  .mrow .thumb{width:44px;height:44px;border-radius:9px;flex:none;align-self:center;
+               background:linear-gradient(135deg,#2a2f45,#1a1e30);}
+  .lock{color:var(--dim);}
+
+  /* bottom chrome inside the list column (Option A, as built) */
+  .chrome{position:absolute;left:0;bottom:0;width:375px;padding:12px 16px 16px;display:flex;align-items:center;gap:10px;
+          background:linear-gradient(transparent,rgba(15,17,23,.88) 40%);}
+  .bookpill{flex:1;display:flex;align-items:center;gap:9px;background:rgba(30,33,48,.92);border:1px solid var(--hairline2);
+            border-radius:22px;padding:7px 12px;backdrop-filter:blur(6px);}
+  .bookpill .cov{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#4a3f7a,#2a2440);}
+  .bookpill .t{flex:1;font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bookpill .play{color:var(--text);font-size:13px;}
+  .recbtn{width:54px;height:54px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;
+          box-shadow:0 6px 20px rgba(124,107,245,.45);font-size:20px;color:#fff;flex:none;}
+
+  /* ── Detail pane ─────────────────────────────────── */
+  .detail{flex:1;display:flex;min-width:0;}
+  .page{flex:1;min-width:0;overflow:auto;padding:26px 40px 90px;display:flex;flex-direction:column;align-items:center;}
+  .measure{width:100%;max-width:640px;}
+  .ntitle{font-size:23px;font-weight:800;letter-spacing:-.3px;margin:2px 0 8px;}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+  .chip{font-size:11px;color:var(--dim);background:var(--elev);border-radius:8px;padding:3px 9px;display:flex;gap:5px;align-items:center;}
+  .chip .i{font-size:10px;}
+  .prose{font-size:15px;line-height:1.75;color:var(--text);}
+  .prose p{margin:0 0 14px;}
+  .prose .nl{color:var(--namelink);}
+  .task{display:flex;gap:10px;align-items:flex-start;margin:7px 0;}
+  .box{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--hairline2);flex:none;margin-top:3px;}
+  .box.done{background:var(--accent);border-color:var(--accent);position:relative;}
+  .box.done:after{content:"✓";position:absolute;inset:0;color:#fff;font-size:11px;line-height:17px;text-align:center;font-weight:800;}
+  .task.done span{color:var(--faint);text-decoration:line-through;}
+  .photo{border-radius:14px;height:180px;margin:6px 0 14px;
+         background:linear-gradient(120deg,#232840,#161a2a 60%,#1d2236);border:1px solid var(--hairline);}
+  .playbar{display:flex;align-items:center;gap:12px;background:rgba(30,33,48,.92);border:1px solid var(--hairline2);
+           border-radius:22px;padding:9px 16px;margin-top:18px;backdrop-filter:blur(6px);}
+  .playbar .t{font-size:10.5px;color:var(--faint);}
+  .playbar .track{flex:1;height:3px;border-radius:2px;background:var(--hairline2);position:relative;}
+  .playbar .track i{position:absolute;left:0;top:0;height:100%;width:34%;background:var(--accent);border-radius:2px;}
+  .playbar .spd{font-size:10.5px;color:var(--dim);background:var(--elev);padding:2px 7px;border-radius:7px;}
+
+  /* Connections side panel (m3) */
+  .conn{width:300px;border-left:1px solid var(--hairline);padding:18px 16px;overflow:auto;flex:none;}
+  .conn .chead{display:flex;align-items:center;gap:7px;margin-bottom:10px;}
+  .conn .chead b{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);}
+  .conn .count{font-size:10px;color:var(--faint);background:var(--elev);border-radius:8px;padding:1px 6px;}
+  .conn .fold{margin-left:auto;color:var(--faint);font-size:11px;}
+  .segpill{display:flex;background:var(--elev);border-radius:9px;padding:2.5px;margin-bottom:10px;}
+  .segpill div{flex:1;text-align:center;font-size:10.5px;font-weight:600;padding:4px 0;border-radius:7px;color:var(--dim);}
+  .segpill .on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.4);}
+  .crow{padding:8px 10px;border-radius:10px;margin-bottom:3px;}
+  .crow:hover{background:var(--hover);}
+  .crow .t{font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .crow .m{display:flex;gap:8px;font-size:10.5px;color:var(--faint);padding-top:2px;}
+  .crow .m .imp{color:var(--accenttext);font-weight:700;}
+  .crow .m .pct{margin-left:auto;}
+  .connlabel{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);margin:16px 2px 7px;font-weight:700;}
+  .thread{display:flex;gap:7px;align-items:center;color:var(--accenttext);font-size:12px;font-weight:600;padding:8px 10px;}
+  .backl{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim);padding:6px 10px;}
+  .backl .arrow{color:var(--accent);}
+
+  /* ── Journal (m4) ────────────────────────────────── */
+  .jriver{width:520px;border-right:1px solid var(--hairline);overflow:auto;padding:16px 20px 40px;}
+  .jriver h2{font-size:30px;font-weight:800;margin:2px 0 12px;letter-spacing:-.5px;}
+  .jcard{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:13px 15px;margin-bottom:10px;}
+  .kick{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;
+        color:var(--accent);font-weight:700;margin-bottom:5px;}
+  .kick .when{color:var(--faint);font-weight:500;letter-spacing:0;text-transform:none;}
+  .jcard h3{font-size:13.5px;margin:0 0 4px;font-weight:650;}
+  .jcard p{font-size:12px;color:var(--dim);margin:0;line-height:1.55;}
+  .jcard .nl{color:var(--namelink);}
+  .meta{display:flex;gap:10px;align-items:center;margin-top:8px;font-size:10.5px;color:var(--faint);}
+  .imp{display:flex;gap:2.5px;}
+  .imp i{width:5px;height:5px;border-radius:50%;background:var(--accent);font-style:normal;}
+  .imp i.off{background:var(--hairline2);}
+  .thennow{display:flex;gap:12px;}
+  .thennow .half{flex:1;background:var(--elev);border-radius:11px;padding:9px 11px;}
+  .thennow .half .k{font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);font-weight:700;margin-bottom:3px;}
+  .thennow .half .t{font-size:12px;font-weight:600;}
+  .fadrow{display:flex;align-items:center;gap:8px;background:var(--elev);border-radius:14px;padding:12px 14px;margin-top:14px;
+          font-size:13.5px;color:var(--dim);font-weight:500;}
+  .fadrow .leaf{color:var(--amber);}
+  .fadrow .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);}
+  .fadrow .n{margin-left:auto;font-size:12px;font-weight:600;color:var(--faint);}
+
+  .jpane{flex:1;overflow:auto;padding:20px 26px;}
+  .mhead{display:flex;justify-content:space-between;align-items:center;margin:0 2px 10px;}
+  .mhead b{font-size:16px;}
+  .mnav{color:var(--faint);font-size:14px;letter-spacing:3px;}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;font-size:12.5px;text-align:center;}
+  .cal .wd{color:var(--faint);font-size:10px;padding:3px 0;}
+  .cal .d{position:relative;color:var(--dim);padding:9px 0 15px;border-radius:9px;}
+  .cal .d:hover{background:var(--hover);}
+  .cal .d i{position:absolute;left:50%;transform:translateX(-50%);bottom:5px;width:4px;height:4px;border-radius:50%;
+            background:var(--accent);opacity:.45;font-style:normal;}
+  .cal .d i.d2{width:5px;height:5px;opacity:.8;}
+  .cal .d i.d3{width:6px;height:6px;opacity:1;box-shadow:0 0 6px rgba(124,107,245,.6);}
+  .cal .today{outline:1.5px solid var(--accent);outline-offset:-1.5px;color:var(--text);font-weight:700;}
+  .cal .sel{background:var(--accentsoft);color:var(--text);font-weight:600;}
+  .cal .out{opacity:.25}
+  .place{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--dim);padding:8px 10px;border-radius:9px;}
+  .place:hover{background:var(--hover);color:var(--text);}
+  .place .pin{color:var(--accent);margin-right:7px;}
+  .place .n{font-size:10.5px;color:var(--faint);}
+  .plabel{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);margin:20px 2px 7px;font-weight:700;}
+  .dayrow{display:flex;gap:10px;align-items:center;padding:9px 11px;border-radius:11px;background:var(--surface);
+          border:1px solid var(--hairline);margin-bottom:7px;}
+  .dayrow .t{flex:1;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dayrow .w{font-size:10.5px;color:var(--faint);}
+  .mapbox{position:relative;height:430px;border-radius:16px;overflow:hidden;border:1px solid var(--hairline);
+          background:radial-gradient(280px 170px at 64% 38%, rgba(124,107,245,.10), transparent 60%),
+                     linear-gradient(115deg,#10131C 0%,#131722 40%,#101521 100%);}
+  .mapbox .river{position:absolute;left:-8%;top:54%;width:120%;height:52px;background:rgba(96,145,250,.10);
+                 border-radius:50% 40% 50% 45%/60% 55% 60% 50%;transform:rotate(-7deg);}
+  .mapbox .road{position:absolute;background:rgba(255,255,255,.05);}
+  .pinc{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .pinc .bub{min-width:28px;height:28px;border-radius:15px;background:var(--accent);color:#fff;font-size:11.5px;font-weight:800;
+             display:flex;align-items:center;justify-content:center;padding:0 8px;box-shadow:0 4px 14px rgba(124,107,245,.45);}
+  .pinc .pn{font-size:10px;color:var(--dim);background:rgba(6,6,8,.55);padding:1px 7px;border-radius:8px;white-space:nowrap;}
+  .pinc.sel .bub{background:#fff;color:var(--accent);outline:2.5px solid var(--accent);}
+  .incard{position:absolute;left:14px;bottom:14px;right:14px;background:rgba(15,17,23,.92);border:1px solid var(--hairline2);
+          border-radius:14px;padding:11px 13px;backdrop-filter:blur(8px);}
+
+  /* ── Books (m6) ──────────────────────────────────── */
+  .shelf{flex:1;overflow:auto;padding:16px 26px 40px;}
+  .shelf h2{font-size:30px;font-weight:800;margin:2px 0 4px;letter-spacing:-.5px;}
+  .segrow{display:flex;gap:7px;margin:8px 0 18px;}
+  .seg{font-size:11.5px;font-weight:600;color:var(--dim);background:var(--elev);border-radius:9px;padding:4px 11px;}
+  .seg.on{color:var(--accenttext);background:var(--accentsoft);}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:22px 20px;}
+  .bk .cov{aspect-ratio:1/1;border-radius:12px;background:linear-gradient(135deg,#4a3f7a,#241f38);position:relative;
+           box-shadow:0 8px 22px rgba(0,0,0,.4);border:1px solid var(--hairline);}
+  .bk .cov .sync{position:absolute;right:7px;top:7px;font-size:10px;color:rgba(255,255,255,.75);}
+  .bk .cov.g2{background:linear-gradient(135deg,#7a3f58,#38202b);}
+  .bk .cov.g3{background:linear-gradient(135deg,#3f6a7a,#1d2f38);}
+  .bk .cov.g4{background:linear-gradient(135deg,#6a7a3f,#2c3320);}
+  .bk .cov.g5{background:linear-gradient(135deg,#8a6a3f,#382b1d);}
+  .bk .t{font-size:12px;font-weight:600;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bk .prog{height:3px;border-radius:2px;background:var(--hairline2);margin-top:6px;position:relative;}
+  .bk .prog i{position:absolute;left:0;top:0;height:100%;border-radius:2px;background:var(--accent);}
+  .bk .pl{font-size:10px;color:var(--faint);margin-top:4px;display:flex;justify-content:space-between;}
+
+  /* player */
+  .player{flex:1;display:flex;min-height:0;}
+  .pleft{width:340px;border-right:1px solid var(--hairline);padding:26px;display:flex;flex-direction:column;align-items:center;}
+  .pleft .cov{width:220px;height:220px;border-radius:18px;background:linear-gradient(135deg,#4a3f7a,#241f38);
+              box-shadow:0 16px 40px rgba(0,0,0,.5);margin:12px 0 18px;}
+  .pleft .bt{font-size:16px;font-weight:700;text-align:center;}
+  .pleft .ba{font-size:12px;color:var(--dim);margin-top:2px;}
+  .transport{display:flex;align-items:center;gap:20px;margin-top:22px;}
+  .transport .b{width:44px;height:44px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text);}
+  .transport .b.main{width:60px;height:60px;background:var(--accent);font-size:20px;color:#fff;box-shadow:0 6px 20px rgba(124,107,245,.45);}
+  .pmeta{display:flex;gap:9px;margin-top:18px;}
+  .pmeta .k{font-size:10.5px;color:var(--dim);background:var(--elev);padding:3px 9px;border-radius:8px;}
+  .readalong{flex:1;overflow:auto;padding:30px 36px;display:flex;justify-content:center;}
+  .readalong .col{max-width:560px;}
+  .readalong .chap{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);font-weight:700;margin-bottom:14px;}
+  .readalong p{font-size:16px;line-height:1.9;color:var(--dim);margin:0 0 18px;}
+  .readalong .past{color:var(--faint);}
+  .readalong .now{color:var(--text);}
+  .readalong .now .hot{background:var(--accentsoft);color:var(--accenttext);border-radius:5px;padding:0 3px;}
+  .chaps{width:270px;border-left:1px solid var(--hairline);padding:18px 14px;overflow:auto;}
+  .chaps .h{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);font-weight:700;margin:0 4px 9px;}
+  .chrow{display:flex;gap:8px;align-items:baseline;font-size:12px;color:var(--dim);padding:7px 9px;border-radius:9px;}
+  .chrow.on{background:var(--accentsoft);color:var(--text);}
+  .chrow .n{color:var(--faint);font-size:10.5px;}
+  .chrow .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .chrow .len{color:var(--faint);font-size:10.5px;}
+  .bmark{display:flex;gap:8px;align-items:center;font-size:11.5px;color:var(--dim);padding:6px 9px;}
+  .bmark .q{flex:1;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  /* ── Settings / polish (m5) ──────────────────────── */
+  .setlist{width:360px;border-right:1px solid var(--hairline);padding:16px;overflow:auto;}
+  .setlist h2{font-size:30px;font-weight:800;margin:2px 0 14px;letter-spacing:-.5px;}
+  .sgroup{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;margin-bottom:14px;}
+  .srow2{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--hairline);font-size:13.5px;}
+  .srow2:last-child{border-bottom:none;}
+  .srow2 .ic{width:26px;height:26px;border-radius:7px;background:var(--elev);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--accenttext);}
+  .srow2 .go{margin-left:auto;color:var(--faint);font-size:12px;}
+  .srow2.sel{background:var(--accentsoft);}
+  .new{font-size:9px;font-weight:800;color:var(--green);background:rgba(52,211,153,.12);padding:1px 6px;border-radius:7px;letter-spacing:.5px;}
+  .setpane{flex:1;overflow:auto;padding:26px 34px;}
+  .setpane .measure{max-width:620px;}
+  .ph{font-size:21px;font-weight:800;margin:0 0 4px;}
+  .psub{font-size:12.5px;color:var(--dim);margin:0 0 18px;line-height:1.6;}
+  .modelcard{display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--hairline);
+             border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+  .modelcard .mi{width:42px;height:42px;border-radius:11px;background:var(--accentsoft);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .modelcard .t{font-size:13.5px;font-weight:700;}
+  .modelcard .s{font-size:11.5px;color:var(--dim);margin-top:1px;}
+  .btn{background:var(--accent);color:#fff;font-size:12px;font-weight:650;padding:7px 16px;border-radius:9px;margin-left:auto;flex:none;}
+  .btn.ghost{background:var(--elev);color:var(--accenttext);}
+  .togrow{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:13px 16px;margin-bottom:12px;}
+  .togrow .t{font-size:13.5px;font-weight:600;}
+  .togrow .s{font-size:11.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+  .tog{width:44px;height:26px;border-radius:14px;background:var(--elev);margin-left:auto;position:relative;flex:none;}
+  .tog i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--faint);}
+  .tog.on{background:var(--green);}
+  .tog.on i{left:auto;right:3px;background:#fff;}
+  .footnote{font-size:11px;color:var(--faint);line-height:1.6;margin-top:14px;}
+  .strip{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;}
+  .mini{width:352px;background:var(--bg);border:1px solid #000;border-radius:12px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.45);}
+  .mini .bar{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);background:#15171F;
+             padding:7px 12px;border-bottom:1px solid var(--hairline);font-weight:700;}
+  .mini .mb{padding:14px 16px;font-size:12.5px;line-height:1.6;}
+  .menu{background:var(--elev);border:1px solid var(--hairline2);border-radius:12px;overflow:hidden;width:230px;box-shadow:0 10px 30px rgba(0,0,0,.5);}
+  .menu .mr{display:flex;gap:10px;align-items:center;padding:9px 13px;font-size:13px;border-bottom:1px solid var(--hairline);}
+  .menu .mr:last-child{border-bottom:none;}
+  .menu .mr .mi2{width:16px;text-align:center;color:var(--dim);}
+  .polishing{display:inline-flex;gap:8px;align-items:center;background:var(--accentsoft);color:var(--accenttext);
+             border-radius:16px;padding:5px 12px;font-size:11.5px;font-weight:600;}
+  .spin{width:11px;height:11px;border:2px solid rgba(185,172,255,.3);border-top-color:var(--accenttext);border-radius:50%;}
+  .donechip{display:inline-flex;gap:6px;align-items:center;color:var(--green);font-size:11px;font-weight:700;
+            background:rgba(52,211,153,.10);border-radius:9px;padding:2.5px 9px;}
+
+  /* ── Record (m7) ─────────────────────────────────── */
+  .dimstage{flex:1;position:relative;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;}
+  .reccard{width:620px;background:var(--bg);border:1px solid var(--hairline2);border-radius:24px;padding:28px 30px;box-shadow:0 30px 80px rgba(0,0,0,.6);}
+  .rectop{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .rectop .timer{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.5px;}
+  .rectop .live{font-size:11px;color:var(--red);font-weight:700;display:flex;gap:6px;align-items:center;}
+  .rectop .live i{width:8px;height:8px;border-radius:50%;background:var(--red);}
+  .wave{display:flex;gap:3px;align-items:center;height:44px;margin-bottom:16px;}
+  .wave i{flex:1;background:var(--accent);border-radius:2px;opacity:.85;}
+  .cap{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:14px 16px;
+       font-size:14px;line-height:1.8;color:var(--text);min-height:110px;}
+  .cap .lite{color:var(--dim);}
+  .cap .ph2{color:var(--accenttext);background:var(--accentsoft);border-radius:5px;padding:0 5px;font-size:12px;}
+  .recbtns{display:flex;justify-content:center;gap:20px;margin-top:20px;align-items:center;}
+  .rb{width:46px;height:46px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text);}
+  .rb.stop{width:62px;height:62px;background:var(--red);font-size:20px;color:#fff;box-shadow:0 6px 20px rgba(239,68,68,.4);}
+</style>
+</head>
+<body>
+
+<h1>Skrift on the iPad — wave 1</h1>
+<p class="thesis">The same phone app, given room: <b>Notes becomes list ↔ note</b>, <b>Review gets a standing calendar + places pane</b>
+(signed journal-desktop §2), <b>Books becomes a shelf</b>, and the iPad earns its keep as the household's <b>reading room + on-demand polisher</b>
+(same Gemma the Mac runs, only ever for the note you're looking at). Tokens 1:1 from the phone's Theme.swift / shared Palette.</p>
+<span class="v1">wave-1 mock · drawn 2026-07-22 (Fable, overnight session) — variant verdicts inline; Tuur review owed</span>
+
+<!-- ═══════════════════ m1 · Shell A + Notes split ═══════════════════ -->
+<div class="label" id="m1">m1 · Shell A — the phone's four tabs, iPadOS top strip; Notes = list column ↔ note page
+  <span class="verdict pick">PICKED (Fable) — the signed "same app at regular width" direction</span></div>
+<div class="pad">
+  <div class="sidebtn">☰</div>
+  <div class="tabstrip"><div class="tabs">
+    <div class="tab on"><span class="ic">▤</span>Notes</div>
+    <div class="tab"><span class="ic">📖</span>Books</div>
+    <div class="tab"><span class="ic">↻</span>Review</div>
+    <div class="tab"><span class="ic">⚙</span>Settings</div>
+  </div></div>
+  <div class="split">
+    <div class="listcol">
+      <div class="lhead"><h2>Notes</h2><span class="a">Select</span><span class="ico">⤓</span><span class="ico">🖹</span><span class="ico">≡</span></div>
+      <div class="search">🔍 Search transcripts</div>
+      <div class="rows">
+        <div class="dayhead">Today</div>
+        <div class="mrow sel">
+          <div class="glyph">🎙</div>
+          <div class="body">
+            <div class="top">14:32 <span class="pill synced">Synced</span></div>
+            <div class="title">Two apps, one contract</div>
+            <div class="snip">The shared folder finally carries every wire struct — next the Mac honours…</div>
+          </div>
+        </div>
+        <div class="mrow">
+          <div class="glyph">🔗</div>
+          <div class="body">
+            <div class="top">11:04 <span class="pill synced">Synced</span></div>
+            <div class="title">Fado bar recommendation</div>
+            <div class="snip">Shared from Maps — Rox swears by the Tuesday sets</div>
+          </div>
+        </div>
+        <div class="mrow">
+          <div class="glyph">🎙</div>
+          <div class="body">
+            <div class="top">09:18 <span class="clock">· starts fading 28 Jul</span> <span class="pill waiting">Waiting</span></div>
+            <div class="title">Standup ramble — capture inbox edge case</div>
+            <div class="snip">If the drain runs while a share is mid-write we could…</div>
+          </div>
+        </div>
+        <div class="dayhead">Yesterday</div>
+        <div class="mrow">
+          <div class="glyph book">❝</div>
+          <div class="body">
+            <div class="top">22:47 <span class="pill synced">Synced</span></div>
+            <div class="title">❝ The map is not the territory</div>
+            <div class="snip">This is exactly the naming-model problem — the alias table is a map…</div>
+          </div>
+        </div>
+        <div class="mrow">
+          <div class="glyph">🎙</div>
+          <div class="body">
+            <div class="top">19:03 <span class="pill synced">Synced</span></div>
+            <div class="title"><span class="lock">🔒</span> Locked note</div>
+          </div>
+        </div>
+        <div class="mrow">
+          <div class="glyph">🎞</div>
+          <div class="body">
+            <div class="top">16:22 <span class="pill synced">Synced</span></div>
+            <div class="title">Rooftop timelapse notes</div>
+            <div class="snip">Imported video — the light around 19:40 is the one…</div>
+          </div>
+          <div class="thumb"></div>
+        </div>
+        <div class="dayhead">Friday 18 Jul</div>
+        <div class="mrow">
+          <div class="glyph">🎙</div>
+          <div class="body">
+            <div class="top">08:12 <span class="pill synced">Synced</span></div>
+            <div class="title">Morning pages — the iPad question</div>
+            <div class="snip">Where does a third screen fit without a third app…</div>
+          </div>
+        </div>
+      </div>
+      <div class="chrome">
+        <div class="bookpill"><div class="cov"></div><div class="t">Antifragile · ch 12</div><div class="play">▶</div></div>
+        <div class="recbtn">🎙</div>
+      </div>
+    </div>
+    <div class="detail">
+      <div class="page"><div class="measure">
+        <div class="ntitle">Two apps, one contract</div>
+        <div class="chips">
+          <span class="chip"><span class="i">◉</span>Good Friday HQ</span>
+          <span class="chip"><span class="i">☀︎</span>24° clear</span>
+          <span class="chip"><span class="i">◑</span>afternoon</span>
+          <span class="chip">#skrift</span><span class="chip">#architecture</span>
+        </div>
+        <div class="prose">
+          <p>The shared folder finally carries every wire struct, so the phone and the Mac literally
+          compile the same contract. <span class="nl">[[Hendrik]]</span> called this the boring victory —
+          he's right, and boring is the point.</p>
+          <div class="task done"><div class="box done"></div><span>Move MemoSpine one-liners into SharedCopy</span></div>
+          <div class="task"><div class="box"></div><span>Teach the iPad build the same trick</span></div>
+          <div class="photo"></div>
+          <p>Whiteboard from this morning — the arrow from capture to polish is the whole company.
+          If the iPad can hold the reading seat, the loop closes on the sofa instead of the desk.</p>
+        </div>
+        <div class="playbar"><span>▶</span><span class="t num">2:04</span><div class="track"><i></i></div><span class="t num">6:12</span><span class="spd">1.5×</span></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>What this is:</b> `TARGETED_DEVICE_FAMILY 1,2` + the Notes tab wrapped in a `NavigationSplitView` — the LIST is the
+phone list verbatim (header verbs, search, day groups, source glyphs, status pills, amber clock line, 🔒 rows), the DETAIL is
+`MemoDetailView` with its body capped at a reading measure (~640pt) instead of stretching wall-to-wall. Selected row = accent-soft.
+The bottom chrome (book pill + record) stays INSIDE the list column — capture is a list-side act; the reading pane stays calm.
+The system tab strip is iPadOS 18's own (sidebar toggle included for free). <b>Keyboard:</b> ⌘N record · ⌘F search · ↑↓ row focus.</p>
+
+<!-- ═══════════════════ m2 · Shell B (not picked) ═══════════════════ -->
+<div class="label" id="m2">m2 · Shell B — Mac-style icon rail instead of tabs
+  <span class="verdict no">not picked — breaks phone muscle memory; iPadOS gives a sidebar for free from Shell A</span></div>
+<div class="pad small">
+  <div class="split">
+    <div style="width:64px;border-right:1px solid var(--hairline);display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 0;">
+      <div style="width:40px;height:40px;border-radius:11px;background:var(--accentsoft);display:flex;align-items:center;justify-content:center;">▤</div>
+      <div style="width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--dim);">📖</div>
+      <div style="width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--dim);">↻</div>
+      <div style="margin-top:auto;width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--dim);">⚙</div>
+    </div>
+    <div class="listcol" style="width:300px;">
+      <div class="lhead"><h2 style="font-size:24px;">Notes</h2><span class="ico">≡</span></div>
+      <div class="search">🔍 Search transcripts</div>
+      <div class="rows">
+        <div class="mrow sel"><div class="glyph">🎙</div><div class="body"><div class="top">14:32</div><div class="title">Two apps, one contract</div></div></div>
+        <div class="mrow"><div class="glyph">🔗</div><div class="body"><div class="top">11:04</div><div class="title">Fado bar recommendation</div></div></div>
+        <div class="mrow"><div class="glyph">🎙</div><div class="body"><div class="top">09:18</div><div class="title">Standup ramble</div></div></div>
+      </div>
+    </div>
+    <div class="detail"><div class="page"><div class="measure">
+      <div class="ntitle" style="font-size:19px;">Two apps, one contract</div>
+      <div class="prose"><p style="font-size:13.5px;">A Mac-shaped shell on a touch canvas: prettier in
+      screenshots, but the four tabs stop matching the phone in hand and in head…</p></div>
+    </div></div></div>
+  </div>
+</div>
+<p class="hint"><b>Why it loses:</b> the phone IA (four tabs) is 3 weeks old and just went through the lifecycle-IA unification —
+renaming the furniture per device violates the "one app, one head" rule that made the Mac's Queue→Notes rename worth doing. iPadOS 18's
+`.sidebarAdaptable` already lets a user pull Shell A into a sidebar when they want density. Kept for the record.</p>
+
+<!-- ═══════════════════ m3 · Note + Connections panel ═══════════════════ -->
+<div class="label" id="m3">m3 · The note at regular width — Connections as a standing side panel
+  <span class="verdict pick">PICKED (Fable) — the Mac's signed related-panel, phone-flavored; body stays clean</span></div>
+<div class="pad" style="height:640px;">
+  <div class="tabstrip"><div class="tabs">
+    <div class="tab on"><span class="ic">▤</span>Notes</div>
+    <div class="tab"><span class="ic">📖</span>Books</div>
+    <div class="tab"><span class="ic">↻</span>Review</div>
+    <div class="tab"><span class="ic">⚙</span>Settings</div>
+  </div></div>
+  <div class="split">
+    <div class="listcol" style="width:320px;">
+      <div class="lhead"><h2 style="font-size:24px;">Notes</h2><span class="ico">≡</span></div>
+      <div class="rows">
+        <div class="mrow sel"><div class="glyph">🎙</div><div class="body"><div class="top">14:32 <span class="pill synced">Synced</span></div><div class="title">Two apps, one contract</div><div class="snip">The shared folder finally…</div></div></div>
+        <div class="mrow"><div class="glyph book">❝</div><div class="body"><div class="top">22:47</div><div class="title">❝ The map is not the territory</div><div class="snip">This is exactly the naming…</div></div></div>
+        <div class="mrow"><div class="glyph">🎙</div><div class="body"><div class="top">08:12</div><div class="title">Morning pages — the iPad question</div><div class="snip">Where does a third screen…</div></div></div>
+      </div>
+    </div>
+    <div class="detail">
+      <div class="page"><div class="measure" style="max-width:560px;">
+        <div class="ntitle">Two apps, one contract</div>
+        <div class="chips">
+          <span class="chip"><span class="i">◉</span>Good Friday HQ</span>
+          <span class="chip"><span class="i">◑</span>afternoon</span>
+          <span class="chip">#skrift</span>
+        </div>
+        <div class="prose">
+          <p>The shared folder finally carries every wire struct, so the phone and the Mac literally compile
+          the same contract. <span class="nl">[[Hendrik]]</span> called this the boring victory.</p>
+          <p>If the iPad can hold the reading seat, the loop closes on the sofa instead of the desk. The
+          polish question stays honest: the Mac volunteers, the iPad is asked.</p>
+        </div>
+        <div class="playbar"><span>▶</span><span class="t num">2:04</span><div class="track"><i></i></div><span class="t num">6:12</span><span class="spd">1.5×</span></div>
+      </div></div>
+      <div class="conn">
+        <div class="chead"><b>Connections</b><span class="count">6</span><span class="fold">⟩</span></div>
+        <div class="segpill"><div class="on">Closest</div><div>Date</div></div>
+        <div class="crow"><div class="t">Morning pages — the iPad question</div><div class="m"><span class="imp num">0.8</span><span>18 Jul</span><span class="pct num">82%</span></div></div>
+        <div class="crow"><div class="t">❝ The map is not the territory</div><div class="m"><span class="imp num">0.6</span><span>21 Jul</span><span class="pct num">74%</span></div></div>
+        <div class="crow"><div class="t">Names model, re-derived</div><div class="m"><span class="imp num">0.7</span><span>4 Apr</span><span class="pct num">69%</span></div></div>
+        <div class="crow"><div class="t">Late-night audiobook capture flow</div><div class="m"><span class="imp num">0.5</span><span>7 Jun</span><span class="pct num">61%</span></div></div>
+        <div class="thread">⤳ View thread <span style="color:var(--faint);font-weight:500;font-size:10.5px;margin-left:auto;">first mentioned 4 Apr</span></div>
+        <div class="connlabel">Linked from</div>
+        <div class="backl"><span class="arrow">↩</span> Reading-mode notes <span style="margin-left:auto;color:var(--faint);">19 Jun</span></div>
+        <div class="backl"><span class="arrow">↩</span> Desktop parity plan <span style="margin-left:auto;color:var(--faint);">7 Jul</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>What this is:</b> at regular width the phone's footer RELATED card + LINKED FROM strip move into a standing
+300pt panel (the Mac's signed `related-panel` idiom: ONE list, Closest⇄Date pill, importance decimals, % closeness — shown inline,
+touch has no hover). Collapsible (⟩) with the count badge surviving on the collapsed edge; the panel carries the same in-panel
+consent gate when the journal index is off. Compact width (portrait split / phone) keeps today's footer card — nothing forks:
+same `JournalIndexService` data, two presentations.</p>
+
+<!-- ═══════════════════ m4 · Review (Journal) ═══════════════════ -->
+<div class="label" id="m4">m4 · Review — the river keeps the left, calendar + places stand on the right (signed §2, built out)
+  <span class="verdict pick">PICKED (Fable) — this is the signed journal-desktop §2 completed with the phone's real cards</span></div>
+<div class="pad">
+  <div class="tabstrip"><div class="tabs">
+    <div class="tab"><span class="ic">▤</span>Notes</div>
+    <div class="tab"><span class="ic">📖</span>Books</div>
+    <div class="tab on"><span class="ic">↻</span>Review</div>
+    <div class="tab"><span class="ic">⚙</span>Settings</div>
+  </div></div>
+  <div class="split">
+    <div class="jriver">
+      <h2>Review</h2>
+      <div class="jcard">
+        <div class="kick"><span>Important lately</span><span class="when">last 14 days</span></div>
+        <h3>Standalone pricing — 0.69 and done</h3>
+        <p>No IAP, no subscription; the app is the product. <span class="nl">[[Rox]]</span> agreed the number is the message.</p>
+        <div class="meta"><div class="imp"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="off"></i></div><span class="chip">Good Friday HQ</span><span class="num">3:12</span></div>
+      </div>
+      <div class="jcard">
+        <div class="kick"><span>Then vs now</span><span class="when">14 months apart</span></div>
+        <div class="thennow">
+          <div class="half"><div class="k">Then · May 2025</div><div class="t">"Transcription is the product"</div></div>
+          <div class="half"><div class="k">Now · Jul 2026</div><div class="t">"Transcription is the boring part"</div></div>
+        </div>
+      </div>
+      <div class="jcard">
+        <div class="kick"><span>On this day · 2025</span><span class="when">09:12</span></div>
+        <h3>Walking the Monsanto loop, product doubts</h3>
+        <p>Kept circling on whether <span class="nl">[[Hendrik]]</span>'s idea about per-book capture pages is the wedge…</p>
+        <div class="meta"><div class="imp"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i></div><span class="chip">Monsanto trail</span><span class="num">2:41</span></div>
+      </div>
+      <div class="jcard">
+        <div class="kick"><span>1 month ago</span><span class="when">22:30</span></div>
+        <h3>Late-night audiobook capture flow</h3>
+        <p>The quote + ramble pairing works. <span class="nl">[[Rox]]</span> said the reading mode should feel like an e-reader.</p>
+        <div class="meta"><div class="imp"><i></i><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i></div><span class="chip">Alfama, Lisbon</span><span class="num">4:07</span></div>
+      </div>
+      <div class="fadrow"><span class="leaf">🍂</span>Fading<span class="dot"></span><span class="n num">4</span></div>
+    </div>
+    <div class="jpane">
+      <div class="mhead"><b>July 2026</b><span class="mnav">‹ ›</span></div>
+      <div class="cal">
+        <div class="wd">M</div><div class="wd">T</div><div class="wd">W</div><div class="wd">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div>
+        <div class="d out">29</div><div class="d out">30</div><div class="d">1<i></i></div><div class="d">2</div><div class="d">3<i class="d2"></i></div><div class="d">4<i class="d3"></i></div><div class="d">5</div>
+        <div class="d">6<i></i></div><div class="d">7<i class="d2"></i></div><div class="d">8</div><div class="d">9<i></i></div><div class="d">10</div><div class="d">11<i class="d2"></i></div><div class="d">12</div>
+        <div class="d">13</div><div class="d">14<i></i></div><div class="d">15<i class="d2"></i></div><div class="d">16<i class="d3"></i></div><div class="d">17</div><div class="d">18<i class="d2"></i></div><div class="d">19</div>
+        <div class="d">20<i></i></div><div class="d">21<i class="d2"></i></div><div class="d today sel">22<i class="d2"></i></div><div class="d">23</div><div class="d">24</div><div class="d">25</div><div class="d">26</div>
+        <div class="d">27</div><div class="d">28</div><div class="d">29</div><div class="d">30</div><div class="d">31</div><div class="d out">1</div><div class="d out">2</div>
+      </div>
+      <div class="plabel">Tuesday 22 July · today</div>
+      <div class="dayrow"><span>🎙</span><div class="t">Two apps, one contract</div><div class="w num">14:32</div></div>
+      <div class="dayrow"><span>🔗</span><div class="t">Fado bar recommendation</div><div class="w num">11:04</div></div>
+      <div class="dayrow"><span>🎙</span><div class="t">Standup ramble — capture inbox edge case</div><div class="w num">09:18</div></div>
+      <div class="plabel">Places</div>
+      <div class="place"><span><span class="pin">◉</span>Alfama, Lisbon</span><span class="n num">31</span></div>
+      <div class="place"><span><span class="pin">◉</span>Good Friday HQ</span><span class="n num">18</span></div>
+      <div class="place"><span><span class="pin">◉</span>Monsanto trail</span><span class="n num">7</span></div>
+      <div class="place"><span><span class="pin">◉</span>Café Janis</span><span class="n num">4</span></div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>What this is:</b> the phone's Journal river (Important lately · Then-vs-now · lookback cards · the Fading row)
+keeps the left; the calendar card + places card — sheets/pushes on the phone — are PROMOTED to a standing right pane
+(`LookbackProvider.dayCounts` dots, ring = today). Tapping a day fills the pane's day list; tapping a place →
+<a href="#m4b" style="color:var(--accenttext)">map mode (m4b)</a>. Compact width falls back to the phone's exact card flow.
+Same rules, zero new logic — the desktop Journal already runs these shared providers.</p>
+
+<div class="label" id="m4b">m4b · Review — Places → the map takes the pane (phone's owned-camera map, promoted)</div>
+<div class="pad" style="height:640px;">
+  <div class="split">
+    <div class="jriver" style="width:420px;">
+      <h2>Review</h2>
+      <div class="jcard">
+        <div class="kick"><span>On this day · 2025</span><span class="when">09:12</span></div>
+        <h3>Walking the Monsanto loop, product doubts</h3>
+        <p>Kept circling on whether <span class="nl">[[Hendrik]]</span>'s idea…</p>
+      </div>
+      <div class="jcard">
+        <div class="kick"><span>1 month ago</span><span class="when">22:30</span></div>
+        <h3>Late-night audiobook capture flow</h3>
+        <p>The quote + ramble pairing works…</p>
+      </div>
+    </div>
+    <div class="jpane">
+      <div class="mhead"><b>Places</b><span style="font-size:11px;color:var(--faint);">⨯ back to calendar</span></div>
+      <div class="mapbox">
+        <div class="river"></div>
+        <div class="road" style="left:18%;top:0;width:2px;height:100%;transform:rotate(14deg);"></div>
+        <div class="road" style="left:0;top:32%;width:100%;height:2px;transform:rotate(-3deg);"></div>
+        <div class="pinc sel" style="left:62%;top:36%;"><div class="bub num">31</div><div class="pn">Alfama, Lisbon</div></div>
+        <div class="pinc" style="left:28%;top:24%;"><div class="bub num">18</div><div class="pn">Good Friday HQ</div></div>
+        <div class="pinc" style="left:16%;top:64%;"><div class="bub num">7</div><div class="pn">Monsanto trail</div></div>
+        <div class="pinc" style="left:78%;top:70%;"><div class="bub num">4</div><div class="pn">Café Janis</div></div>
+        <div class="incard">
+          <div style="font-size:11.5px;font-weight:700;margin-bottom:6px;">Alfama, Lisbon · <span style="color:var(--faint);font-weight:500;">31 notes</span></div>
+          <div style="display:flex;gap:10px;font-size:11.5px;color:var(--dim);"><span>🎙 Two apps, one contract</span><span style="margin-left:auto;color:var(--faint);" class="num">Mon 7 Jul</span></div>
+          <div style="display:flex;gap:10px;font-size:11.5px;color:var(--dim);margin-top:4px;"><span>🔗 Fado bar recommendation</span><span style="margin-left:auto;color:var(--faint);" class="num">Sun 6 Jul</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>Behaviour:</b> the phone's b89/b90 map contract, verbatim — owned camera, dive-down-only, pin tap never zooms out,
+the in-frame card scrolls the selected place's notes. The map is a MODE of the right pane (the river never leaves), exactly like the
+Mac's map-behind-Places. ⨯ or any calendar interaction returns the pane.</p>
+
+<!-- ═══════════════════ m5 · Polish on this iPad ═══════════════════ -->
+<div class="label" id="m5">m5 · Polish on this iPad — the local-model play (Settings pane + the in-note moment)
+  <span class="verdict pick">PICKED (Fable) — engine A (the Mac's Gemma via MLX) built this wave, feature-flagged</span></div>
+<div class="pad" style="height:540px;">
+  <div class="tabstrip"><div class="tabs">
+    <div class="tab"><span class="ic">▤</span>Notes</div>
+    <div class="tab"><span class="ic">📖</span>Books</div>
+    <div class="tab"><span class="ic">↻</span>Review</div>
+    <div class="tab on"><span class="ic">⚙</span>Settings</div>
+  </div></div>
+  <div class="split">
+    <div class="setlist">
+      <h2>Settings</h2>
+      <div class="sgroup">
+        <div class="srow2"><div class="ic">🎙</div>Transcription<span class="go">›</span></div>
+        <div class="srow2"><div class="ic">⬇</div>Models<span class="go">›</span></div>
+        <div class="srow2"><div class="ic">Aa</div>Custom words<span class="go">›</span></div>
+      </div>
+      <div class="sgroup">
+        <div class="srow2 sel"><div class="ic">✨</div>Polish on this iPad<span class="new">NEW</span><span class="go">›</span></div>
+        <div class="srow2"><div class="ic">🧠</div>Journal index<span class="go">›</span></div>
+      </div>
+      <div class="sgroup">
+        <div class="srow2"><div class="ic">◐</div>Appearance<span class="go">›</span></div>
+        <div class="srow2"><div class="ic">✉</div>Feedback<span class="go">›</span></div>
+      </div>
+    </div>
+    <div class="setpane"><div class="measure">
+      <div class="ph">Polish on this iPad</div>
+      <p class="psub">Your Mac polishes every synced note automatically. This iPad can polish too — <b>only the note
+      you're looking at, only when you ask</b>. Same model, same result; whichever ran last wins everywhere.</p>
+      <div class="modelcard">
+        <div class="mi">✨</div>
+        <div><div class="t">Gemma 4 E4B — the model your Mac uses</div><div class="s">4.6 GB · downloads once, runs entirely on this iPad</div></div>
+        <div class="btn">Download</div>
+      </div>
+      <div class="togrow">
+        <div><div class="t">Polish when I open a note</div><div class="s">An unpolished note starts polishing as you read it. Off = only the ⋯ menu's "Polish now".</div></div>
+        <div class="tog"><i></i></div>
+      </div>
+      <div class="footnote">Runs on the iPad's Apple-silicon GPU while the app is open — the iPad never polishes in the
+      background or on battery-critical. Needs an M-series iPad with ~5 GB free. Everything stays on device.</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="label">m5 · the in-note moment (three states) + the parked engine B</div>
+<div class="strip">
+  <div class="mini">
+    <div class="bar">1 · unpolished note — ⋯ menu</div>
+    <div class="mb"><div class="menu">
+      <div class="mr"><span class="mi2">✨</span>Polish now</div>
+      <div class="mr"><span class="mi2">🔔</span>Remind me…</div>
+      <div class="mr"><span class="mi2">🔒</span>Lock note</div>
+      <div class="mr"><span class="mi2">⤴</span>Share note…</div>
+    </div></div>
+  </div>
+  <div class="mini">
+    <div class="bar">2 · while it runs (stays on the note)</div>
+    <div class="mb">
+      <span class="polishing"><span class="spin"></span>Polishing on this iPad…</span>
+      <div style="margin-top:10px;color:var(--dim);font-size:12px;">Body stays readable + editable — the raw transcript
+      is never replaced, the polish arrives beside it like the Mac's does.</div>
+    </div>
+  </div>
+  <div class="mini">
+    <div class="bar">3 · done — same badge the Mac earns</div>
+    <div class="mb">
+      <span class="donechip">✓ Polished · this iPad</span>
+      <div style="margin-top:10px;color:var(--dim);font-size:12px;">Synced as a normal <b>MemoEnhancement</b> —
+      newest wins, so the Mac won't redo it and every device shows it.</div>
+    </div>
+  </div>
+  <div class="mini">
+    <div class="bar">engine B — considered, parked</div>
+    <div class="mb">
+      <div style="font-size:13px;font-weight:700;">🍎 Apple Intelligence (built-in)</div>
+      <div style="margin-top:6px;color:var(--dim);font-size:12px;">No download, but a different editorial voice than the
+      Mac's polish — two voices in one library. Revisit only if Gemma-on-iPad disappoints.</div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>What ships:</b> mlx-swift-lm (the Mac's exact pin) joins the iOS app <b>iPad-gated</b>; prompts single-sourced to
+`Shared/` so the two polishers can never drift; the engine implements the same `Enhancing` shape and writes `MemoEnhancement`
+(LWW by `enhancedAt` — the existing contract already handles two polishers). Feature-flagged: phone UI never shows it; the sim can't
+run Metal-JIT MLX so live generation is device-owed. The polisher rule stays honest: <b>Mac volunteers, iPad is asked.</b></p>
+
+<!-- ═══════════════════ m6 · Books ═══════════════════ -->
+<div class="label" id="m6">m6 · Books — the library becomes a shelf; the player reads like a book with chapters at hand
+  <span class="verdict pick">PICKED (Fable) — grid at regular width only; the phone keeps its rows</span></div>
+<div class="pad" style="height:500px;">
+  <div class="tabstrip"><div class="tabs">
+    <div class="tab"><span class="ic">▤</span>Notes</div>
+    <div class="tab on"><span class="ic">📖</span>Books</div>
+    <div class="tab"><span class="ic">↻</span>Review</div>
+    <div class="tab"><span class="ic">⚙</span>Settings</div>
+  </div></div>
+  <div class="shelf">
+    <h2>Books</h2>
+    <div class="segrow"><span class="seg on">All</span><span class="seg">Listening</span><span class="seg">Finished</span><span class="seg" style="margin-left:auto;">＋</span></div>
+    <div class="grid">
+      <div class="bk"><div class="cov"><span class="sync">✓☁</span></div><div class="t">Antifragile</div><div class="prog"><i style="width:62%"></i></div><div class="pl"><span>ch 12 · 62%</span><span class="num">4:12 left</span></div></div>
+      <div class="bk"><div class="cov g2"><span class="sync">✓☁</span></div><div class="t">The Name of the Rose</div><div class="prog"><i style="width:31%"></i></div><div class="pl"><span>ch 5 · 31%</span><span class="num">11:40 left</span></div></div>
+      <div class="bk"><div class="cov g3"><span class="sync">⬇☁</span></div><div class="t">Seeing Like a State</div><div class="prog"><i style="width:88%"></i></div><div class="pl"><span>ch 9 · 88%</span><span class="num">1:05 left</span></div></div>
+      <div class="bk"><div class="cov g4"></div><div class="t">Gödel, Escher, Bach</div><div class="prog"><i style="width:8%"></i></div><div class="pl"><span>ch 1 · 8%</span><span class="num">28:44 left</span></div></div>
+      <div class="bk"><div class="cov g5"></div><div class="t">The Peregrine</div><div class="prog"><i style="width:100%;background:var(--green)"></i></div><div class="pl"><span>finished</span><span></span></div></div>
+    </div>
+  </div>
+</div>
+<div style="height:16px"></div>
+<div class="pad" style="height:640px;">
+  <div class="player">
+    <div class="pleft">
+      <div style="align-self:flex-start;color:var(--faint);font-size:13px;">⌄ close</div>
+      <div class="cov"></div>
+      <div class="bt">Antifragile</div>
+      <div class="ba">Nassim Nicholas Taleb</div>
+      <div class="transport">
+        <div class="b">−15</div>
+        <div class="b main">▮▮</div>
+        <div class="b">+15</div>
+      </div>
+      <div class="pmeta"><span class="k">1.5×</span><span class="k">🔖 bookmark</span><span class="k">❝ capture</span></div>
+      <div style="margin-top:auto;width:100%;">
+        <div class="playbar" style="margin-top:0;"><span class="t num">3:41:22</span><div class="track"><i style="width:62%"></i></div><span class="t num">−4:12:08</span></div>
+      </div>
+    </div>
+    <div class="readalong"><div class="col">
+      <div class="chap">Chapter 12 · The philosopher's stone</div>
+      <p class="past">The fragile wants tranquility, the antifragile grows from disorder, and the robust
+      doesn't care too much. The largest fragilizer of society is a lack of skin in the game.</p>
+      <p class="now">If you see fraud and do not say fraud, <span class="hot">you are</span> a fraud. Just as
+      being nice to the arrogant is no better than being arrogant toward the nice…</p>
+      <p>Heuristic: the more complicated the explanation, the more suspicious you should be of the
+      underlying claim. Simplicity is a signal — not proof, but a prior worth holding.</p>
+    </div></div>
+    <div class="chaps">
+      <div class="h">Chapters</div>
+      <div class="chrow"><span class="n num">10</span><div class="t">Never marry the rock star</div><span class="len num">41m</span></div>
+      <div class="chrow"><span class="n num">11</span><div class="t">The barbell strategy</div><span class="len num">52m</span></div>
+      <div class="chrow on"><span class="n num">12</span><div class="t">The philosopher's stone</div><span class="len num">47m</span></div>
+      <div class="chrow"><span class="n num">13</span><div class="t">Lecturing birds on flying</div><span class="len num">39m</span></div>
+      <div class="h" style="margin-top:16px;">Bookmarks</div>
+      <div class="bmark">🔖<div class="q">"skin in the game" — the whole thesis</div><span class="num" style="color:var(--faint);font-size:10.5px;">2:14:05</span></div>
+      <div class="bmark">🔖<div class="q">barbell as personal strategy</div><span class="num" style="color:var(--faint);font-size:10.5px;">2:58:41</span></div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>What this is:</b> at regular width the library's 54pt rows become a cover shelf (grid; the SAME row data — square
+covers, progress, sync glyph, time left; long-press keeps Transcribe/Book text…/Sync/Delete). The player keeps the signed A+D
+text-forward hybrid, now with room: cover + transport left, read-along at a true reading measure center (word-karaoke on the current
+sentence), and the Chapters/Bookmarks SHEET promoted to a standing rail — honest chapters only (detected > file-split, the
+no-bad-info rule). Compact/portrait keeps the phone player exactly. ❝ capture unchanged — quote + ramble stays the flow.</p>
+
+<!-- ═══════════════════ m7 · Record ═══════════════════ -->
+<div class="label" id="m7">m7 · Record on the iPad — a focused card, not a stretched phone screen
+  <span class="verdict pick">PICKED (Fable) — centered sheet; the room stays visible behind it</span></div>
+<div class="pad" style="height:600px;">
+  <div class="dimstage">
+    <div class="reccard">
+      <div class="rectop">
+        <span class="timer">02:47</span>
+        <span class="live"><i></i>REC</span>
+        <span style="color:var(--accenttext);font-size:14px;">💬</span>
+      </div>
+      <div class="wave">
+        <i style="height:30%"></i><i style="height:55%"></i><i style="height:80%"></i><i style="height:62%"></i><i style="height:38%"></i><i style="height:70%"></i><i style="height:90%"></i><i style="height:48%"></i><i style="height:26%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:40%"></i><i style="height:66%"></i><i style="height:84%"></i><i style="height:52%"></i><i style="height:30%"></i><i style="height:62%"></i><i style="height:44%"></i><i style="height:76%"></i><i style="height:56%"></i><i style="height:34%"></i><i style="height:68%"></i><i style="height:88%"></i><i style="height:46%"></i><i style="height:28%"></i><i style="height:60%"></i><i style="height:72%"></i><i style="height:42%"></i><i style="height:64%"></i><i style="height:36%"></i>
+      </div>
+      <div class="cap">
+        So the iPad build finally feels like the reading room we sketched <span class="ph2">[photo 1]</span>
+        and the polish button is honestly the part I want to show Hendrik —
+        <span class="lite">the note stays raw until you ask, then the same Gemma the Mac runs…</span>
+      </div>
+      <div class="recbtns">
+        <div class="rb">📷</div>
+        <div class="rb">▮▮</div>
+        <div class="rb stop">■</div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>What this is:</b> the record surface stops being a full-screen cover on iPad — a centered ~620pt card over the
+dimmed app (you keep your place). Everything inside is the phone's record screen verbatim: live caption with the committed/live
+color split, inline [photo N] tokens, waveform off the same meters, camera/pause/stop. Keyboard: ⌘N opens it recording, space
+pauses, ⌘. stops. Landscape + portrait identical.</p>
+
+<div class="label">Inventory — every frame this wave, with verdicts</div>
+<p class="hint" style="max-width:900px;">
+<b>m1</b> Shell A + Notes split — PICKED (signed direction; iPadOS gives the sidebar free) ·
+<b>m2</b> Shell B icon rail — not picked (breaks the one-IA rule; kept for the record) ·
+<b>m3</b> Connections side panel — PICKED (Mac's signed panel, phone-flavored; compact keeps the footer card) ·
+<b>m4/m4b</b> Review pane + map mode — PICKED (completes signed journal-desktop §2 with the phone's real cards) ·
+<b>m5</b> Polish on this iPad — PICKED, engine A (Mac's Gemma/MLX, flagged); engine B (Apple Intelligence) parked ·
+<b>m6</b> Books shelf + wide player — PICKED (grid regular-width-only; chapters rail replaces the sheet in landscape) ·
+<b>m7</b> Record card — PICKED (centered sheet over dimmed app).
+Tuur's review pass tomorrow may re-verdict any of these — nothing here is load-bearing until built AND eyeballed.</p>
+
+</body>
+</html>
