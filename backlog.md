@@ -45,6 +45,49 @@ background verb** — Tuur, 2026-07-22). **DOCTRINE:** supersedes 2026-07-17 "to
 3. Prod promotion: one-clock rides along with the 🧬+📖 promotion (nothing extra beyond the
    standing checklist).
 
+## 🖥️📱 CONTINUE HERE — iPad wave 1 BUILT overnight (2026-07-22 eve, Fable autonomous session; Tuur review = the gate)
+
+**WHAT EXISTS NOW (branch `claude/ipad-app-version-3f9a3a`, worktree `nice-shtern-06faba` — NOT on main):**
+SkriftMobile is UNIVERSAL (family "1,2" + all iPad orientations + extensions; build 106). Same four
+tabs; at regular width: Notes = list↔note split (m1) · note page = reading measure + standing
+CONNECTIONS panel (m3) · Review = river + standing calendar/places pane w/ map mode (m4/m4b,
+completes the signed journal-desktop §2) · Books = cover shelf + three-zone player w/ chapters rail
+(m6) · record = centered card + ⌘N/⌘F/⌘1-4 (m7) · **Polish on this iPad** = the Mac's exact pinned
+MLX/Gemma stack as an ON-DEMAND engine behind `PolishCenter` (m5; prompts single-sourced
+`Shared/Pipeline/PolishPrompts.swift`; writes `MemoEnhancement`, LWW; gate = M-series pad ≥6 GB).
+Compact width = the phone app byte-for-byte (the wave's law). Docs: `Skrift_Native/IPAD_PLAN.md`
+(roles: phone captures, Mac volunteers, iPad is asked) + mock `mocks/ipad-app.html` (m1–m7,
+verdicts inline, every variant kept) + briefs `LANES-2026-07-22-ipad/`.
+
+**Verified tonight:** 5-lane batch (3 Opus + 2 Sonnet, LANE_PLAYBOOK) merged conflict-free;
+iPad Pro 13-inch (M5) sim build green after EVERY lane; mobile unit suite **885/0** (was 808 —
+lanes added tests); desktop untouched-behavior check green (487/0 + full MLX build — it compiles
+the moved `ImageMarkerReinsert` + shared prompts); sim screenshots vision-checked (Notes split,
+Review pane, shelf, detail+Connections, Settings).
+
+**TUUR'S REVIEW BOARD (in order):**
+1. **Walk the mock first** (`mocks/ipad-app.html`) — verdicts are Fable picks, none are locked;
+   m2 (icon-rail shell) was drawn + rejected on the one-IA rule; engine B (Apple Intelligence)
+   parked in favor of same-Gemma-as-Mac.
+2. **Eyeball the sim build** (or install Dev on the real iPad — its Skrift Dev is ANCIENT, the
+   standing item): rig = `scratchpad ipadshot.sh` flags, or Xcode. Known cosmetics: the detail
+   ⋯/+ toolbar pill floats over the Connections panel corner; sidebar wears the native iPadOS
+   floating-card look (system idiom — mock drew flat columns; Fable accepted system).
+3. **Polish on iPad device test** (sim can't Metal-JIT): Settings → Polish on this iPad →
+   Download (4.6 GB) → Polish now on a real note → confirm the enhancement lands + Mac doesn't
+   redo it (LWW). Memory-pressure behavior under a loaded model = watch devlog.
+4. **Owed by contract:** wide-player live eyeball (tap-driven, rig can't tap) · landscape pass ·
+   Stage Manager/Split View compact fallback · ⌘-shortcut feel · onboarding on pad.
+5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
+   106; Release App-Group one-time Xcode visit still pending from capture-items).
+
+**Parked/flagged en route:** SHELL: last-note-delete in the detail pane leaves a stale pane until
+a tap (MemoDetailView dismiss is a no-op at pane root — 1-line fix candidate in DETAIL's file) ·
+DETAIL: related derivation double-computes at regular (footer hidden + panel; gate on hSize if it
+ever matters) · BOOKS: added a bookmark-toggle chip beyond the mock (flag if unwanted) ·
+lane wrap-blocks with per-decision flip instructions live in the agents' PLAN files + this
+session's transcript.
+
 ## ⭐ CONTINUE HERE (session end 2026-07-22 ~15:00 — the 📖 marathon session)
 
 **THE 📖 LANE IS DONE** (roadmap EPubAlign = done 2026-07-22): spikes 1–6 + batch D + FOUR live

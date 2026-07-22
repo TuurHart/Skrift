@@ -89,6 +89,24 @@ Paths are relative to `Skrift_Native/`. Mobile = `SkriftMobile/`, Desktop = `Skr
 | Inline `[photo N]` token in **live** caption | ✅ | n/a | `RecordView.swift` (LiveCaption) | ✅ 2026-06-09: tinted `[photo N]` token inserted inline at the capture point |
 | `[[img]]` → Obsidian embed on export | n/a | ✅ | desktop `Pipeline/Export/VaultExporter.swift:84-114` | |
 
+## iPad (universal target) — wave 1 built 2026-07-22 *(mock `mocks/ipad-app.html`; plan `Skrift_Native/IPAD_PLAN.md`)*
+
+The SAME SkriftMobile app on the iPad (`TARGETED_DEVICE_FAMILY "1,2"`, all iPad orientations,
+extensions included) — never a third codebase. Role: **reading room + on-demand polisher**
+(phone = capture, Mac = automatic factory). Layout law: branch on size class (compact = the
+phone app byte-for-byte, incl. iPad Split View); prose capped at a reading measure
+(`DesignSystem/Adaptive.swift`). Suite 885/0 + iPad Pro 13-inch sim build green 2026-07-22;
+**Tuur review + real-iPad round owed.**
+
+| Capability | Mobile (iPad regular width) | Key files | Notes |
+|---|---|---|---|
+| Notes = list ↔ note split | ✅ | `MemosListView.swift` (NavigationSplitView, selection, `-selectFirstMemo` rig), `Features/Root/AppTabView.swift` (`.sidebarAdaptable`), `TabSelectionBridge.swift` | list column = phone list verbatim + bottom chrome; detail = the note or a quiet placeholder; sidebar 320–420pt draggable |
+| Note page: reading measure + Connections panel | ✅ | `MemoDetail/MemoDetailView.swift`, `MemoDetail/ConnectionsPanel.swift` (new), `NoteBodyView.swift` (width cap) | m3: standing 300pt panel = Closest⇄Date pill, importance decimals, closeness %, View thread, LINKED FROM, in-panel index consent gate; compact keeps the footer card (one data source) |
+| Review: river + standing calendar/places pane | ✅ | `Journal/JournalHomeView.swift`, `Journal/JournalSidePane.swift` (new), `Journal/JournalMapView.swift` (`JournalMapCanvas` extract) | m4/m4b — completes signed journal-desktop §2: day-select fills the pane, Places swaps in the b89/b90-contract map, river never leaves |
+| Books: cover shelf + three-zone player | ✅ | `Audiobooks/AudiobookLibraryView.swift`, `BookShelfTile.swift` (new), `AudiobookPlayerView.swift`, `ChaptersBookmarksSheet.swift` (rail extract) | m6 — shelf grid (same row data/verbs); player = transport · read-along at measure · standing chapters/bookmarks rail; compact keeps phone player |
+| Record card + keyboard | ✅ | `Recording/RecordView.swift`, `MemosListView.swift` (sheet presentation), `App/SkriftApp.swift` (`.commands`) | m7 — centered form-sheet over the app on iPad; ⌘N record · ⌘F search · ⌘1–4 tabs |
+| **Polish on this iPad** (on-demand enhancement) | 🌓 flagged | `Services/Polish/PolishCenter.swift` (seam + `MemoEnhancement` write), `Engine/MLXPolishEngine.swift` + `PolishEscrow.swift`, `Features/Settings/PolishSettingsView.swift` | m5 — Mac's exact pinned MLX/Gemma stack; escrow parity via Shared helpers (unit-tested MLX-free); gate = M-series iPad ≥6 GB, never sim/phone; writes `MemoEnhancement` (LWW, any-device author); "Polish when I open a note" toggle = one auto-try/memo/session. **Live generation + model download device-owed** (sim can't Metal-JIT) |
+
 ## Models tab *(on-device model inventory)* — built 2026-06-12
 
 | Capability | Mobile | Desktop | Key files | Notes |
@@ -284,12 +302,12 @@ Mirrors the SwiftData store to the user's PRIVATE CloudKit database so notes syn
 | Audio preprocessing (high-pass + normalize) | — | ✅ | desktop `Engines/AudioPreprocessor.swift` | `highpassFreqHz`, default 80 Hz |
 | BPE merge / image-marker injection | — | ✅ | desktop `Pipeline/Transcription/BPEMerge.swift`, `ImageMarkers.swift` | |
 
-## Enhancement (Gemma 4 E4B, mlx-swift) *(desktop)*
+## Enhancement (Gemma 4 E4B, mlx-swift) *(desktop batch + iPad on-demand)*
 
 | Capability | Mobile | Desktop | Key files | Notes |
 |---|---|---|---|---|
-| Copy-edit / title / summary | ➖ | ✅ | `Engines/EnhancementService.swift:49-65`; gate `BatchRunner` + `AppSettings.summaryMinWords` | runs on RAW transcript; `[[img]]` stripped + reinserted via anchors. ✅ 2026-06-15: **summary SKIPPED for short notes** (body < `summaryMinWords`, default 75) — a 2-line memo doesn't need one; a manual "Redo summary" still forces it |
-| Prompt templates (configurable) | ➖ | ✅ | `Models/AppSettings.swift:37-76` | |
+| Copy-edit / title / summary | 🌓 iPad | ✅ | `Engines/EnhancementService.swift:49-65`; gate `BatchRunner` + `AppSettings.summaryMinWords`; mobile `Services/Polish/Engine/MLXPolishEngine.swift` | runs on RAW transcript; `[[img]]` stripped + reinserted via anchors. ✅ 2026-06-15: **summary SKIPPED for short notes** (body < `summaryMinWords`, default 75) — a 2-line memo doesn't need one; a manual "Redo summary" still forces it. 🌓 2026-07-22 (iPad wave 1): the SAME stack ported to the iPad as an **on-demand** polisher (see the iPad section) — live generation device-owed |
+| Prompt templates (configurable) | ➖ | ✅ | `Models/AppSettings.swift:37-76`; defaults single-sourced `Shared/Pipeline/PolishPrompts.swift` | ✅ 2026-07-22: default prompt TEXT + model repo moved to Shared so the two polishers can't drift; Mac user-overrides still win locally |
 
 ## Name-linking, tagging, export *(desktop)*
 

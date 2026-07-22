@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 19
-updated: 2026-07-22T16:20:00.000Z
+version: 20
+updated: 2026-07-22T18:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -523,7 +523,7 @@ nodes:
     title: Lifecycle IA — one spine
     lane: 0
     order: 5.8
-    status: now
+    status: inprogress
     eff: M
     deps:
       - NFeat
@@ -608,6 +608,40 @@ nodes:
         Delete) + quiet-row menu Flag/Lock/Open/Delete + Fading conveyor w/
         row Delete; phone Fading renames + peek photos/Delete. The Mac can
         delete a synced note for the first time
+  - id: IPadWave1
+    title: iPad — the reading room
+    lane: 0
+    order: 5.95
+    status: now
+    eff: L
+    deps:
+      - LifeClock
+    via: LifeClock
+    win: "the SAME app is a real iPad citizen: Notes list↔note split, Review
+      river + standing calendar/places/map pane, Books shelf + wide reader,
+      record card + ⌘-keys — and the iPad polishes ON DEMAND with the Mac's
+      exact Gemma (MemoEnhancement, LWW), phone layouts untouched at compact"
+    note: "Roles locked (Skrift_Native/IPAD_PLAN.md): phone captures, Mac
+      volunteers, iPad is asked. Mock = mocks/ipad-app.html m1-m7 (verdicts
+      inline — Fable picks, Tuur review owed). Board = backlog 🖥️📱. Owed:
+      Tuur mock+sim review, real-iPad Dev install (stale build standing item),
+      polish device test (sim can't Metal-JIT), wide-player/landscape eyeball,
+      then promote to main."
+    shipped:
+      - >-
+        2026-07-22 eve · BUILT overnight in one autonomous session (Fable
+        conducting, 5-lane batch — 3 Opus + 2 Sonnet — off signed groundwork;
+        briefs LANES-2026-07-22-ipad/): universal target (family 1,2 + iPad
+        orientations + extensions, build 106); NavigationSplitView Notes;
+        Connections side panel (Mac's signed related-panel, phone-flavored);
+        Review pane completing signed journal-desktop §2 (map mode = b89/b90
+        contract); Books cover shelf + three-zone player w/ chapters rail;
+        centered record card + ⌘N/⌘F/⌘1-4; Polish-on-iPad = mlx-swift-lm at
+        the Mac's exact pin behind PolishCenter, prompts single-sourced to
+        Shared/Pipeline/PolishPrompts.swift, escrow parity unit-tested.
+        Gate: iPad sim build green after EVERY lane merge; mobile suite
+        885/0 (was 808); desktop 487/0 + full MLX build green; sim
+        screenshots vision-checked (m1/m3/m4 match the mock)
   - id: AuditFix
     title: Perf+reliability audit fix wave
     lane: 0
