@@ -374,17 +374,21 @@ struct ConnectionsPanel: View {
     // MARK: - Derivation (main actor; mirrors MemoPageView's footer loaders)
 
     private func load() async {
-        backlinks = await scanBacklinks()
+        let target = memo.id
+        let scanned = await scanBacklinks()
+        guard memo.id == target else { return }   // switched notes mid-scan
+        backlinks = scanned
         guard isActive else {
             related = []; threadFirstMention = nil; finding = false
             return
         }
         finding = true
-        defer { finding = false }
-        let scores = await JournalIndexService.shared.relatedScores(to: memo.id, repository: repository)
+        defer { if memo.id == target { finding = false } }  // don't clear a newer note's spinner
+        let scores = await JournalIndexService.shared.relatedScores(to: target, repository: repository)
+        guard memo.id == target else { return }   // switched notes mid-query
         let byID = Dictionary(repository.allMemos().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         related = scores
-            .filter { $0.score >= RetrievalTuning.relatedFloor && $0.memoID != memo.id }
+            .filter { $0.score >= RetrievalTuning.relatedFloor && $0.memoID != target }
             .sorted { $0.score > $1.score }
             .prefix(RetrievalTuning.relatedK)
             .compactMap { hit in
@@ -395,7 +399,7 @@ struct ConnectionsPanel: View {
                 }
             }
         threadFirstMention = JournalIndexService
-            .threadOrder(seedID: memo.id, scores: scores, memosByID: byID)
+            .threadOrder(seedID: target, scores: scores, memosByID: byID)
             .first.map { LookbackProvider.journalDate($0) }
     }
 
