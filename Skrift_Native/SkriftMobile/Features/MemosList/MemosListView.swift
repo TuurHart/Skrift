@@ -1422,12 +1422,14 @@ private struct RecordPresentation<Presented: View>: ViewModifier {
     @ViewBuilder var presented: () -> Presented
 
     func body(content: Content) -> some View {
-        if isPad {
-            content.sheet(isPresented: $isPresented) {
-                presented().presentationSizing(.form)
+        Group {
+            if isPad {
+                content.sheet(isPresented: $isPresented) {
+                    presented().presentationSizing(.form)
+                }
+            } else {
+                content.fullScreenCover(isPresented: $isPresented, content: presented)
             }
-        } else {
-            content.fullScreenCover(isPresented: $isPresented, content: presented)
         }
     }
 }
