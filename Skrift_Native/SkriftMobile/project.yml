@@ -11,6 +11,12 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     revision: 19600a485baa4998812e4654b70d2bab8f2c9949  # v0.15.5, bumped 2026-07-21 (📖 spike 3: #683 seam-glue fixes in 0.15.3+0.15.5; was 7f963cdc = v0.15.2)
+  # 📖 ePub attach (spike 6): an .epub is a zip; no system unzip API. Same pin as the
+  # desktop (SPM dep #2, Tuur-approved 2026-07-21). App target ONLY — extensions and
+  # test bundles never touch archives.
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation.git
+    revision: 86fc841708997c5bce8545e23845125f4eb28493  # 0.9.20, pinned 2026-07-21
   # Live mic waveform (wired to the AVAudioEngine meters — no 2nd audio session).
   DSWaveformImage:
     url: https://github.com/dmrschmidt/DSWaveformImage.git
@@ -183,6 +189,8 @@ targets:
     dependencies:
       - package: FluidAudio
         product: FluidAudio
+      - package: ZIPFoundation
+        product: ZIPFoundation
       - package: DSWaveformImage
         product: DSWaveformImageViews
       - package: Pow

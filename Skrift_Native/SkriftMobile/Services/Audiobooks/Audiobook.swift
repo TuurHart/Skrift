@@ -37,11 +37,21 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// Chapters from IMPORT: the embedded m4b track, or one-per-file synthesis.
     var chapters: [AudiobookChapter]
     /// Chapters DETECTED from the transcript (`ChapterDetector`) once the book
-    /// was fully transcribed — the STANDARD source when non-empty: file splits
+    /// was fully transcribed — the standard source when non-empty UNLESS an
+    /// ePub is attached (`epubChapters` wins — Q1 lock 2026-07-21): file splits
     /// and rip metadata aren't reliably chapter boundaries, the narration is.
     /// nil = detection never ran; [] = ran, found nothing confident (don't
     /// re-run). Local-only — derived from the local sidecar, never synced.
     var detectedChapters: [AudiobookChapter]? = nil
+    /// 📖 The attached ePub's filename inside the book's folder (nil = none).
+    /// The file itself stays LOCAL to the attaching device in v1; alignment
+    /// sidecars (which carry chapter marks) are what sync.
+    var epubFilename: String? = nil
+    /// Chapters from the ATTACHED ePub's real TOC, timed via the alignment
+    /// sidecars — the WINNING source when non-empty (ePub TOC > transcript-
+    /// detected > embedded; Tuur 2026-07-21). Local-only — derived from the
+    /// local alignment sidecars, re-derived per device, never synced.
+    var epubChapters: [AudiobookChapter]? = nil
     var hasCover: Bool
     var importedAt: Date
     /// nil until first played — drives the "recently played" sort.
@@ -237,8 +247,10 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
 
     /// The chapter list the sheet renders — INCLUDING display-only "Book N"
     /// separators. Never read `chapters` directly for display.
+    /// Precedence (Q1 lock 2026-07-21): ePub TOC > transcript-detected > embedded.
     var effectiveChapters: [AudiobookChapter] {
-        usesDetected ? detectedChapters! : chapters
+        if let epub = epubChapters, !epub.isEmpty { return epub }
+        return usesDetected ? detectedChapters! : chapters
     }
 
     /// The chapters you can BE in: `effectiveChapters` minus separators. All

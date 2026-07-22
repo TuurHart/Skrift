@@ -1,11 +1,13 @@
 import Foundation
 
 /// Detects chapter boundaries from a book's TRANSCRIPT (the wave-2 sidecar
-/// word-timings) — pure, host-less, unit-tested. This is the STANDARD chapter
-/// source once a book is fully transcribed: file boundaries aren't reliably
-/// chapter boundaries (arbitrary splits, time-based rips), but the narration
-/// is — production specs (ACX) have narrators read each section heading
-/// exactly as the manuscript writes it, then pause.
+/// word-timings) — pure, host-less, unit-tested. The standard chapter source
+/// once a book is fully transcribed — UNLESS an ePub is attached, whose real
+/// TOC outranks detection (`Audiobook.epubChapters`; precedence locked
+/// 2026-07-21: ePub TOC > detected > embedded). File boundaries aren't
+/// reliably chapter boundaries (arbitrary splits, time-based rips), but the
+/// narration is — production specs (ACX) have narrators read each section
+/// heading exactly as the manuscript writes it, then pause.
 ///
 /// The manuscript decides the STYLE — "Chapter Seven", a bare "Seven.", or
 /// just a title ("A Lopsided Arms Race.") — but a book uses ONE style
