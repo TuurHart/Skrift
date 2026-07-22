@@ -232,6 +232,14 @@ struct MemoDetailView: View {
                 DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }
             }
         }
+        // "Polish when I open a note" (m5 toggle): one auto-attempt per memo per
+        // session, gated inside PolishCenter (toggle + canPolish + tracker) — a
+        // no-op everywhere the polisher isn't available.
+        .task(id: selection) {
+            if let selection, let memo = memos.first(where: { $0.id == selection }) {
+                PolishCenter.shared.maybeAutoPolish(memo)
+            }
+        }
         // The floating glass player bar lives in the bottom safe-area inset, NOT a
         // ZStack overlay. That's the fix for "glass shows nothing": a detached overlay
         // only samples the flat background behind everything, so Liquid Glass had no

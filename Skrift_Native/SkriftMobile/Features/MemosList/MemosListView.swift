@@ -117,6 +117,13 @@ struct MemosListView: View {
                 detailPane
             }
             .navigationSplitViewStyle(.balanced)
+            // Screenshot rig (`-selectFirstMemo`): deterministically fill the
+            // detail pane so the m3 layout renders without a tap.
+            .onAppear {
+                if LaunchFlags.selectFirstMemo, selectedMemoID == nil {
+                    selectedMemoID = memos.first(where: { $0.deletedAt == nil })?.id
+                }
+            }
         } else {
             // Phone (and iPad compact / Split View): today's stack, byte-for-byte.
             NavigationStack(path: $path) {
