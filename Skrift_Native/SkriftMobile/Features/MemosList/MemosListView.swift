@@ -230,6 +230,9 @@ struct MemosListView: View {
             // ONE derived pass for the whole body eval — the per-row flatIndex
             // access used to re-run the entire filter+sort each time (O(N²)).
             let d = derived
+            // Same rule for the backlink scan (never per row) — feeds the
+            // Mac-parity clock line on unrated rows.
+            let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
             // Native List → reliable swipe-to-delete (.swipeActions) + native
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
@@ -245,7 +248,8 @@ struct MemosListView: View {
                 ForEach(d.groups, id: \.title) { group in
                     Section {
                         ForEach(group.memos) { memo in
-                            MemoRow(memo: memo, fading: searchFadingIDs.contains(memo.id)) {
+                            MemoRow(memo: memo, fading: searchFadingIDs.contains(memo.id),
+                                    clockLine: clockLine(for: memo, backlinked: backlinked)) {
                                 // Opening a SEARCH RESULT carries the query
                                 // along — the note flashes where it matched
                                 // (text range, or the photo whose OCR hit).
@@ -601,6 +605,19 @@ struct MemosListView: View {
 
     // MARK: - Derived
 
+    /// Mac-parity clock line (m6 wave, 2026-07-22 — "mac notes have more
+    /// information"): unrated rows say where they are on the one clock, the
+    /// same spine one-liners the Mac's quiet rows carry. Rated rows stay clean
+    /// (the status pill is their signal); locked rows keep the 🔒 as theirs.
+    private func clockLine(for memo: Memo, backlinked: Set<UUID>) -> String? {
+        guard memo.significance == 0, memo.deletedAt == nil, !memo.locked else { return nil }
+        let station = MemoSpine.station(for: .from(memo, backlinked: backlinked))
+        switch station {
+        case .new, .fading, .held: return MemoSpine.oneLiner(for: station)
+        default: return nil
+        }
+    }
+
     /// The lifecycle split (MemoLifecycle, 2026-07-17): fading notes leave the
     /// main LIST — but not SEARCH (no-bad-info, 2026-07-21): "no results" about
     /// a note that exists-and-is-recoverable is the worst possible answer to
@@ -747,12 +764,13 @@ struct MemosListView: View {
 private struct MemoRow: View {
     let memo: Memo
     var fading: Bool = false
+    var clockLine: String? = nil
     let onTap: () -> Void
     @Environment(\.editMode) private var editMode
 
     var body: some View {
         if editMode?.wrappedValue.isEditing == true {
-            MemoCard(memo: memo, fading: fading)
+            MemoCard(memo: memo, fading: fading, clockLine: clockLine)
         } else {
             // A Button, NOT .onTapGesture: a tap gesture on a List row fights
             // the context-menu lift on iOS 26 — a long-press just started the
@@ -760,7 +778,7 @@ private struct MemoRow: View {
             // round 1). The system resolves Button-tap vs long-press-menu vs
             // scroll natively.
             Button(action: onTap) {
-                MemoCard(memo: memo, fading: fading)
+                MemoCard(memo: memo, fading: fading, clockLine: clockLine)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -774,6 +792,9 @@ private struct MemoCard: View {
     let memo: Memo
     /// Surfaced by SEARCH while fading — wears the honest amber tag.
     var fading: Bool = false
+    /// The one-clock line for unrated rows ("starts fading 21 Aug"), computed
+    /// once at the list level (backlink scan is never per-row).
+    var clockLine: String? = nil
 
     var body: some View {
         HStack(spacing: 11) {
@@ -799,6 +820,12 @@ private struct MemoCard: View {
                     Text(MemoDate.label(memo.recordedAt))
                         .font(.system(size: 11.5, weight: .semibold))
                         .foregroundStyle(Color.skTextFaint)
+                    if let clockLine {
+                        Text("· \(clockLine)")
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(Color.skTextFaint)
+                            .lineLimit(1)
+                    }
                     Spacer()
                     statusPill
                 }
