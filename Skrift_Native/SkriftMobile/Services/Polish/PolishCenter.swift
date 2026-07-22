@@ -62,8 +62,23 @@ final class PolishCenter {
         case failed(String)
     }
 
+    /// Model-level state for the Settings pane (m5) — distinct from the per-memo `Phase`.
+    /// Settings talks ONLY to `PolishCenter` (never the engine), so the download lives here.
+    enum ModelPhase: Equatable {
+        case unknown            // no engine, or not yet probed
+        case checking           // probing the disk
+        case notDownloaded
+        case downloading(Double)   // 0…1
+        case downloaded
+        case failed(String)
+    }
+
     private var engine: PolishEngine?
     private(set) var phases: [UUID: Phase] = [:]
+    /// Drives the Settings model card (Download / live % / Downloaded ✓).
+    private(set) var modelPhase: ModelPhase = .unknown
+    /// "Polish when I open a note": at most one auto-attempt per memo per session.
+    private var autoPolish = AutoPolishTracker()
 
     private init() {}
 
@@ -113,6 +128,53 @@ final class PolishCenter {
             } catch {
                 phases[id] = .failed(error.localizedDescription)
                 DevLog.log("polish failed for \(id): \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// "Polish when I open a note" (mock m5 toggle). Fires only when the toggle is on, the
+    /// memo is polishable, AND it hasn't been auto-attempted this session — one shot per memo
+    /// per launch, so a failure never loops. DETAIL calls this from `MemoDetailView.onAppear`
+    /// (a 1-line wiring owned by that lane; exposed here notification-free).
+    func maybeAutoPolish(_ memo: Memo) {
+        guard UserDefaults.standard.bool(forKey: PolishGate.polishOnOpenKey) else { return }
+        guard canPolish(memo) else { return }
+        guard autoPolish.firstAttempt(memo.id) else { return }
+        polishNow(memo)
+    }
+
+    // MARK: - Settings model card (m5)
+
+    /// Probe whether the model is already on disk → drives the Settings card's initial state.
+    func refreshModelState() {
+        guard let engine else { modelPhase = .unknown; return }
+        if case .downloading = modelPhase { return }   // don't stomp an in-flight download
+        modelPhase = .checking
+        Task {
+            let onDisk = await engine.isModelOnDisk()
+            // A download that started meanwhile wins over a stale probe.
+            if case .downloading = modelPhase { return }
+            modelPhase = onDisk ? .downloaded : .notDownloaded
+        }
+    }
+
+    /// Fetch the model from the Settings card's Download button. Idempotent; progress drives
+    /// the live %. Kept here (not in the view) so Settings never touches the engine directly.
+    func downloadModelForSettings() {
+        guard let engine else { return }
+        if case .downloading = modelPhase { return }
+        modelPhase = .downloading(0)
+        Task {
+            do {
+                try await engine.downloadModel { p in
+                    Task { @MainActor in
+                        if case .downloading = self.modelPhase { self.modelPhase = .downloading(p) }
+                    }
+                }
+                modelPhase = .downloaded
+            } catch {
+                modelPhase = .failed(error.localizedDescription)
+                DevLog.log("polish model download failed: \(error.localizedDescription)")
             }
         }
     }
