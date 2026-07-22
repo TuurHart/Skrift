@@ -398,6 +398,21 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
 
+**📖 DEVICE ROUND 2 (Tuur live, 2026-07-22 ~14:00) → b98+b99 same hour:** (1) "Book text…"
+was library-long-press only; the player ⋯ (where you actually are) now has it — flow extracted
+to ONE shared `BookTextFlow` modifier (shared-code-first, both surfaces). (2) **Add button
+dead + "No book text attached" LIE** — root causes: a fileImporter attached to the covered
+presenting view silently refuses to present on iOS 26 (picker + the 3 outcome alerts now hang
+off the SHEET's own content), and the record's attach fields had been ERASED by whole-blob
+LWW sync (a device on an older build — iPad suspected — re-encodes the record without
+additive fields; on-device sidecar still schema-1 + `epubFilename: None` proved it).
+**Doctrine fix: epubFilename/epubFilenames/epubChapters/detectedChapters are LOCAL-ONLY** —
+`sanitizedForSync` strips them from every sent blob, `keepingLocalTextFields` preserves them
+at all four adopt sites (reconcile receive, session open, adoptSyncedPosition, first-add
+strips legacy blobs). Tuur must RE-ATTACH the Steal ePub once on b99 (the erased record can't
+self-heal); after that it sticks. ⚠️ If the iPad has an old Skrift Dev, UPDATE it eventually —
+it can no longer erase these fields, but other additive fields ride the same risk.
+
 **📖 ✅ MULTI-TEXT + "Book text" SHEET SHIPPED 2026-07-22 pm (batch D = `LANES-2026-07-22D/`;
 mock B signed "yess. ur reccomendation"; the pinned-contract seam compiled FIRST TRY again —
 858/0):** schema-3 sidecars (per-text sources w/ verdict+coverage, sentences tagged by text,
