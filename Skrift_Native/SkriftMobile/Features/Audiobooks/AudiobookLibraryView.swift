@@ -38,9 +38,33 @@ struct AudiobookLibraryView: View {
     /// awaiting confirmation; the dialog is sync-aware (mock screen 7).
     @State private var pendingDelete: Audiobook?
 
+    // MARK: - 📖 Attach book text (spike 6)
+
+    /// Long-press → "Attach/Replace book text…" target: which book the next
+    /// `fileImporter` pick resolves onto.
+    @State private var attachBook: Audiobook?
+    @State private var showAttachImporter = false
+    /// The picked file couldn't be read/copied at all (I/O-level failure).
+    @State private var attachError: String?
+    /// `attach()` ran but every file's verdict was `.rejected` — offer to
+    /// keep it (try again after transcribing more) or remove it now.
+    @State private var attachRejected: Audiobook?
+    @State private var attachToast: String?
+
     private static let importTypes: [UTType] = {
         var types: [UTType] = [.audio]
         if let m4b = UTType(filenameExtension: "m4b") { types.append(m4b) }
+        return types
+    }()
+
+    /// ePub (falling back to its raw UTI if the extension lookup ever fails)
+    /// + plain text — a book's text can arrive either way.
+    private static let attachTypes: [UTType] = {
+        var types: [UTType] = []
+        if let epub = UTType(filenameExtension: "epub") ?? UTType("org.idpf.epub-container") {
+            types.append(epub)
+        }
+        types.append(.plainText)
         return types
     }()
 
@@ -51,6 +75,19 @@ struct AudiobookLibraryView: View {
                 topBar
                 header
                 bookList
+            }
+            // 📖 Attach-outcome toast (the existing player idiom, copied here —
+            // this screen had none of its own): "Aligned N of M files" /
+            // "Attached — aligns after transcription".
+            if let attachToast {
+                Text(attachToast)
+                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Color.skElev, in: .capsule)
+                    .transition(.opacity)
+                    .padding(.bottom, 120)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .allowsHitTesting(false)
             }
         }
         // The FULL mini-player bar lives on Books (2026-07-07 bottom-chrome
@@ -73,6 +110,12 @@ struct AudiobookLibraryView: View {
             if case .success(let urls) = result, !urls.isEmpty {
                 Task { await runImport(urls) }
             }
+        }
+        // 📖 Attach/replace this book's text (spike 6) — single file, unlike
+        // the multi-select audio importer above.
+        .fileImporter(isPresented: $showAttachImporter, allowedContentTypes: Self.attachTypes) { result in
+            guard let book = attachBook, case .success(let url) = result else { return }
+            Task { await runAttach(url: url, book: book) }
         }
         .sheet(item: $pendingImport) { pending in
             AudiobookImportConfirmSheet(
@@ -115,6 +158,31 @@ struct AudiobookLibraryView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importNotice ?? "")
+        }
+        // 📖 The picked file itself couldn't be read/copied — kept separate
+        // from "Import failed" above (that one's copy is audio-import-specific).
+        .alert("Couldn\u{2019}t attach book text", isPresented: .init(
+            get: { attachError != nil },
+            set: { if !$0 { attachError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(attachError ?? "")
+        }
+        // 📖 Every file's verdict came back rejected — the text almost
+        // certainly doesn't match this audio. "Keep anyway" (.cancel role, so
+        // it gets the alert's default/bold treatment) leaves everything as
+        // attached in case a later re-transcribe changes the picture; "Remove"
+        // clears the ePub fields only — sidecars stay (a rejected verdict is
+        // honest data, not corruption).
+        .alert("This doesn\u{2019}t look like this audiobook\u{2019}s text", isPresented: .init(
+            get: { attachRejected != nil },
+            set: { if !$0 { attachRejected = nil } }
+        ), presenting: attachRejected) { book in
+            Button("Keep anyway", role: .cancel) {}
+            Button("Remove", role: .destructive) { removeAttachedText(book) }
+        } message: { _ in
+            Text("Checking it against the transcript didn\u{2019}t find a match. You can keep it and try again later, or remove it now.")
         }
         .confirmationDialog(
             pendingDelete.map { "Remove \u{201C}\($0.title)\u{201D}?" } ?? "",
@@ -290,6 +358,16 @@ struct AudiobookLibraryView: View {
                         // to open the book → ⋯). Feeds read-along + instant capture.
                         Button { transcribeBook = book } label: {
                             Label("Transcribe book", systemImage: "text.book.closed")
+                        }
+                        // 📖 Attach the book's own published text (spike 6) — an
+                        // already-attached ePub re-attaches as an overwrite (no
+                        // separate detach verb this spike).
+                        Button {
+                            attachBook = book
+                            showAttachImporter = true
+                        } label: {
+                            Label(book.epubFilename != nil ? "Replace book text…" : "Attach book text…",
+                                  systemImage: "doc.badge.plus")
                         }
                         // Per-book sync (Phase 1h): open the "Turn it on" sheet (cover +
                         // size + the toggle + a live transfer %). The sheet owns the
@@ -513,6 +591,48 @@ struct AudiobookLibraryView: View {
             session.endSession()
         }
         store.remove(book)
+    }
+
+    // MARK: - 📖 Attach book text (spike 6)
+
+    /// Copy the picked file in, align every covered transcript file against
+    /// it, and route the outcome to whichever of the three surfaces fits
+    /// (BASE.md's `AttachSummary`): a plain toast when it aligned (fully or
+    /// partially) or when there's no transcript yet to align against, or the
+    /// reject-confirm alert when every file came back rejected.
+    private func runAttach(url: URL, book: Audiobook) async {
+        do {
+            let summary = try await BookAlignmentRunner.attach(bookFileAt: url, bookID: book.id)
+            if summary.totalFiles == 0 {
+                showAttachToast("Attached — aligns after transcription")
+            } else if summary.alignedFiles == 0 {
+                attachRejected = book
+            } else {
+                showAttachToast("Aligned \(summary.alignedFiles) of \(summary.totalFiles) files")
+            }
+        } catch {
+            attachError = error.localizedDescription
+        }
+    }
+
+    /// "Remove" on the reject alert: clears the ePub fields only (re-fetches
+    /// the current record by id rather than trusting the captured `book`, in
+    /// case something else changed it while the alignment ran). The alignment
+    /// sidecars themselves are left in place — a `.rejected` verdict is honest
+    /// data, not corruption, and re-attaching later can only overwrite it.
+    private func removeAttachedText(_ book: Audiobook) {
+        guard var fresh = store.book(id: book.id) else { return }
+        fresh.epubFilename = nil
+        fresh.epubChapters = nil
+        store.update(fresh)
+    }
+
+    private func showAttachToast(_ text: String) {
+        withAnimation(.easeOut(duration: 0.2)) { attachToast = text }
+        Task {
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            withAnimation(.easeIn(duration: 0.3)) { attachToast = nil }
+        }
     }
 }
 
