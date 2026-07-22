@@ -88,10 +88,51 @@ struct MemosListView: View {
     @State private var selected: Set<UUID> = []
     @State private var syncBanner: String?
     @State private var bannerToken = 0
+    /// iPad wave 1: layout branches on the horizontal size class (NEVER device
+    /// idiom — Split View/Stage Manager can make the iPad compact, and compact
+    /// must stay the phone layout, pixel-untouched).
+    @Environment(\.horizontalSizeClass) private var hSize
+    /// The note shown in the split-view detail pane at regular width. nil on the
+    /// phone (compact pushes onto `path` instead), so the whole split path is a
+    /// no-op there.
+    @State private var selectedMemoID: UUID?
+    /// ⌘F focuses the Notes search field. The shared `SearchField` component
+    /// can't carry a focus binding, so the field is inlined below (`searchField`)
+    /// with this state; `SearchFocusBridge` posts the request from `.commands`.
+    @FocusState private var searchFocused: Bool
+    @ObservedObject private var searchFocusBridge = SearchFocusBridge.shared
+
+    private var isRegular: Bool { hSize == .regular }
 
     var body: some View {
-        NavigationStack(path: $path) {
-            ZStack(alignment: .bottom) {
+        if isRegular {
+            // iPad regular width (m1): list column ↔ note page. The sidebar is
+            // the phone's entire Notes surface verbatim; the detail pane is the
+            // note, or a quiet placeholder.
+            NavigationSplitView {
+                notesRoot
+                    .navigationSplitViewColumnWidth(
+                        min: 320, ideal: Adaptive.listColumnWidth, max: 420)
+            } detail: {
+                detailPane
+            }
+            .navigationSplitViewStyle(.balanced)
+        } else {
+            // Phone (and iPad compact / Split View): today's stack, byte-for-byte.
+            NavigationStack(path: $path) {
+                notesRoot
+                    .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
+            }
+        }
+    }
+
+    /// The Notes surface — header + list + bottom chrome + every sheet / cover /
+    /// handler that hangs off it. Hosted directly in the `NavigationStack` on
+    /// compact, and as the `NavigationSplitView` sidebar column at regular width.
+    /// The ONLY per-branch difference is `.navigationDestination` (compact only),
+    /// kept out here.
+    private var notesRoot: some View {
+        ZStack(alignment: .bottom) {
                 Color.skBg.ignoresSafeArea()
 
                 VStack(spacing: 0) {
@@ -115,7 +156,9 @@ struct MemosListView: View {
                     // explicitly side by side so they can never overlap (the
                     // build-40 regression: a tab-level safeAreaInset never
                     // propagated into this NavigationStack on iOS 26 and the
-                    // capsule buried the record button).
+                    // capsule buried the record button). At regular width this
+                    // row rides INSIDE the sidebar column (capture is a
+                    // list-side act; the reading pane stays calm — m1).
                     NotesBottomChrome {
                         intentBridge.clearPendingStart()
                         showRecord = true
@@ -138,10 +181,14 @@ struct MemosListView: View {
             }
             .animation(Theme.Motion.spring, value: syncBanner)
             .animation(Theme.Motion.spring, value: drainState.pendingCount)
-            .navigationDestination(for: UUID.self) { MemoDetailView(initialID: $0) }
-            .fullScreenCover(isPresented: $showRecord) {
-                RecordView(onSaved: { newID in path = [newID] })
-            }
+            // Record presentation is an idiom fact (BASE law): a centered card
+            // sheet on iPad (m7 — the room stays visible behind it), a full-screen
+            // cover on the phone. Memo detail is the split-view detail pane at
+            // regular width, so `.navigationDestination` lives on the compact
+            // branch only (see `body`).
+            .modifier(RecordPresentation(isPresented: $showRecord, isPad: Adaptive.isPadIdiom) {
+                RecordView(onSaved: { newID in openMemo(newID) })
+            })
             .fullScreenCover(isPresented: $showBookPlayer) {
                 AudiobookPlayerView()
             }
@@ -196,14 +243,66 @@ struct MemosListView: View {
                     if let id { MemoOpenBridge.shared.open(id) }
                 }
             }
+            // ⌘F (SkriftApp `.commands`) posts here → focus the Notes search field.
+            .onChange(of: searchFocusBridge.focusRequestID) { searchFocused = true }
+    }
+
+    /// The split-view detail pane at regular width: the selected note (wrapped in
+    /// its own `NavigationStack` so its toolbar renders — the split view only
+    /// *instantiates* `MemoDetailView`, DETAIL owns its internals), or a quiet
+    /// placeholder. `.id(id)` remounts per selection so `MemoDetailView`'s
+    /// `initialID`-seeded state actually re-seeds when you pick another note.
+    private var detailPane: some View {
+        NavigationStack {
+            if let id = selectedMemoID {
+                MemoDetailView(initialID: id)
+                    .id(id)
+            } else {
+                ZStack {
+                    Color.skBg.ignoresSafeArea()
+                    Text("Select a note")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.skTextDim)
+                }
+                .toolbar(.hidden, for: .navigationBar)
+                .accessibilityIdentifier("ipad-detail-placeholder")
+            }
         }
+    }
+
+    /// Route a memo-open to the active navigation model: the detail pane at
+    /// regular width (iPad split view), a reset push on the stack at compact.
+    /// (Row taps append instead — see `listContent`.)
+    private func openMemo(_ id: UUID) {
+        if isRegular { selectedMemoID = id } else { path = [id] }
     }
 
     // MARK: - Content
 
+    /// The Notes search field. A faithful inline copy of the shared `SearchField`
+    /// (same tokens, same `memo-search` id) — reproduced here ONLY because that
+    /// component (DesignSystem/Components.swift, read-only this wave) exposes no
+    /// focus binding, and ⌘F needs `.focused($searchFocused)` on the TextField.
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(Color.skTextFaint)
+            TextField("", text: $search, prompt: Text("Search transcripts").foregroundStyle(Color.skTextFaint))
+                .font(.system(size: 14)).foregroundStyle(Color.skText).tint(.skAccent)
+                .autocorrectionDisabled()
+                .focused($searchFocused)
+                .accessibilityIdentifier("memo-search")
+            if !search.isEmpty {
+                Button { search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Color.skTextFaint) }
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 9)
+        .background(Color.skSurface, in: .rect(cornerRadius: Theme.Radius.field, style: .continuous))
+        .overlay(RoundedRectangle.sk(Theme.Radius.field).stroke(Color.skBorder, lineWidth: 1))
+    }
+
     private var listContent: some View {
         VStack(spacing: 0) {
-            SearchField(text: $search, prompt: "Search transcripts", fieldID: "memo-search")
+            searchField
                 .sheet(item: $reminderMemo) { memo in
                     ReminderSheet(memo: memo) { NotesRepository.shared.save() }
                 }
@@ -253,13 +352,17 @@ struct MemosListView: View {
                     Section {
                         ForEach(group.memos) { memo in
                             MemoRow(memo: memo, fading: searchFadingIDs.contains(memo.id),
-                                    clockLine: clockLine(for: memo, backlinked: backlinked)) {
+                                    clockLine: clockLine(for: memo, backlinked: backlinked),
+                                    selected: memo.id == selectedMemoID) {
                                 // Opening a SEARCH RESULT carries the query
                                 // along — the note flashes where it matched
                                 // (text range, or the photo whose OCR hit).
                                 let q = search.trimmingCharacters(in: .whitespaces)
                                 if !q.isEmpty { SearchHitBridge.pending = (memo.id, q) }
-                                path.append(memo.id)
+                                // Regular width (iPad split view) drives the detail
+                                // pane; compact pushes onto the stack as before.
+                                if isRegular { selectedMemoID = memo.id }
+                                else { path.append(memo.id) }
                             }
                                 .tag(memo.id)
                                 .listRowBackground(Color.clear)
@@ -327,7 +430,10 @@ struct MemosListView: View {
                 if !d.related.isEmpty {
                     Section {
                         ForEach(d.related) { memo in
-                            MemoRow(memo: memo) { path.append(memo.id) }
+                            MemoRow(memo: memo, selected: memo.id == selectedMemoID) {
+                                if isRegular { selectedMemoID = memo.id }
+                                else { path.append(memo.id) }
+                            }
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
@@ -535,7 +641,7 @@ struct MemosListView: View {
     /// video's filming date, so it'd otherwise vanish from the top of the list;
     /// resetting the path to it (like the record-saved path) lands the user on it.
     private func handleOpenRequest() {
-        if let id = memoOpen.consume() { path = [id] }
+        if let id = memoOpen.consume() { openMemo(id) }
     }
 
     // (recordFAB moved into NotesBottomChrome — the Option-A split row at the
@@ -781,11 +887,16 @@ private struct MemoRow: View {
     let memo: Memo
     var fading: Bool = false
     var clockLine: String? = nil
+    /// iPad split view (m1): the row backing the detail pane wears `skAccentSoft`.
+    /// Always false on the phone (`selectedMemoID` is nil there).
+    var selected: Bool = false
     let onTap: () -> Void
     @Environment(\.editMode) private var editMode
 
     var body: some View {
         if editMode?.wrappedValue.isEditing == true {
+            // Multi-select uses the List's own selection chrome — no detail-pane
+            // highlight while editing.
             MemoCard(memo: memo, fading: fading, clockLine: clockLine)
         } else {
             // A Button, NOT .onTapGesture: a tap gesture on a List row fights
@@ -794,7 +905,7 @@ private struct MemoRow: View {
             // round 1). The system resolves Button-tap vs long-press-menu vs
             // scroll natively.
             Button(action: onTap) {
-                MemoCard(memo: memo, fading: fading, clockLine: clockLine)
+                MemoCard(memo: memo, fading: fading, clockLine: clockLine, selected: selected)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -812,6 +923,9 @@ private struct MemoCard: View {
     /// Recently Deleted in 3d"), computed once at the list level (backlink
     /// scan is never per-row). Non-nil ⇒ the clock is short ⇒ amber.
     var clockLine: String? = nil
+    /// iPad split view (m1): the selected row (its note is in the detail pane)
+    /// gets an accent-soft fill. Always false on the phone.
+    var selected: Bool = false
 
     var body: some View {
         HStack(spacing: 11) {
@@ -984,7 +1098,7 @@ private struct MemoCard: View {
                     .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 1))
             }
         }
-        .skCard()
+        .modifier(SelectableCard(selected: selected))
         // Accessibility identifier for capture rows (used by UI tests and the
         // detail "capture-link-card" test). The existing "memo-row-N" id remains
         // on the ForEach wrapper; this adds the semantic capture identifier.
@@ -1275,4 +1389,56 @@ private struct NotesBottomChrome: View {
         }
         .accessibilityIdentifier("new-recording-button")
     }
+}
+
+// MARK: - iPad shell helpers
+
+/// A memo card's background. Identical to `.skCard()` when unselected (so the
+/// phone — where `selected` is never true — is byte-for-byte unchanged); an
+/// accent-soft fill + accent hairline when it backs the split-view detail pane
+/// (m1). Kept local (not folded into `.skCard()`) because that shared helper is
+/// read-only this wave.
+private struct SelectableCard: ViewModifier {
+    let selected: Bool
+    func body(content: Content) -> some View {
+        content
+            .padding(Theme.Space.cardPadding)
+            .background(selected ? Color.skAccentSoft : Color.skSurface,
+                        in: .rect(cornerRadius: Theme.Radius.card, style: .continuous))
+            .overlay(
+                RoundedRectangle.sk(Theme.Radius.card)
+                    .stroke(selected ? Color.skAccent.opacity(0.5) : Color.skBorder, lineWidth: 1)
+            )
+    }
+}
+
+/// Record presentation, per BASE's idiom rule: a centered card **sheet** on iPad
+/// (m7 — `.presentationSizing(.form)`, the room stays dimmed-but-visible behind
+/// it), a full-screen **cover** on the phone. Swapping the modifier type needs a
+/// ViewModifier (an `if` in a chain can't).
+private struct RecordPresentation<Presented: View>: ViewModifier {
+    @Binding var isPresented: Bool
+    let isPad: Bool
+    @ViewBuilder var presented: () -> Presented
+
+    func body(content: Content) -> some View {
+        if isPad {
+            content.sheet(isPresented: $isPresented) {
+                presented().presentationSizing(.form)
+            }
+        } else {
+            content.fullScreenCover(isPresented: $isPresented, content: presented)
+        }
+    }
+}
+
+/// One-shot ⌘F seam: `SkriftApp`'s `.commands` calls `requestFocus()`, and
+/// `MemosListView` observes the bump to move keyboard focus into its search
+/// field (the shared `SearchField` can't carry a focus binding). Mirrors the
+/// `RecordingIntentBridge` singleton pattern.
+final class SearchFocusBridge: ObservableObject {
+    static let shared = SearchFocusBridge()
+    private init() {}
+    @Published private(set) var focusRequestID = 0
+    func requestFocus() { focusRequestID += 1 }
 }
