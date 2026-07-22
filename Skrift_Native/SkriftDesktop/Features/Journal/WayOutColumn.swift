@@ -1,12 +1,14 @@
 import SwiftUI
 
-/// "On its way out" — the ONE conveyor (Q4, mocks/lifecycle-ia-explorations.html
-/// #m3), replacing BOTH the old `FadingShelfColumn` and `MacTrashColumn`: the
-/// fade → trash → purge pipeline is one journey, not two shelves with two verbs
-/// that both meant "bring back". A pure body (data + action closures, no
-/// ModelContext — the `ConnectionsPanelBody`/`ConnectionsPanel` split): the
-/// caller (`JournalView`, or a `Snapshot` fixture) supplies the arrays and
-/// wires the closures to whichever store each mutation actually belongs to.
+/// "Fading" — the ONE conveyor (Q4, mocks/lifecycle-ia-explorations.html #m3;
+/// renamed from "On its way out" per m5 2026-07-22 — one decay word
+/// everywhere), replacing BOTH the old `FadingShelfColumn` and
+/// `MacTrashColumn`: the fade → trash → purge pipeline is one journey, not two
+/// shelves with two verbs that both meant "bring back". A pure body (data +
+/// action closures, no ModelContext — the `ConnectionsPanelBody`/
+/// `ConnectionsPanel` split): the caller (`JournalView`, or a `Snapshot`
+/// fixture) supplies the arrays and wires the closures to whichever store each
+/// mutation actually belongs to.
 struct WayOutColumn: View {
     /// Untouched notes past `fadeAfterDays`, still visible elsewhere, counting
     /// down to the auto-move (`MemoLifecycle.partition(_:).fading`).
@@ -19,6 +21,11 @@ struct WayOutColumn: View {
     /// keptAt + deletedAt=nil already applied by the caller's own predicate
     /// hook — this just fires after the row's tap.
     var onBringBack: (Memo) -> Void = { _ in }
+    /// Soft delete for a FADING cloud row (m3/m6, 2026-07-22): skip the rest of
+    /// the fade and go straight to Recently Deleted (14 days, restorable) —
+    /// so no confirm dialog. Deleted rows don't offer it (purge stays the
+    /// phone's / the sweep's job).
+    var onDeleteMemo: (Memo) -> Void = { _ in }
     var onRestoreMacLocal: (PipelineFile) -> Void = { _ in }
     var onDeleteMacLocal: (PipelineFile) -> Void = { _ in }
     var onBack: () -> Void = {}
@@ -37,10 +44,10 @@ struct WayOutColumn: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             if total == 0 {
-                Text("Nothing is on its way out.")
+                Text("Nothing is fading.")
                     .font(.system(size: 12)).foregroundStyle(Theme.textMuted)
             } else {
-                Text("Everything leaving, on one line, soonest first. Untouched notes drift here on their own; Bring back rescues from any point of the journey.")
+                Text("Everything leaving, on one line, soonest first. Quiet notes drift here when their clock runs out; Bring back rescues from any point of the journey.")
                     .font(.system(size: 11.5)).foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -71,7 +78,7 @@ struct WayOutColumn: View {
                     }
                 }
             }
-            Text("Automatic: each note moves along on its day. Bring back = never fades again. Your iPhone does the permanent deleting.")
+            Text("Automatic: each note moves along on its day. Bring back = a fresh 30 days on its clock. Your iPhone does the permanent deleting.")
                 .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
             Spacer(minLength: 0)
         }
@@ -93,14 +100,15 @@ struct WayOutColumn: View {
         .sheet(item: $peek) { target in
             UnpipelinedMemoSheet(memoID: target.id, action: .bringBack,
                                  onClose: { peek = nil },
-                                 onProcessed: { _ in peek = nil; onChanged() })
+                                 onProcessed: { _ in peek = nil; onChanged() },
+                                 onDeleted: { _ in peek = nil; onChanged() })
         }
         .accessibilityIdentifier("wayout.root")
     }
 
     private var header: some View {
         HStack {
-            Text("On its way out · \(total)").font(.system(size: 17, weight: .bold))
+            Text("Fading · \(total)").font(.system(size: 17, weight: .bold))
             Spacer()
             backCapsule(action: onBack)
         }
@@ -138,6 +146,17 @@ struct WayOutColumn: View {
                 .foregroundStyle(urgencyColor(station))
             capsuleButton("Bring back", prominent: false) { onBringBack(memo) }
                 .accessibilityIdentifier("wayout-row-bringback")
+            if memo.deletedAt == nil {
+                Button { onDeleteMemo(memo) } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 11)).foregroundStyle(Theme.destructive)
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Theme.destructive.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .help("To Recently Deleted — 14 days to undo")
+                .accessibilityIdentifier("wayout-row-delete")
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
         .contentShape(Rectangle())

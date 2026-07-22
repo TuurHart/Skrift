@@ -143,7 +143,7 @@ struct JournalView: View {
                 // single row — shown only when non-empty.
                 if !fadingMemos.isEmpty || !trashedMemos.isEmpty || !macLocalTrash.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
-                        shelfRow("🍂", "On its way out",
+                        shelfRow("🍂", "Fading",
                                 fadingMemos.count + trashedMemos.count + macLocalTrash.count, .wayOut)
                     }
                     .padding(.top, 14)
@@ -246,6 +246,11 @@ struct JournalView: View {
                     macOnlyFiles: macLocalTrash,
                     onBringBack: { memo in
                         WayOutRules.bringBack(memo)
+                        try? cloudContext?.save()
+                        refresh()
+                    },
+                    onDeleteMemo: { memo in
+                        memo.deletedAt = Date()
                         try? cloudContext?.save()
                         refresh()
                     },

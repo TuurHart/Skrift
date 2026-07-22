@@ -71,7 +71,8 @@ struct RootView: View {
                     model.surface = .queue
                     model.activeID = id
                     model.selection = [id]
-                })
+                },
+                onDeleted: { _ in unpipelinedSheetID = nil })
         }
         .overlay {
             if showWizard {
@@ -93,6 +94,11 @@ struct RootView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: coordinator.toast)
         .task {
+            // One-clock doctrine switch (2026-07-22): old parked notes get a
+            // fresh clock once, so nothing fades out from under the user.
+            if let cloudCtx = MemoCloudStore.container?.mainContext {
+                MemoLifecycle.runOneClockMigrationOnce(context: cloudCtx)
+            }
             // Real app starts empty; `-demo` populates with sample notes for dev/demo,
             // `-naming-demo` (DEBUG) seeds one self-consistent naming-review example.
             let args = ProcessInfo.processInfo.arguments

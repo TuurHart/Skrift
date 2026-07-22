@@ -605,8 +605,9 @@ enum RunFile {
         }
     }
 
-    /// `-flagmemo <memo-uuid>` → run the REAL Q2 flag verb (`UnpipelinedMemoSheet`'s
-    /// "Flag for processing": `significance = 0.1` on the CLOUD memo + save + a reconcile)
+    /// `-flagmemo <memo-uuid>` → run the REAL Q2 flag verb (the quiet-row menu's
+    /// "Flag for processing": `significance = 0.1` on the CLOUD memo + save + a reconcile;
+    /// the peek itself rates via the circles now — same write lane, user-chosen value)
     /// headlessly, wait a beat so NSPersistentCloudKitContainer exports the write, and exit.
     /// Verifies the Mac→cloud significance write direction without GUI automation (the
     /// export queue also persists, so a relaunch finishes any remainder). QUIT the GUI app

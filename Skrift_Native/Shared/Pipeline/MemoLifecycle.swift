@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// The note lifecycle — ONE rulebook for both apps. Design v2 **"one clock"**
 /// (mocks/lifecycle-triage-peek.html #m5/#m6, signed 2026-07-22; supersedes the
@@ -115,6 +116,22 @@ enum MemoLifecycle {
             }
         }
         return bumped
+    }
+
+    /// Once-per-device runner for the migration above — both apps call it at
+    /// launch against their cloud store. The flag is per-device on purpose:
+    /// `keptAt = now` twice (two devices racing) converges to near-identical
+    /// values, so re-running elsewhere is harmless.
+    static func runOneClockMigrationOnce(context: ModelContext,
+                                         defaults: UserDefaults = .standard,
+                                         now: Date = Date()) {
+        let key = "oneClockMigrated.v1"
+        guard !defaults.bool(forKey: key) else { return }
+        guard let memos = try? context.fetch(FetchDescriptor<Memo>()) else { return }
+        if migrateParkedToOneClock(memos, now: now) > 0 {
+            try? context.save()
+        }
+        defaults.set(true, forKey: key)
     }
 
     private static func age(of memo: Memo, at now: Date) -> TimeInterval {

@@ -54,8 +54,10 @@ struct SidebarView: View {
         }
         .sheet(item: $bandPeek) { target in
             UnpipelinedMemoSheet(memoID: target.id,
+                                 backlinked: backlinkedIDs,
                                  onClose: { bandPeek = nil },
-                                 onProcessed: { _ in bandPeek = nil; refreshCloudMemos() })
+                                 onProcessed: { _ in bandPeek = nil; refreshCloudMemos() },
+                                 onDeleted: { _ in bandPeek = nil; refreshCloudMemos() })
         }
         .dropDestination(for: URL.self) { urls, _ in ingest(urls); return true } isTargeted: { dragOver = $0 }
         // Photos (and Mail/Safari) drag PROMISED files, not real URLs — the URL
@@ -365,9 +367,11 @@ struct SidebarView: View {
     // ── Quiet rows — unrated notes IN the list (Tuur, 2026-07-21 round 3:
     // the separate band container confused even the owner; the phone's Notes
     // list shows everything, so this one does too). Membership stays
-    // WayOutRules.unpipelined (New + Parked; fading lives on the conveyor).
-    // No selection semantics — a quiet row taps open the peek, where Flag
-    // lives. Rated rows keep the full click/selection machinery.
+    // WayOutRules.unpipelined (quiet clock-run notes; fading lives on the
+    // conveyor, locked notes are resolved and don't nag — m6 2026-07-22).
+    // No selection semantics — a quiet row taps open the peek, where the
+    // circles live. Right-click carries the fast verbs (Flag/Lock/Delete).
+    // Rated rows keep the full click/selection machinery.
 
     private var visibleMemoRows: [Memo] {
         guard model.filter == .all || model.filter == .notRated else { return [] }
@@ -414,7 +418,40 @@ struct SidebarView: View {
         .padding(.horizontal, 9).padding(.vertical, 6)
         .contentShape(Rectangle())
         .onTapGesture { bandPeek = WayOutPeek(id: memo.id.uuidString) }
+        // The quiet row's fast verbs (m6/m3, 2026-07-22) — pipeline rows have
+        // had a menu forever; these close the "can't right-click them" gap.
+        // Flag = the explicit one-click 0.1 (a chosen menu verb, not a hidden
+        // side effect); Lock = the background keep-don't-polish verb's only
+        // Mac surface; Delete = the Mac's first way to delete a synced note.
+        .contextMenu {
+            Button("Flag for processing") { flagQuiet(memo) }
+            Button(memo.locked ? "Unlock" : "Lock") { toggleLock(memo) }
+            Button("Open") { bandPeek = WayOutPeek(id: memo.id.uuidString) }
+            Divider()
+            Button("Delete", role: .destructive) { deleteQuiet(memo) }
+        }
         .accessibilityIdentifier("quiet-memo-row")
+    }
+
+    /// The menu's one-click minimum flag — same write lane as `processAll`.
+    private func flagQuiet(_ memo: Memo) {
+        memo.significance = 0.1
+        try? MemoCloudStore.container?.mainContext.save()
+        MemoCloudReconciler.reconcileSoon()
+        refreshCloudMemos()
+    }
+
+    private func toggleLock(_ memo: Memo) {
+        memo.locked.toggle()
+        try? MemoCloudStore.container?.mainContext.save()
+        refreshCloudMemos()
+    }
+
+    /// Soft delete into the shared Recently Deleted (14 days, both devices).
+    private func deleteQuiet(_ memo: Memo) {
+        memo.deletedAt = Date()
+        try? MemoCloudStore.container?.mainContext.save()
+        refreshCloudMemos()
     }
 
     private func quietMeta(_ memo: Memo) -> String {

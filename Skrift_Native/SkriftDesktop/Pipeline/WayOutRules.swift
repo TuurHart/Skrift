@@ -25,10 +25,12 @@ enum WayOutRules {
         // One-home law (the spine): a FADING note's counting surface is the
         // Review conveyor — the band listing it too made it double-homed
         // ("are those the fading ones?", Tuur's 2026-07-21 eyeball round).
-        // The band = New + Parked only: what the Mac is quietly ignoring.
+        // The list = quiet clock-run notes: what the Mac is quietly ignoring.
+        // LOCKED notes are excluded too (m6, 2026-07-22): lock is the explicit
+        // keep-don't-polish verb — a resolved note doesn't nag.
         let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
         return memos.filter {
-            $0.deletedAt == nil && $0.significance == 0 && !ingested.contains($0.id)
+            $0.deletedAt == nil && $0.significance == 0 && !$0.locked && !ingested.contains($0.id)
                 && !MemoLifecycle.isFading($0, backlinked: backlinked, now: now)
         }
     }

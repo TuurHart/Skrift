@@ -37,6 +37,14 @@ final class WayOutRulesTests: XCTestCase {
         XCTAssertTrue(WayOutRules.unpipelined(memos: [m], files: []).isEmpty)
     }
 
+    func testUnpipelinedExcludesLockedMemos() {
+        // m6 (2026-07-22): lock = the explicit keep-don't-polish verb — a
+        // resolved note doesn't nag in the quiet list.
+        let m = memo(significance: 0)
+        m.locked = true
+        XCTAssertTrue(WayOutRules.unpipelined(memos: [m], files: []).isEmpty)
+    }
+
     func testUnpipelinedExcludesAlreadyIngestedMemos() {
         let m = memo(significance: 0)
         let pf = pipelineFile(id: m.id.uuidString)
