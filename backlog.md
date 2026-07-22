@@ -398,6 +398,16 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
 
+**📖 ROUND 3 (same session, b100 INSTALLED):** re-attach WORKED on b99 (alert + sheet live on
+device) but the bar sprinkled confetti + "37% / 1 h 41" — `textSummary` counted the text's
+sentences from files whose per-text verdict was REJECTED; now aligned-files-only (regression
+test in). Also dc:title read `.text` on the element but element text lives in `#text` child
+nodes → `flattenText`; NOTE the Steal libgen ePub's own metadata has title/creator SWAPPED
+("Austin Kleon" as dc:title) — garbage in, honestly displayed, filename fallback covers absent
+titles. EXPECTED LOOK on b100: reopen the sheet → ONE contiguous span over the first ~hour,
+"~21%", row "~58 min · full match" (row title stays the filename-ish string — the file's own
+bad metadata).
+
 **📖 DEVICE ROUND 2 (Tuur live, 2026-07-22 ~14:00) → b98+b99 same hour:** (1) "Book text…"
 was library-long-press only; the player ⋯ (where you actually are) now has it — flow extracted
 to ONE shared `BookTextFlow` modifier (shared-code-first, both surfaces). (2) **Add button
