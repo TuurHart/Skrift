@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 18
-updated: 2026-07-21T15:55:00.000Z
+updated: 2026-07-21T17:20:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -1004,10 +1004,21 @@ nodes:
     note: "Graduated from idea i11 2026-07-21: all 5 decisions LOCKED by Tuur
       (ePub TOC wins · aligner-internal normalization · pin bumped v0.15.5 ·
       ZIPFoundation approved as SPM dep #2 · .epub primary + .txt freebie,
-      .mobi = convert first). Board = backlog 📖. Spikes 1–5 DONE, verdict GO.
-      Next: spike 6 productize (sidecar + triggers + BufferSentence builder
-      swap + chapter precedence + attach UX + CK sync)."
+      .mobi = convert first). Board = backlog 📖. Spikes 1–6 BUILT — the
+      feature is code-complete on main. Owed: the b94 device round (install
+      blocked mid-push, phone went offline; binary built + signed) — attach
+      the real Steal ePub on the phone, eyeball true-text read-along +
+      verbatim capture + real-TOC chapters. Then done."
     shipped:
+      - >-
+        2026-07-21 night · spike 6 PRODUCTIZED (batch C: conductor pre-ship +
+        CORE/UI Sonnet lanes; the pinned-contract seam compiled FIRST TRY,
+        805/0 mobile tests): attach-ePub UX (verdict-honest, wrong-book
+        Keep/Remove), alignment_f<n>.json sidecars (published text + per-word
+        times + confidence + chapter marks), transcribe-finish/book-open
+        triggers, CK sync mirroring transcript sidecars, ePub-TOC chapter
+        precedence, and read-along/captures rendering the REAL book text with
+        per-sentence ASR fallback (<0.5 confidence)
       - >-
         2026-07-21 eve · spikes 4–5 SHIPPED via the first LANE_PLAYBOOK batch
         (2 Sonnet lanes, Fable gate): EPubParse (pure Shared parser — spine

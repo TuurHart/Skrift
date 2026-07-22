@@ -347,10 +347,31 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    ~7% (trilogy-sibling phrase bleed), the MONOTONIC gate is the real discriminator. The
    narrated-but-image-only pages (logbook / What Now? lists) surface exactly as honest
    unmatched transcript spans.
-6. ⬜ **NEXT — productize on the GO**: `alignment_f<n>.json` sidecar + triggers +
-   BufferSentence builder swap + chapter precedence (ePub TOC wins — amend
-   ChapterDetector.swift:5's doc) + attach-ePub UX (phone; ZIPFoundation joins the iOS
-   target then) + CK sync; read-along/reading-mode switch to true text via the builder swap.
+6. ✅ **PRODUCTIZED 2026-07-21 night (batch C = `LANES-2026-07-21C/`, 2 Sonnet lanes +
+   conductor pre-ship; THE SEAM COMPILED FIRST TRY — 805/0 mobile unit tests):**
+   - Pre-ship: `Audiobook.epubFilename`/`epubChapters` + `effectiveChapters` precedence
+     (ePub TOC > detected > embedded, Q1), ChapterDetector doc amended, ZIPFoundation into
+     the iOS app target.
+   - CORE: `BookAlignment.swift` — `FileAlignment`/`AlignedSentence` (published text +
+     per-word times + transcript word-range + confidence + chapter marks) + store +
+     `BookAlignmentRunner` (attach / alignIfNeeded, security-scoped, .txt freebie) +
+     triggers (transcribe-finish + book-open retro) + CK sync `ab_<id>_al<n>` mirroring
+     transcripts (receiver holds application until its transcript matches, then derives
+     epubChapters). Lane call worth keeping: adjacent same-file EPubBlocks MERGED before
+     aligning (AlignmentCore resets word indices per block — unmerged would corrupt
+     sentence ranges; `-aligncheck`'s 1:1 bridge is fine for its coverage-only use).
+   - UI: `AlignedSentenceSource` (nil unless fresh + verdict aligned; sentence < 0.5
+     confidence splices its ASR words via the existing builder) + ReadAlongView/
+     MergedCaptureView swaps (trim/audio-export math untouched) + library context-menu
+     "Attach book text…" (fileImporter .epub/.txt, verdict toast, wrong-book alert
+     Keep-anyway/Remove, "Replace book text…" when attached).
+   **OWED — device round (b94 BUILT + signed, install blocked: phone went unavailable
+   mid-push; install with `xcrun devicectl device install app --device A9195A77-… …/
+   SkriftMobile.app` when it's back):** AirDrop the Steal ePub to the phone (Files) →
+   Books → long-press Steal Like an Artist → Attach book text… → expect "Aligned 1 of 4
+   files" (the trilogy: file 1 = book 1, rest honestly rejected) → read-along shows
+   Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
+   published text → Chapters sheet shows the ePub's real 18-entry TOC.
 
 Open decisions — **ALL 5 LOCKED (Tuur, 2026-07-21 pm)**:
 1. ✅ **Chapter precedence: ePub TOC wins when attached** ("if an EPUB is attached, we're
