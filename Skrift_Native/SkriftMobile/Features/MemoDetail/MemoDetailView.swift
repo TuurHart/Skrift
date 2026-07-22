@@ -20,6 +20,10 @@ struct MemoDetailView: View {
     @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
            sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
     @Environment(\.dismiss) private var dismiss
+    /// iPad wave: the note becomes list|detail at regular width — the Connections
+    /// panel stands beside the page, the reading measure + player bar cap the note
+    /// column. Compact (phone / iPad multitasking-compact) stays the phone layout.
+    @Environment(\.horizontalSizeClass) private var hSize
     @State private var selection: UUID?   // bound to .scrollPosition(id:) — optional per the API
     @State private var showActions = false
     /// P8 thread sheet (the ⋯ menu's "View Thread" — only when the journal
@@ -46,57 +50,28 @@ struct MemoDetailView: View {
     private var currentMemo: Memo? { memos.first { $0.id == selection } }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            // SwiftUI-native horizontal pager. `.scrollPosition(id:)` tracks the page;
-            // the ScrollViewReader does the initial jump (the binding's initial value
-            // isn't reliably honoured on first layout).
-            ScrollView(.horizontal) {
-                LazyHStack(spacing: 0) {
-                    ForEach(memos) { memo in
-                        MemoPageView(memo: memo, player: player, isCurrent: memo.id == selection,
-                                     onOpenMemo: { id in
-                                         guard memos.contains(where: { $0.id == id }) else { return }
-                                         withAnimation(Theme.Motion.snappy) { selection = id }
-                                     })
-                            .containerRelativeFrame(.horizontal)
-                            // The LazyHStack realises adjacent pages; hide the
-                            // off-screen ones from VoiceOver (and XCUITest) so
-                            // their controls/text aren't duplicate matches.
-                            .accessibilityHidden(memo.id != selection)
-                            .id(memo.id)
+        Group {
+            if hSize == .regular {
+                // Note page | Connections panel. The reading measure + the floating
+                // player bar cap to the note column (m3); the panel stands full-height
+                // on the trailing edge with its own scroll + leading hairline.
+                HStack(spacing: 0) {
+                    notePager.readingMeasure()
+                    if let memo = currentMemo, !lockGate.isLocked(memo) {
+                        ConnectionsPanel(
+                            memo: memo,
+                            onOpenMemo: { id in
+                                guard memos.contains(where: { $0.id == id }) else { return }
+                                withAnimation(Theme.Motion.snappy) { selection = id }
+                            },
+                            onViewThread: { showThread = true })
                     }
                 }
-                .scrollTargetLayout()
-            }
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: $selection)
-            .scrollIndicators(.hidden)
-            // Swipe-between-notes OFF (Tuur, 2026-07-16): horizontal drags fought
-            // text editing (caret drags / selection ate page swipes). The pager
-            // structure stays — memo-link hops + the initial jump still drive
-            // `selection` programmatically; only the drag gesture is disabled.
-            .scrollDisabled(true)
-            .onAppear {
-                guard let selection else { return }
-                DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }
+            } else {
+                notePager
             }
         }
         .background(Color.skBg.ignoresSafeArea())
-        // The floating glass player bar lives in the bottom safe-area inset, NOT a
-        // ZStack overlay. That's the fix for "glass shows nothing": a detached overlay
-        // only samples the flat background behind everything, so Liquid Glass had no
-        // scroll content to refract. As a safeAreaInset the scroll content renders
-        // BEHIND the bar in the same backdrop, so the transcript/photos genuinely
-        // refract through the glass as they pass under it (and content insets to clear
-        // it at rest).
-        // Playback bar is only meaningful when there's audio. Capture items
-        // (audioURL == nil) have no audio — hide the bar entirely so the
-        // scroll content isn't needlessly padded.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if currentMemo?.isShareCapture != true {
-                bottomChrome
-            }
-        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // Add a follow-up recording — hidden for C3 capture items (no audio to append to).
@@ -148,6 +123,11 @@ struct MemoDetailView: View {
         // to the toolbar item), so the paged TabView can't swallow it — unlike a
         // toolbar `Menu`, which silently failed to present on device.
         .confirmationDialog(memoStatsLine, isPresented: $showActions, titleVisibility: .visible) {
+            // iPad on-demand polish (m5, seam only): offered when the device + engine
+            // qualify and the note has a real transcript. The Mac still auto-polishes.
+            if let memo = currentMemo, PolishCenter.shared.canPolish(memo) {
+                Button("Polish now", action: { PolishCenter.shared.polishNow(memo) })
+            }
             Button("Add recording", action: { showAppendRecorder = true })
             Button("Remind me…", action: { reminderMemo = currentMemo })
             if JournalIndexService.shared.isActive {
@@ -211,6 +191,62 @@ struct MemoDetailView: View {
         .onChange(of: currentMemo?.duration) { _, _ in reloadIfAudioMissing() }
         .onChange(of: currentMemo?.transcriptStatus) { _, _ in reloadIfAudioMissing() }
         .onDisappear { player.stopAndClear(); repository.save() }
+    }
+
+    /// The horizontal pager (one page per memo) + the floating glass player bar.
+    /// At regular width this is the note COLUMN (reading-measure-capped, beside the
+    /// Connections panel); at compact it's the whole screen — byte-for-byte today.
+    private var notePager: some View {
+        ScrollViewReader { proxy in
+            // SwiftUI-native horizontal pager. `.scrollPosition(id:)` tracks the page;
+            // the ScrollViewReader does the initial jump (the binding's initial value
+            // isn't reliably honoured on first layout).
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    ForEach(memos) { memo in
+                        MemoPageView(memo: memo, player: player, isCurrent: memo.id == selection,
+                                     onOpenMemo: { id in
+                                         guard memos.contains(where: { $0.id == id }) else { return }
+                                         withAnimation(Theme.Motion.snappy) { selection = id }
+                                     })
+                            .containerRelativeFrame(.horizontal)
+                            // The LazyHStack realises adjacent pages; hide the
+                            // off-screen ones from VoiceOver (and XCUITest) so
+                            // their controls/text aren't duplicate matches.
+                            .accessibilityHidden(memo.id != selection)
+                            .id(memo.id)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $selection)
+            .scrollIndicators(.hidden)
+            // Swipe-between-notes OFF (Tuur, 2026-07-16): horizontal drags fought
+            // text editing (caret drags / selection ate page swipes). The pager
+            // structure stays — memo-link hops + the initial jump still drive
+            // `selection` programmatically; only the drag gesture is disabled.
+            .scrollDisabled(true)
+            .onAppear {
+                guard let selection else { return }
+                DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }
+            }
+        }
+        // The floating glass player bar lives in the bottom safe-area inset, NOT a
+        // ZStack overlay. That's the fix for "glass shows nothing": a detached overlay
+        // only samples the flat background behind everything, so Liquid Glass had no
+        // scroll content to refract. As a safeAreaInset the scroll content renders
+        // BEHIND the bar in the same backdrop, so the transcript/photos genuinely
+        // refract through the glass as they pass under it (and content insets to clear
+        // it at rest).
+        // Playback bar is only meaningful when there's audio. Capture items
+        // (audioURL == nil) have no audio — hide the bar entirely so the
+        // scroll content isn't needlessly padded.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if currentMemo?.isShareCapture != true {
+                bottomChrome
+            }
+        }
     }
 
     @ViewBuilder private var bottomChrome: some View {
@@ -376,6 +412,9 @@ private struct MemoPageView: View {
     /// Whether this page is the pager's current page — off-screen neighbours
     /// hide their UIKit editor subtree from accessibility (see NoteBodyView).
     var isCurrent: Bool = true
+    /// iPad: at regular width the Connections panel stands beside the page, so the
+    /// inline footer omits related/backlinks and the body caps to the reading measure.
+    @Environment(\.horizontalSizeClass) private var hSize
     private let repository = NotesRepository.shared
     /// One corpus scan per open (never per row) — feeds the lifecycle line's
     /// touch check (backlinked notes never fade).
@@ -669,6 +708,51 @@ private struct MemoPageView: View {
         }
     }
 
+    /// m5 in-note polish moment (seam only): a slim band pinned under the title
+    /// while THIS iPad polishes the note. Idle → nothing; the finished polish
+    /// renders through the existing enhancement machinery (no new "done" chrome,
+    /// per the brief). The Mac still polishes automatically; this is the "asked".
+    @ViewBuilder private var polishStatusBand: some View {
+        switch PolishCenter.shared.phase(for: memo.id) {
+        case .idle:
+            EmptyView()
+        case .downloading(let p):
+            polishPill("Downloading model · \(Int(p * 100))%")
+        case .polishing:
+            polishPill("Polishing on this iPad…")
+        case .failed:
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("Couldn't polish on this iPad")
+                    .font(.system(size: 12))
+                Spacer(minLength: 4)
+                Button("Retry") { PolishCenter.shared.polishNow(memo) }
+                    .font(.system(size: 12, weight: .semibold))
+                    .accessibilityIdentifier("ipad-polish-retry")
+            }
+            .foregroundStyle(Color.skRed)
+            .padding(.horizontal, Theme.Space.margin)
+            .padding(.top, 8).padding(.bottom, 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func polishPill(_ text: String) -> some View {
+        HStack(spacing: 7) {
+            ProgressView().controlSize(.mini).tint(Color.skAccentText)
+            Text(text)
+                .font(.system(size: 11.5, weight: .semibold))
+                .foregroundStyle(Color.skAccentText)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .background(Color.skAccentSoft, in: Capsule())
+        .padding(.horizontal, Theme.Space.margin)
+        .padding(.top, 8).padding(.bottom, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("ipad-polish-status")
+    }
+
     /// An image capture whose text has landed renders through the NORMAL note
     /// body (round-2 device spec 2026-07-10: photos inline in the text via the
     /// [[img_NNN]] pipeline, "like my Monday 22:34 note — just do that"). The
@@ -691,6 +775,7 @@ private struct MemoPageView: View {
     private var editorPage: some View {
         VStack(spacing: 0) {
             pinnedTitleRow
+            polishStatusBand
             NoteBodyView(
                 memo: memo,
                 player: player,
@@ -721,7 +806,8 @@ private struct MemoPageView: View {
                     }
                 }
                     .accessibilityHidden(!isCurrent)),
-                footer: AnyView(noteFooter(isCurrent: isCurrent).accessibilityHidden(!isCurrent)),
+                footer: AnyView(noteFooter(isCurrent: isCurrent, includeConnections: hSize != .regular)
+                    .accessibilityHidden(!isCurrent)),
                 a11yHidden: !isCurrent,
                 onTapImage: { n in
                     guard let url = memo.imageURL(markerIndex: n) else { return }
@@ -737,7 +823,10 @@ private struct MemoPageView: View {
                     if CameraImagePicker.isAvailable { showPhotoSourceDialog = true }
                     else { showPhotoPicker = true }
                 },
-                proxy: bodyProxy
+                proxy: bodyProxy,
+                // iPad regular width: size inline images to the 640 reading column,
+                // not the full screen (the note column is reading-measure-capped).
+                readingWidthCap: hSize == .regular ? Adaptive.readingMaxWidth : nil
             )
         }
     }
@@ -747,6 +836,7 @@ private struct MemoPageView: View {
     private func legacyScrollPage<C: View>(@ViewBuilder content: () -> C) -> some View {
         VStack(spacing: 0) {
             pinnedTitleRow
+            polishStatusBand
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     noteHeaderCore(isCurrent: true)
@@ -905,14 +995,16 @@ private struct MemoPageView: View {
     }
 
     /// Below-the-body footer inside the editor's scroll: the people row +
-    /// "Linked from" backlinks.
-    private func noteFooter(isCurrent: Bool) -> some View {
+    /// "Linked from" backlinks + the Related card. `includeConnections` is false
+    /// at regular width — related + backlinks move into the standing Connections
+    /// panel (the people row always stays with the note).
+    private func noteFooter(isCurrent: Bool, includeConnections: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if !spans.isEmpty {
                 peopleInNoteRow
                     .accessibilityIdentifier(isCurrent ? "people-in-note-row" : "people-in-note-row-offscreen")
             }
-            if !backlinks.isEmpty {
+            if includeConnections, !backlinks.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     SectionLabel("LINKED FROM")
                     ForEach(backlinks, id: \.id) { link in
@@ -938,7 +1030,7 @@ private struct MemoPageView: View {
                     }
                 }
             }
-            if !relatedMemos.isEmpty {
+            if includeConnections, !relatedMemos.isEmpty {
                 relatedSection(isCurrent: isCurrent)
             }
         }
