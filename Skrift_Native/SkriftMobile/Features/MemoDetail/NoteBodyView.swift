@@ -72,6 +72,11 @@ struct NoteBodyView: UIViewRepresentable {
     var onRequestPhoto: () -> Void = {}
     /// Page-side handle into the coordinator (photo insertion from the picker).
     var proxy: NoteBodyProxy? = nil
+    /// iPad reading-measure hint: the note column's capped width at regular size
+    /// class (nil = compact/phone → the screen width). Drives `contentWidth` so
+    /// inline images size to the 640 column, not the full iPad screen. Width cap
+    /// ONLY — no scroll/selection behaviour changes.
+    var readingWidthCap: CGFloat? = nil
 
     @AppStorage("karaokeTapToSeek") private var tapToSeek = true
 
@@ -104,6 +109,7 @@ struct NoteBodyView: UIViewRepresentable {
         context.coordinator.linkTitle = linkTitle   // before load(), which builds the display
         context.coordinator.polishedBinding = polishedBinding
         context.coordinator.tapToSeek = tapToSeek
+        context.coordinator.readingWidthCap = readingWidthCap
 
         // One tap recognizer routes: word-seek while playing, name-resolve while
         // paused; anything else falls through to normal editing.
@@ -131,6 +137,7 @@ struct NoteBodyView: UIViewRepresentable {
         c.linkTitle = linkTitle
         c.polishedBinding = polishedBinding
         c.tapToSeek = tapToSeek
+        c.readingWidthCap = readingWidthCap
         proxy?.coordinator = c
 
         tv.setAccessories(header: header, footer: footer)
@@ -183,6 +190,8 @@ struct NoteBodyView: UIViewRepresentable {
         var onRequestMemoLink: () -> Void = {}
         var linkTitle: (UUID) -> String? = { _ in nil }
         var tapToSeek = true
+        /// iPad reading-measure hint (nil = phone/compact → screen width).
+        var readingWidthCap: CGFloat?
         private var accessory: NoteAccessoryBar?
         /// Caret at the moment 📷 was tapped — the picker's insert target.
         private var pendingPhotoLocation: Int?
@@ -245,9 +254,12 @@ struct NoteBodyView: UIViewRepresentable {
             self.onCommit = onCommit
         }
 
-        /// Portrait-locked app → fixed content width (screen − margins).
+        /// The note column's content width, minus margins. The phone is
+        /// portrait-locked → the screen width; the iPad at regular size class
+        /// passes `readingWidthCap` (the 640 reading measure) so inline images
+        /// size to the column, not the full screen.
         private var contentWidth: CGFloat {
-            max(80, UIScreen.main.bounds.width - 2 * Theme.Space.margin)
+            max(80, (readingWidthCap ?? UIScreen.main.bounds.width) - 2 * Theme.Space.margin)
         }
 
         /// The text the editor shows/edits — the polished copy-edit when bound,
