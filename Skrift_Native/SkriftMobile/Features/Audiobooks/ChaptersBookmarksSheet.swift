@@ -54,48 +54,19 @@ struct ChaptersBookmarksSheet: View {
         } else {
             let titles = book.displayChapterTitles
             let current = book.chapterIndex(at: session.currentTime)   // playable index
-            // Row i → its index among PLAYABLE chapters (nil for separators),
-            // so the current-highlight matches `chapterIndex` semantics.
-            let playableIndex: [Int?] = {
-                var out: [Int?] = []
-                var p = 0
-                for ch in book.effectiveChapters {
-                    if ch.isSeparator == true { out.append(nil) } else { out.append(p); p += 1 }
-                }
-                return out
-            }()
+            let playableIndex = chapterPlayableIndices(book)
             List {
                 ForEach(Array(book.effectiveChapters.enumerated()), id: \.offset) { i, ch in
                     if ch.isSeparator == true {
                         // A divider between WORKS (multi-book import) — a
                         // section header, not a chapter: no bullet, no time,
                         // not tappable, excluded from every count.
-                        Text(titles[i].uppercased())
-                            .font(.system(size: 11.5, weight: .semibold))
-                            .kerning(1.1)
-                            .foregroundStyle(Color.skTextFaint)
-                            .padding(.top, 10).padding(.bottom, 2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        AudiobookChapterSeparator(title: titles[i])
                             .listRowBackground(Color.skBg)
                             .listRowSeparator(.hidden)
                     } else {
-                        let isCurrent = playableIndex[i] == current
-                        Button {
+                        AudiobookChapterRow(title: titles[i], time: ch.start, isCurrent: playableIndex[i] == current) {
                             session.seek(to: ch.start); dismiss()
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: isCurrent ? "play.fill" : "circle.fill")
-                                    .font(.system(size: isCurrent ? 10 : 5))
-                                    .foregroundStyle(isCurrent ? Color.skAccent : Color.skTextFaint)
-                                    .frame(width: 14)
-                                Text(titles[i])
-                                    .font(.system(size: 14.5, weight: isCurrent ? .semibold : .regular))
-                                    .foregroundStyle(isCurrent ? Color.skText : Color.skTextDim)
-                                Spacer()
-                                Text(AudiobookTime.clock(ch.start))
-                                    .font(.system(size: 12)).monospacedDigit()
-                                    .foregroundStyle(Color.skTextFaint)
-                            }
                         }
                         .listRowBackground(Color.skBg)
                     }
@@ -116,19 +87,8 @@ struct ChaptersBookmarksSheet: View {
         } else {
             List {
                 ForEach(bookmarks) { bm in
-                    Button {
+                    AudiobookBookmarkRow(bookmark: bm) {
                         session.seek(to: bm.position); dismiss()
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "bookmark.fill")
-                                .font(.system(size: 11)).foregroundStyle(Color.skAccent).frame(width: 14)
-                            Text(bm.chapterLabel ?? "Bookmark")
-                                .font(.system(size: 14.5)).foregroundStyle(Color.skText).lineLimit(1)
-                            Spacer()
-                            Text(AudiobookTime.clock(bm.position))
-                                .font(.system(size: 12)).monospacedDigit()
-                                .foregroundStyle(Color.skTextFaint)
-                        }
                     }
                     .listRowBackground(Color.skBg)
                 }
@@ -149,5 +109,163 @@ struct ChaptersBookmarksSheet: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Row i of `book.effectiveChapters` → its index among PLAYABLE chapters (nil
+/// for a "Book N" separator) — shared by the sheet's List and the standing
+/// rail so both index the current-highlight identically.
+func chapterPlayableIndices(_ book: Audiobook) -> [Int?] {
+    var out: [Int?] = []
+    var p = 0
+    for ch in book.effectiveChapters {
+        if ch.isSeparator == true { out.append(nil) } else { out.append(p); p += 1 }
+    }
+    return out
+}
+
+// MARK: - Reusable rows (bare — chrome/padding is the host's job, so the
+// sheet's List rendering above stays pixel-identical to before this refactor)
+
+/// One chapter row — shared by the sheet's List and the standing rail.
+struct AudiobookChapterRow: View {
+    let title: String
+    let time: TimeInterval
+    let isCurrent: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: isCurrent ? "play.fill" : "circle.fill")
+                    .font(.system(size: isCurrent ? 10 : 5))
+                    .foregroundStyle(isCurrent ? Color.skAccent : Color.skTextFaint)
+                    .frame(width: 14)
+                Text(title)
+                    .font(.system(size: 14.5, weight: isCurrent ? .semibold : .regular))
+                    .foregroundStyle(isCurrent ? Color.skText : Color.skTextDim)
+                Spacer()
+                Text(AudiobookTime.clock(time))
+                    .font(.system(size: 12)).monospacedDigit()
+                    .foregroundStyle(Color.skTextFaint)
+            }
+        }
+    }
+}
+
+/// A "Book N" divider between WORKS — display-only (excluded from every
+/// count/index; not tappable).
+struct AudiobookChapterSeparator: View {
+    let title: String
+    var body: some View {
+        Text(title.uppercased())
+            .font(.system(size: 11.5, weight: .semibold))
+            .kerning(1.1)
+            .foregroundStyle(Color.skTextFaint)
+            .padding(.top, 10).padding(.bottom, 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// One bookmark row — shared by the sheet's List and the standing rail.
+struct AudiobookBookmarkRow: View {
+    let bookmark: AudiobookBookmark
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 11)).foregroundStyle(Color.skAccent).frame(width: 14)
+                Text(bookmark.chapterLabel ?? "Bookmark")
+                    .font(.system(size: 14.5)).foregroundStyle(Color.skText).lineLimit(1)
+                Spacer()
+                Text(AudiobookTime.clock(bookmark.position))
+                    .font(.system(size: 12)).monospacedDigit()
+                    .foregroundStyle(Color.skTextFaint)
+            }
+        }
+    }
+}
+
+// MARK: - Standing rail (iPad wave, regular width — mock `ipad-app.html` m6)
+
+/// The RIGHT-column rail hosted inline by the wide player: the sheet's SAME
+/// row rendering + "current" semantics, but both sections STACKED in one
+/// scroll (mock's `.chaps` pane) instead of tabbed — chapters above,
+/// bookmarks below, exactly as m6 draws it. Parent-driven (no store reads of
+/// its own): `currentTime`/`bookmarks` come from the player's own state, so
+/// the rail can never show something the read-along margin glyphs disagree
+/// with. Selecting a row seeks; there's nothing to dismiss — it's a standing
+/// pane, not a sheet.
+struct ChaptersBookmarksRail: View {
+    let book: Audiobook
+    let currentTime: TimeInterval
+    let bookmarks: [AudiobookBookmark]
+    var onSelectChapter: (AudiobookChapter) -> Void
+    var onSelectBookmark: (AudiobookBookmark) -> Void
+    var onDeleteBookmark: (AudiobookBookmark) -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 2) {
+                SectionLabel("CHAPTERS")
+                    .padding(.horizontal, 14).padding(.top, 16).padding(.bottom, 6)
+                chaptersSection
+                if !bookmarks.isEmpty {
+                    SectionLabel("BOOKMARKS")
+                        .padding(.horizontal, 14).padding(.top, 18).padding(.bottom, 6)
+                    bookmarksSection
+                }
+            }
+            .padding(.bottom, 24)
+        }
+        .accessibilityIdentifier("ipad-chapters-rail")
+    }
+
+    @ViewBuilder
+    private var chaptersSection: some View {
+        // Honest partial-chapter states: no chapters from ANY source (embedded/
+        // detected/ePub) says so plainly rather than fabricating a "Chapter 1".
+        if book.effectiveChapters.isEmpty {
+            Text("No chapters yet.")
+                .font(.system(size: 12)).foregroundStyle(Color.skTextFaint)
+                .padding(.horizontal, 14)
+        } else {
+            let titles = book.displayChapterTitles
+            let current = book.chapterIndex(at: currentTime)
+            let playableIndex = chapterPlayableIndices(book)
+            ForEach(Array(book.effectiveChapters.enumerated()), id: \.offset) { i, ch in
+                if ch.isSeparator == true {
+                    AudiobookChapterSeparator(title: titles[i])
+                        .padding(.horizontal, 14)
+                } else {
+                    let isCurrent = playableIndex[i] == current
+                    AudiobookChapterRow(title: titles[i], time: ch.start, isCurrent: isCurrent) {
+                        onSelectChapter(ch)
+                    }
+                    .padding(.horizontal, 8).padding(.vertical, 7)
+                    .background(
+                        isCurrent ? Color.skAccentSoft : Color.clear,
+                        in: .rect(cornerRadius: 8, style: .continuous)
+                    )
+                    .padding(.horizontal, 6)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var bookmarksSection: some View {
+        ForEach(bookmarks) { bm in
+            AudiobookBookmarkRow(bookmark: bm) { onSelectBookmark(bm) }
+                .padding(.horizontal, 8).padding(.vertical, 7)
+                .padding(.horizontal, 6)
+                .contextMenu {
+                    Button(role: .destructive) { onDeleteBookmark(bm) } label: {
+                        Label("Remove bookmark", systemImage: "trash")
+                    }
+                }
+        }
     }
 }
