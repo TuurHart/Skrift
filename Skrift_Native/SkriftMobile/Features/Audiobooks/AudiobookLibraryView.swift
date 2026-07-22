@@ -12,6 +12,10 @@ struct AudiobookLibraryView: View {
     @ObservedObject private var store = AudiobookLibraryStore.shared
     @ObservedObject private var session = AudiobookSession.shared
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
+    /// iPad wave: regular width trades the 54pt rows for a cover shelf (grid).
+    /// Compact (incl. a split-view/Stage-Manager iPad) keeps today's List.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    private var isRegular: Bool { horizontalSizeClass == .regular }
 
     /// Sort choice, persisted app-wide; the header chip is the control.
     @AppStorage("bookSortRaw") private var sortRaw = BookSort.recentlyPlayed.rawValue
@@ -56,7 +60,7 @@ struct AudiobookLibraryView: View {
             VStack(spacing: 0) {
                 topBar
                 header
-                bookList
+                booksContent
             }
         }
         // The FULL mini-player bar lives on Books (2026-07-07 bottom-chrome
@@ -293,31 +297,7 @@ struct AudiobookLibraryView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
-                    .contextMenu {
-                        // Long-press → transcribe straight from the library (no need
-                        // to open the book → ⋯). Feeds read-along + instant capture.
-                        Button { transcribeBook = book } label: {
-                            Label("Transcribe book", systemImage: "text.book.closed")
-                        }
-                        // 📖 The "Book text" sheet (mock variant B, 2026-07-22) — ONE label
-                        // whether zero or several texts are attached; the sheet itself owns
-                        // Add (fileImporter presents over it) and each row's Remove/Re-check.
-                        Button {
-                            bookTextSheetBook = book
-                        } label: {
-                            Label("Book text…", systemImage: "doc.badge.plus")
-                        }
-                        // Per-book sync (Phase 1h): open the "Turn it on" sheet (cover +
-                        // size + the toggle + a live transfer %). The sheet owns the
-                        // enable/disable + iCloud-storage explainer (mock screen 1).
-                        Button { syncSheetBook = book } label: {
-                            Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
-                                  systemImage: "icloud")
-                        }
-                        Button(role: .destructive) { pendingDelete = book } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
+                    .contextMenu { contextMenuItems(book) }
             }
             // ONE import affordance — the toolbar +. The empty library keeps a
             // passive hint line only (no second button).
@@ -341,6 +321,98 @@ struct AudiobookLibraryView: View {
         // Sync feedback lives ON each book row (uploading/downloading bar) — no floating
         // pill here, so nothing overlaps the titles.
         .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
+    }
+
+    // MARK: - Shelf (iPad wave, regular width — mock `ipad-app.html` m6)
+
+    @ViewBuilder
+    private var booksContent: some View {
+        if isRegular { bookShelf } else { bookList }
+    }
+
+    /// The row data promoted into a cover shelf: same books, same sort/filter,
+    /// same tap-to-play + long-press menu — just a grid instead of 54pt rows.
+    private var bookShelf: some View {
+        ScrollView {
+            if store.books.isEmpty {
+                emptyHint
+                    .padding(.horizontal, Theme.Space.margin)
+                    .padding(.top, 10)
+            } else if visibleBooks.isEmpty {
+                Text("No \(statusFilter?.label.lowercased() ?? "matching") books.")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skTextFaint)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Theme.Space.margin)
+                    .padding(.top, 10)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 170, maximum: 220), spacing: 20)], spacing: 26) {
+                    ForEach(visibleBooks) { book in
+                        let isCurrent = session.book?.id == book.id
+                        let syncState = bookSyncState(book)
+                        BookShelfTile(book: book, isCurrent: isCurrent, syncState: syncState) {
+                            openOrPlay(book, syncState: syncState)
+                        }
+                        .contextMenu { contextMenuItems(book) }
+                    }
+                }
+                .padding(.horizontal, Theme.Space.margin)
+                .padding(.top, 6)
+                // Clears the floating mini-player bar (safeAreaInset already reserves
+                // room, but the grid's own scroll content wants its own breathing room
+                // at the very bottom row too).
+                .padding(.bottom, 24)
+            }
+        }
+        .scrollIndicators(.hidden)
+        .animation(.easeInOut(duration: 0.2), value: cloudSync.isSyncing)
+        .accessibilityIdentifier("ipad-library-book-shelf")
+    }
+
+    /// Tap-to-play/resume (2026-07-06 convention) — shared by the list row and
+    /// the shelf tile so the two surfaces can never diverge in behavior.
+    private func openOrPlay(_ book: Audiobook, syncState: BookSyncState?) {
+        if session.open(book, autoplay: true) {
+            showPlayer = true
+        } else if syncState == .downloadAvailable {
+            // Audio was freed on this device — tap to re-download. open() already
+            // bailed without tearing down current playback or opening a dead player.
+            Task {
+                await AudiobookCloudSync.restoreDownload(bookID: book.id)
+                syncToggleTick += 1
+            }
+        }
+        // .downloading / genuinely-missing: leave the current session intact; the
+        // reconcile sweep is already fetching the audio.
+    }
+
+    /// The long-press menu — EXACTLY today's four items, shared by the list row
+    /// and the shelf tile.
+    @ViewBuilder
+    private func contextMenuItems(_ book: Audiobook) -> some View {
+        // Long-press → transcribe straight from the library (no need
+        // to open the book → ⋯). Feeds read-along + instant capture.
+        Button { transcribeBook = book } label: {
+            Label("Transcribe book", systemImage: "text.book.closed")
+        }
+        // 📖 The "Book text" sheet (mock variant B, 2026-07-22) — ONE label
+        // whether zero or several texts are attached; the sheet itself owns
+        // Add (fileImporter presents over it) and each row's Remove/Re-check.
+        Button {
+            bookTextSheetBook = book
+        } label: {
+            Label("Book text…", systemImage: "doc.badge.plus")
+        }
+        // Per-book sync (Phase 1h): open the "Turn it on" sheet (cover +
+        // size + the toggle + a live transfer %). The sheet owns the
+        // enable/disable + iCloud-storage explainer (mock screen 1).
+        Button { syncSheetBook = book } label: {
+            Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
+                  systemImage: "icloud")
+        }
+        Button(role: .destructive) { pendingDelete = book } label: {
+            Label("Delete", systemImage: "trash")
+        }
     }
 
     private var emptyHint: some View {
@@ -390,18 +462,7 @@ struct AudiobookLibraryView: View {
             // Tapping a book PLAYS it (2026-07-06 — the audiobook-app convention;
             // an open-paused player was a dead extra tap). open() no-ops the
             // teardown for the already-loaded book and just resumes it.
-            if session.open(book, autoplay: true) {
-                showPlayer = true
-            } else if syncState == .downloadAvailable {
-                // Audio was freed on this device — tap to re-download. open() already
-                // bailed without tearing down current playback or opening a dead player.
-                Task {
-                    await AudiobookCloudSync.restoreDownload(bookID: book.id)
-                    syncToggleTick += 1
-                }
-            }
-            // .downloading / genuinely-missing: leave the current session intact; the
-            // reconcile sweep is already fetching the audio.
+            openOrPlay(book, syncState: syncState)
         } label: {
             HStack(spacing: 12) {
                 BookCoverView(book: book)
