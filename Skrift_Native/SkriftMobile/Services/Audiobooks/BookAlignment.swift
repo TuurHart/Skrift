@@ -472,10 +472,16 @@ enum BookAlignmentRunner {
             var title: String?
             for (i, fa) in fileAlignments.enumerated() {
                 guard let fa else { continue }
-                if let src = fa.sources.first(where: { $0.textFilename == name }) {
+                let src = fa.sources.first(where: { $0.textFilename == name })
+                if let src {
                     if title == nil { title = src.title }
                     if src.verdict == AlignmentCore.Verdict.aligned.rawValue { fileNumbers.append(i + 1) }
                 }
+                // Spans/coverage count ONLY files this text ALIGNED (device catch
+                // 2026-07-22, round 3: rejected trilogy-sibling files carry spurious
+                // matched sentences — without this gate the bar sprinkled confetti
+                // across the whole book and read 37% instead of ~21%).
+                guard src?.verdict == AlignmentCore.Verdict.aligned.rawValue else { continue }
                 let base = fileStarts.indices.contains(i) ? fileStarts[i] : 0
                 for s in fa.sentences where s.textFile == name {
                     let lo = base + min(s.start, s.end), hi = base + max(s.start, s.end)

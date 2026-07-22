@@ -75,7 +75,9 @@ enum EPubParse {
         var title: String?
         if let metadataNode = findFirst(opfRoot, localName: "metadata"),
            let titleNode = metadataNode.children.first(where: { $0.localName == "title" }) {
-            let t = titleNode.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Element text lives in #text CHILD nodes (see foundCharacters), never in
+            // `.text` on the element itself — flattenText is the one accessor.
+            let t = flattenText(titleNode).trimmingCharacters(in: .whitespacesAndNewlines)
             if !t.isEmpty { title = t }
         }
         return EPubBook(blocks: blocks, toc: toc, drm: drm, title: title)

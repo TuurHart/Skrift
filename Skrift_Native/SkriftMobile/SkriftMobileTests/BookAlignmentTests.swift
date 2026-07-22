@@ -482,6 +482,36 @@ final class ChapterDerivationTests: XCTestCase {
     /// spurious matched sentences must never claim a TOC entry — on the real Steal pair,
     /// 6 front-matter entries the aligned file couldn't claim were grabbed by a rejected
     /// trilogy-sibling file, planting real-titled chapters at junk times.
+    /// Round-3 device catch: the sheet's bar sprinkled confetti across the whole book —
+    /// `textSummary` counted a text's sentences from files whose verdict for that text
+    /// was REJECTED (spurious matches). Spans/coverage are aligned-files-only.
+    @MainActor func testTextSummaryExcludesRejectedFilesSentences() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ts_\(UUID().uuidString)", isDirectory: true)
+        let library = AudiobookLibraryStore(directory: dir)
+        var book = Audiobook(files: ["a.mp3", "b.mp3"], fileDurations: [100, 100],
+                             title: "T", author: "A", duration: 200)
+        book.epubFilenames = ["steal.epub"]
+        library.add(book)
+
+        let store = BookAlignmentStore(directory: dir)
+        var fa0 = FileAlignment(fileIndex: 0, transcriptSignature: "", epubSignature: "", verdict: "aligned")
+        fa0.sources = [AlignmentSource(textFilename: "steal.epub", title: "Steal", verdict: "aligned", coverage: 0.9)]
+        fa0.sentences = [AlignedSentence(text: "x", start: 0, end: 50, wordStart: 0, wordEnd: 1,
+                                         confidence: 1, words: [], sourceFile: "c1", textFile: "steal.epub")]
+        try store.save(fa0, bookID: book.id)
+        var fa1 = FileAlignment(fileIndex: 1, transcriptSignature: "", epubSignature: "", verdict: "rejected")
+        fa1.sources = [AlignmentSource(textFilename: "steal.epub", title: "Steal", verdict: "rejected", coverage: 0.05)]
+        fa1.sentences = [AlignedSentence(text: "junk", start: 10, end: 20, wordStart: 0, wordEnd: 1,
+                                         confidence: 0.6, words: [], sourceFile: "c9", textFile: "steal.epub")]
+        try store.save(fa1, bookID: book.id)
+
+        let summary = BookAlignmentRunner.textSummary(bookID: book.id, library: library)
+        let per = try XCTUnwrap(summary?.perText.first)
+        XCTAssertEqual(per.fileNumbers, [1])
+        XCTAssertEqual(per.coveredSeconds, 50, accuracy: 0.01, "rejected file's junk must not count")
+        XCTAssertTrue(per.spans.allSatisfy { $0.upperBound <= 100 }, "no span may reach into the rejected file")
+    }
+
     func testRejectedFileNeverClaimsTocEntries() {
         let toc = [EPubTOCEntry(title: "Copyright", sourceFile: "fm.xhtml", fragment: nil)]
         let rejectedOnly = BookAlignmentRunner.assignChapterMarks(
