@@ -37,6 +37,40 @@ final class BookAlignmentStoreTests: XCTestCase {
         XCTAssertNil(store.fileAlignment(bookID: id, fileIndex: 0))
     }
 
+    /// Schema 3 (multi-text): a v2 sidecar (the last pre-multi-text schema, the realistic "old
+    /// install" case) reads as absent too, same as any other stale schema — every attached text
+    /// re-aligns fresh on the book's next open.
+    func testSchemaGateRejectsV2Sidecar() throws {
+        let dir = tempDir()
+        let store = BookAlignmentStore(directory: dir)
+        let id = UUID()
+        let fa = FileAlignment(schema: 2, fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "aligned")
+        let folder = dir.appendingPathComponent(id.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try JSONEncoder().encode(fa).write(to: folder.appendingPathComponent("alignment_f0.json"))
+        XCTAssertNil(store.fileAlignment(bookID: id, fileIndex: 0))
+    }
+
+    /// Schema 3 round-trip WITH the new fields populated (`sources`, `AlignedSentence.textFile`)
+    /// — the plain round-trip above (`testSaveLoadRoundTrip`) never touches them; this confirms
+    /// they persist correctly too.
+    func testSchema3RoundTripWithSourcesAndTextFile() throws {
+        let store = BookAlignmentStore(directory: tempDir())
+        let id = UUID()
+        let sentence = AlignedSentence(
+            text: "Hello world.", start: 0, end: 1, wordStart: 0, wordEnd: 2, confidence: 1,
+            words: [WordTiming(word: "Hello", start: 0, end: 0.5), WordTiming(word: "world.", start: 0.5, end: 1)],
+            sourceFile: "ch1.xhtml", textFile: "a.epub")
+        var fa = FileAlignment(fileIndex: 0, transcriptSignature: "12:34", epubSignature: "abc", verdict: "aligned",
+                               chapterMarks: [ChapterMark(title: "Ch 1", sentenceIndex: 0)], sentences: [sentence])
+        fa.sources = [AlignmentSource(textFilename: "a.epub", title: "Book A", verdict: "aligned", coverage: 0.9)]
+        try store.save(fa, bookID: id)
+        let loaded = store.fileAlignment(bookID: id, fileIndex: 0)
+        XCTAssertEqual(loaded, fa)
+        XCTAssertEqual(loaded?.sentences.first?.textFile, "a.epub")
+        XCTAssertEqual(loaded?.sources.first?.title, "Book A")
+    }
+
     func testMissingReturnsNil() {
         XCTAssertNil(BookAlignmentStore(directory: tempDir()).fileAlignment(bookID: UUID(), fileIndex: 0))
     }
@@ -229,6 +263,192 @@ final class SentenceAssemblyTests: XCTestCase {
         XCTAssertEqual(sentences[0].wordStart, 1)
         XCTAssertEqual(sentences[0].wordEnd, 2)
     }
+
+    /// Schema 3: `textFile` (which ATTACHED TEXT this sentence came from, distinct from
+    /// `sourceFile`, that text's own internal spine path) is stamped when passed, and stays nil
+    /// (its default) when omitted — every pre-existing call site above omits it and must keep
+    /// compiling/passing unchanged.
+    func testTextFileStampedWhenPassed() {
+        let text = "Alpha beta."
+        let ranges = [AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 0, bookWordEnd: 2, start: 0, end: 2)]
+        let stamped = BookAlignmentRunner.assembleSentences(text: text, sourceFile: "f", matchedRanges: ranges,
+                                                             transcriptWords: [], textFile: "a.epub")
+        XCTAssertEqual(stamped.first?.textFile, "a.epub")
+
+        let unstamped = BookAlignmentRunner.assembleSentences(text: text, sourceFile: "f", matchedRanges: ranges,
+                                                               transcriptWords: [])
+        XCTAssertNil(unstamped.first?.textFile)
+    }
+}
+
+// MARK: - mergeSentences + mergedFileAlignment (schema 3 multi-text merge)
+
+final class MultiTextMergeTests: XCTestCase {
+    private func sentence(_ textFile: String, start: TimeInterval, end: TimeInterval, confidence: Double = 1) -> AlignedSentence {
+        AlignedSentence(text: "x", start: start, end: end, wordStart: 0, wordEnd: 1, confidence: confidence,
+                        words: [], sourceFile: "f.xhtml", textFile: textFile)
+    }
+
+    // MARK: mergeSentences
+
+    func testDisjointSentencesFromDifferentTextsCoexist() {
+        let keep = [sentence("a.epub", start: 0, end: 10)]
+        let incoming = [sentence("b.epub", start: 20, end: 30)]
+        let merged = BookAlignmentRunner.mergeSentences(into: keep, adding: incoming, textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(merged.count, 2)
+        XCTAssertTrue(merged.contains { $0.textFile == "a.epub" })
+        XCTAssertTrue(merged.contains { $0.textFile == "b.epub" })
+    }
+
+    func testHigherConfidenceIncomingWinsCollision() {
+        let keep = [sentence("a.epub", start: 0, end: 10, confidence: 0.5)]
+        let incoming = [sentence("b.epub", start: 2, end: 8, confidence: 0.9)]
+        let merged = BookAlignmentRunner.mergeSentences(into: keep, adding: incoming, textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged.first?.textFile, "b.epub")
+    }
+
+    func testLowerConfidenceIncomingLosesCollisionAndKeepIsUntouched() {
+        let keep = [sentence("a.epub", start: 0, end: 10, confidence: 0.9)]
+        let incoming = [sentence("b.epub", start: 2, end: 8, confidence: 0.5)]
+        let merged = BookAlignmentRunner.mergeSentences(into: keep, adding: incoming, textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged.first?.textFile, "a.epub")
+    }
+
+    /// Tie (equal confidence) → the EARLIER attach rank wins, regardless of which side (keep vs.
+    /// incoming) it's on.
+    func testTiedConfidenceBreaksByEarlierAttachOrder() {
+        let earlyKeep = [sentence("a.epub", start: 0, end: 10, confidence: 0.7)]
+        let lateIncoming = [sentence("b.epub", start: 2, end: 8, confidence: 0.7)]
+        let merged1 = BookAlignmentRunner.mergeSentences(into: earlyKeep, adding: lateIncoming,
+                                                          textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(merged1.first?.textFile, "a.epub", "earlier-attached a.epub keeps its ground on a tie")
+
+        let lateKeep = [sentence("b.epub", start: 0, end: 10, confidence: 0.7)]
+        let earlyIncoming = [sentence("a.epub", start: 2, end: 8, confidence: 0.7)]
+        let merged2 = BookAlignmentRunner.mergeSentences(into: lateKeep, adding: earlyIncoming,
+                                                          textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(merged2.first?.textFile, "a.epub", "earlier-attached a.epub displaces b.epub on a tie")
+    }
+
+    /// One incoming sentence contesting TWO existing (non-overlapping with each other) sentences
+    /// at once must win or lose ATOMICALLY — never a partial swap that blows a hole in the
+    /// loser's coverage for nothing in return.
+    func testWideIncomingSentenceAtomicAgainstMultipleConflicts() {
+        let keep = [sentence("a.epub", start: 0, end: 10, confidence: 0.95),
+                   sentence("a.epub", start: 40, end: 50, confidence: 0.3)]
+        let incoming = [sentence("b.epub", start: 0, end: 50, confidence: 0.9)]
+        let merged = BookAlignmentRunner.mergeSentences(into: keep, adding: incoming, textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(merged.count, 2, "incoming loses against the toughest (0.95) conflict — BOTH a.epub sentences survive untouched")
+        XCTAssertTrue(merged.allSatisfy { $0.textFile == "a.epub" })
+    }
+
+    // MARK: mergedFileAlignment
+
+    func testFreshMergeWithNoExisting() {
+        let fa = BookAlignmentRunner.mergedFileAlignment(
+            existing: nil, fileIndex: 0, textFilename: "a.epub", title: "Book A",
+            verdict: .aligned, coverage: 0.8, sentences: [sentence("a.epub", start: 0, end: 10)],
+            transcriptSignature: "1:1", epubSignature: "sig", textRank: ["a.epub": 0])
+        XCTAssertEqual(fa.verdict, "aligned")
+        XCTAssertEqual(fa.sources.count, 1)
+        XCTAssertEqual(fa.sources.first?.title, "Book A")
+        XCTAssertEqual(fa.sentences.count, 1)
+    }
+
+    /// Re-attaching the SAME filename replaces only its own sentences/source — a different,
+    /// already-present text's contribution is untouched.
+    func testReAttachSameFilenameReplacesOnlyItsOwnSentences() {
+        var existing = FileAlignment(fileIndex: 0, transcriptSignature: "1:1", epubSignature: "old", verdict: "aligned")
+        existing.sentences = [sentence("a.epub", start: 0, end: 10), sentence("b.epub", start: 20, end: 30)]
+        existing.sources = [AlignmentSource(textFilename: "a.epub", title: "Old Title", verdict: "aligned", coverage: 0.5),
+                            AlignmentSource(textFilename: "b.epub", title: "B", verdict: "aligned", coverage: 0.9)]
+
+        let updated = BookAlignmentRunner.mergedFileAlignment(
+            existing: existing, fileIndex: 0, textFilename: "a.epub", title: "New Title",
+            verdict: .aligned, coverage: 0.95, sentences: [sentence("a.epub", start: 0, end: 12)],
+            transcriptSignature: "2:2", epubSignature: "new", textRank: ["a.epub": 0, "b.epub": 1])
+
+        XCTAssertEqual(updated.sources.count, 2)
+        XCTAssertEqual(updated.sources.first { $0.textFilename == "a.epub" }?.title, "New Title")
+        XCTAssertEqual(updated.sources.first { $0.textFilename == "a.epub" }?.coverage, 0.95)
+        // b.epub's own sentence/source is completely untouched by re-attaching a.epub.
+        XCTAssertTrue(updated.sentences.contains { $0.textFile == "b.epub" && $0.end == 30 })
+        XCTAssertEqual(updated.sources.first { $0.textFilename == "b.epub" }?.title, "B")
+        // a.epub's OLD sentence (end: 10) is gone, replaced by the fresh one (end: 12).
+        XCTAssertFalse(updated.sentences.contains { $0.textFile == "a.epub" && $0.end == 10 })
+        XCTAssertTrue(updated.sentences.contains { $0.textFile == "a.epub" && $0.end == 12 })
+    }
+
+    /// File-level `verdict` = best-of across sources: a second, poorly-matching text must never
+    /// regress what a first, well-matching text already achieved for this file.
+    func testFileVerdictIsBestOfAcrossSources() {
+        var existing = FileAlignment(fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "aligned")
+        existing.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "aligned", coverage: 0.8)]
+        let updated = BookAlignmentRunner.mergedFileAlignment(
+            existing: existing, fileIndex: 0, textFilename: "b.epub", title: nil,
+            verdict: .rejected, coverage: 0.01, sentences: [],
+            transcriptSignature: "1:1", epubSignature: "y", textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(updated.verdict, "aligned", "b.epub's rejection must not regress a.epub's aligned verdict")
+    }
+}
+
+// MARK: - strippingText + detachedTextFields (schema 3 removal)
+
+final class TextDetachTests: XCTestCase {
+    private func sentence(_ textFile: String) -> AlignedSentence {
+        AlignedSentence(text: "x", start: 0, end: 1, wordStart: 0, wordEnd: 1, confidence: 1,
+                        words: [], sourceFile: "f.xhtml", textFile: textFile)
+    }
+
+    func testStripsOnlyTheNamedTextOtherTextUntouched() {
+        var fa = FileAlignment(fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "aligned")
+        fa.sentences = [sentence("a.epub"), sentence("b.epub")]
+        fa.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "aligned", coverage: 0.5),
+                     AlignmentSource(textFilename: "b.epub", title: nil, verdict: "aligned", coverage: 0.9)]
+        let stripped = BookAlignmentRunner.strippingText("a.epub", from: fa)
+        XCTAssertEqual(stripped.sentences.count, 1)
+        XCTAssertEqual(stripped.sentences.first?.textFile, "b.epub")
+        XCTAssertEqual(stripped.sources.count, 1)
+        XCTAssertEqual(stripped.sources.first?.textFilename, "b.epub")
+        XCTAssertEqual(stripped.verdict, "aligned", "b.epub's own verdict survives")
+        XCTAssertEqual(stripped.transcriptSignature, "1:1", "still-covered file keeps its signature")
+    }
+
+    /// A file whose ONLY source was the removed text is left with zero sources — its
+    /// `transcriptSignature` is cleared so a future `alignIfNeeded` doesn't think it's "fresh"
+    /// with nothing in it.
+    func testStrippingLastSourceClearsTranscriptSignatureAndVerdict() {
+        var fa = FileAlignment(fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "aligned")
+        fa.sentences = [sentence("a.epub")]
+        fa.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "aligned", coverage: 0.5)]
+        let stripped = BookAlignmentRunner.strippingText("a.epub", from: fa)
+        XCTAssertTrue(stripped.sources.isEmpty)
+        XCTAssertTrue(stripped.sentences.isEmpty)
+        XCTAssertEqual(stripped.verdict, "rejected")
+        XCTAssertEqual(stripped.transcriptSignature, "")
+    }
+
+    func testStrippingUninvolvedTextIsANoOp() {
+        var fa = FileAlignment(fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "aligned")
+        fa.sentences = [sentence("a.epub")]
+        fa.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "aligned", coverage: 0.5)]
+        let untouched = BookAlignmentRunner.strippingText("never-attached.epub", from: fa)
+        XCTAssertEqual(untouched, fa)
+    }
+
+    func testDetachedTextFieldsFixesLegacySlotToFirstRemaining() {
+        let fields = BookAlignmentRunner.detachedTextFields(removing: "b.epub", from: ["a.epub", "b.epub", "c.epub"])
+        XCTAssertEqual(fields.epubFilenames, ["a.epub", "c.epub"])
+        XCTAssertEqual(fields.epubFilename, "a.epub")
+    }
+
+    func testDetachedTextFieldsClearsBothWhenLastTextRemoved() {
+        let fields = BookAlignmentRunner.detachedTextFields(removing: "only.epub", from: ["only.epub"])
+        XCTAssertNil(fields.epubFilenames)
+        XCTAssertNil(fields.epubFilename)
+    }
 }
 
 // MARK: - assignChapterMarks + epubChapters (chapter derivation)
@@ -338,6 +558,56 @@ final class ChapterDerivationTests: XCTestCase {
     }
 }
 
+// MARK: - perTextChapterMarks (schema 3 — per-text marks, remapped + unioned across texts)
+
+final class PerTextChapterMarksTests: XCTestCase {
+    private func sentence(_ textFile: String, _ sourceFile: String, start: TimeInterval) -> AlignedSentence {
+        AlignedSentence(text: "x", start: start, end: start + 1, wordStart: 0, wordEnd: 1, confidence: 1,
+                        words: [], sourceFile: sourceFile, textFile: textFile)
+    }
+
+    /// `assignChapterMarks` (called internally against the FILTERED, text-only subarray) reports
+    /// an index LOCAL to that subarray — `perTextChapterMarks` must remap it back to the index
+    /// into the FULL, multi-text `fullSentencesByFile` array (what `ChapterMark.sentenceIndex` is
+    /// always consumed against downstream, e.g. `epubChapters`).
+    func testMarksRemappedToFullArrayIndices() {
+        let full = [[sentence("other.epub", "z.xhtml", start: 0), sentence("a.epub", "ch1.xhtml", start: 5)]]
+        let toc = [EPubTOCEntry(title: "Ch 1", sourceFile: "ch1.xhtml", fragment: nil)]
+        let marks = BookAlignmentRunner.perTextChapterMarks(forText: "a.epub", toc: toc,
+                                                             fullSentencesByFile: full, sourceVerdicts: ["aligned"])
+        XCTAssertEqual(marks, [[ChapterMark(title: "Ch 1", sentenceIndex: 1)]], "index 1 in the FULL array, not 0")
+    }
+
+    /// Gated on THIS TEXT's own per-file (source) verdict, not the file's merged best-of — a
+    /// text that came back rejected against a file must never claim that file's TOC entries even
+    /// if another, better text made the file's OVERALL verdict "aligned" (phantom-chapters
+    /// protection, generalized to multi-text).
+    func testRejectedSourceVerdictNeverClaimsATocEntry() {
+        let full = [[sentence("a.epub", "ch1.xhtml", start: 0)]]
+        let toc = [EPubTOCEntry(title: "Ch 1", sourceFile: "ch1.xhtml", fragment: nil)]
+        let marks = BookAlignmentRunner.perTextChapterMarks(forText: "a.epub", toc: toc,
+                                                             fullSentencesByFile: full, sourceVerdicts: ["rejected"])
+        XCTAssertEqual(marks, [[]])
+    }
+
+    /// Two different texts' marks, computed separately and concatenated (what `reconcileChapters`
+    /// does per file) — remapped to different, non-colliding indices in the SAME full array.
+    func testTwoTextsProduceNonCollidingIndicesInTheSameFile() {
+        let full = [[sentence("a.epub", "a1.xhtml", start: 0), sentence("b.epub", "b1.xhtml", start: 10)]]
+        let aMarks = BookAlignmentRunner.perTextChapterMarks(
+            forText: "a.epub", toc: [EPubTOCEntry(title: "Ch 1", sourceFile: "a1.xhtml", fragment: nil)],
+            fullSentencesByFile: full, sourceVerdicts: ["aligned"])
+        let bMarks = BookAlignmentRunner.perTextChapterMarks(
+            forText: "b.epub", toc: [EPubTOCEntry(title: "Ch 2", sourceFile: "b1.xhtml", fragment: nil)],
+            fullSentencesByFile: full, sourceVerdicts: ["aligned"])
+        XCTAssertEqual(aMarks, [[ChapterMark(title: "Ch 1", sentenceIndex: 0)]])
+        XCTAssertEqual(bMarks, [[ChapterMark(title: "Ch 2", sentenceIndex: 1)]])
+        // Concatenating the two never collides — each names a different sentence.
+        let union = zip(aMarks, bMarks).map { $0 + $1 }
+        XCTAssertEqual(union, [[ChapterMark(title: "Ch 1", sentenceIndex: 0), ChapterMark(title: "Ch 2", sentenceIndex: 1)]])
+    }
+}
+
 // MARK: - parseBookFile: `.txt` single-block path (no ZIPFoundation)
 
 final class ParseBookFileTests: XCTestCase {
@@ -366,16 +636,126 @@ final class ParseBookFileTests: XCTestCase {
     }
 }
 
+// MARK: - textSummary (📖 multi-text "Book text" sheet data)
+
+final class BookTextSummaryTests: XCTestCase {
+    @MainActor
+    private func makeLibrary() -> AudiobookLibraryStore {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("textsummary_\(UUID().uuidString)", isDirectory: true)
+        return AudiobookLibraryStore(directory: dir)
+    }
+
+    private func sentence(_ textFile: String, start: TimeInterval, end: TimeInterval) -> AlignedSentence {
+        AlignedSentence(text: "x", start: start, end: end, wordStart: 0, wordEnd: 1, confidence: 1,
+                        words: [], sourceFile: "f.xhtml", textFile: textFile)
+    }
+
+    @MainActor
+    func testPerTextSpansCoverageFileNumbersAndTitles() throws {
+        let library = makeLibrary()
+        var book = Audiobook(files: ["f0.mp3", "f1.mp3"], fileDurations: [100, 100],
+                             title: "T", author: "A", duration: 200)
+        book.epubFilenames = ["a.epub", "b.epub"]
+        library.add(book)
+
+        let store = BookAlignmentStore(directory: library.directory)
+        var fa0 = FileAlignment(fileIndex: 0, transcriptSignature: "", epubSignature: "", verdict: "aligned")
+        fa0.sources = [AlignmentSource(textFilename: "a.epub", title: "Book A", verdict: "aligned", coverage: 0.9)]
+        // 5s gap between the two — within the 30s gap-bridge threshold.
+        fa0.sentences = [sentence("a.epub", start: 0, end: 10), sentence("a.epub", start: 15, end: 20)]
+        try store.save(fa0, bookID: book.id)
+
+        var fa1 = FileAlignment(fileIndex: 1, transcriptSignature: "", epubSignature: "", verdict: "aligned")
+        fa1.sources = [AlignmentSource(textFilename: "b.epub", title: "Book B", verdict: "aligned", coverage: 0.8)]
+        fa1.sentences = [sentence("b.epub", start: 0, end: 30)]
+        try store.save(fa1, bookID: book.id)
+
+        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(bookID: book.id, library: library))
+        XCTAssertEqual(summary.bookDuration, 200)
+        XCTAssertEqual(summary.perText.count, 2)
+
+        let a = summary.perText[0]
+        XCTAssertEqual(a.filename, "a.epub")
+        XCTAssertEqual(a.title, "Book A")
+        XCTAssertEqual(a.spans, [0...20], "the 5s gap between the two a.epub sentences is bridged")
+        XCTAssertEqual(a.coveredSeconds, 20, accuracy: 0.001, "sum of the (bridged) spans, not raw sentence seconds")
+        XCTAssertEqual(a.fileNumbers, [1])
+
+        let b = summary.perText[1]
+        XCTAssertEqual(b.filename, "b.epub")
+        XCTAssertEqual(b.title, "Book B")
+        XCTAssertEqual(b.spans, [100...130], "GLOBAL time — file 1 starts at 100")
+        XCTAssertEqual(b.fileNumbers, [2])
+
+        XCTAssertEqual(summary.totalCoveredSeconds, 20 + 30, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testGapOver30sIsNotBridged() throws {
+        let library = makeLibrary()
+        var book = Audiobook(files: ["f0.mp3"], fileDurations: [200], title: "T", author: "A", duration: 200)
+        book.epubFilenames = ["a.epub"]
+        library.add(book)
+
+        let store = BookAlignmentStore(directory: library.directory)
+        var fa0 = FileAlignment(fileIndex: 0, transcriptSignature: "", epubSignature: "", verdict: "aligned")
+        fa0.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "aligned", coverage: 0.5)]
+        fa0.sentences = [sentence("a.epub", start: 0, end: 10), sentence("a.epub", start: 90, end: 100)]   // 80s gap
+        try store.save(fa0, bookID: book.id)
+
+        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(bookID: book.id, library: library))
+        XCTAssertEqual(summary.perText.first?.spans, [0...10, 90...100])
+        XCTAssertNil(summary.perText.first?.title, "no dc:title stored → caller falls back to the filename")
+    }
+
+    @MainActor
+    func testFileNumbersOnlyCountAlignedVerdictSources() throws {
+        let library = makeLibrary()
+        var book = Audiobook(files: ["f0.mp3", "f1.mp3"], fileDurations: [100, 100],
+                             title: "T", author: "A", duration: 200)
+        book.epubFilenames = ["a.epub"]
+        library.add(book)
+
+        let store = BookAlignmentStore(directory: library.directory)
+        var fa0 = FileAlignment(fileIndex: 0, transcriptSignature: "", epubSignature: "", verdict: "aligned")
+        fa0.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "aligned", coverage: 0.9)]
+        try store.save(fa0, bookID: book.id)
+        var fa1 = FileAlignment(fileIndex: 1, transcriptSignature: "", epubSignature: "", verdict: "rejected")
+        fa1.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "rejected", coverage: 0.01)]
+        try store.save(fa1, bookID: book.id)
+
+        let summary = try XCTUnwrap(BookAlignmentRunner.textSummary(bookID: book.id, library: library))
+        XCTAssertEqual(summary.perText.first?.fileNumbers, [1], "file 2's rejected source doesn't count")
+    }
+
+    @MainActor
+    func testNoAttachedTextReturnsNil() {
+        let library = makeLibrary()
+        let book = Audiobook(files: ["f0.mp3"], fileDurations: [10], title: "T", author: "A", duration: 10)
+        library.add(book)
+        XCTAssertNil(BookAlignmentRunner.textSummary(bookID: book.id, library: library))
+    }
+
+    @MainActor
+    func testMissingBookReturnsNil() {
+        XCTAssertNil(BookAlignmentRunner.textSummary(bookID: UUID(), library: makeLibrary()))
+    }
+}
+
 // MARK: - cloudSignaturePart (CloudKit change-signature stability)
 
 final class CloudSignaturePartTests: XCTestCase {
+    /// Schema 3: gains a 4th `:<textCount>` field (`sources.count`) — the old three keep their
+    /// exact prefix shape.
     func testFormat() {
         var fa = FileAlignment(fileIndex: 2, transcriptSignature: "x", epubSignature: "y", verdict: "aligned")
         fa.sentences = [
             AlignedSentence(text: "a", start: 0, end: 1, wordStart: 0, wordEnd: 1, confidence: 1, words: [], sourceFile: nil),
             AlignedSentence(text: "b", start: 1, end: 2, wordStart: 1, wordEnd: 2, confidence: 1, words: [], sourceFile: nil),
         ]
-        XCTAssertEqual(fa.cloudSignaturePart(), "2:aligned:2")
+        fa.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "aligned", coverage: 0.9)]
+        XCTAssertEqual(fa.cloudSignaturePart(), "2:aligned:2:1")
     }
 
     func testStableForIdenticalContent() {
@@ -395,6 +775,16 @@ final class CloudSignaturePartTests: XCTestCase {
         var fa = FileAlignment(fileIndex: 0, transcriptSignature: "", epubSignature: "", verdict: "partial")
         let before = fa.cloudSignaturePart()
         fa.verdict = "aligned"
+        XCTAssertNotEqual(before, fa.cloudSignaturePart())
+    }
+
+    /// Schema 3: the NEW dimension — adding a second attached text's source entry changes the
+    /// signature even when `verdict`/`sentences.count` happen to stay the same.
+    func testChangesWithTextCount() {
+        var fa = FileAlignment(fileIndex: 0, transcriptSignature: "", epubSignature: "", verdict: "partial")
+        fa.sources = [AlignmentSource(textFilename: "a.epub", title: nil, verdict: "partial", coverage: 0.2)]
+        let before = fa.cloudSignaturePart()
+        fa.sources.append(AlignmentSource(textFilename: "b.epub", title: nil, verdict: "rejected", coverage: 0.0))
         XCTAssertNotEqual(before, fa.cloudSignaturePart())
     }
 }
