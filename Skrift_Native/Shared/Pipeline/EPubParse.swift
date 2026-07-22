@@ -70,7 +70,15 @@ enum EPubParse {
 
         let toc = resolveTOC(manifest: manifest, spineTOCAttr: spineNode.attributes["toc"],
                               opfDir: opfDir, entries: entries)
-        return EPubBook(blocks: blocks, toc: toc, drm: drm)
+        // dc:title lives in the OPF <metadata> block; the "dc:" prefix parses to
+        // localName "title" (same literal-prefix stance as the rest of this parser).
+        var title: String?
+        if let metadataNode = findFirst(opfRoot, localName: "metadata"),
+           let titleNode = metadataNode.children.first(where: { $0.localName == "title" }) {
+            let t = titleNode.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !t.isEmpty { title = t }
+        }
+        return EPubBook(blocks: blocks, toc: toc, drm: drm, title: title)
     }
 
     // MARK: - Manifest item
@@ -473,4 +481,7 @@ struct EPubBook: Equatable, Sendable {
     let blocks: [EPubBlock]
     let toc: [EPubTOCEntry]
     let drm: EPubDRMVerdict
+    /// OPF `dc:title`, when present — display name for attached-text UI ("Book text"
+    /// sheet rows). nil = caller falls back to the filename. Additive 2026-07-22.
+    var title: String? = nil
 }

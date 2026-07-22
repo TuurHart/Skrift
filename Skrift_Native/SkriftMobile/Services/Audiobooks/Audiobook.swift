@@ -46,7 +46,15 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// 📖 The attached ePub's filename inside the book's folder (nil = none).
     /// The file itself stays LOCAL to the attaching device in v1; alignment
     /// sidecars (which carry chapter marks) are what sync.
+    /// LEGACY single slot (pre-multi-text) — kept written with the FIRST
+    /// attached text so older decoders keep working; read via
+    /// `attachedTextFilenames`, never directly.
     var epubFilename: String? = nil
+    /// 📖 ALL attached text files (multi-text, 2026-07-22 — one omnibus
+    /// audiobook holds several books' texts; mock `mocks/book-text-sheet.html`
+    /// variant B signed off). Additive; nil on records written before
+    /// multi-text existed — `attachedTextFilenames` falls back to the legacy slot.
+    var epubFilenames: [String]? = nil
     /// Chapters from the ATTACHED ePub's real TOC, timed via the alignment
     /// sidecars — the WINNING source when non-empty (ePub TOC > transcript-
     /// detected > embedded; Tuur 2026-07-21). Local-only — derived from the
@@ -67,6 +75,13 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
 
     /// Legacy convenience: the first (for single-file books, only) file.
     var audioFilename: String { files.first ?? "" }
+
+    /// 📖 THE read accessor for attached texts: the multi-text array when present,
+    /// else the legacy single slot. Order = attach order (stable; the sheet renders it).
+    var attachedTextFilenames: [String] {
+        if let list = epubFilenames { return list }
+        return epubFilename.map { [$0] } ?? []
+    }
 
     init(
         id: UUID = UUID(),
