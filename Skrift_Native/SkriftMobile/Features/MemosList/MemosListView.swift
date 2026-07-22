@@ -22,12 +22,16 @@ enum MemoDateField: String, CaseIterable, Identifiable {
 struct MemoFilter: Equatable {
     var unsyncedOnly = false
     var hasPhotosOnly = false
+    /// Couch-triage mode (⏱ eyeball wave 2, 2026-07-22): the Mac's "Unrated"
+    /// chip as a pulled lever, not standing chrome — unrated, unlocked notes
+    /// only (locked = resolved, matching the Mac band).
+    var notRatedOnly = false
     var place: String?
     /// Optional date-range filter, applied to either the recorded or added date.
     var dateField: MemoDateField = .recorded
     var from: Date?
     var to: Date?
-    var isActive: Bool { unsyncedOnly || hasPhotosOnly || place != nil || from != nil || to != nil }
+    var isActive: Bool { unsyncedOnly || hasPhotosOnly || notRatedOnly || place != nil || from != nil || to != nil }
 }
 
 /// The memos surface (mockup3): full-text search, day-group cards with honest
@@ -605,16 +609,27 @@ struct MemosListView: View {
 
     // MARK: - Derived
 
-    /// Mac-parity clock line (m6 wave, 2026-07-22 — "mac notes have more
-    /// information"): unrated rows say where they are on the one clock, the
-    /// same spine one-liners the Mac's quiet rows carry. Rated rows stay clean
-    /// (the status pill is their signal); locked rows keep the 🔒 as theirs.
-    private func clockLine(for memo: Memo, backlinked: Set<UUID>) -> String? {
+    /// How close a note's fade must be before the notebook mentions it.
+    private static let fadeWarningDays = 7
+
+    /// Urgency-only clock line (⏱ eyeball wave 2, 2026-07-22 — the asymmetry
+    /// doctrine): the phone list is the NOTEBOOK, not the deciding room, and
+    /// unrated is the default state here, not an alarm — so fresh rows stay
+    /// clean. The line appears (amber) only when the clock actually matters:
+    /// fading starts within `fadeWarningDays`, or the note is already fading
+    /// (a search hit). The Mac's always-on quiet-row lines are deliberate
+    /// triage-surface behavior, not a twin of this.
+    private func clockLine(for memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> String? {
         guard memo.significance == 0, memo.deletedAt == nil, !memo.locked else { return nil }
-        let station = MemoSpine.station(for: .from(memo, backlinked: backlinked))
+        let station = MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now)
         switch station {
-        case .new, .fading, .held: return MemoSpine.oneLiner(for: station)
-        default: return nil
+        case .fading:
+            return MemoSpine.oneLiner(for: station, now: now)
+        case .new(let fadesAt):
+            let warnAt = fadesAt.addingTimeInterval(-Double(Self.fadeWarningDays) * 86_400)
+            return now >= warnAt ? MemoSpine.oneLiner(for: station, now: now) : nil
+        default:
+            return nil
         }
     }
 
@@ -721,6 +736,7 @@ struct MemosListView: View {
     private func matchesFilter(_ memo: Memo) -> Bool {
         if filter.unsyncedOnly && memo.syncStatus == .synced { return false }
         if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { return false }
+        if filter.notRatedOnly && (memo.significance > 0 || memo.locked) { return false }
         if let place = filter.place, memo.metadata?.location?.placeName != place { return false }
         if filter.from != nil || filter.to != nil {
             let cal = Calendar.current
@@ -792,8 +808,9 @@ private struct MemoCard: View {
     let memo: Memo
     /// Surfaced by SEARCH while fading — wears the honest amber tag.
     var fading: Bool = false
-    /// The one-clock line for unrated rows ("starts fading 21 Aug"), computed
-    /// once at the list level (backlink scan is never per-row).
+    /// The urgency-only clock line ("starts fading 28 Jul" / "moves to
+    /// Recently Deleted in 3d"), computed once at the list level (backlink
+    /// scan is never per-row). Non-nil ⇒ the clock is short ⇒ amber.
     var clockLine: String? = nil
 
     var body: some View {
@@ -823,7 +840,7 @@ private struct MemoCard: View {
                     if let clockLine {
                         Text("· \(clockLine)")
                             .font(.system(size: 11.5))
-                            .foregroundStyle(Color.skTextFaint)
+                            .foregroundStyle(Color.skAmber.opacity(0.9))
                             .lineLimit(1)
                     }
                     Spacer()
@@ -1159,6 +1176,8 @@ private struct SortFilterSheet: View {
                     .labelsHidden()
                 }
                 Section("Filter") {
+                    Toggle("Not rated", isOn: $filter.notRatedOnly)
+                        .accessibilityIdentifier("filter-notrated")
                     Toggle("Unsynced only", isOn: $filter.unsyncedOnly)
                         .accessibilityIdentifier("filter-unsynced")
                     Toggle("Has photos", isOn: $filter.hasPhotosOnly)
