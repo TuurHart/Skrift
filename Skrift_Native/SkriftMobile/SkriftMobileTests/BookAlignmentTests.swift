@@ -304,6 +304,29 @@ final class ChapterDerivationTests: XCTestCase {
         XCTAssertEqual(chapters[1].duration, 97, accuracy: 0.001)    // 200 - 103
     }
 
+    /// Partial-match merge (Tuur's trilogy, 2026-07-22 + the no-bad-info rule): the ePub
+    /// TOC wins only INSIDE aligned files; transcript-detected chapters (and separators)
+    /// OUTSIDE those spans survive — books 2–3 of a trilogy must not lose their chapters.
+    func testPartialMatchKeepsDetectedChaptersOutsideAlignedSpan() {
+        var fa0 = FileAlignment(fileIndex: 0, transcriptSignature: "", epubSignature: "", verdict: "aligned")
+        fa0.sentences = [sentence("a.xhtml", start: 2)]
+        fa0.chapterMarks = [ChapterMark(title: "Real Ch 1", sentenceIndex: 0)]
+        let detected = [
+            AudiobookChapter(title: "Old Detected In File 0", start: 30, duration: 0),   // inside aligned span → dropped
+            AudiobookChapter(title: "Book 2", start: 100, duration: 0, isSeparator: true),
+            AudiobookChapter(title: "Book 2 Ch 1", start: 105, duration: 0),
+        ]
+        let chapters = BookAlignmentRunner.epubChapters(
+            from: [fa0, nil], fileStartTimes: [0, 100], bookDuration: 200,
+            detected: detected, fileDurations: [100, 100])
+        XCTAssertEqual(chapters.map(\.title), ["Real Ch 1", "Book 2", "Book 2 Ch 1"])
+        // Guarded subscripts — a bare chapters[2] here once crashed the whole test
+        // RUNNER (mass-killing 255 unrelated tests) when the count regressed.
+        guard chapters.count == 3 else { return XCTFail("expected 3 chapters, got \(chapters.count)") }
+        XCTAssertEqual(chapters[1].isSeparator, true)
+        XCTAssertEqual(chapters[2].start, 105, accuracy: 0.001)
+    }
+
     func testNilFileAlignmentSkipped() {
         XCTAssertEqual(BookAlignmentRunner.epubChapters(from: [nil], fileStartTimes: [0], bookDuration: 10), [])
     }

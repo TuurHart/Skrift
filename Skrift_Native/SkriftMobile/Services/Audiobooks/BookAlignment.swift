@@ -26,10 +26,11 @@ import ZIPFoundation
 // MARK: - Contract types (pinned — LANES-2026-07-21C/BASE.md cross-lane seam, LANE_UI consumes)
 
 /// One sentence of published book text, timed via alignment. `words` carries ONLY the words
-/// that landed inside a matched range (per-word times linearly distributed across that range's
-/// span — `AlignmentCore` only exposes run-level start/end, not per-word); `text` is always the
-/// FULL original sentence substring regardless of how many of its words got timed. A sentence
-/// with zero timed words is dropped entirely by `assembleSentences` (it never appears here).
+/// that landed inside a matched range, with the aligner's EXACT per-word times
+/// (`MatchedRange.wordTimes`, 2026-07-22 — the earlier linear re-distribution drifted seconds
+/// over pauses); `text` is always the FULL original sentence substring regardless of how many
+/// of its words got timed. A sentence with zero timed words is dropped entirely by
+/// `assembleSentences` (it never appears here).
 struct AlignedSentence: Codable, Equatable, Sendable {
     /// Published book text, display-ready (the original substring — punctuation/spacing intact).
     var text: String
@@ -43,9 +44,9 @@ struct AlignedSentence: Codable, Equatable, Sendable {
     var wordStart: Int
     /// Exclusive.
     var wordEnd: Int
-    /// Fraction of this sentence's book words that got a time from `AlignmentCore.matchedRanges`
-    /// (direct match or interpolated — `AlignmentCore`'s public `Result` doesn't distinguish the
-    /// two at the API boundary, so "matched" reads as "timed" here).
+    /// Fraction of this sentence's book words the aligner DIRECT-matched to a transcript word
+    /// (2026-07-22: interpolated words no longer count — a mostly-guessed sentence should fall
+    /// back to ASR text, which the old timed-fraction never captured).
     var confidence: Double
     /// Book words with per-word times (karaoke), in order — a subset of the sentence's full word
     /// count when some words fell in an unmatched span.
@@ -291,7 +292,9 @@ enum BookAlignmentRunner {
                 alignmentStore.fileAlignment(bookID: bookID, fileIndex: $0)
             }
             let derived = epubChapters(from: current, fileStartTimes: book.fileStartTimes,
-                                       bookDuration: book.duration)
+                                       bookDuration: book.duration,
+                                       detected: book.detectedChapters,
+                                       fileDurations: book.fileDurations)
             if !derived.isEmpty || book.epubChapters?.isEmpty == false, book.epubChapters != derived {
                 await MainActor.run {
                     guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
@@ -386,7 +389,10 @@ enum BookAlignmentRunner {
             current[i] = fa
         }
 
-        let chapters = epubChapters(from: current, fileStartTimes: book.fileStartTimes, bookDuration: book.duration)
+        let chapters = epubChapters(from: current, fileStartTimes: book.fileStartTimes,
+                                    bookDuration: book.duration,
+                                    detected: book.detectedChapters,
+                                    fileDurations: book.fileDurations)
         await MainActor.run {
             guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
             if let epubFilename { fresh.epubFilename = epubFilename }
@@ -604,31 +610,49 @@ enum BookAlignmentRunner {
     /// `attach()`/`alignIfNeeded()` or a receiver's synced sidecars (no epub needed here, only
     /// what's already on disk).
     static func epubChapters(from fileAlignments: [FileAlignment?], fileStartTimes: [TimeInterval],
-                             bookDuration: TimeInterval) -> [AudiobookChapter] {
-        var entries: [(title: String, start: TimeInterval)] = []
+                             bookDuration: TimeInterval,
+                             detected: [AudiobookChapter]? = nil,
+                             fileDurations: [TimeInterval] = []) -> [AudiobookChapter] {
+        var entries: [(title: String, start: TimeInterval, isSeparator: Bool?)] = []
+        var alignedSpans: [(start: TimeInterval, end: TimeInterval)] = []
         for (i, fa) in fileAlignments.enumerated() {
             // Non-aligned files never contribute chapters, even if stale sidecars still
             // carry marks (same device catch as `assignChapterMarks` — belt and braces so
             // a receiver deriving from OLD synced sidecars is immune too).
             guard let fa, fa.verdict == AlignmentCore.Verdict.aligned.rawValue else { continue }
             let base = fileStartTimes.indices.contains(i) ? fileStartTimes[i] : 0
+            let dur = fileDurations.indices.contains(i) ? fileDurations[i] : 0
+            alignedSpans.append((base, dur > 0 ? base + dur : .greatestFiniteMagnitude))
             for mark in fa.chapterMarks where fa.sentences.indices.contains(mark.sentenceIndex) {
-                entries.append((mark.title, base + fa.sentences[mark.sentenceIndex].start))
+                entries.append((mark.title, base + fa.sentences[mark.sentenceIndex].start, nil))
             }
         }
         guard !entries.isEmpty else { return [] }
+        // PARTIAL-MATCH MERGE (Tuur's trilogy question, 2026-07-22 + the locked
+        // no-bad-info rule): the ePub TOC wins only INSIDE the files it aligned to.
+        // A transcript-detected chapter whose start lies OUTSIDE every aligned file's
+        // span (the other books of a multi-book audiobook) stays — hiding it would
+        // imply those books have no chapters. Separators ride the same rule.
+        for ch in detected ?? [] {
+            // Half-open with a 1 s shrink at the top: a chapter starting AT an aligned
+            // file's end boundary (== the next file's start, e.g. a "Book 2" separator)
+            // belongs to the NEXT, unaligned file and must survive the merge.
+            let inAligned = alignedSpans.contains { ch.start >= $0.start - 1 && ch.start < $0.end - 1 }
+            if !inAligned { entries.append((ch.title, ch.start, ch.isSeparator)) }
+        }
         return chaptersWithDurations(entries, bookDuration: bookDuration)
     }
 
     /// Stable-sort by start (explicit tie-break on original order — never relies on `sorted`'s
     /// stability alone, matching `AlignmentCore.lengthDescThenEarlier`'s own stated philosophy),
     /// then fill in each chapter's duration from the next one's start.
-    private static func chaptersWithDurations(_ entries: [(title: String, start: TimeInterval)],
+    private static func chaptersWithDurations(_ entries: [(title: String, start: TimeInterval, isSeparator: Bool?)],
                                               bookDuration: TimeInterval) -> [AudiobookChapter] {
         let ordered = entries.enumerated().sorted { a, b in
             a.element.start != b.element.start ? a.element.start < b.element.start : a.offset < b.offset
         }.map(\.element)
-        var chapters = ordered.map { AudiobookChapter(title: $0.title, start: $0.start, duration: 0) }
+        var chapters = ordered.map { AudiobookChapter(title: $0.title, start: $0.start, duration: 0,
+                                                      isSeparator: $0.isSeparator) }
         for i in chapters.indices {
             let end = i + 1 < chapters.count ? chapters[i + 1].start : max(bookDuration, chapters[i].start)
             chapters[i].duration = max(0, end - chapters[i].start)

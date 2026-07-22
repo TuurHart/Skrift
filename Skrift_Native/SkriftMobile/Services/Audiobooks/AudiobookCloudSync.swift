@@ -544,7 +544,9 @@ enum AudiobookCloudSync {
         guard allFresh else { return }
 
         let chapters = BookAlignmentRunner.epubChapters(from: fileAlignments, fileStartTimes: book.fileStartTimes,
-                                                         bookDuration: book.duration)
+                                                         bookDuration: book.duration,
+                                                         detected: book.detectedChapters,
+                                                         fileDurations: book.fileDurations)
         if !chapters.isEmpty, var fresh = library.book(id: book.id) {
             fresh.epubChapters = chapters
             library.update(fresh)
