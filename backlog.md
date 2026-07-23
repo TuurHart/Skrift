@@ -157,7 +157,35 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
-## 🖥️ CONTINUE HERE — iPad chrome build (session end 2026-07-23 ~18:25; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+## 🖥️ CONTINUE HERE — iPad chrome build (session end 2026-07-23 ~19:15; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+
+**⬛ HEADER = THE MAC SIDEBAR (`fc0b83a`, build 121, installed on the iPad).** Tuur on the
+device (landscape): "the empty space in top left is shit" + "make that look the same" as the Mac
+(he showed the Mac sidebar: All/Needs Work/Done/Unrated · N ready to review · N to process · Newest).
+Built to the Mac sidebar as the spec:
+- **Shared `QueueFilter`** (All/Needs Work/Done/Unrated) moved to `Shared/Model` — ONE word set,
+  Mac matches a `PipelineFile`, iPad a `Memo` via `ProcessPile.matches`. No export step on iPad →
+  **Done = processed**: Needs Work = rated + not-enhanced, Done = rated + enhanced, Unrated = sig 0
+  (chips partition the rated set, test-proven).
+- **Triage line** "N ready to review · N to process" + a **Newest** sort cycle (`MemoSort.short/.next`);
+  "to process" IS the Process button's count (`ProcessPile.waiting`), pinned equal by a test.
+- **Reclaimed the top band**: the Notes column is the split-view SIDEBAR, hosted RAW → its hidden
+  nav bar's strip stayed reserved (the dead band). Wrapped it in a `NavigationStack` like the detail's
+  `noteStack` (which collapses a hidden bar — why the phone always looked right). **Portrait verified
+  (PIL-measured: Notes y215 ≈ note-bar y204 ≈ Connections y225, was y235 pre-fix).**
+- ⚠️ **LANDSCAPE RECLAIM UNVERIFIED ON SIM** — the headless sim can't rotate here (Apple events
+  blocked, no cliclick). The fix is the SAME wrapper the detail column has, and the detail sits high
+  in Tuur's landscape shot, so it should carry — **but Tuur's device-landscape confirm is owed** (he's
+  holding it in landscape; 121 is installed).
+- **Sim gotcha (durable): `sips --cropOffset` gave FALSE "empty" crops here — cost a wrong "band still
+  there" read. Measure pixels with PIL (first non-dark row per column), never trust a sips crop.**
+- **Open naming calls (flag, didn't guess):** the Mac says **Upload** / iPad says **Import**; the Mac's
+  top row is **Skrift + gear** / iPad kept **Notes + Select + ⋯** (Select/⋯ are needed for touch
+  multi-select + the import menu, and Settings is already a tab). Left both as-is pending Tuur.
+
+---
+
+## 🖥️ (previous) iPad chrome build (session end 2026-07-23 ~18:25)
 
 **SIGNED SPEC = `mocks/ipad-chrome.html` direction A** (Tuur picked it and refined the bar).
 Chrome built `044f1c6` (119); **eyeball-fix wave `13269c1`, CFBundleVersion 120, INSTALLED on the
