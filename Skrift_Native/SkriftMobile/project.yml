@@ -80,7 +80,7 @@ targets:
         # extension's Info.plist, so both processes resolve the identical container.
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "105"
+        CFBundleVersion: "106"
         # Skrift is offline + uses only standard iOS crypto (on-device ASR, plain
         # local-network HTTP) → exempt from export compliance. Declaring this skips
         # the "Missing Compliance" prompt on every TestFlight/App Store build.
@@ -247,7 +247,7 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "105"
+        CFBundleVersion: "106"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -306,7 +306,7 @@ targets:
       properties:
         CFBundleDisplayName: $(SKRIFT_DISPLAY_NAME)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "105"
+        CFBundleVersion: "106"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         # NO NSMicrophoneUsageDescription: iOS blocks recording in share
         # extensions at the entitlement level (mediaserverd refusal, device-
