@@ -299,10 +299,14 @@ struct SidebarView: View {
                     .foregroundStyle(Theme.textSecondary).fontWeight(.semibold)
                 Spacer(minLength: 6)
                 if !unpipelinedMemos.isEmpty {
-                    capsuleButton("Flag all", prominent: false) {
+                    // "Mark all as Passing" (Tuur 2026-07-23, closing the flag-verb
+                    // retirement): the bulk gives every unrated note the MINIMUM
+                    // rating — say exactly that, in the circles' own tier word
+                    // (SignificanceScale 0.1 = "Passing"). No flag language.
+                    capsuleButton("Mark all as Passing", prominent: false) {
                         processAll(unpipelinedMemos)
                     }
-                    .accessibilityIdentifier("sidebar.flag-all")
+                    .accessibilityIdentifier("sidebar.mark-all-passing")
                 }
                 sortControl.padding(.leading, 6).fixedSize()
             } else {

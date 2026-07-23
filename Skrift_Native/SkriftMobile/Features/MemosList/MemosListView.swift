@@ -384,6 +384,7 @@ struct MemosListView: View {
                         ForEach(group.memos) { memo in
                             MemoRow(memo: memo, fading: searchFadingIDs.contains(memo.id),
                                     clockLine: clockLine(for: memo, backlinked: backlinked),
+                                    quiet: isUnratedLive(memo),
                                     quietLine: quietTriageLine(for: memo, backlinked: backlinked),
                                     selected: memo.id == selectedMemoID) {
                                 // Opening a SEARCH RESULT carries the query
@@ -750,26 +751,29 @@ struct MemosListView: View {
     /// How close a note's fade must be before the notebook mentions it.
     private static let fadeWarningDays = 7
 
-    /// iPad-regular triage dialect (m1b variant B — Tuur 2026-07-23: "the iPad
-    /// is in-between; easier to cleanup notes"): at regular width the list IS a
-    /// triage surface, so an unrated live note renders QUIET (dimmed, hollow ○)
-    /// with its spine line always on — the Mac's quiet-row idiom. Rating IS the
-    /// flag (no Flag verb anywhere, same correction as the Mac's m6 peek); tap
-    /// opens the note, whose Importance circles are the rating surface.
-    /// Compact keeps the notebook doctrine below — byte-for-byte.
+    /// Unrated-live = the quiet FADE, every width (m1b B + Tuur's 2026-07-23
+    /// phone extension — his flow rates important notes AT capture, so an
+    /// unrated row genuinely means untriaged, not fresh: "when I take a note
+    /// that I know is important I give it a score straight away"). Rating IS
+    /// the flag (no Flag verb anywhere, same correction as the Mac's m6 peek);
+    /// tap opens the note, whose Importance circles are the rating surface.
+    private func isUnratedLive(_ memo: Memo) -> Bool {
+        memo.significance == 0 && memo.deletedAt == nil && !memo.locked
+    }
+
+    /// The quiet row's ALWAYS-ON spine line — triage surfaces only (iPad
+    /// regular; the Mac list has its own). The phone notebook keeps the
+    /// urgency-only amber `clockLine` below instead: fade = the universal
+    /// signal, the standing line = triage-bench detail.
     private func quietTriageLine(for memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> String? {
-        guard isRegular, memo.significance == 0, memo.deletedAt == nil, !memo.locked else { return nil }
+        guard isRegular, isUnratedLive(memo) else { return nil }
         return MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now), now: now)
     }
 
-    /// Urgency-only clock line (⏱ eyeball wave 2, 2026-07-22 — the asymmetry
-    /// doctrine): the phone list is the NOTEBOOK, not the deciding room, and
-    /// unrated is the default state here, not an alarm — so fresh rows stay
-    /// clean. The line appears (amber) only when the clock actually matters:
-    /// fading starts within `fadeWarningDays`, or the note is already fading
-    /// (a search hit). The Mac's always-on quiet-row lines are deliberate
-    /// triage-surface behavior — the iPad's regular width joined that camp
-    /// with variant B above; compact stays the notebook.
+    /// Urgency-only clock line (⏱ eyeball wave 2, 2026-07-22; asymmetry
+    /// REVISED 2026-07-23 — the fade above now runs on every width): the line
+    /// appears (amber) only when the clock actually matters — fading starts
+    /// within `fadeWarningDays`, or the note is already fading (a search hit).
     private func clockLine(for memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> String? {
         guard memo.significance == 0, memo.deletedAt == nil, !memo.locked else { return nil }
         let station = MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now)
@@ -932,8 +936,9 @@ private struct MemoRow: View {
     let memo: Memo
     var fading: Bool = false
     var clockLine: String? = nil
-    /// iPad-regular triage (m1b B): non-nil ⇒ the row renders QUIET with this
-    /// spine line. Always nil on the phone / compact.
+    /// Unrated-live fade (every width — see MemoCard.quiet).
+    var quiet: Bool = false
+    /// The always-on spine line, triage surfaces (iPad regular) only.
     var quietLine: String? = nil
     /// iPad split view (m1): the row backing the detail pane wears `skAccentSoft`.
     /// Always false on the phone (`selectedMemoID` is nil there).
@@ -945,7 +950,8 @@ private struct MemoRow: View {
         if editMode?.wrappedValue.isEditing == true {
             // Multi-select uses the List's own selection chrome — no detail-pane
             // highlight while editing.
-            MemoCard(memo: memo, fading: fading, clockLine: clockLine, quietLine: quietLine)
+            MemoCard(memo: memo, fading: fading, clockLine: clockLine,
+                     quiet: quiet, quietLine: quietLine)
         } else {
             // A Button, NOT .onTapGesture: a tap gesture on a List row fights
             // the context-menu lift on iOS 26 — a long-press just started the
@@ -954,7 +960,7 @@ private struct MemoRow: View {
             // scroll natively.
             Button(action: onTap) {
                 MemoCard(memo: memo, fading: fading, clockLine: clockLine,
-                         quietLine: quietLine, selected: selected)
+                         quiet: quiet, quietLine: quietLine, selected: selected)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -972,17 +978,22 @@ private struct MemoCard: View {
     /// Recently Deleted in 3d"), computed once at the list level (backlink
     /// scan is never per-row). Non-nil ⇒ the clock is short ⇒ amber.
     var clockLine: String? = nil
-    /// iPad-regular triage (m1b B, Tuur 2026-07-23): the spine line an unrated
-    /// note always wears at regular width — the row dims, a hollow ○ (the
-    /// unfilled significance circles' own idiom) sits trailing, and rating the
-    /// note IS the flag (no Flag verb). Faint, not amber: quiet ≠ urgent; when
-    /// the clock turns short the amber `clockLine` outranks it in the same slot.
+    /// Unrated-live fade (m1b B + Tuur's 2026-07-23 phone extension: "when I
+    /// take a note that I know is important I give it a score straight away" —
+    /// so unrated genuinely means untriaged, on EVERY width): the row dims and
+    /// wears the hollow ○ (the unfilled significance circles' own idiom).
+    /// Rating the note IS the flag — no Flag verb anywhere.
+    var quiet: Bool = false
+    /// The spine one-liner a quiet row carries on TRIAGE surfaces only (iPad
+    /// regular; the Mac list has its own) — the phone notebook keeps its
+    /// urgency-only amber `clockLine` instead. Faint, not amber: quiet ≠
+    /// urgent; a present status pill outranks it in the slot.
     var quietLine: String? = nil
     /// iPad split view (m1): the selected row (its note is in the detail pane)
     /// gets an accent-soft fill. Always false on the phone.
     var selected: Bool = false
 
-    private var isQuiet: Bool { quietLine != nil }
+    private var isQuiet: Bool { quiet }
 
     var body: some View {
         HStack(spacing: 11) {

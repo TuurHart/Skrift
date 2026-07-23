@@ -88,6 +88,14 @@ never zooms out") — the Mac's map-behind-Places likely never got the b90 camer
 Check whether the iPad pane is immune (it reuses the PHONE's `JournalMapCanvas`, so it should
 carry the fix — verify), then port the b90 rules to the Mac's `JournalView` map mode.
 
+**✅ m1b AMENDED (2026-07-23 evening): the unrated FADE runs on the PHONE too** (Tuur killed the
+washout worry: "when I take a note that I know is important I give it a score straight away" —
+unrated = untriaged, every width). Phone rows: dim + hollow ○; the always-on spine line stays
+iPad/Mac-only (phone keeps the urgency amber line); count line stays iPad-only. Same pass:
+Mac bulk renamed **"Mark all as Passing"** (0.1's own tier word — flag language fully retired).
+**PROMOTION SEQUENCING (Tuur): wait for the other chat's book-import fixes to land on main,
+THEN merge main in + promote; iPad Dev install + polish live test when he collects the iPad.**
+
 **✅ m1b RESOLVED (2026-07-23, later same day): Tuur picked B + the correction that closed the
 verb loop — "flag for processing should just be done when you give it a rating."** Built: at
 regular width an unrated live note renders QUIET (dimmed, hollow ○, its MemoSpine one-liner in
