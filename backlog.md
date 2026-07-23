@@ -142,6 +142,15 @@ on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the f
    I like it." → yes): **`mocks/book-text-unified.html` = the next build board** — ONE
    "Text…" verb/sheet (Level 1 Transcript / Level 2 Book text) replaces the two menu
    entries, + the A0 once-only post-import do-both prompt. Roadmap idea i12. Lane CLOSED.
+   → **BUILT same session (b110):** `BookTextSheet` grew the Level-1 inline transcribe card
+   (fresh/partial/live-progress+pause/complete; estimate only from measured throughput),
+   Level-2 empty card + tan waiting rows; `BookTextPromptSheet` = A0 (once per book,
+   UserDefaults seen-set, sheet-swap-race-safe presentation via onDismiss parking);
+   ONE "Text…" verb in both menus (TranscribeBookView survives as the read-along nudge's
+   sheet); `-showTextSheet`/`-showTextPrompt` render hooks. Suite green (new
+   TranscriptCardState/waiting/subtitle/footer/A0 tests); sim A0+A1 vision-checked against
+   the mock. **OWED: Tuur's b110 device eyeball** (A3 on the Odyssey, A0 on the next real
+   import, the one-verb menus).
    NEW P2 filed same session: silent re-align freezes the library UI.
 0b. ✅ **⏱ v3 verify FULLY DONE 2026-07-23** (record in the v3 block above): suites + MLX green,
    merged to `main`, Mac Dev sweep-per-activation eyeballed, AND the phone-open eyeball landed —

@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 19
-updated: 2026-07-23T13:35:00.000Z
+updated: 2026-07-23T13:50:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -1662,14 +1662,12 @@ ideas:
     source: voice
     nodeHint: P11
   - id: i12
-    text: "Unified 'Text' sheet + A0 import prompt (SIGNED OFF 2026-07-23,
-      mock = mocks/book-text-unified.html, 4 phones): ONE 'Text…' verb/sheet
-      replaces the separate Transcribe-book and Book-text menu entries —
-      Level 1 Transcript (status/progress/Transcribe + time estimate),
-      Level 2 Book text (today's signed-off sheet unchanged), incl. the
-      mid-transcribe deferred-ePub state; plus A0, a once-only post-import
-      prompt offering BOTH actions ('start both and walk away — it matches
-      up on its own'). Build board when picked; mock IS the spec."
+    text: "Unified 'Text' sheet + A0 import prompt — SIGNED OFF AND BUILT
+      2026-07-23, same session (mock = mocks/book-text-unified.html): ONE
+      'Text…' verb everywhere (Level 1 Transcript inline-job card, Level 2 =
+      the signed-off Book-text sheet unchanged, tan waiting rows for deferred
+      texts) + A0 once-only post-import do-both prompt. Suite green, sim
+      A0/A1 vision-checked; phone b110 device eyeball = the remaining gate."
     source: session
     nodeHint: EPubAlign
   - id: i11
