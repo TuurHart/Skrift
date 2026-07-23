@@ -117,7 +117,12 @@ struct FileAlignment: Codable, Equatable, Sendable {
     /// (`AlignedSentence.bridged`) instead of vanishing. The bump makes every already-
     /// attached book re-align on its next open, so existing installs gain the bridges
     /// (and re-derived chapter marks) without any user action.
-    static let currentSchema = 4
+    /// 4→5 (2026-07-23, the verify round's real-data catch): `mergeSentences` used to
+    /// contest collisions WITHIN one text's own batch, eating same-text sentences whose
+    /// exact word-times overlap a neighbor by seam fuzz (196 of the Odyssey's 7506 —
+    /// both user-reported holes). Every schema-4 sidecar on disk is such a subset, so
+    /// the bump re-aligns each attached book once to restore the eaten sentences.
+    static let currentSchema = 5
 
     var schema: Int = currentSchema
     /// Which file of the book this covers (`Audiobook.files` index).
@@ -660,7 +665,15 @@ enum BookAlignmentRunner {
                                textRank: [String: Int]) -> [AlignedSentence] {
         var result = keep
         for ns in incoming {
-            let conflicts = result.indices.filter { result[$0].start < ns.end && ns.start < result[$0].end }
+            // Collisions contest BETWEEN texts only (2026-07-23 Odyssey verify round): a
+            // text's own batch routinely has hairline time overlaps between ADJACENT
+            // sentences (exact per-word times straddle sentence seams), and the strict-win
+            // tie rule made the later same-text sentence vanish — 196 of the Odyssey's
+            // 7506 direct-matched sentences, including both user-reported holes.
+            let conflicts = result.indices.filter {
+                result[$0].textFile != ns.textFile
+                    && result[$0].start < ns.end && ns.start < result[$0].end
+            }
             guard !conflicts.isEmpty else { result.append(ns); continue }
             let maxConfidence = conflicts.map { result[$0].confidence }.max()!
             let tiedAtMax = conflicts.filter { result[$0].confidence == maxConfidence }

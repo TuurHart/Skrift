@@ -468,6 +468,31 @@ final class MultiTextMergeTests: XCTestCase {
         XCTAssertTrue(merged.allSatisfy { $0.textFile == "a.epub" })
     }
 
+    /// Regression (2026-07-23, the Odyssey verify round): collisions contest BETWEEN texts
+    /// only. One text's own fresh batch routinely carries hairline TIME overlaps between
+    /// adjacent sentences (the aligner's exact per-word times straddle sentence seams — real
+    /// device data: "…(andra)." ends 165.8 while "He is not 'the' man…" starts 165.6). The
+    /// old within-batch contest made the later same-text sentence LOSE the tie (same rank,
+    /// strict-win rule) and vanish — 196 of the Odyssey's 7506 direct-matched sentences were
+    /// silently eaten, including both sentences the user reported missing.
+    func testSameTextSeamOverlapNeverContests() {
+        let incoming = [sentence("a.epub", start: 158.9, end: 165.8),
+                        sentence("a.epub", start: 165.6, end: 181.9),
+                        sentence("a.epub", start: 181.9, end: 188.8)]
+        let merged = BookAlignmentRunner.mergeSentences(into: [], adding: incoming, textRank: ["a.epub": 0])
+        XCTAssertEqual(merged.count, 3, "same-text seam fuzz is not a collision — every sentence survives")
+    }
+
+    /// The between-text contest still applies when the OVERLAPPING existing sentence belongs
+    /// to another text — same-text leniency must not leak across texts.
+    func testBetweenTextOverlapStillContests() {
+        let keep = [sentence("a.epub", start: 0, end: 10, confidence: 0.9)]
+        let incoming = [sentence("b.epub", start: 9.9, end: 20, confidence: 0.5)]
+        let merged = BookAlignmentRunner.mergeSentences(into: keep, adding: incoming, textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged.first?.textFile, "a.epub")
+    }
+
     // MARK: mergedFileAlignment
 
     func testFreshMergeWithNoExisting() {
