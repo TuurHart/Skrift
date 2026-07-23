@@ -451,9 +451,64 @@ The system tab strip is iPadOS 18's own (sidebar toggle included for free). <b>K
 renaming the furniture per device violates the "one app, one head" rule that made the Mac's Queue→Notes rename worth doing. iPadOS 18's
 `.sidebarAdaptable` already lets a user pull Shell A into a sidebar when they want density. Kept for the record.</p>
 
+<!-- ═══════════════════ m1b · Rows dialect A/B (v2 open question) ═══════════════════ -->
+<div class="label" id="m1b">m1b · v2 OPEN — the list column's row dialect: A phone rows · B phone rows + the Mac's triage layer
+  <span class="verdict no">TUUR PICKS — "the iPad is in-between; easier to cleanup notes" (2026-07-23)</span></div>
+<div class="row">
+  <div class="listcol" style="width:375px;height:560px;background:var(--bg);border:1px solid #000;border-radius:14px;position:relative;overflow:hidden;">
+    <div style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);background:#15171F;padding:7px 12px;border-bottom:1px solid var(--hairline);font-weight:700;">A · phone rows verbatim (as built today)</div>
+    <div class="rows">
+      <div class="dayhead">Today</div>
+      <div class="mrow sel"><div class="glyph">🎙</div><div class="body"><div class="top">14:32 <span class="pill synced">Synced</span></div><div class="title">Two apps, one contract</div><div class="snip">The shared folder finally carries…</div></div></div>
+      <div class="mrow"><div class="glyph">🎙</div><div class="body"><div class="top">11:04 <span class="pill waiting">Waiting</span></div><div class="title">Standup ramble — inbox edge case</div><div class="snip">If the drain runs while a share is…</div></div></div>
+      <div class="mrow"><div class="glyph">🎙</div><div class="body"><div class="top">09:18</div><div class="title">Quick reminder, plumber</div><div class="snip">Call before Thursday, the man said…</div></div></div>
+      <div class="dayhead">Yesterday</div>
+      <div class="mrow"><div class="glyph book">❝</div><div class="body"><div class="top">22:47 <span class="pill synced">Synced</span></div><div class="title">❝ The map is not the territory</div><div class="snip">This is exactly the naming-model…</div></div></div>
+    </div>
+  </div>
+  <div class="listcol" style="width:375px;height:560px;background:var(--bg);border:1px solid #000;border-radius:14px;position:relative;overflow:hidden;">
+    <div style="font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint);background:#15171F;padding:7px 12px;border-bottom:1px solid var(--hairline);font-weight:700;">B · + the Mac's triage layer (quiet unrated rows, count line, verbs)</div>
+    <div style="padding:8px 16px 0;font-size:11px;color:var(--faint);">6 ready · <span style="color:var(--dim)">2 not rated</span></div>
+    <div class="rows">
+      <div class="dayhead">Today</div>
+      <div class="mrow sel"><div class="glyph">🎙</div><div class="body"><div class="top">14:32 <span class="pill synced">Synced</span></div><div class="title">Two apps, one contract</div><div class="snip">The shared folder finally carries…</div></div></div>
+      <div class="mrow" style="opacity:.55;">
+        <div class="glyph" style="background:transparent;border:1.5px dashed var(--hairline2);">🎙</div>
+        <div class="body">
+          <div class="top">11:04</div>
+          <div class="title" style="font-weight:500;">Standup ramble — inbox edge case</div>
+          <div class="snip" style="font-size:11.5px;">not rated — fades 21 Aug</div>
+        </div>
+        <div style="align-self:center;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--hairline2);flex:none;"></div>
+      </div>
+      <div class="mrow"><div class="glyph">🎙</div><div class="body"><div class="top">09:18</div><div class="title">Quick reminder, plumber</div><div class="snip">Call before Thursday, the man said…</div></div></div>
+      <div class="dayhead">Yesterday</div>
+      <div class="mrow" style="opacity:.55;">
+        <div class="glyph" style="background:transparent;border:1.5px dashed var(--hairline2);">🔗</div>
+        <div class="body">
+          <div class="top">19:40</div>
+          <div class="title" style="font-weight:500;">Fado bar recommendation</div>
+          <div class="snip" style="font-size:11.5px;">not rated — fades 20 Aug</div>
+        </div>
+        <div style="align-self:center;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--hairline2);flex:none;"></div>
+      </div>
+      <div class="menu" style="position:absolute;right:14px;bottom:70px;box-shadow:0 14px 40px rgba(0,0,0,.6);">
+        <div class="mr"><span class="mi2">◎</span>Flag for processing</div>
+        <div class="mr"><span class="mi2">🔒</span>Lock note</div>
+        <div class="mr" style="color:var(--red)"><span class="mi2">🗑</span>Delete</div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="hint"><b>The question:</b> is the iPad's list the phone's capture list (A) or also the Mac's cleanup bench (B)?
+B keeps every rated row EXACTLY phone (zero relearning) and borrows only the Mac's triage layer where it earns rent: an
+unrated note renders QUIET (dimmed, hollow ○, its fade date as the one-line story — the Mac's unified-list idiom), a count
+line whispers the pile, and long-press carries the Mac verbs (Flag / Lock / Delete). Tap on a quiet row could open the
+Mac-style triage peek instead of the full note — second decision if B wins. <b>A = as built; B ≈ a day.</b></p>
+
 <!-- ═══════════════════ m3 · Note + Connections panel ═══════════════════ -->
 <div class="label" id="m3">m3 · The note at regular width — Connections as a standing side panel
-  <span class="verdict pick">PICKED (Fable) — the Mac's signed related-panel, phone-flavored; body stays clean</span></div>
+  <span class="verdict pick">v2 (Tuur 2026-07-23): COPY THE MAC PANEL VERBATIM — why-chips in, inline % out, toolbar-badge collapse</span></div>
 <div class="pad" style="height:640px;">
   <div class="tabstrip"><div class="tabs">
     <div class="tab on"><span class="ic">▤</span>Notes</div>
@@ -487,12 +542,19 @@ renaming the furniture per device violates the "one app, one head" rule that mad
         <div class="playbar"><span>▶</span><span class="t num">2:04</span><div class="track"><i></i></div><span class="t num">6:12</span><span class="spd">1.5×</span></div>
       </div></div>
       <div class="conn">
-        <div class="chead"><b>Connections</b><span class="count">6</span><span class="fold">⟩</span></div>
+        <div class="chead"><b>Connections</b><span class="count">6</span>
+          <span class="fold" style="margin-left:auto;background:var(--elev);border-radius:7px;padding:2px 8px;font-size:10.5px;">◫ 6</span></div>
         <div class="segpill"><div class="on">Closest</div><div>Date</div></div>
-        <div class="crow"><div class="t">Morning pages — the iPad question</div><div class="m"><span class="imp num">0.8</span><span>18 Jul</span><span class="pct num">82%</span></div></div>
-        <div class="crow"><div class="t">❝ The map is not the territory</div><div class="m"><span class="imp num">0.6</span><span>21 Jul</span><span class="pct num">74%</span></div></div>
-        <div class="crow"><div class="t">Names model, re-derived</div><div class="m"><span class="imp num">0.7</span><span>4 Apr</span><span class="pct num">69%</span></div></div>
-        <div class="crow"><div class="t">Late-night audiobook capture flow</div><div class="m"><span class="imp num">0.5</span><span>7 Jun</span><span class="pct num">61%</span></div></div>
+        <div class="crow"><div class="t">Morning pages — the iPad question</div>
+          <div class="m"><span class="imp num">0.8</span><span>18 Jul</span></div>
+          <div style="display:flex;gap:4px;margin-top:4px;"><span class="chip" style="font-size:9.5px;padding:1px 6px;">👤 Hendrik</span><span class="chip" style="font-size:9.5px;padding:1px 6px;">#skrift</span></div></div>
+        <div class="crow"><div class="t">❝ The map is not the territory</div>
+          <div class="m"><span class="imp num">0.6</span><span>21 Jul</span></div>
+          <div style="display:flex;gap:4px;margin-top:4px;"><span class="chip" style="font-size:9.5px;padding:1px 6px;">“naming”</span></div></div>
+        <div class="crow"><div class="t">Names model, re-derived</div>
+          <div class="m"><span class="imp num">0.7</span><span>4 Apr</span></div></div>
+        <div class="crow"><div class="t">Late-night audiobook capture flow</div>
+          <div class="m"><span>7 Jun</span></div></div>
         <div class="thread">⤳ View thread <span style="color:var(--faint);font-weight:500;font-size:10.5px;margin-left:auto;">first mentioned 4 Apr</span></div>
         <div class="connlabel">Linked from</div>
         <div class="backl"><span class="arrow">↩</span> Reading-mode notes <span style="margin-left:auto;color:var(--faint);">19 Jun</span></div>
@@ -501,11 +563,11 @@ renaming the furniture per device violates the "one app, one head" rule that mad
     </div>
   </div>
 </div>
-<p class="hint"><b>What this is:</b> at regular width the phone's footer RELATED card + LINKED FROM strip move into a standing
-300pt panel (the Mac's signed `related-panel` idiom: ONE list, Closest⇄Date pill, importance decimals, % closeness — shown inline,
-touch has no hover). Collapsible (⟩) with the count badge surviving on the collapsed edge; the panel carries the same in-panel
-consent gate when the journal index is off. Compact width (portrait split / phone) keeps today's footer card — nothing forks:
-same `JournalIndexService` data, two presentations.</p>
+<p class="hint"><b>v2 = the Mac panel, verbatim</b> (desktop `ConnectionsPanel.swift` is the source): ONE list, Closest⇄Date pill,
+<b>why-chips</b> per row (shared person 👤 / tag # / term “quote” — the Mac's ConnectionWhy), the owner-set <b>importance decimal
+only when rated</b> (unrated shows nothing — no-bad-info), NO closeness % anywhere (the Mac keeps it behind hover; touch shows
+none). Open/close = the <b>toolbar count badge</b> (◫ 6 — the Mac's affordance; count = related + backlinks). Long-press a row =
+the Mac's hover-✕ "not related" hide. Same in-panel consent gate (shared RetrievalGate). Compact keeps today's footer card.</p>
 
 <!-- ═══════════════════ m4 · Review (Journal) ═══════════════════ -->
 <div class="label" id="m4">m4 · Review — the river keeps the left, calendar + places stand on the right (signed §2, built out)
@@ -616,7 +678,7 @@ Mac's map-behind-Places. ⨯ or any calendar interaction returns the pane.</p>
 
 <!-- ═══════════════════ m5 · Polish on this iPad ═══════════════════ -->
 <div class="label" id="m5">m5 · Polish on this iPad — the local-model play (Settings pane + the in-note moment)
-  <span class="verdict pick">PICKED (Fable) — engine A (the Mac's Gemma via MLX) built this wave, feature-flagged</span></div>
+  <span class="verdict pick">v2 (Tuur 2026-07-23): the MAC'S VERB — visible Polish button, NO automation; settings = Mac parity incl. prompts, SYNCED</span></div>
 <div class="pad" style="height:540px;">
   <div class="tabstrip"><div class="tabs">
     <div class="tab"><span class="ic">▤</span>Notes</div>
@@ -650,12 +712,15 @@ Mac's map-behind-Places. ⨯ or any calendar interaction returns the pane.</p>
         <div><div class="t">Gemma 4 E4B — the model your Mac uses</div><div class="s">4.6 GB · downloads once, runs entirely on this iPad</div></div>
         <div class="btn">Download</div>
       </div>
-      <div class="togrow">
-        <div><div class="t">Polish when I open a note</div><div class="s">An unpolished note starts polishing as you read it. Off = only the ⋯ menu's "Polish now".</div></div>
-        <div class="tog"><i></i></div>
+      <div class="connlabel" style="margin-top:16px;">Prompts — same knobs as the Mac, synced</div>
+      <div class="sgroup">
+        <div class="srow2"><div class="ic">✂︎</div>Copy-edit prompt<span class="go" style="font-size:11px;color:var(--faint);">default ›</span></div>
+        <div class="srow2"><div class="ic">≣</div>Summary prompt<span class="go" style="font-size:11px;color:var(--green);">edited 21 Jul ›</span></div>
+        <div class="srow2"><div class="ic">Aa</div>Title prompt<span class="go" style="font-size:11px;color:var(--faint);">default ›</span></div>
       </div>
-      <div class="footnote">Runs on the iPad's Apple-silicon GPU while the app is open — the iPad never polishes in the
-      background or on battery-critical. Needs an M-series iPad with ~5 GB free. Everything stays on device.</div>
+      <div class="footnote">Prompt edits <b>sync between your Mac and iPad</b> — newest edit wins, so both polishers always
+      speak with one voice. Runs on the iPad's Apple-silicon GPU while the app is open; never in the background, never on
+      battery-critical. M-series iPad with ~5 GB free. Everything stays on device.</div>
     </div></div>
   </div>
 </div>
@@ -663,13 +728,14 @@ Mac's map-behind-Places. ⨯ or any calendar interaction returns the pane.</p>
 <div class="label">m5 · the in-note moment (three states) + the parked engine B</div>
 <div class="strip">
   <div class="mini">
-    <div class="bar">1 · unpolished note — ⋯ menu</div>
-    <div class="mb"><div class="menu">
-      <div class="mr"><span class="mi2">✨</span>Polish now</div>
-      <div class="mr"><span class="mi2">🔔</span>Remind me…</div>
-      <div class="mr"><span class="mi2">🔒</span>Lock note</div>
-      <div class="mr"><span class="mi2">⤴</span>Share note…</div>
-    </div></div>
+    <div class="bar">1 · unpolished note — a VISIBLE button (the Mac's verb)</div>
+    <div class="mb">
+      <div style="font-size:15px;font-weight:800;margin-bottom:6px;">Standup ramble — inbox edge case</div>
+      <span style="display:inline-flex;gap:7px;align-items:center;background:var(--elev);border:1px solid var(--hairline2);
+        border-radius:16px;padding:5px 14px;font-size:12px;font-weight:650;color:var(--accenttext);">✨ Polish</span>
+      <div style="margin-top:10px;color:var(--dim);font-size:12px;">Sits with the meta chips on an unpolished note —
+      no menus, no automation: you ask, it runs. (⋯ keeps a duplicate entry for muscle memory.)</div>
+    </div>
   </div>
   <div class="mini">
     <div class="bar">2 · while it runs (stays on the note)</div>
@@ -702,8 +768,8 @@ Mac's map-behind-Places. ⨯ or any calendar interaction returns the pane.</p>
 run Metal-JIT MLX so live generation is device-owed. The polisher rule stays honest: <b>Mac volunteers, iPad is asked.</b></p>
 
 <!-- ═══════════════════ m6 · Books ═══════════════════ -->
-<div class="label" id="m6">m6 · Books — the library becomes a shelf; the player reads like a book with chapters at hand
-  <span class="verdict pick">PICKED (Fable) — grid at regular width only; the phone keeps its rows</span></div>
+<div class="label" id="m6">m6 · Books — the shelf STAYS (Tuur: "I like the little icons"); the three-zone player is RETIRED
+  <span class="verdict no">v2 (Tuur 2026-07-23): player = the PHONE player, just bigger — full-screen, width-capped; a book-expert chat redesigns it later. Frame 2 below = historical record</span></div>
 <div class="pad" style="height:500px;">
   <div class="tabstrip"><div class="tabs">
     <div class="tab"><span class="ic">▤</span>Notes</div>
@@ -800,16 +866,17 @@ dimmed app (you keep your place). Everything inside is the phone's record screen
 color split, inline [photo N] tokens, waveform off the same meters, camera/pause/stop. Keyboard: ⌘N opens it recording, space
 pauses, ⌘. stops. Landscape + portrait identical.</p>
 
-<div class="label">Inventory — every frame this wave, with verdicts</div>
+<div class="label">Inventory — every frame, with verdicts (v2 = Tuur's 2026-07-23 review pass)</div>
 <p class="hint" style="max-width:900px;">
-<b>m1</b> Shell A + Notes split — PICKED (signed direction; iPadOS gives the sidebar free) ·
-<b>m2</b> Shell B icon rail — not picked (breaks the one-IA rule; kept for the record) ·
-<b>m3</b> Connections side panel — PICKED (Mac's signed panel, phone-flavored; compact keeps the footer card) ·
-<b>m4/m4b</b> Review pane + map mode — PICKED (completes signed journal-desktop §2 with the phone's real cards) ·
-<b>m5</b> Polish on this iPad — PICKED, engine A (Mac's Gemma/MLX, flagged); engine B (Apple Intelligence) parked ·
-<b>m6</b> Books shelf + wide player — PICKED (grid regular-width-only; chapters rail replaces the sheet in landscape) ·
-<b>m7</b> Record card — PICKED (centered sheet over dimmed app).
-Tuur's review pass tomorrow may re-verdict any of these — nothing here is load-bearing until built AND eyeballed.</p>
+<b>m1</b> Shell A + Notes split — LOCKED v2 (system top strip accepted: "that's how it is") ·
+<b>m1b</b> rows dialect A⇄B — OPEN, Tuur picks from this mock ·
+<b>m2</b> Shell B icon rail — rejected, record ·
+<b>m3</b> Connections panel — LOCKED v2: the Mac panel VERBATIM (why-chips, no %, toolbar-badge collapse) ·
+<b>m4/m4b</b> Review pane + map — LOCKED v1 as built; map contract to be unified on all three devices (Mac b90 port) ·
+<b>m5</b> Polish — LOCKED v2: visible Polish button (Mac's verb), no automation; Mac-parity settings incl. prompts, SYNCED; engine B stays parked ·
+<b>m6</b> Books — shelf LOCKED; three-zone player RETIRED → phone player at width (expert redesign later) ·
+<b>m7</b> Record card — LOCKED as built.
+v2 build board = backlog 🖥️📱 "V2 DECISIONS".</p>
 
 </body>
 </html>
