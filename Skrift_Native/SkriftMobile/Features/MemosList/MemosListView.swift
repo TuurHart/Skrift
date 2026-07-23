@@ -175,9 +175,6 @@ struct MemosListView: View {
                 let shown = mode != .detailOnly
                 if shown != listVisible { listVisible = shown }
             }
-            .onAppear {
-                if LaunchFlags.showFilterSheet { showSortFilter = true }
-            }
             // Screenshot rig (`-selectFirstMemo`): deterministically fill the
             // detail pane so the m3 layout renders without a tap.
             .onAppear {
@@ -238,6 +235,9 @@ struct MemosListView: View {
             // header line (~44pt returned to content). Root-only — pushed
             // detail views keep their own nav bars.
             .toolbar(.hidden, for: .navigationBar)
+            // Screenshot rig (`-showFilterSheet`) — on notesRoot so it fires for
+            // BOTH the phone (NavigationStack) and the iPad (split view).
+            .onAppear { if LaunchFlags.showFilterSheet { showSortFilter = true } }
             .overlay(alignment: .top) {
                 // Import pill outranks the transient sync banner (both are rare;
                 // the drain runs at foreground before sync chatter starts).
@@ -290,7 +290,7 @@ struct MemosListView: View {
             }
             #endif
             .sheet(isPresented: $showSortFilter) {
-                SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces, showPhoneFilters: !isRegular)
+                SortFilterSheet(sort: $sort, filter: $filter, showNotRated: !isRegular)
             }
             // A sheet rather than a push: the stack's path is typed [UUID] for
             // memo detail, which a non-memo destination can't join. (Settings +
@@ -1113,9 +1113,6 @@ struct MemosListView: View {
         return order.map { Group(title: $0, memos: bucket[$0] ?? []) }
     }
 
-    private var availablePlaces: [String] {
-        Array(Set(memos.compactMap { $0.metadata?.location?.placeName }.filter { !$0.isEmpty })).sorted()
-    }
 
     private func matchesSearch(_ memo: Memo) -> Bool {
         memo.matches(query: search)
@@ -1171,12 +1168,8 @@ struct MemosListView: View {
         if filter.notRatedOnly && (memo.significance > 0 || memo.locked) { return false }
         if let place = filter.place, memo.metadata?.location?.placeName != place { return false }
         if filter.from != nil || filter.to != nil {
-            let cal = Calendar.current
             let d = filter.dateField == .added ? memo.addedAt : memo.recordedAt
-            if let from = filter.from, d < cal.startOfDay(for: from) { return false }
-            if let to = filter.to,
-               let end = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: to)),
-               d >= end { return false }   // inclusive of the whole 'to' day
+            if !DateRangeFilter.contains(d, from: filter.from, to: filter.to) { return false }
         }
         return true
     }
@@ -1627,13 +1620,11 @@ extension Memo {
 private struct SortFilterSheet: View {
     @Binding var sort: MemoSort
     @Binding var filter: MemoFilter
-    let places: [String]
-    /// The phone-only filters (Not rated · Has photos · Place). On the iPad
-    /// (regular) these are gone (Tuur 2026-07-23: the Unrated chip owns not-rated;
-    /// "we don't even need to filter by photos or place… remove it from iPad" —
-    /// place lives on the Review screen). The phone keeps them (no chips there).
-    /// Sort + Date + Unsynced stay on both.
-    var showPhoneFilters = true
+    /// The Unrated CHIP owns "not rated" at regular width, so the sheet hides that
+    /// one toggle on the iPad; the phone (no chips) keeps it. Place + Photos are
+    /// gone from BOTH now (Tuur 2026-07-23: "we don't even need to filter by photos
+    /// or place" — place lives on the Review screen). Sort + Unsynced + Date on both.
+    var showNotRated = true
     @Environment(\.dismiss) private var dismiss
 
     // Optional-date bindings: a toggle enables the bound (today by default), the
@@ -1663,21 +1654,12 @@ private struct SortFilterSheet: View {
                     .labelsHidden()
                 }
                 Section("Filter") {
-                    if showPhoneFilters {
+                    if showNotRated {
                         Toggle("Not rated", isOn: $filter.notRatedOnly)
                             .accessibilityIdentifier("filter-notrated")
                     }
                     Toggle("Unsynced only", isOn: $filter.unsyncedOnly)
                         .accessibilityIdentifier("filter-unsynced")
-                    if showPhoneFilters {
-                        Toggle("Has photos", isOn: $filter.hasPhotosOnly)
-                        if !places.isEmpty {
-                            Picker("Place", selection: $filter.place) {
-                                Text("Any").tag(String?.none)
-                                ForEach(places, id: \.self) { Text($0).tag(String?.some($0)) }
-                            }
-                        }
-                    }
                 }
                 Section {
                     Picker("Date field", selection: $filter.dateField) {

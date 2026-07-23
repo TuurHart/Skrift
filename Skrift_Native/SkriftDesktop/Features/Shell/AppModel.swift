@@ -49,6 +49,11 @@ final class AppModel {
     var searchText: String = ""
     /// Queue ordering (default newest-first).
     var sort: SidebarSort = .newest
+    /// Date-range filter over the row's uploaded date — the Mac half of the
+    /// iPad's Filter sheet (Tuur 2026-07-23: "add Date to the Mac"). nil = open.
+    var dateFrom: Date?
+    var dateTo: Date?
+    var dateFilterActive: Bool { dateFrom != nil || dateTo != nil }
 
     /// Multi-selection built with ⌘/⇧-click (native macOS list semantics).
     var selection: Set<String> = []
@@ -84,10 +89,16 @@ final class AppModel {
         return false
     }
 
+    /// Within the date-range filter — the shared `DateRangeFilter` rule (same one
+    /// the iPad's Filter sheet uses), over the row's uploaded date.
+    func matchesDate(_ f: PipelineFile) -> Bool {
+        DateRangeFilter.contains(f.uploadedAt, from: dateFrom, to: dateTo)
+    }
+
     /// The queue as displayed: filter → search → sort. Single source of truth for
     /// both the rows and the shift-click range order.
     func visible(_ files: [PipelineFile]) -> [PipelineFile] {
-        files.filter { matchesFilter($0) && matchesSearch($0) }.sorted(by: sortComparator)
+        files.filter { matchesFilter($0) && matchesSearch($0) && matchesDate($0) }.sorted(by: sortComparator)
     }
 
     private func sortComparator(_ a: PipelineFile, _ b: PipelineFile) -> Bool {

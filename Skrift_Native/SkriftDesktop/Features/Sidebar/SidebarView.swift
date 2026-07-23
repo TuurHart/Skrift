@@ -286,7 +286,7 @@ struct SidebarView: View {
                 Image(systemName: "line.3.horizontal.decrease").font(.system(size: 9, weight: .semibold))
                 Text("Filter").font(.system(size: 10.5, weight: .medium))
             }
-            .foregroundStyle(Theme.textSecondary)
+            .foregroundStyle(model.dateFilterActive ? Theme.accent : Theme.textSecondary)
             .padding(.horizontal, 8).padding(.vertical, 4)
             .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
         }
@@ -317,10 +317,52 @@ struct SidebarView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                Divider().padding(.horizontal, 16).padding(.vertical, 6)
+                Text("FILTER BY DATE (UPLOADED)").font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Theme.textMuted).padding(.horizontal, 16)
+                datePickerRow(label: "From", isOn: fromEnabled, date: fromBinding)
+                datePickerRow(label: "To", isOn: toEnabled, date: toBinding)
+                if model.dateFilterActive {
+                    Button { model.dateFrom = nil; model.dateTo = nil } label: {
+                        Text("Clear dates").font(.system(size: 12))
+                            .foregroundStyle(Theme.accent)
+                            .padding(.horizontal, 16).padding(.top, 4)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .frame(width: 260)
             .padding(.bottom, 12)
         }
+    }
+
+    /// One "From/To" row: a toggle that arms the bound (today by default) + a
+    /// DatePicker shown once armed. Mirrors the iPad sheet's date rows.
+    @ViewBuilder private func datePickerRow(label: String, isOn: Binding<Bool>, date: Binding<Date>) -> some View {
+        HStack {
+            Toggle(label, isOn: isOn).toggleStyle(.checkbox).font(.system(size: 12.5))
+            Spacer()
+            if isOn.wrappedValue {
+                DatePicker("", selection: date, displayedComponents: .date)
+                    .labelsHidden().datePickerStyle(.field).controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 3)
+    }
+
+    private var fromEnabled: Binding<Bool> {
+        Binding(get: { model.dateFrom != nil },
+                set: { model.dateFrom = $0 ? Calendar.current.startOfDay(for: Date()) : nil })
+    }
+    private var toEnabled: Binding<Bool> {
+        Binding(get: { model.dateTo != nil }, set: { model.dateTo = $0 ? Date() : nil })
+    }
+    private var fromBinding: Binding<Date> {
+        Binding(get: { model.dateFrom ?? Date() }, set: { model.dateFrom = $0 })
+    }
+    private var toBinding: Binding<Date> {
+        Binding(get: { model.dateTo ?? Date() }, set: { model.dateTo = $0 })
     }
 
     // ── Triage line — what needs ME right now ───────────────
