@@ -287,7 +287,7 @@ struct MemosListView: View {
             }
             #endif
             .sheet(isPresented: $showSortFilter) {
-                SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces)
+                SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces, showSort: !isRegular)
             }
             // A sheet rather than a push: the stack's path is typed [UUID] for
             // memo detail, which a non-memo destination can't join. (Settings +
@@ -789,7 +789,16 @@ struct MemosListView: View {
                 }
             }
             Spacer(minLength: 6)
-            Button { withAnimation(Theme.Motion.snappy) { sort = sort.next } } label: {
+            // A direct-pick menu, not a cycle (Tuur circled the cycle next to
+            // "Oldest first" — a cycle can't jump straight to a sort). This is
+            // the ONLY sort control at regular width; the ⋯ filter sheet drops
+            // its Sort section here (it stays on the phone, which has no inline
+            // control).
+            Menu {
+                Picker("Sort", selection: $sort) {
+                    ForEach(MemoSort.allCases) { Text($0.rawValue).tag($0) }
+                }
+            } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.up.arrow.down").font(.system(size: 9, weight: .semibold))
                     Text(sort.short).font(.system(size: 10.5, weight: .medium))
@@ -798,9 +807,8 @@ struct MemosListView: View {
                 .padding(.horizontal, 8).padding(.vertical, 4)
                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
             }
-            .buttonStyle(.plain)
             .fixedSize()
-            .accessibilityIdentifier("ipad-sort-cycle")
+            .accessibilityIdentifier("ipad-sort-menu")
         }
         .font(.system(size: 11))
         .lineLimit(1)
@@ -1630,6 +1638,10 @@ private struct SortFilterSheet: View {
     @Binding var sort: MemoSort
     @Binding var filter: MemoFilter
     let places: [String]
+    /// Regular width owns sort inline (the triage-line menu), so the sheet is
+    /// filters-only there — no second sort control. The phone (compact) has no
+    /// inline sort, so it keeps the Sort section.
+    var showSort = true
     @Environment(\.dismiss) private var dismiss
 
     // Optional-date bindings: a toggle enables the bound (today by default), the
@@ -1651,12 +1663,14 @@ private struct SortFilterSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Sort") {
-                    Picker("Sort", selection: $sort) {
-                        ForEach(MemoSort.allCases) { Text($0.rawValue).tag($0) }
+                if showSort {
+                    Section("Sort") {
+                        Picker("Sort", selection: $sort) {
+                            ForEach(MemoSort.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
                     }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
                 }
                 Section("Filter") {
                     Toggle("Not rated", isOn: $filter.notRatedOnly)
@@ -1696,7 +1710,7 @@ private struct SortFilterSheet: View {
                     Button("Clear filters", role: .destructive) { filter = MemoFilter() }
                 }
             }
-            .navigationTitle("Sort & Filter")
+            .navigationTitle(showSort ? "Sort & Filter" : "Filter")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
