@@ -38,6 +38,14 @@ final class AudiobookSyncRecord {
     /// only APPLIES them (derives `epubChapters`) once every landed sidecar is fresh against
     /// this device's own transcript — alignment sidecars are never restamped. Empty = none yet.
     var alignmentSignature: String = ""
+    /// 📖 Manifest of the ATTACHED TEXT files the SOURCE has uploaded —
+    /// `"<index>:<byteSize>:<filename>"` joined with "|" (filename LAST so a ":"
+    /// inside it survives a 3-way split). Doubles as the change-signature, exactly
+    /// like `transcriptSignature`. The receiver downloads the files, then sets its
+    /// OWN local attach fields — the filenames deliberately never ride the whole-blob
+    /// `Audiobook` record, so an older writer still can't erase them (the
+    /// 2026-07-22 local-only doctrine keeps its teeth). Empty = nothing attached.
+    var epubSignature: String = ""
 
     init(bookID: UUID, blob: Data, modifiedAt: Date = Date(), audioUploadedAt: Date? = nil,
          transcriptSignature: String = "", alignmentSignature: String = "") {

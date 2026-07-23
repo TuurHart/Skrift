@@ -232,6 +232,10 @@ enum AudiobookCloudSync {
                 // Read-along transcript sidecars (once the audio is present to re-stamp against).
                 await receiveTranscripts(remote, record: record, folder: folder,
                                          transport: transport, defaults: defaults, library: library)
+                // 📖 the attached ePub itself (2026-07-23) — before the alignment apply,
+                // so a device that lands both in one pass shows an honest Text sheet.
+                await receiveEpubs(remote, record: record, folder: folder,
+                                   transport: transport, defaults: defaults, library: library)
                 // 📖 spike 6: alignment sidecars (chapter marks derive once they're fresh
                 // against whatever transcript just landed above).
                 await receiveAlignments(remote, record: record, folder: folder,
@@ -266,6 +270,8 @@ enum AudiobookCloudSync {
             await sendTranscripts(local, record: record, library: library, transport: transport)
             // 📖 spike 6: same for alignment sidecars — also ungated by the audio upload-once.
             await sendAlignments(local, record: record, library: library, transport: transport)
+            // 📖 the attached text files themselves (same cadence, ~1 MB each).
+            await sendEpubs(local, record: record, library: library, transport: transport)
         }
 
         // BOOKMARKS (iPad wave, 2026-07-23): whole-list LWW per synced book,
@@ -498,6 +504,100 @@ enum AudiobookCloudSync {
             ft.signature = sig
             try? store.save(ft, bookID: book.id)
         }
+    }
+
+    // MARK: - Attached text files (📖 the ePub itself — Tuur 2026-07-23)
+    //
+    // Until now the ePub stayed on the attaching device and only its ALIGNMENT
+    // travelled — enough for chapters + true-text read-along, but a receiver's Text
+    // sheet honestly read "No book text attached" and it could never re-match or
+    // capture against the published words. The file is ~1 MB against 738 MB of
+    // audio already syncing, so it rides the same raw-CloudKit transport. The
+    // filenames still never enter the whole-blob record: the receiver sets its own
+    // LOCAL attach fields after the bytes land, so an older writer can't erase them.
+
+    private static func epubRecordName(bookID: UUID, index: Int) -> String { "ab_\(bookID.uuidString)_txt\(index)" }
+    private static func epubAppliedKey(_ bookID: UUID) -> String { "audiobookEpubApplied.\(bookID.uuidString)" }
+
+    /// `"<index>:<byteSize>:<filename>"` per attached text, joined with "|".
+    nonisolated static func epubManifest(names: [String], sizes: [Int]) -> String {
+        zip(names.indices, zip(names, sizes)).map { i, pair in "\(i):\(pair.1):\(pair.0)" }
+            .joined(separator: "|")
+    }
+
+    /// Filenames in manifest order (index-keyed record names rebuilt from it).
+    nonisolated static func epubNames(fromManifest manifest: String) -> [(index: Int, filename: String)] {
+        manifest.split(separator: "|").compactMap { entry in
+            let parts = entry.split(separator: ":", maxSplits: 2)   // filename LAST — may contain ":"
+            guard parts.count == 3, let i = Int(parts[0]) else { return nil }
+            return (i, String(parts[2]))
+        }
+    }
+
+    private static func localEpubManifest(_ book: Audiobook, folder: URL) -> String {
+        let names = book.attachedTextFilenames
+        let sizes = names.map { name -> Int in
+            let attrs = try? FileManager.default.attributesOfItem(atPath: folder.appendingPathComponent(name).path)
+            return (attrs?[.size] as? Int) ?? 0
+        }
+        // A name whose file is gone (size 0) still lists — the receiver just won't
+        // get bytes for it, and `landed` below keeps the record honest.
+        return epubManifest(names: names, sizes: sizes)
+    }
+
+    private static func epubRefs(fromManifest manifest: String, bookID: UUID) -> [AudiobookAudioRef] {
+        epubNames(fromManifest: manifest).map {
+            AudiobookAudioRef(recordName: epubRecordName(bookID: bookID, index: $0.index), filename: $0.filename)
+        }
+    }
+
+    /// SOURCE: upload the attached text files when they exist + changed.
+    private static func sendEpubs(_ book: Audiobook, record: AudiobookSyncRecord,
+                                  library: AudiobookLibraryStore, transport: AudiobookAudioTransport) async {
+        let folder = library.folder(for: book.id)
+        let manifest = localEpubManifest(book, folder: folder)
+        guard !manifest.isEmpty, manifest != record.epubSignature else { return }
+        let parts = book.attachedTextFilenames.enumerated().compactMap { i, name -> AudiobookAudioPart? in
+            let url = folder.appendingPathComponent(name)
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            return AudiobookAudioPart(recordName: epubRecordName(bookID: book.id, index: i),
+                                      filename: name, fileURL: url)
+        }
+        guard !parts.isEmpty else { return }
+        do {
+            try await transport.upload(parts) { _ in }
+            record.epubSignature = manifest
+            DevLog.log("epubSync \(book.id): uploaded \(parts.count) text file(s)")
+        } catch {
+            DevLog.log("audiobook epub upload failed \(book.id): \(error)")
+        }
+    }
+
+    /// RECEIVER: pull the text files, then set THIS device's local attach fields.
+    /// Verdict-gated like the alignment apply — the marker is only written once the
+    /// attach fields read back from the store.
+    private static func receiveEpubs(_ book: Audiobook, record: AudiobookSyncRecord, folder: URL,
+                                     transport: AudiobookAudioTransport, defaults: UserDefaults,
+                                     library: AudiobookLibraryStore) async {
+        guard !record.epubSignature.isEmpty else { return }
+        let expected = epubNames(fromManifest: record.epubSignature).map(\.filename)
+        let onDisk = expected.filter { FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
+        let attached = library.book(id: book.id)?.attachedTextFilenames ?? []
+        let done = defaults.string(forKey: epubAppliedKey(book.id)) == record.epubSignature
+        guard !done || onDisk.count != expected.count || attached.isEmpty else { return }
+
+        if onDisk.count != expected.count {
+            try? await transport.download(epubRefs(fromManifest: record.epubSignature, bookID: book.id),
+                                          into: folder) { _ in }
+        }
+        let landed = expected.filter { FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
+        DevLog.log("epubSync \(book.id): expected=\(expected.count) landed=\(landed.count)")
+        guard !landed.isEmpty, var fresh = library.book(id: book.id) else { return }
+        fresh.epubFilenames = landed
+        fresh.epubFilename = landed.first          // legacy single slot stays written
+        library.update(fresh)
+        guard library.book(id: book.id)?.attachedTextFilenames.isEmpty == false else { return }
+        defaults.set(record.epubSignature, forKey: epubAppliedKey(book.id))
     }
 
     // MARK: - Alignment sidecars (📖 spike 6 — synced like transcripts, never restamped)
