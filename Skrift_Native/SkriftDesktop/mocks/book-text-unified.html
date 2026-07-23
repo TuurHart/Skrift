@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Unified "Text" sheet — transcript + book text as one flow (PROPOSAL)</title>
+<style>
+  :root{
+    --bg:#0C0C12; --surface:#17171F; --elev:#23232E; --elev2:#2B2B38;
+    --accent:#7E74F0; --text:#F3F3F7; --dim:#9A9AA8; --faint:#6A6A78; --tan:#C9A87C;
+    --green:#6FBF8F; --asr:#3A3A48;
+  }
+  body{background:#060609; color:var(--text); font-family:-apple-system,'SF Pro Text',Helvetica,sans-serif; margin:0; padding:34px; display:flex; gap:44px; flex-wrap:wrap; align-items:flex-start;}
+  h2{font-size:13px; font-weight:600; color:var(--dim); margin:0 0 10px 2px; letter-spacing:.4px;}
+  h2 b{color:var(--text);}
+  .note{font-size:11px; color:var(--faint); max-width:322px; line-height:1.5; margin:8px 2px 0;}
+  .phone{width:322px; background:var(--bg); border:6px solid #000; border-radius:40px; overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.55);}
+  .dimmed{height:86px; background:linear-gradient(#15151d,#0C0C12); opacity:.45; display:flex; align-items:flex-end; padding:0 18px 10px; font-size:12px; color:var(--faint);}
+  .sheet{background:var(--surface); border-radius:22px 22px 34px 34px; padding:6px 16px 22px; min-height:420px;}
+  .grab{width:38px; height:5px; border-radius:3px; background:var(--elev2); margin:8px auto 14px;}
+  .sh-title{font-size:16px; font-weight:700; margin:0 2px 2px;}
+  .sh-sub{font-size:11.5px; color:var(--faint); margin:0 2px 16px;}
+  .lvl{font-size:10.5px; font-weight:600; letter-spacing:1.1px; color:var(--faint); text-transform:uppercase; margin:0 2px 6px;}
+  .card{background:var(--elev); border-radius:14px; padding:12px 14px; margin-bottom:16px;}
+  .card .t{font-size:13.5px; font-weight:600;}
+  .card .m{font-size:11.5px; color:var(--dim); margin-top:3px; line-height:1.45;}
+  .card .m .ok{color:var(--green);}
+  .card .m .tanc{color:var(--tan);}
+  .card-head{display:flex; justify-content:space-between; align-items:baseline;}
+  .card-head .x{color:var(--faint); font-size:15px;}
+  .pbar{height:8px; border-radius:4px; background:var(--elev2); margin-top:9px; overflow:hidden;}
+  .pbar>i{display:block; height:100%; background:var(--accent); border-radius:4px;}
+  .btn{display:inline-block; background:var(--accent); color:#fff; font-size:12.5px; font-weight:600; border-radius:10px; padding:8px 14px; margin-top:10px;}
+  .btn.ghost{background:transparent; color:var(--accent); border:1.5px solid var(--accent); opacity:.9;}
+  .bar{display:flex; height:14px; border-radius:7px; overflow:hidden; margin:2px 2px 6px; background:var(--asr); position:relative;}
+  .bar>i{position:absolute; top:0; bottom:0; background:var(--accent);}
+  .barlab{display:flex; justify-content:space-between; font-size:10.5px; color:var(--faint); margin:0 2px 12px; font-variant-numeric:tabular-nums;}
+  .add{border:1.5px dashed var(--elev2); color:var(--accent); border-radius:14px; padding:13px 14px; font-size:13px; font-weight:600; text-align:center; margin-top:4px;}
+  .add.off{color:var(--faint); border-color:var(--elev2); opacity:.65;}
+  .foot{font-size:10.5px; color:var(--faint); text-align:center; margin-top:14px; line-height:1.5;}
+</style></head>
+<body>
+
+<!-- ── PROPOSAL (2026-07-22, Tuur): "the transcribe menu should merge with the ePub one —
+     both are about the same thing, adding text. Two levels: first get text, then the
+     highest quality via the ePub." One "Text…" verb replaces "Transcribe book" +
+     "Book text…" everywhere (player ⋯, library long-press). NOT BUILT — awaiting sign-off. ── -->
+
+<!-- ───────────── A1: fresh book — nothing transcribed yet ───────────── -->
+<div id="a1">
+  <h2><b>A · "Text" sheet — two levels stacked</b> (fresh import)</h2>
+  <div class="phone">
+    <div class="dimmed">Books · The Odyssey</div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="sh-title">Text</p>
+      <p class="sh-sub">Give this audiobook words — transcribe it, then add the real book for the published text.</p>
+
+      <p class="lvl">Level 1 · Transcript</p>
+      <div class="card">
+        <div class="card-head"><span class="t">Not transcribed</span></div>
+        <div class="m">Transcribing gives read-along, quote captures and chapter detection. Runs on-device, ≈ 24 min for this book.</div>
+        <span class="btn">Transcribe</span>
+      </div>
+
+      <p class="lvl">Level 2 · Book text</p>
+      <div class="card" style="opacity:.62">
+        <div class="card-head"><span class="t">No book text attached</span></div>
+        <div class="m">Add the ePub to upgrade read-along and captures to the published words, and chapters to the real table of contents.</div>
+      </div>
+      <div class="add">＋ Add book text…</div>
+      <div class="foot">Both run in the background — you can keep listening.</div>
+    </div>
+  </div>
+  <p class="note">One sheet, two levels, in the order they matter: transcript is the floor (every book gets it), book text is the ceiling (when you have the file). Adding an ePub before transcribing is allowed — it waits, and says so.</p>
+</div>
+
+<!-- ───────────── A2: mid-transcription with an ePub already added ───────────── -->
+<div id="a2">
+  <h2><b>A · same sheet, mid-transcribe</b> (ePub added early — deferred)</h2>
+  <div class="phone">
+    <div class="dimmed">Books · The Odyssey</div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="sh-title">Text</p>
+      <p class="sh-sub">Transcribing · the book text is queued behind it.</p>
+
+      <p class="lvl">Level 1 · Transcript</p>
+      <div class="card">
+        <div class="card-head"><span class="t">Transcribing…</span><span class="x">⏸</span></div>
+        <div class="pbar"><i style="width:42%"></i></div>
+        <div class="m" style="margin-top:7px">42% · ≈ 1 h 10 left · runs on battery, pauses in Low Power Mode</div>
+      </div>
+
+      <p class="lvl">Level 2 · Book text</p>
+      <div class="card">
+        <div class="card-head"><span class="t">The Odyssey (Wilson)</span><span class="x">⋯</span></div>
+        <div class="m"><span class="tanc">Waiting for the transcript</span> — it will match up on its own the moment transcription finishes.</div>
+      </div>
+      <div class="add off">＋ Add book text…</div>
+      <div class="foot">You can keep listening while both run.</div>
+    </div>
+  </div>
+  <p class="note">The mid-transcribe state answers Tuur's "what happens if I upload an ePub while it's still transcribing?" — allowed, visibly queued, never a bogus "doesn't match" verdict from a half transcript.</p>
+</div>
+
+<!-- ───────────── A3: steady state — both levels live ───────────── -->
+<div id="a3">
+  <h2><b>A · steady state</b> (transcribed + matched)</h2>
+  <div class="phone">
+    <div class="dimmed">Books · The Odyssey</div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <p class="sh-title">Text</p>
+      <p class="sh-sub">Real book text covers 96% of this audiobook</p>
+
+      <p class="lvl">Level 1 · Transcript</p>
+      <div class="card">
+        <div class="card-head"><span class="t">Transcript complete</span></div>
+        <div class="m"><span class="ok">13 h 12 transcribed</span> · re-runs only if the audio changes</div>
+      </div>
+
+      <p class="lvl">Level 2 · Book text</p>
+      <div class="bar"><i style="left:0; width:96%"></i></div>
+      <div class="barlab"><span>0:00</span><span>13:12:47</span></div>
+      <div class="card">
+        <div class="card-head"><span class="t">The Odyssey (Wilson)</span><span class="x">⋯</span></div>
+        <div class="m"><span class="ok">12 h 40 · full match</span> · chapters from its table of contents</div>
+      </div>
+      <div class="add">＋ Add book text…</div>
+      <div class="foot">Texts never change your audio or transcript.</div>
+    </div>
+  </div>
+  <p class="note">Steady state = today's Book text sheet with the transcript's status card on top. The coverage bar and rows are UNCHANGED from the signed-off book-text-sheet.html variant B — this proposal only adds the level-1 card and unifies the entry verb ("Text…").</p>
+</div>
+
+</body></html>

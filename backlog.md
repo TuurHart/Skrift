@@ -53,12 +53,16 @@ aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-t
 on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
 
 **NEXT CHAT'S WORK (in order):**
-0. **📖 ROUND 5+6 fixes VERIFY + merge (branch `claude/epub-chapter-discrepancy-wlgvhd`,
+0. **📖 ROUND 5+6+7 fixes VERIFY + merge (branch `claude/epub-chapter-discrepancy-wlgvhd`,
    written from a Linux session — no xcodebuild there):** run the iPhone 17 sim suite, then
    build+install Dev and open the Odyssey book — (R5) chapters must flip to the ePub TOC on
-   their own (re-adopt + self-heal), surviving relaunch; (R6) the read-along must show ASR
-   text where the aligner has holes — Tuur's repro spots: ~3:00 (after "(andra).") and
-   ~5:35 (the Trojan War sentence). Full records: 📖 ROUND 5/6 blocks below.
+   their own (re-adopt + self-heal), surviving relaunch; (R6+R7) the schema-4 re-align runs
+   silently on open, then Tuur's repro spots — ~3:00 (after "(andra).") and ~5:35 (the
+   Trojan War sentence) — should show the BOOK sentences (bridged), with ASR only where the
+   book truly has nothing; (R7) attach shows live stages + "keep listening", attaching
+   mid-transcribe defers with clear copy. Get Tuur's verdict on
+   `mocks/book-text-unified.html` (unified "Text" sheet — not built). Full records: 📖
+   ROUND 5/6/7 blocks below.
 1. **Pull phone feedback if Tuur recorded any** (/pull-phone-feedback) — 4 live rounds today
    means fresh findings likely.
 2. **🧬 walkthrough tail (eyes, guided — b92-era items still unconfirmed):** untouched-note
@@ -476,6 +480,34 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    files" (the trilogy: file 1 = book 1, rest honestly rejected) → read-along shows
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
+
+**📖 ROUND 7 (Tuur 2026-07-23, going over rounds 5+6): four items, all handled (same
+branch `claude/epub-chapter-discrepancy-wlgvhd`).**
+(1) **"If it had actually put in the whole ePub that was working"** — right: round 6's ASR
+gap fill is the fallback, not the fix, when narration == book text. NEW (schema 4): a hole
+run SANDWICHED between two timed sentences re-emits the BOOK sentences with times
+interpolated across the gap (`AlignedSentence.bridged`), gated on corroboration — the
+window's spoken-word count must be 0.5–2.0× the book words (a silent window = narrator
+truly skipped it → still dropped, ASR fill owns leftovers). Confidence stays 0 (honest);
+the flag drives book-text rendering; collision rule unaffected (bridge loses to any real
+match). Schema 3→4 forces every attached book to re-align on next open, so the Trojan-War
+sentence should come back as REAL book text, not ASR. Layering now: exact book text >
+bridged book text > ASR splice > ASR gap fill.
+(2) **13 h attach: no progress, "can I keep listening?"** — the busy line now follows the
+runner's live stages ("Copying the file in…" / "Reading the text…" / "Matching the text…
+(file k of n)" / "Placing chapters…") + a standing sub-line "You can keep listening while
+this runs." (true — playback never contends). Real % inside ONE file's matching would need
+an AlignmentCore progress callback (single DP pass) — parked as a candidate.
+(3) **ePub while still transcribing** — now DELIBERATE: attach mid-transcribe copies +
+records the text but defers alignment (alert: "still transcribing — it will match up on
+its own the moment transcription finishes"); `alignIfNeeded` no-ops while the job runs
+(the job's own finish call does the real pass) — no more bogus verdicts off a partial
+transcript, no churn from player opens.
+(4) **Unify transcribe + book-text menus** ("both are about adding text — two levels") —
+DESIGN, so mock-first: `mocks/book-text-unified.html` proposes ONE "Text…" verb/sheet:
+Level 1 Transcript (status/progress/Transcribe), Level 2 Book text (today's signed-off
+sheet unchanged), incl. the mid-transcribe deferred state. **Awaiting Tuur sign-off — not
+built.** ⚠️ Still Linux-authored: xcodebuild suite owed (with rounds 5+6) before install.
 
 **📖 ROUND 6 (Tuur 2026-07-22 ~23:11–23:16, Odyssey): read-along DROPS spoken text —
 FIXED (same branch `claude/epub-chapter-discrepancy-wlgvhd`).** Two sightings, one bug:
