@@ -3,7 +3,7 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 23
+version: 24
 updated: 2026-07-23T17:10:00.000Z
 lanes:
   - track: -1
@@ -652,6 +652,21 @@ nodes:
       item), polish + prompt-sync live test (sim can't Metal-JIT), the Mac's
       'Flag all K' bulk naming question, then promote to main."
     shipped:
+      - >-
+        2026-07-23 eve · iPad CHROME round (mock ipad-chrome.html, direction A
+        signed by Tuur with his own bar refinements): the note owns ONE pinned
+        bar (toggle · -10/play/+10 · elapsed · scrubber FLEXES · remaining ·
+        speed · + · Process · overflow · toggle), system nav toolbar hidden and
+        the bottom floating player stood down at regular width (it was a second
+        player + the ghost behind the tab strip); Split speakers moved into the
+        overflow; list header rebuilt as the MAC's construction (the low 30pt
+        wordmark gone, Import + Process-N buttons + search + count line);
+        "Process" is the word on all three apps via SharedCopy.processVerb; the
+        engine now reports PolishStep as DATA so the bar shows "Copy-edit ·
+        2 of 3" + a determinate line (the Mac's RunState vocabulary); and the
+        toggle idea travelled BACK to the Mac, whose bar gained the notes-list
+        toggle (no + there — it doesn't record). Gate: mobile 957/0, desktop
+        496/0, both builds green, sim-eyeballed twice. Device eyeball owed
       - >-
         2026-07-23 later · m1b RESOLVED: B built (quiet unrated rows at regular
         — dim + hollow ○ + spine one-liner, count line → Not-rated filter) plus

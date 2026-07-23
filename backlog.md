@@ -157,6 +157,42 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
+## 🖥️ CONTINUE HERE — iPad chrome build (session end 2026-07-23 ~17:45; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+
+**SIGNED SPEC = `mocks/ipad-chrome.html` direction A** (Tuur picked it and refined the bar).
+Built + committed `044f1c6`, CFBundleVersion **119**. **Suites green THIS session: mobile 957/0,
+desktop 496/0; iPad-sim + Mac builds green.** Sim-eyeballed twice (bar-v3 → fixes → bar-v4).
+
+**What landed (all committed):**
+- **The note bar** — one pinned row owned by the note; system nav toolbar hidden at regular
+  width so nothing floats over a column: `◧ | ⟲10 ▶ ⟳10 | elapsed | scrubber FLEXES |
+  remaining | 1× | ＋ | Process | ⋯ | ◨`. Split speakers moved into ⋯.
+- **The bottom floating player stands down at regular width** — it was rendering a SECOND
+  player and ghosting behind the tab strip (the artifact from the 118 round). Compact untouched.
+- **List header = the Mac's construction** — the low 30pt wordmark is gone; identity line +
+  Import + **Process N** buttons + search + count line.
+- **Process everywhere** via `SharedCopy.processVerb` (the anti-drift constant).
+- **Real progress**: engine reports `PolishStep` as DATA (not a guessed fraction) → the bar
+  shows "Copy-edit · 2 of 3" + determinate bar, and "Getting the model — 41%" first run.
+- **Mac gained ◧** (notes-list toggle mirroring Connections, collapses the column via
+  `macSidebarVisible`); Mac deliberately has no ＋.
+
+**NEXT CHAT — heavy work first:**
+1. **Install 119 on both devices and EYEBALL the bar** (iPad UDID `00008142-000239E2146B801C`,
+   phone `00008110-001208C902EA201E`). Sim shots looked right after the fixedSize fix, but the
+   bar has never been seen on hardware. Watch: time labels not wrapping, scrubber taking the
+   slack, ＋/Process/⋯ spacing, and the Mac's new ◧ actually collapsing its column (Mac Dev
+   redeploy: build → pkill → ditto → open).
+2. **The processing FAILURE Tuur hit is still undiagnosed** ("could not process") — the path
+   now logs; pull `Documents/devlog.txt` and read it rather than guessing. Prime suspect: the
+   4.6 GB model was never downloaded (Settings → Process on this iPad → Download).
+3. **Bookmark + ePub sync round-trips are still unwitnessed** (both need the phone AND iPad
+   awake with the app foreground; a locked device suspends the app and can't even write the log).
+
+**Open with Tuur:** the ＋ placement (parked in the bar, he wondered about a better home) ·
+whether the Mac's "Mark all as Passing" bulk wording is right · promotion to main is sequenced
+AFTER the other chat's book-import fixes land.
+
 **🪟 COLUMN TOGGLES (build 118, on the iPad; Tuur's ask + my process miss).** He said the right
 side "looks stupid"; I removed the collapse control instead of asking — wrong call twice over
 (the real defect was the note's toolbar spanning the panel's column, since fixed by making them
