@@ -11,9 +11,9 @@ import SwiftData
 // (the Mac keeps it behind hover; touch shows none) · long-press = the Mac's
 // hover-✕ "not related" hide (same defaults key) · "Show all N" past the
 // relatedKMac cap · in-panel consent gate. Open/close lives in the NOTE'S
-// TOOLBAR as the Mac-style count badge (`ConnectionsBadge`); collapsed, the
-// panel keeps a zero-width presence so its loader still feeds the badge
-// (the 2026-07-13 empty-conditional-task gotcha).
+// header (the collapse toggle was removed 2026-07-23 — on a 13" iPad the note
+// is already at its reading measure, so hiding the panel only re-centred the
+// same text; the Mac keeps its own collapse, where a narrow window earns it).
 // Compact width keeps the phone's inline footer card — one data source.
 
 // MARK: - Row model + pure logic (unit-tested — no Memo, no main actor)
@@ -50,16 +50,6 @@ enum ConnectionsPanelLogic {
     }
 }
 
-/// The toolbar badge's data feed (the Mac keeps its model outside the panel for
-/// exactly this — "the toolbar badge needs the count").
-@MainActor
-@Observable
-final class ConnectionsBadge {
-    static let shared = ConnectionsBadge()
-    private(set) var count = 0
-    func set(_ n: Int) { count = n }
-}
-
 // MARK: - The standing panel
 
 struct ConnectionsPanel: View {
@@ -72,7 +62,6 @@ struct ConnectionsPanel: View {
 
     // Remembered app-wide. Closest is the default mode (Mac default).
     @AppStorage("ipadConnectionsSortByDate") private var sortByDate = false
-    @AppStorage("ipadConnectionsCollapsed") private var collapsed = false
 
     @State private var related: [ConnectionRowVM] = []   // score DESC
     @State private var backlinks: [BacklinkVM] = []
@@ -88,15 +77,7 @@ struct ConnectionsPanel: View {
     private static let hiddenDefaultsKey = "connectionsHiddenPairs"   // same shape as the Mac's
 
     var body: some View {
-        Group {
-            if collapsed {
-                // Zero-width presence: the .task below must keep firing while
-                // hidden so the toolbar badge stays fresh (never EmptyView).
-                Color.clear.frame(width: 1)
-            } else {
-                expanded
-            }
-        }
+        expanded
         .background(Color.skBg.ignoresSafeArea())
         .task(id: memo.id) {
             showAll = false
@@ -142,15 +123,6 @@ struct ConnectionsPanel: View {
                     .background(Color.skElev, in: Capsule())
             }
             Spacer()
-            Button { withAnimation(Theme.Motion.snappy) { collapsed = true } } label: {
-                Image(systemName: "chevron.right.2")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.skTextFaint)
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("ipad-connections-collapse")
-            .accessibilityLabel("Hide Connections")
         }
         .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
     }
@@ -529,7 +501,6 @@ struct ConnectionsPanel: View {
         map[memo.id.uuidString, default: []].append(row.id.uuidString)
         UserDefaults.standard.set(map, forKey: Self.hiddenDefaultsKey)
         related.removeAll { $0.id == row.id }
-        ConnectionsBadge.shared.set(count)
     }
 
     private static func hiddenNeighbours(of memoID: UUID) -> Set<String> {
@@ -546,8 +517,7 @@ struct ConnectionsPanel: View {
         backlinks = scanned
         guard isActive else {
             related = []; threadFirstMention = nil; finding = false
-            ConnectionsBadge.shared.set(count)
-            return
+                return
         }
         finding = true
         defer { if memo.id == target { finding = false } }  // don't clear a newer note's spinner
@@ -583,7 +553,6 @@ struct ConnectionsPanel: View {
         threadFirstMention = JournalIndexService
             .threadOrder(seedID: target, scores: scores, memosByID: byID)
             .first.map { LookbackProvider.journalDate($0) }
-        ConnectionsBadge.shared.set(count)
     }
 
     /// Who links HERE — the same scan as `MemoPageView.recomputeBacklinks`, plus

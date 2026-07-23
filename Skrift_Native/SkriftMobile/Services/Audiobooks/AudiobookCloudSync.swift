@@ -558,6 +558,28 @@ enum AudiobookCloudSync {
         "audiobookAlignmentApplied.\(bookID.uuidString)"
     }
 
+    /// What to do with a landed alignment signature — pure, so the latch rules are
+    /// testable without CloudKit (2026-07-23 device catch, see `receiveAlignments`).
+    enum AlignmentApplyStep: Equatable { case downloadAndApply, applyOnly, skip }
+
+    /// The applied-marker is `"<signature>#<derivedChapterCount>"`. A legacy marker
+    /// (bare signature, written before this build) records no OUTCOME, so we re-apply
+    /// once — that's what heals a device whose derived chapters were silently dropped
+    /// on write.
+    nonisolated static func alignmentStep(applied: String?, signature: String,
+                                          localHasEpubChapters: Bool) -> AlignmentApplyStep {
+        guard let applied else { return .downloadAndApply }
+        let parts = applied.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)
+        guard String(parts[0]) == signature else { return .downloadAndApply }
+        guard parts.count == 2, let derived = Int(parts[1]) else {
+            return .applyOnly          // legacy marker — outcome unknown, re-derive once
+        }
+        // Same signature, outcome known: re-derive ONLY when it once produced chapters
+        // that are no longer on the record (a lost write). A genuinely mark-less
+        // alignment (`derived == 0`) stays skipped — no 9 MB decode per reconcile.
+        return (derived > 0 && !localHasEpubChapters) ? .applyOnly : .skip
+    }
+
     /// RECEIVER: pull the alignment sidecars when the carrier's signature is new to THIS
     /// device. UNLIKE transcripts, alignment sidecars are NEVER restamped — they key off
     /// TRANSCRIPT CONTENT, not audio mtime — so the applied-key (→ `epubChapters` derived) only
@@ -569,8 +591,13 @@ enum AudiobookCloudSync {
                                           library: AudiobookLibraryStore) async {
         guard !record.alignmentSignature.isEmpty else { return }
         let appliedKey = alignmentAppliedKey(book.id)
-        guard defaults.string(forKey: appliedKey) != record.alignmentSignature else { return }
-        try? await transport.download(alignmentRefs(for: book), into: folder) { _ in }
+        let step = alignmentStep(applied: defaults.string(forKey: appliedKey),
+                                 signature: record.alignmentSignature,
+                                 localHasEpubChapters: library.book(id: book.id)?.epubChapters?.isEmpty == false)
+        guard step != .skip else { return }
+        if step == .downloadAndApply {
+            try? await transport.download(alignmentRefs(for: book), into: folder) { _ in }
+        }
 
         let store = BookAlignmentStore(directory: library.directory)
         let fileAlignments = book.files.indices.map { store.fileAlignment(bookID: book.id, fileIndex: $0) }
@@ -581,14 +608,27 @@ enum AudiobookCloudSync {
         }
         guard allFresh else { return }
 
-        let chapters = BookAlignmentRunner.epubChapters(from: fileAlignments, fileStartTimes: book.fileStartTimes,
-                                                         bookDuration: book.duration,
-                                                         detected: book.detectedChapters,
-                                                         fileDurations: book.fileDurations)
+        // Derive from the LOCAL record: `book` is the sanitized REMOTE blob, whose
+        // local-only `detectedChapters` are stripped by contract — feeding those
+        // dropped the partial-merge chapters of any file the ePub didn't cover.
+        let local = library.book(id: book.id) ?? book
+        let chapters = BookAlignmentRunner.epubChapters(from: fileAlignments, fileStartTimes: local.fileStartTimes,
+                                                         bookDuration: local.duration,
+                                                         detected: local.detectedChapters,
+                                                         fileDurations: local.fileDurations)
         if !chapters.isEmpty, var fresh = library.book(id: book.id) {
             fresh.epubChapters = chapters
             library.update(fresh)
         }
-        defaults.set(record.alignmentSignature, forKey: appliedKey)
+        // VERDICT-GATE THE LATCH (the ePub lane's own durable rule; device catch
+        // 2026-07-23): remember this signature as applied only once the derivation's
+        // result is READ BACK from the store. Build 106's encoder silently dropped
+        // `epubChapters` on write, and the old unconditional latch meant the iPad
+        // never retried — a 9.5 MB sidecar with all 29 real TOC marks sitting on
+        // disk while the sheet showed file-split parts. A mark-less alignment still
+        // latches (count 0) so it costs one decode, not one per reconcile.
+        let persisted = library.book(id: book.id)?.epubChapters?.count ?? 0
+        guard chapters.isEmpty || persisted > 0 else { return }
+        defaults.set("\(record.alignmentSignature)#\(persisted)", forKey: appliedKey)
     }
 }
