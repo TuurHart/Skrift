@@ -195,9 +195,18 @@ Mac-header rebuild.** LANDSCAPE RECLAIM CONFIRMED (his 19:06 device shot + my si
   ("place I'd go to the Review screen; photos I don't need") — gated phone-only via `showPhoneFilters`
   (phone keeps them + Not-rated). iPad Filter = **Sort + Unsynced + Date**. Mac Filter popover enlarged
   (260pt, "Sort & Filter" title). Big sheet sim-verified. Rig: `-showFilterSheet` presents it on launch.
-  **OPEN (asked Tuur):** (1) **phone** — bring the chips + Filter button to match the iPad, or leave it?
-  (2) **Mac filter depth** — the Mac popover is Sort-only; add Date (parity with the iPad) or leave Sort?
-  Also owed: Mac Dev redeploy to eyeball its enlarged Filter popover.
+  **[RESOLVED below]** phone → just the Filter button; Mac → add Date.
+- **PHONE Filter + Mac Date + place/photos gone (`6f31463`, build 126):** Tuur's calls —
+  - **Phone:** its filter funnel now opens the SAME trimmed big sheet as the iPad (no chips — he chose
+    "just the Filter button"). **Place + Has-photos removed from BOTH apps**; phone keeps "Not rated"
+    (no chips), iPad hides it (Unrated chip). Phone Filter = Sort + Not-rated + Unsynced + Date; iPad =
+    Sort + Unsynced + Date. Both sim-verified (full-height, trimmed). Removed `places`/`availablePlaces`.
+  - **Mac:** the enlarged Filter popover gained a **Date (uploaded) section** (From/To inclusive + Clear;
+    button tints accent when active) — `AppModel.dateFrom/dateTo` → `matchesDate` → `visible`.
+  - **Shared:** the date-range rule is ONE thing now — `Shared/Pipeline/DateRangeFilter` (both apps call
+    it; 4 tests in the desktop bundle). Rig: `-showFilterSheet` moved to notesRoot (fires phone + iPad).
+  Gate: mobile 971/0, desktop **500/0** (+4), all builds green. **OWED:** Mac Dev redeploy to eyeball the
+  Date popover; phone install of 126 (device round — the build already covers it).
 Gate: mobile 971/0, desktop 496/0, all builds green. Sim-verified upright (rotated the landscape
 capture; chips/Import/Search-memos/no-count all render). Sort-MENU interaction owed on device (the sim
 is stuck landscape from Tuur's flip → rotated tap space; the Menu+Picker pattern is proven in-file).
