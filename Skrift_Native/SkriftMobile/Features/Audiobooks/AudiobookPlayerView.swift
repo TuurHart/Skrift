@@ -257,8 +257,10 @@ struct AudiobookPlayerView: View {
         Menu {
             Button { tocInitialTab = .chapters; showTOC = true } label: { Label("Chapters & bookmarks", systemImage: "list.bullet") }
             Button { showEditBook = true } label: { Label("Edit book details", systemImage: "pencil") }
-            Button { showTranscribe = true } label: { Label("Transcribe book", systemImage: "text.book.closed") }
-            Button { bookTextBook = book } label: { Label("Book text\u{2026}", systemImage: "doc.badge.plus") }
+            // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off 2026-07-23):
+            // the unified sheet carries transcribe (Level 1) + book text (Level 2).
+            // `showTranscribe`/TranscribeBookView stays — the read-along nudge's sheet.
+            Button { bookTextBook = book } label: { Label("Text\u{2026}", systemImage: "text.book.closed") }
             // Per-book sync (Phase 1h) — same "Turn it on" sheet as the library long-press.
             Button { showSyncSheet = true } label: {
                 Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",

@@ -26,9 +26,13 @@ struct AudiobookLibraryView: View {
     /// Partial-import notice: the book imported but N parts were skipped (unreadable).
     @State private var importNotice: String?
     @State private var showPlayer = false
-    /// Long-press → "Transcribe book" target (presents the transcribe sheet for
-    /// any library book without opening it first).
-    @State private var transcribeBook: Audiobook?
+    /// A0 (mock book-text-unified.html): the once-per-book "Give this book text"
+    /// prompt, presented right after an import confirms. `a0Candidate` parks the
+    /// just-imported book until the confirm sheet is off-screen — presenting from
+    /// the import sheet's onDismiss avoids the iOS sheet-swap race.
+    @State private var giveTextBook: Audiobook?
+    @State private var a0Candidate: Audiobook?
+    @State private var a0AddHandoff: Audiobook?
     /// Bumped when a book's sync toggle flips, so the row's cloud glyph re-renders
     /// (sync state lives in the repository, not in `store.books`).
     @State private var syncToggleTick = 0
@@ -80,11 +84,23 @@ struct AudiobookLibraryView: View {
                 Task { await runImport(urls) }
             }
         }
-        .sheet(item: $pendingImport) { pending in
+        .sheet(item: $pendingImport, onDismiss: {
+            // A0 fires here — after the confirm sheet is fully down (a direct
+            // sheet-to-sheet swap drops the second presentation on iOS 26). Only
+            // when a skipped-parts alert isn't about to claim the presentation.
+            if let book = a0Candidate {
+                a0Candidate = nil
+                if importNotice == nil, !BookTextPrompt.seen(book.id) {
+                    BookTextPrompt.markSeen(book.id)
+                    giveTextBook = book
+                }
+            }
+        }) { pending in
             AudiobookImportConfirmSheet(
                 pending: pending,
                 onConfirm: { book in
                     store.add(book)
+                    a0Candidate = book
                     pendingImport = nil
                     importNotice = Self.skippedNotice(pending.skippedParts)
                 },
@@ -95,11 +111,21 @@ struct AudiobookLibraryView: View {
             )
             .presentationDetents([.medium])
         }
+        // A0: the once-per-book "Give this book text" prompt; its "Add book text…"
+        // hands off to the unified Text sheet (which owns the picker) — parked
+        // through onDismiss, same sheet-swap-race rule as above.
+        .sheet(item: $giveTextBook, onDismiss: {
+            if let book = a0AddHandoff {
+                a0AddHandoff = nil
+                bookTextSheetBook = book
+            }
+        }) { book in
+            BookTextPromptSheet(book: book) {
+                a0AddHandoff = book
+            }
+        }
         .fullScreenCover(isPresented: $showPlayer) {
             AudiobookPlayerView()
-        }
-        .sheet(item: $transcribeBook) { book in
-            TranscribeBookView(book: book)
         }
         .sheet(item: $syncSheetBook, onDismiss: { syncToggleTick += 1 }) { book in
             AudiobookSyncSheet(book: book)
@@ -294,18 +320,14 @@ struct AudiobookLibraryView: View {
                         }
                     }
                     .contextMenu {
-                        // Long-press → transcribe straight from the library (no need
-                        // to open the book → ⋯). Feeds read-along + instant capture.
-                        Button { transcribeBook = book } label: {
-                            Label("Transcribe book", systemImage: "text.book.closed")
-                        }
-                        // 📖 The "Book text" sheet (mock variant B, 2026-07-22) — ONE label
-                        // whether zero or several texts are attached; the sheet itself owns
-                        // Add (fileImporter presents over it) and each row's Remove/Re-check.
+                        // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off
+                        // 2026-07-23): the unified sheet owns BOTH levels — transcribe
+                        // (Level 1, inline job controls) and book text (Level 2: Add /
+                        // Re-check / Remove, fileImporter presents over it).
                         Button {
                             bookTextSheetBook = book
                         } label: {
-                            Label("Book text…", systemImage: "doc.badge.plus")
+                            Label("Text…", systemImage: "text.book.closed")
                         }
                         // Per-book sync (Phase 1h): open the "Turn it on" sheet (cover +
                         // size + the toggle + a live transfer %). The sheet owns the

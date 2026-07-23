@@ -74,6 +74,11 @@ enum LaunchFlags {
     /// Present the Chapters/Bookmarks sheet full-screen over the seeded book
     /// on launch — a deterministic sheet render without UI-test taps.
     static var showTOCSheet: Bool { args.boolFlag("-showTOCSheet") }
+    /// Present the unified "Text" sheet over the seeded book on launch
+    /// (mock book-text-unified.html) — same deterministic-render idea.
+    static var showTextSheet: Bool { args.boolFlag("-showTextSheet") }
+    /// Present the A0 "Give this book text" import prompt over the seeded book.
+    static var showTextPrompt: Bool { args.boolFlag("-showTextPrompt") }
     /// Open the Settings tab on launch (screenshot routing).
     static var openSettings: Bool { args.boolFlag("-openSettings") }
     /// Run the journal index on MockEmbedder + an in-memory store (no model
