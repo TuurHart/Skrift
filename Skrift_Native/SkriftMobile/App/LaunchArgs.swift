@@ -61,6 +61,12 @@ enum LaunchFlags {
     /// Seed the synthetic book WITHOUT arming a session — the Notes
     /// "Continue listening" card state (card-at-rest / pill-when-live).
     static var seedAudiobookIdle: Bool { args.boolFlag("-seedAudiobookIdle") }
+    /// Device-verify hook (📖 rounds 5–7): open the most recently played REAL
+    /// book as a PAUSED session on launch — fires the same book-open
+    /// `alignIfNeeded` a library tap would (re-adopt + schema re-align run
+    /// headlessly, devlog-traceable) without hands on the phone. Run via
+    /// `devicectl device process launch … -resumeBook`.
+    static var resumeBook: Bool { args.boolFlag("-resumeBook") }
     /// Decorate the seeded book with transcript-DETECTED chapters incl. a
     /// "Book 2" separator — the multi-work chapters-sheet state (screenshot
     /// verification of the section-header treatment).

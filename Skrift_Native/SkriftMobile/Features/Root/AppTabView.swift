@@ -73,6 +73,13 @@ struct AppTabView: View {
         .task {
             if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen() }
             else if LaunchFlags.seedAudiobookIdle { AudiobookSeeder.seedOnly() }
+            // `-resumeBook`: open the last-played REAL book paused — the same
+            // book-open path a library tap runs (incl. `alignIfNeeded`), for
+            // headless device verification over devicectl.
+            else if LaunchFlags.resumeBook,
+                    let recent = AudiobookLibraryStore.shared.sortedByRecent.first {
+                _ = AudiobookSession.shared.open(recent, autoplay: false)
+            }
             if LaunchFlags.showTOCSheet { showSeededTOC = true }
         }
         // `-showTOCSheet`: render the Chapters/Bookmarks sheet over the seeded
