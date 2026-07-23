@@ -88,8 +88,18 @@ never zooms out") — the Mac's map-behind-Places likely never got the b90 camer
 Check whether the iPad pane is immune (it reuses the PHONE's `JournalMapCanvas`, so it should
 carry the fix — verify), then port the b90 rules to the Mac's `JournalView` map mode.
 
-**✅ V2 BUILT same-day (2026-07-23 pm, conductor-direct — no lanes; ONE open pick left: the
-rows dialect, m1b):** items 1–6+8 below all landed (Connections=Mac-verbatim panel w/ why-chips
+**✅ m1b RESOLVED (2026-07-23, later same day): Tuur picked B + the correction that closed the
+verb loop — "flag for processing should just be done when you give it a rating."** Built: at
+regular width an unrated live note renders QUIET (dimmed, hollow ○, its MemoSpine one-liner in
+the date slot — status pill outranks it when present), count line "N notes · K not rated" taps
+into the EXISTING Not-rated filter, tap opens the note whose Importance circles ARE the
+rating-and-flag surface. **No Flag verb anywhere — the Mac's quiet-row "Flag for processing"
+context-menu item was REMOVED the same day** (same reasoning as the m6 peek's dead silent-0.1
+button; `flagQuiet` deleted; "Flag all K" bulk + count-line wording on the Mac left as-is —
+flag for Tuur: rename that too?). Compact = phone notebook untouched (asymmetry doctrine
+updated in-source).
+
+**✅ V2 BUILT same-day (2026-07-23 pm, conductor-direct — no lanes):** items 1–6+8 below all landed (Connections=Mac-verbatim panel w/ why-chips
 + toolbar badge · polish=visible ✨ button, automation deleted · Mac-parity prompt editors +
 **synced prompts** (PolishPromptsRecord carrier, vocab-LWW pattern, both apps, BOTH CloudKit
 schemas — prod deploy at promotion) · player=phone-at-every-width (three-zone deleted; expert

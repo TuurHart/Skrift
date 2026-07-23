@@ -420,25 +420,18 @@ struct SidebarView: View {
         .onTapGesture { bandPeek = WayOutPeek(id: memo.id.uuidString) }
         // The quiet row's fast verbs (m6/m3, 2026-07-22) — pipeline rows have
         // had a menu forever; these close the "can't right-click them" gap.
-        // Flag = the explicit one-click 0.1 (a chosen menu verb, not a hidden
-        // side effect); Lock = the background keep-don't-polish verb's only
-        // Mac surface; Delete = the Mac's first way to delete a synced note.
+        // NO "Flag" verb (Tuur 2026-07-23, the iPad-wave correction): rating
+        // IS the flag — the peek's SignificanceCircles are the one surface,
+        // same reason the m6 peek dropped its silent-0.1 button. Lock = the
+        // background keep-don't-polish verb's only Mac surface; Delete = the
+        // Mac's first way to delete a synced note.
         .contextMenu {
-            Button("Flag for processing") { flagQuiet(memo) }
             Button(memo.locked ? "Unlock" : "Lock") { toggleLock(memo) }
             Button("Open") { bandPeek = WayOutPeek(id: memo.id.uuidString) }
             Divider()
             Button("Delete", role: .destructive) { deleteQuiet(memo) }
         }
         .accessibilityIdentifier("quiet-memo-row")
-    }
-
-    /// The menu's one-click minimum flag — same write lane as `processAll`.
-    private func flagQuiet(_ memo: Memo) {
-        memo.significance = 0.1
-        try? MemoCloudStore.container?.mainContext.save()
-        MemoCloudReconciler.reconcileSoon()
-        refreshCloudMemos()
     }
 
     private func toggleLock(_ memo: Memo) {

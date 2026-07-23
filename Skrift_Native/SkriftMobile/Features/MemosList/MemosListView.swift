@@ -343,6 +343,30 @@ struct MemosListView: View {
             // Same rule for the backlink scan (never per row) — feeds the
             // Mac-parity clock line on unrated rows.
             let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
+            // m1b B count line (regular only): a whisper of the triage pile.
+            // Tapping toggles the EXISTING Not-rated filter — no new machinery,
+            // and no "Flag" anything (rating is the flag).
+            if isRegular {
+                let visible = d.groups.flatMap(\.memos)
+                let unrated = visible.filter { $0.significance == 0 && !$0.locked }.count
+                if unrated > 0 || filter.notRatedOnly {
+                    Button {
+                        withAnimation(Theme.Motion.snappy) { filter.notRatedOnly.toggle() }
+                    } label: {
+                        Text(filter.notRatedOnly
+                             ? "showing not rated · \(visible.count)"
+                             : "\(visible.count) notes · \(unrated) not rated")
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(filter.notRatedOnly ? Color.skAccentText : Color.skTextFaint)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 4)
+                    .accessibilityIdentifier("ipad-triage-count-line")
+                }
+            }
             // Native List → reliable swipe-to-delete (.swipeActions) + native
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
@@ -360,6 +384,7 @@ struct MemosListView: View {
                         ForEach(group.memos) { memo in
                             MemoRow(memo: memo, fading: searchFadingIDs.contains(memo.id),
                                     clockLine: clockLine(for: memo, backlinked: backlinked),
+                                    quietLine: quietTriageLine(for: memo, backlinked: backlinked),
                                     selected: memo.id == selectedMemoID) {
                                 // Opening a SEARCH RESULT carries the query
                                 // along — the note flashes where it matched
@@ -725,13 +750,26 @@ struct MemosListView: View {
     /// How close a note's fade must be before the notebook mentions it.
     private static let fadeWarningDays = 7
 
+    /// iPad-regular triage dialect (m1b variant B — Tuur 2026-07-23: "the iPad
+    /// is in-between; easier to cleanup notes"): at regular width the list IS a
+    /// triage surface, so an unrated live note renders QUIET (dimmed, hollow ○)
+    /// with its spine line always on — the Mac's quiet-row idiom. Rating IS the
+    /// flag (no Flag verb anywhere, same correction as the Mac's m6 peek); tap
+    /// opens the note, whose Importance circles are the rating surface.
+    /// Compact keeps the notebook doctrine below — byte-for-byte.
+    private func quietTriageLine(for memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> String? {
+        guard isRegular, memo.significance == 0, memo.deletedAt == nil, !memo.locked else { return nil }
+        return MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now), now: now)
+    }
+
     /// Urgency-only clock line (⏱ eyeball wave 2, 2026-07-22 — the asymmetry
     /// doctrine): the phone list is the NOTEBOOK, not the deciding room, and
     /// unrated is the default state here, not an alarm — so fresh rows stay
     /// clean. The line appears (amber) only when the clock actually matters:
     /// fading starts within `fadeWarningDays`, or the note is already fading
     /// (a search hit). The Mac's always-on quiet-row lines are deliberate
-    /// triage-surface behavior, not a twin of this.
+    /// triage-surface behavior — the iPad's regular width joined that camp
+    /// with variant B above; compact stays the notebook.
     private func clockLine(for memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> String? {
         guard memo.significance == 0, memo.deletedAt == nil, !memo.locked else { return nil }
         let station = MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now)
@@ -894,6 +932,9 @@ private struct MemoRow: View {
     let memo: Memo
     var fading: Bool = false
     var clockLine: String? = nil
+    /// iPad-regular triage (m1b B): non-nil ⇒ the row renders QUIET with this
+    /// spine line. Always nil on the phone / compact.
+    var quietLine: String? = nil
     /// iPad split view (m1): the row backing the detail pane wears `skAccentSoft`.
     /// Always false on the phone (`selectedMemoID` is nil there).
     var selected: Bool = false
@@ -904,7 +945,7 @@ private struct MemoRow: View {
         if editMode?.wrappedValue.isEditing == true {
             // Multi-select uses the List's own selection chrome — no detail-pane
             // highlight while editing.
-            MemoCard(memo: memo, fading: fading, clockLine: clockLine)
+            MemoCard(memo: memo, fading: fading, clockLine: clockLine, quietLine: quietLine)
         } else {
             // A Button, NOT .onTapGesture: a tap gesture on a List row fights
             // the context-menu lift on iOS 26 — a long-press just started the
@@ -912,7 +953,8 @@ private struct MemoRow: View {
             // round 1). The system resolves Button-tap vs long-press-menu vs
             // scroll natively.
             Button(action: onTap) {
-                MemoCard(memo: memo, fading: fading, clockLine: clockLine, selected: selected)
+                MemoCard(memo: memo, fading: fading, clockLine: clockLine,
+                         quietLine: quietLine, selected: selected)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -930,9 +972,17 @@ private struct MemoCard: View {
     /// Recently Deleted in 3d"), computed once at the list level (backlink
     /// scan is never per-row). Non-nil ⇒ the clock is short ⇒ amber.
     var clockLine: String? = nil
+    /// iPad-regular triage (m1b B, Tuur 2026-07-23): the spine line an unrated
+    /// note always wears at regular width — the row dims, a hollow ○ (the
+    /// unfilled significance circles' own idiom) sits trailing, and rating the
+    /// note IS the flag (no Flag verb). Faint, not amber: quiet ≠ urgent; when
+    /// the clock turns short the amber `clockLine` outranks it in the same slot.
+    var quietLine: String? = nil
     /// iPad split view (m1): the selected row (its note is in the detail pane)
     /// gets an accent-soft fill. Always false on the phone.
     var selected: Bool = false
+
+    private var isQuiet: Bool { quietLine != nil }
 
     var body: some View {
         HStack(spacing: 11) {
@@ -962,6 +1012,14 @@ private struct MemoCard: View {
                         Text("· \(clockLine)")
                             .font(.system(size: 11.5))
                             .foregroundStyle(Color.skAmber.opacity(0.9))
+                            .lineLimit(1)
+                    } else if let quietLine, memo.statusKind == nil {
+                        // The status pill outranks the quiet spine line in this
+                        // slot (Error/Transcribing is the more urgent story, and
+                        // both together overcrowd the row — 2026-07-23 shot).
+                        Text("· \(quietLine)")
+                            .font(.system(size: 11.5))
+                            .foregroundStyle(Color.skTextFaint)
                             .lineLimit(1)
                     }
                     Spacer()
@@ -1104,7 +1162,16 @@ private struct MemoCard: View {
                     .overlay(memo.locked ? nil : photoThumb)
                     .overlay(RoundedRectangle.sk(11).stroke(Color.skBorder, lineWidth: 1))
             }
+
+            // m1b B: the hollow circle — the unfilled significance circles' own
+            // idiom (the Mac quiet row's exact glyph). Rate the note to fill it.
+            if isQuiet {
+                Image(systemName: "circle")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.skTextFaint.opacity(0.8))
+            }
         }
+        .opacity(isQuiet ? 0.55 : 1)
         .modifier(SelectableCard(selected: selected))
         // Accessibility identifier for capture rows (used by UI tests and the
         // detail "capture-link-card" test). The existing "memo-row-N" id remains
