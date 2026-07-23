@@ -174,7 +174,17 @@ by contract, which was silently dropping partial-merge chapters on receivers). 7
 that it ran. **Also removed:** the iPad Connections collapse toggle (at regular width the note is
 already at its reading measure — hiding the panel only re-centred the same text; the Mac keeps its
 collapse, where a narrow window earns it).
-**STILL OPEN — the ePub FILE itself:** local-by-design (v1 doctrine); the alignment carries chapters
+**✅ ePub FILE SYNC BUILT (2026-07-23 eve, Tuur green-lit "perhaps syncing epub is the way",
+build 117, suite 957/0):** `AudiobookSyncRecord.epubSignature` = manifest AND change-signature
+(`<i>:<size>:<name>` joined "|", filename LAST so a ":" in it survives); `sendEpubs`/`receiveEpubs`
+mirror the transcript pair on the same raw-CloudKit transport (~1 MB vs the 738 MB audio); the
+receiver sets its OWN local attach fields after the bytes land, so filenames still never ride the
+whole-blob record (local-only doctrine keeps its teeth against old writers); verdict-gated marker.
+7 tests. **DEVICE ROUND OWED:** phone uploads on its next foreground reconcile → iPad should show
+the ePub attached in the Text sheet, and must NOT kick off a re-align (its alignment sidecars are
+already fresh — watch `BookTextActivity`).
+
+**(superseded, kept for the reasoning) — the ePub FILE itself:** local-by-design (v1 doctrine); the alignment carries chapters
 + true-text read-along, so the Text sheet honestly reads "No book text attached" on a receiver even
 though its effects are present. Tuur asked for it to come over — DECISION OWED: sync the ePub blob
 (cheap: ~2 MB vs the 738 MB audio; enables re-align + captures against published text on any
