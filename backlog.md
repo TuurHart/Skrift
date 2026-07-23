@@ -157,11 +157,39 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
-## 🖥️ CONTINUE HERE — iPad chrome build (session end 2026-07-23 ~17:45; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+## 🖥️ CONTINUE HERE — iPad chrome build (session end 2026-07-23 ~18:25; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
 
 **SIGNED SPEC = `mocks/ipad-chrome.html` direction A** (Tuur picked it and refined the bar).
-Built + committed `044f1c6`, CFBundleVersion **119**. **Suites green THIS session: mobile 957/0,
-desktop 496/0; iPad-sim + Mac builds green.** Sim-eyeballed twice (bar-v3 → fixes → bar-v4).
+Chrome built `044f1c6` (119); **eyeball-fix wave `13269c1`, CFBundleVersion 120, INSTALLED on the
+iPad** (devicectl `1E182D43-…`; binary freshness confirmed by string-grep, not just a green build).
+**Suites green THIS session: mobile unit 968/0, desktop unit 496/0; iPad-sim + iPad-DEVICE builds
+green.** Sim-eyeballed the bar across FIVE rounds (bar-v3/v4 → fix-v1 clip regression → fix-v2 →
+fix-process → fix-v3 tight + fix-wide full).
+
+**⬛ THE 2026-07-23-EVE FIX WAVE (`13269c1`) — what the sim shots caught + fixed:**
+- **Note bar survives portrait.** The scrubber is the flexible element for real now (explicit
+  `maxWidth` on the GeometryReader — a `layoutPriority` did the OPPOSITE and clipped the note title
+  AND the Connections panel, shot fix-v1). Speed button was an EMPTY capsule when squeezed →
+  `fixedSize`. **Graceful density** (`PlayerBar.Density .full/.tight/.minimal`): when the column
+  can't hold everything, controls stand down in the order the scrubber can replace them — ±10 skips
+  first (drag), then the time labels (the knob says it). Full bar returns when the column widens
+  (proven by closing Connections — fix-wide).
+- **Process = the Mac's button, ported whole.** It wore the verb but not the meaning: "Process N"
+  counted the UNRATED pile — the set every polisher SKIPS. New shared rule **`ProcessPile`**
+  (Shared/Pipeline): waiting = RATED + not-yet-enhanced; unrated is a DIFFERENT pile (waits on Tuur,
+  not a model), and they provably never overlap. The button now RUNS that pile
+  (`PolishCenter.processPile`, sequential — one MLX context or a pad jetsams) showing "Processing 2
+  of 5" (`SharedCopy.processingCount`, adopted by the Mac's run bar too) with a stop; appears only
+  where the device can process; disabled at 0. One `enhancements` @Query drives the count (never a
+  per-memo fetch in a body — the frozen-library trap).
+- **Flag verb retired everywhere** (rating IS the flag): "Flagged — the Mac will process this" →
+  "Rated — …"; Mac triage help "until you flag one" → "rate one". A test fails on any flag language.
+- **List rows:** "Transcribing" broke mid-word in its capsule + the date stamp wrapped to two lines
+  once the status pill shared the row → both `fixedSize`.
+- **Rig:** `FakePolishEngine` (DEBUG, `-fakePolishEngine`) — the sim gate is false by design, which
+  left every Process state un-eyeballable; now they render on the sim. Never true in Release.
+
+**What landed in the chrome build (`044f1c6`, all committed):**
 
 **What landed (all committed):**
 - **The note bar** — one pinned row owned by the note; system nav toolbar hidden at regular
@@ -178,14 +206,18 @@ desktop 496/0; iPad-sim + Mac builds green.** Sim-eyeballed twice (bar-v3 → fi
   `macSidebarVisible`); Mac deliberately has no ＋.
 
 **NEXT CHAT — heavy work first:**
-1. **Install 119 on both devices and EYEBALL the bar** (iPad UDID `00008142-000239E2146B801C`,
-   phone `00008110-001208C902EA201E`). Sim shots looked right after the fixedSize fix, but the
-   bar has never been seen on hardware. Watch: time labels not wrapping, scrubber taking the
-   slack, ＋/Process/⋯ spacing, and the Mac's new ◧ actually collapsing its column (Mac Dev
-   redeploy: build → pkill → ditto → open).
+0. **TUUR'S OWN EYEBALL of 120 on the iPad** (installed, not yet human-seen — the sim eyeball was
+   MINE). Hand him the note bar in BOTH orientations: portrait (tight → play·scrubber·1×·＋·Process·⋯
+   with skips/times dropped) and landscape (full bar). Also the header's "Process N" and, once the
+   model's down, its "Processing 2 of 5" running state + stop.
+1. **Install 120 on the PHONE too** and confirm the compact layout is untouched (this wave only
+   changed regular-width geometry + shared copy, but the copy + row-wrap fixes ride along) — phone
+   UDID `00008110-001208C902EA201E`. Mac Dev also owes a redeploy for its new ◧ (build → pkill →
+   ditto → open).
 2. **The processing FAILURE Tuur hit is still undiagnosed** ("could not process") — the path
    now logs; pull `Documents/devlog.txt` and read it rather than guessing. Prime suspect: the
-   4.6 GB model was never downloaded (Settings → Process on this iPad → Download).
+   4.6 GB model was never downloaded (Settings → Process on this iPad → Download). NOTE: with 120,
+   the header **Process N** now actually runs the pile, so this is the natural way to reproduce it.
 3. **Bookmark + ePub sync round-trips are still unwitnessed** (both need the phone AND iPad
    awake with the app foreground; a locked device suspends the app and can't even write the log).
 

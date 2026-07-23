@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 24
-updated: 2026-07-23T17:10:00.000Z
+version: 25
+updated: 2026-07-23T18:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -648,10 +648,31 @@ nodes:
       (Connections, the polish verb), system chrome where iPadOS owns it.
       Mock = mocks/ipad-app.html m1-m7 + m1b (v2 verdicts inline). Board =
       backlog 🖥️📱. m1b resolved: B + rating-IS-the-flag (no Flag verb, both
-      apps). Owed: eyeball rounds, real-iPad Dev install (stale build standing
-      item), polish + prompt-sync live test (sim can't Metal-JIT), the Mac's
-      'Flag all K' bulk naming question, then promote to main."
+      apps). Chrome + eyeball-fix waves BUILT and installed on the iPad (120,
+      sim-eyeballed across 5 rounds). Owed: TUUR's own eyeball of 120, phone
+      install, polish + prompt-sync live test (sim can't Metal-JIT) + the
+      undiagnosed 'could not process' (devlog now instruments it), bookmark/ePub
+      round-trips (devices awake), the Mac's 'Mark all as Passing' wording
+      question, then promote to main (after the book-import chat lands)."
     shipped:
+      - >-
+        2026-07-23 eve · iPad chrome EYEBALL-FIX wave (13269c1, build 120,
+        installed on the iPad — freshness string-checked, not just a green
+        build): the sim shots exposed six defects the chrome round shipped. The
+        note bar now survives portrait — the scrubber is the flex element for
+        real (an explicit maxWidth; a layoutPriority had clipped the note title
+        AND the Connections panel), the speed button is no longer an empty
+        capsule, and a graceful Density drops the ±10 skips then the time labels
+        so the scrubber never vanishes (full bar returns when the column
+        widens). "Process N" wore the verb but not the meaning — it counted the
+        UNRATED pile, the exact set every polisher skips; new shared rule
+        ProcessPile makes waiting = rated + not-yet-enhanced (a different pile
+        from unrated, provably disjoint), and the button now RUNS that pile
+        ("Processing 2 of 5" in the Mac's own words, with a stop). The Flag verb
+        is retired in the microcopy too (Flagged→Rated), guarded by a test.
+        FakePolishEngine (DEBUG) makes the sim-hidden Process states
+        eyeballable. Gate: mobile unit 968/0, desktop unit 496/0, iPad-sim +
+        iPad-DEVICE builds green. Owed: TUUR's own eyeball of 120, phone install
       - >-
         2026-07-23 eve · iPad CHROME round (mock ipad-chrome.html, direction A
         signed by Tuur with his own bar refinements): the note owns ONE pinned
