@@ -49,8 +49,17 @@ final class ScreenshotGalleryUITests: XCTestCase {
                 _ = app.navigationBars.firstMatch.waitForExistence(timeout: 5)
                 snap(app, "3-settings", theme)
 
+                // The Models row sits below the fold in the Settings form, and SwiftUI
+                // instantiates list rows lazily — so `models-link` isn't in the tree
+                // until it's scrolled into view (the functional SettingsUITests swipe up
+                // for the same reason). Reveal it with a bounded scroll, then push in.
                 let models = app.descendants(matching: .any).matching(identifier: "models-link").firstMatch
-                if models.waitForExistence(timeout: 5) {
+                var scrolls = 0
+                while !models.waitForExistence(timeout: 2) && scrolls < 3 {
+                    app.swipeUp()
+                    scrolls += 1
+                }
+                if models.exists {
                     models.tap()
                     if app.staticTexts["Transcription"].waitForExistence(timeout: 8) {
                         snap(app, "4-models", theme)
