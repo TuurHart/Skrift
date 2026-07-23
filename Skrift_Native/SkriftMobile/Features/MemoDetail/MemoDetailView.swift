@@ -46,14 +46,36 @@ struct MemoDetailView: View {
     /// so the pane can host the Connections panel beside this NavigationStack.
     /// nil everywhere else — the phone renders its footer card as before.
     var paneMemoID: Binding<UUID?>? = nil
+    /// iPad split view: the two column toggles live in THIS view's toolbar (it owns
+    /// the note, and the note is what stays), but they drive the pane's layout —
+    /// close both for a distraction-free write (Tuur, 2026-07-23).
+    var listVisible: Binding<Bool>? = nil
+    var connectionsVisible: Binding<Bool>? = nil
 
-    init(initialID: UUID, paneMemoID: Binding<UUID?>? = nil) {
+    init(initialID: UUID, paneMemoID: Binding<UUID?>? = nil,
+         listVisible: Binding<Bool>? = nil, connectionsVisible: Binding<Bool>? = nil) {
         self.initialID = initialID
         self.paneMemoID = paneMemoID
+        self.listVisible = listVisible
+        self.connectionsVisible = connectionsVisible
         _selection = State(initialValue: initialID)
     }
 
     private var currentMemo: Memo? { memos.first { $0.id == selection } }
+
+    /// One column toggle: accent while its column is open, dim while it's closed,
+    /// so the icon pair reads as the current layout at a glance.
+    private func columnToggle(icon: String, on: Bool, label: String, id: String,
+                              action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(on ? Color.skAccentText : Color.skTextDim)
+                .frame(width: 34, height: 34)
+        }
+        .accessibilityIdentifier(id)
+        .accessibilityLabel(label)
+    }
 
     var body: some View {
         Group {
@@ -73,12 +95,27 @@ struct MemoDetailView: View {
         .background(Color.skBg.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // (The Connections collapse toggle was REMOVED 2026-07-23, live iPad
-            // round: at regular width the note is already at its reading measure,
-            // so hiding the 300pt panel only re-centred the same text — "it
-            // doesn't really do much of anything… a bit stupid". The panel now
-            // simply stands whenever it applies. The Mac keeps ITS collapse —
-            // there a narrow window really does hand the body the space.)
+            // Column toggles (iPad regular width): hide the notes list on the left,
+            // the Connections panel on the right — close both and the note has the
+            // screen to itself. Each sits on the side it controls.
+            ToolbarItem(placement: .topBarLeading) {
+                if hSize == .regular, let listVisible {
+                    columnToggle(icon: "sidebar.left", on: listVisible.wrappedValue,
+                                 label: listVisible.wrappedValue ? "Hide notes list" : "Show notes list",
+                                 id: "ipad-toggle-list") {
+                        withAnimation(Theme.Motion.snappy) { listVisible.wrappedValue.toggle() }
+                    }
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                if hSize == .regular, let connectionsVisible {
+                    columnToggle(icon: "sidebar.right", on: connectionsVisible.wrappedValue,
+                                 label: connectionsVisible.wrappedValue ? "Hide Connections" : "Show Connections",
+                                 id: "ipad-toggle-connections") {
+                        withAnimation(Theme.Motion.snappy) { connectionsVisible.wrappedValue.toggle() }
+                    }
+                }
+            }
             // Add a follow-up recording — hidden for C3 capture items (no audio to append to).
             ToolbarItem(placement: .topBarTrailing) {
                 if currentMemo?.isShareCapture != true {

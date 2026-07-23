@@ -102,6 +102,12 @@ struct MemosListView: View {
     @State private var paneMemoID: UUID?
     @State private var showPaneThread = false
     @ObservedObject private var lockGate = LockGate.shared
+    /// The two column toggles (iPad regular width, Tuur 2026-07-23): hide the notes
+    /// list, hide Connections, or both — "sometimes I just want to focus on writing
+    /// and I don't want any distractions". Remembered between launches.
+    @AppStorage("ipadListVisible") private var listVisible = true
+    @AppStorage("ipadConnectionsVisible") private var connectionsVisible = true
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     /// ⌘F focuses the Notes search field. The shared `SearchField` component
     /// can't carry a focus binding, so the field is inlined below (`searchField`)
     /// with this state; `SearchFocusBridge` posts the request from `.commands`.
@@ -115,14 +121,29 @@ struct MemosListView: View {
             // iPad regular width (m1): list column ↔ note page. The sidebar is
             // the phone's entire Notes surface verbatim; the detail pane is the
             // note, or a quiet placeholder.
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
                 notesRoot
                     .navigationSplitViewColumnWidth(
                         min: 320, ideal: Adaptive.listColumnWidth, max: 420)
+                    // iPadOS adds its OWN sidebar toggle the moment the column
+                    // hides — two buttons doing one job. Ours stays (it sits with
+                    // the Connections toggle as a pair).
+                    .toolbar(removing: .sidebarToggle)
             } detail: {
                 detailPane
+                    .toolbar(removing: .sidebarToggle)
             }
             .navigationSplitViewStyle(.balanced)
+            // The list column follows the toolbar toggle (and vice versa, so the
+            // system's own drag/edge-swipe keeps the icon honest).
+            .onAppear { columnVisibility = listVisible ? .doubleColumn : .detailOnly }
+            .onChange(of: listVisible) { _, show in
+                columnVisibility = show ? .doubleColumn : .detailOnly
+            }
+            .onChange(of: columnVisibility) { _, mode in
+                let shown = mode != .detailOnly
+                if shown != listVisible { listVisible = shown }
+            }
             // Screenshot rig (`-selectFirstMemo`): deterministically fill the
             // detail pane so the m3 layout renders without a tap.
             .onAppear {
@@ -271,7 +292,7 @@ struct MemosListView: View {
         // the panel's column too (Tuur, live iPad round 2026-07-23).
         HStack(spacing: 0) {
             noteStack
-            if let memo = paneMemo, !lockGate.isLocked(memo) {
+            if connectionsVisible, let memo = paneMemo, !lockGate.isLocked(memo) {
                 ConnectionsPanel(
                     memo: memo,
                     onOpenMemo: { id in
@@ -294,7 +315,8 @@ struct MemosListView: View {
     private var noteStack: some View {
         NavigationStack {
             if let id = selectedMemoID {
-                MemoDetailView(initialID: id, paneMemoID: $paneMemoID)
+                MemoDetailView(initialID: id, paneMemoID: $paneMemoID,
+                               listVisible: $listVisible, connectionsVisible: $connectionsVisible)
                     .id(id)
             } else {
                 ZStack {
