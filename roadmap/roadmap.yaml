@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 19
-updated: 2026-07-22T16:20:00.000Z
+updated: 2026-07-23T12:15:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -594,8 +594,14 @@ nodes:
     note: "Spec = mocks/lifecycle-triage-peek.html m5+m6 (mocked, signed AND
       built 2026-07-22; supersedes the 2026-07-17 'touched never fades'
       doctrine — Tuur explicit yes; Lock demoted to a background verb:
-      right-click + phone toggle only). Board = backlog ⏱. Owed: Dev-deploy
-      eyeball both apps — rides the LifeIA walkthrough tail."
+      right-click + phone toggle only). v3 amendment 2026-07-23 (Tuur voice
+      note): no note dies unseen — the final doors (sweep → Recently Deleted,
+      purge) only move at an app-open; purge clock = trashSeenAt, so away-time
+      never deletes anything. Board = backlog ⏱ (+ v3 block). v3 FULLY
+      verified + merged 2026-07-23 (suites + MLX green, Mac sweep-per-activation
+      eyeballed live, phone-open eyeball landed on device — first open stamped
+      53 pre-v3 trashed notes at the open moment, all showing the full window).
+      Owed: only the LifeIA walkthrough tail."
     shipped:
       - >-
         2026-07-22 · built in 3 verified chunks same-day as the mock (desktop
@@ -608,6 +614,21 @@ nodes:
         Delete) + quiet-row menu Flag/Lock/Open/Delete + Fading conveyor w/
         row Delete; phone Fading renames + peek photos/Delete. The Mac can
         delete a synced note for the first time
+      - >-
+        2026-07-23 · v3 "no note dies unseen" (Tuur voice note, built same
+        day): final lifecycle doors gated on app-open — phone sweep
+        launch+foreground only, Mac sweep launch+activation (day-change +
+        24h unattended heartbeat retired); purge clock = new synced
+        trashSeenAt (first open with the note in trash, stale below
+        deletedAt), MemoLifecycle purgeDue/goneAt/stampTrashSightings, spine
+        + countdown labels derive from it so unseen rows honestly show the
+        full window. Verified 2026-07-23: mobile 868/0 + desktop 490/0 +
+        MLX build green (UI-bundle fails = the pre-existing deferred set,
+        proven on the base commit), merged to main; Mac Dev
+        sweep-per-activation eyeballed live; phone-open eyeball DONE on
+        device — first open under build 106 stamped 53 pre-v3 trashed notes
+        at the open moment, all reading the full 14-day window, purge gate
+        confirmed on trashSeenAt
   - id: AuditFix
     title: Perf+reliability audit fix wave
     lane: 0

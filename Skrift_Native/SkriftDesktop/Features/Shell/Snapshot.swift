@@ -486,6 +486,9 @@ enum Snapshot {
             Memo(audioFilename: "memo_4.m4a", duration: 63, recordedAt: daysAgo(100),
                  transcript: "Voice note", transcriptStatus: .done, deletedAt: daysAgo(6)),
         ]
+        // Sighted at deletion (v3) so the snapshot shows mid-run countdowns,
+        // not two fresh full-window rows.
+        deleted.forEach { $0.trashSeenAt = $0.deletedAt }
         let macOnly = PipelineFile(id: "legacy-bonjour-1", filename: "Old Bonjour upload.m4a",
                                    sourceType: .audio, uploadedAt: daysAgo(120))
         macOnly.deletedAt = daysAgo(3)

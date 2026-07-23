@@ -295,9 +295,11 @@ struct UnpipelinedMemoSheet: View {
     }
 
     /// The peek's "no": soft delete into the shared Recently Deleted —
-    /// restorable from either device for `TrashPolicy.retentionDays`.
+    /// restorable from either device for `TrashPolicy.retentionDays` (the
+    /// purge clock starts now — the user is right here; v3 2026-07-23).
     private func delete(_ memo: Memo) {
         memo.deletedAt = Date()
+        memo.trashSeenAt = memo.deletedAt
         try? MemoCloudStore.container?.mainContext.save()
         onDeleted(memoID)
     }

@@ -110,6 +110,7 @@ enum WayOutRules {
     static func bringBack(_ memo: Memo, now: Date = Date()) {
         memo.keptAt = now
         memo.deletedAt = nil
+        memo.trashSeenAt = nil   // purge-clock hygiene (v3); the validity guard ignores stale stamps anyway
     }
 
     /// Fading rows, soonest-to-move-to-Recently-Deleted first (imminence

@@ -10,12 +10,14 @@ final class MemoSpineTests: XCTestCase {
     private func daysAgo(_ n: Int) -> Date { now.addingTimeInterval(-Double(n) * 86_400) }
 
     private func input(days: Int, keptDaysAgo: Int? = nil, deletedDaysAgo: Int? = nil,
+                       seenDaysAgo: Int? = nil,
                        rated: Bool = false, hold: MemoSpine.HoldReason? = nil,
                        transcriptDone: Bool = true, queue: MemoSpine.QueuePhase? = nil,
                        macLocal: Bool = false) -> MemoSpine.Input {
         MemoSpine.Input(recordedAt: daysAgo(days),
                         keptAt: keptDaysAgo.map { daysAgo($0) },
                         deletedAt: deletedDaysAgo.map { daysAgo($0) },
+                        trashSeenAt: seenDaysAgo.map { daysAgo($0) },
                         rated: rated, holdReason: hold, transcriptDone: transcriptDone,
                         queue: queue, macLocalFile: macLocal)
     }
@@ -23,10 +25,22 @@ final class MemoSpineTests: XCTestCase {
     // MARK: the chain — first match wins, one label per note
 
     func testDeletedBeatsEverything() {
-        let st = MemoSpine.station(for: input(days: 100, deletedDaysAgo: 5, rated: true,
+        let st = MemoSpine.station(for: input(days: 100, deletedDaysAgo: 5, seenDaysAgo: 5, rated: true,
                                               hold: .locked, queue: .exported), now: now)
         XCTAssertEqual(st, .deleted(goneAt: daysAgo(5).addingTimeInterval(TrashPolicy.retention)))
         XCTAssertEqual(MemoSpine.oneLiner(for: st, now: now), "gone for good in ~9d")
+    }
+
+    func testUnseenDeletionCountsFromNowNotFromDeletedAt() {
+        // v3 (2026-07-23): a deletion that synced in while the app sat closed
+        // has NO purge clock yet — the label shows the full window from `now`,
+        // matching the purge gate, so the shown date stays true. A stale
+        // sighting (before the current stay) counts the same as none.
+        for st in [MemoSpine.station(for: input(days: 100, deletedDaysAgo: 30), now: now),
+                   MemoSpine.station(for: input(days: 100, deletedDaysAgo: 30, seenDaysAgo: 45), now: now)] {
+            XCTAssertEqual(st, .deleted(goneAt: now.addingTimeInterval(TrashPolicy.retention)))
+            XCTAssertEqual(MemoSpine.oneLiner(for: st, now: now), "gone for good in ~14d")
+        }
     }
 
     func testRatedWithoutQueueRowCountsAsToProcess() {

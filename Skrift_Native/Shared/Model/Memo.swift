@@ -87,9 +87,22 @@ final class Memo {
 
     /// Soft-delete marker (Recently Deleted). Non-nil = in the trash: hidden from
     /// the main list/search and never uploaded; purged permanently (audio +
-    /// sidecars included) once it's `TrashPolicy.retention` old. ADDITIVE with a
+    /// sidecars included) once the user has had `TrashPolicy.retention` of
+    /// OPPORTUNITY to rescue it — see `trashSeenAt`. ADDITIVE with a
     /// nil default → lightweight SwiftData migration (safe for prod data).
     var deletedAt: Date? = nil
+
+    /// v3 "no note dies unseen" (2026-07-23): the first moment the user had the
+    /// app open with this note in the trash. THE purge clock — `deletedAt` alone
+    /// no longer burns trash days, so a deletion that synced in (or swept) while
+    /// every app sat closed can never purge before the user has opened one and
+    /// had the full retention window to bring it back. Written by the delete
+    /// gestures themselves (the user is there) and by the at-open stamp pass
+    /// (`MemoLifecycle.stampTrashSightings`); a stamp OLDER than `deletedAt` is
+    /// stale (restore → re-trash) and ignored by `MemoLifecycle.trashClockStart`.
+    /// ADDITIVE, nil default → lightweight migration; needs the prod CloudKit
+    /// schema deploy at promotion (same ride as every additive field).
+    var trashSeenAt: Date? = nil
 
     /// When the memo entered Skrift (recorded / imported / shared). DISTINCT from
     /// `recordedAt` (when the CONTENT happened — e.g. a shared video keeps its

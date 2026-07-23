@@ -79,9 +79,10 @@ struct JournalView: View {
             rows = MemoDuplicates.canonicalRows(injected)
         } else if let cloud = MemoCloudStore.container {
             let all = (try? cloud.mainContext.fetch(FetchDescriptor<Memo>())) ?? []
-            // The 60d auto-move sweep no longer rides this refresh — it's a
-            // standing heartbeat now (LifecycleSweepScheduler), so a shown
-            // countdown is true without opening Review (Q4).
+            // The 60d auto-move sweep no longer rides this refresh — it runs
+            // at launch + app activation (LifecycleSweepScheduler; v3 "no note
+            // dies unseen" 2026-07-23 retired the unattended heartbeat), so a
+            // shown countdown is true without opening Review (Q4).
             rows = MemoDuplicates.canonicalRows(all)
         } else {
             rows = []
@@ -251,6 +252,7 @@ struct JournalView: View {
                     },
                     onDeleteMemo: { memo in
                         memo.deletedAt = Date()
+                        memo.trashSeenAt = memo.deletedAt   // in-session delete — purge clock starts now (v3)
                         try? cloudContext?.save()
                         refresh()
                     },
