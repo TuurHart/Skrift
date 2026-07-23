@@ -129,16 +129,16 @@ aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-t
 on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
 
 **NEXT CHAT'S WORK (in order):**
-0. **📖 ROUND 5+6+7 fixes VERIFY + merge (branch `claude/epub-chapter-discrepancy-wlgvhd`,
-   written from a Linux session — no xcodebuild there):** run the iPhone 17 sim suite, then
-   build+install Dev and open the Odyssey book — (R5) chapters must flip to the ePub TOC on
-   their own (re-adopt + self-heal), surviving relaunch; (R6+R7) the schema-4 re-align runs
-   silently on open, then Tuur's repro spots — ~3:00 (after "(andra).") and ~5:35 (the
-   Trojan War sentence) — should show the BOOK sentences (bridged), with ASR only where the
-   book truly has nothing; (R7) attach shows live stages + "keep listening", attaching
-   mid-transcribe defers with clear copy. Get Tuur's verdict on
-   `mocks/book-text-unified.html` (unified "Text" sheet — not built). Full records: 📖
-   ROUND 5/6/7 blocks below.
+0. ✅ **📖 ROUNDS 5–8 VERIFIED + MERGED 2026-07-23** (the verify session; full record = 📖
+   ROUND 8 block below): sim suite 894/0 + Mac 492/0 + MLX build green; R5 device-proven
+   live (re-adopt devlog line, real ePub TOC in library.json, 29 chapters); the repro spots
+   turned out to be ROUND 8's same-text merge eater — fixed, schema 5, and the healed
+   device sidecar machine-verified (7,506 sentences, both repro sentences present as book
+   text at conf 1.00, "Book 1: The Boy and the Goddess" chapters). STILL TUUR'S EYES:
+   read-along at ~3:00/~5:35 shows the book text · attach-UX stage test (attach any text →
+   live stages + "keep listening"; attach mid-transcribe → deferred alert) · verdict on
+   `mocks/book-text-unified.html` (4 phones incl. A0 — sign-off gates the next build
+   board, mock-first). NEW P2 filed same session: silent re-align freezes the library UI.
 0b. ✅ **⏱ v3 verify FULLY DONE 2026-07-23** (record in the v3 block above): suites + MLX green,
    merged to `main`, Mac Dev sweep-per-activation eyeballed, AND the phone-open eyeball landed —
    first open under build 106 stamped 53 pre-v3 trashed notes at the open moment, all now showing
