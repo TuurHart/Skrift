@@ -134,9 +134,10 @@ on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the f
    live (re-adopt devlog line, real ePub TOC in library.json, 29 chapters); the repro spots
    turned out to be ROUND 8's same-text merge eater — fixed, schema 5, and the healed
    device sidecar machine-verified (7,506 sentences, both repro sentences present as book
-   text at conf 1.00, "Book 1: The Boy and the Goddess" chapters). STILL TUUR'S EYES:
-   read-along at ~3:00/~5:35 shows the book text · attach-UX stage test (attach any text →
-   live stages + "keep listening"; attach mid-transcribe → deferred alert) · verdict on
+   text at conf 1.00, "Book 1: The Boy and the Goddess" chapters). ✅ TUUR EYEBALL SAME
+   SESSION: "the parts that were gone before are now there. The chapters look good." Lane
+   CLOSED. Small tails, non-blocking: a 30-sec attach-UX try-out (live stages + the
+   mid-transcribe deferred alert — R7 behavior, unit-tested, never eyeballed) · verdict on
    `mocks/book-text-unified.html` (4 phones incl. A0 — sign-off gates the next build
    board, mock-first). NEW P2 filed same session: silent re-align freezes the library UI.
 0b. ✅ **⏱ v3 verify FULLY DONE 2026-07-23** (record in the v3 block above): suites + MLX green,
