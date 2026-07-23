@@ -2,6 +2,24 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 📖 Phone feedback 2026-07-23 (1 memo, 08:03 — pulled + second-agent verified same day)
+
+All items are the ePub/audiobook-text flow. ⚠️ **The concurrent audiobook session
+(`claude/audiobook-ui-harry-collab-e065c7`) is working this area live with Tuur** — the memo
+even ADDRESSES its replace-vs-augment fix, and Tuur's screenshots live in that chat. Coordinate
+before building any of these here; tick items off when either session lands them.
+
+- **P1 · Partial-ePub ingest is the real bug (corrects that session's diagnosis):** ePub text ==
+  spoken text in this case, so replace-vs-augment wasn't the failure — **not all parts of the ePub
+  were displayed/ingested**; whole-ePub ingest would have worked. The "weird error" in Tuur's last
+  two screenshots (in the other chat) is likely this same bug's visible symptom — check them first.
+- **P2 · Big-ePub import UX (13-hour book):** long load, no progress bar, and unclear whether
+  listening can continue during the load — show progress + keep playback available (or say so).
+- **P2 · Block ePub upload while the book is still transcribing** — currently undefined; Tuur:
+  "it should not" be allowed.
+- **P2 · Unify the transcribe-book menu with the ePub-upload menu:** one "add text" flow, two
+  levels — level 1 get text (transcribe), level 2 upgrade quality (attach the ePub).
+
 ## ⏱ One-clock lifecycle: BUILT 2026-07-22 (suites green both apps) — Dev-deploy eyeball owed
 
 **Spec = `Skrift_Native/SkriftDesktop/mocks/lifecycle-triage-peek.html`** (committed d27a047; m6 = the
