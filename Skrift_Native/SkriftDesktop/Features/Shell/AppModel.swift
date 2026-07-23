@@ -2,9 +2,9 @@ import SwiftUI
 import AppKit
 import Observation
 
-enum QueueFilter: String, CaseIterable {
-    case all = "All", needsWork = "Needs Work", done = "Done", notRated = "Unrated"
-}
+// `QueueFilter` (the All/Needs Work/Done/Unrated chips) now lives in
+// Shared/Model/QueueFilter.swift — ONE label set shared with the iPad Notes
+// column, so a chip reads the same word on both apps.
 
 /// Sidebar queue ordering. Desktop-appropriate subset of the phone's `MemoSort`
 /// (the Mac queue has no "edited" notion and durations are strings, so the useful

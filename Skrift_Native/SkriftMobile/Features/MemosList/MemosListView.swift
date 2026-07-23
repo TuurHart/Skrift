@@ -10,6 +10,24 @@ enum MemoSort: String, CaseIterable, Identifiable {
     case oldest = "Oldest first"
     case longest = "Longest first"
     var id: String { rawValue }
+
+    /// Compact label for the iPad's inline sort control (the Mac's `SidebarSort`
+    /// idiom). `.added` → "Newest", matching the Mac's default word.
+    var short: String {
+        switch self {
+        case .added:   return "Newest"
+        case .edited:  return "Edited"
+        case .recent:  return "Recorded"
+        case .oldest:  return "Oldest"
+        case .longest: return "Longest"
+        }
+    }
+
+    /// Next sort in the cycle — the inline control advances on tap, like the Mac.
+    var next: MemoSort {
+        let all = Self.allCases
+        return all[(all.firstIndex(of: self).map { $0 + 1 } ?? 0) % all.count]
+    }
 }
 
 /// Which date a date-range filter applies to.
@@ -88,6 +106,9 @@ struct MemosListView: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var sort: MemoSort = .added
     @State private var filter = MemoFilter()
+    /// The Mac's triage chip, at regular width only (All / Needs Work / Done /
+    /// Unrated — shared `QueueFilter`). Compact keeps the phone's funnel sheet.
+    @State private var listChip: QueueFilter = .all
     @State private var editMode: EditMode = .inactive
     @State private var selected: Set<UUID> = []
     @State private var syncBanner: String?
@@ -126,7 +147,13 @@ struct MemosListView: View {
             // the phone's entire Notes surface verbatim; the detail pane is the
             // note, or a quiet placeholder.
             NavigationSplitView(columnVisibility: $columnVisibility) {
-                notesRoot
+                // Wrapped in a NavigationStack like the detail's `noteStack`: a
+                // split-view column hosted RAW keeps its (hidden) navigation bar's
+                // ~50pt reserved at the top — the dead band above "Notes" Tuur hit
+                // on device. A NavigationStack collapses that hidden bar (the phone
+                // has always looked right for exactly this reason), so the header
+                // hugs the top, level with the note bar and Connections.
+                NavigationStack { notesRoot }
                     .navigationSplitViewColumnWidth(
                         min: 320, ideal: Adaptive.listColumnWidth, max: 420)
                     // iPadOS adds its OWN sidebar toggle the moment the column
@@ -401,30 +428,11 @@ struct MemosListView: View {
             // Same rule for the backlink scan (never per row) — feeds the
             // Mac-parity clock line on unrated rows.
             let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
-            // m1b B count line (regular only): a whisper of the triage pile.
-            // Tapping toggles the EXISTING Not-rated filter — no new machinery,
-            // and no "Flag" anything (rating is the flag).
-            if isRegular {
-                let visible = d.groups.flatMap(\.memos)
-                let unrated = visible.filter { $0.significance == 0 && !$0.locked }.count
-                if unrated > 0 || filter.notRatedOnly {
-                    Button {
-                        withAnimation(Theme.Motion.snappy) { filter.notRatedOnly.toggle() }
-                    } label: {
-                        Text(filter.notRatedOnly
-                             ? "showing not rated · \(visible.count)"
-                             : "\(visible.count) notes · \(unrated) not rated")
-                            .font(.system(size: 11.5))
-                            .foregroundStyle(filter.notRatedOnly ? Color.skAccentText : Color.skTextFaint)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 4)
-                    .accessibilityIdentifier("ipad-triage-count-line")
-                }
-            }
+            // The Mac sidebar's triage line (regular only): chips carry membership
+            // (the count line is the two ACTIONABLE numbers — ready to review · to
+            // process — with the sort control trailing, exactly like the Mac). The
+            // chips themselves ride in `macStyleHeader` above, under search.
+            if isRegular { macTriageLine }
             // Native List → reliable swipe-to-delete (.swipeActions) + native
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
@@ -727,11 +735,76 @@ struct MemosListView: View {
                     }
                 }
             }
+
+            filterChips
         }
         .padding(.horizontal, 14)
         .padding(.top, 4)
         .padding(.bottom, 2)
     }
+
+    /// The Mac sidebar's chip row (All / Needs Work / Done / Unrated), verbatim
+    /// idiom — one `QueueFilter`, the shared word set. Selecting a chip filters
+    /// the list (`matchesFilter`); the Unrated chip carries the not-rated number.
+    private var filterChips: some View {
+        HStack(spacing: 5) {
+            ForEach(QueueFilter.allCases, id: \.self) { chip in
+                let on = listChip == chip
+                Text(chip == .notRated && unratedCount > 0 ? "\(chip.rawValue) \(unratedCount)" : chip.rawValue)
+                    .font(.system(size: 11))
+                    .lineLimit(1).fixedSize()
+                    .foregroundStyle(on ? Color.skAccentText : Color.skTextDim)
+                    .padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(on ? Color.skAccentSoft : .clear, in: RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6)
+                        .stroke(on ? Color.skAccent.opacity(0.22) : .clear, lineWidth: 1))
+                    .contentShape(Rectangle())
+                    .onTapGesture { withAnimation(Theme.Motion.snappy) { listChip = chip } }
+                    .accessibilityIdentifier("ipad-chip-\(chip.rawValue)")
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 2)
+    }
+
+    /// The Mac's triage line: the two actionable counts + the sort cycle. Counts
+    /// are over ALL live notes (not the filtered view), like the Mac's sidebar.
+    private var macTriageLine: some View {
+        HStack(spacing: 0) {
+            Text("\(readyToReviewCount) ready to review")
+                .foregroundStyle(Color.skAccentText).fontWeight(.semibold)
+            if toProcessCount > 0 {
+                Text(" · \(toProcessCount) to process").foregroundStyle(Color.skTextFaint)
+            }
+            Spacer(minLength: 6)
+            Button { withAnimation(Theme.Motion.snappy) { sort = sort.next } } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.arrow.down").font(.system(size: 9, weight: .semibold))
+                    Text(sort.short).font(.system(size: 10.5, weight: .medium))
+                }
+                .foregroundStyle(Color.skTextDim)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .fixedSize()
+            .accessibilityIdentifier("ipad-sort-cycle")
+        }
+        .font(.system(size: 11))
+        .lineLimit(1)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 4)
+        .accessibilityIdentifier("ipad-triage-count-line")
+    }
+
+    /// Processed notes ready to read (rated + a `MemoEnhancement` with content).
+    private var readyToReviewCount: Int {
+        ProcessPile.done(memos: memos, enhancedIDs: enhancedMemoIDs).count
+    }
+
+    /// The pile a polisher would pick up — the SAME count the Process button
+    /// shows, so the two never disagree.
+    private var toProcessCount: Int { processPile.count }
 
     /// Live notes that carry no rating — the pile waiting on TUUR, not on a
     /// model (the count line's tap target).
@@ -984,9 +1057,12 @@ struct MemosListView: View {
     private var searchingNow: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
 
     private var filtered: [Memo] {
-        var out = lifecycle.live.filter { matchesSearch($0) && matchesFilter($0) }
+        // Built ONCE per body eval — the chip predicate needs it per row, and a
+        // per-row rebuild would be O(N·E) (the frozen-library trap in miniature).
+        let enhanced = enhancedMemoIDs
+        var out = lifecycle.live.filter { matchesSearch($0) && matchesFilter($0, enhanced: enhanced) }
         if searchingNow {
-            out += lifecycle.fading.filter { matchesSearch($0) && matchesFilter($0) }
+            out += lifecycle.fading.filter { matchesSearch($0) && matchesFilter($0, enhanced: enhanced) }
         }
         return out.sorted(by: sortComparator)
     }
@@ -1039,7 +1115,8 @@ struct MemosListView: View {
     /// passed through the same filter sheet as everything else.
     private func relatedDisplay(excluding exact: Set<UUID>) -> [Memo] {
         guard !related.isEmpty else { return [] }
-        return related.filter { !exact.contains($0.id) && matchesFilter($0) }
+        let enhanced = enhancedMemoIDs
+        return related.filter { !exact.contains($0.id) && matchesFilter($0, enhanced: enhanced) }
     }
 
     /// Debounced semantic lookup for the current query (P8). Exact matches
@@ -1075,7 +1152,10 @@ struct MemosListView: View {
         related = JournalIndexService.relatedResults(scores: scores, excluding: [], memosByID: byID)
     }
 
-    private func matchesFilter(_ memo: Memo) -> Bool {
+    private func matchesFilter(_ memo: Memo, enhanced: Set<UUID>) -> Bool {
+        // The Mac's triage chip (regular width only). `.all` is a no-op, so
+        // compact and the phone are untouched (listChip stays .all there).
+        if isRegular && !ProcessPile.matches(listChip, memo, enhancedIDs: enhanced) { return false }
         if filter.unsyncedOnly && memo.syncStatus == .synced { return false }
         if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { return false }
         if filter.notRatedOnly && (memo.significance > 0 || memo.locked) { return false }

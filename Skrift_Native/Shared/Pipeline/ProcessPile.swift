@@ -30,4 +30,32 @@ enum ProcessPile {
     static func unrated(memos: [Memo]) -> [Memo] {
         memos.filter { $0.significance == 0 && $0.deletedAt == nil && !$0.locked }
     }
+
+    /// Rated notes that HAVE been processed — the iPad's "Done" / "ready to
+    /// review" set (a `MemoEnhancement` with content exists). On the iPad there
+    /// is no export step, so processed IS done.
+    static func done(memos: [Memo], enhancedIDs: Set<UUID>) -> [Memo] {
+        memos.filter { isDone($0, enhancedIDs: enhancedIDs) }
+    }
+
+    static func isDone(_ memo: Memo, enhancedIDs: Set<UUID>) -> Bool {
+        memo.significance > 0 && memo.deletedAt == nil && !memo.locked
+            && enhancedIDs.contains(memo.id)
+    }
+
+    // MARK: - The triage chips (shared QueueFilter, matched against a Memo)
+
+    /// Does a memo belong under `filter`'s chip? The iPad's answer to the Mac's
+    /// `AppModel.matchesFilter` — same four words, memo semantics. `.needsWork`
+    /// here is the broad "rated but not done yet" set (may include a note still
+    /// transcribing); the to-process COUNT is the actionable subset `waiting`,
+    /// exactly as the Mac's "Needs Work" chip is broader than its Process count.
+    static func matches(_ filter: QueueFilter, _ memo: Memo, enhancedIDs: Set<UUID>) -> Bool {
+        switch filter {
+        case .all:      return true
+        case .needsWork: return memo.significance > 0 && !enhancedIDs.contains(memo.id)
+        case .done:     return memo.significance > 0 && enhancedIDs.contains(memo.id)
+        case .notRated: return memo.significance == 0 && !memo.locked
+        }
+    }
 }
