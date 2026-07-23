@@ -597,10 +597,11 @@ nodes:
       right-click + phone toggle only). v3 amendment 2026-07-23 (Tuur voice
       note): no note dies unseen — the final doors (sweep → Recently Deleted,
       purge) only move at an app-open; purge clock = trashSeenAt, so away-time
-      never deletes anything. Board = backlog ⏱ (+ v3 block). v3 verified +
-      merged 2026-07-23 (suites + MLX green, Mac sweep-per-activation
-      eyeballed live). Owed: the phone-OPEN eyeball (device was locked) +
-      the LifeIA walkthrough tail."
+      never deletes anything. Board = backlog ⏱ (+ v3 block). v3 FULLY
+      verified + merged 2026-07-23 (suites + MLX green, Mac sweep-per-activation
+      eyeballed live, phone-open eyeball landed on device — first open stamped
+      53 pre-v3 trashed notes at the open moment, all showing the full window).
+      Owed: only the LifeIA walkthrough tail."
     shipped:
       - >-
         2026-07-22 · built in 3 verified chunks same-day as the mock (desktop
@@ -621,11 +622,13 @@ nodes:
         trashSeenAt (first open with the note in trash, stale below
         deletedAt), MemoLifecycle purgeDue/goneAt/stampTrashSightings, spine
         + countdown labels derive from it so unseen rows honestly show the
-        full window. Verified on the Mac 2026-07-23: mobile 868/0 +
-        desktop 490/0 + MLX build green (UI-bundle fails = the pre-existing
-        deferred set, proven on the base commit), merged to main 93c5a8a;
-        Mac Dev sweep-per-activation eyeballed live; phone 106 installed,
-        open-eyeball owed (device locked)
+        full window. Verified 2026-07-23: mobile 868/0 + desktop 490/0 +
+        MLX build green (UI-bundle fails = the pre-existing deferred set,
+        proven on the base commit), merged to main; Mac Dev
+        sweep-per-activation eyeballed live; phone-open eyeball DONE on
+        device — first open under build 106 stamped 53 pre-v3 trashed notes
+        at the open moment, all reading the full 14-day window, purge gate
+        confirmed on trashSeenAt
   - id: AuditFix
     title: Perf+reliability audit fix wave
     lane: 0

@@ -68,12 +68,17 @@ so a forgotten note could be purged BEFORE the first post-absence render.
   not-yet-catalogued ones on the pre-v3 base commit: identical failures, so v3 added ZERO.
 - Mac Dev deployed + eyeballed live: exactly one "lifecycle sweep ran over N memos" at launch and
   one per cmd-tab activation, none while idle (log stream, 3 cycles).
-- Phone: build 106 (v3) installed + binary-verified on device; **launch eyeball BLOCKED — phone
-  locked** (fittingly, the doors really don't move without a human open). OWED Tuur: unlock →
-  open Skrift Dev; optional cross-device round (Mac-delete a throwaway → phone shows "14 days
-  left"). NOTE the brief's expected devlog line was wrong: a Mac DELETE GESTURE syncs in WITH its
-  stamp (by design), so "FadingSweep: purge clock started for N synced-in trashed note(s)" fires
-  only for PRE-v3/unstamped trash — e.g. after an old-build write erased the field.
+- Phone: build 106 (v3) installed + **launch eyeball DONE on device** (11:55, phone reconnected).
+  First open under the new build fired `FadingSweep: purge clock started for 53 synced-in trashed
+  note(s)` — the pre-v3 migration case. Re-pulled the store: all 53 trashed tombstones now carry
+  a valid `trashSeenAt` (== the open moment, 11:55), and their purge countdown reads the **full 14
+  days from today** (a note deleted 2026-07-15 that used to read ~6d, and 2026-07-12's ~3d
+  "Deleting soon", both now show 14). Purge gate confirmed running off `trashSeenAt` (0 of the 53
+  eligible to purge). NOTE the brief's expected cross-device devlog line was a misread of the final
+  code: a Mac DELETE GESTURE syncs in WITH its stamp (by design — the user was at the Mac), so it
+  shows the countdown from the Mac deletion, NOT a fresh open-window; the `purge clock started`
+  line fires only for PRE-v3/unstamped trash (exactly the 53 above). Optional-only remaining: a
+  live visual look at the Recently Deleted screen (label code is unit-green, so cosmetic).
 - ⚠️ **Concurrent-session hazard found live:** another worktree session (`gracious-easley`,
   audiobook branch at pre-v3 3d3b71e) ran ITS Dev desktop build against the shared Dev store —
   SwiftData migrated the schema DOWN (dropped `trashSeenAt`), my running v3 app's fetches then
@@ -124,9 +129,10 @@ aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-t
 on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
 
 **NEXT CHAT'S WORK (in order):**
-0. ✅ **⏱ v3 verify DONE 2026-07-23** (record in the v3 block above): suites + MLX green, merged
-   to `main` (93c5a8a), Mac Dev deployed + sweep-per-activation eyeballed, phone 106 installed.
-   Still owed there: the phone-OPEN eyeball (phone was locked) — first unlock runs the stamp pass.
+0. ✅ **⏱ v3 verify FULLY DONE 2026-07-23** (record in the v3 block above): suites + MLX green,
+   merged to `main`, Mac Dev sweep-per-activation eyeballed, AND the phone-open eyeball landed —
+   first open under build 106 stamped 53 pre-v3 trashed notes at the open moment, all now showing
+   the full 14-day window. Nothing owed. (Optional only: a visual glance at Recently Deleted.)
 1. **Pull phone feedback if Tuur recorded any** (/pull-phone-feedback) — 4 live rounds today
    means fresh findings likely.
 2. **🧬 walkthrough tail (eyes, guided — b92-era items still unconfirmed):** untouched-note
