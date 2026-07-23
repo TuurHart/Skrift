@@ -562,6 +562,33 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
 
+**📖 ROUND 8 (2026-07-23, the VERIFY session's real-data catch — the actual root cause of
+round 6's sighting): `mergeSentences` ate same-text sentences.** Verifying rounds 5–7 on
+device surfaced it: the schema-4 re-align healed chapters (R5 ✅ live: devlog "re-adopted
+orphaned attached texts" + "toc [40] → 29 marks → 29 epub chapters"; library.json now
+persists all three attach fields; real TOC titles) — but BOTH repro spots stayed empty and
+`bridged=0`. Offline reproduction (new env-gated `OdysseyRealDataDiagnostics` harness: the
+pulled phone ePub + transcript through parse → align → assemble → merge) showed the aligner
+had matched both sentences at conf 1.00 ALL ALONG — the align result is bit-deterministic
+(coverage identical to 16 digits, device vs sim) and produces 7,506 sentences; the device
+sidecar held a strict 7,310-subset. The eater: `mergeSentences` contested collisions WITHIN
+one text's own fresh batch — adjacent sentences legitimately overlap by seam fuzz (exact
+per-word times straddle sentence boundaries: "(andra)." ends 165.8, "He is not 'the' man…"
+starts 165.6), same text = same rank, and the strict-win tie rule silently dropped the later
+one — 196 of 7,506 (~2.6%), including both user-reported holes. Rounds 6+7's fills were
+built to paper over what was actually this merge bug downstream (the bridge/gap-fill layers
+stay — they cover TRUE aligner misses). Fix: collisions contest BETWEEN texts only
+(`result[$0].textFile != ns.textFile`); schema 4→5 so every persisted subset sidecar
+re-aligns once on next open. Suite: 894/0 incl. the real-data harness asserting
+merged=7506 of 7506 + the Trojan-War sentence surviving the merge, and two new
+`MultiTextMergeTests` regressions (seam-overlap survives / between-text contest intact).
+Device: b109 installed, re-heal launch owed (phone re-locked). DURABLE LESSONS: (1) verify
+derived DATA end-to-end on real inputs, not just the layer you changed — assemble alone
+looked perfect, the sidecar was wrong; (2) a "collision rule" needs an explicit answer for
+SELF-collisions. Also for the record: -resumeBook DEBUG launch hook added (headless device
+verify via devicectl); untriaged b105-era crash 09:49 pulled (SIGKILL during a CoreData
+fetch — watchdog-flavored, pre-branch; feeds the pre-promotion profiling item).
+
 **📖 ROUND 7 (Tuur 2026-07-23, going over rounds 5+6): four items, all handled (same
 branch `claude/epub-chapter-discrepancy-wlgvhd`).**
 (1) **"If it had actually put in the whole ePub that was working"** — right: round 6's ASR
