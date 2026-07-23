@@ -40,6 +40,10 @@ struct MemoDetailView: View {
     @StateObject private var player = AudioPlayerModel()
     @ObservedObject private var lockGate = LockGate.shared
     @State private var lockVaultNotice = false
+    // iPad v2: the Connections panel's open state + its toolbar-badge feed
+    // (the Mac's window-toolbar count badge, ported).
+    @AppStorage("ipadConnectionsCollapsed") private var connectionsCollapsed = false
+    @State private var connectionsBadge = ConnectionsBadge.shared
     private let repository = NotesRepository.shared
 
     init(initialID: UUID) {
@@ -74,6 +78,30 @@ struct MemoDetailView: View {
         .background(Color.skBg.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // Connections toggle — the Mac's toolbar count badge, verbatim
+            // (iPad v2): visible only where the standing panel lives (regular
+            // width, unlocked note). Count feeds from the panel's loader via
+            // ConnectionsBadge (fresh even while collapsed).
+            ToolbarItem(placement: .topBarTrailing) {
+                if hSize == .regular, let memo = currentMemo, !lockGate.isLocked(memo) {
+                    Button {
+                        withAnimation(Theme.Motion.snappy) { connectionsCollapsed.toggle() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "sidebar.right")
+                                .font(.system(size: 15, weight: .medium))
+                            if connectionsBadge.count > 0 {
+                                Text("\(connectionsBadge.count)")
+                                    .font(.system(size: 11, weight: .bold).monospacedDigit())
+                            }
+                        }
+                        .foregroundStyle(connectionsCollapsed ? Color.skTextDim : Color.skAccentText)
+                        .frame(height: 34)
+                    }
+                    .accessibilityIdentifier("ipad-connections-badge")
+                    .accessibilityLabel(connectionsCollapsed ? "Show Connections" : "Hide Connections")
+                }
+            }
             // Add a follow-up recording — hidden for C3 capture items (no audio to append to).
             ToolbarItem(placement: .topBarTrailing) {
                 if currentMemo?.isShareCapture != true {

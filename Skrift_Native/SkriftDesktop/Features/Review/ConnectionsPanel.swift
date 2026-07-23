@@ -21,11 +21,8 @@ struct ConnectionRow: Identifiable, Equatable {
     let why: [ConnectionWhy]
 }
 
-struct ConnectionWhy: Hashable {
-    enum Kind { case person, tag, term }
-    let kind: Kind
-    let text: String
-}
+// `ConnectionWhy` + its derivation moved to Shared/Retrieval/ConnectionWhy.swift
+// (iPad wave v2 — the iPad panel derives the same chips).
 
 struct ConnectionBacklink: Identifiable, Equatable {
     let id: String
@@ -131,59 +128,15 @@ final class ConnectionsModel {
         return found.sorted { $0.date > $1.date }
     }
 
-    // ── why-chips: the dumb v1 overlap heuristic (shared people / tags / terms) ──
+    // ── why-chips: the SHARED dumb-v1 overlap heuristic (Shared/Retrieval) ──
 
     static func whyChips(current: PipelineFile, other: PipelineFile) -> [ConnectionWhy] {
-        var chips: [ConnectionWhy] = []
-        for name in wikiNames(current).intersection(wikiNames(other)).sorted().prefix(2) {
-            chips.append(ConnectionWhy(kind: .person, text: name))
-        }
-        for tag in Set(current.tags).intersection(other.tags).sorted().prefix(2) {
-            chips.append(ConnectionWhy(kind: .tag, text: "#\(tag)"))
-        }
-        if chips.count < 4 {
-            let a = contentWordCounts(current), b = contentWordCounts(other)
-            let shared = Set(a.keys).intersection(b.keys)
-                .sorted { min(a[$0] ?? 0, b[$0] ?? 0) > min(a[$1] ?? 0, b[$1] ?? 0) }
-            for term in shared.prefix(4 - chips.count) {
-                chips.append(ConnectionWhy(kind: .term, text: term))
-            }
-        }
-        return chips
-    }
-
-    /// `[[Name]]` wikilink targets in the sanitised body — people links only
-    /// (`[[memo:…]]` note-links excluded).
-    private static func wikiNames(_ f: PipelineFile) -> Set<String> {
-        guard let body = f.sanitised else { return [] }
-        var names = Set<String>()
-        var search = body.startIndex
-        while let open = body.range(of: "[[", range: search..<body.endIndex),
-              let close = body.range(of: "]]", range: open.upperBound..<body.endIndex) {
-            let inner = String(body[open.upperBound..<close.lowerBound])
-            if !inner.hasPrefix("memo:"), inner.count < 60 {
-                names.insert(String(inner.split(separator: "|").first ?? ""))
-            }
-            search = close.upperBound
-        }
-        names.remove("")
-        return names
-    }
-
-    private static let stopWords: Set<String> = [
-        "about", "after", "again", "because", "before", "being", "could", "every",
-        "first", "going", "little", "maybe", "other", "really", "should", "something",
-        "their", "there", "these", "thing", "things", "think", "though", "today",
-        "wanna", "where", "which", "while", "would", "gonna", "still", "actually"]
-
-    private static func contentWordCounts(_ f: PipelineFile) -> [String: Int] {
-        let body = (f.sanitised ?? f.enhancedCopyedit ?? f.transcript ?? "").lowercased()
-        var counts: [String: Int] = [:]
-        for word in body.split(whereSeparator: { !$0.isLetter }) {
-            guard word.count >= 5, !stopWords.contains(String(word)) else { continue }
-            counts[String(word), default: 0] += 1
-        }
-        return counts
+        func body(_ f: PipelineFile) -> String { f.sanitised ?? f.enhancedCopyedit ?? f.transcript ?? "" }
+        return ConnectionWhyDerivation.chips(
+            currentNames: ConnectionWhyDerivation.wikiNames(inSanitised: current.sanitised),
+            currentTags: current.tags, currentBody: body(current),
+            otherNames: ConnectionWhyDerivation.wikiNames(inSanitised: other.sanitised),
+            otherTags: other.tags, otherBody: body(other))
     }
 }
 
