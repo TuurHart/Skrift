@@ -91,6 +91,9 @@ aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-t
 on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
 
 **NEXT CHAT'S WORK (in order):**
+0. **⏱ v3 verify FIRST (2026-07-23, see the "⏱ v3 amendment" OWED block above):** both suites +
+   full MLX build on branch `claude/note-deletion-app-open-5r5z56` — written in a Linux session,
+   zero compiles run — then merge to `main` once green.
 1. **Pull phone feedback if Tuur recorded any** (/pull-phone-feedback) — 4 live rounds today
    means fresh findings likely.
 2. **🧬 walkthrough tail (eyes, guided — b92-era items still unconfirmed):** untouched-note
