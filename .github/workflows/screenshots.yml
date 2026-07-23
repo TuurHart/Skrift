@@ -1,0 +1,72 @@
+name: Screenshots
+
+# Non-gating VISUAL capture (separate from ci.yml so the gate's green/red keeps
+# meaning "correctness", not "pixels"). Renders SkriftMobile's key screens in
+# light + dark on the iPhone 17 simulator and uploads them as artifacts, so a
+# remote / web Claude Code session with no Mac can eyeball the actual rendered UI:
+# push → this runs the ScreenshotGalleryUITests → download the artifact / read it
+# back over the GitHub tools. The test step is continue-on-error and if-no-files
+# tolerant, so a UI-interaction flake never turns this red and never blocks a merge.
+#
+# Cost note: this is a SECOND macOS build on top of ci.yml, so it only triggers when
+# mobile code actually changes (paths filter) plus on-demand via workflow_dispatch —
+# keeping it off doc-only / desktop-only pushes. Flip the paths / branches below to
+# retune cadence.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "claude/**"
+    paths:
+      - "Skrift_Native/SkriftMobile/**"
+      - ".github/workflows/screenshots.yml"
+
+concurrency:
+  group: screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile-screenshots:
+    name: SkriftMobile screen gallery (iPhone 17 sim)
+    runs-on: macos-26
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: Skrift_Native/SkriftMobile
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xcodegen + xcbeautify + xcparse
+        run: brew install xcodegen xcbeautify chargepoint/xcparse/xcparse
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Capture screen gallery (never gates)
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          # Only the gallery class. Simulator UI tests need no signing, so disable it
+          # to avoid provisioning on CI. -resultBundlePath pins the .xcresult so the
+          # next step can pull the attached screenshots out of it.
+          xcodebuild test \
+            -scheme SkriftMobile \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            -derivedDataPath build \
+            -only-testing:SkriftMobileUITests/ScreenshotGalleryUITests \
+            -resultBundlePath ScreenshotResults.xcresult \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+      - name: Extract screenshots from the .xcresult
+        if: always()
+        run: |
+          mkdir -p screenshots
+          xcparse screenshots ScreenshotResults.xcresult screenshots || true
+          echo "=== captured files ==="
+          ls -R screenshots || true
+      - name: Upload screenshots artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skrift-mobile-screens
+          path: Skrift_Native/SkriftMobile/screenshots
+          if-no-files-found: warn
