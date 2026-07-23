@@ -157,6 +157,30 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
+**🔬 THE CHAPTER BUG — ROOT-CAUSED FROM THE DEVICE (2026-07-23 eve, build 115 fixes + self-heals).**
+Tuur: "the chapters look very different from what the phone has… I think the ePub didn't come over."
+Diagnosed by pulling the iPad's own container instead of guessing: `alignment_f0.json` WAS there
+(9.5 MB, `verdict=aligned`, **29 chapterMarks with the real TOC titles**, `transcriptSignature
+48751:120138` == the transcript's own content signature → freshness passes). The sync was fine.
+**Root cause: build 106's `Audiobook` encoder didn't persist `epubChapters`** (main's round-5 fix
+`885bc15` only reached this branch in today's merge) — the receiver derived the 29 chapters, wrote
+them, the encoder dropped them, and `receiveAlignments` latched its applied-marker UNCONDITIONALLY
+→ never retried. Fixes: marker carries the OUTCOME (`<sig>#<count>`) and is written only after the
+chapters READ BACK (verdict-gate the derivation); a legacy bare-signature marker re-derives ONCE
+from the on-disk sidecar (self-heal, no re-download); mark-less alignments still latch (`#0`);
+derivation now reads the LOCAL record (the sanitized remote blob has `detectedChapters` stripped
+by contract, which was silently dropping partial-merge chapters on receivers). 7 tests.
+**DOCTRINE (new, general):** a sync applied-marker must record what the apply PRODUCED, never just
+that it ran. **Also removed:** the iPad Connections collapse toggle (at regular width the note is
+already at its reading measure — hiding the panel only re-centred the same text; the Mac keeps its
+collapse, where a narrow window earns it).
+**STILL OPEN — the ePub FILE itself:** local-by-design (v1 doctrine); the alignment carries chapters
++ true-text read-along, so the Text sheet honestly reads "No book text attached" on a receiver even
+though its effects are present. Tuur asked for it to come over — DECISION OWED: sync the ePub blob
+(cheap: ~2 MB vs the 738 MB audio; enables re-align + captures against published text on any
+device) via a new `epubSignature` on the sync record + local attach-field restore on the receiver
+(keeps the blob out of the LWW record, so old writers still can't erase it).
+
 **📚 iPad LIVE ROUND (2026-07-23 eve, build 114 on 'Tiuri's iPad big'):** sidebar mode retired
 (`.tabBarOnly` — "weird and unnecessary"); origin/main MERGED IN (📖 rounds 5–8 + unified Text
 sheet + lifecycle v3; suite now 944/0; conflicts: menu-extraction kept w/ main's unified verbs,
