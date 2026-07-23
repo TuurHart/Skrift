@@ -378,7 +378,7 @@ struct MemosListView: View {
     private var searchField: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").font(.system(size: 14)).foregroundStyle(Color.skTextFaint)
-            TextField("", text: $search, prompt: Text("Search transcripts").foregroundStyle(Color.skTextFaint))
+            TextField("", text: $search, prompt: Text(SharedCopy.searchPlaceholder).foregroundStyle(Color.skTextFaint))
                 .font(.system(size: 14)).foregroundStyle(Color.skText).tint(.skAccent)
                 .autocorrectionDisabled()
                 .focused($searchFocused)
@@ -648,6 +648,23 @@ struct MemosListView: View {
                 .font(.system(size: 13))
                 .tint(.skAccent)
                 .accessibilityIdentifier("select-button")
+                // ⋯ is the ADVANCED filter/sort sheet (place, date, photos,
+                // unsynced) — the import sources moved onto the Import button
+                // (Tuur, 2026-07-23: "is [⋯] not the same as import?"). One tap,
+                // no sub-menu, so its job is unambiguous.
+                Button { showSortFilter = true } label: {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.skAccentText)
+                        .frame(width: 26, height: 26)
+                }
+                .accessibilityIdentifier("ipad-list-filter")
+                .accessibilityLabel("Filter & sort")
+            }
+
+            HStack(spacing: 7) {
+                // Import IS the picker chooser now (Tuur: "when you click import
+                // you should see if you want files or video from photos").
                 Menu {
                     Button { showMediaFileImporter = true } label: {
                         Label("Audio or video from Files", systemImage: "folder")
@@ -660,29 +677,14 @@ struct MemosListView: View {
                             Label("Scan a document", systemImage: "doc.viewfinder")
                         }
                     }
-                    Divider()
-                    Button { showSortFilter = true } label: {
-                        Label("Sort & filter…", systemImage: "line.3.horizontal.decrease")
-                    }
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.skAccentText)
-                        .frame(width: 26, height: 26)
-                }
-                .accessibilityIdentifier("ipad-list-overflow")
-            }
-
-            HStack(spacing: 7) {
-                Button { showMediaFileImporter = true } label: {
-                    Label("Import", systemImage: "plus")
+                    Label(SharedCopy.importVerb, systemImage: "plus")
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(Color.skText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 7)
                         .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
-                .buttonStyle(.plain)
                 .accessibilityIdentifier("ipad-import-button")
 
                 // "Process N" — the Mac's button, ported whole: N is the pile a
@@ -750,12 +752,15 @@ struct MemosListView: View {
         HStack(spacing: 5) {
             ForEach(QueueFilter.allCases, id: \.self) { chip in
                 let on = listChip == chip
-                Text(chip == .notRated && unratedCount > 0 ? "\(chip.rawValue) \(unratedCount)" : chip.rawValue)
+                // The Mac's chip, opacity-for-opacity (Tuur, 2026-07-23: the Mac's
+                // chips "just look better") — accent text on accent@0.14, no count
+                // on the chip (the number lives in the triage line, like the Mac).
+                Text(chip.rawValue)
                     .font(.system(size: 11))
                     .lineLimit(1).fixedSize()
-                    .foregroundStyle(on ? Color.skAccentText : Color.skTextDim)
+                    .foregroundStyle(on ? Color.skAccent : Color.skTextDim)
                     .padding(.horizontal, 9).padding(.vertical, 4)
-                    .background(on ? Color.skAccentSoft : .clear, in: RoundedRectangle(cornerRadius: 6))
+                    .background(on ? Color.skAccent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
                     .overlay(RoundedRectangle(cornerRadius: 6)
                         .stroke(on ? Color.skAccent.opacity(0.22) : .clear, lineWidth: 1))
                     .contentShape(Rectangle())
@@ -771,10 +776,17 @@ struct MemosListView: View {
     /// are over ALL live notes (not the filtered view), like the Mac's sidebar.
     private var macTriageLine: some View {
         HStack(spacing: 0) {
-            Text("\(readyToReviewCount) ready to review")
-                .foregroundStyle(Color.skAccentText).fontWeight(.semibold)
-            if toProcessCount > 0 {
-                Text(" · \(toProcessCount) to process").foregroundStyle(Color.skTextFaint)
+            // Under the Unrated chip the line becomes the not-rated count (the
+            // number the chip used to carry) — the Mac's own branch.
+            if listChip == .notRated {
+                Text("\(unratedCount) not rated")
+                    .foregroundStyle(Color.skTextDim).fontWeight(.semibold)
+            } else {
+                Text("\(readyToReviewCount) ready to review")
+                    .foregroundStyle(Color.skAccentText).fontWeight(.semibold)
+                if toProcessCount > 0 {
+                    Text(" · \(toProcessCount) to process").foregroundStyle(Color.skTextFaint)
+                }
             }
             Spacer(minLength: 6)
             Button { withAnimation(Theme.Motion.snappy) { sort = sort.next } } label: {

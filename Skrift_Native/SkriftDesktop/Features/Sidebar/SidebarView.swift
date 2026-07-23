@@ -156,7 +156,7 @@ struct SidebarView: View {
             }
 
             HStack(spacing: 7) {
-                actionButton(title: "Upload", system: "plus", filled: false) { openUploadPanel() }
+                actionButton(title: SharedCopy.importVerb, system: "plus", filled: false) { openUploadPanel() }
                 processButton
             }
 
@@ -233,7 +233,7 @@ struct SidebarView: View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-            TextField("Search memos", text: $model.searchText)
+            TextField(SharedCopy.searchPlaceholder, text: $model.searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.textPrimary)

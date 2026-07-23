@@ -27,6 +27,17 @@ enum SharedCopy {
     /// Settings destination for the on-device model + prompts (iPad).
     static let processSettingsTitle = "Process on this iPad"
 
+    /// THE verb for bringing external audio/video in — "Import" on both apps
+    /// (Tuur, 2026-07-23: "make both mac and ipad import"; the Mac's button said
+    /// "Upload"). The Mac still opens its file panel, the iPad offers Files vs
+    /// Photos — same word, each platform's own picker.
+    static let importVerb = "Import"
+
+    /// The notes-search field placeholder — "Search memos" everywhere (Tuur,
+    /// 2026-07-23: the phone/iPad said "Search transcripts"; the Mac's wording
+    /// wins — "search memos should be done everywhere").
+    static let searchPlaceholder = "Search memos"
+
     /// The in-flight line while a note is being processed on THIS device.
     /// `step` is the model pass ("Copy-edit"), `n`/`of` the Mac's RunState
     /// counting — one vocabulary on every screen.
