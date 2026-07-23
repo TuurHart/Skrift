@@ -40,6 +40,8 @@ struct JournalView: View {
     @State private var month: Date = Date()
     @State private var selectedDay: Date = Date()
     @State private var mapMode = false
+    /// Then vs Now (shared `ThenVsNow` rule; iPad wave v2) — nil = no card.
+    @State private var thenNow: (then: Memo, now: Memo)?
     @State private var selectedPlace: PlaceCluster?
     @State private var span = MKCoordinateSpan(latitudeDelta: 40, longitudeDelta: 40)
     /// The map viewport — with no explicit place selected, the list under the map
@@ -98,6 +100,42 @@ struct JournalView: View {
             macLocalTrash = WayOutRules.macOnlyTrashed(trashedPFs, memoIDs: Set(rows.map(\.id)))
         } else {
             macLocalTrash = []
+        }
+
+        deriveThenVsNow()
+    }
+
+    /// Then vs Now on the Mac (iPad wave v2 — "we should have that on all three
+    /// devices"): the SHARED window + pick (`ThenVsNow`), fed by the Mac's own
+    /// related-scores. Async (embedding queries); mirrors the phone's reload.
+    private func deriveThenVsNow() {
+        guard ConnectionsIndexService.shared.isActive else { thenNow = nil; return }
+        let snapshot = memos
+        Task { @MainActor in
+            let calendar = Calendar.current
+            let now = Date()
+            guard let recentCut = calendar.date(byAdding: .day, value: -ThenVsNow.recentWindowDays, to: now),
+                  let gapCut = calendar.date(byAdding: .month, value: -ThenVsNow.minGapMonths, to: now)
+            else { return }
+            let dates = Dictionary(snapshot.map { ($0.id, $0.recordedAt) }, uniquingKeysWith: { a, _ in a })
+            let recents = snapshot.filter { $0.recordedAt >= recentCut }
+                .sorted { $0.recordedAt > $1.recordedAt }
+                .prefix(ThenVsNow.maxRecents)
+            var candidates: [(now: UUID, hits: [(memoID: UUID, score: Float)])] = []
+            for memo in recents {
+                candidates.append((memo.id, await ConnectionsIndexService.shared.relatedScores(to: memo.id)))
+            }
+            guard let pair = ThenVsNow.pick(candidates: candidates, dates: dates,
+                                            gapCut: gapCut, floor: RetrievalTuning.relatedFloor) else {
+                thenNow = nil
+                return
+            }
+            let byID = Dictionary(snapshot.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            if let then = byID[pair.then], let nowMemo = byID[pair.now] {
+                thenNow = (then, nowMemo)
+            } else {
+                thenNow = nil
+            }
         }
     }
 
@@ -283,7 +321,12 @@ struct JournalView: View {
                 if memos.isEmpty {
                     emptyState
                 } else {
-                    ForEach(LookbackProvider.entries(for: memos, now: selectedDay)) { entry in
+                    if let pair = thenNow { thenNowCard(pair) }
+                    // The pair's notes never double-show as lookback cards
+                    // (the phone's exclusion rule, verbatim).
+                    ForEach(LookbackProvider.entries(
+                        for: memos, now: selectedDay,
+                        excluding: Set([thenNow?.then.id, thenNow?.now.id].compactMap { $0 }))) { entry in
                         if let memo = memos.first(where: { $0.id == entry.id }) {
                             card(memo, kick: entry.label, warmKick: false)
                         }
@@ -428,7 +471,18 @@ struct JournalView: View {
         let members = Set(cluster.id.split(separator: "+").map(String.init))
         let constituents = clusters.filter { members.contains($0.id) }
         if let region = PlaceCluster.fitRegion(for: constituents.isEmpty ? [cluster] : constituents) {
-            withAnimation { camera = .region(region) }
+            // Dive means DOWN: if the target frame is WIDER than what's on
+            // screen, don't move — double-clicking a split pin while already
+            // zoomed deep used to fly back OUT (the phone's b89/b90 camera
+            // contract, ported 2026-07-23 after Tuur's Mac repro: 7-cluster →
+            // 3+4 split → clicking the 4 zoomed out). Selecting alone is enough.
+            let tighter = visibleRegion.map {
+                region.span.latitudeDelta < $0.span.latitudeDelta * 0.95
+                    || region.span.longitudeDelta < $0.span.longitudeDelta * 0.95
+            } ?? true
+            if tighter {
+                withAnimation { camera = .region(region) }
+            }
         }
     }
 
@@ -446,6 +500,59 @@ struct JournalView: View {
     }
 
     // ── Cards ──────────────────────────────────────────────────────────
+
+    /// The juxtaposition card (shared `ThenVsNow` rule): what you thought THEN,
+    /// what you said NOW — arranged, never interpreted. Each half opens its note.
+    private func thenNowCard(_ pair: (then: Memo, now: Memo)) -> some View {
+        let months = calendar.dateComponents(
+            [.month], from: LookbackProvider.journalDate(pair.then),
+            to: LookbackProvider.journalDate(pair.now)).month ?? ThenVsNow.minGapMonths
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("THEN VS NOW")
+                    .font(.system(size: 10, weight: .bold)).tracking(0.4)
+                    .foregroundStyle(Theme.accent)
+                Spacer()
+                Text("\(months) months apart")
+                    .font(.system(size: 10.5)).foregroundStyle(Theme.textMuted)
+            }
+            thenNowHalf(pair.then)
+            HStack(spacing: 6) {
+                Rectangle().fill(Theme.surfaceHover).frame(height: 1)
+                Text("\(months) months later")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.accent)
+                    .fixedSize()
+                Rectangle().fill(Theme.surfaceHover).frame(height: 1)
+            }
+            thenNowHalf(pair.now)
+        }
+        .padding(13)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Theme.hairline.opacity(0.07), lineWidth: 1))
+        .accessibilityIdentifier("journal-thennow-card")
+    }
+
+    private func thenNowHalf(_ memo: Memo) -> some View {
+        Button { openInQueue(memo) } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(LookbackProvider.journalDate(memo).formatted(.dateTime.month(.wide).year()))
+                    .font(.system(size: 9.5, weight: .bold)).tracking(0.4)
+                    .foregroundStyle(Theme.textMuted)
+                Text(cardTitle(memo))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary).lineLimit(1)
+                if !memo.locked, !snippet(memo).isEmpty {
+                    Text(snippet(memo))
+                        .font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 
     private func card(_ memo: Memo, kick: String, warmKick: Bool) -> some View {
         Button { openInQueue(memo) } label: {

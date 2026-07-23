@@ -88,15 +88,25 @@ never zooms out") — the Mac's map-behind-Places likely never got the b90 camer
 Check whether the iPad pane is immune (it reuses the PHONE's `JournalMapCanvas`, so it should
 carry the fix — verify), then port the b90 rules to the Mac's `JournalView` map mode.
 
-**✅ V2 DECISIONS (Tuur mock review, 2026-07-23 — think-first session; BUILD NOT YET STARTED):**
+**✅ V2 BUILT same-day (2026-07-23 pm, conductor-direct — no lanes; ONE open pick left: the
+rows dialect, m1b):** items 1–6+8 below all landed (Connections=Mac-verbatim panel w/ why-chips
++ toolbar badge · polish=visible ✨ button, automation deleted · Mac-parity prompt editors +
+**synced prompts** (PolishPromptsRecord carrier, vocab-LWW pattern, both apps, BOTH CloudKit
+schemas — prod deploy at promotion) · player=phone-at-every-width (three-zone deleted; expert
+canvas clean) · then-vs-now SHARED (ThenVsNow) + the Mac Journal card w/ exclusion · Mac map
+dive clamp (b90 port). Gate + numbers in the roadmap shipped log. **OWED: Tuur picks m1b A or B
+(rows), eyeball rounds, real-iPad install, polish live test, promote.**
+
+**Original decision list (for the record):**
 1. Shell: **system top tab strip accepted** ("that's how it is") — no custom bottom bar.
 2. Connections: **copy the Mac panel verbatim** — toolbar count-badge open/close (the Mac's
    affordance, verified in desktop `ConnectionsPanel.swift`), Mac row anatomy, **drop the inline
    closeness %** (Mac keeps it behind hover; touch shows none for now).
 3. Polish: **the Mac's verb** — visible Polish/Process button on an unpolished note; KILL the
    polish-on-open toggle. Settings grows **Mac-parity polish settings incl. the three prompt
-   editors** (shared defaults; overrides LOCAL per device v1 — flag: local overrides can drift
-   the two polishers' voice; synced-prompts carrier (vocab-LWW pattern) = fast-follow if felt).
+   editors** (shared defaults). **Prompt overrides SYNC (Tuur 2026-07-23: "do llm prompt
+   syncing aswell")** — vocab-pattern LWW carrier (`PolishPromptsRecord`), both apps
+   read+write: iPad editors ↔ Mac settings.json, newest wins whole-blob.
    Double-polish race: SAFE by design — `enhancedAt` LWW + `MacCloudWriteBack`'s newer-write
    guard (verified); both burn compute, one wins everywhere. Touch-up: that file's doc still
    says "written ONLY by the Mac" (stale since the wave).
@@ -108,9 +118,11 @@ carry the fix — verify), then port the b90 rules to the Mac's `JournalView` ma
 6. Books: shelf stays; **regular width presents the PHONE player** (width-capped) instead of
    the three-zone layout — a clean canvas for the external book-expert chat that gets a
    self-contained player to redesign (that handoff is that chat's job, not this board's).
-7. Notes list rows on iPad: **phone dialect** (locked reasoning: the list is capture-side —
-   phone rows; Mac dress only inside Mac-job surfaces like Connections/polish. The written
-   phone↔Mac row divergence stays by-design).
+7. Notes list rows on iPad: **OPEN — Tuur unconvinced by phone-dialect ("the iPad is
+   in-between; easier to cleanup notes; closer to Mac can be argued"). Decide from the mock:
+   m1b draws variant A (phone rows verbatim) vs variant B (phone rows + the Mac's triage
+   layer: unrated = quiet hollow-○ dimmed rows, context-menu Flag/Delete verbs, count line).
+   No row code changes until the pick (current build = variant A already).
 8. Record card: unchanged. Mock upkeep: patch m3/m5 (+ m6 note) to v2 before building
    (mock-first), add as-built screenshots; m1/m4 stand (the build is truer than the drawing —
    real SF Symbols/components; mock glyphs were approximations).

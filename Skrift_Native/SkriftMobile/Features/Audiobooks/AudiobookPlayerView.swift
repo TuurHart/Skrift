@@ -133,15 +133,13 @@ struct AudiobookPlayerView: View {
         withAnimation(Self.chromeFade) { chromeUp = false }
     }
 
-    /// Branch point: regular width gets the three-zone layout (mock
-    /// `ipad-app.html` m6); compact keeps today's reading-mode player.
-    @ViewBuilder
+    /// v2 (Tuur 2026-07-23): ONE player at every width — the phone's
+    /// reading-mode player, just bigger. The wave-1 three-zone iPad layout was
+    /// RETIRED (recover from git if the book-expert redesign wants parts); the
+    /// only regular-width difference is the read-along capping to a reading
+    /// measure so prose never runs wall-to-wall.
     private func content(_ book: Audiobook) -> some View {
-        if isRegular {
-            regularContent(book)
-        } else {
-            compactContent(book)
-        }
+        compactContent(book)
     }
 
     private func compactContent(_ book: Audiobook) -> some View {
@@ -166,6 +164,8 @@ struct AudiobookPlayerView: View {
                     onToggleBookmarkInSpan: { start, end in toggleBookmark(inSpan: start, end) }
                 )
                 .frame(maxHeight: .infinity)
+                .frame(maxWidth: isRegular ? 680 : .infinity)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, Theme.Space.margin)
                 .padding(.top, chromeUp ? 16 : 8)
 
@@ -197,178 +197,6 @@ struct AudiobookPlayerView: View {
         .onTapGesture { toggleChrome() }
         .offset(y: dragOffset)
         .gesture(dismissDrag)
-    }
-
-    // MARK: - Regular width (iPad wave, mock `ipad-app.html` m6)
-
-    /// Three standing zones: LEFT transport (~340pt), CENTER read-along at a
-    /// reading measure, RIGHT the chapters/bookmarks rail. No idle-recede here
-    /// (chrome is always up — there's room, unlike the phone) and no
-    /// swipe-to-dismiss (it would fight the rail's / read-along's own
-    /// scrolling); the collapse chevron is the one way out.
-    private func regularContent(_ book: Audiobook) -> some View {
-        let time = scrubTime ?? session.currentTime
-        let location = book.fileLocation(at: time)
-        return HStack(spacing: 0) {
-            regularLeftColumn(book, time: time)
-                .frame(width: 340)
-
-            Rectangle().fill(Color.skBorder).frame(width: 1)
-
-            regularCenterColumn(book, time: time, location: location)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            Rectangle().fill(Color.skBorder).frame(width: 1)
-
-            regularRail(book, time: time)
-                .frame(width: Adaptive.sidePanelWidth)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    /// Cover + transport + utilities + scrubber (mock `.pleft`). The mock only
-    /// draws the "⌄ close" chevron up top, but the ⋯ menu is kept alongside it
-    /// so Edit book details / Transcribe / Book text… / Sync… / End session
-    /// stay reachable — dropping them would be a real regression, not a
-    /// presentation choice.
-    private func regularLeftColumn(_ book: Audiobook, time: TimeInterval) -> some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.down").font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.skTextDim).frame(width: 30, height: 30)
-                }
-                .accessibilityIdentifier("player-collapse")
-                .accessibilityLabel("Collapse — the mini-player takes over")
-                Spacer()
-                menu(book)
-            }
-            .padding(.bottom, 20)
-
-            BookCoverView(book: book)
-                .frame(width: 220, height: 220)
-                .clipShape(.rect(cornerRadius: 18, style: .continuous))
-                .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
-                .onTapGesture { showEditBook = true }
-                .accessibilityAddTraits(.isButton)
-                .accessibilityLabel("Edit book details")
-                .accessibilityIdentifier("player-cover-edit")
-
-            Text(book.title)
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(Color.skText)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .padding(.top, 16)
-            Text(book.author)
-                .font(.system(size: 13))
-                .foregroundStyle(Color.skTextDim)
-                .lineLimit(1)
-                .padding(.top, 2)
-
-            transport
-                .padding(.top, 28)
-
-            regularUtilityRow
-                .padding(.top, 20)
-
-            Spacer(minLength: 16)
-
-            scrubber(book, time: time)
-        }
-        .padding(24)
-    }
-
-    /// Today's utility row PLUS a bookmark-toggle chip (mock's `.pmeta`: speed
-    /// + bookmark + capture, alongside the existing Aa/sleep so nothing that
-    /// works at compact width goes missing at regular width). `utilityRow`
-    /// itself is untouched — this is a separate composition, so compact can't
-    /// regress.
-    private var regularUtilityRow: some View {
-        HStack(spacing: 14) {
-            Spacer(minLength: 0)
-            textSettingsButton
-            bookmarkToggleChip
-            addNoteChip
-            speedMenu
-            sleepMenu
-            Spacer(minLength: 0)
-        }
-    }
-
-    /// Toggle a bookmark at the current playhead (mock's "🔖 bookmark" chip).
-    /// The read-along's own margin dog-ear (sentence-span aware) still works
-    /// unchanged in the center column — this is a coarser, point-based
-    /// shortcut for when the left column is all you're looking at.
-    private var bookmarkToggleChip: some View {
-        let time = scrubTime ?? session.currentTime
-        let isMarked = currentBookmarks.contains { abs($0.position - time) < BookmarkStore.dedupeWindow }
-        return Button { toggleBookmarkAtPlayhead() } label: {
-            Image(systemName: isMarked ? "bookmark.fill" : "bookmark")
-                .font(.system(size: 16))
-                .foregroundStyle(isMarked ? Color.skAccent : Color.skTextDim)
-                .frame(width: 34, height: 32)
-        }
-        .accessibilityIdentifier("ipad-player-bookmark")
-        .accessibilityLabel(isMarked ? "Remove bookmark here" : "Bookmark this spot")
-    }
-
-    private func toggleBookmarkAtPlayhead() {
-        guard let book = session.book else { return }
-        noteInteraction()
-        let t = scrubTime ?? session.currentTime
-        let nearby = currentBookmarks.filter { abs($0.position - t) < BookmarkStore.dedupeWindow }
-        if !nearby.isEmpty {
-            for bm in nearby { currentBookmarks = bookmarks.remove(id: bm.id, bookID: book.id) }
-            Haptics.tap()
-            showToast("Bookmark removed")
-        } else {
-            currentBookmarks = bookmarks.add(
-                AudiobookBookmark(position: t, chapterLabel: book.shortChapterLabel(at: t)),
-                bookID: book.id)
-            Haptics.success()
-            showToast("Bookmarked · \(AudiobookTime.clock(t))")
-        }
-    }
-
-    /// The read-along at a reading measure, with a small chapter heading above
-    /// it (mock's `.chap` label — `ReadAlongView` itself is unmodified, "word
-    /// karaoke unchanged" per brief, so the heading is a sibling, not an
-    /// addition inside it).
-    private func regularCenterColumn(_ book: Audiobook, time: TimeInterval, location: (index: Int, offset: TimeInterval)) -> some View {
-        VStack(spacing: 0) {
-            if let label = book.shortChapterLabel(at: time) {
-                SectionLabel(label.uppercased())
-                    .padding(.top, 22).padding(.bottom, 8)
-            }
-            ReadAlongView(
-                book: book,
-                fileIndex: location.index,
-                fileLocal: location.offset,
-                audioURL: session.store.audioURL(of: book, fileIndex: location.index),
-                bookmarks: currentBookmarks,
-                onTranscribe: { showTranscribe = true },
-                onUserScroll: {},   // no chrome to recede at regular width
-                onToggleBookmarkInSpan: { start, end in toggleBookmark(inSpan: start, end) }
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .readingMeasure(560)
-        .padding(.horizontal, 20)
-    }
-
-    /// The chapters/bookmarks sheet's content, hosted inline instead of a
-    /// sheet (the sheet itself stays reachable from the ⋯ menu — harmless
-    /// redundancy over the always-visible rail, not a fork of `menu(_:)`).
-    private func regularRail(_ book: Audiobook, time: TimeInterval) -> some View {
-        ChaptersBookmarksRail(
-            book: book,
-            currentTime: time,
-            bookmarks: currentBookmarks,
-            onSelectChapter: { ch in session.seek(to: ch.start) },
-            onSelectBookmark: { bm in session.seek(to: bm.position) },
-            onDeleteBookmark: { bm in currentBookmarks = bookmarks.remove(id: bm.id, bookID: book.id) }
-        )
     }
 
     // MARK: - Receded mini-header (reading mode)

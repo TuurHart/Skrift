@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 20
-updated: 2026-07-22T18:30:00.000Z
+version: 21
+updated: 2026-07-23T14:30:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -622,12 +622,26 @@ nodes:
       record card + ⌘-keys — and the iPad polishes ON DEMAND with the Mac's
       exact Gemma (MemoEnhancement, LWW), phone layouts untouched at compact"
     note: "Roles locked (Skrift_Native/IPAD_PLAN.md): phone captures, Mac
-      volunteers, iPad is asked. Mock = mocks/ipad-app.html m1-m7 (verdicts
-      inline — Fable picks, Tuur review owed). Board = backlog 🖥️📱. Owed:
-      Tuur mock+sim review, real-iPad Dev install (stale build standing item),
-      polish device test (sim can't Metal-JIT), wide-player/landscape eyeball,
-      then promote to main."
+      volunteers, iPad is asked — refined at Tuur's 2026-07-23 review into the
+      wave's second law: phone bones everywhere, MAC dress for Mac jobs
+      (Connections, the polish verb), system chrome where iPadOS owns it.
+      Mock = mocks/ipad-app.html m1-m7 + m1b (v2 verdicts inline). Board =
+      backlog 🖥️📱. Owed: the m1b rows-dialect pick (A/B), eyeball rounds,
+      real-iPad Dev install (stale build standing item), polish + prompt-sync
+      live test (sim can't Metal-JIT), then promote to main."
     shipped:
+      - >-
+        2026-07-23 pm · v2 SAME-DAY from Tuur's mock review (conductor-direct,
+        no lanes): Connections = the Mac panel VERBATIM (why-chips derivation
+        → Shared/Retrieval, thread rail, toolbar count badge, % removed) ·
+        polish = the Mac's visible verb (automation deleted) + Mac-parity
+        prompt editors + PROMPT SYNC both apps (PolishPromptsRecord carrier,
+        vocab-LWW pattern, both CloudKit schemas — prod deploy at promotion) ·
+        player three-zone RETIRED → phone player at every width (expert canvas)
+        · then-vs-now SHARED (ThenVsNow) + the Mac Journal card · Mac map dive
+        clamp (b90 port, Tuur's 7→3+4 repro). System top strip accepted. OPEN:
+        the m1b rows-dialect pick (A phone / B +Mac triage layer). Gate:
+        mobile 895/0, desktop 491/0 + full MLX build, iPad build green
       - >-
         2026-07-22 eve · BUILT overnight in one autonomous session (Fable
         conducting, 5-lane batch — 3 Opus + 2 Sonnet — off signed groundwork;
