@@ -96,6 +96,12 @@ struct MemosListView: View {
     /// phone (compact pushes onto `path` instead), so the whole split path is a
     /// no-op there.
     @State private var selectedMemoID: UUID?
+    /// The memo the detail pane currently shows (its pager can swipe past the row
+    /// you tapped) — published up by `MemoDetailView` so the Connections panel can
+    /// live beside the note's NavigationStack instead of under its toolbar.
+    @State private var paneMemoID: UUID?
+    @State private var showPaneThread = false
+    @ObservedObject private var lockGate = LockGate.shared
     /// ⌘F focuses the Notes search field. The shared `SearchField` component
     /// can't carry a focus binding, so the field is inlined below (`searchField`)
     /// with this state; `SearchFocusBridge` posts the request from `.commands`.
@@ -260,9 +266,35 @@ struct MemosListView: View {
     /// placeholder. `.id(id)` remounts per selection so `MemoDetailView`'s
     /// `initialID`-seeded state actually re-seeds when you pick another note.
     private var detailPane: some View {
+        // Note stack | Connections panel as SIBLINGS: the panel must live outside
+        // the note's NavigationStack, or the note's floating toolbar capsule spans
+        // the panel's column too (Tuur, live iPad round 2026-07-23).
+        HStack(spacing: 0) {
+            noteStack
+            if let memo = paneMemo, !lockGate.isLocked(memo) {
+                ConnectionsPanel(
+                    memo: memo,
+                    onOpenMemo: { id in
+                        guard memos.contains(where: { $0.id == id }) else { return }
+                        withAnimation(Theme.Motion.snappy) { selectedMemoID = id }
+                    },
+                    onViewThread: { showPaneThread = true })
+            }
+        }
+        .sheet(isPresented: $showPaneThread) {
+            if let memo = paneMemo { ThreadView(seedID: memo.id) }
+        }
+        .onChange(of: selectedMemoID) { _, new in if new == nil { paneMemoID = nil } }
+    }
+
+    /// The memo the detail pane is currently showing (the pager can swipe past the
+    /// row you tapped) — published up by `MemoDetailView`.
+    private var paneMemo: Memo? { memos.first { $0.id == paneMemoID } }
+
+    private var noteStack: some View {
         NavigationStack {
             if let id = selectedMemoID {
-                MemoDetailView(initialID: id)
+                MemoDetailView(initialID: id, paneMemoID: $paneMemoID)
                     .id(id)
             } else {
                 ZStack {

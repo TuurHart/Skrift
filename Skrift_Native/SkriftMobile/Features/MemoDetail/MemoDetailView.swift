@@ -42,8 +42,14 @@ struct MemoDetailView: View {
     @State private var lockVaultNotice = false
     private let repository = NotesRepository.shared
 
-    init(initialID: UUID) {
+    /// iPad split view: publishes the page's CURRENT memo (the pager can swipe)
+    /// so the pane can host the Connections panel beside this NavigationStack.
+    /// nil everywhere else — the phone renders its footer card as before.
+    var paneMemoID: Binding<UUID?>? = nil
+
+    init(initialID: UUID, paneMemoID: Binding<UUID?>? = nil) {
         self.initialID = initialID
+        self.paneMemoID = paneMemoID
         _selection = State(initialValue: initialID)
     }
 
@@ -52,25 +58,18 @@ struct MemoDetailView: View {
     var body: some View {
         Group {
             if hSize == .regular {
-                // Note page | Connections panel. The reading measure + the floating
-                // player bar cap to the note column (m3); the panel stands full-height
-                // on the trailing edge with its own scroll + leading hairline.
-                HStack(spacing: 0) {
-                    notePager.readingMeasure()
-                    if let memo = currentMemo, !lockGate.isLocked(memo) {
-                        ConnectionsPanel(
-                            memo: memo,
-                            onOpenMemo: { id in
-                                guard memos.contains(where: { $0.id == id }) else { return }
-                                withAnimation(Theme.Motion.snappy) { selection = id }
-                            },
-                            onViewThread: { showThread = true })
-                    }
-                }
+                // Just the note column here — the Connections panel is hosted by the
+                // split view OUTSIDE this NavigationStack (2026-07-23, Tuur: the note's
+                // floating toolbar capsule spanned the panel too, which read as chrome
+                // hovering over someone else's column). We publish the page's current
+                // memo up instead.
+                notePager.readingMeasure()
             } else {
                 notePager
             }
         }
+        .onAppear { paneMemoID?.wrappedValue = selection }
+        .onChange(of: selection) { _, new in paneMemoID?.wrappedValue = new }
         .background(Color.skBg.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
