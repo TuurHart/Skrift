@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 19
-updated: 2026-07-23T12:15:00.000Z
+updated: 2026-07-23T12:38:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -1066,6 +1066,19 @@ nodes:
       ePubs when found (multi-text ready), ePub images in the reader
       (reading-mode design pass — the 44s calendar-art gap is the demo)."
     shipped:
+      - >-
+        2026-07-23 · rounds 5–8 verified + landed (the Odyssey report):
+        Audiobook Codable now persists the attach fields (chapters survived
+        relaunch only by accident before), orphaned attached texts re-adopt
+        on open (bitten books self-heal — device-proven via devlog), lenient
+        entity-tolerant nav/NCX TOC parse, bridged sentences + ASR gap fill
+        (union display), attach = live stages + keep-listening copy,
+        mid-transcribe attach defers deliberately. ROUND 8 root-cause catch
+        from real-data verification: mergeSentences was eating same-text
+        seam-overlap sentences (196/7506 on the Odyssey, incl. both
+        user-reported holes) — collisions now contest between texts only;
+        schema 5 re-heals persisted sidecars. New env-gated real-data
+        harness (OdysseyRealDataDiagnostics) + -resumeBook device hook.
       - >-
         2026-07-22 pm/eve · batch D + four device rounds (b95–b102):
         multi-text per audiobook (schema-3 sidecars, per-text verdicts,
