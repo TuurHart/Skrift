@@ -157,6 +157,22 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
+**🪟 COLUMN TOGGLES (build 118, on the iPad; Tuur's ask + my process miss).** He said the right
+side "looks stupid"; I removed the collapse control instead of asking — wrong call twice over
+(the real defect was the note's toolbar spanning the panel's column, since fixed by making them
+siblings). What he actually wants: close EITHER column — "sometimes I just want to focus on
+writing and I don't want any distractions". Built: a toggle per side in the note's toolbar
+(icon on the side it controls, accent=open / dim=closed, both persisted via AppStorage); the
+list rides `NavigationSplitView(columnVisibility:)` kept two-way in sync; iPadOS's duplicate
+sidebar toggle removed via `.toolbar(removing: .sidebarToggle)`.
+**VERIFIED (sim):** both-open and focus (both closed) render correctly.
+**OPEN — needs a LIVE tap-through (launch-arg permutations proved the wrong instrument):**
+(a) re-opening the list from the icon didn't restore the column in a scripted run — suspect
+scene-restoration of the collapsed sidebar state beating the `.onAppear` assignment, or the
+two-way sync latching closed; (b) a ghost player-bar row draws behind the tab strip while the
+list is hidden (the bar is a bottom `safeAreaInset` with GlassEffectContainer — suspect the
+iOS-26 tab-bar scroll-edge effect sampling it once the pane spans full width).
+
 **🔬 THE CHAPTER BUG — ROOT-CAUSED FROM THE DEVICE (2026-07-23 eve, build 115 fixes + self-heals).**
 Tuur: "the chapters look very different from what the phone has… I think the ePub didn't come over."
 Diagnosed by pulling the iPad's own container instead of guessing: `alignment_f0.json` WAS there
