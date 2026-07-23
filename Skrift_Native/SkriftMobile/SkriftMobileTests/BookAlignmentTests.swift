@@ -71,6 +71,32 @@ final class BookAlignmentStoreTests: XCTestCase {
         XCTAssertEqual(loaded?.sources.first?.title, "Book A")
     }
 
+    /// Schema 4 (bridged holes): a v3 sidecar reads as absent, so every attached book
+    /// re-aligns on its next open and existing installs gain bridges + re-derived marks
+    /// without user action.
+    func testSchemaGateRejectsV3Sidecar() throws {
+        let dir = tempDir()
+        let store = BookAlignmentStore(directory: dir)
+        let id = UUID()
+        let fa = FileAlignment(schema: 3, fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x", verdict: "aligned")
+        let folder = dir.appendingPathComponent(id.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try JSONEncoder().encode(fa).write(to: folder.appendingPathComponent("alignment_f0.json"))
+        XCTAssertNil(store.fileAlignment(bookID: id, fileIndex: 0))
+    }
+
+    func testBridgedFlagPersists() throws {
+        let store = BookAlignmentStore(directory: tempDir())
+        let id = UUID()
+        var sentence = AlignedSentence(text: "Bridged.", start: 2, end: 4, wordStart: 0, wordEnd: 1,
+                                       confidence: 0, words: [], sourceFile: "ch1.xhtml", textFile: "a.epub")
+        sentence.bridged = true
+        let fa = FileAlignment(fileIndex: 0, transcriptSignature: "1:1", epubSignature: "x",
+                               verdict: "aligned", chapterMarks: [], sentences: [sentence])
+        try store.save(fa, bookID: id)
+        XCTAssertEqual(store.fileAlignment(bookID: id, fileIndex: 0)?.sentences.first?.bridged, true)
+    }
+
     func testMissingReturnsNil() {
         XCTAssertNil(BookAlignmentStore(directory: tempDir()).fileAlignment(bookID: UUID(), fileIndex: 0))
     }
@@ -264,6 +290,104 @@ final class SentenceAssemblyTests: XCTestCase {
         XCTAssertEqual(sentences[0].wordEnd, 2)
     }
 
+    // MARK: 📖 Bridged holes (schema 4 — the Odyssey dropped-sentence round, 2026-07-22)
+
+    /// The Trojan War case: the aligner matched the sentences around a hole but nothing in
+    /// it, while the narration clearly runs through the gap. The book sentence must be
+    /// emitted with interpolated times + `bridged: true` (confidence stays honest at 0) —
+    /// never silently dropped.
+    func testSandwichedHoleBridgesToBookSentence() {
+        let text = "Alpha beta. Gamma delta epsilon. Zeta eta."
+        let ranges = [
+            AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 0, bookWordEnd: 2, start: 0, end: 2),
+            AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 5, bookWordEnd: 7, start: 10, end: 12),
+        ]
+        // 3 spoken words inside the [2, 10] window — compatible with the hole's 3 book words.
+        let transcript = [
+            WordTiming(word: "gamma", start: 3, end: 4),
+            WordTiming(word: "delta", start: 4, end: 5),
+            WordTiming(word: "epsilon", start: 5, end: 6),
+        ]
+        let sentences = BookAlignmentRunner.assembleSentences(text: text, sourceFile: "f",
+                                                               matchedRanges: ranges, transcriptWords: transcript)
+        guard sentences.count == 3 else { return XCTFail("expected 3 sentences, got \(sentences.count)") }
+        let bridged = sentences[1]
+        XCTAssertEqual(bridged.text, "Gamma delta epsilon.")
+        XCTAssertEqual(bridged.bridged, true)
+        XCTAssertEqual(bridged.confidence, 0, accuracy: 0.0001, "nothing was matched — stays honest")
+        XCTAssertEqual(bridged.start, 2, accuracy: 0.001, "the window opens at prev.end")
+        XCTAssertEqual(bridged.end, 10, accuracy: 0.001, "…and closes at next.start")
+        XCTAssertEqual(bridged.words.count, 3, "karaoke words present (linear within the window)")
+        XCTAssertEqual(bridged.wordStart, 0)
+        XCTAssertEqual(bridged.wordEnd, 3, "splice covers the window's ASR words (gap-fill can't duplicate)")
+        XCTAssertNil(sentences[0].bridged)
+        XCTAssertNil(sentences[2].bridged)
+    }
+
+    /// A silent window means the narrator SKIPPED this text (abridged read) — inventing
+    /// book text into the timeline would be a lie. The hole stays dropped.
+    func testHoleWithSilentWindowStaysDropped() {
+        let text = "Alpha beta. Gamma delta epsilon. Zeta eta."
+        let ranges = [
+            AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 0, bookWordEnd: 2, start: 0, end: 2),
+            AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 5, bookWordEnd: 7, start: 10, end: 12),
+        ]
+        let sentences = BookAlignmentRunner.assembleSentences(text: text, sourceFile: "f",
+                                                               matchedRanges: ranges, transcriptWords: [])
+        XCTAssertEqual(sentences.map(\.text), ["Alpha beta.", "Zeta eta."])
+    }
+
+    /// Far more narration in the window than the hole's book words = the audio there is
+    /// something ELSE (a long aside) — no bridge; the ASR gap fill owns that span.
+    func testOversizedNarrationWindowDoesNotBridge() {
+        let text = "Alpha beta. Gamma delta epsilon. Zeta eta."
+        let ranges = [
+            AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 0, bookWordEnd: 2, start: 0, end: 2),
+            AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 5, bookWordEnd: 7, start: 10, end: 12),
+        ]
+        let transcript = (0..<8).map { WordTiming(word: "w\($0)", start: 2.5 + Double($0) * 0.8,
+                                                  end: 2.5 + Double($0) * 0.8 + 0.5) }
+        let sentences = BookAlignmentRunner.assembleSentences(text: text, sourceFile: "f",
+                                                               matchedRanges: ranges, transcriptWords: transcript)
+        XCTAssertEqual(sentences.map(\.text), ["Alpha beta.", "Zeta eta."],
+                       "8 spoken vs 3 book words breaches the 2.0 ratio — no bridge")
+    }
+
+    /// A hole with no timed neighbor on one side (block head/tail) is unreached front/end
+    /// matter — never bridged.
+    func testLeadingHoleNeverBridges() {
+        let text = "Alpha beta. Gamma delta."
+        let ranges = [AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 2, bookWordEnd: 4, start: 5, end: 7)]
+        let transcript = [WordTiming(word: "x", start: 1, end: 2), WordTiming(word: "y", start: 2, end: 3)]
+        let sentences = BookAlignmentRunner.assembleSentences(text: text, sourceFile: "f",
+                                                               matchedRanges: ranges, transcriptWords: transcript)
+        XCTAssertEqual(sentences.map(\.text), ["Gamma delta."])
+    }
+
+    /// A multi-sentence hole run shares the window proportionally by word count.
+    func testMultiSentenceHoleRunSharesWindowByWordCount() {
+        let text = "Alpha beta. Gamma delta. One two three four. Zeta eta."
+        let ranges = [
+            AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 0, bookWordEnd: 2, start: 0, end: 2),
+            AlignmentCore.Result.MatchedRange(sourceFile: "f", bookWordStart: 8, bookWordEnd: 10, start: 8, end: 10),
+        ]
+        // 6 spoken words in the [2, 8] window — matches the run's 6 book words.
+        let transcript = (0..<6).map { WordTiming(word: "w\($0)", start: 2.2 + Double($0) * 0.9,
+                                                  end: 2.2 + Double($0) * 0.9 + 0.6) }
+        let sentences = BookAlignmentRunner.assembleSentences(text: text, sourceFile: "f",
+                                                               matchedRanges: ranges, transcriptWords: transcript)
+        guard sentences.count == 4 else { return XCTFail("expected 4 sentences, got \(sentences.count)") }
+        // Window 6 s split 2:4 by word count → [2,4] and [4,8].
+        XCTAssertEqual(sentences[1].text, "Gamma delta.")
+        XCTAssertEqual(sentences[1].start, 2, accuracy: 0.001)
+        XCTAssertEqual(sentences[1].end, 4, accuracy: 0.001)
+        XCTAssertEqual(sentences[2].text, "One two three four.")
+        XCTAssertEqual(sentences[2].start, 4, accuracy: 0.001)
+        XCTAssertEqual(sentences[2].end, 8, accuracy: 0.001)
+        XCTAssertEqual(sentences[1].bridged, true)
+        XCTAssertEqual(sentences[2].bridged, true)
+    }
+
     /// Schema 3: `textFile` (which ATTACHED TEXT this sentence came from, distinct from
     /// `sourceFile`, that text's own internal spine path) is stamped when passed, and stays nil
     /// (its default) when omitted — every pre-existing call site above omits it and must keep
@@ -342,6 +466,31 @@ final class MultiTextMergeTests: XCTestCase {
         let merged = BookAlignmentRunner.mergeSentences(into: keep, adding: incoming, textRank: ["a.epub": 0, "b.epub": 1])
         XCTAssertEqual(merged.count, 2, "incoming loses against the toughest (0.95) conflict — BOTH a.epub sentences survive untouched")
         XCTAssertTrue(merged.allSatisfy { $0.textFile == "a.epub" })
+    }
+
+    /// Regression (2026-07-23, the Odyssey verify round): collisions contest BETWEEN texts
+    /// only. One text's own fresh batch routinely carries hairline TIME overlaps between
+    /// adjacent sentences (the aligner's exact per-word times straddle sentence seams — real
+    /// device data: "…(andra)." ends 165.8 while "He is not 'the' man…" starts 165.6). The
+    /// old within-batch contest made the later same-text sentence LOSE the tie (same rank,
+    /// strict-win rule) and vanish — 196 of the Odyssey's 7506 direct-matched sentences were
+    /// silently eaten, including both sentences the user reported missing.
+    func testSameTextSeamOverlapNeverContests() {
+        let incoming = [sentence("a.epub", start: 158.9, end: 165.8),
+                        sentence("a.epub", start: 165.6, end: 181.9),
+                        sentence("a.epub", start: 181.9, end: 188.8)]
+        let merged = BookAlignmentRunner.mergeSentences(into: [], adding: incoming, textRank: ["a.epub": 0])
+        XCTAssertEqual(merged.count, 3, "same-text seam fuzz is not a collision — every sentence survives")
+    }
+
+    /// The between-text contest still applies when the OVERLAPPING existing sentence belongs
+    /// to another text — same-text leniency must not leak across texts.
+    func testBetweenTextOverlapStillContests() {
+        let keep = [sentence("a.epub", start: 0, end: 10, confidence: 0.9)]
+        let incoming = [sentence("b.epub", start: 9.9, end: 20, confidence: 0.5)]
+        let merged = BookAlignmentRunner.mergeSentences(into: keep, adding: incoming, textRank: ["a.epub": 0, "b.epub": 1])
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged.first?.textFile, "a.epub")
     }
 
     // MARK: mergedFileAlignment
@@ -816,5 +965,46 @@ final class CloudSignaturePartTests: XCTestCase {
         let before = fa.cloudSignaturePart()
         fa.sources.append(AlignmentSource(textFilename: "b.epub", title: nil, verdict: "rejected", coverage: 0.0))
         XCTAssertNotEqual(before, fa.cloudSignaturePart())
+    }
+}
+
+// MARK: - orphanedAttachedTexts (re-adoption after the attach fields were lost)
+
+/// 2026-07-22 Odyssey report: pre-persistence-fix builds forgot the attachment on relaunch
+/// while the text file + sidecars stayed in the book folder. `alignIfNeeded` re-adopts from
+/// disk — this pins what counts as an orphaned attached text.
+final class OrphanedAttachedTextsTests: XCTestCase {
+    private func makeFolder(files: [String]) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("orphan_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        for f in files {
+            try Data("x".utf8).write(to: dir.appendingPathComponent(f))
+        }
+        return dir
+    }
+
+    func testFindsEpubAndTxtButNeverAudioSidecarsOrCover() throws {
+        let dir = try makeFolder(files: [
+            "odyssey.epub", "notes.txt", "book.m4b", "cover.jpg",
+            "transcript_f0.json", "alignment_f0.json",
+        ])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        XCTAssertEqual(BookAlignmentRunner.orphanedAttachedTexts(inFolder: dir, audioFiles: ["book.m4b"]),
+                       ["notes.txt", "odyssey.epub"], "sorted; only attachable text types")
+    }
+
+    func testAudioFilesWithTextExtensionsAreExcluded() throws {
+        // A (pathological) book whose AUDIO list claims a .txt name must not re-adopt it.
+        let dir = try makeFolder(files: ["weird.txt", "real.epub"])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        XCTAssertEqual(BookAlignmentRunner.orphanedAttachedTexts(inFolder: dir, audioFiles: ["weird.txt"]),
+                       ["real.epub"])
+    }
+
+    func testMissingFolderYieldsNothing() {
+        let gone = FileManager.default.temporaryDirectory
+            .appendingPathComponent("orphan_missing_\(UUID().uuidString)", isDirectory: true)
+        XCTAssertEqual(BookAlignmentRunner.orphanedAttachedTexts(inFolder: gone, audioFiles: []), [])
     }
 }

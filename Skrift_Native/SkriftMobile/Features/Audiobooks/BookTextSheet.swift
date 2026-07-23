@@ -1,18 +1,34 @@
 import SwiftUI
 
-/// The "Book text" sheet (mock `Skrift_Native/SkriftDesktop/mocks/book-text-sheet.html`
-/// VARIANT B, timeline-first — signed off 2026-07-22, `LANES-2026-07-22D/BASE.md`). Opens from
-/// the library's long-press "Book text…" verb (one label whether zero or several texts are
-/// attached); OWNS Add from here on — `AudiobookLibraryView`'s existing fileImporter +
-/// `runAttach` + busy/outcome alerts stay on that view and present over this sheet (the
-/// established nested-presentation pattern already used there), triggered here via `onAdd`.
+/// The unified "Text" sheet (mock `mocks/book-text-unified.html`, signed off 2026-07-23):
+/// ONE sheet behind ONE "Text…" verb, two levels in the order they matter —
+/// **Level 1 · Transcript** (the floor: status / live progress / Transcribe, driving
+/// `BookTranscriptionJob` inline) stacked above **Level 2 · Book text** (the ceiling:
+/// the 2026-07-22 signed-off variant-B timeline sheet, UNCHANGED — bar, legend, per-text
+/// rows, Add). Replaces the separate "Transcribe book" + "Book text…" menu entries
+/// (library long-press AND player ⋯). `TranscribeBookView` survives solely as the
+/// read-along nudge's detail sheet.
 ///
-/// One bar answers "how much of this audiobook is real book text?" at a glance: its segments
-/// are the REAL aligned spans in book-time order (never a per-file approximation — a mid-file
-/// book boundary in an omnibus draws exactly where it lands), colored per attached text
-/// (accent, tan, cycling); rows below carry the per-text verbs (Re-check / Remove).
+/// Level-2 notes: the bar's segments are the REAL aligned spans in book-time order,
+/// colored per attached text; rows carry the per-text verbs (Re-check / Remove); an
+/// attached-but-not-yet-aligned text (added mid-transcribe, or before any transcript)
+/// reads as an honest tan "waiting" row, never a bogus verdict.
 struct BookTextSheet: View {
     let book: Audiobook
+    @ObservedObject private var job = BookTranscriptionJob.shared
+    @ObservedObject private var textActivity = BookTextActivity.shared
+    /// Content-sized start: a book with texts attached (bar + legend + rows) is
+    /// taller than .medium — opening there read as "cut off" (Tuur, b111).
+    @State private var detent: PresentationDetent
+
+    init(book: Audiobook, busyMessage: String? = nil, onAdd: @escaping () -> Void) {
+        self.book = book
+        self.busyMessage = busyMessage
+        self.onAdd = onAdd
+        // Cheap record-only check — never `textSummary` here (it decodes every
+        // sidecar; see `summary` below).
+        _detent = State(initialValue: book.attachedTextFilenames.isEmpty ? .medium : .large)
+    }
     /// The presenting view's `attachToast` (busy-message overlay), hosted HERE instead —
     /// a plain view overlay on the presenting view is invisible once this `.sheet` covers the
     /// screen (only UIKit-level presentations like `.alert`/`.fileImporter` stack over a sheet
@@ -28,13 +44,20 @@ struct BookTextSheet: View {
     /// see `summary` below.
     @State private var busyFilename: String?
 
-    /// Pure read, re-computed on every `body` evaluation — deliberately NOT cached in
-    /// `@State`. "The sheet's summary refreshes" (brief) then falls out for free from ordinary
-    /// SwiftUI re-render propagation: an attach completing on the presenting view mutates
-    /// ITS `@State`, which re-evaluates the `.sheet(item:)` closure and produces a fresh
-    /// `BookTextSheet`; a remove/re-check completing HERE mutates `busyFilename`. Either way
-    /// `body` re-runs and this re-reads straight from the sidecars — no manual invalidation.
-    private var summary: BookTextSummary? { BookAlignmentRunner.textSummary(bookID: book.id) }
+    /// Loaded OFF the main actor and cached (2026-07-23): this assembly decodes every
+    /// attached file's whole alignment sidecar — 9 MB / 7.5k sentences on the real
+    /// Odyssey — and it used to run on EVERY `body` evaluation on the main thread. Now
+    /// `.task(id:)` recomputes it exactly when something could have changed (a
+    /// remove/re-check finishing, an attach landing, a re-align completing).
+    @State private var summary: BookTextSummary?
+
+    /// Changes exactly when the summary could be stale: a row action starting/finishing,
+    /// the presenting view handing in a new busy state (attach in flight), or a background
+    /// re-align ending. Drives the `.task(id:)` reload.
+    private var summaryReloadKey: String {
+        "\(busyFilename ?? "-")|\(busyMessage ?? "-")|\(textActivity.isActive(book.id))"
+    }
+
     private var perText: [BookTextSummary.PerText] { summary?.perText ?? [] }
     private var bookDuration: TimeInterval { summary?.bookDuration ?? book.duration }
 
@@ -48,9 +71,16 @@ struct BookTextSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         header
-                        bar.padding(.bottom, 6)
-                        barLabels.padding(.bottom, 18)
-                        legend.padding(.bottom, 18)
+                        levelLabel("Level 1 · Transcript")
+                        transcriptCard.padding(.bottom, 18)
+                        levelLabel("Level 2 · Book text")
+                        if perText.isEmpty {
+                            emptyTextCard.padding(.bottom, 10)
+                        } else {
+                            bar.padding(.bottom, 6)
+                            barLabels.padding(.bottom, 18)
+                            legend.padding(.bottom, 18)
+                        }
                         VStack(alignment: .leading, spacing: 10) {
                             ForEach(Array(perText.enumerated()), id: \.element.filename) { _, text in
                                 row(text)
@@ -64,18 +94,49 @@ struct BookTextSheet: View {
             .padding(.horizontal, Theme.Space.margin)
             .padding(.bottom, 8)
 
+            if busyMessage == nil, textActivity.isActive(book.id), let stage = textActivity.stage {
+                // A background re-align (schema heal / re-check) is running for this book.
+                VStack(spacing: 3) {
+                    Text(stage)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
+                    Text("You can keep listening while this runs.")
+                        .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Color.skElev, in: RoundedRectangle.sk(16))
+                .transition(.opacity)
+                .padding(.bottom, 20)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .allowsHitTesting(false)
+            }
+
             if let busyMessage {
-                Text(busyMessage)
-                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Color.skElev, in: .capsule)
-                    .transition(.opacity)
-                    .padding(.bottom, 20)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-                    .allowsHitTesting(false)
+                // Stage line + the standing reassurance (Tuur 2026-07-22: "didn't know
+                // if I could keep listening" — playback is genuinely unaffected).
+                VStack(spacing: 3) {
+                    Text(busyMessage)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
+                    Text("You can keep listening while this runs.")
+                        .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Color.skElev, in: RoundedRectangle.sk(16))
+                .transition(.opacity)
+                .padding(.bottom, 20)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .allowsHitTesting(false)
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large], selection: $detent)
+        // Recompute the (expensive) summary off-main whenever something could have
+        // changed it: a row action finishing, or a background re-align completing.
+        .task(id: summaryReloadKey) {
+            let book = self.book
+            let directory = AudiobookLibraryStore.shared.directory
+            summary = await Task.detached(priority: .userInitiated) {
+                BookAlignmentRunner.textSummary(book: book, directory: directory)
+            }.value
+        }
         .confirmationDialog(
             pendingRemove.map { "Remove \u{201C}\($0.title ?? $0.filename)\u{201D}?" } ?? "",
             isPresented: Binding(get: { pendingRemove != nil }, set: { if !$0 { pendingRemove = nil } }),
@@ -90,11 +151,39 @@ struct BookTextSheet: View {
         .accessibilityIdentifier("book-text-sheet")
     }
 
+    // MARK: - Transcript state (Level 1)
+
+    /// True when the singleton job is actively working THIS book (running or either
+    /// paused flavor) — the only state in which the card shows live progress.
+    private var transcribingThisBook: Bool {
+        job.activeBookID == book.id && job.isRunningOrPaused
+    }
+
+    /// THIS book's transcript progress: the job's live number only while it's
+    /// actually working this book; otherwise a plain cache-served sidecar read.
+    /// Never the singleton's shared `progress` at rest — that is whatever book
+    /// the job last touched, and the `.task`-based reflect it relied on doesn't
+    /// reliably fire inside a sheet over the player's fullScreenCover (b111
+    /// device catch: a fully-transcribed book read "Not transcribed").
+    private var thisBookProgress: Double {
+        transcribingThisBook ? job.progress : job.savedProgress(for: book)
+    }
+
+    private var cardState: BookTextDisplay.TranscriptCardState {
+        BookTextDisplay.transcriptCardState(progress: thisBookProgress,
+                                            transcribingThisBook: transcribingThisBook,
+                                            pausedByUser: job.phase == .pausedByUser)
+    }
+
+    /// True when any attached text has no aligned coverage yet (the deferred /
+    /// attach-before-transcribe case) — drives the tan waiting row + A2 subtitle.
+    private var hasWaitingText: Bool { perText.contains(where: BookTextDisplay.isWaiting) }
+
     // MARK: - Header
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Book text")
+            Text("Text")
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(Color.skText)
             Text(subtitleText)
@@ -105,9 +194,138 @@ struct BookTextSheet: View {
     }
 
     private var subtitleText: String {
-        guard let summary, !summary.perText.isEmpty else { return "No book text attached" }
-        let pct = BookTextDisplay.percentCovered(covered: summary.totalCoveredSeconds, total: summary.bookDuration)
-        return "Real book text covers \(pct)% of this audiobook"
+        let covered = summary.map {
+            BookTextDisplay.percentCovered(covered: $0.totalCoveredSeconds, total: $0.bookDuration)
+        } ?? 0
+        return BookTextDisplay.sheetSubtitle(coveredPercent: covered,
+                                             transcribing: transcribingThisBook,
+                                             hasWaitingText: hasWaitingText)
+    }
+
+    private func levelLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 10.5, weight: .semibold))
+            .kerning(1.1)
+            .foregroundStyle(Color.skTextFaint)
+            .padding(.bottom, 6)
+    }
+
+    // MARK: - Level 1 card
+
+    @ViewBuilder
+    private var transcriptCard: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            switch cardState {
+            case .complete:
+                Text("Transcript complete")
+                    .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Color.skText)
+                (Text(BookTextDisplay.durationText(book.duration) + " transcribed")
+                    .foregroundStyle(Color.skGreen)
+                 + Text(" · re-runs only if the audio changes")
+                    .foregroundStyle(Color.skTextDim))
+                    .font(.system(size: 11.5))
+            case .transcribing(let paused):
+                HStack {
+                    Text(paused ? "Paused" : "Transcribing…")
+                        .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Color.skText)
+                    Spacer()
+                    Button {
+                        paused ? job.resumeByUser() : job.pauseByUser()
+                    } label: {
+                        Image(systemName: paused ? "play.fill" : "pause.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.skTextDim)
+                            .frame(width: 26, height: 26)
+                    }
+                    .accessibilityLabel(paused ? "Resume transcribing" : "Pause transcribing")
+                }
+                transcriptProgressBar
+                Text(transcribingMeta(paused: paused))
+                    .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
+                    .padding(.top, 4)
+            case .partial:
+                Text("Partly transcribed")
+                    .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Color.skText)
+                transcriptProgressBar.padding(.top, 4)
+                Text("\(Int((thisBookProgress * 100).rounded()))% · resumes where it left off")
+                    .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
+                    .padding(.top, 4)
+                transcribeButton("Resume transcribing")
+            case .fresh:
+                Text("Not transcribed")
+                    .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Color.skText)
+                Text(freshMeta)
+                    .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
+                transcribeButton("Transcribe")
+            }
+        }
+        .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.skElev, in: RoundedRectangle.sk(14))
+        .accessibilityIdentifier("text-sheet-transcript-card")
+    }
+
+    private var transcriptProgressBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.skBorder)
+                Capsule().fill(Color.skAccent)
+                    .frame(width: max(6, geo.size.width * thisBookProgress))
+            }
+        }
+        .frame(height: 6)
+        .padding(.top, 5)
+    }
+
+    private func transcribingMeta(paused: Bool) -> String {
+        var parts = ["\(Int((thisBookProgress * 100).rounded()))%"]
+        if !paused, let eta = BookTextDisplay.estimateSeconds(
+            duration: book.duration, progress: thisBookProgress, rtf: job.measuredRTF) {
+            parts.append("≈ \(TranscribeBookView.shortDuration(eta)) left")
+        }
+        parts.append(job.phase == .pausedUnplugged
+                     ? "paused to save battery — resumes automatically"
+                     : "runs on battery, pauses in Low Power Mode")
+        return parts.joined(separator: " · ")
+    }
+
+    /// "Runs on-device, ≈ 24 min for this book." — the estimate uses the job's real
+    /// measured per-device throughput; omitted entirely until one exists (never a
+    /// fabricated figure — TranscribeBookView's standing rule).
+    private var freshMeta: String {
+        var line = "Transcribing gives read-along, quote captures and chapter detection. Runs on-device"
+        if let eta = BookTextDisplay.estimateSeconds(
+            duration: book.duration, progress: thisBookProgress, rtf: job.measuredRTF) {
+            line += ", ≈ \(TranscribeBookView.shortDuration(eta)) for this book"
+        }
+        return line + "."
+    }
+
+    private func transcribeButton(_ title: String) -> some View {
+        Button { job.start(book: book) } label: {
+            Text(title)
+                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(.white)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(Color.skAccent, in: RoundedRectangle.sk(10))
+        }
+        .padding(.top, 7)
+        .accessibilityIdentifier("text-sheet-transcribe")
+    }
+
+    // MARK: - Level 2 empty card
+
+    private var emptyTextCard: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("No book text attached")
+                .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Color.skText)
+            Text("Add the ePub to upgrade read-along and captures to the published words, and chapters to the real table of contents.")
+                .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.skElev, in: RoundedRectangle.sk(14))
+        .opacity(0.62)
     }
 
     // MARK: - Bar
@@ -213,9 +431,20 @@ struct BookTextSheet: View {
                     .accessibilityLabel("\(text.title ?? text.filename) options")
                 }
             }
-            Text(metaText(for: text))
-                .font(.system(size: 11.5))
-                .foregroundStyle(Color.skTextDim)
+            if BookTextDisplay.isWaiting(text) {
+                // Deferred / attach-before-transcribe (mock A2): honest tan waiting
+                // line, never a bogus verdict off a missing or partial transcript.
+                (Text(transcribingThisBook ? "Waiting for the transcript" : "No transcript yet")
+                    .foregroundStyle(Color.skNameSuggest)
+                 + Text(" — it will match up on its own the moment transcription finishes.")
+                    .foregroundStyle(Color.skTextDim))
+                    .font(.system(size: 11.5))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(metaText(for: text))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.skTextDim)
+            }
         }
         .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
         .background(Color.skElev, in: RoundedRectangle.sk(14))
@@ -238,7 +467,7 @@ struct BookTextSheet: View {
 
     private var addRow: some View {
         Button(action: onAdd) {
-            Text("\u{FF0B} Add book text\u{2026}")
+            Text("\u{FF0B} \(BookTextDisplay.addRowLabel(hasTexts: !perText.isEmpty))")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.skAccent)
                 .frame(maxWidth: .infinity)
@@ -254,7 +483,8 @@ struct BookTextSheet: View {
     }
 
     private var footer: some View {
-        Text("Texts never change your audio or transcript.")
+        Text(BookTextDisplay.sheetFooter(transcribing: transcribingThisBook,
+                                         hasCoverage: (summary?.totalCoveredSeconds ?? 0) > 0))
             .font(.system(size: 10.5))
             .foregroundStyle(Color.skTextFaint)
             .multilineTextAlignment(.center)
@@ -293,6 +523,67 @@ enum BookTextDisplay {
         var textIndex: Int?
         var startFraction: Double
         var widthFraction: Double
+    }
+
+    // MARK: Level 1 (unified "Text" sheet, mock book-text-unified.html)
+
+    /// Which face the Level-1 transcript card wears. Precedence: a LIVE run on this
+    /// book always shows as transcribing (even at 99.9% — the run owns the card until
+    /// it finishes); then done; then a resumable partial; then fresh.
+    enum TranscriptCardState: Equatable {
+        case complete
+        case transcribing(paused: Bool)
+        case partial
+        case fresh
+    }
+
+    static func transcriptCardState(progress: Double, transcribingThisBook: Bool,
+                                    pausedByUser: Bool) -> TranscriptCardState {
+        if transcribingThisBook { return .transcribing(paused: pausedByUser) }
+        if progress >= 0.999 { return .complete }
+        if progress > 0.001 { return .partial }
+        return .fresh
+    }
+
+    /// An attached text with no aligned coverage anywhere — the deferred /
+    /// attach-before-transcribe case (mock A2's tan "waiting" row).
+    static func isWaiting(_ text: BookTextSummary.PerText) -> Bool {
+        text.coveredSeconds <= 0 && text.fileNumbers.isEmpty
+    }
+
+    /// The sheet subtitle (mock A1/A2/A3): coverage wins whenever real book text
+    /// exists; the queued line only while transcribing WITH a waiting text; else the
+    /// standing invitation.
+    static func sheetSubtitle(coveredPercent: Int, transcribing: Bool, hasWaitingText: Bool) -> String {
+        if coveredPercent > 0 { return "Real book text covers \(coveredPercent)% of this audiobook" }
+        if transcribing, hasWaitingText { return "Transcribing · the book text is queued behind it." }
+        return "Give this audiobook words — transcribe it, then add the real book for the published text."
+    }
+
+    /// The dashed add row's label (Tuur amendment, b110 eyeball 2026-07-23: "it
+    /// already got text… the text should change once you already uploaded a book
+    /// and it got matched") — the bare invitation only while Level 2 is empty;
+    /// with any text attached it reads as the multi-ePub affordance it is.
+    static func addRowLabel(hasTexts: Bool) -> String {
+        hasTexts ? "Add another text\u{2026}" : "Add book text\u{2026}"
+    }
+
+    /// Wall-seconds to transcribe the untranscribed remainder of a book, from the
+    /// job's real measured per-device throughput. nil until a rate exists or when
+    /// nothing meaningful remains — the caller omits the figure entirely (never a
+    /// fabricated estimate).
+    static func estimateSeconds(duration: TimeInterval, progress: Double, rtf: Double?) -> TimeInterval? {
+        guard let rtf, rtf > 0 else { return nil }
+        let remaining = max(0, duration * (1 - min(1, max(0, progress))))
+        let eta = remaining / rtf
+        return eta > 1 ? eta : nil
+    }
+
+    /// The sheet footer (mock A1/A2/A3).
+    static func sheetFooter(transcribing: Bool, hasCoverage: Bool) -> String {
+        if transcribing { return "You can keep listening while both run." }
+        if hasCoverage { return "Texts never change your audio or transcript." }
+        return "Both run in the background — you can keep listening."
     }
 
     /// Whole-percent coverage, rounded, clamped to 0...100 (defensive against FP overshoot

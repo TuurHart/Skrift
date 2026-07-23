@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 22
-updated: 2026-07-23T16:00:00.000Z
+version: 23
+updated: 2026-07-23T17:10:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -594,8 +594,14 @@ nodes:
     note: "Spec = mocks/lifecycle-triage-peek.html m5+m6 (mocked, signed AND
       built 2026-07-22; supersedes the 2026-07-17 'touched never fades'
       doctrine — Tuur explicit yes; Lock demoted to a background verb:
-      right-click + phone toggle only). Board = backlog ⏱. Owed: Dev-deploy
-      eyeball both apps — rides the LifeIA walkthrough tail."
+      right-click + phone toggle only). v3 amendment 2026-07-23 (Tuur voice
+      note): no note dies unseen — the final doors (sweep → Recently Deleted,
+      purge) only move at an app-open; purge clock = trashSeenAt, so away-time
+      never deletes anything. Board = backlog ⏱ (+ v3 block). v3 FULLY
+      verified + merged 2026-07-23 (suites + MLX green, Mac sweep-per-activation
+      eyeballed live, phone-open eyeball landed on device — first open stamped
+      53 pre-v3 trashed notes at the open moment, all showing the full window).
+      Owed: only the LifeIA walkthrough tail."
     shipped:
       - >-
         2026-07-22 · built in 3 verified chunks same-day as the mock (desktop
@@ -608,6 +614,21 @@ nodes:
         Delete) + quiet-row menu Flag/Lock/Open/Delete + Fading conveyor w/
         row Delete; phone Fading renames + peek photos/Delete. The Mac can
         delete a synced note for the first time
+      - >-
+        2026-07-23 · v3 "no note dies unseen" (Tuur voice note, built same
+        day): final lifecycle doors gated on app-open — phone sweep
+        launch+foreground only, Mac sweep launch+activation (day-change +
+        24h unattended heartbeat retired); purge clock = new synced
+        trashSeenAt (first open with the note in trash, stale below
+        deletedAt), MemoLifecycle purgeDue/goneAt/stampTrashSightings, spine
+        + countdown labels derive from it so unseen rows honestly show the
+        full window. Verified 2026-07-23: mobile 868/0 + desktop 490/0 +
+        MLX build green (UI-bundle fails = the pre-existing deferred set,
+        proven on the base commit), merged to main; Mac Dev
+        sweep-per-activation eyeballed live; phone-open eyeball DONE on
+        device — first open under build 106 stamped 53 pre-v3 trashed notes
+        at the open moment, all reading the full 14-day window, purge gate
+        confirmed on trashSeenAt
   - id: IPadWave1
     title: iPad — the reading room
     lane: 0
@@ -1101,6 +1122,19 @@ nodes:
       ePubs when found (multi-text ready), ePub images in the reader
       (reading-mode design pass — the 44s calendar-art gap is the demo)."
     shipped:
+      - >-
+        2026-07-23 · rounds 5–8 verified + landed (the Odyssey report):
+        Audiobook Codable now persists the attach fields (chapters survived
+        relaunch only by accident before), orphaned attached texts re-adopt
+        on open (bitten books self-heal — device-proven via devlog), lenient
+        entity-tolerant nav/NCX TOC parse, bridged sentences + ASR gap fill
+        (union display), attach = live stages + keep-listening copy,
+        mid-transcribe attach defers deliberately. ROUND 8 root-cause catch
+        from real-data verification: mergeSentences was eating same-text
+        seam-overlap sentences (196/7506 on the Odyssey, incl. both
+        user-reported holes) — collisions now contest between texts only;
+        schema 5 re-heals persisted sidecars. New env-gated real-data
+        harness (OdysseyRealDataDiagnostics) + -resumeBook device hook.
       - >-
         2026-07-22 pm/eve · batch D + four device rounds (b95–b102):
         multi-text per audiobook (schema-3 sidecars, per-text verdicts,
@@ -1683,6 +1717,15 @@ ideas:
       Store build. No spec yet — don't node it until a design pass."
     source: voice
     nodeHint: P11
+  - id: i12
+    text: "Unified 'Text' sheet + A0 import prompt — SIGNED OFF AND BUILT
+      2026-07-23, same session (mock = mocks/book-text-unified.html): ONE
+      'Text…' verb everywhere (Level 1 Transcript inline-job card, Level 2 =
+      the signed-off Book-text sheet unchanged, tan waiting rows for deferred
+      texts) + A0 once-only post-import do-both prompt. Suite green, sim
+      A0/A1 vision-checked; phone b110 device eyeball = the remaining gate."
+    source: session
+    nodeHint: EPubAlign
   - id: i11
     text: "ePub ↔ audiobook alignment (Tuur, 2026-07-19): attach the book's ePub;
       align it against the whole-book transcript (word timings already exist —

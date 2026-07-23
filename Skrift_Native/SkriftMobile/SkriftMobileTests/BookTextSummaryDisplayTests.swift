@@ -195,4 +195,81 @@ final class BookTextSummaryDisplayTests: XCTestCase {
         let second = BookTextDisplay.barSegments(perText: input, bookDuration: 100)
         XCTAssertEqual(first, second)
     }
+
+    // MARK: - Unified "Text" sheet, Level 1 (mock book-text-unified.html, signed off 2026-07-23)
+
+    func testTranscriptCardStateMatrix() {
+        // A live run on THIS book owns the card, whatever the progress says.
+        XCTAssertEqual(BookTextDisplay.transcriptCardState(progress: 0.42, transcribingThisBook: true, pausedByUser: false),
+                       .transcribing(paused: false))
+        XCTAssertEqual(BookTextDisplay.transcriptCardState(progress: 0.42, transcribingThisBook: true, pausedByUser: true),
+                       .transcribing(paused: true))
+        XCTAssertEqual(BookTextDisplay.transcriptCardState(progress: 0.9995, transcribingThisBook: true, pausedByUser: false),
+                       .transcribing(paused: false), "the run owns the card until it actually finishes")
+        // No live run: done > resumable partial > fresh.
+        XCTAssertEqual(BookTextDisplay.transcriptCardState(progress: 1.0, transcribingThisBook: false, pausedByUser: false), .complete)
+        XCTAssertEqual(BookTextDisplay.transcriptCardState(progress: 0.42, transcribingThisBook: false, pausedByUser: false), .partial)
+        XCTAssertEqual(BookTextDisplay.transcriptCardState(progress: 0, transcribingThisBook: false, pausedByUser: false), .fresh)
+        XCTAssertEqual(BookTextDisplay.transcriptCardState(progress: 0.0005, transcribingThisBook: false, pausedByUser: false),
+                       .fresh, "sub-noise progress is not a resumable partial")
+    }
+
+    func testIsWaitingOnlyForZeroCoverageZeroFiles() {
+        XCTAssertTrue(BookTextDisplay.isWaiting(perText("a.epub")))
+        XCTAssertFalse(BookTextDisplay.isWaiting(perText("a.epub", coveredSeconds: 12)))
+        XCTAssertFalse(BookTextDisplay.isWaiting(perText("a.epub", fileNumbers: [1])),
+                       "an aligned-but-zero-covered text is a verdict problem, not a waiting row")
+    }
+
+    func testSheetSubtitlePrecedence() {
+        XCTAssertEqual(BookTextDisplay.sheetSubtitle(coveredPercent: 96, transcribing: true, hasWaitingText: true),
+                       "Real book text covers 96% of this audiobook",
+                       "real coverage always wins the subtitle")
+        XCTAssertEqual(BookTextDisplay.sheetSubtitle(coveredPercent: 0, transcribing: true, hasWaitingText: true),
+                       "Transcribing · the book text is queued behind it.")
+        XCTAssertEqual(BookTextDisplay.sheetSubtitle(coveredPercent: 0, transcribing: true, hasWaitingText: false),
+                       "Give this audiobook words — transcribe it, then add the real book for the published text.")
+        XCTAssertEqual(BookTextDisplay.sheetSubtitle(coveredPercent: 0, transcribing: false, hasWaitingText: false),
+                       "Give this audiobook words — transcribe it, then add the real book for the published text.")
+    }
+
+    func testSheetFooterPrecedence() {
+        XCTAssertEqual(BookTextDisplay.sheetFooter(transcribing: true, hasCoverage: true),
+                       "You can keep listening while both run.")
+        XCTAssertEqual(BookTextDisplay.sheetFooter(transcribing: false, hasCoverage: true),
+                       "Texts never change your audio or transcript.")
+        XCTAssertEqual(BookTextDisplay.sheetFooter(transcribing: false, hasCoverage: false),
+                       "Both run in the background — you can keep listening.")
+    }
+
+    func testAddRowLabelAcknowledgesAttachedTexts() {
+        XCTAssertEqual(BookTextDisplay.addRowLabel(hasTexts: false), "Add book text…")
+        XCTAssertEqual(BookTextDisplay.addRowLabel(hasTexts: true), "Add another text…")
+    }
+
+    func testEstimateSecondsNeverFabricates() {
+        XCTAssertNil(BookTextDisplay.estimateSeconds(duration: 3600, progress: 0, rtf: nil),
+                     "no measured rate → no figure")
+        XCTAssertNil(BookTextDisplay.estimateSeconds(duration: 3600, progress: 1, rtf: 40),
+                     "nothing remaining → no figure")
+        XCTAssertEqual(BookTextDisplay.estimateSeconds(duration: 3600, progress: 0, rtf: 40), 90)
+        XCTAssertEqual(BookTextDisplay.estimateSeconds(duration: 3600, progress: 0.5, rtf: 40), 45)
+        XCTAssertEqual(BookTextDisplay.estimateSeconds(duration: 3600, progress: -3, rtf: 40), 90,
+                       "progress clamps defensively")
+    }
+
+    // MARK: - A0 once-only bookkeeping
+
+    func testBookTextPromptSeenIsOnceOnlyAndPerBook() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "BookTextPromptTests"))
+        defaults.removePersistentDomain(forName: "BookTextPromptTests")
+        let a = UUID(), b = UUID()
+        XCTAssertFalse(BookTextPrompt.seen(a, defaults: defaults))
+        BookTextPrompt.markSeen(a, defaults: defaults)
+        XCTAssertTrue(BookTextPrompt.seen(a, defaults: defaults))
+        XCTAssertFalse(BookTextPrompt.seen(b, defaults: defaults), "seen is per-book")
+        BookTextPrompt.markSeen(a, defaults: defaults)   // idempotent, no duplicate entry
+        XCTAssertEqual(defaults.stringArray(forKey: BookTextPrompt.defaultsKey)?.count, 1)
+        defaults.removePersistentDomain(forName: "BookTextPromptTests")
+    }
 }

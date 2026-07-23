@@ -43,6 +43,7 @@ final class WayOutViewTests: XCTestCase {
     func testDeletedRowsOrderSoonestToPurgeFirst() {
         let soonToPurge = Memo(deletedAt: now.addingTimeInterval(-13 * 86_400))   // 1 day left
         let later = Memo(deletedAt: now.addingTimeInterval(-2 * 86_400))          // 12 days left
+        [soonToPurge, later].forEach { $0.trashSeenAt = $0.deletedAt }            // seen at deletion (v3)
         let ordered = WayOutView.orderedByImminence(deleted: [later, soonToPurge])
         XCTAssertEqual(ordered.map(\.id), [soonToPurge.id, later.id])
     }
@@ -93,6 +94,7 @@ final class WayOutViewTests: XCTestCase {
 
     func testOneLinerForADeletedRowIsGoneForGood() {
         let memo = Memo(deletedAt: now.addingTimeInterval(-5 * 86_400))
+        memo.trashSeenAt = memo.deletedAt   // seen at deletion — the countdown runs from here (v3)
         let expected = MemoSpine.oneLiner(
             for: .deleted(goneAt: memo.deletedAt!.addingTimeInterval(TrashPolicy.retention)), now: now)
         XCTAssertEqual(WayOutView.oneLiner(for: memo, now: now), expected)

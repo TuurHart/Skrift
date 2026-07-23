@@ -112,7 +112,10 @@ Rules:
   2026-07-11 — not yet built; build board = backlog "CONTINUE HERE — desktop-parity"),
   **related-panel** (Mac Connections side-panel — ONE list + Date⇄Closest pill, P1 importance
   decimals, closeness = hover-% tooltip, in-panel consent gate, collapsible w/ count badge; signed
-  off 2026-07-16 — build board = backlog "🕸️ CONTINUE HERE"). A mock the
+  off 2026-07-16 — build board = backlog "🕸️ CONTINUE HERE"),
+  **book-text-unified** (ONE "Text…" verb/sheet — Level 1 Transcript / Level 2 Book text — replaces
+  the separate Transcribe-book + Book-text entries, + A0 once-only post-import do-both prompt;
+  signed off AND built 2026-07-23 same session, b110). A mock the
   user approved IS the spec — build to it.
 - **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
   memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →

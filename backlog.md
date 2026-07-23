@@ -2,6 +2,24 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 📖 Phone feedback 2026-07-23 (1 memo, 08:03 — pulled + second-agent verified same day)
+
+All items are the ePub/audiobook-text flow. ⚠️ **The concurrent audiobook session
+(`claude/audiobook-ui-harry-collab-e065c7`) is working this area live with Tuur** — the memo
+even ADDRESSES its replace-vs-augment fix, and Tuur's screenshots live in that chat. Coordinate
+before building any of these here; tick items off when either session lands them.
+
+- **P1 · Partial-ePub ingest is the real bug (corrects that session's diagnosis):** ePub text ==
+  spoken text in this case, so replace-vs-augment wasn't the failure — **not all parts of the ePub
+  were displayed/ingested**; whole-ePub ingest would have worked. The "weird error" in Tuur's last
+  two screenshots (in the other chat) is likely this same bug's visible symptom — check them first.
+- **P2 · Big-ePub import UX (13-hour book):** long load, no progress bar, and unclear whether
+  listening can continue during the load — show progress + keep playback available (or say so).
+- **P2 · Block ePub upload while the book is still transcribing** — currently undefined; Tuur:
+  "it should not" be allowed.
+- **P2 · Unify the transcribe-book menu with the ePub-upload menu:** one "add text" flow, two
+  levels — level 1 get text (transcribe), level 2 upgrade quality (attach the ePub).
+
 ## ⏱ One-clock lifecycle: BUILT 2026-07-22 (suites green both apps) — Dev-deploy eyeball owed
 
 **Spec = `Skrift_Native/SkriftDesktop/mocks/lifecycle-triage-peek.html`** (committed d27a047; m6 = the
@@ -9,6 +27,64 @@ build panel, m5 = the model; Q-block records the verdicts: m2+m5 adopted, **Lock
 background verb** — Tuur, 2026-07-22). **DOCTRINE:** supersedes 2026-07-17 "touched never fades" →
 *touch restarts the 30-day clock*; only rated/locked/reminder/backlinked sit off the clock. Memory =
 `project_lifecycle_one_clock`; roadmap node = `LifeClock` (done).
+
+### ⏱ v3 amendment — "NO NOTE DIES UNSEEN" (Tuur voice note 2026-07-23; BUILT same day, branch `claude/note-deletion-app-open-5r5z56`)
+
+**DOCTRINE (Tuur):** the fade clock keeps running while the apps sit closed (fading stays honest
+about time), but **the final doors only move at an app-open** — a note can only be *sent to Recently
+Deleted*, and Recently Deleted can only *burn purge days*, while the user has actually opened the
+app. Phone in a drawer for three months → the note is still there at the next open (in Recently
+Deleted at worst, with its FULL 14-day window to bring back). The bug this kills: the Mac's
+unattended 24h sweep stamped `deletedAt` with nobody looking, and the phone's `init` purge (which
+also fires on BGTask/silent-push background launches) counted wall-clock from that synced-in stamp —
+so a forgotten note could be purged BEFORE the first post-absence render.
+
+**Built:**
+- **Purge clock = new synced `Memo.trashSeenAt`** — first open with the note in the trash; a stamp
+  older than `deletedAt` is stale by construction (restore → re-trash restarts unseen). Rulebook =
+  `MemoLifecycle.trashClockStart/purgeDue/goneAt/stampTrashSightings`; `MemoSpine` + phone
+  `trashDaysRemaining` + WayOut labels all derive from it, so an unseen synced-in deletion honestly
+  shows the full window from *now* ("shown dates must be true" holds).
+- **Phone:** `purgeExpiredTrash` filters on `purgeDue` (the `SkriftApp.init` purge is now SAFE on
+  background wakes — it can only remove notes that had 14 SEEN days); `FadingSweep.run` stamps
+  sightings then sweeps, and now also runs on every foreground (`scenePhase .active`, behind the
+  once-per-device migration guard so ordering stays load-bearing); `softDelete` stamps its own
+  clock; `restore`/Bring-back clear it; deduper clones stamp at trash (no unseen grace for clones).
+- **Mac:** `LifecycleSweepScheduler` **day-change + 24h heartbeat RETIRED** → sweeps at launch +
+  every app activation only; `MacFadingSweep` stamps sightings and stamps what it sweeps; every Mac
+  delete gesture + the delete-sync mirror (`MacCloudDeleteSync`) stamps `trashSeenAt` (user
+  present). Desktop's LOCAL `PipelineFile` trash purge unchanged (mirror-only — the cloud copy is
+  the phone's to purge). Dev hooks: `-poke-daychange`/`-sweepHeartbeatSeconds` → **`-poke-sweep <sec>`**.
+- **Tests (NOT RUN — Linux session, no xcodebuild):** TrashTests +3 (synced-in never purges unseen;
+  stale-stamp re-trash; softDelete/restore stamp hygiene), MemoLifecycleTests +2 both suites,
+  MemoSpineTests unseen-counts-from-now both suites, WayOutView/Trash label fixtures sighted.
+- **Prod note:** `trashSeenAt` is additive → lightweight migration + CloudKit schema deploy rides
+  the standing promotion checklist. Pre-v3 trash (stamp nil) gets its clock started at the first
+  post-update open — a one-time ≤14-day purge deferral, never an early purge.
+
+**VERIFIED 2026-07-23 (Mac session) + merged to `main` (93c5a8a):**
+- Suites green: mobile 868 unit / 0 fail (863 + the 5 new v3 tests), desktop 490 / 0 + full MLX
+  build. The 18 mobile UI-bundle failures are the known deferred iOS-26 set — re-ran the 4
+  not-yet-catalogued ones on the pre-v3 base commit: identical failures, so v3 added ZERO.
+- Mac Dev deployed + eyeballed live: exactly one "lifecycle sweep ran over N memos" at launch and
+  one per cmd-tab activation, none while idle (log stream, 3 cycles).
+- Phone: build 106 (v3) installed + **launch eyeball DONE on device** (11:55, phone reconnected).
+  First open under the new build fired `FadingSweep: purge clock started for 53 synced-in trashed
+  note(s)` — the pre-v3 migration case. Re-pulled the store: all 53 trashed tombstones now carry
+  a valid `trashSeenAt` (== the open moment, 11:55), and their purge countdown reads the **full 14
+  days from today** (a note deleted 2026-07-15 that used to read ~6d, and 2026-07-12's ~3d
+  "Deleting soon", both now show 14). Purge gate confirmed running off `trashSeenAt` (0 of the 53
+  eligible to purge). NOTE the brief's expected cross-device devlog line was a misread of the final
+  code: a Mac DELETE GESTURE syncs in WITH its stamp (by design — the user was at the Mac), so it
+  shows the countdown from the Mac deletion, NOT a fresh open-window; the `purge clock started`
+  line fires only for PRE-v3/unstamped trash (exactly the 53 above). Optional-only remaining: a
+  live visual look at the Recently Deleted screen (label code is unit-green, so cosmetic).
+- ⚠️ **Concurrent-session hazard found live:** another worktree session (`gracious-easley`,
+  audiobook branch at pre-v3 3d3b71e) ran ITS Dev desktop build against the shared Dev store —
+  SwiftData migrated the schema DOWN (dropped `trashSeenAt`), my running v3 app's fetches then
+  failed silently ("0 memos") until relaunch (relaunch re-migrates up; 103 rows intact, verified
+  via sqlite; erased stamps are doctrine-safe = unseen again). Until every desktop-running session
+  is on ≥ 93c5a8a, pre-v3 Dev launches will keep flip-flopping the schema — rebase that branch.
 
 **Built (commits cbf87ff → a3fb3ae → c14daf5, desktop 487 + mobile 863 green, full MLX build green):**
 - **Shared:** `clockStart = max(recordedAt, keptAt)`; `markEdited()` bumps `keptAt` (all 19 call
@@ -160,6 +236,33 @@ aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-t
 on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
 
 **NEXT CHAT'S WORK (in order):**
+0. ✅ **📖 ROUNDS 5–8 VERIFIED + MERGED 2026-07-23** (the verify session; full record = 📖
+   ROUND 8 block below): sim suite 894/0 + Mac 492/0 + MLX build green; R5 device-proven
+   live (re-adopt devlog line, real ePub TOC in library.json, 29 chapters); the repro spots
+   turned out to be ROUND 8's same-text merge eater — fixed, schema 5, and the healed
+   device sidecar machine-verified (7,506 sentences, both repro sentences present as book
+   text at conf 1.00, "Book 1: The Boy and the Goddess" chapters). ✅ TUUR EYEBALL SAME
+   SESSION: "the parts that were gone before are now there. The chapters look good." ✅
+   Attach-UX also live-confirmed (Tuur re-attached the Odyssey text himself, saw "Matching
+   the text against the transcript…"). ✅ **MOCK SIGNED OFF same session** (Tuur walked all
+   4 phones: liked the flow + time estimate + step ②, A0-vs-A1 explained, "Perfect, yeah.
+   I like it." → yes): **`mocks/book-text-unified.html` = the next build board** — ONE
+   "Text…" verb/sheet (Level 1 Transcript / Level 2 Book text) replaces the two menu
+   entries, + the A0 once-only post-import do-both prompt. Roadmap idea i12. Lane CLOSED.
+   → **BUILT same session (b110):** `BookTextSheet` grew the Level-1 inline transcribe card
+   (fresh/partial/live-progress+pause/complete; estimate only from measured throughput),
+   Level-2 empty card + tan waiting rows; `BookTextPromptSheet` = A0 (once per book,
+   UserDefaults seen-set, sheet-swap-race-safe presentation via onDismiss parking);
+   ONE "Text…" verb in both menus (TranscribeBookView survives as the read-along nudge's
+   sheet); `-showTextSheet`/`-showTextPrompt` render hooks. Suite green (new
+   TranscriptCardState/waiting/subtitle/footer/A0 tests); sim A0+A1 vision-checked against
+   the mock. **OWED: Tuur's b110 device eyeball** (A3 on the Odyssey, A0 on the next real
+   import, the one-verb menus).
+   NEW P2 filed same session: silent re-align freezes the library UI.
+0b. ✅ **⏱ v3 verify FULLY DONE 2026-07-23** (record in the v3 block above): suites + MLX green,
+   merged to `main`, Mac Dev sweep-per-activation eyeballed, AND the phone-open eyeball landed —
+   first open under build 106 stamped 53 pre-v3 trashed notes at the open moment, all now showing
+   the full 14-day window. Nothing owed. (Optional only: a visual glance at Recently Deleted.)
 1. **Pull phone feedback if Tuur recorded any** (/pull-phone-feedback) — 4 live rounds today
    means fresh findings likely.
 2. **🧬 walkthrough tail (eyes, guided — b92-era items still unconfirmed):** untouched-note
@@ -210,8 +313,9 @@ diffed against the Mac's; new DEBUG dev hooks below):**
    NEW: play "Mac roundtrip 21 Jul" + see "0.1 · Passing" on the flagged B122966B memo) + Mac
    (unified Notes list quiet rows / Flag verbs / Unrated chip / peeks). Then LifeIA = done.
 **New DEBUG dev hooks (desktop, RunFile family):** `-ingestfile <path>` (real import verb,
-headless), `-flagmemo <uuid>` (real Q2 flag verb + export hold), `-poke-daychange <sec>` +
-`-sweepHeartbeatSeconds <n>` (LifecycleSweepScheduler verification). Quit the GUI first, as ever.
+headless), `-flagmemo <uuid>` (real Q2 flag verb + export hold), `-poke-sweep <sec>`
+(LifecycleSweepScheduler verification; replaced `-poke-daychange`/`-sweepHeartbeatSeconds` when v3
+retired the unattended triggers, 2026-07-23). Quit the GUI first, as ever.
 **Branch note:** `claude/skrift-roundtrip-verify-wvnpbn` merged to main 2026-07-21 (fast-forward,
 contains q3kv2n). The 5 📖 open decisions remain with Tuur — 📖 section bottom.
 Everything below = the build record of how we got here.
@@ -577,6 +681,135 @@ SPIKE BOARD (in order; 1–5 are the research, 6 is the feature):
    files" (the trilogy: file 1 = book 1, rest honestly rejected) → read-along shows
    Kleon's REAL sentences in file 1 (ASR elsewhere) → capture a quote there = verbatim
    published text → Chapters sheet shows the ePub's real 18-entry TOC.
+
+**📖 ROUND 8 (2026-07-23, the VERIFY session's real-data catch — the actual root cause of
+round 6's sighting): `mergeSentences` ate same-text sentences.** Verifying rounds 5–7 on
+device surfaced it: the schema-4 re-align healed chapters (R5 ✅ live: devlog "re-adopted
+orphaned attached texts" + "toc [40] → 29 marks → 29 epub chapters"; library.json now
+persists all three attach fields; real TOC titles) — but BOTH repro spots stayed empty and
+`bridged=0`. Offline reproduction (new env-gated `OdysseyRealDataDiagnostics` harness: the
+pulled phone ePub + transcript through parse → align → assemble → merge) showed the aligner
+had matched both sentences at conf 1.00 ALL ALONG — the align result is bit-deterministic
+(coverage identical to 16 digits, device vs sim) and produces 7,506 sentences; the device
+sidecar held a strict 7,310-subset. The eater: `mergeSentences` contested collisions WITHIN
+one text's own fresh batch — adjacent sentences legitimately overlap by seam fuzz (exact
+per-word times straddle sentence boundaries: "(andra)." ends 165.8, "He is not 'the' man…"
+starts 165.6), same text = same rank, and the strict-win tie rule silently dropped the later
+one — 196 of 7,506 (~2.6%), including both user-reported holes. Rounds 6+7's fills were
+built to paper over what was actually this merge bug downstream (the bridge/gap-fill layers
+stay — they cover TRUE aligner misses). Fix: collisions contest BETWEEN texts only
+(`result[$0].textFile != ns.textFile`); schema 4→5 so every persisted subset sidecar
+re-aligns once on next open. Suite: 894/0 incl. the real-data harness asserting
+merged=7506 of 7506 + the Trojan-War sentence surviving the merge, and two new
+`MultiTextMergeTests` regressions (seam-overlap survives / between-text contest intact).
+Device: b109 installed, re-heal launch owed (phone re-locked). DURABLE LESSONS: (1) verify
+derived DATA end-to-end on real inputs, not just the layer you changed — assemble alone
+looked perfect, the sidecar was wrong; (2) a "collision rule" needs an explicit answer for
+SELF-collisions. Also for the record: -resumeBook DEBUG launch hook added (headless device
+verify via devicectl); untriaged b105-era crash 09:49 pulled (SIGKILL during a CoreData
+fetch — watchdog-flavored, pre-branch; feeds the pre-promotion profiling item).
+**P2 re-align freeze — ✅ ADDRESSED b113 (2026-07-23, same session; device verify OWED).**
+Report (Tuur, ~14:15 on b109): tap a book, then no book responds ("frozen… maybe stuff's
+happening in the background — annoying"). What the code review found + fixed:
+- **PROVEN main-thread defect:** `BookAlignmentRunner.textSummary` is `@MainActor` and fully
+  decodes EVERY attached file's alignment sidecar (9.1 MB / 7,506 sentences with per-word
+  timings on the real Odyssey) — and `BookTextSheet.summary` called it on **every `body`
+  evaluation**. Now a `nonisolated` overload (record + directory in) loaded ONCE off-main
+  into `@State` via `.task(id:)`, keyed to the things that can actually change it; the
+  sheet's detent decision uses a record-only check instead of a decode.
+- **Starvation mitigation (not a proven root cause — needs the device to confirm):** the
+  re-align's detached task dropped `.utility` → `.background` + `Task.yield()` between
+  files, so the ~12-min heal yields to the UI.
+- **Visibility (the honest UX fix regardless of cause):** new `BookTextActivity` observable
+  (set by the runner, one active book) → the library row shows a spinner + live stage
+  ("Reading the text…" / "Matching the text…" / "Placing chapters…") in place of its
+  time-left line, and the Text sheet shows the same stage + "You can keep listening while
+  this runs." A heal can never again look like a hung app.
+**OWED:** b113 is built + suite-green but NOT installed — the iPhone dropped off USB at
+15:20. Install and confirm on the next device round (trigger a re-align via Re-check).
+Also: an app-killed-mid-align restart currently restarts the whole file from scratch —
+fine at 1 file, worth per-file resume if multi-file books grow. And the align dies with
+the app on lock when nothing is playing — the "keep listening" advice is real; consider
+a BGProcessingTask ride-along for the heal case (parked, standalone-phase candidate).
+
+**📖 ROUND 7 (Tuur 2026-07-23, going over rounds 5+6): four items, all handled (same
+branch `claude/epub-chapter-discrepancy-wlgvhd`).**
+(1) **"If it had actually put in the whole ePub that was working"** — right: round 6's ASR
+gap fill is the fallback, not the fix, when narration == book text. NEW (schema 4): a hole
+run SANDWICHED between two timed sentences re-emits the BOOK sentences with times
+interpolated across the gap (`AlignedSentence.bridged`), gated on corroboration — the
+window's spoken-word count must be 0.5–2.0× the book words (a silent window = narrator
+truly skipped it → still dropped, ASR fill owns leftovers). Confidence stays 0 (honest);
+the flag drives book-text rendering; collision rule unaffected (bridge loses to any real
+match). Schema 3→4 forces every attached book to re-align on next open, so the Trojan-War
+sentence should come back as REAL book text, not ASR. Layering now: exact book text >
+bridged book text > ASR splice > ASR gap fill.
+(2) **13 h attach: no progress, "can I keep listening?"** — the busy line now follows the
+runner's live stages ("Copying the file in…" / "Reading the text…" / "Matching the text…
+(file k of n)" / "Placing chapters…") + a standing sub-line "You can keep listening while
+this runs." (true — playback never contends). Real % inside ONE file's matching would need
+an AlignmentCore progress callback (single DP pass) — parked as a candidate.
+(3) **ePub while still transcribing** — now DELIBERATE: attach mid-transcribe copies +
+records the text but defers alignment (alert: "still transcribing — it will match up on
+its own the moment transcription finishes"); `alignIfNeeded` no-ops while the job runs
+(the job's own finish call does the real pass) — no more bogus verdicts off a partial
+transcript, no churn from player opens.
+(4) **Unify transcribe + book-text menus** ("both are about adding text — two levels") —
+DESIGN, so mock-first: `mocks/book-text-unified.html` proposes ONE "Text…" verb/sheet:
+Level 1 Transcript (status/progress/Transcribe), Level 2 Book text (today's signed-off
+sheet unchanged), incl. the mid-transcribe deferred state. Follow-up (Tuur 2026-07-23,
+from the phone): + an **A0 import-moment state** — a once-only post-import prompt offering
+BOTH actions together ("start both and walk away; the ePub matches up on its own when
+transcription finishes") — the import→transcribe→auto-match chain already works in code
+(rounds 5–7); A0 makes it visible. **✅ SIGNED OFF 2026-07-23 (verify session, all 4
+phones walked) — build board = the ⭐ item-0 note above; roadmap idea i12. Not built.**
+
+**📖 ROUND 6 (Tuur 2026-07-22 ~23:11–23:16, Odyssey): read-along DROPS spoken text —
+FIXED (same branch `claude/epub-chapter-discrepancy-wlgvhd`).** Two sightings, one bug:
+(a) red-line at ~3:00 — narration between "(andra)." and "The poem tells us…" never
+displayed; (b) Apple-Books-vs-Skrift at ~5:35 — "It is not the start of the Trojan War,
+which began with the Judgment of Paris…" is in the ePub AND the audio, absent in Skrift.
+Cause: the aligned view REPLACED the transcript wholesale — `assembleSentences` drops
+zero-timed sentences (aligner holes), and `AlignedSentenceSource` had per-sentence ASR
+fallback only for LOW-CONFIDENCE sentences, never for spans with no sentence at all →
+silent jumps while the audio plays (Tuur's exact insight: "the transcript is better in
+some ways… it has replaced the transcript"). Fix: the display is now a UNION —
+`uncoveredWordRanges` finds transcript-word runs no aligned sentence's splice range
+covers; runs ≥ 3 words render as ASR sentences via the same builder (1–2-word runs =
+boundary fuzz, stay silent). Also fills leading/trailing narration (Audible credits, end
+matter) and a partially-matched sentence's untimed tail; capture (`MergedCaptureView`)
+inherits it via the shared source. Tests: hole-between-sentences, fuzz threshold,
+leading/trailing, no-duplication-with-low-confidence-splices, union/clamp math. Eyes owed
+(Tuur, tomorrow): Odyssey ~3:00 and ~5:35 — the missing lines should read along in ASR
+text. NOTE the shown ASR fills are the transcript's words (no book punctuation/casing) —
+if a fill looks garbled there, that's the aligner MISSING a matchable sentence: next lever
+is aligner recall, not display.
+
+**📖 ROUND 5 (Tuur 2026-07-22 ~23:00, Odyssey screenshots): chapters ≠ ePub TOC after
+relaunch — ROOT CAUSE FOUND + FIXED (branch `claude/epub-chapter-discrepancy-wlgvhd`).**
+Symptom: Odyssey ePub attached + read-along shows the REAL book text (intro), but the
+chapters sheet still shows the detected list ("Opening / Part 6 / Part 11 / Part 19 /
+Part 20 / Part 24", Ch 1/6 — the detector's structural vote caught only 5 of the 24 spoken
+"Book N" announcements; "book" keyword maps to the Part kind, hence "Part N" labels). Root
+cause: **`Audiobook`'s hand-written Codable never carried
+`epubFilename`/`epubFilenames`/`epubChapters`** — every library.json persist dropped them, so
+ANY relaunch forgot the attachment while the sidecars (and read-along) kept working. This is
+the SECOND cause of round 2's "fields VANISHED" (the iPad-LWW theory was real but partial —
+"re-attach once and it sticks" could never stick; a lone device reproduces it). Fix (5
+chunks): (1) the three keys now encode/decode (sync blob still stripped via
+`sanitizedForSync` — regression-tested); (2) `alignIfNeeded` RE-ADOPTS orphaned attached
+texts from the book folder (disk = durable truth: attach copies in, removeText deletes), so
+every already-bitten book self-heals on open — no manual re-attach; (3) title accessors keyed
+off `usesDetected` alone → now `titlesAreDisplayReady` (ePub OR detected): with ePub chapters
++ nil detection the sheet rendered EMBEDDED titles against ePub rows (mismatch + index-crash
+when the ePub list is longer); (4) `mergeAndFinish` DevLogs toc-counts → marks → derived
+chapters (round 5 was undiagnosable from the devlog); (5) TOC parse got the lenient retry the
+spine bodies always had — a nav/NCX doc with `&nbsp;`-class entities hard-failed strict XML
+and silently yielded an EMPTY TOC (zero marks, broken "real table of contents" promise) — the
+OTHER way this same symptom arises with no relaunch at all (both EPubParseTests copies
+extended). Tests added (Codable round-trip, store reload, sanitize-strip, ePub-title
+accessors, orphan scan, entity-laden nav/NCX). ⚠️ Fixed from a Linux session —
+**xcodebuild suite NOT run; next chat verifies** + device-checks the Odyssey book heals.
 
 **📖 ROUND 4 (b101+b102): sheet DEVICE-CONFIRMED end-to-end.** b100 bar verified (one block +
 sliver, 22%); "partial"→"full match" tolerance 0.97→0.95 (real f1 = 96.7%, credits absorb);

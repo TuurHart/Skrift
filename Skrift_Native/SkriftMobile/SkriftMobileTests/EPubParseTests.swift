@@ -402,6 +402,86 @@ final class EPubParseTests: XCTestCase {
         XCTAssertEqual(book.blocks.map(\.text), ["One", "First.", "Two", "Second.", "Three", "Third."])
     }
 
+    // MARK: - 9. TOC docs with named HTML entities (2026-07-22, the Odyssey chapter report)
+
+    /// The nav doc is XHTML like any spine file — `&nbsp;` in it hard-fails a strict XML
+    /// parse. With no NCX to fall back to, the TOC came back EMPTY (silently: no chapter
+    /// marks, chapters stayed detected/embedded). The lenient retry must recover it.
+    func testNavWithNamedEntitiesAndNoNCXStillYieldsTOC() throws {
+        let opf = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="BookId">
+          <metadata><dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">The Odyssey</dc:title></metadata>
+          <manifest>
+            <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+            <item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
+            <item id="ch2" href="chapter2.xhtml" media-type="application/xhtml+xml"/>
+          </manifest>
+          <spine>
+            <itemref idref="ch1"/>
+            <itemref idref="ch2"/>
+          </spine>
+        </package>
+        """
+        let nav = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+        <head><title>Nav</title></head>
+        <body>
+          <nav epub:type="toc">
+            <ol>
+              <li><a href="chapter1.xhtml">Book&nbsp;1: The Boy &amp; the Goddess</a></li>
+              <li><a href="chapter2.xhtml">Book&nbsp;2 &mdash; A Dangerous Journey</a></li>
+            </ol>
+          </nav>
+        </body>
+        </html>
+        """
+        let entries = makeEntries(opf: opf, nav: nav, chapters: [
+            "OEBPS/chapter1.xhtml": chapter("Book 1", ["Tell me about a complicated man."]),
+            "OEBPS/chapter2.xhtml": chapter("Book 2", ["When newborn Dawn appeared."]),
+        ])
+
+        let book = try EPubParse.parse(entries: entries)
+        XCTAssertEqual(book.toc.map(\.title),
+                       ["Book 1: The Boy & the Goddess", "Book 2 \u{2014} A Dangerous Journey"],
+                       "entities substituted, XML-predefined ones (&amp;) preserved")
+        XCTAssertEqual(book.toc.map(\.sourceFile), ["OEBPS/chapter1.xhtml", "OEBPS/chapter2.xhtml"],
+                       "targets must still resolve to the SAME paths the spine blocks carry")
+    }
+
+    func testNCXWithNamedEntitiesStillYieldsTOC() throws {
+        let opf = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="BookId">
+          <metadata><dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">Test Book</dc:title></metadata>
+          <manifest>
+            <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+            <item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
+          </manifest>
+          <spine toc="ncx">
+            <itemref idref="ch1"/>
+          </spine>
+        </package>
+        """
+        let ncx = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+          <navMap>
+            <navPoint id="np1" playOrder="1">
+              <navLabel><text>Chapter&nbsp;One</text></navLabel>
+              <content src="chapter1.xhtml"/>
+            </navPoint>
+          </navMap>
+        </ncx>
+        """
+        let entries = makeEntries(opf: opf, ncx: ncx, chapters: [
+            "OEBPS/chapter1.xhtml": chapter("Chapter One", ["Text."]),
+        ])
+        let book = try EPubParse.parse(entries: entries)
+        XCTAssertEqual(book.toc.map(\.title), ["Chapter One"])
+    }
+
     // MARK: - Error paths
 
     func testEmptyUnprotectedBookThrowsNoReadableText() throws {

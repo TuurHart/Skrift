@@ -42,6 +42,9 @@ struct AppTabView: View {
     @State private var showSeededTOC = false
     /// Keyboard `.commands` (⌘1–⌘4 + the tab-switch half of ⌘N/⌘F) post here.
     @ObservedObject private var tabBridge = TabSelectionBridge.shared
+    /// `-showTextSheet` / `-showTextPrompt` screenshot hooks (unified "Text" sheet + A0).
+    @State private var showSeededText = false
+    @State private var showSeededTextPrompt = false
 
     var body: some View {
         TabView(selection: $selection) {
@@ -87,13 +90,34 @@ struct AppTabView: View {
         .task {
             if LaunchFlags.seedAudiobook { AudiobookSeeder.seedAndOpen() }
             else if LaunchFlags.seedAudiobookIdle { AudiobookSeeder.seedOnly() }
+            // `-resumeBook`: open the last-played REAL book paused — the same
+            // book-open path a library tap runs (incl. `alignIfNeeded`), for
+            // headless device verification over devicectl.
+            else if LaunchFlags.resumeBook,
+                    let recent = AudiobookLibraryStore.shared.sortedByRecent.first {
+                _ = AudiobookSession.shared.open(recent, autoplay: false)
+            }
             if LaunchFlags.showTOCSheet { showSeededTOC = true }
+            if LaunchFlags.showTextSheet { showSeededText = true }
+            if LaunchFlags.showTextPrompt { showSeededTextPrompt = true }
         }
         // `-showTOCSheet`: render the Chapters/Bookmarks sheet over the seeded
         // book — a deterministic screenshot without UI-test taps.
         .sheet(isPresented: $showSeededTOC) {
             if let book = AudiobookSession.shared.book {
                 ChaptersBookmarksSheet(book: book)
+            }
+        }
+        // `-showTextSheet` / `-showTextPrompt`: the unified "Text" sheet + the A0
+        // prompt over the seeded book (Add is inert here — render-only hooks).
+        .sheet(isPresented: $showSeededText) {
+            if let book = AudiobookSession.shared.book ?? AudiobookLibraryStore.shared.sortedByRecent.first {
+                BookTextSheet(book: book, busyMessage: nil) {}
+            }
+        }
+        .sheet(isPresented: $showSeededTextPrompt) {
+            if let book = AudiobookSession.shared.book ?? AudiobookLibraryStore.shared.sortedByRecent.first {
+                BookTextPromptSheet(book: book) {}
             }
         }
     }

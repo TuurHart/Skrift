@@ -50,6 +50,10 @@ enum MemoSpine {
         var recordedAt: Date
         var keptAt: Date?               // the clock bump (nil = clock runs from recordedAt)
         var deletedAt: Date?
+        /// v3 purge clock (2026-07-23): first open with the note in the trash.
+        /// nil / stale (< deletedAt) = the clock hasn't started — the deleted
+        /// countdown reads a full window from `now`, and nothing dies unseen.
+        var trashSeenAt: Date?
         var rated: Bool                 // significance > 0
         var holdReason: HoldReason?     // nil = on the clock
         var transcriptDone: Bool        // still transcribing = New, never Fading
@@ -60,12 +64,14 @@ enum MemoSpine {
         var macLocalFile: Bool
 
         init(recordedAt: Date, keptAt: Date? = nil, deletedAt: Date? = nil,
+             trashSeenAt: Date? = nil,
              rated: Bool = false, holdReason: HoldReason? = nil,
              transcriptDone: Bool = true, queue: QueuePhase? = nil,
              macLocalFile: Bool = false) {
             self.recordedAt = recordedAt
             self.keptAt = keptAt
             self.deletedAt = deletedAt
+            self.trashSeenAt = trashSeenAt
             self.rated = rated
             self.holdReason = holdReason
             self.transcriptDone = transcriptDone
@@ -81,6 +87,7 @@ enum MemoSpine {
             Input(recordedAt: memo.recordedAt,
                   keptAt: memo.keptAt,
                   deletedAt: memo.deletedAt,
+                  trashSeenAt: memo.trashSeenAt,
                   rated: memo.significance > 0,
                   holdReason: MemoSpine.holdReason(of: memo, backlinked: backlinked),
                   transcriptDone: memo.transcriptStatus == .done,
@@ -101,8 +108,13 @@ enum MemoSpine {
 
     static func station(for input: Input, now: Date = Date()) -> Station {
         // 1 · deleted beats everything — restorable, counting down to the purge.
-        if let deleted = input.deletedAt {
-            return .deleted(goneAt: deleted.addingTimeInterval(TrashPolicy.retention))
+        // v3 (2026-07-23): the countdown runs from the trash SIGHTING, not the
+        // deletion — unseen rows show a full window from `now`, matching the
+        // purge gate (`MemoLifecycle.purgeDue`), so the shown date stays true.
+        if input.deletedAt != nil {
+            let start = MemoLifecycle.trashClockStart(deletedAt: input.deletedAt,
+                                                      seenAt: input.trashSeenAt) ?? now
+            return .deleted(goneAt: start.addingTimeInterval(TrashPolicy.retention))
         }
         // 2 · the active track: rated (the gate) or a Mac-local upload.
         if input.rated || input.macLocalFile {

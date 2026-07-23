@@ -68,12 +68,12 @@ struct WayOutView: View {
                                 },
                                 onDelete: {
                                     // Fading → soft (skip the rest of the fade,
-                                    // straight to Recently Deleted, no confirm);
+                                    // straight to Recently Deleted, no confirm —
+                                    // softDelete stamps the purge clock too);
                                     // deleted → the phone-owned purge, through
                                     // the existing confirm dialog.
                                     if memo.deletedAt == nil {
-                                        memo.deletedAt = Date()
-                                        repository.save()
+                                        repository.softDelete(memo)
                                         peek = nil
                                     } else {
                                         peek = nil
@@ -136,7 +136,7 @@ struct WayOutView: View {
                 } header: {
                     SectionLabel("RECENTLY DELETED")
                 } footer: {
-                    Text("Deleted notes are kept for \(TrashPolicy.retentionDays) days, then removed for good.")
+                    Text("Deleted notes are kept for \(TrashPolicy.retentionDays) days, then removed for good — the clock only starts once you've opened the app with them here.")
                         .font(.system(size: 11.5))
                         .foregroundStyle(Color.skTextFaint)
                 }
@@ -265,6 +265,7 @@ extension WayOutView {
     static func bringBack(_ memo: Memo, repository: NotesRepository) {
         memo.keptAt = Date()
         memo.deletedAt = nil
+        memo.trashSeenAt = nil   // purge-clock hygiene (v3); the validity guard ignores stale stamps anyway
         repository.save()
     }
 

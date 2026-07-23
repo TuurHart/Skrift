@@ -4,9 +4,14 @@ import Foundation
 /// (📖 spike 6, `LANES-2026-07-21C/BASE.md`). Turns one file's alignment
 /// sidecar into the sentence list `ReadAlongView` and `MergedCaptureView`
 /// render: the published book's own text where the alignment trusts its own
-/// match, the ASR transcript's words where it doesn't, and nothing at all when
-/// the alignment isn't usable yet — callers then fall back to their existing
-/// ASR-only sentence builder.
+/// match, the ASR transcript's words where it doesn't — INCLUDING the words in
+/// alignment HOLES (spans no aligned sentence covers: `assembleSentences` drops
+/// zero-timed sentences, and narration can carry text the book never had) — and
+/// nothing at all when the alignment isn't usable yet, where callers fall back
+/// to their existing ASR-only sentence builder. The display is a UNION of book
+/// text and transcript, never a replacement (Odyssey device finding 2026-07-22:
+/// spoken sentences vanished from the read-along because the aligner missed
+/// them — the audio plays them, so the screen must show them).
 ///
 /// Pure — no I/O, no store reads, no MainActor (mirrors
 /// `QuoteCaptureProcessor.buildSentences`'s `nonisolated static`, so it's
@@ -19,6 +24,13 @@ enum AlignedSentenceSource {
     /// show — that sentence falls back to the ASR words it was spliced from.
     /// At exactly the floor, the book text IS trusted (`>=`, not `>`).
     static let confidenceFloor = 0.5
+
+    /// Below this many consecutive uncovered ASR words, a hole in the aligned
+    /// stream is boundary fuzz (a word whose times straddle two sentences'
+    /// spans) and stays silent; at or above it, the words are real narration
+    /// the aligned sentences are missing — rendered as ASR text so spoken
+    /// audio never plays against a blank screen.
+    static let gapFillMinWords = 3
 
     /// The read-along/capture sentence list for one file.
     ///
@@ -40,6 +52,11 @@ enum AlignedSentenceSource {
     ///   — never one raw undifferentiated block, never a garbled partial line
     ///   when the indices don't line up (an empty/out-of-range slice
     ///   contributes nothing).
+    /// - Transcript words NO aligned sentence covers (`uncoveredWordRanges`,
+    ///   runs of ≥ `gapFillMinWords`) → ASR sentences via the same builder.
+    ///   These are the aligner's holes: dropped zero-timed sentences, spoken
+    ///   text the book never had (credits, asides), a partially-matched
+    ///   sentence's untimed tail.
     ///
     /// The result is always sorted by `start` and deterministic, regardless of
     /// the input array's order or how many sentences one low-confidence splice
@@ -56,7 +73,10 @@ enum AlignedSentenceSource {
         else { return nil }
 
         let mapped: [BufferSentence] = alignment.sentences.flatMap { sentence -> [BufferSentence] in
-            guard sentence.confidence >= confidenceFloor else {
+            // Bridged sentences (schema 4) carry confidence 0 BY DESIGN — nothing was
+            // matched; the corroborated sandwich is the trust basis, so they render as
+            // book text, never as an ASR splice.
+            guard sentence.confidence >= confidenceFloor || sentence.bridged == true else {
                 return asrFallback(
                     for: sentence, transcriptWords: transcriptWords,
                     snappedStart: snappedStart, snappedEnd: snappedEnd
@@ -70,7 +90,39 @@ enum AlignedSentenceSource {
                 isInInitialSpan: sentence.end > snappedStart && sentence.start < snappedEnd
             )]
         }
-        return mapped.sorted { $0.start < $1.start }
+        let gapFill: [BufferSentence] = uncoveredWordRanges(
+            sentences: alignment.sentences, wordCount: transcriptWords.count
+        )
+        .filter { $0.count >= gapFillMinWords }
+        .flatMap {
+            QuoteCaptureProcessor.buildSentences(
+                from: Array(transcriptWords[$0]),
+                snappedStart: snappedStart, snappedEnd: snappedEnd
+            )
+        }
+        return (mapped + gapFill).sorted { $0.start < $1.start }
+    }
+
+    /// Maximal transcript-index runs `[0, wordCount)` that NO aligned sentence's
+    /// `[wordStart, wordEnd)` splice range covers — the aligner's holes. Every
+    /// sentence counts as covering its range regardless of confidence (a trusted
+    /// sentence REPRESENTS those spoken words as book text; an untrusted one
+    /// renders them verbatim), so gap fill can never duplicate text either path
+    /// already shows. Ranges are clamped defensively (a stale splice never traps).
+    static func uncoveredWordRanges(sentences: [AlignedSentence], wordCount: Int) -> [Range<Int>] {
+        guard wordCount > 0 else { return [] }
+        let covered = sentences
+            .map { (lo: max(0, min($0.wordStart, wordCount)), hi: max(0, min($0.wordEnd, wordCount))) }
+            .filter { $0.hi > $0.lo }
+            .sorted { $0.lo < $1.lo }
+        var gaps: [Range<Int>] = []
+        var cursor = 0
+        for span in covered {
+            if span.lo > cursor { gaps.append(cursor..<span.lo) }
+            cursor = max(cursor, span.hi)
+        }
+        if cursor < wordCount { gaps.append(cursor..<wordCount) }
+        return gaps
     }
 
     /// One low-confidence `AlignedSentence`'s ASR replacement — clamps

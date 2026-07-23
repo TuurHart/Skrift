@@ -12,7 +12,8 @@ import os
 /// a no-op otherwise. Reads each file's CURRENT `deletedAt` (set moments earlier by `DesktopTrash`)
 /// and writes it to the memo — so one call handles both soft-delete and restore. Permanent removal
 /// (`deleteForever`) stays device-local: the memo is already soft-deleted in the cloud from the
-/// trash that preceded it, and each device purges on its own 14-day timer from the same stamp.
+/// trash that preceded it; the Mac purges its LOCAL mirror on its own 14-day stamp, while the
+/// cloud copy purges only on the phone's v3 `trashSeenAt` clock (14 SEEN days — never away-time).
 @MainActor
 enum MacCloudDeleteSync {
     private static let log = Logger(subsystem: "com.skrift.desktop", category: "cloudkit")
@@ -30,6 +31,11 @@ enum MacCloudDeleteSync {
                       FetchDescriptor<Memo>(predicate: #Predicate { $0.id == memoID })))?.first else { continue }
             if memo.deletedAt != pf.deletedAt {
                 memo.deletedAt = pf.deletedAt
+                // A Mac trash gesture happens with the user right here — the
+                // purge clock (v3 `trashSeenAt`) starts at the same stamp, like
+                // the phone's own softDelete. Restores (nil) leave the old
+                // stamp; the validity guard treats it as stale either way.
+                if let deletedAt = pf.deletedAt { memo.trashSeenAt = deletedAt }
                 wrote = true
             }
         }

@@ -447,6 +447,7 @@ struct SidebarView: View {
     /// Soft delete into the shared Recently Deleted (14 days, both devices).
     private func deleteQuiet(_ memo: Memo) {
         memo.deletedAt = Date()
+        memo.trashSeenAt = memo.deletedAt   // deleted in-session — purge clock starts now (v3)
         try? MemoCloudStore.container?.mainContext.save()
         refreshCloudMemos()
     }

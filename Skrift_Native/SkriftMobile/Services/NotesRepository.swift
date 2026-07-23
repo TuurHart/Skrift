@@ -75,11 +75,14 @@ final class NotesRepository {
     // MARK: - Trash (Recently Deleted)
 
     /// Move a memo to Recently Deleted. Audio, photos, and sidecars stay on disk
-    /// so Restore is lossless; the startup purge removes them after
-    /// `TrashPolicy.retention`. `date` is injectable for tests.
+    /// so Restore is lossless; the startup purge removes them once the purge
+    /// clock (`trashSeenAt`, stamped here — a phone soft-delete only ever
+    /// happens with the app open) has run `TrashPolicy.retention`. `date` is
+    /// injectable for tests.
     func softDelete(_ memo: Memo, at date: Date = Date()) {
         DevLog.log("softDelete memo \(memo.id) status=\(memo.transcriptStatus) — caller: \(Self.callerFrames())")
         memo.deletedAt = date
+        memo.trashSeenAt = date
         save()
     }
 
@@ -97,6 +100,7 @@ final class NotesRepository {
     /// Bring a trashed memo back to the main list, untouched.
     func restore(_ memo: Memo) {
         memo.deletedAt = nil
+        memo.trashSeenAt = nil   // stale-stamp hygiene; the validity guard ignores it anyway
         save()
     }
 
@@ -224,14 +228,16 @@ final class NotesRepository {
         save()
     }
 
-    /// Startup purge: permanently delete every memo trashed at least
-    /// `TrashPolicy.retention` ago (inclusive). `now` is injectable for tests.
+    /// Startup purge: permanently delete every memo SEEN in the trash at least
+    /// `TrashPolicy.retention` ago (inclusive) — `MemoLifecycle.purgeDue`, the
+    /// v3 gate (2026-07-23). A trashed memo nobody has had the app open with
+    /// (a `deletedAt` that synced in while the phone sat closed) never purges:
+    /// the at-open stamp pass (`FadingSweep.run`) starts its clock instead, so
+    /// this stays safe to run from `SkriftApp.init` on ANY process launch —
+    /// background wakes included. `now` is injectable for tests.
     @discardableResult
     func purgeExpiredTrash(now: Date = Date()) -> Int {
-        let expired = deletedMemos().filter { memo in
-            guard let deletedAt = memo.deletedAt else { return false }
-            return now.timeIntervalSince(deletedAt) >= TrashPolicy.retention
-        }
+        let expired = deletedMemos().filter { MemoLifecycle.purgeDue($0, now: now) }
         for memo in expired { permanentlyDelete(memo) }
         return expired.count
     }

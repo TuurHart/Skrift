@@ -62,6 +62,14 @@ struct AlignedSentence: Codable, Equatable, Sendable {
     /// real `textFile` is passed; the schema gate keeps pre-3 sidecars from ever decoding into
     /// a live `FileAlignment`, so a merged, on-disk sentence is never found with this nil.
     var textFile: String? = nil
+    /// BRIDGED (schema 4, 2026-07-22 — Tuur's Odyssey round: "if it had actually put in the
+    /// whole ePub that was working"): the aligner matched NOTHING in this sentence, but it sits
+    /// between two timed neighbors whose gap contains a compatible amount of narration — so the
+    /// book sentence is emitted with times INTERPOLATED across that gap instead of vanishing.
+    /// `confidence` stays honest (0 — nothing direct-matched); this flag is what tells the
+    /// display layer to render the book text anyway. Times/karaoke are coarse (linear), and the
+    /// multi-text collision rule is unaffected (confidence 0 loses to any real match).
+    var bridged: Bool? = nil
 }
 
 /// One attached text's alignment outcome for ONE audio file (schema 3, pinned —
@@ -104,7 +112,17 @@ struct FileAlignment: Codable, Equatable, Sendable {
     /// sidecar has neither, so it reads as absent and every attached text re-aligns fresh on
     /// the book's next open (`alignIfNeeded` iterates `Audiobook.attachedTextFilenames` —
     /// `LANES-2026-07-22D/BASE.md`).
-    static let currentSchema = 3
+    /// 3→4 (2026-07-22 pm, the Odyssey dropped-sentence round): BRIDGED sentences —
+    /// sandwiched aligner holes now emit the book sentence with interpolated times
+    /// (`AlignedSentence.bridged`) instead of vanishing. The bump makes every already-
+    /// attached book re-align on its next open, so existing installs gain the bridges
+    /// (and re-derived chapter marks) without any user action.
+    /// 4→5 (2026-07-23, the verify round's real-data catch): `mergeSentences` used to
+    /// contest collisions WITHIN one text's own batch, eating same-text sentences whose
+    /// exact word-times overlap a neighbor by seam fuzz (196 of the Odyssey's 7506 —
+    /// both user-reported holes). Every schema-4 sidecar on disk is such a subset, so
+    /// the bump re-aligns each attached book once to restore the eaten sentences.
+    static let currentSchema = 5
 
     var schema: Int = currentSchema
     /// Which file of the book this covers (`Audiobook.files` index).
@@ -230,12 +248,60 @@ final class BookAlignmentStore: Sendable {
 
 // MARK: - Runner
 
+/// Live "this book is matching up its text right now" state, for any surface that would
+/// otherwise look FROZEN while a re-align runs (device finding 2026-07-23, Tuur: tapped a
+/// book, "I can't click any books, it seems to be frozen… maybe stuff's happening in the
+/// background, but it's annoying"). The schema-heal re-align takes ~12 min on a 13 h book
+/// and had NO surface at all — the attach flow's stage line only existed on the attach
+/// sheet. One observable, set by the runner, read by the library + the Text sheet.
+@MainActor
+final class BookTextActivity: ObservableObject {
+    static let shared = BookTextActivity()
+
+    /// The book currently matching up its text, if any (only ever one — the runner is serial).
+    @Published private(set) var bookID: UUID?
+    /// The runner's live stage line ("Reading the text…", "Matching the text…").
+    @Published private(set) var stage: String?
+
+    func begin(_ id: UUID, stage: String) {
+        bookID = id
+        self.stage = stage
+    }
+
+    func update(_ stage: String) {
+        guard bookID != nil else { return }
+        self.stage = stage
+    }
+
+    func end() {
+        bookID = nil
+        stage = nil
+    }
+
+    func isActive(_ id: UUID) -> Bool { bookID == id }
+}
+
 enum BookAlignmentRunner {
 
     struct AttachSummary: Equatable {
         var alignedFiles: Int
         var rejectedFiles: Int
         var totalFiles: Int
+        /// True when the book was mid-transcription at attach time: the file was copied
+        /// in and recorded, but NO alignment ran (matching a moving partial transcript
+        /// wastes minutes and yields misleading verdicts) — the transcription job's
+        /// finish call to `alignIfNeeded` does the real pass. Drives the outcome copy.
+        var deferredWhileTranscribing: Bool = false
+    }
+
+    /// True while the whole-book transcribe job is live for `bookID` — the window in
+    /// which alignment must wait (Tuur 2026-07-22: "what happens if I upload an epub
+    /// while the book is still transcribing?" — it deferred implicitly at best; now
+    /// it defers deliberately, with copy that says so).
+    @MainActor
+    private static func isTranscribing(_ bookID: UUID) -> Bool {
+        BookTranscriptionJob.shared.activeBookID == bookID
+            && BookTranscriptionJob.shared.isRunningOrPaused
     }
 
     enum AttachError: LocalizedError, Equatable {
@@ -262,10 +328,16 @@ enum BookAlignmentRunner {
     /// entries (its position in `attachedTextFilenames` — and so its collision tie-break rank —
     /// is unchanged). Rejected-everywhere still writes sidecars (verdict recorded) — the UI
     /// decides what to tell the user from `AttachSummary`/the sidecars' verdicts.
-    static func attach(bookFileAt url: URL, bookID: UUID) async throws -> AttachSummary {
+    static func attach(bookFileAt url: URL, bookID: UUID,
+                       progress: (@Sendable (String) -> Void)? = nil) async throws -> AttachSummary {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else {
             throw AttachError.bookMissing
         }
+        // Mid-transcription: copy + record the text, but DEFER alignment — matching a
+        // moving partial transcript wastes minutes and its verdicts mislead ("doesn't
+        // look like this audiobook" on a barely-covered file). The job's finish call
+        // to `alignIfNeeded` runs the real pass over the full transcript.
+        let deferring = await isTranscribing(bookID)
         let folder = BookTranscriptStore().folder(forBookID: bookID)
         let filename = url.lastPathComponent
         let dest = folder.appendingPathComponent(filename)
@@ -276,6 +348,7 @@ enum BookAlignmentRunner {
         let outcome: AttachOutcome = try await Task.detached(priority: .userInitiated) {
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            progress?("Copying the file in…")
             do {
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                 try AudiobookImporter.materializingCopy(from: url, to: dest)
@@ -283,6 +356,7 @@ enum BookAlignmentRunner {
                 throw AttachError.copyFailed
             }
 
+            progress?("Reading the text…")
             let epubBook = try parseBookFile(at: dest)
             let alignBlocks = mergeBlocksByFile(epubBook.blocks)
             let epubSig = (try? Data(contentsOf: dest)).map(sha256Hex) ?? ""
@@ -291,21 +365,27 @@ enum BookAlignmentRunner {
             var perFile: [Int: FileAlignResult] = [:]
             var transcriptSigs: [Int: String] = [:]
             var aligned = 0, rejected = 0, total = 0
-            for i in book.files.indices {
-                let audioURL = folder.appendingPathComponent(book.files[i])
-                let sig = transcriptStore.signature(forFileAt: audioURL)
-                guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
-                      !ft.words.isEmpty else { continue }
-                total += 1
-                let fileResult = alignFile(ft: ft, against: alignBlocks, textFilename: filename)
-                perFile[i] = fileResult
-                transcriptSigs[i] = FileAlignment.signature(forTranscript: ft)
-                if fileResult.verdict == .aligned { aligned += 1 }
-                if fileResult.verdict == .rejected { rejected += 1 }
+            if !deferring {
+                for i in book.files.indices {
+                    let audioURL = folder.appendingPathComponent(book.files[i])
+                    let sig = transcriptStore.signature(forFileAt: audioURL)
+                    guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
+                          !ft.words.isEmpty else { continue }
+                    total += 1
+                    progress?(book.files.count > 1
+                        ? "Matching the text… (file \(i + 1) of \(book.files.count))"
+                        : "Matching the text against the transcript…")
+                    let fileResult = alignFile(ft: ft, against: alignBlocks, textFilename: filename)
+                    perFile[i] = fileResult
+                    transcriptSigs[i] = FileAlignment.signature(forTranscript: ft)
+                    if fileResult.verdict == .aligned { aligned += 1 }
+                    if fileResult.verdict == .rejected { rejected += 1 }
+                }
             }
             return AttachOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig,
                                  transcriptSigs: transcriptSigs, aligned: aligned, rejected: rejected, total: total)
         }.value
+        progress?("Placing chapters…")
 
         var order = book.attachedTextFilenames
         if !order.contains(filename) { order.append(filename) }
@@ -321,7 +401,7 @@ enum BookAlignmentRunner {
             newlyAttachedFilename: filename
         )
         return AttachSummary(alignedFiles: outcome.aligned, rejectedFiles: outcome.rejected,
-                             totalFiles: outcome.total)
+                             totalFiles: outcome.total, deferredWhileTranscribing: deferring)
     }
 
     private struct AttachOutcome: Sendable {
@@ -347,9 +427,36 @@ enum BookAlignmentRunner {
     /// wins, globally" invariant can't drift between files aligned now and files aligned earlier.
     static func alignIfNeeded(bookID: UUID) async {
         guard let book = await MainActor.run(body: { AudiobookLibraryStore.shared.book(id: bookID) }) else { return }
-        let names = book.attachedTextFilenames
-        guard !names.isEmpty else { return }
+        // Mid-transcription: every completed chunk changes the transcript signature, so
+        // aligning now would churn expensive passes against a moving target (and player
+        // opens call this). The job's OWN finish call re-enters after `phase = .finished`,
+        // so the full-transcript pass is never skipped.
+        let transcribing = await isTranscribing(bookID)
+        guard !transcribing else { return }
         let folder = BookTranscriptStore().folder(forBookID: bookID)
+        var names = book.attachedTextFilenames
+        if names.isEmpty {
+            // RE-ADOPT (2026-07-22 Odyssey device report): builds before the Codable
+            // persistence fix encoded Audiobook WITHOUT the attach fields, so a plain
+            // relaunch forgot the attachment — while the attached file + sidecars still
+            // sit in the book folder (attach copies the file there; removeText deletes
+            // it, so a text file present on disk always means "attached"). Adopt what's
+            // on disk and continue; the fresh-sidecar self-heal below then restores
+            // `epubChapters` without recomputing anything. Alphabetical order — the
+            // original attach order is unrecoverable, and order only tie-breaks
+            // sentence collisions between multiple texts.
+            names = orphanedAttachedTexts(inFolder: folder, audioFiles: book.files)
+            guard !names.isEmpty else { return }
+            let adopted = names
+            await MainActor.run {
+                guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
+                fresh.epubFilenames = adopted
+                fresh.epubFilename = adopted.first
+                fresh.modifiedAt = Date()
+                AudiobookLibraryStore.shared.update(fresh)
+            }
+            DevLog.log("bookAlign[\(bookID)] re-adopted orphaned attached texts: \(adopted)")
+        }
         let localNames = names.filter { FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
         guard !localNames.isEmpty else { return }
 
@@ -397,10 +504,18 @@ enum BookAlignmentRunner {
         // Bare closure, as in `attach` — the outer `let` annotation supplies the async+throws-
         // free effect signature the compiler needs (this closure only ever returns, never throws;
         // `parseBookFile`'s error is swallowed via `try?` since `alignIfNeeded` has no error path).
-        let realigned: [String: TextAlignOutcome] = await Task.detached(priority: .utility) { () -> [String: TextAlignOutcome] in
+        // Visible + polite (2026-07-23 device finding): the heal used to run silently at
+        // `.utility` with no surface, so a tapped book looked FROZEN for ~12 min. It now
+        // publishes its stage AND runs at `.background`, which yields to the UI far more
+        // readily; `Task.yield()` between files keeps the pool from monopolizing cores.
+        await MainActor.run { BookTextActivity.shared.begin(bookID, stage: "Matching up your book text…") }
+        defer { Task { @MainActor in BookTextActivity.shared.end() } }
+
+        let realigned: [String: TextAlignOutcome] = await Task.detached(priority: .background) { () -> [String: TextAlignOutcome] in
             var out: [String: TextAlignOutcome] = [:]
             for textName in localNames {
                 let url = folder.appendingPathComponent(textName)
+                await MainActor.run { BookTextActivity.shared.update("Reading the text…") }
                 guard let epubBook = try? parseBookFile(at: url) else {
                     DevLog.log("bookAlign[\(bookID)] re-parse failed for \(textName) — skipping re-align")
                     continue
@@ -413,7 +528,13 @@ enum BookAlignmentRunner {
                     let sig = transcriptStore.signature(forFileAt: audioURL)
                     guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
                           !ft.words.isEmpty else { continue }
+                    await MainActor.run {
+                        BookTextActivity.shared.update(book.files.count > 1
+                            ? "Matching the text… (file \(i + 1) of \(book.files.count))"
+                            : "Matching the text against the transcript…")
+                    }
                     perFile[i] = alignFile(ft: ft, against: alignBlocks, textFilename: textName)
+                    await Task.yield()
                 }
                 out[textName] = TextAlignOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig)
             }
@@ -421,6 +542,7 @@ enum BookAlignmentRunner {
         }.value
 
         guard !realigned.isEmpty else { return }
+        await MainActor.run { BookTextActivity.shared.update("Placing chapters…") }
 
         var transcriptSigs: [Int: String] = [:]
         for i in staleIndices {
@@ -458,10 +580,21 @@ enum BookAlignmentRunner {
     @MainActor
     static func textSummary(bookID: UUID, library: AudiobookLibraryStore = .shared) -> BookTextSummary? {
         guard let book = library.book(id: bookID) else { return nil }
+        return textSummary(book: book, directory: library.directory)
+    }
+
+    /// The same assembly with the record + directory handed in — `nonisolated` so callers
+    /// can run it OFF the main actor. This decodes every attached file's whole alignment
+    /// sidecar (9 MB / 7.5k sentences on the real Odyssey), which is far too heavy for a
+    /// SwiftUI `body` (2026-07-23: the sheet called the MainActor entry point on every
+    /// render — a guaranteed main-thread stall on the iPhone 13). The sheet now caches
+    /// this off-main; the MainActor wrapper above stays for cheap/one-shot callers.
+    nonisolated static func textSummary(book: Audiobook, directory: URL) -> BookTextSummary? {
+        let bookID = book.id
         let names = book.attachedTextFilenames
         guard !names.isEmpty else { return nil }
 
-        let store = BookAlignmentStore(directory: library.directory)
+        let store = BookAlignmentStore(directory: directory)
         let fileAlignments: [FileAlignment?] = book.files.indices.map { store.fileAlignment(bookID: bookID, fileIndex: $0) }
         let fileStarts = book.fileStartTimes
 
@@ -591,7 +724,15 @@ enum BookAlignmentRunner {
                                textRank: [String: Int]) -> [AlignedSentence] {
         var result = keep
         for ns in incoming {
-            let conflicts = result.indices.filter { result[$0].start < ns.end && ns.start < result[$0].end }
+            // Collisions contest BETWEEN texts only (2026-07-23 Odyssey verify round): a
+            // text's own batch routinely has hairline time overlaps between ADJACENT
+            // sentences (exact per-word times straddle sentence seams), and the strict-win
+            // tie rule made the later same-text sentence vanish — 196 of the Odyssey's
+            // 7506 direct-matched sentences, including both user-reported holes.
+            let conflicts = result.indices.filter {
+                result[$0].textFile != ns.textFile
+                    && result[$0].start < ns.end && ns.start < result[$0].end
+            }
             guard !conflicts.isEmpty else { result.append(ns); continue }
             let maxConfidence = conflicts.map { result[$0].confidence }.max()!
             let tiedAtMax = conflicts.filter { result[$0].confidence == maxConfidence }
@@ -741,6 +882,10 @@ enum BookAlignmentRunner {
                                     bookDuration: book.duration,
                                     detected: book.detectedChapters,
                                     fileDurations: book.fileDurations)
+        // Pullable trace for chapter-source bugs (the Odyssey report was undiagnosable
+        // from the devlog): TOC size per text, how many marks landed, what got derived.
+        let markCount = current.reduce(0) { $0 + ($1?.chapterMarks.count ?? 0) }
+        DevLog.log("bookAlign[\(bookID)] chapters: toc \(precomputedTOC.mapValues(\.count)) → \(markCount) marks → \(chapters.count) epub chapters")
         await MainActor.run {
             guard var fresh = AudiobookLibraryStore.shared.book(id: bookID) else { return }
             if let newlyAttachedFilename {
@@ -861,6 +1006,20 @@ enum BookAlignmentRunner {
         return EPubBook(blocks: [EPubBlock(text: text, sourceFile: url.lastPathComponent)], toc: [], drm: .none)
     }
 
+    /// Attachable text files (`.epub`/`.txt`) sitting in the book folder that aren't audio
+    /// files — the disk is the durable truth for "what's attached" (`attach` copies the file
+    /// in, `removeText` deletes it; nothing else ever puts a text file there). Used by
+    /// `alignIfNeeded` to re-adopt an attachment a pre-persistence-fix build forgot.
+    /// Sorted for determinism.
+    static func orphanedAttachedTexts(inFolder folder: URL, audioFiles: [String]) -> [String] {
+        let attachable: Set<String> = ["epub", "txt"]
+        let audio = Set(audioFiles)
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return entries
+            .filter { attachable.contains(URL(fileURLWithPath: $0).pathExtension.lowercased()) && !audio.contains($0) }
+            .sorted()
+    }
+
     // MARK: - Block merge (the local-word-index fix — see file header)
 
     /// Merge adjacent `EPubBlock`s sharing a `sourceFile` into ONE `AlignmentCore.Block` (their
@@ -933,12 +1092,18 @@ enum BookAlignmentRunner {
         }
 
         let starts = sentenceStartWordIndices(words: words, text: text)
-        var sentences: [AlignedSentence] = []
+        // Pass 1: one piece per sentence range — a built AlignedSentence when any word got
+        // a time, or a recorded HOLE (sentence: nil) when none did. Holes used to be
+        // dropped outright; pass 2 bridges the sandwiched ones.
+        var pieces: [(s: Int, e: Int, sentence: AlignedSentence?)] = []
         for (i, s) in starts.enumerated() {
             let e = i + 1 < starts.count ? starts[i + 1] : words.count
             guard e > s else { continue }
             let timed = (s..<e).compactMap { wordTimes[$0] }
-            guard !timed.isEmpty else { continue }   // fully inside an unmatched span — drop
+            guard !timed.isEmpty else {
+                pieces.append((s: s, e: e, sentence: nil))
+                continue
+            }
             let sentenceText = String(text[words[s].range.lowerBound..<words[e - 1].range.upperBound])
             let sStart = timed.first!.start
             let sEnd = timed.last!.end
@@ -948,13 +1113,102 @@ enum BookAlignmentRunner {
             let direct = (s..<e).filter { wordDirect[$0] && wordTimes[$0] != nil }.count
             let confidence = Double(direct) / Double(e - s)
             let asrRange = transcriptIndexRange(transcriptWords, start: sStart, end: sEnd)
-            sentences.append(AlignedSentence(
+            pieces.append((s: s, e: e, sentence: AlignedSentence(
                 text: sentenceText, start: sStart, end: sEnd,
                 wordStart: asrRange.lowerBound, wordEnd: asrRange.upperBound,
                 confidence: confidence, words: timed, sourceFile: sourceFile, textFile: textFile
-            ))
+            )))
+        }
+
+        // Pass 2 — BRIDGE sandwiched holes (schema 4, the Odyssey dropped-sentence round):
+        // a run of untimed sentences BETWEEN two timed neighbors, whose time gap contains a
+        // compatible amount of narration, is almost always the narrator reading exactly those
+        // sentences with the aligner having missed the match (ASR garble on proper nouns is
+        // enough). Emit the BOOK sentences with times interpolated across the gap. Leading
+        // and trailing holes (no sandwich) stay dropped — front matter and end matter the
+        // narration never reached must not be invented into the timeline.
+        var sentences: [AlignedSentence] = []
+        var i = 0
+        while i < pieces.count {
+            if let sentence = pieces[i].sentence {
+                sentences.append(sentence)
+                i += 1
+                continue
+            }
+            var j = i
+            while j < pieces.count, pieces[j].sentence == nil { j += 1 }
+            if i > 0, j < pieces.count,
+               let prev = pieces[i - 1].sentence, let next = pieces[j].sentence {
+                sentences.append(contentsOf: bridgedSentences(
+                    holes: pieces[i..<j].map { (s: $0.s, e: $0.e) },
+                    between: prev, and: next,
+                    words: words, text: text, transcriptWords: transcriptWords,
+                    sourceFile: sourceFile, textFile: textFile
+                ))
+            }
+            i = j
         }
         return sentences
+    }
+
+    /// How far the spoken-word count in a hole's time window may deviate from the book
+    /// sentences' word count and still corroborate a bridge (ASR and book tokenization
+    /// differ a little; a big mismatch means the narration there is NOT these sentences).
+    static let bridgeRatioLow = 0.5
+    static let bridgeRatioHigh = 2.0
+
+    /// The bridge builder for ONE maximal hole run sandwiched between timed sentences
+    /// `prev` and `next`. Corroboration gate: the window `[prev.end, next.start]` must
+    /// contain narration whose word count is compatible (`bridgeRatio*`) with the book
+    /// sentences' — a silent or near-silent window means the narrator actually SKIPPED
+    /// this text (abridged reads) and nothing is emitted; the gap-fill layer then shows
+    /// whatever ASR really is there. Times distribute linearly across the run by word
+    /// count; `confidence` stays 0 (nothing was matched) with `bridged: true` carrying
+    /// the render decision.
+    private static func bridgedSentences(
+        holes: [(s: Int, e: Int)],
+        between prev: AlignedSentence, and next: AlignedSentence,
+        words: [(word: String, range: Range<String.Index>)],
+        text: String,
+        transcriptWords: [WordTiming],
+        sourceFile: String,
+        textFile: String?
+    ) -> [AlignedSentence] {
+        let windowStart = prev.end
+        let windowEnd = next.start
+        let window = windowEnd - windowStart
+        guard window > 0.15 else { return [] }
+        let bookWordCount = holes.reduce(0) { $0 + ($1.e - $1.s) }
+        guard bookWordCount > 0 else { return [] }
+        let spoken = transcriptIndexRange(transcriptWords, start: windowStart, end: windowEnd).count
+        guard Double(spoken) >= max(2, Double(bookWordCount) * bridgeRatioLow),
+              Double(spoken) <= Double(bookWordCount) * bridgeRatioHigh else { return [] }
+
+        var out: [AlignedSentence] = []
+        var cursor = windowStart
+        for hole in holes {
+            let count = hole.e - hole.s
+            let span = window * Double(count) / Double(bookWordCount)
+            let t0 = cursor
+            let t1 = cursor + span
+            cursor = t1
+            let sentenceText = String(text[words[hole.s].range.lowerBound..<words[hole.e - 1].range.upperBound])
+            var timed: [WordTiming] = []
+            for k in 0..<count {
+                let w0 = t0 + span * Double(k) / Double(count)
+                let w1 = t0 + span * Double(k + 1) / Double(count)
+                timed.append(WordTiming(word: words[hole.s + k].word, start: w0, end: w1))
+            }
+            let splice = transcriptIndexRange(transcriptWords, start: t0, end: t1)
+            var sentence = AlignedSentence(
+                text: sentenceText, start: t0, end: t1,
+                wordStart: splice.lowerBound, wordEnd: splice.upperBound,
+                confidence: 0, words: timed, sourceFile: sourceFile, textFile: textFile
+            )
+            sentence.bridged = true
+            out.append(sentence)
+        }
+        return out
     }
 
     /// `text` split on whitespace runs, each token paired with its range IN `text` — same token

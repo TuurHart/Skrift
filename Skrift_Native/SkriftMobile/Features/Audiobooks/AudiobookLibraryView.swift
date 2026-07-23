@@ -16,6 +16,8 @@ struct AudiobookLibraryView: View {
     /// Compact (incl. a split-view/Stage-Manager iPad) keeps today's List.
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     private var isRegular: Bool { horizontalSizeClass == .regular }
+    /// Live re-align state, so a matching-up book never reads as a frozen app.
+    @ObservedObject private var textActivity = BookTextActivity.shared
 
     /// Sort choice, persisted app-wide; the header chip is the control.
     @AppStorage("bookSortRaw") private var sortRaw = BookSort.recentlyPlayed.rawValue
@@ -30,9 +32,13 @@ struct AudiobookLibraryView: View {
     /// Partial-import notice: the book imported but N parts were skipped (unreadable).
     @State private var importNotice: String?
     @State private var showPlayer = false
-    /// Long-press → "Transcribe book" target (presents the transcribe sheet for
-    /// any library book without opening it first).
-    @State private var transcribeBook: Audiobook?
+    /// A0 (mock book-text-unified.html): the once-per-book "Give this book text"
+    /// prompt, presented right after an import confirms. `a0Candidate` parks the
+    /// just-imported book until the confirm sheet is off-screen — presenting from
+    /// the import sheet's onDismiss avoids the iOS sheet-swap race.
+    @State private var giveTextBook: Audiobook?
+    @State private var a0Candidate: Audiobook?
+    @State private var a0AddHandoff: Audiobook?
     /// Bumped when a book's sync toggle flips, so the row's cloud glyph re-renders
     /// (sync state lives in the repository, not in `store.books`).
     @State private var syncToggleTick = 0
@@ -84,11 +90,23 @@ struct AudiobookLibraryView: View {
                 Task { await runImport(urls) }
             }
         }
-        .sheet(item: $pendingImport) { pending in
+        .sheet(item: $pendingImport, onDismiss: {
+            // A0 fires here — after the confirm sheet is fully down (a direct
+            // sheet-to-sheet swap drops the second presentation on iOS 26). Only
+            // when a skipped-parts alert isn't about to claim the presentation.
+            if let book = a0Candidate {
+                a0Candidate = nil
+                if importNotice == nil, !BookTextPrompt.seen(book.id) {
+                    BookTextPrompt.markSeen(book.id)
+                    giveTextBook = book
+                }
+            }
+        }) { pending in
             AudiobookImportConfirmSheet(
                 pending: pending,
                 onConfirm: { book in
                     store.add(book)
+                    a0Candidate = book
                     pendingImport = nil
                     importNotice = Self.skippedNotice(pending.skippedParts)
                 },
@@ -99,11 +117,21 @@ struct AudiobookLibraryView: View {
             )
             .presentationDetents([.medium])
         }
+        // A0: the once-per-book "Give this book text" prompt; its "Add book text…"
+        // hands off to the unified Text sheet (which owns the picker) — parked
+        // through onDismiss, same sheet-swap-race rule as above.
+        .sheet(item: $giveTextBook, onDismiss: {
+            if let book = a0AddHandoff {
+                a0AddHandoff = nil
+                bookTextSheetBook = book
+            }
+        }) { book in
+            BookTextPromptSheet(book: book) {
+                a0AddHandoff = book
+            }
+        }
         .fullScreenCover(isPresented: $showPlayer) {
             AudiobookPlayerView()
-        }
-        .sheet(item: $transcribeBook) { book in
-            TranscribeBookView(book: book)
         }
         .sheet(item: $syncSheetBook, onDismiss: { syncToggleTick += 1 }) { book in
             AudiobookSyncSheet(book: book)
@@ -389,29 +417,30 @@ struct AudiobookLibraryView: View {
     /// The long-press menu — EXACTLY today's four items, shared by the list row
     /// and the shelf tile.
     @ViewBuilder
+    /// ONE menu for the compact rows AND the iPad shelf tiles (merge 2026-07-23:
+    /// contents = main's unified-Text-sheet verbs; the extraction is the iPad
+    /// wave's, so the two presentations can't drift).
     private func contextMenuItems(_ book: Audiobook) -> some View {
-        // Long-press → transcribe straight from the library (no need
-        // to open the book → ⋯). Feeds read-along + instant capture.
-        Button { transcribeBook = book } label: {
-            Label("Transcribe book", systemImage: "text.book.closed")
-        }
-        // 📖 The "Book text" sheet (mock variant B, 2026-07-22) — ONE label
-        // whether zero or several texts are attached; the sheet itself owns
-        // Add (fileImporter presents over it) and each row's Remove/Re-check.
-        Button {
-            bookTextSheetBook = book
-        } label: {
-            Label("Book text…", systemImage: "doc.badge.plus")
-        }
-        // Per-book sync (Phase 1h): open the "Turn it on" sheet (cover +
-        // size + the toggle + a live transfer %). The sheet owns the
-        // enable/disable + iCloud-storage explainer (mock screen 1).
-        Button { syncSheetBook = book } label: {
-            Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
-                  systemImage: "icloud")
-        }
-        Button(role: .destructive) { pendingDelete = book } label: {
-            Label("Delete", systemImage: "trash")
+        // 📖 ONE "Text…" verb (mock book-text-unified.html, signed off
+        // 2026-07-23): the unified sheet owns BOTH levels — transcribe
+        // (Level 1, inline job controls) and book text (Level 2: Add /
+        // Re-check / Remove, fileImporter presents over it).
+        Group {
+            Button {
+                bookTextSheetBook = book
+            } label: {
+                Label("Text…", systemImage: "text.book.closed")
+            }
+            // Per-book sync (Phase 1h): open the "Turn it on" sheet (cover +
+            // size + the toggle + a live transfer %). The sheet owns the
+            // enable/disable + iCloud-storage explainer (mock screen 1).
+            Button { syncSheetBook = book } label: {
+                Label(AudiobookCloudSync.isSynced(bookID: book.id) ? "Sync settings…" : "Sync this book…",
+                      systemImage: "icloud")
+            }
+            Button(role: .destructive) { pendingDelete = book } label: {
+                Label("Delete", systemImage: "trash")
+            }
         }
     }
 
@@ -521,6 +550,18 @@ struct AudiobookLibraryView: View {
                                 .font(.system(size: 10.5))
                                 .monospacedDigit()
                                 .foregroundStyle(Color.skAccentText)
+                        }
+                        .padding(.top, 3)
+                    } else if textActivity.isActive(book.id) {
+                        // A re-align is running for THIS book — say so, or the app just
+                        // looks frozen (device finding 2026-07-23). Never blocks anything:
+                        // the work is background, playback and taps keep working.
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.mini)
+                            Text(textActivity.stage ?? "Matching up your book text…")
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(Color.skAccentText)
+                                .lineLimit(1)
                         }
                         .padding(.top, 3)
                     } else {

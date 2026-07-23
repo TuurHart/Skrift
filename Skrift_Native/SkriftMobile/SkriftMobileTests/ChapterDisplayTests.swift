@@ -131,4 +131,37 @@ final class ChapterDisplayTests: XCTestCase {
         // The C2 metadata number is positional — NOT parsed from the name.
         XCTAssertEqual(b.chapterNumberString(at: 150), "2")
     }
+
+    // MARK: - 📖 ePub-TOC chapters (2026-07-22, the Odyssey chapter report)
+
+    /// With `epubChapters` set and detection NEVER run, the title accessors used to
+    /// key off `usesDetected` alone and rendered the EMBEDDED titles against ePub
+    /// rows — wrong titles, and an index crash in the chapters sheet whenever the
+    /// ePub list was longer than the embedded one.
+    func testEpubChaptersDriveDisplayTitlesWithoutDetection() {
+        var b = book(chapterTitles: ["Opening", "Part 6"])   // embedded (import) chapters
+        b.epubChapters = [
+            AudiobookChapter(title: "Introduction", start: 0, duration: 100),
+            AudiobookChapter(title: "Translator\u{2019}s Note", start: 100, duration: 50),
+            AudiobookChapter(title: "Book 1: The Boy and the Goddess", start: 150, duration: 100),
+        ]
+        XCTAssertNil(b.detectedChapters)
+        XCTAssertEqual(b.displayChapterTitles,
+                       ["Introduction", "Translator\u{2019}s Note", "Book 1: The Boy and the Goddess"],
+                       "titles must come from the SAME source as the rows the sheet renders")
+        XCTAssertEqual(b.displayChapterTitles.count, b.effectiveChapters.count,
+                       "the sheet indexes titles by effectiveChapters row — counts must match")
+        XCTAssertEqual(b.chapterLine(at: 160), "Book 1: The Boy and the Goddess  ·  3 of 3")
+        XCTAssertEqual(b.shortChapterLabel(at: 0), "Introduction")
+        XCTAssertNil(b.chapterNumberString(at: 0),
+                     "front matter carries no chapter number — never the positional index")
+    }
+
+    func testEpubChaptersStillWinWhenDetectionAlsoRan() {
+        var b = book(chapterTitles: ["Opening", "Part 6"])
+        b.detectedChapters = [AudiobookChapter(title: "Opening", start: 0, duration: 200)]
+        b.epubChapters = [AudiobookChapter(title: "Introduction", start: 0, duration: 200)]
+        XCTAssertEqual(b.displayChapterTitles, ["Introduction"])
+        XCTAssertEqual(b.chapterLine(at: 10), "Introduction  ·  1 of 1")
+    }
 }

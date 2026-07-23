@@ -85,7 +85,10 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
 
     /// LOCAL-ONLY fields (device finding 2026-07-22: the attach fields VANISHED —
     /// a whole-blob LWW write from any device running an older build re-encodes the
-    /// record without additive fields and erases them). The attached text FILES exist
+    /// record without additive fields and erases them; SECOND cause found on the
+    /// Odyssey chapter-discrepancy report: the custom Codable below simply never
+    /// carried these keys, so a plain library.json persist→relaunch on ONE device
+    /// erased them too — they ARE encoded now). The attached text FILES exist
     /// only on this device, and both chapter lists derive from LOCAL sidecars — so
     /// these fields never ride the sync blob, and an adopted remote record always
     /// keeps THIS device's values. Belt and braces: strip on send, preserve on adopt.
@@ -178,6 +181,12 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         case id, files, fileDurations, audioFilename, title, author, duration
         case chapters, detectedChapters, hasCover, importedAt, lastPlayedAt
         case position, playbackRate, modifiedAt
+        // 📖 attach fields (2026-07-22 fix): these were MISSING from this hand-written
+        // Codable, so library.json never carried them — every relaunch silently lost the
+        // attachment and epubChapters reverted the sheet to detected/embedded chapters
+        // (the Odyssey device report). The sync blob still never carries them: every
+        // send path encodes `sanitizedForSync()`, which nils all of them first.
+        case epubFilename, epubFilenames, epubChapters
     }
 
     /// Decodes both shapes: new records carry `files` + `fileDurations`;
@@ -192,6 +201,9 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         duration = try c.decode(TimeInterval.self, forKey: .duration)
         chapters = try c.decode([AudiobookChapter].self, forKey: .chapters)
         detectedChapters = try c.decodeIfPresent([AudiobookChapter].self, forKey: .detectedChapters)
+        epubFilename = try c.decodeIfPresent(String.self, forKey: .epubFilename)
+        epubFilenames = try c.decodeIfPresent([String].self, forKey: .epubFilenames)
+        epubChapters = try c.decodeIfPresent([AudiobookChapter].self, forKey: .epubChapters)
         hasCover = try c.decode(Bool.self, forKey: .hasCover)
         importedAt = try c.decode(Date.self, forKey: .importedAt)
         lastPlayedAt = try c.decodeIfPresent(Date.self, forKey: .lastPlayedAt)
@@ -227,6 +239,9 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
         try c.encode(duration, forKey: .duration)
         try c.encode(chapters, forKey: .chapters)
         try c.encodeIfPresent(detectedChapters, forKey: .detectedChapters)
+        try c.encodeIfPresent(epubFilename, forKey: .epubFilename)
+        try c.encodeIfPresent(epubFilenames, forKey: .epubFilenames)
+        try c.encodeIfPresent(epubChapters, forKey: .epubChapters)
         try c.encode(hasCover, forKey: .hasCover)
         try c.encode(importedAt, forKey: .importedAt)
         try c.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)
@@ -286,6 +301,17 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     /// True when transcript-detected chapters exist and win over `chapters`.
     private var usesDetected: Bool { detectedChapters?.isEmpty == false }
 
+    /// True when the attached ePub's TOC chapters exist — the top of the precedence.
+    private var usesEpub: Bool { epubChapters?.isEmpty == false }
+
+    /// True when `effectiveChapters` already carries display-ready titles (ePub TOC
+    /// entries or detector output). Only the embedded/import-synthesized `chapters`
+    /// need `ChapterDisplay` prettification. Every title accessor below MUST key off
+    /// this (not `usesDetected` alone): with an ePub attached and detection never
+    /// run, keying off `usesDetected` rendered EMBEDDED titles against ePub rows —
+    /// wrong titles, and an index crash when the ePub list was longer (2026-07-22).
+    private var titlesAreDisplayReady: Bool { usesEpub || usesDetected }
+
     /// The chapter list the sheet renders — INCLUDING display-only "Book N"
     /// separators. Never read `chapters` directly for display.
     /// Precedence (Q1 lock 2026-07-21): ePub TOC > transcript-detected > embedded.
@@ -319,33 +345,35 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
     }
 
     /// Reader-facing titles, same order/count as `effectiveChapters` (the
-    /// sheet indexes it row-for-row, separators included). Detected titles are
-    /// already display-ready ("Chapter 7 — The Iron Duke", "Prologue", "Book
-    /// 2") and pass through; import-synthesized (filename) chapter names get
-    /// their common prefix stripped + numbered remainders prettified
-    /// ("Chapter 1"); real m4b-embedded titles pass through unchanged.
+    /// sheet indexes it row-for-row, separators included). ePub-TOC and
+    /// detected titles are already display-ready ("Book 1: The Boy and the
+    /// Goddess", "Chapter 7 — The Iron Duke", "Prologue", "Book 2") and pass
+    /// through; import-synthesized (filename) chapter names get their common
+    /// prefix stripped + numbered remainders prettified ("Chapter 1"); real
+    /// m4b-embedded titles pass through unchanged.
     var displayChapterTitles: [String] {
-        usesDetected
+        titlesAreDisplayReady
             ? effectiveChapters.map(\.title)
             : ChapterDisplay.displayTitles(chapters.map(\.title))
     }
 
     /// Titles aligned to `playableChapters` — what the index-based labels use.
     private var playableDisplayTitles: [String] {
-        usesDetected
+        titlesAreDisplayReady
             ? playableChapters.map(\.title)
             : ChapterDisplay.displayTitles(chapters.map(\.title))
     }
 
     /// "Chapter 4 of 18 — Creation" (nil without chapters). A display title
     /// that is itself just "Chapter 4" would repeat the index — dropped.
-    /// Detected titles carry their own heading ("Chapter 7 — X", "Prologue"),
-    /// so they get the position appended instead of a second "Chapter n".
+    /// ePub-TOC and detected titles carry their own heading ("Book 1: X",
+    /// "Chapter 7 — X", "Prologue"), so they get the position appended
+    /// instead of a second "Chapter n".
     func chapterLine(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
         let title = playableDisplayTitles[i]
         let count = playableChapters.count
-        if usesDetected, !title.isEmpty {
+        if titlesAreDisplayReady, !title.isEmpty {
             return title + "  ·  \(i + 1) of \(count)"
         }
         let base = "Chapter \(i + 1) of \(count)"
@@ -354,24 +382,25 @@ struct Audiobook: Identifiable, Codable, Equatable, Sendable {
 
     /// The chapter NUMBER as a string ("4") for the C2 `bookChapter` metadata —
     /// the Mac composes the attribution "ch. N" from it. nil without chapters.
-    /// For detected chapters this is the ANNOUNCED number (the "7" of "Chapter
-    /// 7 — X"), not the list index — Opening/Prologue entries shift the index,
-    /// and a prologue quote should carry no chapter number at all.
+    /// For ePub-TOC/detected chapters this is the STATED number (the "7" of
+    /// "Chapter 7 — X"), not the list index — Opening/Prologue/front-matter
+    /// entries shift the index, and a prologue quote should carry no chapter
+    /// number at all.
     func chapterNumberString(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
-        guard usesDetected else { return String(i + 1) }
+        guard titlesAreDisplayReady else { return String(i + 1) }
         let title = playableChapters[i].title
         guard let match = title.firstMatch(of: #/(?i)^chapter (\d+)/#) else { return nil }
         return String(match.1)
     }
 
     /// "ch. 4 — Creation" for in-app labels (nil without chapters). Numbered
-    /// display titles ("Chapter 4") collapse to just "ch. 4"; detected titles
-    /// compact their own heading ("Chapter 7 — X" → "ch. 7 — X").
+    /// display titles ("Chapter 4") collapse to just "ch. 4"; ePub-TOC/detected
+    /// titles compact their own heading ("Chapter 7 — X" → "ch. 7 — X").
     func shortChapterLabel(at time: TimeInterval) -> String? {
         guard let i = chapterIndex(at: time) else { return nil }
         let title = playableDisplayTitles[i]
-        if usesDetected {
+        if titlesAreDisplayReady {
             guard !title.isEmpty else { return "ch. \(i + 1)" }
             return title.hasPrefix("Chapter ") ? "ch. " + title.dropFirst("Chapter ".count) : title
         }

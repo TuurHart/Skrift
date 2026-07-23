@@ -107,6 +107,43 @@ final class MemoLifecycleTests: XCTestCase {
         XCTAssertFalse(MemoLifecycle.isFading(trashed, backlinked: [], now: now))
     }
 
+    // MARK: v3 "no note dies unseen" (2026-07-23) — the trash clock
+
+    func testTrashClockNeedsAValidSighting() {
+        let unseen = bareMemo(days: 90)
+        unseen.deletedAt = daysAgo(30)                       // synced in, never seen
+        XCTAssertNil(MemoLifecycle.trashClockStart(unseen))
+        XCTAssertFalse(MemoLifecycle.purgeDue(unseen, now: now),
+                       "no sighting — a month in the trash burns nothing")
+        XCTAssertEqual(MemoLifecycle.goneAt(unseen, now: now),
+                       now.addingTimeInterval(TrashPolicy.retention),
+                       "the label promises a full window from now — the truth")
+
+        let stale = bareMemo(days: 90)
+        stale.deletedAt = daysAgo(20)
+        stale.trashSeenAt = daysAgo(40)                      // stamp from a PREVIOUS stay
+        XCTAssertNil(MemoLifecycle.trashClockStart(stale), "restore → re-trash invalidates by construction")
+
+        let seen = bareMemo(days: 90)
+        seen.deletedAt = daysAgo(20)
+        seen.trashSeenAt = daysAgo(15)                       // opened 5 days after it landed
+        XCTAssertEqual(MemoLifecycle.trashClockStart(seen), daysAgo(15))
+        XCTAssertTrue(MemoLifecycle.purgeDue(seen, now: now), "15 seen days ≥ the 14-day window")
+        XCTAssertFalse(MemoLifecycle.purgeDue(seen, now: daysAgo(2)), "13 seen days — not yet")
+    }
+
+    func testStampTrashSightingsStartsOnlyMissingClocks() {
+        let unseen = bareMemo(days: 90);  unseen.deletedAt = daysAgo(30)
+        let seen = bareMemo(days: 90);    seen.deletedAt = daysAgo(10); seen.trashSeenAt = daysAgo(10)
+        let live = bareMemo(days: 90)
+
+        XCTAssertEqual(MemoLifecycle.stampTrashSightings([unseen, seen, live], now: now), 1)
+        XCTAssertEqual(unseen.trashSeenAt, now, "clock starts at THIS open")
+        XCTAssertEqual(seen.trashSeenAt, daysAgo(10), "a running clock is never restarted")
+        XCTAssertNil(live.trashSeenAt, "not trashed — nothing to stamp")
+        XCTAssertEqual(MemoLifecycle.stampTrashSightings([unseen, seen, live], now: now), 0, "idempotent")
+    }
+
     // MARK: backlink scan + partition
 
     func testBacklinkScanAndPartition() {

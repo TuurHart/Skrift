@@ -60,13 +60,18 @@ struct BookTextFlow: ViewModifier {
     }
 
     private func runAttach(url: URL, book: Audiobook) async {
-        // The busy message persists for the whole run (unzip + parse + N alignments can
-        // take several seconds); outcomes are explicit, user-dismissed alerts.
+        // The busy message persists for the whole run and follows the runner's live
+        // stages (a 13 h book's matching takes minutes — a static line read as hung,
+        // Tuur 2026-07-22); outcomes are explicit, user-dismissed alerts.
         withAnimation(.easeOut(duration: 0.2)) { busyMessage = "Checking the text against this audiobook…" }
         defer { withAnimation(.easeIn(duration: 0.3)) { busyMessage = nil } }
         do {
-            let summary = try await BookAlignmentRunner.attach(bookFileAt: url, bookID: book.id)
-            if summary.totalFiles == 0 {
+            let summary = try await BookAlignmentRunner.attach(bookFileAt: url, bookID: book.id) { stage in
+                Task { @MainActor in busyMessage = stage }
+            }
+            if summary.deferredWhileTranscribing {
+                outcome = "This book is still transcribing. The text is saved — it will match up on its own the moment transcription finishes."
+            } else if summary.totalFiles == 0 {
                 outcome = "No transcript yet — the text will align on its own when transcription finishes."
             } else if summary.alignedFiles == 0 {
                 rejected = (book, url.lastPathComponent)
