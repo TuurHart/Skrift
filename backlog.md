@@ -157,6 +157,18 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
+**📚 iPad LIVE ROUND (2026-07-23 eve, build 114 on 'Tiuri's iPad big'):** sidebar mode retired
+(`.tabBarOnly` — "weird and unnecessary"); origin/main MERGED IN (📖 rounds 5–8 + unified Text
+sheet + lifecycle v3; suite now 944/0; conflicts: menu-extraction kept w/ main's unified verbs,
+versions → 114). **Book-sync answer (verified in source):** audio ✓ position/speed ✓ transcript
+sidecars ✓ alignment sidecars ✓ (chapters re-derive on receiver — the iPad's stale chapters were
+build-106-predates-spike-6, fixed by the merge) · ePub FILE local-by-design (alignment travels) ·
+**bookmarks were the gap → BUILT: `AudiobookBookmarksRecord` whole-list LWW per synced book (own
+record type = old-writer-erasure-proof), BookmarkStore LWW stamp, push-on-edit pokes, 11 tests.**
+Prod CloudKit schema deploy at promotion now covers PolishPromptsRecord + AudiobookBookmarksRecord.
+OWED: Tuur's 114 round (chapters now current? bookmark round-trip once a second device has the
+book playing).
+
 **🗺️ NEW (Tuur review, 2026-07-23) — Mac Places map: deep dive zooms OUT.** Repro on the Mac
 Journal map: zoomed in on a 7-note cluster → double-click splits it 3+4 → double-click the
 4-cluster ZOOMS OUT instead of in. That's the class of bug the phone's b90 round fixed ("pin tap
