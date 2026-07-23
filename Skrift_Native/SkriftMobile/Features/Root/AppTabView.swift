@@ -68,7 +68,10 @@ struct AppTabView: View {
         // iPadOS 18 top tab strip (+ a free sidebar the user can pull open);
         // compact width falls back to the standard bottom tab bar, so the phone
         // is pixel-untouched. `selection`/`-openTab` routing is unaffected.
-        .tabViewStyle(.sidebarAdaptable)
+        // .tabBarOnly (Tuur, live iPad round 2026-07-23): the system's sidebar
+        // mode duplicated four tabs into a whole column — "weird and
+        // unnecessary. just keep it up top."
+        .tabViewStyle(.tabBarOnly)
         // Let the app-level keyboard shortcuts switch tabs (⌘1–⌘4, and the
         // tab-focus half of ⌘N/⌘F). One-shot: consume + clear.
         .onChange(of: tabBridge.requestedTab) { _, tab in
