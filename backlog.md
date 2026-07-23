@@ -157,7 +157,23 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
-## 🖥️ CONTINUE HERE — iPad chrome build (session end 2026-07-23 ~19:15; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+## 🖥️ CONTINUE HERE — iPad chrome build (session end 2026-07-23 ~19:25; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+
+**⬛ HEADER POLISH PASS (`ded3d41`, build 122, installed on the iPad) — Tuur's device round on the
+Mac-header rebuild.** LANDSCAPE RECLAIM CONFIRMED (his 19:06 device shot + my sim: left header y235
+≈ Connections y225 — the band is gone in landscape). His asks, all done:
+- **Import on BOTH apps** (`SharedCopy.importVerb`) — the Mac's button was "Upload"; one word now
+  (behavior unchanged, Mac still opens its file panel).
+- **"Search memos" everywhere** (`SharedCopy.searchPlaceholder`) — iPad/phone said "Search transcripts".
+- **iPad chips = the Mac's, opacity-for-opacity** (accent text on accent@0.14; the heavier skAccentSoft
+  pill is gone) and **no count on the Unrated chip** — the number moved to the triage line ("N not
+  rated" under the Unrated chip, the Mac's own branch).
+- **Import IS the picker** (menu: Files · Video from Photos · Scan) — so **⋯ stopped doubling as an
+  import menu**; it's now a single **filter/sort icon** opening the advanced sheet (place/date/photos/
+  unsynced — the axes the chips don't cover). Answers his "is [⋯] not the same as import?".
+- **Identity row: kept Notes + Select** (he "like[s] that the iPad has select"); NOT Skrift+gear.
+Gate: mobile 971/0, desktop 496/0, all builds green. Sim-verified upright (rotated the landscape
+capture; chips/Import/Search-memos/no-count all render).
 
 **⬛ HEADER = THE MAC SIDEBAR (`fc0b83a`, build 121, installed on the iPad).** Tuur on the
 device (landscape): "the empty space in top left is shit" + "make that look the same" as the Mac
