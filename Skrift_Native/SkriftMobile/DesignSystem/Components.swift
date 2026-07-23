@@ -98,13 +98,17 @@ struct StatusPill: View {
             } else if let systemImage {
                 Image(systemName: systemImage).font(.system(size: 10, weight: .bold))
             }
-            Text(label)
+            // lineLimit + fixedSize: in the iPad's narrower list column
+            // "Transcribing" was breaking MID-WORD across two lines inside the
+            // capsule (2026-07-23 shot). A status chip never wraps.
+            Text(label).lineLimit(1)
         }
         .font(.system(size: 10.5, weight: .bold))
         .foregroundStyle(style.fg)
         .padding(.horizontal, 9)
         .padding(.vertical, 3)
         .background(style.bg, in: .capsule)
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 

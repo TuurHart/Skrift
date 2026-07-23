@@ -31,6 +31,9 @@ struct MemoDetailView: View {
     @State private var showThread = false
     @State private var showSplitOptions = false
     @State private var showAppendRecorder = false
+    /// The note bar's own width — drives the tight/full transport (a portrait
+    /// three-column note column can't hold every control at once).
+    @State private var barWidth: CGFloat = 0
     @State private var showShare = false
     /// ⋯ → "Remind me…" for the current page (chunk 7).
     @State private var reminderMemo: Memo?
@@ -114,7 +117,9 @@ struct MemoDetailView: View {
                     // capture-only exclusion the bottom bar has always used — a
                     // note whose audio is still arriving shows the transport
                     // disabled rather than a hole in the bar.
-                    PlayerBar(player: player, clock: player.clock, macTransportOrder: true)
+                    PlayerBar(player: player, clock: player.clock,
+                              macTransportOrder: true,
+                              density: transportDensity(memo))
                 } else {
                     Spacer(minLength: 0)
                 }
@@ -150,6 +155,7 @@ struct MemoDetailView: View {
             }
             .padding(.horizontal, 12)
             .frame(height: 44)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
             .background(Color.skElev.opacity(0.72),
                         in: RoundedRectangle(cornerRadius: 13, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
@@ -158,6 +164,34 @@ struct MemoDetailView: View {
             .padding(.top, 6).padding(.bottom, 2)
             .accessibilityIdentifier("ipad-note-bar")
         }
+    }
+
+    /// How much of the bar is left for the transport once the rest of the bar
+    /// has taken its share — the note column in portrait three-column simply
+    /// cannot hold every control, and the scrubber must never be the thing that
+    /// vanishes (it is the signed spec's flexible element).
+    ///
+    /// Reserves are the shipped metrics, not guesses: 30pt each for ◧ / ⋯ / ◨
+    /// and ＋, ~86 for Process, plus the bar's own padding and 10pt gaps.
+    private func transportDensity(_ memo: Memo) -> PlayerBar.Density {
+        guard barWidth > 0 else { return .full }
+        var reserved: CGFloat = 30 * 3 + 24 + 40                    // ◧ ⋯ ◨ + padding + gaps
+        if memo.isShareCapture != true { reserved += 40 }           // ＋
+        if processControlVisible(memo) { reserved += 86 }           // Process / progress
+        let forTransport = barWidth - reserved
+        if forTransport >= 300 { return .full }                     // + both skips
+        if forTransport >= 220 { return .tight }                    // + both time labels
+        return .minimal                                             // play · scrubber · speed
+    }
+
+    /// Whether `processControl` will actually draw something (it stays out of
+    /// the way once a note is polished, or where this device can't process).
+    private func processControlVisible(_ memo: Memo) -> Bool {
+        if case .idle = PolishCenter.shared.phase(for: memo.id) {
+            return PolishCenter.shared.canPolish(memo)
+                && repository.enhancement(forMemo: memo.id)?.hasContent != true
+        }
+        return true
     }
 
     /// Process — the Mac's filled primary button, replaced IN PLACE by a
@@ -2177,13 +2211,20 @@ private struct PlayerBar: View {
     /// ⟳10, play in the middle. The phone keeps its own order (play first),
     /// which is why this is a flag and not a rewrite.
     var macTransportOrder = false
+    /// How much room the transport actually has. The signed spec's promise is
+    /// that the SCRUBBER gets the slack ("fills the whole available space…
+    /// dynamically"), so when the column can't hold everything, controls stand
+    /// down in order of what the scrubber can replace: first the ±10 skips
+    /// (drag instead), then the time labels (the knob's position says it).
+    enum Density { case full, tight, minimal }
+    var density: Density = .full
 
     var body: some View {
         // The COMPACT pill (signed-off spec, −60% height): play · ±10 s ·
         // scrubber with times · speed — one ~44 pt row. The whole scrubber
         // zone is the drag target (no more fishing for a 3-pt slider).
-        HStack(spacing: 10) {
-            if macTransportOrder { skipBack }
+        HStack(spacing: macTransportOrder ? 8 : 10) {
+            if macTransportOrder && density == .full { skipBack }
             Button { player.togglePlay() } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 13, weight: .semibold))
@@ -2196,33 +2237,42 @@ private struct PlayerBar: View {
             .disabled(!player.hasAudio)
 
             if !macTransportOrder { skipBack }
-            skipForward
+            if density == .full { skipForward }
 
             // fixedSize: inside the iPad note bar these were wrapping to two
             // lines and squeezing the scrubber (2026-07-23 shot). The times take
             // their natural width; the scrubber keeps the rest.
-            Text(timeString(clock.time))
-                .font(.system(size: 10.5, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.skTextDim)
-                .fixedSize()
+            if density != .minimal {
+                Text(timeString(clock.time))
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.skTextDim)
+                    .fixedSize()
+            }
 
             scrubber
 
-            Text(timeString(player.duration))
-                .font(.system(size: 10.5, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.skTextDim)
-                .fixedSize()
+            if density != .minimal {
+                Text(timeString(player.duration))
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.skTextDim)
+                    .fixedSize()
+            }
 
+            // fixedSize: without it the HStack compressed this button below its
+            // text at portrait width and it rendered as an EMPTY capsule — a
+            // control with nothing in it (2026-07-23 shot).
             Button { player.cycleRate() } label: {
                 Text(rateLabel)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Color.skText)
+                    .lineLimit(1)
                     .padding(.horizontal, 7).padding(.vertical, 4)
                     .background(Color.skSurface, in: .rect(cornerRadius: 8, style: .continuous))
                     .overlay(RoundedRectangle.sk(8).stroke(Color.skBorder, lineWidth: 1))
             }
+            .fixedSize()
             .accessibilityIdentifier("speed-button")
         }
         .frame(height: 40)
@@ -2271,6 +2321,14 @@ private struct PlayerBar: View {
                     }
             )
         }
+        // THE flexible element of the bar (signed spec: the scrubber "fills the
+        // whole available space… dynamically"). A GeometryReader has no ideal
+        // width, so without an explicit max the HStack handed the slack to the
+        // fixed controls and left the scrubber ~12pt wide. NO layoutPriority
+        // here: with `maxWidth: .infinity` it would claim the entire proposal
+        // and shove the fixed controls past the column edge — that overflow
+        // clipped the note's own title and the Connections panel (shot fix-v1).
+        .frame(maxWidth: .infinity)
         .frame(height: 40)
         .disabled(!player.hasAudio)
         .accessibilityIdentifier("player-scrubber")

@@ -70,15 +70,23 @@ final class SignificanceCirclesTests: XCTestCase {
         XCTAssertTrue(SignificanceScale.isRefine(step: 10))
     }
 
-    // MARK: flag-to-process microcopy (CloudKit syncs everything — the rating
+    // MARK: rating-to-process microcopy (CloudKit syncs everything — the rating
     // gates the Mac's pipeline pickup, and the copy must not claim sync)
 
     func testSyncCopy() {
         XCTAssertEqual(SignificanceScale.syncCopy(forStep: 0),
-                       "Not flagged — the Mac will leave it alone")
-        XCTAssertEqual(SignificanceScale.syncCopy(forStep: 1), "Flagged — the Mac will process this")
-        XCTAssertEqual(SignificanceScale.syncCopy(forStep: 7), "Flagged — the Mac will process this")
+                       "Not rated — the Mac will leave it alone")
+        XCTAssertEqual(SignificanceScale.syncCopy(forStep: 1), "Rated — the Mac will process this")
+        XCTAssertEqual(SignificanceScale.syncCopy(forStep: 7), "Rated — the Mac will process this")
         XCTAssertEqual(SignificanceScale.syncCopy(forStep: 8),
-                       "Flagged for a refine pass")
+                       "Rated for a refine pass")
+    }
+
+    /// The Flag verb is retired on every surface — the rating IS the flag.
+    func testSyncCopyCarriesNoFlagVerb() {
+        for step in 0...10 {
+            XCTAssertFalse(SignificanceScale.syncCopy(forStep: step).lowercased().contains("flag"),
+                           "step \(step) still uses flag language")
+        }
     }
 }

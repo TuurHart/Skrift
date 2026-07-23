@@ -328,7 +328,7 @@ struct SidebarView: View {
         .help("""
         Ready to review — the Mac finished these: transcript cleaned, title + summary written. Open one to check it; export sends it to Obsidian.
         To process — waiting for the Process button (transcribe + enhance).
-        Unrated — synced from your phone without a rating; the Mac skips them until you flag one.
+        Unrated — synced from your phone without a rating; the Mac skips them until you rate one.
         """)
         .padding(.horizontal, 14)
         .padding(.top, 9)
@@ -542,7 +542,7 @@ struct SidebarView: View {
             } else {
                 let pct = rs.total > 0 ? Double(rs.done) / Double(rs.total) : 0
                 HStack {
-                    Text("Processing \(min(rs.done + 1, rs.total)) of \(rs.total)")
+                    Text(SharedCopy.processingCount(min(rs.done + 1, rs.total), of: rs.total))
                         .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.accent)
                     Spacer()
                     Text("\(Int(pct * 100))%")

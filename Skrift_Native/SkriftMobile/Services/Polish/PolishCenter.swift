@@ -55,6 +55,10 @@ protocol PolishEngine: Sendable {
 /// mid-generation.
 enum PolishGate {
     static var isSupported: Bool {
+        #if DEBUG
+        // Screenshot rig only — see FakePolishEngine. Never true in a Release build.
+        if LaunchFlags.fakePolishEngine { return true }
+        #endif
         #if targetEnvironment(simulator)
         // MLX needs a real Metal GPU (JIT kernels) — the sim build keeps the UI
         // reachable for screenshots but reports unsupported at the gate.
@@ -146,28 +150,75 @@ final class PolishCenter {
     /// enhancement. Fire-and-forget from UI; phases drive the indicators.
     func polishNow(_ memo: Memo, repository: NotesRepository = .shared) {
         guard canPolish(memo) else { return }
+        Task { await run(memo, repository: repository) }
+    }
+
+    /// ONE pass over ONE note. Awaited directly by the bulk run below, so the
+    /// pile and the single-note button can never drift apart.
+    private func run(_ memo: Memo, repository: NotesRepository) async {
         guard let engine, let transcript = memo.transcript else { return }
         let id = memo.id
         phases[id] = .processing(step: .copyEdit, fraction: 0)
-        Task {
-            do {
-                if await !engine.isModelOnDisk() {
-                    phases[id] = .downloading(0)
-                    try await engine.downloadModel { p in
-                        Task { @MainActor in self.phases[id] = .downloading(p) }
-                    }
+        do {
+            if await !engine.isModelOnDisk() {
+                phases[id] = .downloading(0)
+                try await engine.downloadModel { p in
+                    Task { @MainActor in self.phases[id] = .downloading(p) }
                 }
-                phases[id] = .processing(step: .copyEdit, fraction: 0)
-                let result = try await engine.polish(transcript: transcript) { step, fraction in
-                    Task { @MainActor in self.phases[id] = .processing(step: step, fraction: fraction) }
-                }
-                write(result, forMemo: id, repository: repository)
-                phases[id] = nil
-            } catch {
-                phases[id] = .failed(error.localizedDescription)
-                DevLog.log("polish failed for \(id): \(error.localizedDescription)")
             }
+            phases[id] = .processing(step: .copyEdit, fraction: 0)
+            let result = try await engine.polish(transcript: transcript) { step, fraction in
+                Task { @MainActor in self.phases[id] = .processing(step: step, fraction: fraction) }
+            }
+            write(result, forMemo: id, repository: repository)
+            phases[id] = nil
+        } catch {
+            phases[id] = .failed(error.localizedDescription)
+            DevLog.log("polish failed for \(id): \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - The pile (the Mac's Process button, ported)
+
+    /// A bulk run's live state — the Mac's `RunState`, in the words it already
+    /// uses ("Processing 2 of 5").
+    struct PileRun: Equatable {
+        var done: Int
+        var total: Int
+        var line: String { SharedCopy.processingCount(min(done + 1, total), of: total) }
+        var fraction: Double { total > 0 ? Double(done) / Double(total) : 0 }
+    }
+
+    private(set) var pileRun: PileRun?
+    private var pileTask: Task<Void, Never>?
+
+    /// Process a whole pile on this iPad. **Sequential by design** — one MLX
+    /// context at a time; a pad running several would jetsam mid-generation.
+    /// Stoppable between notes (the current note always finishes; the engine
+    /// call itself isn't interruptible).
+    func processPile(_ memos: [Memo], repository: NotesRepository = .shared) {
+        guard pileRun == nil, isAvailable else { return }
+        let targets = memos.filter { canPolish($0) }
+        guard !targets.isEmpty else { return }
+        pileRun = PileRun(done: 0, total: targets.count)
+        pileTask = Task { @MainActor [weak self] in
+            for memo in targets {
+                if Task.isCancelled { break }
+                guard let self else { return }
+                await self.run(memo, repository: repository)
+                if let current = self.pileRun {
+                    self.pileRun = PileRun(done: current.done + 1, total: current.total)
+                }
+            }
+            self?.pileRun = nil
+            self?.pileTask = nil
+        }
+    }
+
+    func cancelPile() {
+        pileTask?.cancel()
+        pileTask = nil
+        pileRun = nil
     }
 
     // NOTE (v2, Tuur 2026-07-23): the "polish when I open a note" automation was

@@ -34,6 +34,12 @@ enum SharedCopy {
         "\(step) · \(n) of \(total)"
     }
 
+    /// The BULK line while a pile runs — the Mac's run-bar wording, now shared
+    /// so the iPad's header says exactly what the Mac's has always said.
+    static func processingCount(_ n: Int, of total: Int) -> String {
+        "Processing \(n) of \(total)"
+    }
+
     /// First-run model fetch, same fraction the Mac's RunState publishes.
     static func processingDownload(_ fraction: Double) -> String {
         "Getting the model — \(Int((fraction * 100).rounded()))%"

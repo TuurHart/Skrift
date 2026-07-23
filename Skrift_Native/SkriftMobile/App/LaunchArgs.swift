@@ -114,6 +114,12 @@ enum LaunchFlags {
     /// pass `-inMemoryStore` and auto-skip onboarding without it.
     static var forceOnboarding: Bool { args.boolFlag("-forceOnboarding") }
     static var skipOnboarding: Bool { args.boolFlag("-skipOnboarding") }
+    /// Install the canned polish engine (DEBUG) so the Simulator can render the
+    /// Process surfaces the real gate hides there — the header's "Process N",
+    /// its "Processing 2 of 5" run state, the note bar's determinate line.
+    static var fakePolishEngine: Bool { args.boolFlag("-fakePolishEngine") }
+    /// …and make that engine claim its model is missing, for the download state.
+    static var fakePolishNeedsDownload: Bool { args.boolFlag("-fakePolishNeedsDownload") }
     /// Inject a deterministic transcript instead of running FluidAudio (the
     /// Simulator has no Neural Engine). Its presence also puts recording in mock
     /// mode (no mic, no permission prompt) so the record→save→transcribe flow is

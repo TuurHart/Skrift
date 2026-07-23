@@ -43,6 +43,10 @@ struct MemosListView: View {
     // Recently Deleted screen until restored or purged.
     @Query(filter: #Predicate<Memo> { $0.deletedAt == nil },
            sort: \Memo.recordedAt, order: .reverse) private var memos: [Memo]
+    /// ONE query behind the header's "Process N" — which notes already carry
+    /// polished content. Per-memo enhancement fetches inside a body are the
+    /// frozen-library trap (2026-07-23), so the set is built once here.
+    @Query private var enhancements: [MemoEnhancement]
     @Environment(\.modelContext) private var context
     private let repository = NotesRepository.shared
 
@@ -673,27 +677,55 @@ struct MemosListView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("ipad-import-button")
 
-                // "Process N" — N = the unrated pile the Mac would pick up. Tapping
-                // filters to it (the rating IS the flag; nothing is written here).
-                Button {
-                    withAnimation(Theme.Motion.snappy) { filter.notRatedOnly.toggle() }
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "play.fill").font(.system(size: 10, weight: .bold))
-                        Text(SharedCopy.processVerb).font(.system(size: 12.5, weight: .semibold))
-                        if unratedCount > 0 {
-                            Text("\(unratedCount)")
-                                .font(.system(size: 12, weight: .bold).monospacedDigit())
-                                .opacity(0.8)
+                // "Process N" — the Mac's button, ported whole: N is the pile a
+                // polisher would pick up (ProcessPile.waiting — RATED and not yet
+                // written back), and pressing it RUNS that pile here. It exists
+                // only where this device can actually process; the unrated pile
+                // has its own tap target on the count line below (they are
+                // different piles: one waits on a model, one waits on Tuur).
+                if PolishCenter.shared.isAvailable {
+                    if let run = PolishCenter.shared.pileRun {
+                        Button { PolishCenter.shared.cancelPile() } label: {
+                            HStack(spacing: 6) {
+                                ProgressView(value: run.fraction)
+                                    .progressViewStyle(.linear)
+                                    .frame(width: 54)
+                                    .tint(.white)
+                                Text(run.line)
+                                    .font(.system(size: 11.5, weight: .semibold))
+                                    .lineLimit(1)
+                            }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                            .background(Color.skAccent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("ipad-process-pile-running")
+                        .accessibilityLabel("\(run.line). Tap to stop.")
+                    } else {
+                        Button { PolishCenter.shared.processPile(processPile) } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "play.fill").font(.system(size: 10, weight: .bold))
+                                Text(SharedCopy.processVerb).font(.system(size: 12.5, weight: .semibold))
+                                if !processPile.isEmpty {
+                                    Text("\(processPile.count)")
+                                        .font(.system(size: 12, weight: .bold).monospacedDigit())
+                                        .opacity(0.8)
+                                }
+                            }
+                            .lineLimit(1)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                            .background(Color.skAccent.opacity(processPile.isEmpty ? 0.4 : 1),
+                                        in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(processPile.isEmpty)
+                        .accessibilityIdentifier("ipad-process-pile-button")
                     }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 7)
-                    .background(Color.skAccent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("ipad-process-pile-button")
             }
         }
         .padding(.horizontal, 14)
@@ -701,9 +733,18 @@ struct MemosListView: View {
         .padding(.bottom, 2)
     }
 
-    /// Live notes that carry no rating — the Mac's "to process" count.
-    private var unratedCount: Int {
-        memos.filter { $0.significance == 0 && $0.deletedAt == nil && !$0.locked }.count
+    /// Live notes that carry no rating — the pile waiting on TUUR, not on a
+    /// model (the count line's tap target).
+    private var unratedCount: Int { ProcessPile.unrated(memos: memos).count }
+
+    /// The pile a polisher would pick up, by the shared rule. Built off ONE
+    /// enhancements query rather than a fetch per memo (body-safe).
+    private var processPile: [Memo] {
+        ProcessPile.waiting(memos: memos, enhancedIDs: enhancedMemoIDs)
+    }
+
+    private var enhancedMemoIDs: Set<UUID> {
+        Set(enhancements.lazy.filter(\.hasContent).map(\.memoID))
     }
 
     private var headerRow: some View {
@@ -1162,9 +1203,14 @@ private struct MemoCard: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
+                    // fixedSize: the stamp was wrapping to two lines ("Yesterday ·"
+                    // / "14:00") once the status pill shared the row in the iPad's
+                    // narrower column (2026-07-23 shot).
                     Text(MemoDate.label(memo.recordedAt))
                         .font(.system(size: 11.5, weight: .semibold))
                         .foregroundStyle(Color.skTextFaint)
+                        .lineLimit(1)
+                        .fixedSize()
                     if let clockLine {
                         Text("· \(clockLine)")
                             .font(.system(size: 11.5))

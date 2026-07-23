@@ -7,14 +7,18 @@ import SwiftUI
 // scale gates phone→Mac sync and must never drift. Only the phone-specific
 // flag-to-send microcopy lives here, next to the view that shows it.
 extension SignificanceScale {
-    /// Flag-to-process microcopy. CloudKit mirrors EVERY memo regardless of
-    /// rating — what the rating gates is the Mac's pipeline pickup
-    /// (`MemoCloudIngest`): 0 = the Mac ignores it, >0 = polish, 0.8+ =
-    /// polish + refine pass. The copy must not claim sync behavior.
+    /// What the rating means for processing. CloudKit mirrors EVERY memo
+    /// regardless of rating — what the rating gates is the pipeline pickup
+    /// (`MemoCloudIngest`): 0 = skipped, >0 = polish, 0.8+ = polish + refine
+    /// pass. The copy must not claim sync behavior.
+    ///
+    /// No "flag" language: **the rating IS the flag** (Tuur, 2026-07-23 — there
+    /// is no second verb and no second button), so these lines describe the
+    /// rating's consequence rather than a separate act.
     static func syncCopy(forStep step: Int) -> String {
-        if step == 0 { return "Not flagged — the Mac will leave it alone" }
-        if isRefine(step: step) { return "Flagged for a refine pass" }
-        return "Flagged — the Mac will process this"
+        if step == 0 { return "Not rated — the Mac will leave it alone" }
+        if isRefine(step: step) { return "Rated for a refine pass" }
+        return "Rated — the Mac will process this"
     }
 }
 
