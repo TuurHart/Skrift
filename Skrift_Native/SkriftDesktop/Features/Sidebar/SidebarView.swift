@@ -24,6 +24,7 @@ struct SidebarView: View {
     }
     private var pendingCount: Int { pendingFiles.count }
     @State private var dragOver = false
+    @State private var showFilterPopover = false
 
     // ── the Queue band (mocks/lifecycle-ia-explorations.html #m2) ───────────
     /// Cloud memos, refreshed on appear / when `files` changes / after any band
@@ -272,23 +273,51 @@ struct SidebarView: View {
         }
     }
 
-    /// Queue ordering, trailing the filter chips. A compact cycle button (Newest →
-    /// Oldest → Title) rather than a Menu: a Menu can't render in `ImageRenderer`
-    /// (the snapshot harness) and poisoned the whole sidebar render — a plain
-    /// Button+Text renders cleanly and is the same chip idiom as the filters.
-    private var sortControl: some View {
-        Button { model.sort = model.sort.next } label: {
+    /// ONE Filter control (Tuur 2026-07-23: "that filter button should also be
+    /// on the Mac… similar between them") — the same affordance as the iPad's
+    /// single Filter button, replacing the old inline sort CYCLE. A Button (not
+    /// a Menu — a Menu can't render in `ImageRenderer`, the snapshot harness) that
+    /// toggles a popover; the popover is unpresented at render time, so snapshots
+    /// stay clean. Holds Sort for now — the iPad's place/photo filters ride on
+    /// Memo metadata the `PipelineFile` row doesn't carry (a follow-up).
+    private var filterControl: some View {
+        Button { showFilterPopover.toggle() } label: {
             HStack(spacing: 4) {
-                Image(systemName: "arrow.up.arrow.down").font(.system(size: 9, weight: .semibold))
-                Text(model.sort.short).font(.system(size: 10.5, weight: .medium))
+                Image(systemName: "line.3.horizontal.decrease").font(.system(size: 9, weight: .semibold))
+                Text("Filter").font(.system(size: 10.5, weight: .medium))
             }
             .foregroundStyle(Theme.textSecondary)
             .padding(.horizontal, 8).padding(.vertical, 4)
             .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
-        .help("Sort: \(model.sort.rawValue) — tap to change")
-        .accessibilityIdentifier("sidebar.sort")
+        .help("Sort & filter")
+        .accessibilityIdentifier("sidebar.filter")
+        .popover(isPresented: $showFilterPopover, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("SORT").font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Theme.textMuted).padding(.horizontal, 12).padding(.top, 10)
+                ForEach(SidebarSort.allCases, id: \.self) { s in
+                    Button { model.sort = s } label: {
+                        HStack {
+                            Text(s.rawValue).font(.system(size: 12.5))
+                            Spacer()
+                            if model.sort == s {
+                                Image(systemName: "checkmark").font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Theme.accent)
+                            }
+                        }
+                        .foregroundStyle(Theme.textPrimary)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(width: 190)
+            .padding(.bottom, 8)
+        }
     }
 
     // ── Triage line — what needs ME right now ───────────────
@@ -308,7 +337,7 @@ struct SidebarView: View {
                     }
                     .accessibilityIdentifier("sidebar.mark-all-passing")
                 }
-                sortControl.padding(.leading, 6).fixedSize()
+                filterControl.padding(.leading, 6).fixedSize()
             } else {
                 // Two counts + sort ONLY — a third count wrapped the line
                 // (Tuur's screenshot; the Unrated chip carries that number now).
@@ -318,7 +347,7 @@ struct SidebarView: View {
                     Text(" · \(pendingCount) to process").foregroundStyle(Theme.textMuted)
                 }
                 Spacer(minLength: 0)
-                sortControl.fixedSize()
+                filterControl.fixedSize()
             }
         }
         .lineLimit(1)

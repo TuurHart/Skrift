@@ -287,7 +287,7 @@ struct MemosListView: View {
             }
             #endif
             .sheet(isPresented: $showSortFilter) {
-                SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces, showSort: !isRegular)
+                SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces, showNotRated: !isRegular)
             }
             // A sheet rather than a push: the stack's path is typed [UUID] for
             // memo detail, which a non-memo destination can't join. (Settings +
@@ -648,18 +648,9 @@ struct MemosListView: View {
                 .font(.system(size: 13))
                 .tint(.skAccent)
                 .accessibilityIdentifier("select-button")
-                // ⋯ is the ADVANCED filter/sort sheet (place, date, photos,
-                // unsynced) — the import sources moved onto the Import button
-                // (Tuur, 2026-07-23: "is [⋯] not the same as import?"). One tap,
-                // no sub-menu, so its job is unambiguous.
-                Button { showSortFilter = true } label: {
-                    Image(systemName: "line.3.horizontal.decrease")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.skAccentText)
-                        .frame(width: 26, height: 26)
-                }
-                .accessibilityIdentifier("ipad-list-filter")
-                .accessibilityLabel("Filter & sort")
+                // The Filter control moved DOWN to the triage line (one button
+                // owns sort + filter; Tuur 2026-07-23: "we don't need the
+                // redundancy"). The identity row is just Notes + Select now.
             }
 
             HStack(spacing: 7) {
@@ -789,26 +780,22 @@ struct MemosListView: View {
                 }
             }
             Spacer(minLength: 6)
-            // A direct-pick menu, not a cycle (Tuur circled the cycle next to
-            // "Oldest first" — a cycle can't jump straight to a sort). This is
-            // the ONLY sort control at regular width; the ⋯ filter sheet drops
-            // its Sort section here (it stays on the phone, which has no inline
-            // control).
-            Menu {
-                Picker("Sort", selection: $sort) {
-                    ForEach(MemoSort.allCases) { Text($0.rawValue).tag($0) }
-                }
-            } label: {
+            // ONE control: sort + filter behind a single button (Tuur
+            // 2026-07-23: collapse the inline "Newest" and the ⋯ — "we don't
+            // need the redundancy"). Opens the sheet, which carries Sort AND the
+            // metadata filters; the Unrated chip already owns "not rated".
+            Button { showSortFilter = true } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.arrow.down").font(.system(size: 9, weight: .semibold))
-                    Text(sort.short).font(.system(size: 10.5, weight: .medium))
+                    Image(systemName: "line.3.horizontal.decrease").font(.system(size: 10, weight: .semibold))
+                    Text("Filter").font(.system(size: 10.5, weight: .medium))
                 }
-                .foregroundStyle(Color.skTextDim)
+                .foregroundStyle(filter.isActive ? Color.skAccent : Color.skTextDim)
                 .padding(.horizontal, 8).padding(.vertical, 4)
                 .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
             }
+            .buttonStyle(.plain)
             .fixedSize()
-            .accessibilityIdentifier("ipad-sort-menu")
+            .accessibilityIdentifier("ipad-filter-button")
         }
         .font(.system(size: 11))
         .lineLimit(1)
@@ -1638,10 +1625,11 @@ private struct SortFilterSheet: View {
     @Binding var sort: MemoSort
     @Binding var filter: MemoFilter
     let places: [String]
-    /// Regular width owns sort inline (the triage-line menu), so the sheet is
-    /// filters-only there — no second sort control. The phone (compact) has no
-    /// inline sort, so it keeps the Sort section.
-    var showSort = true
+    /// The Unrated CHIP owns "not rated" at regular width, so the sheet hides
+    /// that one toggle there (Tuur 2026-07-23: no double filter). The phone has
+    /// no chips, so it keeps the toggle. Sort lives here on BOTH now — the
+    /// single Filter button is the one home for sort + filter.
+    var showNotRated = true
     @Environment(\.dismiss) private var dismiss
 
     // Optional-date bindings: a toggle enables the bound (today by default), the
@@ -1663,18 +1651,18 @@ private struct SortFilterSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                if showSort {
-                    Section("Sort") {
-                        Picker("Sort", selection: $sort) {
-                            ForEach(MemoSort.allCases) { Text($0.rawValue).tag($0) }
-                        }
-                        .pickerStyle(.inline)
-                        .labelsHidden()
+                Section("Sort") {
+                    Picker("Sort", selection: $sort) {
+                        ForEach(MemoSort.allCases) { Text($0.rawValue).tag($0) }
                     }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
                 }
                 Section("Filter") {
-                    Toggle("Not rated", isOn: $filter.notRatedOnly)
-                        .accessibilityIdentifier("filter-notrated")
+                    if showNotRated {
+                        Toggle("Not rated", isOn: $filter.notRatedOnly)
+                            .accessibilityIdentifier("filter-notrated")
+                    }
                     Toggle("Unsynced only", isOn: $filter.unsyncedOnly)
                         .accessibilityIdentifier("filter-unsynced")
                     Toggle("Has photos", isOn: $filter.hasPhotosOnly)
@@ -1710,7 +1698,7 @@ private struct SortFilterSheet: View {
                     Button("Clear filters", role: .destructive) { filter = MemoFilter() }
                 }
             }
-            .navigationTitle(showSort ? "Sort & Filter" : "Filter")
+            .navigationTitle("Sort & Filter")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

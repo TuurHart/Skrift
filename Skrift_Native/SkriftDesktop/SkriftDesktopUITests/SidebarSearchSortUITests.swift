@@ -23,7 +23,7 @@ final class SidebarSearchSortUITests: XCTestCase {
 
         let search = app.textFields["sidebar.search"]
         XCTAssertTrue(search.waitForExistence(timeout: 5), "search field missing")
-        XCTAssertTrue(app.buttons["sidebar.sort"].waitForExistence(timeout: 5), "sort control missing")
+        XCTAssertTrue(app.buttons["sidebar.filter"].waitForExistence(timeout: 5), "filter control missing")
 
         search.click()
         search.typeText("zzzznomatchqqq")
@@ -35,13 +35,16 @@ final class SidebarSearchSortUITests: XCTestCase {
                        "clearing the search should restore the queue")
     }
 
-    /// The sort control cycles (Newest → Oldest → Title) without crashing and
-    /// persists across taps.
-    func testSortControlCycles() {
+    /// The Filter control opens a popover of sort options, and picking one
+    /// dismisses it — the single Filter button replaced the old cycle (2026-07-23).
+    func testFilterControlOpensSortOptions() {
         let app = launch()
-        let sort = app.buttons["sidebar.sort"]
-        XCTAssertTrue(sort.waitForExistence(timeout: 5), "sort control missing")
-        sort.click(); sort.click(); sort.click()   // full cycle back to start
-        XCTAssertTrue(sort.exists, "sort control should remain after cycling")
+        let filter = app.buttons["sidebar.filter"]
+        XCTAssertTrue(filter.waitForExistence(timeout: 5), "filter control missing")
+        filter.click()
+        let oldest = app.buttons["Oldest first"]
+        XCTAssertTrue(oldest.waitForExistence(timeout: 5), "sort options should appear in the filter popover")
+        oldest.click()
+        XCTAssertTrue(filter.exists, "filter control should remain after picking a sort")
     }
 }
