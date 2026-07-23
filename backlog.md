@@ -172,11 +172,24 @@ Mac-header rebuild.** LANDSCAPE RECLAIM CONFIRMED (his 19:06 device shot + my si
   import menu**; it's now a single **filter/sort icon** opening the advanced sheet (place/date/photos/
   unsynced — the axes the chips don't cover). Answers his "is [⋯] not the same as import?".
 - **Identity row: kept Notes + Select** (he "like[s] that the iPad has select"); NOT Skrift+gear.
-- **ONE sort control (`ef6d772`, build 123):** Tuur circled the inline "Newest" cycle AND "Oldest
-  first" in the sheet — sort was in two places + the cycle couldn't jump. Now the inline control is a
-  **direct-pick Menu** (any sort in one tap, current checked), and the ⋯ filter sheet **drops its Sort
-  section at regular** (retitled "Filter"; the phone keeps it via a `showSort` flag since it has no
-  inline control).
+- **ONE sort control (`ef6d772`, build 123):** [superseded by the ONE FILTER BUTTON below] — the
+  inline sort became a direct-pick Menu and the sheet dropped Sort at regular.
+- **ONE FILTER BUTTON, both apps (`bf039dc`, build 124):** Tuur — the inline "Newest" + the ⋯ + the
+  chips had overlapping jobs; collapse to a single Filter control; the one true dup (sheet "Not rated"
+  ↔ Unrated chip) is gone.
+  - **iPad:** ONE **"Filter"** button (funnel) in the triage line opens the Sort & Filter sheet, which
+    now carries **Sort AND the metadata filters**. Removed the inline "Newest" menu + the identity-row
+    ⋯ (identity row = Notes + Select). Sheet drops "Not rated" at regular (`showNotRated: !isRegular`,
+    the Unrated chip owns it); phone keeps it. Button tints accent when a filter is active.
+  - **Mac (same affordance):** the inline sort CYCLE → a **"Filter" button (funnel) → popover of sort
+    options** (direct pick, checked). Button+popover NOT a Menu (Menu breaks the ImageRenderer snapshot
+    harness). Sidebar UITests updated (`sidebar.sort`→`sidebar.filter`; cycle test → popover-opens-sort).
+  - **⚠️ SCOPE / OWED:** the **Mac popover holds Sort ONLY** — the iPad's place/photo filters ride on
+    Memo metadata the Mac's `PipelineFile` row doesn't carry; **porting them to the Mac is a follow-up**
+    (a memo-metadata join). Also owed: the iPad Filter SHEET contents on device (a tap — sim is stuck
+    landscape, rotated tap space), and a **Mac Dev redeploy** to eyeball its Filter popover.
+  Gate: mobile 971/0, desktop 496/0, all builds green; header sim-verified (single Filter button, clean
+  identity row).
 Gate: mobile 971/0, desktop 496/0, all builds green. Sim-verified upright (rotated the landscape
 capture; chips/Import/Search-memos/no-count all render). Sort-MENU interaction owed on device (the sim
 is stuck landscape from Tuur's flip → rotated tap space; the Menu+Picker pattern is proven in-file).
