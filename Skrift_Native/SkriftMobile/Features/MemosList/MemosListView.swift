@@ -170,7 +170,7 @@ struct MemosListView: View {
                 Color.skBg.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    headerRow
+                    if isRegular { macStyleHeader } else { headerRow }
                     if memos.isEmpty {
                         // No list to scroll — the card sits pinned here.
                         ContinueListeningCard(openPlayer: { showBookPlayer = true })
@@ -614,6 +614,98 @@ struct MemosListView: View {
     /// title was pure cost). The iOS-26 "second trailing toolbar item gets
     /// eaten" gotcha (build-35 probe) doesn't apply to a hand-rolled HStack,
     /// so doc-scan rejoins the actions cluster.
+    /// iPad-regular header — the MAC's construction (signed mock A, section 0;
+    /// Tuur: the Mac "just looks way better"): a compact identity line instead of
+    /// the 30pt wordmark that sat too low, the day's two verbs as real buttons
+    /// (Import · Process N, the pile's size ON the button), then search, the
+    /// filter chips and the count/sort line. Compact width keeps the phone's own
+    /// header below, untouched.
+    private var macStyleHeader: some View {
+        VStack(spacing: 7) {
+            HStack(spacing: 8) {
+                Text(SharedCopy.notesTitle)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Color.skText)
+                Spacer(minLength: 0)
+                Button(editMode.isEditing ? "Done" : "Select") {
+                    withAnimation(Theme.Motion.snappy) {
+                        if editMode.isEditing { editMode = .inactive; selected.removeAll() }
+                        else { editMode = .active }
+                    }
+                }
+                .font(.system(size: 13))
+                .tint(.skAccent)
+                .accessibilityIdentifier("select-button")
+                Menu {
+                    Button { showMediaFileImporter = true } label: {
+                        Label("Audio or video from Files", systemImage: "folder")
+                    }
+                    Button { showVideoImporter = true } label: {
+                        Label("Video from Photos", systemImage: "photo.on.rectangle")
+                    }
+                    if DocScanView.isSupported {
+                        Button { showDocScanner = true } label: {
+                            Label("Scan a document", systemImage: "doc.viewfinder")
+                        }
+                    }
+                    Divider()
+                    Button { showSortFilter = true } label: {
+                        Label("Sort & filter…", systemImage: "line.3.horizontal.decrease")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.skAccentText)
+                        .frame(width: 26, height: 26)
+                }
+                .accessibilityIdentifier("ipad-list-overflow")
+            }
+
+            HStack(spacing: 7) {
+                Button { showMediaFileImporter = true } label: {
+                    Label("Import", systemImage: "plus")
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundStyle(Color.skText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("ipad-import-button")
+
+                // "Process N" — N = the unrated pile the Mac would pick up. Tapping
+                // filters to it (the rating IS the flag; nothing is written here).
+                Button {
+                    withAnimation(Theme.Motion.snappy) { filter.notRatedOnly.toggle() }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "play.fill").font(.system(size: 10, weight: .bold))
+                        Text(SharedCopy.processVerb).font(.system(size: 12.5, weight: .semibold))
+                        if unratedCount > 0 {
+                            Text("\(unratedCount)")
+                                .font(.system(size: 12, weight: .bold).monospacedDigit())
+                                .opacity(0.8)
+                        }
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(Color.skAccent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("ipad-process-pile-button")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 4)
+        .padding(.bottom, 2)
+    }
+
+    /// Live notes that carry no rating — the Mac's "to process" count.
+    private var unratedCount: Int {
+        memos.filter { $0.significance == 0 && $0.deletedAt == nil && !$0.locked }.count
+    }
+
     private var headerRow: some View {
         HStack(spacing: 18) {
             ScreenTitle("Notes")

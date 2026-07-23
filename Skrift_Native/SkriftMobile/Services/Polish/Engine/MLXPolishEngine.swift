@@ -76,24 +76,27 @@ actor MLXPolishEngine: PolishEngine {
     /// is skipped on short transcripts (Mac parity — `BatchRunner`/`effectiveSummaryMinWords`).
     /// Progress is coarse (per-step) — generation gives no fine-grained signal.
     func polish(transcript: String,
-                onProgress: @escaping @Sendable (Double) -> Void) async throws -> PolishResult {
-        onProgress(0.05)
+                onStep: @escaping @Sendable (PolishStep, Double) -> Void) async throws -> PolishResult {
+        // The fractions are the real pass boundaries (copy-edit is by far the
+        // longest — a full-transcript generation vs a 64/256-token one), so the
+        // bar moves in proportion to the work, not in equal thirds.
+        onStep(.copyEdit, 0.05)
         try await ensureLoaded()   // no-op when the download path already loaded it
-        onProgress(0.10)
+        onStep(.copyEdit, 0.10)
 
         let copyedit = try await PolishEscrow.copyEdit(transcript) { input in
             try await self.run(prompt: PolishPromptsStore.copyEdit(), text: input, maxTokens: 1024)
         }
-        onProgress(0.55)
+        onStep(.title, 0.55)
 
         let plain = PolishEscrow.plainForTitleSummary(transcript)
         let title = try await run(prompt: PolishPromptsStore.title(), text: plain, maxTokens: 64)
-        onProgress(0.75)
+        onStep(.summary, 0.75)
 
         let summary = PolishEscrow.wordsMeetSummaryThreshold(transcript)
             ? try await run(prompt: PolishPromptsStore.summary(), text: plain, maxTokens: 256)
             : ""
-        onProgress(1.0)
+        onStep(.summary, 1.0)
 
         return PolishResult(copyedit: copyedit, title: title, summary: summary)
     }

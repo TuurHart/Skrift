@@ -10,6 +10,27 @@ struct PolishResult: Sendable, Equatable {
     var summary: String
 }
 
+/// The model passes a note goes through, in order — so the UI can say WHICH
+/// step is running ("Copy-edit · 2 of 3") instead of an opaque spinner. Named
+/// after the Mac's `RunState`, which has always published its current step
+/// (Tuur, 2026-07-23: the iPad "doesn't give any indication of where we are at").
+enum PolishStep: Int, Sendable, Equatable, CaseIterable {
+    case copyEdit = 1, title, summary
+
+    static let total = PolishStep.allCases.count
+
+    var label: String {
+        switch self {
+        case .copyEdit: return "Copy-edit"
+        case .title:    return "Title"
+        case .summary:  return "Summary"
+        }
+    }
+
+    /// "Copy-edit · 2 of 3" — one vocabulary, from `SharedCopy`.
+    var line: String { SharedCopy.processingStep(label, rawValue, of: Self.total) }
+}
+
 /// The engine seam (iPad wave 1). `MLXPolishEngine` (Services/Polish/Engine/)
 /// implements it with the Mac's exact stack; everything else in the app talks
 /// only to `PolishCenter`, so surfaces compile and stay honest ("not available
@@ -22,7 +43,10 @@ protocol PolishEngine: Sendable {
     /// Polish a RAW transcript → the three pieces. The engine owns the escrow
     /// steps (quote protection, image-marker anchors, memo-link escrow) exactly
     /// like the desktop `EnhancementService`, via the SAME Shared helpers.
-    func polish(transcript: String, onProgress: @escaping @Sendable (Double) -> Void) async throws -> PolishResult
+    /// Reports the CURRENT step plus an overall 0…1 fraction, so the bar can
+    /// show a determinate line the way the Mac's run bar does.
+    func polish(transcript: String,
+                onStep: @escaping @Sendable (PolishStep, Double) -> Void) async throws -> PolishResult
 }
 
 /// Device gate for the on-demand polisher. The iPhone never qualifies (the
@@ -54,9 +78,28 @@ final class PolishCenter {
 
     enum Phase: Equatable {
         case idle
-        case downloading(Double)   // model fetch, 0…1
-        case polishing(Double)     // generation, 0…1 (coarse)
+        case downloading(Double)                    // model fetch, 0…1
+        case processing(step: PolishStep, fraction: Double)
         case failed(String)
+
+        /// The line the note bar shows — the Mac's run vocabulary, verbatim.
+        var line: String? {
+            switch self {
+            case .idle: return nil
+            case .downloading(let f): return SharedCopy.processingDownload(f)
+            case .processing(let step, _): return step.line
+            case .failed: return "Couldn't process on this iPad"
+            }
+        }
+
+        /// 0…1 for the determinate bar (nil = nothing to draw).
+        var fraction: Double? {
+            switch self {
+            case .downloading(let f): return f
+            case .processing(_, let f): return f
+            case .idle, .failed: return nil
+            }
+        }
     }
 
     /// Model-level state for the Settings pane (m5) — distinct from the per-memo `Phase`.
@@ -86,7 +129,7 @@ final class PolishCenter {
 
     func phase(for id: UUID) -> Phase { phases[id] ?? .idle }
     func isWorking(_ id: UUID) -> Bool {
-        switch phase(for: id) { case .downloading, .polishing: return true; default: return false }
+        switch phase(for: id) { case .downloading, .processing: return true; default: return false }
     }
 
     /// A memo the ⋯ menu may offer "Polish now" for: engine present, real
@@ -105,7 +148,7 @@ final class PolishCenter {
         guard canPolish(memo) else { return }
         guard let engine, let transcript = memo.transcript else { return }
         let id = memo.id
-        phases[id] = .polishing(0)
+        phases[id] = .processing(step: .copyEdit, fraction: 0)
         Task {
             do {
                 if await !engine.isModelOnDisk() {
@@ -114,9 +157,9 @@ final class PolishCenter {
                         Task { @MainActor in self.phases[id] = .downloading(p) }
                     }
                 }
-                phases[id] = .polishing(0)
-                let result = try await engine.polish(transcript: transcript) { p in
-                    Task { @MainActor in self.phases[id] = .polishing(p) }
+                phases[id] = .processing(step: .copyEdit, fraction: 0)
+                let result = try await engine.polish(transcript: transcript) { step, fraction in
+                    Task { @MainActor in self.phases[id] = .processing(step: step, fraction: fraction) }
                 }
                 write(result, forMemo: id, repository: repository)
                 phases[id] = nil

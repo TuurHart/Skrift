@@ -14,6 +14,8 @@ struct RootView: View {
     /// #m2, kills the old RootView:34 dead-end flash).
     @State private var unpipelinedSheetID: String?
     @AppStorage(AppTheme.key) private var appTheme = "dark"
+    /// Written by the note bar's ◧ toggle (NoteDisplayView.sidebarToggle).
+    @AppStorage("macSidebarVisible") private var sidebarVisible = true
     // Live queue = NOT trashed. The predicate keeps soft-deleted files out of the
     // sidebar, selection, and active note.
     // Deleted list now — Review's memo-backed conveyor (mocks/lifecycle-ia-explorations.html
@@ -39,9 +41,14 @@ struct RootView: View {
                 })
             } else {
                 HSplitView {
-                    SidebarView(model: model, files: files, coordinator: coordinator,
-                                onOpenSettings: { settingsOpen = true })
-                        .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
+                    // The notes list can be closed from the note bar's ◧ (2026-07-23,
+                    // the iPad's arrangement ported back) — same persisted key the
+                    // toggle writes.
+                    if sidebarVisible {
+                        SidebarView(model: model, files: files, coordinator: coordinator,
+                                    onOpenSettings: { settingsOpen = true })
+                            .frame(minWidth: 200, idealWidth: 228, maxWidth: 320)
+                    }
 
                     NoteDisplayView(file: activeFile, coordinator: coordinator,
                                     onOpenMemo: { id in model.activeID = id; model.selection = [id] },

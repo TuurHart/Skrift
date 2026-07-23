@@ -35,6 +35,10 @@ struct NoteDisplayView: View {
     @State private var connections = ConnectionsModel()
     /// Panel visibility — app-wide + persisted (mock #m5 decision), ⌥⌘C toggles.
     @AppStorage("connectionsPanelVisible") private var connectionsVisible = true
+    /// Notes-list (sidebar) visibility — the iPad's arrangement brought back here,
+    /// same persistence idiom as the panel above. RootView reads it to drop the
+    /// column out of the HSplitView.
+    @AppStorage("macSidebarVisible") private var sidebarVisible = true
 
     /// What "Undo" restores after a naming action: the note's override sets as they were.
     struct NamingUndo {
@@ -406,6 +410,11 @@ struct NoteDisplayView: View {
     /// than spanning edge-to-edge.
     private func toolbarBar(_ file: PipelineFile) -> some View {
         let inner = HStack(spacing: 16) {
+            // Queue/sidebar toggle — the iPad's arrangement, brought back to the Mac
+            // (Tuur 2026-07-23: "we should have that button the same way you have it
+            // on iPad"). Mirrors `connectionsToggle` at the bar's other end, so the
+            // two columns are closed the same way on both platforms.
+            sidebarToggle
             if file.sourceType == .capture {
                 // Captures have no audio to play — show the source strip instead
                 // (glyph + "Shared link · domain" + Open ↗ button).
@@ -449,6 +458,20 @@ struct NoteDisplayView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
+    }
+
+    /// Sidebar (queue) toggle — the left-hand twin of `connectionsToggle`.
+    /// Accent while the column is open, muted while it's closed, same as the iPad.
+    private var sidebarToggle: some View {
+        Button { sidebarVisible.toggle() } label: {
+            Image(systemName: "sidebar.left")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(sidebarVisible ? Theme.accent : Theme.textSecondary)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(sidebarVisible ? "Hide the notes list" : "Show the notes list")
+        .accessibilityIdentifier("sidebar-toggle")
     }
 
     /// Panel toggle (⌥⌘C) — collapsed keeps a count badge so a folded panel still

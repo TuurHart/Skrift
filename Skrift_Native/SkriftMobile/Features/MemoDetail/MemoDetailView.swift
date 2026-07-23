@@ -63,6 +63,157 @@ struct MemoDetailView: View {
 
     private var currentMemo: Memo? { memos.first { $0.id == selection } }
 
+    /// The note bar's ⋯ — Split speakers leads it (moved off the bar: a
+    /// once-per-note act, not a daily verb), then the same verbs the compact
+    /// sheet offers, so nothing is reachable on one width only.
+    @ViewBuilder private func noteOverflowItems(_ memo: Memo) -> some View {
+        if !(memo.transcript ?? "").isEmpty, memo.audioURL != nil, !memo.isShareCapture {
+            Button { showSplitOptions = true } label: {
+                Label("Split speakers", systemImage: "person.2.fill")
+            }
+        }
+        Button { reminderMemo = memo } label: { Label("Remind me…", systemImage: "bell") }
+        if JournalIndexService.shared.isActive {
+            Button { showThread = true } label: {
+                Label("View thread", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+            }
+        }
+        if WallPrinter.shared.hasPrinter {
+            Button { WallPrinter.shared.printCard(memo, repository: repository) } label: {
+                Label("Print card", systemImage: "printer")
+            }
+        }
+        Button { toggleLock(memo) } label: {
+            Label(memo.locked ? "Remove lock" : "Lock note", systemImage: memo.locked ? "lock.open" : "lock")
+        }
+        Button { showShare = true } label: { Label("Share note…", systemImage: "square.and.arrow.up") }
+        Button(action: copyTranscript) { Label("Copy transcript", systemImage: "doc.on.doc") }
+        Divider()
+        Button(role: .destructive, action: deleteCurrent) { Label("Delete", systemImage: "trash") }
+    }
+
+    /// THE note bar (signed mock A) — one pinned row that belongs to the note:
+    /// `◧ · ⟲10 ▶ ⟳10 · 0:00 ——scrubber flexes—— 0:11 · 1× · ＋ · Process · ⋯ · ◨`.
+    /// Same construction as the Mac's `NoteDisplayView.toolbarBar`, and the same
+    /// rule about what's in it: daily verbs only — Split speakers moved into ⋯
+    /// (Tuur, 2026-07-23), and ＋ is iPad/phone-only because the Mac can't record.
+    @ViewBuilder private var noteBar: some View {
+        if let memo = currentMemo {
+            HStack(spacing: 10) {
+                if let listVisible {
+                    columnToggle(icon: "sidebar.left", on: listVisible.wrappedValue,
+                                 label: listVisible.wrappedValue ? "Hide notes list" : "Show notes list",
+                                 id: "ipad-toggle-list") {
+                        withAnimation(Theme.Motion.snappy) { listVisible.wrappedValue.toggle() }
+                    }
+                }
+
+                if memo.isShareCapture != true {
+                    // The scrubber inside is the bar's flexible element, so a wider
+                    // note column buys scrubbing precision (Tuur's call). Same
+                    // capture-only exclusion the bottom bar has always used — a
+                    // note whose audio is still arriving shows the transport
+                    // disabled rather than a hole in the bar.
+                    PlayerBar(player: player, clock: player.clock, macTransportOrder: true)
+                } else {
+                    Spacer(minLength: 0)
+                }
+
+                if memo.isShareCapture != true {
+                    Button { showAppendRecorder = true } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color.skTextDim)
+                            .frame(width: 30, height: 32)
+                    }
+                    .accessibilityIdentifier("add-recording-button")
+                    .accessibilityLabel("Add recording")
+                }
+
+                processControl(memo)
+
+                Menu { noteOverflowItems(memo) } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.skTextDim)
+                        .frame(width: 30, height: 32)
+                }
+                .accessibilityIdentifier("note-overflow-button")
+
+                if let connectionsVisible {
+                    columnToggle(icon: "sidebar.right", on: connectionsVisible.wrappedValue,
+                                 label: connectionsVisible.wrappedValue ? "Hide Connections" : "Show Connections",
+                                 id: "ipad-toggle-connections") {
+                        withAnimation(Theme.Motion.snappy) { connectionsVisible.wrappedValue.toggle() }
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 44)
+            .background(Color.skElev.opacity(0.72),
+                        in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .strokeBorder(Color.skBorder, lineWidth: 0.8))
+            .padding(.horizontal, 14)
+            .padding(.top, 6).padding(.bottom, 2)
+            .accessibilityIdentifier("ipad-note-bar")
+        }
+    }
+
+    /// Process — the Mac's filled primary button, replaced IN PLACE by a
+    /// determinate line while a pass runs (`PolishCenter.Phase.line`/`.fraction`).
+    @ViewBuilder private func processControl(_ memo: Memo) -> some View {
+        let phase = PolishCenter.shared.phase(for: memo.id)
+        switch phase {
+        case .idle:
+            // Offered while there's nothing polished yet — the enhancement sidecar
+            // is the truth (the page's own @Query lives a level down).
+            if PolishCenter.shared.canPolish(memo),
+               repository.enhancement(forMemo: memo.id)?.hasContent != true {
+                Button { PolishCenter.shared.polishNow(memo) } label: {
+                    Text(SharedCopy.processVerb)
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .background(Color.skAccent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("ipad-process-button")
+            }
+        case .failed(let message):
+            Button { PolishCenter.shared.polishNow(memo) } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 10.5))
+                    Text("Retry").font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(Color.skRed)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(Color.skRed.opacity(0.12), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .help(message)
+            .accessibilityIdentifier("ipad-process-retry")
+        default:
+            if let line = phase.line {
+                HStack(spacing: 8) {
+                    if let f = phase.fraction {
+                        ProgressView(value: f)
+                            .progressViewStyle(.linear)
+                            .frame(width: 74)
+                            .tint(Color.skAccentText)
+                    }
+                    Text(line)
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .foregroundStyle(Color.skAccentText)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 11).padding(.vertical, 6)
+                .background(Color.skAccentSoft, in: Capsule())
+                .accessibilityIdentifier("ipad-process-progress")
+            }
+        }
+    }
+
     /// One column toggle: accent while its column is open, dim while it's closed,
     /// so the icon pair reads as the current layout at a glance.
     private func columnToggle(icon: String, on: Bool, label: String, id: String,
@@ -80,16 +231,18 @@ struct MemoDetailView: View {
     var body: some View {
         Group {
             if hSize == .regular {
-                // Just the note column here — the Connections panel is hosted by the
-                // split view OUTSIDE this NavigationStack (2026-07-23, Tuur: the note's
-                // floating toolbar capsule spanned the panel too, which read as chrome
-                // hovering over someone else's column). We publish the page's current
-                // memo up instead.
-                notePager.readingMeasure()
+                // SIGNED mock A (`mocks/ipad-chrome.html`): the note owns ONE pinned
+                // bar — the Mac's `NoteDisplayView.toolbarBar` construction — and the
+                // system nav toolbar is hidden, so nothing floats over any column.
+                VStack(spacing: 0) {
+                    noteBar
+                    notePager.readingMeasure()
+                }
             } else {
                 notePager
             }
         }
+        .toolbar(hSize == .regular ? .hidden : .automatic, for: .navigationBar)
         .onAppear { paneMemoID?.wrappedValue = selection }
         .onChange(of: selection) { _, new in paneMemoID?.wrappedValue = new }
         .background(Color.skBg.ignoresSafeArea())
@@ -168,7 +321,7 @@ struct MemoDetailView: View {
             // iPad on-demand polish (m5, seam only): offered when the device + engine
             // qualify and the note has a real transcript. The Mac still auto-polishes.
             if let memo = currentMemo, PolishCenter.shared.canPolish(memo) {
-                Button("Polish now", action: { PolishCenter.shared.polishNow(memo) })
+                Button(SharedCopy.processVerb, action: { PolishCenter.shared.polishNow(memo) })
             }
             Button("Add recording", action: { showAppendRecorder = true })
             Button("Remind me…", action: { reminderMemo = currentMemo })
@@ -284,8 +437,12 @@ struct MemoDetailView: View {
         // Playback bar is only meaningful when there's audio. Capture items
         // (audioURL == nil) have no audio — hide the bar entirely so the
         // scroll content isn't needlessly padded.
+        // At REGULAR width the note bar owns the transport (signed mock A), so the
+        // floating bottom bar stands down — it was rendering a second player AND
+        // ghosting up behind the tab strip once the pane spanned full width
+        // (2026-07-23 shot). Compact keeps it exactly as before.
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if currentMemo?.isShareCapture != true {
+            if hSize != .regular, currentMemo?.isShareCapture != true {
                 bottomChrome
             }
         }
@@ -750,69 +907,36 @@ private struct MemoPageView: View {
         }
     }
 
-    /// m5 in-note polish moment (v2): a VISIBLE ✨ Polish button on an unpolished
-    /// note — the Mac's process-verb idiom, no automation (Tuur 2026-07-23) —
-    /// which becomes the progress pill while THIS iPad polishes. The finished
-    /// polish renders through the existing enhancement machinery (no new "done"
-    /// chrome). The Mac still polishes automatically; this is the "asked".
+    /// COMPACT-width processing line. At regular width the note BAR owns this
+    /// (signed mock A) — here it stays as the phone/narrow surface.
     @ViewBuilder private var polishStatusBand: some View {
-        switch PolishCenter.shared.phase(for: memo.id) {
-        case .idle:
-            if PolishCenter.shared.canPolish(memo), !(enhancements.first?.hasContent ?? false) {
-                Button { PolishCenter.shared.polishNow(memo) } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 11, weight: .semibold))
-                        Text("Polish")
-                            .font(.system(size: 12.5, weight: .semibold))
-                    }
-                    .foregroundStyle(Color.skAccentText)
-                    .padding(.horizontal, 14).padding(.vertical, 6)
-                    .background(Color.skElev, in: Capsule())
-                    .overlay(Capsule().strokeBorder(Color.skBorder, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, Theme.Space.margin)
-                .padding(.top, 8).padding(.bottom, 2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityIdentifier("ipad-polish-button")
-            }
-        case .downloading(let p):
-            polishPill("Downloading model · \(Int(p * 100))%")
-        case .polishing:
-            polishPill("Polishing on this iPad…")
-        case .failed:
+        let phase = PolishCenter.shared.phase(for: memo.id)
+        if hSize != .regular, let line = phase.line {
             HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                Text("Couldn't polish on this iPad")
-                    .font(.system(size: 12))
-                Spacer(minLength: 4)
-                Button("Retry") { PolishCenter.shared.polishNow(memo) }
-                    .font(.system(size: 12, weight: .semibold))
-                    .accessibilityIdentifier("ipad-polish-retry")
+                if case .failed = phase {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 11, weight: .semibold))
+                    Text(line).font(.system(size: 12))
+                    Spacer(minLength: 4)
+                    Button("Retry") { PolishCenter.shared.polishNow(memo) }
+                        .font(.system(size: 12, weight: .semibold))
+                        .accessibilityIdentifier("ipad-polish-retry")
+                } else {
+                    if let f = phase.fraction {
+                        ProgressView(value: f).progressViewStyle(.linear)
+                            .frame(width: 70).tint(Color.skAccentText)
+                    }
+                    Text(line).font(.system(size: 11.5, weight: .semibold))
+                        .foregroundStyle(Color.skAccentText)
+                }
             }
-            .foregroundStyle(Color.skRed)
+            .foregroundStyle({ if case .failed = phase { Color.skRed } else { Color.skAccentText } }())
             .padding(.horizontal, Theme.Space.margin)
             .padding(.top, 8).padding(.bottom, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("ipad-polish-status")
         }
     }
 
-    private func polishPill(_ text: String) -> some View {
-        HStack(spacing: 7) {
-            ProgressView().controlSize(.mini).tint(Color.skAccentText)
-            Text(text)
-                .font(.system(size: 11.5, weight: .semibold))
-                .foregroundStyle(Color.skAccentText)
-        }
-        .padding(.horizontal, 12).padding(.vertical, 6)
-        .background(Color.skAccentSoft, in: Capsule())
-        .padding(.horizontal, Theme.Space.margin)
-        .padding(.top, 8).padding(.bottom, 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityIdentifier("ipad-polish-status")
-    }
 
     /// An image capture whose text has landed renders through the NORMAL note
     /// body (round-2 device spec 2026-07-10: photos inline in the text via the
@@ -2049,12 +2173,17 @@ private struct PlayerBar: View {
     // Position ticks are observed HERE only — the page tree above stays out of
     // the 20 Hz re-render loop (note-editing study 2026-07-06).
     @ObservedObject var clock: PlayerClock
+    /// iPad note bar (signed mock A): the Mac's transport order — ⟲10 · play ·
+    /// ⟳10, play in the middle. The phone keeps its own order (play first),
+    /// which is why this is a flag and not a rewrite.
+    var macTransportOrder = false
 
     var body: some View {
         // The COMPACT pill (signed-off spec, −60% height): play · ±10 s ·
         // scrubber with times · speed — one ~44 pt row. The whole scrubber
         // zone is the drag target (no more fishing for a 3-pt slider).
         HStack(spacing: 10) {
+            if macTransportOrder { skipBack }
             Button { player.togglePlay() } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 13, weight: .semibold))
@@ -2066,26 +2195,17 @@ private struct PlayerBar: View {
             .accessibilityIdentifier("play-button")
             .disabled(!player.hasAudio)
 
-            Button { player.skip(-10) } label: {
-                Image(systemName: "gobackward.10")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.skText)
-                    .frame(width: 26, height: 32)
-            }
-            .accessibilityIdentifier("skip-back-button")
+            if !macTransportOrder { skipBack }
+            skipForward
 
-            Button { player.skip(10) } label: {
-                Image(systemName: "goforward.10")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.skText)
-                    .frame(width: 26, height: 32)
-            }
-            .accessibilityIdentifier("skip-fwd-button")
-
+            // fixedSize: inside the iPad note bar these were wrapping to two
+            // lines and squeezing the scrubber (2026-07-23 shot). The times take
+            // their natural width; the scrubber keeps the rest.
             Text(timeString(clock.time))
                 .font(.system(size: 10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.skTextDim)
+                .fixedSize()
 
             scrubber
 
@@ -2093,6 +2213,7 @@ private struct PlayerBar: View {
                 .font(.system(size: 10.5, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.skTextDim)
+                .fixedSize()
 
             Button { player.cycleRate() } label: {
                 Text(rateLabel)
@@ -2105,6 +2226,26 @@ private struct PlayerBar: View {
             .accessibilityIdentifier("speed-button")
         }
         .frame(height: 40)
+    }
+
+    private var skipBack: some View {
+        Button { player.skip(-10) } label: {
+            Image(systemName: "gobackward.10")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color.skText)
+                .frame(width: 26, height: 32)
+        }
+        .accessibilityIdentifier("skip-back-button")
+    }
+
+    private var skipForward: some View {
+        Button { player.skip(10) } label: {
+            Image(systemName: "goforward.10")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color.skText)
+                .frame(width: 26, height: 32)
+        }
+        .accessibilityIdentifier("skip-fwd-button")
     }
 
     /// Thin progress line with a knob; the FULL-HEIGHT zone around it accepts
