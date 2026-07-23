@@ -94,6 +94,7 @@ struct ChaptersBookmarksSheet: View {
                 }
                 .onDelete { offsets in
                     for i in offsets { bookmarks = store.remove(id: bookmarks[i].id, bookID: book.id) }
+                    AudiobookCloudSync.bookmarksChanged(bookID: book.id)   // push-on-edit (synced books)
                 }
             }
             .listStyle(.plain)

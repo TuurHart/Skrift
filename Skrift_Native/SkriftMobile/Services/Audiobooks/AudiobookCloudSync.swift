@@ -267,7 +267,41 @@ enum AudiobookCloudSync {
             // 📖 spike 6: same for alignment sidecars — also ungated by the audio upload-once.
             await sendAlignments(local, record: record, library: library, transport: transport)
         }
+
+        // BOOKMARKS (iPad wave, 2026-07-23): whole-list LWW per synced book,
+        // carried by its OWN record type (`AudiobookBookmarksRecord`) so a
+        // pre-wave writer can never erase it. The store's sidecar stamp is the
+        // local LWW clock; adopting copies the carrier's stamp verbatim.
+        let bookmarkRecords = repository.allAudiobookBookmarkRecords()
+        let bookmarkStore = BookmarkStore()
+        for record in records {
+            let bookID = record.bookID
+            let outcome = AudiobookBookmarkSyncCore.reconcile(
+                bookID: bookID,
+                localItems: bookmarkStore.load(bookID: bookID),
+                localModifiedAt: bookmarkStore.modifiedAt(bookID: bookID),
+                records: bookmarkRecords,
+                insert: { repository.context.insert($0) },
+                delete: { repository.context.delete($0) })
+            switch outcome {
+            case .adoptRemote(let items, let ts):
+                bookmarkStore.adoptSynced(items, stamp: ts, bookID: bookID)
+                DevLog.log("bookSync: adopted \(items.count) bookmarks for \(bookID)")
+            case .pushedLocal(let ts, seededLocalStamp: true):
+                bookmarkStore.adoptSynced(bookmarkStore.load(bookID: bookID), stamp: ts, bookID: bookID)
+            case .pushedLocal, .noop:
+                break
+            }
+        }
         repository.save()
+    }
+
+    /// Push-on-edit poke for a bookmark add/remove on a SYNCED book — the full
+    /// reconcile is serialized + cheap when nothing else changed; unsynced
+    /// books never reach CloudKit from a bookmark tap.
+    static func bookmarksChanged(bookID: UUID) {
+        guard isSynced(bookID: bookID) else { return }
+        Task { await reconcile() }
     }
 
     // MARK: - Transfers (publish live progress to the row)

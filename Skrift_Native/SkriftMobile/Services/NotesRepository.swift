@@ -12,7 +12,8 @@ final class NotesRepository {
 
     init(inMemory: Bool) {
         let schema = Schema([Memo.self, MemoAsset.self, NamesRecord.self, VocabularyRecord.self,
-                             AudiobookSyncRecord.self, AudiobookAsset.self, MemoEnhancement.self,
+                             AudiobookSyncRecord.self, AudiobookBookmarksRecord.self,
+                             AudiobookAsset.self, MemoEnhancement.self,
                              PolishPromptsRecord.self])
         // CloudKit-backed (standalone Phase 1 internal sync): SwiftData mirrors the Memo
         // store to the user's PRIVATE CloudKit database, so notes sync across THEIR own
@@ -208,6 +209,10 @@ final class NotesRepository {
     /// Every opted-in audiobook's sync carrier.
     func allAudiobookRecords() -> [AudiobookSyncRecord] {
         (try? context.fetch(FetchDescriptor<AudiobookSyncRecord>())) ?? []
+    }
+
+    func allAudiobookBookmarkRecords() -> [AudiobookBookmarksRecord] {
+        (try? context.fetch(FetchDescriptor<AudiobookBookmarksRecord>())) ?? []
     }
 
     func audiobookRecord(bookID: UUID) -> AudiobookSyncRecord? {

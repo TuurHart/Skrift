@@ -472,6 +472,7 @@ struct AudiobookPlayerView: View {
             Haptics.success()
             showToast("Folded · \(AudiobookTime.clock(start))")
         }
+        AudiobookCloudSync.bookmarksChanged(bookID: book.id)   // push-on-edit (synced books)
     }
 
     private func showToast(_ text: String) {

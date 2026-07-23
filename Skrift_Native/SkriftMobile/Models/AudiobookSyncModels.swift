@@ -74,3 +74,25 @@ final class AudiobookAsset {
         self.createdAt = createdAt
     }
 }
+
+/// Per-book BOOKMARK list carrier (iPad wave, 2026-07-23 — Tuur: "make sure that
+/// bookmarks and everything are synced"). Whole-list LWW by `modifiedAt` (the
+/// custom-vocab pattern: a delete on one device propagates; a union would
+/// resurrect it). Deliberately its OWN record type — never a field on
+/// `AudiobookSyncRecord` — so a pre-wave writer re-encoding that record can't
+/// erase it (the 2026-07-22 additive-field lesson). One record per `bookID` by
+/// convention (dupes collapse in the sync core). CloudKit shape rules: every
+/// attribute defaulted, no `@Attribute(.unique)`.
+@Model
+final class AudiobookBookmarksRecord {
+    var bookID: UUID = UUID()
+    /// JSON-encoded `[AudiobookBookmark]`, position-sorted.
+    var itemsBlob: Data = Data()
+    var modifiedAt: Date = Date()
+
+    init(bookID: UUID, itemsBlob: Data, modifiedAt: Date = Date()) {
+        self.bookID = bookID
+        self.itemsBlob = itemsBlob
+        self.modifiedAt = modifiedAt
+    }
+}

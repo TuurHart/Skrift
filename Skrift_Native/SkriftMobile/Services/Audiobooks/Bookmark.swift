@@ -50,7 +50,8 @@ struct BookmarkStore: Sendable {
     }
 
     /// Add `bookmark` unless one already sits within `dedupeWindow` of it; returns
-    /// the new sorted list. Pure-ish (one read + one atomic write).
+    /// the new sorted list. Pure-ish (one read + one atomic write). A real change
+    /// stamps the LWW clock (bookmark sync).
     @discardableResult
     func add(_ bookmark: AudiobookBookmark, bookID: UUID) -> [AudiobookBookmark] {
         var list = load(bookID: bookID)
@@ -60,13 +61,16 @@ struct BookmarkStore: Sendable {
         list.append(bookmark)
         list.sort { $0.position < $1.position }
         try? save(list, bookID: bookID)
+        markEdited(bookID: bookID)
         return list
     }
 
     @discardableResult
     func remove(id: UUID, bookID: UUID) -> [AudiobookBookmark] {
-        let list = load(bookID: bookID).filter { $0.id != id }
+        let before = load(bookID: bookID)
+        let list = before.filter { $0.id != id }
         try? save(list, bookID: bookID)
+        if list.count != before.count { markEdited(bookID: bookID) }
         return list
     }
 
@@ -75,5 +79,34 @@ struct BookmarkStore: Sendable {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(list)
         try data.write(to: fileURL(bookID: bookID), options: .atomic)
+    }
+
+    // ── LWW stamp (bookmark sync, 2026-07-23): a sidecar date, NOT file mtime —
+    //    adopting a synced list must copy the carrier's stamp verbatim, never
+    //    mint "now" (mtime-as-stamp ping-pongs two devices forever). ──
+
+    func stampURL(bookID: UUID) -> URL {
+        folder(forBookID: bookID).appendingPathComponent("bookmarks.stamp")
+    }
+
+    /// `.distantPast` = never edited on this device (the sync core's fresh-device guard).
+    func modifiedAt(bookID: UUID) -> Date {
+        guard let text = try? String(contentsOf: stampURL(bookID: bookID), encoding: .utf8),
+              let interval = TimeInterval(text.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return .distantPast
+        }
+        return Date(timeIntervalSince1970: interval)
+    }
+
+    /// A USER edit happened now.
+    func markEdited(bookID: UUID, now: Date = Date()) {
+        try? FileManager.default.createDirectory(at: folder(forBookID: bookID), withIntermediateDirectories: true)
+        try? "\(now.timeIntervalSince1970)".write(to: stampURL(bookID: bookID), atomically: true, encoding: .utf8)
+    }
+
+    /// Adopt a synced list + its carrier stamp (LWW discipline — no new stamp).
+    func adoptSynced(_ list: [AudiobookBookmark], stamp: Date, bookID: UUID) {
+        try? save(list, bookID: bookID)
+        try? "\(stamp.timeIntervalSince1970)".write(to: stampURL(bookID: bookID), atomically: true, encoding: .utf8)
     }
 }
