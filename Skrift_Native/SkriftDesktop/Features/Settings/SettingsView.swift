@@ -35,6 +35,9 @@ struct SettingsView: View {
         .frame(width: 560, height: interactive ? 660 : nil)   // snapshot sizes to full content
         .background(Theme.bg)
         .onChange(of: settings) { _, new in SettingsStore.shared.save(new) }
+        // Prompt edits push to the synced carrier once, when the window goes away
+        // (the autosave above already persisted text + stamp per keystroke).
+        .onDisappear { PolishPromptsCloudSync.run() }
         .task { reloadNames() }
         // Live-refresh when a CloudKit names reconcile merges in a person from the phone/iPad,
         // so the list doesn't sit stale while it's open.
@@ -249,7 +252,7 @@ struct SettingsView: View {
             Text(label).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
             Group {
                 if interactive {
-                    TextEditor(text: bind(key))
+                    TextEditor(text: bindPrompt(key))
                         .textEditorStyle(.plain)
                         .scrollContentBackground(.hidden)
                         .font(.system(size: 12))
@@ -372,6 +375,14 @@ struct SettingsView: View {
 
     private func bind(_ key: WritableKeyPath<AppSettings, String>) -> Binding<String> {
         Binding(get: { settings[keyPath: key] }, set: { settings[keyPath: key] = $0 })
+    }
+
+    /// Prompt edits are dated LWW writes (the iPad prompt sync): the setter stamps
+    /// `promptsModifiedAt` so the autosave persists text + stamp together. The
+    /// CloudKit push rides the window-close hook (per keystroke would spam).
+    private func bindPrompt(_ key: WritableKeyPath<AppSettings, String>) -> Binding<String> {
+        Binding(get: { settings[keyPath: key] },
+                set: { settings[keyPath: key] = $0; settings.promptsModifiedAt = Date() })
     }
 
     private var highpassBinding: Binding<Double> {

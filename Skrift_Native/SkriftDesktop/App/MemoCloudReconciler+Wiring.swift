@@ -75,6 +75,7 @@ extension MemoCloudReconciler {
         // sweep is cheap; they converge with the phone through the shared merge.
         NamesCloudSync.run()
         VocabularyCloudSync.run()
+        PolishPromptsCloudSync.run()
         let local = SharedStore.container.mainContext
         // READ THROUGH A FRESH CONTEXT. A CloudKit import writes to the persistent STORE but does
         // NOT refresh `mainContext`'s already-registered `Memo` objects — so `cloud.mainContext`

@@ -82,16 +82,16 @@ actor MLXPolishEngine: PolishEngine {
         onProgress(0.10)
 
         let copyedit = try await PolishEscrow.copyEdit(transcript) { input in
-            try await self.run(prompt: PolishPrompts.copyEdit, text: input, maxTokens: 1024)
+            try await self.run(prompt: PolishPromptsStore.copyEdit(), text: input, maxTokens: 1024)
         }
         onProgress(0.55)
 
         let plain = PolishEscrow.plainForTitleSummary(transcript)
-        let title = try await run(prompt: PolishPrompts.title, text: plain, maxTokens: 64)
+        let title = try await run(prompt: PolishPromptsStore.title(), text: plain, maxTokens: 64)
         onProgress(0.75)
 
         let summary = PolishEscrow.wordsMeetSummaryThreshold(transcript)
-            ? try await run(prompt: PolishPrompts.summary, text: plain, maxTokens: 256)
+            ? try await run(prompt: PolishPromptsStore.summary(), text: plain, maxTokens: 256)
             : ""
         onProgress(1.0)
 

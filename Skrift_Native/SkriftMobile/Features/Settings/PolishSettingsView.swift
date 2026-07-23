@@ -7,10 +7,11 @@ import SwiftUI
 /// iPad); the phone + simulator never surface it. Uses the grouped-Form Settings idiom.
 struct PolishSettingsView: View {
     @State private var center = PolishCenter.shared
-    @AppStorage(PolishGate.polishOnOpenKey) private var polishOnOpen = false
+    /// Bumped by the editor sheets so the "edited/default" subtitles refresh.
+    @State private var promptsTick = 0
 
     private let explainer = "Your Mac polishes every synced note automatically. This iPad can polish too — only the note you're looking at, only when you ask. Same model, same result; whichever ran last wins everywhere."
-    private let toggleSub = "An unpolished note starts polishing as you read it. Off = only the ⋯ menu's \"Polish now\"."
+    private let promptsFooter = "Prompt edits sync between your Mac and iPad — newest edit wins, so both polishers always speak with one voice."
     private let footnote = "Runs on the iPad's Apple-silicon GPU while the app is open — the iPad never polishes in the background or on battery-critical. Needs an M-series iPad with ~5 GB free. Everything stays on device."
 
     var body: some View {
@@ -20,6 +21,8 @@ struct PolishSettingsView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Color.skTextDim)
                     .fixedSize(horizontal: false, vertical: true)
+            } footer: {
+                Text(footnote).fixedSize(horizontal: false, vertical: true)
             }
 
             Section {
@@ -28,15 +31,29 @@ struct PolishSettingsView: View {
                 Text("Model")
             }
 
+            // The Mac's prompt knobs, verbatim (v2 — Tuur: "same settings as the
+            // Mac, also the prompts"). Editing pushes through the synced carrier.
             Section {
-                Toggle("Polish when I open a note", isOn: $polishOnOpen)
-                    .accessibilityIdentifier("ipad-polish-on-open")
-            } footer: {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(toggleSub)
-                    Text(footnote)
+                ForEach(PolishPromptKind.allCases, id: \.self) { kind in
+                    NavigationLink {
+                        PromptEditorView(kind: kind) { promptsTick += 1 }
+                    } label: {
+                        HStack {
+                            Text(kind.label).font(.system(size: 15))
+                            Spacer()
+                            Text(PolishPromptsStore.isEdited(kind) ? "edited" : "default")
+                                .font(.system(size: 12))
+                                .foregroundStyle(PolishPromptsStore.isEdited(kind)
+                                                 ? Color.skGreen : Color.skTextFaint)
+                        }
+                        .id(promptsTick)
+                    }
+                    .accessibilityIdentifier("ipad-polish-prompt-\(kind.label)")
                 }
-                .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                Text("Prompts")
+            } footer: {
+                Text(promptsFooter).fixedSize(horizontal: false, vertical: true)
             }
         }
         .scrollContentBackground(.hidden)
@@ -101,5 +118,75 @@ struct PolishSettingsView: View {
                 .foregroundStyle(Color.skAccent)
                 .accessibilityIdentifier("ipad-polish-retry")
         }
+    }
+}
+
+// MARK: - Prompt editor (one prompt, full text, reset-to-default)
+
+/// The Mac's `promptRow` TextEditor as a pushed page. Saving stamps the local
+/// store (a real edit) and pushes through the synced carrier immediately, so
+/// the Mac picks it up on its next reconcile.
+struct PromptEditorView: View {
+    let kind: PolishPromptKind
+    var onSaved: () -> Void = {}
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var text = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TextEditor(text: $text)
+                .font(.system(size: 14))
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal, 12).padding(.top, 8)
+                .background(Color.skSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(16)
+                .accessibilityIdentifier("ipad-prompt-editor")
+            if PolishPromptsStore.isEdited(kind) || text != defaultText {
+                Button("Reset to default") {
+                    text = defaultText
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.skAccentText)
+                .padding(.bottom, 14)
+                .accessibilityIdentifier("ipad-prompt-reset")
+            }
+        }
+        .frame(maxWidth: Adaptive.readingMaxWidth)
+        .frame(maxWidth: .infinity)
+        .background(Color.skBg.ignoresSafeArea())
+        .navigationTitle(kind.label)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { save() }
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("ipad-prompt-save")
+            }
+        }
+        .onAppear { text = currentText }
+    }
+
+    private var defaultText: String {
+        switch kind {
+        case .copyEdit: return PolishPrompts.copyEdit
+        case .summary: return PolishPrompts.summary
+        case .title: return PolishPrompts.title
+        }
+    }
+
+    private var currentText: String {
+        switch kind {
+        case .copyEdit: return PolishPromptsStore.copyEdit()
+        case .summary: return PolishPromptsStore.summary()
+        case .title: return PolishPromptsStore.title()
+        }
+    }
+
+    private func save() {
+        PolishPromptsStore.setText(text, for: kind)
+        PolishPromptsCloudSync.run(NotesRepository.shared)   // push-on-edit
+        onSaved()
+        dismiss()
     }
 }

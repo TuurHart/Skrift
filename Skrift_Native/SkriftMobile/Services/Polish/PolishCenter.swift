@@ -30,9 +30,6 @@ protocol PolishEngine: Sendable {
 /// the simulator can't run Metal-JIT MLX, and small-RAM pads would jetsam
 /// mid-generation.
 enum PolishGate {
-    /// UserDefaults key for the "Polish when I open a note" toggle (Settings).
-    static let polishOnOpenKey = "polishOnOpen"
-
     static var isSupported: Bool {
         #if targetEnvironment(simulator)
         // MLX needs a real Metal GPU (JIT kernels) — the sim build keeps the UI
@@ -77,8 +74,6 @@ final class PolishCenter {
     private(set) var phases: [UUID: Phase] = [:]
     /// Drives the Settings model card (Download / live % / Downloaded ✓).
     private(set) var modelPhase: ModelPhase = .unknown
-    /// "Polish when I open a note": at most one auto-attempt per memo per session.
-    private var autoPolish = AutoPolishTracker()
 
     private init() {}
 
@@ -132,16 +127,9 @@ final class PolishCenter {
         }
     }
 
-    /// "Polish when I open a note" (mock m5 toggle). Fires only when the toggle is on, the
-    /// memo is polishable, AND it hasn't been auto-attempted this session — one shot per memo
-    /// per launch, so a failure never loops. DETAIL calls this from `MemoDetailView.onAppear`
-    /// (a 1-line wiring owned by that lane; exposed here notification-free).
-    func maybeAutoPolish(_ memo: Memo) {
-        guard UserDefaults.standard.bool(forKey: PolishGate.polishOnOpenKey) else { return }
-        guard canPolish(memo) else { return }
-        guard autoPolish.firstAttempt(memo.id) else { return }
-        polishNow(memo)
-    }
+    // NOTE (v2, Tuur 2026-07-23): the "polish when I open a note" automation was
+    // REMOVED — the iPad polishes only on the visible Polish verb (the Mac's
+    // idiom). If automation ever returns, resurrect AutoPolishTracker from git.
 
     // MARK: - Settings model card (m5)
 

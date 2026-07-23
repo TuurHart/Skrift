@@ -8,8 +8,9 @@ import SwiftData
 /// RAW (the contract spine); `MemoExporter` already PREFERS this enhancement when present, so
 /// a paired Mac auto-upgrades the phone's standalone Obsidian export with zero phone-UI work.
 ///
-/// Written ONLY by the Mac (the phone has no enhancement engine). LWW by `enhancedAt` if two
-/// Macs ever process the same memo; for the single-user/single-Mac case the latest run wins.
+/// Any device may author an enhancement since iPad wave 1 (the iPad's on-demand
+/// `PolishCenter` — same model, same shared prompts). LWW by `enhancedAt` between
+/// writers; the guard below also refuses to clobber a strictly-newer other-device write.
 enum MacCloudWriteBack {
 
     /// Recover the owning memo's UUID for a memo-sourced `PipelineFile`: the embedded

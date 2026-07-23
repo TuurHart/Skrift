@@ -106,6 +106,9 @@ struct SkriftApp: App {
                 .task { NamesCloudSync.run(repository) }
                 // Sync the custom-vocabulary list across devices (Phase 1f), LWW.
                 .task { VocabularyCloudSync.run(repository) }
+                // Sync the polish prompts (iPad v2) — one voice across the Mac's
+                // batch polisher and the iPad's on-demand one, whole-blob LWW.
+                .task { PolishPromptsCloudSync.run(repository) }
                 // Reconcile opted-in audiobooks (Phase 1h): upload a freshly-synced
                 // book's audio + pull any that arrived from another device (raw-CloudKit
                 // transfer). No-op when nothing's synced. Idempotent; launch + foreground.

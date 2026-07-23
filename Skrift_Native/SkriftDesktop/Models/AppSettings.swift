@@ -50,6 +50,12 @@ struct AppSettings: Codable, Equatable, Sendable {
     /// harness-injected words can never win LWW over a real device's list.
     var customVocabularyModifiedAt: Date? = nil
 
+    /// When the Mac last EDITED a polish prompt (Settings TextEditor) — the Mac's
+    /// side of the whole-blob-LWW prompt sync with the iPad's polisher
+    /// (`PolishPromptsSyncCore`). nil = never edited (treated as distantPast;
+    /// optional for legacy decode).
+    var promptsModifiedAt: Date? = nil
+
     // ── CloudKit-Mac sync (MAC_CLOUDKIT_PLAN.md 8d) ──
     // When on, the Mac reconciles memos synced over CloudKit (from the phone's note store)
     // into the local pipeline queue (`MemoCloudReconciler`) and writes its polish back as a

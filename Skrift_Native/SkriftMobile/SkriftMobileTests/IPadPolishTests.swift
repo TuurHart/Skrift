@@ -1,11 +1,11 @@
 import XCTest
 @testable import SkriftMobile
 
-/// POLISH lane (iPad wave 1). Exercises the parts that CAN be tested without MLX (honesty
+/// POLISH (iPad wave, v2). Exercises the parts that CAN be tested without MLX (honesty
 /// contract — the sim can't run Metal-JIT MLX, so live generation is device-owed): the
 /// device gate, the pure `PolishEscrow` round-trips (quote protection + memo-link + image
-/// markers, via an injected generator), the summary threshold, and the once-per-session
-/// auto-polish tracker. No `MLXPolishEngine` is instantiated here.
+/// markers, via an injected generator), and the summary threshold. No `MLXPolishEngine`
+/// is instantiated here.
 final class IPadPolishTests: XCTestCase {
 
     // MARK: - Gate (runs on the iPhone 17 sim, which is unsupported)
@@ -14,7 +14,6 @@ final class IPadPolishTests: XCTestCase {
         // The unit suite runs on the simulator; MLX needs a real Metal GPU, so the gate is
         // false here (and on every phone). Capable-iPad behavior is device-owed.
         XCTAssertFalse(PolishGate.isSupported)
-        XCTAssertEqual(PolishGate.polishOnOpenKey, "polishOnOpen")
     }
 
     // MARK: - Escrow round-trips (identity + mutating generators, MLX-free)
@@ -82,14 +81,6 @@ final class IPadPolishTests: XCTestCase {
         XCTAssertTrue(PolishEscrow.wordsMeetSummaryThreshold(long))
     }
 
-    // MARK: - Auto-polish once-per-session
-
-    func testAutoPolishTrackerFiresOncePerMemo() {
-        var tracker = AutoPolishTracker()
-        let a = UUID(), b = UUID()
-        XCTAssertTrue(tracker.firstAttempt(a), "first open of a → attempt")
-        XCTAssertFalse(tracker.firstAttempt(a), "second open of a → no loop")
-        XCTAssertTrue(tracker.firstAttempt(b), "a different memo still gets its one attempt")
-        XCTAssertFalse(tracker.firstAttempt(b))
-    }
+    // (The v1 auto-polish tracker was REMOVED in v2 — the iPad polishes only on
+    // the visible Polish verb, the Mac's idiom; Tuur 2026-07-23.)
 }

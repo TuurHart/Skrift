@@ -35,7 +35,8 @@ enum MemoCloudStore {
     /// audiobook records.) These record types already exist in the CloudKit schema — the phone
     /// created them — so the Mac is just a second client of them.
     static let schema = Schema([Memo.self, MemoAsset.self, MemoEnhancement.self,
-                                NamesRecord.self, VocabularyRecord.self])
+                                NamesRecord.self, VocabularyRecord.self,
+                                PolishPromptsRecord.self])
 
     /// The CloudKit-backed container, or `nil` when CloudKit is unavailable/disabled.
     static let container: ModelContainer? = makeContainer()

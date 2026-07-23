@@ -260,14 +260,6 @@ struct MemoDetailView: View {
                 DispatchQueue.main.async { proxy.scrollTo(selection, anchor: .center) }
             }
         }
-        // "Polish when I open a note" (m5 toggle): one auto-attempt per memo per
-        // session, gated inside PolishCenter (toggle + canPolish + tracker) — a
-        // no-op everywhere the polisher isn't available.
-        .task(id: selection) {
-            if let selection, let memo = memos.first(where: { $0.id == selection }) {
-                PolishCenter.shared.maybeAutoPolish(memo)
-            }
-        }
         // The floating glass player bar lives in the bottom safe-area inset, NOT a
         // ZStack overlay. That's the fix for "glass shows nothing": a detached overlay
         // only samples the flat background behind everything, so Liquid Glass had no
@@ -744,14 +736,33 @@ private struct MemoPageView: View {
         }
     }
 
-    /// m5 in-note polish moment (seam only): a slim band pinned under the title
-    /// while THIS iPad polishes the note. Idle → nothing; the finished polish
-    /// renders through the existing enhancement machinery (no new "done" chrome,
-    /// per the brief). The Mac still polishes automatically; this is the "asked".
+    /// m5 in-note polish moment (v2): a VISIBLE ✨ Polish button on an unpolished
+    /// note — the Mac's process-verb idiom, no automation (Tuur 2026-07-23) —
+    /// which becomes the progress pill while THIS iPad polishes. The finished
+    /// polish renders through the existing enhancement machinery (no new "done"
+    /// chrome). The Mac still polishes automatically; this is the "asked".
     @ViewBuilder private var polishStatusBand: some View {
         switch PolishCenter.shared.phase(for: memo.id) {
         case .idle:
-            EmptyView()
+            if PolishCenter.shared.canPolish(memo), !(enhancements.first?.hasContent ?? false) {
+                Button { PolishCenter.shared.polishNow(memo) } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("Polish")
+                            .font(.system(size: 12.5, weight: .semibold))
+                    }
+                    .foregroundStyle(Color.skAccentText)
+                    .padding(.horizontal, 14).padding(.vertical, 6)
+                    .background(Color.skElev, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.skBorder, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, Theme.Space.margin)
+                .padding(.top, 8).padding(.bottom, 2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("ipad-polish-button")
+            }
         case .downloading(let p):
             polishPill("Downloading model · \(Int(p * 100))%")
         case .polishing:
