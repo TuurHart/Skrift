@@ -81,6 +81,13 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
+**🗺️ NEW (Tuur review, 2026-07-23) — Mac Places map: deep dive zooms OUT.** Repro on the Mac
+Journal map: zoomed in on a 7-note cluster → double-click splits it 3+4 → double-click the
+4-cluster ZOOMS OUT instead of in. That's the class of bug the phone's b90 round fixed ("pin tap
+never zooms out") — the Mac's map-behind-Places likely never got the b90 camera contract.
+Check whether the iPad pane is immune (it reuses the PHONE's `JournalMapCanvas`, so it should
+carry the fix — verify), then port the b90 rules to the Mac's `JournalView` map mode.
+
 **Parked/flagged en route:** SHELL: last-note-delete in the detail pane leaves a stale pane until
 a tap (MemoDetailView dismiss is a no-op at pane root — 1-line fix candidate in DETAIL's file) ·
 DETAIL: related derivation double-computes at regular (footer hidden + panel; gate on hSize if it
