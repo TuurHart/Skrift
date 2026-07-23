@@ -10,6 +10,44 @@ background verb** — Tuur, 2026-07-22). **DOCTRINE:** supersedes 2026-07-17 "to
 *touch restarts the 30-day clock*; only rated/locked/reminder/backlinked sit off the clock. Memory =
 `project_lifecycle_one_clock`; roadmap node = `LifeClock` (done).
 
+### ⏱ v3 amendment — "NO NOTE DIES UNSEEN" (Tuur voice note 2026-07-23; BUILT same day, branch `claude/note-deletion-app-open-5r5z56`)
+
+**DOCTRINE (Tuur):** the fade clock keeps running while the apps sit closed (fading stays honest
+about time), but **the final doors only move at an app-open** — a note can only be *sent to Recently
+Deleted*, and Recently Deleted can only *burn purge days*, while the user has actually opened the
+app. Phone in a drawer for three months → the note is still there at the next open (in Recently
+Deleted at worst, with its FULL 14-day window to bring back). The bug this kills: the Mac's
+unattended 24h sweep stamped `deletedAt` with nobody looking, and the phone's `init` purge (which
+also fires on BGTask/silent-push background launches) counted wall-clock from that synced-in stamp —
+so a forgotten note could be purged BEFORE the first post-absence render.
+
+**Built:**
+- **Purge clock = new synced `Memo.trashSeenAt`** — first open with the note in the trash; a stamp
+  older than `deletedAt` is stale by construction (restore → re-trash restarts unseen). Rulebook =
+  `MemoLifecycle.trashClockStart/purgeDue/goneAt/stampTrashSightings`; `MemoSpine` + phone
+  `trashDaysRemaining` + WayOut labels all derive from it, so an unseen synced-in deletion honestly
+  shows the full window from *now* ("shown dates must be true" holds).
+- **Phone:** `purgeExpiredTrash` filters on `purgeDue` (the `SkriftApp.init` purge is now SAFE on
+  background wakes — it can only remove notes that had 14 SEEN days); `FadingSweep.run` stamps
+  sightings then sweeps, and now also runs on every foreground (`scenePhase .active`, behind the
+  once-per-device migration guard so ordering stays load-bearing); `softDelete` stamps its own
+  clock; `restore`/Bring-back clear it; deduper clones stamp at trash (no unseen grace for clones).
+- **Mac:** `LifecycleSweepScheduler` **day-change + 24h heartbeat RETIRED** → sweeps at launch +
+  every app activation only; `MacFadingSweep` stamps sightings and stamps what it sweeps; every Mac
+  delete gesture + the delete-sync mirror (`MacCloudDeleteSync`) stamps `trashSeenAt` (user
+  present). Desktop's LOCAL `PipelineFile` trash purge unchanged (mirror-only — the cloud copy is
+  the phone's to purge). Dev hooks: `-poke-daychange`/`-sweepHeartbeatSeconds` → **`-poke-sweep <sec>`**.
+- **Tests (NOT RUN — Linux session, no xcodebuild):** TrashTests +3 (synced-in never purges unseen;
+  stale-stamp re-trash; softDelete/restore stamp hygiene), MemoLifecycleTests +2 both suites,
+  MemoSpineTests unseen-counts-from-now both suites, WayOutView/Trash label fixtures sighted.
+- **Prod note:** `trashSeenAt` is additive → lightweight migration + CloudKit schema deploy rides
+  the standing promotion checklist. Pre-v3 trash (stamp nil) gets its clock started at the first
+  post-update open — a one-time ≤14-day purge deferral, never an early purge.
+
+**OWED (first Mac session):** run both suites + the `-skipMacroValidation` desktop build; then the
+usual Dev-deploy eyeball (open phone after a synced-in Mac delete → row shows full 14d, not "Deleting
+soon"; cmd-tab the Mac → sweep fires once).
+
 **Built (commits cbf87ff → a3fb3ae → c14daf5, desktop 487 + mobile 863 green, full MLX build green):**
 - **Shared:** `clockStart = max(recordedAt, keptAt)`; `markEdited()` bumps `keptAt` (all 19 call
   sites audited = genuine investments; 3 speaker-turn paths that skipped it now call it);
@@ -103,8 +141,9 @@ diffed against the Mac's; new DEBUG dev hooks below):**
    NEW: play "Mac roundtrip 21 Jul" + see "0.1 · Passing" on the flagged B122966B memo) + Mac
    (unified Notes list quiet rows / Flag verbs / Unrated chip / peeks). Then LifeIA = done.
 **New DEBUG dev hooks (desktop, RunFile family):** `-ingestfile <path>` (real import verb,
-headless), `-flagmemo <uuid>` (real Q2 flag verb + export hold), `-poke-daychange <sec>` +
-`-sweepHeartbeatSeconds <n>` (LifecycleSweepScheduler verification). Quit the GUI first, as ever.
+headless), `-flagmemo <uuid>` (real Q2 flag verb + export hold), `-poke-sweep <sec>`
+(LifecycleSweepScheduler verification; replaced `-poke-daychange`/`-sweepHeartbeatSeconds` when v3
+retired the unattended triggers, 2026-07-23). Quit the GUI first, as ever.
 **Branch note:** `claude/skrift-roundtrip-verify-wvnpbn` merged to main 2026-07-21 (fast-forward,
 contains q3kv2n). The 5 📖 open decisions remain with Tuur — 📖 section bottom.
 Everything below = the build record of how we got here.

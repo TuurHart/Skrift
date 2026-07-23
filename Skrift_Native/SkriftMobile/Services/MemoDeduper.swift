@@ -32,6 +32,7 @@ enum MemoDeduper {
                 meta?.imageManifest = nil
                 clone.metadata = meta
                 clone.deletedAt = Date()
+                clone.trashSeenAt = clone.deletedAt  // clones need no unseen grace — purge on schedule
                 DevLog.log("dedupe: trashed clone row of \(id)")
             }
         }

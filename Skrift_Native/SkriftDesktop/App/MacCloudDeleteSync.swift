@@ -30,6 +30,11 @@ enum MacCloudDeleteSync {
                       FetchDescriptor<Memo>(predicate: #Predicate { $0.id == memoID })))?.first else { continue }
             if memo.deletedAt != pf.deletedAt {
                 memo.deletedAt = pf.deletedAt
+                // A Mac trash gesture happens with the user right here — the
+                // purge clock (v3 `trashSeenAt`) starts at the same stamp, like
+                // the phone's own softDelete. Restores (nil) leave the old
+                // stamp; the validity guard treats it as stale either way.
+                if let deletedAt = pf.deletedAt { memo.trashSeenAt = deletedAt }
                 wrote = true
             }
         }

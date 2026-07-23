@@ -40,8 +40,12 @@ struct SkriftApp: App {
         }
         #endif
 
-        // Trash retention: permanently remove memos deleted ≥ 2 weeks ago
+        // Trash retention: permanently remove memos whose purge clock ran out
         // (audio + photo + sidecar files included) before any UI shows them.
+        // v3-gated (2026-07-23): the clock is `trashSeenAt` — days the user
+        // actually had the app open with the note in the trash — so this stays
+        // safe on background launches (BGTask / silent push) too: a deletion
+        // that synced in while the phone sat closed can never purge unseen.
         repo.purgeExpiredTrash()
 
         // App Intents (Control Center / Siri / Live Activity Stop) run in this
@@ -90,9 +94,11 @@ struct SkriftApp: App {
                     // same launch must never sweep a note the migration was
                     // about to rescue.
                     MemoLifecycle.runOneClockMigrationOnce(context: repository.container.mainContext)
-                    // Fading lifecycle (one clock, 2026-07-22): move notes whose
-                    // clock ran out 60 days ago into Recently Deleted. Armed-gated —
-                    // inert until the shelf's first-run prompt is answered.
+                    // Fading lifecycle (one clock 2026-07-22, v3 open-gated
+                    // 2026-07-23): stamp purge clocks for synced-in trash, then
+                    // move notes whose clock ran out 60 days ago into Recently
+                    // Deleted. This task IS the open-gate — it only runs with
+                    // the UI scene attached, i.e. a human open.
                     FadingSweep.run(repository: repository)
                 }
                 // Reconcile the names/people DB across devices (Phase 1e): merge the
@@ -143,6 +149,15 @@ struct SkriftApp: App {
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
                         MemoDeduper.run(repository)   // CloudKit dupes can land mid-session
+                        // Every foreground is an open (v3, 2026-07-23): a phone
+                        // resumed after weeks suspended must stamp purge clocks
+                        // + sweep exactly like a cold launch. Idempotent. The
+                        // migration call keeps the launch task's load-bearing
+                        // order (migrate BEFORE any sweep) even if this fires
+                        // first on a cold start — it's once-per-device, so it's
+                        // a defaults-flag no-op every time after.
+                        MemoLifecycle.runOneClockMigrationOnce(context: repository.container.mainContext)
+                        FadingSweep.run(repository: repository)
                         Task { await CaptureInboxDrainer.drain(into: repository) }
                         AssetMaterializer.run(repository)
                         PhotoTextIndexer.run(repository)

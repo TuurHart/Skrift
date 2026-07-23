@@ -43,11 +43,13 @@ extension Memo {
 
     /// Whole days until the startup purge permanently removes this trashed memo
     /// (ceiling — a memo deleted an hour ago shows the full 14). 0 = expires on
-    /// the next purge. Nil when the memo isn't in the trash. `now` injectable
-    /// for tests.
+    /// the next purge. Nil when the memo isn't in the trash. v3 (2026-07-23):
+    /// counts from the trash SIGHTING (`MemoLifecycle.goneAt`), matching the
+    /// purge gate — an unseen synced-in deletion shows the full window, because
+    /// that's what it truly has. `now` injectable for tests.
     func trashDaysRemaining(now: Date = Date()) -> Int? {
-        guard let deletedAt else { return nil }
-        let remaining = TrashPolicy.retention - now.timeIntervalSince(deletedAt)
+        guard deletedAt != nil else { return nil }
+        let remaining = MemoLifecycle.goneAt(self, now: now).timeIntervalSince(now)
         return max(0, Int(ceil(remaining / 86_400)))
     }
 
