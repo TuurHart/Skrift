@@ -16,6 +16,17 @@ import SwiftUI
 struct BookTextSheet: View {
     let book: Audiobook
     @ObservedObject private var job = BookTranscriptionJob.shared
+    /// Content-sized start: a book with texts attached (bar + legend + rows) is
+    /// taller than .medium — opening there read as "cut off" (Tuur, b111).
+    @State private var detent: PresentationDetent
+
+    init(book: Audiobook, busyMessage: String? = nil, onAdd: @escaping () -> Void) {
+        self.book = book
+        self.busyMessage = busyMessage
+        self.onAdd = onAdd
+        let hasTexts = !(BookAlignmentRunner.textSummary(bookID: book.id)?.perText.isEmpty ?? true)
+        _detent = State(initialValue: hasTexts ? .large : .medium)
+    }
     /// The presenting view's `attachToast` (busy-message overlay), hosted HERE instead —
     /// a plain view overlay on the presenting view is invisible once this `.sheet` covers the
     /// screen (only UIKit-level presentations like `.alert`/`.fileImporter` stack over a sheet
@@ -91,10 +102,7 @@ struct BookTextSheet: View {
                 .allowsHitTesting(false)
             }
         }
-        .presentationDetents([.medium, .large])
-        // Show the REAL saved transcript % the moment the sheet opens (a partly-
-        // transcribed book reads its frontier from the sidecar) — not 0-until-Start.
-        .task { job.reflectSavedProgress(for: book) }
+        .presentationDetents([.medium, .large], selection: $detent)
         .confirmationDialog(
             pendingRemove.map { "Remove \u{201C}\($0.title ?? $0.filename)\u{201D}?" } ?? "",
             isPresented: Binding(get: { pendingRemove != nil }, set: { if !$0 { pendingRemove = nil } }),
@@ -117,8 +125,18 @@ struct BookTextSheet: View {
         job.activeBookID == book.id && job.isRunningOrPaused
     }
 
+    /// THIS book's transcript progress: the job's live number only while it's
+    /// actually working this book; otherwise a plain cache-served sidecar read.
+    /// Never the singleton's shared `progress` at rest — that is whatever book
+    /// the job last touched, and the `.task`-based reflect it relied on doesn't
+    /// reliably fire inside a sheet over the player's fullScreenCover (b111
+    /// device catch: a fully-transcribed book read "Not transcribed").
+    private var thisBookProgress: Double {
+        transcribingThisBook ? job.progress : job.savedProgress(for: book)
+    }
+
     private var cardState: BookTextDisplay.TranscriptCardState {
-        BookTextDisplay.transcriptCardState(progress: job.progress,
+        BookTextDisplay.transcriptCardState(progress: thisBookProgress,
                                             transcribingThisBook: transcribingThisBook,
                                             pausedByUser: job.phase == .pausedByUser)
     }
@@ -195,7 +213,7 @@ struct BookTextSheet: View {
                 Text("Partly transcribed")
                     .font(.system(size: 13.5, weight: .semibold)).foregroundStyle(Color.skText)
                 transcriptProgressBar.padding(.top, 4)
-                Text("\(Int((job.progress * 100).rounded()))% · resumes where it left off")
+                Text("\(Int((thisBookProgress * 100).rounded()))% · resumes where it left off")
                     .font(.system(size: 11.5)).foregroundStyle(Color.skTextDim)
                     .padding(.top, 4)
                 transcribeButton("Resume transcribing")
@@ -218,7 +236,7 @@ struct BookTextSheet: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.skBorder)
                 Capsule().fill(Color.skAccent)
-                    .frame(width: max(6, geo.size.width * job.progress))
+                    .frame(width: max(6, geo.size.width * thisBookProgress))
             }
         }
         .frame(height: 6)
@@ -226,8 +244,9 @@ struct BookTextSheet: View {
     }
 
     private func transcribingMeta(paused: Bool) -> String {
-        var parts = ["\(Int((job.progress * 100).rounded()))%"]
-        if !paused, let eta = job.estimatedRemainingSeconds(for: book), eta > 1 {
+        var parts = ["\(Int((thisBookProgress * 100).rounded()))%"]
+        if !paused, let eta = BookTextDisplay.estimateSeconds(
+            duration: book.duration, progress: thisBookProgress, rtf: job.measuredRTF) {
             parts.append("≈ \(TranscribeBookView.shortDuration(eta)) left")
         }
         parts.append(job.phase == .pausedUnplugged
@@ -241,7 +260,8 @@ struct BookTextSheet: View {
     /// fabricated figure — TranscribeBookView's standing rule).
     private var freshMeta: String {
         var line = "Transcribing gives read-along, quote captures and chapter detection. Runs on-device"
-        if let eta = job.estimatedRemainingSeconds(for: book), eta > 1 {
+        if let eta = BookTextDisplay.estimateSeconds(
+            duration: book.duration, progress: thisBookProgress, rtf: job.measuredRTF) {
             line += ", ≈ \(TranscribeBookView.shortDuration(eta)) for this book"
         }
         return line + "."
@@ -512,6 +532,17 @@ enum BookTextDisplay {
     /// with any text attached it reads as the multi-ePub affordance it is.
     static func addRowLabel(hasTexts: Bool) -> String {
         hasTexts ? "Add another text\u{2026}" : "Add book text\u{2026}"
+    }
+
+    /// Wall-seconds to transcribe the untranscribed remainder of a book, from the
+    /// job's real measured per-device throughput. nil until a rate exists or when
+    /// nothing meaningful remains — the caller omits the figure entirely (never a
+    /// fabricated estimate).
+    static func estimateSeconds(duration: TimeInterval, progress: Double, rtf: Double?) -> TimeInterval? {
+        guard let rtf, rtf > 0 else { return nil }
+        let remaining = max(0, duration * (1 - min(1, max(0, progress))))
+        let eta = remaining / rtf
+        return eta > 1 ? eta : nil
     }
 
     /// The sheet footer (mock A1/A2/A3).

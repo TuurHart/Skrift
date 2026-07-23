@@ -97,10 +97,11 @@ struct BookTextPromptSheet: View {
     }
 
     /// Same never-fabricate rule as the unified sheet: the per-book estimate appears
-    /// only once the job has a measured per-device rate.
+    /// only once the job has a measured per-device rate. Computed for THIS book's
+    /// full duration — never off the singleton's shared progress.
     private var transcribeMeta: String {
         var line = "Works for every book, fully on-device. Read-along, captures and chapters come from this"
-        if let eta = job.estimatedRemainingSeconds(for: book), eta > 1 {
+        if let eta = BookTextDisplay.estimateSeconds(duration: book.duration, progress: 0, rtf: job.measuredRTF) {
             line += ". ≈ \(TranscribeBookView.shortDuration(eta)) for this book"
         }
         return line + "."

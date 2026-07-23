@@ -247,6 +247,17 @@ final class BookTextSummaryDisplayTests: XCTestCase {
         XCTAssertEqual(BookTextDisplay.addRowLabel(hasTexts: true), "Add another text…")
     }
 
+    func testEstimateSecondsNeverFabricates() {
+        XCTAssertNil(BookTextDisplay.estimateSeconds(duration: 3600, progress: 0, rtf: nil),
+                     "no measured rate → no figure")
+        XCTAssertNil(BookTextDisplay.estimateSeconds(duration: 3600, progress: 1, rtf: 40),
+                     "nothing remaining → no figure")
+        XCTAssertEqual(BookTextDisplay.estimateSeconds(duration: 3600, progress: 0, rtf: 40), 90)
+        XCTAssertEqual(BookTextDisplay.estimateSeconds(duration: 3600, progress: 0.5, rtf: 40), 45)
+        XCTAssertEqual(BookTextDisplay.estimateSeconds(duration: 3600, progress: -3, rtf: 40), 90,
+                       "progress clamps defensively")
+    }
+
     // MARK: - A0 once-only bookkeeping
 
     func testBookTextPromptSeenIsOnceOnlyAndPerBook() throws {
