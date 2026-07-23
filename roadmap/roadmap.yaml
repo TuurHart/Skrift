@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 19
-updated: 2026-07-23T12:38:00.000Z
+updated: 2026-07-23T13:35:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -1661,6 +1661,17 @@ ideas:
       Store build. No spec yet — don't node it until a design pass."
     source: voice
     nodeHint: P11
+  - id: i12
+    text: "Unified 'Text' sheet + A0 import prompt (SIGNED OFF 2026-07-23,
+      mock = mocks/book-text-unified.html, 4 phones): ONE 'Text…' verb/sheet
+      replaces the separate Transcribe-book and Book-text menu entries —
+      Level 1 Transcript (status/progress/Transcribe + time estimate),
+      Level 2 Book text (today's signed-off sheet unchanged), incl. the
+      mid-transcribe deferred-ePub state; plus A0, a once-only post-import
+      prompt offering BOTH actions ('start both and walk away — it matches
+      up on its own'). Build board when picked; mock IS the spec."
+    source: session
+    nodeHint: EPubAlign
   - id: i11
     text: "ePub ↔ audiobook alignment (Tuur, 2026-07-19): attach the book's ePub;
       align it against the whole-book transcript (word timings already exist —

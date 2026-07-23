@@ -135,11 +135,14 @@ on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the f
    turned out to be ROUND 8's same-text merge eater — fixed, schema 5, and the healed
    device sidecar machine-verified (7,506 sentences, both repro sentences present as book
    text at conf 1.00, "Book 1: The Boy and the Goddess" chapters). ✅ TUUR EYEBALL SAME
-   SESSION: "the parts that were gone before are now there. The chapters look good." Lane
-   CLOSED. Small tails, non-blocking: a 30-sec attach-UX try-out (live stages + the
-   mid-transcribe deferred alert — R7 behavior, unit-tested, never eyeballed) · verdict on
-   `mocks/book-text-unified.html` (4 phones incl. A0 — sign-off gates the next build
-   board, mock-first). NEW P2 filed same session: silent re-align freezes the library UI.
+   SESSION: "the parts that were gone before are now there. The chapters look good." ✅
+   Attach-UX also live-confirmed (Tuur re-attached the Odyssey text himself, saw "Matching
+   the text against the transcript…"). ✅ **MOCK SIGNED OFF same session** (Tuur walked all
+   4 phones: liked the flow + time estimate + step ②, A0-vs-A1 explained, "Perfect, yeah.
+   I like it." → yes): **`mocks/book-text-unified.html` = the next build board** — ONE
+   "Text…" verb/sheet (Level 1 Transcript / Level 2 Book text) replaces the two menu
+   entries, + the A0 once-only post-import do-both prompt. Roadmap idea i12. Lane CLOSED.
+   NEW P2 filed same session: silent re-align freezes the library UI.
 0b. ✅ **⏱ v3 verify FULLY DONE 2026-07-23** (record in the v3 block above): suites + MLX green,
    merged to `main`, Mac Dev sweep-per-activation eyeballed, AND the phone-open eyeball landed —
    first open under build 106 stamped 53 pre-v3 trashed notes at the open moment, all now showing
@@ -630,8 +633,8 @@ sheet unchanged), incl. the mid-transcribe deferred state. Follow-up (Tuur 2026-
 from the phone): + an **A0 import-moment state** — a once-only post-import prompt offering
 BOTH actions together ("start both and walk away; the ePub matches up on its own when
 transcription finishes") — the import→transcribe→auto-match chain already works in code
-(rounds 5–7); A0 makes it visible. **Awaiting Tuur sign-off (checks at the office) — not
-built.** ⚠️ Still Linux-authored: xcodebuild suite owed (with rounds 5+6) before install.
+(rounds 5–7); A0 makes it visible. **✅ SIGNED OFF 2026-07-23 (verify session, all 4
+phones walked) — build board = the ⭐ item-0 note above; roadmap idea i12. Not built.**
 
 **📖 ROUND 6 (Tuur 2026-07-22 ~23:11–23:16, Odyssey): read-along DROPS spoken text —
 FIXED (same branch `claude/epub-chapter-discrepancy-wlgvhd`).** Two sightings, one bug:
