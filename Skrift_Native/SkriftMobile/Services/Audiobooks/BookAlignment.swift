@@ -248,6 +248,39 @@ final class BookAlignmentStore: Sendable {
 
 // MARK: - Runner
 
+/// Live "this book is matching up its text right now" state, for any surface that would
+/// otherwise look FROZEN while a re-align runs (device finding 2026-07-23, Tuur: tapped a
+/// book, "I can't click any books, it seems to be frozen… maybe stuff's happening in the
+/// background, but it's annoying"). The schema-heal re-align takes ~12 min on a 13 h book
+/// and had NO surface at all — the attach flow's stage line only existed on the attach
+/// sheet. One observable, set by the runner, read by the library + the Text sheet.
+@MainActor
+final class BookTextActivity: ObservableObject {
+    static let shared = BookTextActivity()
+
+    /// The book currently matching up its text, if any (only ever one — the runner is serial).
+    @Published private(set) var bookID: UUID?
+    /// The runner's live stage line ("Reading the text…", "Matching the text…").
+    @Published private(set) var stage: String?
+
+    func begin(_ id: UUID, stage: String) {
+        bookID = id
+        self.stage = stage
+    }
+
+    func update(_ stage: String) {
+        guard bookID != nil else { return }
+        self.stage = stage
+    }
+
+    func end() {
+        bookID = nil
+        stage = nil
+    }
+
+    func isActive(_ id: UUID) -> Bool { bookID == id }
+}
+
 enum BookAlignmentRunner {
 
     struct AttachSummary: Equatable {
@@ -471,10 +504,18 @@ enum BookAlignmentRunner {
         // Bare closure, as in `attach` — the outer `let` annotation supplies the async+throws-
         // free effect signature the compiler needs (this closure only ever returns, never throws;
         // `parseBookFile`'s error is swallowed via `try?` since `alignIfNeeded` has no error path).
-        let realigned: [String: TextAlignOutcome] = await Task.detached(priority: .utility) { () -> [String: TextAlignOutcome] in
+        // Visible + polite (2026-07-23 device finding): the heal used to run silently at
+        // `.utility` with no surface, so a tapped book looked FROZEN for ~12 min. It now
+        // publishes its stage AND runs at `.background`, which yields to the UI far more
+        // readily; `Task.yield()` between files keeps the pool from monopolizing cores.
+        await MainActor.run { BookTextActivity.shared.begin(bookID, stage: "Matching up your book text…") }
+        defer { Task { @MainActor in BookTextActivity.shared.end() } }
+
+        let realigned: [String: TextAlignOutcome] = await Task.detached(priority: .background) { () -> [String: TextAlignOutcome] in
             var out: [String: TextAlignOutcome] = [:]
             for textName in localNames {
                 let url = folder.appendingPathComponent(textName)
+                await MainActor.run { BookTextActivity.shared.update("Reading the text…") }
                 guard let epubBook = try? parseBookFile(at: url) else {
                     DevLog.log("bookAlign[\(bookID)] re-parse failed for \(textName) — skipping re-align")
                     continue
@@ -487,7 +528,13 @@ enum BookAlignmentRunner {
                     let sig = transcriptStore.signature(forFileAt: audioURL)
                     guard let ft = transcriptStore.load(bookID: bookID, fileIndex: i, expectedSignature: sig),
                           !ft.words.isEmpty else { continue }
+                    await MainActor.run {
+                        BookTextActivity.shared.update(book.files.count > 1
+                            ? "Matching the text… (file \(i + 1) of \(book.files.count))"
+                            : "Matching the text against the transcript…")
+                    }
                     perFile[i] = alignFile(ft: ft, against: alignBlocks, textFilename: textName)
+                    await Task.yield()
                 }
                 out[textName] = TextAlignOutcome(perFile: perFile, toc: epubBook.toc, title: epubBook.title, epubSig: epubSig)
             }
@@ -495,6 +542,7 @@ enum BookAlignmentRunner {
         }.value
 
         guard !realigned.isEmpty else { return }
+        await MainActor.run { BookTextActivity.shared.update("Placing chapters…") }
 
         var transcriptSigs: [Int: String] = [:]
         for i in staleIndices {
@@ -532,10 +580,21 @@ enum BookAlignmentRunner {
     @MainActor
     static func textSummary(bookID: UUID, library: AudiobookLibraryStore = .shared) -> BookTextSummary? {
         guard let book = library.book(id: bookID) else { return nil }
+        return textSummary(book: book, directory: library.directory)
+    }
+
+    /// The same assembly with the record + directory handed in — `nonisolated` so callers
+    /// can run it OFF the main actor. This decodes every attached file's whole alignment
+    /// sidecar (9 MB / 7.5k sentences on the real Odyssey), which is far too heavy for a
+    /// SwiftUI `body` (2026-07-23: the sheet called the MainActor entry point on every
+    /// render — a guaranteed main-thread stall on the iPhone 13). The sheet now caches
+    /// this off-main; the MainActor wrapper above stays for cheap/one-shot callers.
+    nonisolated static func textSummary(book: Audiobook, directory: URL) -> BookTextSummary? {
+        let bookID = book.id
         let names = book.attachedTextFilenames
         guard !names.isEmpty else { return nil }
 
-        let store = BookAlignmentStore(directory: library.directory)
+        let store = BookAlignmentStore(directory: directory)
         let fileAlignments: [FileAlignment?] = book.files.indices.map { store.fileAlignment(bookID: bookID, fileIndex: $0) }
         let fileStarts = book.fileStartTimes
 

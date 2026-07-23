@@ -16,6 +16,7 @@ import SwiftUI
 struct BookTextSheet: View {
     let book: Audiobook
     @ObservedObject private var job = BookTranscriptionJob.shared
+    @ObservedObject private var textActivity = BookTextActivity.shared
     /// Content-sized start: a book with texts attached (bar + legend + rows) is
     /// taller than .medium — opening there read as "cut off" (Tuur, b111).
     @State private var detent: PresentationDetent
@@ -24,8 +25,9 @@ struct BookTextSheet: View {
         self.book = book
         self.busyMessage = busyMessage
         self.onAdd = onAdd
-        let hasTexts = !(BookAlignmentRunner.textSummary(bookID: book.id)?.perText.isEmpty ?? true)
-        _detent = State(initialValue: hasTexts ? .large : .medium)
+        // Cheap record-only check — never `textSummary` here (it decodes every
+        // sidecar; see `summary` below).
+        _detent = State(initialValue: book.attachedTextFilenames.isEmpty ? .medium : .large)
     }
     /// The presenting view's `attachToast` (busy-message overlay), hosted HERE instead —
     /// a plain view overlay on the presenting view is invisible once this `.sheet` covers the
@@ -42,13 +44,20 @@ struct BookTextSheet: View {
     /// see `summary` below.
     @State private var busyFilename: String?
 
-    /// Pure read, re-computed on every `body` evaluation — deliberately NOT cached in
-    /// `@State`. "The sheet's summary refreshes" (brief) then falls out for free from ordinary
-    /// SwiftUI re-render propagation: an attach completing on the presenting view mutates
-    /// ITS `@State`, which re-evaluates the `.sheet(item:)` closure and produces a fresh
-    /// `BookTextSheet`; a remove/re-check completing HERE mutates `busyFilename`. Either way
-    /// `body` re-runs and this re-reads straight from the sidecars — no manual invalidation.
-    private var summary: BookTextSummary? { BookAlignmentRunner.textSummary(bookID: book.id) }
+    /// Loaded OFF the main actor and cached (2026-07-23): this assembly decodes every
+    /// attached file's whole alignment sidecar — 9 MB / 7.5k sentences on the real
+    /// Odyssey — and it used to run on EVERY `body` evaluation on the main thread. Now
+    /// `.task(id:)` recomputes it exactly when something could have changed (a
+    /// remove/re-check finishing, an attach landing, a re-align completing).
+    @State private var summary: BookTextSummary?
+
+    /// Changes exactly when the summary could be stale: a row action starting/finishing,
+    /// the presenting view handing in a new busy state (attach in flight), or a background
+    /// re-align ending. Drives the `.task(id:)` reload.
+    private var summaryReloadKey: String {
+        "\(busyFilename ?? "-")|\(busyMessage ?? "-")|\(textActivity.isActive(book.id))"
+    }
+
     private var perText: [BookTextSummary.PerText] { summary?.perText ?? [] }
     private var bookDuration: TimeInterval { summary?.bookDuration ?? book.duration }
 
@@ -85,6 +94,22 @@ struct BookTextSheet: View {
             .padding(.horizontal, Theme.Space.margin)
             .padding(.bottom, 8)
 
+            if busyMessage == nil, textActivity.isActive(book.id), let stage = textActivity.stage {
+                // A background re-align (schema heal / re-check) is running for this book.
+                VStack(spacing: 3) {
+                    Text(stage)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
+                    Text("You can keep listening while this runs.")
+                        .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Color.skElev, in: RoundedRectangle.sk(16))
+                .transition(.opacity)
+                .padding(.bottom, 20)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .allowsHitTesting(false)
+            }
+
             if let busyMessage {
                 // Stage line + the standing reassurance (Tuur 2026-07-22: "didn't know
                 // if I could keep listening" — playback is genuinely unaffected).
@@ -103,6 +128,15 @@ struct BookTextSheet: View {
             }
         }
         .presentationDetents([.medium, .large], selection: $detent)
+        // Recompute the (expensive) summary off-main whenever something could have
+        // changed it: a row action finishing, or a background re-align completing.
+        .task(id: summaryReloadKey) {
+            let book = self.book
+            let directory = AudiobookLibraryStore.shared.directory
+            summary = await Task.detached(priority: .userInitiated) {
+                BookAlignmentRunner.textSummary(book: book, directory: directory)
+            }.value
+        }
         .confirmationDialog(
             pendingRemove.map { "Remove \u{201C}\($0.title ?? $0.filename)\u{201D}?" } ?? "",
             isPresented: Binding(get: { pendingRemove != nil }, set: { if !$0 { pendingRemove = nil } }),

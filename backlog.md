@@ -601,13 +601,25 @@ looked perfect, the sidecar was wrong; (2) a "collision rule" needs an explicit 
 SELF-collisions. Also for the record: -resumeBook DEBUG launch hook added (headless device
 verify via devicectl); untriaged b105-era crash 09:49 pulled (SIGKILL during a CoreData
 fetch — watchdog-flavored, pre-branch; feeds the pre-promotion profiling item).
-**NEW P2 from the live re-heal (Tuur, 2026-07-23 ~14:15, b109 on device): the silent
-book-open re-align FREEZES the library UI** — tap a book, then no book responds ("frozen…
-maybe stuff's happening in the background — annoying"). The schema-heal path has NO visible
-surface (R7's live stages exist only on the attach sheet) and the align's CPU starves the
-UI on the iPhone 13 (cpu_resource .ips reports confirm). Fix pair: (a) reuse the attach
-stage line as a small in-player/library pill for any running re-align ("Matching up your
-book text…"), (b) drop the align below .utility / add yields so the main thread breathes.
+**P2 re-align freeze — ✅ ADDRESSED b113 (2026-07-23, same session; device verify OWED).**
+Report (Tuur, ~14:15 on b109): tap a book, then no book responds ("frozen… maybe stuff's
+happening in the background — annoying"). What the code review found + fixed:
+- **PROVEN main-thread defect:** `BookAlignmentRunner.textSummary` is `@MainActor` and fully
+  decodes EVERY attached file's alignment sidecar (9.1 MB / 7,506 sentences with per-word
+  timings on the real Odyssey) — and `BookTextSheet.summary` called it on **every `body`
+  evaluation**. Now a `nonisolated` overload (record + directory in) loaded ONCE off-main
+  into `@State` via `.task(id:)`, keyed to the things that can actually change it; the
+  sheet's detent decision uses a record-only check instead of a decode.
+- **Starvation mitigation (not a proven root cause — needs the device to confirm):** the
+  re-align's detached task dropped `.utility` → `.background` + `Task.yield()` between
+  files, so the ~12-min heal yields to the UI.
+- **Visibility (the honest UX fix regardless of cause):** new `BookTextActivity` observable
+  (set by the runner, one active book) → the library row shows a spinner + live stage
+  ("Reading the text…" / "Matching the text…" / "Placing chapters…") in place of its
+  time-left line, and the Text sheet shows the same stage + "You can keep listening while
+  this runs." A heal can never again look like a hung app.
+**OWED:** b113 is built + suite-green but NOT installed — the iPhone dropped off USB at
+15:20. Install and confirm on the next device round (trigger a re-align via Re-check).
 Also: an app-killed-mid-align restart currently restarts the whole file from scratch —
 fine at 1 file, worth per-file resume if multi-file books grow. And the align dies with
 the app on lock when nothing is playing — the "keep listening" advice is real; consider

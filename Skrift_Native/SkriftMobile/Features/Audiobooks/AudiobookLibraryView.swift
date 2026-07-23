@@ -12,6 +12,8 @@ struct AudiobookLibraryView: View {
     @ObservedObject private var store = AudiobookLibraryStore.shared
     @ObservedObject private var session = AudiobookSession.shared
     @ObservedObject private var cloudSync = CloudSyncMonitor.shared
+    /// Live re-align state, so a matching-up book never reads as a frozen app.
+    @ObservedObject private var textActivity = BookTextActivity.shared
 
     /// Sort choice, persisted app-wide; the header chip is the control.
     @AppStorage("bookSortRaw") private var sortRaw = BookSort.recentlyPlayed.rawValue
@@ -482,6 +484,18 @@ struct AudiobookLibraryView: View {
                                 .font(.system(size: 10.5))
                                 .monospacedDigit()
                                 .foregroundStyle(Color.skAccentText)
+                        }
+                        .padding(.top, 3)
+                    } else if textActivity.isActive(book.id) {
+                        // A re-align is running for THIS book — say so, or the app just
+                        // looks frozen (device finding 2026-07-23). Never blocks anything:
+                        // the work is background, playback and taps keep working.
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.mini)
+                            Text(textActivity.stage ?? "Matching up your book text…")
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(Color.skAccentText)
+                                .lineLimit(1)
                         }
                         .padding(.top, 3)
                     } else {
