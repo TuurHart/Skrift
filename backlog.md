@@ -88,6 +88,33 @@ never zooms out") — the Mac's map-behind-Places likely never got the b90 camer
 Check whether the iPad pane is immune (it reuses the PHONE's `JournalMapCanvas`, so it should
 carry the fix — verify), then port the b90 rules to the Mac's `JournalView` map mode.
 
+**✅ V2 DECISIONS (Tuur mock review, 2026-07-23 — think-first session; BUILD NOT YET STARTED):**
+1. Shell: **system top tab strip accepted** ("that's how it is") — no custom bottom bar.
+2. Connections: **copy the Mac panel verbatim** — toolbar count-badge open/close (the Mac's
+   affordance, verified in desktop `ConnectionsPanel.swift`), Mac row anatomy, **drop the inline
+   closeness %** (Mac keeps it behind hover; touch shows none for now).
+3. Polish: **the Mac's verb** — visible Polish/Process button on an unpolished note; KILL the
+   polish-on-open toggle. Settings grows **Mac-parity polish settings incl. the three prompt
+   editors** (shared defaults; overrides LOCAL per device v1 — flag: local overrides can drift
+   the two polishers' voice; synced-prompts carrier (vocab-LWW pattern) = fast-follow if felt).
+   Double-polish race: SAFE by design — `enhancedAt` LWW + `MacCloudWriteBack`'s newer-write
+   guard (verified); both burn compute, one wins everywhere. Touch-up: that file's doc still
+   says "written ONLY by the Mac" (stale since the wave).
+4. **Then-vs-now → all three devices** (Tuur: "we should have that on all three"): phone ✓,
+   iPad ✓ (inherits), Mac ✗ (verified zero refs) — move `bestThenNow` + the 14d/6mo window
+   rule to `Shared/Retrieval`, card into the Mac Journal column.
+5. Map: one behavior on all three — port the phone b90 camera contract to the Mac (bullet
+   above); verify iPad's phone-canvas carries it on device.
+6. Books: shelf stays; **regular width presents the PHONE player** (width-capped) instead of
+   the three-zone layout — a clean canvas for the external book-expert chat that gets a
+   self-contained player to redesign (that handoff is that chat's job, not this board's).
+7. Notes list rows on iPad: **phone dialect** (locked reasoning: the list is capture-side —
+   phone rows; Mac dress only inside Mac-job surfaces like Connections/polish. The written
+   phone↔Mac row divergence stays by-design).
+8. Record card: unchanged. Mock upkeep: patch m3/m5 (+ m6 note) to v2 before building
+   (mock-first), add as-built screenshots; m1/m4 stand (the build is truer than the drawing —
+   real SF Symbols/components; mock glyphs were approximations).
+
 **Parked/flagged en route:** SHELL: last-note-delete in the detail pane leaves a stale pane until
 a tap (MemoDetailView dismiss is a no-op at pane root — 1-line fix candidate in DETAIL's file) ·
 DETAIL: related derivation double-computes at regular (footer hidden + panel; gate on hSize if it
