@@ -594,6 +594,7 @@ enum AudiobookCloudSync {
         let step = alignmentStep(applied: defaults.string(forKey: appliedKey),
                                  signature: record.alignmentSignature,
                                  localHasEpubChapters: library.book(id: book.id)?.epubChapters?.isEmpty == false)
+        DevLog.log("alignSync \(book.id): step=\(step) sig=\(record.alignmentSignature) marker=\(defaults.string(forKey: appliedKey) ?? "nil")")
         guard step != .skip else { return }
         if step == .downloadAndApply {
             try? await transport.download(alignmentRefs(for: book), into: folder) { _ in }
@@ -606,6 +607,7 @@ enum AudiobookCloudSync {
             return store.isFresh(fa, bookID: book.id, fileIndex: i,
                                  audioURL: folder.appendingPathComponent(book.files[i]))
         }
+        DevLog.log("alignSync \(book.id): loaded=\(fileAlignments.compactMap { $0 }.count)/\(book.files.count) allFresh=\(allFresh) verdicts=\(fileAlignments.map { $0?.verdict ?? "nil" }) marks=\(fileAlignments.map { $0?.chapterMarks.count ?? -1 })")
         guard allFresh else { return }
 
         // Derive from the LOCAL record: `book` is the sanitized REMOTE blob, whose
@@ -628,6 +630,7 @@ enum AudiobookCloudSync {
         // disk while the sheet showed file-split parts. A mark-less alignment still
         // latches (count 0) so it costs one decode, not one per reconcile.
         let persisted = library.book(id: book.id)?.epubChapters?.count ?? 0
+        DevLog.log("alignSync \(book.id): derived=\(chapters.count) persisted=\(persisted)")
         guard chapters.isEmpty || persisted > 0 else { return }
         defaults.set("\(record.alignmentSignature)#\(persisted)", forKey: appliedKey)
     }
