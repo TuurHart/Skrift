@@ -11,3 +11,4 @@ DerivedData/
 *.xcuserstate
 
 build-release-device/
+build-phone/
