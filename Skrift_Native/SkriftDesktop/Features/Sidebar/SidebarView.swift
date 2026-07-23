@@ -294,29 +294,32 @@ struct SidebarView: View {
         .help("Sort & filter")
         .accessibilityIdentifier("sidebar.filter")
         .popover(isPresented: $showFilterPopover, arrowEdge: .bottom) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Sort & Filter").font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 6)
                 Text("SORT").font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.textMuted).padding(.horizontal, 12).padding(.top, 10)
+                    .foregroundStyle(Theme.textMuted).padding(.horizontal, 16).padding(.top, 4)
                 ForEach(SidebarSort.allCases, id: \.self) { s in
                     Button { model.sort = s } label: {
                         HStack {
-                            Text(s.rawValue).font(.system(size: 12.5))
+                            Text(s.rawValue).font(.system(size: 13))
                             Spacer()
                             if model.sort == s {
-                                Image(systemName: "checkmark").font(.system(size: 11, weight: .semibold))
+                                Image(systemName: "checkmark").font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(Theme.accent)
                             }
                         }
                         .foregroundStyle(Theme.textPrimary)
-                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .padding(.horizontal, 16).padding(.vertical, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .frame(width: 190)
-            .padding(.bottom, 8)
+            .frame(width: 260)
+            .padding(.bottom, 12)
         }
     }
 

@@ -175,6 +175,9 @@ struct MemosListView: View {
                 let shown = mode != .detailOnly
                 if shown != listVisible { listVisible = shown }
             }
+            .onAppear {
+                if LaunchFlags.showFilterSheet { showSortFilter = true }
+            }
             // Screenshot rig (`-selectFirstMemo`): deterministically fill the
             // detail pane so the m3 layout renders without a tap.
             .onAppear {
@@ -287,7 +290,7 @@ struct MemosListView: View {
             }
             #endif
             .sheet(isPresented: $showSortFilter) {
-                SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces, showNotRated: !isRegular)
+                SortFilterSheet(sort: $sort, filter: $filter, places: availablePlaces, showPhoneFilters: !isRegular)
             }
             // A sheet rather than a push: the stack's path is typed [UUID] for
             // memo detail, which a non-memo destination can't join. (Settings +
@@ -1625,11 +1628,12 @@ private struct SortFilterSheet: View {
     @Binding var sort: MemoSort
     @Binding var filter: MemoFilter
     let places: [String]
-    /// The Unrated CHIP owns "not rated" at regular width, so the sheet hides
-    /// that one toggle there (Tuur 2026-07-23: no double filter). The phone has
-    /// no chips, so it keeps the toggle. Sort lives here on BOTH now — the
-    /// single Filter button is the one home for sort + filter.
-    var showNotRated = true
+    /// The phone-only filters (Not rated · Has photos · Place). On the iPad
+    /// (regular) these are gone (Tuur 2026-07-23: the Unrated chip owns not-rated;
+    /// "we don't even need to filter by photos or place… remove it from iPad" —
+    /// place lives on the Review screen). The phone keeps them (no chips there).
+    /// Sort + Date + Unsynced stay on both.
+    var showPhoneFilters = true
     @Environment(\.dismiss) private var dismiss
 
     // Optional-date bindings: a toggle enables the bound (today by default), the
@@ -1659,17 +1663,19 @@ private struct SortFilterSheet: View {
                     .labelsHidden()
                 }
                 Section("Filter") {
-                    if showNotRated {
+                    if showPhoneFilters {
                         Toggle("Not rated", isOn: $filter.notRatedOnly)
                             .accessibilityIdentifier("filter-notrated")
                     }
                     Toggle("Unsynced only", isOn: $filter.unsyncedOnly)
                         .accessibilityIdentifier("filter-unsynced")
-                    Toggle("Has photos", isOn: $filter.hasPhotosOnly)
-                    if !places.isEmpty {
-                        Picker("Place", selection: $filter.place) {
-                            Text("Any").tag(String?.none)
-                            ForEach(places, id: \.self) { Text($0).tag(String?.some($0)) }
+                    if showPhoneFilters {
+                        Toggle("Has photos", isOn: $filter.hasPhotosOnly)
+                        if !places.isEmpty {
+                            Picker("Place", selection: $filter.place) {
+                                Text("Any").tag(String?.none)
+                                ForEach(places, id: \.self) { Text($0).tag(String?.some($0)) }
+                            }
                         }
                     }
                 }
@@ -1706,7 +1712,9 @@ private struct SortFilterSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        // Bigger than the cramped medium box (Tuur 2026-07-23: "this could be
+        // bigger… doesn't have to be this weird small shape").
+        .presentationDetents([.large])
     }
 }
 
