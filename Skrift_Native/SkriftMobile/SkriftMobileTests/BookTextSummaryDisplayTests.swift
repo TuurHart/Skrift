@@ -242,6 +242,11 @@ final class BookTextSummaryDisplayTests: XCTestCase {
                        "Both run in the background — you can keep listening.")
     }
 
+    func testAddRowLabelAcknowledgesAttachedTexts() {
+        XCTAssertEqual(BookTextDisplay.addRowLabel(hasTexts: false), "Add book text…")
+        XCTAssertEqual(BookTextDisplay.addRowLabel(hasTexts: true), "Add another text…")
+    }
+
     // MARK: - A0 once-only bookkeeping
 
     func testBookTextPromptSeenIsOnceOnlyAndPerBook() throws {

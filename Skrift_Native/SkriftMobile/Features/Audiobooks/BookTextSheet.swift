@@ -413,7 +413,7 @@ struct BookTextSheet: View {
 
     private var addRow: some View {
         Button(action: onAdd) {
-            Text("\u{FF0B} Add book text\u{2026}")
+            Text("\u{FF0B} \(BookTextDisplay.addRowLabel(hasTexts: !perText.isEmpty))")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.skAccent)
                 .frame(maxWidth: .infinity)
@@ -504,6 +504,14 @@ enum BookTextDisplay {
         if coveredPercent > 0 { return "Real book text covers \(coveredPercent)% of this audiobook" }
         if transcribing, hasWaitingText { return "Transcribing · the book text is queued behind it." }
         return "Give this audiobook words — transcribe it, then add the real book for the published text."
+    }
+
+    /// The dashed add row's label (Tuur amendment, b110 eyeball 2026-07-23: "it
+    /// already got text… the text should change once you already uploaded a book
+    /// and it got matched") — the bare invitation only while Level 2 is empty;
+    /// with any text attached it reads as the multi-ePub affordance it is.
+    static func addRowLabel(hasTexts: Bool) -> String {
+        hasTexts ? "Add another text\u{2026}" : "Add book text\u{2026}"
     }
 
     /// The sheet footer (mock A1/A2/A3).
