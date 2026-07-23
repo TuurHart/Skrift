@@ -506,7 +506,11 @@ transcript, no churn from player opens.
 (4) **Unify transcribe + book-text menus** ("both are about adding text — two levels") —
 DESIGN, so mock-first: `mocks/book-text-unified.html` proposes ONE "Text…" verb/sheet:
 Level 1 Transcript (status/progress/Transcribe), Level 2 Book text (today's signed-off
-sheet unchanged), incl. the mid-transcribe deferred state. **Awaiting Tuur sign-off — not
+sheet unchanged), incl. the mid-transcribe deferred state. Follow-up (Tuur 2026-07-23,
+from the phone): + an **A0 import-moment state** — a once-only post-import prompt offering
+BOTH actions together ("start both and walk away; the ePub matches up on its own when
+transcription finishes") — the import→transcribe→auto-match chain already works in code
+(rounds 5–7); A0 makes it visible. **Awaiting Tuur sign-off (checks at the office) — not
 built.** ⚠️ Still Linux-authored: xcodebuild suite owed (with rounds 5+6) before install.
 
 **📖 ROUND 6 (Tuur 2026-07-22 ~23:11–23:16, Odyssey): read-along DROPS spoken text —
