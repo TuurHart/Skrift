@@ -44,9 +44,24 @@ so a forgotten note could be purged BEFORE the first post-absence render.
   the standing promotion checklist. Pre-v3 trash (stamp nil) gets its clock started at the first
   post-update open — a one-time ≤14-day purge deferral, never an early purge.
 
-**OWED (first Mac session):** run both suites + the `-skipMacroValidation` desktop build; then the
-usual Dev-deploy eyeball (open phone after a synced-in Mac delete → row shows full 14d, not "Deleting
-soon"; cmd-tab the Mac → sweep fires once).
+**VERIFIED 2026-07-23 (Mac session) + merged to `main` (93c5a8a):**
+- Suites green: mobile 868 unit / 0 fail (863 + the 5 new v3 tests), desktop 490 / 0 + full MLX
+  build. The 18 mobile UI-bundle failures are the known deferred iOS-26 set — re-ran the 4
+  not-yet-catalogued ones on the pre-v3 base commit: identical failures, so v3 added ZERO.
+- Mac Dev deployed + eyeballed live: exactly one "lifecycle sweep ran over N memos" at launch and
+  one per cmd-tab activation, none while idle (log stream, 3 cycles).
+- Phone: build 106 (v3) installed + binary-verified on device; **launch eyeball BLOCKED — phone
+  locked** (fittingly, the doors really don't move without a human open). OWED Tuur: unlock →
+  open Skrift Dev; optional cross-device round (Mac-delete a throwaway → phone shows "14 days
+  left"). NOTE the brief's expected devlog line was wrong: a Mac DELETE GESTURE syncs in WITH its
+  stamp (by design), so "FadingSweep: purge clock started for N synced-in trashed note(s)" fires
+  only for PRE-v3/unstamped trash — e.g. after an old-build write erased the field.
+- ⚠️ **Concurrent-session hazard found live:** another worktree session (`gracious-easley`,
+  audiobook branch at pre-v3 3d3b71e) ran ITS Dev desktop build against the shared Dev store —
+  SwiftData migrated the schema DOWN (dropped `trashSeenAt`), my running v3 app's fetches then
+  failed silently ("0 memos") until relaunch (relaunch re-migrates up; 103 rows intact, verified
+  via sqlite; erased stamps are doctrine-safe = unseen again). Until every desktop-running session
+  is on ≥ 93c5a8a, pre-v3 Dev launches will keep flip-flopping the schema — rebase that branch.
 
 **Built (commits cbf87ff → a3fb3ae → c14daf5, desktop 487 + mobile 863 green, full MLX build green):**
 - **Shared:** `clockStart = max(recordedAt, keptAt)`; `markEdited()` bumps `keptAt` (all 19 call
@@ -91,9 +106,9 @@ aligned"), real-TOC chapters w/ honest partial-merge, multi-text sheet w/ time-t
 on phone b102; Mac Dev current (v0.15.5 + all harnesses). Sections below = the full record.
 
 **NEXT CHAT'S WORK (in order):**
-0. **⏱ v3 verify FIRST (2026-07-23, see the "⏱ v3 amendment" OWED block above):** both suites +
-   full MLX build on branch `claude/note-deletion-app-open-5r5z56` — written in a Linux session,
-   zero compiles run — then merge to `main` once green.
+0. ✅ **⏱ v3 verify DONE 2026-07-23** (record in the v3 block above): suites + MLX green, merged
+   to `main` (93c5a8a), Mac Dev deployed + sweep-per-activation eyeballed, phone 106 installed.
+   Still owed there: the phone-OPEN eyeball (phone was locked) — first unlock runs the stamp pass.
 1. **Pull phone feedback if Tuur recorded any** (/pull-phone-feedback) — 4 live rounds today
    means fresh findings likely.
 2. **🧬 walkthrough tail (eyes, guided — b92-era items still unconfirmed):** untouched-note
