@@ -172,8 +172,14 @@ Mac-header rebuild.** LANDSCAPE RECLAIM CONFIRMED (his 19:06 device shot + my si
   import menu**; it's now a single **filter/sort icon** opening the advanced sheet (place/date/photos/
   unsynced — the axes the chips don't cover). Answers his "is [⋯] not the same as import?".
 - **Identity row: kept Notes + Select** (he "like[s] that the iPad has select"); NOT Skrift+gear.
+- **ONE sort control (`ef6d772`, build 123):** Tuur circled the inline "Newest" cycle AND "Oldest
+  first" in the sheet — sort was in two places + the cycle couldn't jump. Now the inline control is a
+  **direct-pick Menu** (any sort in one tap, current checked), and the ⋯ filter sheet **drops its Sort
+  section at regular** (retitled "Filter"; the phone keeps it via a `showSort` flag since it has no
+  inline control).
 Gate: mobile 971/0, desktop 496/0, all builds green. Sim-verified upright (rotated the landscape
-capture; chips/Import/Search-memos/no-count all render).
+capture; chips/Import/Search-memos/no-count all render). Sort-MENU interaction owed on device (the sim
+is stuck landscape from Tuur's flip → rotated tap space; the Menu+Picker pattern is proven in-file).
 
 **⬛ HEADER = THE MAC SIDEBAR (`fc0b83a`, build 121, installed on the iPad).** Tuur on the
 device (landscape): "the empty space in top left is shit" + "make that look the same" as the Mac
