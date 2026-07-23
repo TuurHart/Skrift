@@ -304,6 +304,25 @@ final class AlignedSentenceSourceTests: XCTestCase {
         XCTAssertEqual(result?.map(\.text), ["Hello wurld today."])
     }
 
+    /// Schema 4: a BRIDGED sentence (aligner hole, corroborated sandwich) carries
+    /// confidence 0 by design — the flag, not the confidence, makes it render as book
+    /// text. Its splice range also counts as covered, so gap fill never doubles it.
+    func testBridgedSentenceRendersBookTextNotASR() {
+        let transcriptWords = [
+            makeWord("gamma", 2.0, 2.5), makeWord("delta", 2.5, 3.0), makeWord("epsilon", 3.0, 3.5),
+        ]
+        var bridged = makeSentence("Gamma delta epsilon.", start: 2.0, end: 3.5,
+                                   wordStart: 0, wordEnd: 3, confidence: 0)
+        bridged.bridged = true
+        let fa = makeAlignment(sentences: [bridged])
+        let result = AlignedSentenceSource.sentences(
+            alignment: fa, isFresh: true, transcriptWords: transcriptWords,
+            snappedStart: 0, snappedEnd: 0
+        )
+        XCTAssertEqual(result?.map(\.text), ["Gamma delta epsilon."],
+                       "book text renders once — no ASR splice, no gap-fill duplicate")
+    }
+
     func testUncoveredWordRangesUnionsOverlapsAndClamps() {
         let overlapping = [
             makeSentence("A.", start: 0, end: 1, wordStart: 3, wordEnd: 8, confidence: 0.9),

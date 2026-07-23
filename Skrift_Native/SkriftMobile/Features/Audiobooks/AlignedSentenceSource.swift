@@ -73,7 +73,10 @@ enum AlignedSentenceSource {
         else { return nil }
 
         let mapped: [BufferSentence] = alignment.sentences.flatMap { sentence -> [BufferSentence] in
-            guard sentence.confidence >= confidenceFloor else {
+            // Bridged sentences (schema 4) carry confidence 0 BY DESIGN — nothing was
+            // matched; the corroborated sandwich is the trust basis, so they render as
+            // book text, never as an ASR splice.
+            guard sentence.confidence >= confidenceFloor || sentence.bridged == true else {
                 return asrFallback(
                     for: sentence, transcriptWords: transcriptWords,
                     snappedStart: snappedStart, snappedEnd: snappedEnd

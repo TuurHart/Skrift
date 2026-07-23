@@ -65,14 +65,20 @@ struct BookTextSheet: View {
             .padding(.bottom, 8)
 
             if let busyMessage {
-                Text(busyMessage)
-                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Color.skElev, in: .capsule)
-                    .transition(.opacity)
-                    .padding(.bottom, 20)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-                    .allowsHitTesting(false)
+                // Stage line + the standing reassurance (Tuur 2026-07-22: "didn't know
+                // if I could keep listening" — playback is genuinely unaffected).
+                VStack(spacing: 3) {
+                    Text(busyMessage)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.skText)
+                    Text("You can keep listening while this runs.")
+                        .font(.system(size: 10.5)).foregroundStyle(Color.skTextDim)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Color.skElev, in: RoundedRectangle.sk(16))
+                .transition(.opacity)
+                .padding(.bottom, 20)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .allowsHitTesting(false)
             }
         }
         .presentationDetents([.medium])
