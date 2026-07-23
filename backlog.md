@@ -588,6 +588,17 @@ looked perfect, the sidecar was wrong; (2) a "collision rule" needs an explicit 
 SELF-collisions. Also for the record: -resumeBook DEBUG launch hook added (headless device
 verify via devicectl); untriaged b105-era crash 09:49 pulled (SIGKILL during a CoreData
 fetch — watchdog-flavored, pre-branch; feeds the pre-promotion profiling item).
+**NEW P2 from the live re-heal (Tuur, 2026-07-23 ~14:15, b109 on device): the silent
+book-open re-align FREEZES the library UI** — tap a book, then no book responds ("frozen…
+maybe stuff's happening in the background — annoying"). The schema-heal path has NO visible
+surface (R7's live stages exist only on the attach sheet) and the align's CPU starves the
+UI on the iPhone 13 (cpu_resource .ips reports confirm). Fix pair: (a) reuse the attach
+stage line as a small in-player/library pill for any running re-align ("Matching up your
+book text…"), (b) drop the align below .utility / add yields so the main thread breathes.
+Also: an app-killed-mid-align restart currently restarts the whole file from scratch —
+fine at 1 file, worth per-file resume if multi-file books grow. And the align dies with
+the app on lock when nothing is playing — the "keep listening" advice is real; consider
+a BGProcessingTask ride-along for the heal case (parked, standalone-phase candidate).
 
 **📖 ROUND 7 (Tuur 2026-07-23, going over rounds 5+6): four items, all handled (same
 branch `claude/epub-chapter-discrepancy-wlgvhd`).**
