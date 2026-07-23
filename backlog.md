@@ -190,6 +190,14 @@ Mac-header rebuild.** LANDSCAPE RECLAIM CONFIRMED (his 19:06 device shot + my si
     landscape, rotated tap space), and a **Mac Dev redeploy** to eyeball its Filter popover.
   Gate: mobile 971/0, desktop 496/0, all builds green; header sim-verified (single Filter button, clean
   identity row).
+- **FILTER SHEET bigger + trimmed (`ce41f77`, build 125):** Tuur on device — the iPad Filter sheet is
+  a **`.large` detent** now (was the cramped medium box); **Place + Has-photos removed** at regular
+  ("place I'd go to the Review screen; photos I don't need") — gated phone-only via `showPhoneFilters`
+  (phone keeps them + Not-rated). iPad Filter = **Sort + Unsynced + Date**. Mac Filter popover enlarged
+  (260pt, "Sort & Filter" title). Big sheet sim-verified. Rig: `-showFilterSheet` presents it on launch.
+  **OPEN (asked Tuur):** (1) **phone** — bring the chips + Filter button to match the iPad, or leave it?
+  (2) **Mac filter depth** — the Mac popover is Sort-only; add Date (parity with the iPad) or leave Sort?
+  Also owed: Mac Dev redeploy to eyeball its enlarged Filter popover.
 Gate: mobile 971/0, desktop 496/0, all builds green. Sim-verified upright (rotated the landscape
 capture; chips/Import/Search-memos/no-count all render). Sort-MENU interaction owed on device (the sim
 is stuck landscape from Tuur's flip → rotated tap space; the Menu+Picker pattern is proven in-file).
