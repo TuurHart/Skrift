@@ -1,0 +1,218 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Skrift iPad — chrome that belongs</title></head><body>
+<style>
+  :root{
+    --bg:#f4f4f7; --card:#ffffff; --ink:#1a1a24; --dim:#5a5a6e; --faint:#8a8a9c;
+    --line:rgba(20,20,40,.10);
+    --accent:#6a59e0; --note:#d9663a; --note-soft:rgba(217,102,58,.12);
+    --d-bg:#0f0f16; --d-surf:#15151f; --d-elev:#1b1b28; --d-ink:#ececf4;
+    --d-dim:#9a9ab2; --d-faint:#5f5f75; --d-line:rgba(255,255,255,.08);
+    --d-accent:#8e7dff; --d-accent-soft:rgba(142,125,255,.16);
+    --d-amber:#d9a13a;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0b0b10; --card:#14141c; --ink:#ececf4; --dim:#9a9ab2; --faint:#63637a;
+      --line:rgba(255,255,255,.09); --accent:#9a8bff; --note:#ff906b; --note-soft:rgba(255,144,107,.14); }
+  }
+  :root[data-theme="light"]{ --bg:#f4f4f7; --card:#fff; --ink:#1a1a24; --dim:#5a5a6e; --faint:#8a8a9c;
+    --line:rgba(20,20,40,.10); --accent:#6a59e0; --note:#d9663a; --note-soft:rgba(217,102,58,.12); }
+  :root[data-theme="dark"]{ --bg:#0b0b10; --card:#14141c; --ink:#ececf4; --dim:#9a9ab2; --faint:#63637a;
+    --line:rgba(255,255,255,.09); --accent:#9a8bff; --note:#ff906b; --note-soft:rgba(255,144,107,.14); }
+
+  *{box-sizing:border-box}
+  .wrap{font-family:var(--font); background:var(--bg); color:var(--ink);
+    max-width:1120px; margin:0 auto; padding:40px 24px 80px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;}
+  .kicker{font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--note); margin:0 0 10px;}
+  h1{font-size:30px; line-height:1.15; font-weight:800; letter-spacing:-.02em; margin:0 0 12px; text-wrap:balance;}
+  .lede{font-size:16px; color:var(--dim); max-width:66ch; margin:0 0 18px;}
+  .lede b{color:var(--ink)}
+  .q{font-size:14.5px; color:var(--ink); max-width:70ch; margin:0 0 30px;
+    padding:14px 16px; background:var(--note-soft); border-left:3px solid var(--note); border-radius:8px;}
+  .q b{color:var(--note)}
+
+  .ipad{background:var(--d-bg); border:1px solid var(--d-line); border-radius:20px;
+    overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.28);
+    color:var(--d-ink); font-size:12px; position:relative;}
+  .status{display:flex; justify-content:space-between; align-items:center;
+    padding:7px 16px 0; font-size:10.5px; color:var(--d-dim); font-weight:600;}
+  .tabbar{display:flex; justify-content:center; gap:2px; padding:8px 0 10px;}
+  .tab{padding:5px 14px; border-radius:9px; color:var(--d-dim); font-weight:600; font-size:12px;}
+  .tab.on{background:var(--d-elev); color:var(--d-ink);}
+
+  .cols{display:flex; min-height:430px; border-top:1px solid var(--d-line); align-items:stretch; position:relative;}
+  .slidecol{overflow:hidden; transition:width .28s ease; flex:none;}
+  .col-list{width:250px; background:var(--d-surf); border-right:1px solid var(--d-line);}
+  .col-list .inner{width:250px; padding:0 14px 14px; margin-left:auto;}
+  .col-conn{width:250px; background:var(--d-surf); border-left:1px solid var(--d-line);}
+  .col-conn .inner{width:250px; padding:0 14px 14px; margin-left:auto;}
+  .cols.list-closed .col-list{width:0; border-right-width:0;}
+  .cols.conn-closed .col-conn{width:0; border-left-width:0;}
+  @media (prefers-reduced-motion:reduce){ .slidecol,.aguard,.measure,.gbtn{transition:none!important} }
+
+  .muted{opacity:.65;}
+  .lrow{height:9px; border-radius:4px; background:var(--d-elev); margin:9px 0;}
+  .lrow.s{width:60%} .lrow.m{width:82%}
+  .panelh{font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--d-faint);}
+  .chip{display:inline-block; font-size:10.5px; padding:3px 8px; border-radius:6px; color:var(--d-dim);}
+  .chip.on{background:var(--d-accent-soft); color:var(--d-accent); box-shadow:inset 0 0 0 1px rgba(142,125,255,.25);}
+  .btnrow{display:flex; gap:6px; margin:8px 0;}
+  .btn{flex:1; text-align:center; font-size:11px; font-weight:600; padding:6px 0; border-radius:7px; background:var(--d-elev); color:var(--d-ink);}
+  .btn.acc{background:var(--d-accent); color:#fff;}
+  .pill{display:inline-flex; border:1px solid var(--d-line); border-radius:7px; overflow:hidden; font-size:10px;}
+  .pill span{padding:3px 9px; color:var(--d-dim);}
+  .pill span.on{background:var(--d-elev); color:var(--d-ink); font-weight:650;}
+  .listtitle{font-size:16px; font-weight:800; color:var(--d-ink);}
+
+  /* the top LINE: list header row and note bar share one 46pt baseline */
+  .listhead{display:flex; align-items:center; gap:8px; min-height:46px; padding-left:40px;}
+  .listhead .sel{margin-left:auto; color:var(--d-accent); font-size:11px;}
+
+  .workbench{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .chromebar{display:flex; align-items:center; gap:8px; padding:7px 14px; min-height:46px;
+    border-bottom:1px solid var(--d-line);}
+  .wrow{flex:1; display:flex; min-height:0; align-items:stretch;}
+  .spacer{flex:1;}
+  .aguard{width:150px; transition:width .28s ease; flex:none;}
+  .cols.conn-closed .aguard{width:0;}
+
+  /* iPadOS-26 glass containment: every bar control sits IN something */
+  .gbtn{width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
+    color:var(--d-dim); font-size:13.5px; flex:none;
+    background:rgba(255,255,255,.055); box-shadow:inset 0 0 0 .5px rgba(255,255,255,.09);
+    cursor:pointer; transition:color .2s, background .2s;}
+  .gbtn.on{color:var(--d-accent); background:var(--d-accent-soft);}
+  .gcap{height:30px; border-radius:15px; display:flex; align-items:center; gap:6px; padding:0 12px;
+    font-size:11.5px; font-weight:650; flex:none; cursor:pointer;
+    color:var(--d-accent); background:var(--d-accent-soft);}
+  .gcap.quiet{color:var(--d-dim); background:rgba(255,255,255,.055);
+    box-shadow:inset 0 0 0 .5px rgba(255,255,255,.09); transition:color .2s, background .2s;}
+  .gcap.quiet.on{color:var(--d-accent); background:var(--d-accent-soft); box-shadow:none;}
+  .gcap .cnt{font-weight:800;}
+
+  /* ◧ — ONE button, pinned to the screen, surfaces slide under it.
+     46pt line below the tabbar → centered at top:8px of .cols */
+  .sidebtn{position:absolute; top:8px; left:14px; z-index:5;}
+
+  .col-note{flex:1; display:flex; flex-direction:column; min-width:0; background:var(--d-bg);}
+  .notescroll{flex:1; padding:16px 20px 10px 26px; display:flex; min-width:0;}
+  .measure{max-width:62%; width:100%; transition:max-width .28s ease, margin .28s ease;
+    display:flex; flex-direction:column; gap:11px; margin:0;}
+  .cols.list-closed .measure{max-width:76%; margin:0 auto;}
+  .h2t{font-size:15px; font-weight:700; color:var(--d-ink); padding-bottom:9px; border-bottom:1px solid var(--d-line);}
+  .metar{display:flex; gap:6px; flex-wrap:wrap;}
+  .mchip{font-size:10px; padding:3px 8px; border-radius:6px; background:var(--d-elev); color:var(--d-dim);}
+  .dots{display:flex; gap:5px; margin-top:2px;}
+  .dot{width:13px; height:13px; border-radius:50%; box-shadow:inset 0 0 0 1.4px var(--d-faint);}
+  .fade{font-size:10.5px; color:var(--d-amber);}
+  .tx{font-size:12px; color:var(--d-dim); line-height:1.55;}
+
+  .playerdock{border-top:1px solid var(--d-line); background:var(--d-surf);
+    display:flex; align-items:center; gap:11px; padding:10px 20px 12px 26px;}
+  .play{width:30px; height:30px; border-radius:50%; background:var(--d-accent); color:#fff; display:grid; place-items:center; font-size:12px; flex:none;
+    box-shadow:0 3px 8px rgba(142,125,255,.4);}
+  .skip{color:var(--d-ink); font-size:13px; width:22px; text-align:center; flex:none;}
+  .time{font-size:10.5px; color:var(--d-dim); font-variant-numeric:tabular-nums; flex:none;}
+  .scrub{flex:1; height:3.5px; border-radius:3px; background:rgba(255,255,255,.14); position:relative; max-width:520px;}
+  .scrub::after{content:""; position:absolute; left:0; top:0; height:100%; width:14%; border-radius:3px; background:var(--d-accent);}
+  .scrub::before{content:""; position:absolute; left:14%; top:50%; width:11px; height:11px; border-radius:50%; background:#fff; transform:translate(-50%,-50%);}
+  .rate{font-size:11px; font-weight:700; color:var(--d-ink); padding:3px 7px; border-radius:7px; box-shadow:inset 0 0 0 1px var(--d-line); flex:none;}
+
+  .connhead{display:flex; align-items:center; justify-content:space-between; padding:14px 0 10px;}
+
+  .hint{font-size:12.5px; color:var(--dim); margin:10px 2px 0;}
+  .hint b{color:var(--note)}
+
+  .notes{margin:22px 0 0; display:flex; flex-direction:column; gap:7px;}
+  .anote{display:flex; gap:9px; font-size:13px; color:var(--ink); align-items:baseline;}
+  .anote .pin{color:var(--note); font-weight:800; flex:none;}
+  .anote b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <p class="kicker">Skrift · iPad note view · chrome that belongs</p>
+  <h1>Kill the twin. Pin the one that stays.</h1>
+  <p class="lede">The honest critique of everything so far: <b>the ◧/◨ "matched pair" was a design lie.</b> The list is navigation; Connections is an inspector — no Apple app mirrors two naked sidebar glyphs across one bar, and close-but-not-system is the exact uncanny valley you keep feeling. So: <b>one</b> sidebar button that never moves, a <b>labeled chip</b> instead of the right glyph, and every control sits in iPadOS-26 glass instead of hanging bare.</p>
+  <p class="q"><b>Three rules, no exceptions:</b> a control lives ON the thing it controls · a panel you can't see gets a <b>label with a reason</b> ("Connections · 6"), not an abstract glyph · nothing floats — every control has a container, every container sits on a surface.</p>
+
+  <div class="ipad">
+    <div class="status"><span>12:19 · Fri 24 Jul</span><span>🎧 70% ▪</span></div>
+    <div class="tabbar"><span class="tab on">Notes</span><span class="tab">Books</span><span class="tab">Review</span><span class="tab">Settings</span></div>
+    <div class="cols" id="cols">
+      <!-- ◧: ONE button, screen-pinned; the gray slides out from under it -->
+      <div class="gbtn on sidebtn" id="tglL" role="button" tabindex="0" aria-label="Hide notes list">◧</div>
+
+      <div class="slidecol col-list muted"><div class="inner">
+        <div class="listhead"><span class="listtitle">Notes</span><span class="sel">Select</span></div>
+        <div class="btnrow"><span class="btn">＋ Import</span><span class="btn acc">▶ Process 15</span></div>
+        <div style="margin:6px 0"><span class="chip on">All</span><span class="chip">Needs&nbsp;Work</span><span class="chip">Done</span></div>
+        <div class="lrow m"></div><div class="lrow s"></div><div class="lrow m"></div><div class="lrow s"></div><div class="lrow m"></div>
+      </div></div>
+
+      <div class="workbench">
+        <div class="chromebar">
+          <!-- leading stays clear: ◧ is the screen-pinned button to the left of
+               this bar when the list is closed; the list header owns the slot
+               when it's open -->
+          <div class="spacer"></div>
+          <div class="gcap">▶ Process</div>
+          <div class="gbtn">＋</div><div class="gbtn">⋯</div>
+          <div class="aguard"></div>
+          <div class="gcap quiet on" id="tglR" role="button" tabindex="0" aria-label="Hide Connections">
+            ◨&nbsp;Connections&nbsp;<span class="cnt">6</span>
+          </div>
+        </div>
+        <div class="wrow">
+          <div class="col-note">
+            <div class="notescroll">
+              <div class="measure">
+                <div class="h2t">Hey his name is Harry and he's a dumbass Yeah yeah…</div>
+                <div class="metar"><span class="mchip">Yesterday · 20:25</span><span class="mchip">+ Tag</span></div>
+                <div class="dots"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+                <div class="fade">starts fading 22 Aug — rate it to keep it</div>
+                <div class="tx">Hey his name is Harry and he's a dumbass Yeah yeah yeah yeah Oh my god, what the fuck, I'm here.</div>
+                <div class="tx" style="flex:1">Tap ◧ top-left: the gray sheet slides out from under it and the button is simply sitting in the note's bar — it never traveled. Tap the Connections chip: the panel arrives beneath its own label.</div>
+              </div>
+            </div>
+            <div class="playerdock">
+              <div class="play">▶</div><div class="skip">⟲</div><div class="skip">⟳</div>
+              <span class="time">0:00</span><div class="scrub"></div><span class="time">0:05</span>
+              <span class="rate">1×</span>
+            </div>
+          </div>
+          <div class="slidecol col-conn muted"><div class="inner">
+            <div class="connhead"><span class="panelh">Connections</span><span class="pill"><span class="on">Closest</span><span>Date</span></span></div>
+            <div class="lrow m"></div><div class="lrow s"></div><div style="height:12px"></div><div class="lrow m"></div><div class="lrow s"></div><div style="height:12px"></div><div class="lrow m"></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="hint"><b>Working frame</b> — tap the pinned ◧ and the Connections chip. Watch the ◧: it is the same button on two different surfaces, and it never moves a pixel.</p>
+
+  <div class="notes">
+    <div class="anote"><span class="pin">◧</span><span><b>One sidebar button, pinned to the screen.</b> List open → it sits in the list's gray header beside "Notes" (iPadOS 26 puts its sidebar toggle inside the sidebar too). List closed → the gray slides away and the same button is in the note's bar. The surfaces move; the control doesn't. No twin on the other side, so nothing to look mismatched.</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>◨ is retired — Connections is a chip with a count.</b> Your Mac panel's own signed idiom (collapsible with a count badge), ported. A label gives a reason to open it; when open, the chip caps its own gray sheet — the control belongs to the panel in both states. Note actions keep their gutter left of the divider (the 127 rule stands).</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>Glass containment everywhere.</b> ＋ and ⋯ sit in quiet circles, Process and Connections in capsules — the iPadOS-26 bar idiom. Bare glyphs at hand-picked coordinates were the uncanny valley; contained controls in a hairlined bar read as designed.</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>Everything else stays</b> — surfaces, anchored text, docked player, sliding columns, and the b131 fixes (black band, open-on-newest, bigger Notes title).</span></div>
+  </div>
+</div>
+
+<script>
+  const cols = document.getElementById('cols');
+  function wire(id, cls, onLabel, offLabel){
+    const btn = document.getElementById(id);
+    function flip(){
+      cols.classList.toggle(cls);
+      const open = !cols.classList.contains(cls);
+      btn.classList.toggle('on', open);
+      btn.setAttribute('aria-label', open ? onLabel : offLabel);
+    }
+    btn.addEventListener('click', flip);
+    btn.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); flip(); } });
+  }
+  wire('tglL', 'list-closed', 'Hide notes list', 'Show notes list');
+  wire('tglR', 'conn-closed', 'Hide Connections', 'Show Connections');
+</script>
+</body></html>
