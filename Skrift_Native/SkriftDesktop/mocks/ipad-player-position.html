@@ -1,0 +1,314 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Skrift iPad — where should the player live?</title></head><body>
+<style>
+  :root{
+    --bg:#f4f4f7; --card:#ffffff; --ink:#1a1a24; --dim:#5a5a6e; --faint:#8a8a9c;
+    --line:rgba(20,20,40,.10);
+    --accent:#6a59e0; --note:#d9663a; --note-soft:rgba(217,102,58,.12);
+    /* iPad screen tokens — always dark, they ARE the app */
+    --d-bg:#0f0f16; --d-elev:#1b1b28; --d-surf:#15151f; --d-ink:#ececf4;
+    --d-dim:#9a9ab2; --d-faint:#5f5f75; --d-line:rgba(255,255,255,.08);
+    --d-accent:#8e7dff; --d-accent-soft:rgba(142,125,255,.16);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0b0b10; --card:#14141c; --ink:#ececf4; --dim:#9a9ab2; --faint:#63637a;
+      --line:rgba(255,255,255,.09); --accent:#9a8bff; --note:#ff906b; --note-soft:rgba(255,144,107,.14); }
+  }
+  :root[data-theme="light"]{ --bg:#f4f4f7; --card:#fff; --ink:#1a1a24; --dim:#5a5a6e; --faint:#8a8a9c;
+    --line:rgba(20,20,40,.10); --accent:#6a59e0; --note:#d9663a; --note-soft:rgba(217,102,58,.12); }
+  :root[data-theme="dark"]{ --bg:#0b0b10; --card:#14141c; --ink:#ececf4; --dim:#9a9ab2; --faint:#63637a;
+    --line:rgba(255,255,255,.09); --accent:#9a8bff; --note:#ff906b; --note-soft:rgba(255,144,107,.14); }
+
+  *{box-sizing:border-box}
+  .wrap{font-family:var(--font); background:var(--bg); color:var(--ink);
+    max-width:1120px; margin:0 auto; padding:40px 24px 80px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;}
+  .kicker{font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--note); margin:0 0 10px;}
+  h1{font-size:30px; line-height:1.15; font-weight:800; letter-spacing:-.02em; margin:0 0 12px; text-wrap:balance;}
+  .lede{font-size:16px; color:var(--dim); max-width:64ch; margin:0 0 18px;}
+  .q{font-size:14.5px; color:var(--ink); max-width:70ch; margin:0 0 30px;
+    padding:14px 16px; background:var(--note-soft); border-left:3px solid var(--note); border-radius:8px;}
+  .q b{color:var(--note)}
+
+  .variant{margin:0 0 46px;}
+  .vhead{display:flex; align-items:baseline; gap:12px; margin:0 0 4px;}
+  .badge{width:26px; height:26px; border-radius:8px; background:var(--accent); color:#fff;
+    font-weight:800; font-size:14px; display:grid; place-items:center; flex:none;}
+  .vtitle{font-size:19px; font-weight:750; letter-spacing:-.01em;}
+  .vthesis{font-size:14px; color:var(--dim); margin:2px 0 16px 38px; max-width:74ch;}
+  .vthesis .g{color:#3ba55d; font-weight:600} .vthesis .r{color:var(--note); font-weight:600}
+
+  /* ---- iPad frame (always dark) ---- */
+  .ipad{background:var(--d-bg); border:1px solid var(--d-line); border-radius:20px;
+    padding:0; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.28);
+    color:var(--d-ink); font-size:12px;}
+  .status{display:flex; justify-content:space-between; align-items:center;
+    padding:7px 16px 0; font-size:10.5px; color:var(--d-dim); font-weight:600;}
+  .tabbar{display:flex; justify-content:center; gap:2px; padding:8px 0 10px;}
+  .tab{padding:5px 14px; border-radius:9px; color:var(--d-dim); font-weight:600; font-size:12px;}
+  .tab.on{background:var(--d-elev); color:var(--d-ink);}
+  .cols{display:grid; grid-template-columns:23% 1fr 25%; min-height:340px;
+    border-top:1px solid var(--d-line);}
+  .col{padding:14px 14px; position:relative;}
+  .col.list{border-right:1px solid var(--d-line);}
+  .col.conn{border-left:1px solid var(--d-line);}
+  .col.note{display:flex; flex-direction:column; padding:0;}
+
+  /* dimmed context panels so the eye goes to the note chrome */
+  .muted{opacity:.5;}
+  .lrow{height:9px; border-radius:4px; background:var(--d-elev); margin:9px 0;}
+  .lrow.s{width:60%} .lrow.m{width:82%}
+  .panelh{font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--d-faint); margin-bottom:10px;}
+  .chip{display:inline-block; font-size:10.5px; padding:3px 8px; border-radius:6px; color:var(--d-dim);}
+  .chip.on{background:var(--d-accent-soft); color:var(--d-accent); box-shadow:inset 0 0 0 1px rgba(142,125,255,.25);}
+  .btnrow{display:flex; gap:6px; margin:8px 0;}
+  .btn{flex:1; text-align:center; font-size:11px; font-weight:600; padding:6px 0; border-radius:7px; background:var(--d-elev); color:var(--d-ink);}
+  .btn.acc{background:var(--d-accent); color:#fff;}
+
+  /* note chrome bar (top) */
+  .chrome{display:flex; align-items:center; gap:9px; padding:9px 12px;
+    border-bottom:1px solid var(--d-line); min-height:44px;}
+  .chrome.card{margin:8px 10px 0; border:1px solid var(--d-line); border-radius:12px;
+    background:rgba(255,255,255,.03); border-bottom:1px solid var(--d-line);}
+  .ic{width:28px; height:28px; border-radius:7px; display:grid; place-items:center;
+    color:var(--d-dim); font-size:14px; flex:none;}
+  .ic.tog{color:var(--d-accent); box-shadow:inset 0 0 0 1px rgba(142,125,255,.3);}
+  .ic.native{color:var(--d-ink); background:var(--d-elev);}
+  .ntitle{font-size:13.5px; font-weight:650; color:var(--d-ink); flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+  .proc{font-size:11.5px; font-weight:650; color:#fff; background:var(--d-accent); padding:5px 11px; border-radius:8px; flex:none;}
+  .spacer{flex:1;}
+
+  /* note body */
+  .body{flex:1; padding:14px 20px; display:flex; flex-direction:column; gap:11px;}
+  .h2t{font-size:15px; font-weight:700; color:var(--d-ink);}
+  .metar{display:flex; gap:6px; flex-wrap:wrap;}
+  .mchip{font-size:10px; padding:3px 8px; border-radius:6px; background:var(--d-elev); color:var(--d-dim);}
+  .imp{border:1px solid var(--d-line); border-radius:12px; padding:11px 13px; background:rgba(255,255,255,.02);}
+  .dots{display:flex; gap:5px; margin-top:7px;}
+  .dot{width:13px; height:13px; border-radius:50%; box-shadow:inset 0 0 0 1.4px var(--d-faint);}
+  .dot.f{background:var(--d-accent); box-shadow:none;}
+  .tx{font-size:12px; color:var(--d-dim); line-height:1.55;}
+
+  /* player bar */
+  .player{display:flex; align-items:center; gap:11px; padding:11px 16px;}
+  .player.bottom{border-top:1px solid var(--d-line); background:rgba(255,255,255,.02);}
+  .player.card{margin:8px 12px; border:1px solid var(--d-line); border-radius:12px; background:var(--d-elev);}
+  .play{width:30px; height:30px; border-radius:50%; background:var(--d-accent); color:#fff; display:grid; place-items:center; font-size:12px; flex:none;
+    box-shadow:0 3px 8px rgba(142,125,255,.4);}
+  .skip{color:var(--d-ink); font-size:13px; width:22px; text-align:center; flex:none;}
+  .time{font-size:10.5px; color:var(--d-dim); font-variant-numeric:tabular-nums; flex:none;}
+  .scrub{flex:1; height:3.5px; border-radius:3px; background:rgba(255,255,255,.14); position:relative;}
+  .scrub::after{content:""; position:absolute; left:0; top:0; height:100%; width:14%; border-radius:3px; background:var(--d-accent);}
+  .scrub::before{content:""; position:absolute; left:14%; top:50%; width:11px; height:11px; border-radius:50%; background:#fff; transform:translate(-50%,-50%);}
+  .rate{font-size:11px; font-weight:700; color:var(--d-ink); padding:3px 7px; border-radius:7px; box-shadow:inset 0 0 0 1px var(--d-line); flex:none;}
+
+  /* annotations */
+  .notes{margin:14px 0 0 38px; display:flex; flex-direction:column; gap:7px;}
+  .anote{display:flex; gap:9px; font-size:13px; color:var(--ink); align-items:baseline;}
+  .anote .pin{color:var(--note); font-weight:800; flex:none;}
+  .anote b{color:var(--ink)}
+
+  /* hover-peek mini demo */
+  .demo{margin:16px 0 0 38px; max-width:520px;}
+  .demolabel{font-size:12.5px; color:var(--dim); margin-bottom:8px;}
+  .demolabel b{color:var(--note)}
+  .mini{position:relative; background:var(--d-bg); border:1px solid var(--d-line); border-radius:14px; overflow:hidden; height:150px;}
+  .mini .mchrome{display:flex; align-items:center; gap:8px; padding:8px 11px; border-bottom:1px solid var(--d-line);}
+  .mini .peekbtn{width:26px; height:26px; border-radius:7px; background:var(--d-elev); color:var(--d-ink); display:grid; place-items:center; font-size:13px; cursor:pointer;}
+  .mini .mbody{padding:12px 14px; color:var(--d-faint); font-size:11px;}
+  .flyout{position:absolute; top:0; left:0; bottom:0; width:56%; background:var(--d-elev);
+    border-right:1px solid var(--d-line); padding:12px; transform:translateX(-102%);
+    transition:transform .22s ease; box-shadow:6px 0 24px rgba(0,0,0,.4);}
+  .mini .mchrome:hover ~ .flyout, .flyout:hover{transform:translateX(0);}
+  .flyout .panelh{margin-bottom:8px;}
+
+  .summary{margin-top:40px; border:1px solid var(--line); border-radius:14px; overflow:hidden;}
+  .summary table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  .summary th,.summary td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:top;}
+  .summary th{background:var(--note-soft); color:var(--ink); font-weight:700; font-size:12px; letter-spacing:.02em;}
+  .summary tr:last-child td{border-bottom:none;}
+  .summary td:first-child{font-weight:700; white-space:nowrap;}
+  .lean{margin-top:22px; font-size:14.5px; color:var(--ink); padding:15px 17px; border-radius:10px;
+    background:var(--note-soft); border-left:3px solid var(--note);}
+  .lean b{color:var(--note)}
+  @media (max-width:720px){ .cols{grid-template-columns:1fr;} .col.list,.col.conn{display:none;} }
+</style>
+
+<div class="wrap">
+  <p class="kicker">Skrift · iPad note view · design options</p>
+  <h1>Where should the audio player live?</h1>
+  <p class="lede">Today the note owns one dense top bar — transport, Process, add, overflow, and both panel toggles all in a row. The idea on the table: drop the <b>player to the bottom</b> (like the phone) and give the top a calmer job. Three ways to cut it, drawn on the real three-panel layout.</p>
+  <p class="q">The live question underneath: <b>is a bottom player actually clearer, or just further from the transcript you're reading</b> on a 13″ screen? C is the honest control so we can tell.</p>
+
+  <!-- ============ A ============ -->
+  <div class="variant">
+    <div class="vhead"><div class="badge">A</div><div class="vtitle">Native chrome</div></div>
+    <p class="vthesis">Stop hiding iPadOS's <span class="g">own</span> sidebar toggle — it collapses the list cleanly and gives the <span class="g">peek-on-hover</span> for free. Actions sit in that top bar; the player owns the bottom.</p>
+
+    <div class="ipad">
+      <div class="status"><span>9:41 · Thu</span><span>100% ▪</span></div>
+      <div class="tabbar"><span class="tab on">Notes</span><span class="tab">Books</span><span class="tab">Review</span><span class="tab">Settings</span></div>
+      <div class="cols">
+        <div class="col list muted">
+          <div style="display:flex;justify-content:space-between"><b style="font-size:12px">Notes</b><span style="color:var(--d-accent);font-size:11px">Select</span></div>
+          <div class="btnrow"><span class="btn">＋ Import</span><span class="btn acc">▶ Process 15</span></div>
+          <div style="margin:6px 0"><span class="chip on">All</span><span class="chip">Needs&nbsp;Work</span><span class="chip">Done</span></div>
+          <div class="lrow m"></div><div class="lrow s"></div><div class="lrow m"></div><div class="lrow s"></div>
+        </div>
+        <div class="col note">
+          <div class="chrome">
+            <div class="ic native">◧</div>
+            <div class="ntitle">Okay, so let me go over it.</div>
+            <div class="proc">Process</div>
+            <div class="ic">＋</div><div class="ic">⋯</div>
+            <div class="ic tog">◨</div>
+          </div>
+          <div class="body">
+            <div class="h2t">Okay, so let me go over it.</div>
+            <div class="metar"><span class="mchip">Today · 08:03</span><span class="mchip">Oeiras</span><span class="mchip">21°</span><span class="mchip">+ Tag</span></div>
+            <div class="imp"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--d-dim)">Importance</span><span style="font-size:11px;color:var(--d-accent)">0.5 · Useful</span></div>
+              <div class="dots"><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div></div>
+            <div class="tx">What you were saying, that you found it and fixed it — that my instinct was right and the EPub was replacing the transcript instead of augmenting it…</div>
+          </div>
+          <div class="player bottom">
+            <div class="skip">⟲</div><div class="play">▶</div><div class="skip">⟳</div>
+            <span class="time">0:00</span><div class="scrub"></div><span class="time">2:47</span>
+            <span class="rate">1×</span>
+          </div>
+        </div>
+        <div class="col conn muted">
+          <div class="panelh">Connections</div>
+          <div class="lrow m"></div><div class="lrow s"></div><div style="height:14px"></div><div class="lrow m"></div><div class="lrow s"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="anote"><span class="pin">◧</span><span><b>The native toggle</b> — the one we currently strip with <code>.toolbar(removing:.sidebarToggle)</code>. Bring it back and the collapse + hover-peek are system behavior, not our code.</span></div>
+      <div class="anote"><span class="pin">▸</span><span><b>Actions (Process · ＋ · ⋯) move up</b> into the nav bar with the toggles — the top is "what to do with this note."</span></div>
+      <div class="anote"><span class="pin">▸</span><span><b>Player owns the bottom</b>, full note-column width — scrubber gets real room. Same idiom as Music / Podcasts / the phone.</span></div>
+      <div class="anote"><span class="pin">▸</span><span>Only the <b>left</b> panel is a real split-view column, so ◨ Connections stays a small custom toggle (right).</span></div>
+    </div>
+
+    <div class="demo">
+      <div class="demolabel"><b>Hover-peek</b>, collapsed state — move your pointer onto the ◧ button (trackpad only; a tap still toggles for touch):</div>
+      <div class="mini">
+        <div class="mchrome"><div class="peekbtn">◧</div><span style="font-size:12px;color:var(--d-ink)">Okay, so let me go over it.</span><span class="spacer"></span><span style="color:var(--d-dim);font-size:12px">Process&nbsp;·&nbsp;⋯</span></div>
+        <div class="mbody">List collapsed — the note has the width. Hover ◧ →</div>
+        <div class="flyout"><div class="panelh">Notes</div><div class="lrow m" style="opacity:.6"></div><div class="lrow s" style="opacity:.6"></div><div class="lrow m" style="opacity:.6"></div><div class="lrow s" style="opacity:.6"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ B ============ -->
+  <div class="variant">
+    <div class="vhead"><div class="badge">B</div><div class="vtitle">Custom top bar</div></div>
+    <p class="vthesis">Our <span class="r">own</span> single chrome bar — both toggles, styled to match everything we've built. Full control of the look; we give up the free system peek. Same bottom player.</p>
+
+    <div class="ipad">
+      <div class="status"><span>9:41 · Thu</span><span>100% ▪</span></div>
+      <div class="tabbar"><span class="tab on">Notes</span><span class="tab">Books</span><span class="tab">Review</span><span class="tab">Settings</span></div>
+      <div class="cols">
+        <div class="col list muted">
+          <div style="display:flex;justify-content:space-between"><b style="font-size:12px">Notes</b><span style="color:var(--d-accent);font-size:11px">Select</span></div>
+          <div class="btnrow"><span class="btn">＋ Import</span><span class="btn acc">▶ Process 15</span></div>
+          <div style="margin:6px 0"><span class="chip on">All</span><span class="chip">Needs&nbsp;Work</span><span class="chip">Done</span></div>
+          <div class="lrow m"></div><div class="lrow s"></div><div class="lrow m"></div><div class="lrow s"></div>
+        </div>
+        <div class="col note">
+          <div class="chrome card">
+            <div class="ic tog">◧</div>
+            <div class="ntitle">Okay, so let me go over it.</div>
+            <div class="proc">Process</div>
+            <div class="ic">＋</div><div class="ic">⋯</div>
+            <div class="ic tog">◨</div>
+          </div>
+          <div class="body">
+            <div class="h2t">Okay, so let me go over it.</div>
+            <div class="metar"><span class="mchip">Today · 08:03</span><span class="mchip">Oeiras</span><span class="mchip">21°</span><span class="mchip">+ Tag</span></div>
+            <div class="imp"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--d-dim)">Importance</span><span style="font-size:11px;color:var(--d-accent)">0.5 · Useful</span></div>
+              <div class="dots"><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div></div>
+            <div class="tx">What you were saying, that you found it and fixed it — that my instinct was right and the EPub was replacing the transcript instead of augmenting it…</div>
+          </div>
+          <div class="player card">
+            <div class="skip">⟲</div><div class="play">▶</div><div class="skip">⟳</div>
+            <span class="time">0:00</span><div class="scrub"></div><span class="time">2:47</span>
+            <span class="rate">1×</span>
+          </div>
+        </div>
+        <div class="col conn muted">
+          <div class="panelh">Connections</div>
+          <div class="lrow m"></div><div class="lrow s"></div><div style="height:14px"></div><div class="lrow m"></div><div class="lrow s"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="anote"><span class="pin">▸</span><span><b>Both toggles are ours</b> (◧ list, ◨ Connections) — one consistent, styled chrome bar as a rounded card, matching the note's other panels.</span></div>
+      <div class="anote"><span class="pin">▸</span><span>Same split as A — actions up top, <b>player as a rounded bar at the bottom</b>.</span></div>
+      <div class="anote"><span class="pin">▸</span><span><b>Cost:</b> we hand-build the collapse; no free hover-peek, and we own every state (a bit more code, more control).</span></div>
+    </div>
+  </div>
+
+  <!-- ============ C ============ -->
+  <div class="variant">
+    <div class="vhead"><div class="badge">C</div><div class="vtitle">Keep it on top — the control</div></div>
+    <p class="vthesis">Today's all-in-one bar, just tightened. Nothing moves. Here so we can honestly judge whether "bottom" beats "everything in one reach at the top."</p>
+
+    <div class="ipad">
+      <div class="status"><span>9:41 · Thu</span><span>100% ▪</span></div>
+      <div class="tabbar"><span class="tab on">Notes</span><span class="tab">Books</span><span class="tab">Review</span><span class="tab">Settings</span></div>
+      <div class="cols">
+        <div class="col list muted">
+          <div style="display:flex;justify-content:space-between"><b style="font-size:12px">Notes</b><span style="color:var(--d-accent);font-size:11px">Select</span></div>
+          <div class="btnrow"><span class="btn">＋ Import</span><span class="btn acc">▶ Process 15</span></div>
+          <div style="margin:6px 0"><span class="chip on">All</span><span class="chip">Needs&nbsp;Work</span><span class="chip">Done</span></div>
+          <div class="lrow m"></div><div class="lrow s"></div><div class="lrow m"></div><div class="lrow s"></div>
+        </div>
+        <div class="col note">
+          <div class="chrome">
+            <div class="ic tog">◧</div>
+            <div class="skip">⟲</div><div class="play">▶</div><div class="skip">⟳</div>
+            <span class="time">0:00</span><div class="scrub" style="max-width:120px"></div><span class="time">2:47</span>
+            <span class="rate">1×</span>
+            <div class="ic">＋</div><div class="proc" style="padding:4px 9px">Process</div><div class="ic">⋯</div>
+            <div class="ic tog">◨</div>
+          </div>
+          <div class="body">
+            <div class="h2t">Okay, so let me go over it.</div>
+            <div class="metar"><span class="mchip">Today · 08:03</span><span class="mchip">Oeiras</span><span class="mchip">21°</span><span class="mchip">+ Tag</span></div>
+            <div class="imp"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--d-dim)">Importance</span><span style="font-size:11px;color:var(--d-accent)">0.5 · Useful</span></div>
+              <div class="dots"><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot f"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div></div>
+            <div class="tx">What you were saying, that you found it and fixed it — that my instinct was right and the EPub was replacing the transcript instead of augmenting it… There's a lot in one row here.</div>
+          </div>
+        </div>
+        <div class="col conn muted">
+          <div class="panelh">Connections</div>
+          <div class="lrow m"></div><div class="lrow s"></div><div style="height:14px"></div><div class="lrow m"></div><div class="lrow s"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="anote"><span class="pin">▸</span><span><b>One bar, everything in it</b> — transport, times, speed, ＋, Process, ⋯, both toggles. Compact, near your eyes, one reach.</span></div>
+      <div class="anote"><span class="pin">▸</span><span><b>The tension:</b> it's dense, and the scrubber has to share the row — it never gets the full width it does at the bottom.</span></div>
+      <div class="anote"><span class="pin">▸</span><span>This is what ships today (build 126). If A/B don't feel clearer than <i>this</i>, we don't move it.</span></div>
+    </div>
+  </div>
+
+  <!-- ============ summary ============ -->
+  <div class="summary">
+    <table>
+      <thead><tr><th>&nbsp;</th><th>Player</th><th>Panel toggles</th><th>Hover-peek</th><th>Build cost</th></tr></thead>
+      <tbody>
+        <tr><td>A · Native</td><td>Bottom, full width</td><td>System (left) + our ◨</td><td>Free (trackpad)</td><td>Lowest — remove code</td></tr>
+        <tr><td>B · Custom</td><td>Bottom, rounded bar</td><td>Both ours, styled</td><td>Hand-built if wanted</td><td>Medium</td></tr>
+        <tr><td>C · Keep top</td><td>In the top bar (today)</td><td>Both ours (shipping)</td><td>—</td><td>None (it's built)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="lean"><b>My lean:</b> prototype <b>A</b> first. It's the least code (we <i>delete</i> the toggle-hiding), it hands us the collapse + hover-peek you liked as system behavior, and it's the truest test of "player at the bottom." Keep <b>C</b> installed on the iPad as the side-by-side — if bottom doesn't clearly win once it's in your hands, moving it isn't worth it. B is the fallback only if the native toggle's styling or placement bugs you.</p>
+</div>
+</body></html>

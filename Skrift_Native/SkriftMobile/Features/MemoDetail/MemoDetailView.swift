@@ -66,6 +66,18 @@ struct MemoDetailView: View {
 
     private var currentMemo: Memo? { memos.first { $0.id == selection } }
 
+    /// A panel toggle styled to match iPadOS's native sidebar-toggle glyph
+    /// (signed mock A: "make the right match the native one on the left"). The
+    /// nested split-view/panel layout doesn't surface the system toggle, so both
+    /// sides are ours — a plain `sidebar.left`/`sidebar.right` in the nav-bar tint,
+    /// no accent box, so the pair reads as system chrome.
+    private func nativeToggle(icon: String, label: String, id: String,
+                              action: @escaping () -> Void) -> some View {
+        Button(action: action) { Image(systemName: icon) }
+            .accessibilityIdentifier(id)
+            .accessibilityLabel(label)
+    }
+
     /// The note bar's ⋯ — Split speakers leads it (moved off the bar: a
     /// once-per-note act, not a daily verb), then the same verbs the compact
     /// sheet offers, so nothing is reachable on one width only.
@@ -265,43 +277,36 @@ struct MemoDetailView: View {
     var body: some View {
         Group {
             if hSize == .regular {
-                // SIGNED mock A (`mocks/ipad-chrome.html`): the note owns ONE pinned
-                // bar — the Mac's `NoteDisplayView.toolbarBar` construction — and the
-                // system nav toolbar is hidden, so nothing floats over any column.
-                VStack(spacing: 0) {
-                    noteBar
-                    notePager.readingMeasure()
-                }
+                // SIGNED mock A (`mocks/ipad-player-position.html`, 2026-07-24): the
+                // note view is native chrome — the nav bar carries the title + actions
+                // (with iPadOS's own sidebar toggle for the list), and the audio player
+                // drops to a bottom bar like the phone. No custom pinned bar.
+                notePager.readingMeasure()
             } else {
                 notePager
             }
         }
-        .toolbar(hSize == .regular ? .hidden : .automatic, for: .navigationBar)
         .onAppear { paneMemoID?.wrappedValue = selection }
         .onChange(of: selection) { _, new in paneMemoID?.wrappedValue = new }
         .background(Color.skBg.ignoresSafeArea())
+        // No nav-bar title — the note's own title field sits at the top of the
+        // body (editable); a nav title would just duplicate it (like the phone).
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Column toggles (iPad regular width): hide the notes list on the left,
-            // the Connections panel on the right — close both and the note has the
-            // screen to itself. Each sits on the side it controls.
+            // Signed mock A (native chrome): the LEFT list toggle + RIGHT
+            // Connections toggle are a matched pair in the nav bar; Process +
+            // actions ride the trailing edge; the player dropped to the bottom.
             ToolbarItem(placement: .topBarLeading) {
                 if hSize == .regular, let listVisible {
-                    columnToggle(icon: "sidebar.left", on: listVisible.wrappedValue,
-                                 label: listVisible.wrappedValue ? "Hide notes list" : "Show notes list",
+                    nativeToggle(icon: "sidebar.left", label: listVisible.wrappedValue ? "Hide notes list" : "Show notes list",
                                  id: "ipad-toggle-list") {
                         withAnimation(Theme.Motion.snappy) { listVisible.wrappedValue.toggle() }
                     }
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                if hSize == .regular, let connectionsVisible {
-                    columnToggle(icon: "sidebar.right", on: connectionsVisible.wrappedValue,
-                                 label: connectionsVisible.wrappedValue ? "Hide Connections" : "Show Connections",
-                                 id: "ipad-toggle-connections") {
-                        withAnimation(Theme.Motion.snappy) { connectionsVisible.wrappedValue.toggle() }
-                    }
-                }
+                if hSize == .regular, let memo = currentMemo { processControl(memo) }
             }
             // Add a follow-up recording — hidden for C3 capture items (no audio to append to).
             ToolbarItem(placement: .topBarTrailing) {
@@ -316,9 +321,10 @@ struct MemoDetailView: View {
                     .accessibilityLabel("Add recording")
                 }
             }
-            // Split into speakers — hidden for captures (no audio, no diarization).
+            // Split into speakers — compact only now (at regular it lives in ⋯);
+            // hidden for captures (no audio, no diarization).
             ToolbarItem(placement: .topBarTrailing) {
-                if let memo = currentMemo, !(memo.transcript ?? "").isEmpty,
+                if hSize != .regular, let memo = currentMemo, !(memo.transcript ?? "").isEmpty,
                    memo.audioURL != nil, !memo.isShareCapture {
                     Button { showSplitOptions = true } label: {
                         Image(systemName: "person.2.fill")
@@ -337,6 +343,16 @@ struct MemoDetailView: View {
                         .foregroundStyle(Color.skTextDim)
                 }
                 .accessibilityIdentifier("detail-menu")
+            }
+            // RIGHT Connections toggle — the matching half of the pair.
+            ToolbarItem(placement: .topBarTrailing) {
+                if hSize == .regular, let connectionsVisible {
+                    nativeToggle(icon: "sidebar.right",
+                                 label: connectionsVisible.wrappedValue ? "Hide Connections" : "Show Connections",
+                                 id: "ipad-toggle-connections") {
+                        withAnimation(Theme.Motion.snappy) { connectionsVisible.wrappedValue.toggle() }
+                    }
+                }
             }
         }
         // "How many speakers?" — Auto trusts the diarizer; a number forces exactly that
@@ -471,12 +487,11 @@ struct MemoDetailView: View {
         // Playback bar is only meaningful when there's audio. Capture items
         // (audioURL == nil) have no audio — hide the bar entirely so the
         // scroll content isn't needlessly padded.
-        // At REGULAR width the note bar owns the transport (signed mock A), so the
-        // floating bottom bar stands down — it was rendering a second player AND
-        // ghosting up behind the tab strip once the pane spanned full width
-        // (2026-07-23 shot). Compact keeps it exactly as before.
+        // Signed mock A (2026-07-24): the player lives at the BOTTOM at every width
+        // now — the note-view chrome moved to the nav bar, so the floating glass
+        // bar owns transport here and on the phone alike (no more second player).
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if hSize != .regular, currentMemo?.isShareCapture != true {
+            if currentMemo?.isShareCapture != true {
                 bottomChrome
             }
         }

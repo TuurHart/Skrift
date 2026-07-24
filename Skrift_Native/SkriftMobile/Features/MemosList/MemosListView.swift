@@ -156,11 +156,15 @@ struct MemosListView: View {
                 NavigationStack { notesRoot }
                     .navigationSplitViewColumnWidth(
                         min: 320, ideal: Adaptive.listColumnWidth, max: 420)
-                    // iPadOS adds its OWN sidebar toggle the moment the column
-                    // hides — two buttons doing one job. Ours stays (it sits with
-                    // the Connections toggle as a pair).
+                    // The list column has no nav-bar chrome of its own, so keep its
+                    // native toggle removed — the ONE list toggle lives in the note's
+                    // nav bar (below), which is where it reads.
                     .toolbar(removing: .sidebarToggle)
             } detail: {
+                // Signed mock A (2026-07-24): the note's nav bar carries a matched
+                // pair of panel toggles (list ◧ / Connections ◨), styled like the
+                // system sidebar glyph. The nested panel layout won't surface the
+                // real system toggle, so remove it and use ours (MemoDetailView).
                 detailPane
                     .toolbar(removing: .sidebarToggle)
             }
