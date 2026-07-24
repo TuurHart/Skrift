@@ -107,14 +107,17 @@ struct MemoDetailView: View {
         Button(role: .destructive, action: deleteCurrent) { Label("Delete", systemImage: "trash") }
     }
 
-    /// THE note bar (signed mock A) — one pinned row that belongs to the note:
-    /// `◧ · ⟲10 ▶ ⟳10 · 0:00 ——scrubber flexes—— 0:11 · 1× · ＋ · Process · ⋯ · ◨`.
-    /// Same construction as the Mac's `NoteDisplayView.toolbarBar`, and the same
-    /// rule about what's in it: daily verbs only — Split speakers moved into ⋯
-    /// (Tuur, 2026-07-23), and ＋ is iPad/phone-only because the Mac can't record.
-    @ViewBuilder private var noteBar: some View {
+    /// The note's chrome row (signed mock A, corrected 2026-07-24) — CONTAINED to
+    /// the note column, NOT the nav bar. The nav bar spans the note AND the
+    /// Connections panel (they're siblings in one stack), so its trailing items
+    /// drifted to the far right, ABOVE Connections — reading as "Connections
+    /// actions" when they act on the note (Tuur caught it on device). This bar
+    /// lives inside the note column: `◧ · Process · ＋ · ⋯ · ◨`, each toggle at
+    /// the edge nearest the panel it controls. The audio player is a separate bar
+    /// at the BOTTOM.
+    @ViewBuilder private var noteChromeBar: some View {
         if let memo = currentMemo {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 if let listVisible {
                     columnToggle(icon: "sidebar.left", on: listVisible.wrappedValue,
                                  label: listVisible.wrappedValue ? "Hide notes list" : "Show notes list",
@@ -123,37 +126,26 @@ struct MemoDetailView: View {
                     }
                 }
 
-                if memo.isShareCapture != true {
-                    // The scrubber inside is the bar's flexible element, so a wider
-                    // note column buys scrubbing precision (Tuur's call). Same
-                    // capture-only exclusion the bottom bar has always used — a
-                    // note whose audio is still arriving shows the transport
-                    // disabled rather than a hole in the bar.
-                    PlayerBar(player: player, clock: player.clock,
-                              macTransportOrder: true,
-                              density: transportDensity(memo))
-                } else {
-                    Spacer(minLength: 0)
-                }
+                Spacer(minLength: 0)
+
+                processControl(memo)
 
                 if memo.isShareCapture != true {
                     Button { showAppendRecorder = true } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(Color.skTextDim)
-                            .frame(width: 30, height: 32)
+                            .frame(width: 32, height: 34)
                     }
                     .accessibilityIdentifier("add-recording-button")
                     .accessibilityLabel("Add recording")
                 }
 
-                processControl(memo)
-
                 Menu { noteOverflowItems(memo) } label: {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Color.skTextDim)
-                        .frame(width: 30, height: 32)
+                        .frame(width: 32, height: 34)
                 }
                 .accessibilityIdentifier("note-overflow-button")
 
@@ -165,16 +157,9 @@ struct MemoDetailView: View {
                     }
                 }
             }
-            .padding(.horizontal, 12)
-            .frame(height: 44)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { barWidth = $0 }
-            .background(Color.skElev.opacity(0.72),
-                        in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .strokeBorder(Color.skBorder, lineWidth: 0.8))
             .padding(.horizontal, 14)
-            .padding(.top, 6).padding(.bottom, 2)
-            .accessibilityIdentifier("ipad-note-bar")
+            .frame(height: 48)
+            .accessibilityIdentifier("ipad-note-chrome")
         }
     }
 
@@ -216,12 +201,17 @@ struct MemoDetailView: View {
             // is the truth (the page's own @Query lives a level down).
             if PolishCenter.shared.canPolish(memo),
                repository.enhancement(forMemo: memo.id)?.hasContent != true {
+                // TINTED, not filled — the list header's "Process N" (the pile) is
+                // the one filled Process; this per-note one is secondary so two
+                // Process buttons don't shout at each other (Tuur, 2026-07-24).
                 Button { PolishCenter.shared.polishNow(memo) } label: {
-                    Text(SharedCopy.processVerb)
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
-                        .background(Color.skAccent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    HStack(spacing: 5) {
+                        Image(systemName: "play.fill").font(.system(size: 9, weight: .bold))
+                        Text(SharedCopy.processVerb).font(.system(size: 12.5, weight: .semibold))
+                    }
+                    .foregroundStyle(Color.skAccentText)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Color.skAccentSoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("ipad-process-button")
@@ -277,40 +267,30 @@ struct MemoDetailView: View {
     var body: some View {
         Group {
             if hSize == .regular {
-                // SIGNED mock A (`mocks/ipad-player-position.html`, 2026-07-24): the
-                // note view is native chrome — the nav bar carries the title + actions
-                // (with iPadOS's own sidebar toggle for the list), and the audio player
-                // drops to a bottom bar like the phone. No custom pinned bar.
-                notePager.readingMeasure()
+                // SIGNED mock A (`mocks/ipad-player-position.html`, corrected
+                // 2026-07-24): the note's chrome is a bar CONTAINED to the note
+                // column (not the nav bar, which spans Connections too), and the
+                // audio player drops to a bottom bar like the phone.
+                VStack(spacing: 0) {
+                    noteChromeBar
+                    notePager.readingMeasure()
+                }
             } else {
                 notePager
             }
         }
+        // At regular the note owns its chrome bar (above), so the spanning nav bar
+        // stays hidden — its trailing edge is above Connections, not the note.
+        .toolbar(hSize == .regular ? .hidden : .automatic, for: .navigationBar)
         .onAppear { paneMemoID?.wrappedValue = selection }
         .onChange(of: selection) { _, new in paneMemoID?.wrappedValue = new }
         .background(Color.skBg.ignoresSafeArea())
-        // No nav-bar title — the note's own title field sits at the top of the
-        // body (editable); a nav title would just duplicate it (like the phone).
-        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Signed mock A (native chrome): the LEFT list toggle + RIGHT
-            // Connections toggle are a matched pair in the nav bar; Process +
-            // actions ride the trailing edge; the player dropped to the bottom.
-            ToolbarItem(placement: .topBarLeading) {
-                if hSize == .regular, let listVisible {
-                    nativeToggle(icon: "sidebar.left", label: listVisible.wrappedValue ? "Hide notes list" : "Show notes list",
-                                 id: "ipad-toggle-list") {
-                        withAnimation(Theme.Motion.snappy) { listVisible.wrappedValue.toggle() }
-                    }
-                }
-            }
+            // COMPACT (phone) nav bar only — at regular these live in the note's
+            // own chrome bar (`noteChromeBar`).
             ToolbarItem(placement: .topBarTrailing) {
-                if hSize == .regular, let memo = currentMemo { processControl(memo) }
-            }
-            // Add a follow-up recording — hidden for C3 capture items (no audio to append to).
-            ToolbarItem(placement: .topBarTrailing) {
-                if currentMemo?.isShareCapture != true {
+                if hSize != .regular, currentMemo?.isShareCapture != true {
                     Button { showAppendRecorder = true } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .semibold))
@@ -321,8 +301,6 @@ struct MemoDetailView: View {
                     .accessibilityLabel("Add recording")
                 }
             }
-            // Split into speakers — compact only now (at regular it lives in ⋯);
-            // hidden for captures (no audio, no diarization).
             ToolbarItem(placement: .topBarTrailing) {
                 if hSize != .regular, let memo = currentMemo, !(memo.transcript ?? "").isEmpty,
                    memo.audioURL != nil, !memo.isShareCapture {
@@ -336,22 +314,14 @@ struct MemoDetailView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showActions = true } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 34, height: 34)
-                        .foregroundStyle(Color.skTextDim)
-                }
-                .accessibilityIdentifier("detail-menu")
-            }
-            // RIGHT Connections toggle — the matching half of the pair.
-            ToolbarItem(placement: .topBarTrailing) {
-                if hSize == .regular, let connectionsVisible {
-                    nativeToggle(icon: "sidebar.right",
-                                 label: connectionsVisible.wrappedValue ? "Hide Connections" : "Show Connections",
-                                 id: "ipad-toggle-connections") {
-                        withAnimation(Theme.Motion.snappy) { connectionsVisible.wrappedValue.toggle() }
+                if hSize != .regular {
+                    Button { showActions = true } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(width: 34, height: 34)
+                            .foregroundStyle(Color.skTextDim)
                     }
+                    .accessibilityIdentifier("detail-menu")
                 }
             }
         }
