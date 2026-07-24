@@ -157,7 +157,19 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
-## 🎛️ CONTINUE HERE — iPad note view: BUILD THE SIGNED "chrome that belongs" DESIGN (2026-07-24 eve; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+## 🎛️ CONTINUE HERE — iPad note view: signed "chrome that belongs" BUILT + installed (build 132, 2026-07-24; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+
+**✅ BUILT (`3c871ed`, build 132, installed on the iPad — Opus session).** All 8 board steps landed
+in one wave; sim BUILD green; iPad Pro 13" sim LIVE taps ALL verified (◧ collapse + re-open — pinned,
+deterministic, focus-mode 900 centre; Connections summon = sheet over the note, no reflow, player
+still reachable; ✕ close). Device build freshness string-checked (connections-summon/close IN,
+transportDensity GONE, CFBundleVersion 132). **OWED:** Tuur's device eyeball of 132; a healthy-sim
+re-run of the full unit suite — the one `AudioPlayerModelTests.testPlayClaimsTheSessionAndStopResetsState`
+(a real `AVAudioSession.setActive` claim) HANGS on this Mac's wedged simulator audio daemon (env, not
+code: untouched + green in the same session's earlier Fable full-suite run in 8.5s). Fix = `sudo killall
+coreaudiod` (or a Mac restart), then `xcodebuild test … -only-testing:SkriftMobileTests`.
+
+---
 
 **⭐ SIGNED SPEC (Tuur: "perfect", 2026-07-24 design session): `mocks/ipad-note-chrome-belongs.html` v2**
 (Artifact 13c0cbce, "v2-visitor-sheet") **+ `mocks/ipad-note-surfaces.html` for the tones.** Design
