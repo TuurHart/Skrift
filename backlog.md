@@ -157,7 +157,50 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
-## 🎛️ CONTINUE HERE — iPad note view = direction A (2026-07-24; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+## 🎛️ CONTINUE HERE — iPad note view: BUILD THE SIGNED "chrome that belongs" DESIGN (2026-07-24 eve; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+
+**⭐ SIGNED SPEC (Tuur: "perfect", 2026-07-24 design session): `mocks/ipad-note-chrome-belongs.html` v2**
+(Artifact 13c0cbce, "v2-visitor-sheet") **+ `mocks/ipad-note-surfaces.html` for the tones.** Design
+verdicts, locked via a question round: Connections = **on demand, PER NOTE** (never remembered; 13"
+can't afford a standing 300pt column) · arrives as a sheet **OVER the note** (nothing reflows) ·
+summon = a **plain word** "Connections" in a quiet capsule (NO ◨ glyph — he caught it hiding in the
+v1 chip; NO count — capped at 7 ⇒ reads "7" forever ⇒ zero signal; an honest number e.g.
+backlinks-only = separate future decision) · resting state = **list + note** · ONE pinned ◧
+(screen-fixed, hosted by whichever surface is under it — iPadOS-26's own sidebar pattern) · glass
+containment on every bar control · sidebars on `skSurface`, note on `skBg`, hairline toolbar ·
+player DOCKS at regular (hairline-top bar; phone keeps its floating glass capsule).
+
+**BUILD BOARD (one wave → build 132, ONE install):**
+1. Already committed, in the parked 131: black-band fix (bg outside the slide clip), open-on-newest
+   (`selectedMemoID == nil → memos.first`), Notes title 22pt, the anchoring rule (leading against the
+   list while it's open / centered when closed). 131 was compiled + freshness-checked, NEVER installed.
+2. Surfaces: at regular, list column content bg → `skSurface`; note stays `skBg`.
+3. Toolbar: hairline under `workbenchChrome`, spanning the workbench.
+4. Glass containment: `PanelToggle` + ＋/⋯ get quiet circular containers (elev-ish bg + inset
+   hairline); Process keeps its tinted capsule; the Connections control = text capsule (quiet →
+   accent while the sheet is up).
+5. ONE pinned ◧: overlay at the topLeading of MemosListView's regular HStack (z above both columns);
+   the list header's identity row gains a ~40pt leading gutter; `workbenchChrome` drops its own ◧.
+   Align the list header row and the chrome bar to the same top line so the button never appears to
+   move.
+6. Connections → visitor sheet: DELETE the sliding column + the `aguard` spacer + the
+   `ipadConnectionsVisible` AppStorage (regular; phone untouched). New transient `@State` in
+   MemoDetailView, auto-close on `selection` change. Sheet = overlay(.trailing) over the PAGER ONLY
+   (stops above the docked player — transport stays reachable; Tuur ok'd), width ~300, `skSurface`
+   + leading hairline + shadow, `.move(edge: .trailing)` spring. Header: CONNECTIONS · Closest⇄Date
+   pill · ✕.
+7. Docked player at regular: replace the floating glass capsule with a full-note-width bar
+   (hairline top, `skSurface`); compact keeps the glass capsule byte-for-byte.
+8. Measure rule follow-up: `bothPanelsClosed` collapses to `!listVisible` (Connections is no longer
+   a column) — focus = list closed = centered 900.
+**Gates:** mobile unit suite green · iPad-sim live taps (◧ both directions incl. the pinned-overlay
+hosting, Connections summon/✕/auto-close-on-note-switch) · bump CFBundleVersion → 132 (project.yml,
+3 spots; plists are generated + tracked) · device build UDID `00008142-000239E2146B801C`, install
+devicectl `1E182D43-5A0A-5110-8355-89CD78810E13`, string-grep the `.debug.dylib` for freshness.
+
+---
+
+## 🎛️ (prev) iPad note view = direction A (2026-07-24; superseded by the signed spec above)
 
 **⬛ NOTE-VIEW REDESIGN, direction A (`ccaed9b`, build 127, installed on the iPad).** Tuur wanted the
 audio player moved to the bottom (phone-parity) + a calmer top. Mock-first: three variants in

@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 25
-updated: 2026-07-24T12:15:00.000Z
+updated: 2026-07-24T13:20:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -649,12 +649,17 @@ nodes:
       Mock = mocks/ipad-app.html m1-m7 + m1b (v2 verdicts inline). Board =
       backlog 🖥️📱 + 🎛️. m1b resolved: B + rating-IS-the-flag (no Flag verb,
       both apps). Chrome + eyeball-fix waves BUILT and installed (120); note-view
-      stacking REBUILT and installed (130, mock ipad-note-stacking.html). Owed:
-      TUUR's eyeball of 130 (the redo) + the 13\" bottom-player-distance gut
-      check, phone install, polish + prompt-sync live test (sim can't Metal-JIT)
-      + the undiagnosed 'could not process' (devlog now instruments it),
-      bookmark/ePub round-trips (devices awake), the Mac's 'Mark all as Passing'
-      wording question, then promote to main (after the book-import chat lands)."
+      stacking REBUILT and installed (130, mock ipad-note-stacking.html);
+      2026-07-24 eve LIVE design session → SIGNED spec 'chrome that belongs' v2
+      (mocks/ipad-note-chrome-belongs.html, Tuur: 'perfect') — Connections =
+      per-note visitor sheet OVER the note, word-only summon, ONE pinned ◧,
+      surfaces + hairline toolbar + docked player. Owed: BUILD the signed spec
+      (backlog 🎛️ build board → 132, one install; 131 compiled, never
+      installed), phone install, polish + prompt-sync live test (sim can't
+      Metal-JIT) + the undiagnosed 'could not process' (devlog now instruments
+      it), bookmark/ePub round-trips (devices awake), the Mac's 'Mark all as
+      Passing' wording question, then promote to main (after the book-import
+      chat lands)."
     shipped:
       - >-
         2026-07-24 · note-view STACKING REBUILT (1f81136, build 130, installed
