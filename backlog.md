@@ -173,10 +173,17 @@ toggle match the native one on the left").
   pointer-only + not reachable here — noted, not delivered.
 - Gate: mobile unit 971/0, iPad-sim + device builds green. **Sim-verified the OPEN state** (matched
   toggles, bottom player spanning the note column, no dup title).
-- **OWED (device):** Tuur's eyeball of 127; a **LIVE TAP of the ◧ list collapse** — it rides
-  NavigationSplitView `columnVisibility`, which this board already flags needs a real tap (launch-arg
-  runs are the unreliable instrument); the ◨ Connections collapse IS verified. **Cleanup:** the dead
-  `noteBar`/`columnToggle`/`transportDensity` block in MemoDetailView (compiles, unused).
+- **CORRECTED build 128 (`b4b8adf`):** 127 shipped the chrome in the SPANNING nav bar → the
+  actions/toggles flew to the far right, ABOVE Connections (they act on the note). **My miss: I
+  screenshotted it and didn't check WHERE the items sat vs the columns.** Fix: the chrome is a bar
+  CONTAINED to the note column now (`noteChromeBar` in the note VStack, nav bar hidden again) —
+  `◧ · Process · ＋ · ⋯ · ◨` over the note, verified by cropping + measuring it's LEFT of the
+  note/Connections divider. Per-note Process is TINTED (not filled) so it stops competing with the
+  list's "Process N". **DURABLE: when a control's column-alignment matters, MEASURE its x vs the
+  column boundary — "it rendered" ≠ "it's in the right column".**
+- **OWED (device):** Tuur's eyeball of 128; a **LIVE TAP of the ◧ list collapse** — rides
+  NavigationSplitView `columnVisibility`, needs a real tap (launch-arg runs unreliable); ◨ verified.
+  **Cleanup:** the dead `transportDensity`/`nativeToggle`/`barWidth` bits (noteBar → repurposed).
 
 ---
 
