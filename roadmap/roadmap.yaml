@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 25
-updated: 2026-07-23T18:30:00.000Z
+updated: 2026-07-24T12:15:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -647,14 +647,31 @@ nodes:
       wave's second law: phone bones everywhere, MAC dress for Mac jobs
       (Connections, the polish verb), system chrome where iPadOS owns it.
       Mock = mocks/ipad-app.html m1-m7 + m1b (v2 verdicts inline). Board =
-      backlog 🖥️📱. m1b resolved: B + rating-IS-the-flag (no Flag verb, both
-      apps). Chrome + eyeball-fix waves BUILT and installed on the iPad (120,
-      sim-eyeballed across 5 rounds). Owed: TUUR's own eyeball of 120, phone
-      install, polish + prompt-sync live test (sim can't Metal-JIT) + the
-      undiagnosed 'could not process' (devlog now instruments it), bookmark/ePub
-      round-trips (devices awake), the Mac's 'Mark all as Passing' wording
-      question, then promote to main (after the book-import chat lands)."
+      backlog 🖥️📱 + 🎛️. m1b resolved: B + rating-IS-the-flag (no Flag verb,
+      both apps). Chrome + eyeball-fix waves BUILT and installed (120); note-view
+      stacking REBUILT and installed (130, mock ipad-note-stacking.html). Owed:
+      TUUR's eyeball of 130 (the redo) + the 13\" bottom-player-distance gut
+      check, phone install, polish + prompt-sync live test (sim can't Metal-JIT)
+      + the undiagnosed 'could not process' (devlog now instruments it),
+      bookmark/ePub round-trips (devices awake), the Mac's 'Mark all as Passing'
+      wording question, then promote to main (after the book-import chat lands)."
     shipped:
+      - >-
+        2026-07-24 · note-view STACKING REBUILT (1f81136, build 130, installed
+        on the iPad — freshness string-checked): Tuur's 129 verdict ("it adds
+        and adds… the right sidebar button floats all over the place") traced to
+        three systems animating out of sync — NavigationSplitView's
+        columnVisibility ⇄ ◧ shadow state, the Connections panel as an
+        inserted/removed sibling resizing the note, and the chrome riding that
+        resizing column. Redo keeps signed direction A pixel-for-pixel except
+        ◨, which now pins to the screen's trailing corner (Mac inspector
+        idiom): ONE flat HStack (sliding 375 list | workbench), the workbench =
+        chrome band SPANNING note+Connections above sliding columns, panels as
+        fixed-width content in width-animated clipped windows (never unmounted),
+        one withAnimation drives everything. columnVisibility, the paneMemoID
+        hoist, transportDensity/barWidth dead code all deleted (net −15 lines).
+        Gate: mobile unit 971/0; iPad-sim live taps — all four toggle
+        directions verified, ◨ pinned, focus mode 900 measure works.
       - >-
         2026-07-23 eve · iPad chrome EYEBALL-FIX wave (13269c1, build 120,
         installed on the iPad — freshness string-checked, not just a green

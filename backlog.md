@@ -187,25 +187,34 @@ toggle match the native one on the left").
   floats** behind the sliding panel (dropped `withAnimation` on that toggle — the panel is a sibling
   that resizes the note; the list toggle, which animated nicely, is untouched). A polished panel slide
   is a next-week item.
-- **🏗️ PLANNED — NEXT WEEK (Fable redo session): iPad LAYOUT-STACKING REVIEW.** Tuur's call: "go over
-  how all the layouts are stacked… it just adds and adds and adds… looks good on the surface but I have
-  no idea what's going on underneath." **VERDICT ON A (build 129): STOP PATCHING, but 129 IS THE BASELINE.** Tuur: "it
-  just feels so janky and I can't even put my finger on it… the right sidebar button still lags behind
-  and floats all over the place… leave this for a Fable redoing session" — AND (next msg) "the latest
-  build [129] is the best so far. they are all just a bit off." So **the redo STARTS FROM 129** (don't
-  revert); it's the best baseline, just not right yet. **A's DIRECTION is signed** (player at the
-  bottom, chrome contained to the note column, matched toggles) — the REDO keeps that intent but rebuilds
-  the STACKING from the ground up; it is NOT another patch. Root of the jank: the note view is a
-  NavigationSplitView (list) → detail = HStack{ NavigationStack{note}, ConnectionsPanel sibling } +
-  readingMeasure — panels resize the note by mutating the HStack, which drags the in-note chrome buttons
-  around (the float), and columnVisibility is an unreliable list-collapse. **Rethink the hierarchy**
-  (e.g. Connections as an overlay/inspector rather than a resizing sibling; a chrome that doesn't live
-  inside the resizing column; a collapse mechanism that isn't the balanced-split-view binding). **Symptoms to fold in:** the
-  narrow-list note row that doesn't fit (#2); the ◧ list-collapse via `columnVisibility` (unreliable —
-  needs the real tap AND may want a cleaner mechanism than the balanced-split-view binding); a proper
-  animated Connections slide (currently snaps); the dead `transportDensity`/`nativeToggle`/`barWidth`
-  leftovers to clean. **Owed device check now:** Tuur's eyeball of 129 + the ◧ tap; his gut on the
-  bottom player distance at 13".
+- **✅ THE REDO — STACKING REBUILT (`1f81136`, build 130, installed on the iPad 2026-07-24; mock
+  `mocks/ipad-note-stacking.html`, published as an Artifact).** The Fable redo session ran: NOT a patch —
+  the regular-width hierarchy was rebuilt from the ground up, keeping signed direction A pixel-for-pixel
+  except ONE visible delta (below). Root cause confirmed as diagnosed: three systems animated out of
+  sync — `columnVisibility` ⇄ ◧ shadow state, the Connections panel as an inserted/removed sibling
+  resizing the note, and the chrome riding that resizing column.
+  - **The new stacking:** `NavigationSplitView` is GONE. MemosListView owns a flat
+    `HStack{ sliding 375 list | workbench }`; the workbench (MemoDetailView) = a chrome band SPANNING
+    note+Connections, above `HStack{ note pager+player | sliding Connections }`. Panels are fixed-width
+    content in width-animated clipped windows (`slidingColumn`, Adaptive.swift) — they SLIDE, never
+    unmount (state + presentations survive), and ONE `withAnimation` drives every move.
+    `listVisible`/`connectionsVisible` are the only layout state. The `paneMemoID` hoist died (the
+    "sibling outside the NavigationStack" constraint was obsolete once the nav bar hid); the panel reads
+    the pager's `currentMemo` directly. Dead code cleaned: `transportDensity`/`processControlVisible`/
+    `barWidth`/`nativeToggle`/`columnToggle`/`showPaneThread`. Net −15 lines.
+  - **The one visible delta (mocked first): ◨ pins to the screen's trailing corner** and the panel
+    slides in BENEATH it (Mac inspector idiom) — the tapped toggle can't move, so the float is
+    structurally impossible; the slide animates again. Actions (Process ＋ ⋯) hold LEFT of the divider
+    via a width-animated spacer (127 lesson intact). List column is a FIXED 375 (drag-resize gone, and
+    with it the squeezed narrow-list rows — symptom #2 closed by construction).
+  - **Gate:** mobile unit 971/0; iPad Pro 13" sim LIVE taps — all four toggle directions verified
+    (◨ close/open with the button pinned at the corner, ◧ close/open, focus mode = 900 measure,
+    player spanning each width). Freshness string-checked (`workbenchChrome` in, `transportDensity`
+    gone, CFBundleVersion 130).
+  - **OWED (Tuur):** the live-feel eyeball of 130 — the float + ◧ tap are the things to retest; the ◨
+    corner-pin is the one design delta to veto if it reads wrong (mock shows it interactively); and the
+    open gut-check from 129: does the bottom player sit too far from the text at 13"? (Direction A keeps
+    it at the bottom; the new stacking makes moving it cheap if the answer is yes.)
 
 ---
 
