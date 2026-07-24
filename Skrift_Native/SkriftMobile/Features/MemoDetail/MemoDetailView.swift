@@ -66,6 +66,11 @@ struct MemoDetailView: View {
 
     private var currentMemo: Memo? { memos.first { $0.id == selection } }
 
+    /// Both side panels hidden = focus mode — the note takes the freed width.
+    private var bothPanelsClosed: Bool {
+        listVisible?.wrappedValue == false && connectionsVisible?.wrappedValue == false
+    }
+
     /// A panel toggle styled to match iPadOS's native sidebar-toggle glyph
     /// (signed mock A: "make the right match the native one on the left"). The
     /// nested split-view/panel layout doesn't surface the system toggle, so both
@@ -153,7 +158,11 @@ struct MemoDetailView: View {
                     columnToggle(icon: "sidebar.right", on: connectionsVisible.wrappedValue,
                                  label: connectionsVisible.wrappedValue ? "Hide Connections" : "Show Connections",
                                  id: "ipad-toggle-connections") {
-                        withAnimation(Theme.Motion.snappy) { connectionsVisible.wrappedValue.toggle() }
+                        // No withAnimation here: the panel is a sibling that resizes
+                        // the note, and animating it floated THIS button across the
+                        // sliding panel (Tuur, 2026-07-24). Snap it instead; a proper
+                        // slide belongs to next week's layout-stacking review.
+                        connectionsVisible.wrappedValue.toggle()
                     }
                 }
             }
@@ -273,7 +282,10 @@ struct MemoDetailView: View {
                 // audio player drops to a bottom bar like the phone.
                 VStack(spacing: 0) {
                     noteChromeBar
-                    notePager.readingMeasure()
+                    // Close both panels → the note wins the freed width (Tuur,
+                    // 2026-07-24: "we don't win any real estate by closing the
+                    // panels"). Still bounded so prose never runs wall-to-wall.
+                    notePager.readingMeasure(bothPanelsClosed ? 900 : Adaptive.readingMaxWidth)
                 }
             } else {
                 notePager
