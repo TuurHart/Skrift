@@ -187,10 +187,18 @@ toggle match the native one on the left").
   floats** behind the sliding panel (dropped `withAnimation` on that toggle — the panel is a sibling
   that resizes the note; the list toggle, which animated nicely, is untouched). A polished panel slide
   is a next-week item.
-- **🏗️ PLANNED — NEXT WEEK (Fable credits): iPad LAYOUT-STACKING REVIEW.** Tuur's call: "go over how
-  all the layouts are stacked… it just adds and adds and adds… looks good on the surface but I have no
-  idea what's going on underneath." A structural pass on the iPad view hierarchy (detailPane HStack +
-  nested NavigationStack + panels + readingMeasure), NOT more patches. **Symptoms to fold in:** the
+- **🏗️ PLANNED — NEXT WEEK (Fable redo session): iPad LAYOUT-STACKING REVIEW.** Tuur's call: "go over
+  how all the layouts are stacked… it just adds and adds and adds… looks good on the surface but I have
+  no idea what's going on underneath." **VERDICT ON A (build 129): STOP PATCHING.** Tuur: "it just feels
+  so janky and I can't even put my finger on it… the right sidebar button still lags behind and floats
+  all over the place… leave this for a Fable redoing session." **A's DIRECTION is signed** (player at the
+  bottom, chrome contained to the note column, matched toggles) — the REDO keeps that intent but rebuilds
+  the STACKING from the ground up; it is NOT another patch. Root of the jank: the note view is a
+  NavigationSplitView (list) → detail = HStack{ NavigationStack{note}, ConnectionsPanel sibling } +
+  readingMeasure — panels resize the note by mutating the HStack, which drags the in-note chrome buttons
+  around (the float), and columnVisibility is an unreliable list-collapse. **Rethink the hierarchy**
+  (e.g. Connections as an overlay/inspector rather than a resizing sibling; a chrome that doesn't live
+  inside the resizing column; a collapse mechanism that isn't the balanced-split-view binding). **Symptoms to fold in:** the
   narrow-list note row that doesn't fit (#2); the ◧ list-collapse via `columnVisibility` (unreliable —
   needs the real tap AND may want a cleaner mechanism than the balanced-split-view binding); a proper
   animated Connections slide (currently snaps); the dead `transportDensity`/`nativeToggle`/`barWidth`
