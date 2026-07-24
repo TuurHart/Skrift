@@ -168,13 +168,19 @@ struct MemosListView: View {
                     }
                     .slidingColumn(width: Adaptive.listColumnWidth,
                                    open: listVisible, edge: .leading)
+                    // The slide window's .clipped() cuts the column's own
+                    // safe-area bleed → black bands above/below the list (Tuur,
+                    // live round b130). Paint the bleed OUTSIDE the clip; the
+                    // window's 0-width collapse takes it along.
+                    .background(Color.skBg.ignoresSafeArea(edges: .vertical))
                 noteStack
             }
-            // Screenshot rig (`-selectFirstMemo`): deterministically fill the
-            // workbench so the layout renders without a tap.
+            // The pane never opens EMPTY (Tuur, live round b130: "when you open
+            // the app… empty. strange"): no selection → show the newest note.
+            // (`-selectFirstMemo` now just names the default behavior.)
             .onAppear {
-                if LaunchFlags.selectFirstMemo, selectedMemoID == nil {
-                    selectedMemoID = memos.first(where: { $0.deletedAt == nil })?.id
+                if selectedMemoID == nil {
+                    selectedMemoID = memos.first?.id
                 }
             }
         } else {
@@ -617,8 +623,10 @@ struct MemosListView: View {
     private var macStyleHeader: some View {
         VStack(spacing: 7) {
             HStack(spacing: 8) {
+                // 22pt, hugging the top — "the notes title can be bigger, move
+                // the whole notes bit up" (Tuur, live round b130).
                 Text(SharedCopy.notesTitle)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.skText)
                 Spacer(minLength: 0)
                 Button(editMode.isEditing ? "Done" : "Select") {
@@ -714,7 +722,6 @@ struct MemosListView: View {
             filterChips
         }
         .padding(.horizontal, 14)
-        .padding(.top, 4)
         .padding(.bottom, 2)
     }
 

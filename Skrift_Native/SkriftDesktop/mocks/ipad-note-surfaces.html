@@ -1,0 +1,206 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Skrift iPad — visible regions</title></head><body>
+<style>
+  :root{
+    --bg:#f4f4f7; --card:#ffffff; --ink:#1a1a24; --dim:#5a5a6e; --faint:#8a8a9c;
+    --line:rgba(20,20,40,.10);
+    --accent:#6a59e0; --note:#d9663a; --note-soft:rgba(217,102,58,.12);
+    /* iPad screen tokens — always dark, they ARE the app */
+    --d-bg:#0f0f16; --d-surf:#15151f; --d-elev:#1b1b28; --d-ink:#ececf4;
+    --d-dim:#9a9ab2; --d-faint:#5f5f75; --d-line:rgba(255,255,255,.08);
+    --d-accent:#8e7dff; --d-accent-soft:rgba(142,125,255,.16);
+    --d-amber:#d9a13a;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0b0b10; --card:#14141c; --ink:#ececf4; --dim:#9a9ab2; --faint:#63637a;
+      --line:rgba(255,255,255,.09); --accent:#9a8bff; --note:#ff906b; --note-soft:rgba(255,144,107,.14); }
+  }
+  :root[data-theme="light"]{ --bg:#f4f4f7; --card:#fff; --ink:#1a1a24; --dim:#5a5a6e; --faint:#8a8a9c;
+    --line:rgba(20,20,40,.10); --accent:#6a59e0; --note:#d9663a; --note-soft:rgba(217,102,58,.12); }
+  :root[data-theme="dark"]{ --bg:#0b0b10; --card:#14141c; --ink:#ececf4; --dim:#9a9ab2; --faint:#63637a;
+    --line:rgba(255,255,255,.09); --accent:#9a8bff; --note:#ff906b; --note-soft:rgba(255,144,107,.14); }
+
+  *{box-sizing:border-box}
+  .wrap{font-family:var(--font); background:var(--bg); color:var(--ink);
+    max-width:1120px; margin:0 auto; padding:40px 24px 80px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;}
+  .kicker{font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--note); margin:0 0 10px;}
+  h1{font-size:30px; line-height:1.15; font-weight:800; letter-spacing:-.02em; margin:0 0 12px; text-wrap:balance;}
+  .lede{font-size:16px; color:var(--dim); max-width:66ch; margin:0 0 18px;}
+  .lede b{color:var(--ink)}
+  .q{font-size:14.5px; color:var(--ink); max-width:70ch; margin:0 0 30px;
+    padding:14px 16px; background:var(--note-soft); border-left:3px solid var(--note); border-radius:8px;}
+  .q b{color:var(--note)}
+
+  /* ---- iPad frame (always dark) ---- */
+  .ipad{background:var(--d-bg); border:1px solid var(--d-line); border-radius:20px;
+    overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.28);
+    color:var(--d-ink); font-size:12px;}
+  .status{display:flex; justify-content:space-between; align-items:center;
+    padding:7px 16px 0; font-size:10.5px; color:var(--d-dim); font-weight:600;}
+  .tabbar{display:flex; justify-content:center; gap:2px; padding:8px 0 10px;}
+  .tab{padding:5px 14px; border-radius:9px; color:var(--d-dim); font-weight:600; font-size:12px;}
+  .tab.on{background:var(--d-elev); color:var(--d-ink);}
+
+  .cols{display:flex; min-height:430px; border-top:1px solid var(--d-line); align-items:stretch;}
+  .slidecol{overflow:hidden; transition:width .28s ease; flex:none;}
+  /* THE POINT: sidebars are a SURFACE (slightly grayer), the note is the paper */
+  .col-list{width:240px; background:var(--d-surf); border-right:1px solid var(--d-line);}
+  .col-list .inner{width:240px; padding:12px 14px 14px; margin-left:auto;}
+  .col-conn{width:250px; background:var(--d-surf); border-left:1px solid var(--d-line);}
+  .col-conn .inner{width:250px; padding:0 14px 14px; margin-left:auto;}
+  .cols.list-closed .col-list{width:0; border-right-width:0;}
+  .cols.conn-closed .col-conn{width:0; border-left-width:0;}
+  @media (prefers-reduced-motion:reduce){ .slidecol,.aguard,.measure,.ic{transition:none!important} }
+
+  .muted{opacity:.6;}
+  .lrow{height:9px; border-radius:4px; background:var(--d-elev); margin:9px 0;}
+  .lrow.s{width:60%} .lrow.m{width:82%}
+  .panelh{font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--d-faint);}
+  .chip{display:inline-block; font-size:10.5px; padding:3px 8px; border-radius:6px; color:var(--d-dim);}
+  .chip.on{background:var(--d-accent-soft); color:var(--d-accent); box-shadow:inset 0 0 0 1px rgba(142,125,255,.25);}
+  .btnrow{display:flex; gap:6px; margin:8px 0;}
+  .btn{flex:1; text-align:center; font-size:11px; font-weight:600; padding:6px 0; border-radius:7px; background:var(--d-elev); color:var(--d-ink);}
+  .btn.acc{background:var(--d-accent); color:#fff;}
+  .pill{display:inline-flex; border:1px solid var(--d-line); border-radius:7px; overflow:hidden; font-size:10px;}
+  .pill span{padding:3px 9px; color:var(--d-dim);}
+  .pill span.on{background:var(--d-elev); color:var(--d-ink); font-weight:650;}
+  .listtitle{font-size:16px; font-weight:800; color:var(--d-ink);}
+
+  /* workbench: a REAL toolbar (hairline), then note | connections */
+  .workbench{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .chromebar{display:flex; align-items:center; gap:9px; padding:7px 14px; min-height:46px;
+    border-bottom:1px solid var(--d-line);}   /* ← the bar is visible now */
+  .wrow{flex:1; display:flex; min-height:0; align-items:stretch;}
+  .ic{width:30px; height:30px; border-radius:7px; display:grid; place-items:center;
+    color:var(--d-dim); font-size:14.5px; flex:none;}
+  .ic.tgl{cursor:pointer; transition:color .2s;}
+  .ic.tgl.on{color:var(--d-accent);}
+  .proc{font-size:11.5px; font-weight:650; color:var(--d-accent); background:var(--d-accent-soft);
+    padding:5px 11px; border-radius:8px; flex:none;}
+  .spacer{flex:1;}
+  .aguard{width:194px; transition:width .28s ease; flex:none;}
+  .cols.conn-closed .aguard{width:0;}
+
+  /* the note column: paper bg, LEFT-anchored text, docked player */
+  .col-note{flex:1; display:flex; flex-direction:column; min-width:0; background:var(--d-bg);}
+  .notescroll{flex:1; padding:16px 20px 10px 26px; display:flex; min-width:0;}
+  .measure{max-width:62%; width:100%; transition:max-width .28s ease, margin .28s ease;
+    display:flex; flex-direction:column; gap:11px; margin:0;}
+  /* focus mode (list closed): the note is alone on screen → it centers, wider */
+  .cols.list-closed .measure{max-width:76%; margin:0 auto;}
+  .h2t{font-size:15px; font-weight:700; color:var(--d-ink); padding-bottom:9px; border-bottom:1px solid var(--d-line);}
+  .metar{display:flex; gap:6px; flex-wrap:wrap;}
+  .mchip{font-size:10px; padding:3px 8px; border-radius:6px; background:var(--d-elev); color:var(--d-dim);}
+  .dots{display:flex; gap:5px; margin-top:2px;}
+  .dot{width:13px; height:13px; border-radius:50%; box-shadow:inset 0 0 0 1.4px var(--d-faint);}
+  .dot.f{background:var(--d-accent); box-shadow:none;}
+  .fade{font-size:10.5px; color:var(--d-amber);}
+  .tx{font-size:12px; color:var(--d-dim); line-height:1.55;}
+
+  /* DOCKED player: a bar that belongs to the pane's bottom edge */
+  .playerdock{border-top:1px solid var(--d-line); background:var(--d-surf);
+    display:flex; align-items:center; gap:11px; padding:10px 20px 12px 26px;}
+  .play{width:30px; height:30px; border-radius:50%; background:var(--d-accent); color:#fff; display:grid; place-items:center; font-size:12px; flex:none;
+    box-shadow:0 3px 8px rgba(142,125,255,.4);}
+  .skip{color:var(--d-ink); font-size:13px; width:22px; text-align:center; flex:none;}
+  .time{font-size:10.5px; color:var(--d-dim); font-variant-numeric:tabular-nums; flex:none;}
+  .scrub{flex:1; height:3.5px; border-radius:3px; background:rgba(255,255,255,.14); position:relative; max-width:520px;}
+  .scrub::after{content:""; position:absolute; left:0; top:0; height:100%; width:14%; border-radius:3px; background:var(--d-accent);}
+  .scrub::before{content:""; position:absolute; left:14%; top:50%; width:11px; height:11px; border-radius:50%; background:#fff; transform:translate(-50%,-50%);}
+  .rate{font-size:11px; font-weight:700; color:var(--d-ink); padding:3px 7px; border-radius:7px; box-shadow:inset 0 0 0 1px var(--d-line); flex:none;}
+
+  /* connections header row aligns with the toolbar's content line */
+  .connhead{display:flex; align-items:center; justify-content:space-between; padding:14px 0 10px;}
+
+  .hint{font-size:12.5px; color:var(--dim); margin:10px 2px 0;}
+  .hint b{color:var(--note)}
+
+  .notes{margin:22px 0 0; display:flex; flex-direction:column; gap:7px;}
+  .anote{display:flex; gap:9px; font-size:13px; color:var(--ink); align-items:baseline;}
+  .anote .pin{color:var(--note); font-weight:800; flex:none;}
+  .anote b{color:var(--ink)}
+  .anote code{font-size:12px; background:var(--line); padding:1px 5px; border-radius:5px;}
+</style>
+
+<div class="wrap">
+  <p class="kicker">Skrift · iPad note view · the surfaces pass</p>
+  <h1>Make the regions visible</h1>
+  <p class="lede">The geometry is solid now — what's missing is that you can't <b>see</b> it. This pass paints the architecture: sidebars become a slightly grayer <b>surface</b> (your own observation — that's exactly how Notes/Files do it), the note is the darker <b>paper</b>, the chrome band becomes a real <b>toolbar</b> with an edge, and the player <b>docks</b> instead of hovering. Zero geometry changes — same sliding columns, same corner ◨.</p>
+  <p class="q"><b>The claim:</b> every control that felt "floating" stops floating the moment it sits <b>in</b> something visible. If this frame doesn't land that feeling, the surfaces aren't the answer and we go deeper.</p>
+
+  <div class="ipad">
+    <div class="status"><span>12:19 · Fri 24 Jul</span><span>🎧 70% ▪</span></div>
+    <div class="tabbar"><span class="tab on">Notes</span><span class="tab">Books</span><span class="tab">Review</span><span class="tab">Settings</span></div>
+    <div class="cols" id="cols">
+      <div class="slidecol col-list muted"><div class="inner">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="listtitle">Notes</span><span style="color:var(--d-accent);font-size:11px">Select</span></div>
+        <div class="btnrow"><span class="btn">＋ Import</span><span class="btn acc">▶ Process 15</span></div>
+        <div style="margin:6px 0"><span class="chip on">All</span><span class="chip">Needs&nbsp;Work</span><span class="chip">Done</span></div>
+        <div class="lrow m"></div><div class="lrow s"></div><div class="lrow m"></div><div class="lrow s"></div><div class="lrow m"></div>
+      </div></div>
+
+      <div class="workbench">
+        <div class="chromebar">
+          <div class="ic tgl on" id="tglL" role="button" tabindex="0" aria-label="Hide notes list">◧</div>
+          <div class="spacer"></div>
+          <div class="proc">▶ Process</div>
+          <div class="ic">＋</div><div class="ic">⋯</div>
+          <div class="aguard" id="aguard"></div>
+          <div class="ic tgl on" id="tglR" role="button" tabindex="0" aria-label="Hide Connections">◨</div>
+        </div>
+        <div class="wrow">
+          <div class="col-note">
+            <div class="notescroll">
+              <div class="measure">
+                <div class="h2t">Hey his name is Harry and he's a dumbass Yeah yeah…</div>
+                <div class="metar"><span class="mchip">Yesterday · 20:25</span><span class="mchip">+ Tag</span></div>
+                <div class="dots"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+                <div class="fade">starts fading 22 Aug — rate it to keep it</div>
+                <div class="tx">Hey his name is Harry and he's a dumbass Yeah yeah yeah yeah Oh my god, what the fuck, I'm here.</div>
+                <div class="tx" style="flex:1">The text starts against the list with a fixed margin — Apple-Notes-style. Empty space accumulates on the right, which is exactly where Connections slides in, so opening ◨ barely moves a word.</div>
+              </div>
+            </div>
+            <div class="playerdock">
+              <div class="play">▶</div><div class="skip">⟲</div><div class="skip">⟳</div>
+              <span class="time">0:00</span><div class="scrub"></div><span class="time">0:05</span>
+              <span class="rate">1×</span>
+            </div>
+          </div>
+          <div class="slidecol col-conn muted"><div class="inner">
+            <div class="connhead"><span class="panelh">Connections · 6</span><span class="pill"><span class="on">Closest</span><span>Date</span></span></div>
+            <div class="lrow m"></div><div class="lrow s"></div><div style="height:12px"></div><div class="lrow m"></div><div class="lrow s"></div><div style="height:12px"></div><div class="lrow m"></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="hint"><b>Working frame</b> — tap ◧ and ◨. Same slides as the app; now watch what the surfaces do: the panel arrives as a gray sheet under the toolbar, the paper never moves. Close the list and the note centers itself, wider (focus mode).</p>
+
+  <div class="notes">
+    <div class="anote"><span class="pin">▸</span><span><b>Two materials, three regions.</b> List + Connections sit on <code>skSurface</code> (the "slightly grayer" you spotted), the note on <code>skBg</code> — the paper. The hairlines between them are where your eye anchors. This is the Mac app's own shell logic, finally on the iPad.</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>The toolbar exists now.</b> One hairline under the chrome band and ◧ / Process·＋·⋯ / ◨ sit <b>in</b> a bar instead of hanging in space. ◨ stays at the corner — above the panel, like a Mac inspector toggle.</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>Text anchors to the list</b> (fixed ~28pt margin, capped line length). No more pushed-to-the-right: the void is gone from the left, and the right void is the panel's parking spot. Alone on screen (list closed) the note centers and widens — the one state where centering reads as intent.</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>The player docks.</b> A bar with a top hairline, owned by the pane's bottom edge — not a capsule hovering mid-air. The phone keeps its floating glass capsule; this is regular-width only. (Your "far from the text at 13″" gut still applies — docked, distance reads as structure; if it still bugs you, the next candidate is moving transport INTO the toolbar.)</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>Already fixed in build 131, parked and ready:</b> the black band over the list (a real bug — clipped background), the app opening on your newest note instead of "Select a note", and the bigger Notes title.</span></div>
+  </div>
+</div>
+
+<script>
+  const cols = document.getElementById('cols');
+  function wire(id, cls, onLabel, offLabel){
+    const btn = document.getElementById(id);
+    function flip(){
+      cols.classList.toggle(cls);
+      const open = !cols.classList.contains(cls);
+      btn.classList.toggle('on', open);
+      btn.setAttribute('aria-label', open ? onLabel : offLabel);
+    }
+    btn.addEventListener('click', flip);
+    btn.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); flip(); } });
+  }
+  wire('tglL', 'list-closed', 'Hide notes list', 'Show notes list');
+  wire('tglR', 'conn-closed', 'Hide Connections', 'Show Connections');
+</script>
+</body></html>

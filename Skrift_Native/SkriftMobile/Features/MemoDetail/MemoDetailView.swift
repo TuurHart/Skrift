@@ -258,10 +258,20 @@ struct MemoDetailView: View {
                 VStack(spacing: 0) {
                     workbenchChrome
                     HStack(spacing: 0) {
-                        // Close both panels → the note wins the freed width (Tuur,
-                        // 2026-07-24: "we don't win any real estate by closing the
-                        // panels"). Still bounded so prose never runs wall-to-wall.
-                        notePager.readingMeasure(bothPanelsClosed ? 900 : Adaptive.readingMaxWidth)
+                        // Anchoring rule (Tuur, live round b130 — "the note is
+                        // pushed to the right… how do other apps make this
+                        // work?"): while the LIST is open the note sits AGAINST
+                        // it, Apple-Notes-style (empty space accumulates on the
+                        // trailing side, where the panel slides in — so ◨
+                        // barely moves the text); alone on screen it centers.
+                        // Close both panels → the note still wins width
+                        // (measure 640 → 900), bounded so prose never runs
+                        // wall-to-wall.
+                        notePager
+                            .frame(maxWidth: bothPanelsClosed ? 900 : Adaptive.readingMaxWidth)
+                            .frame(maxWidth: .infinity,
+                                   alignment: listVisible?.wrappedValue == true ? .leading : .center)
+                            .padding(.leading, listVisible?.wrappedValue == true ? 12 : 0)
                         connectionsColumn
                     }
                 }
