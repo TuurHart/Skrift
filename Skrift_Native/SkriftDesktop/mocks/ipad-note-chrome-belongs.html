@@ -45,11 +45,8 @@
   .slidecol{overflow:hidden; transition:width .28s ease; flex:none;}
   .col-list{width:250px; background:var(--d-surf); border-right:1px solid var(--d-line);}
   .col-list .inner{width:250px; padding:0 14px 14px; margin-left:auto;}
-  .col-conn{width:250px; background:var(--d-surf); border-left:1px solid var(--d-line);}
-  .col-conn .inner{width:250px; padding:0 14px 14px; margin-left:auto;}
   .cols.list-closed .col-list{width:0; border-right-width:0;}
-  .cols.conn-closed .col-conn{width:0; border-left-width:0;}
-  @media (prefers-reduced-motion:reduce){ .slidecol,.aguard,.measure,.gbtn{transition:none!important} }
+  @media (prefers-reduced-motion:reduce){ .slidecol,.measure,.gbtn,.connoverlay{transition:none!important} }
 
   .muted{opacity:.65;}
   .lrow{height:9px; border-radius:4px; background:var(--d-elev); margin:9px 0;}
@@ -65,19 +62,15 @@
   .pill span.on{background:var(--d-elev); color:var(--d-ink); font-weight:650;}
   .listtitle{font-size:16px; font-weight:800; color:var(--d-ink);}
 
-  /* the top LINE: list header row and note bar share one 46pt baseline */
   .listhead{display:flex; align-items:center; gap:8px; min-height:46px; padding-left:40px;}
   .listhead .sel{margin-left:auto; color:var(--d-accent); font-size:11px;}
 
-  .workbench{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .workbench{flex:1; display:flex; flex-direction:column; min-width:0; position:relative;}
   .chromebar{display:flex; align-items:center; gap:8px; padding:7px 14px; min-height:46px;
     border-bottom:1px solid var(--d-line);}
   .wrow{flex:1; display:flex; min-height:0; align-items:stretch;}
   .spacer{flex:1;}
-  .aguard{width:150px; transition:width .28s ease; flex:none;}
-  .cols.conn-closed .aguard{width:0;}
 
-  /* iPadOS-26 glass containment: every bar control sits IN something */
   .gbtn{width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
     color:var(--d-dim); font-size:13.5px; flex:none;
     background:rgba(255,255,255,.055); box-shadow:inset 0 0 0 .5px rgba(255,255,255,.09);
@@ -89,10 +82,7 @@
   .gcap.quiet{color:var(--d-dim); background:rgba(255,255,255,.055);
     box-shadow:inset 0 0 0 .5px rgba(255,255,255,.09); transition:color .2s, background .2s;}
   .gcap.quiet.on{color:var(--d-accent); background:var(--d-accent-soft); box-shadow:none;}
-  .gcap .cnt{font-weight:800;}
 
-  /* ◧ — ONE button, pinned to the screen, surfaces slide under it.
-     46pt line below the tabbar → centered at top:8px of .cols */
   .sidebtn{position:absolute; top:8px; left:14px; z-index:5;}
 
   .col-note{flex:1; display:flex; flex-direction:column; min-width:0; background:var(--d-bg);}
@@ -119,7 +109,17 @@
   .scrub::before{content:""; position:absolute; left:14%; top:50%; width:11px; height:11px; border-radius:50%; background:#fff; transform:translate(-50%,-50%);}
   .rate{font-size:11px; font-weight:700; color:var(--d-ink); padding:3px 7px; border-radius:7px; box-shadow:inset 0 0 0 1px var(--d-line); flex:none;}
 
-  .connhead{display:flex; align-items:center; justify-content:space-between; padding:14px 0 10px;}
+  /* CONNECTIONS: not a column — a summoned sheet OVER the note. The note
+     keeps its full width beneath; nothing reflows. Per-note, never remembered. */
+  .connoverlay{position:absolute; top:46px; right:0; bottom:0; width:270px;
+    background:var(--d-surf); border-left:1px solid var(--d-line);
+    box-shadow:-14px 0 34px rgba(0,0,0,.42);
+    transform:translateX(103%); transition:transform .3s cubic-bezier(.32,.72,.36,1);
+    padding:0 16px 16px; z-index:4;}
+  .cols.conn-open .connoverlay{transform:translateX(0);}
+  .connhead{display:flex; align-items:center; justify-content:space-between; padding:13px 0 10px;}
+  .connx{width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
+    color:var(--d-dim); background:rgba(255,255,255,.06); font-size:11px; cursor:pointer;}
 
   .hint{font-size:12.5px; color:var(--dim); margin:10px 2px 0;}
   .hint b{color:var(--note)}
@@ -131,16 +131,15 @@
 </style>
 
 <div class="wrap">
-  <p class="kicker">Skrift · iPad note view · chrome that belongs</p>
-  <h1>Kill the twin. Pin the one that stays.</h1>
-  <p class="lede">The honest critique of everything so far: <b>the ◧/◨ "matched pair" was a design lie.</b> The list is navigation; Connections is an inspector — no Apple app mirrors two naked sidebar glyphs across one bar, and close-but-not-system is the exact uncanny valley you keep feeling. So: <b>one</b> sidebar button that never moves, a <b>labeled chip</b> instead of the right glyph, and every control sits in iPadOS-26 glass instead of hanging bare.</p>
-  <p class="q"><b>Three rules, no exceptions:</b> a control lives ON the thing it controls · a panel you can't see gets a <b>label with a reason</b> ("Connections · 6"), not an abstract glyph · nothing floats — every control has a container, every container sits on a surface.</p>
+  <p class="kicker">Skrift · iPad note view · chrome that belongs · v2</p>
+  <h1>One sidebar button. Connections is a visitor.</h1>
+  <p class="lede">Locked from your answers: Connections is <b>on demand, per note</b> — it arrives as a sheet <b>over</b> the note (the note never gives up width; 13″ can't afford a standing 300pt column), and it's gone when you switch notes. Never remembered. The summon is a <b>plain word</b>: no ◨ glyph (you caught it hiding in my last chip), no count (your catch again — capped at 7, it would read "7" forever: zero signal).</p>
+  <p class="q"><b>The resting state is just two things:</b> your list and your note. The only panel glyph left on screen is ◧, and it never moves. Everything else is a word in a capsule.</p>
 
   <div class="ipad">
     <div class="status"><span>12:19 · Fri 24 Jul</span><span>🎧 70% ▪</span></div>
     <div class="tabbar"><span class="tab on">Notes</span><span class="tab">Books</span><span class="tab">Review</span><span class="tab">Settings</span></div>
     <div class="cols" id="cols">
-      <!-- ◧: ONE button, screen-pinned; the gray slides out from under it -->
       <div class="gbtn on sidebtn" id="tglL" role="button" tabindex="0" aria-label="Hide notes list">◧</div>
 
       <div class="slidecol col-list muted"><div class="inner">
@@ -152,16 +151,10 @@
 
       <div class="workbench">
         <div class="chromebar">
-          <!-- leading stays clear: ◧ is the screen-pinned button to the left of
-               this bar when the list is closed; the list header owns the slot
-               when it's open -->
           <div class="spacer"></div>
           <div class="gcap">▶ Process</div>
           <div class="gbtn">＋</div><div class="gbtn">⋯</div>
-          <div class="aguard"></div>
-          <div class="gcap quiet on" id="tglR" role="button" tabindex="0" aria-label="Hide Connections">
-            ◨&nbsp;Connections&nbsp;<span class="cnt">6</span>
-          </div>
+          <div class="gcap quiet" id="tglR" role="button" tabindex="0" aria-label="Show Connections">Connections</div>
         </div>
         <div class="wrow">
           <div class="col-note">
@@ -172,7 +165,7 @@
                 <div class="dots"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
                 <div class="fade">starts fading 22 Aug — rate it to keep it</div>
                 <div class="tx">Hey his name is Harry and he's a dumbass Yeah yeah yeah yeah Oh my god, what the fuck, I'm here.</div>
-                <div class="tx" style="flex:1">Tap ◧ top-left: the gray sheet slides out from under it and the button is simply sitting in the note's bar — it never traveled. Tap the Connections chip: the panel arrives beneath its own label.</div>
+                <div class="tx" style="flex:1">Tap <b>Connections</b> in the bar: a sheet slides over this side of the note — not one word here moves. Close it, switch notes, and it's gone; the resting screen is always list + note.</div>
               </div>
             </div>
             <div class="playerdock">
@@ -181,38 +174,45 @@
               <span class="rate">1×</span>
             </div>
           </div>
-          <div class="slidecol col-conn muted"><div class="inner">
-            <div class="connhead"><span class="panelh">Connections</span><span class="pill"><span class="on">Closest</span><span>Date</span></span></div>
-            <div class="lrow m"></div><div class="lrow s"></div><div style="height:12px"></div><div class="lrow m"></div><div class="lrow s"></div><div style="height:12px"></div><div class="lrow m"></div>
-          </div></div>
+        </div>
+
+        <!-- the summoned sheet -->
+        <div class="connoverlay muted">
+          <div class="connhead"><span class="panelh">Connections</span>
+            <span style="display:flex;gap:8px;align-items:center">
+              <span class="pill"><span class="on">Closest</span><span>Date</span></span>
+              <span class="connx" id="connx" role="button" tabindex="0" aria-label="Close Connections">✕</span>
+            </span>
+          </div>
+          <div class="lrow m"></div><div class="lrow s"></div><div style="height:12px"></div><div class="lrow m"></div><div class="lrow s"></div><div style="height:12px"></div><div class="lrow m"></div><div class="lrow s"></div>
         </div>
       </div>
     </div>
   </div>
-  <p class="hint"><b>Working frame</b> — tap the pinned ◧ and the Connections chip. Watch the ◧: it is the same button on two different surfaces, and it never moves a pixel.</p>
+  <p class="hint"><b>Working frame</b> — tap <b>Connections</b> (and ✕, and ◧). The sheet rides over the note; the text never reflows. The ◧ still never moves a pixel.</p>
 
   <div class="notes">
-    <div class="anote"><span class="pin">◧</span><span><b>One sidebar button, pinned to the screen.</b> List open → it sits in the list's gray header beside "Notes" (iPadOS 26 puts its sidebar toggle inside the sidebar too). List closed → the gray slides away and the same button is in the note's bar. The surfaces move; the control doesn't. No twin on the other side, so nothing to look mismatched.</span></div>
-    <div class="anote"><span class="pin">▸</span><span><b>◨ is retired — Connections is a chip with a count.</b> Your Mac panel's own signed idiom (collapsible with a count badge), ported. A label gives a reason to open it; when open, the chip caps its own gray sheet — the control belongs to the panel in both states. Note actions keep their gutter left of the divider (the 127 rule stands).</span></div>
-    <div class="anote"><span class="pin">▸</span><span><b>Glass containment everywhere.</b> ＋ and ⋯ sit in quiet circles, Process and Connections in capsules — the iPadOS-26 bar idiom. Bare glyphs at hand-picked coordinates were the uncanny valley; contained controls in a hairlined bar read as designed.</span></div>
-    <div class="anote"><span class="pin">▸</span><span><b>Everything else stays</b> — surfaces, anchored text, docked player, sliding columns, and the b131 fixes (black band, open-on-newest, bigger Notes title).</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>Per note, never standing.</b> Summon it, work with it, and it auto-closes when you switch notes — nothing is remembered across launches. The 300pt the column used to eat belongs to the note again.</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>Over, not beside.</b> The sheet slides over the note's right side with a shadow — clearly a visitor, not architecture. Nothing reflows, so summoning it can't move any control (the last floating-chrome vector dies here).</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>A word, not a glyph, not a number.</b> "Connections" in a quiet capsule, accent while up. The ◨ is fully dead now — and the count died with it: capped at 7 and padded with weak matches, it would have read "7" on every note forever. If we ever want a number there, it has to be an honest one (e.g. backlinks only) — separate decision.</span></div>
+    <div class="anote"><span class="pin">▸</span><span><b>Everything else stays:</b> pinned ◧ (the only panel glyph), glass containment, surfaces, anchored text, docked player, and the b131 fixes (black band, open-on-newest, bigger Notes title).</span></div>
   </div>
 </div>
 
 <script>
   const cols = document.getElementById('cols');
-  function wire(id, cls, onLabel, offLabel){
-    const btn = document.getElementById(id);
-    function flip(){
-      cols.classList.toggle(cls);
-      const open = !cols.classList.contains(cls);
-      btn.classList.toggle('on', open);
-      btn.setAttribute('aria-label', open ? onLabel : offLabel);
-    }
-    btn.addEventListener('click', flip);
-    btn.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); flip(); } });
+  const tglL = document.getElementById('tglL');
+  const tglR = document.getElementById('tglR');
+  tglL.addEventListener('click', () => {
+    cols.classList.toggle('list-closed');
+    tglL.classList.toggle('on', !cols.classList.contains('list-closed'));
+  });
+  function setConn(open){
+    cols.classList.toggle('conn-open', open);
+    tglR.classList.toggle('on', open);
+    tglR.setAttribute('aria-label', open ? 'Hide Connections' : 'Show Connections');
   }
-  wire('tglL', 'list-closed', 'Hide notes list', 'Show notes list');
-  wire('tglR', 'conn-closed', 'Hide Connections', 'Show Connections');
+  tglR.addEventListener('click', () => setConn(!cols.classList.contains('conn-open')));
+  document.getElementById('connx').addEventListener('click', () => setConn(false));
 </script>
 </body></html>
