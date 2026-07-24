@@ -189,9 +189,11 @@ toggle match the native one on the left").
   is a next-week item.
 - **🏗️ PLANNED — NEXT WEEK (Fable redo session): iPad LAYOUT-STACKING REVIEW.** Tuur's call: "go over
   how all the layouts are stacked… it just adds and adds and adds… looks good on the surface but I have
-  no idea what's going on underneath." **VERDICT ON A (build 129): STOP PATCHING.** Tuur: "it just feels
-  so janky and I can't even put my finger on it… the right sidebar button still lags behind and floats
-  all over the place… leave this for a Fable redoing session." **A's DIRECTION is signed** (player at the
+  no idea what's going on underneath." **VERDICT ON A (build 129): STOP PATCHING, but 129 IS THE BASELINE.** Tuur: "it
+  just feels so janky and I can't even put my finger on it… the right sidebar button still lags behind
+  and floats all over the place… leave this for a Fable redoing session" — AND (next msg) "the latest
+  build [129] is the best so far. they are all just a bit off." So **the redo STARTS FROM 129** (don't
+  revert); it's the best baseline, just not right yet. **A's DIRECTION is signed** (player at the
   bottom, chrome contained to the note column, matched toggles) — the REDO keeps that intent but rebuilds
   the STACKING from the ground up; it is NOT another patch. Root of the jank: the note view is a
   NavigationSplitView (list) → detail = HStack{ NavigationStack{note}, ConnectionsPanel sibling } +
