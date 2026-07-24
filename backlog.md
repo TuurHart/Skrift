@@ -181,9 +181,21 @@ toggle match the native one on the left").
   note/Connections divider. Per-note Process is TINTED (not filled) so it stops competing with the
   list's "Process N". **DURABLE: when a control's column-alignment matters, MEASURE its x vs the
   column boundary — "it rendered" ≠ "it's in the right column".**
-- **OWED (device):** Tuur's eyeball of 128; a **LIVE TAP of the ◧ list collapse** — rides
-  NavigationSplitView `columnVisibility`, needs a real tap (launch-arg runs unreliable); ◨ verified.
-  **Cleanup:** the dead `transportDensity`/`nativeToggle`/`barWidth` bits (noteBar → repurposed).
+- **DEVICE ROUND (build 129, `86da9ed`):** Tuur drove 128 in the sim — the list side + resize "looks
+  kinda good"; two bugs fixed: (1) **closing both panels now WIDENS the note** (readingMeasure 640→900
+  in focus mode — he "should win real estate"; sim-verified wider); (2) **the Connections ◨ no longer
+  floats** behind the sliding panel (dropped `withAnimation` on that toggle — the panel is a sibling
+  that resizes the note; the list toggle, which animated nicely, is untouched). A polished panel slide
+  is a next-week item.
+- **🏗️ PLANNED — NEXT WEEK (Fable credits): iPad LAYOUT-STACKING REVIEW.** Tuur's call: "go over how
+  all the layouts are stacked… it just adds and adds and adds… looks good on the surface but I have no
+  idea what's going on underneath." A structural pass on the iPad view hierarchy (detailPane HStack +
+  nested NavigationStack + panels + readingMeasure), NOT more patches. **Symptoms to fold in:** the
+  narrow-list note row that doesn't fit (#2); the ◧ list-collapse via `columnVisibility` (unreliable —
+  needs the real tap AND may want a cleaner mechanism than the balanced-split-view binding); a proper
+  animated Connections slide (currently snaps); the dead `transportDensity`/`nativeToggle`/`barWidth`
+  leftovers to clean. **Owed device check now:** Tuur's eyeball of 129 + the ◧ tap; his gut on the
+  bottom player distance at 13".
 
 ---
 
