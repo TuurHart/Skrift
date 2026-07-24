@@ -157,7 +157,30 @@ Review pane, shelf, detail+Connections, Settings).
 5. **Then:** promote to main when happy (standard promotion checklist; CFBundleVersion already
    106; Release App-Group one-time Xcode visit still pending from capture-items).
 
-## 🖥️ CONTINUE HERE — iPad chrome build (session end 2026-07-23 ~19:25; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+## 🎛️ CONTINUE HERE — iPad note view = direction A (2026-07-24; branch `claude/ipad-app-version-3f9a3a`, NOT on main)
+
+**⬛ NOTE-VIEW REDESIGN, direction A (`ccaed9b`, build 127, installed on the iPad).** Tuur wanted the
+audio player moved to the bottom (phone-parity) + a calmer top. Mock-first: three variants in
+`mocks/ipad-player-position.html` (also published as an Artifact) → **Tuur picked A** ("make the right
+toggle match the native one on the left").
+- **Player → bottom** at every width (the phone's own glass `PlayerBar`); the custom all-in-one top
+  note bar is RETIRED. **Nav bar** carries the chrome: matched pair ◧ list / ◨ Connections on the
+  edges, **Process · ＋ · ⋯** trailing. No nav title (the body's editable title leads — no dup).
+- **THE TOGGLE FINDING:** iPadOS won't surface its own split-view sidebar toggle in this nested
+  list/note/Connections layout (tried removing `.toolbar(removing:.sidebarToggle)` on the detail — it
+  didn't appear). So **both toggles are custom**, styled as the plain system `sidebar.left/right` glyph
+  (nav tint, no accent box) → they match + read as system chrome (Tuur's ask). The native hover-peek is
+  pointer-only + not reachable here — noted, not delivered.
+- Gate: mobile unit 971/0, iPad-sim + device builds green. **Sim-verified the OPEN state** (matched
+  toggles, bottom player spanning the note column, no dup title).
+- **OWED (device):** Tuur's eyeball of 127; a **LIVE TAP of the ◧ list collapse** — it rides
+  NavigationSplitView `columnVisibility`, which this board already flags needs a real tap (launch-arg
+  runs are the unreliable instrument); the ◨ Connections collapse IS verified. **Cleanup:** the dead
+  `noteBar`/`columnToggle`/`transportDensity` block in MemoDetailView (compiles, unused).
+
+---
+
+## 🖥️ (prev) iPad chrome build (session end 2026-07-23 ~19:25)
 
 **⬛ HEADER POLISH PASS (`ded3d41`, build 122, installed on the iPad) — Tuur's device round on the
 Mac-header rebuild.** LANDSCAPE RECLAIM CONFIRMED (his 19:06 device shot + my sim: left header y235
