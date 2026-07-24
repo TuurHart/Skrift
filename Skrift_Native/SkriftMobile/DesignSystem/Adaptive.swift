@@ -35,11 +35,23 @@ extension View {
                    alignment: edge == .leading ? .trailing : .leading)
             .clipped()
     }
+
+    /// iPadOS-26 bar-control containment (signed mock ipad-note-chrome-belongs):
+    /// no control hangs bare in the workbench toolbar — each sits in a quiet
+    /// glass chip (`skElev` fill + hairline), or an accent-soft chip while its
+    /// state is active. Shape-generic so ◧ (circle) and the Connections capsule
+    /// share one treatment.
+    func barGlass(on: Bool = false, in shape: some InsettableShape = Circle()) -> some View {
+        background(on ? Color.skAccentSoft : Color.skElev, in: shape)
+            .overlay(on ? nil : shape.strokeBorder(Color.skBorder, lineWidth: 0.5))
+    }
 }
 
-/// One panel toggle of the iPad workbench's matched pair (◧ list /
-/// ◨ Connections), styled as the plain system sidebar glyph: accent while its
-/// panel is open, dim while closed, so the pair reads the layout at a glance.
+/// The workbench's one panel toggle — the pinned ◧ (signed mock
+/// ipad-note-chrome-belongs.html): a plain system sidebar glyph in an
+/// iPadOS-26 glass chip, accent-soft while the list is open, quiet while it's
+/// hidden. Screen-pinned by its host so it never appears to move as the
+/// surface beneath it changes.
 struct PanelToggle: View {
     let icon: String
     let on: Bool
@@ -50,9 +62,10 @@ struct PanelToggle: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(on ? Color.skAccentText : Color.skTextDim)
-                .frame(width: 34, height: 34)
+                .frame(width: 30, height: 30)
+                .barGlass(on: on)
         }
         .accessibilityIdentifier(id)
         .accessibilityLabel(label)

@@ -57,6 +57,10 @@ struct ConnectionsPanel: View {
     var onOpenMemo: (UUID) -> Void = { _ in }
     /// The "View thread" CTA — reuses the existing ThreadView sheet on the page.
     var onViewThread: () -> Void = {}
+    /// Dismiss the visitor sheet (signed mock ipad-note-chrome-belongs.html:
+    /// the ✕ in the header — Connections is a per-note visitor, not a standing
+    /// column). nil = no close affordance (defensive; the iPad always passes one).
+    var onClose: (() -> Void)? = nil
 
     private let repository = NotesRepository.shared
 
@@ -78,7 +82,10 @@ struct ConnectionsPanel: View {
 
     var body: some View {
         expanded
-        .background(Color.skBg.ignoresSafeArea())
+        // The visitor sheet is an inspector SURFACE (signed 2026-07-24:
+        // sidebars on skSurface, note on skBg) — grayer than the note paper
+        // it rides over, so it reads as a distinct region.
+        .background(Color.skSurface.ignoresSafeArea())
         .task(id: memo.id) {
             showAll = false
             await load()
@@ -123,6 +130,17 @@ struct ConnectionsPanel: View {
                     .background(Color.skElev, in: Capsule())
             }
             Spacer()
+            if let onClose {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.skTextDim)
+                        .frame(width: 26, height: 26)
+                        .background(Color.skElev, in: Circle())
+                }
+                .accessibilityIdentifier("ipad-connections-close")
+                .accessibilityLabel("Hide Connections")
+            }
         }
         .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 10)
     }

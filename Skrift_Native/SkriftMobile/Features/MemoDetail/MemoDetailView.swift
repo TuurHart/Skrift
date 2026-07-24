@@ -42,29 +42,30 @@ struct MemoDetailView: View {
     @State private var lockVaultNotice = false
     private let repository = NotesRepository.shared
 
-    /// iPad workbench: the two panel toggles live in this view's chrome band
-    /// (it owns the note, and the note is what stays), and close both = a
-    /// distraction-free write (Tuur, 2026-07-23). The Connections panel is
-    /// this view's own trailing column now — the old "sibling outside the
-    /// NavigationStack" hoist existed for the spanning nav bar, which is
-    /// hidden at regular width since the chrome band replaced it.
+    /// iPad workbench: the ONE pinned ◧ list toggle lives in `MemosListView`'s
+    /// screen overlay now (signed mock ipad-note-chrome-belongs.html); this
+    /// binding is still how the note column reads the list's open state (the
+    /// anchoring + focus-measure rules). Connections is no longer a bound
+    /// standing column — it's this view's own transient visitor sheet
+    /// (`showConnections`), per note, never remembered.
     var listVisible: Binding<Bool>? = nil
-    var connectionsVisible: Binding<Bool>? = nil
 
-    init(initialID: UUID,
-         listVisible: Binding<Bool>? = nil, connectionsVisible: Binding<Bool>? = nil) {
+    /// Connections = an on-demand sheet OVER the note, per note (Tuur, signed
+    /// 2026-07-24: a 13" screen can't afford a standing 300pt column). Transient
+    /// @State, auto-closed when the pager settles on a different memo.
+    @State private var showConnections = false
+
+    init(initialID: UUID, listVisible: Binding<Bool>? = nil) {
         self.initialID = initialID
         self.listVisible = listVisible
-        self.connectionsVisible = connectionsVisible
         _selection = State(initialValue: initialID)
     }
 
     private var currentMemo: Memo? { memos.first { $0.id == selection } }
 
-    /// Both side panels hidden = focus mode — the note takes the freed width.
-    private var bothPanelsClosed: Bool {
-        listVisible?.wrappedValue == false && connectionsVisible?.wrappedValue == false
-    }
+    /// List hidden = focus mode — the note takes the freed width. (Connections
+    /// no longer occupies a column, so only the list gates focus now.)
+    private var listHidden: Bool { listVisible?.wrappedValue == false }
 
     /// The note bar's ⋯ — Split speakers leads it (moved off the bar: a
     /// once-per-note act, not a daily verb), then the same verbs the compact
@@ -95,39 +96,24 @@ struct MemoDetailView: View {
         Button(role: .destructive, action: deleteCurrent) { Label("Delete", systemImage: "trash") }
     }
 
-    /// Whether the Connections column is effectively open: the ◨ preference,
-    /// gated on a current memo whose content isn't lock-hidden.
-    private var connectionsOpen: Bool {
-        guard connectionsVisible?.wrappedValue == true,
-              let memo = currentMemo else { return false }
+    /// Whether Connections can actually show for the current memo (a locked
+    /// note shows no relations) — the summon capsule hides itself otherwise.
+    private var connectionsAvailable: Bool {
+        guard let memo = currentMemo else { return false }
         return !lockGate.isLocked(memo)
     }
 
-    /// The spacer that parks the note's actions at the note column's edge while
-    /// the Connections panel is open: the panel width minus ◨'s trailing slot
-    /// (34pt button + 8pt spacing + 14pt bar padding) minus the 14pt gutter
-    /// the actions keep from the divider.
-    private var chromeActionsHold: CGFloat { Adaptive.sidePanelWidth - 34 - 8 - 14 - 14 }
-
-    /// The workbench's chrome band (mock ipad-note-stacking.html, 2026-07-24) —
-    /// ONE row spanning note + Connections, ABOVE the sliding columns, so its
-    /// corners are stable screen positions: ◨ pins to the trailing corner and
-    /// the panel slides beneath it (the 129 float — the tapped toggle riding
-    /// the resizing note column — is structurally impossible now). The note's
-    /// own actions (Process · ＋ · ⋯) hold LEFT of the panel divider: they act
-    /// on the note and must never read as panel actions (the 127 lesson). The
-    /// audio player is a separate bar at the BOTTOM.
+    /// The workbench's chrome band (signed mock ipad-note-chrome-belongs.html):
+    /// a real toolbar with a hairline edge, so nothing hangs bare. The ◧ list
+    /// toggle is GONE from here — it's the screen-pinned button in
+    /// `MemosListView`. The note's own actions live here in iPadOS-26 glass
+    /// chips: Process (its tinted capsule) · ＋ · ⋯, then the Connections
+    /// summon — a plain WORD, not a ◨ glyph and not a count (capped at 7 it
+    /// would read "7" forever; Tuur, 2026-07-24), quiet → accent while the
+    /// sheet is up.
     @ViewBuilder private var workbenchChrome: some View {
         if let memo = currentMemo {
             HStack(spacing: 8) {
-                if let listVisible {
-                    PanelToggle(icon: "sidebar.left", on: listVisible.wrappedValue,
-                                label: listVisible.wrappedValue ? "Hide notes list" : "Show notes list",
-                                id: "ipad-toggle-list") {
-                        withAnimation(Theme.Motion.snappy) { listVisible.wrappedValue.toggle() }
-                    }
-                }
-
                 Spacer(minLength: 0)
 
                 processControl(memo)
@@ -135,9 +121,10 @@ struct MemoDetailView: View {
                 if memo.isShareCapture != true {
                     Button { showAppendRecorder = true } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(Color.skTextDim)
-                            .frame(width: 32, height: 34)
+                            .frame(width: 30, height: 30)
+                            .barGlass()
                     }
                     .accessibilityIdentifier("add-recording-button")
                     .accessibilityLabel("Add recording")
@@ -145,49 +132,60 @@ struct MemoDetailView: View {
 
                 Menu { noteOverflowItems(memo) } label: {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Color.skTextDim)
-                        .frame(width: 32, height: 34)
+                        .frame(width: 30, height: 30)
+                        .barGlass()
                 }
                 .accessibilityIdentifier("note-overflow-button")
 
-                // Parks the actions at the note column's edge while the panel
-                // is open — rides the same animation as the panel slide, so
-                // the actions and the divider move in one transaction.
-                Color.clear.frame(width: connectionsOpen ? chromeActionsHold : 0, height: 1)
-
-                if let connectionsVisible {
-                    PanelToggle(icon: "sidebar.right", on: connectionsVisible.wrappedValue,
-                                label: connectionsVisible.wrappedValue ? "Hide Connections" : "Show Connections",
-                                id: "ipad-toggle-connections") {
-                        withAnimation(Theme.Motion.snappy) { connectionsVisible.wrappedValue.toggle() }
+                if connectionsAvailable {
+                    Button {
+                        withAnimation(Theme.Motion.snappy) { showConnections.toggle() }
+                    } label: {
+                        Text("Connections")
+                            .font(.system(size: 12.5, weight: .semibold))
+                            .foregroundStyle(showConnections ? Color.skAccentText : Color.skTextDim)
+                            .padding(.horizontal, 12)
+                            .frame(height: 30)
+                            .barGlass(on: showConnections, in: Capsule())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("ipad-connections-summon")
+                    .accessibilityLabel(showConnections ? "Hide Connections" : "Show Connections")
                 }
             }
             .padding(.horizontal, 14)
             .frame(height: 48)
+            // A real toolbar has an edge (signed mock): the hairline is what
+            // stops the controls reading as floating.
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.skBorder).frame(height: 0.5)
+            }
             .accessibilityIdentifier("ipad-note-chrome")
         }
     }
 
-    /// The Connections column — ALWAYS mounted at regular width (its state and
-    /// in-flight queries survive toggling), sliding via the width-animated
-    /// window. Lock-gated like the note body: a locked memo shows no relations.
-    private var connectionsColumn: some View {
-        Group {
-            if let memo = currentMemo, !lockGate.isLocked(memo) {
-                ConnectionsPanel(
-                    memo: memo,
-                    onOpenMemo: { id in
-                        guard memos.contains(where: { $0.id == id }) else { return }
-                        withAnimation(Theme.Motion.snappy) { selection = id }
-                    },
-                    onViewThread: { showThread = true })
-            } else {
-                Color.skBg
-            }
+    /// Connections as a VISITOR sheet (signed mock ipad-note-chrome-belongs.html):
+    /// it slides in OVER the note's trailing edge — the note keeps its full
+    /// width beneath, nothing reflows — and it stops above the docked player so
+    /// transport stays reachable. Per note: auto-closed when the pager settles
+    /// on a different memo, never remembered across launches.
+    @ViewBuilder private var connectionsSheet: some View {
+        if let memo = currentMemo, !lockGate.isLocked(memo) {
+            ConnectionsPanel(
+                memo: memo,
+                onOpenMemo: { id in
+                    guard memos.contains(where: { $0.id == id }) else { return }
+                    withAnimation(Theme.Motion.snappy) { selection = id }
+                },
+                onViewThread: { showThread = true },
+                onClose: { withAnimation(Theme.Motion.snappy) { showConnections = false } })
+                .frame(maxHeight: .infinity)
+                .background(Color.skSurface)
+                .shadow(color: .black.opacity(0.3), radius: 18, x: -8)
+                .transition(.move(edge: .trailing))
         }
-        .slidingColumn(width: Adaptive.sidePanelWidth, open: connectionsOpen, edge: .trailing)
     }
 
     /// Process — the Mac's filled primary button, replaced IN PLACE by a
@@ -252,27 +250,29 @@ struct MemoDetailView: View {
     var body: some View {
         Group {
             if hSize == .regular {
-                // The WORKBENCH (signed direction A, rebuilt stacking — mock
-                // ipad-note-stacking.html, 2026-07-24): one chrome band across
-                // the top, then note | Connections as sliding columns below it.
+                // The WORKBENCH (signed mock ipad-note-chrome-belongs.html): a
+                // hairline toolbar, the note (paper), a docked player bar —
+                // and Connections is a VISITOR sheet OVER the note, not a
+                // standing column. Resting state = list + note only.
                 VStack(spacing: 0) {
                     workbenchChrome
-                    HStack(spacing: 0) {
+                    ZStack(alignment: .trailing) {
                         // Anchoring rule (Tuur, live round b130 — "the note is
-                        // pushed to the right… how do other apps make this
-                        // work?"): while the LIST is open the note sits AGAINST
-                        // it, Apple-Notes-style (empty space accumulates on the
-                        // trailing side, where the panel slides in — so ◨
-                        // barely moves the text); alone on screen it centers.
-                        // Close both panels → the note still wins width
-                        // (measure 640 → 900), bounded so prose never runs
-                        // wall-to-wall.
+                        // pushed to the right"): while the LIST is open the note
+                        // sits AGAINST it, Apple-Notes-style; alone on screen
+                        // (focus mode) it centers and wins width (640 → 900).
                         notePager
-                            .frame(maxWidth: bothPanelsClosed ? 900 : Adaptive.readingMaxWidth)
+                            .frame(maxWidth: listHidden ? 900 : Adaptive.readingMaxWidth)
                             .frame(maxWidth: .infinity,
-                                   alignment: listVisible?.wrappedValue == true ? .leading : .center)
-                            .padding(.leading, listVisible?.wrappedValue == true ? 12 : 0)
-                        connectionsColumn
+                                   alignment: listHidden ? .center : .leading)
+                            .padding(.leading, listHidden ? 0 : 12)
+                        // The visitor sheet rides over the note's trailing edge;
+                        // nothing beneath reflows. It fills the reading area and
+                        // stops at the docked player (the sibling below).
+                        if showConnections { connectionsSheet }
+                    }
+                    if currentMemo?.isShareCapture != true {
+                        dockedPlayer
                     }
                 }
             } else {
@@ -391,6 +391,11 @@ struct MemoDetailView: View {
             guard let newID else { return }
             loadCurrentAudio()
             if old != nil, old != newID, memos.count > 1 { pageFlash = true }
+            // Connections is PER NOTE (signed 2026-07-24): switching notes
+            // (a memo-link hop, a related-row tap) dismisses the visitor sheet.
+            if old != newID, showConnections {
+                withAnimation(Theme.Motion.snappy) { showConnections = false }
+            }
         }
         // Unlocking (or re-locking on background) re-derives what the player
         // may touch — a locked memo's audio never loads.
@@ -455,14 +460,28 @@ struct MemoDetailView: View {
         // Playback bar is only meaningful when there's audio. Capture items
         // (audioURL == nil) have no audio — hide the bar entirely so the
         // scroll content isn't needlessly padded.
-        // Signed mock A (2026-07-24): the player lives at the BOTTOM at every width
-        // now — the note-view chrome moved to the nav bar, so the floating glass
-        // bar owns transport here and on the phone alike (no more second player).
+        // COMPACT (phone) only: the floating glass capsule inset. At regular the
+        // player DOCKS as a sibling bar in the workbench VStack (signed mock
+        // ipad-note-chrome-belongs.html) so the Connections visitor sheet can
+        // stop above it — see `dockedPlayer`.
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if currentMemo?.isShareCapture != true {
+            if hSize != .regular, currentMemo?.isShareCapture != true {
                 bottomChrome
             }
         }
+    }
+
+    /// The regular-width DOCKED player (signed mock ipad-note-chrome-belongs.html):
+    /// a full-width bar owned by the workbench's bottom edge (hairline top,
+    /// `skSurface`) instead of a capsule hovering mid-air. The phone keeps its
+    /// floating glass capsule (`bottomChrome`) byte-for-byte.
+    private var dockedPlayer: some View {
+        playerBarStack
+            .padding(.horizontal, 6)
+            .background(Color.skSurface)
+            .overlay(alignment: .top) {
+                Rectangle().fill(Color.skBorder).frame(height: 0.5)
+            }
     }
 
     @ViewBuilder private var bottomChrome: some View {

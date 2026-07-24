@@ -123,12 +123,13 @@ struct MemosListView: View {
     @State private var selectedMemoID: UUID?
     /// The two panel toggles (iPad regular width, Tuur 2026-07-23): hide the notes
     /// list, hide Connections, or both — "sometimes I just want to focus on writing
-    /// and I don't want any distractions". Remembered between launches. The
-    /// toggles themselves live in `MemoDetailView`'s chrome band; these are the
-    /// single source of truth for the column widths (no split-view
-    /// `columnVisibility` shadow state — that binding was the 129 unreliability).
+    /// and I don't want any distractions". Remembered between launches. This is
+    /// the single source of truth for the list column's width — the ONE pinned
+    /// ◧ overlay drives it (no split-view `columnVisibility` shadow state — that
+    /// binding was the 129 unreliability). Connections is no longer a bound
+    /// column: it's MemoDetailView's own per-note visitor sheet (signed
+    /// 2026-07-24), so `ipadConnectionsVisible` is retired.
     @AppStorage("ipadListVisible") private var listVisible = true
-    @AppStorage("ipadConnectionsVisible") private var connectionsVisible = true
     /// ⌘F focuses the Notes search field. The shared `SearchField` component
     /// can't carry a focus binding, so the field is inlined below (`searchField`)
     /// with this state; `SearchFocusBridge` posts the request from `.commands`.
@@ -140,15 +141,11 @@ struct MemosListView: View {
     var body: some View {
         if isRegular {
             // iPad regular width — the rebuilt stacking (mock
-            // ipad-note-stacking.html, 2026-07-24): ONE flat HStack we own.
-            // NavigationSplitView is gone — its `columnVisibility` was an
-            // unreliable second source of truth for ◧, its .balanced pass
-            // animated on its own curve, and the Connections sibling insertion
-            // resized the note out from under the chrome (the ◨ float). Now
-            // the list is a plain sliding column and the workbench
-            // (chrome band + note + Connections) owns everything else;
-            // `listVisible`/`connectionsVisible` are the only layout state and
-            // ONE `withAnimation` drives every panel move.
+            // ipad-note-chrome-belongs.html, 2026-07-24): ONE flat HStack we
+            // own — list (a sliding SURFACE) + note (paper). Connections is no
+            // longer a column at all; it's the note's own per-note visitor
+            // sheet. `listVisible` is the only layout state, driven by the ONE
+            // screen-pinned ◧ overlay; one `withAnimation` moves the list.
             HStack(spacing: 0) {
                 // Wrapped in a NavigationStack: hosted RAW, the column keeps a
                 // hidden navigation bar's ~50pt reserved at the top — the dead
@@ -170,10 +167,25 @@ struct MemosListView: View {
                                    open: listVisible, edge: .leading)
                     // The slide window's .clipped() cuts the column's own
                     // safe-area bleed → black bands above/below the list (Tuur,
-                    // live round b130). Paint the bleed OUTSIDE the clip; the
-                    // window's 0-width collapse takes it along.
-                    .background(Color.skBg.ignoresSafeArea(edges: .vertical))
+                    // live round b130). Paint the SURFACE bleed OUTSIDE the clip;
+                    // the window's 0-width collapse takes it along.
+                    .background(Color.skSurface.ignoresSafeArea(edges: .vertical))
                 noteStack
+            }
+            // ONE screen-pinned ◧ (signed mock ipad-note-chrome-belongs.html):
+            // the list toggle lives HERE, above both columns, so it never moves —
+            // whichever surface is under it (the list's gray header when open,
+            // the note's bar when closed) simply changes hands beneath it, the
+            // iPadOS-26 sidebar pattern. It's the only panel glyph on screen.
+            .overlay(alignment: .topLeading) {
+                PanelToggle(icon: "sidebar.left", on: listVisible,
+                            label: listVisible ? "Hide notes list" : "Show notes list",
+                            id: "ipad-toggle-list") {
+                    withAnimation(Theme.Motion.snappy) { listVisible.toggle() }
+                }
+                // Centered on the 48pt chrome-bar line (30pt chip → 9pt inset),
+                // 14pt from the leading edge — the fixed pixel it holds forever.
+                .padding(.leading, 14).padding(.top, 9)
             }
             // The pane never opens EMPTY (Tuur, live round b130: "when you open
             // the app… empty. strange"): no selection → show the newest note.
@@ -199,7 +211,11 @@ struct MemosListView: View {
     /// kept out here.
     private var notesRoot: some View {
         ZStack(alignment: .bottom) {
-                Color.skBg.ignoresSafeArea()
+                // Two materials (signed mock ipad-note-surfaces.html): at regular
+                // the list is a SURFACE (skSurface, slightly grayer — Tuur's own
+                // observation of how Notes/Files read), so it reads as a distinct
+                // region from the note's paper (skBg). The phone stays skBg.
+                (isRegular ? Color.skSurface : Color.skBg).ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     if isRegular { macStyleHeader } else { headerRow }
@@ -317,14 +333,15 @@ struct MemosListView: View {
     }
 
     /// The workbench at regular width: the selected note (which hosts its own
-    /// chrome band + Connections column — see `MemoDetailView`), or a quiet
-    /// placeholder. `.id(id)` remounts per selection so `MemoDetailView`'s
+    /// chrome band + Connections visitor sheet — see `MemoDetailView`), or a
+    /// quiet placeholder. `.id(id)` remounts per selection so `MemoDetailView`'s
     /// `initialID`-seeded state actually re-seeds when you pick another note.
+    /// The ◧ list toggle is the parent HStack's screen-pinned overlay (it
+    /// covers this pane too), so neither branch draws its own.
     private var noteStack: some View {
         NavigationStack {
             if let id = selectedMemoID {
-                MemoDetailView(initialID: id,
-                               listVisible: $listVisible, connectionsVisible: $connectionsVisible)
+                MemoDetailView(initialID: id, listVisible: $listVisible)
                     .id(id)
             } else {
                 ZStack {
@@ -332,17 +349,6 @@ struct MemosListView: View {
                     Text("Select a note")
                         .font(.system(size: 15))
                         .foregroundStyle(Color.skTextDim)
-                }
-                // No note, no chrome band — but ◧ must stay reachable here or a
-                // hidden list is unrecoverable on an empty pane. Same metrics as
-                // the band's leading slot (14pt inset, 48pt row).
-                .overlay(alignment: .topLeading) {
-                    PanelToggle(icon: "sidebar.left", on: listVisible,
-                                label: listVisible ? "Hide notes list" : "Show notes list",
-                                id: "ipad-toggle-list") {
-                        withAnimation(Theme.Motion.snappy) { listVisible.toggle() }
-                    }
-                    .padding(.leading, 14).padding(.top, 7)
                 }
                 .toolbar(.hidden, for: .navigationBar)
                 .accessibilityIdentifier("ipad-detail-placeholder")
@@ -642,6 +648,11 @@ struct MemosListView: View {
                 // owns sort + filter; Tuur 2026-07-23: "we don't need the
                 // redundancy"). The identity row is just Notes + Select now.
             }
+            // Clear the screen-pinned ◧ (14 + 30) and sit on the same 48pt line
+            // as the note's chrome bar, so the button reads as belonging to this
+            // header while the list is open (signed mock ipad-note-chrome-belongs).
+            .padding(.leading, 34)
+            .frame(height: 48)
 
             HStack(spacing: 7) {
                 // Import IS the picker chooser now (Tuur: "when you click import
