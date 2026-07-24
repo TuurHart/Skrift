@@ -23,4 +23,38 @@ extension View {
         frame(maxWidth: max)
             .frame(maxWidth: .infinity, alignment: .center)
     }
+
+    /// A sliding panel column (mock ipad-note-stacking.html): the content keeps
+    /// its fixed width while an outer window animates open↔0, pinned to the
+    /// window's surviving edge — so the column SLIDES off-screen instead of
+    /// squashing, and it never leaves the hierarchy (its state, and any
+    /// presentations hanging off it, survive the collapse).
+    func slidingColumn(width: CGFloat, open: Bool, edge: HorizontalEdge) -> some View {
+        frame(width: width)
+            .frame(width: open ? width : 0,
+                   alignment: edge == .leading ? .trailing : .leading)
+            .clipped()
+    }
+}
+
+/// One panel toggle of the iPad workbench's matched pair (◧ list /
+/// ◨ Connections), styled as the plain system sidebar glyph: accent while its
+/// panel is open, dim while closed, so the pair reads the layout at a glance.
+struct PanelToggle: View {
+    let icon: String
+    let on: Bool
+    let label: String
+    let id: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(on ? Color.skAccentText : Color.skTextDim)
+                .frame(width: 34, height: 34)
+        }
+        .accessibilityIdentifier(id)
+        .accessibilityLabel(label)
+    }
 }

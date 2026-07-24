@@ -117,22 +117,18 @@ struct MemosListView: View {
     /// idiom — Split View/Stage Manager can make the iPad compact, and compact
     /// must stay the phone layout, pixel-untouched).
     @Environment(\.horizontalSizeClass) private var hSize
-    /// The note shown in the split-view detail pane at regular width. nil on the
-    /// phone (compact pushes onto `path` instead), so the whole split path is a
+    /// The note shown in the workbench pane at regular width. nil on the
+    /// phone (compact pushes onto `path` instead), so the whole pane path is a
     /// no-op there.
     @State private var selectedMemoID: UUID?
-    /// The memo the detail pane currently shows (its pager can swipe past the row
-    /// you tapped) — published up by `MemoDetailView` so the Connections panel can
-    /// live beside the note's NavigationStack instead of under its toolbar.
-    @State private var paneMemoID: UUID?
-    @State private var showPaneThread = false
-    @ObservedObject private var lockGate = LockGate.shared
-    /// The two column toggles (iPad regular width, Tuur 2026-07-23): hide the notes
+    /// The two panel toggles (iPad regular width, Tuur 2026-07-23): hide the notes
     /// list, hide Connections, or both — "sometimes I just want to focus on writing
-    /// and I don't want any distractions". Remembered between launches.
+    /// and I don't want any distractions". Remembered between launches. The
+    /// toggles themselves live in `MemoDetailView`'s chrome band; these are the
+    /// single source of truth for the column widths (no split-view
+    /// `columnVisibility` shadow state — that binding was the 129 unreliability).
     @AppStorage("ipadListVisible") private var listVisible = true
     @AppStorage("ipadConnectionsVisible") private var connectionsVisible = true
-    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
     /// ⌘F focuses the Notes search field. The shared `SearchField` component
     /// can't carry a focus binding, so the field is inlined below (`searchField`)
     /// with this state; `SearchFocusBridge` posts the request from `.commands`.
@@ -143,44 +139,39 @@ struct MemosListView: View {
 
     var body: some View {
         if isRegular {
-            // iPad regular width (m1): list column ↔ note page. The sidebar is
-            // the phone's entire Notes surface verbatim; the detail pane is the
-            // note, or a quiet placeholder.
-            NavigationSplitView(columnVisibility: $columnVisibility) {
-                // Wrapped in a NavigationStack like the detail's `noteStack`: a
-                // split-view column hosted RAW keeps its (hidden) navigation bar's
-                // ~50pt reserved at the top — the dead band above "Notes" Tuur hit
-                // on device. A NavigationStack collapses that hidden bar (the phone
-                // has always looked right for exactly this reason), so the header
-                // hugs the top, level with the note bar and Connections.
+            // iPad regular width — the rebuilt stacking (mock
+            // ipad-note-stacking.html, 2026-07-24): ONE flat HStack we own.
+            // NavigationSplitView is gone — its `columnVisibility` was an
+            // unreliable second source of truth for ◧, its .balanced pass
+            // animated on its own curve, and the Connections sibling insertion
+            // resized the note out from under the chrome (the ◨ float). Now
+            // the list is a plain sliding column and the workbench
+            // (chrome band + note + Connections) owns everything else;
+            // `listVisible`/`connectionsVisible` are the only layout state and
+            // ONE `withAnimation` drives every panel move.
+            HStack(spacing: 0) {
+                // Wrapped in a NavigationStack: hosted RAW, the column keeps a
+                // hidden navigation bar's ~50pt reserved at the top — the dead
+                // band above "Notes" Tuur hit on device. A NavigationStack
+                // collapses that hidden bar (the phone has always looked right
+                // for exactly this reason). Fixed at the phone canvas width —
+                // the split view's 320–420 drag-resize goes away with it, and
+                // with it the squeezed narrow-list rows. Width-collapsed (not
+                // removed) so the sheets/covers hanging off `notesRoot` (record,
+                // importers) keep presenting while the list is hidden.
                 NavigationStack { notesRoot }
-                    .navigationSplitViewColumnWidth(
-                        min: 320, ideal: Adaptive.listColumnWidth, max: 420)
-                    // The list column has no nav-bar chrome of its own, so keep its
-                    // native toggle removed — the ONE list toggle lives in the note's
-                    // nav bar (below), which is where it reads.
-                    .toolbar(removing: .sidebarToggle)
-            } detail: {
-                // Signed mock A (2026-07-24): the note's nav bar carries a matched
-                // pair of panel toggles (list ◧ / Connections ◨), styled like the
-                // system sidebar glyph. The nested panel layout won't surface the
-                // real system toggle, so remove it and use ours (MemoDetailView).
-                detailPane
-                    .toolbar(removing: .sidebarToggle)
-            }
-            .navigationSplitViewStyle(.balanced)
-            // The list column follows the toolbar toggle (and vice versa, so the
-            // system's own drag/edge-swipe keeps the icon honest).
-            .onAppear { columnVisibility = listVisible ? .doubleColumn : .detailOnly }
-            .onChange(of: listVisible) { _, show in
-                columnVisibility = show ? .doubleColumn : .detailOnly
-            }
-            .onChange(of: columnVisibility) { _, mode in
-                let shown = mode != .detailOnly
-                if shown != listVisible { listVisible = shown }
+                    // The divider hairline sits INSIDE the sliding window so it
+                    // clips away with the column instead of ghosting at x=0.
+                    .overlay(alignment: .trailing) {
+                        Rectangle().fill(Color.skBorder)
+                            .frame(width: 0.5).ignoresSafeArea()
+                    }
+                    .slidingColumn(width: Adaptive.listColumnWidth,
+                                   open: listVisible, edge: .leading)
+                noteStack
             }
             // Screenshot rig (`-selectFirstMemo`): deterministically fill the
-            // detail pane so the m3 layout renders without a tap.
+            // workbench so the layout renders without a tap.
             .onAppear {
                 if LaunchFlags.selectFirstMemo, selectedMemoID == nil {
                     selectedMemoID = memos.first(where: { $0.deletedAt == nil })?.id
@@ -197,7 +188,7 @@ struct MemosListView: View {
 
     /// The Notes surface — header + list + bottom chrome + every sheet / cover /
     /// handler that hangs off it. Hosted directly in the `NavigationStack` on
-    /// compact, and as the `NavigationSplitView` sidebar column at regular width.
+    /// compact, and as the sliding list column at regular width.
     /// The ONLY per-branch difference is `.navigationDestination` (compact only),
     /// kept out here.
     private var notesRoot: some View {
@@ -319,41 +310,14 @@ struct MemosListView: View {
             .onChange(of: searchFocusBridge.focusRequestID) { searchFocused = true }
     }
 
-    /// The split-view detail pane at regular width: the selected note (wrapped in
-    /// its own `NavigationStack` so its toolbar renders — the split view only
-    /// *instantiates* `MemoDetailView`, DETAIL owns its internals), or a quiet
+    /// The workbench at regular width: the selected note (which hosts its own
+    /// chrome band + Connections column — see `MemoDetailView`), or a quiet
     /// placeholder. `.id(id)` remounts per selection so `MemoDetailView`'s
     /// `initialID`-seeded state actually re-seeds when you pick another note.
-    private var detailPane: some View {
-        // Note stack | Connections panel as SIBLINGS: the panel must live outside
-        // the note's NavigationStack, or the note's floating toolbar capsule spans
-        // the panel's column too (Tuur, live iPad round 2026-07-23).
-        HStack(spacing: 0) {
-            noteStack
-            if connectionsVisible, let memo = paneMemo, !lockGate.isLocked(memo) {
-                ConnectionsPanel(
-                    memo: memo,
-                    onOpenMemo: { id in
-                        guard memos.contains(where: { $0.id == id }) else { return }
-                        withAnimation(Theme.Motion.snappy) { selectedMemoID = id }
-                    },
-                    onViewThread: { showPaneThread = true })
-            }
-        }
-        .sheet(isPresented: $showPaneThread) {
-            if let memo = paneMemo { ThreadView(seedID: memo.id) }
-        }
-        .onChange(of: selectedMemoID) { _, new in if new == nil { paneMemoID = nil } }
-    }
-
-    /// The memo the detail pane is currently showing (the pager can swipe past the
-    /// row you tapped) — published up by `MemoDetailView`.
-    private var paneMemo: Memo? { memos.first { $0.id == paneMemoID } }
-
     private var noteStack: some View {
         NavigationStack {
             if let id = selectedMemoID {
-                MemoDetailView(initialID: id, paneMemoID: $paneMemoID,
+                MemoDetailView(initialID: id,
                                listVisible: $listVisible, connectionsVisible: $connectionsVisible)
                     .id(id)
             } else {
@@ -363,14 +327,25 @@ struct MemosListView: View {
                         .font(.system(size: 15))
                         .foregroundStyle(Color.skTextDim)
                 }
+                // No note, no chrome band — but ◧ must stay reachable here or a
+                // hidden list is unrecoverable on an empty pane. Same metrics as
+                // the band's leading slot (14pt inset, 48pt row).
+                .overlay(alignment: .topLeading) {
+                    PanelToggle(icon: "sidebar.left", on: listVisible,
+                                label: listVisible ? "Hide notes list" : "Show notes list",
+                                id: "ipad-toggle-list") {
+                        withAnimation(Theme.Motion.snappy) { listVisible.toggle() }
+                    }
+                    .padding(.leading, 14).padding(.top, 7)
+                }
                 .toolbar(.hidden, for: .navigationBar)
                 .accessibilityIdentifier("ipad-detail-placeholder")
             }
         }
     }
 
-    /// Route a memo-open to the active navigation model: the detail pane at
-    /// regular width (iPad split view), a reset push on the stack at compact.
+    /// Route a memo-open to the active navigation model: the workbench pane at
+    /// regular width, a reset push on the stack at compact.
     /// (Row taps append instead — see `listContent`.)
     private func openMemo(_ id: UUID) {
         if isRegular { selectedMemoID = id } else { path = [id] }
