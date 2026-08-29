@@ -112,9 +112,16 @@ normal Xcode 26 back-deployment shim, correctly placed and signed.
 
 ## What to do, in order
 
-**1. Distribute build 168 — already archived and waiting.** `SkriftMobile-168.xcarchive`
-in Organizer, identical to 167 except `TARGETED_DEVICE_FAMILY: "1"`. One variable, one
-Organizer distribute (TestFlight Internal Only), one install attempt.
+**1. Distribute build 168 — archived, verified, waiting in Organizer.**
+`~/Library/Developer/Xcode/Archives/2026-08-29/SkriftMobile-168.xcarchive`, ARCHIVE
+SUCCEEDED, 0 errors, built into its own derived-data path so nothing is stale (276 compile
+tasks, `SwiftDriver Compilation SkriftMobile` among them, binary timestamped at build time).
+Verified in the product: `0.2.0 (168)`, `UIDeviceFamily [1]` on the app **and** both
+extensions, minOS 18.0, 37 MB vs 167's 41 MB — the iPad slice is genuinely gone. Identical
+to 167 in every other respect.
+
+Open it → **Distribute App → TestFlight Internal Only → Automatically manage signing →
+Upload** (the CLI export path is known-broken here). Then one install attempt.
 
 - **168 installs** → the universal switch is what this app record choked on. Restore
   `"1,2"` for 169 and try again; if 169 fails, the ticket now names Apple the exact trigger,
