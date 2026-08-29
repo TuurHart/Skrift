@@ -102,7 +102,7 @@ targets:
         # extension's Info.plist, so both processes resolve the identical container.
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "167"
+        CFBundleVersion: "168"
         # Skrift is offline + uses only standard iOS crypto (on-device ASR, plain
         # local-network HTTP) → exempt from export compliance. Declaring this skips
         # the "Missing Compliance" prompt on every TestFlight/App Store build.
@@ -208,9 +208,14 @@ targets:
         NSPhotoLibraryUsageDescription: "Skrift imports a video you pick, transcribing its audio and tagging the memo with when the video was recorded."
     settings:
       base:
-        # Universal since 2026-07-22 (iPad wave 1): "1,2" = iPhone + iPad. The
-        # iPad runs the SAME app with adaptive layouts — never a third target.
-        TARGETED_DEVICE_FAMILY: "1,2"
+        # ⚠️ TEMPORARY — build 168 ONLY, a TestFlight diagnostic. Universal since
+        # 2026-07-22 (iPad wave 1): "1,2" = iPhone + iPad, the iPad runs the SAME
+        # app with adaptive layouts, never a third target. Held at "1" for one
+        # build because it is the single variable that flipped inside this app
+        # record between builds that install from TestFlight and builds that 404
+        # (TESTFLIGHT_INSTALL_HANDOFF.md). PUT "1,2" BACK for 169 either way —
+        # this branch must not merge to main carrying "1".
+        TARGETED_DEVICE_FAMILY: "1"
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         GENERATE_INFOPLIST_FILE: NO
@@ -320,12 +325,12 @@ targets:
       properties:
         CFBundleDisplayName: Skrift
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "167"
+        CFBundleVersion: "168"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"   # ⚠️ follows the host — restore "1,2" with it (build 168 diagnostic)
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         CODE_SIGN_STYLE: Automatic
@@ -386,7 +391,7 @@ targets:
       properties:
         CFBundleDisplayName: $(SKRIFT_DISPLAY_NAME)
         CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "167"
+        CFBundleVersion: "168"
         SkriftAppGroup: $(SKRIFT_APP_GROUP)
         # NO NSMicrophoneUsageDescription: iOS blocks recording in share
         # extensions at the entitlement level (mediaserverd refusal, device-
@@ -427,7 +432,7 @@ targets:
               ).@count >= 1
     settings:
       base:
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"   # ⚠️ follows the host — restore "1,2" with it (build 168 diagnostic)
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
         CODE_SIGN_STYLE: Automatic
