@@ -56,8 +56,9 @@ Everything ASC exposes for 166/167 reads healthy: attached to the one internal g
 `betaLicenseAgreement` returns 200, exactly two clean `preReleaseVersions` (0.1.0, 0.2.0),
 no duplicates or orphans. All five testers are on the group.
 
-**The team's TestFlight is not broken.** Onderons installed twice from a build uploaded
-2026-08-08, three weeks *after* whatever broke Skrift. So this is not agreements, banking,
+**The team's TestFlight is not broken.** Skrift broke somewhere in the window
+2026-06-17 → 2026-08-29 (nothing was uploaded in between). Onderons installed twice from a
+build uploaded **2026-08-08 — inside that window**. So this is not agreements, banking,
 tax, membership, or anything account-wide — Skrift's app record alone (App ID `6780161319`)
 serves 404s. Skrift, Onderons and Ponte are identical on availability (all three: no
 `appAvailabilities` record) and on `appStoreState: PREPARE_FOR_SUBMISSION`, so
