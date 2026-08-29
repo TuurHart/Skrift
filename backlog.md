@@ -2,6 +2,25 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 📱 BLOCKED ON APPLE — TestFlight installs 404 (2026-08-29)
+
+`0.2.0 (166)` and `(167)` upload fine, show "Testing" in ASC, and **no tester can install**:
+"The requested app is not available or doesn't exist". Device log = `Error Downloading
+Install Data`, a **404 from Apple's install endpoint** — the package is never fetched, so
+nothing in the build can be the cause. Verified clean in `SkriftMobile-167.xcarchive`:
+bundle structure, nested versions (app/.share/.widget all 167), signing, and the App ID's
+entitlements (`increased-memory-limit`, iCloud, push, app-groups) all correct.
+
+Matches Apple's open `ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING` defect (forums thread
+814565, live since Feb 2026, 30+ developers, unresolved Aug 2026): the app's beta contract
+detaches server-side. **Only Apple can fix it.**
+
+**The 0.1.0-marketing-version experiment is dead** — the install endpoint is keyed on
+appID+buildID, not a version string. Don't spend an Organizer distribute on it.
+
+→ Full board, the free confirming checks, and paste-ready support-ticket text:
+`TESTFLIGHT_INSTALL_HANDOFF.md`.
+
 ## 🧠 IDEA MENU — getting more out of the notes you already have (2026-08-11 ideation session; NOTHING BUILT)
 
 Design menu, no code. Every "you already have X" was verified against source in that session.

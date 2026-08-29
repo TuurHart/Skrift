@@ -1,7 +1,8 @@
-# TestFlight: "Could not install Skrift" — handoff, 2026-08-29
+# TestFlight: "Could not install Skrift" — handoff, updated 2026-08-29
 
-**Read this before touching anything.** Four plausible causes have already been checked and
-killed with evidence. Re-deriving them is the main way to waste this session.
+**The build is not the problem, and neither is the marketing version.** The 2026-08-29
+"revert to 0.1.0 and re-archive" experiment is dead — see *Why 0.1.0 is not the answer*.
+Do not spend an Organizer distribute on it.
 
 ## The symptom
 
@@ -9,14 +10,11 @@ TestFlight shows the build. Tapping Install gives:
 
 > **Could not install Skrift.** The requested app is not available or doesn't exist.
 
-- **Two different phones** (a friend's iPhone 17, Tuur's iPhone 13), **on Wi-Fi**, both fail.
-- **Two builds** fail identically: `0.2.0 (166)` and `0.2.0 (167)`.
-- App Store Connect shows the builds as **upload Complete** and **Testing, expires in 90 days**.
-- **5 invites, 0 installs.** Nobody has ever installed one of these.
-- Distribution method: **TestFlight Internal Only**, which is what Tuur has always used.
-  All testers ARE on his App Store Connect team, so internal-only is correct and not the cause.
+Two phones (iPhone 17, iPhone 13), both Wi-Fi. Two builds, `0.2.0 (166)` and `(167)`, fail
+identically. ASC shows both as upload Complete + "Testing, expires in 90 days".
+**5 invites, 0 installs.** June's `0.1.0 (4)` installed fine on the same setup.
 
-## THE ACTUAL ERROR (from Console.app, device log)
+## The actual error (Console.app, device log)
 
 ```
 Claiming Next PostInstallStatusJob with bundle ID: com.skrift.mobile,
@@ -27,79 +25,122 @@ postInstallData = "bundleID = com.skrift.mobile  appName = Skrift  platform = iO
   deltaPackageWasOffered = 0  priorInstalledVersion = (null)"
 ```
 
-**It is a DOWNLOAD failure.** The device never reached validation — TestFlight could not fetch
-the package from Apple. That single fact exonerates the whole binary, which is why everything
-below is already ruled out.
+Other developers with the same message captured the HTTP layer underneath it:
 
-## Already ruled out — do NOT re-check these
+```
+POST https://testflight.apple.com/v2/accounts/<acct>/apps/<appID>/builds/<buildID>/install
+  → code=404, serverFailureReason = "Error Downloading Install Data"
+```
+
+**A 404 from Apple's install endpoint.** The device never downloaded anything, never
+validated anything. Nothing in the .ipa can cause a 404 on that URL.
+
+## DIAGNOSIS — `ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING`
+
+Apple backend defect, live since February 2026, 30+ developers in
+[thread 814565](https://developer.apple.com/forums/thread/814565), still unresolved as of
+August 2026. The per-app or team-level **beta contract detaches on Apple's servers**. The
+reported symptom set is Skrift's, item for item:
+
+- Build processes fine, shows "Ready to Test" / "Testing", visible in TestFlight.
+- Every internal tester — the Account Holder included — gets "The requested app is not
+  available or doesn't exist", 404 + "Error Downloading Install Data".
+- Agreements, banking and tax all show **Active**; no pending agreements.
+- External beta submission returns HTTP **422 `ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING`**,
+  and creating a public link says **"Beta contract is missing for the app."**
+- New builds, new tester invites, reinstalling TestFlight, new app records: none of it works.
+- Fix is a support case → Apple re-provisions the contract on the backend.
+
+## Why 0.1.0 is not the answer
+
+The marketing version is not a parameter of the failing request. The install endpoint is
+keyed on `appID` + `buildID`; both resolved correctly (they are in the log). No case in any
+of the reported threads involves a version string. A 0.1.0 (168) archive would fail the same
+way and cost a manual Organizer distribute to learn nothing.
+
+## Already ruled out — do NOT re-check
 
 | suspect | verdict | evidence |
 |---|---|---|
-| Minimum iOS too high | no | 18.0, same as the June builds that installed fine; failing device is an iPhone 17 |
-| Internal-only restricts testers | no | testers are all on the ASC team; June builds went out the same way and worked |
+| **Marketing version 0.1.0 → 0.2.0** | **no** | **not a parameter of the 404'd request; no reported case involves it** |
+| Minimum iOS too high | no | 18.0, same as June; failing device is an iPhone 17 |
+| Internal-only restricts testers | no | all testers on the ASC team; June shipped the same way |
 | Bad/corrupt single upload | no | 166 and 167 fail identically |
-| Network / cellular | no | both phones, both on Wi-Fi |
-| `mlx-swift` CudaBuild plugin | no | `isCudaEnabled()` returns false off Linux, so `createBuildCommands` returns `[]`. It contributes nothing on Apple platforms. Also: the same code runs fine as Dev builds on his iPhone, iPad and Mac |
-| Wildcard profile on SkriftWidget | no | `9W82X49JZS.*` — but the June build that INSTALLED had the identical wildcard |
-| Malformed bundle | no | no symlinks, correct framework structure, normal SPM resource bundles, `_CodeSignature` present |
-| Bundle id nesting | no | `com.skrift.mobile` / `.share` / `.widget`, correct |
+| Network / cellular | no | both phones, both Wi-Fi |
+| `mlx-swift` CudaBuild plugin | no | `isCudaEnabled()` false off Linux → `createBuildCommands` returns `[]` |
+| Wildcard profile on SkriftWidget | no | `9W82X49JZS.*` — **verified: June's widget carries the identical wildcard profile and identical entitlements** |
+| Malformed bundle | no | verified in `SkriftMobile-167.xcarchive`: correct nested structure, no symlinks, `_CodeSignature` present, SPM resource bundles well-formed |
+| Bundle id nesting / version skew | no | verified: app `com.skrift.mobile`, `.share`, `.widget` — all three at `0.2.0 (167)` |
+| Entitlements not on the App ID | no | verified: the embedded profile grants `increased-memory-limit`, `icloud-container-identifiers`, `icloud-services`, `aps-environment`, app-groups |
+| Mach-O / SDK | no | verified: arm64, `platform 2`, `minos 18.0`, `sdk 26.5` |
 | Build state in ASC | no | Complete + Testing, compliance answered |
 
-## What genuinely differs from the June builds that WORKED
+`libswiftCompatibilitySpan.dylib` (new since June, in `Frameworks/` + `SwiftSupport/`) is the
+normal Xcode 26 back-deployment shim, correctly placed and signed.
 
-June `0.1.0 (4)` installed fine. Diff of that archive vs `167`:
+## What to do, in order
 
-| | June 0.1.0 (4) — worked | 0.2.0 (166/167) — fails |
-|---|---|---|
-| marketing version | **0.1.0** | **0.2.0** |
-| device family | iPhone only `[1]` | iPhone + iPad `[1,2]` |
-| .app size on disk | 13 MB | 41 MB |
-| entitlements | app-id, team, app-groups | **+ aps-environment, icloud-container-identifiers, icloud-services, kernel.increased-memory-limit** |
+**1. ASC → Skrift → Pricing and Availability.** The one cause in this class you control.
+Set App Availability to all countries/regions and **Save even if it already looks right** —
+several developers with this exact 404 found the app record had no availability committed.
+Free, self-fixable, do it first.
 
-Note the archive's `aps-environment` is `development` (a CLI archive always signs development;
-Organizer re-signs on Distribute). June had no `aps-environment` at all.
+**2. Split account-wide vs Skrift-only — free, no build.** Two other apps on team
+`9W82X49JZS` uploaded to TestFlight this summer:
 
-## THE ONE UNTESTED VARIABLE, and the experiment to run
+| app | bundle id | App ID | uploaded |
+|---|---|---|---|
+| Onderons | `tuurhart.onderons` | 6799374697 | build 2, 2026-08-08 |
+| Ponte | `com.glot.ponte` | 6793568700 | build 1, 2026-07-22 |
 
-**The marketing version.** Every build that worked was `0.1.0`; every build that fails is
-`0.2.0`. A broken App Store version record in ASC produces exactly this download failure.
+Try installing either from TestFlight. **Both fail → team-level contract, one ticket covers
+everything. They install → Skrift's app record alone is detached**, and the ticket names
+App ID 6780161319 specifically.
 
-Experiment, ~10 minutes:
+**3. Confirm it.** ASC → Skrift → TestFlight → try to create a **public link** (or add an
+external group and submit for beta review). **"Beta contract is missing for the app."** or a
+422 `ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING` confirms the diagnosis outright.
 
-1. In `Skrift_Native/SkriftMobile/project.yml`, set `CFBundleShortVersionString` back to
-   **`0.1.0`** (3 occurrences, same as CFBundleVersion) and `CFBundleVersion` to **`168`**.
-2. `cd Skrift_Native/SkriftMobile && xcodegen generate`
-3. Archive (the CLI archive works; Xcode's own build fails on the CudaBuild trust prompt,
-   which is unrelated — see above):
-   ```
-   xcodebuild archive -scheme SkriftMobile -configuration Release \
-     -destination 'generic/platform=iOS' \
-     -archivePath ~/Library/Developer/Xcode/Archives/$(date +%Y-%m-%d)/SkriftMobile-168.xcarchive \
-     -skipMacroValidation -skipPackagePluginValidation \
-     -allowProvisioningUpdates DEVELOPMENT_TEAM=9W82X49JZS
-   ```
-4. **Tuur** distributes it: Xcode → Window → Organizer → Archives → Distribute App →
-   TestFlight Internal Only. The CLI export path is known-broken in this repo (cloud signing
-   permission error) — do not suggest it.
-5. Install on a phone.
+**4. Open the case.** https://developer.apple.com/contact — Apple has to re-provision it;
+there is no developer-side fix. Also file it in Feedback Assistant and post the FB number
+into [thread 814565](https://developer.apple.com/forums/thread/814565), which is where Apple
+DTS is tracking this. Paste-ready:
 
-**If 0.1.0 (168) installs:** the `0.2.0` version record in ASC is the problem — delete and
-recreate that version.
-**If it fails identically:** it is Apple's asset generation, and the next move is an Apple
-Developer Support ticket, not more local work.
+> TestFlight internal builds cannot be installed by any tester, including the Account Holder.
+> Team `9W82X49JZS`, app **Skrift**, bundle id `com.skrift.mobile`, App ID `6780161319`,
+> builds `0.2.0 (166)` and `0.2.0 (167)` (build ID `232234897`). Both show Complete and
+> "Testing, expires in 90 days" in App Store Connect. On device, TestFlight shows "Could not
+> install Skrift. The requested app is not available or doesn't exist." The device log gives
+> `failureReason: Error Downloading Install Data` with a 404 from
+> `testflight.apple.com/v2/accounts/…/apps/6780161319/builds/232234897/install`.
+> Build `0.1.0 (4)`, uploaded 2026-06-17 the same way, installed without a problem. 5 invites,
+> 0 installs. This matches Developer Forums thread 814565
+> (`ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING`). Please check whether the beta contract for
+> this app / team is present, and re-provision it.
 
-## For the support ticket, if it comes to that
-
-App ID `6780161319` · build ID `232234897` · `failureReason: Error Downloading Install Data` ·
-two builds, two devices, Wi-Fi, 0 installs across 5 invites. Ask them to check whether the
-build asset generated correctly.
+**Do NOT change the bundle id.** It is a suggested workaround in some threads, it is reported
+as *not* working in 814565, and for Skrift it would orphan the App Group, the iCloud container
+and the whole CloudKit database.
 
 ## Context you need
 
-- Repo `main` is clean and pushed (`fc8777d6`). Archives 165/166/167 are in Organizer.
+- Repo `main` clean and pushed (`fc8777d6`). Archives 165/166/167 in Organizer, all verified
+  well-formed — keep 167, it is the one to re-distribute once Apple restores the contract.
 - **Nobody is blocked but the other testers.** Tuur's iPhone 13, iPad Pro and Mac all run this
-  exact code as Dev builds (`com.skrift.mobile.dev`), installed via `devicectl`, working.
+  exact code as Dev builds (`com.skrift.mobile.dev`) over `devicectl`.
 - Dev and prod are separate bundle ids and containers — installing or deleting one never
   touches the other.
 - Bump `CFBundleVersion` in `project.yml` before every device/TestFlight build; the plists are
   generated, so that file is the only place it lives.
+- Housekeeping, unrelated to this bug: the `SkriftShared` framework target in
+  `Skrift_Native/SkriftMobile/project.yml:293` still carries `CURRENT_PROJECT_VERSION: "28"`
+  while the app and both extensions are at 167. Harmless today (Apple only enforces
+  app↔extension parity) — fold it into the next version bump.
+
+## Sources
+
+- [TestFlight Beta Contract Missing – ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING](https://developer.apple.com/forums/thread/814565) — the tracking thread
+- [Processed internal TestFlight builds fail to install](https://developer.apple.com/forums/thread/818810)
+- [TestFlight install fails: "The requested app is not available or doesn't exist" (Internal testing)](https://developer.apple.com/forums/thread/812811)
+- [TestFlight users unable to update app](https://developer.apple.com/forums/thread/744799) — the 404 capture
+- [ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING – External TestFlight unavailable, internal builds not downloadable](https://developer.apple.com/forums/thread/815893)
