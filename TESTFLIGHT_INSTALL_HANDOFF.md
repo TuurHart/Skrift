@@ -1,8 +1,8 @@
 # TestFlight: "Could not install Skrift" — handoff, updated 2026-08-29
 
-**The marketing-version experiment is dead — do not run it.** Killed on ASC data, not
-reasoning: there is no `0.2.0` App Store version record to be broken. The replacement
-experiment is archived and waiting: **build 168, iPhone-only**. One Organizer distribute.
+**The build is exonerated. This is Apple's, and it needs a support ticket.** Three builds,
+two device-family configurations, all `VALID` in App Store Connect, all with **0 installs**.
+Nothing left in this repo will fix it — go straight to *What to do*.
 
 ## The symptom
 
@@ -10,9 +10,10 @@ TestFlight shows the build. Tapping Install gives:
 
 > **Could not install Skrift.** The requested app is not available or doesn't exist.
 
-Two phones (iPhone 17, iPhone 13), both Wi-Fi. Two builds, `0.2.0 (166)` and `(167)`, fail
-identically. ASC shows both as upload Complete + "Testing, expires in 90 days".
-**5 invites, 0 installs.** June's `0.1.0 (4)` installed fine on the same setup.
+Two phones (iPhone 17, iPhone 13), both Wi-Fi. Three builds — `0.2.0 (166)`, `(167)` and
+`(168)` — fail identically, all showing Complete + "Testing" in ASC. **5 invites, 0 installs
+on each.** June's `0.1.0 (4)` installed 4 times over 348 sessions on the same app record,
+same group, same testers.
 
 ## The actual error (Console.app, device log)
 
@@ -40,21 +41,25 @@ validated anything. Nothing in the .ipa can cause a 404 on that URL.
 Queried with `~/.appstoreconnect/private_keys/AuthKey_H3KF723D6Y.p8`
 (key `H3KF723D6Y`, issuer `3eb0862f-0eef-4f03-b387-1cfd34e8ff34`).
 
-| | Skrift 167 | Skrift 166 | Skrift **4** (June) | Onderons **2** | Ponte **1** |
-|---|---|---|---|---|---|
-| uploaded | 08-29 | 08-29 | 06-17 | **08-08** | 07-22 |
-| processingState | VALID | VALID | VALID | VALID | VALID |
-| audience | INTERNAL_ONLY | INTERNAL_ONLY | INTERNAL_ONLY | INTERNAL_ONLY | INTERNAL_ONLY |
-| internalBuildState | IN_BETA_TESTING | IN_BETA_TESTING | EXPIRED | EXPIRED | — |
-| inviteCount | 5 | 5 | 5 | 2 | 3 |
-| **installCount** | **0** | **0** | **4** | **2** | **4** |
-| sessionCount | 0 | 0 | 348 | 150 | 14 |
-| `UIDeviceFamily` | **1,2** | **1,2** | 1 | 1 | 1 |
+| | Skrift **168** | Skrift 167 | Skrift 166 | Skrift **4** (June) | Onderons **2** | Ponte **1** |
+|---|---|---|---|---|---|---|
+| uploaded | 08-29 | 08-29 | 08-29 | 06-17 | **08-08** | 07-22 |
+| processingState | VALID | VALID | VALID | VALID | VALID | VALID |
+| audience | INTERNAL_ONLY | INTERNAL_ONLY | INTERNAL_ONLY | INTERNAL_ONLY | INTERNAL_ONLY | INTERNAL_ONLY |
+| internalBuildState | IN_BETA_TESTING | IN_BETA_TESTING | IN_BETA_TESTING | EXPIRED | EXPIRED | — |
+| inviteCount | 5 | 5 | 5 | 5 | 2 | 3 |
+| **installCount** | **0** | **0** | **0** | **4** | **2** | **4** |
+| sessionCount | 0 | 0 | 0 | 348 | 150 | 14 |
+| `UIDeviceFamily` | **1** | 1,2 | 1,2 | 1 | 1 | 1 |
+| icon Apple picked | 120×120 iPhone | 152×152 iPad | 152×152 iPad | 120×120 iPhone | — | — |
 
-Everything ASC exposes for 166/167 reads healthy: attached to the one internal group
+Everything ASC exposes for 166/167/168 reads healthy: attached to the one internal group
 (`isInternalGroup: true`, `hasAccessToAllBuilds: true`), `usesNonExemptEncryption: false`,
 `betaLicenseAgreement` returns 200, exactly two clean `preReleaseVersions` (0.1.0, 0.2.0),
-no duplicates or orphans. All five testers are on the group.
+no duplicates or orphans. All five testers are on the group. Every app-level attribute is
+identical across Skrift, Onderons and Ponte (`contentRightsDeclaration`,
+`streamlinedPurchasingEnabled`, `isOrEverWasMadeForKids`, availability, price schedule,
+`appStoreState`) — only name, bundle id, SKU and locale differ, and two of the three install.
 
 **The team's TestFlight is not broken.** Skrift broke somewhere in the window
 2026-06-17 → 2026-08-29 (nothing was uploaded in between). Onderons installed twice from a
@@ -73,26 +78,28 @@ install endpoint is keyed on `appID` + `buildID`, both of which resolved (they a
 device log). A 0.1.0 (168) archive would fail identically and cost an Organizer distribute
 to learn nothing.
 
-## The real remaining variable: `UIDeviceFamily`
+## `UIDeviceFamily` — tested and dead (build 168)
 
-Every build on this team that installs is `[1]`, iPhone-only. The only two that 404 are the
-only two that are `[1,2]`. Inside Skrift's own record the flip is exact: builds 1–4 were
-iPhone-only and installed (348 sessions); 166/167 are the first universal ones and neither
-has ever installed. ASC also now represents these builds with the **iPad** icon
-(`AppIcon76x76@2x~ipad.png`, 152×152) where June's used the iPhone one.
+Every build on this team that installs was `[1]`, iPhone-only; the only two that 404'd were
+the only two that were `[1,2]`. Inside Skrift's own record the flip looked exact: builds 1–4
+iPhone-only and installed, 166/167 universal and never. So 168 was archived as an exact copy
+of 167 with `TARGETED_DEVICE_FAMILY: "1"`.
 
-That is a correlation with a mechanism — flipping an existing app record from iPhone-only to
-universal is a state change on Apple's backend, and a failed re-provision there produces
-exactly a missing install package. It is **not proof**; universal builds obviously work for
-everyone else, and the two failing builds share an upload date, so date is confounded.
+Apple accepted it as iPhone-only — its `iconAssetToken` came back `AppIcon60x60@2x.png` at
+120×120, where 166/167 returned the 152×152 iPad icon. So the change genuinely took effect
+server-side.
 
-It is, however, the one variable left that is both testable and inside the fault's boundary.
+**It made no difference. 168: `VALID`, `IN_BETA_TESTING`, 5 invited, 0 installs, same
+"requested app is not available" on the phone.** Device family is not the cause, and the
+correlation was the shared upload date all along. `project.yml` is back to `"1,2"`.
 
 ## Already ruled out — do NOT re-check
 
 | suspect | verdict | evidence |
 |---|---|---|
 | **Marketing version 0.1.0 → 0.2.0** | **no** | **only one appStoreVersion exists (`1.0`); `0.2.0` is a clean preReleaseVersion** |
+| **`UIDeviceFamily` `[1,2]` → `[1]`** | **no** | **build 168 tested it: Apple accepted it as iPhone-only (120×120 icon) and it still 404s** |
+| The build, generally | no | three builds, two device-family configs, all VALID, all 0 installs |
 | Team-level agreement / banking / tax | no | Onderons installed 2× from a build uploaded 2026-08-08 on the same team |
 | Pricing and Availability | no | Skrift, Onderons and Ponte all have **no** `appAvailabilities` record; two of three install |
 | Build not assigned to the group | no | one internal group, `hasAccessToAllBuilds: true`, 166 + 167 both attached |
@@ -111,59 +118,69 @@ It is, however, the one variable left that is both testable and inside the fault
 `libswiftCompatibilitySpan.dylib` (new since June, in `Frameworks/` + `SwiftSupport/`) is the
 normal Xcode 26 back-deployment shim, correctly placed and signed.
 
-## What to do, in order
+## What to do
 
-**1. Distribute build 168 — archived, verified, waiting in Organizer.**
-`~/Library/Developer/Xcode/Archives/2026-08-29/SkriftMobile-168.xcarchive`, ARCHIVE
-SUCCEEDED, 0 errors, built into its own derived-data path so nothing is stale (276 compile
-tasks, `SwiftDriver Compilation SkriftMobile` among them, binary timestamped at build time).
-Verified in the product: `0.2.0 (168)`, `UIDeviceFamily [1]` on the app **and** both
-extensions, minOS 18.0, 37 MB vs 167's 41 MB — the iPad slice is genuinely gone. Identical
-to 167 in every other respect.
-
-Open it → **Distribute App → TestFlight Internal Only → Automatically manage signing →
-Upload** (the CLI export path is known-broken here). Then one install attempt.
-
-- **168 installs** → the universal switch is what this app record choked on. Restore
-  `"1,2"` for 169 and try again; if 169 fails, the ticket now names Apple the exact trigger,
-  which is worth far more than "it doesn't install".
-- **168 fails** → the build is fully exonerated. Go to step 2.
-
-**Either way, put `"1,2"` back before 169** — `project.yml` carries the `⚠️` markers, and
-this branch must not merge to `main` carrying `"1"`. The iPad wave is shipped work.
-
-**2. If 168 fails, open the case.** https://developer.apple.com/contact. The symptom set
-matches Apple's open `ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING` defect
+**1. Open the support case — this is the whole remedy.** https://developer.apple.com/contact.
+The symptom set matches Apple's open `ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING` defect
 ([thread 814565](https://developer.apple.com/forums/thread/814565) — live since Feb 2026,
 30+ developers, unresolved Aug 2026): the app's beta contract detaches server-side, every
-ASC field keeps reading healthy, and only Apple can re-provision it. Also file it in
-Feedback Assistant and post the FB number into that thread, which is where Apple DTS is
-tracking it. Paste-ready:
+ASC field keeps reading healthy, and only Apple can re-provision it. Also file it in Feedback
+Assistant and post the FB number into that thread, where Apple DTS is tracking it. Expect
+weeks, so file it today. Paste-ready:
 
 > TestFlight internal builds cannot be installed by any tester, including the Account Holder.
-> Team `9W82X49JZS`, app **Skrift**, bundle id `com.skrift.mobile`, App ID `6780161319`,
-> builds `0.2.0 (166)` and `0.2.0 (167)` (build ID `232234897`). Both are `processingState:
-> VALID`, `internalBuildState: IN_BETA_TESTING`, attached to our one internal group, 5
-> testers invited, and `installCount` is 0 for both. On device, TestFlight shows "Could not
-> install Skrift. The requested app is not available or doesn't exist"; the log gives
-> `failureReason: Error Downloading Install Data` with a 404 from
-> `testflight.apple.com/v2/accounts/…/apps/6780161319/builds/232234897/install`.
-> Build `0.1.0 (4)`, uploaded 2026-06-17 the same way, installed 4 times over 348 sessions.
-> Another app on the same team (Onderons, App ID 6799374697) installed normally from a build
-> uploaded 2026-08-08, so this is not account-wide. The only structural change to Skrift
-> between the build that installs and the builds that do not is `UIDeviceFamily` going from
-> `[1]` to `[1,2]`. This matches Developer Forums thread 814565
+> Team `9W82X49JZS`, app **Skrift**, bundle id `com.skrift.mobile`, App ID `6780161319`.
+> Three builds fail identically: `0.2.0 (166)`, `(167)` and `(168)`, all uploaded 2026-08-29.
+> All three are `processingState: VALID`, `internalBuildState: IN_BETA_TESTING`,
+> `buildAudienceType: INTERNAL_ONLY`, attached to our one internal group
+> (`hasAccessToAllBuilds: true`), 5 testers invited — and `installCount` is **0** on all three.
+> On device, TestFlight shows "Could not install Skrift. The requested app is not available or
+> doesn't exist." The log gives `failureReason: Error Downloading Install Data` with a 404
+> from `testflight.apple.com/v2/accounts/…/apps/6780161319/builds/<buildID>/install`
+> (build ID `232234897` for 166).
+>
+> Build `0.1.0 (4)`, uploaded 2026-06-17 to the same app record, same group and same testers,
+> installed 4 times over 348 sessions. Nothing was uploaded between 2026-06-17 and 2026-08-29.
+>
+> This is not account-wide: another app on the same team, **Onderons** (App ID `6799374697`),
+> installed normally from a build uploaded **2026-08-08 — inside that window**. Every
+> app-level attribute is identical between the two records, including availability and price
+> schedule.
+>
+> We have ruled out the build itself. Build 168 is byte-identical to 167 except
+> `TARGETED_DEVICE_FAMILY` `[1,2]` → `[1]`, and it fails the same way, so it is not device
+> family. `betaLicenseAgreement` returns 200 for this app.
+>
+> This matches Developer Forums thread 814565
 > (`ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING`). Please check whether the beta contract for
 > this app is present, and re-provision it.
+
+**2. Two cheap things worth trying while the case sits.** Neither is likely; both cost
+minutes and nothing is at risk.
+
+- **Make a fresh internal tester group** in ASC, add the testers and build 168 to it, and
+  install from that. The current group was created 2026-06-14; a new one is the closest thing
+  to re-provisioning the per-app beta plumbing that is in your hands.
+- **Expire 166 and 167**, leaving 168 as the only live build in the group.
+
+**3. Confirming signal, if you want it.** ASC → Skrift → TestFlight → try to create a public
+link. **"Beta contract is missing for the app."** would confirm the diagnosis outright and is
+worth quoting in the case.
 
 **Do NOT change the bundle id.** It is a suggested workaround in some threads, it is reported
 as *not* working in 814565, and for Skrift it would orphan the App Group, the iCloud container
 and the whole CloudKit database.
 
+**Do NOT burn more builds.** Three uploads across two device-family configurations have now
+produced the identical 404. A fourth teaches nothing until Apple has touched the record.
+
 ## Context you need
 
-- Repo `main` clean and pushed (`fc8777d6`). Archives 165/166/167 in Organizer, all verified
-  well-formed — keep 167, it is the one to re-distribute once Apple restores the contract.
+- Archives 165/166/167/168 are in Organizer, all verified well-formed. **167 is the one to
+  re-distribute once Apple restores the contract** — it is the universal build. 168 exists
+  only as the device-family experiment; it is iPhone-only and should not ship.
+- `project.yml` is back to `TARGETED_DEVICE_FAMILY: "1,2"` and bumped to `CFBundleVersion 169`,
+  so nothing can accidentally ship a second, different "168".
 - **Nobody is blocked but the other testers.** Tuur's iPhone 13, iPad Pro and Mac all run this
   exact code as Dev builds (`com.skrift.mobile.dev`) over `devicectl`.
 - Dev and prod are separate bundle ids and containers — installing or deleting one never
