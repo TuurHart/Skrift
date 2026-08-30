@@ -107,7 +107,7 @@ correlation was the shared upload date all along. `project.yml` is back to `"1,2
 | **`UIDeviceFamily` `[1,2]` → `[1]`** | **no** | **build 168 tested it: Apple accepted it as iPhone-only (120×120 icon) and it still 404s** |
 | The build, generally | no | three builds, two device-family configs, all VALID, all 0 installs |
 | Team-level agreement / banking / tax | no | Onderons installed 2× from a build uploaded 2026-08-08 on the same team |
-| ~~Pricing and Availability~~ | **RE-OPENED** | the API 404s this for every app, so it proved nothing — **a territory stuck in "Processing" is now suspect #1**, UI-only |
+| Pricing and Availability | **no — settled in the UI** | Skrift's App Availability is entirely unset (empty "Set Up Availability"), and **Onderons is unset too and installs fine**. Not Processing, not the cause. Pricing unset on both. |
 | Build not assigned to the group | no | one internal group, `hasAccessToAllBuilds: true`, 166 + 167 both attached |
 | Tester invites | no | all 5 on the group; 4 of them installed June's build (348 sessions) |
 | Minimum iOS too high | no | 18.0, same as June; failing device is an iPhone 17 |
@@ -126,39 +126,10 @@ normal Xcode 26 back-deployment shim, correctly placed and signed.
 
 ## What to do
 
-**1. ASC web UI → Skrift → Pricing and Availability → App Availability. Look for any country
-in "Processing".** Thirty seconds, and it is the one documented cause whose symptom matches
-exactly. From [thread 778597](https://developer.apple.com/forums/thread/778597), developer
-`samkudr`:
-
-> in the Monetization → Pricing and Availability → App Availability section for the app all of
-> a sudden I started to have 2 countries in the Processing state. If your account is in the
-> 'Processing' country then you can view the app in TestFlight but can't install it.
-
-Same thread, `TumayHeron`: *"I have reached the support and they handled it. It's a known issue
-on Apple-side."* And `dominik_`: *"Apple Support could also solve it for me but after a while
-the problem returned."* So Apple does fix this one, and it can come back.
-
-**Check Portugal specifically** — Tuur and at least some testers are there. If any territory
-reads Processing, that is the answer and the fix is Apple's, but the case is now a five-minute
-one with a named cause instead of an open-ended investigation.
-
-**Checked 2026-08-30 (screenshot): App Availability has NEVER been set.** The panel shows the
-empty state with a "Set Up Availability" button — not territories in Processing, nothing at
-all. Price Schedule is likewise unset ("Add Pricing"). That matches the API's 404.
-
-→ **Set Up Availability → all countries and regions → Save.** Territories will read
-"Processing" for a while afterwards; that is normal, retest once it clears. If one *sticks*
-in Processing, that is thread 778597's bug and the support case has a named cause.
-
-→ **Do NOT click Add Pricing.** A price requires the Paid Applications agreement (bank + tax
-details), and an app set to paid while that agreement is inactive is itself a documented
-TestFlight blocker. Free + available-everywhere is the right state now; the $0.69 belongs at
-submission (roadmap P11).
-
-Honest confidence: availability was almost certainly unset in June too, when build 4 installed
-4 times, so this is not a slam dunk. It is free, it is the step several developers with this
-exact error took, and it is required for submission regardless.
+**1. Skrift → General → History (ASC sidebar).** The only remaining free check. Something
+changed on this app record between **2026-06-17** (build 4 installed 4×, 348 sessions) and
+**2026-08-29** (166 uploaded, 404s) — nothing was uploaded in between, so the trigger is a
+record change, not a build. Anything logged in that gap is the lead.
 
 **2. Remove build 167 from the internal group and re-add it.** Reported as forcing App Store
 Connect to resend the app's availability data to TestFlight. Two API calls, reversible,
