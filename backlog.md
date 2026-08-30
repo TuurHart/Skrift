@@ -21,7 +21,12 @@ build 168 = 167 with `TARGETED_DEVICE_FAMILY: "1"`, Apple accepted it as iPhone-
 404s identically. Three builds, two configs, all VALID, all 0 installs — against June's
 4 installs / 348 sessions on the same record, group and testers.
 
-**Remedy = an Apple support case, and nothing else. Don't burn more builds.**
+**ROOT CAUSE (2026-08-30): 29 TestFlight builds across 5 apps were force-expired inside a
+3-second window on 2026-08-26 13:19:58–13:20:00 UTC.** It is account-wide; Skrift is simply the
+only app with a build uploaded after it. Apple generated all 114 thinned install variants for
+166/167/168 and refuses to serve them. Remedy = Feedback Assistant **with a sysdiagnose** into
+forums thread 813703, plus a support callback asking for a **"senior-advisor reversal"**.
+**Ad Hoc distribution unblocks the 5 testers today. Don't burn more builds.**
 
 → Full board, the free confirming checks, and paste-ready support-ticket text:
 `TESTFLIGHT_INSTALL_HANDOFF.md`.
