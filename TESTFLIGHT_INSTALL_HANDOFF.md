@@ -1,9 +1,14 @@
 # TestFlight: "Could not install Skrift" — handoff, updated 2026-08-29
 
-**The build is exonerated — three builds, two device-family configurations, all `VALID`, all
-0 installs. Check App Availability in the ASC web UI first.** A country stuck in
-**"Processing"** there produces exactly this: the app is visible in TestFlight and the install
-is refused. It is invisible to the API, which is why every field I could query read healthy.
+**Root cause found 2026-08-30: every live TestFlight build on the whole account was
+force-expired inside a 3-second window on 2026-08-26.** 29 builds, 5 apps. It is a known
+Apple backend fault, Apple phone support has called it *"a backend issue on their side
+requiring senior-advisor reversal"*, and it has been fixed for other developers. **Phone
+Apple Developer Support and ask for a senior-advisor reversal** — see *What to do*.
+
+This corrects the earlier conclusion in this doc that the fault was confined to Skrift's app
+record. It is not. Skrift is simply the only app with a build uploaded *after* the event, so
+it is the only one that can show the symptom.
 
 ## The symptom
 
@@ -37,6 +42,83 @@ POST https://testflight.apple.com/v2/accounts/<acct>/apps/<appID>/builds/<buildI
 **A 404 from Apple's install endpoint.** The device never downloaded anything, never
 validated anything. Nothing in the .ipa can cause a 404 on that URL.
 
+## ROOT CAUSE — the 2026-08-26 mass expiry
+
+`GET /v1/builds?filter[app]=<id>&fields[builds]=version,uploadedDate,expirationDate,expired`
+across all 8 apps on team `9W82X49JZS`:
+
+| expirationDate | app | builds | age at death |
+|---|---|---|---|
+| `2026-08-26T06:19:58-07:00` | Glot — Language Decks | v2–v12 (10) | 36–58 d |
+| `2026-08-26T06:19:58-07:00` | Ponte | v1 | 35 d |
+| `2026-08-26T06:19:59-07:00` | Glot Echo | v1–v13 (13) | 73–77 d |
+| `2026-08-26T06:19:59-07:00` | **Skrift** | v1–v4 | 70–73 d |
+| `2026-08-26T06:20:00-07:00` | Onderons | v2 | **18 d** |
+
+**29 builds, 5 apps, a 3-second window.** None are 90-day expiries.
+
+The 90-day clock is demonstrably fine on this account, which is what makes this deliberate
+rather than drift:
+
+| app | uploaded | expired | age |
+|---|---|---|---|
+| GFR Field Recorder v1 | 2026-05-14 | 2026-08-12 | **exactly 90 d** |
+| Shhhcribble iOS v3 | 2026-05-25 | 2026-08-23 | **exactly 90 d** |
+| Skrift 166/167/168 | 2026-08-29 | **2026-11-27** | correct 90 d, still live |
+
+Something reversed every live build on the account at **2026-08-26 13:20 UTC** — three days
+before Skrift 166 was uploaded. Builds uploaded since get correct expiry dates and still
+cannot be installed.
+
+**This is a documented Apple fault with the identical fingerprint.**
+[Thread 813703](https://developer.apple.com/forums/thread/813703), developer `apecchillo`:
+
+> Hit this exact issue starting July 15, 2026 at 22:13 PT: all 23 TestFlight builds across all
+> 4 apps in our account expired simultaneously (same 2-second window), including a build
+> uploaded 35 minutes earlier.
+
+> A fresh replacement build processes to VALID and appears in TestFlight, but every install
+> fails with "The requested app is not available or doesn't exist" — internal testers included.
+
+> Submitting it for Beta App Review via the ASC API returns 422
+> ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING, despite a current membership and an Active Free
+> Apps Agreement.
+
+> Apple phone support confirmed on July 16 this is a backend issue on their side requiring
+> senior-advisor reversal. They also said that there are "no senior-advisors available, so
+> expect a 2 business day turnaround time."
+
+Same thread, others: *"2-day old builds 'expired' for no reason"* (`ijoe2026`), *"All of my
+builds are expiring in 30 minutes"* (`josephktncl`). And an Apple DTS Engineer, a week later:
+
+> Thank you for your patience while the TestFlight team looked into the recent issue… May I
+> ask you to please open the TestFlight app today and try installing the latest build again.
+
+So it does get fixed, by Apple, on request.
+
+## Apple built the install packages. They just will not serve them.
+
+`GET /v1/builds/<id>?include=buildBundles` → `GET /v1/buildBundles/<id>/buildBundleFileSizes`:
+
+| build | thinned variants Apple generated | Universal download / install |
+|---|---|---|
+| 4 (June, **installed 4×**) | **114** | 12,349,294 / 13,690,880 |
+| 166 (404s) | **114** | 37,677,603 / 44,332,032 |
+| 167 (404s) | **114** | 37,677,466 / 44,332,032 |
+| 168 (404s) | **114** | 34,377,232 / 40,725,504 |
+
+Ingestion, re-signing, thinning and per-device asset generation all **completed** on the
+failing builds — same 114 variants as the build that installed fine. The device log's
+`appSizeInBytes = 14958820` for build 166 is Apple's own generated iPhone variant size.
+
+**So the 404 is not "the package does not exist". The package exists and Apple is refusing to
+authorize the download.** That is exactly what a revoked/detached beta entitlement looks like,
+and it kills every remaining theory in which the .ipa broke Apple's processing.
+
+The re-signed (uploaded) entitlements are also correct — `beta-reports-active: true`,
+`get-task-allow: false`, `aps-environment: production`,
+`icloud-container-environment: Production` on all three failing builds.
+
 ## What App Store Connect actually says (ASC API, read-only, 2026-08-29)
 
 Queried with `~/.appstoreconnect/private_keys/AuthKey_H3KF723D6Y.p8`
@@ -67,13 +149,19 @@ exposes is identical across Skrift, Onderons and Ponte — `contentRightsDeclara
 submitted or not — that is a null result, not a match. An earlier version of this doc read it
 as "identical, therefore not the cause". Wrong. **Only the ASC web UI shows it.**
 
-**The team's TestFlight is not broken.** Skrift broke somewhere in the window
-2026-06-17 → 2026-08-29 (nothing was uploaded in between). Onderons installed twice from a
-build uploaded **2026-08-08 — inside that window**. So this is not agreements, banking,
-tax, membership, or anything account-wide — Skrift's app record alone (App ID `6780161319`)
-serves 404s. Skrift, Onderons and Ponte are identical on availability (all three: no
-`appAvailabilities` record) and on `appStoreState: PREPARE_FOR_SUBMISSION`, so
-Pricing and Availability is not it either.
+⚠️ **The "Onderons proves the team is fine" argument is RETRACTED.** Onderons' 2 installs
+happened between 2026-08-08 and the 2026-08-26 expiry — entirely *before* the event. Skrift's
+failing builds were uploaded three days *after* it. The control sits on the wrong side of the
+boundary and proves nothing about the current state. Onderons has no live build today, so it
+cannot even be re-run without a fresh upload.
+
+⚠️ **`installCount 0` is NOT strong evidence.** Apple documents that tester metrics can take
+up to 24 hours to appear, and all three builds were inside that window when measured. Lead
+with the device log, which is direct and does not lag. (Re-checked 2026-08-30: still 0 on all
+three, now outside the window for 166 — but the log remains the better evidence.)
+
+⚠️ **`betaLicenseAgreement` returning 200 proves nothing** — it returns an identical
+`agreementText: null` object on Onderons and Ponte too. Dropped from the case.
 
 ## Why 0.1.0 is not the answer — killed on data
 
@@ -99,6 +187,12 @@ server-side.
 "requested app is not available" on the phone.** Device family is not the cause, and the
 correlation was the shared upload date all along. `project.yml` is back to `"1,2"`.
 
+⚠️ Correction: 168 is **not** "identical to 167 except device family" — an earlier draft of
+this doc said so and it is false. Dropping the iPad slice also removed
+`Frameworks/libswiftCompatibilitySpan.dylib` and the whole `SwiftSupport/` directory, and
+halved `Assets.car` (4,355,448 → 2,186,664 bytes). That makes 168 a *stronger* exoneration —
+three materially different packages all 404 — but do not put the false claim in a ticket.
+
 ## Already ruled out — do NOT re-check
 
 | suspect | verdict | evidence |
@@ -106,7 +200,7 @@ correlation was the shared upload date all along. `project.yml` is back to `"1,2
 | **Marketing version 0.1.0 → 0.2.0** | **no** | **only one appStoreVersion exists (`1.0`); `0.2.0` is a clean preReleaseVersion** |
 | **`UIDeviceFamily` `[1,2]` → `[1]`** | **no** | **build 168 tested it: Apple accepted it as iPhone-only (120×120 icon) and it still 404s** |
 | The build, generally | no | three builds, two device-family configs, all VALID, all 0 installs |
-| Team-level agreement / banking / tax | no | Onderons installed 2× from a build uploaded 2026-08-08 on the same team |
+| ~~Account-wide cause~~ | **RETRACTED — it IS account-wide** | 29 builds across 5 apps force-expired in a 3-second window 2026-08-26. Onderons' installs predate it; Skrift is just the only app with a build uploaded after |
 | Pricing and Availability | **no — settled in the UI** | Skrift's App Availability is entirely unset (empty "Set Up Availability"), and **Onderons is unset too and installs fine**. Not Processing, not the cause. Pricing unset on both. |
 | Build not assigned to the group | no | one internal group, `hasAccessToAllBuilds: true`, 166 + 167 both attached |
 | Tester invites | no | all 5 on the group; 4 of them installed June's build (348 sessions) |
@@ -126,71 +220,112 @@ normal Xcode 26 back-deployment shim, correctly placed and signed.
 
 ## What to do
 
-**1. File the support case. This is the remedy.** https://developer.apple.com/contact, plus
-Feedback Assistant with the FB number posted into
-[thread 814565](https://developer.apple.com/forums/thread/814565). Developers there wait
-weeks, so file today.
+Nobody has ever fixed this from the developer side. Every resolution on record is Apple
+flipping something server-side. Three confirmed fixes, all via Apple Support, all in
+[thread 778597](https://developer.apple.com/forums/thread/778597) — `Jonas_G` (Apr '26,
+~2 weeks of silence then *"resolved within 48 hours"*), `TumayHeron` (Jun '26,
+*"I have reached the support and they handled it"*), `dominik_` (Jun '26, fixed then relapsed).
 
-The elimination is complete, and the ASC History tab closed it: **the app record has exactly
-one event ever — "Prepare for Submission", 2026-06-14 10:30, by Tuur.** The build that
-installed 4 times came *after* that, on 2026-06-17. Between then and 2026-08-29 nothing was
-uploaded and nothing was changed, and every August build 404s. Nobody did anything to this
-record; it drifted on Apple's side. That is the `BETA_CONTRACT_MISSING` profile exactly.
+Run **both** routes. They are different queues.
 
-**2. Remove build 167 from the internal group and re-add it.** Reported as forcing App Store
-Connect to resend the app's availability data to TestFlight. Two API calls, reversible,
-nothing at risk — say go and I'll do it. Do it with **167**, the universal build, not 168.
+### Route A — Feedback Assistant + thread 813703. The only responsive Apple human.
 
-**3. Expire 166 and 168** so 167 is the only live build. Right now TestFlight serves the
-newest, which is the iPhone-only 168 — so your iPad is being offered a build it genuinely
-cannot run, and that iPad failure proves nothing.
+[Thread 813703](https://developer.apple.com/forums/thread/813703) is the live one — 38 replies,
+updated within the last two days, with DTS Engineer **Albert Pascual** actively routing
+Feedback numbers and replying within hours. He is explicit that he is not on the TestFlight
+team but routes the bug so that team can answer privately through Feedback Assistant.
 
-**4. Only then, the support case.** https://developer.apple.com/contact, and file it in
-Feedback Assistant too. If step 1 showed a Processing territory, lead with that and cite
-thread 778597. If it did not, the symptom set matches Apple's open
-`ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING` defect
-([thread 814565](https://developer.apple.com/forums/thread/814565) — live since Feb 2026,
-30+ developers, unresolved Aug 2026) and the paste-ready text below applies.
+**His one specific instruction is the thing most people get wrong — the sysdiagnose:**
 
-> TestFlight internal builds cannot be installed by any tester, including the Account Holder.
+> please make sure you upload the sysdiagnose as well… for the team to have actionable items
+> to review.
+
+So, in order:
+
+1. Install Apple's **TestFlight logging profile** (`TestFlightLoggingProfile.mobileconfig`)
+   from [developer.apple.com/bug-reporting/profiles-and-logs](https://developer.apple.com/bug-reporting/profiles-and-logs/).
+2. Reproduce the failed install on the phone.
+3. Take a **sysdiagnose immediately** (hold both volume buttons + side button ~1.5s; it lands
+   in Settings → Privacy & Security → Analytics & Improvements → Analytics Data).
+4. File in Feedback Assistant with the sysdiagnose, App ID `6780161319`, and the expiry table
+   from *ROOT CAUSE* above.
+5. Post the FB number into thread 813703, tagging the DTS Engineer.
+
+### Route B — developer.apple.com/contact, Developer Program Support.
+
+This is the route that produced all three confirmed fixes. Expect 1–2 weeks to first contact.
+Apple publishes no dial-in number — [the contact form](https://developer.apple.com/contact/)
+requests a callback ([worldwide telephone hours](https://developer.apple.com/support/worldwide-telephone-hours/)).
+
+**Ask for a "senior-advisor reversal" by name.** That phrase is Apple's own internal mechanism
+for this, from what phone support told `apecchillo` on 2026-07-16: *"this is a backend issue on
+their side requiring senior-advisor reversal… there are no senior-advisors available, so expect
+a 2 business day turnaround time."*
+
+**Do NOT file a DTS Technical Support Incident.** [Code-level Support](https://developer.apple.com/support/technical/)
+covers Apple frameworks, APIs and tools only, and explicitly excludes App Store Connect issues.
+
+### Paste-ready
+
+> TestFlight builds cannot be installed by any tester, including the Account Holder.
 > Team `9W82X49JZS`, app **Skrift**, bundle id `com.skrift.mobile`, App ID `6780161319`.
-> Three builds fail identically: `0.2.0 (166)`, `(167)` and `(168)`, all uploaded 2026-08-29.
-> All three are `processingState: VALID`, `internalBuildState: IN_BETA_TESTING`,
-> `buildAudienceType: INTERNAL_ONLY`, attached to our one internal group
-> (`hasAccessToAllBuilds: true`), 5 testers invited — and `installCount` is **0** on all three.
-> On device, TestFlight shows "Could not install Skrift. The requested app is not available or
-> doesn't exist." The log gives `failureReason: Error Downloading Install Data` with a 404
-> from `testflight.apple.com/v2/accounts/…/apps/6780161319/builds/<buildID>/install`
-> (build ID `232234897` for 166). Three devices, including an iPad with a fresh TestFlight
-> install, so it is not a stale client catalog.
 >
-> Build `0.1.0 (4)`, uploaded 2026-06-17 to the same app record, same group and same testers,
-> installed 4 times over 348 sessions. Nothing was uploaded between 2026-06-17 and 2026-08-29.
+> **This is account-wide, and it began with a mass build expiry.** On **2026-08-26 at
+> 13:19:58–13:20:00 UTC**, 29 TestFlight builds across 5 of my apps were expired inside a
+> 3-second window: Glot — Language Decks v2–v12, Ponte v1, Glot Echo v1–v13, Skrift v1–v4,
+> Onderons v2. None were near 90 days — Onderons v2 was **18 days old**, Ponte v1 was 35.
+> The 90-day clock works correctly on this account otherwise: GFR Field Recorder v1
+> (2026-05-14 → 2026-08-12) and Shhhcribble iOS v3 (2026-05-25 → 2026-08-23) are both exactly
+> 90 days, and my new builds get correct 2026-11-27 dates.
 >
-> This is not account-wide: another app on the same team, **Onderons** (App ID `6799374697`),
-> installed normally from a build uploaded **2026-08-08 — inside that window**.
+> Since that event, every new build fails to install. Skrift `0.2.0` builds **166, 167 and
+> 168**, all uploaded 2026-08-29, are `processingState: VALID`,
+> `internalBuildState: IN_BETA_TESTING`, `buildAudienceType: INTERNAL_ONLY`, attached to my
+> internal group, 5 testers invited. On device: "Could not install Skrift. The requested app is
+> not available or doesn't exist", with `failureReason: Error Downloading Install Data` and a
+> 404 from `testflight.apple.com/v2/accounts/…/apps/6780161319/builds/<buildID>/install`.
+> Three devices, including an iPad with a fresh TestFlight install.
 >
-> We have ruled out the build itself. Build 168 is identical to 167 except
-> `TARGETED_DEVICE_FAMILY` `[1,2]` → `[1]`, and it fails the same way.
-> `betaLicenseAgreement` returns 200 for this app.
+> **The builds themselves are fine and your own systems say so.** For all three failing builds
+> `/v1/buildBundles/<id>/buildBundleFileSizes` returns **114 thinned variants** — the same count
+> as build `0.1.0 (4)`, which installed 4 times over 348 sessions. Ingestion, re-signing and
+> asset generation all completed; the re-signed entitlements are correct
+> (`beta-reports-active: true`, `get-task-allow: false`, `aps-environment: production`). The
+> packages exist and are simply not being served.
 >
-> App Availability and Price Schedule are both unset for this app — and equally unset for
-> Onderons, which installs — so that is not the difference. The app record's History shows a
-> single event ever, "Prepare for Submission" on 2026-06-14, before the build that installed
-> successfully. Nothing on the record has been changed since.
+> Skrift's builds are the only ones on my account uploaded after 2026-08-26, which is why this
+> app is the one showing the symptom — the others have nothing installable left to test with.
 >
-> Please check whether the beta contract for this app is present, and re-provision it. This
-> matches Developer Forums thread 814565.
+> This matches Developer Forums threads **813703** and **814565**. Please perform the
+> senior-advisor reversal on the beta contract for team `9W82X49JZS`.
 
-**Do NOT change the bundle id.** Reported as *not* working in 814565, and for Skrift it would
-orphan the App Group, the iCloud container and the whole CloudKit database.
+### Meanwhile — Ad Hoc gets your 5 testers unblocked today
 
-**Do NOT burn more builds.** Three uploads across two device-family configurations produced
-the identical 404. A fourth teaches nothing.
+The bug is purely in TestFlight's delivery service. `kricke` in 813703, 5 days ago:
+*"Works perfectly fine when installed via Xcode."* Signing and the binary are untouched.
 
-**Device-side resets are dead.** A fresh TestFlight install on a third device (iPad) failed
-too, so there is no stale client catalog to clear. TestFlight also has no sign-out of its own
-— it is bound to the device's App Store account.
+Ad Hoc needs **no App Store Connect at all** — App ID, distribution cert, device list and
+profile all live in Certificates, Identifiers & Profiles. You have 100 device slots per
+product family per membership year.
+
+Collect the 5 UDIDs → register them → create an Ad Hoc profile → Organizer → Distribute App →
+**Ad Hoc** → choose **Production** CloudKit at export (TestFlight always forces production, so
+this keeps testers on the same database) → hand out the `.ipa`, via Apple Configurator or an
+HTTPS-hosted `itms-services://` manifest they tap in Safari.
+
+Friction to plan for: **each tester must enable Developer Mode** (Settings → Privacy & Security
+→ Developer Mode → restart) — Apple exempts TestFlight from this but not Configurator installs.
+First launch also needs to reach `ppq.apple.com` or the app may not launch. No crash reports,
+no update flow, no tester management: you re-send a file each time.
+
+### Do not
+
+- **Do NOT burn another build.** `erkanozsoy` in 813703 tested a **native Swift Hello World,
+  build 1** and it 404s too. Nothing you compile changes this.
+- **Do NOT change the bundle id** — reported as not working, and for Skrift it would orphan the
+  App Group, the iCloud container and the whole CloudKit database.
+- **Remove/re-add the build to the group** has no source tied to this failure mode; it is
+  generic invite-sync folklore. Harmless, but do not spend a support round on it.
 
 ## Context you need
 
