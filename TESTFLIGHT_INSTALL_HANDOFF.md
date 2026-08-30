@@ -143,9 +143,22 @@ the problem returned."* So Apple does fix this one, and it can come back.
 reads Processing, that is the answer and the fix is Apple's, but the case is now a five-minute
 one with a named cause instead of an open-ended investigation.
 
-While you are on that screen: if App Availability has never been committed, set it to all
-countries/regions and Save. Skrift has no `appAvailabilities` record at all — the API cannot
-tell whether that is normal for an unsubmitted app or the fault.
+**Checked 2026-08-30 (screenshot): App Availability has NEVER been set.** The panel shows the
+empty state with a "Set Up Availability" button — not territories in Processing, nothing at
+all. Price Schedule is likewise unset ("Add Pricing"). That matches the API's 404.
+
+→ **Set Up Availability → all countries and regions → Save.** Territories will read
+"Processing" for a while afterwards; that is normal, retest once it clears. If one *sticks*
+in Processing, that is thread 778597's bug and the support case has a named cause.
+
+→ **Do NOT click Add Pricing.** A price requires the Paid Applications agreement (bank + tax
+details), and an app set to paid while that agreement is inactive is itself a documented
+TestFlight blocker. Free + available-everywhere is the right state now; the $0.69 belongs at
+submission (roadmap P11).
+
+Honest confidence: availability was almost certainly unset in June too, when build 4 installed
+4 times, so this is not a slam dunk. It is free, it is the step several developers with this
+exact error took, and it is required for submission regardless.
 
 **2. Remove build 167 from the internal group and re-add it.** Reported as forcing App Store
 Connect to resend the app's availability data to TestFlight. Two API calls, reversible,
