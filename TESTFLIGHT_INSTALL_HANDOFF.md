@@ -1,8 +1,9 @@
 # TestFlight: "Could not install Skrift" — handoff, updated 2026-08-29
 
-**The build is exonerated. This is Apple's, and it needs a support ticket.** Three builds,
-two device-family configurations, all `VALID` in App Store Connect, all with **0 installs**.
-Nothing left in this repo will fix it — go straight to *What to do*.
+**The build is exonerated — three builds, two device-family configurations, all `VALID`, all
+0 installs. Check App Availability in the ASC web UI first.** A country stuck in
+**"Processing"** there produces exactly this: the app is visible in TestFlight and the install
+is refused. It is invisible to the API, which is why every field I could query read healthy.
 
 ## The symptom
 
@@ -56,10 +57,15 @@ Queried with `~/.appstoreconnect/private_keys/AuthKey_H3KF723D6Y.p8`
 Everything ASC exposes for 166/167/168 reads healthy: attached to the one internal group
 (`isInternalGroup: true`, `hasAccessToAllBuilds: true`), `usesNonExemptEncryption: false`,
 `betaLicenseAgreement` returns 200, exactly two clean `preReleaseVersions` (0.1.0, 0.2.0),
-no duplicates or orphans. All five testers are on the group. Every app-level attribute is
-identical across Skrift, Onderons and Ponte (`contentRightsDeclaration`,
-`streamlinedPurchasingEnabled`, `isOrEverWasMadeForKids`, availability, price schedule,
-`appStoreState`) — only name, bundle id, SKU and locale differ, and two of the three install.
+no duplicates or orphans. All five testers are on the group. Every app-level attribute the API
+exposes is identical across Skrift, Onderons and Ponte — `contentRightsDeclaration`,
+`streamlinedPurchasingEnabled`, `isOrEverWasMadeForKids`, `appStoreState`, price schedule
+(all three: baseTerritory USA, no manual prices) — only name, bundle id, SKU and locale differ.
+
+⚠️ **Territory availability is the one thing the API cannot answer.** `appAvailabilityV2`,
+`/v2/appAvailabilities/{id}` and `availableTerritories` all 404 for **every** app on this team,
+submitted or not — that is a null result, not a match. An earlier version of this doc read it
+as "identical, therefore not the cause". Wrong. **Only the ASC web UI shows it.**
 
 **The team's TestFlight is not broken.** Skrift broke somewhere in the window
 2026-06-17 → 2026-08-29 (nothing was uploaded in between). Onderons installed twice from a
@@ -101,7 +107,7 @@ correlation was the shared upload date all along. `project.yml` is back to `"1,2
 | **`UIDeviceFamily` `[1,2]` → `[1]`** | **no** | **build 168 tested it: Apple accepted it as iPhone-only (120×120 icon) and it still 404s** |
 | The build, generally | no | three builds, two device-family configs, all VALID, all 0 installs |
 | Team-level agreement / banking / tax | no | Onderons installed 2× from a build uploaded 2026-08-08 on the same team |
-| Pricing and Availability | no | Skrift, Onderons and Ponte all have **no** `appAvailabilities` record; two of three install |
+| ~~Pricing and Availability~~ | **RE-OPENED** | the API 404s this for every app, so it proved nothing — **a territory stuck in "Processing" is now suspect #1**, UI-only |
 | Build not assigned to the group | no | one internal group, `hasAccessToAllBuilds: true`, 166 + 167 both attached |
 | Tester invites | no | all 5 on the group; 4 of them installed June's build (348 sessions) |
 | Minimum iOS too high | no | 18.0, same as June; failing device is an iPhone 17 |
@@ -120,13 +126,41 @@ normal Xcode 26 back-deployment shim, correctly placed and signed.
 
 ## What to do
 
-**1. Open the support case — this is the whole remedy.** https://developer.apple.com/contact.
-The symptom set matches Apple's open `ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING` defect
+**1. ASC web UI → Skrift → Pricing and Availability → App Availability. Look for any country
+in "Processing".** Thirty seconds, and it is the one documented cause whose symptom matches
+exactly. From [thread 778597](https://developer.apple.com/forums/thread/778597), developer
+`samkudr`:
+
+> in the Monetization → Pricing and Availability → App Availability section for the app all of
+> a sudden I started to have 2 countries in the Processing state. If your account is in the
+> 'Processing' country then you can view the app in TestFlight but can't install it.
+
+Same thread, `TumayHeron`: *"I have reached the support and they handled it. It's a known issue
+on Apple-side."* And `dominik_`: *"Apple Support could also solve it for me but after a while
+the problem returned."* So Apple does fix this one, and it can come back.
+
+**Check Portugal specifically** — Tuur and at least some testers are there. If any territory
+reads Processing, that is the answer and the fix is Apple's, but the case is now a five-minute
+one with a named cause instead of an open-ended investigation.
+
+While you are on that screen: if App Availability has never been committed, set it to all
+countries/regions and Save. Skrift has no `appAvailabilities` record at all — the API cannot
+tell whether that is normal for an unsubmitted app or the fault.
+
+**2. Remove build 167 from the internal group and re-add it.** Reported as forcing App Store
+Connect to resend the app's availability data to TestFlight. Two API calls, reversible,
+nothing at risk — say go and I'll do it. Do it with **167**, the universal build, not 168.
+
+**3. Expire 166 and 168** so 167 is the only live build. Right now TestFlight serves the
+newest, which is the iPhone-only 168 — so your iPad is being offered a build it genuinely
+cannot run, and that iPad failure proves nothing.
+
+**4. Only then, the support case.** https://developer.apple.com/contact, and file it in
+Feedback Assistant too. If step 1 showed a Processing territory, lead with that and cite
+thread 778597. If it did not, the symptom set matches Apple's open
+`ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING` defect
 ([thread 814565](https://developer.apple.com/forums/thread/814565) — live since Feb 2026,
-30+ developers, unresolved Aug 2026): the app's beta contract detaches server-side, every
-ASC field keeps reading healthy, and only Apple can re-provision it. Also file it in Feedback
-Assistant and post the FB number into that thread, where Apple DTS is tracking it. Expect
-weeks, so file it today. Paste-ready:
+30+ developers, unresolved Aug 2026) and the paste-ready text below applies.
 
 > TestFlight internal builds cannot be installed by any tester, including the Account Holder.
 > Team `9W82X49JZS`, app **Skrift**, bundle id `com.skrift.mobile`, App ID `6780161319`.
@@ -137,42 +171,32 @@ weeks, so file it today. Paste-ready:
 > On device, TestFlight shows "Could not install Skrift. The requested app is not available or
 > doesn't exist." The log gives `failureReason: Error Downloading Install Data` with a 404
 > from `testflight.apple.com/v2/accounts/…/apps/6780161319/builds/<buildID>/install`
-> (build ID `232234897` for 166).
+> (build ID `232234897` for 166). Three devices, including an iPad with a fresh TestFlight
+> install, so it is not a stale client catalog.
 >
 > Build `0.1.0 (4)`, uploaded 2026-06-17 to the same app record, same group and same testers,
 > installed 4 times over 348 sessions. Nothing was uploaded between 2026-06-17 and 2026-08-29.
 >
 > This is not account-wide: another app on the same team, **Onderons** (App ID `6799374697`),
-> installed normally from a build uploaded **2026-08-08 — inside that window**. Every
-> app-level attribute is identical between the two records, including availability and price
-> schedule.
+> installed normally from a build uploaded **2026-08-08 — inside that window**.
 >
-> We have ruled out the build itself. Build 168 is byte-identical to 167 except
-> `TARGETED_DEVICE_FAMILY` `[1,2]` → `[1]`, and it fails the same way, so it is not device
-> family. `betaLicenseAgreement` returns 200 for this app.
+> We have ruled out the build itself. Build 168 is identical to 167 except
+> `TARGETED_DEVICE_FAMILY` `[1,2]` → `[1]`, and it fails the same way.
+> `betaLicenseAgreement` returns 200 for this app.
 >
-> This matches Developer Forums thread 814565
-> (`ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING`). Please check whether the beta contract for
-> this app is present, and re-provision it.
+> Please check (a) whether any territory for this app is stuck in the "Processing" state in
+> App Availability, and (b) whether the beta contract for this app is present — this matches
+> Developer Forums threads 778597 and 814565.
 
-**2. Two cheap things worth trying while the case sits.** Neither is likely; both cost
-minutes and nothing is at risk.
+**Do NOT change the bundle id.** Reported as *not* working in 814565, and for Skrift it would
+orphan the App Group, the iCloud container and the whole CloudKit database.
 
-- **Make a fresh internal tester group** in ASC, add the testers and build 168 to it, and
-  install from that. The current group was created 2026-06-14; a new one is the closest thing
-  to re-provisioning the per-app beta plumbing that is in your hands.
-- **Expire 166 and 167**, leaving 168 as the only live build in the group.
+**Do NOT burn more builds.** Three uploads across two device-family configurations produced
+the identical 404. A fourth teaches nothing.
 
-**3. Confirming signal, if you want it.** ASC → Skrift → TestFlight → try to create a public
-link. **"Beta contract is missing for the app."** would confirm the diagnosis outright and is
-worth quoting in the case.
-
-**Do NOT change the bundle id.** It is a suggested workaround in some threads, it is reported
-as *not* working in 814565, and for Skrift it would orphan the App Group, the iCloud container
-and the whole CloudKit database.
-
-**Do NOT burn more builds.** Three uploads across two device-family configurations have now
-produced the identical 404. A fourth teaches nothing until Apple has touched the record.
+**Device-side resets are dead.** A fresh TestFlight install on a third device (iPad) failed
+too, so there is no stale client catalog to clear. TestFlight also has no sign-out of its own
+— it is bound to the device's App Store account.
 
 ## Context you need
 
@@ -199,3 +223,5 @@ produced the identical 404. A fourth teaches nothing until Apple has touched the
 - [TestFlight install fails: "The requested app is not available or doesn't exist" (Internal testing)](https://developer.apple.com/forums/thread/812811)
 - [TestFlight users unable to update app](https://developer.apple.com/forums/thread/744799) — the 404 capture
 - [ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING – External TestFlight unavailable, internal builds not downloadable](https://developer.apple.com/forums/thread/815893)
+- ⭐ [TESTFLIGHT: The requested app is not available or doesn't exist](https://developer.apple.com/forums/thread/778597) — the **"Processing" territory** cause, quoted above, plus two developers whom Apple Support fixed
+- [Could not install … not available or doesn't exist](https://developer.apple.com/forums/thread/673860) — "Removed from Sale" app state, and testers whose account country is outside the app's territories
