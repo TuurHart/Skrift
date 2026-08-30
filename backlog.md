@@ -15,8 +15,13 @@ Matches Apple's open `ENTITY_UNPROCESSABLE.BETA_CONTRACT_MISSING` defect (forums
 814565, live since Feb 2026, 30+ developers, unresolved Aug 2026): the app's beta contract
 detaches server-side. **Only Apple can fix it.**
 
-**The 0.1.0-marketing-version experiment is dead** — the install endpoint is keyed on
-appID+buildID, not a version string. Don't spend an Organizer distribute on it.
+**Both local theories are tested and dead.** The marketing version: there is no `0.2.0`
+App Store version record to be broken (the app has exactly one, `1.0`). Device family:
+build 168 = 167 with `TARGETED_DEVICE_FAMILY: "1"`, Apple accepted it as iPhone-only and it
+404s identically. Three builds, two configs, all VALID, all 0 installs — against June's
+4 installs / 348 sessions on the same record, group and testers.
+
+**Remedy = an Apple support case, and nothing else. Don't burn more builds.**
 
 → Full board, the free confirming checks, and paste-ready support-ticket text:
 `TESTFLIGHT_INSTALL_HANDOFF.md`.
