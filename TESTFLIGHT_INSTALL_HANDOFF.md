@@ -126,10 +126,16 @@ normal Xcode 26 back-deployment shim, correctly placed and signed.
 
 ## What to do
 
-**1. Skrift → General → History (ASC sidebar).** The only remaining free check. Something
-changed on this app record between **2026-06-17** (build 4 installed 4×, 348 sessions) and
-**2026-08-29** (166 uploaded, 404s) — nothing was uploaded in between, so the trigger is a
-record change, not a build. Anything logged in that gap is the lead.
+**1. File the support case. This is the remedy.** https://developer.apple.com/contact, plus
+Feedback Assistant with the FB number posted into
+[thread 814565](https://developer.apple.com/forums/thread/814565). Developers there wait
+weeks, so file today.
+
+The elimination is complete, and the ASC History tab closed it: **the app record has exactly
+one event ever — "Prepare for Submission", 2026-06-14 10:30, by Tuur.** The build that
+installed 4 times came *after* that, on 2026-06-17. Between then and 2026-08-29 nothing was
+uploaded and nothing was changed, and every August build 404s. Nobody did anything to this
+record; it drifted on Apple's side. That is the `BETA_CONTRACT_MISSING` profile exactly.
 
 **2. Remove build 167 from the internal group and re-add it.** Reported as forcing App Store
 Connect to resend the app's availability data to TestFlight. Two API calls, reversible,
@@ -168,9 +174,13 @@ thread 778597. If it did not, the symptom set matches Apple's open
 > `TARGETED_DEVICE_FAMILY` `[1,2]` → `[1]`, and it fails the same way.
 > `betaLicenseAgreement` returns 200 for this app.
 >
-> Please check (a) whether any territory for this app is stuck in the "Processing" state in
-> App Availability, and (b) whether the beta contract for this app is present — this matches
-> Developer Forums threads 778597 and 814565.
+> App Availability and Price Schedule are both unset for this app — and equally unset for
+> Onderons, which installs — so that is not the difference. The app record's History shows a
+> single event ever, "Prepare for Submission" on 2026-06-14, before the build that installed
+> successfully. Nothing on the record has been changed since.
+>
+> Please check whether the beta contract for this app is present, and re-provision it. This
+> matches Developer Forums thread 814565.
 
 **Do NOT change the bundle id.** Reported as *not* working in 814565, and for Skrift it would
 orphan the App Group, the iCloud container and the whole CloudKit database.
