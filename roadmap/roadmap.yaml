@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 41
-updated: 2026-08-28T15:00:00.000Z
+version: 42
+updated: 2026-09-08T00:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -2578,5 +2578,22 @@ ideas:
       permission/eyeball pass; detail in backlog.md 🧠 IDEA MENU section B."
     source: text
     nodeHint: P8
+  - id: i23
+    text: "IMPORTANCE = 3 BUTTONS, not 10 circles (Tuur, voice on the bike,
+      2026-09-08): 'not / somewhat / medium / very important' — three things you
+      click instead of ten stops. The ten are already fake precision: the scale
+      collapses to 3 tier names (Passing / Useful / Important) and only three
+      breakpoints read the number — 0 vs >0 (pipeline pickup), >=0.8 (refine
+      pass + 'Important lately'), and ranking, which breaks ties by date.
+      Cheapest build: keep the persisted Double contract, change
+      SignificanceScale + the control only, steps -> 0.3 / 0.6 / 1.0, no data
+      migration (legacy 0.5/0.7/0.9 still bucket correctly). Open decision: with
+      3 levels the top one is >=0.8, so 'very important' always buys a refine
+      pass — today 0.7 is the escape hatch; the alternative is 4 buttons
+      (0.3/0.6/0.7/1.0). Mock pass owed first (mocks/significance-circles.html);
+      re-baseline the two render gates. Detail in backlog.md 🎚️ section."
+    source: voice
+    ts: 2026-09-08T00:00:00.000Z
+    nodeHint: P3
 north: everything you say and read lands organized in your vault — so you can
   see how your thinking evolved

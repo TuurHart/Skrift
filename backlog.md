@@ -2,6 +2,45 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## 🎚️ OPEN IDEA — importance: 3 buttons instead of 10 circles (Tuur, voice on the bike, 2026-09-08; decide next week)
+
+What he asked for: "not important / somewhat important / medium important / very important" —
+"three things you can click instead of ten", nothing else about the feature changes.
+
+**What exists today** (`Skrift_Native/Shared/Model/SignificanceScale.swift`): 10 steps, persisted as
+a Double 0/0.1…1.0 (`Memo.significance` non-optional, 0 = unrated; `PipelineFile.significance`
+optional). It already collapses to THREE tier names — Passing 0.1–0.3 / Useful 0.4–0.6 /
+Important 0.7–1.0. Only three behaviour breakpoints read the number at all:
+- `0` vs `>0` — gates pipeline pickup (`MemoCloudIngest` skips 0),
+- `≥0.8` (`refineStep`) — refine pass before export, and `LookbackProvider.importantLately`,
+- ranking sorts by significance, ties broken by date (`LookbackProvider.best`, lines 83/106).
+
+So the ten stops are already fake precision: nothing consumes a 0.4 differently from a 0.6. That
+argues FOR the change, not against it.
+
+**Cheapest build.** Keep the persisted Double contract; change `SignificanceScale` + the control
+only. Three steps → values `0.3 / 0.6 / 1.0`. Tier names, the 0.4/0.7 boundaries, the 0.8 refine
+wall, the `>0` gate and the Connections-panel decimals all keep working untouched, and legacy
+values already synced (0.5, 0.7, 0.9) still land in the right bucket. No data migration — do not
+rewrite stored values.
+
+**The one real decision (my pushback).** With three levels the top one is ≥0.8, so "very
+important" always buys a refine pass. Today 0.7 is the escape hatch: important, don't spend the
+refine. Either accept that (top button = refine, arguably the point of the top button) or take the
+four labels literally — four buttons, level 3 = 0.7 (important, no refine), level 4 = 1.0 (refine).
+He said four names and three clicks in one breath; pick one next week.
+
+**Second-order.** Ties get common when there are 3 buckets instead of 10, so date becomes the
+dominant sort in Looking back and Related. Probably fine, eyeball Related after.
+
+**Owed before code.** `mocks/significance-circles.html` is the signed-off spec — a 3-button control
+needs a mock pass first (mock-first is locked). The wall tick at
+`Shared/UI/SignificanceCirclesView.swift:202` either disappears or becomes the top button's own
+treatment. Re-baseline the render gates: Mac `-snapshot-significance` (5 states × 2 schemes) and
+`SkriftMobileTests/SignificanceCirclesRenderTests`.
+
+Roadmap idea **i23** points here.
+
 ## 🧠 IDEA MENU — getting more out of the notes you already have (2026-08-11 ideation session; NOTHING BUILT)
 
 Design menu, no code. Every "you already have X" was verified against source in that session.
