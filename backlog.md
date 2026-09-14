@@ -199,7 +199,8 @@ stored and synced — no model, no download, no permission, no network.
 4. 🚨 **NEW 2026-08-22 — a phone call ate a whole recording.** Researched, not fixed, and it
    outranks the book round: an in-flight recording is persisted nowhere until `stop()`, so ANY
    process death mid-recording loses the lot with no recovery and no warning. His audio is
-   probably still on the phone as an unfinalized `rec_tmp_*.m4a`. → `## 🚨 OPEN P0` section for
+   probably still on the phone as an unfinalized `rec_tmp_*.m4a`. Filed as
+   [issue #14](https://github.com/TuurHart/Skrift/issues/14). → `## 🚨 OPEN P0` section for
    the evidence, the pull commands, and the four-step fix.
 
 **Nothing else is in flight.** Both retractions from the 📦 design are recorded in that section on
@@ -317,6 +318,14 @@ the duplicated-author title nit.
 ---
 
 ## 🚨 OPEN P0 — a phone call ate a whole recording (Tuur, 2026-08-22; RESEARCHED, NOT FIXED)
+
+**Filed as [issue #14](https://github.com/TuurHart/Skrift/issues/14) on 2026-09-14**, at his ask,
+so the fix can be picked up later. Re-verified against `main` that day: `rec_tmp` is still a single
+occurrence at `LiveRecordingService.swift:433` and no commit has touched the recording services
+since the triage, so nothing below has gone stale. This branch is still unmerged and `main` has
+moved 34 commits, so the entry and `tools/rescue-lost-recordings.py` live only here.
+⏳ The time-sensitive evidence in step 5 below (the device unified log) is three weeks gone by now;
+the orphan file and its timestamps are what survive.
 
 **The report.** Recording a long message on the phone. A call came in. He hung up, went back
 to the app for the recording and its script — **the recording was gone.** He wasn't sure the
