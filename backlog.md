@@ -282,6 +282,13 @@ stored and synced — no model, no download, no permission, no network.
    One assumption flagged to Tuur and not contradicted: his notes/captures stay behind with the
    bookmarks.
 
+4. 🚨 **NEW 2026-08-22 — a phone call ate a whole recording.** Researched, not fixed, and it
+   outranks the book round: an in-flight recording is persisted nowhere until `stop()`, so ANY
+   process death mid-recording loses the lot with no recovery and no warning. His audio is
+   probably still on the phone as an unfinalized `rec_tmp_*.m4a`. Filed as
+   [issue #14](https://github.com/TuurHart/Skrift/issues/14). → `## 🚨 OPEN P0` section for
+   the evidence, the pull commands, and the four-step fix.
+
 **Nothing else is in flight.** Both retractions from the 📦 design are recorded in that section on
 purpose — don't let a later session rebuild what was cut.
 
@@ -393,6 +400,129 @@ in the wild, not the packer, importer or either sheet (all three are proven abov
 
 **Queued, not done:** the rejected-alignment skip in `BookBundle.derivedSidecars` (one guard), and
 the duplicated-author title nit.
+
+---
+
+## 🚨 OPEN P0 — a phone call ate a whole recording (Tuur, 2026-08-22; RESEARCHED, NOT FIXED)
+
+**Filed as [issue #14](https://github.com/TuurHart/Skrift/issues/14) on 2026-09-14**, at his ask,
+so the fix can be picked up later. Re-verified against `main` that day: `rec_tmp` is still a single
+occurrence at `LiveRecordingService.swift:433` and no commit has touched the recording services
+since the triage, so nothing below has gone stale. This branch is still unmerged and `main` has
+moved 34 commits, so the entry and `tools/rescue-lost-recordings.py` live only here.
+⏳ The time-sensitive evidence in step 5 below (the device unified log) is three weeks gone by now;
+the orphan file and its timestamps are what survive.
+
+**The report.** Recording a long message on the phone. A call came in. He hung up, went back
+to the app for the recording and its script — **the recording was gone.** He wasn't sure the
+call was the cause. Code read says it almost certainly was, and that any process death
+mid-recording does the same thing.
+
+**The hole, stated once: an in-flight recording is persisted NOWHERE until stop().**
+- Audio goes to one `AVAudioFile` at `Documents/recordings/rec_tmp_<uuid>.m4a`
+  (`LiveRecordingService.swift:433`, encoder settings `:712`). Its path lives only in the
+  in-memory `tempURL` (`:76`).
+- It becomes a memo only in `stop()` → `RecordView.stopTapped` → `MemoSaver.save`
+  (`RecordView.swift:548-579`).
+- **`rec_tmp` appears exactly ONCE in the whole repo** — the line that creates it. No launch
+  sweep, no foreground sweep, no cleaner ever looks at those files again.
+- So a kill mid-recording = the memo never existed + the .m4a is orphaned forever, silently.
+  Nothing tells the user. This app recovers stuck transcriptions (`MemoSaver.swift:864`),
+  stuck diarizations (`:908`), pending capture dictations and orphan Live Activities — the
+  recording ITSELF is the one thing with no recovery.
+
+**Why a call is the killer.** Interruption `.began` stops the engine; `handleInterruption`
+(`LiveRecordingService.swift:920`) latches, shows the notice, waits — all correct **if the
+process lives**. While the interruption holds, the app produces no audio, so the `audio`
+background mode (`project.yml:138`) stops protecting it and iOS can suspend it. The code
+already assumes exactly that: the foreground re-arm exists because "iOS doesn't always deliver
+interruption `.ended` (classically: the interruption happened while backgrounded)" (`:118-121`).
+Suspended = jetsam-eligible, and a call is the memory pressure. **Precedent on his own
+hardware:** the zombie-banner defence at `RecordingActivityManager.swift:13-19` was built
+because "the lock screen kept showing recording · 45min long after the app died mid-recording"
+(2026-06-10). The banner got a fallback that day. The audio never did.
+Nothing takes a `beginBackgroundTask` assertion when the app backgrounds mid-recording
+(`Services/BackgroundTask.swift` exists, used only by Split-speakers), and the recorder ignores
+`willTerminate` — so a swipe-kill after the call loses it identically.
+
+**Ruled out, so nobody re-derives them:** the rebuild path reuses the SAME `AVAudioFile`
+(`:1083, :1128`), so an interruption can't truncate what was already recorded; the prestart
+expiry only fires on an unclaimed prestart (`:316`), so it can't cancel a live one; nothing in
+the app scans `recordingsDirectory`, so no sweep deleted it. The one in-app delete path is
+`RecordView.swift:555` (duration < 0.4 s → "Nothing recorded" alert) and it needs a file with
+no audio in it at all — he'd have seen the alert.
+
+**His audio is probably still on the phone, but unplayable as-is.** Nothing deletes orphans,
+so `rec_tmp_*.m4a` is sitting there. But `AVAudioFile` writes the MP4 `moov` atom at `close()`,
+which only stop/cancel call (`:555`) — a killed recording leaves the AAC data in `mdat` with no
+index, and AVFoundation and ffmpeg both refuse it. Repair = rebuild the `moov` from a reference
+file recorded by the same app at the same sample rate (untrunc-style). Worth attempting; the
+data is there.
+
+**He was in PROD Skrift** (confirmed 2026-08-22), `com.skrift.mobile`. That costs us the trace:
+`DevLog` is `#if DEBUG` and compiles to an inlined no-op in Release (`Services/DevLog.swift`),
+so there is **no `devlog.txt` for this incident**. The evidence below replaces it, and all of it
+survives on prod.
+
+⚠️ **THE PULL NEEDS A LOCAL SESSION.** This was triaged from a remote/cloud session, which has
+no USB and no `devicectl` — it cannot touch the phone. Every step below runs on the Mac.
+
+**When he's home, in this order:**
+1. **Do NOT delete or reinstall prod Skrift first.** That wipes the container and the orphan
+   with it. Using the app normally is fine — nothing deletes `rec_tmp_*`.
+2. `python3 tools/rescue-lost-recordings.py` (add `--dev` for the Dev app). Written for this,
+   2026-08-22: lists the container's files ON THE DEVICE first (that listing carries the real
+   timestamps, which a copy may not preserve), copies `Documents/recordings` off, then reports
+   every `rec_tmp_*.m4a` with its size, its start/end stamps, and whether the MP4 is finalized.
+   Box parser tested against all four shapes a writer can leave (clean, `mdat` size 0, an
+   overrunning `mdat`, 64-bit largesize). It diagnoses; it does not repair.
+   The raw command, if the script is ever in the way:
+   `xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer
+   --domain-identifier com.skrift.mobile --source Documents/recordings --destination ./pull`
+   (the pull-phone-feedback skill says prod is pullable, "only if asked" — this is the ask).
+3. **The file's own timestamps close the case without any log** (the script prints them).
+   Creation = when he hit record; last-modified = the last buffer written, i.e. when capture
+   stopped for good.
+   Last-write landing at the moment the call arrived means the app never came back = this bug.
+   Last-write well AFTER the call means capture resumed and something else lost it, which is a
+   different bug and needs its own hunt.
+4. **JetsamEvent reports name the killer.** If iOS killed it for memory the device wrote
+   `JetsamEvent-<date>.ips` listing every process it killed and why. On-device: Settings →
+   Privacy & Security → Analytics & Improvements → Analytics Data. Over USB: `idevicecrashreport`
+   (same tool the feedback skill uses for crashes). SkriftMobile in a JetsamEvent stamped at the
+   call = closed. A `SkriftMobile-<date>.ips` crash report instead = it crashed rather than being
+   jetsammed, same data loss, different root cause. Note the app already asks for
+   `com.apple.developer.kernel.increased-memory-limit` (`App/SkriftMobile.entitlements`), so a
+   per-process-limit kill is less likely than a system-wide page-shortage one.
+5. **Time-limited, so do it early if the above is inconclusive:** `log collect --device --last 1d`
+   (or Console.app) still holds mediaserverd's interruption events and the process exit for a
+   day or so. The log store rolls; this is gone by the weekend.
+
+**The fix, cheapest first — NOT built, needs his call on 1 vs the rest:**
+1. **Roll the file into segments.** Close the current `AVAudioFile` and open the next one on
+   two triggers: interruption `.began` / app-background, and every 60 s. Every finished segment
+   is a valid playable m4a, so a kill costs ≤60 s — and ≈0 s for the reported case, because the
+   call itself rolls the file. Concatenation at stop reuses `MemoSaver.appendAudio`
+   (`MemoSaver.swift:691`), which already merges clips atomically.
+2. **A sidecar marker + a launch/foreground sweep.** `start()` writes
+   `rec_tmp_<uuid>.json` (started-at, segments, `appendTo` target, captured metadata, photo
+   marks); any marker not owned by a live recording is a recording the app died in → build the
+   memo from its segments and transcribe, same shape as `recoverStuckTranscriptions`. Say so in
+   the UI — "we recovered a recording that was interrupted" — never silently.
+3. **Two cheap belts:** hold a `BackgroundTask` assertion while backgrounding mid-recording
+   (~30 s of grace), and finalize on `willTerminate` (a swipe-kill IS graceful, so this alone
+   saves that whole class).
+3b. **Make prod diagnosable.** This incident cost us the trace because `DevLog` is DEBUG-only.
+   The recording lifecycle at least — start, interruption, rebuild, stop — should go to `os_log`
+   in Release too, under `subsystem com.skrift.mobile`, the way the desktop's paragraph ledger
+   does. Cheap, and it turns the next "it vanished" into one `log show` instead of a code read.
+4. **Orphan hygiene**, once recovery exists: today `rec_tmp_*` accumulate forever. Anything
+   unrecoverable gets logged and cleaned rather than squatting on storage.
+
+Related: `## 🎙 Recording robustness + heat diet (2026-07-07)` fixed the DEAF-capture half of
+this lattice (interruption observer, foreground re-arm, watchdog). This is the other half — it
+keeps capture alive but assumes the process does too. That section's "mid-record call/alarm
+survives" device round is still owed and would have caught this.
 
 ---
 
