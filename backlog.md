@@ -7,6 +7,11 @@ Deferred ideas and features, captured during the 2026-06 overhaul planning so th
 Full plan: **`AUDIT_PLAN.md`**. Six read-only agents over both apps; ten findings hand-verified,
 the rest are leads. No Xcode in the audit environment, so **every fix below is unbuilt and untested.**
 
+**All open bugs, not just this wave's, are collected in `BUGS.md`** (2026-09-14) — the four
+data-loss paths, the verified-open defects, the undiagnosed device reports, and the ledger leads
+that still need checking. Three ledger entries turned out to be already fixed and are listed there
+so they don't get re-opened. This section stays the audit wave's own board.
+
 Trigger was "the phone feels laggy everywhere" at under 200 notes. The audit found three ways to
 lose data, which outrank the lag. **D4 below came from a device report, not the audit**, and is the
 worst of the four: it loses a whole recording.

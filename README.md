@@ -22,6 +22,7 @@ names database (bidirectional last-write-wins):
 | `SKRIFT_SOURCE_OF_TRUTH.md` | ⭐ Canonical record — timeline, state, decisions, contracts, resolved contradictions. **Start here.** It indexes the deep docs by `file:line`. |
 | `roadmap/roadmap.yaml` | The live plan (done / now / next), rendered by the Tiuri Command Center |
 | `backlog.md` | The working ledger — feature decisions, device-test verdicts, bug status, resume points |
+| `BUGS.md` | Every open bug in one list, worst first — pulled out of the ledger, each re-checked against source |
 | `FEATURES.md` | Feature matrix (every feature × {mobile, desktop} × file × status) |
 | `CHANGELOG.md` | Released versions |
 | `STANDALONE_PLAN.md` | The App Store direction (standalone SkriftMobile) |
