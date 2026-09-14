@@ -2,6 +2,35 @@
 
 Deferred ideas and features, captured during the 2026-06 overhaul planning so they're not lost. Not scheduled — pull from here when ready.
 
+## ⭐ RESUME HERE — 2026-09-14 (remote session; **the next chat is LOCAL, on the Mac**)
+
+A remote/cloud session, so **nothing was built, tested, installed or pulled off the phone** — no
+Xcode, no USB. Everything below is docs + one script, committed and pushed to `main` (`06eb10b`).
+The work board is still `## 🔍 CONTINUE HERE — audit fix wave 2` right below this.
+
+**What landed:**
+1. **`BUGS.md`** — every open bug in one list, worst first. 21 open, 5 confirmed already-fixed.
+   Sections 1–3 were re-opened against source at `858ec1b`, so their line numbers are current;
+   section 4 is unverified ledger leads; section 5 is the fixed ones, listed so they stay closed.
+2. **The recording data-loss P0** (a call ate a long recording, reported 2026-08-22) — root-caused,
+   filed as [issue #14](https://github.com/TuurHart/Skrift/issues/14), recorded as data-loss path
+   **D4** in `BUGS.md`, `backlog.md`, `AUDIT_PLAN.md` and `roadmap.yaml` (AuditFix2, v44).
+3. **`tools/rescue-lost-recordings.py`** — pulls the orphaned `rec_tmp_*.m4a` files off the phone
+   and reports which can still play. Its MP4 parser was tested against synthetic files of all four
+   shapes; **the devicectl half has never run**, because this session had no phone.
+
+**Owed, and only a local chat can do it:**
+- **Pull Tuur's lost recording.** It should still be in the prod container — nothing deletes
+  orphans. Do it before anything else; it is the only irreplaceable thing here.
+- **The D4 fix** (segment rolling + a launch sweep). Design is in the `## 🚨 OPEN P0` section.
+- **The owed device round** from `## 🎙 Recording robustness` — "mid-record call/alarm survives"
+  was never run, and it is the round that would have caught this.
+
+**Corrections worth keeping:** three bugs the ledger still lists as broken are fixed (WhatsApp
+audio import, the transcribe sheet showing another book's progress, and two older ones) — details
+in `BUGS.md` §5. And "Edit book details never syncs" is real but the ledger had the wrong file: it
+is `Audiobook.swift:562-566`.
+
 ## 🔍 CONTINUE HERE — audit fix wave 2 (2026-09-01, NOTHING BUILT)
 
 Full plan: **`AUDIT_PLAN.md`**. Six read-only agents over both apps; ten findings hand-verified,
