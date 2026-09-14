@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 43
-updated: 2026-09-14T00:00:00.000Z
+version: 44
+updated: 2026-09-14T14:45:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -1662,12 +1662,16 @@ nodes:
     ms: Foundation
     note: Six-agent read-only audit 2026-09-01 (AUDIT_PLAN.md). 3 data-loss paths
       (names.json non-atomic write, re-transcribe wipe, vault attachment clobber)
-      outrank the lag. Tuur runs PROD, so the lag is real in optimized code at
-      under 200 notes; step 0 is Time Profiler on that build (busy vs blocked).
+      outrank the lag. D4 is Tuur's device report, not the audit, and is the worst
+      of the four - a phone call loses the whole recording (GitHub issue 14). Tuur runs
+      PROD, so the lag is real in optimized code at under 200 notes; step 0 is Time
+      Profiler on that build (busy vs blocked).
     backlog:
       - D1 names.json atomic write + serialise NamesStore (LWW propagates the loss)
       - D2 re-transcribe must not clear the transcript when the audio is missing
       - D3 vault attachment copy must not delete a file the ledger does not claim
+      - D4 an in-flight recording is persisted nowhere until stop() - any process
+        death loses it, no recovery sweep, no warning (GitHub issue 14)
       - P1 MemosListView 462-463 per-row full-corpus scans - hoist into Derived
       - P2 AppPaths.recordingsDirectory - createDirectory on every access, 44 sites
       - P3 MemosListView 306-318 DEBUG per-keystroke double corpus scan

@@ -8,7 +8,8 @@ Full plan: **`AUDIT_PLAN.md`**. Six read-only agents over both apps; ten finding
 the rest are leads. No Xcode in the audit environment, so **every fix below is unbuilt and untested.**
 
 Trigger was "the phone feels laggy everywhere" at under 200 notes. The audit found three ways to
-lose data, which outrank the lag.
+lose data, which outrank the lag. **D4 below came from a device report, not the audit**, and is the
+worst of the four: it loses a whole recording.
 
 **Step 0 before any fix:** ⌘I Time Profiler on the PROD build — is the main thread busy or blocked?
 (Tuur confirmed he runs prod, not Skrift Dev, so the lag is real in optimized code and the two
@@ -26,6 +27,13 @@ DEBUG-only findings — `MemosListView.swift:306-318`, `callStackSymbols` at `No
 - [ ] **D3** Vault export deletes then copies under the original filename —
       `VaultExporter.swift:269-270, :293-294`. An attachment named `IMG_0001.jpg` clobbers yours.
       The markdown lane is protected by `VaultWriter`; these two lanes bypass it.
+- [ ] **D4** A whole recording is lost if the app dies mid-recording — a phone call is enough.
+      Nothing persists an in-flight recording until `stop()`, and `rec_tmp` appears exactly once in
+      the repo (`LiveRecordingService.swift:433`, the line that creates it), so no sweep ever
+      recovers the orphan and the user is never told. Tuur, 2026-08-22, prod. It has happened
+      before: the 2026-06-10 crash-mid-recording P0 ("3× today, one recording LOST") fixed the
+      crash and left the durability gap. Full triage + the 4-step fix: `## 🚨 OPEN P0` below.
+      Filed as [issue #14](https://github.com/TuurHart/Skrift/issues/14).
 
 ### Cheap perf — one afternoon, no schema change
 - [ ] **P1** `MemosListView.swift:462-463` — `enhancedTitleByMemoID` and `searchFadingIDs` are read

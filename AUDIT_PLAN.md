@@ -108,6 +108,20 @@ attachment lanes bypass it entirely.
 
 **Fix.** Route them through `VaultWriter`, or refuse to overwrite a destination the ledger doesn't claim.
 
+### D4 ⚠️ A whole recording is lost if the app dies mid-recording
+`SkriftMobile/Services/Recording/LiveRecordingService.swift:433`
+
+**Not an audit finding** — Tuur reported it from prod on 2026-08-22, after a phone call ate a long
+recording, and it is added here so this section isn't read as the complete data-loss list. An
+in-flight recording is persisted nowhere until `stop()`, and `rec_tmp` appears exactly once in the
+whole repo: the line that creates it. So any process death mid-recording loses the take, orphans the
+`.m4a` forever, and never tells the user. It has happened before — the 2026-06-10 crash-mid-recording
+P0 ("3× today, one recording LOST") fixed that crash and left the durability gap untouched.
+
+**Fix.** Four steps, cheapest first, in `backlog.md` under `## 🚨 OPEN P0`; tracked as
+[issue #14](https://github.com/TuurHart/Skrift/issues/14). `tools/rescue-lost-recordings.py` pulls
+the existing orphans off the phone (Mac only — it needs `devicectl`).
+
 ---
 
 ## 2. Cheap performance wins — one afternoon, no schema change, no behaviour change
