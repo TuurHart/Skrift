@@ -3,8 +3,8 @@ title: Skrift
 status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
-version: 44
-updated: 2026-09-14T14:45:00.000Z
+version: 45
+updated: 2026-09-18T12:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -692,6 +692,34 @@ nodes:
     note: "Shipped 2026-08-19 (chunks 1-3): Shared/UI/NoteCardView + per-app styles
       + adapters both sides; raw memo_ titles fixed; sidebar 292pt. Owed: Tuur's
       eyeball (b155 iPad / Dev Mac), 3b Mac thumbnails via cached loader."
+  - id: V2Core
+    title: v2 core — rewrite per subsystem, judged by output diffs
+    lane: 0
+    order: 6.4
+    status: now
+    eff: L
+    risk: true
+    deps:
+      - RateToRow
+    win: "the body/image model, copy-edit, reconcile and compiler each replaced by
+      a smaller v2 in Shared/ that matches v1 on the real-note corpus except
+      where a pre-registered bug says it must differ — then v1 deleted"
+    note: "Tuur 2026-09-18: months of AI patches accreted weird bugs; rewrite the
+      CORE, not the three apps (views, CloudKit schema, hardware paths stay).
+      Spec from INTENT via /1-spec, whole project in one sitting (extraction is
+      Claude's, verdicts are his); v1 is the change detector, never the judge —
+      known bugs pre-registered as required differences, invariants + his read
+      of the corpus catch the shared ones; size budget per subsystem. First
+      target: the body/image model (three stacked offset remaps, ~350 lines to
+      delete; 'a picture is always its own paragraph'). Board = backlog ⭐
+      CONTINUE HERE 2026-09-18."
+    backlog:
+      - export the real-note corpus (~100 notes, app store not vault) + recorded model outputs
+      - whole-project spec extraction (mechanical / locked / needs-verdict), then Tuur's sitting
+      - body/image model v2 behind the diff gate
+      - copy-edit pipeline v2
+      - reconcile sweep v2
+      - export compiler v2
   - id: RateToRow
     title: rating a note hands it to the pipeline
     lane: 0
@@ -723,7 +751,7 @@ nodes:
     title: four destinations, one per note
     lane: 0
     order: 6.5
-    status: now
+    status: inprogress
     deps:
       - RateToRow
     win: "a note carries ONE of four destinations — Personal to the vault, Made /

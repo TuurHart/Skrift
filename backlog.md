@@ -568,7 +568,89 @@ survives" device round is still owed and would have caught this.
 
 ---
 
-## ⭐ CONTINUE HERE — 2026-08-20 (rate→row fixed + promoted; the picture-collapse found)
+## ⭐ CONTINUE HERE — 2026-09-18 → the v2 CORE REWRITE (spec-first, judged by output diffs)
+
+**Decision (Tuur, 2026-09-18):** rewrite the CORE of Skrift as a v2, one subsystem at a time,
+because months of AI patches have accreted weird bugs (this session alone: the rate→row hole,
+the picture whitespace flattening, tests writing into his live Dev data folder). NOT a
+blank-page rewrite of the three apps: views, the CloudKit schema and the audio/hardware paths
+stay. Method agreed:
+1. **Corpus first** — export ~100 of his REAL notes from the app's own store (never the vault):
+   typed, voice, captures, conversations, book quotes, with/without pictures, Dutch + English.
+   Record the current model outputs once so the LLM stage replays deterministically.
+2. **Spec written from INTENT, not from the code** — `/1-spec`, and **the WHOLE project in one
+   flow** (his call: "I don't like the start stop start stop"). The extraction is MINE, done
+   before his session: every rule pulled from comments/tests/ledgers, tagged `mechanical` (no
+   verdict), `locked` (dated decision + source, he confirms) or `needs-verdict`. His sitting is
+   the third list only. Any rule he doesn't confirm does NOT go into v2 — that is how bad
+   behaviour gets dropped on purpose instead of copied.
+3. **v2 beside v1 in `Shared/`**, never replacing until judged. Size budget per subsystem
+   ("v2 ≤ 40% of v1's lines or say why") — the lever against AI accretion.
+4. **The gate is the diff, but v1 is NOT the judge** (his exact worry: "will you copy over the
+   bugs?"). Every corpus output is identical / expected-different / unexplained. Known bugs
+   (BUGS.md + backlog) are PRE-REGISTERED as required differences with the expected output —
+   matching v1 there FAILS. Invariants that don't depend on v1 catch shared bugs: markers in =
+   markers out, paragraph count never drops unless the shrink guard fired, editor round-trip
+   returns the same string, every transform idempotent, no rated memo without a row. Plus
+   **Tuur reads the corpus output** — two versions agreeing proves nothing about a note that
+   reads wrong. Cross-subsystem holes (the rate→row bug was ingest + a list predicate) get a
+   handful of `-ratetorow`-style end-to-end scenarios per swap.
+5. Swap adapters per subsystem, delete v1. `/2-plan` → QUEUE.md, `/3-session` runs workers in
+   worktrees against that gate. Weeks of sessions; the first yields ONLY the corpus + the spec.
+
+**Subsystem order:** body/image model (audit below) → copy-edit pipeline → reconcile sweep →
+export compiler.
+
+**Unfinished work policy (his question: commit them or later?)** — 13 roadmap nodes are
+`inprogress`, 71 mocks exist, one live unmerged branch:
+- Built on main, owed his eyeball (most of the 13): NOT rebuilt. Spec clauses marked
+  unverified; the queue's `[tuur]` lane gets the eyeballs.
+- Approved mock, nothing built (audiobook reading mode, rest of journal-desktop, picture
+  drag-reposition, Mac thumbnails, place/tags chips): decisions already made → spec
+  done-states with the mock as the clause; built from the queue LATER, and anything touching a
+  rewrite target (drag-reposition sits on the body model) waits for that subsystem's v2.
+- `claude/testflight-install-failure-c89268` (12 commits, 2026-08-30): docs + the build bump
+  167→169 only (`TESTFLIGHT_INSTALL_HANDOFF.md` +393 lines = the mass-expiry root cause,
+  `backlog.md` +29). **Land it** — check the backlog.md hunk merges. The other six unmerged
+  branches are June/July leftovers of 1–2 commits; ignore.
+
+**🖼️ THE BODY/IMAGE MODEL AUDIT (2026-09-18, first rewrite target).** Tuur: "the pictures is
+still an issue — wrapping pics is hard apparently" — the 2026-08-20 whitespace fix was NOT
+enough. Root shape: **a picture lives at a character offset INSIDE the text**, so every stage
+is marker-aware and carries its own offset remap, and the position is DERIVED data anyway (the
+photo's real moment is `imageManifest.offsetSeconds`):
+1. Capture (`Shared/Pipeline/ImageMarkers.swift`, 63 loc) drops `\n\n[[img_NNN]]\n\n` at the
+   end of the word nearest the photo's time — MID-SENTENCE, splitting it into two paragraphs. A
+   shared picture has no time → offset 0 → lands after the FIRST WORD of the note. That is the
+   "share-import placed the picture wrong" bug (`CaptureInboxDrainer.swift:261/450`,
+   `MemoSaver.swift:373` all pass `offsetSeconds: 0`).
+2. Copy-edit (`ImageMarkerReinsert.swift`, 154 loc) strips markers, keeps 6 words either side
+   as anchors, re-finds them in the model output (degrades to 1-word → proportional).
+3. Display (`BodyTransform.snapImages`, ~190 loc) moves each marker to its sentence end at
+   RENDER time, with a `SnapResult` segment map so name-highlight offsets survive.
+4. Both renderers collapse the 11-char marker to a 1-char glyph with a SECOND remap on top —
+   Mac `BodyTextView.suggestedRanges` (`rawSnap` → `attachmentModelLocs` shift → storage),
+   phone `NoteBodyView:551-583` the same pair; karaoke seeks translate word indices back
+   through it (`modelWordIndex`).
+5. Export (`VaultExporter:132`, `ObsidianPublisher:190`) runs the snap AGAIN.
+~50 files touch markers; the two renderers alone are 3,050 loc (`BodyTextView` 1566,
+`NoteBodyView` 1484). **Proposal: a picture is always its own paragraph** — one invariant,
+enforced where a body is WRITTEN (capture snaps to the sentence end at birth; a shared picture
+goes to the TOP of the note — his verdict; the editor already keeps its paragraph), normalised
+once on read for old notes (the existing snap IS the migration, run once at write instead of
+every render). Then: snap layer + `SnapResult` deleted; anchors → "strip image paragraphs,
+copy-edit the text, reinsert after the same paragraph index" (~40 lines); the display-only
+`imageBreaks` go; export stops transforming; drag-to-reposition later = "move a block". Visible
+result unchanged (photos already render as their own block) → no mock needed. Rough net −350
+lines. Stale `ambiguousNames` offsets on migrated notes: re-sanitise once (deterministic).
+
+**Since the 2026-08-20 wrap (below), nothing else changed in this chat** — today was reading
++ the strategy conversation. HEAD `e1ba3370` from later sessions; the untracked
+`SkriftMobile 2026-08-30 23-02-17/` is an Xcode .ipa export, not ours, leave it.
+
+---
+
+## (prev) ⭐ CONTINUE HERE — 2026-08-20 (rate→row fixed + promoted; the picture-collapse found)
 
 **PROD PROMOTED 2026-08-20 ~09:07 and VERIFIED ON HIS REAL DATA.** The log is the proof:
 the old binary (pid 20894) logged `reconcile: ingested 0`; the new one (pid 23469) logged
