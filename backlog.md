@@ -587,6 +587,26 @@ stay. Method agreed:
    outputs once so the LLM stage replays deterministically. Known gap: synthetic text fooled
    us before (English fixtures edited fine, his real Dutch came back near-echo) — OPTIONAL:
    he records 5 throwaway rambles about nothing in Skrift Dev (Dutch/English mix, a photo).
+   **SECOND LAYER — INGRESS** (Tuur: "sending memos from WhatsApp or Signal or web pages or
+   YouTube or Instagram all works kinda janky — cover all types of media"): ONE real source
+   file per media type with the platform's exact filename + container quirks, pushed through
+   the REAL share/import code in Dev, the resulting memo recorded as the golden. The matrix
+   from the code (`SkriftShare/SharePayloadLoader.swift`, `CaptureInbox(Drainer)`,
+   `MemoSaver.importVideo`, `IngestService`): audio shares — WhatsApp voice note (ogg-opus,
+   `WhatsApp Audio 2025-12-18 at 18.30.44`), Signal (`signal-2026-04-13-18-15-24-552.aac`),
+   Telegram, Voice Memos `.m4a`, Files (`.mp3/.wav/.flac`), a multi-audio WhatsApp thread
+   (chronological), the mixed share (8 audios + 1 picture → one note); video from Photos +
+   open-in (`.mov/.mp4` → audio strip + frame); URLs — web page, YouTube, Instagram (ALL plain
+   URL captures today, nothing source-specific; the jank is the title/page-text fetch on
+   JS-rendered pages); text / image / PDF shares; Apple Notes export (`.md` + `Attachments/`);
+   audiobook files (`.m4b/.mp3` + ePub); Mac +Upload / drag-drop / folder import. Sources:
+   LibriVox + Common Voice (transcode to opus with the WhatsApp filename), a public-domain PDF
+   + video from archive.org, a Wikipedia page, one public YouTube + Instagram URL. Network
+   fetches RECORDED once and replayed — the diff harness never touches the network.
+   **NEEDS-VERDICT (only he can answer): what the note SHOULD be per media type** — a YouTube
+   link = a link card with the video title, or fetch the audio and transcribe? Instagram = the
+   caption as body? The extraction pass mines the backlog for the jank already reported per
+   source (mixed-share picture placement, the WhatsApp picture, …).
 2. **Spec written from INTENT, not from the code** — `/1-spec`, and **the WHOLE project in one
    flow** (his call: "I don't like the start stop start stop"). The extraction is MINE, done
    before his session: every rule pulled from comments/tests/ledgers, tagged `mechanical` (no

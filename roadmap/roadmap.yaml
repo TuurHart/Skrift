@@ -715,6 +715,7 @@ nodes:
       CONTINUE HERE 2026-09-18."
     backlog:
       - synthetic corpus (~100 notes covering every shape, never his real notes) + recorded model outputs
+      - ingress corpus — one real source file per media type (WhatsApp/Signal/Telegram audio, video, web/YouTube/Instagram URLs, text/image/PDF, Apple Notes, audiobook, Mac import), network recorded
       - whole-project spec extraction (mechanical / locked / needs-verdict), then Tuur's sitting
       - body/image model v2 behind the diff gate
       - copy-edit pipeline v2
