@@ -575,9 +575,18 @@ because months of AI patches have accreted weird bugs (this session alone: the r
 the picture whitespace flattening, tests writing into his live Dev data folder). NOT a
 blank-page rewrite of the three apps: views, the CloudKit schema and the audio/hardware paths
 stay. Method agreed:
-1. **Corpus first** — export ~100 of his REAL notes from the app's own store (never the vault):
-   typed, voice, captures, conversations, book quotes, with/without pictures, Dutch + English.
-   Record the current model outputs once so the LLM stage replays deterministically.
+1. **Corpus first — SYNTHETIC, never his notes** (Tuur, same day: "the app is filled with my
+   thoughts already… make a testing vault"). ~100 generated notes covering the SHAPES: typed,
+   voice with trusted transcript, voice with pictures at timestamps, the four capture kinds
+   (URL/text/image/file), a diarized conversation, an audiobook quote, Dutch / English / mixed,
+   a 7k-char wall, a two-liner, memo-links, tasks, names to link, tags. Committed under
+   `test-fixtures/corpus/`, seedable into Skrift Dev on Mac + iPad via the existing seeders
+   (`DemoSeed` / `DemoDataSeeder`). Audio only for capture/karaoke paths (not rewrite
+   targets): public-domain LibriVox (Dutch + English) + `test-fixtures/Hotel Du Vin.m4a`.
+   The Dev vault is already `~/Hackerman/Obsidian_LLM_Test_Vault`. Record the current model
+   outputs once so the LLM stage replays deterministically. Known gap: synthetic text fooled
+   us before (English fixtures edited fine, his real Dutch came back near-echo) — OPTIONAL:
+   he records 5 throwaway rambles about nothing in Skrift Dev (Dutch/English mix, a photo).
 2. **Spec written from INTENT, not from the code** — `/1-spec`, and **the WHOLE project in one
    flow** (his call: "I don't like the start stop start stop"). The extraction is MINE, done
    before his session: every rule pulled from comments/tests/ledgers, tagged `mechanical` (no
