@@ -45,7 +45,7 @@ notes he can look back through.
 
 `./gate.sh` — the Mac unit suite (MLX-free, seeds the whole corpus and proves the
 rate→row invariant over all 106 notes). Measured 2026-09-21: see the end of this file.
-The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
+The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
 
 ---
 
@@ -55,8 +55,8 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 
 - C1 [auto] v2 is built one subsystem at a time, in this order: body/image model → copy-edit
   → reconcile sweep → export compiler. Views, the CloudKit schema and the audio/hardware
-  paths are not rewritten. || check: no v2 file under `Features/`, `Shared/Model/*@Model`,
-  or `Services/Recording/`. — decisions:14-15
+  paths are not rewritten — except the editor rebuild of C113, which follows target 1.
+  || check: no v2 file under `Shared/Model/*@Model` or `Services/Recording/`. — decisions:14-15
 - C2 [auto] v2 lives beside v1 in `Shared/`; the app calls v1 until the subsystem's gate is
   green and Tuur has read its corpus output; v1 is deleted in its own commit after a git tag
   `v1-<subsystem>`. || check: tag exists before the deletion commit. — decisions:16
@@ -73,12 +73,18 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C6 [auto] Invariants the harness checks without v1: markers in = markers out; paragraph
   count never drops unless the shrink guard fired; editor round-trip returns the identical
   string; every transform is idempotent; no rated live memo without a Mac row; `names.json`
-  re-encodes to the same bytes on both apps. || check: harness invariant suite (54 listed
-  in code-core §B). — code-core §B
-- C7 [auto] Recorded model outputs are keyed by the exact prompt text and input; a miss runs
+  re-encodes to the same bytes on both apps; the pieces of a body cover it exactly; an
+  identity generator round-trips the escrow byte-exact; a quote-only capture never calls the
+  generator; Mac words reach only an empty, Mac-recorded memo from a `.done` row; a retitle
+  keeps the export path and a fresh ledger re-adopts by stamp; the lifecycle spine assigns one
+  station with its three strings byte-pinned; and, replacing the three snap invariants that
+  die with C17: no `[[img_` inside a sentence in any stored body. || check: harness invariant
+  suite (code-core §B, 54 items, 9 of them stronger in the tests than in these clauses).
+  — code-core §B, spec-coverage §E
+- C7 [auto] (drafter's harness design) Recorded model outputs are keyed by the exact prompt text and input; a miss runs
   the model live, never fails silently. || check: harness cache key = sha256(prompt+input).
 - C8 [tuur] He reads the corpus output for each subsystem before the swap.
-- C9 [auto] Per-subsystem end-to-end scenarios (rate→row style) run on the seeded Dev
+- C9 [auto] (drafter's proposal) Per-subsystem end-to-end scenarios (rate→row style) run on the seeded Dev
   store, not on unit fixtures. || check: one `-corpus`-driven scenario per swap.
 
 ### Body/image model (rewrite target 1)
@@ -87,6 +93,7 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
   between paragraphs, never inside a sentence. Enforced where a body is WRITTEN (capture,
   share, edit, import); old notes normalised once on read. || check: corpus notes
   `pic-*` — no marker inside a sentence in any stored/exported body. ⚠ needs-verdict D1
+  (supersedes the 2026-07-16 rule "stored raw keeps the marker at its moment, renderers snap")
   — B:694-702
 - C11 [auto] A timed picture lands after the sentence being spoken at `offsetSeconds`
   (sentence end, not nearest word). || check: `pic-mid-sentence` → marker after "…the
@@ -116,13 +123,15 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
   `[[memo:UUID|Title]]`, line-start `- [ ]`/`- [x]` each collapse to one glyph; text passes
   verbatim; reconstruct is byte-exact. || check: `NoteBodyTests` round-trip; corpus
   `typed-tasks`, `typed-memo-links`. — ledgers:27
-- C19 [auto] Whitespace normalisation is ONE rule applied at write: horizontal runs inside a
+- C19 [auto] (drafter's proposal; v1 tidies only inside copy-edit) Whitespace normalisation
+  is ONE rule applied at write: horizontal runs inside a
   line → one space; ≥3 line breaks → one blank line; CRLF → LF; ends trimmed. || check:
   corpus `typed-crlf-tabs-nbsp`, `voice-en-triple-blank-lines`. — B:727
 - C20 [auto] Paragraphing from speech: break before a word when the previous word ends a
   sentence AND (pause ≥ gap OR 4 sentences reached); text that already has a newline is
-  untouched. ONE gap constant on every device. || check: `Paragrapher` tests; ⚠
-  needs-verdict D5 (0.65 s phone vs 2.0 s Mac today). — code-core Paragraphs
+  untouched. || check: `Paragrapher` tests; ⚠ needs-verdict D5 (one gap on every device is
+  the DRAFT's proposal and would reverse Tuur's ROUND 10/11 of 2026-07-28: 0.65 s phone live,
+  2.0 s Mac). — code-core Paragraphs
 - C21 [auto] An editor commit sets `transcriptUserEdited = true` and `editedAt`; a capture
   commit keeps the raw quote block as an exact prefix. || check: `NoteBodyTests:49-136`.
 - C22 [auto] The leading `> ` block is the quote (not gated on book metadata); the ramble is
@@ -136,12 +145,14 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
   dim-visible; characters verbatim. || check: `BodyMarkdown` tests. — ledgers:38-39
 - C25 [auto] Title ladder, ONE for both apps: user title → suggested title → first body
   line (markers stripped) → share title → "Note"/"Voice note"; derived titles clip at 80
-  chars on a word boundary. || check: corpus `typed-title-*`, `voice-en-raw-title`.
+  chars on a word boundary for DISPLAY only (the vault filename keeps its own rule, C165); a
+  share capture with an empty annotation titles from urlTitle → first 8 words → image
+  filename → "Capture". || check: corpus `typed-title-*`, `voice-en-raw-title`.
   ⚠ needs-verdict D6 — code-core Title
 - C26 [auto] Karaoke: raw body word N = timing N; polished body aligned via `AlignmentCore`;
   a body that doesn't match its audio degrades to a proportional sweep. || check:
   `Karaoke` tests. — ledgers, code-core Karaoke
-- C27 [tuur] The picture layout on the iPhone 13 and the Mac reads the same as today
+- C27 [tuur] (drafter's assumption) The picture layout on the iPhone 13 and the Mac reads the same as today
   (photos already render as blocks) — no mock needed for the body v2. — B:702
 
 ### Copy-edit (rewrite target 2)
@@ -170,8 +181,9 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C35 [auto] Fillers (um/uh/eh) and repeated words go; decisions, numbers, names and both
   languages stay; nothing translated. || check: corpus `voice-en-pricing-ramble`,
   `voice-mix-code-switch` read by Tuur (C8). ⚠ needs-verdict D8 on Dutch. — decisions:299
-- C36 [auto] Summary only when ≥ 75 words (manual Redo forces it); title always; a capture
-  gets title + summary + tags on its annotation, no copy-edit; a conversation gets no
+- C36 [auto] Summary only when ≥ 75 words (manual Redo forces it); title always; a SHARE
+  capture (url/text/image/file) gets title + summary + tags on its annotation, no copy-edit (a
+  QUOTE capture's ramble IS copy-edited, C29); a conversation gets no
   copy-edit (turns are the diarization). || check: `BatchRunnerTests`; corpus
   `voice-en-three-words`, `cap-*`, `conv-*`. — ledgers:62-63, 73
 - C37 [auto] Every pass writes ONE `MemoEnhancement` with `processedAt`, even when the model
@@ -191,8 +203,9 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C41 [auto] After any sweep: every rated, live memo has exactly one Mac row (id = memo id);
   no unrated or trashed memo has one; a second sweep changes nothing. || check:
   `CorpusSeedTests.testEveryRatedNoteGetsAMacRow…`, `MemoCloudReconcilerTests`. — B:969
-- C42 [auto] Trust: the phone's transcript is adopted iff `userEdited || confidence ≥ 0.7`;
-  otherwise the Mac re-transcribes from the audio. || check: corpus `voice-en-untrusted*`.
+- C42 [auto] Trust: a `.done` phone transcript is adopted iff `userEdited || confidence ≥ 0.7`;
+  otherwise the Mac re-transcribes from the audio (an in-flight `.transcribing` memo is never
+  touched, C97); sidecars (timings, diarization) are honoured only with a trusted transcript. || check: corpus `voice-en-untrusted*`.
   — CLAUDE.md
 - C43 [auto] Kinds are the caller's decision, never sniffed: audio memo (waits for its audio
   blob, never becomes text) · capture (`sharedContent` present) · typed note (no audio, no
@@ -238,9 +251,10 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C55 [auto] Unchanged content writes nothing; writes are atomic and file-coordinated;
   frontmatter key order is stable. || check: `VaultWriteTests:56-63`, `VaultStamp:199`.
 - C56 [auto] The compiler is pure: same input → same string; frontmatter = title · date ·
-  author · source · people · book/bookAuthor/chapter · url · location · weather · pressure ·
-  dayPeriod · daylight · steps · tags · significance · summary · stamp trio; `people:` = the
-  distinct linked canonicals of the body, reading order. || check: `CompilerTests`; corpus
+  author · source · book/bookAuthor/chapter · url · [archive: voice, needs] · summary · tags ·
+  people · significance · location · weather · pressure · pressureTrend · dayPeriod · daylight ·
+  steps · stamp trio — the code's grouped order (`Compiler.swift:60-175`), title always quoted;
+  `people:` = the distinct linked canonicals of the body, reading order. || check: `CompilerTests`; corpus
   `voice-en-full-context`. ⚠ needs-verdict D12 on the "to add" keys — ledgers:134-137
 - C57 [auto] Images: `[[img_NNN]]` → `![[<note stem>_NNN.ext]]` (vault) or `![](file)`
   (archive); names keyed by the unique note stem, never the title. || check: corpus
@@ -252,15 +266,22 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C60 [auto] Audiobook quote: italic quote block + `— [[Author]], *Book*, ch. N` written at
   export only; a named chapter as-is; no attribution without book metadata. || check:
   corpus `quote-*`. — ledgers:139
-- C61 [auto] Export needs a PROCESSED, rated, unlocked, live note; the phone does not export;
-  nothing on iOS auto-publishes. || check: `PublishCoordinatorTests`; corpus
-  `typed-locked`, `applenote-dutch` never appear in the vault. — ledgers:128-131
+- C61 [auto] Export needs a PROCESSED, rated, unlocked, live note; the iPHONE does not export,
+  the iPad and the Mac do (through the one shared engine, photos + audio included); nothing on
+  iOS auto-publishes; bookmarks never export. || check: `PublishCoordinatorTests`; corpus
+  `typed-locked` and `applenote-dutch` (both locked) never appear in the vault. — ledgers:128-131,
+  L C13, L:367
 - C62 [auto] Four destinations, one per note: Personal → vault; Made → `_inbox/`; Idea →
   `_ideas/`; Inspiration → `_inspiration/` with `needs: - credit`; the archive keeps
-  `[[names]]`, drops places, weather, significance, `author`, `type`, `source`; flat, named,
-  media beside the note. || check: `ArchiveExportTests`; corpus `dest-*`. — ledgers:144-155
-- C63 [auto] Video is never exported; a video note exports markdown + audio + the frame.
-  || check: corpus `video-*`. — ledgers:153
+  `[[names]]` and `location:`, plainifies place LINKS, drops weather, significance, `author`,
+  `type`, `source`; writes `capture:` and `voice:` (set by each app, never derived); flat,
+  named, media beside the note; the whole feature sits behind ONE Settings switch, off by
+  default; a destination is a per-device folder bookmark, one archive root. || check:
+  `ArchiveExportTests`; corpus `dest-*`. — ledgers:144-155
+- C63 [auto] No video goes to the Obsidian vault: a video note exports markdown + audio + the
+  frame there. The ARCHIVE export copies the Mac-kept source movie when the Mac exports
+  (Tuur 2026-08-28, "that is gold"; the phone discards the movie, see D44). || check: corpus
+  `video-*`; `video-made-archive`. — ledgers:153, code-core K:248
 - C64 [auto] `date:` is computed the same way on every device (ONE timezone rule).
   || check: phone and Mac export of one corpus note at 23:30 agree. ⚠ needs-verdict D13
   — code-core needs-verdict 5
@@ -303,7 +324,7 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C73 [auto] PDF link → downloaded file capture (magic-byte check) with extracted text;
   `.txt/.md` share → the note body; PDF/doc share → file capture, the document syncs as an
   asset, its text is searchable. || check: ingress P5.1/P10/P11; corpus `cap-file-*`.
-  — ledgers:188-189
+  ⚠ needs-verdict D22 (a text FILE with no comment: body or card) — ledgers:188-189
 - C74 [auto] Image share: downsampled ≤ 2048 px, EXIF date → `recordedAt` (earliest of a
   multi-share), OCR on the next sweep; PNG stays PNG, GIF keeps its first frame honestly.
   || check: ingress P9. ⚠ needs-verdict D17 — ledgers:176, 215
@@ -324,7 +345,9 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 ### Names & sanitise (referenced by targets 2 and 4; not rewritten)
 
 - C80 [auto] Known-roster only, deterministic, no LLM/NER: a full or distinctive first name
-  auto-links at first mention (`[[Canonical|spoken]]`), later mentions stay plain; a
+  auto-links at first mention — the stored literal is bare `[[Canonical]]` (possessive
+  outside) in a monologue, `[[Canonical|short]]` inline in a conversation (the phone's
+  "spoken" form is DISPLAY, not storage — `Sanitiser.swift:1-30`); later mentions plain; a
   stoplisted or shared first name is a dotted suggestion; ≤ 2-char names suggest; strict
   whole-word + capitalisation. || check: corpus `voice-en-names-all-tiers`,
   `edge-quote-in-name-roster-word`. — ledgers:219-225
@@ -347,8 +370,10 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 ### Consent, rating, lifecycle (not rewritten; every target reads it)
 
 - C87 [auto] The rating is consent: 0 = unrated → no processing, no export, no Connections,
-  fades; playable, searchable, editable like any note. ONE predicate (`NoteConsent.isRated`)
-  for both apps. || check: `NoteConsentTests`; corpus `voice-en-unrated-*`. — decisions:143
+  fades; playable, searchable, editable like any note. CloudKit syncs EVERY memo regardless
+  (flag-to-PROCESS, never flag-to-send). ONE predicate (`NoteConsent.isRated`) for both apps;
+  `PipelineFile.significance == nil` resolves once (projection = unrated, local recording =
+  unrated, import/legacy = rated). || check: `NoteConsentTests`; corpus `voice-en-unrated-*`. — decisions:143
 - C88 [auto] Rating is a one-way door on a synced pipelined note: un-rating keeps the ROW but
   drops it from the process queue and stops every export; a pending pass on an unrated row
   never runs. Mac-local takes are two-way. || check: corpus `voice-en-rated-then-unrated`.
@@ -357,21 +382,27 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
   — decisions:146, scenarios #31
 - C89 [auto] ONE clock: `clockStart = max(recordedAt, keptAt)`; touch restarts 30 days;
   fading at 30, Recently Deleted at 60, gone 14 seen-days later; rated / locked / reminder /
-  backlinked notes never fade; final doors move only at an app-open. || check:
+  backlinked notes never fade (a backlink from ANY live memo counts, D-B33); final doors move
+  only at an app-open. A TOUCH = edit / title / tags / lock / reminder / annotation / keep /
+  bring-back (`markEdited` is the tracepoint); photos, bare captures, rating changes and
+  Mac→phone meta writes are NOT touches. Fading is derived, never stored; sweeps run from
+  install with no arming gate. || check:
   `MemoLifecycle` tests; corpus `voice-en-unrated-old`, `voice-en-unrated-kept`,
   `edge-old-rated-never-exported`. — decisions:138, 142
 - C90 [auto] Trash is soft everywhere, synced via `deletedAt`, purge clock = `trashSeenAt`;
   trash is not searchable, fading is. || check: `TrashTests`; corpus `typed-trashed`.
 - C91 [auto] Locked notes sync, never export, show title + 🔒 only, unlock per session.
-  || check: corpus `typed-locked`. ⚠ needs-verdict D22 (does a locked note get polished?)
+  || check: corpus `typed-locked`. ⚠ needs-verdict D10 (does a locked note get polished? v1 KEEPS
+  processing a locked note and refuses only export — so D10's default is a change from v1)
 - C92 [auto] Reminders are synced data; each device derives its own alarm. || check: corpus
   `typed-reminder`. ⚠ unverified: Mac reconciler owed — ledgers:53 (lifecycle)
 - C93 [auto] Tags: split on comma/newline, need a letter or digit (`[]` refused), `#`
-  stripped once, case kept; destination words are accepted as tags and `inspiration` raises
-  `needs: - credit`. || check: corpus `typed-bracket-tag-bug`, `typed-tags-with-spaces`,
+  stripped once, case kept; all four destination words are accepted as tags (code 2026-08-27;
+  the ledger's "reserved" line is stale) and `inspiration` raises `needs: - credit`; inline
+  `#tag` grammar = `TagComplete` (no spaces, `_-/`). || check: corpus `typed-bracket-tag-bug`, `typed-tags-with-spaces`,
   `typed-reserved-word-tags`. ⚠ needs-verdict D23 on case-variant duplicates — Memo.swift
 - C94 [tuur] Importance control: 10 circles today; i23 proposes 3 (or 4) buttons — mock
-  first. ⚠ needs-verdict D24 — mocks-roadmap i23
+  first. ⚠ needs-verdict D30 — mocks-roadmap i23
 
 ### Sync contract (stays as is)
 
@@ -385,7 +416,7 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C97 [auto] A receiver never re-transcribes another device's in-flight memo. || check:
   corpus `voice-en-other-device-transcribing`. — ledgers:67 (sync)
 - C98 [tuur] Offline conflict = per-record last-writer-wins; a same-note edit on two devices
-  can lose one side. Accept or design a merge. ⚠ needs-verdict D25 — decisions:463
+  can lose one side. Accept or design a merge. ⚠ needs-verdict D24 — decisions:463
 
 ### Recording & audio (out of the rewrite; listed so nothing is lost)
 
@@ -437,7 +468,7 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 
 - C112 [tuur] Quick note: a New Note action in the app, on the Lock Screen / Control Center
   widget and via Siri opens an empty note with the keyboard up, in under a second. Mock
-  first. NEW 2026-09-21 — this spec
+  first. NEW 2026-09-21 — Tuur's ask this session (not in any report)
 - C113 [tuur] The editor feels like Apple Notes: no lag while typing, paragraphs stay where
   he put them, a picture is a block he can move. Rebuilt on the body v2 (C10), never
   before it. Mock first. NEW 2026-09-21
@@ -468,9 +499,11 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
   corpus run. ⚠ needs-verdict D29 on stating them — decisions:539
 - C121 [auto] Personal notes never land in a folder an AI reads; the destination is a stored
   field, one of four. || check: corpus `dest-personal` never under the archive root.
-- C122 [auto] The corpus is synthetic; agents never read his vault; Dev and prod are separate
-  containers and the Dev vault is the test vault. || check: `AppPaths` dev suffix;
-  `-corpus` refuses a path under his real vault.
+- C122 [auto] The corpus is synthetic; agents never read his vault and never screenshot the live
+  app at a real note; Dev and prod are separate containers and the Dev vault is the test vault;
+  tests run on temp dirs, never the Dev container. The privacy rule targets cloud AI: Skrift's
+  OWN code may read its exports and the vault (titles for the roster, tag names). || check:
+  `AppPaths` dev suffix; a `-corpus` path guard under his vault (new rule, drafter's).
 
 ### Messenger shares — added 2026-09-21 after Tuur's WhatsApp probe
 
@@ -644,6 +677,286 @@ Audiobooks, locks, reminders, export:
 - C164 [tuur] A retitle never renames the exported file; switching the vault folder never moves
   old exports (new notes go to the new folder; Settings says so). Stated as-is. — scenarios #49 #50
 
+### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
+
+Method and gate:
+- C165 [auto] The vault filename stem derives from the title by ONE rule: title else filename
+  stem; `/ \` → `-`; strip `* " < > : | ? # ^ [ ]`; collapse spaces; cap 120; the exporter's
+  hard 80-char slice stays because it feeds the filename. || check: `VaultName` tests. — A53
+- C166 [auto] Mac corpus goldens come from `-ingestfile` → `-processfile -exportafter` on the Dev
+  store (GUI quit first); simulator runs use the seeded engines. || check: harness script. — A1
+- C167 [auto] Every engine and the model are revision-pinned; a pin bump is its own commit and
+  owes a device round (this session: mlx-swift-lm → #544 for Xcode 27). || check: no
+  `branch:` refs in project.yml. — A2
+- C168 [auto] No swallowed error on any write surface (vault, store, sync); every refusal reaches
+  the UI as text; an engine fault throws onto the row, the app never dies on a bad model load.
+  || check: `try?` count in Shared/Export, Shared/Naming, Pipeline/Ingest = 0; MLX faults wrapped.
+  — A3, A5
+
+Body/image model:
+- C169 [auto] `offsetSeconds` excludes paused time; manifest order = capture order; marker N =
+  manifest index; splitting speakers keeps every picture as its own paragraph after the turn
+  sentence it was spoken in (D3). || check: `MemoSaver` persist tests; corpus `conv-with-picture`.
+  — A6, A7
+- C170 [auto] List thumbnail = first marker in BODY order that resolves; all markers deleted →
+  none; marker-less share capture → first manifest photo; typed body → none.
+  `transcriptMarkersInjected` stays on the wire and is read only by this rule. || check:
+  `MemoDisplay` tests. — A9, A10
+- C171 [auto] Filler strip is opt-in (default off), voice memos only (never quotes or live
+  caption), drops token + timing together; an all-filler input is unchanged. || check:
+  `FillerFilterTests`. — A12
+- C172 [auto] ONE quote splitter for display, copy-edit and export (indent tolerance decided
+  once); the quote block of a capture is read-only in the editor, only the ramble edits; a
+  quote capture is born `transcriptUserEdited` with no location. || check: no second splitter.
+  — A13, A14, A15
+- C173 [auto] The edit target is pinned at the first keystroke of a burst; an arriving polish
+  never receives a raw-born draft (P0 2026-07-10). || check: `NoteBodyTests` markDraftDirty. — A17
+- C174 [auto] Conversation detection is gated on an audio source; an Apple Note with two bold
+  headings is prose. || check: corpus `applenote-headings-checklist`. — A18
+- C175 [tuur] Mac turns = right gutter + spine (E1, signed 2026-07-27); the phone KEEPS its turn
+  cards with the shared hues; turn spacing stays looser than the mock. — A19
+- C176 [auto] Capture-image markers in an annotation convert and copy like memo photos; the
+  pinned embed is skipped when the body carries markers; legacy marker-less captures keep the
+  old path. || check: `VaultExporterTests` capture rows. — A20
+
+Copy-edit:
+- C177 [auto] Post-conditions on every model output: no proper noun absent from the input; the
+  language never flips; length bounded; a failed gate ships the unedited text. Prompts carry
+  the text only, never place / weather / people. Prompt rewording is not the cure for the
+  Dutch near-echo (A/B refuted 2026-08-19); the paragrapher is. || check: gate tests on the
+  corpus; the prompt builder has one text input. — A21, A22, A23
+- C178 [auto] After generation the deterministic tail runs in this order: tags → name-link
+  (last) → compile; no `[[ ]]` reaches the model. Tag suggestions are deterministic (vault tag
+  NAMES from frontmatter only, lemma ≥ 2×, max 10 + 5 spoken `#hashtags`); the user accepts.
+  || check: `BatchRunner` order test; `TagMatcher` tests. — A24, A25
+- C179 [auto] Redo (title / copy-edit / summary) rewrites one part in place through the same
+  escrow, LWW-stamped; never a second enhancement row; offered only where polished + engine +
+  unlocked; conversations keep verbatim. || check: `PolishCenter` redo tests. — A27
+- C180 [auto] The Mac is the automatic, unattended batch polisher; the iPad polishes ONLY on
+  the visible verb (no polish-on-open, Tuur 2026-07-23), one note at a time, iPad only (≥ 6 GB,
+  never the simulator); the iPhone never polishes. || check: `PolishCenter` gate tests. — A28
+- C181 [tuur] The phone shows the polish as the ONE editable body (no raw/polished toggle);
+  an edit lands in the enhancement, stamped; title chooser Suggested / recording / own;
+  "Polished on your Mac" provenance. — A29
+- C182 [auto] Interrupted runs reset to pending at launch; the queue = live ∧ not done ∧ not an
+  unrated Mac take, oldest first, one at a time; models unload after 60 s idle; re-transcribe
+  also clears diarization + its sidecar and keeps the chosen title; "Flatten to monologue"
+  drops headers, clears diarization, re-polishes as monologue, no re-ASR. || check:
+  `RunReconciler`, `ProcessingCoordinator` tests. — A30, A34, A35
+- C183 [tuur] The refine pass at ≥ 0.8: keep or drop in v2 — decides D30's fourth button.
+  ⚠ needs-verdict D52 — A26
+- C184 [auto] The verb is "Process" on every device; "memo" → "note" in every user string. — A33
+
+Reconcile sweep:
+- C185 [auto] Names and vocab reconcile BEFORE the memo sweep so linking sees the fresh
+  roster; then notify → save + re-export → Mac author backfill → transcript reflect →
+  connections index. || check: wiring order test. — A37
+- C186 [auto] Every Mac → phone writer resolves the memo through the STORE, never by filename
+  alone; a Mac recording rides the Import door (`ArrivalPath`), no second path. || check:
+  `MacCloudWriteBackTests` resolve. — A40, A41
+- C187 [auto] An unrated note has NO row: the Mac renders it through a transient projection and
+  edits it on the `Memo` itself, never as an enhancement; the Journal reads the cloud store
+  read-only. || check: `MemoNoteProjection.writeBack` tests. — A42
+- C188 [auto] Row match = memo id, else `audioFilename` — but never a row already owned by
+  another memo (quote captures inherit the source filename); the row's content date is the
+  phone's `recordedAt`, never ingest time; a nil or blank phone title never clears the Mac
+  title; lock / reminder / OCR changes never recompile; Mac → phone meta writes never bump
+  `lastEditedAt`; a Mac-initiated trash stamps `trashSeenAt`. || check: reconciler +
+  update tests. — A39, A46, A47, A48
+- C189 [auto] Auto re-export after a sweep happens only for notes already in the vault
+  (unlocked, live); the first export is always the verb; refusals are logged, not raised.
+  || check: wiring re-export test. — A49
+- C190 [auto] Asset materialisation never overwrites a file and refreshes on byte count only;
+  stuck `.transcribing` / diarizing memos are recovered once per launch by the recording
+  device only; permanent delete stays device-local, the phone owns the purge, a Mac soft-delete
+  keeps the working folder. || check: `AssetMaterializerTests`. — A50, A51, A52
+- C191 [auto] `cloudKitMacSync` defaults ON (an explicit false is honoured); silent push is
+  registered on both apps so sync lands in seconds even backgrounded. — A44, A105
+
+Export:
+- C192 [auto] `VaultLayout.home`: a pick named Skrift, or holding a stamped `.md`, or containing
+  a `Skrift/` folder, is used as-is; otherwise `<pick>/Skrift` is created on first write; media
+  subfolders `Recordings/ Images/ Documents/` are fixed; the archive returns the pick
+  unchanged. || check: `VaultLayoutTests`. ⚠ needs-verdict D11 (the created-`Skrift/` case)
+  — A54
+- C193 [auto] The stamp hash spans the frontmatter (an Obsidian tag edit is a user edit) and
+  every line but its own; only text starting `---` is stamped; the stamp keys are a public
+  contract for the plugin, never renamed. Losing the ledger costs nothing: the next export
+  re-adopts by stamp; a retitle never moves the file. Skrift never deletes a vault file;
+  locking an exported note shows "already in your vault". || check: `VaultWriteTests`,
+  `VaultStampTests`. — A55, A56, A57
+- C194 [auto] Outcome copy is ONE shared table: a refusal stays until dismissed; `unchanged`
+  never says "Exported"; the refusal names the first failing gate; the primary verb is ONE
+  three-state rule Process → Export → Re-export. || check: `ExportOutcomeCopy`,
+  `NoteWorkState` tests. — A58, A65
+- C195 [auto] Include audio in export = a per-note switch, default on, file named by the stem
+  under `Recordings/`; the flag is Mac-only and does not sync (D-B15). || check:
+  `VaultExporterTests` audio. — A59
+- C196 [auto] Body precedence on export: sanitised → copyedit → transcript; a dangling marker is
+  dropped, never printed; assets are written after the note, failures counted, never fatal.
+  || check: `VaultExporterTests`. — A63
+- C197 [tuur] Full-exportability doctrine (2026-07-18: the vault is a complete mirror of rated
+  notes; timings, embeddings, sync state stay internal) is superseded in part by C61
+  (processed-only, verb-driven). Confirm the narrowing. — A66
+
+Ingress:
+- C198 [auto] Share dispatch order: audio → web URL → movie → image(s) → plain text → document;
+  first match wins; the audio branch keeps images + text, the URL branch keeps selected text
+  (text beats URL, URL rides along); a share carries rating + annotation only (no title, no
+  tags, destination Personal); a Maps link → location + place chip, no fetch;
+  `maps.app.goo.gl` short links stay plain cards by design. || check: `SharePayloadLoader`
+  fixtures. — A67, A68, A69
+- C199 [auto] Open-in accepts what the share sheet accepts (`.ogg/.oga/.m4b/.pdf` are silently
+  ignored today); in-app Import has three doors (Files, Video from Photos, Scan); an
+  audio-only `.mp4` is probed for a video track (D-B26). || check: `AppURLHandler` tests.
+  ⚠ required difference — A70
+- C200 [auto] Whether FluidAudio decodes ogg-opus on device is UNVERIFIED (the doc promises a
+  Mac fallback, the code marks `.failed`). || check: ingress P1 opus fixture on the sim. — A71
+- C201 [auto] Inbox entries that cannot be deleted are tombstoned (cap 200) so nothing
+  re-imports on every open; the drain is off-main with a re-entrancy guard; feedback copy is
+  fixed ("Saved ✓ … Skrift opens on it next time" / error + Try again / "Skrift can't import
+  this"). || check: `CaptureInbox` tests. — A72, A77
+- C202 [auto] Captures get no location or weather; the Mac stamps `location:` for RECORDINGS
+  only, never imports; silent video → a `.failed` note "Video had no audio track" (identical).
+  — A73, A74
+- C203 [tuur] Legacy shapes that do NOT migrate under D4: old test image-captures stay broken
+  (2026-07-10), pre-build-76 PDF captures stay text-only. Confirm the list. — A76
+
+Names:
+- C204 [auto] Canonical = the `People/` note title; Skrift writes links and `people:`, never the
+  person page; roster seeding reads filenames only (title + first token as aliases),
+  idempotent, no contents, no AI. || check: `PeopleFolderScanner` reads no body. — A78, A79
+- C205 [auto] Normalisation ≠ linking: registered aliases fix a misheard KNOWN name everywhere
+  (dotted when unlinked, one-click revertible); only the first mention links; genuine
+  nicknames are not preserved unless registered as aliases (D-B37). || check: `SanitiserTests`.
+  — A80
+- C206 [auto] Two unlink scopes, note-local (this mention / all mentions in this note),
+  persisted in the note's resolutions; the roster is never edited from a note; no "never link
+  anywhere". || check: name-unlink tests. — A82
+- C207 [auto] A roster collision re-derives every processed memo that auto-linked the name
+  (dotted suggestion + count flash) in-app only; duplicate aliases across people are legal
+  (that IS the two-Jacks ambiguity); a stoplisted frequent person stays dotted in every memo
+  (no per-person override); sentence-initial "Will you…" noise is accepted. || check:
+  `RosterAudit` tests. — A83, A84
+- C208 [auto] `names.json` merge: per-person LWW on the stamp, tombstones win when newer,
+  pruned after 90 days; alias defaults to the name; case-insensitive de-dupe; rename carries
+  voiceprints; delete tombstones without them. || check: `NamesMerge` tests. ⚠ needs-verdict
+  D-B12 (tie rule) — A85
+- C209 [auto] Voice identity: true cosine, ≥ 2 s of speech, max over the stored list, audio
+  discarded after embedding; naming a speaker enrols the voice; attribution gated on trust;
+  unnamed stays unnamed ("a wrong attribution is worse than none"); "Split speakers" is
+  post-transcript with Auto/2–5, forcing N merges the most similar; fusion byte-identical on
+  both apps. || check: `SpeakerFusion`, `VoiceMatch` tests. — A86, A87
+
+Consent, rating, lifecycle:
+- C210 [auto] The rating grid: 10 stops 0.1…1.0; tiers Passing 0.1–0.3 / Useful 0.4–0.6 /
+  Important 0.7–1.0; refine wall ≥ 0.8; tap the Nth → 0.N, re-tap → Not rated; user-facing
+  word "Importance"; ties broken by date. || check: `SignificanceScaleTests`. — A89
+- C211 [auto] The three lifecycle strings are byte-pinned in the spine ("starts fading <date>" ·
+  "moves to Recently Deleted in Nd" · "gone for good in ~Nd"). || check: `MemoSpineTests`. — A92
+- C212 [tuur] Lifecycle IA as signed (lifecycle-ia-explorations + triage-peek m6): one conveyor
+  named "Fading", one verb "Bring back", one Recently Deleted in Review, delete soft everywhere
+  with no confirm on the Mac, lock a background verb, phone placement B; one counting surface
+  per station; the Mac list is the deciding room and the phone list the notebook — deliberately
+  not twins; pills Mac always / iPad in-flight + error only. — A93, A94, A95
+- C213 [auto] Lock = hidden, not encrypted, stated in-app; the player never loads a locked memo;
+  Copy is gated behind auth. || check: lock tests. — A96
+- C214 [tuur] Retention doctrine: the permanent corpus is the rated notes; nothing is pruned
+  without a review he approves; audio before text. — A97
+- C215 [auto] `ProcessPile.waiting` = rated ∧ live ∧ unlocked ∧ real transcript ∧ not processed;
+  unrated Mac takes are out of "Process N"; `canSummon` = rated ∧ !locked. — A98
+
+Sync contract:
+- C216 [auto] `Memo.id` is the spine: never regenerated, embedded in the audio filename, equal
+  to the Mac row id; asset kinds audio | photo | wordTimings | diarization | document with
+  fixed filenames (`memo_<id>.<ext>`, `photo_<id>_NNN.jpg`, `wt_<id>.json`, `diar_<id>.json`,
+  `file_<id>.<ext>`); one enhancement row per memo, newest wins on read; once-only UI flags
+  live in UserDefaults, never in a synced record. — A100, A101, A104
+- C217 [auto] Language mode (English = mel on / Multilingual = mel off) syncs both ways with
+  its own LWW stamp; a default nobody chose never pushes; adopting a remote value reloads the
+  ASR. || check: `LanguageSyncCoreTests`. — A102
+- C218 [auto] Audiobook sync contract (out of the rewrite, kept so nothing is lost): per-book
+  opt-in, raw CloudKit records `ab_<bookID>_<i>` / `_cover` / `_t<i>` / `_al<n>`, Wi-Fi only,
+  position + rate LWW, bookmarks whole-list LWW, transcript sidecars re-stamped on arrival,
+  alignment applied only once the transcript matches, an applied-marker records what it
+  produced, unshare keeps local audio. — A103
+- C219 [auto] The schema is additive-only; a synced `@Model` is never renamed or dropped (dead
+  `AudiobookAsset` stays); Dev may add fields; prod needs "Deploy Schema Changes" at promotion.
+  Minimum iOS 26; `Shared/` is a source folder, not a package; the Mac row's duration reads
+  numeric seconds and legacy HMS, v2 writes one representation. — A106, A107, A108
+
+Recording and audio (out of the rewrite):
+- C220 [auto] Mac live transcription: the note pane IS the draft; settled text is the user's
+  (editable mid-take, the engine only appends), the wet tail is the engine's; settle = TEXT
+  STABILITY (two identical tail decodes); the RMS/VAD lane is DEAD on his mic — never re-tune
+  levels, extend stability; Mac rotates at 7 s, the phone keeps its 25 s; an edited take lands
+  `transcriptUserEdited`. || check: `LiveRecordingDraft/Finalize` tests. — A109
+- C221 [auto] The recorder survives every route change and interruption: the tap is reinstalled
+  in the current hardware input format (validated with inputFormat, never outputFormat), never
+  a permanent give-up; `.ended` + foreground re-arm; a 2 s watchdog rebuilds a dead engine.
+  || check: `RecordingCore` route tests; device round. — A110
+- C222 [auto] Live captions auto-stop after 60 s (Never / 30 s / 1 / 2 min), transient; the
+  toggle is sticky and works mid-recording; one-shot transcribe for files, streaming only on
+  the live screen; gain `.default`; a < 0.4 s take is discarded ("Nothing recorded"); the
+  camera is an on-demand sheet; intents stay plain `AppIntent` with no haptic before the
+  session is ours. — A111, A113, A114
+- C223 [auto] Append never lands empty: audio merged sample-accurate, text appended with a blank
+  line, timings shifted by the precise base duration, `transcriptUserEdited` set; failure
+  shows and retries. || check: `MemoSaver` append tests. — A112
+- C224 [auto] Mac recorder = `AVCaptureSession` → `AVAudioFile`, avoids Bluetooth input, no
+  buffer in 1.5 s → named-device alert, TCC denial → typed refusal + Open Settings, writer
+  queue drained on stop. || check: `-recordcheck`. — A115
+- C225 [auto] Memo playback and the book session are mutually exclusive; ducking only on Play;
+  the book resumes only its own interruption pause, never over a live recording; book chunks
+  skip the custom-vocab pass. — A116, A117
+
+Audiobooks (out of the rewrite):
+- C226 [auto] Capture always records voice (a bail discards the quote-only memo); build-your-
+  quote is bounded (~90 s before + 8 lines after, 4 un-chunked); the last sentence ended
+  before the playhead is pre-selected. — A118
+- C227 [auto] ePub alignment: unique n-gram anchors → LIS → banded DP, exact per-word times,
+  verdict aligned / partial / rejected on the monotonic gate; `.epub` primary, `.txt` freebie,
+  `.mobi` skipped; "ePub TOC wins" scoped to aligned files; attach during transcribe is
+  deferred; read-along display is a UNION (book text > bridged > ASR splice > gap fill ≥ 3),
+  nothing deleted, collisions contested between texts only. || check: `EPubAlign` tests,
+  `-readalongcheck`. — A119
+- C228 [auto] `detectedChapters`: `[]` = ran and found nothing, nil = not yet; sidecars are
+  file-local; a quote span never crosses a file boundary; a cancelled chunk redoes the same
+  frontier; the speed estimate comes only from the measured per-device RTF. — A120
+- C229 [tuur] Tab IA = Notes · Books · Review · Settings (Highlights cut, Library → Books,
+  "Journal" → "Review"); Notes-tab book presence = card-at-rest / pill-when-live; the iPad
+  shelf grid stays; ONE player at every width. — A121
+
+Search and Connections (out of the rewrite):
+- C230 [auto] Index grain = one gist vector (title + summary + place + people + tags) plus body
+  chunks every ~150–200 words at sentence boundaries, turn headers stripped; relevance = max
+  over vectors; trashed excluded, captures included, book sidecars out; a stale-model vector
+  is never scored; the vault is NEVER indexed in v1; juxtapose, don't judge (no sentiment,
+  stance or mood). || check: `EmbeddingIndex` tests. — A123, A124
+- C231 [auto] Review surfaces: search "Related" only when the query has ≥ 2 words or exact hits
+  < 3 (top 8 above floor); Then-vs-Now (last ~2 weeks vs ≥ 6 months older); "Important lately"
+  = ≥ 0.8 in ~30 days; Looking back = 1 w / 1 / 3 / 6 / 12 months, highest importance per
+  window, "On this day". || check: `ThenVsNow`, `LookingBack` tests. — A125
+- C232 [tuur] Connections chrome matches related-panel v3 + chrome-belongs v2: summoned by the
+  WORD (no glyph, no count), Mac = floating inspector that stays open, iPad = per-note visitor
+  sheet, thread retired on iPad/Mac and kept on the phone card; the embedder yields the ANE
+  while transcribing. — A126
+- C233 [auto] Print-to-wall fires once per note on crossing INTO ≥ 0.8, to the saved printer,
+  offline-queued; the map on every device has an owned camera, dive-down only, and is a MODE of
+  the column. || check: `WallPrinter` tests. — A127, A128
+
+Editor and UI:
+- C234 [tuur] The editor rebuild (C113) must not break: inline pictures, capture-quote
+  protection, the speaker-turn view, `transcriptUserEdited`, save-now, polished-body editing,
+  paging; swipe-between-notes stays OFF on the phone; the desktop note view is an EDITOR,
+  WYSIWYG to the exported markdown. — A129, A131
+- C235 [tuur] Built UI matches the signed-and-built rows of mocks-roadmap §B (editor, accessory
+  bar, player pill, tag chips, photo viewer + markup, share-out, funnel filter, iPad header and
+  chrome, Mac note header, ⋯ menu single-sourced); any deviation is a defect. — A130
+- C236 [auto] Phone search = title, transcript, tags, place name, summary, OCR, PDF and article
+  text; OCR hits match in LIST search only. — A132
+- C237 [auto] Weather comes from OpenWeatherMap with his own key (D29 states the call). — A134
+
 ---
 
 ## Required differences (pre-registered bugs — v2 matching v1 here FAILS)
@@ -662,8 +975,8 @@ rewrite targets, each with its corpus note and the expected output:
 | R7 | attachment lane deletes a vault file it doesn't own | ownership rule on every write | D3 test | C58 |
 | R8 | `names.json` non-atomic; torn read → empty roster | atomic, never empty, never shrinks | D1 test | C50 |
 | R9 | re-transcribe clears the transcript before ASR runs | cleared only after success | D2 test | C51 |
-| R10 | JS-rendered page → raw URL as title | host as title | `cap-url-no-title` | C72 |
-| R11 | phone video glyph reads the wrong key | video glyph | `video-*` | C71 |
+| R10 | (withdrawn: v1 already shows the domain for a title-less page — pre-register IDENTICAL; the only difference here is whatever D14/D15 decide) | — | `cap-url-no-title` | C72 |
+| R11 | phone video glyph reads the wrong key (`mediaSource` vs `sourceType`) | the READER moves: one key, `SourceTaxonomy` reads what the phone writes | `video-*` | C71 |
 | R12 | phone-added person has no aliases, never links | alias seeded | roster | C83 |
 | R13 | Mac silently drops PDF/image/URL/ePub/flac | honest refusal | ingress M | C77 |
 | R14 | `ensureParagraphs` passes a 7k output with 2 stray breaks | judged per block | `voice-en-asr-wall` | C34 |
@@ -677,6 +990,16 @@ rewrite targets, each with its corpus note and the expected output:
 | R22 | only the first text of a mixed share survives; caption dropped on photo+caption | all texts, in order | ingress P3, P9-caption | C125, C141 |
 | R23 | a kill during the share drain loses the clips | entry deleted only after save | drainer kill test | C147 |
 | R24 | AirDrop / Files import skip the sheet and the filename date | same sheet, same date ladder | AirDropped Signal `.aac` | C145 |
+| R25 | stale name offsets after the one-time body normalisation | re-sanitised once | migrated corpus notes | C10, D4 |
+| R26 | the prod prompt override shadows the shipped prompt | one prompt source | prompt-source test | C39 |
+| R27 | the paragraph ledger on a wall shows `shipped < in` | `shipped ≥ in` on every corpus wall | `typed-wall-7k`, `voice-en-asr-wall` | C34 |
+| R28 | `names.json` millisecond tie always favours remote; write-back LWW has no skew tolerance | deterministic tie, ±5 s skew | merge tests | C208 |
+| R29 | the sweep faults every blob on an unchanged store | 0 blob fetches on an unchanged corpus | sweep instrumentation | C45 |
+| R30 | stale `**Name:**` turn markers baked into monologues; phone parser not pipe-aware; `*` in a speaker name breaks the Mac regex | a monologue never carries turn markers; one parser on both apps | `conv-*`, a `*`-named speaker fixture | C23, C115 |
+| R31 | conversation-turn and annotation edits don't bump `editedAt` | every content edit is a touch | corpus edit scenarios | C89 |
+| R32 | open-in ignores `.ogg/.oga/.m4b/.pdf` | same acceptance as the share sheet | ingress P12 | C199 |
+| R33 | a mixed bundle's picture marker lands mid-transcript | own paragraph at the C12 spot | ingress P3 | C12 |
+Pre-registered as IDENTICAL (unchanged on purpose): `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (R10).
 
 Outside the targets, fixed in v1 now, not waited on: D4 lost recording (C99), semantic
 search silent empty (C110), Mac search jump (C111), audiobook edit-sync / seek-persist /
@@ -810,10 +1133,78 @@ Not blocking v2, but he asked for one sitting:
 50. **D50 Fix a word inside a captured quote**: a "Fix quote" verb. Default: yes.
 51. **D51 Reminders on several devices**: first acknowledgement clears the rest. Default: yes.
 
+From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, defaults proposed:
+
+52. **D52 The refine pass** at ≥ 0.8: keep or drop in v2 (nobody named its output). Default: drop.
+53. **D53 Truncation fallback path**: iPad returns the marker-stripped input into the escrow, the
+    Mac returns the original body. Default: the original body on both.
+54. **D54 Picture reinsert by paragraph index** (C30) or by sentence index. Default: paragraph.
+55. **D55 Mac export resolves images via the images directory, the phone via the manifest.**
+    Default: manifest only, both apps.
+56. **D56 `PipelineFile.significance` non-optional** (0 = unrated) once the floor is written back.
+    Default: yes, in target 3.
+57. **D57 Delete the dead `processEverything` toggle and the dead publish-gate legs.** Default: yes.
+58. **D58 Mint the memo id first for Mac recordings** so the filename id equals the memo id.
+    Default: yes.
+59. **D59 Collapse the lenient desktop decoders** into one shared decoder with goldens first.
+    Default: yes, target 3.
+60. **D60 `names.json` tie rule**: deterministic by device id; write-back LWW tolerates ±5 s skew.
+    Default: yes.
+61. **D61 Does a PDF's extracted text go into the exported body?** Default: no, embed + ramble;
+    text is search-only.
+62. **D62 The share-out verbs** (markdown / PDF / plain / quote card) and batch export: keep
+    outside the compiler rewrite. Default: keep; batch export owes a device look.
+63. **D63 Split-note hybrid and per-book quote aggregation** are out of the v2 compiler. Default: out.
+64. **D64 Auto-publish after Process on iPad/Mac.** Default: no; the Mac re-export sweep stays.
+65. **D65 Obsidian profile keeps `source: capture-url` while the archive uses `capture:`.**
+    Default: leave.
+66. **D66 One-time adopt-by-content for pre-stamp legacy exports.** Default: no; re-export by hand.
+67. **D67 Prod CloudKit schema deploy + Release App-ID capabilities**: at prod promotion after
+    v2; Dev only until then. Default: yes.
+68. **D68 Drop `Memo.syncStatus` and the Unsynced filter** (dead under CloudKit). Default: keep
+    the field, remove the filter.
+69. **D69 Video + link inside a multi-item WhatsApp bundle**: video = its own note, the link
+    rides the note as a card. Default: yes.
+70. **D70 Audio-only `.mp4` on the phone**: probe for a video track (Mac parity). Default: yes.
+71. **D71 In-app voice-annotate on captures** (dictation model, unverified): captures only; the
+    Mac maps the asset in target 3. Default: yes.
+72. **D72 Video share keeps the typed thought.** Default: yes (built).
+73. **D73 Capture-as-note** (annotation folded into the body, file/PDF as a body block): after
+    body v2, mock first; body v2 leaves room for a file block. Default: yes.
+74. **D74 On-device iPhone polish**: parked for v2 now the iPad polishes. Default: parked.
+75. **D75 A memo-link FROM an unrated note holds a note off the fade clock.** Default: yes.
+76. **D76 Auto-prune of unrated notes (i2)** is dead, absorbed by fading. Default: dead.
+77. **D77 The phone's "People in this note" chip bar** while the Mac killed it: keep the
+    asymmetry. Default: keep, stated.
+78. **D78 Nicknames**: normalise to registered aliases only. Default: yes.
+79. **D79 Re-export after a roster collision**: no; the next content change re-exports; log the
+    count. Default: no.
+80. **D80 Tag normalisation** ("filosofaties") out of scope. Default: out.
+81. **D81 Five throwaway Dutch rambles recorded in Skrift Dev** for the corpus (synthetic
+    content, real voice). Default: yes.
+82. **D82 Summary prompt quality / context hints**: prompts frozen in v2, no sensor context.
+    Default: frozen.
+83. **D83 `BookBundle` packs a rejected alignment sidecar**: fix in v1 now. Default: yes.
+84. **D84 Always-warm ASR engine**: intentional; measure battery once. Default: keep, measure.
+85. **D85 Retire the XCUITest suite** (17 iOS-26 failures; the unit suite is the gate).
+    Default: retire.
+86. **D86 "AI READS THIS" also licenses a future in-app agent over `_ideas/`.** Default: yes.
+87. **D87 Frontmatter migration is per-note** (old key order stays until re-exported): state
+    it, or add a bulk re-export verb. Default: stated, no bulk verb.
+88. **D88 Voice-enrolment floor**: the reports disagree (≥ 3 s / 32k samples = 2 s / ≥ 2 s).
+    Default: 2 s (32,000 samples at 16 kHz); state one number.
+89. **D89 Read-along `lead`**: 0.1 s (ledgers) vs 0.3 s (decisions). Default: whatever the
+    device tune settles; state one number.
+
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
 commonplace book, folders model, watched-folder ingest, substitutions list, Backlink
-Weaver, dictate-anywhere, Apple Watch, voice search, re-ingest of the Electron-era notes.
+Weaver, dictate-anywhere, Apple Watch, voice search, re-ingest of the Electron-era notes,
+per-book quotes page (i16), ePub images in the reader, per-book language, cross-chapter
+quotes, player polish P9b, unlinked-mention mining (i21), names → vocab auto-boost,
+place-triggered resurfacing, query expansion / themes (i18), people pages (P7), Mac Names
+parity (i6), scan-into-this-note, lasso multi-select, the wall-card design round, Mac
+in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI (owed after v2).
 
 ---
 
@@ -832,7 +1223,8 @@ Weaver, dictate-anywhere, Apple Watch, voice search, re-ingest of the Electron-e
   thinking evolved" yet.
 - No audio mark-in/out capture; no audio trim; no Review screen after recording; no
   Re-transcribe on the phone; no phone-side export; nothing auto-publishes on iOS.
-- No video export; no bubble chrome on shared input; no 4-bit iPad model; no `Skrift/`
+- No vCard → Names, no `.ics` meeting scaffold; Apple Books / Kindle quote shares parked.
+- No video export to the vault; no bubble chrome on shared input; no 4-bit iPad model; no `Skrift/`
   prefix forced in the vault; no Flag verb.
 
 ## Decisions (dated, his words where recorded — the full list is `plan/extraction/decisions.md` §A)
@@ -862,7 +1254,8 @@ Weaver, dictate-anywhere, Apple Watch, voice search, re-ingest of the Electron-e
 - 2026-08-19 The shrink guard keeps the unedited body — "a raw note is honest, a bitten
   one is silent data loss".
 - 2026-08-12 One model on every device, revision pinned — identical polish everywhere.
-- 2026-08-11 The phone does not export; the picked folder is the consent; nothing on iOS
+- 2026-08-11 The phone does not export (only processing devices do); 2026-08-18 the picked
+  folder is the consent (Settings toggle + "Export now" deleted, b151); nothing on iOS
   auto-publishes.
 - 2026-07-28 Transcription is capture, processing is gated by the rating; the Mac copies
   the phone when unsure.
