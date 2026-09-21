@@ -614,8 +614,12 @@ includes the TestFlight branch — landed + pushed this session). **No v2 code y
    mechanical/locked/needs-verdict, 112 pre-registered bugs, 30 ingress paths, a v1 file
    inventory with line counts per rewrite target (body 7,940 · copy-edit 2,674 · reconcile
    5,297 · export 2,734 → 40% budget ≈ 7,460), 54 invariants, 72 mocks with status.
-3. **`SPEC.md` DRAFT** (122 clauses in the /1-spec format, 15 required differences, 34 numbered
-   open decisions with proposed defaults) + **`gate.sh`** (desktop unit suite, measured GREEN
+3. **`SPEC.md` DRAFT** — after Tuur's WhatsApp probe it grew through three more passes the same
+   day: the archive contract (read `~/Hackerman/Tiurihartog.com` — C129–C139, D38–D41), a
+   50-scenario code trace (`plan/extraction/scenarios.md` → C140–C164, R16–R24, D42–D51) and a
+   rule-by-rule coverage audit (`plan/extraction/spec-coverage.md` → C165–C237, R25–R33,
+   D52–D89, 26 contradictions fixed). Now **237 clauses, 33 required differences, 89 open
+   decisions** with proposed defaults; corpus 109 notes + **`gate.sh`** (desktop unit suite, measured GREEN
    769/0). Tuur's new asks are in: quick note (C112) + Apple-Notes-grade editor on body v2 (C113).
 
 **Xcode 27.0 broke every app target — FIXED by a pin bump.** Xcode 27.0 arrived 2026-09-15;
@@ -626,8 +630,10 @@ floor, the smallest fixing commit). Proven: phone corpus test green on the iPhon
 Mac MLX app build green. OWED: an iPad Polish load re-check (Gemma code moved), the full phone
 unit suite before a device push, and the golden recording of model outputs over the corpus.
 
-**NEXT CHAT:** run `/1-spec` in AUDIT mode over `SPEC.md` with Tuur — the 34 "Open decisions"
-first (D1–D10 block the body/copy-edit v2), then strike outdated clauses. Then `/2-plan`. The
+**NEXT CHAT:** run `/1-spec` in AUDIT mode over `SPEC.md` with Tuur — the 89 "Open decisions"
+first (D1–D10 + D38 block the body/copy-edit v2; D52–D89 are small engineering defaults he can
+wave through in blocks), then strike outdated clauses. Sender name = a field on the share
+sheet (his call 2026-09-21). Then `/2-plan`. The
 ingress corpus (real files through the real share code) is a joint device session AFTER the
 verdicts D14–D19 exist. Not to redo: the extraction, the corpus, the TestFlight land.
 
