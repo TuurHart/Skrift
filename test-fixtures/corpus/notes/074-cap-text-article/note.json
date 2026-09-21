@@ -1,0 +1,52 @@
+{
+  "id": "D9F14AC7-6373-582F-9FA5-743DFFAFCA22",
+  "slug": "cap-text-article",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "text",
+    "long"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-30T05:00:00+01:00",
+  "createdAt": "2026-07-30T05:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "",
+  "metadata": {
+    "capturedAt": "2026-07-30T05:00:00+01:00",
+    "tags": [
+      "glaze"
+    ]
+  },
+  "sharedContent": {
+    "type": "text",
+    "text": "Why iron makes blue glazes go green\n\nMost studio potters meet this the same way: a cobalt blue that looks perfect on a white body turns olive at the edges on a darker one. The culprit is usually not the glaze at all but iron oxide in the clay body migrating into the glaze layer during the melt.\n\nAt cone 6 the migration is stronger than at cone 5, which is why the same glaze can look right at the lower temperature and wrong at the higher one. Two fixes exist: switch to a lower-iron body, or add a slip layer that seals the body under the glaze.\n\nNeither is free. A new body means re-testing every glaze you own, and a slip adds a step to every piece. But it is the difference between a blue and a green."
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A long text share with no annotation: the body should be the text, paragraphs intact."
+  }
+}

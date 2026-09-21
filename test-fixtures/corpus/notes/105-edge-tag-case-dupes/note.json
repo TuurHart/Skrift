@@ -1,0 +1,53 @@
+{
+  "id": "C19EDFDE-C842-5460-83E5-6D59EFE10FFE",
+  "slug": "edge-tag-case-dupes",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "tags"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-08T06:00:00+01:00",
+  "createdAt": "2026-07-08T06:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Tag case: Glaze and glaze and GLAZE typed three times.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "Glaze",
+    "glaze",
+    "GLAZE"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-08T06:00:00+01:00",
+    "tags": [
+      "Glaze",
+      "glaze",
+      "GLAZE"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "needs-verdict": "Case-variant duplicate tags: keep all three, or fold to one?"
+  }
+}

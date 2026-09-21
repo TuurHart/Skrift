@@ -180,6 +180,16 @@ struct RootView: View {
                 let s = SettingsStore.shared.load()
                 if s.authorName.isEmpty && s.noteFolder.isEmpty { showWizard = true }
             }
+            #if DEBUG
+            // The synthetic corpus (test-fixtures/corpus): `-corpus <path>` seeds it into the
+            // shared MEMO store, so the reconcile sweep ingests it like phone notes.
+            if let corpus = CorpusSeed.launchPath, let cloudCtx = MemoCloudStore.container?.mainContext {
+                let outcome = (try? CorpusSeed.seed(from: corpus, into: cloudCtx,
+                                                    recordingsDirectory: AppPaths.recordingsDirectory,
+                                                    names: NamesStore.shared)).map(String.init(describing:))
+                FileHandle.standardError.write(Data(((outcome ?? "corpus: seed FAILED at \(corpus.path)") + "\n").utf8))
+            }
+            #endif
             // Recover any run stranded mid-flight by a previous crash/quit.
             coordinator.reconcileInterruptedRuns(context: ctx)
             // Purge trash older than the retention window (mirrors the phone's

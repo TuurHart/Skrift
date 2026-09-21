@@ -1,0 +1,45 @@
+{
+  "id": "685C1D7B-3CE7-59D9-BDFE-BDD26954A411",
+  "slug": "voice-en-rated-floor",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "rated-0.1"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-23T07:00:00+01:00",
+  "createdAt": "2026-08-23T07:00:00+01:00",
+  "editedAt": null,
+  "duration": 3.25,
+  "audio": "audio.m4a",
+  "transcript": "Barely worth keeping. The valve on the blue pump leaks.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.1,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-23T07:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "0.1 is the floor: RATED. Gets a Mac row, gets processed, exports."
+  }
+}

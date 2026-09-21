@@ -1,0 +1,51 @@
+{
+  "id": "9B6482ED-3322-5684-A8A9-EA8D54BDFDA2",
+  "slug": "edge-emoji-title-tags",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "unicode",
+    "title"
+  ],
+  "title": "🔥 Kiln day",
+  "recordedAt": "2026-07-09T16:00:00+01:00",
+  "createdAt": "2026-07-09T16:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.18,
+  "audio": "audio.m4a",
+  "transcript": "Kiln day. Loaded at seven, firing to cone five, the blue bowl is in the middle where it is most even.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "🔥",
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-09T16:00:00+01:00",
+    "tags": [
+      "🔥",
+      "glaze"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Emoji in title and tag: export filename and frontmatter must stay valid."
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "id": "1255822E-0BD2-5670-B214-7A9BA89F20CB",
+  "slug": "quote-only-no-ramble",
+  "kind": "quote",
+  "lang": "en",
+  "shape": [
+    "audiobook-quote",
+    "quote-only"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-17T11:00:00+01:00",
+  "createdAt": "2026-07-17T11:00:00+01:00",
+  "editedAt": null,
+  "duration": 3.02,
+  "audio": "audio.m4a",
+  "transcript": "> Price is what you say when you have stopped apologising.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "reading"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "bookTitle": "The Shape of Clay",
+    "bookAuthor": "Ada Wren",
+    "bookChapter": "7",
+    "bookID": "5D0F8B4E-2A6C-4E1B-9C3D-7F8A9B0C1D2E",
+    "bookPosition": 8102.0,
+    "capturedAt": "2026-07-17T11:00:00+01:00",
+    "tags": [
+      "reading"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Quote with no ramble: never an empty body; the copy-edit must not touch the quote text (QuoteProtection)."
+  }
+}

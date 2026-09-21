@@ -1,0 +1,60 @@
+{
+  "id": "F63BC807-470E-5D9A-BCB6-A42354F646AD",
+  "slug": "pic-nl",
+  "kind": "voice",
+  "lang": "nl",
+  "shape": [
+    "voice",
+    "pictures",
+    "dutch"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-07T17:00:00+01:00",
+  "createdAt": "2026-08-07T17:00:00+01:00",
+  "editedAt": null,
+  "duration": 8.31,
+  "audio": "audio.m4a",
+  "transcript": "Dit is de scheur waar Hendrik het over had, [[img_001]] van de rand tot aan de voet. Ik denk de klei, niet de glazuur. Eh, volgende keer langzamer stoken.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.6,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-07T17:00:00+01:00",
+    "tags": [
+      "glaze"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_F63BC807-470E-5D9A-BCB6-A42354F646AD_001.jpg",
+        "offsetSeconds": 2.37
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_F63BC807-470E-5D9A-BCB6-A42354F646AD_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Dutch + picture: the same 'own paragraph after the sentence' rule; copy-edit removes 'Eh' without touching the marker."
+  }
+}

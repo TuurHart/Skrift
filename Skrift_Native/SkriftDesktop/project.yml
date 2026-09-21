@@ -72,6 +72,8 @@ targets:
       - path: ../Shared/Export
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
+      # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
+      - path: ../Shared/Corpus
       - path: ../Shared/Recording
       # One-shot CoreLocation fix (shared with iOS) — a Mac recording now carries
       # a place like a phone one. CMPedometer steps stay phone-only; macOS has none.
@@ -187,6 +189,8 @@ targets:
       - path: ../Shared/Export
       - path: ../Shared/Model
       - path: ../Shared/Pipeline
+      # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
+      - path: ../Shared/Corpus
       - path: ../Shared/Recording
       # `MacLocationStamp` is in Pipeline/Ingest, which this bundle compiles, so the shared
       # one-shot it calls has to be here too.

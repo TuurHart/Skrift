@@ -1,0 +1,55 @@
+{
+  "id": "7768BEA5-AC15-549E-8E29-23602152D2F3",
+  "slug": "dest-inspiration-credit",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "url",
+    "destination-inspiration"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-11T02:00:00+01:00",
+  "createdAt": "2026-07-11T02:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Nadia's friend's studio in Antwerp does exactly the glazing-evening format I want.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "inspiration",
+    "workshop"
+  ],
+  "destination": "inspiration",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "Nadia's friend's studio in Antwerp does exactly the glazing-evening format I want.",
+  "metadata": {
+    "capturedAt": "2026-07-11T02:00:00+01:00",
+    "tags": [
+      "inspiration",
+      "workshop"
+    ]
+  },
+  "sharedContent": {
+    "type": "url",
+    "url": "https://example-studio.be/avonden",
+    "urlTitle": "Glazuuravonden — Studio Noord"
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Inspiration → archive `_inspiration/` with `needs: - credit` in the frontmatter."
+  }
+}

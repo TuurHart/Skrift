@@ -1,0 +1,56 @@
+{
+  "id": "3B6912FA-AAD7-5203-96C4-D7D2B1050AAA",
+  "slug": "voice-en-with-mac-polish",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "polished"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-19T18:00:00+01:00",
+  "createdAt": "2026-08-19T18:00:00+01:00",
+  "editedAt": null,
+  "duration": 13.33,
+  "audio": "audio.m4a",
+  "transcript": "Um so the, the Saturday went well actually, six people, um, nobody leaned on a chain. Mariam's, uh, Mariam's colleagues want to come back for the glazing evening. I think we charge forty five and, and see.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.7,
+  "tags": [
+    "workshop"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-19T18:00:00+01:00",
+    "tags": [
+      "workshop"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": {
+    "copyedit": "The Saturday went well: six people, and nobody leaned on a chain. Mariam's colleagues want to come back for the glazing evening.\n\nI think we charge forty-five and see.",
+    "title": "Saturday workshop debrief",
+    "summary": "Six-person hand-building session went well; Mariam's colleagues want the glazing evening. Charge €45.",
+    "enhancedAt": "2026-09-14T08:12:00+01:00",
+    "processedAt": "2026-09-14T08:12:00+01:00",
+    "enhancedByDeviceID": "corpus-mac-0001"
+  },
+  "expect": {
+    "note": "Carries an existing Mac polish. The phone prefers the copyedit for display/export; the Mac must ADOPT it on a fresh row (the self-echo guard applies only to an existing row). LWW by enhancedAt."
+  }
+}

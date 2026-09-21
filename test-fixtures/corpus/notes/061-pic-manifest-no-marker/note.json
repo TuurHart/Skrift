@@ -1,0 +1,56 @@
+{
+  "id": "1E2B2F90-3ABD-5B61-84B2-A6393B952358",
+  "slug": "pic-manifest-no-marker",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "markers-not-injected"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-08T10:00:00+01:00",
+  "createdAt": "2026-08-08T10:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.13,
+  "audio": "audio.m4a",
+  "transcript": "Recorded on an older build that did not inject markers yet. The photo is in the manifest at twelve seconds.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-08T10:00:00+01:00",
+    "tags": [],
+    "imageManifest": [
+      {
+        "filename": "photo_1E2B2F90-3ABD-5B61-84B2-A6393B952358_001.jpg",
+        "offsetSeconds": 12.0
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_1E2B2F90-3ABD-5B61-84B2-A6393B952358_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "markersInjected == false with a manifest: the Mac injects the marker itself from offsetSeconds (legacy path); v2 = 'derive the position from the moment' for everyone."
+  }
+}

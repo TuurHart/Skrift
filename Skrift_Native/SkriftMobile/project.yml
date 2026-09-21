@@ -85,6 +85,8 @@ targets:
       # Pipeline: pure parity algorithms both apps must run identically (vocab
       # parsing/trust, fusion, voice match, BPE merge, image markers).
       - path: ../Shared/Pipeline
+      # Corpus: the DEBUG-only synthetic-corpus seeder (test-fixtures/corpus, v2 rewrite gate).
+      - path: ../Shared/Corpus
       - path: ../Shared/Recording
       # One-shot CoreLocation fix, shared so the Mac stops being the device
       # with an empty `location:` on every note it records.

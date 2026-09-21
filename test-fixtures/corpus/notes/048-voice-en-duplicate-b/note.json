@@ -1,0 +1,45 @@
+{
+  "id": "8B593ED0-23AC-5743-A88B-8E5D569FBAD2",
+  "slug": "voice-en-duplicate-b",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "duplicate"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-05T10:00:40+01:00",
+  "createdAt": "2026-09-05T10:00:40+01:00",
+  "editedAt": null,
+  "duration": 5.94,
+  "audio": "audio.m4a",
+  "transcript": "Duplicate check. Same words twice, two different recordings, forty seconds apart.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-05T10:00:40+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Two memos, identical transcript, 40 s apart: MemoDuplicates should flag, never merge or delete on its own."
+  }
+}

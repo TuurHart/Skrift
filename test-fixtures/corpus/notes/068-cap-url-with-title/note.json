@@ -1,0 +1,54 @@
+{
+  "id": "F01EAE04-8833-5D90-B94E-554AD80F3644",
+  "slug": "cap-url-with-title",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "url",
+    "annotation-typed"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-03T11:00:00+01:00",
+  "createdAt": "2026-08-03T11:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Ines sent this. The bit about iron migrating at cone 6 explains the green edge.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "Ines sent this. The bit about iron migrating at cone 6 explains the green edge.",
+  "metadata": {
+    "capturedAt": "2026-08-03T11:00:00+01:00",
+    "tags": [
+      "glaze"
+    ]
+  },
+  "sharedContent": {
+    "type": "url",
+    "url": "https://en.wikipedia.org/wiki/Ceramic_glaze",
+    "urlTitle": "Ceramic glaze - Wikipedia",
+    "urlDescription": "A ceramic glaze is an impervious layer or coating applied to bisqueware..."
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "URL capture with a fetched title: export renders a link card/line with the title, the annotation as the body."
+  }
+}

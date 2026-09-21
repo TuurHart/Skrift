@@ -1,0 +1,82 @@
+{
+  "id": "D525FEA1-0644-5DF1-9023-7D2FBC1D9989",
+  "slug": "pic-three-spread",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "multiple"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-10T13:00:00+01:00",
+  "createdAt": "2026-08-10T13:00:00+01:00",
+  "editedAt": null,
+  "duration": 13.93,
+  "audio": "audio.m4a",
+  "transcript": "Walking the workshop before the Saturday. Bike side first, [[img_001]] this all has to be covered. Then the wheel, which is fine. [[img_002]] Then the shelf where the glazed pieces go, which is not fine, it is full of Hendrik's tools. [[img_003]] Friday night job.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.7,
+  "tags": [
+    "workshop"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "location": {
+      "latitude": 51.9139,
+      "longitude": 4.476,
+      "placeName": "Werkplaats, Rotterdam-Zuid"
+    },
+    "dayPeriod": "evening",
+    "capturedAt": "2026-08-10T13:00:00+01:00",
+    "tags": [
+      "workshop"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_001.jpg",
+        "offsetSeconds": 3.32
+      },
+      {
+        "filename": "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_002.jpg",
+        "offsetSeconds": 6.96
+      },
+      {
+        "filename": "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_003.jpg",
+        "offsetSeconds": 13.27
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_001.jpg",
+      "file": "photo_001.jpg"
+    },
+    {
+      "filename": "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_002.jpg",
+      "file": "photo_002.jpg"
+    },
+    {
+      "filename": "photo_D525FEA1-0644-5DF1-9023-7D2FBC1D9989_003.jpg",
+      "file": "photo_003.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Three pictures; each lands after the sentence being spoken; 'Hendrik' links across the marker."
+  }
+}

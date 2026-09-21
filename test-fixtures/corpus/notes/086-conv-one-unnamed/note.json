@@ -1,0 +1,48 @@
+{
+  "id": "4900B798-B207-5DE3-AA10-1BCDCC9535B7",
+  "slug": "conv-one-unnamed",
+  "kind": "conversation",
+  "lang": "en",
+  "shape": [
+    "conversation",
+    "diarized"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-21T17:00:00+01:00",
+  "createdAt": "2026-07-21T17:00:00+01:00",
+  "editedAt": null,
+  "duration": 11.43,
+  "audio": "audio.m4a",
+  "transcript": "**Fenna de Wit:** What did the frame builder say about the lugs?\n\n**Speaker 2:** He can do them but not before spring, and he wants a deposit.\n\n**Fenna de Wit:** How much?\n\n**Speaker 2:** Four hundred. And he only takes a bank transfer, no card.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "conversation"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-21T17:00:00+01:00",
+    "tags": [
+      "conversation"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": "diar.json",
+  "enhancement": null,
+  "expect": {
+    "note": "Speaker 2 unnamed: rendered as 'Speaker 2', enrollable later; no name-link attempted on the label."
+  }
+}

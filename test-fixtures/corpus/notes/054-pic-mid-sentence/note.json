@@ -1,0 +1,66 @@
+{
+  "id": "7DE3F39D-EEFB-5EA3-B496-0298D738D840",
+  "slug": "pic-mid-sentence",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "marker-mid-sentence"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-13T09:00:00+01:00",
+  "createdAt": "2026-08-13T09:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.69,
+  "audio": "audio.m4a",
+  "transcript": "The crack runs from the rim all the way down to the [[img_001]] foot, so it is the body not the glaze. I will fire the next one slower.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.6,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "location": {
+      "latitude": 51.9139,
+      "longitude": 4.476,
+      "placeName": "Werkplaats, Rotterdam-Zuid"
+    },
+    "dayPeriod": "afternoon",
+    "capturedAt": "2026-08-13T09:00:00+01:00",
+    "tags": [
+      "glaze"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_7DE3F39D-EEFB-5EA3-B496-0298D738D840_001.jpg",
+        "offsetSeconds": 2.87
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_7DE3F39D-EEFB-5EA3-B496-0298D738D840_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug": "v1 splits the sentence into two paragraphs around the marker. Expected: the sentence stays whole and the picture is its own paragraph AFTER 'foot, so it is the body not the glaze.'"
+  }
+}

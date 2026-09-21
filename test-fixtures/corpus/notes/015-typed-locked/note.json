@@ -1,0 +1,49 @@
+{
+  "id": "E0B0EBD3-F084-5780-A3E0-3750945CD777",
+  "slug": "typed-locked",
+  "kind": "typed",
+  "lang": "nl",
+  "shape": [
+    "typed",
+    "locked"
+  ],
+  "title": "Privé",
+  "recordedAt": "2026-09-10T00:00:00+01:00",
+  "createdAt": "2026-09-10T00:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Dit is een vergrendelde notitie over geld en over Hendrik. Hoort nergens in de vault terecht te komen.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.9,
+  "tags": [
+    "privé"
+  ],
+  "destination": "personal",
+  "locked": true,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-10T00:00:00+01:00",
+    "tags": [
+      "privé"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Locked: never exported to the plaintext vault, on either app; still processed? (needs-verdict — lock = keep-don't-polish per NoteConsent doc)."
+  }
+}

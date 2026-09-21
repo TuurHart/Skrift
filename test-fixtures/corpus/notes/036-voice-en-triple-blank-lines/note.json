@@ -1,0 +1,45 @@
+{
+  "id": "CA0819B3-B1D9-5F19-B1A0-AA9E5D2BFAA0",
+  "slug": "voice-en-triple-blank-lines",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "whitespace-edge"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-26T03:00:00+01:00",
+  "createdAt": "2026-08-26T03:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.59,
+  "audio": "audio.m4a",
+  "transcript": "Part one about the trailer hitch.\n\n\n\nPart two after a very long pause about the invoice for Hendrik.\n\n\nPart three.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-26T03:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "≥3 newlines normalise to one blank line; three paragraphs remain."
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "id": "ACFA1AE3-DA64-5250-808C-8F22D251F927",
+  "slug": "cap-image-no-words",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "image",
+    "no-annotation"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-29T12:00:00+01:00",
+  "createdAt": "2026-07-29T12:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "",
+  "metadata": {
+    "capturedAt": "2026-07-29T12:00:00+01:00",
+    "tags": [],
+    "imageManifest": [
+      {
+        "filename": "photo_ACFA1AE3-DA64-5250-808C-8F22D251F927_001.jpg",
+        "offsetSeconds": 0
+      }
+    ]
+  },
+  "sharedContent": {
+    "type": "image",
+    "fileName": "IMG_4471.jpg",
+    "mimeType": "image/jpeg"
+  },
+  "photos": [
+    {
+      "filename": "photo_ACFA1AE3-DA64-5250-808C-8F22D251F927_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug": "A bare shared photo: processed with NO content stalled forever before 2026-08-26. Expected: processed, no polish, exports as an image note."
+  }
+}

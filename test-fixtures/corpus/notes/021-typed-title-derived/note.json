@@ -1,0 +1,43 @@
+{
+  "id": "2F6E68F2-8192-52B8-990D-DCDA427EEC93",
+  "slug": "typed-title-derived",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "no-title"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-05T18:00:00+01:00",
+  "createdAt": "2026-09-05T18:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "First line becomes the title if nothing else does.\n\nSecond paragraph is just here so the first line is clearly a line.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-05T18:00:00+01:00",
+    "tags": [],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

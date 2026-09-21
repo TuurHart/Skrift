@@ -1,0 +1,417 @@
+[
+{
+"word": "Okay",
+"start": 0.0,
+"end": 0.297
+},
+{
+"word": "so,",
+"start": 0.317,
+"end": 0.613
+},
+{
+"word": "um,",
+"start": 0.633,
+"end": 0.93
+},
+{
+"word": "walking",
+"start": 0.95,
+"end": 1.247
+},
+{
+"word": "back",
+"start": 1.267,
+"end": 1.563
+},
+{
+"word": "from",
+"start": 1.583,
+"end": 1.88
+},
+{
+"word": "the",
+"start": 1.9,
+"end": 2.196
+},
+{
+"word": "shop",
+"start": 2.216,
+"end": 2.513
+},
+{
+"word": "and",
+"start": 2.533,
+"end": 2.83
+},
+{
+"word": "I",
+"start": 2.85,
+"end": 3.146
+},
+{
+"word": "think",
+"start": 3.166,
+"end": 3.463
+},
+{
+"word": "I've",
+"start": 3.483,
+"end": 3.78
+},
+{
+"word": "decided",
+"start": 3.8,
+"end": 4.096
+},
+{
+"word": "on",
+"start": 4.116,
+"end": 4.413
+},
+{
+"word": "the",
+"start": 4.433,
+"end": 4.729
+},
+{
+"word": "prices.",
+"start": 4.749,
+"end": 5.046
+},
+{
+"word": "Overhauls",
+"start": 5.066,
+"end": 5.363
+},
+{
+"word": "go",
+"start": 5.383,
+"end": 5.679
+},
+{
+"word": "to",
+"start": 5.699,
+"end": 5.996
+},
+{
+"word": "one",
+"start": 6.016,
+"end": 6.313
+},
+{
+"word": "sixty,",
+"start": 6.333,
+"end": 6.629
+},
+{
+"word": "um,",
+"start": 6.649,
+"end": 6.946
+},
+{
+"word": "tune-ups",
+"start": 6.966,
+"end": 7.262
+},
+{
+"word": "stay",
+"start": 7.282,
+"end": 7.579
+},
+{
+"word": "where",
+"start": 7.599,
+"end": 7.896
+},
+{
+"word": "they",
+"start": 7.916,
+"end": 8.212
+},
+{
+"word": "are.",
+"start": 8.232,
+"end": 8.529
+},
+{
+"word": "Jack",
+"start": 8.549,
+"end": 8.846
+},
+{
+"word": "said",
+"start": 8.866,
+"end": 9.162
+},
+{
+"word": "fifteen",
+"start": 9.182,
+"end": 9.479
+},
+{
+"word": "percent",
+"start": 9.499,
+"end": 9.795
+},
+{
+"word": "across",
+"start": 9.815,
+"end": 10.112
+},
+{
+"word": "the",
+"start": 10.132,
+"end": 10.429
+},
+{
+"word": "board",
+"start": 10.449,
+"end": 10.745
+},
+{
+"word": "but",
+"start": 10.765,
+"end": 11.062
+},
+{
+"word": "I",
+"start": 11.082,
+"end": 11.379
+},
+{
+"word": "don't",
+"start": 11.399,
+"end": 11.695
+},
+{
+"word": "want",
+"start": 11.715,
+"end": 12.012
+},
+{
+"word": "to,",
+"start": 12.032,
+"end": 12.328
+},
+{
+"word": "I",
+"start": 12.348,
+"end": 12.645
+},
+{
+"word": "don't",
+"start": 12.665,
+"end": 12.962
+},
+{
+"word": "want",
+"start": 12.982,
+"end": 13.278
+},
+{
+"word": "to",
+"start": 13.298,
+"end": 13.595
+},
+{
+"word": "lose",
+"start": 13.615,
+"end": 13.912
+},
+{
+"word": "the",
+"start": 13.932,
+"end": 14.228
+},
+{
+"word": "regulars",
+"start": 14.248,
+"end": 14.545
+},
+{
+"word": "over",
+"start": 14.565,
+"end": 14.861
+},
+{
+"word": "a",
+"start": 14.881,
+"end": 15.178
+},
+{
+"word": "tune-up.",
+"start": 15.198,
+"end": 15.495
+},
+{
+"word": "Lotte",
+"start": 15.515,
+"end": 15.811
+},
+{
+"word": "agrees,",
+"start": 15.831,
+"end": 16.128
+},
+{
+"word": "I",
+"start": 16.148,
+"end": 16.445
+},
+{
+"word": "think.",
+"start": 16.465,
+"end": 16.761
+},
+{
+"word": "Uh,",
+"start": 16.781,
+"end": 17.078
+},
+{
+"word": "the",
+"start": 17.098,
+"end": 17.394
+},
+{
+"word": "other",
+"start": 17.414,
+"end": 17.711
+},
+{
+"word": "thing",
+"start": 17.731,
+"end": 18.028
+},
+{
+"word": "is",
+"start": 18.048,
+"end": 18.344
+},
+{
+"word": "I",
+"start": 18.364,
+"end": 18.661
+},
+{
+"word": "should",
+"start": 18.681,
+"end": 18.978
+},
+{
+"word": "write",
+"start": 18.998,
+"end": 19.294
+},
+{
+"word": "the",
+"start": 19.314,
+"end": 19.611
+},
+{
+"word": "promised",
+"start": 19.631,
+"end": 19.927
+},
+{
+"word": "date",
+"start": 19.947,
+"end": 20.244
+},
+{
+"word": "on",
+"start": 20.264,
+"end": 20.561
+},
+{
+"word": "the,",
+"start": 20.581,
+"end": 20.877
+},
+{
+"word": "on",
+"start": 20.897,
+"end": 21.194
+},
+{
+"word": "the",
+"start": 21.214,
+"end": 21.511
+},
+{
+"word": "tag",
+"start": 21.531,
+"end": 21.827
+},
+{
+"word": "and",
+"start": 21.847,
+"end": 22.144
+},
+{
+"word": "also",
+"start": 22.164,
+"end": 22.46
+},
+{
+"word": "in",
+"start": 22.48,
+"end": 22.777
+},
+{
+"word": "the",
+"start": 22.797,
+"end": 23.094
+},
+{
+"word": "calendar,",
+"start": 23.114,
+"end": 23.41
+},
+{
+"word": "both,",
+"start": 23.43,
+"end": 23.727
+},
+{
+"word": "because",
+"start": 23.747,
+"end": 24.044
+},
+{
+"word": "the",
+"start": 24.064,
+"end": 24.36
+},
+{
+"word": "tag",
+"start": 24.38,
+"end": 24.677
+},
+{
+"word": "gets",
+"start": 24.697,
+"end": 24.993
+},
+{
+"word": "lost.",
+"start": 25.013,
+"end": 25.31
+},
+{
+"word": "Yeah.",
+"start": 25.33,
+"end": 25.627
+},
+{
+"word": "That's",
+"start": 25.647,
+"end": 25.943
+},
+{
+"word": "it.",
+"start": 25.963,
+"end": 26.26
+}
+]

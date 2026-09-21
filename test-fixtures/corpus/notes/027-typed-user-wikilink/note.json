@@ -1,0 +1,46 @@
+{
+  "id": "476EF17D-8877-5147-8190-66112EE04738",
+  "slug": "typed-user-wikilink",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "names",
+    "user-wikilink"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-01T12:00:00+01:00",
+  "createdAt": "2026-09-01T12:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Talked to [[Lotte Vos]] about the Saturday and she is in. Jack might come too, the Ferreira one, not Morrow.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-01T12:00:00+01:00",
+    "tags": [],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A wikilink typed by the user in the RAW body: the sanitiser must not double-link it, and 'Jack' stays ambiguous even though the surname is in the sentence."
+  }
+}

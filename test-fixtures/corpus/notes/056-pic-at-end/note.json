@@ -1,0 +1,58 @@
+{
+  "id": "1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3",
+  "slug": "pic-at-end",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "marker-end"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-11T23:00:00+01:00",
+  "createdAt": "2026-08-11T23:00:00+01:00",
+  "editedAt": null,
+  "duration": 5.53,
+  "audio": "audio.m4a",
+  "transcript": "Finished the Gazelle overhaul, new chain, new cables, wheels trued. Here it is. [[img_001]]",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-11T23:00:00+01:00",
+    "tags": [
+      "studio"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3_001.jpg",
+        "offsetSeconds": 5.96
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

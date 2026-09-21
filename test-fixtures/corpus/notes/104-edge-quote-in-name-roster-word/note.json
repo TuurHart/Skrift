@@ -1,0 +1,49 @@
+{
+  "id": "72DC1326-1B1D-5326-9DD7-32C89B2AA727",
+  "slug": "edge-quote-in-name-roster-word",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "names",
+    "stoplist"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-08T23:00:00+01:00",
+  "createdAt": "2026-07-08T23:00:00+01:00",
+  "editedAt": null,
+  "duration": 5.57,
+  "audio": "audio.m4a",
+  "transcript": "The rose bushes by the door will need cutting back and I will do it Sunday. Sam is coming Sunday too.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.4,
+  "tags": [
+    "huis"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-08T23:00:00+01:00",
+    "tags": [
+      "huis"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "'rose' (plant) and 'will' (verb) must stay plain; 'Sam' ambiguous."
+  }
+}

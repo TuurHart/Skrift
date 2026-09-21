@@ -1,0 +1,53 @@
+{
+  "id": "7E905A2D-71A7-51DD-A133-4D9E285F9877",
+  "slug": "cap-url-voice-ramble",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "url",
+    "annotation-voice"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-31T15:00:00+01:00",
+  "createdAt": "2026-07-31T15:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "So Bruno, um, Bruno sent me this frame builder in Porto, lugged steel, and I, I think this is the one for the touring bike. Look at the, the seat cluster.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.7,
+  "tags": [
+    "bikes"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "So Bruno, um, Bruno sent me this frame builder in Porto, lugged steel, and I, I think this is the one for the touring bike. Look at the, the seat cluster.",
+  "metadata": {
+    "capturedAt": "2026-07-31T15:00:00+01:00",
+    "tags": [
+      "bikes"
+    ]
+  },
+  "sharedContent": {
+    "type": "url",
+    "url": "https://example-frames.pt/lugged",
+    "urlTitle": "Lugged steel frames — handmade in Porto"
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A spoken annotation on a URL: copy-edit applies to the ramble, the link stays a link."
+  }
+}

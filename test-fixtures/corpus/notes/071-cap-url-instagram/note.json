@@ -1,0 +1,52 @@
+{
+  "id": "99BD0AA2-33F9-565F-B631-CDC1D10FD2D9",
+  "slug": "cap-url-instagram",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "url",
+    "instagram"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-01T08:00:00+01:00",
+  "createdAt": "2026-08-01T08:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "inspiration"
+  ],
+  "destination": "inspiration",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "",
+  "metadata": {
+    "capturedAt": "2026-08-01T08:00:00+01:00",
+    "tags": [
+      "inspiration"
+    ]
+  },
+  "sharedContent": {
+    "type": "url",
+    "url": "https://www.instagram.com/p/C0rpusExample/"
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "needs-verdict": "Instagram share with no comment: is the caption the body? Today it is a bare link with no title (login-walled fetch)."
+  }
+}

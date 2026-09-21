@@ -1,0 +1,68 @@
+{
+  "id": "B6B21BA8-CC34-5667-B92B-2D8D3CAD959A",
+  "slug": "pic-two-same-second",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "adjacent-markers"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-11T06:00:00+01:00",
+  "createdAt": "2026-08-11T06:00:00+01:00",
+  "editedAt": null,
+  "duration": 4.6,
+  "audio": "audio.m4a",
+  "transcript": "Front and back of the same bowl, [[img_001]] [[img_002]] the green edge is only on the side that faced the element.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.6,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-11T06:00:00+01:00",
+    "tags": [
+      "glaze"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_001.jpg",
+        "offsetSeconds": 1.69
+      },
+      {
+        "filename": "photo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_002.jpg",
+        "offsetSeconds": 1.69
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_001.jpg",
+      "file": "photo_001.jpg"
+    },
+    {
+      "filename": "photo_B6B21BA8-CC34-5667-B92B-2D8D3CAD959A_002.jpg",
+      "file": "photo_002.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Two photos within the same second: two picture paragraphs back to back, in order, both after the clause; never merged, never one dropped."
+  }
+}

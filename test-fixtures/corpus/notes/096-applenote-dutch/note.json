@@ -1,0 +1,49 @@
+{
+  "id": "5210FEAE-7C4E-5974-9926-1FA90C36497F",
+  "slug": "applenote-dutch",
+  "kind": "typed",
+  "lang": "nl",
+  "shape": [
+    "apple-note",
+    "dutch"
+  ],
+  "title": "Verjaardag Lotte",
+  "recordedAt": "2026-07-14T15:00:00+01:00",
+  "createdAt": "2026-07-14T15:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Ideeën\n\n- de Ålesund-appeltaart laten bezorgen (kan dat?)\n- een dag zonder werkplaats\n- de blauwe kom, als hij lukt\n\nNiet: gereedschap. Nooit meer gereedschap.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "lotte"
+  ],
+  "destination": "personal",
+  "locked": true,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "mediaSource": "applenote",
+    "capturedAt": "2026-07-14T15:00:00+01:00",
+    "tags": [
+      "lotte"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Locked Apple-Note import: never to the vault."
+  }
+}

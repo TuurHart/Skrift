@@ -1,0 +1,54 @@
+{
+  "id": "10B65155-D4EE-55E5-B973-B37ACB70D9CF",
+  "slug": "quote-with-names",
+  "kind": "quote",
+  "lang": "en",
+  "shape": [
+    "audiobook-quote",
+    "ramble",
+    "names"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-16T01:00:00+01:00",
+  "createdAt": "2026-07-16T01:00:00+01:00",
+  "editedAt": null,
+  "duration": 8.92,
+  "audio": "audio.m4a",
+  "transcript": "> Every workshop has a Jack: the one who knows a better way and never shows up.\n\nMine has two. Rose says that is a management problem, not a Jack problem.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "reading"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "bookTitle": "Small Shops",
+    "bookAuthor": "Nia Holt",
+    "bookChapter": "1",
+    "bookID": "7F2B0D6A-4C8E-4A3D-9E5F-9B0C1D2E3F4A",
+    "bookPosition": 120.0,
+    "capturedAt": "2026-07-16T01:00:00+01:00",
+    "tags": [
+      "reading"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A name INSIDE the quote must not be linked (QuoteProtection); the 'Jack' in the ramble is ambiguous as usual."
+  }
+}

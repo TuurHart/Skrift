@@ -1,0 +1,51 @@
+{
+  "id": "6A3AE681-57AD-5464-9AF2-1094C838025E",
+  "slug": "cap-text-plain",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "text"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-30T22:00:00+01:00",
+  "createdAt": "2026-07-30T22:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "From a message: “Kiln wash: 50/50 kaolin and alumina hydrate, thin, two coats, let each dry.”",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "From a message: “Kiln wash: 50/50 kaolin and alumina hydrate, thin, two coats, let each dry.”",
+  "metadata": {
+    "capturedAt": "2026-07-30T22:00:00+01:00",
+    "tags": [
+      "studio"
+    ]
+  },
+  "sharedContent": {
+    "type": "text",
+    "text": "Kiln wash: 50/50 kaolin and alumina hydrate, thin, two coats, let each dry."
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "needs-verdict": "A text share: is the shared text the body, the annotation the body, or both (quote + comment)?"
+  }
+}

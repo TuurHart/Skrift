@@ -1,0 +1,55 @@
+{
+  "id": "18D54AB6-67EB-5AEC-BB42-DB228B00D25D",
+  "slug": "quote-en-with-ramble",
+  "kind": "quote",
+  "lang": "en",
+  "shape": [
+    "audiobook-quote",
+    "ramble"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-18T21:00:00+01:00",
+  "createdAt": "2026-07-18T21:00:00+01:00",
+  "editedAt": null,
+  "duration": 10.91,
+  "audio": "audio.m4a",
+  "transcript": "> The potter's wheel does not care what you meant to make. It records what your hands did.\n\nThis is the whole studio in two sentences. I keep meaning the blue bowl and my hands keep making the safe one.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.8,
+  "tags": [
+    "reading",
+    "thinking"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "bookTitle": "The Shape of Clay",
+    "bookAuthor": "Ada Wren",
+    "bookChapter": "4",
+    "bookID": "5D0F8B4E-2A6C-4E1B-9C3D-7F8A9B0C1D2E",
+    "bookPosition": 4321.5,
+    "capturedAt": "2026-07-18T21:00:00+01:00",
+    "tags": [
+      "reading",
+      "thinking"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Quote styled as a quote; attribution '— Ada Wren, The Shape of Clay · ch. 4' from metadata; export writes the [[Ada Wren]] wikilink once, at export only."
+  }
+}

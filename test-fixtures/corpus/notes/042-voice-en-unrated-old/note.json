@@ -1,0 +1,46 @@
+{
+  "id": "16921D53-235C-5DF6-9C8B-7E4FF0D81B1B",
+  "slug": "voice-en-unrated-old",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "unrated",
+    "fading"
+  ],
+  "title": null,
+  "recordedAt": "2026-06-20T15:00:00+01:00",
+  "createdAt": "2026-06-20T15:00:00+01:00",
+  "editedAt": null,
+  "duration": 4.18,
+  "audio": "audio.m4a",
+  "transcript": "A note from June about nothing much. The kiln shelf needs kiln wash.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.0,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-06-20T15:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Unrated and older than 30 days at seed time: FADING; older than 60 → the sweep moves it to the trash at app-open. Never processed, never exported, no connections."
+  }
+}

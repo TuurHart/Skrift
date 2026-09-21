@@ -1,0 +1,46 @@
+{
+  "id": "BA79D0B0-727C-518C-86D7-AEDC173F3B1A",
+  "slug": "conv-three-speakers",
+  "kind": "conversation",
+  "lang": "en",
+  "shape": [
+    "conversation",
+    "diarized"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-21T00:00:00+01:00",
+  "createdAt": "2026-07-21T00:00:00+01:00",
+  "editedAt": null,
+  "duration": 18.94,
+  "audio": "audio.m4a",
+  "transcript": "**Fenna de Wit:** Okay, price for the workshop. Rose?\n\n**Rose Aldana:** Forty-five. Anything more and people compare it to the big studios.\n\n**Lotte Vos:** Sixty. Clay, firing twice, two evenings of your time. Forty-five is a loss.\n\n**Fenna de Wit:** So fifty and we stop arguing.\n\n**Rose Aldana:** Fifty is fine.\n\n**Lotte Vos:** Fifty is a loss but fine.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.7,
+  "tags": [
+    "conversation"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-21T00:00:00+01:00",
+    "tags": [
+      "conversation"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": "diar.json",
+  "enhancement": null,
+  "expect": {}
+}

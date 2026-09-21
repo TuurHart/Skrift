@@ -1,0 +1,47 @@
+{
+"segments": [
+{
+"speaker": 0,
+"start": 0.0,
+"end": 2.88
+},
+{
+"speaker": 1,
+"start": 2.88,
+"end": 7.25
+},
+{
+"speaker": 2,
+"start": 7.25,
+"end": 13.8
+},
+{
+"speaker": 0,
+"start": 13.8,
+"end": 15.75
+},
+{
+"speaker": 1,
+"start": 15.75,
+"end": 16.82
+},
+{
+"speaker": 2,
+"start": 16.82,
+"end": 18.96
+}
+],
+"slotNames": {
+"0": "Fenna de Wit",
+"1": "Rose Aldana",
+"2": "Lotte Vos"
+},
+"turnSlots": [
+0,
+1,
+2,
+0,
+1,
+2
+]
+}

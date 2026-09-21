@@ -1,0 +1,59 @@
+{
+  "id": "ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3",
+  "slug": "conv-with-picture",
+  "kind": "conversation",
+  "lang": "en",
+  "shape": [
+    "conversation",
+    "diarized"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-19T14:00:00+01:00",
+  "createdAt": "2026-07-19T14:00:00+01:00",
+  "editedAt": null,
+  "duration": 13.17,
+  "audio": "audio.m4a",
+  "transcript": "**Fenna de Wit:** Look at the edge on this one. [[img_001]] That is the green again.\n\n**Lotte Vos:** That is the iron. Same as Ines said. Different clay or a slip.\n\n**Fenna de Wit:** A slip is one more step on every piece.\n\n**Lotte Vos:** Then a different clay.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.6,
+  "tags": [
+    "conversation"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-19T14:00:00+01:00",
+    "tags": [
+      "conversation"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3_001.jpg",
+        "offsetSeconds": 1.73
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": "diar.json",
+  "enhancement": null,
+  "expect": {
+    "needs-verdict": "A picture inside a conversation turn: own paragraph inside the turn (after the sentence), or after the whole turn?"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "id": "51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65",
+  "slug": "video-no-speech",
+  "kind": "video",
+  "lang": "en",
+  "shape": [
+    "video",
+    "pictures",
+    "empty-transcript"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-23T03:00:00+01:00",
+  "createdAt": "2026-07-23T03:00:00+01:00",
+  "editedAt": null,
+  "duration": 0.88,
+  "audio": "audio.m4a",
+  "transcript": "[[img_001]]",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-23T03:00:00+01:00",
+    "tags": [],
+    "sourceType": "video",
+    "imageManifest": [
+      {
+        "filename": "photo_51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65_001.jpg",
+        "offsetSeconds": 0
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A video with no speech: the note is the frame alone. Processed, no content; export = the image."
+  }
+}

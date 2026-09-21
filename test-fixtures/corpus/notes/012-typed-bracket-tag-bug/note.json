@@ -1,0 +1,52 @@
+{
+  "id": "A92F032B-5B64-5618-A7F0-B79BECC7A445",
+  "slug": "typed-bracket-tag-bug",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "tags",
+    "bug-shape"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-12T03:00:00+01:00",
+  "createdAt": "2026-09-12T03:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Test note whose tag list carries a literal [] entry — the 2026-07-27 shape that archived as a real tag.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "[]",
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-12T03:00:00+01:00",
+    "tags": [
+      "[]",
+      "studio"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug": "A tag of `[]` must be dropped everywhere (parseTagInput refuses it now); the export frontmatter must not carry it."
+  }
+}

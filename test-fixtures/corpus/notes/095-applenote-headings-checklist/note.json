@@ -1,0 +1,53 @@
+{
+  "id": "3DB849B8-7591-5789-B53A-628A08DBD661",
+  "slug": "applenote-headings-checklist",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "apple-note",
+    "markdown",
+    "headings",
+    "tasks"
+  ],
+  "title": "Touring bike build",
+  "recordedAt": "2026-07-15T08:00:00+01:00",
+  "createdAt": "2026-07-15T08:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "# Touring bike build\n\nBudget €2,400 all in.\n\n## Frame\n\nLugged steel from Porto (Bruno's guy). Deposit €400.\n\n## Parts\n\n- [x] Brooks saddle (have one)\n- [ ] Dynamo hub\n- [ ] Racks, front and rear\n- [ ] Bar-end shifters — Pieter-Jan has a spare set\n\n**Pros:** it will last forever.\n**Cons:** it will take forever.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.7,
+  "tags": [
+    "bikes",
+    "project"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "mediaSource": "applenote",
+    "capturedAt": "2026-07-15T08:00:00+01:00",
+    "tags": [
+      "bikes",
+      "project"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Headings + checklist + a mid-note `**Pros:**` that must NOT read as a speaker turn (SpeakerTranscript rule)."
+  }
+}

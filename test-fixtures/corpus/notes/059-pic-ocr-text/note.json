@@ -1,0 +1,61 @@
+{
+  "id": "C9CEC17D-4A3B-5A70-AE05-02867C62125A",
+  "slug": "pic-ocr-text",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "ocr"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-09T20:00:00+01:00",
+  "createdAt": "2026-08-09T20:00:00+01:00",
+  "editedAt": null,
+  "duration": 4.69,
+  "audio": "audio.m4a",
+  "transcript": "Snapped the supplier's price board so I stop guessing. [[img_001]] Grey body went up again.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [
+    "money"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-09T20:00:00+01:00",
+    "tags": [
+      "money"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_C9CEC17D-4A3B-5A70-AE05-02867C62125A_001.jpg",
+        "offsetSeconds": 3.02,
+        "text": "GREY BODY 20KG 31.50"
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_C9CEC17D-4A3B-5A70-AE05-02867C62125A_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "OCR text rides the manifest: searchable on the phone, imageOCRText on the Mac row, never inserted into the body."
+  }
+}

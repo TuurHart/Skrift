@@ -1,0 +1,48 @@
+{
+  "id": "0CEAE094-5C11-5C3D-9D08-CBFC242ED49D",
+  "slug": "dest-personal",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "destination-personal"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-13T05:00:00+01:00",
+  "createdAt": "2026-07-13T05:00:00+01:00",
+  "editedAt": null,
+  "duration": 5.76,
+  "audio": "audio.m4a",
+  "transcript": "Private thought. Not sure the studio makes me happy or just busy. Personal, vault only.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.8,
+  "tags": [
+    "thinking"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-13T05:00:00+01:00",
+    "tags": [
+      "thinking"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Personal → the Obsidian vault only. NEVER a folder an AI reads."
+  }
+}

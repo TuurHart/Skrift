@@ -1,0 +1,57 @@
+{
+  "id": "43E1AE1D-7D6F-587C-A5A7-B8A78AE662CA",
+  "slug": "cap-file-txt",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "file",
+    "text-file"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-26T16:00:00+01:00",
+  "createdAt": "2026-07-26T16:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "",
+  "metadata": {
+    "capturedAt": "2026-07-26T16:00:00+01:00",
+    "tags": [
+      "glaze"
+    ]
+  },
+  "sharedContent": {
+    "type": "file",
+    "mimeType": "text/plain",
+    "filePath": "capture_recipe.txt",
+    "fileName": "blue-3.txt"
+  },
+  "photos": [],
+  "sharedFile": {
+    "file": "recipe.txt",
+    "filename": "capture_recipe.txt"
+  },
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "needs-verdict": "A .txt file share with no annotation: body = the file's text, or an attachment card only?"
+  }
+}

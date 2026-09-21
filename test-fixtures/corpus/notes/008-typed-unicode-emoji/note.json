@@ -1,0 +1,49 @@
+{
+  "id": "D8E28057-9DD7-5640-ACD5-7E569D1D79C0",
+  "slug": "typed-unicode-emoji",
+  "kind": "typed",
+  "lang": "mix",
+  "shape": [
+    "typed",
+    "unicode"
+  ],
+  "title": "IJsselmeer weekend 🚲",
+  "recordedAt": "2026-09-14T23:00:00+01:00",
+  "createdAt": "2026-09-14T23:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Rondje IJsselmeer met Lotte — 3 dagen, ± 260 km. Ines’ tip: de veerpont bij Enkhuizen gaat om 10:15 en 14:15, niet vaker.\n\nDon’t forget: “the good pump”, the Ortlieb bags, and Pieter-Jan’s spare tube. Café Ålesund heeft de beste appeltaart 🍎.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.4,
+  "tags": [
+    "fietsen",
+    "weekend"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-14T23:00:00+01:00",
+    "tags": [
+      "fietsen",
+      "weekend"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

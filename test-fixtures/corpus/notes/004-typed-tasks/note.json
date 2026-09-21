@@ -1,0 +1,47 @@
+{
+  "id": "933D1FAA-3994-534B-B46A-68C9B8337147",
+  "slug": "typed-tasks",
+  "kind": "typed",
+  "lang": "mix",
+  "shape": [
+    "typed",
+    "tasks"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-17T19:00:00+01:00",
+  "createdAt": "2026-09-17T19:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Deze week\n\n- [ ] Marco bellen over de bedrading (echt)\n- [x] Order the grey clay body\n- [ ] Rose the website feedback\n- [ ] Mariam: yes to the Saturday, propose 18 Oct\n- [x] Chain for the Gazelle, black\n- [ ] Blue glaze test at cone 6 with the new body",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "todo"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-17T19:00:00+01:00",
+    "tags": [
+      "todo"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

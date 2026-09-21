@@ -1,0 +1,56 @@
+{
+  "id": "8B3C2E1E-8C81-51C9-96C3-043166BDB773",
+  "slug": "voice-nl-kiln",
+  "kind": "voice",
+  "lang": "nl",
+  "shape": [
+    "voice",
+    "trusted",
+    "dutch",
+    "names"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-31T02:00:00+01:00",
+  "createdAt": "2026-08-31T02:00:00+01:00",
+  "editedAt": null,
+  "duration": 18.76,
+  "audio": "audio.m4a",
+  "transcript": "Even snel over de oven. Hendrik is langs geweest en hij zegt weer dat de bedrading achter niet goed is en dat ik Marco moet bellen. Ik ga Marco bellen. Deze week. Eh, en de blauwe glazuur, de rand wordt groen bij cone zes, Ines denkt dat het het ijzer in de klei is en niet de glazuur zelf. Dus andere klei proberen. Dat is het.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "location": {
+      "latitude": 51.9139,
+      "longitude": 4.476,
+      "placeName": "Werkplaats, Rotterdam-Zuid"
+    },
+    "dayPeriod": "afternoon",
+    "capturedAt": "2026-08-31T02:00:00+01:00",
+    "tags": [
+      "studio"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Dutch: earlier synthetic Dutch came back near-echo from the model. Copy-edit must still remove 'Eh' and keep the sentences; Hendrik/Ines link, Marco stays plain."
+  }
+}

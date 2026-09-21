@@ -1,0 +1,48 @@
+{
+  "id": "5B78C9AF-B70E-5F48-A5D4-4CF226DF41F1",
+  "slug": "cap-url-no-title",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "url",
+    "no-title"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-02T18:00:00+01:00",
+  "createdAt": "2026-08-02T18:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Bookmarking this before I lose it.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.4,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "Bookmarking this before I lose it.",
+  "metadata": {
+    "capturedAt": "2026-08-02T18:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": {
+    "type": "url",
+    "url": "https://app.example-glaze-calc.com/#/recipe/8813"
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug": "JS-rendered page: no title fetched. v1 shows the bare URL as the title. Expected: a readable fallback (the host), never the whole URL as a title."
+  }
+}

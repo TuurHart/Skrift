@@ -1,0 +1,64 @@
+{
+  "id": "D3C33F34-092D-51B2-9A97-72AB6E1A3BA0",
+  "slug": "pic-user-snapped-markers",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "user-edited"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-06T07:00:00+01:00",
+  "createdAt": "2026-08-06T07:00:00+01:00",
+  "editedAt": "2026-09-13T21:00:00+01:00",
+  "duration": 8.31,
+  "audio": "audio.m4a",
+  "transcript": "Moved the markers myself in the editor so they sit on sentence ends.\n\n[[img_001]]\n\nThis paragraph is after the first picture.\n\n[[img_002]]\n\nAnd this one after the second.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": true,
+  "transcriptMarkersInjected": true,
+  "significance": 0.6,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-06T07:00:00+01:00",
+    "tags": [],
+    "imageManifest": [
+      {
+        "filename": "photo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_001.jpg",
+        "offsetSeconds": 1.28
+      },
+      {
+        "filename": "photo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_002.jpg",
+        "offsetSeconds": 3.84
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_001.jpg",
+      "file": "photo_001.jpg"
+    },
+    {
+      "filename": "photo_D3C33F34-092D-51B2-9A97-72AB6E1A3BA0_002.jpg",
+      "file": "photo_002.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Already in the v2 shape. Every stage must be a no-op on structure: editor round-trip returns the identical string; export places both images between the paragraphs."
+  }
+}

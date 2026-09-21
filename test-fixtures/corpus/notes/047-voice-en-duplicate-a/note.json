@@ -1,0 +1,43 @@
+{
+  "id": "BA30A3FC-A28E-5A6C-A0FE-30BB2F2C8090",
+  "slug": "voice-en-duplicate-a",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "duplicate"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-05T10:00:00+01:00",
+  "createdAt": "2026-09-05T10:00:00+01:00",
+  "editedAt": null,
+  "duration": 5.94,
+  "audio": "audio.m4a",
+  "transcript": "Duplicate check. Same words twice, two different recordings, forty seconds apart.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-05T10:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

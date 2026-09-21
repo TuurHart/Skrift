@@ -1,0 +1,49 @@
+{
+  "id": "5387F9A4-151A-5802-AE5D-5DB9D54696F9",
+  "slug": "typed-numbered-list",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "numbered-list"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-13T13:00:00+01:00",
+  "createdAt": "2026-09-13T13:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Overhaul checklist, in order\n\n1. Strip the drivetrain, degrease, photograph the wear.\n2. Bearings: headset, bottom bracket, both hubs.\n3. Cables and housing, full length, no reuse.\n4. Brakes — pads and alignment.\n5. Wheels true, spoke tension logged.\n6. Test ride, then the tag gets the DATE.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "studio",
+    "process"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-13T13:00:00+01:00",
+    "tags": [
+      "studio",
+      "process"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

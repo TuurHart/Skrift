@@ -1,0 +1,59 @@
+{
+  "id": "C0B34E7D-3C5C-5D5D-9ECD-248C35EF8C87",
+  "slug": "voice-en-names-all-tiers",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "names",
+    "ambiguous",
+    "common-word"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-29T16:00:00+01:00",
+  "createdAt": "2026-08-29T16:00:00+01:00",
+  "editedAt": null,
+  "duration": 21.22,
+  "audio": "audio.m4a",
+  "transcript": "Long day. Lotte opened up, Hendrik brought the trailer, and Jack, the Morrow one, dropped off his bike again. Then Rose came by with the website and I said rose gold is not a colour for a bike shop. Will was supposed to come but he will not be here until Thursday. Sam texted, no idea which Sam, I need to check. Kai from next door wants to borrow the stand.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.7,
+  "tags": [
+    "studio",
+    "people"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "location": {
+      "latitude": 51.9139,
+      "longitude": 4.476,
+      "placeName": "Werkplaats, Rotterdam-Zuid"
+    },
+    "dayPeriod": "evening",
+    "capturedAt": "2026-08-29T16:00:00+01:00",
+    "tags": [
+      "studio",
+      "people"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Tiers: Lotte/Hendrik auto-link; 'Jack' ambiguous with a disambiguating surname in the sentence; 'Rose' suggested but 'rose gold' must NOT link; 'Will' suggested, 'will not' plain; 'Sam' ambiguous; Kai plain (off roster)."
+  }
+}

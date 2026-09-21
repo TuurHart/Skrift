@@ -1,0 +1,51 @@
+{
+  "id": "177D06AE-6E17-55D4-A5E4-571A82F8AC69",
+  "slug": "pic-missing-file",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "missing-file"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-09T03:00:00+01:00",
+  "createdAt": "2026-08-09T03:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.36,
+  "audio": "audio.m4a",
+  "transcript": "The photo for this one never made it across. [[img_001]] Should show a placeholder, not crash, not drop the marker.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-09T03:00:00+01:00",
+    "tags": [],
+    "imageManifest": [
+      {
+        "filename": "photo_177D06AE-6E17-55D4-A5E4-571A82F8AC69_001.jpg",
+        "offsetSeconds": 2.68
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Manifest entry exists, file does not (asset not synced yet). Marker preserved; renderer shows a placeholder; export skips the image but keeps the text."
+  }
+}

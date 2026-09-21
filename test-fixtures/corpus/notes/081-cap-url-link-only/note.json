@@ -1,0 +1,49 @@
+{
+  "id": "54EEAC77-39E9-5BF3-A688-DE3AD39B2F96",
+  "slug": "cap-url-link-only",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "url",
+    "no-annotation"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-25T06:00:00+01:00",
+  "createdAt": "2026-07-25T06:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.3,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "",
+  "metadata": {
+    "capturedAt": "2026-07-25T06:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": {
+    "type": "url",
+    "url": "https://digitalfire.com/glossary/iron+oxide",
+    "urlTitle": "Iron Oxide - Digitalfire"
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A link with no comment: processed-with-no-content contract; the export is the link line + title, nothing else."
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "6680EF77-BB4B-5B11-A081-30E0D8D79AB7",
+  "slug": "edge-old-rated-never-exported",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "rated",
+    "old"
+  ],
+  "title": null,
+  "recordedAt": "2026-06-10T09:00:00+01:00",
+  "createdAt": "2026-06-10T09:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.04,
+  "audio": "audio.m4a",
+  "transcript": "Rated in June, never processed because the Mac was off all summer. Should still get a row and a polish now.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-06-10T09:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Rated + old: NOT fading (rated notes never fade); the reconcile sweep must ingest it regardless of age."
+  }
+}

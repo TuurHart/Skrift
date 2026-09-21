@@ -1,0 +1,50 @@
+{
+  "id": "678DBE51-78D9-5C0A-B3A1-4F5DE02737E7",
+  "slug": "typed-dutch-boodschappen",
+  "kind": "typed",
+  "lang": "nl",
+  "shape": [
+    "typed",
+    "dutch",
+    "list"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-19T05:00:00+01:00",
+  "createdAt": "2026-09-19T05:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Boodschappen voor zaterdag\n\n- kaas (jong belegen, niet die oude)\n- brood van de Turkse bakker\n- 3 kg klei-gips\n- iets voor tante Ria haar verjaardag\n- bier voor Jack\n\nNiet vergeten: de fietstassen van Nadia liggen nog achter.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.0,
+  "tags": [
+    "huis"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-19T05:00:00+01:00",
+    "tags": [
+      "huis"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Unrated typed note with a Dutch list; 'Jack' is ambiguous, 'Nadia' links, 'tante Ria' stays plain."
+  }
+}

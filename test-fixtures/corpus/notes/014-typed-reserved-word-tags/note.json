@@ -1,0 +1,54 @@
+{
+  "id": "290E7570-5EE7-56B1-9F19-B5AD83F23897",
+  "slug": "typed-reserved-word-tags",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "tags",
+    "destinations"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-10T17:00:00+01:00",
+  "createdAt": "2026-09-10T17:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Saw a hand-thrown lamp base at the Saturday market with the exact matte blue I want. The seller fires in an electric kiln at cone 5. So it IS possible without gas.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.8,
+  "tags": [
+    "idea",
+    "inspiration",
+    "glaze"
+  ],
+  "destination": "idea",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-10T17:00:00+01:00",
+    "tags": [
+      "idea",
+      "inspiration",
+      "glaze"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Reserved words ACCEPTED as tags (reversed 2026-08-27); `inspiration` as a tag raises `needs: - credit` on export. Destination is the FIELD (idea), never the tag."
+  }
+}

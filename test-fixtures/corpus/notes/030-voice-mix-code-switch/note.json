@@ -1,0 +1,55 @@
+{
+  "id": "5C18EB46-234E-57F4-8E14-EFA45C2F1525",
+  "slug": "voice-mix-code-switch",
+  "kind": "voice",
+  "lang": "mix",
+  "shape": [
+    "voice",
+    "trusted",
+    "mixed-language"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-30T09:00:00+01:00",
+  "createdAt": "2026-08-30T09:00:00+01:00",
+  "editedAt": null,
+  "duration": 17.32,
+  "audio": "audio.m4a",
+  "transcript": "Dus ik zat te denken, the Saturday workshop, als we dat doen dan moet de fietskant echt schoon zijn, like properly clean, niet gewoon een doek erover. Mariam brengt twee collega's mee, so that's six people, zes mensen, en ik heb maar vier planken. Bruno heeft er misschien nog, ik vraag het hem morgen.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "workshop"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "location": {
+      "latitude": 51.9139,
+      "longitude": 4.476,
+      "placeName": "Werkplaats, Rotterdam-Zuid"
+    },
+    "dayPeriod": "morning",
+    "capturedAt": "2026-08-30T09:00:00+01:00",
+    "tags": [
+      "workshop"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Code-switching mid-sentence: the copy-edit must keep BOTH languages as spoken, never translate."
+  }
+}

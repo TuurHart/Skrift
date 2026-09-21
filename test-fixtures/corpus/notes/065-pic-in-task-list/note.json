@@ -1,0 +1,62 @@
+{
+  "id": "10EE558A-6EA4-52D7-9B29-24107D7ED074",
+  "slug": "pic-in-task-list",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "tasks"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-05T14:00:00+01:00",
+  "createdAt": "2026-08-05T14:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.87,
+  "audio": "audio.m4a",
+  "transcript": "Parts to order for the cargo bike:\n\n- [ ] chain, 1/8\n- [ ] the rear hub, this one [[img_001]]\n- [ ] brake pads, four\n- [x] new bell",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [
+    "cargo",
+    "todo"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-05T14:00:00+01:00",
+    "tags": [
+      "cargo",
+      "todo"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_10EE558A-6EA4-52D7-9B29-24107D7ED074_001.jpg",
+        "offsetSeconds": 4.34
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_10EE558A-6EA4-52D7-9B29-24107D7ED074_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "needs-verdict": "A picture taken while dictating a list item: does it break the list (own paragraph after the item) or stay inline on the item?"
+  }
+}

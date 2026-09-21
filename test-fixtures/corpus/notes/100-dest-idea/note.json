@@ -1,0 +1,51 @@
+{
+  "id": "9A147D60-9B56-5122-A046-9F00C46BBFF1",
+  "slug": "dest-idea",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "destination-idea"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-11T19:00:00+01:00",
+  "createdAt": "2026-07-11T19:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Idea: a 'repair diary' card that goes home with every overhauled bike — what was done, photos, the date. Lotte says people would keep it.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.7,
+  "tags": [
+    "idea",
+    "studio"
+  ],
+  "destination": "idea",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-11T19:00:00+01:00",
+    "tags": [
+      "idea",
+      "studio"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Idea → archive `_ideas/`."
+  }
+}

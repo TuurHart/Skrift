@@ -1,0 +1,54 @@
+{
+  "id": "391B226E-7EDB-54CD-AEAF-1DCF889D50D5",
+  "slug": "quote-nl-with-ramble",
+  "kind": "quote",
+  "lang": "nl",
+  "shape": [
+    "audiobook-quote",
+    "ramble",
+    "dutch"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-18T04:00:00+01:00",
+  "createdAt": "2026-07-18T04:00:00+01:00",
+  "editedAt": null,
+  "duration": 10.45,
+  "audio": "audio.m4a",
+  "transcript": "> Een goede reparatie is er een die je over een jaar niet meer ziet.\n\nDat is precies het probleem met de website: die laat de reparaties zien. Niemand wil reparaties zien. Ze willen de fiets zien.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "reading"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "bookTitle": "Het Ambacht",
+    "bookAuthor": "Joris van Dalen",
+    "bookChapter": "Hoofdstuk 2 — De hand",
+    "bookID": "6E1A9C5F-3B7D-4F2C-8D4E-8A9B0C1D2E3F",
+    "bookPosition": 987.0,
+    "capturedAt": "2026-07-18T04:00:00+01:00",
+    "tags": [
+      "reading"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A NAMED chapter (m4b) shows as-is, no 'ch.' prefix."
+  }
+}

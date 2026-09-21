@@ -1,0 +1,1370 @@
+{
+  "generatedBy": "test-fixtures/corpus/generate.py",
+  "count": 106,
+  "notes": [
+    {
+      "index": 1,
+      "slug": "typed-two-liner",
+      "id": "E38D2699-281B-5300-8B0C-601D94E14F04",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "short"
+      ],
+      "folder": "001-typed-two-liner"
+    },
+    {
+      "index": 2,
+      "slug": "typed-dutch-boodschappen",
+      "id": "678DBE51-78D9-5C0A-B3A1-4F5DE02737E7",
+      "kind": "typed",
+      "lang": "nl",
+      "shape": [
+        "typed",
+        "dutch",
+        "list"
+      ],
+      "folder": "002-typed-dutch-boodschappen"
+    },
+    {
+      "index": 3,
+      "slug": "typed-headings-and-tags",
+      "id": "2D5EB17D-660A-58AF-987F-E56C0975ACB7",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "markdown",
+        "headings",
+        "inline-tags"
+      ],
+      "folder": "003-typed-headings-and-tags"
+    },
+    {
+      "index": 4,
+      "slug": "typed-tasks",
+      "id": "933D1FAA-3994-534B-B46A-68C9B8337147",
+      "kind": "typed",
+      "lang": "mix",
+      "shape": [
+        "typed",
+        "tasks"
+      ],
+      "folder": "004-typed-tasks"
+    },
+    {
+      "index": 5,
+      "slug": "typed-wall-7k",
+      "id": "9FFAEC30-619B-55A0-A841-C5EBB3C439F6",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "long",
+        "wall",
+        "paragraphed"
+      ],
+      "folder": "005-typed-wall-7k"
+    },
+    {
+      "index": 6,
+      "slug": "typed-wall-one-paragraph",
+      "id": "5F31B87D-629F-5E86-A6FC-E33ACBBD6A09",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "long",
+        "wall",
+        "no-paragraphs"
+      ],
+      "folder": "006-typed-wall-one-paragraph"
+    },
+    {
+      "index": 7,
+      "slug": "typed-memo-links",
+      "id": "EB1B2431-41DB-5CC2-93C4-A2A2FB0D8167",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "memo-links"
+      ],
+      "folder": "007-typed-memo-links"
+    },
+    {
+      "index": 8,
+      "slug": "typed-unicode-emoji",
+      "id": "D8E28057-9DD7-5640-ACD5-7E569D1D79C0",
+      "kind": "typed",
+      "lang": "mix",
+      "shape": [
+        "typed",
+        "unicode"
+      ],
+      "folder": "008-typed-unicode-emoji"
+    },
+    {
+      "index": 9,
+      "slug": "typed-blockquote-ordinary",
+      "id": "EAAE05FA-A287-5BC1-98E6-A0FBFBE7C7AC",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "blockquote"
+      ],
+      "folder": "009-typed-blockquote-ordinary"
+    },
+    {
+      "index": 10,
+      "slug": "typed-numbered-list",
+      "id": "5387F9A4-151A-5802-AE5D-5DB9D54696F9",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "numbered-list"
+      ],
+      "folder": "010-typed-numbered-list"
+    },
+    {
+      "index": 11,
+      "slug": "typed-urls-in-prose",
+      "id": "33ADEB73-4F7D-597C-83D8-F9B4E09A96A1",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "urls"
+      ],
+      "folder": "011-typed-urls-in-prose"
+    },
+    {
+      "index": 12,
+      "slug": "typed-bracket-tag-bug",
+      "id": "A92F032B-5B64-5618-A7F0-B79BECC7A445",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "tags",
+        "bug-shape"
+      ],
+      "folder": "012-typed-bracket-tag-bug"
+    },
+    {
+      "index": 13,
+      "slug": "typed-tags-with-spaces",
+      "id": "827DC02F-4CE1-5A3B-9C78-9DAFABD1D352",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "tags"
+      ],
+      "folder": "013-typed-tags-with-spaces"
+    },
+    {
+      "index": 14,
+      "slug": "typed-reserved-word-tags",
+      "id": "290E7570-5EE7-56B1-9F19-B5AD83F23897",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "tags",
+        "destinations"
+      ],
+      "folder": "014-typed-reserved-word-tags"
+    },
+    {
+      "index": 15,
+      "slug": "typed-locked",
+      "id": "E0B0EBD3-F084-5780-A3E0-3750945CD777",
+      "kind": "typed",
+      "lang": "nl",
+      "shape": [
+        "typed",
+        "locked"
+      ],
+      "folder": "015-typed-locked"
+    },
+    {
+      "index": 16,
+      "slug": "typed-trashed",
+      "id": "F42058F4-D0EE-5726-9146-67B06217B5AE",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "trashed"
+      ],
+      "folder": "016-typed-trashed"
+    },
+    {
+      "index": 17,
+      "slug": "typed-reminder",
+      "id": "3640AD3E-FBB6-524B-80B0-07466D45B82C",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "reminder"
+      ],
+      "folder": "017-typed-reminder"
+    },
+    {
+      "index": 18,
+      "slug": "typed-empty-body",
+      "id": "93457362-3FCE-5DAE-BDEE-C458314223A7",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "empty"
+      ],
+      "folder": "018-typed-empty-body"
+    },
+    {
+      "index": 19,
+      "slug": "typed-whitespace-only",
+      "id": "3F838C7B-E27E-5864-99BB-99D68CF61EA4",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "empty"
+      ],
+      "folder": "019-typed-whitespace-only"
+    },
+    {
+      "index": 20,
+      "slug": "typed-title-set",
+      "id": "EF2C2219-5AA6-5A43-BE5F-08031A1589DC",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "title"
+      ],
+      "folder": "020-typed-title-set"
+    },
+    {
+      "index": 21,
+      "slug": "typed-title-derived",
+      "id": "2F6E68F2-8192-52B8-990D-DCDA427EEC93",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "no-title"
+      ],
+      "folder": "021-typed-title-derived"
+    },
+    {
+      "index": 22,
+      "slug": "typed-same-title-a",
+      "id": "5C6FF01E-C7B6-542B-877C-952A269B857A",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "title",
+        "collision"
+      ],
+      "folder": "022-typed-same-title-a"
+    },
+    {
+      "index": 23,
+      "slug": "typed-same-title-b",
+      "id": "F41F41BB-CA2D-585F-BB99-2902B11D19A3",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "title",
+        "collision"
+      ],
+      "folder": "023-typed-same-title-b"
+    },
+    {
+      "index": 24,
+      "slug": "typed-crlf-tabs-nbsp",
+      "id": "27A8A34C-16B5-502A-97CB-60EFBE63A66D",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "whitespace-edge"
+      ],
+      "folder": "024-typed-crlf-tabs-nbsp"
+    },
+    {
+      "index": 25,
+      "slug": "typed-hostile-title",
+      "id": "24D79D47-EC48-5922-885C-AFDC6534D686",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "title",
+        "filename-safety"
+      ],
+      "folder": "025-typed-hostile-title"
+    },
+    {
+      "index": 26,
+      "slug": "typed-heading-only",
+      "id": "9079068D-CD80-52D0-915A-E3B75EDB6088",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "short",
+        "markdown"
+      ],
+      "folder": "026-typed-heading-only"
+    },
+    {
+      "index": 27,
+      "slug": "typed-user-wikilink",
+      "id": "476EF17D-8877-5147-8190-66112EE04738",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "names",
+        "user-wikilink"
+      ],
+      "folder": "027-typed-user-wikilink"
+    },
+    {
+      "index": 28,
+      "slug": "voice-en-pricing-ramble",
+      "id": "AE9D9978-31DC-511D-A056-180D903EE183",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "fillers",
+        "names"
+      ],
+      "folder": "028-voice-en-pricing-ramble"
+    },
+    {
+      "index": 29,
+      "slug": "voice-nl-kiln",
+      "id": "8B3C2E1E-8C81-51C9-96C3-043166BDB773",
+      "kind": "voice",
+      "lang": "nl",
+      "shape": [
+        "voice",
+        "trusted",
+        "dutch",
+        "names"
+      ],
+      "folder": "029-voice-nl-kiln"
+    },
+    {
+      "index": 30,
+      "slug": "voice-mix-code-switch",
+      "id": "5C18EB46-234E-57F4-8E14-EFA45C2F1525",
+      "kind": "voice",
+      "lang": "mix",
+      "shape": [
+        "voice",
+        "trusted",
+        "mixed-language"
+      ],
+      "folder": "030-voice-mix-code-switch"
+    },
+    {
+      "index": 31,
+      "slug": "voice-en-names-all-tiers",
+      "id": "C0B34E7D-3C5C-5D5D-9ECD-248C35EF8C87",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "names",
+        "ambiguous",
+        "common-word"
+      ],
+      "folder": "031-voice-en-names-all-tiers"
+    },
+    {
+      "index": 32,
+      "slug": "voice-en-untrusted",
+      "id": "07267FEF-605E-52FB-9030-DFC9A51FA3DE",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "untrusted"
+      ],
+      "folder": "032-voice-en-untrusted"
+    },
+    {
+      "index": 33,
+      "slug": "voice-en-untrusted-but-edited",
+      "id": "8878ECD5-04AF-512B-B0AB-F2AF747A1E0B",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "untrusted",
+        "user-edited"
+      ],
+      "folder": "033-voice-en-untrusted-but-edited"
+    },
+    {
+      "index": 34,
+      "slug": "voice-en-paragraphed-by-pauses",
+      "id": "44747ED7-2AB0-5B76-9A41-674FA3376049",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "paragraphed"
+      ],
+      "folder": "034-voice-en-paragraphed-by-pauses"
+    },
+    {
+      "index": 35,
+      "slug": "voice-en-asr-wall",
+      "id": "6A8AA850-C92A-57B3-8838-58EC161DCACA",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "long",
+        "wall",
+        "no-paragraphs"
+      ],
+      "folder": "035-voice-en-asr-wall"
+    },
+    {
+      "index": 36,
+      "slug": "voice-en-triple-blank-lines",
+      "id": "CA0819B3-B1D9-5F19-B1A0-AA9E5D2BFAA0",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "whitespace-edge"
+      ],
+      "folder": "036-voice-en-triple-blank-lines"
+    },
+    {
+      "index": 37,
+      "slug": "voice-en-other-device-transcribing",
+      "id": "78B6CAE6-7B46-5334-9D57-EFE639FA595F",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "in-flight",
+        "other-device"
+      ],
+      "folder": "037-voice-en-other-device-transcribing"
+    },
+    {
+      "index": 38,
+      "slug": "voice-en-failed",
+      "id": "FE3725CD-439B-5B07-8393-7C56BC02092A",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "failed"
+      ],
+      "folder": "038-voice-en-failed"
+    },
+    {
+      "index": 39,
+      "slug": "voice-en-pending",
+      "id": "A7D7DE5F-1443-57AE-867F-74C64812A2EF",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pending"
+      ],
+      "folder": "039-voice-en-pending"
+    },
+    {
+      "index": 40,
+      "slug": "voice-en-rated-floor",
+      "id": "685C1D7B-3CE7-59D9-BDFE-BDD26954A411",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "rated-0.1"
+      ],
+      "folder": "040-voice-en-rated-floor"
+    },
+    {
+      "index": 41,
+      "slug": "voice-en-rated-max",
+      "id": "C6DD134F-4B24-5A67-A07B-0B427A469228",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "rated-1.0"
+      ],
+      "folder": "041-voice-en-rated-max"
+    },
+    {
+      "index": 42,
+      "slug": "voice-en-unrated-old",
+      "id": "16921D53-235C-5DF6-9C8B-7E4FF0D81B1B",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "unrated",
+        "fading"
+      ],
+      "folder": "042-voice-en-unrated-old"
+    },
+    {
+      "index": 43,
+      "slug": "voice-en-unrated-fresh",
+      "id": "5BA5D60D-99F8-5086-897D-AC89F8BF6938",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "unrated"
+      ],
+      "folder": "043-voice-en-unrated-fresh"
+    },
+    {
+      "index": 44,
+      "slug": "voice-en-unrated-kept",
+      "id": "31FA848E-14A6-5AB3-8D2B-FEAEE8D06027",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "unrated",
+        "kept"
+      ],
+      "folder": "044-voice-en-unrated-kept"
+    },
+    {
+      "index": 45,
+      "slug": "voice-en-with-mac-polish",
+      "id": "3B6912FA-AAD7-5203-96C4-D7D2B1050AAA",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "polished"
+      ],
+      "folder": "045-voice-en-with-mac-polish"
+    },
+    {
+      "index": 46,
+      "slug": "voice-en-processed-no-content",
+      "id": "0A20647A-7FA7-575B-A20A-97DADF20488D",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "short",
+        "processed-empty"
+      ],
+      "folder": "046-voice-en-processed-no-content"
+    },
+    {
+      "index": 47,
+      "slug": "voice-en-duplicate-a",
+      "id": "BA30A3FC-A28E-5A6C-A0FE-30BB2F2C8090",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "duplicate"
+      ],
+      "folder": "047-voice-en-duplicate-a"
+    },
+    {
+      "index": 48,
+      "slug": "voice-en-duplicate-b",
+      "id": "8B593ED0-23AC-5743-A88B-8E5D569FBAD2",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "duplicate"
+      ],
+      "folder": "048-voice-en-duplicate-b"
+    },
+    {
+      "index": 49,
+      "slug": "voice-en-full-context",
+      "id": "9FF0A9E9-BB9A-5033-B1FB-303172664B5E",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "metadata-full"
+      ],
+      "folder": "049-voice-en-full-context"
+    },
+    {
+      "index": 50,
+      "slug": "voice-nl-names",
+      "id": "B6C03FEC-FFB0-51AA-B8FC-BEAAFEA1D476",
+      "kind": "voice",
+      "lang": "nl",
+      "shape": [
+        "voice",
+        "trusted",
+        "dutch",
+        "names"
+      ],
+      "folder": "050-voice-nl-names"
+    },
+    {
+      "index": 51,
+      "slug": "voice-en-eight-minutes",
+      "id": "F9B03103-A4B4-5867-9E3E-38AB4B681BD3",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "long"
+      ],
+      "folder": "051-voice-en-eight-minutes"
+    },
+    {
+      "index": 52,
+      "slug": "voice-en-raw-title",
+      "id": "1C63ED4A-69E3-542C-B989-1E95EA8F5FEE",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "title"
+      ],
+      "folder": "052-voice-en-raw-title"
+    },
+    {
+      "index": 53,
+      "slug": "voice-en-three-words",
+      "id": "68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "trusted",
+        "short"
+      ],
+      "folder": "053-voice-en-three-words"
+    },
+    {
+      "index": 54,
+      "slug": "pic-mid-sentence",
+      "id": "7DE3F39D-EEFB-5EA3-B496-0298D738D840",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "marker-mid-sentence"
+      ],
+      "folder": "054-pic-mid-sentence"
+    },
+    {
+      "index": 55,
+      "slug": "pic-at-start",
+      "id": "7E246814-C6AF-50EB-BC38-4851EA4F45BC",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "marker-start"
+      ],
+      "folder": "055-pic-at-start"
+    },
+    {
+      "index": 56,
+      "slug": "pic-at-end",
+      "id": "1D16F20D-E5B3-5645-A3F5-84ABCB4E78E3",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "marker-end"
+      ],
+      "folder": "056-pic-at-end"
+    },
+    {
+      "index": 57,
+      "slug": "pic-two-same-second",
+      "id": "B6B21BA8-CC34-5667-B92B-2D8D3CAD959A",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "adjacent-markers"
+      ],
+      "folder": "057-pic-two-same-second"
+    },
+    {
+      "index": 58,
+      "slug": "pic-three-spread",
+      "id": "D525FEA1-0644-5DF1-9023-7D2FBC1D9989",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "multiple"
+      ],
+      "folder": "058-pic-three-spread"
+    },
+    {
+      "index": 59,
+      "slug": "pic-ocr-text",
+      "id": "C9CEC17D-4A3B-5A70-AE05-02867C62125A",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "ocr"
+      ],
+      "folder": "059-pic-ocr-text"
+    },
+    {
+      "index": 60,
+      "slug": "pic-missing-file",
+      "id": "177D06AE-6E17-55D4-A5E4-571A82F8AC69",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "missing-file"
+      ],
+      "folder": "060-pic-missing-file"
+    },
+    {
+      "index": 61,
+      "slug": "pic-manifest-no-marker",
+      "id": "1E2B2F90-3ABD-5B61-84B2-A6393B952358",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "markers-not-injected"
+      ],
+      "folder": "061-pic-manifest-no-marker"
+    },
+    {
+      "index": 62,
+      "slug": "pic-nl",
+      "id": "F63BC807-470E-5D9A-BCB6-A42354F646AD",
+      "kind": "voice",
+      "lang": "nl",
+      "shape": [
+        "voice",
+        "pictures",
+        "dutch"
+      ],
+      "folder": "062-pic-nl"
+    },
+    {
+      "index": 63,
+      "slug": "pic-wall",
+      "id": "2E3B1074-6825-5FB0-B5FA-A757F9D48D94",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "long",
+        "wall",
+        "no-paragraphs"
+      ],
+      "folder": "063-pic-wall"
+    },
+    {
+      "index": 64,
+      "slug": "pic-user-snapped-markers",
+      "id": "D3C33F34-092D-51B2-9A97-72AB6E1A3BA0",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "user-edited"
+      ],
+      "folder": "064-pic-user-snapped-markers"
+    },
+    {
+      "index": 65,
+      "slug": "pic-in-task-list",
+      "id": "10EE558A-6EA4-52D7-9B29-24107D7ED074",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "tasks"
+      ],
+      "folder": "065-pic-in-task-list"
+    },
+    {
+      "index": 66,
+      "slug": "pic-in-blockquote",
+      "id": "6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "blockquote"
+      ],
+      "folder": "066-pic-in-blockquote"
+    },
+    {
+      "index": 67,
+      "slug": "pic-shared-no-timestamp",
+      "id": "DF9481C4-5A32-5064-B062-E80EB18857FD",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "shared-picture",
+        "offset-zero"
+      ],
+      "folder": "067-pic-shared-no-timestamp"
+    },
+    {
+      "index": 68,
+      "slug": "cap-url-with-title",
+      "id": "F01EAE04-8833-5D90-B94E-554AD80F3644",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "url",
+        "annotation-typed"
+      ],
+      "folder": "068-cap-url-with-title"
+    },
+    {
+      "index": 69,
+      "slug": "cap-url-no-title",
+      "id": "5B78C9AF-B70E-5F48-A5D4-4CF226DF41F1",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "url",
+        "no-title"
+      ],
+      "folder": "069-cap-url-no-title"
+    },
+    {
+      "index": 70,
+      "slug": "cap-url-youtube",
+      "id": "EE54A5E9-43F8-55C4-AFBC-82808A875F53",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "url",
+        "youtube"
+      ],
+      "folder": "070-cap-url-youtube"
+    },
+    {
+      "index": 71,
+      "slug": "cap-url-instagram",
+      "id": "99BD0AA2-33F9-565F-B631-CDC1D10FD2D9",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "url",
+        "instagram"
+      ],
+      "folder": "071-cap-url-instagram"
+    },
+    {
+      "index": 72,
+      "slug": "cap-url-voice-ramble",
+      "id": "7E905A2D-71A7-51DD-A133-4D9E285F9877",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "url",
+        "annotation-voice"
+      ],
+      "folder": "072-cap-url-voice-ramble"
+    },
+    {
+      "index": 73,
+      "slug": "cap-text-plain",
+      "id": "6A3AE681-57AD-5464-9AF2-1094C838025E",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "text"
+      ],
+      "folder": "073-cap-text-plain"
+    },
+    {
+      "index": 74,
+      "slug": "cap-text-article",
+      "id": "D9F14AC7-6373-582F-9FA5-743DFFAFCA22",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "text",
+        "long"
+      ],
+      "folder": "074-cap-text-article"
+    },
+    {
+      "index": 75,
+      "slug": "cap-image-no-words",
+      "id": "ACFA1AE3-DA64-5250-808C-8F22D251F927",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "image",
+        "no-annotation"
+      ],
+      "folder": "075-cap-image-no-words"
+    },
+    {
+      "index": 76,
+      "slug": "cap-image-voice-ramble",
+      "id": "B85E25C2-B04B-564A-A339-D3ADAF72438D",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "image",
+        "annotation-voice",
+        "shared-picture"
+      ],
+      "folder": "076-cap-image-voice-ramble"
+    },
+    {
+      "index": 77,
+      "slug": "cap-image-typed-note",
+      "id": "F1922133-BE45-58AF-B6B2-BEABBB91BA00",
+      "kind": "capture",
+      "lang": "nl",
+      "shape": [
+        "capture",
+        "image",
+        "annotation-typed",
+        "dutch"
+      ],
+      "folder": "077-cap-image-typed-note"
+    },
+    {
+      "index": 78,
+      "slug": "cap-file-pdf",
+      "id": "FDA21613-E326-5919-98D2-8205AD1580C2",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "file",
+        "pdf"
+      ],
+      "folder": "078-cap-file-pdf"
+    },
+    {
+      "index": 79,
+      "slug": "cap-file-txt",
+      "id": "43E1AE1D-7D6F-587C-A5A7-B8A78AE662CA",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "file",
+        "text-file"
+      ],
+      "folder": "079-cap-file-txt"
+    },
+    {
+      "index": 80,
+      "slug": "cap-url-dutch-annotation",
+      "id": "811CCBEC-010D-5E9C-8A4E-FFFFBDBE89B9",
+      "kind": "capture",
+      "lang": "nl",
+      "shape": [
+        "capture",
+        "url",
+        "dutch"
+      ],
+      "folder": "080-cap-url-dutch-annotation"
+    },
+    {
+      "index": 81,
+      "slug": "cap-url-link-only",
+      "id": "54EEAC77-39E9-5BF3-A688-DE3AD39B2F96",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "url",
+        "no-annotation"
+      ],
+      "folder": "081-cap-url-link-only"
+    },
+    {
+      "index": 82,
+      "slug": "video-portrait",
+      "id": "4A17A76D-6ECF-5B59-81AC-6872C5C4B682",
+      "kind": "video",
+      "lang": "en",
+      "shape": [
+        "video",
+        "pictures",
+        "portrait"
+      ],
+      "folder": "082-video-portrait"
+    },
+    {
+      "index": 83,
+      "slug": "video-landscape",
+      "id": "80426BF7-A423-5FC2-BA1B-EFEE489DF617",
+      "kind": "video",
+      "lang": "nl",
+      "shape": [
+        "video",
+        "pictures",
+        "landscape",
+        "dutch"
+      ],
+      "folder": "083-video-landscape"
+    },
+    {
+      "index": 84,
+      "slug": "video-no-speech",
+      "id": "51F6F4ED-1C98-50EE-B4C9-BFAAD7259B65",
+      "kind": "video",
+      "lang": "en",
+      "shape": [
+        "video",
+        "pictures",
+        "empty-transcript"
+      ],
+      "folder": "084-video-no-speech"
+    },
+    {
+      "index": 85,
+      "slug": "conv-two-named",
+      "id": "1348CED4-5FDF-5024-BB78-D332643F10CE",
+      "kind": "conversation",
+      "lang": "en",
+      "shape": [
+        "conversation",
+        "diarized"
+      ],
+      "folder": "085-conv-two-named"
+    },
+    {
+      "index": 86,
+      "slug": "conv-one-unnamed",
+      "id": "4900B798-B207-5DE3-AA10-1BCDCC9535B7",
+      "kind": "conversation",
+      "lang": "en",
+      "shape": [
+        "conversation",
+        "diarized"
+      ],
+      "folder": "086-conv-one-unnamed"
+    },
+    {
+      "index": 87,
+      "slug": "conv-three-speakers",
+      "id": "BA79D0B0-727C-518C-86D7-AEDC173F3B1A",
+      "kind": "conversation",
+      "lang": "en",
+      "shape": [
+        "conversation",
+        "diarized"
+      ],
+      "folder": "087-conv-three-speakers"
+    },
+    {
+      "index": 88,
+      "slug": "conv-dutch",
+      "id": "BC0AF34C-CFCC-5E51-903B-A74800EAA566",
+      "kind": "conversation",
+      "lang": "nl",
+      "shape": [
+        "conversation",
+        "diarized"
+      ],
+      "folder": "088-conv-dutch"
+    },
+    {
+      "index": 89,
+      "slug": "conv-with-picture",
+      "id": "ED6880E6-0A9C-5AAC-BC30-79A5E6ECFBD3",
+      "kind": "conversation",
+      "lang": "en",
+      "shape": [
+        "conversation",
+        "diarized"
+      ],
+      "folder": "089-conv-with-picture"
+    },
+    {
+      "index": 90,
+      "slug": "quote-en-with-ramble",
+      "id": "18D54AB6-67EB-5AEC-BB42-DB228B00D25D",
+      "kind": "quote",
+      "lang": "en",
+      "shape": [
+        "audiobook-quote",
+        "ramble"
+      ],
+      "folder": "090-quote-en-with-ramble"
+    },
+    {
+      "index": 91,
+      "slug": "quote-nl-with-ramble",
+      "id": "391B226E-7EDB-54CD-AEAF-1DCF889D50D5",
+      "kind": "quote",
+      "lang": "nl",
+      "shape": [
+        "audiobook-quote",
+        "ramble",
+        "dutch"
+      ],
+      "folder": "091-quote-nl-with-ramble"
+    },
+    {
+      "index": 92,
+      "slug": "quote-only-no-ramble",
+      "id": "1255822E-0BD2-5670-B214-7A9BA89F20CB",
+      "kind": "quote",
+      "lang": "en",
+      "shape": [
+        "audiobook-quote",
+        "quote-only"
+      ],
+      "folder": "092-quote-only-no-ramble"
+    },
+    {
+      "index": 93,
+      "slug": "quote-missing-book-metadata",
+      "id": "FF3AEE2F-2713-5D0F-ACF7-BD347E20E733",
+      "kind": "quote",
+      "lang": "en",
+      "shape": [
+        "audiobook-quote",
+        "metadata-missing"
+      ],
+      "folder": "093-quote-missing-book-metadata"
+    },
+    {
+      "index": 94,
+      "slug": "quote-with-names",
+      "id": "10B65155-D4EE-55E5-B973-B37ACB70D9CF",
+      "kind": "quote",
+      "lang": "en",
+      "shape": [
+        "audiobook-quote",
+        "ramble",
+        "names"
+      ],
+      "folder": "094-quote-with-names"
+    },
+    {
+      "index": 95,
+      "slug": "applenote-headings-checklist",
+      "id": "3DB849B8-7591-5789-B53A-628A08DBD661",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "apple-note",
+        "markdown",
+        "headings",
+        "tasks"
+      ],
+      "folder": "095-applenote-headings-checklist"
+    },
+    {
+      "index": 96,
+      "slug": "applenote-dutch",
+      "id": "5210FEAE-7C4E-5974-9926-1FA90C36497F",
+      "kind": "typed",
+      "lang": "nl",
+      "shape": [
+        "apple-note",
+        "dutch"
+      ],
+      "folder": "096-applenote-dutch"
+    },
+    {
+      "index": 97,
+      "slug": "applenote-with-attachment",
+      "id": "942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "apple-note",
+        "pictures"
+      ],
+      "folder": "097-applenote-with-attachment"
+    },
+    {
+      "index": 98,
+      "slug": "dest-personal",
+      "id": "0CEAE094-5C11-5C3D-9D08-CBFC242ED49D",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "destination-personal"
+      ],
+      "folder": "098-dest-personal"
+    },
+    {
+      "index": 99,
+      "slug": "dest-made",
+      "id": "DC3FD4FE-57CA-57E7-8D67-FA229ECB5045",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "pictures",
+        "destination-made"
+      ],
+      "folder": "099-dest-made"
+    },
+    {
+      "index": 100,
+      "slug": "dest-idea",
+      "id": "9A147D60-9B56-5122-A046-9F00C46BBFF1",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "destination-idea"
+      ],
+      "folder": "100-dest-idea"
+    },
+    {
+      "index": 101,
+      "slug": "dest-inspiration-credit",
+      "id": "7768BEA5-AC15-549E-8E29-23602152D2F3",
+      "kind": "capture",
+      "lang": "en",
+      "shape": [
+        "capture",
+        "url",
+        "destination-inspiration"
+      ],
+      "folder": "101-dest-inspiration-credit"
+    },
+    {
+      "index": 102,
+      "slug": "edge-literal-marker-typed",
+      "id": "5E8EA60A-9C08-5BA7-A980-C3250A1988C6",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "marker-without-manifest"
+      ],
+      "folder": "102-edge-literal-marker-typed"
+    },
+    {
+      "index": 103,
+      "slug": "edge-emoji-title-tags",
+      "id": "9B6482ED-3322-5684-A8A9-EA8D54BDFDA2",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "unicode",
+        "title"
+      ],
+      "folder": "103-edge-emoji-title-tags"
+    },
+    {
+      "index": 104,
+      "slug": "edge-quote-in-name-roster-word",
+      "id": "72DC1326-1B1D-5326-9DD7-32C89B2AA727",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "names",
+        "stoplist"
+      ],
+      "folder": "104-edge-quote-in-name-roster-word"
+    },
+    {
+      "index": 105,
+      "slug": "edge-tag-case-dupes",
+      "id": "C19EDFDE-C842-5460-83E5-6D59EFE10FFE",
+      "kind": "typed",
+      "lang": "en",
+      "shape": [
+        "typed",
+        "tags"
+      ],
+      "folder": "105-edge-tag-case-dupes"
+    },
+    {
+      "index": 106,
+      "slug": "edge-old-rated-never-exported",
+      "id": "6680EF77-BB4B-5B11-A081-30E0D8D79AB7",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "rated",
+        "old"
+      ],
+      "folder": "106-edge-old-rated-never-exported"
+    }
+  ]
+}

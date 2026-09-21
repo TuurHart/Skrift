@@ -1,0 +1,53 @@
+{
+  "id": "0A20647A-7FA7-575B-A20A-97DADF20488D",
+  "slug": "voice-en-processed-no-content",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "short",
+    "processed-empty"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-19T01:00:00+01:00",
+  "createdAt": "2026-08-19T01:00:00+01:00",
+  "editedAt": null,
+  "duration": 0.93,
+  "audio": "audio.m4a",
+  "transcript": "Kiln wash.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.4,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-19T01:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": {
+    "copyedit": "",
+    "title": "",
+    "summary": "",
+    "enhancedAt": "2026-09-14T08:15:00+01:00",
+    "processedAt": "2026-09-14T08:15:00+01:00",
+    "enhancedByDeviceID": "corpus-mac-0001"
+  },
+  "expect": {
+    "note": "A pass RAN and had nothing to say (processedAt set, no content). It is PROCESSED — never 'Process this note first' forever, never in the to-process pile (2026-08-26 fix)."
+  }
+}

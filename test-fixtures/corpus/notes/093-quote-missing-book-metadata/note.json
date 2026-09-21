@@ -1,0 +1,48 @@
+{
+  "id": "FF3AEE2F-2713-5D0F-ACF7-BD347E20E733",
+  "slug": "quote-missing-book-metadata",
+  "kind": "quote",
+  "lang": "en",
+  "shape": [
+    "audiobook-quote",
+    "metadata-missing"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-16T18:00:00+01:00",
+  "createdAt": "2026-07-16T18:00:00+01:00",
+  "editedAt": null,
+  "duration": 7.48,
+  "audio": "audio.m4a",
+  "transcript": "> Fire it slower than you think you need to.\n\nThe June bug: this reached the Mac with an EMPTY metadata blob and rendered as a raw > wall.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "reading"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-16T18:00:00+01:00",
+    "tags": [
+      "reading"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug-fixed": "Quote styling is NOT gated on book metadata (2026-07-27). Renders as a quote everywhere; attribution simply absent."
+  }
+}

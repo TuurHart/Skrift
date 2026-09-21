@@ -1,0 +1,45 @@
+{
+  "id": "93457362-3FCE-5DAE-BDEE-C458314223A7",
+  "slug": "typed-empty-body",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "empty"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-07T21:00:00+01:00",
+  "createdAt": "2026-09-07T21:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.0,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-07T21:00:00+01:00",
+    "tags": [],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "An empty typed note — must never crash a stage, never export, and must be reported as processed-with-no-content if rated."
+  }
+}

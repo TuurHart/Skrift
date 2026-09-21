@@ -1,0 +1,132 @@
+[
+{
+"word": "Wind",
+"start": 0.0,
+"end": 0.252
+},
+{
+"word": "noise",
+"start": 0.272,
+"end": 0.523
+},
+{
+"word": "the",
+"start": 0.543,
+"end": 0.795
+},
+{
+"word": "whole",
+"start": 0.815,
+"end": 1.066
+},
+{
+"word": "way",
+"start": 1.086,
+"end": 1.338
+},
+{
+"word": "so",
+"start": 1.358,
+"end": 1.609
+},
+{
+"word": "this",
+"start": 1.629,
+"end": 1.881
+},
+{
+"word": "is",
+"start": 1.901,
+"end": 2.152
+},
+{
+"word": "probably",
+"start": 2.172,
+"end": 2.424
+},
+{
+"word": "garbage.",
+"start": 2.444,
+"end": 2.695
+},
+{
+"word": "Something",
+"start": 2.715,
+"end": 2.967
+},
+{
+"word": "about",
+"start": 2.987,
+"end": 3.238
+},
+{
+"word": "the",
+"start": 3.258,
+"end": 3.51
+},
+{
+"word": "the",
+"start": 3.53,
+"end": 3.782
+},
+{
+"word": "chain",
+"start": 3.802,
+"end": 4.053
+},
+{
+"word": "on",
+"start": 4.073,
+"end": 4.325
+},
+{
+"word": "the",
+"start": 4.345,
+"end": 4.596
+},
+{
+"word": "cargo",
+"start": 4.616,
+"end": 4.868
+},
+{
+"word": "bike",
+"start": 4.888,
+"end": 5.139
+},
+{
+"word": "and",
+"start": 5.159,
+"end": 5.411
+},
+{
+"word": "and",
+"start": 5.431,
+"end": 5.682
+},
+{
+"word": "the",
+"start": 5.702,
+"end": 5.954
+},
+{
+"word": "front",
+"start": 5.974,
+"end": 6.225
+},
+{
+"word": "light",
+"start": 6.245,
+"end": 6.497
+},
+{
+"word": "that",
+"start": 6.517,
+"end": 6.768
+},
+{
+"word": "flickers.",
+"start": 6.788,
+"end": 7.04
+}
+]

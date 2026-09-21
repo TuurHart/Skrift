@@ -1,0 +1,64 @@
+{
+  "id": "F1922133-BE45-58AF-B6B2-BEABBB91BA00",
+  "slug": "cap-image-typed-note",
+  "kind": "capture",
+  "lang": "nl",
+  "shape": [
+    "capture",
+    "image",
+    "annotation-typed",
+    "dutch"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-28T02:00:00+01:00",
+  "createdAt": "2026-07-28T02:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Whiteboard van het overleg met Lotte: de indeling van de zaterdag.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "workshop"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "Whiteboard van het overleg met Lotte: de indeling van de zaterdag.",
+  "metadata": {
+    "capturedAt": "2026-07-28T02:00:00+01:00",
+    "tags": [
+      "workshop"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_F1922133-BE45-58AF-B6B2-BEABBB91BA00_001.jpg",
+        "offsetSeconds": 0,
+        "text": "10:00 KLEI / 11:00 VORM"
+      }
+    ]
+  },
+  "sharedContent": {
+    "type": "image",
+    "fileName": "whiteboard.jpg",
+    "mimeType": "image/jpeg"
+  },
+  "photos": [
+    {
+      "filename": "photo_F1922133-BE45-58AF-B6B2-BEABBB91BA00_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

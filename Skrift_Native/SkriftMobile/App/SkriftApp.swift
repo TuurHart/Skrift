@@ -21,6 +21,16 @@ struct SkriftApp: App {
         DestinationSettings.resetIfRequested()
         ArchiveVault.seedIfRequested()
         repository = repo
+        #if DEBUG
+        // The synthetic corpus (test-fixtures/corpus): `-corpus <path>` seeds it into THIS
+        // store — the v2 rewrite's change detector. Idempotent by memo id.
+        if let corpus = CorpusSeed.launchPath {
+            let outcome = (try? CorpusSeed.seed(from: corpus, into: repo.context,
+                                                recordingsDirectory: AppPaths.recordingsDirectory,
+                                                names: NamesStore.shared)).map(String.init(describing:))
+            DevLog.log(outcome ?? "corpus: seed FAILED at \(corpus.path)")
+        }
+        #endif
 
         // The shared embedder logs through an app-wired sink (it moved to
         // Shared/RetrievalEngine and can't see DevLog directly).

@@ -1,0 +1,45 @@
+{
+  "id": "27A8A34C-16B5-502A-97CB-60EFBE63A66D",
+  "slug": "typed-crlf-tabs-nbsp",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "whitespace-edge"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-03T15:00:00+01:00",
+  "createdAt": "2026-09-03T15:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Line one with a trailing space \r\nLine two after CRLF\r\n\r\n\tIndented with a tab\n\nNon breaking spaces here and three blank lines follow\n\n\n\nEnd.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-03T15:00:00+01:00",
+    "tags": [],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "CRLF, tabs, NBSP, ≥3 blank lines: the body model must define ONE normalisation (locked: ≥3 breaks → one blank line; horizontal runs collapse only inside a line) and apply it once."
+  }
+}

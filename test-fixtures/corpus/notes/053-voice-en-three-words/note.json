@@ -1,0 +1,45 @@
+{
+  "id": "68033F2E-0A35-5BBF-AC9D-7C718DBEDAAD",
+  "slug": "voice-en-three-words",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "short"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-14T02:00:00+01:00",
+  "createdAt": "2026-08-14T02:00:00+01:00",
+  "editedAt": null,
+  "duration": 1.25,
+  "audio": "audio.m4a",
+  "transcript": "Order kiln wash.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.3,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-14T02:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Too short for a title/summary: the Mac skips them (empty) and the note is still processed."
+  }
+}

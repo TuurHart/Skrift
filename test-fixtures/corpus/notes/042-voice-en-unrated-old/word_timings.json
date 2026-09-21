@@ -1,0 +1,67 @@
+[
+{
+"word": "A",
+"start": 0.0,
+"end": 0.302
+},
+{
+"word": "note",
+"start": 0.322,
+"end": 0.623
+},
+{
+"word": "from",
+"start": 0.643,
+"end": 0.945
+},
+{
+"word": "June",
+"start": 0.965,
+"end": 1.266
+},
+{
+"word": "about",
+"start": 1.286,
+"end": 1.588
+},
+{
+"word": "nothing",
+"start": 1.608,
+"end": 1.909
+},
+{
+"word": "much.",
+"start": 1.929,
+"end": 2.231
+},
+{
+"word": "The",
+"start": 2.251,
+"end": 2.552
+},
+{
+"word": "kiln",
+"start": 2.572,
+"end": 2.874
+},
+{
+"word": "shelf",
+"start": 2.894,
+"end": 3.195
+},
+{
+"word": "needs",
+"start": 3.215,
+"end": 3.517
+},
+{
+"word": "kiln",
+"start": 3.537,
+"end": 3.838
+},
+{
+"word": "wash.",
+"start": 3.858,
+"end": 4.16
+}
+]

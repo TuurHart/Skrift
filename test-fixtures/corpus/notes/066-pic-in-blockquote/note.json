@@ -1,0 +1,60 @@
+{
+  "id": "6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9",
+  "slug": "pic-in-blockquote",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "blockquote"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-04T21:00:00+01:00",
+  "createdAt": "2026-08-04T21:00:00+01:00",
+  "editedAt": null,
+  "duration": 5.48,
+  "audio": "audio.m4a",
+  "transcript": "> The pot you want is the pot you can't make yet. [[img_001]]\n\nSaw it written on the wall at the fair and photographed it.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [
+    "thinking"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-04T21:00:00+01:00",
+    "tags": [
+      "thinking"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9_001.jpg",
+        "offsetSeconds": 2.62
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_6B8D01A3-1F6F-578B-BEC4-DF8969C4BBD9_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "needs-verdict": "A marker inside a leading blockquote: picture before the quote, after it, or inside it?"
+  }
+}

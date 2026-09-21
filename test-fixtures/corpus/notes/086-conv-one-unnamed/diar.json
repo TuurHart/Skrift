@@ -1,0 +1,33 @@
+{
+"segments": [
+{
+"speaker": 0,
+"start": 0.0,
+"end": 2.46
+},
+{
+"speaker": 1,
+"start": 2.46,
+"end": 6.45
+},
+{
+"speaker": 0,
+"start": 6.45,
+"end": 7.24
+},
+{
+"speaker": 1,
+"start": 7.24,
+"end": 11.47
+}
+],
+"slotNames": {
+"0": "Fenna de Wit"
+},
+"turnSlots": [
+0,
+1,
+0,
+1
+]
+}

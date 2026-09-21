@@ -1,0 +1,61 @@
+{
+  "id": "4A17A76D-6ECF-5B59-81AC-6872C5C4B682",
+  "slug": "video-portrait",
+  "kind": "video",
+  "lang": "en",
+  "shape": [
+    "video",
+    "pictures",
+    "portrait"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-02T19:30:00+01:00",
+  "createdAt": "2026-09-16T10:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.32,
+  "audio": "audio.m4a",
+  "transcript": "[[img_001]]\n\nAdvice to future me, recorded on the balcony: do not say yes to a workshop before checking the calendar.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [
+    "thinking"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-02T19:30:00+01:00",
+    "tags": [
+      "thinking"
+    ],
+    "sourceType": "video",
+    "imageManifest": [
+      {
+        "filename": "photo_4A17A76D-6ECF-5B59-81AC-6872C5C4B682_001.jpg",
+        "offsetSeconds": 0
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_4A17A76D-6ECF-5B59-81AC-6872C5C4B682_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Video import: recordedAt = the filming date (Aug 2), createdAt = the import (Sep 16). The frame is the first paragraph; portrait aspect must not stretch."
+  }
+}

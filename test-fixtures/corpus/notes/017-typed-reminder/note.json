@@ -1,0 +1,47 @@
+{
+  "id": "3640AD3E-FBB6-524B-80B0-07466D45B82C",
+  "slug": "typed-reminder",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "reminder"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-08T14:00:00+01:00",
+  "createdAt": "2026-09-08T14:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Pick up the fired pieces from Ines before she closes for the holidays.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.3,
+  "tags": [
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": "2026-10-03T09:00:00+01:00",
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-08T14:00:00+01:00",
+    "tags": [
+      "studio"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

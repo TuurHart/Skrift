@@ -1,0 +1,62 @@
+{
+  "id": "5C6FF01E-C7B6-542B-877C-952A269B857A",
+  "slug": "typed-same-title-a",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "title",
+    "collision"
+  ],
+  "title": "Glaze test",
+  "recordedAt": "2026-09-05T01:00:00+01:00",
+  "createdAt": "2026-09-05T01:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Cone 6, grey body, blue #3. Edges went green again.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-05T01:00:00+01:00",
+    "tags": [
+      "glaze"
+    ],
+    "mediaSource": "typed",
+    "imageManifest": [
+      {
+        "filename": "photo_5C6FF01E-C7B6-542B-877C-952A269B857A_001.jpg",
+        "offsetSeconds": 0,
+        "text": "cone 6"
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_5C6FF01E-C7B6-542B-877C-952A269B857A_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug": "Two notes titled 'Glaze test' each with a photo: export today names images <safe-title>_NNN and the second overwrites the first (BUGS.md §2). Expected: images keyed by the unique note stem."
+  }
+}

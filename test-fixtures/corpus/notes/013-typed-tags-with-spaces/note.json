@@ -1,0 +1,55 @@
+{
+  "id": "827DC02F-4CE1-5A3B-9C78-9DAFABD1D352",
+  "slug": "typed-tags-with-spaces",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "tags"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-11T10:00:00+01:00",
+  "createdAt": "2026-09-11T10:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Tags with spaces and hashes: does the export keep them as one tag each?",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "blue glaze",
+    "#studio",
+    "bike repair",
+    "Workshop"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-11T10:00:00+01:00",
+    "tags": [
+      "blue glaze",
+      "#studio",
+      "bike repair",
+      "Workshop"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Multi-word tags stay one tag; a leading `#` is stripped once; case is kept as typed."
+  }
+}

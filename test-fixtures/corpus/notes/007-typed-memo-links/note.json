@@ -1,0 +1,49 @@
+{
+  "id": "EB1B2431-41DB-5CC2-93C4-A2A2FB0D8167",
+  "slug": "typed-memo-links",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "memo-links"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-15T16:00:00+01:00",
+  "createdAt": "2026-09-15T16:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Pricing again. Same argument as [[memo:9FFAEC30-619B-55A0-A841-C5EBB3C439F6|Two businesses in one room]] but with numbers this time: overhaul €140 → €160, tune-up stays €35.\n\nSee also [[memo:AE9D9978-31DC-511D-A056-180D903EE183|Pricing ramble on the walk]] and the thing I never wrote: [[memo:794356DB-D0D0-507F-AD91-3B6A446EC4A0|The missing note]].",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "money"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-15T16:00:00+01:00",
+    "tags": [
+      "money"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Two resolvable memo-links + one to a missing target. Export must rewrite the first two to wikilinks and degrade the third to its title."
+  }
+}

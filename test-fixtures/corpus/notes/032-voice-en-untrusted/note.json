@@ -1,0 +1,55 @@
+{
+  "id": "07267FEF-605E-52FB-9030-DFC9A51FA3DE",
+  "slug": "voice-en-untrusted",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "untrusted"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-28T23:00:00+01:00",
+  "createdAt": "2026-08-28T23:00:00+01:00",
+  "editedAt": null,
+  "duration": 7.06,
+  "audio": "audio.m4a",
+  "transcript": "Wind noise the whole way so this is probably garbage. Something about the the chain on the cargo bike and and the front light that flickers.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.55,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "location": {
+      "latitude": 51.9311,
+      "longitude": 4.5094,
+      "placeName": "Kralingse Plas"
+    },
+    "dayPeriod": "morning",
+    "weather": {
+      "conditions": "Windy",
+      "temperature": 12,
+      "temperatureUnit": "°C"
+    },
+    "capturedAt": "2026-08-28T23:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Confidence 0.55 < 0.7 and not user-edited → the Mac must RE-TRANSCRIBE from the audio and ignore this text."
+  }
+}

@@ -1,0 +1,34 @@
+{
+"segments": [
+{
+"speaker": 0,
+"start": 0.0,
+"end": 4.92
+},
+{
+"speaker": 1,
+"start": 4.92,
+"end": 9.29
+},
+{
+"speaker": 0,
+"start": 9.29,
+"end": 11.7
+},
+{
+"speaker": 1,
+"start": 11.7,
+"end": 13.19
+}
+],
+"slotNames": {
+"0": "Fenna de Wit",
+"1": "Lotte Vos"
+},
+"turnSlots": [
+0,
+1,
+0,
+1
+]
+}

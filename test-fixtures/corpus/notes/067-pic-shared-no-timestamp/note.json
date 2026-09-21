@@ -1,0 +1,63 @@
+{
+  "id": "DF9481C4-5A32-5064-B062-E80EB18857FD",
+  "slug": "pic-shared-no-timestamp",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "shared-picture",
+    "offset-zero"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-04T04:00:00+01:00",
+  "createdAt": "2026-08-04T04:00:00+01:00",
+  "editedAt": null,
+  "duration": 7.2,
+  "audio": "audio.m4a",
+  "transcript": "Talking [[img_001]] about the lamp base I saw at the market, the seller fires electric at cone five so the matte blue is possible without gas.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.7,
+  "tags": [
+    "glaze",
+    "inspiration"
+  ],
+  "destination": "inspiration",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-04T04:00:00+01:00",
+    "tags": [
+      "glaze",
+      "inspiration"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_DF9481C4-5A32-5064-B062-E80EB18857FD_001.jpg",
+        "offsetSeconds": 0
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_DF9481C4-5A32-5064-B062-E80EB18857FD_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug": "A picture with NO moment (offset 0, e.g. added after the fact): v1 drops it after the FIRST WORD. Expected: TOP of the note as its own paragraph (recommendation; needs Tuur's verdict top vs bottom)."
+  }
+}

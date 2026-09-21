@@ -1,0 +1,62 @@
+{
+  "id": "DC3FD4FE-57CA-57E7-8D67-FA229ECB5045",
+  "slug": "dest-made",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "destination-made"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-12T12:00:00+01:00",
+  "createdAt": "2026-07-12T12:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.64,
+  "audio": "audio.m4a",
+  "transcript": "Finished the wide blue bowl, the first one that came out right. [[img_001]] Cone five, grey body, blue number three.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.9,
+  "tags": [
+    "glaze",
+    "made"
+  ],
+  "destination": "made",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-12T12:00:00+01:00",
+    "tags": [
+      "glaze",
+      "made"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_DC3FD4FE-57CA-57E7-8D67-FA229ECB5045_001.jpg",
+        "offsetSeconds": 4.19
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_DC3FD4FE-57CA-57E7-8D67-FA229ECB5045_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Made → archive `_inbox/`; the archive KEEPS [[names]] (Tuur reversed the privacy call 2026-08-28 — credit friends on the public site)."
+  }
+}

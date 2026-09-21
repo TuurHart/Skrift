@@ -1,0 +1,59 @@
+{
+  "id": "FDA21613-E326-5919-98D2-8205AD1580C2",
+  "slug": "cap-file-pdf",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "file",
+    "pdf"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-27T09:00:00+01:00",
+  "createdAt": "2026-07-27T09:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Marco's quote for the kiln line. Nine metres, dedicated 16 A, €640 plus the box.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.7,
+  "tags": [
+    "studio",
+    "money"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "Marco's quote for the kiln line. Nine metres, dedicated 16 A, €640 plus the box.",
+  "metadata": {
+    "capturedAt": "2026-07-27T09:00:00+01:00",
+    "tags": [
+      "studio",
+      "money"
+    ]
+  },
+  "sharedContent": {
+    "type": "file",
+    "mimeType": "application/pdf",
+    "filePath": "capture_quote_kiln.pdf",
+    "fileName": "Offerte kiln lijn.pdf"
+  },
+  "photos": [],
+  "sharedFile": {
+    "file": "document.pdf",
+    "filename": "capture_quote_kiln.pdf"
+  },
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "The document stays on the phone (MemoAsset kind document); its extracted text is the body (A6); the Mac gets the file under files/ and can open it."
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "1C63ED4A-69E3-542C-B989-1E95EA8F5FEE",
+  "slug": "voice-en-raw-title",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "title"
+  ],
+  "title": "memo_raw_title_should_not_leak",
+  "recordedAt": "2026-08-14T19:00:00+01:00",
+  "createdAt": "2026-08-14T19:00:00+01:00",
+  "editedAt": null,
+  "duration": 8.92,
+  "audio": "audio.m4a",
+  "transcript": "A voice note whose stored title looks like a raw filename. The list must not show memo_ garbage; a generated or first-line title wins over a raw one.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-14T19:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug-fixed": "raw memo_ titles fixed 2026-08-19 on the cards — the corpus keeps the shape so it stays fixed."
+  }
+}

@@ -1,0 +1,52 @@
+[
+{
+"word": "Price",
+"start": 0.0,
+"end": 0.282
+},
+{
+"word": "is",
+"start": 0.302,
+"end": 0.584
+},
+{
+"word": "what",
+"start": 0.604,
+"end": 0.886
+},
+{
+"word": "you",
+"start": 0.906,
+"end": 1.188
+},
+{
+"word": "say",
+"start": 1.208,
+"end": 1.49
+},
+{
+"word": "when",
+"start": 1.51,
+"end": 1.792
+},
+{
+"word": "you",
+"start": 1.812,
+"end": 2.094
+},
+{
+"word": "have",
+"start": 2.114,
+"end": 2.396
+},
+{
+"word": "stopped",
+"start": 2.416,
+"end": 2.698
+},
+{
+"word": "apologising.",
+"start": 2.718,
+"end": 3.0
+}
+]

@@ -1,0 +1,142 @@
+[
+{
+"word": "Fire",
+"start": 0.0,
+"end": 0.247
+},
+{
+"word": "it",
+"start": 0.267,
+"end": 0.514
+},
+{
+"word": "slower",
+"start": 0.534,
+"end": 0.781
+},
+{
+"word": "than",
+"start": 0.801,
+"end": 1.049
+},
+{
+"word": "you",
+"start": 1.069,
+"end": 1.316
+},
+{
+"word": "think",
+"start": 1.336,
+"end": 1.583
+},
+{
+"word": "you",
+"start": 1.603,
+"end": 1.85
+},
+{
+"word": "need",
+"start": 1.87,
+"end": 2.117
+},
+{
+"word": "to.",
+"start": 2.137,
+"end": 2.384
+},
+{
+"word": "The",
+"start": 2.404,
+"end": 2.651
+},
+{
+"word": "June",
+"start": 2.671,
+"end": 2.919
+},
+{
+"word": "bug:",
+"start": 2.939,
+"end": 3.186
+},
+{
+"word": "this",
+"start": 3.206,
+"end": 3.453
+},
+{
+"word": "reached",
+"start": 3.473,
+"end": 3.72
+},
+{
+"word": "the",
+"start": 3.74,
+"end": 3.987
+},
+{
+"word": "Mac",
+"start": 4.007,
+"end": 4.254
+},
+{
+"word": "with",
+"start": 4.274,
+"end": 4.521
+},
+{
+"word": "an",
+"start": 4.541,
+"end": 4.789
+},
+{
+"word": "EMPTY",
+"start": 4.809,
+"end": 5.056
+},
+{
+"word": "metadata",
+"start": 5.076,
+"end": 5.323
+},
+{
+"word": "blob",
+"start": 5.343,
+"end": 5.59
+},
+{
+"word": "and",
+"start": 5.61,
+"end": 5.857
+},
+{
+"word": "rendered",
+"start": 5.877,
+"end": 6.124
+},
+{
+"word": "as",
+"start": 6.144,
+"end": 6.391
+},
+{
+"word": "a",
+"start": 6.411,
+"end": 6.659
+},
+{
+"word": "raw",
+"start": 6.679,
+"end": 6.926
+},
+{
+"word": ">",
+"start": 6.946,
+"end": 7.193
+},
+{
+"word": "wall.",
+"start": 7.213,
+"end": 7.46
+}
+]

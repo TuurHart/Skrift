@@ -1,0 +1,62 @@
+{
+  "id": "AE9D9978-31DC-511D-A056-180D903EE183",
+  "slug": "voice-en-pricing-ramble",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "fillers",
+    "names"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-31T19:00:00+01:00",
+  "createdAt": "2026-08-31T19:00:00+01:00",
+  "editedAt": null,
+  "duration": 26.28,
+  "audio": "audio.m4a",
+  "transcript": "Okay so, um, walking back from the shop and I think I've decided on the prices. Overhauls go to one sixty, um, tune-ups stay where they are. Jack said fifteen percent across the board but I don't want to, I don't want to lose the regulars over a tune-up. Lotte agrees, I think. Uh, the other thing is I should write the promised date on the, on the tag and also in the calendar, both, because the tag gets lost. Yeah. That's it.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "money"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "location": {
+      "latitude": 51.9225,
+      "longitude": 4.4792,
+      "placeName": "Rotterdam"
+    },
+    "dayPeriod": "evening",
+    "steps": 4300,
+    "weather": {
+      "conditions": "Clear",
+      "temperature": 17,
+      "temperatureUnit": "°C"
+    },
+    "capturedAt": "2026-08-31T19:00:00+01:00",
+    "tags": [
+      "money"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Copy-edit removes the fillers and repeated words but keeps every decision; 'Jack' ambiguous, 'Lotte' links."
+  }
+}

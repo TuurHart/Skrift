@@ -1,0 +1,49 @@
+{
+  "id": "EAAE05FA-A287-5BC1-98E6-A0FBFBE7C7AC",
+  "slug": "typed-blockquote-ordinary",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "blockquote"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-14T06:00:00+01:00",
+  "createdAt": "2026-09-14T06:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "> The pot you want is the pot you can't make yet.\n\nSomeone said that at the fair and I wrote it on my hand. It is exactly the blue-glaze problem.\n\n> Also: stop apologising to customers for the price. Just say the number.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "thinking"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-14T06:00:00+01:00",
+    "tags": [
+      "thinking"
+    ],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A leading blockquote in a NON-audiobook note. CaptureQuote splits it as a quote (not gated on book metadata since 2026-07-27); no attribution caption."
+  }
+}

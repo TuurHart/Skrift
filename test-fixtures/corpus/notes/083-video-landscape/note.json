@@ -1,0 +1,60 @@
+{
+  "id": "80426BF7-A423-5FC2-BA1B-EFEE489DF617",
+  "slug": "video-landscape",
+  "kind": "video",
+  "lang": "nl",
+  "shape": [
+    "video",
+    "pictures",
+    "landscape",
+    "dutch"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-23T20:00:00+01:00",
+  "createdAt": "2026-07-23T20:00:00+01:00",
+  "editedAt": null,
+  "duration": 5.67,
+  "audio": "audio.m4a",
+  "transcript": "[[img_001]]\n\nKorte video van het draaien van de brede schaal, voor Ines, zodat ze ziet wat er misgaat bij de rand.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.4,
+  "tags": [
+    "throwing"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-23T20:00:00+01:00",
+    "tags": [
+      "throwing"
+    ],
+    "sourceType": "video",
+    "imageManifest": [
+      {
+        "filename": "photo_80426BF7-A423-5FC2-BA1B-EFEE489DF617_001.jpg",
+        "offsetSeconds": 0
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_80426BF7-A423-5FC2-BA1B-EFEE489DF617_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {}
+}

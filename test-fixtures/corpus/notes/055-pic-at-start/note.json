@@ -1,0 +1,60 @@
+{
+  "id": "7E246814-C6AF-50EB-BC38-4851EA4F45BC",
+  "slug": "pic-at-start",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "pictures",
+    "marker-start"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-12T16:00:00+01:00",
+  "createdAt": "2026-08-12T16:00:00+01:00",
+  "editedAt": null,
+  "duration": 5.43,
+  "audio": "audio.m4a",
+  "transcript": "[[img_001]] This is what the blue looks like at cone five, straight out of the kiln, before I touched it.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.7,
+  "tags": [
+    "glaze"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-12T16:00:00+01:00",
+    "tags": [
+      "glaze"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_7E246814-C6AF-50EB-BC38-4851EA4F45BC_001.jpg",
+        "offsetSeconds": 0.4
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_7E246814-C6AF-50EB-BC38-4851EA4F45BC_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Photo taken as the recording started: the picture is the first paragraph, the sentence the second."
+  }
+}

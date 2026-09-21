@@ -1,0 +1,45 @@
+{
+  "id": "F42058F4-D0EE-5726-9146-67B06217B5AE",
+  "slug": "typed-trashed",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "trashed"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-09T07:00:00+01:00",
+  "createdAt": "2026-09-09T07:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Old idea about renting the back room out. Deleted on purpose.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": "2026-09-10T11:00:00+01:00",
+  "trashSeenAt": "2026-09-10T11:00:00+01:00",
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-09T07:00:00+01:00",
+    "tags": [],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "In the trash: never ingested on the Mac, never exported, not searchable; purged 14 days after trashSeenAt."
+  }
+}

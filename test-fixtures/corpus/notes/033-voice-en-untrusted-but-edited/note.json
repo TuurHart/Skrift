@@ -1,0 +1,49 @@
+{
+  "id": "8878ECD5-04AF-512B-B0AB-F2AF747A1E0B",
+  "slug": "voice-en-untrusted-but-edited",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "untrusted",
+    "user-edited"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-28T06:00:00+01:00",
+  "createdAt": "2026-08-28T06:00:00+01:00",
+  "editedAt": "2026-09-12T20:10:00+01:00",
+  "duration": 8.17,
+  "audio": "audio.m4a",
+  "transcript": "Wind noise, but I fixed the text by hand: the chain on the cargo bike skips under load, and the front light flickers when the dynamo is cold.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.52,
+  "transcriptUserEdited": true,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "cargo"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-28T06:00:00+01:00",
+    "tags": [
+      "cargo"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Low confidence but userEdited → TRUSTED; the Mac must never re-transcribe over the user's edit."
+  }
+}

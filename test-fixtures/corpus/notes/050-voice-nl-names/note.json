@@ -1,0 +1,50 @@
+{
+  "id": "B6C03FEC-FFB0-51AA-B8FC-BEAAFEA1D476",
+  "slug": "voice-nl-names",
+  "kind": "voice",
+  "lang": "nl",
+  "shape": [
+    "voice",
+    "trusted",
+    "dutch",
+    "names"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-16T05:00:00+01:00",
+  "createdAt": "2026-08-16T05:00:00+01:00",
+  "editedAt": null,
+  "duration": 10.08,
+  "audio": "audio.m4a",
+  "transcript": "Pieter-Jan, of PJ zoals iedereen hem noemt, komt zaterdag helpen met de wielen. Sam ook, de Zweedse Sam, niet die andere. En Rose stuurt de nieuwe versie van de site door.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-16T05:00:00+01:00",
+    "tags": [
+      "studio"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Hyphenated alias + initials alias (PJ) both link to one person; 'de Zweedse Sam' is still ambiguous to the machine."
+  }
+}

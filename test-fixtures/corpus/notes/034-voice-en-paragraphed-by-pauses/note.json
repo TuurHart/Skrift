@@ -1,0 +1,53 @@
+{
+  "id": "44747ED7-2AB0-5B76-9A41-674FA3376049",
+  "slug": "voice-en-paragraphed-by-pauses",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "paragraphed"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-27T13:00:00+01:00",
+  "createdAt": "2026-08-27T13:00:00+01:00",
+  "editedAt": null,
+  "duration": 13.1,
+  "audio": "audio.m4a",
+  "transcript": "First thought. The blue is closer at cone five than at six.\n\nSecond thought, unrelated. Bruno's frame builder in Porto does lugged steel and I want one.\n\nThird. Lotte's birthday is in three weeks and I have nothing.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "glaze",
+    "bikes",
+    "lotte"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-27T13:00:00+01:00",
+    "tags": [
+      "glaze",
+      "bikes",
+      "lotte"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Three author paragraphs from pauses. Paragraph count in = paragraph count out at every stage."
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "FE3725CD-439B-5B07-8393-7C56BC02092A",
+  "slug": "voice-en-failed",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "failed"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-24T17:00:00+01:00",
+  "createdAt": "2026-08-24T17:00:00+01:00",
+  "editedAt": null,
+  "duration": 1.63,
+  "audio": "audio.m4a",
+  "transcript": null,
+  "transcriptStatus": "failed",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-08-24T17:00:00+01:00",
+    "tags": []
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Rated but failed on-device: the Mac transcribes from the audio (its own ASR), the phone shows a retry."
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "5E8EA60A-9C08-5BA7-A980-C3250A1988C6",
+  "slug": "edge-literal-marker-typed",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "marker-without-manifest"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-10T09:00:00+01:00",
+  "createdAt": "2026-07-10T09:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "I typed [[img_001]] by hand to see what happens. There is no photo.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-10T09:00:00+01:00",
+    "tags": [],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "A marker with no manifest entry: shown as plain text or stripped? (needs-verdict; must never crash or eat the surrounding words)."
+  }
+}

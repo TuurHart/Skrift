@@ -1,0 +1,72 @@
+{
+  "id": "9FF0A9E9-BB9A-5033-B1FB-303172664B5E",
+  "slug": "voice-en-full-context",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "trusted",
+    "metadata-full"
+  ],
+  "title": "Rain ride to Kralingen",
+  "recordedAt": "2026-08-16T22:00:00+01:00",
+  "createdAt": "2026-08-16T22:00:00+01:00",
+  "editedAt": null,
+  "duration": 6.92,
+  "audio": "audio.m4a",
+  "transcript": "Rode out to the lake in the rain to think. The website should have the bikes on the front page. Rose is right about the fonts though.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "thinking",
+    "website"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "location": {
+      "latitude": 51.9311,
+      "longitude": 4.5094,
+      "placeName": "Kralingse Plas"
+    },
+    "dayPeriod": "morning",
+    "steps": 210,
+    "weather": {
+      "conditions": "Rain",
+      "temperature": 11,
+      "temperatureUnit": "°C"
+    },
+    "pressure": {
+      "hPa": 1004,
+      "trend": "falling"
+    },
+    "daylight": {
+      "sunrise": "07:21",
+      "sunset": "19:42",
+      "hoursOfLight": 12.35
+    },
+    "capturedAt": "2026-08-16T22:00:00+01:00",
+    "tags": [
+      "thinking",
+      "website"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Every context field present: the export frontmatter/context line must carry them all; pressure hPa stays an Int on the wire."
+  }
+}

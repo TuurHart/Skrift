@@ -1,0 +1,357 @@
+[
+{
+"word": "Long",
+"start": 0.0,
+"end": 0.279
+},
+{
+"word": "day.",
+"start": 0.299,
+"end": 0.578
+},
+{
+"word": "Lotte",
+"start": 0.598,
+"end": 0.877
+},
+{
+"word": "opened",
+"start": 0.897,
+"end": 1.175
+},
+{
+"word": "up,",
+"start": 1.195,
+"end": 1.474
+},
+{
+"word": "Hendrik",
+"start": 1.494,
+"end": 1.773
+},
+{
+"word": "brought",
+"start": 1.793,
+"end": 2.072
+},
+{
+"word": "the",
+"start": 2.092,
+"end": 2.371
+},
+{
+"word": "trailer,",
+"start": 2.391,
+"end": 2.67
+},
+{
+"word": "and",
+"start": 2.69,
+"end": 2.969
+},
+{
+"word": "Jack,",
+"start": 2.989,
+"end": 3.268
+},
+{
+"word": "the",
+"start": 3.288,
+"end": 3.566
+},
+{
+"word": "Morrow",
+"start": 3.586,
+"end": 3.865
+},
+{
+"word": "one,",
+"start": 3.885,
+"end": 4.164
+},
+{
+"word": "dropped",
+"start": 4.184,
+"end": 4.463
+},
+{
+"word": "off",
+"start": 4.483,
+"end": 4.762
+},
+{
+"word": "his",
+"start": 4.782,
+"end": 5.061
+},
+{
+"word": "bike",
+"start": 5.081,
+"end": 5.36
+},
+{
+"word": "again.",
+"start": 5.38,
+"end": 5.659
+},
+{
+"word": "Then",
+"start": 5.679,
+"end": 5.957
+},
+{
+"word": "Rose",
+"start": 5.977,
+"end": 6.256
+},
+{
+"word": "came",
+"start": 6.276,
+"end": 6.555
+},
+{
+"word": "by",
+"start": 6.575,
+"end": 6.854
+},
+{
+"word": "with",
+"start": 6.874,
+"end": 7.153
+},
+{
+"word": "the",
+"start": 7.173,
+"end": 7.452
+},
+{
+"word": "website",
+"start": 7.472,
+"end": 7.751
+},
+{
+"word": "and",
+"start": 7.771,
+"end": 8.05
+},
+{
+"word": "I",
+"start": 8.07,
+"end": 8.348
+},
+{
+"word": "said",
+"start": 8.368,
+"end": 8.647
+},
+{
+"word": "rose",
+"start": 8.667,
+"end": 8.946
+},
+{
+"word": "gold",
+"start": 8.966,
+"end": 9.245
+},
+{
+"word": "is",
+"start": 9.265,
+"end": 9.544
+},
+{
+"word": "not",
+"start": 9.564,
+"end": 9.843
+},
+{
+"word": "a",
+"start": 9.863,
+"end": 10.142
+},
+{
+"word": "colour",
+"start": 10.162,
+"end": 10.441
+},
+{
+"word": "for",
+"start": 10.461,
+"end": 10.739
+},
+{
+"word": "a",
+"start": 10.759,
+"end": 11.038
+},
+{
+"word": "bike",
+"start": 11.058,
+"end": 11.337
+},
+{
+"word": "shop.",
+"start": 11.357,
+"end": 11.636
+},
+{
+"word": "Will",
+"start": 11.656,
+"end": 11.935
+},
+{
+"word": "was",
+"start": 11.955,
+"end": 12.234
+},
+{
+"word": "supposed",
+"start": 12.254,
+"end": 12.533
+},
+{
+"word": "to",
+"start": 12.553,
+"end": 12.832
+},
+{
+"word": "come",
+"start": 12.852,
+"end": 13.13
+},
+{
+"word": "but",
+"start": 13.15,
+"end": 13.429
+},
+{
+"word": "he",
+"start": 13.449,
+"end": 13.728
+},
+{
+"word": "will",
+"start": 13.748,
+"end": 14.027
+},
+{
+"word": "not",
+"start": 14.047,
+"end": 14.326
+},
+{
+"word": "be",
+"start": 14.346,
+"end": 14.625
+},
+{
+"word": "here",
+"start": 14.645,
+"end": 14.924
+},
+{
+"word": "until",
+"start": 14.944,
+"end": 15.223
+},
+{
+"word": "Thursday.",
+"start": 15.243,
+"end": 15.521
+},
+{
+"word": "Sam",
+"start": 15.541,
+"end": 15.82
+},
+{
+"word": "texted,",
+"start": 15.84,
+"end": 16.119
+},
+{
+"word": "no",
+"start": 16.139,
+"end": 16.418
+},
+{
+"word": "idea",
+"start": 16.438,
+"end": 16.717
+},
+{
+"word": "which",
+"start": 16.737,
+"end": 17.016
+},
+{
+"word": "Sam,",
+"start": 17.036,
+"end": 17.315
+},
+{
+"word": "I",
+"start": 17.335,
+"end": 17.614
+},
+{
+"word": "need",
+"start": 17.634,
+"end": 17.912
+},
+{
+"word": "to",
+"start": 17.932,
+"end": 18.211
+},
+{
+"word": "check.",
+"start": 18.231,
+"end": 18.51
+},
+{
+"word": "Kai",
+"start": 18.53,
+"end": 18.809
+},
+{
+"word": "from",
+"start": 18.829,
+"end": 19.108
+},
+{
+"word": "next",
+"start": 19.128,
+"end": 19.407
+},
+{
+"word": "door",
+"start": 19.427,
+"end": 19.706
+},
+{
+"word": "wants",
+"start": 19.726,
+"end": 20.005
+},
+{
+"word": "to",
+"start": 20.025,
+"end": 20.303
+},
+{
+"word": "borrow",
+"start": 20.323,
+"end": 20.602
+},
+{
+"word": "the",
+"start": 20.622,
+"end": 20.901
+},
+{
+"word": "stand.",
+"start": 20.921,
+"end": 21.2
+}
+]

@@ -1,0 +1,48 @@
+{
+  "id": "1348CED4-5FDF-5024-BB78-D332643F10CE",
+  "slug": "conv-two-named",
+  "kind": "conversation",
+  "lang": "en",
+  "shape": [
+    "conversation",
+    "diarized"
+  ],
+  "title": null,
+  "recordedAt": "2026-07-22T10:00:00+01:00",
+  "createdAt": "2026-07-22T10:00:00+01:00",
+  "editedAt": null,
+  "duration": 16.73,
+  "audio": "audio.m4a",
+  "transcript": "**Fenna de Wit:** So if we do the Saturday, who is cleaning the bike side?\n\n**Lotte Vos:** You are. I did the last one and I found a chain under the clay table.\n\n**Fenna de Wit:** Fair. Friday night then. Can Hendrik bring the trailer for the boards?\n\n**Lotte Vos:** If you ask him before Wednesday. After that he says he is busy and he is not.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.6,
+  "tags": [
+    "conversation"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-07-22T10:00:00+01:00",
+    "tags": [
+      "conversation"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": "diar.json",
+  "enhancement": null,
+  "expect": {
+    "note": "Two named speakers: the turn gutter renders both; Lotte's turns link to her person; 'Hendrik' links inside a turn."
+  }
+}

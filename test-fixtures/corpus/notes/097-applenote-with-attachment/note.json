@@ -1,0 +1,60 @@
+{
+  "id": "942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5",
+  "slug": "applenote-with-attachment",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "apple-note",
+    "pictures"
+  ],
+  "title": "Kiln shelf layout",
+  "recordedAt": "2026-07-13T22:00:00+01:00",
+  "createdAt": "2026-07-13T22:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "How the shelves go back in after cleaning. Photo from the manual.\n\n[[img_001]]\n\nBottom shelf gets the posts at 15 cm, not 10.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.5,
+  "tags": [
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "mediaSource": "applenote",
+    "capturedAt": "2026-07-13T22:00:00+01:00",
+    "tags": [
+      "studio"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5_001.jpg",
+        "offsetSeconds": 0
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_942FBA6D-4C71-58CF-B0B5-E4CFC4CA57D5_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "An Apple Note's attachment arrives as a photo already in its own paragraph — v2 shape."
+  }
+}

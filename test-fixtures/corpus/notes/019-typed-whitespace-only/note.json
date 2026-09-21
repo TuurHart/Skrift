@@ -1,0 +1,45 @@
+{
+  "id": "3F838C7B-E27E-5864-99BB-99D68CF61EA4",
+  "slug": "typed-whitespace-only",
+  "kind": "typed",
+  "lang": "en",
+  "shape": [
+    "typed",
+    "empty"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-07T04:00:00+01:00",
+  "createdAt": "2026-09-07T04:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "  \n\n\t \n",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.3,
+  "tags": [],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "capturedAt": "2026-09-07T04:00:00+01:00",
+    "tags": [],
+    "mediaSource": "typed"
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Whitespace-only body, RATED. Same contract as empty: processed, no content, never stranded."
+  }
+}

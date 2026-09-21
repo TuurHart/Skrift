@@ -1,0 +1,54 @@
+{
+  "id": "EE54A5E9-43F8-55C4-AFBC-82808A875F53",
+  "slug": "cap-url-youtube",
+  "kind": "capture",
+  "lang": "en",
+  "shape": [
+    "capture",
+    "url",
+    "youtube"
+  ],
+  "title": null,
+  "recordedAt": "2026-08-02T01:00:00+01:00",
+  "createdAt": "2026-08-02T01:00:00+01:00",
+  "editedAt": null,
+  "duration": 0,
+  "audio": null,
+  "transcript": "Throwing wide bowls, the trick at 4:10 with the rib.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": null,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.5,
+  "tags": [
+    "throwing"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": "Throwing wide bowls, the trick at 4:10 with the rib.",
+  "metadata": {
+    "capturedAt": "2026-08-02T01:00:00+01:00",
+    "tags": [
+      "throwing"
+    ]
+  },
+  "sharedContent": {
+    "type": "url",
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "urlTitle": "Throwing a wide bowl — studio demo",
+    "urlThumbnailUrl": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
+  },
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": null,
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "needs-verdict": "YouTube = a link card with the title (today), or fetch the audio and transcribe it into the note?"
+  }
+}
