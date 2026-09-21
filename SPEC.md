@@ -467,11 +467,14 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
 ### Editor, note UI, quick capture
 
 - C112 [tuur] Quick note: a New Note action in the app, on the Lock Screen / Control Center
-  widget and via Siri opens an empty note with the keyboard up, in under a second. Mock
-  first. NEW 2026-09-21 — Tuur's ask this session (not in any report)
+  widget and via Siri opens an empty note with the keyboard up, in under a second. Independent
+  of the rewrite (views + intents), so it goes near the front of the queue. Mock first.
+  CONFIRMED 2026-09-21 ("either record or just start a new note. simple smooth and fast")
 - C113 [tuur] The editor feels like Apple Notes: no lag while typing, paragraphs stay where
-  he put them, a picture is a block he can move. Rebuilt on the body v2 (C10), never
-  before it. Mock first. NEW 2026-09-21
+  he put them, a picture is a block he can move. Today it is "quite slow and clunky" (Tuur
+  2026-09-21). Rebuilt on the body v2 (C10), never before it; profile the editor first (the
+  slowness may be the list scans and sweeps in BUGS §3, not the text view). Mock first.
+  CONFIRMED 2026-09-21
 - C114 [tuur] What the app opens into (last note / the list / a new note) — his call.
   ⚠ needs-verdict D28
 - C115 [auto] ONE shared `NoteCardView` on both lists; ONE `BodyTransform`; ONE
@@ -1238,6 +1241,8 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-21 Quick note builds early, mock first; the editor rebuilds after the body v2 —
+  "the note writing itself should be better. it's quite slow and clunky atm". Confirmed.
 - 2026-09-21 Sender name on a messenger share: "can just be filled in on the share screen or
   later in the note itself" — a field, not a fetch.
 - 2026-09-21 The archive contract is part of this spec: "Skrift and that one are growing
