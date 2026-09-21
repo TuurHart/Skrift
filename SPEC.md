@@ -63,7 +63,7 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C3 [auto] Size budget: v2 ≤ 40% of v1's lines for that subsystem, else the commit message
   says why. Baselines (code-core §C): body/image 7,940 · copy-edit 2,674 · reconcile 5,297 ·
   export 2,734. || check: `wc -l` of the v2 files vs the inventory table. — code-core §C
-- C4 [auto] The corpus is synthetic, never his notes: `test-fixtures/corpus/` (106 notes,
+- C4 [auto] The corpus is synthetic, never his notes: `test-fixtures/corpus/` (109 notes,
   fictional roster), seeded on both apps with `-corpus <path>`. || check:
   `CorpusSeedTests` on both apps. — decisions:260
 - C5 [auto] v1 is the change detector, never the judge: every corpus output is classed
@@ -506,8 +506,9 @@ never in Skrift ("then you can't have immediate AI back and forth" — rejected)
   `credit` (shape `- <who> — <what they did>[, <url>]`), `needs`, the stamp trio. Skrift never
   writes `type`, `source`, `author`, `summary`, `confidence`, `status`, `layer`, `shortlist`.
   || check: every corpus `dest-*` export parses with the archive's own parser
-  (`capture/tools/vault_index.py`). ⚠ required difference (v1 writes `summary:` into the
-  archive; the archive dropped it 2026-08-26) — portfolio/README, rules:496-498
+  (`capture/tools/vault_index.py`). ⚠ required difference (v1 writes `summary:` into every
+  profile — `Shared/Export/Compiler.swift:128`; the archive dropped the key 2026-08-26)
+  — portfolio/README, rules:496-498
 - C131 [auto] THE AUTHORSHIP LINE: everything above the closing `---` is the machine's,
   everything below is HIS. An archive-bound body is never a generated text: no LLM title in
   the body, no summary, no invented words; `voice: raw` = the transcript verbatim,
@@ -520,7 +521,9 @@ never in Skrift ("then you can't have immediate AI back and forth" — rejected)
 - C132 [auto] The file's NAME is not his words either: an archive entry is named by its
   timestamp (`2026-08-26-142312.md`) unless he typed a title; a generated title never
   becomes a basename. || check: `dest-idea` (no user title) → timestamp name. ⚠ required
-  difference (v1 slugs the generated title) ⚠ needs-verdict D39 — _ideas/README vs B:2794
+  difference (v1 slugs whatever title the note shows, generated included —
+  `Shared/Export/VaultWrite.swift:112-115`, `ExportProfile.entryStem`) ⚠ needs-verdict D39
+  — _ideas/README vs B:2794
 - C133 [auto] Destination is one of four, single-select; "Personal" never reaches the
   archive; Made → `_inbox/`, Idea → `_ideas/`, Inspiration → `_inspiration/`; anything else
   that is also true rides as an ordinary tag. The line between Idea and Inspiration is
