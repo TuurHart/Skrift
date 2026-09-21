@@ -1,0 +1,81 @@
+{
+  "id": "B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30",
+  "slug": "share-whatsapp-thread",
+  "kind": "voice",
+  "lang": "mix",
+  "shape": [
+    "voice",
+    "messenger",
+    "multi-clip",
+    "pictures",
+    "sender"
+  ],
+  "title": null,
+  "recordedAt": "2026-09-14T18:30:44+01:00",
+  "createdAt": "2026-09-16T09:12:00+01:00",
+  "editedAt": null,
+  "duration": 21.13,
+  "audio": "audio.m4a",
+  "transcript": "Hé Fenna, ik heb de oven bekeken, die bedrading achter is echt niet oké.\n\nEn de aansluiting in de meterkast is ook te licht voor wat jij erop wilt zetten.\n\nKijk, dit is wat ik bedoel, zie je die verkleuring bij de klemmen?\n\n[[img_001]]\n\nOkay so if you want I can come by Thursday with Marco, he said he has an hour.\n\nLet me know, and don't fire it before then, please.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": true,
+  "significance": 0.6,
+  "tags": [
+    "studio"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "mediaSource": "share-audio",
+    "sender": "Hendrik Vos",
+    "clips": [
+      {
+        "sentAt": "2026-09-14T18:30:44+01:00"
+      },
+      {
+        "sentAt": "2026-09-14T18:31:10+01:00"
+      },
+      {
+        "sentAt": "2026-09-14T18:32:02+01:00"
+      },
+      {
+        "sentAt": "2026-09-14T18:35:40+01:00"
+      },
+      {
+        "sentAt": "2026-09-14T18:36:05+01:00"
+      }
+    ],
+    "capturedAt": "2026-09-14T18:30:44+01:00",
+    "tags": [
+      "studio"
+    ],
+    "imageManifest": [
+      {
+        "filename": "photo_B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30_001.jpg",
+        "offsetSeconds": 12.5
+      }
+    ]
+  },
+  "sharedContent": null,
+  "photos": [
+    {
+      "filename": "photo_B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30_001.jpg",
+      "file": "photo_001.jpg"
+    }
+  ],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug": "v1: only the first extension item survives, the picture lands after the first word, the note is dated to the share moment, no sender. Expected (C12, C70, C123–C125): five clips = five paragraphs in chat order, the picture as its own paragraph between clip 3 and clip 4, recordedAt = the first message's filename time (2026-09-14 18:30:44), createdAt = the share, sender 'Hendrik Vos' linked as a person, each clip's time kept in the manifest."
+  }
+}

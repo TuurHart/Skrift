@@ -1,6 +1,6 @@
 {
   "generatedBy": "test-fixtures/corpus/generate.py",
-  "count": 106,
+  "count": 109,
   "notes": [
     {
       "index": 1,
@@ -1365,6 +1365,49 @@
         "old"
       ],
       "folder": "106-edge-old-rated-never-exported"
+    },
+    {
+      "index": 107,
+      "slug": "share-whatsapp-thread",
+      "id": "B7282A9D-C13D-5BA0-A2BC-5FC42C6BFE30",
+      "kind": "voice",
+      "lang": "mix",
+      "shape": [
+        "voice",
+        "messenger",
+        "multi-clip",
+        "pictures",
+        "sender"
+      ],
+      "folder": "107-share-whatsapp-thread"
+    },
+    {
+      "index": 108,
+      "slug": "share-signal-single",
+      "id": "54DCAAC6-5DD3-5ECA-AF70-764329CCFC7D",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "messenger",
+        "single-clip",
+        "sender"
+      ],
+      "folder": "108-share-signal-single"
+    },
+    {
+      "index": 109,
+      "slug": "share-voicememo-named",
+      "id": "9B34A9BB-3360-562D-A0F7-4B9DAED23F7E",
+      "kind": "voice",
+      "lang": "en",
+      "shape": [
+        "voice",
+        "share",
+        "voice-memo",
+        "title"
+      ],
+      "folder": "109-share-voicememo-named"
     }
   ]
 }

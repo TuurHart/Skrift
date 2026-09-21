@@ -1,0 +1,52 @@
+{
+  "id": "54DCAAC6-5DD3-5ECA-AF70-764329CCFC7D",
+  "slug": "share-signal-single",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "messenger",
+    "single-clip",
+    "sender"
+  ],
+  "title": null,
+  "recordedAt": "2026-04-13T18:15:24+01:00",
+  "createdAt": "2026-09-16T09:15:00+01:00",
+  "editedAt": null,
+  "duration": 5.9,
+  "audio": "audio.m4a",
+  "transcript": "Rose here. The website mock is in your inbox, look at the fonts before you look at anything else.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.4,
+  "tags": [
+    "website"
+  ],
+  "destination": "personal",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "mediaSource": "share-audio",
+    "sender": "Rose Aldana",
+    "capturedAt": "2026-04-13T18:15:24+01:00",
+    "tags": [
+      "website"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "note": "Signal 'signal-2026-04-13-18-15-24-552.aac': dated from the filename (C70), sender from the share sheet (C123), 'Rose' in the body stays a suggestion, the sender field links."
+  }
+}

@@ -2,286 +2,286 @@
 {
 "word": "So",
 "start": 0.0,
-"end": 0.258
+"end": 0.274
 },
 {
 "word": "if",
-"start": 0.278,
-"end": 0.537
+"start": 0.294,
+"end": 0.567
 },
 {
 "word": "we",
-"start": 0.557,
-"end": 0.815
+"start": 0.587,
+"end": 0.861
 },
 {
 "word": "do",
-"start": 0.835,
-"end": 1.093
+"start": 0.881,
+"end": 1.154
 },
 {
 "word": "the",
-"start": 1.113,
-"end": 1.372
+"start": 1.174,
+"end": 1.448
 },
 {
 "word": "Saturday,",
-"start": 1.392,
-"end": 1.65
+"start": 1.468,
+"end": 1.741
 },
 {
 "word": "who",
-"start": 1.67,
-"end": 1.928
+"start": 1.761,
+"end": 2.035
 },
 {
 "word": "is",
-"start": 1.948,
-"end": 2.207
+"start": 2.055,
+"end": 2.328
 },
 {
 "word": "cleaning",
-"start": 2.227,
-"end": 2.485
+"start": 2.348,
+"end": 2.622
 },
 {
 "word": "the",
-"start": 2.505,
-"end": 2.763
+"start": 2.642,
+"end": 2.915
 },
 {
 "word": "bike",
-"start": 2.783,
-"end": 3.042
+"start": 2.935,
+"end": 3.209
 },
 {
 "word": "side?",
-"start": 3.062,
-"end": 3.32
+"start": 3.229,
+"end": 3.502
 },
 {
 "word": "You",
-"start": 3.34,
-"end": 3.587
+"start": 3.522,
+"end": 3.796
 },
 {
 "word": "are.",
-"start": 3.607,
-"end": 3.854
+"start": 3.816,
+"end": 4.089
 },
 {
 "word": "I",
-"start": 3.874,
-"end": 4.121
+"start": 4.109,
+"end": 4.383
 },
 {
 "word": "did",
-"start": 4.141,
-"end": 4.388
+"start": 4.403,
+"end": 4.676
 },
 {
 "word": "the",
-"start": 4.407,
-"end": 4.654
+"start": 4.696,
+"end": 4.97
 },
 {
 "word": "last",
-"start": 4.674,
-"end": 4.921
+"start": 4.99,
+"end": 5.263
 },
 {
 "word": "one",
-"start": 4.941,
-"end": 5.188
+"start": 5.283,
+"end": 5.557
 },
 {
 "word": "and",
-"start": 5.208,
-"end": 5.455
+"start": 5.577,
+"end": 5.85
 },
 {
 "word": "I",
-"start": 5.475,
-"end": 5.722
+"start": 5.87,
+"end": 6.144
 },
 {
 "word": "found",
-"start": 5.742,
-"end": 5.989
+"start": 6.164,
+"end": 6.437
 },
 {
 "word": "a",
-"start": 6.009,
-"end": 6.256
+"start": 6.457,
+"end": 6.731
 },
 {
 "word": "chain",
-"start": 6.276,
-"end": 6.522
+"start": 6.751,
+"end": 7.024
 },
 {
 "word": "under",
-"start": 6.542,
-"end": 6.789
+"start": 7.044,
+"end": 7.318
 },
 {
 "word": "the",
-"start": 6.809,
-"end": 7.056
+"start": 7.338,
+"end": 7.611
 },
 {
 "word": "clay",
-"start": 7.076,
-"end": 7.323
+"start": 7.631,
+"end": 7.905
 },
 {
 "word": "table.",
-"start": 7.343,
-"end": 7.59
+"start": 7.925,
+"end": 8.198
 },
 {
 "word": "Fair.",
-"start": 7.61,
-"end": 7.942
+"start": 8.218,
+"end": 8.492
 },
 {
 "word": "Friday",
-"start": 7.962,
-"end": 8.295
+"start": 8.512,
+"end": 8.785
 },
 {
 "word": "night",
-"start": 8.315,
-"end": 8.648
+"start": 8.805,
+"end": 9.079
 },
 {
 "word": "then.",
-"start": 8.668,
-"end": 9.0
+"start": 9.099,
+"end": 9.372
 },
 {
 "word": "Can",
-"start": 9.02,
-"end": 9.352
+"start": 9.392,
+"end": 9.666
 },
 {
 "word": "Hendrik",
-"start": 9.372,
-"end": 9.705
+"start": 9.686,
+"end": 9.959
 },
 {
 "word": "bring",
-"start": 9.725,
-"end": 10.058
+"start": 9.979,
+"end": 10.253
 },
 {
 "word": "the",
-"start": 10.078,
-"end": 10.41
+"start": 10.273,
+"end": 10.546
 },
 {
 "word": "trailer",
-"start": 10.43,
-"end": 10.762
+"start": 10.566,
+"end": 10.84
 },
 {
 "word": "for",
-"start": 10.782,
-"end": 11.115
+"start": 10.86,
+"end": 11.133
 },
 {
 "word": "the",
-"start": 11.135,
-"end": 11.468
+"start": 11.153,
+"end": 11.427
 },
 {
 "word": "boards?",
-"start": 11.488,
-"end": 11.82
+"start": 11.447,
+"end": 11.72
 },
 {
 "word": "If",
-"start": 11.84,
-"end": 12.109
+"start": 11.74,
+"end": 12.014
 },
 {
 "word": "you",
-"start": 12.129,
-"end": 12.399
+"start": 12.034,
+"end": 12.307
 },
 {
 "word": "ask",
-"start": 12.419,
-"end": 12.688
+"start": 12.327,
+"end": 12.601
 },
 {
 "word": "him",
-"start": 12.708,
-"end": 12.978
+"start": 12.621,
+"end": 12.894
 },
 {
 "word": "before",
-"start": 12.998,
-"end": 13.267
+"start": 12.914,
+"end": 13.188
 },
 {
 "word": "Wednesday.",
-"start": 13.287,
-"end": 13.556
+"start": 13.208,
+"end": 13.481
 },
 {
 "word": "After",
-"start": 13.576,
-"end": 13.846
+"start": 13.501,
+"end": 13.775
 },
 {
 "word": "that",
-"start": 13.866,
-"end": 14.135
+"start": 13.795,
+"end": 14.068
 },
 {
 "word": "he",
-"start": 14.155,
-"end": 14.425
+"start": 14.088,
+"end": 14.362
 },
 {
 "word": "says",
-"start": 14.445,
-"end": 14.714
+"start": 14.382,
+"end": 14.655
 },
 {
 "word": "he",
-"start": 14.734,
-"end": 15.004
+"start": 14.675,
+"end": 14.949
 },
 {
 "word": "is",
-"start": 15.024,
-"end": 15.293
+"start": 14.969,
+"end": 15.242
 },
 {
 "word": "busy",
-"start": 15.313,
-"end": 15.582
+"start": 15.262,
+"end": 15.536
 },
 {
 "word": "and",
-"start": 15.602,
-"end": 15.872
+"start": 15.556,
+"end": 15.829
 },
 {
 "word": "he",
-"start": 15.892,
-"end": 16.161
+"start": 15.849,
+"end": 16.123
 },
 {
 "word": "is",
-"start": 16.181,
-"end": 16.451
+"start": 16.143,
+"end": 16.416
 },
 {
 "word": "not.",
-"start": 16.471,
-"end": 16.74
+"start": 16.436,
+"end": 16.71
 }
 ]

@@ -2,131 +2,131 @@
 {
 "word": "Heb",
 "start": 0.0,
-"end": 0.294
+"end": 0.297
 },
 {
 "word": "je",
-"start": 0.314,
-"end": 0.607
+"start": 0.317,
+"end": 0.614
 },
 {
 "word": "Marco",
-"start": 0.627,
-"end": 0.921
+"start": 0.634,
+"end": 0.931
 },
 {
 "word": "nou",
-"start": 0.941,
-"end": 1.235
+"start": 0.951,
+"end": 1.248
 },
 {
 "word": "gebeld",
-"start": 1.255,
-"end": 1.549
+"start": 1.268,
+"end": 1.565
 },
 {
 "word": "over",
-"start": 1.569,
-"end": 1.862
+"start": 1.585,
+"end": 1.882
 },
 {
 "word": "de",
-"start": 1.882,
-"end": 2.176
+"start": 1.902,
+"end": 2.198
 },
 {
 "word": "bedrading?",
-"start": 2.196,
-"end": 2.49
+"start": 2.218,
+"end": 2.515
 },
 {
 "word": "Nee.",
-"start": 2.51,
-"end": 2.731
+"start": 2.535,
+"end": 2.832
 },
 {
 "word": "Maar",
-"start": 2.751,
-"end": 2.972
+"start": 2.852,
+"end": 3.149
 },
 {
 "word": "het",
-"start": 2.992,
-"end": 3.213
+"start": 3.169,
+"end": 3.466
 },
 {
 "word": "staat",
-"start": 3.233,
-"end": 3.454
+"start": 3.486,
+"end": 3.783
 },
 {
 "word": "in",
-"start": 3.474,
-"end": 3.695
+"start": 3.803,
+"end": 4.1
 },
 {
 "word": "de",
-"start": 3.715,
-"end": 3.936
+"start": 4.12,
+"end": 4.417
 },
 {
 "word": "app",
-"start": 3.956,
-"end": 4.177
+"start": 4.437,
+"end": 4.734
 },
 {
 "word": "dus",
-"start": 4.197,
-"end": 4.418
+"start": 4.754,
+"end": 5.051
 },
 {
 "word": "het",
-"start": 4.438,
-"end": 4.659
+"start": 5.071,
+"end": 5.368
 },
 {
 "word": "telt.",
-"start": 4.679,
-"end": 4.9
+"start": 5.388,
+"end": 5.685
 },
 {
 "word": "Het",
-"start": 4.92,
-"end": 5.28
+"start": 5.705,
+"end": 6.002
 },
 {
 "word": "telt",
-"start": 5.3,
-"end": 5.66
+"start": 6.022,
+"end": 6.318
 },
 {
 "word": "niet.",
-"start": 5.68,
-"end": 6.04
+"start": 6.338,
+"end": 6.635
 },
 {
 "word": "Bel",
-"start": 6.06,
-"end": 6.42
+"start": 6.655,
+"end": 6.952
 },
 {
 "word": "hem",
-"start": 6.44,
-"end": 6.8
+"start": 6.972,
+"end": 7.269
 },
 {
 "word": "gewoon.",
-"start": 6.82,
-"end": 7.18
+"start": 7.289,
+"end": 7.586
 },
 {
 "word": "Morgen.",
-"start": 7.2,
-"end": 7.715
+"start": 7.606,
+"end": 7.903
 },
 {
 "word": "Echt.",
-"start": 7.735,
-"end": 8.25
+"start": 7.923,
+"end": 8.22
 }
 ]

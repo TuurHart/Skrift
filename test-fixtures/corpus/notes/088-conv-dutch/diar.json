@@ -3,22 +3,22 @@
 {
 "speaker": 0,
 "start": 0.0,
-"end": 2.51
+"end": 2.535
 },
 {
 "speaker": 1,
-"start": 2.51,
-"end": 4.92
+"start": 2.535,
+"end": 5.705
 },
 {
 "speaker": 0,
-"start": 4.92,
-"end": 7.2
+"start": 5.705,
+"end": 7.606
 },
 {
 "speaker": 1,
-"start": 7.2,
-"end": 8.27
+"start": 7.606,
+"end": 8.24
 }
 ],
 "slotNames": {

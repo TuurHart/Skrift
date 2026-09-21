@@ -2,176 +2,176 @@
 {
 "word": "What",
 "start": 0.0,
-"end": 0.253
+"end": 0.307
 },
 {
 "word": "did",
-"start": 0.273,
-"end": 0.527
+"start": 0.327,
+"end": 0.633
 },
 {
 "word": "the",
-"start": 0.547,
-"end": 0.8
+"start": 0.653,
+"end": 0.96
 },
 {
 "word": "frame",
-"start": 0.82,
-"end": 1.073
+"start": 0.98,
+"end": 1.286
 },
 {
 "word": "builder",
-"start": 1.093,
-"end": 1.347
+"start": 1.306,
+"end": 1.613
 },
 {
 "word": "say",
-"start": 1.367,
-"end": 1.62
+"start": 1.633,
+"end": 1.939
 },
 {
 "word": "about",
-"start": 1.64,
-"end": 1.893
+"start": 1.959,
+"end": 2.266
 },
 {
 "word": "the",
-"start": 1.913,
-"end": 2.167
+"start": 2.286,
+"end": 2.593
 },
 {
 "word": "lugs?",
-"start": 2.187,
-"end": 2.44
+"start": 2.613,
+"end": 2.919
 },
 {
 "word": "He",
-"start": 2.46,
-"end": 2.747
+"start": 2.939,
+"end": 3.246
 },
 {
 "word": "can",
-"start": 2.767,
-"end": 3.054
+"start": 3.266,
+"end": 3.572
 },
 {
 "word": "do",
-"start": 3.074,
-"end": 3.361
+"start": 3.592,
+"end": 3.899
 },
 {
 "word": "them",
-"start": 3.381,
-"end": 3.668
+"start": 3.919,
+"end": 4.225
 },
 {
 "word": "but",
-"start": 3.688,
-"end": 3.975
+"start": 4.245,
+"end": 4.552
 },
 {
 "word": "not",
-"start": 3.995,
-"end": 4.282
+"start": 4.572,
+"end": 4.879
 },
 {
 "word": "before",
-"start": 4.302,
-"end": 4.588
+"start": 4.899,
+"end": 5.205
 },
 {
 "word": "spring,",
-"start": 4.608,
-"end": 4.895
+"start": 5.225,
+"end": 5.532
 },
 {
 "word": "and",
-"start": 4.915,
-"end": 5.202
+"start": 5.552,
+"end": 5.858
 },
 {
 "word": "he",
-"start": 5.222,
-"end": 5.509
+"start": 5.878,
+"end": 6.185
 },
 {
 "word": "wants",
-"start": 5.529,
-"end": 5.816
+"start": 6.205,
+"end": 6.511
 },
 {
 "word": "a",
-"start": 5.836,
-"end": 6.123
+"start": 6.531,
+"end": 6.838
 },
 {
 "word": "deposit.",
-"start": 6.143,
-"end": 6.43
+"start": 6.858,
+"end": 7.165
 },
 {
 "word": "How",
-"start": 6.45,
-"end": 6.825
+"start": 7.185,
+"end": 7.491
 },
 {
 "word": "much?",
-"start": 6.845,
-"end": 7.22
+"start": 7.511,
+"end": 7.818
 },
 {
 "word": "Four",
-"start": 7.24,
-"end": 7.605
+"start": 7.838,
+"end": 8.144
 },
 {
 "word": "hundred.",
-"start": 7.625,
-"end": 7.989
+"start": 8.164,
+"end": 8.471
 },
 {
 "word": "And",
-"start": 8.009,
-"end": 8.374
+"start": 8.491,
+"end": 8.797
 },
 {
 "word": "he",
-"start": 8.394,
-"end": 8.758
+"start": 8.817,
+"end": 9.124
 },
 {
 "word": "only",
-"start": 8.778,
-"end": 9.143
+"start": 9.144,
+"end": 9.451
 },
 {
 "word": "takes",
-"start": 9.163,
-"end": 9.527
+"start": 9.471,
+"end": 9.777
 },
 {
 "word": "a",
-"start": 9.547,
-"end": 9.912
+"start": 9.797,
+"end": 10.104
 },
 {
 "word": "bank",
-"start": 9.932,
-"end": 10.296
+"start": 10.124,
+"end": 10.43
 },
 {
 "word": "transfer,",
-"start": 10.316,
-"end": 10.681
+"start": 10.45,
+"end": 10.757
 },
 {
 "word": "no",
-"start": 10.701,
-"end": 11.065
+"start": 10.777,
+"end": 11.083
 },
 {
 "word": "card.",
-"start": 11.085,
-"end": 11.45
+"start": 11.103,
+"end": 11.41
 }
 ]

@@ -1,0 +1,53 @@
+{
+  "id": "9B34A9BB-3360-562D-A0F7-4B9DAED23F7E",
+  "slug": "share-voicememo-named",
+  "kind": "voice",
+  "lang": "en",
+  "shape": [
+    "voice",
+    "share",
+    "voice-memo",
+    "title"
+  ],
+  "title": "kiln idea",
+  "recordedAt": "2026-09-10T07:40:00+01:00",
+  "createdAt": "2026-09-16T09:20:00+01:00",
+  "editedAt": null,
+  "duration": 6.97,
+  "audio": "audio.m4a",
+  "transcript": "Kiln idea, quick. What if the glazing evening is the product and the workshop is the free part. People pay to come back.",
+  "transcriptStatus": "done",
+  "transcriptConfidence": 0.94,
+  "transcriptUserEdited": false,
+  "transcriptMarkersInjected": false,
+  "significance": 0.7,
+  "tags": [
+    "workshop",
+    "idea"
+  ],
+  "destination": "idea",
+  "locked": false,
+  "deletedAt": null,
+  "trashSeenAt": null,
+  "keptAt": null,
+  "remindAt": null,
+  "recordingDeviceID": null,
+  "annotationText": null,
+  "metadata": {
+    "mediaSource": "share-audio",
+    "capturedAt": "2026-09-10T07:40:00+01:00",
+    "tags": [
+      "workshop",
+      "idea"
+    ]
+  },
+  "sharedContent": null,
+  "photos": [],
+  "sharedFile": null,
+  "wordTimings": "word_timings.json",
+  "diarization": null,
+  "enhancement": null,
+  "expect": {
+    "bug": "A Voice Memo he named 'kiln idea.m4a': v1 renames the blob before the app sees it and the name is lost. Expected (C126): the name is the note title."
+  }
+}
