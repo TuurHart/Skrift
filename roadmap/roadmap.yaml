@@ -715,7 +715,7 @@ nodes:
       CONTINUE HERE 2026-09-18."
     backlog:
       - {text: "synthetic corpus — 106 notes, every shape, fictional roster, spoken audio; seedable on both apps (-corpus)", done: 2026-09-21}
-      - recorded model outputs for the LLM stage (blocked: app targets don't build on Xcode 27.0, mlx-swift-lm FM-27 SDK break)
+      - recorded model outputs for the LLM stage over the corpus (Mac MLX build green again after the mlx-swift-lm pin bump to #544 for Xcode 27.0)
       - ingress corpus — one real source file per media type (WhatsApp/Signal/Telegram audio, video, web/YouTube/Instagram URLs, text/image/PDF, Apple Notes, audiobook, Mac import), network recorded
       - {text: "whole-project spec extraction (plan/extraction, 5 reports) + SPEC.md draft (122 clauses, 34 open decisions) + gate.sh", done: 2026-09-21}
       - Tuur's spec sitting (/1-spec audit over SPEC.md, D1–D34), then /2-plan → QUEUE.md

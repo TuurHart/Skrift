@@ -618,13 +618,13 @@ includes the TestFlight branch — landed + pushed this session). **No v2 code y
    open decisions with proposed defaults) + **`gate.sh`** (desktop unit suite, measured GREEN
    769/0). Tuur's new asks are in: quick note (C112) + Apple-Notes-grade editor on body v2 (C113).
 
-**BLOCKED — the app targets don't compile on this Mac.** Xcode 27.0 arrived 2026-09-15;
-mlx-swift-lm's `MLXFoundationModels` (pulled in by `MLXHuggingFace` via a default trait) fails
-against the FM-27 SDK (`MLXLanguageModel.swift:565 extraneous argument label 'capabilities:'`).
-Upstream main (3cbf928b) fails identically, so the pin stays at e6e3de75. The phone corpus
-test is WRITTEN but unrun; the full Mac MLX build + golden recording are unrun. Ways out:
-Xcode 26 beside 27 (`DEVELOPER_DIR`), an upstream fix, or disabling the trait. Tuur's call.
-The MLX-free `UnitTests` scheme (the gate) is unaffected.
+**Xcode 27.0 broke every app target — FIXED by a pin bump.** Xcode 27.0 arrived 2026-09-15;
+mlx-swift-lm at the e6e3de75 floor (and even the stale upstream main) fails on the FM-27 SDK
+(`MLXLanguageModel.swift:565 extraneous argument label 'capabilities:'`). Upstream PR #544
+(merged 2026-08-22) fixes it; both `project.yml`s now pin `14414441` (71 commits above the
+floor, the smallest fixing commit). Proven: phone corpus test green on the iPhone 17 sim, full
+Mac MLX app build green. OWED: an iPad Polish load re-check (Gemma code moved), the full phone
+unit suite before a device push, and the golden recording of model outputs over the corpus.
 
 **NEXT CHAT:** run `/1-spec` in AUDIT mode over `SPEC.md` with Tuur — the 34 "Open decisions"
 first (D1–D10 block the body/copy-edit v2), then strike outdated clauses. Then `/2-plan`. The

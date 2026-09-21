@@ -35,7 +35,7 @@ packages:
     url: https://github.com/ml-explore/mlx-swift-lm
     # Same pin as the desktop — see its project.yml for why e6e3de75 is a FLOOR, not a
     # preference (KV-shared Gemma4 loading; below it the iPad's Polish cannot load).
-    revision: e6e3de754c072d2e688a36fe9265f1a366255366
+    revision: 14414441fa44f45eee35a61e9fa0bab577cf9734
   swift-huggingface:
     url: https://github.com/huggingface/swift-huggingface
     from: "0.9.0"

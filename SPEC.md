@@ -649,4 +649,5 @@ Weaver, dictate-anywhere, Apple Watch, voice search, re-ingest of the Electron-e
 ## Gate — measured
 
 - 2026-09-21 `./gate.sh` → GREEN: desktop unit suite 769 tests, 0 failures, 3.2 s of test
-  time (build excluded). Phone corpus test: see backlog "CONTINUE HERE 2026-09-21".
+  time (build excluded). Phone corpus test green on the iPhone 17 sim; full Mac MLX build
+  green (after the mlx-swift-lm pin bump for Xcode 27.0).
