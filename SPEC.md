@@ -91,9 +91,13 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C11 [auto] A timed picture lands after the sentence being spoken at `offsetSeconds`
   (sentence end, not nearest word). || check: `pic-mid-sentence` → marker after "…the
   glaze." — B:679, decisions:450
-- C12 [auto] A picture with no moment (shared, editor-inserted, video frame) goes to the TOP
-  of the note as its own paragraph. || check: `cap-image-voice-ramble`, `pic-shared-no-
-  timestamp` → body starts with the marker. ⚠ needs-verdict D2 — B:695
+- C12 [auto] A picture with no moment of its own keeps its PLACE IN THE SEQUENCE it arrived
+  in: in a multi-item share it lands between the clips or texts it sat between (share order);
+  a picture inserted in the editor lands at the caret; a lone shared picture, a video frame,
+  or a picture with nothing around it goes to the TOP of the note. || check: ingress P3
+  fixture (5 clips + 1 picture between clip 3 and 4 → picture paragraph between transcript
+  3 and 4); `cap-image-voice-ramble`, `video-*` → body starts with the marker. ⚠ needs-verdict
+  D2 — B:695, Tuur 2026-09-21 (the WhatsApp probe)
 - C13 [auto] Two pictures in the same second are two consecutive picture paragraphs in
   manifest order; none merged, none dropped. || check: `pic-two-same-second`.
 - C14 [auto] The marker is `[[img_NNN]]`, `%03d`, 1-based into `imageManifest`; deleting a
@@ -460,6 +464,85 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
   containers and the Dev vault is the test vault. || check: `AppPaths` dev suffix;
   `-corpus` refuses a path under his real vault.
 
+### Messenger shares — added 2026-09-21 after Tuur's WhatsApp probe
+
+- C123 [auto] A share from a messenger can carry the SENDER: a name field on the share sheet
+  (optional, remembered per chat when the share carries a hint), editable later in the note;
+  the name is a person mention like any other (links if on the roster, else plain) and
+  exports into `people:` when linked. || check: ingress P1/P3 fixtures with a sender set.
+  — Tuur 2026-09-21 ("can just be filled in on the share screen or later in the note")
+- C124 [auto] A merged multi-clip note keeps its message boundaries: each clip starts a new
+  paragraph; the note is dated to the FIRST message (filename date, C70) and each clip's
+  own time is kept in the manifest. || check: ingress P1 5-clip fixture → 5 paragraphs.
+  ⚠ needs-verdict D35 (show the per-message time in the body or not)
+- C125 [auto] Several text messages in one share keep their order among the clips and
+  pictures; none is dropped. || check: ingress P3 fixture with 2 texts. ⚠ required difference
+  (today only the first text survives)
+- C126 [auto] A Voice Memo shared with its own name ("kiln idea.m4a") keeps that name as the
+  note's title; a messenger filename is never a title. || check: ingress P1 named-memo
+  fixture. ⚠ required difference (the extension renames every blob before the app sees it)
+- C127 [auto] Sharing the same file twice yields one note (same bytes → same note), with a
+  "already in Skrift" notice. || check: share the WhatsApp fixture twice. ⚠ needs-verdict D36
+- C128 [auto] The WhatsApp / Signal chat-export zip is NOT an ingress path in v2 (parked;
+  it is the only carrier of sender names and exact order). || check: `.zip` shares refuse
+  honestly. ⚠ needs-verdict D37
+
+### The archive contract — Skrift ↔ the portfolio repo (`~/Hackerman/Tiurihartog.com`)
+
+The archive's own rules (its `portfolio/README.md`, `.claude/rules/portfolio.md`, `_ideas/`
+and `_inbox/` READMEs, `docs/SKRIFT-REQUEST.md`, roadmap ideas i14/i16/i29/i43/i50) read
+2026-09-21. Skrift is the CAPTURE pipeline; the archive is where captured ideas LIVE
+("I need a place to capture them and a place to put the ones I have captured", 2026-08-26).
+The interview loop, sorting into item folders, links and layers happen on the archive side,
+never in Skrift ("then you can't have immediate AI back and forth" — rejected).
+
+- C129 [auto] What Skrift writes for Made / Idea / Inspiration is exactly what the archive
+  stores: one flat markdown file, media beside it sharing its basename, no folder per entry;
+  `![](file)` relative embeds only, never `![[…]]`. || check: `ArchiveExportTests`; corpus
+  `dest-*`. — portfolio/README, _ideas/README
+- C130 [auto] Archive frontmatter is flat YAML: one line per value, no `: ` inside a plain
+  value (reword, never quote), block lists never `[a, b]`; keys Skrift may write: `title`
+  (only when HE gave one), `added`, `capture`, `voice`, `tags`, `people`, `location`,
+  `credit` (shape `- <who> — <what they did>[, <url>]`), `needs`, the stamp trio. Skrift never
+  writes `type`, `source`, `author`, `summary`, `confidence`, `status`, `layer`, `shortlist`.
+  || check: every corpus `dest-*` export parses with the archive's own parser
+  (`capture/tools/vault_index.py`). ⚠ required difference (v1 writes `summary:` into the
+  archive; the archive dropped it 2026-08-26) — portfolio/README, rules:496-498
+- C131 [auto] THE AUTHORSHIP LINE: everything above the closing `---` is the machine's,
+  everything below is HIS. An archive-bound body is never a generated text: no LLM title in
+  the body, no summary, no invented words; `voice: raw` = the transcript verbatim,
+  `voice: cleaned` = grammar and punctuation only, his words in his order, diffable against
+  the raw; `voice: written` = typed, untouchable. NO GLUE: cutting only, never connective
+  words. || check: for every archive-bound corpus note, every word of the cleaned body
+  appears in the raw body in the same order. ⚠ needs-verdict D38 (does Skrift's copy-edit,
+  which removes fillers and repeats and re-paragraphs, count as `cleaned`? or do archive
+  notes ship `raw`?) — rules:192-223
+- C132 [auto] The file's NAME is not his words either: an archive entry is named by its
+  timestamp (`2026-08-26-142312.md`) unless he typed a title; a generated title never
+  becomes a basename. || check: `dest-idea` (no user title) → timestamp name. ⚠ required
+  difference (v1 slugs the generated title) ⚠ needs-verdict D39 — _ideas/README vs B:2794
+- C133 [auto] Destination is one of four, single-select; "Personal" never reaches the
+  archive; Made → `_inbox/`, Idea → `_ideas/`, Inspiration → `_inspiration/`; anything else
+  that is also true rides as an ordinary tag. The line between Idea and Inspiration is
+  INTENT: a want of his in the entry makes it an idea even when the object is someone
+  else's. || check: corpus `dest-*`. — _inbox/README, rules:537-547
+- C134 [auto] Credit is captured as a PHOTOGRAPH, not typed: an extra picture of the label
+  travels with the entry; an Inspiration, or an Idea tagged `inspiration`, carries
+  `needs: - credit` so a later archive pass fills `credit:` or keeps the need. Skrift never
+  guesses a maker. || check: `dest-inspiration-credit`, `typed-reserved-word-tags`.
+  — rules:549-569
+- C135 [auto] Empty body is a valid, common archive state (a bare picture); Skrift exports
+  it without inventing a sentence. || check: `cap-image-no-words` with destination idea.
+- C136 [auto] The archive-bound export carries the ORIGINAL audio beside the note (he
+  reuses audio in videos) and never a video file. || check: `dest-made` export folder.
+- C137 [auto] `people:` and `[[names]]` stay in archive exports (public site, credit his
+  friends); places do not. — Tuur 2026-08-27, don't fix back
+- C138 [tuur] The reverse direction — ideas coming BACK into Skrift to explore them with AI,
+  or Skrift attaching a capture to an existing archive item — is undecided (i43, i14).
+  ⚠ needs-verdict D40
+- C139 [tuur] "AI reads this" is a statement about the archive repo only; what reads it
+  (the teleprompter sessions, Claude in that repo) is the archive's contract, not Skrift's.
+
 ---
 
 ## Required differences (pre-registered bugs — v2 matching v1 here FAILS)
@@ -576,6 +659,25 @@ Not blocking v2, but he asked for one sitting:
     Default: archive all but `FEATURES.md` and `BUGS.md` (kept as ledgers until v2 lands),
     and repoint `CLAUDE.md`.
 
+35. **D35 Per-message times in a merged messenger note**: show each clip's time as a small
+    line above its paragraph, or keep times only in the manifest? Default: manifest only.
+36. **D36 Same file shared twice**: one note + notice (default), or two notes as today.
+37. **D37 Chat-export zip import** (WhatsApp/Signal "Export chat"): the only way to get sender
+    names and exact order automatically. Default: parked; the share-sheet name field (C123)
+    covers the common case.
+38. **D38 Is Skrift's copy-edit "cleaned" by the archive's rule?** The archive says cleaned =
+    grammar and punctuation only, diffable, no glue. Skrift's copy-edit drops fillers and
+    repeats and re-paragraphs. Default: archive-bound notes ship `voice: raw` plus a Skrift
+    copy-edit that is CUT-ONLY (every kept word in the raw, same order) as `cleaned`; the
+    Personal vault keeps today's copy-edit.
+39. **D39 Archive filenames**: timestamp basename (the archive's own shape) vs the generated
+    title slug Skrift writes today. Default: timestamp unless he typed the title.
+40. **D40 Ideas back into Skrift** (i43): does Skrift ever read the archive (to attach a
+    capture to an existing item, or to bring an idea back for exploring)? Default: not in v2;
+    the archive side reads Skrift's files, never the reverse.
+41. **D41 `_inbox/Skrift/` or flat `_inbox/`**: the archive README says Skrift lands in
+    `_inbox/Skrift/`; Skrift writes flat `_inbox/<name>.md`. Default: flat, and fix the README.
+
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
 commonplace book, folders model, watched-folder ingest, substitutions list, Backlink
@@ -612,6 +714,11 @@ Weaver, dictate-anywhere, Apple Watch, voice search, re-ingest of the Electron-e
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-21 Sender name on a messenger share: "can just be filled in on the share screen or
+  later in the note itself" — a field, not a fetch.
+- 2026-09-21 The archive contract is part of this spec: "Skrift and that one are growing
+  towards each other here, so there is a tricky grey area" — the grey area is written down
+  as C129–C139 and D38–D41, not guessed.
 - 2026-09-21 Dev only during the rewrite; v2 beside v1; nothing lost (branch, tag before
   each swap, v1 deleted in its own commit).
 - 2026-08-27 The archive keeps `[[names]]` — "credit where credit is due"; don't fix back.
