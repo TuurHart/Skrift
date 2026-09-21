@@ -109,6 +109,9 @@ Rules:
 
 ## Ledgers (read to resume)
 
+- **`SPEC.md`** — ⭐ the constitution (drafted 2026-09-21, awaiting Tuur's sitting): Point,
+  done-means, 122 marked clauses, required differences, open decisions. `./gate.sh` is the gate.
+  Sources: `plan/extraction/*.md`. Corpus: `test-fixtures/corpus/` (synthetic, `-corpus <path>`).
 - **`FEATURES.md`** — cross-app feature source of truth (every feature × {mobile, desktop} ×
   file × status). **Update it in the same commit whenever you add or change a feature.**
 - **`backlog.md`** — THE working ledger: feature decisions, device-test findings/verdicts, fix

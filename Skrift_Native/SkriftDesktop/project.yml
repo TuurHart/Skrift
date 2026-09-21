@@ -29,6 +29,11 @@ packages:
     # .self_attn.k_proj.weight not found" — which is what broke Polish on the iPad while
     # the Mac's June cache of the OLD upload kept working. It also sanitizes the redundant
     # tensors out of that old upload, so it loads either revision. Do not drop below this.
+    # ⚠ 2026-09-21: Xcode 27.0 (installed 2026-09-15) cannot compile this package's
+    # MLXFoundationModels ("extraneous argument label 'capabilities:'", FM-27 GM SDK change);
+    # upstream main 3cbf928b fails identically, so the pin stays. The APP targets are blocked on
+    # this Mac until upstream fixes it or Xcode 26 is installed beside 27 (DEVELOPER_DIR).
+    # The MLX-free UnitTests scheme is unaffected.
     revision: e6e3de754c072d2e688a36fe9265f1a366255366
   swift-huggingface:
     url: https://github.com/huggingface/swift-huggingface

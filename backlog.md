@@ -596,6 +596,43 @@ survives" device round is still owed and would have caught this.
 
 ---
 
+## ⭐ CONTINUE HERE — 2026-09-21 → the corpus + spec draft EXIST; next = Tuur's spec sitting
+
+Branch `claude/skrift-v2-core-rewrite-564928` (on top of `main` = `f150455a`, which now
+includes the TestFlight branch — landed + pushed this session). **No v2 code yet, on purpose.**
+
+**Done this session:**
+1. **The synthetic corpus** — `test-fixtures/corpus/` (gitignore carve-out): 106 notes, every
+   shape (33 typed · 45 voice · 14 with pictures · 15 captures · 3 video · 5 conversations ·
+   5 audiobook quotes · Apple-Note shapes · 4 destinations · edges), a fictional roster of 13
+   people, spoken audio for the 58 voice-shaped notes (`say` → AAC, 17 min), synthetic word
+   timings + diarization, generated photos/PDF. Authored in `src/notes_*.py`, built by
+   `generate.py` (deterministic ids/dates). Loader `Shared/Corpus/CorpusSeed.swift` (DEBUG):
+   `-corpus <path>` on either app. Mac test seeds all 106 and proves rate→row over every note.
+2. **The spec extraction** — `plan/extraction/{ledgers,bugs-preregistered,code-core,ingress,
+   mocks-roadmap,decisions}.md` (2,800 lines; five parallel readers): ~1,200 rules tagged
+   mechanical/locked/needs-verdict, 112 pre-registered bugs, 30 ingress paths, a v1 file
+   inventory with line counts per rewrite target (body 7,940 · copy-edit 2,674 · reconcile
+   5,297 · export 2,734 → 40% budget ≈ 7,460), 54 invariants, 72 mocks with status.
+3. **`SPEC.md` DRAFT** (122 clauses in the /1-spec format, 15 required differences, 34 numbered
+   open decisions with proposed defaults) + **`gate.sh`** (desktop unit suite, measured GREEN
+   769/0). Tuur's new asks are in: quick note (C112) + Apple-Notes-grade editor on body v2 (C113).
+
+**BLOCKED — the app targets don't compile on this Mac.** Xcode 27.0 arrived 2026-09-15;
+mlx-swift-lm's `MLXFoundationModels` (pulled in by `MLXHuggingFace` via a default trait) fails
+against the FM-27 SDK (`MLXLanguageModel.swift:565 extraneous argument label 'capabilities:'`).
+Upstream main (3cbf928b) fails identically, so the pin stays at e6e3de75. The phone corpus
+test is WRITTEN but unrun; the full Mac MLX build + golden recording are unrun. Ways out:
+Xcode 26 beside 27 (`DEVELOPER_DIR`), an upstream fix, or disabling the trait. Tuur's call.
+The MLX-free `UnitTests` scheme (the gate) is unaffected.
+
+**NEXT CHAT:** run `/1-spec` in AUDIT mode over `SPEC.md` with Tuur — the 34 "Open decisions"
+first (D1–D10 block the body/copy-edit v2), then strike outdated clauses. Then `/2-plan`. The
+ingress corpus (real files through the real share code) is a joint device session AFTER the
+verdicts D14–D19 exist. Not to redo: the extraction, the corpus, the TestFlight land.
+
+---
+
 ## ⭐ CONTINUE HERE — 2026-09-18 → the v2 CORE REWRITE (spec-first, judged by output diffs)
 
 **Decision (Tuur, 2026-09-18):** rewrite the CORE of Skrift as a v2, one subsystem at a time,

@@ -21,6 +21,8 @@ names database (bidirectional last-write-wins):
 | `CLAUDE.md` | How the repo is run + conventions + build/run commands |
 | `SKRIFT_SOURCE_OF_TRUTH.md` | ⭐ Canonical record — timeline, state, decisions, contracts, resolved contradictions. **Start here.** It indexes the deep docs by `file:line`. |
 | `roadmap/roadmap.yaml` | The live plan (done / now / next), rendered by the Tiuri Command Center |
+| `SPEC.md` | The constitution — point, done-means, marked clauses, open decisions; `gate.sh` beside it |
+| `test-fixtures/corpus/` | The synthetic note corpus (106 notes) the v2 rewrite is judged on |
 | `backlog.md` | The working ledger — feature decisions, device-test verdicts, bug status, resume points |
 | `BUGS.md` | Every open bug in one list, worst first — pulled out of the ledger, each re-checked against source |
 | `FEATURES.md` | Feature matrix (every feature × {mobile, desktop} × file × status) |

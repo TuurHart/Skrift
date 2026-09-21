@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 45
-updated: 2026-09-18T12:00:00.000Z
+updated: 2026-09-21T16:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -714,9 +714,11 @@ nodes:
       delete; 'a picture is always its own paragraph'). Board = backlog ⭐
       CONTINUE HERE 2026-09-18."
     backlog:
-      - synthetic corpus (~100 notes covering every shape, never his real notes) + recorded model outputs
+      - {text: "synthetic corpus — 106 notes, every shape, fictional roster, spoken audio; seedable on both apps (-corpus)", done: 2026-09-21}
+      - recorded model outputs for the LLM stage (blocked: app targets don't build on Xcode 27.0, mlx-swift-lm FM-27 SDK break)
       - ingress corpus — one real source file per media type (WhatsApp/Signal/Telegram audio, video, web/YouTube/Instagram URLs, text/image/PDF, Apple Notes, audiobook, Mac import), network recorded
-      - whole-project spec extraction (mechanical / locked / needs-verdict), then Tuur's sitting
+      - {text: "whole-project spec extraction (plan/extraction, 5 reports) + SPEC.md draft (122 clauses, 34 open decisions) + gate.sh", done: 2026-09-21}
+      - Tuur's spec sitting (/1-spec audit over SPEC.md, D1–D34), then /2-plan → QUEUE.md
       - body/image model v2 behind the diff gate
       - copy-edit pipeline v2
       - reconcile sweep v2
