@@ -272,9 +272,11 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C66 [auto] Every share jumps to its note on the next app-open; every share offers the
   rating; audio shares carry no annotation field. || check: `CaptureInboxDrainer` tests.
   — ledgers:167-168
-- C67 [auto] Attachments from ALL extension items enter the dispatcher (WhatsApp ships a
-  multi-select as several items; today only the first is read). || check: a 3-item share
-  yields 3 clips. ⚠ required difference — ingress P1, B:5215
+- C67 [auto] Attachments from ALL extension items AND all providers of an item enter the
+  dispatcher, the extension-fallthrough audio branch included (WhatsApp ships a multi-select
+  as several items; Signal as several providers; today only the first is read). || check: a
+  3-item WhatsApp share → 3 clips; 4 Signal notes → 4 clips. ⚠ required difference — ingress
+  P1/P2, B:5215, scenarios #1 #13
 - C68 [auto] N voice notes → chooser "One note" (default: clips merged in chat order, one
   transcription pass) or "N notes"; N photos → always one note; a mixed bundle (clips +
   photos + text) → one note with the pictures per C12 and the chat text as the body's
@@ -292,10 +294,12 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
   discarded on the phone (kept as `source.<ext>` on the Mac, never synced), `recordedAt` =
   filming date, `sourceType = "video"` read by the list glyph. || check: corpus `video-*`;
   ingress P8. ⚠ required difference (glyph key drift `sourceType` vs `mediaSource`) — ingress P8
-- C72 [auto] URL capture: title/description/thumbnail fetched ONCE on drain (one GET, no JS,
-  local thumbnail, article text search-only); no title → the host as title, never the raw
-  URL. || check: ingress P5 fixtures replayed from the recording; corpus `cap-url-no-title`.
-  ⚠ needs-verdict D14/D15 on YouTube / Instagram — ledgers:186-187
+- C72 [auto] URL capture: title/description/thumbnail fetched on drain (one GET, no JS, local
+  thumbnail, article text search-only); a failed fetch (metro, offline) is retried at the next
+  foreground with network, at most three times; no title → the host as title, never the raw
+  URL. || check: ingress P5 fixtures replayed from the recording, incl. a failed first GET;
+  corpus `cap-url-no-title`. ⚠ needs-verdict D14/D15 on YouTube / Instagram; D42 on the
+  retry — ledgers:186-187, scenarios #10
 - C73 [auto] PDF link → downloaded file capture (magic-byte check) with extracted text;
   `.txt/.md` share → the note body; PDF/doc share → file capture, the document syncs as an
   asset, its text is searchable. || check: ingress P5.1/P10/P11; corpus `cap-file-*`.
@@ -345,8 +349,12 @@ The v2 diff harness joins the gate when the first subsystem lands (C-V2 below).
 - C87 [auto] The rating is consent: 0 = unrated → no processing, no export, no Connections,
   fades; playable, searchable, editable like any note. ONE predicate (`NoteConsent.isRated`)
   for both apps. || check: `NoteConsentTests`; corpus `voice-en-unrated-*`. — decisions:143
-- C88 [auto] Rating is a one-way door on a synced pipelined note (un-rating keeps the row);
-  Mac-local takes are two-way. Decided as-is. || check: `WayOutRules` tests. — decisions:146
+- C88 [auto] Rating is a one-way door on a synced pipelined note: un-rating keeps the ROW but
+  drops it from the process queue and stops every export; a pending pass on an unrated row
+  never runs. Mac-local takes are two-way. || check: corpus `voice-en-rated-then-unrated`.
+  ⚠ required difference (today `needsProcessing` ignores the rating, `WayOutRules.swift:102`,
+  so the Mac polishes an unrated note — C87 and the old C88 contradicted each other)
+  — decisions:146, scenarios #31
 - C89 [auto] ONE clock: `clockStart = max(recordedAt, keptAt)`; touch restarts 30 days;
   fading at 30, Recently Deleted at 60, gone 14 seen-days later; rated / locked / reminder /
   backlinked notes never fade; final doors move only at an app-open. || check:
@@ -546,6 +554,96 @@ never in Skrift ("then you can't have immediate AI back and forth" — rejected)
 - C139 [tuur] "AI reads this" is a statement about the archive repo only; what reads it
   (the teleprompter sessions, Claude in that repo) is the archive's contract, not Skrift's.
 
+### From the 50-scenario probe (plan/extraction/scenarios.md, 2026-09-21) — proposed, unconfirmed
+
+Ingress:
+- C140 [auto] A Live Photo is a picture: the still is taken, the paired movie ignored. || check:
+  ingress P9-live-photo. — scenarios #4
+- C141 [auto] An image share with a text provider keeps the text as the annotation above the
+  pictures (WhatsApp photo + caption); no branch drops another provider's text. || check:
+  ingress P9-photo-with-caption. ⚠ required difference — scenarios #5
+- C142 [auto] An email share (`.eml` / Mail) is a text capture: title = Subject, body = the plain
+  text, `recordedAt` = the Date header, sender per C123, attachments as files. || check:
+  ingress P10-email. ⚠ needs-verdict D43 — scenarios #6
+- C143 [auto] A Notes-app share (text + images) is one note: text as the body, pictures per C12.
+  || check: ingress P7-apple-note-share. — scenarios #7
+- C144 [auto] Selected text + page URL is a text capture carrying the url and title, no fetch;
+  a Maps link is a link capture with the place as location and title, no fetch. || check:
+  ingress P6, P5.2. — scenarios #8 #9
+- C145 [auto] Open-in and AirDrop show the same slim sheet (rating + sender) before the jump
+  and date from the filename (C70); the in-app Files importer offers the One-note / N-notes
+  chooser for several audio files. || check: AirDropped Signal `.aac`; three m4a via Files.
+  ⚠ required difference — scenarios #11 #12
+- C146 [auto] A `.skriftbook` arriving through the share sheet goes to the book importer, never
+  a file card. || check: ingress P18-via-share. — scenarios #14
+- C147 [auto] A share entry is deleted only after its memo is saved, for every type; a re-drain
+  is idempotent (memo id from the entry). || check: drainer test that throws after the delete.
+  ⚠ required difference (a kill in that window loses the clips today) — scenarios #19
+- C148 [tuur] A video filed Made / Idea / Inspiration keeps the source movie as a synced asset so
+  the archive gets it; Personal videos keep discarding it. ⚠ needs-verdict D44 — scenarios #18
+
+Recording and copy-edit:
+- C149 [auto] An interruption (call, Siri, alarm) is a pause: the recording clock stops and photo
+  offsets read that clock, so a picture taken after the call lands where it was taken. || check:
+  corpus `pic-after-interruption`. ⚠ required difference (offsets are wall-clock today,
+  `RecordView.swift:453`) — scenarios #21
+- C150 [auto] A long note is never shipped unedited because it is long: over half the token cap,
+  copy-edit runs per paragraph block (≤ 1,500 words, at paragraph boundaries), each block under
+  C31–C34, re-joined in order. || check: corpus `voice-en-forty-minutes`. ⚠ needs-verdict D45
+  — scenarios #22
+- C151 [auto] A transcript carries the ASR language mode it was made with, and a per-note
+  "Transcribe again in Dutch / English" verb exists; the global setting is only the default.
+  || check: corpus `voice-nl-recorded-in-english-mode`. ⚠ needs-verdict D46 — scenarios #23
+- C152 [auto] Text appended to a polished note (append recording, capture ramble) appears in the
+  body he sees and sends the note back for a pass that polishes only the new block. || check:
+  corpus `voice-en-append-after-polish`. ⚠ required difference (today the append writes only
+  the raw transcript, `MemoSaver.swift:657`, while every screen shows the polished body: the
+  new words are invisible) — scenarios #27
+
+Sync and lifecycle:
+- C153 [auto] A raw edit newer than the row's `enhancedAt` sends the row back to pending; the
+  phone shows the edit until the next pass. || check: `MemoCloudUpdateTests` post-run race.
+  — scenarios #28
+- C154 [auto] Another device's `.transcribing` memo is taken over after 30 minutes when its audio
+  is present and the recorder has gone quiet. || check: aged corpus note. ⚠ needs-verdict D47
+  — scenarios #30
+- C155 [auto] Sync health is visible: a CloudKit quota or sign-in failure shows on the list within
+  a minute and on the note as "not synced yet". || check: injected quota error. ⚠ needs-verdict
+  D48 — scenarios #34
+- C156 [tuur] Trashing an exported note leaves the vault file and says so; Delete Now offers to
+  remove the file when it is ours and untouched. ⚠ needs-verdict D49 (was D-parked "should
+  trashing delete the .md") — scenarios #35
+- C157 [auto] A purge deletes the note's polish row and every asset; a Mac row whose memo is gone
+  is trashed on the next sweep, never its vault file. || check: purge test; orphan-row sweep test.
+  ⚠ required difference (`NotesRepository.swift:112-126` keeps the enhancement) — scenarios #36
+- C158 [auto] A picture removed from the body is removed from the vault on the next export when
+  the file is ours and untouched; the manifest entry stays (C14). || check: corpus
+  `pic-deleted-after-export`. — scenarios #39
+
+Names:
+- C159 [auto] A roster change (add, alias, rename) re-derives links for every processed row on the
+  Mac once, deterministically, and re-exports the untouched vault files we own; a rename rewrites
+  `[[Old]]` → `[[New]]` and `people:` there; edited or foreign files are never touched. || check:
+  corpus `voice-en-bruno-before-roster` ×3; rename golden. ⚠ required difference (today only the
+  open note re-scans; phone and Mac exports diverge after a rename) resolves D32 — scenarios #40 #41
+
+Audiobooks, locks, reminders, export:
+- C160 [auto] A captured quote can be corrected ("Fix quote" on the phone); the corrected block is
+  the escrowed quote everywhere; attribution unchanged. || check: edited-quote golden.
+  ⚠ needs-verdict D50 — scenarios #45
+- C161 [auto] Locking seals: a locked note is not polished on any device; locking an exported note
+  says the plaintext file still exists and offers to remove it when ours and untouched. || check:
+  corpus `typed-locked` + a ledger entry. (resolves D10 by default) — scenarios #46
+- C162 [tuur] A reminder set on any device rings on the device he is holding; the first
+  acknowledgement clears the others. ⚠ needs-verdict D51 — scenarios #47
+- C163 [auto] Changing an exported note's destination removes the old file when ours and
+  untouched, then writes the new one; if the old file was edited or moved, the change is refused
+  with the file named. A Personal note never remains in the archive. || check: corpus `dest-idea`
+  re-filed Personal. ⚠ required difference (per-folder ledgers leave the old file today,
+  `VaultWrite.swift:27-100`) — scenarios #48
+- C164 [tuur] A retitle never renames the exported file; switching the vault folder never moves
+  old exports (new notes go to the new folder; Settings says so). Stated as-is. — scenarios #49 #50
+
 ---
 
 ## Required differences (pre-registered bugs — v2 matching v1 here FAILS)
@@ -570,6 +668,15 @@ rewrite targets, each with its corpus note and the expected output:
 | R13 | Mac silently drops PDF/image/URL/ePub/flac | honest refusal | ingress M | C77 |
 | R14 | `ensureParagraphs` passes a 7k output with 2 stray breaks | judged per block | `voice-en-asr-wall` | C34 |
 | R15 | `date:` differs phone vs Mac near midnight | one rule | export diff | C64 |
+| R16 | append to a polished note is invisible (writes raw only) | appended text shown + re-polished | `voice-en-append-after-polish` | C152 |
+| R17 | un-rated note still polished by the Mac | queue drops it, exports stop | `voice-en-rated-then-unrated` | C88 |
+| R18 | purge leaves the polish row; Mac keeps an orphan row | row + assets gone; orphan row trashed | purge test | C157 |
+| R19 | photo offsets after a call pile at the end | offsets follow the recording clock | `pic-after-interruption` | C149 |
+| R20 | re-filing Idea → Personal leaves the file in the archive | old file removed when ours | `dest-idea` re-filed | C163 |
+| R21 | rename a person: Mac rows and vault files keep `[[Old]]` | rewritten everywhere we own | rename golden | C159 |
+| R22 | only the first text of a mixed share survives; caption dropped on photo+caption | all texts, in order | ingress P3, P9-caption | C125, C141 |
+| R23 | a kill during the share drain loses the clips | entry deleted only after save | drainer kill test | C147 |
+| R24 | AirDrop / Files import skip the sheet and the filename date | same sheet, same date ladder | AirDropped Signal `.aac` | C145 |
 
 Outside the targets, fixed in v1 now, not waited on: D4 lost recording (C99), semantic
 search silent empty (C110), Mac search jump (C111), audiobook edit-sync / seek-persist /
@@ -583,6 +690,10 @@ items under "Already fixed" in `plan/extraction/bugs-preregistered.md`.
 ## Open decisions — the sitting (numbered; each with my proposed default)
 
 Blocking the first rewrite target (body/image + copy-edit):
+
+(The 50 traced scenarios behind the newer items: `plan/extraction/scenarios.md`; the
+corpus and ingress fixtures they call for are listed at its end and are queue items, not
+spec.)
 
 1. **D1 Picture = its own paragraph, enforced at write** (C10). Default: yes. The backlog
    calls it a proposal; nothing in your words confirms it.
@@ -680,6 +791,24 @@ Not blocking v2, but he asked for one sitting:
     the archive side reads Skrift's files, never the reverse.
 41. **D41 `_inbox/Skrift/` or flat `_inbox/`**: the archive README says Skrift lands in
     `_inbox/Skrift/`; Skrift writes flat `_inbox/<name>.md`. Default: flat, and fix the README.
+
+42. **D42 Retry a failed link fetch** (shared in the metro): retry up to three times at the next
+    foreground, or once only as today. Default: retry.
+43. **D43 Email shares**: title = Subject, body = the plain text, sender field. Default: yes.
+44. **D44 Video for the archive**: keep the movie as a synced asset for Made/Idea/Inspiration
+    notes only (capped ~200 MB). Default: yes, archive-bound only.
+45. **D45 Long notes**: copy-edit per paragraph block above half the token cap, so a 40-minute
+    note is never shipped raw for being long. Default: yes.
+46. **D46 Per-note transcription language** ("transcribe again in Dutch"). Default: yes; the
+    note records the mode it was made with.
+47. **D47 Take over another device's stuck transcription** after 30 min when its audio is here.
+    Default: yes.
+48. **D48 Sync health surface** (iCloud full, signed out): show it on the list and the note.
+    Default: yes.
+49. **D49 Trash and the vault file**: leave it and say so; Delete Now offers removal when the
+    file is ours and untouched. Default: as stated.
+50. **D50 Fix a word inside a captured quote**: a "Fix quote" verb. Default: yes.
+51. **D51 Reminders on several devices**: first acknowledgement clears the rest. Default: yes.
 
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
