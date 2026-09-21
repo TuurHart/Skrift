@@ -13,12 +13,15 @@ Sources: `X:` = `plan/extraction/X.md`; `F:` = `FEATURES.md`; `B:` = `backlog.md
 ## Point
 
 Skrift is Tuur's capture tool for his second brain. He records a voice note on his iPhone
-(or types one, or shares a link, picture, PDF, video, or an audiobook quote), it is
-transcribed on the device with nothing sent anywhere, and once he rates it his Mac or iPad
-cleans it up with a local model, links the people it is about, and writes one Markdown file
-into the folder he chose: his private Obsidian vault, or the public archive that AI may
-read. Obsidian is home; Skrift is the front door. One user, fully offline, sold flat, no
-cloud AI. The long game is decades of notes he can look back through.
+(or types one, or shares a link, picture, PDF, video, or an audiobook quote); it is
+transcribed on the device with nothing sent anywhere. At the note he sorts it into one of
+two pipelines. **Personal** thoughts go, once rated and cleaned up by his Mac or iPad with a
+local model, as one Markdown file into his private Obsidian vault, which no AI ever reads.
+**Ideas, things he made and things that inspired him** go to his public archive repo, the
+space he deliberately lets AI read so he can explore them further with it. The sort is a
+privacy boundary, decided by him in one tap, never guessed. Obsidian is home; Skrift is the
+front door. One user, fully offline, sold flat, no cloud AI. The long game is decades of
+notes he can look back through.
 
 ## Done means
 
