@@ -129,9 +129,10 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
   corpus `typed-crlf-tabs-nbsp`, `voice-en-triple-blank-lines`. — B:727
 - C20 [auto] Paragraphing from speech: break before a word when the previous word ends a
   sentence AND (pause ≥ gap OR 4 sentences reached); text that already has a newline is
-  untouched. || check: `Paragrapher` tests; ⚠ needs-verdict D5 (one gap on every device is
-  the DRAFT's proposal and would reverse Tuur's ROUND 10/11 of 2026-07-28: 0.65 s phone live,
-  2.0 s Mac). — code-core Paragraphs
+  untouched; the gap is 2.0 s on every device (Tuur 2026-09-22, reversing the phone's 0.65 s);
+  typed text is never paragraphed by any rule (no word times; the copy-edit fallback skips
+  typed notes). || check: `Paragrapher` tests; corpus `typed-wall-one-paragraph` unchanged.
+  — code-core Paragraphs, D5, D7
 - C21 [auto] An editor commit sets `transcriptUserEdited = true` and `editedAt`; a capture
   commit keeps the raw quote block as an exact prefix. || check: `NoteBodyTests:49-136`.
 - C22 [auto] The leading `> ` block is the quote (not gated on book metadata); the ramble is
@@ -1021,24 +1022,22 @@ Blocking the first rewrite target (body/image + copy-edit):
 corpus and ingress fixtures they call for are listed at its end and are queue items, not
 spec.)
 
-1. **D1 Picture = its own paragraph, enforced at write** (C10). Default: yes. The backlog
-   calls it a proposal; nothing in your words confirms it.
-2. **D2 A picture with no moment goes to the TOP** (C12). Default: top. Alternative: bottom.
-   The backlog says "his verdict", the handoff says "my recommendation".
-3. **D3 Where a picture goes inside a list item or a quote block** (`pic-in-task-list`,
-   `pic-in-blockquote`, `conv-with-picture`). Default: after the item / after the quote
-   block / after the turn's sentence.
-4. **D4 Old notes**: normalise once on read (the existing snap, run once, then stored) and
-   re-derive name offsets once. Default: yes, at first open on any device.
-5. **D5 ONE paragraph gap** for speech on every device (0.65 s phone vs 2.0 s Mac today).
-   Default: 2.0 s everywhere (a paragraph needs a deliberate stop). Or keep per-source.
-6. **D6 ONE title ladder** for both apps (C25). Default: user title → suggested → first
-   line. Today the Mac has no chosen-vs-suggested split on its row.
-7. **D7 A typed note pasted as one wall** (`typed-wall-one-paragraph`): may the
-   paragrapher break the author's own text? Default: no (typed text is his; only speech
-   gets paragraphed).
-8. **D8 Dutch copy-edit** near-echoes (removes nothing). Accept, or bench prompts? Default:
-   accept for v2; paragraphs guaranteed by C34; revisit on the Mac bench later.
+1. **D1 Picture = its own paragraph, enforced at write** (C10). ✅ DECIDED 2026-09-22: yes.
+2. **D2 A picture with no moment** (C12). ✅ DECIDED 2026-09-22: keeps its place in the share
+   sequence; editor insert at the cursor; a lone picture or video frame at the TOP.
+3. **D3 Where a picture goes inside a list item / quote / conversation turn.** ✅ DECIDED
+   2026-09-22: after the item / after the quote block / after the sentence within the turn.
+4. **D4 Old notes.** ✅ DECIDED 2026-09-22: normalised once at first open on any device, name
+   offsets re-derived once; old test image-captures and pre-build-76 PDF captures stay as-is.
+5. **D5 Paragraph gap for speech.** ✅ DECIDED 2026-09-22: 2.0 s on BOTH devices ("make them
+   both 2s") — reverses the phone's 0.65 s from ROUND 10/11.
+6. **D6 ONE title ladder** for both apps (C25). ✅ DECIDED 2026-09-22: user title → suggested →
+   first line.
+7. **D7 A typed note pasted as one wall.** ✅ DECIDED 2026-09-22: never re-paragraphed — the
+   pause rule needs word times (speech only), and the copy-edit's sentence-count fallback
+   stays off typed text. "how would typed text get paragraphed as there is no speech data?"
+8. **D8 Dutch copy-edit** near-echoes. ✅ DECIDED 2026-09-22: accept for v2; paragraphs by C34;
+   prompt bench later.
 9. **D9 The prod prompt override** (764-char old prompt in `user_settings.json`). Default:
    migrate it away, one prompt source.
 10. **D10 Locked notes and polish** (C91): today lock = "keep, don't polish"? Default: a
@@ -1241,6 +1240,8 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 1 (D1–D8): all defaults, except the paragraph pause is 2.0 s on
+  both devices and typed text is never auto-paragraphed ("no speech data, no 2s rule").
 - 2026-09-21 Quick note builds early, mock first; the editor rebuilds after the body v2 —
   "the note writing itself should be better. it's quite slow and clunky atm". Confirmed.
 - 2026-09-21 Sender name on a messenger share: "can just be filled in on the share screen or
