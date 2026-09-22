@@ -677,11 +677,12 @@ Audiobooks, locks, reminders, export:
   acknowledgement clears the others. ⚠ needs-verdict D51 — scenarios #47
 - C163 [auto] Changing an exported note's destination removes the old file when ours and
   untouched, then writes the new one; if the old file was edited or moved, the change is refused
-  with the file named. A Personal note never remains in the archive. || check: corpus `dest-idea`
-  re-filed Personal. ⚠ required difference (per-folder ledgers leave the old file today,
-  `VaultWrite.swift:27-100`) — scenarios #48
-- C164 [tuur] A retitle never renames the exported file; switching the vault folder never moves
-  old exports (new notes go to the new folder; Settings says so). Stated as-is. — scenarios #49 #50
+  with the file named. A Personal note never remains in the archive. DECIDED 2026-09-22.
+  || check: corpus `dest-idea` re-filed Personal. ⚠ required difference (per-folder ledgers
+  leave the old file today, `VaultWrite.swift:27-100`) — scenarios #48
+- C164 [auto] A retitle never renames the exported file ("rename just has to be done in
+  Obsidian" — Tuur 2026-09-22); switching the vault folder never moves old exports (new notes go
+  to the new folder; Settings says so). || check: `VaultWriteTests` retitle, two-root. — scenarios #49 #50
 
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
@@ -1047,12 +1048,12 @@ spec.)
 
 Blocking targets 3 and 4 (reconcile + export):
 
-11. **D11 Vault folder model** (mock `vault-folder-model`): A = the picked folder is the
-    destination (doctrine) vs B = Skrift makes its own folder. Default: A. Also subfolder
-    names and whether PDFs export.
-12. **D12 Frontmatter keys still "to add"**: lat/lon, duration, createdAt/editedAt,
-    remindAt. Default: add duration + createdAt; skip lat/lon and remindAt.
-13. **D13 `date:` timezone rule**. Default: the recording's local day.
+11. **D11 Vault folder model.** ✅ DECIDED 2026-09-22: keep `VaultLayout.home` as coded (C192);
+    a pick not named Skrift and not containing one gets `<pick>/Skrift`; fixed media
+    subfolders; his `0 Inbox/Skrift` never nests a second Skrift.
+12. **D12 Frontmatter keys still "to add".** ✅ DECIDED 2026-09-22: add `duration` and the
+    created date; skip lat/lon (raw coordinates) and the reminder.
+13. **D13 `date:` timezone rule.** ✅ DECIDED 2026-09-22: the recording's local day everywhere.
 14. **D14 YouTube link**: link card with the fetched title (today), or fetch audio +
     transcribe on the Mac? Default: card only.
 15. **D15 Instagram / TikTok**: caption as the body, or card only? Default: card + caption
@@ -1130,8 +1131,8 @@ Not blocking v2, but he asked for one sitting:
     Default: yes.
 48. **D48 Sync health surface** (iCloud full, signed out): show it on the list and the note.
     Default: yes.
-49. **D49 Trash and the vault file**: leave it and say so; Delete Now offers removal when the
-    file is ours and untouched. Default: as stated.
+49. **D49 Trash and the vault file.** ✅ DECIDED 2026-09-22: leave it and say so; Delete Now
+    offers removal when ours and untouched.
 50. **D50 Fix a word inside a captured quote**: a "Fix quote" verb. Default: yes.
 51. **D51 Reminders on several devices**: first acknowledgement clears the rest. Default: yes.
 
@@ -1240,6 +1241,11 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 3: vault folder model as coded; `duration` + created date added to
+  frontmatter, no coordinates; `date:` = local day everywhere; trash leaves the vault file;
+  re-filing removes the old archive file when ours; renames happen in Obsidian. "I could
+  actually make a second Obsidian vault for my projects" — yes: point Obsidian at the
+  portfolio folder; it is Obsidian-openable by design, nothing to build.
 - 2026-09-22 Sitting round 2: prompt override migrated; a locked note keeps processing ("it's
   just that no one should see it"); Skrift's copy-edit IS the archive's "cleaned" ("removing
   fillers and shit is good"); `_inbox/Skrift/` stands; no ideas back into Skrift in v2; the
