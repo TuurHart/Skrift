@@ -1122,26 +1122,25 @@ Not blocking v2, but he asked for one sitting:
     never ever ever lose a recording mid recording." A phone call is the first test case.
 27. **D27 Book-sharing branch.** ✅ DECIDED 2026-09-22: merge to main now; the two-device round
     stays owed.
-28. **D28 What the app opens into**: the list (today), the last note, or a new note.
-    Default: the list, with the new-note action one tap away (C112).
+28. **D28 What the app opens into.** ✅ DECIDED 2026-09-22: the list, the new-note action one
+    tap away (C112).
 29. **D29 State the two network calls** (weather, URL fetch) in-app / README. Default: yes.
 30. **D30 Importance control.** ✅ DECIDED 2026-09-22: three balls (0.3 / 0.6 / 1.0), old values
     still bucket, no fourth button (the refine gate is gone). Mock first.
-31. **D31 Multi-audio thread from WhatsApp**: chooser stays (one note default). Default: yes.
+31. **D31 Multi-audio thread from WhatsApp.** ✅ DECIDED 2026-09-22: chooser stays, one note default.
 32. **D32 Adding a person**: re-link only the open note (today) or every note? Default:
     every note, once, deterministic.
-33. **D33 Podcasts → Books** node is `inprogress` with nothing shipped. Default: demote to
-    planned.
-34. **D34 Rival documents**: after the spec, project state lives in SPEC.md + QUEUE.md +
-    roadmap.yaml. `backlog.md` (8.7k lines), `FEATURES.md`, `BUGS.md`, `AUDIT_PLAN.md`,
-    `SKRIFT_SOURCE_OF_TRUTH.md`, `STANDALONE_PLAN.md`, `SHARE_INGEST_SURVEY.md`,
-    `NAMING_MODEL.md`, `TESTFLIGHT_INSTALL_HANDOFF.md` become history under `archive/`.
-    Default: archive all but `FEATURES.md` and `BUGS.md` (kept as ledgers until v2 lands),
-    and repoint `CLAUDE.md`.
+33. **D33 Podcasts → Books** node. ✅ DECIDED 2026-09-22: demote to planned — "we need to add
+    that" — and see D90 on the Books tab itself.
+34. **D34 Rival documents.** ✅ DECIDED 2026-09-22: `backlog.md`, `SKRIFT_SOURCE_OF_TRUTH.md`,
+    `STANDALONE_PLAN.md`, `SHARE_INGEST_SURVEY.md`, `NAMING_MODEL.md`, `AUDIT_PLAN.md`,
+    `AUDIT_FIX_TESTLIST.md`, `TESTFLIGHT_INSTALL_HANDOFF.md`, `JOURNAL_RETRIEVAL_PLAN.md` →
+    `archive/`; `FEATURES.md` + `BUGS.md` stay until v2 lands; `CLAUDE.md` + README repointed.
+    Done at the end of the sitting, readers grepped first.
 
 35. **D35 Per-message times in a merged messenger note**: show each clip's time as a small
     line above its paragraph, or keep times only in the manifest? Default: manifest only.
-36. **D36 Same file shared twice**: one note + notice (default), or two notes as today.
+36. **D36 Same file shared twice.** ✅ DECIDED 2026-09-22: one note + an "already in Skrift" notice.
 37. **D37 Chat-export zip import** (WhatsApp/Signal "Export chat"): the only way to get sender
     names and exact order automatically. Default: parked; the share-sheet name field (C123)
     covers the common case.
@@ -1241,6 +1240,13 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 89. **D89 Read-along `lead`**: 0.1 s (ledgers) vs 0.3 s (decisions). Default: whatever the
     device tune settles; state one number.
 
+90. **D90 The Books tab.** Tuur 2026-09-22, with Hendri: "books is a weird tab, feels bolted on,
+    which it is in a way. But there is a way to make it make sense." The app is an information
+    capture tool; the player exists so quotes can be captured from what he listens to. Proposed
+    frame: the tab is the things he captures FROM (books now, podcasts next), the player the
+    means, not the point; rename accordingly; possibly fold into Notes as a source. Mock first.
+    Open.
+
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
 commonplace book, folders model, watched-folder ingest, substitutions list, Backlink
@@ -1283,6 +1289,9 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 6 (partial): opens into the list; WhatsApp chooser stays; Podcasts
+  node demoted, to be built; old state docs to archive/; same file twice = one note. The Books
+  tab "feels bolted on" (Hendri) — reframe as the things he captures from, mock first (D90).
 - 2026-09-22 Sitting round 5: archive files named by ANY title (generated too), timestamp only
   without one; name picks honoured on every device; no links inside quotes; a text file is
   the body; case-variant tags fold, and the tag UI gets a revamp; offline edit conflicts are
