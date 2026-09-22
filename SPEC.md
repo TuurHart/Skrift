@@ -631,9 +631,9 @@ Recording and copy-edit:
   corpus `pic-after-interruption`. ⚠ required difference (offsets are wall-clock today,
   `RecordView.swift:453`) — scenarios #21
 - C150 [auto] A long note is never shipped unedited because it is long: over half the token cap,
-  copy-edit runs per paragraph block (≤ 1,500 words, at paragraph boundaries), each block under
-  C31–C34, re-joined in order. || check: corpus `voice-en-forty-minutes`. ⚠ needs-verdict D45
-  — scenarios #22
+  copy-edit runs per block — split only at paragraph boundaries, up to ~1,500 words, a longer
+  paragraph is its own block — each block under C31–C34, re-joined in order. DECIDED
+  2026-09-22. || check: corpus `voice-en-forty-minutes`. — scenarios #22, D45
 - C151 [auto] A transcript carries the ASR language mode it was made with, and a per-note
   "Transcribe again in Dutch / English" verb exists; the global setting is only the default.
   || check: corpus `voice-nl-recorded-in-english-mode`. ⚠ needs-verdict D46 — scenarios #23
@@ -1129,9 +1129,8 @@ Not blocking v2, but he asked for one sitting:
 30. **D30 Importance control.** ✅ DECIDED 2026-09-22: three balls (0.3 / 0.6 / 1.0), old values
     still bucket, no fourth button (the refine gate is gone). Mock first.
 31. **D31 Multi-audio thread from WhatsApp.** ✅ DECIDED 2026-09-22: chooser stays, one note default.
-32. **D32 Adding a person.** OPEN 2026-09-22 — Tuur hesitant about a silent pass over all
-    notes. Offered: A automatic; B (recommended) today's open-note-only plus a "Link in N other
-    notes" button with the count on the add-person sheet.
+32. **D32 Adding a person.** ✅ DECIDED 2026-09-22: A — automatic, all notes, once ("it would
+    have to scan them all anyways"). Same tiers as normal linking; every link one tap to undo.
 33. **D33 Podcasts → Books** node. ✅ DECIDED 2026-09-22: demote to planned — "we need to add
     that" — and see D90 on the Books tab itself.
 34. **D34 Rival documents.** ✅ DECIDED 2026-09-22: `backlog.md`, `SKRIFT_SOURCE_OF_TRUTH.md`,
@@ -1159,23 +1158,22 @@ Not blocking v2, but he asked for one sitting:
 41. **D41 `_inbox/Skrift/` or flat `_inbox/`.** ✅ DECIDED 2026-09-22: `_inbox/Skrift/` ("the
     readme is correct"); Skrift changes to write there — a required difference.
 
-42. **D42 Retry a failed link fetch** (shared in the metro): retry up to three times at the next
-    foreground, or once only as today. Default: retry.
-43. **D43 Email shares**: title = Subject, body = the plain text, sender field. Default: yes.
+42. **D42 Retry a failed link fetch.** ✅ DECIDED 2026-09-22: retry, up to three times.
+43. **D43 Email shares.** ✅ DECIDED 2026-09-22: yes.
 44. **D44 Video for the archive.** ✅ DECIDED 2026-09-22: yes — the movie is a synced asset for
     Made/Idea/Inspiration notes only (cap ~200 MB); Personal videos stay discarded.
-45. **D45 Long notes**: copy-edit per paragraph block above half the token cap, so a 40-minute
-    note is never shipped raw for being long. Default: yes.
-46. **D46 Per-note transcription language** ("transcribe again in Dutch"). Default: yes; the
-    note records the mode it was made with.
-47. **D47 Take over another device's stuck transcription** after 30 min when its audio is here.
-    Default: yes.
-48. **D48 Sync health surface** (iCloud full, signed out): show it on the list and the note.
-    Default: yes.
+45. **D45 Long notes.** ✅ DECIDED 2026-09-22: copy-edit in blocks — split only at paragraph
+    boundaries, up to ~1,500 words per block, a longer paragraph is its own block, each block
+    under the same guards, re-joined in order.
+46. **D46 Per-note transcription language.** ✅ DECIDED 2026-09-22: yes (it is a recognition
+    MODE, English vs multilingual — Parakeet never translates); the note records its mode.
+47. **D47 Take over another device's stuck transcription** after 30 min. ✅ DECIDED 2026-09-22: yes.
+48. **D48 Sync health surface.** ✅ DECIDED 2026-09-22: yes.
 49. **D49 Trash and the vault file.** ✅ DECIDED 2026-09-22: leave it and say so; Delete Now
     offers removal when ours and untouched.
-50. **D50 Fix a word inside a captured quote**: a "Fix quote" verb. Default: yes.
-51. **D51 Reminders on several devices**: first acknowledgement clears the rest. Default: yes.
+50. **D50 Fix a word inside a captured quote.** ✅ DECIDED 2026-09-22: yes — for a misheard
+    word in the quote's transcription.
+51. **D51 Reminders on several devices.** ✅ DECIDED 2026-09-22: first acknowledgement clears the rest.
 
 From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, defaults proposed:
 
@@ -1291,6 +1289,10 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 7: adding a person re-links all notes automatically; failed link
+  fetches retry; email shares; long notes copy-edited in paragraph blocks; per-note recognition
+  mode; stuck transcriptions taken over; sync health shown; "Fix quote"; reminders clear on
+  first acknowledgement; the two network calls stated openly.
 - 2026-09-22 Sitting round 6 (partial): opens into the list; WhatsApp chooser stays; Podcasts
   node demoted, to be built; old state docs to archive/; same file twice = one note. The Books
   tab "feels bolted on" (Hendri) — reframe as the things he captures from, mock first (D90).
