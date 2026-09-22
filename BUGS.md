@@ -1,6 +1,6 @@
 # Bugs — one list, worst first
 
-Every bug we have collected, pulled out of `backlog.md` (8k lines, chronological), `AUDIT_PLAN.md`
+Every bug we have collected, pulled out of `archive/state-2026-09/backlog.md` (8k lines, chronological), `archive/state-2026-09/AUDIT_PLAN.md`
 and the device-feedback rounds, so there is one place to work through instead of a scroll.
 
 **How to read the status.** Section 1–3 were each re-opened against today's source and the line
@@ -9,7 +9,7 @@ treat those as leads and verify before acting. Section 5 is the opposite: ledger
 out to be **already fixed**, listed so nobody re-opens them.
 
 Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in its home section of
-`backlog.md`, which keeps the full story.
+`archive/state-2026-09/backlog.md`, which keeps the full story.
 
 ---
 
@@ -22,7 +22,7 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       Tuur, 2026-08-22, prod. Happened before: the 2026-06-10 crash-mid-recording P0 ("3× today,
       one recording LOST") fixed the crash and left the durability gap.
       → [issue #14](https://github.com/TuurHart/Skrift/issues/14) · full triage + 4-step fix in
-      `backlog.md` `## 🚨 OPEN P0` · `tools/rescue-lost-recordings.py` pulls the existing orphans.
+      `archive/state-2026-09/backlog.md` `## 🚨 OPEN P0` · `tools/rescue-lost-recordings.py` pulls the existing orphans.
 
 - [ ] **D1 · `names.json` can be lost across every device.**
       `Shared/Naming/NamesStore.swift:50` is `try? encoded.write(to: fileURL)` — not `.atomic`.
@@ -93,7 +93,7 @@ These need a device round or a log pull before they can be fixed.
 
 - [ ] **The app feels slow next to other apps** (Tuur, 2026-08-18) at under 200 notes, so not data
       volume. Step 0 is a Time Profiler run on the **prod** build — busy main thread or blocked? The
-      cheap suspects are already located: `AUDIT_PLAN.md` P1–P7. Two of the audit's findings are
+      cheap suspects are already located: `archive/state-2026-09/AUDIT_PLAN.md` P1–P7. Two of the audit's findings are
       DEBUG-only and never ran on his phone.
 
 - [ ] **Transient "lost the link" on the Mac**, once, not reproducible (second try kept it). Watch
@@ -106,7 +106,7 @@ These need a device round or a log pull before they can be fixed.
 Leads. Check them against source before you act — section 5 is why.
 
 - [ ] Append can silently add no text (3× repro on build ~30, broader than the cold-model theory) —
-      `MemoSaver.appendRecordingAsync`. `backlog.md` "Original P0 list".
+      `MemoSaver.appendRecordingAsync`. `archive/state-2026-09/backlog.md` "Original P0 list".
 - [ ] Tail of a recording cut off after Stop, both dev and prod, intermittent. A finalize/transcribe
       race was fixed for one path (`audioFile.close()` before the one-shot read); unclear if this
       report is the same one.
