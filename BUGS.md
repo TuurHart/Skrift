@@ -47,6 +47,27 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 2. Wrong behaviour — verified open today
 
+- [ ] **The Mac never sends timings or speaker turns back to the phone.** `MacCloudWriteBack` has no
+      asset writer, so a Mac re-transcription of an untrusted phone note, or a conversation split on
+      the Mac, loses karaoke and turns on the phone/iPad. Widens the Mac-take bug above. SPEC R35.
+- [ ] **A Mac import is authored without metadata** (`MacMemoAuthor.author`): a video imported on the
+      Mac shows the mic glyph on the phone; Mac recordings carry no weather/daypart. SPEC R36, D92.
+- [ ] **Name picks go nowhere:** the Mac ignores the phone's per-note picks (`MemoCloudUpdate.swift:156`),
+      the Mac's own picks live on its row and never sync, and the phone's export ignores its own picks
+      (`MemoLinking.swift:26,28`). One note exports different links per device. SPEC R37 / D20.
+- [ ] **OCR text and shared documents never export**; `sharedContent` type `file` falls through
+      `Compiler.swift:254`; `createdAt`/`duration` never written. SPEC R38 / D12.
+- [ ] **The Settings "Model repo" field floats to revision `main`** for any non-default repo
+      (`PolishPrompts.swift:44-45`, `SettingsView.swift:160`) — the August two-models drift can recur. SPEC R39.
+- [ ] **A failed cloud fetch in the reconcile sweep is swallowed** (`MemoCloudReconciler.swift:59`): the
+      Mac silently stops pulling phone notes and it looks like "nothing new". SPEC R40.
+- [ ] **`voice:` can lie**: the phone labels a raw body `cleaned` when the Mac's polish set only
+      title/summary (`MemoExporter.swift:90` vs `CompilerBridge.swift:73-75`). SPEC R41.
+- [ ] **A corrupt bookmark sync blob wipes the device's bookmarks** for that book (decode → `[]` →
+      adopted, stamp advanced, never heals) (`AudiobookBookmarkSyncCore.swift:41`). SPEC R42.
+- [ ] **Apple Notes import can create a blank note** when the copied file fails to read back
+      (`IngestService.swift:180`). SPEC R43.
+      Sources: `plan/parity.md`, `plan/bug-shapes.md` (2026-09-22, verified against code by the sweep).
 - [ ] **A Mac recording never gets karaoke on the phone or iPad.** `MacMemoAuthor.swift:92` authors
       the synced memo with the audio asset only; the word timings stay on the Mac's `PipelineFile`
       (`ZWORDTIMINGSJSON`, present for every Mac take). The phone's timings DO reach the Mac. Fix:

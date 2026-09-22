@@ -112,6 +112,7 @@ Rules:
 - **`SPEC.md`** — ⭐ THE constitution, confirmed by Tuur 2026-09-22: Point, done-means, 244
   marked clauses, 33 required differences (bugs v2 must fix), every decision with its verdict.
   `./gate.sh` is the gate. Live state = `SPEC.md` + `QUEUE.md` (from `/2-plan`) + `roadmap/`.
+  **No QUEUE.md yet → the next chat runs `/2-plan`.** Subagents run on Sonnet (his budget); Fable conducts.
   Sources: `plan/extraction/*.md`. Corpus: `test-fixtures/corpus/` (synthetic, `-corpus <path>`).
   The old state docs (`backlog.md`, SSOT, STANDALONE_PLAN, NAMING_MODEL, AUDIT_*, …) are frozen
   under `archive/state-2026-09/` — read for the why, never for what to build.

@@ -1093,6 +1093,15 @@ rewrite targets, each with its corpus note and the expected output:
 | R31 | conversation-turn and annotation edits don't bump `editedAt` | every content edit is a touch | corpus edit scenarios | C89 |
 | R32 | open-in ignores `.ogg/.oga/.m4b/.pdf` | same acceptance as the share sheet | ingress P12 | C199 |
 | R33 | a mixed bundle's picture marker lands mid-transcript | own paragraph at the C12 spot | ingress P3 | C12 |
+| R35 | the Mac's write-back carries NO assets at all: any Mac-produced transcript (a Mac take, a re-transcription of an untrusted phone note, a Mac speaker split) loses timings and turns on every other device (`MacCloudWriteBack`, no asset writer) | timings + diarization ride back as assets | corpus `voice-en-untrusted` re-transcribed on the Mac, `conv-*` split on the Mac | C245 |
+| R36 | the Mac authors a memo with no metadata (`MacMemoAuthor.author`): a Mac video import loses its video glyph everywhere; Mac recordings carry location only, no weather/daypart | authored memos carry the same metadata a phone memo would | `video-*` imported on the Mac | C71, D92 |
+| R37 | name picks are one-way and unapplied: the Mac ignores the phone's picks (`MemoCloudUpdate.swift:156`), the Mac's picks never sync (they live on the row), the phone's own export ignores its picks (`MemoLinking.swift:26`) | one note exports the same links from every device (D20) | `voice-en-names-all-tiers` with picks | C81 |
+| R38 | OCR text and shared documents (PDF/`.file`) never export from any device; `sharedContent` type `file` falls through the compiler; `createdAt` and `duration` are not written (D12) | exported per C56/C130 | `pic-ocr-text`, `cap-file-pdf`, `cap-file-txt` | C56, C73 |
+| R39 | the Settings "Model repo" field floats the LLM to revision `main` the moment it is not the default (`PolishPrompts.swift:44-45`) — the 2026-08 two-models drift, reopened | every repo pinned to a revision | settings test | C28 |
+| R40 | the reconcile sweep swallows a failed fetch of the cloud store (`MemoCloudReconciler.swift:59`): the Mac silently stops pulling phone notes | a failed sweep is logged and shown (C168) | injected fetch error | C168 |
+| R41 | `voice:` disagrees between apps: the phone can label a raw body `cleaned` when the Mac's polish set only title/summary (`MemoExporter.swift:90` vs `CompilerBridge.swift:73`) | `voice:` derives from ONE rule on both apps | `voice-en-processed-no-content` exported both sides | C131 |
+| R42 | a corrupt audiobook-bookmark sync blob wipes that device's bookmarks (decode failure → `[]` adopted, stamp advanced) (`AudiobookBookmarkSyncCore.swift:41`) | a blob that fails to decode is ignored, never adopted | corrupt-blob test | C218 |
+| R43 | an Apple Notes import can ingest a BLANK note when the copied file fails to read back (`IngestService.swift:180`) | a read failure is an error, never an empty note | M4 fixture with an unreadable file | C76, C168 |
 | R34 | a Mac recording's word timings never reach the phone (the Mac authors the memo with audio only, `MacMemoAuthor.swift:92`; the timings sit on its own row) | the timings ride as the `wordTimings` asset, karaoke works on every device | `dutch-rambles` seeded on the phone | C245 |
 Pre-registered as IDENTICAL (unchanged on purpose): `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (R10).
 
@@ -1312,6 +1321,10 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     presses that never got words ("ik heb er drie lege notities staan"). Default: an untouched
     empty typed note is discarded when he leaves it; nothing empty is ever listed.
 
+92. **D92 Context on Mac recordings.** The Mac stamps a place only (`MacLocationStamp`); no
+    weather, daypart, daylight. Default: the same context a phone recording gets, where the Mac
+    can (weather via the same key; steps stay phone-only), so a Mac take exports like a phone take.
+
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
 commonplace book, folders model, watched-folder ingest, substitutions list, Backlink
@@ -1354,6 +1367,11 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 First run of the catching method (parity tables `plan/parity.md`, bug-shape sweep
+  `plan/bug-shapes.md`, both on Sonnet): 12 one-way data cells, 9 verb gaps, 9 new required
+  differences R35–R43 — the timings gap is the Mac's whole write-back (no asset writer), name
+  picks are one-way in three directions, the model repo can float again, a failed sweep is
+  silent, a corrupt bookmark blob wipes bookmarks.
 - 2026-09-22 "How do we make sure you catch these things" (after the Mac-timings gap was
   explained away as expected): parity tables from code, the bug-shape sweep, round trips as
   tests, no uncited "expected", a scenario probe per swap — C247–C251.

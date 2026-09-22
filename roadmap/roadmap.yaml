@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 45
-updated: 2026-09-22T12:00:00.000Z
+updated: 2026-09-22T18:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -719,7 +719,7 @@ nodes:
       - ingress corpus — one real source file per media type (WhatsApp/Signal/Telegram audio, video, web/YouTube/Instagram URLs, text/image/PDF, Apple Notes, audiobook, Mac import), network recorded
       - {text: "whole-project spec extraction (plan/extraction, 5 reports) + SPEC.md draft (122 clauses, 34 open decisions) + gate.sh", done: 2026-09-21}
       - {text: "Tuur's spec sitting — nine rounds, every decision with a verdict; old state docs frozen under archive/state-2026-09", done: 2026-09-22}
-      - /2-plan → QUEUE.md (mockups first for quick note, tag UI, conflict prompt, 3-ball importance, Books tab)
+      - "NEXT CHAT: run /2-plan → QUEUE.md. Mocks first: quick note, tag UI, conflict prompt, 3-ball importance, Books tab (D90). Subagents on SONNET (weekly Fable budget 61% used Tue 2026-09-22). BUGS.md carries 9 new rows from plan/parity.md + plan/bug-shapes.md."
       - body/image model v2 behind the diff gate
       - copy-edit pipeline v2
       - reconcile sweep v2
