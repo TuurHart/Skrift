@@ -714,7 +714,9 @@ Audiobooks, locks, reminders, export:
 - C242 [tuur] Conflict handling: when one note carries two diverging edits from two devices, the
   app shows a conflict on that note and lets him keep this device's version, the other's, or
   both as two notes; the version not kept stays in version history for the trash window.
-  Modelled on Shapr3D's version conflict; mock first. — D24
+  Modelled on Shapr3D's "Version Conflict Detected" dialog, whose own support recommends
+  "keep both" as the safe choice (discourse.shapr3d.com/t/version-conflict-detected/21886);
+  mock first. — D24
 
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
