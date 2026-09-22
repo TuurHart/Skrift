@@ -63,8 +63,10 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
   says why. Baselines (code-core §C): body/image 7,940 · copy-edit 2,674 · reconcile 5,297 ·
   export 2,734. || check: `wc -l` of the v2 files vs the inventory table. — code-core §C
 - C4 [auto] The corpus is synthetic, never his notes: `test-fixtures/corpus/` (109 notes,
-  fictional roster), seeded on both apps with `-corpus <path>`. || check:
-  `CorpusSeedTests` on both apps. — decisions:260
+  fictional roster), seeded on both apps with `-corpus <path>`. Beside it, LOCAL ONLY and
+  git-ignored, `test-fixtures/dutch-rambles/`: his five throwaway Dutch rambles (D81), the
+  honest Dutch test; the harness uses them when present and never commits them. || check:
+  `CorpusSeedTests` on both apps; `git check-ignore test-fixtures/dutch-rambles`. — decisions:260
 - C5 [auto] v1 is the change detector, never the judge: every corpus output is classed
   identical / expected-different / unexplained; a pre-registered bug where v2 matches v1
   FAILS. || check: the harness exits non-zero on any unexplained or matched-bug row.
@@ -1239,8 +1241,10 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 79. **D79 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Re-export after a roster collision**: no; the next content change re-exports; log the
     count. Default: no.
 80. **D80 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Tag normalisation** ("filosofaties") out of scope. Default: out.
-81. **D81 Five throwaway Dutch rambles recorded in Skrift Dev.** ✅ DECIDED 2026-09-22: yes,
-    when convenient.
+81. **D81 Five throwaway Dutch rambles recorded in Skrift Dev.** ✅ DONE 2026-09-22: recorded on
+    the Dev Mac (21:01–21:05, 12–57 s each, trusted transcripts), pulled with
+    `test-fixtures/corpus/import_dev_notes.py` into `test-fixtures/dutch-rambles/` — a
+    git-IGNORED folder, local to this Mac only (his real voice never enters the public repo).
 82. **D82 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Summary prompt quality / context hints**: prompts frozen in v2, no sensor context.
     Default: frozen.
 83. **D83 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — `BookBundle` packs a rejected alignment sidecar**: fix in v1 now. Default: yes.
@@ -1263,6 +1267,10 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     frame: the tab is the things he captures FROM (books now, podcasts next), the player the
     means, not the point; rename accordingly; possibly fold into Notes as a source. Mock first.
     Open.
+
+91. **D91 Empty typed notes.** Seen 2026-09-22: three "Note" rows with no text, created by ⌘N
+    presses that never got words ("ik heb er drie lege notities staan"). Default: an untouched
+    empty typed note is discarded when he leaves it; nothing empty is ever listed.
 
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
