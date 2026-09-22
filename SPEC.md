@@ -745,6 +745,32 @@ Audiobooks, locks, reminders, export:
   plan/extraction carries a `src:`. — the lesson of C245 (the drafter wrote "expected for Mac
   takes" without checking)
 
+### How weird things get caught — Tuur 2026-09-22 ("come with a solution")
+
+- C247 [auto] PARITY TABLES, generated from the code, not from memory: (A) every item a note
+  carries × every device it can start on × every device it must reach; (B) every verb × every
+  device; (C) every import type × every door × device. A cell holds the code path that carries
+  it; an empty cell is a bug or a cited "deliberately not". Rebuilt before and after every
+  subsystem swap and kept in `plan/parity.md`. || check: no unexplained empty cell.
+- C248 [auto] THE BUG-SHAPE SWEEP: a checklist of the shapes this codebase has already produced
+  — the silent empty result that becomes "nothing, forever"; two lists whose gap nobody is in;
+  the echo guard that refuses the only copy; "only the first one"; the waiting thing turned
+  into a different thing; twin copies drifting; the one unpinned dependency; a fallback that
+  returns the wrong input; a one-way path. Each has a grep and a question; run per subsystem;
+  every hit needs a citation or becomes a BUGS.md row. || check: `plan/bug-shapes.md` per swap.
+- C249 [auto] ROUND TRIPS AS TESTS: the corpus goes in on one side and is read on the other,
+  field by field — Mac author path vs phone ingest path and back, in unit tests, no cloud —
+  then once per swap the real thing in the [tuur] lane: seed on the Mac, read on the phone,
+  diff. "A note looks the same wherever it was made." || check: round-trip test suite green;
+  device diff logged per swap.
+- C250 [auto] Every "expected", "by design", "harmless" or "fine" in a report, a clause or a
+  message carries a `src:`; without one it is a question for Tuur, never an explanation.
+  (= C246, restated as the tripwire.) || check: grep of plan/ and SPEC.md for those words → each
+  line has a citation.
+- C251 [auto] A fresh scenario probe (20 cross-device scenarios, traced through the code, like
+  `plan/extraction/scenarios.md`) runs before each subsystem swap, by an agent that has not
+  seen the v2 code. || check: `plan/scenarios-<subsystem>.md` exists before the swap.
+
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
 Method and gate:
@@ -1328,6 +1354,9 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 "How do we make sure you catch these things" (after the Mac-timings gap was
+  explained away as expected): parity tables from code, the bug-shape sweep, round trips as
+  tests, no uncited "expected", a scenario probe per swap — C247–C251.
 - 2026-09-22 Sitting closed: a video selected with voice notes joins the same note; the phone
   drops its people chip row and links names in the text like the Mac. Every D1–D89 has a
   verdict or a marked builder default; D90 (the Books tab) is open by design, mock first.
