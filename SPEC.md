@@ -328,16 +328,19 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
   asset, its text is searchable. || check: ingress P5.1/P10/P11; corpus `cap-file-*`.
   ⚠ needs-verdict D22 (a text FILE with no comment: body or card) — ledgers:188-189
 - C74 [auto] Image share: downsampled ≤ 2048 px, EXIF date → `recordedAt` (earliest of a
-  multi-share), OCR on the next sweep; PNG stays PNG, GIF keeps its first frame honestly.
-  || check: ingress P9. ⚠ needs-verdict D17 — ledgers:176, 215
+  multi-share), OCR on the next sweep; PNG stays PNG; a GIF is kept as a GIF (Obsidian
+  animates it; the app shows the first frame); no re-encode to JPEG. || check: ingress P9.
+  ⚠ required difference — ledgers:176, 215, D17
 - C75 [auto] A share with an empty payload never saves a husk; failures are honest
   ("Skrift can't import this"). || check: `ShareSheetView` tests. — ledgers:183
 - C76 [auto] Apple Notes export (`.md` + `Attachments/`): title from the first heading,
-  attachments copied and relinked, `sourceType .note` (glyph "Apple Note"). || check:
-  ingress M4 fixture. ⚠ needs-verdict D18 on the date — ingress M4
-- C77 [auto] The Mac refuses honestly what it cannot import (PDF, image, URL, ePub, `.flac`
-  today are silently dropped). || check: ingress M1-M3 with an unsupported file shows a
-  message. ⚠ required difference; needs-verdict D19 on growing the types — ingress M
+  attachments copied and relinked, `sourceType .note` (glyph "Apple Note"); dated by the
+  note's own creation date when the export carries one, else marked date-unknown — never
+  silently the import time. || check: ingress M4 fixture. — ingress M4, D18
+- C77 [auto] The Mac imports everything the phone imports (PDF, image, URL, ePub, `.flac`,
+  `.ogg`, …) through the ONE shared import layer of C238, and refuses honestly anything
+  outside it. || check: ingress M1-M3 with every phone-accepted type produces the same note
+  shape as the phone. ⚠ required difference — ingress M, D19
 - C78 [auto] A capture is a memo without audio plus `sharedContent` (C3 contract, camelCase
   field names pinned; unknown type → nil); `SourceTaxonomy` is the one glyph+label map.
   || check: `SharedContentParityTests` both apps. — ledgers:198, 210
@@ -683,6 +686,24 @@ Audiobooks, locks, reminders, export:
 - C164 [auto] A retitle never renames the exported file ("rename just has to be done in
   Obsidian" — Tuur 2026-09-22); switching the vault folder never moves old exports (new notes go
   to the new folder; Settings says so). || check: `VaultWriteTests` retitle, two-root. — scenarios #49 #50
+
+### Shared code across the three apps — Tuur 2026-09-22
+
+- C238 [auto] ONE import layer in `Shared/`: the accepted types, the dispatch (audio / URL /
+  movie / image / text / document / book), the filename-date ladder and the resulting note
+  shape are the same code on iPhone, iPad and Mac; a Mac drop, a phone share and an iPad
+  Files pick of the same file yield the same note. || check: ingress fixtures run on both
+  apps produce identical `note.json`; no per-app accept list remains. — D19
+- C239 [auto] Twin audit before v2 target 3: every place the Mac and the phone carry their own
+  copy of one rule is listed (known: export engines, polish escrow, body reconstruct, speaker
+  parsing, Connections panel, thumbnail rule, title ladder) and each is folded into `Shared/`
+  or marked as a deliberate platform difference with the reason. || check: the list in
+  `plan/twins.md` has no unmarked row. — Tuur: "check to see we share as much code between
+  them to prevent drift"
+- C240 [tuur] UI is shared where the platform allows: the note card pattern (one shared view +
+  a per-app style struct) is the model; a short research pass on how other multiplatform
+  SwiftUI apps share screens precedes the twin audit. — Tuur: "more UI also if possible, see
+  how other apps do this"
 
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
@@ -1054,16 +1075,20 @@ Blocking targets 3 and 4 (reconcile + export):
 12. **D12 Frontmatter keys still "to add".** ✅ DECIDED 2026-09-22: add `duration` and the
     created date; skip lat/lon (raw coordinates) and the reminder.
 13. **D13 `date:` timezone rule.** ✅ DECIDED 2026-09-22: the recording's local day everywhere.
-14. **D14 YouTube link**: link card with the fetched title (today), or fetch audio +
-    transcribe on the Mac? Default: card only.
-15. **D15 Instagram / TikTok**: caption as the body, or card only? Default: card + caption
-    when the page gives one; never a login-walled fetch.
-16. **D16 A URL shared as plain text** (chat apps): treat as a link capture? Default: yes.
-17. **D17 Image shares**: PNG stays PNG, GIF first frame. Default: yes.
-18. **D18 Apple Notes import date**: export time (only thing available) or a `Created:`
-    line when present. Default: export time, `createdAt` = import time.
-19. **D19 Mac drops of PDF / image / URL / ePub / flac**: refuse honestly, or grow the Mac's
-    capture types to match the phone? Default: refuse honestly in v2; grow later.
+14. **D14 YouTube link.** ✅ DECIDED 2026-09-22: card only. Fetching the audio is NOT built —
+    it means scraping the player and breaks whenever YouTube changes ("broken features suck");
+    the reliable route stays: download the audio yourself, drop the file on Skrift.
+15. **D15 Instagram / TikTok.** ✅ DECIDED 2026-09-22: card + the caption as body when the page
+    gives one; never a login-walled fetch.
+16. **D16 A URL shared as plain text.** ✅ DECIDED 2026-09-22: a link capture.
+17. **D17 Image shares.** ✅ DECIDED 2026-09-22: PNG stays PNG; a GIF is KEPT as a GIF (Obsidian
+    animates it), the app shows its first frame; no re-encoding to JPEG.
+18. **D18 Apple Notes import date.** ✅ DECIDED 2026-09-22: "it has to be the creation date" —
+    taken from the note when the export carries one; otherwise the note is marked date-unknown
+    (never silently the import time). Which exporter he uses is checked at build time.
+19. **D19 Mac drops of PDF / image / URL / ePub / flac.** ✅ DECIDED 2026-09-22: "mac and phone
+    and ipad should all be able to import the same things. make that a shared thing" — ONE
+    shared import layer (C238); the Mac accepts everything the phone accepts.
 20. **D20 Name links per device**: the Mac ignores the phone's per-note picks, so one note
     can export with different links from each device. Default: the phone's picks win
     everywhere (they sync already).
@@ -1087,8 +1112,8 @@ Not blocking v2, but he asked for one sitting:
 28. **D28 What the app opens into**: the list (today), the last note, or a new note.
     Default: the list, with the new-note action one tap away (C112).
 29. **D29 State the two network calls** (weather, URL fetch) in-app / README. Default: yes.
-30. **D30 Importance control**: 10 circles vs 3 (or 4) buttons (i23). Default: mock the
-    3-button version; decide on the mock.
+30. **D30 Importance control.** ✅ DECIDED 2026-09-22: three balls (0.3 / 0.6 / 1.0), old values
+    still bucket, no fourth button (the refine gate is gone). Mock first.
 31. **D31 Multi-audio thread from WhatsApp**: chooser stays (one note default). Default: yes.
 32. **D32 Adding a person**: re-link only the open note (today) or every note? Default:
     every note, once, deterministic.
@@ -1111,8 +1136,8 @@ Not blocking v2, but he asked for one sitting:
     "the way the copy edit does it is the right one. removing fillers and shit is good". Archive
     notes get the normal copy-edit as `voice: cleaned`; the archive README's grammar-only
     definition is to be loosened over there.
-39. **D39 Archive filenames**: timestamp basename (the archive's own shape) vs the generated
-    title slug Skrift writes today. Default: timestamp unless he typed the title.
+39. **D39 Archive filenames.** ✅ DECIDED 2026-09-22: his typed title → the file name; a model
+    title never is → the timestamp. The note is processed as normal.
 40. **D40 Ideas back into Skrift** (i43). ✅ DECIDED 2026-09-22: not in v2; the archive reads
     Skrift's files, never the reverse.
 41. **D41 `_inbox/Skrift/` or flat `_inbox/`.** ✅ DECIDED 2026-09-22: `_inbox/Skrift/` ("the
@@ -1138,7 +1163,9 @@ Not blocking v2, but he asked for one sitting:
 
 From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, defaults proposed:
 
-52. **D52 The refine pass** at ≥ 0.8: keep or drop in v2 (nobody named its output). Default: drop.
+52. **D52 The refine pass** at ≥ 0.8. ✅ DECIDED 2026-09-22: DROPPED. It was never a model pass —
+    "it is me going over it before I am allowed to export, to force me to pay attention. But
+    let's remove that friction." The spec's earlier description was wrong.
 53. **D53 Truncation fallback path**: iPad returns the marker-stripped input into the escrow, the
     Mac returns the original body. Default: the original body on both.
 54. **D54 Picture reinsert by paragraph index** (C30) or by sentence index. Default: paragraph.
@@ -1241,6 +1268,12 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 4: archive files named by his title or a timestamp, never a model
+  title; the refine pass (his own forced read-through) dropped — three importance balls, no
+  fourth; YouTube = card only, no scraping ("broken features suck"); Instagram card + caption;
+  a text URL is a link; GIFs kept as GIFs; Apple Notes dated by creation date or marked
+  unknown; ALL THREE APPS IMPORT THE SAME THINGS through one shared layer, plus a twin audit
+  and shared UI where possible.
 - 2026-09-22 Sitting round 3: vault folder model as coded; `duration` + created date added to
   frontmatter, no coordinates; `date:` = local day everywhere; trash leaves the vault file;
   re-filing removes the old archive file when ours; renames happen in Obsidian. "I could
