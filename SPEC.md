@@ -273,7 +273,8 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
   `typed-locked` and `applenote-dutch` (both locked) never appear in the vault. — ledgers:128-131,
   L C13, L:367
 - C62 [auto] Four destinations, one per note: Personal → vault; Made → `_inbox/`; Idea →
-  `_ideas/`; Inspiration → `_inspiration/` with `needs: - credit`; the archive keeps
+  `_ideas/`; Inspiration → `_inspiration/` with `needs: - credit`; Made lands in `_inbox/Skrift/`
+  (Tuur 2026-09-22; v1 writes flat `_inbox/` — required difference); the archive keeps
   `[[names]]` and `location:`, plainifies place LINKS, drops weather, significance, `author`,
   `type`, `source`; writes `capture:` and `voice:` (set by each app, never derived); flat,
   named, media beside the note; the whole feature sits behind ONE Settings switch, off by
@@ -393,8 +394,8 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
 - C90 [auto] Trash is soft everywhere, synced via `deletedAt`, purge clock = `trashSeenAt`;
   trash is not searchable, fading is. || check: `TrashTests`; corpus `typed-trashed`.
 - C91 [auto] Locked notes sync, never export, show title + 🔒 only, unlock per session.
-  || check: corpus `typed-locked`. ⚠ needs-verdict D10 (does a locked note get polished? v1 KEEPS
-  processing a locked note and refuses only export — so D10's default is a change from v1)
+  || check: corpus `typed-locked`. Processing continues on a locked note (Tuur 2026-09-22:
+  "no one should see it" — lock is about eyes, not the pipeline) — D10 decided as today.
 - C92 [auto] Reminders are synced data; each device derives its own alarm. || check: corpus
   `typed-reminder`. ⚠ unverified: Mac reconciler owed — ledgers:53 (lifecycle)
 - C93 [auto] Tags: split on comma/newline, need a letter or digit (`[]` refused), `#`
@@ -558,11 +559,11 @@ never in Skrift ("then you can't have immediate AI back and forth" — rejected)
   everything below is HIS. An archive-bound body is never a generated text: no LLM title in
   the body, no summary, no invented words; `voice: raw` = the transcript verbatim,
   `voice: cleaned` = grammar and punctuation only, his words in his order, diffable against
-  the raw; `voice: written` = typed, untouchable. NO GLUE: cutting only, never connective
-  words. || check: for every archive-bound corpus note, every word of the cleaned body
-  appears in the raw body in the same order. ⚠ needs-verdict D38 (does Skrift's copy-edit,
-  which removes fillers and repeats and re-paragraphs, count as `cleaned`? or do archive
-  notes ship `raw`?) — rules:192-223
+  the raw — DECIDED 2026-09-22: Skrift's copy-edit (fillers and repeats removed, nothing
+  rephrased, nothing added) IS `cleaned`; the archive's grammar-only wording is to be loosened
+  to match; `voice: written` = typed, untouchable. NO GLUE. || check: for every archive-bound
+  corpus note, no word of the cleaned body is absent from the raw body (removals only).
+  — rules:192-223, D38
 - C132 [auto] The file's NAME is not his words either: an archive entry is named by its
   timestamp (`2026-08-26-142312.md`) unless he typed a title; a generated title never
   becomes a basename. || check: `dest-idea` (no user title) → timestamp name. ⚠ required
@@ -668,9 +669,10 @@ Audiobooks, locks, reminders, export:
 - C160 [auto] A captured quote can be corrected ("Fix quote" on the phone); the corrected block is
   the escrowed quote everywhere; attribution unchanged. || check: edited-quote golden.
   ⚠ needs-verdict D50 — scenarios #45
-- C161 [auto] Locking seals: a locked note is not polished on any device; locking an exported note
-  says the plaintext file still exists and offers to remove it when ours and untouched. || check:
-  corpus `typed-locked` + a ledger entry. (resolves D10 by default) — scenarios #46
+- C161 [auto] Locking hides: a locked note keeps processing but is never exported or shown
+  without auth; locking an exported note says the plaintext file still exists and offers to
+  remove it when ours and untouched. || check: corpus `typed-locked` + a ledger entry.
+  — scenarios #46, D10
 - C162 [tuur] A reminder set on any device rings on the device he is holding; the first
   acknowledgement clears the others. ⚠ needs-verdict D51 — scenarios #47
 - C163 [auto] Changing an exported note's destination removes the old file when ours and
@@ -1038,10 +1040,10 @@ spec.)
    stays off typed text. "how would typed text get paragraphed as there is no speech data?"
 8. **D8 Dutch copy-edit** near-echoes. ✅ DECIDED 2026-09-22: accept for v2; paragraphs by C34;
    prompt bench later.
-9. **D9 The prod prompt override** (764-char old prompt in `user_settings.json`). Default:
-   migrate it away, one prompt source.
-10. **D10 Locked notes and polish** (C91): today lock = "keep, don't polish"? Default: a
-    locked note is never processed and never exported; sync continues.
+9. **D9 The prod prompt override.** ✅ DECIDED 2026-09-22: migrate it away, one prompt source.
+10. **D10 Locked notes and polish.** ✅ DECIDED 2026-09-22: a locked note IS processed ("locked
+    can be processed no? it's just that no one should see it"); never exported, never shown
+    without auth; sync continues. = today's behaviour.
 
 Blocking targets 3 and 4 (reconcile + export):
 
@@ -1104,24 +1106,22 @@ Not blocking v2, but he asked for one sitting:
 37. **D37 Chat-export zip import** (WhatsApp/Signal "Export chat"): the only way to get sender
     names and exact order automatically. Default: parked; the share-sheet name field (C123)
     covers the common case.
-38. **D38 Is Skrift's copy-edit "cleaned" by the archive's rule?** The archive says cleaned =
-    grammar and punctuation only, diffable, no glue. Skrift's copy-edit drops fillers and
-    repeats and re-paragraphs. Default: archive-bound notes ship `voice: raw` plus a Skrift
-    copy-edit that is CUT-ONLY (every kept word in the raw, same order) as `cleaned`; the
-    Personal vault keeps today's copy-edit.
+38. **D38 Is Skrift's copy-edit "cleaned" by the archive's rule?** ✅ DECIDED 2026-09-22: YES —
+    "the way the copy edit does it is the right one. removing fillers and shit is good". Archive
+    notes get the normal copy-edit as `voice: cleaned`; the archive README's grammar-only
+    definition is to be loosened over there.
 39. **D39 Archive filenames**: timestamp basename (the archive's own shape) vs the generated
     title slug Skrift writes today. Default: timestamp unless he typed the title.
-40. **D40 Ideas back into Skrift** (i43): does Skrift ever read the archive (to attach a
-    capture to an existing item, or to bring an idea back for exploring)? Default: not in v2;
-    the archive side reads Skrift's files, never the reverse.
-41. **D41 `_inbox/Skrift/` or flat `_inbox/`**: the archive README says Skrift lands in
-    `_inbox/Skrift/`; Skrift writes flat `_inbox/<name>.md`. Default: flat, and fix the README.
+40. **D40 Ideas back into Skrift** (i43). ✅ DECIDED 2026-09-22: not in v2; the archive reads
+    Skrift's files, never the reverse.
+41. **D41 `_inbox/Skrift/` or flat `_inbox/`.** ✅ DECIDED 2026-09-22: `_inbox/Skrift/` ("the
+    readme is correct"); Skrift changes to write there — a required difference.
 
 42. **D42 Retry a failed link fetch** (shared in the metro): retry up to three times at the next
     foreground, or once only as today. Default: retry.
 43. **D43 Email shares**: title = Subject, body = the plain text, sender field. Default: yes.
-44. **D44 Video for the archive**: keep the movie as a synced asset for Made/Idea/Inspiration
-    notes only (capped ~200 MB). Default: yes, archive-bound only.
+44. **D44 Video for the archive.** ✅ DECIDED 2026-09-22: yes — the movie is a synced asset for
+    Made/Idea/Inspiration notes only (cap ~200 MB); Personal videos stay discarded.
 45. **D45 Long notes**: copy-edit per paragraph block above half the token cap, so a 40-minute
     note is never shipped raw for being long. Default: yes.
 46. **D46 Per-note transcription language** ("transcribe again in Dutch"). Default: yes; the
@@ -1240,6 +1240,10 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 2: prompt override migrated; a locked note keeps processing ("it's
+  just that no one should see it"); Skrift's copy-edit IS the archive's "cleaned" ("removing
+  fillers and shit is good"); `_inbox/Skrift/` stands; no ideas back into Skrift in v2; the
+  movie syncs for archive notes.
 - 2026-09-22 Sitting round 1 (D1–D8): all defaults, except the paragraph pause is 2.0 s on
   both devices and typed text is never auto-paragraphed ("no speech data, no 2s rule").
 - 2026-09-21 Quick note builds early, mock first; the editor rebuilds after the body v2 —
