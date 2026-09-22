@@ -13,6 +13,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 store, rec_dir, out = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+pipe = store.parent / "skrift.store"   # the Mac's own rows: word timings for Mac takes live HERE, not in a sidecar (R34)
 since = sys.argv[4] if len(sys.argv) > 4 else "2026-09-22T00:00:00+01:00"
 since_cd = datetime.fromisoformat(since).timestamp() - 978307200
 con = sqlite3.connect(store)
@@ -33,6 +34,11 @@ for i, r in enumerate(rows, 1):
     if src.exists(): shutil.copy(src, folder / "audio.m4a")
     wt = rec_dir / f"wt_{mid}.json"
     if wt.exists(): shutil.copy(wt, folder / "word_timings.json")
+    elif pipe.exists():
+        row = sqlite3.connect(pipe).execute("select ZWORDTIMINGSJSON from ZPIPELINEFILE where ZFILENAME = ?", (audio,)).fetchone()
+        if row and row[0]:
+            (folder / "word_timings.json").write_bytes(row[0] if isinstance(row[0], bytes) else row[0].encode())
+            wt = folder / "word_timings.json"
     try: metadata = json.loads(meta) if meta else {}
     except Exception: metadata = {}
     note = {"id": mid, "slug": slug, "kind": "voice", "lang": "nl", "shape": ["voice", "real-voice", "dutch", "mac-recorded"],

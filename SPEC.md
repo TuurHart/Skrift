@@ -732,6 +732,19 @@ Audiobooks, locks, reminders, export:
   transcription on the iPhone 13, percentages written into the ledger before any tuning.
   || check: two numbers in `plan/measurements.md`. — "I think it took a lot of battery once"
 
+### Caught 2026-09-22 on the Dutch rambles
+
+- C245 [auto] Whatever device records, every other device gets the same note: a Mac take's word
+  timings (and diarization, when any) ride to the phone as assets exactly as the phone's ride to
+  the Mac; karaoke works everywhere. || check: seed `dutch-rambles` on the phone → each note has
+  a `wordTimings` asset. ⚠ required difference R34 — Tuur: "it's these kinds of things I need you
+  to catch in this process"
+- C246 [auto] No "expected" without a citation: any claim in a report or a spec clause that a
+  behaviour is intended points at the code line or the decision that makes it so; a claim that
+  cannot be cited is a bug candidate, not an explanation. || check: every ⚠/expected line in
+  plan/extraction carries a `src:`. — the lesson of C245 (the drafter wrote "expected for Mac
+  takes" without checking)
+
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
 Method and gate:
@@ -1054,6 +1067,7 @@ rewrite targets, each with its corpus note and the expected output:
 | R31 | conversation-turn and annotation edits don't bump `editedAt` | every content edit is a touch | corpus edit scenarios | C89 |
 | R32 | open-in ignores `.ogg/.oga/.m4b/.pdf` | same acceptance as the share sheet | ingress P12 | C199 |
 | R33 | a mixed bundle's picture marker lands mid-transcript | own paragraph at the C12 spot | ingress P3 | C12 |
+| R34 | a Mac recording's word timings never reach the phone (the Mac authors the memo with audio only, `MacMemoAuthor.swift:92`; the timings sit on its own row) | the timings ride as the `wordTimings` asset, karaoke works on every device | `dutch-rambles` seeded on the phone | C245 |
 Pre-registered as IDENTICAL (unchanged on purpose): `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (R10).
 
 Outside the targets, fixed in v1 now, not waited on: D4 lost recording (C99), semantic

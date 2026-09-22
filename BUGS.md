@@ -47,6 +47,12 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 2. Wrong behaviour — verified open today
 
+- [ ] **A Mac recording never gets karaoke on the phone or iPad.** `MacMemoAuthor.swift:92` authors
+      the synced memo with the audio asset only; the word timings stay on the Mac's `PipelineFile`
+      (`ZWORDTIMINGSJSON`, present for every Mac take). The phone's timings DO reach the Mac. Fix:
+      author the `wordTimings` (and diarization) assets too. Found 2026-09-22 on the five Dutch
+      rambles; SPEC R34 / C245.
+
 - [ ] **A person added on the phone can never be linked.**
       `SkriftMobile/Features/Names/NamesListView.swift:202` saves `aliases: []`, while
       `PersonEditorView.swift:222` already seeds `[name]`. Nothing matches a person with no aliases.
