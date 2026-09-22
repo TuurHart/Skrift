@@ -1124,12 +1124,14 @@ Not blocking v2, but he asked for one sitting:
     stays owed.
 28. **D28 What the app opens into.** ✅ DECIDED 2026-09-22: the list, the new-note action one
     tap away (C112).
-29. **D29 State the two network calls** (weather, URL fetch) in-app / README. Default: yes.
+29. **D29 State the two network calls** (weather, URL fetch) in-app / README. ✅ DECIDED
+    2026-09-22: "yes, say so for sure".
 30. **D30 Importance control.** ✅ DECIDED 2026-09-22: three balls (0.3 / 0.6 / 1.0), old values
     still bucket, no fourth button (the refine gate is gone). Mock first.
 31. **D31 Multi-audio thread from WhatsApp.** ✅ DECIDED 2026-09-22: chooser stays, one note default.
-32. **D32 Adding a person**: re-link only the open note (today) or every note? Default:
-    every note, once, deterministic.
+32. **D32 Adding a person.** OPEN 2026-09-22 — Tuur hesitant about a silent pass over all
+    notes. Offered: A automatic; B (recommended) today's open-note-only plus a "Link in N other
+    notes" button with the count on the add-person sheet.
 33. **D33 Podcasts → Books** node. ✅ DECIDED 2026-09-22: demote to planned — "we need to add
     that" — and see D90 on the Books tab itself.
 34. **D34 Rival documents.** ✅ DECIDED 2026-09-22: `backlog.md`, `SKRIFT_SOURCE_OF_TRUTH.md`,
@@ -1138,8 +1140,8 @@ Not blocking v2, but he asked for one sitting:
     `archive/`; `FEATURES.md` + `BUGS.md` stay until v2 lands; `CLAUDE.md` + README repointed.
     Done at the end of the sitting, readers grepped first.
 
-35. **D35 Per-message times in a merged messenger note**: show each clip's time as a small
-    line above its paragraph, or keep times only in the manifest? Default: manifest only.
+35. **D35 Per-message times in a merged messenger note.** ✅ DECIDED 2026-09-22: hidden (kept
+    in the manifest); the note's date = the first message's sent time.
 36. **D36 Same file shared twice.** ✅ DECIDED 2026-09-22: one note + an "already in Skrift" notice.
 37. **D37 Chat-export zip import** (WhatsApp/Signal "Export chat"): the only way to get sender
     names and exact order automatically. Default: parked; the share-sheet name field (C123)
