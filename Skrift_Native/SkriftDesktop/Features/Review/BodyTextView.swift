@@ -15,7 +15,7 @@ import ImageIO
 /// popover offering "unlink this mention" (→ the plain alias as spoken), "unlink all
 /// mentions in this note" (persisted so re-processing won't re-link), or "change to →
 /// <person>". (The in-prose three-tier suggested rendering + which-person popover land
-/// in chunk 4 — see NAMING_MODEL.md / mocks/naming-review.html.)
+/// in chunk 4 — see archive/state-2026-09/NAMING_MODEL.md / mocks/naming-review.html.)
 struct BodyTextView: NSViewRepresentable {
     @Binding var text: String
     /// Resolves an image marker number (`[[img_NNN]]`) to its file URL. Defaults to

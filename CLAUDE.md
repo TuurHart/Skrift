@@ -109,14 +109,16 @@ Rules:
 
 ## Ledgers (read to resume)
 
-- **`SPEC.md`** — ⭐ the constitution (drafted 2026-09-21, awaiting Tuur's sitting): Point,
-  done-means, 122 marked clauses, required differences, open decisions. `./gate.sh` is the gate.
+- **`SPEC.md`** — ⭐ THE constitution, confirmed by Tuur 2026-09-22: Point, done-means, 244
+  marked clauses, 33 required differences (bugs v2 must fix), every decision with its verdict.
+  `./gate.sh` is the gate. Live state = `SPEC.md` + `QUEUE.md` (from `/2-plan`) + `roadmap/`.
   Sources: `plan/extraction/*.md`. Corpus: `test-fixtures/corpus/` (synthetic, `-corpus <path>`).
+  The old state docs (`backlog.md`, SSOT, STANDALONE_PLAN, NAMING_MODEL, AUDIT_*, …) are frozen
+  under `archive/state-2026-09/` — read for the why, never for what to build.
 - **`FEATURES.md`** — cross-app feature source of truth (every feature × {mobile, desktop} ×
   file × status). **Update it in the same commit whenever you add or change a feature.**
-- **`backlog.md`** — THE working ledger: feature decisions, device-test findings/verdicts, fix
-  status, "CONTINUE HERE" resume points. Triage every brain-dump/feedback batch into it and tick
-  items off **in the same session they land** (user hard requirement).
+- **Feedback and findings** go into `BUGS.md` (bugs) or `SPEC.md` Decisions (verdicts) in the
+  same session they land (user hard requirement); `backlog.md` is frozen in `archive/state-2026-09/`.
 - **`Skrift_Native/SkriftDesktop/mocks/*.html`** — signed-off design specs (mock-first is locked
   process for new UI): v5 (desktop shell), significance-circles, name-unlink, name-a-speaker,
   capture-items, audiobook-capture, text-capture, **audiobook-player-redesign** (text-forward A+D
@@ -137,25 +139,21 @@ Rules:
   "📦 CONTINUE HERE"). A mock the user approved IS the spec — build to it.
 - **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
   memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →
-  MANDATORY second-agent verify → triage into backlog.md. Crash logs via `idevicecrashreport`.
-- **`STANDALONE_PLAN.md`** — ⭐ **CURRENT DIRECTION (2026-06-15):** ship SkriftMobile to the App Store
-  as a standalone audiobook+notetaking app (no Mac required). Locked: **$0.69, no IAP**; full-vision v1;
-  **CloudKit** internal sync (not iCloud-Drive); one-way Obsidian publish; on-device Polish as a **gated
-  spike**; Mac+Obsidian = optional sinks over one source of truth. Phases 0–11 + portability map +
-  device/LLM matrix. Branch **`standalone`**. Track in `backlog.md` "⭐ Standalone App Store push".
+  MANDATORY second-agent verify → triage into BUGS.md (bugs) and SPEC.md Decisions (verdicts). Crash logs via `idevicecrashreport`.
+- **Direction:** the standalone App Store push ($0.69, no IAP, CloudKit sync, one-way publish) is
+  in `SPEC.md` (Point, Not doing, Decisions); the old `STANDALONE_PLAN.md` is archived.
 - **`roadmap/`** — ⭐ the roadmap **data** (new chats: start at **`roadmap/README.md`**).
   **`roadmap/roadmap.yaml`** is the single source of truth for the plan: the node graph (spine
   `nodes`, `detours`, the 5 `history` eras with dated `shipped` logs, `ideas`). Layout auto-computes
   from each node's `lane` (vertical) + `order` (horizontal) — to move a node, change those two numbers.
   It's rendered by the **Tiuri Command Center hub**, a *separate* project in its own repo
   (`OsamaBinBallZak/Tiuri-Command-Center`); this repo only holds the data. **UPDATE CONTRACT (so it
-  can't drift):** when a phase/detour/idea changes, edit `roadmap.yaml` AND the markdown ledger it
-  mirrors (`SKRIFT_SOURCE_OF_TRUTH.md` §4, `STANDALONE_PLAN.md`, `backlog.md`) in the **same pass**, and
-  bump `updated:`. **History note (2026-06-29):** the old in-repo viz `roadmap/ROADMAP.html` (a
+  can't drift):** when a phase/detour/idea changes, edit `roadmap.yaml` AND `SPEC.md` (a Decision
+  line, or the clause) in the **same pass**, and bump `updated:`. **History note (2026-06-29):** the old in-repo viz `roadmap/ROADMAP.html` (a
   self-contained metro-tree with its *own hardcoded* plan copy) was **deleted** — it was a second source
   that drifted from `roadmap.yaml`. Recover it from git history if ever needed; the A/B/C/D
   design-exploration mocks remain in `roadmap/mocks/`.
-- **`SKRIFT_SOURCE_OF_TRUTH.md`** — ⭐ the canonical record: timeline, current state, decisions, wire contracts, resolved contradictions. **Start here** — it indexes the deep docs by `file:line`.
+- **History:** `archive/state-2026-09/SKRIFT_SOURCE_OF_TRUTH.md` (the pre-spec canonical record, indexes the deep docs by `file:line`) — for the why of a clause.
 - **`archive/handoffs/`** — the native-rewrite deep tier (the SSOT's cited sources, moved out of root 2026-07-01): `MOBILE_NATIVE_HANDOFF.md` + `…_REWRITE_PLAN.md` (iOS), `DESKTOP_NATIVE_HANDOFF.md` + `…_REWRITE_PLAN.md` (macOS), `CONVERSATION_MODE_HANDOFF.md` (diarization + voice identity — Sortformer + wespeaker-cosine), `MAC_CLOUDKIT_PLAN.md`, `OBSIDIAN_EXPORT_ALTERNATIVES.md`, `WALKTHROUGH_BUGS.md`. Read on demand via the SSOT's citations.
 - Memory: `project_native_convergence`, `project_vocab_booster`, `feedback_vault_privacy`, `feedback_autonomous_execution`, `feedback_native_ui_process`, `feedback_native_ui_verification`.
 
@@ -164,7 +162,7 @@ Rules:
 - Root holds only the live set (see README's doc map). Write rules, not essays — cut any
   sentence that doesn't change what the reader does; state each rule once.
 - Superseded docs → `archive/` (session handoffs/plans → `archive/handoffs/`), never delete.
-  Fold a new handoff's durable facts into `SKRIFT_SOURCE_OF_TRUTH.md`, then archive it.
+  Fold a new handoff's durable facts into `SPEC.md` Decisions, then archive it.
 - The SSOT is a citation index — keep its `Filename.md:line` anchors resolvable when moving cited docs.
 
 ## Branch
@@ -178,7 +176,7 @@ branches (`mobile-native`, `desktop-native`, `feature/photo-capture`, …) are s
 
 ## Open cross-app work
 
-- **Audiobooks — ✅ BIG 2026-06-13 batch (see `backlog.md` ⭐ CONTINUE HERE + FEATURES.md):**
+- **Audiobooks — ✅ BIG 2026-06-13 batch (see FEATURES.md; history in `archive/state-2026-09/backlog.md`):**
   (1) **Custom vocab fixed** both apps — pre-warm booster + aliases + trust guard; device-confirmed
   working ([[project_vocab_booster]]). (2) **Text-capture WAVE 2** (mobile) — whole-book pre-transcribe:
   `BookTranscript` sidecar + `ChunkFusion` + resumable `BookTranscriptionJob` + Transcribe-book button +

@@ -1,7 +1,7 @@
 # Embedding bake-off — P8 chunk 0 (RESULT: EmbeddingGemma wins)
 
 Standalone SwiftPM spike (not part of either app target) that ran the
-`JOURNAL_RETRIEVAL_PLAN.md` chunk-0 gate on the Mac, 2026-07-07. 15 Skrift-style docs
+`archive/state-2026-09/JOURNAL_RETRIEVAL_PLAN.md` chunk-0 gate on the Mac, 2026-07-07. 15 Skrift-style docs
 (EN/NL/mixed + distractors + one long memo with a buried tail), 10 queries with known
 expected top-1.
 

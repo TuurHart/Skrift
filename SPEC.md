@@ -1,10 +1,9 @@
 # SPEC — Skrift
 
-DRAFT 2026-09-21, written from the extraction in `plan/extraction/` (five reports: ledgers,
-bugs, code, ingress, mocks/roadmap, decisions — every clause below cites one of them or a
-file). Status of this file: **not yet confirmed by Tuur.** The sitting goes through
-"Open decisions" first, then strikes anything outdated in the clauses. A clause he does
-not confirm does not go into v2.
+Drafted 2026-09-21 from the extraction in `plan/extraction/`; **confirmed by Tuur in the
+sitting of 2026-09-22** (nine rounds; every open decision carries its verdict or a marked
+builder default; D90 the Books tab stays open, mock first). A clause he has not confirmed
+does not go into v2; the ⚠ marks say which those are.
 
 Marks: `[auto]` = a machine can check it (the check follows `||`); `[tuur]` = only his eyes
 or hands can judge. `⚠ unverified` = built on main, never seen on a device by him.
@@ -302,8 +301,9 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
   P1/P2, B:5215, scenarios #1 #13
 - C68 [auto] N voice notes → chooser "One note" (default: clips merged in chat order, one
   transcription pass) or "N notes"; N photos → always one note; a mixed bundle (clips +
-  photos + text) → one note with the pictures per C12 and the chat text as the body's
-  annotation. || check: `share-ingest-wave1` tests; ingress fixtures P1/P3. — ledgers:169-172
+  photos + text + VIDEO) → one note in selection order: pictures per C12, a video's speech
+  transcribed in its place and its frame a picture paragraph there, text as the annotation
+  (Tuur 2026-09-22: "why else would I select it"). || check: `share-ingest-wave1` tests; ingress fixtures P1/P3. — ledgers:169-172
 - C69 [auto] Audio outranks the URL representation (a WhatsApp voice note is audio); odd
   UTIs (Signal `.aac`, Telegram `.ogg`) reroute by extension; a text share that is a URL
   becomes a link capture. || check: ingress P1/P2/P7 fixtures. ⚠ needs-verdict D16 on the
@@ -1220,19 +1220,21 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     v2; Dev only until then. Default: yes.
 68. **D68 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Drop `Memo.syncStatus` and the Unsynced filter** (dead under CloudKit). Default: keep
     the field, remove the filter.
-69. **D69 Video + link inside a multi-item WhatsApp bundle**: video = its own note, the link
-    rides the note as a card. Default: yes.
+69. **D69 Video + link inside a multi-item WhatsApp bundle.** ✅ DECIDED 2026-09-22: ONE note —
+    "if I select the video to share with Skrift I'd imagine I want it in one note, why else would
+    I select it." The video's speech is transcribed in its place in the sequence, its frame is a
+    picture paragraph at that spot; a link rides as a card.
 70. **D70 Audio-only `.mp4` on the phone.** ✅ DECIDED 2026-09-22: opens as audio.
 71. **D71 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — In-app voice-annotate on captures** (dictation model, unverified): captures only; the
     Mac maps the asset in target 3. Default: yes.
-72. **D72 Video share keeps the typed thought.** Default: yes (built).
+72. **D72 Video share keeps the typed thought.** ✅ DECIDED 2026-09-22: yes.
 73. **D73 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Capture-as-note** (annotation folded into the body, file/PDF as a body block): after
     body v2, mock first; body v2 leaves room for a file block. Default: yes.
 74. **D74 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — On-device iPhone polish**: parked for v2 now the iPad polishes. Default: parked.
 75. **D75 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — A memo-link FROM an unrated note holds a note off the fade clock.** Default: yes.
 76. **D76 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Auto-prune of unrated notes (i2)** is dead, absorbed by fading. Default: dead.
-77. **D77 The phone's "People in this note" chip bar** while the Mac killed it: keep the
-    asymmetry. Default: keep, stated.
+77. **D77 The phone's "People in this note" chip bar.** ✅ DECIDED 2026-09-22: REMOVED — the
+    phone becomes like the Mac, names clickable in the text; one model on both apps.
 78. **D78 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Nicknames**: normalise to registered aliases only. Default: yes.
 79. **D79 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Re-export after a roster collision**: no; the next content change re-exports; log the
     count. Default: no.
@@ -1304,6 +1306,9 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting closed: a video selected with voice notes joins the same note; the phone
+  drops its people chip row and links names in the text like the Mac. Every D1–D89 has a
+  verdict or a marked builder default; D90 (the Books tab) is open by design, mock first.
 - 2026-09-22 Sitting round 9: export stays a button; audio-only .mp4 opens as audio; five Dutch
   rambles owed by him; UI test suite retired; privacy boundary = cloud vs local ("the future
   assistant would have wide access because it will be local").

@@ -178,7 +178,7 @@ final class NamesStore {
         _ = writeWithSmartBumps(people)
     }
 
-    /// Seed the roster from `People/` note titles (chunk 2, NAMING_MODEL.md decision 5).
+    /// Seed the roster from `People/` note titles (chunk 2, archive/state-2026-09/NAMING_MODEL.md decision 5).
     /// Each NEW title (no live entry matching its canonical key) becomes a Person whose
     /// canonical = the title — so the exported `[[ ]]` body link resolves to the note
     /// exactly (decision 1) — with derived aliases: the FULL title (always a safe,

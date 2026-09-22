@@ -1,6 +1,6 @@
 import Foundation
 
-/// The retrieval brain's engine seam (P8, `JOURNAL_RETRIEVAL_PLAN.md`).
+/// The retrieval brain's engine seam (P8, `archive/state-2026-09/JOURNAL_RETRIEVAL_PLAN.md`).
 ///
 /// **Shared source (`Shared/Retrieval/`)** — platform-neutral (Foundation only) so the
 /// Mac adopts the identical engine in Phase 2. The production engine is

@@ -223,7 +223,7 @@ targets:
         # iPad runs the SAME app with adaptive layouts — never a third target.
         # (Build 168 held this at "1" for one TestFlight diagnostic; it made no
         # difference — 168 404s exactly like the universal 166/167, so device
-        # family is NOT the cause. Restored. See TESTFLIGHT_INSTALL_HANDOFF.md.)
+        # family is NOT the cause. Restored. See archive/state-2026-09/TESTFLIGHT_INSTALL_HANDOFF.md.)
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.9"
         IPHONEOS_DEPLOYMENT_TARGET: "18.0"
