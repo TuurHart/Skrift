@@ -771,6 +771,21 @@ Audiobooks, locks, reminders, export:
   `plan/extraction/scenarios.md`) runs before each subsystem swap, by an agent that has not
   seen the v2 code. || check: `plan/scenarios-<subsystem>.md` exists before the swap.
 
+### Test coverage of this spec (plan/test-coverage.md, 2026-09-22)
+
+- Of 221 `[auto]` clauses: TESTED 66 · PARTIAL 77 · UNTESTED 54 · check names a harness that
+  does not exist yet 24. Every corpus note carries an `expect`; NO test reads it yet
+  (`CorpusSeed.Note` does not decode the field) — the diff harness is what will.
+- C252 [auto] Tests that PIN v1 behaviour the spec retires are listed and deleted WITH the swap,
+  never before: `NoteBodyTests.swift:196,243` (render-time snap, C17), `ImageMarkerReinsertTests
+  .swift:6` (6-word anchors, C30), `VaultExporterTests.swift:172` (export-time snap, C65),
+  `IngestServiceTests.swift:54` (the Mac silently drops a PDF, C77), `ArchiveExportTests.swift:104`
+  (`summary:` in the archive, C130) and `:105` (`date:` in the archive, R51). || check: the
+  swap's commit removes them and the gate stays green.
+- C253 [auto] The 19 untested `[auto]` clauses inside the four rewrite targets
+  (plan/test-coverage.md §3) are the first queue items of `/2-plan`; each becomes a test
+  before its subsystem's v2 is written. || check: QUEUE.md items cite them.
+
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
 Method and gate:
@@ -1102,6 +1117,23 @@ rewrite targets, each with its corpus note and the expected output:
 | R41 | `voice:` disagrees between apps: the phone can label a raw body `cleaned` when the Mac's polish set only title/summary (`MemoExporter.swift:90` vs `CompilerBridge.swift:73`) | `voice:` derives from ONE rule on both apps | `voice-en-processed-no-content` exported both sides | C131 |
 | R42 | a corrupt audiobook-bookmark sync blob wipes that device's bookmarks (decode failure → `[]` adopted, stamp advanced) (`AudiobookBookmarkSyncCore.swift:41`) | a blob that fails to decode is ignored, never adopted | corrupt-blob test | C218 |
 | R43 | an Apple Notes import can ingest a BLANK note when the copied file fails to read back (`IngestService.swift:180`) | a read failure is an error, never an empty note | M4 fixture with an unreadable file | C76, C168 |
+| R44 | the Mac's write-back "newer wins" compares the writer's stamp against THIS Mac's clock (`MacCloudWriteBack.swift:102`): a device with a fast clock has its polish refused forever | LWW compares stamps to stamps, with skew tolerance (D60) | two stores, skewed clocks | C46 |
+| R45 | a `recordedAt` in the future (bad phone clock) makes the fade age negative forever (`MemoLifecycle.swift:192`): the note never fades, never trashes | age clamps at 0; a future date is flagged | corpus note dated 2027 | C89 |
+| R46 | disk full during a recording is a silent `try?` per buffer (`LiveRecordingService.swift:808`) | the take stops with an honest error and keeps what landed | sim with a full volume | C99 |
+| R47 | an iCloud account switch is handled nowhere (no account-change observer in either app) | the app notices, stops syncing, says so | account-change test | C155 |
+| R48 | a reminder is stored and shown as set before notification permission is checked (`ReminderSheet.swift:107`) | denied permission → the sheet says so, nothing pretends | permission-denied test | C92 |
+| R49 | a hand-typed `[[word]]` that is not a link exports as broken Obsidian syntax | plain text stays plain (escaped) in the vault | `typed-user-wikilink` | C59 |
+| R50 | a tag containing `: ` exports unquoted and turns the YAML list item into a mapping (`Compiler.swift:139`) | tags quoted like `summary:` | `typed-tags-with-spaces` + a `: ` tag | C56 |
+| R51 | `people:` with a linked name is GARBLED by the archive's own parser (`vault_index.py parse_front` → `['[Alice]']`); a picture-only capture exports `![[…]]` on the archive profile (`Compiler.captureSharedBlock` takes no profile); the archive expects `added:` but gets `date:` (`ArchiveExportTests.swift:105` pins the wrong key) | archive output parses with the archive's parser: `people:` as a block list of plain names, `![](file)`, `added:` | corpus `dest-*` exports run through `vault_index.py` | C129, C130 |
+| R52 | Redo (title / copy-edit / summary) silently overwrites a field the user hand-edited — the 2026-07-10 clobber shape in new code | a hand-edited part is never overwritten without a confirm | edited-then-redo test | C179 |
+| R53 | a renamed or moved vault/archive folder: the bookmark's `stale` flag is captured and never read; a rename can mint a second `Skrift/` folder | stale bookmark → re-prompt, never a second folder | renamed-folder test | C192 |
+| R54 | the iPad polish has no battery floor while its Settings copy claims one | one stated rule (the book transcriber's 20% floor) or no claim | settings copy test | C180 |
+| R55 | a failed live-caption finalize on the Mac drops the last sentence(s) of an EDITED take and marks it done (`LiveCaptionEngine.swift:281,319`) | a failed finalize keeps the wet tail and says so | finalize-failure test | C220, C99 |
+| R56 | the 60-day sweep can trash the unrated note currently open in the Mac pane while the pane keeps it editable (`UnratedNotePane.swift:81-113`) | the open note is never swept from under the user | sweep-while-open test | C89 |
+| R57 | diarization parity: byte-count-only staleness misses same-length changes; the Mac adopts diarization once per memo, never again (`AssetMaterializer.swift:122`, `MemoCloudIngest.swift:210`) | content-hash staleness; re-adopt on change | re-split conversation | C45 |
+| R58 | a failed Connections index sweep is invisible on iPhone/iPad (`JournalIndexService.swift:63`); the iPad panel is hard-capped at 4 rows with a dead "Show all" | failure shown; cap = the Mac's 7 + Show all | index-failure test | C110, C232 |
+| R59 | a corrupt local `bookmarks.json` wipes a book's bookmarks on the next edit (`Bookmark.swift:46`); `receiveTranscripts` lacks the landed-file check its siblings have (`AudiobookCloudSync.swift:472`) | a file that fails to decode is never overwritten; every receiver verifies | corrupt-file tests | C218 |
+| R60 | `SpeakerTurnsView`'s in-progress edit can land on the wrong turn after a rename/merge reshapes the list (`SpeakerTurnsView.swift:26`) | an edit commits to the turn it started in | rename-during-edit test | C23 |
 | R34 | a Mac recording's word timings never reach the phone (the Mac authors the memo with audio only, `MacMemoAuthor.swift:92`; the timings sit on its own row) | the timings ride as the `wordTimings` asset, karaoke works on every device | `dutch-rambles` seeded on the phone | C245 |
 Pre-registered as IDENTICAL (unchanged on purpose): `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (R10).
 
@@ -1325,6 +1357,14 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     weather, daypart, daylight. Default: the same context a phone recording gets, where the Mac
     can (weather via the same key; steps stay phone-only), so a Mac take exports like a phone take.
 
+93. **D93 Clock skew rule.** Sync "newer wins" compares stamp to stamp, never to the local clock,
+    with a few seconds of tolerance; a future `recordedAt` is flagged, never trusted. Default: yes.
+94. **D94 Archive date key.** The archive expects `added:` (when the entry was created) and has no
+    `date:`; Skrift writes `date:`. Default: write `added:` on the archive profile (mechanical —
+    follow the archive's own README); `date:` stays in the vault.
+95. **D95 Redo over a hand edit.** Redo (title / copy-edit / summary) on a part he edited by hand
+    asks first, never silently overwrites. Default: yes.
+
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
 commonplace book, folders model, watched-folder ingest, substitutions list, Backlink
@@ -1367,6 +1407,10 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Second run, four Sonnet hunters (adverse conditions, the archive as consumer +
+  the reviewer's day, test coverage, the outer bug-shape sweep): R44–R60, D93–D95, C252–C253.
+  The archive's OWN parser garbles Skrift's `people:`; Redo clobbers hand edits; a fast clock
+  gets its polish refused forever; the sweep can trash the note open on the Mac.
 - 2026-09-22 First run of the catching method (parity tables `plan/parity.md`, bug-shape sweep
   `plan/bug-shapes.md`, both on Sonnet): 12 one-way data cells, 9 verb gaps, 9 new required
   differences R35–R43 — the timings gap is the Mac's whole write-back (no asset writer), name

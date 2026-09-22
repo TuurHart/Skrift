@@ -68,6 +68,19 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 - [ ] **Apple Notes import can create a blank note** when the copied file fails to read back
       (`IngestService.swift:180`). SPEC R43.
       Sources: `plan/parity.md`, `plan/bug-shapes.md` (2026-09-22, verified against code by the sweep).
+- [ ] **Second hunt, 2026-09-22 (plan/scenarios-adverse.md, plan/scenarios-review-archive.md,
+      plan/bug-shapes-outer.md, plan/test-coverage.md) — SPEC R44–R60, each with its file:line there:**
+      clock-skew LWW refusal (R44) · future `recordedAt` = immortal note (R45) · disk-full silent
+      `try?` in the recorder (R46) · iCloud account switch unhandled (R47) · reminder set before
+      permission (R48) · hand-typed `[[word]]` leaks to the vault (R49) · tag with `: ` breaks YAML
+      (R50) · archive: `people:` garbled by its parser, `![[…]]` for picture-only, `date:` not `added:`
+      (R51) · Redo clobbers hand edits (R52) · stale folder bookmark never read (R53) · iPad polish
+      battery claim false (R54) · Mac live-caption finalize drops sentences (R55) · sweep trashes the
+      open Mac note (R56) · diarization parity (R57) · Connections failure invisible on mobile, iPad
+      cap 4 (R58) · corrupt bookmarks.json wipes bookmarks, `receiveTranscripts` unverified (R59) ·
+      turn edit lands on the wrong turn (R60). Verified SAFE, don't re-spend: DST vs duration,
+      duplicate keeper at scale, 400-person roster, recording-start reentrancy, cold-launch double
+      fire (idempotent), fading-conveyor coverage.
 - [ ] **A Mac recording never gets karaoke on the phone or iPad.** `MacMemoAuthor.swift:92` authors
       the synced memo with the audio asset only; the word timings stay on the Mac's `PipelineFile`
       (`ZWORDTIMINGSJSON`, present for every Mac take). The phone's timings DO reach the Mac. Fix:
