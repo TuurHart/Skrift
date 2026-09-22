@@ -509,8 +509,10 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
 - C120 [auto] No cloud AI, ever; the only network calls are weather at capture and the one
   URL fetch on drain, both stated in-app. || check: no other host in the network log of a
   corpus run. ⚠ needs-verdict D29 on stating them — decisions:539
-- C121 [auto] Personal notes never land in a folder an AI reads; the destination is a stored
-  field, one of four. || check: corpus `dest-personal` never under the archive root.
+- C121 [auto] Personal notes never land in a folder a CLOUD AI reads; the destination is a stored
+  field, one of four. The privacy boundary is cloud vs local: a local assistant in Skrift may
+  read everything, Claude only the archive (Tuur 2026-09-22). || check: corpus `dest-personal`
+  never under the archive root.
 - C122 [auto] The corpus is synthetic; agents never read his vault and never screenshot the live
   app at a real note; Dev and prod are separate containers and the Dev vault is the test vault;
   tests run on temp dirs, never the Dev container. The privacy rule targets cloud AI: Skrift's
@@ -1209,7 +1211,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 62. **D62 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — The share-out verbs** (markdown / PDF / plain / quote card) and batch export: keep
     outside the compiler rewrite. Default: keep; batch export owes a device look.
 63. **D63 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Split-note hybrid and per-book quote aggregation** are out of the v2 compiler. Default: out.
-64. **D64 Auto-publish after Process on iPad/Mac.** Default: no; the Mac re-export sweep stays.
+64. **D64 Auto-publish after Process on iPad/Mac.** ✅ DECIDED 2026-09-22: no — export stays a
+    button he presses; the Mac re-export sweep for already-exported notes stays.
 65. **D65 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Obsidian profile keeps `source: capture-url` while the archive uses `capture:`.**
     Default: leave.
 66. **D66 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — One-time adopt-by-content for pre-stamp legacy exports.** Default: no; re-export by hand.
@@ -1219,7 +1222,7 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     the field, remove the filter.
 69. **D69 Video + link inside a multi-item WhatsApp bundle**: video = its own note, the link
     rides the note as a card. Default: yes.
-70. **D70 Audio-only `.mp4` on the phone**: probe for a video track (Mac parity). Default: yes.
+70. **D70 Audio-only `.mp4` on the phone.** ✅ DECIDED 2026-09-22: opens as audio.
 71. **D71 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — In-app voice-annotate on captures** (dictation model, unverified): captures only; the
     Mac maps the asset in target 3. Default: yes.
 72. **D72 Video share keeps the typed thought.** Default: yes (built).
@@ -1234,15 +1237,17 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 79. **D79 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Re-export after a roster collision**: no; the next content change re-exports; log the
     count. Default: no.
 80. **D80 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Tag normalisation** ("filosofaties") out of scope. Default: out.
-81. **D81 Five throwaway Dutch rambles recorded in Skrift Dev** for the corpus (synthetic
-    content, real voice). Default: yes.
+81. **D81 Five throwaway Dutch rambles recorded in Skrift Dev.** ✅ DECIDED 2026-09-22: yes,
+    when convenient.
 82. **D82 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Summary prompt quality / context hints**: prompts frozen in v2, no sensor context.
     Default: frozen.
 83. **D83 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — `BookBundle` packs a rejected alignment sidecar**: fix in v1 now. Default: yes.
 84. **D84 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Always-warm ASR engine**: intentional; measure battery once. Default: keep, measure.
-85. **D85 Retire the XCUITest suite** (17 iOS-26 failures; the unit suite is the gate).
-    Default: retire.
-86. **D86 "AI READS THIS" also licenses a future in-app agent over `_ideas/`.** Default: yes.
+85. **D85 Retire the XCUITest suite.** ✅ DECIDED 2026-09-22: retire; the unit suite is the gate.
+86. **D86 "AI READS THIS".** ✅ DECIDED 2026-09-22, sharpened: the boundary is CLOUD vs LOCAL. A
+    future LOCAL assistant inside Skrift may see everything ("wide access, because it will be
+    local"); CLOUD AI (Claude) only ever gets Made / Idea / Inspiration, saved in the archive
+    folder that doubles as his project vault in Obsidian.
 87. **D87 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Frontmatter migration is per-note** (old key order stays until re-exported): state
     it, or add a bulk re-export verb. Default: stated, no bulk verb.
 88. **D88 Voice-enrolment floor** ✅ DECIDED 2026-09-22: 2 s ("at least 2 seconds") —: the reports disagree (≥ 3 s / 32k samples = 2 s / ≥ 2 s).
@@ -1299,6 +1304,9 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 9: export stays a button; audio-only .mp4 opens as audio; five Dutch
+  rambles owed by him; UI test suite retired; privacy boundary = cloud vs local ("the future
+  assistant would have wide access because it will be local").
 - 2026-09-22 Sitting round 8: the 29 internal engineering defaults (D53–D89 minus the eight
   user-visible ones) taken as builder defaults, marked, vetoable; voice enrolment = 2 s. New:
   a playing book never stops in the background (device test owed); battery measured.
