@@ -420,15 +420,19 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
   old decoders; `hPa` stays Int on the wire. || check: `MemoMetadata` decode tests. — ledgers
 - C97 [auto] A receiver never re-transcribes another device's in-flight memo. || check:
   corpus `voice-en-other-device-transcribing`. — ledgers:67 (sync)
-- C98 [tuur] Offline conflict = per-record last-writer-wins; a same-note edit on two devices
-  can lose one side. Accept or design a merge. ⚠ needs-verdict D24 — decisions:463
+- C98 [auto] A same-note edit on two devices that meet after being apart is a CONFLICT, never a
+  silent overwrite: the note shows it, he picks the version to keep, the other stays
+  recoverable (C242). New notes never conflict. || check: two in-memory stores with diverging
+  edits → the merge yields a conflict record, not a loss. — D24
 
 ### Recording & audio (out of the rewrite; listed so nothing is lost)
 
-- C99 [auto] A recording is never lost when the app dies: audio is persisted in segments
-  during the take and a launch sweep rebuilds the note and says so. || check: kill the
-  process mid-take on the sim → note present after relaunch. ⚠ required difference (D4,
-  issue #14); needs-verdict D26 on the exact mechanism — BUGS D4
+- C99 [auto] A recording is NEVER lost, whatever happens mid-take: a phone call, Siri, an
+  alarm, a kill, a dead battery. Audio is persisted in segments during the take (on every
+  interruption and every 60 s), a marker plus a launch sweep rebuilds the note and says so, and
+  a force-quit finalises. || check: a simulated call and a process kill mid-take on the sim →
+  the note is present after relaunch with all audio up to the event; the iPhone 13 call test.
+  ⚠ required difference (D4, issue #14) — BUGS D4; Tuur 2026-09-22 "never ever ever"
 - C100 [auto] Instant record on every entry; with Bluetooth present the whole memo records on
   the built-in mic; every recording lands unrated; transcription is capture, not processing.
   || check: `RecordingCore` tests; device round owed. — ledgers:85-87, 94
@@ -567,12 +571,10 @@ never in Skrift ("then you can't have immediate AI back and forth" — rejected)
   to match; `voice: written` = typed, untouchable. NO GLUE. || check: for every archive-bound
   corpus note, no word of the cleaned body is absent from the raw body (removals only).
   — rules:192-223, D38
-- C132 [auto] The file's NAME is not his words either: an archive entry is named by its
-  timestamp (`2026-08-26-142312.md`) unless he typed a title; a generated title never
-  becomes a basename. || check: `dest-idea` (no user title) → timestamp name. ⚠ required
-  difference (v1 slugs whatever title the note shows, generated included —
-  `Shared/Export/VaultWrite.swift:112-115`, `ExportProfile.entryStem`) ⚠ needs-verdict D39
-  — _ideas/README vs B:2794
+- C132 [auto] An archive entry is named by the note's title, typed or generated; the timestamp
+  (`2026-08-26-142312.md`) only when there is no title at all. Tuur 2026-09-22: a generated
+  title is as good a name as a typed one. = v1 (`VaultWrite.swift:112-115`); the archive's
+  own docs are to be relaxed to match. || check: `dest-idea` → slug of its title. — D39
 - C133 [auto] Destination is one of four, single-select; "Personal" never reaches the
   archive; Made → `_inbox/`, Idea → `_ideas/`, Inspiration → `_inspiration/`; anything else
   that is also true rides as an ordinary tag. The line between Idea and Inspiration is
@@ -704,6 +706,15 @@ Audiobooks, locks, reminders, export:
   a per-app style struct) is the model; a short research pass on how other multiplatform
   SwiftUI apps share screens precedes the twin audit. — Tuur: "more UI also if possible, see
   how other apps do this"
+
+### From sitting round 5 — Tuur 2026-09-22
+
+- C241 [tuur] The tag UI is redesigned: "the tags need to be revamped, the UI is annoying to use".
+  Mock first; the rules (C93) stay. — D23
+- C242 [tuur] Conflict handling: when one note carries two diverging edits from two devices, the
+  app shows a conflict on that note and lets him keep this device's version, the other's, or
+  both as two notes; the version not kept stays in version history for the trash window.
+  Modelled on Shapr3D's version conflict; mock first. — D24
 
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
@@ -1089,26 +1100,26 @@ Blocking targets 3 and 4 (reconcile + export):
 19. **D19 Mac drops of PDF / image / URL / ePub / flac.** ✅ DECIDED 2026-09-22: "mac and phone
     and ipad should all be able to import the same things. make that a shared thing" — ONE
     shared import layer (C238); the Mac accepts everything the phone accepts.
-20. **D20 Name links per device**: the Mac ignores the phone's per-note picks, so one note
-    can export with different links from each device. Default: the phone's picks win
-    everywhere (they sync already).
-21. **D21 Mid-body blockquotes**: never link names inside any `> ` block? Default: yes.
-22. **D22 A text-file share with no comment** (`cap-file-txt`): body = the file's text, or an
-    attachment card? Default: body.
-23. **D23 Case-variant duplicate tags** (`Glaze`/`glaze`). Default: fold to the first spelling.
-24. **D24 Offline conflict**: per-record LWW stays (one side's edit can be lost). Default:
-    stays, stated in the spec; no merge engine.
-25. **D25 Shares default to rating 0** and never reach the Mac. Default: stays (the rating
-    is consent); the goldens assume a rating.
+20. **D20 Name links per device.** ✅ DECIDED 2026-09-22: "name sync everywhere" — the per-note
+    picks are honoured on every device; one note exports the same links from each.
+21. **D21 Mid-body blockquotes.** ✅ DECIDED 2026-09-22: a name inside any quote block is never
+    linked.
+22. **D22 A text-file share with no comment.** ✅ DECIDED 2026-09-22: the file's text is the body.
+23. **D23 Case-variant duplicate tags.** ✅ DECIDED 2026-09-22: fold to the first spelling. And:
+    "the tags need to be revamped. the UI is annoying to use" → C241.
+24. **D24 Offline conflict.** ✅ DECIDED 2026-09-22: NOT silent. When the same note was edited on
+    two devices before they synced, the app shows a conflict and lets him choose which version
+    to keep (Shapr3D's model — "look it up"); the version not chosen stays recoverable, never
+    silently lost. New notes never conflict. → C242.
+25. **D25 Shares default to rating 0.** ✅ DECIDED 2026-09-22: stays; the rating is consent.
 
 Not blocking v2, but he asked for one sitting:
 
-26. **D26 Recording durability** (D4, issue #14): roll segments on interruption + every 60 s,
-    a sidecar marker + launch sweep that says "recovered a recording", and a
-    `willTerminate` finalise. Default: all three; fixed in v1 now.
-27. **D27 Book-sharing branch** (`claude/book-sharing-devices-rygara`, built, no device
-    run, not on main): merge now or leave until the two-device round? Default: merge to
-    main now; the round stays owed.
+26. **D26 Recording durability** (D4, issue #14). ✅ DECIDED 2026-09-22: all three, fixed in v1
+    now — and the bar is absolute: "when I get a phone call the recording is lost. I want to
+    never ever ever lose a recording mid recording." A phone call is the first test case.
+27. **D27 Book-sharing branch.** ✅ DECIDED 2026-09-22: merge to main now; the two-device round
+    stays owed.
 28. **D28 What the app opens into**: the list (today), the last note, or a new note.
     Default: the list, with the new-note action one tap away (C112).
 29. **D29 State the two network calls** (weather, URL fetch) in-app / README. Default: yes.
@@ -1136,8 +1147,10 @@ Not blocking v2, but he asked for one sitting:
     "the way the copy edit does it is the right one. removing fillers and shit is good". Archive
     notes get the normal copy-edit as `voice: cleaned`; the archive README's grammar-only
     definition is to be loosened over there.
-39. **D39 Archive filenames.** ✅ DECIDED 2026-09-22: his typed title → the file name; a model
-    title never is → the timestamp. The note is processed as normal.
+39. **D39 Archive filenames.** ✅ DECIDED 2026-09-22 (revised the same sitting): the note's title
+    names the file, typed OR generated ("weird distinction — both should be allowed to be a
+    title"); the timestamp only when there is no title at all. = today's behaviour; the
+    archive docs' "title only once he said it" is to be relaxed over there.
 40. **D40 Ideas back into Skrift** (i43). ✅ DECIDED 2026-09-22: not in v2; the archive reads
     Skrift's files, never the reverse.
 41. **D41 `_inbox/Skrift/` or flat `_inbox/`.** ✅ DECIDED 2026-09-22: `_inbox/Skrift/` ("the
@@ -1268,6 +1281,11 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 5: archive files named by ANY title (generated too), timestamp only
+  without one; name picks honoured on every device; no links inside quotes; a text file is
+  the body; case-variant tags fold, and the tag UI gets a revamp; offline edit conflicts are
+  SHOWN and chosen, never silent; shares stay unrated; a recording is never lost ("never ever
+  ever"); book-sharing branch merges.
 - 2026-09-22 Sitting round 4: archive files named by his title or a timestamp, never a model
   title; the refine pass (his own forced read-through) dropped — three importance balls, no
   fourth; YouTube = card only, no scraping ("broken features suck"); Instagram card + caption;
