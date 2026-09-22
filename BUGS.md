@@ -29,6 +29,8 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       `load()` returns an empty roster on decode failure, and `addVoiceEmbedding` is an unguarded
       read-modify-write called off-main by `VoiceEnroller`. CloudKit LWW then propagates whichever
       side lost. One-line partial fix: `options: .atomic`. Full fix: actor + cache (folds in P7).
+      Re-confirmed 2026-09-22 in the native port: `NamesStore.swift:28-53` still non-atomic, `load()`
+      still empty on decode failure (names probe shape 1, Shared sweep).
 
 - [ ] **D2 · Re-transcribe destroys the transcript when the audio has moved.**
       `SkriftDesktop/Features/Shell/ProcessingCoordinator.swift:368-370` sets `pf.transcript = nil`
@@ -47,6 +49,22 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 2. Wrong behaviour — verified open today
 
+- [ ] **Two people with the same full name fuse into one.** `Shared/Naming/NamesStore.swift:157-179`
+      and `NamesData.swift:154-184` union the aliases and voiceprints of a second "John Smith" into the
+      first; the Mac's `RosterAudit` guard only runs on one of three add paths (`SettingsView.swift:47,
+      50-53`, `NamesCloudSync.swift:54`). SPEC R61, R62 / C254 / D96.
+- [ ] **A deleted person's voiceprints come back.** The sync merge unions embeddings onto the
+      tombstone (`NamesStore.swift:88-97`, `NamesData.swift:180`). SPEC R63 / C259.
+- [ ] **A mid-body quote links names.** `Sanitiser.swift:713-716` protects only a note-opening `>`
+      block; D21 says any quote block. SPEC R64 / C82.
+- [ ] **`#Jack` becomes `#[[Jack]]`.** No tag-span guard in the linker (`Sanitiser.swift:751-756`).
+      SPEC R65 / C260.
+- [ ] **The assign-speaker sheet mints alias-less people.** `MemoDetailView.swift:1671-1690` →
+      `NamesStore.swift:113-128`, no editor shown; R12's shape at a second call site. SPEC R66 / C257.
+- [ ] **A synced rename leaves stale name spans on the open note.** The phone loads `people` once per
+      open (`MemoDetailView.swift:821,893-896`) and `NamesCloudSync.run` posts nothing. SPEC R67 / C258.
+- [ ] **Ines never matches Inés.** No diacritic folding in `Sanitiser.swift:748-756`; same site for the
+      Dutch bare possessive (`Wims`). SPEC R68, R69 / C256, C255.
 - [ ] **The Mac never sends timings or speaker turns back to the phone.** `MacCloudWriteBack` has no
       asset writer, so a Mac re-transcription of an untrusted phone note, or a conversation split on
       the Mac, loses karaoke and turns on the phone/iPad. Widens the Mac-take bug above. SPEC R35.

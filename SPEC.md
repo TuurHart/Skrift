@@ -364,7 +364,8 @@ The v2 diff harness joins the gate when the first subsystem lands (C5–C7).
   diff phone vs Mac. ⚠ needs-verdict D20 (today the Mac ignores the phone's picks)
   — code-core needs-verdict 2
 - C82 [auto] Names inside a quote block, code, YAML or a memo-link title are never linked.
-  || check: corpus `quote-with-names`. ⚠ needs-verdict D21 on mid-body quotes — ledgers:6
+  || check: corpus `quote-with-names` + `edge-name-midbody-quote`. D21 decided: ANY quote run,
+  not only a note-opening one (v1 protects only the leading quote, `Sanitiser.swift:713-716`) — R64
 - C83 [auto] A person added on the phone gets `aliases = [name]`; alias-less people are
   backfilled once. || check: corpus roster; BUGS §2 test. ⚠ required difference — BUGS §2
 - C84 [auto] Conversation headers: first turn `**[[Canonical]]:**`, later turns plain short;
@@ -707,9 +708,13 @@ Audiobooks, locks, reminders, export:
   `plan/twins.md` has no unmarked row. — Tuur: "check to see we share as much code between
   them to prevent drift"
 - C240 [tuur] UI is shared where the platform allows: the note card pattern (one shared view +
-  a per-app style struct) is the model; a short research pass on how other multiplatform
-  SwiftUI apps share screens precedes the twin audit. — Tuur: "more UI also if possible, see
-  how other apps do this"
+  a per-app style struct) is the model. Research done 2026-09-22
+  (`plan/research/multiplatform-swiftui.md`): keep two apps; grow `Shared/UI/` one view at a
+  time on that pattern; no Catalyst, no one-target template, no SPM package for `Shared/` yet;
+  a shared view never carries `#if os()` (the difference lives in its Style/Model struct); the
+  Mac's NSTextView editor stays a desktop-only leaf (native `TextEditor` crashes on selection
+  at macOS 15.5, the current floor). — Tuur: "more UI also if possible, see how other apps do
+  this"
 
 ### From sitting round 5 — Tuur 2026-09-22
 
@@ -785,6 +790,28 @@ Audiobooks, locks, reminders, export:
 - C253 [auto] The 19 untested `[auto]` clauses inside the four rewrite targets
   (plan/test-coverage.md §3) are the first queue items of `/2-plan`; each becomes a test
   before its subsystem's v2 is written. || check: QUEUE.md items cite them.
+
+### Names probe (plan/scenarios-names.md, 2026-09-22 — 25 scenarios, 8 clean, 11 broken)
+
+- C254 [auto] Two people can share a full name without fusing: a second "John Smith" gets his
+  own row (identity is an id, not the name string) or the add asks for a distinguisher. Both
+  `upsert` paths use the same case rule, and the collision audit (`RosterAudit`) runs on EVERY
+  path that lands a person, including Settings and sync. || check: `roster-duplicate-canonical`
+  yields two rows; a collision arriving by sync trips the audit. — names #1, #25, shapes 7+10; D96
+- C255 [auto] A Dutch bare possessive on an alias (`Wims`, `Lottes`) is recognised like the
+  apostrophe form. || check: `edge-name-dutch-possessive` links "Wims auto". — names #4
+- C256 [auto] Name matching ignores diacritics both ways (Ines/Inés, Månsson/Mansson).
+  || check: `edge-name-diacritics`. — names #6
+- C257 [auto] Naming a speaker who is not on the roster seeds the alias from the typed name or
+  opens the person editor; never an alias-less person. || check: `edge-speaker-assign-new-name`
+  gives ≥1 alias. — names #11 (R12's shape, second call site)
+- C258 [auto] A roster change that arrives by sync while a note is open re-derives that note's
+  name spans at once, not on the next open. || check: device-pair rename test on the open
+  note. — names #12
+- C259 [auto] A deleted person's voiceprints go with the tombstone; a sync merge never unions
+  embeddings onto a tombstone. || check: `roster-delete-with-voiceprint`. — names #13
+- C260 [auto] An inline `#tag` is never split by name-linking, even when it equals an alias.
+  || check: `edge-name-is-tag` keeps `#Jack` intact. — names #22
 
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
@@ -1135,6 +1162,15 @@ rewrite targets, each with its corpus note and the expected output:
 | R59 | a corrupt local `bookmarks.json` wipes a book's bookmarks on the next edit (`Bookmark.swift:46`); `receiveTranscripts` lacks the landed-file check its siblings have (`AudiobookCloudSync.swift:472`) | a file that fails to decode is never overwritten; every receiver verifies | corrupt-file tests | C218 |
 | R60 | `SpeakerTurnsView`'s in-progress edit can land on the wrong turn after a rename/merge reshapes the list (`SpeakerTurnsView.swift:26`) | an edit commits to the turn it started in | rename-during-edit test | C23 |
 | R34 | a Mac recording's word timings never reach the phone (the Mac authors the memo with audio only, `MacMemoAuthor.swift:92`; the timings sit on its own row) | the timings ride as the `wordTimings` asset, karaoke works on every device | `dutch-rambles` seeded on the phone | C245 |
+| R61 | a second person with the same full name silently fuses into the first, unioning aliases and voiceprints (`NamesStore.swift:157-179`, `NamesData.swift:154-184`); the two `upsert` overloads even disagree on case | two rows or a disambiguation prompt, never a silent merge | `roster-duplicate-canonical` | C254 |
+| R62 | the Mac's collision guard `RosterAudit` runs on one of three add paths; Settings adds and synced adds skip it (`SettingsView.swift:47,50-53`, `NamesCloudSync.swift:54`) | every path runs the audit | roster-collision-via-sync test | C254 |
+| R63 | a deleted person's voiceprints come back: the sync merge unions embeddings onto the tombstone (`NamesStore.swift:88-97`, `NamesData.swift:180`) | a tombstone carries nothing | `roster-delete-with-voiceprint` | C259 |
+| R64 | only a note-opening quote is protected; a mid-body `> ` quote links names (`Sanitiser.swift:713-716`) | every quote run protected (D21) | `edge-name-midbody-quote` | C82 |
+| R65 | an inline `#tag` that equals an alias is split into `#[[Name]]` (`Sanitiser.swift:751-756`) | tags never split | `edge-name-is-tag` | C260 |
+| R66 | naming a not-on-roster speaker in the assign sheet mints an alias-less person with a voiceprint and no editor (`MemoDetailView.swift:1671-1690` → `NamesStore.swift:113-128`) | alias seeded or the editor opens | `edge-speaker-assign-new-name` | C257 |
+| R67 | a rename arriving by sync while the note is open leaves stale spans until reopen (`MemoDetailView.swift:821,893-896`; `NamesCloudSync.swift:21-36` posts nothing on the phone) | spans re-derive on arrival | device-pair rename test | C258 |
+| R68 | no diacritic-insensitive match: Ines and Inés never match (`Sanitiser.swift:748-756`) | both directions match | `edge-name-diacritics` | C256 |
+| R69 | a Dutch bare possessive (`Wims`) on alias Wim is silence (`Sanitiser.swift:748-756`) | recognised like `Wim's` | `edge-name-dutch-possessive` | C255 |
 Pre-registered as IDENTICAL (unchanged on purpose): `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (R10).
 
 Outside the targets, fixed in v1 now, not waited on: D4 lost recording (C99), semantic
@@ -1365,6 +1401,11 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 95. **D95 Redo over a hand edit.** Redo (title / copy-edit / summary) on a part he edited by hand
     asks first, never silently overwrites. Default: yes.
 
+96. **D96 Two people, one full name.** When a second person with the exact same full name is
+    added, does Skrift keep two rows (identity is an id, the picker shows a distinguisher) or
+    refuse until a distinguisher is typed? Default: two rows, the add sheet asks for the
+    distinguisher (initial, city). v1's silent fuse is R61.
+
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
 commonplace book, folders model, watched-folder ingest, substitutions list, Backlink
@@ -1407,6 +1448,13 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Third run, names probe on Sonnet (`plan/scenarios-names.md`, 25 scenarios: 8
+  clean, 11 broken): R61–R69, C254–C260, D96. Two same-name people silently fuse; a mid-body
+  quote links names against the D21 verdict; `#tag` splits into `#[[Name]]`; the names file is
+  still a non-atomic write in the native port (D1 re-confirmed).
+- 2026-09-22 Multiplatform research done (`plan/research/multiplatform-swiftui.md`): keep two
+  apps, grow `Shared/UI` on the note-card pattern; no Catalyst, no one-target template, no SPM
+  package yet; the Mac editor stays an AppKit leaf. C240 amended.
 - 2026-09-22 Second run, four Sonnet hunters (adverse conditions, the archive as consumer +
   the reviewer's day, test coverage, the outer bug-shape sweep): R44–R60, D93–D95, C252–C253.
   The archive's OWN parser garbles Skrift's `people:`; Redo clobbers hand edits; a fast clock
