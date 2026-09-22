@@ -718,6 +718,16 @@ Audiobooks, locks, reminders, export:
   "keep both" as the safe choice (discourse.shapr3d.com/t/version-conflict-detected/21886);
   mock first. — D24
 
+### Audiobooks — Tuur 2026-09-22
+
+- C243 [tuur] A playing book NEVER stops when the app is backgrounded or the phone locks; after a
+  call or Siri it resumes only if it was playing. Device test on the iPhone 13: play, lock,
+  background, take a call, 30 minutes. (The 2026-07-26 interruption fixes B1–B5 exist,
+  device round deferred then — now owed.) — "the book would just stop if it was backgrounded"
+- C244 [auto] Battery is measured, not guessed: one hour of playback and one hour of whole-book
+  transcription on the iPhone 13, percentages written into the ledger before any tuning.
+  || check: two numbers in `plan/measurements.md`. — "I think it took a lot of battery once"
+
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
 Method and gate:
@@ -1180,64 +1190,64 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 52. **D52 The refine pass** at ≥ 0.8. ✅ DECIDED 2026-09-22: DROPPED. It was never a model pass —
     "it is me going over it before I am allowed to export, to force me to pay attention. But
     let's remove that friction." The spec's earlier description was wrong.
-53. **D53 Truncation fallback path**: iPad returns the marker-stripped input into the escrow, the
+53. **D53 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Truncation fallback path**: iPad returns the marker-stripped input into the escrow, the
     Mac returns the original body. Default: the original body on both.
-54. **D54 Picture reinsert by paragraph index** (C30) or by sentence index. Default: paragraph.
-55. **D55 Mac export resolves images via the images directory, the phone via the manifest.**
+54. **D54 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Picture reinsert by paragraph index** (C30) or by sentence index. Default: paragraph.
+55. **D55 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Mac export resolves images via the images directory, the phone via the manifest.**
     Default: manifest only, both apps.
-56. **D56 `PipelineFile.significance` non-optional** (0 = unrated) once the floor is written back.
+56. **D56 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — `PipelineFile.significance` non-optional** (0 = unrated) once the floor is written back.
     Default: yes, in target 3.
-57. **D57 Delete the dead `processEverything` toggle and the dead publish-gate legs.** Default: yes.
-58. **D58 Mint the memo id first for Mac recordings** so the filename id equals the memo id.
+57. **D57 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Delete the dead `processEverything` toggle and the dead publish-gate legs.** Default: yes.
+58. **D58 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Mint the memo id first for Mac recordings** so the filename id equals the memo id.
     Default: yes.
-59. **D59 Collapse the lenient desktop decoders** into one shared decoder with goldens first.
+59. **D59 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Collapse the lenient desktop decoders** into one shared decoder with goldens first.
     Default: yes, target 3.
-60. **D60 `names.json` tie rule**: deterministic by device id; write-back LWW tolerates ±5 s skew.
+60. **D60 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — `names.json` tie rule**: deterministic by device id; write-back LWW tolerates ±5 s skew.
     Default: yes.
-61. **D61 Does a PDF's extracted text go into the exported body?** Default: no, embed + ramble;
+61. **D61 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Does a PDF's extracted text go into the exported body?** Default: no, embed + ramble;
     text is search-only.
-62. **D62 The share-out verbs** (markdown / PDF / plain / quote card) and batch export: keep
+62. **D62 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — The share-out verbs** (markdown / PDF / plain / quote card) and batch export: keep
     outside the compiler rewrite. Default: keep; batch export owes a device look.
-63. **D63 Split-note hybrid and per-book quote aggregation** are out of the v2 compiler. Default: out.
+63. **D63 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Split-note hybrid and per-book quote aggregation** are out of the v2 compiler. Default: out.
 64. **D64 Auto-publish after Process on iPad/Mac.** Default: no; the Mac re-export sweep stays.
-65. **D65 Obsidian profile keeps `source: capture-url` while the archive uses `capture:`.**
+65. **D65 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Obsidian profile keeps `source: capture-url` while the archive uses `capture:`.**
     Default: leave.
-66. **D66 One-time adopt-by-content for pre-stamp legacy exports.** Default: no; re-export by hand.
-67. **D67 Prod CloudKit schema deploy + Release App-ID capabilities**: at prod promotion after
+66. **D66 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — One-time adopt-by-content for pre-stamp legacy exports.** Default: no; re-export by hand.
+67. **D67 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Prod CloudKit schema deploy + Release App-ID capabilities**: at prod promotion after
     v2; Dev only until then. Default: yes.
-68. **D68 Drop `Memo.syncStatus` and the Unsynced filter** (dead under CloudKit). Default: keep
+68. **D68 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Drop `Memo.syncStatus` and the Unsynced filter** (dead under CloudKit). Default: keep
     the field, remove the filter.
 69. **D69 Video + link inside a multi-item WhatsApp bundle**: video = its own note, the link
     rides the note as a card. Default: yes.
 70. **D70 Audio-only `.mp4` on the phone**: probe for a video track (Mac parity). Default: yes.
-71. **D71 In-app voice-annotate on captures** (dictation model, unverified): captures only; the
+71. **D71 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — In-app voice-annotate on captures** (dictation model, unverified): captures only; the
     Mac maps the asset in target 3. Default: yes.
 72. **D72 Video share keeps the typed thought.** Default: yes (built).
-73. **D73 Capture-as-note** (annotation folded into the body, file/PDF as a body block): after
+73. **D73 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Capture-as-note** (annotation folded into the body, file/PDF as a body block): after
     body v2, mock first; body v2 leaves room for a file block. Default: yes.
-74. **D74 On-device iPhone polish**: parked for v2 now the iPad polishes. Default: parked.
-75. **D75 A memo-link FROM an unrated note holds a note off the fade clock.** Default: yes.
-76. **D76 Auto-prune of unrated notes (i2)** is dead, absorbed by fading. Default: dead.
+74. **D74 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — On-device iPhone polish**: parked for v2 now the iPad polishes. Default: parked.
+75. **D75 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — A memo-link FROM an unrated note holds a note off the fade clock.** Default: yes.
+76. **D76 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Auto-prune of unrated notes (i2)** is dead, absorbed by fading. Default: dead.
 77. **D77 The phone's "People in this note" chip bar** while the Mac killed it: keep the
     asymmetry. Default: keep, stated.
-78. **D78 Nicknames**: normalise to registered aliases only. Default: yes.
-79. **D79 Re-export after a roster collision**: no; the next content change re-exports; log the
+78. **D78 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Nicknames**: normalise to registered aliases only. Default: yes.
+79. **D79 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Re-export after a roster collision**: no; the next content change re-exports; log the
     count. Default: no.
-80. **D80 Tag normalisation** ("filosofaties") out of scope. Default: out.
+80. **D80 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Tag normalisation** ("filosofaties") out of scope. Default: out.
 81. **D81 Five throwaway Dutch rambles recorded in Skrift Dev** for the corpus (synthetic
     content, real voice). Default: yes.
-82. **D82 Summary prompt quality / context hints**: prompts frozen in v2, no sensor context.
+82. **D82 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Summary prompt quality / context hints**: prompts frozen in v2, no sensor context.
     Default: frozen.
-83. **D83 `BookBundle` packs a rejected alignment sidecar**: fix in v1 now. Default: yes.
-84. **D84 Always-warm ASR engine**: intentional; measure battery once. Default: keep, measure.
+83. **D83 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — `BookBundle` packs a rejected alignment sidecar**: fix in v1 now. Default: yes.
+84. **D84 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Always-warm ASR engine**: intentional; measure battery once. Default: keep, measure.
 85. **D85 Retire the XCUITest suite** (17 iOS-26 failures; the unit suite is the gate).
     Default: retire.
 86. **D86 "AI READS THIS" also licenses a future in-app agent over `_ideas/`.** Default: yes.
-87. **D87 Frontmatter migration is per-note** (old key order stays until re-exported): state
+87. **D87 ✅ BUILDER DEFAULT 2026-09-22 (internal; veto any time) — Frontmatter migration is per-note** (old key order stays until re-exported): state
     it, or add a bulk re-export verb. Default: stated, no bulk verb.
-88. **D88 Voice-enrolment floor**: the reports disagree (≥ 3 s / 32k samples = 2 s / ≥ 2 s).
+88. **D88 Voice-enrolment floor** ✅ DECIDED 2026-09-22: 2 s ("at least 2 seconds") —: the reports disagree (≥ 3 s / 32k samples = 2 s / ≥ 2 s).
     Default: 2 s (32,000 samples at 16 kHz); state one number.
-89. **D89 Read-along `lead`**: 0.1 s (ledgers) vs 0.3 s (decisions). Default: whatever the
+89. **D89 Read-along `lead`** ✅ DECIDED 2026-09-22 (builder default, one number from the device tune) —: 0.1 s (ledgers) vs 0.3 s (decisions). Default: whatever the
     device tune settles; state one number.
 
 90. **D90 The Books tab.** Tuur 2026-09-22, with Hendri: "books is a weird tab, feels bolted on,
@@ -1289,6 +1299,9 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
 - 2026-09-21 Quick note + Apple-Notes-grade editing go into this spec: "when I quickly
   wanna write something down I reach for Apple Notes… either record or just start a new
   note. simple smooth and fast." Entry path builds early; the editor rebuilds on body v2.
+- 2026-09-22 Sitting round 8: the 29 internal engineering defaults (D53–D89 minus the eight
+  user-visible ones) taken as builder defaults, marked, vetoable; voice enrolment = 2 s. New:
+  a playing book never stops in the background (device test owed); battery measured.
 - 2026-09-22 Sitting round 7: adding a person re-links all notes automatically; failed link
   fetches retry; email shares; long notes copy-edited in paragraph blocks; per-note recognition
   mode; stuck transcriptions taken over; sync health shown; "Fix quote"; reminders clear on
