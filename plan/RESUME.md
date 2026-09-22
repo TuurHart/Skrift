@@ -1,22 +1,21 @@
-# RESUME — 2026-09-22 evening (written at 94% context, before auto-compact)
+# RESUME — 2026-09-22 night
 
-Branch `claude/skrift-v2-core-rewrite-564928`, HEAD pushed at `9e8867a1` + this file. Gate green (770/0).
-SPEC.md is CONFIRMED (sitting done, 95 decisions), 253 clauses, R1–R60 required differences.
-Tuur's instructions in force: NO handoff yet ("I don't trust we got everything"); keep hunting with
-SONNET agents (Fable weekly budget 61% used, resets Sun); the spec re-read runs on OPUS.
+Branch `claude/skrift-v2-core-rewrite-564928`, all folds committed and pushed. Gate green (770/0; no
+Swift changed since). SPEC.md: 274 clauses, R1–R89 (R10 deleted as IDENTICAL), D1–D99. BUGS.md §1
+D1–D19, §2 extended. Tuur's instructions in force: NO handoff until he says; subagents on SONNET.
 
-## Five agents still running when this was written — their outputs to FOLD when they land
-| output file | what | fold into |
-|---|---|---|
-| plan/spec-consistency.md (Opus) | clause-vs-decision contradictions, stale ⚠ marks, numbering, /2-plan readiness, §F = clean clause text for C10–C65 | APPLY §F to SPEC.md (replace the target clauses), clear stale marks, fix numbering |
-| plan/scenarios-names.md | 25 names scenarios + bug-shape sweep | R61+ rows, BUGS.md §2, new D if any |
-| plan/scenarios-capture.md | 25 capture-path scenarios + sweep | same |
-| plan/data-loss.md | every destructive op with its guard; candidates | same; the worst go to BUGS.md §1 |
-| plan/research/multiplatform-swiftui.md | how other Swift apps share UI across iPhone/iPad/Mac; recommendation | a Decision line + amend C240; input to the twin audit |
+## Owed by Tuur (two ⚠ needs-Tuur marks in SPEC.md)
+1. C137 — does the archive export keep `location:`? (C62 and C130 say yes, C137 says no.)
+2. C165 — filename stem cap: 80 or 120 characters.
 
-Fold pattern used so far: SPEC R-table rows (`| Rn | v1 does | v2 must | fixture | clause |`),
-BUGS.md §2 bullets with file:line, a Decisions line dated 2026-09-22, commit with explicit paths, push.
-Then: update memory `project_v2_core_rewrite.md`, and ONLY when Tuur says so, the handoff → `/2-plan`.
+## Then
+`/2-plan` → QUEUE.md. Mocks first: quick note, tag UI, conflict prompt, 3-ball importance, Books
+tab (D90). C253: the untested `[auto]` clauses in the four rewrite targets are the first queue items.
+
+## Reports (all folded)
+plan/parity.md, bug-shapes.md, bug-shapes-outer.md, scenarios-adverse.md, scenarios-review-archive.md,
+test-coverage.md, scenarios-names.md, scenarios-capture.md, data-loss.md (+ fold-draft.md, the paste
+source), spec-consistency.md (applied), research/multiplatform-swiftui.md (C240 amended).
 
 ## Corpus / local-only
 `test-fixtures/dutch-rambles/` = his 5 real Dutch rambles (git-ignored, with word timings pulled from

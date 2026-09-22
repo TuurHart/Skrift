@@ -44,6 +44,76 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       then copy, under the **original filename**. An attachment called `IMG_0001.jpg` clobbers
       whatever is already at that path in the Obsidian vault. The markdown lane is protected by
       `VaultWriter`; these two attachment lanes bypass it entirely.
+      Re-confirmed 2026-09-22: a third lane, `convertImageMarkers` at `:233-234`, does the same.
+
+- [ ] **D5 · Closing an active recording discards it with no confirm.** `RecordView.swift:502-505`
+      → `LiveRecordingService.cancel()` + `PhotoCaptureService.discardAll()`. One tap of the X
+      deletes the in-progress recording and every captured photo, permanently, zero dialog. Common,
+      easy-to-mistap gesture. SPEC R71.
+
+- [ ] **D6 · Editor commit silently blanks the raw transcript or the Mac's polished copy.**
+      `NoteBodyView.swift:1182-1190` (raw → nil) and `:1173-1175` (polished → `""`, no guard at
+      all); write side is `MemoDetailView.swift:1738-1748`'s unconditional `polishedBinding` setter.
+      A select-all-delete in the editor wipes the note or the Mac's AI work product with nothing
+      shown. SPEC R70.
+
+- [ ] **D7 · Append races the original transcription and can silently drop text or audio.**
+      `MemoDetailView.swift:92` "Add recording" has no gate on `transcriptStatus`;
+      `MemoSaver.swift:573-671` vs `:792-837` both write `memo.transcript` unordered — whichever
+      `save()` lands second wins, and the loser's clip is already deleted. A merge failure at
+      `MemoSaver.swift:602` separately drops the audio silently, keeping only text. SPEC R72.
+
+- [ ] **D8 · `recoverStuckTranscriptions` can overwrite a diarized/hand-edited transcript.**
+      `MemoSaver.swift:864-880` has no `transcriptUserEdited` check; only reachable via a kill
+      during an append on an already-diarized note. SPEC R73.
+
+- [ ] **D9 · The shared `VaultWrite.writeAsset` deletes a vault attachment it doesn't own.**
+      `Shared/Export/VaultWrite.swift:391-407`, `.file` branch — unconditional `removeItem` then
+      `copyItem`, no ownership check. Same shape as D3 but INSIDE the engine both apps and C54
+      treat as the protected lane, not the Desktop-only `VaultExporter.swift`. SPEC R77.
+
+- [ ] **D10 · Corrupt JSON caches are adopted as empty and written back over the real file.**
+      `Audiobook.swift:500-504,556-601` (mobile `library.json`, loses the whole audiobook shelf)
+      and `SkriftDesktop/Models/AppSettings.swift:150-176` (Desktop `settings.json`, non-atomic,
+      loses custom vocab/archive root/prompts on the next autosave after a torn write). SPEC R78.
+
+- [ ] **D11 · Delete-person has no confirm anywhere.** `PersonEditorView.swift:218-223`,
+      `PersonDetailView.swift:116-120` (iOS); `PersonEditor.swift:102-109` (Mac) — one click, no dialog,
+      tombstone pushed to every device on the next sync. SPEC R79 / C266.
+
+- [ ] **D12 · Custom vocabulary additions made offline on two devices can silently lose one.**
+      `CustomWordsView.swift:39-43,63` (load-time snapshot overwrite) and
+      `Shared/Pipeline/VocabularySyncCore.swift:43-48` (whole-list LWW, no merge). SPEC R80.
+
+- [ ] **D13 · "Remove download" can delete the only copy of a not-yet-uploaded audiobook.**
+      `SyncedAudiobooksView.swift:66-67` never checks upload-in-progress before deleting local
+      audio, unlike the sibling `AudiobookSyncSheet` which does track `transfer`. SPEC R81.
+
+- [ ] **D14 · A capture-inbox entry is deleted before its import is confirmed to succeed.**
+      `CaptureInboxDrainer.swift:150` (video), `:221` (audio), `:383-403,531` (file) — on import
+      failure the shared content lands in a plain temp file nothing revisits; zero UI error. SPEC R84.
+
+- [ ] **D15 · Markup overwrites the original photo in place, no backup.**
+      `MarkupQuickLook.swift:77-80`'s `.updateContents` mode writes markup edits into the SAME file
+      as the original; once used, the un-annotated original is gone permanently. SPEC R86.
+
+- [ ] **D16 · Voice-annotation audio is deleted even when transcription yields no text.**
+      `CaptureVoiceAnnotate.swift:176` — deletes unconditionally after transcription, even on a
+      confirmed-empty pass; a success haptic fires anyway. SPEC R87.
+
+- [ ] **D17 · A shared-book import's already-have check is stale by unpack time.**
+      `BookImportSheet.swift:118-144` checks `alreadyHave` once at offer time, never re-verifies;
+      a concurrently-synced copy of the same book is silently overwritten. SPEC R83.
+
+- [ ] **D18 · A `.transcribing` memo orphaned on a now-gone device can never self-heal.**
+      `MemoSaver.swift:860-862`'s recovery gate + `Shared/Model/DeviceID.swift` (local-only, never
+      synced) — a wiped/replaced phone permanently locks out that memo's transcription. SPEC R75.
+
+- [ ] **D19 · A widget/Siri Record tap on a never-opened install is silently dropped.**
+      `SkriftApp.swift`'s onboarding gate vs `RecordingIntentBridge`'s pending-start flag, which
+      has no expiry (unlike `prestart()`'s 8s sweep). SPEC R76.
+
+---
 
 ---
 
@@ -65,6 +135,29 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       open (`MemoDetailView.swift:821,893-896`) and `NamesCloudSync.run` posts nothing. SPEC R67 / C258.
 - [ ] **Ines never matches Inés.** No diacritic folding in `Sanitiser.swift:748-756`; same site for the
       Dutch bare possessive (`Wims`). SPEC R68, R69 / C256, C255.
+- [ ] **Locked notes are fully readable once trashed.** `WayOutView.swift:169,329,375-401,407-434`
+      render a locked note's title/transcript/photos with no auth; none of the 3 delete entry
+      points (`MemosListView.swift:483-488,516-518,1089-1091`) check `memo.locked` first, and
+      `copyTranscript`/`copyableText` copy a locked note's raw transcript with one tap. SPEC R88.
+
+- [ ] **`NotesRepository.save()` swallows a second consecutive failure.** `NotesRepository.swift:
+      259-268` retries once, then only `DevLog`s — no rating/delete/restore/name-link/Mac-polish
+      write reaches the UI as an error on persistent failure. SPEC R89.
+
+- [ ] **`ImageMarkers.insert` reverses marker order on a position tie.**
+      `Shared/Pipeline/ImageMarkers.swift:40-60` — two photos in one pause, or a fast burst, land
+      in reversed manifest order. Violates C13. SPEC R74.
+
+- [ ] **Bulk multi-select delete has no confirmation.** `MemosListView.swift:1031-1035,1044-1051` —
+      a stray tap while N notes are selected trashes all of them, no "Delete N notes?" dialog.
+      Reversible (soft delete), so low severity, but no safety net.
+
+- [ ] **`importAudioClipsAsync` deletes every source clip even when one was unreadable.**
+      `MemoSaver.swift:171-172` — `mergeAudioSync` (line 208) skips a corrupt clip with only a
+      DevLog, but its source file is still deleted with the good ones; the merged memo silently
+      lacks that clip's content.
+
+---
 - [ ] **The Mac never sends timings or speaker turns back to the phone.** `MacCloudWriteBack` has no
       asset writer, so a Mac re-transcription of an untrusted phone note, or a conversation split on
       the Mac, loses karaoke and turns on the phone/iPad. Widens the Mac-take bug above. SPEC R35.
