@@ -890,6 +890,18 @@ Audiobooks, locks, reminders, export:
   || check: `plan/sources.md` has no OPEN row; every doc in those folders has a section. — Tuur
   2026-09-23: the August audit plan's lag items were cited twice and folded nowhere
 
+### Performance sweep (plan/perf-sweep.md, 2026-09-23 — static read, nothing measured yet)
+
+- C277 [auto] No full-document `NSTextStorage` restyle or model-string rebuild may run synchronously on the main thread on every keystroke; only the edited range. || check: typing-benchmark measures per-keystroke main-thread time on a 5000-word note. — source: `BodyTextView.swift` restyle/modelString.
+- C278 [auto] A `FetchDescriptor` over a model with a blob property (e.g. `MemoAsset.blob`) must set `propertiesToFetch` unless the blob itself is needed. || check: static grep for `FetchDescriptor<MemoAsset>()` without `propertiesToFetch` on the same statement. — source: P4 / `NotesRepository.allAssets`.
+- C279 [auto] A per-row computed property read inside a `ForEach` may never scan the whole corpus; corpus-wide derivations are computed once per render pass. || check: count corpus-scanning function calls per list render at N rows == O(1). — source: P1 / `MemosListView`.
+- C280 [auto] A directory-locating accessor creates its directory at most once per process launch, never on every access. || check: instrument `createDirectory` call count across one cold launch. — source: P2 / `AppPaths`.
+- C281 [auto] A launch/foreground sweep records what it last saw and no-ops when nothing changed; it never unconditionally re-derives from scratch on every trigger. || check: log sweep-run count across 3 consecutive foregrounds with no data change. — source: `SkriftApp.swift` sweep chain, AUDIT_PLAN §3.
+- C282 [tuur] Before any performance fix ships, one measurement on the iPhone 13 prod build (Time Profiler
+  during a list scroll + a note open) and one typing session on a 5000-word note on the Mac, so the fix
+  targets the frames actually spent. || check: `plan/perf-measured.md` exists with both traces.
+  — plan/perf-sweep.md §5; AUDIT_PLAN §0
+
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
 Method and gate:
@@ -1276,6 +1288,11 @@ rewrite targets, each with its corpus note and the expected output:
 | R87 | `CaptureVoiceAnnotate.swift:176` deletes the voice-annotation audio unconditionally after transcription, even when both live caption and the full ASR pass returned empty text; a success haptic fires anyway | a capture whose transcription yields no text is kept (or the user is told) until saved or explicitly discarded | `voice-annotation-empty-transcript-kept` | C274 (new) |
 | R88 | locked notes lose protection the moment they're trashed: `WayOutView.swift:169,329,375-401,407-434` render a locked note's title/transcript/photos with no auth, and none of the 3 delete entry points (`MemosListView.swift:483-488,516-518,1089-1091`) check `memo.locked` first; `copyTranscript`/`copyableText` also bypass the lock | a locked note in Recently-Deleted/Fading shows the same "Locked note" placeholder MemosListView already shows, or is excluded until unlock; copy is gated too | `locked-note-in-fading-shelf`, `locked-note-copy-bypass` | C161 (existing — violated) |
 | R89 | `NotesRepository.swift:259-268` `save()`'s second consecutive SwiftData failure only `DevLog`s, never reaches the UI — the central persistence chokepoint for every mutation in the app | a second consecutive store-save failure is a visible error, matching C168's letter for "store" | `store-save-fails-twice` | C168 (existing — violated) |
+| R90 | Mac `BodyTextView.textDidChange` (`SkriftDesktop/Features/Review/BodyTextView.swift:232-239`) rebuilds the marker string and restyles the FULL document on every keystroke, writing straight into the SwiftData model with no debounce | scope restyle/model-rebuild to the edited paragraph or a small surrounding window, and debounce the model write the way the phone debounces `commitDraft` (1s) | typing 200 characters into a 5000-word note keeps per-keystroke main-thread work under a fixed signpost budget | C277 |
+| R91 | `AssetMaterializer.captureMissing` (`SkriftMobile/Services/AssetMaterializer.swift:67`) calls `NotesRepository.allAssets()` (`NotesRepository.swift:131-132`), an unscoped `FetchDescriptor<MemoAsset>()` | scope every metadata-only asset read with `propertiesToFetch`, matching `materializeMissing`'s own pattern twenty lines above it | `captureMissing` over 200 notes' worth of assets touches zero blob bytes when nothing needs capturing | C278 |
+| R92 | `MemosListView.swift:462-463,544` reads `enhancedTitleByMemoID`/`searchFadingIDs` as computed properties inside `ForEach` | hoist every per-row derived lookup out of the list body into one pre-render pass, folded into the existing `Derived`/`lifecycle` structs | rendering N rows performs O(1) corpus scans, not O(N) | C279 |
+| R93 | `AppPaths.recordingsDirectory` (`Shared/Model/AppPaths.swift:19-23`) calls `createDirectory` on every read | create data directories once at bootstrap; make the accessor a `static let` | N calls to `recordingsDirectory` in one launch produce at most 1 `createDirectory` syscall | C280 |
+| R94 | `SkriftApp.swift:108-203` fires nine main-actor sweeps unconditionally on every launch and foreground | each sweep records a high-water mark (last-seen memo count/timestamp) and no-ops when nothing changed since | a foreground with 0 new/changed memos runs 0 sweep bodies (or all nine only on the first foreground after launch) | C281 |
 Pre-registered as IDENTICAL (unchanged on purpose): a second person with the same full name merges into the first (R61 withdrawn, D96); `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (the
 withdrawn R10 — its row is gone; under C5 a row cannot be both a required difference and
 IDENTICAL).
@@ -1578,6 +1595,11 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
   items were cited by the extraction but never taken up: a source ledger with a verdict per
   item is now the rule (C276, `plan/sources.md`), and /2-plan waits for it. Performance sweep
   running.
+- 2026-09-23 Performance sweep on Sonnet (`plan/perf-sweep.md`, static): 16 of the August audit plan's
+  17 items still in the code (one fixed, eb8de896); 11 candidates; R90–R94, C277–C282. The Mac editor
+  rebuilds and restyles the WHOLE document and writes the model on EVERY keystroke with no debounce
+  (`BodyTextView.swift:232-239`), the phone debounces 1 s; "slow and clunky" has a mechanism now.
+  A measurement on the iPhone 13 precedes any fix (C282).
 - 2026-09-23 Tuur's answers to the third wave: the archive export KEEPS `location:` (C137); the
   filename cap is 80 (C165); same full name = same person, merge on purpose (D96, R61 withdrawn);
   spoken "hashtag X" becomes a real tag by rule (C275); the second destination needs a plainer name

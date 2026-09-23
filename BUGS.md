@@ -158,6 +158,23 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       lacks that clip's content.
 
 ---
+- [ ] **The Mac editor restyles the whole document on every keystroke.** `SkriftDesktop/Features/Review/
+      BodyTextView.swift:232-239` rebuilds the marker string (`:1019-1035`), restyles the full range
+      (`:651-782`) and writes the SwiftData model (`NoteBody.swift:206-217`) per character, no debounce;
+      the phone debounces 1 s (`NoteBodyView.swift:1043-1054`). Static read, not measured. SPEC R90 / C277.
+- [ ] **The notes list scans the corpus per row.** `MemosListView.swift:462-463,544` read
+      `enhancedTitleByMemoID` (`:900`) and `searchFadingIDs` (`:1155`) inside `ForEach`. AUDIT_PLAN P1,
+      still open. SPEC R92 / C279.
+- [ ] **Every foreground runs nine whole-store sweeps.** `SkriftApp.swift:108-203`, none checkpointed;
+      `captureMissing` (`AssetMaterializer.swift:67`) faults every asset blob via the unscoped
+      `allAssets()` (`NotesRepository.swift:131-132`). SPEC R91, R94 / C278, C281.
+- [ ] **Small repeated costs, all still open from the August audit:** `AppPaths.recordingsDirectory`
+      mkdirs on every read (`AppPaths.swift:19-23`, R93); `names.json` decoded on every access
+      (`NamesStore.swift:28-51`); `SourceTaxonomy.swift:55-71` parses metadata twice per row; regex
+      compiled per call (`SpeakerTranscript.swift:40`, `SpeakerTurnsView.swift:148`); note open scans
+      the corpus per pager page (`MemoDetailView.swift:882-901`); the Mac's `adoptLateDiarization`
+      fetches blobs for every monologue every sweep (`MemoCloudIngest.swift:210-228`,
+      `PipelineFile.swift:253-256`).
 - [ ] **The Mac never sends timings or speaker turns back to the phone.** `MacCloudWriteBack` has no
       asset writer, so a Mac re-transcription of an untrusted phone note, or a conversation split on
       the Mac, loses karaoke and turns on the phone/iPad. Widens the Mac-take bug above. SPEC R35.
