@@ -1604,41 +1604,38 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 
 99. **D99 Whether "Remove download" should offer a "keep syncing in background, remove after" option** instead of a hard block while an audiobook upload is in flight (C268). Default: hard block — simplest, matches "nothing of his is lost silently."
 
-100. **D100 The name of the second destination.** "Archive export" is not intuitive. The two
-    exports are the PERSONAL one (Obsidian vault, his thoughts, never read by AI) and the
-    PROJECT-focused one (the portfolio repo, ideas and inspirations, deliberately read by AI).
-    Default: call them **Personal** and **Projects** in every UI string and in the spec; the
-    frontmatter table between the two (C130/C62) stays as is.
+100. **D100 The name of the second destination.** ✅ DECIDED 2026-09-23: the two exports are
+    called **Personal** (Obsidian vault, his thoughts, never read by AI) and **Projects** (the
+    portfolio repo, ideas and inspirations, deliberately read by AI) in every UI string and in the
+    spec; the frontmatter table between them (C130/C62) stays as is.
 
-101. **D101 Nickname preservation.** Preserve genuine alternate nicknames as distinct aliases,
-     or keep normalising everything to one canonical name? Default: preserve as aliases
-     (matches the existing alias model). — plan/sources.md #14
-102. **D102 Portfolio-repo archive questions.** Four questions for the portfolio-repo chat:
-     is `_inspiration` still the right bucket name; do `[[Jack]]`-style links dangle on the
-     site or resolve to person pages; does the site have a "type" concept matching the four
-     destinations; does the archive accept video files. Default: ask before the next archive
-     export round ships. — plan/sources.md #17
-103. **D103 Trash and the vault file.** Does trashing a note also delete its exported Obsidian
-     `.md`? Default: no — trash is local lifecycle, the vault file stays until an explicit
-     vault-side delete (matches the "never write over what isn't provably ours" doctrine). —
-     plan/sources.md #20
-104. **D104 Digest-menu idea "Daily, spoken."** Fold into `i15` (monthly digest) as a cadence
-     option, or drop. Default: fold in as the "weekly too?" question below (D106). —
-     plan/sources.md #46
+101. **D101 Nicknames.** ✅ DECIDED 2026-09-23: a person keeps every genuine nickname as an
+     alias of the one person ("Bram" and "Brammetje"), never normalised away. — plan/sources.md #14
+102. **D102 Portfolio-repo questions.** ✅ DECIDED 2026-09-23 with what the repo itself says:
+     `_inspiration` IS the bucket name (Tuur); the site accepts video ("yes it should", he takes
+     many videos, some will come through Skrift); `type:` exists on the site but is the ARCHIVE's
+     own category taken from the folder name (`portfolio/README.md:54,122-123`, "Skrift writes
+     `capture:` for its own provenance, never `type:`"), so Skrift's four destinations map to
+     folders, not to `type:`; wikilinks: the site tooling has 4 file(s) mentioning `[[`, so
+     whether `[[Jack]]` becomes a link or stays literal text is still to ask the portfolio chat
+     (owed, before the next export round). — plan/sources.md #17
+103. **D103 Trash and the vault file.** ✅ DECIDED 2026-09-23: trashing a note NEVER deletes its
+     Obsidian file; "no we don't delete from Obsidian". The vault file stays until he deletes it
+     there. — plan/sources.md #20
+104. **D104 "Daily, spoken" digest.** ✅ DECIDED 2026-09-23: folded into the monthly digest idea
+     `i15` as a cadence option (see D106). — plan/sources.md #46
 105. **D105 Timeline-in-Review.** Give the "how did my thinking evolve" view its own idea id
      and a design-chat kickoff, distinct from the generic roadmap idea P8c it currently loose-
      matches. Default: yes, new idea id, cite this Decision as its origin. — plan/sources.md #47
-106. **D106 Monthly-digest cadence + landing + silence.** Three sub-questions on idea `i15`:
-     (a) monthly only, or weekly too — default monthly only; (b) lands in Review as a pinned
-     card, or vault-only at first — default vault-only at first; (c) an all-quiet month
-     produces a digest or silence — default silence (matches the no-bad-information doctrine).
-     — plan/sources.md #48
-107. **D107 Main-column polish proposal (mock #m6).** Approve or reject: tags move up,
-     importance control one size down, icons on context chips. Default: needs Tuur's look at
-     the mock before a verdict. — plan/sources.md #68
-108. **D108 `names-mac.html` sign-off.** Approve, reject, or defer the Mac Names screen
-     redesign (avatars, voice status, side-by-side editor, in-place linking before enhance).
-     Default: needs Tuur's look before scheduling. — plan/sources.md #120
+106. **D106 Monthly digest.** ✅ DECIDED 2026-09-23: monthly only for now; lands vault-only at
+     first, not as a Review card; a quiet month produces silence, never an empty digest. —
+     plan/sources.md #48
+107. **D107 Main-column polish (mock #m6).** ✅ DECIDED 2026-09-23: yes — tags move up, the
+     importance control one size smaller, icons on the context chips; and it applies to ALL THREE
+     devices (Mac, phone, iPad), not the Mac column alone. — plan/sources.md #68
+108. **D108 The Mac Names screen (`names-mac.html`).** ✅ DECIDED 2026-09-23: mock first — he
+     looks at a refreshed mock (drawn as-is from source, per the mock rule) before scheduling. —
+     plan/sources.md #120
 109. **D109 `resolver-inline.html` status.** Confirm whether variant A (click-to-resolve
      popover) is the same interaction that shipped in `naming-review.html`'s in-prose popover,
      or is still a distinct, unbuilt proposal. Default: needs a side-by-side comparison before
@@ -1766,6 +1763,11 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
   cache file adopted as empty and written back (library.json, settings.json), and one-tap destroys
   with no confirm (close-X on a live recording, delete person, remove download). A trashed locked
   note is readable with no Face ID (R88).
+- 2026-09-23 Decision round 1 (D100–D108): Personal / Projects are the export names; nicknames stay
+  as aliases; trash never deletes from Obsidian; the daily-spoken digest folds into the monthly one
+  (monthly, vault-only, silence when quiet); the main-column polish is yes on all three devices;
+  the Mac Names screen goes mock-first. D102's portfolio questions: `_inspiration` IS the folder,
+  the site accepts video, he takes many videos and some will come through Skrift.
 - 2026-09-23 D90 decided: every media group is in v1 of the reframed tab, "all of it"; it must
   "look really good, almost like a news app", sortable by type. Mock first.
 - 2026-09-23 Podcasts join the reframed Books tab (D90): RSS-feed ingest only, first fixture NRC Het
