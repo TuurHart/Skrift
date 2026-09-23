@@ -1643,9 +1643,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      idea"): compare `resolver-inline.html` variant A with the shipped in-prose naming popover
      side by side; if identical, close the mock as built, else it becomes a queue mock. —
      plan/sources.md #121
-110. **D110 Desktop Models/Storage view.** Build a Mac mirror of the phone's model-inventory
-     screen, or mark not-doing. Default: build (parity expectation set by every other Settings
-     screen). — plan/sources.md #6
+110. **D110 Mac Models/Storage screen.** ✅ DECIDED 2026-09-23: yes, the Mac gets the phone's
+     model-inventory page (downloaded models, sizes, remove). — plan/sources.md #6
 111. **D111 Mac "Send feedback".** ✅ DECIDED 2026-09-23: the Mac gets it too, and the transport
      is HIS SERVER, not email, "same as the master24 repo does": one multipart POST of audio +
      photos + text to a review-items endpoint (`~/Hackerman/master24/FEEDBACK-DESIGN.md` §2:
@@ -1660,9 +1659,11 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      the source glyphs and labels, used by all three apps (C238/C239). — plan/sources.md #1
 114. **D114 Mac filter/sort parity.** ✅ DECIDED 2026-09-23: yes, the Mac gets the phone's five
      sorts and multi-axis filters; mock first, after v2. — plan/sources.md #2
-115. **D115 Obsidian-grade markdown parity (i10).** Graduate idea i10 (bold/italic/highlight/
-     strike, phone #tag/heading popup) to a build, or leave it an idea? Default: stays an
-     idea. — plan/sources.md #3
+115. **D115 Formatting in the editor.** ✅ DECIDED 2026-09-23: yes, built, no longer an idea.
+     Apple Notes' shape: a selection bar (bold, italic, underline, strikethrough) and an "Aa"
+     menu (Title, Heading, Body, lists, checklists), on top of Skrift's dim-visible markdown
+     marks (locked 2026-07-16). Tuur: "we need this note editor to be award-winning good and
+     elegant." Rebuilds after body v2 (C112). — plan/sources.md #3
 116. **D116 DriftedPair and SignificanceCircles dedup.** ✅ DECIDED 2026-09-23: yes, one shared
      implementation under the C239 twin-audit. — plan/sources.md #4, #5
 117. **D117 Voice enrollment.** ✅ DECIDED 2026-09-23, a simplification: NO manual "record a
@@ -1670,8 +1671,7 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      selecting the speaker when diarization is activated. Never need to enroll." Assigning a
      speaker to a person IS the enrollment (the turn's embedding is unioned onto that person,
      C86); the phone's `VoiceEnrollView` and the Mac placeholder go away. — plan/sources.md #7, #12
-118. **D118 Phone word-select "add as name".** Give the phone the desktop's word-select →
-     "add as name" gesture on the transcript body, or skip it? Default: yes. —
+118. **D118 Phone word-select "add as name".** ✅ DECIDED 2026-09-23: yes, like the Mac. —
      plan/sources.md #9
 119. **D119 Storage stats + "Clear synced memos".** Build Settings extras (storage stats,
      "Clear synced memos", a persisted last-sync time) on whichever app still lacks them, or
@@ -1680,17 +1680,15 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      park it under a named roadmap idea? Default: parked idea. — plan/sources.md #13
 121. **D121 Vault-completeness indicator.** Surface a coarse "is my vault a full mirror of my
      rated notes" signal, or leave it unanswered? Default: yes, coarse. — plan/sources.md #16
-122. **D122 Mac reminders.** Give the Mac a `remindAt` alarm reconciler using the same
-     `UserNotifications` API the phone uses (the field already syncs), or leave reminders
-     phone-only? Default: yes, same API. — plan/sources.md #19
-123. **D123 Bookmark on an un-transcribed book.** Allow a time-only bookmark on a book with no
-     transcript yet, or block bookmarking until transcription? Default: allow, time-only. —
+122. **D122 Mac reminders.** ✅ DECIDED 2026-09-23: yes, the Mac fires the synced `remindAt`
+     alarm with the same `UserNotifications` API as the phone. — plan/sources.md #19
+123. **D123 Bookmark on an un-transcribed book.** ✅ DECIDED 2026-09-23: allowed, time-only. —
      plan/sources.md #21
-124. **D124 Manual pause/resume button.** Add a Tuur-pressed pause/resume control during
-     recording, beyond the existing auto-pause-on-interruption (C149)? Default: no, auto-pause
-     only. — plan/sources.md #22
-125. **D125 Cmd+F find-in-page on the Mac.** Add in-app find/search to the desktop app?
-     Default: yes, it is a text app. — plan/sources.md #23
+124. **D124 Manual pause/resume while recording.** ✅ CLOSED 2026-09-23: it already exists
+     (`RecordView.swift:398-401` Pause/Resume button → `LiveRecordingService.pause()`/`resume()`
+     at `:491-499`); the old commit wish is done. Nothing to build. — plan/sources.md #22
+125. **D125 Cmd+F on the Mac.** ✅ DECIDED 2026-09-23: yes, find in the open note. —
+     plan/sources.md #23
 126. **D126 Board A #3b PDF follow-ups.** Give each follow-up (the mock's first-page inline
      PDF render on Mac, the `PDFTextExtract` Mac-wire fallback, a vault copy of the capture
      document on export) its own backlog line and device round, or drop them? Default: queue
@@ -1766,6 +1764,10 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
   cache file adopted as empty and written back (library.json, settings.json), and one-tap destroys
   with no confirm (close-X on a live recording, delete person, remove download). A trashed locked
   note is readable with no Face ID (R88).
+- 2026-09-23 Decision round 3 (D110, D115, D118, D122–D125): Mac models page yes; the editor gets
+  Apple Notes' formatting bar + Aa menu over dim marks, "award-winning good and elegant"; phone
+  add-as-name yes; Mac reminders yes; time-only bookmarks allowed; the pause button already
+  exists (closed); Cmd+F yes. D119–D121, D126 re-asked with an explanation.
 - 2026-09-23 Decision round 2 (D109–D117): the timeline is already the Connections panel by date
   (D105); Send feedback goes to HIS SERVER on both apps, master24's review-items pattern (D111);
   photo drag works like Apple Notes (D112); shared source taxonomy, Mac filter/sort parity, colour
