@@ -175,6 +175,33 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       the corpus per pager page (`MemoDetailView.swift:882-901`); the Mac's `adoptLateDiarization`
       fetches blobs for every monologue every sweep (`MemoCloudIngest.swift:210-228`,
       `PipelineFile.swift:253-256`).
+- [ ] **`SkriftMobile.diskwrites_resource` warning never root-caused.** Flagged twice
+      (2026-06-14, 2026-07-xx) as "model downloads + whole-book transcribe = suspects," never
+      profiled to a cause. Needs one Instruments pass. Source: plan/sources.md #96.
+- [ ] **Text capture sometimes breaks a sentence up strangely.** Parakeet punctuation on
+      abbreviations in text-first quote capture; never root-caused or reproduced deliberately.
+      `Features/Audiobooks/TextCaptureView.swift`. Source: plan/sources.md #98.
+- [ ] **"Waiting" sync pill still reads off dead Bonjour sync state, not CloudKit.** Bonjour
+      was retired 2026-07-06; `MemoDisplay.statusKind` (or its successor) may still branch on
+      the old signal, producing a misleading pill. Needs a source check + fix. Source:
+      plan/sources.md #102.
+- [ ] **Mac rating line is not state-aware.** Says "ready to process" even on an
+      already-processed note; the wording fix landed (`e36bf150`, 2026-08-14) but the
+      state-aware version was explicitly deferred in the same commit and never revisited.
+      `RatingLineView` (or successor). Source: plan/sources.md #103.
+- [ ] **Connections panel card-chrome drift confirmed live: Mac draws cards, iPad draws bare
+      rows.** C232 specs the chrome difference generally but this residual visual gap
+      (`71f9ef71`, 2026-08-14) was never itself closed or explicitly ratified as intentional.
+      Source: plan/sources.md #104.
+- [ ] **Karaoke realignment after a hand-edited live take never landed.** "Parked with its one
+      open decision (edited takes need a timings-only pass)" was only ever a parenthetical in a
+      roadmap shipped-log line (`roadmap.yaml:2114`), never promoted to a clause or its own
+      BUGS row until now. Source: plan/sources.md #105.
+- [ ] **`GemmaEmbedder.downloadProgress` is a `nonisolated(unsafe) static var`.** A data race on the
+      download progress publisher (`Shared/RetrievalEngine/GemmaEmbedder.swift:27`); AUDIT_PLAN §4 item,
+      still open. SPEC sources.md #31.
+- [ ] **Deleting the last note leaves a stale detail pane on the Mac until a click.** Shell does not
+      clear the selection when the list empties. sources.md #114 (backlog-3:260).
 - [ ] **The Mac never sends timings or speaker turns back to the phone.** `MacCloudWriteBack` has no
       asset writer, so a Mac re-transcription of an untrusted phone note, or a conversation split on
       the Mac, loses karaoke and turns on the phone/iPad. Widens the Mac-take bug above. SPEC R35.
@@ -271,6 +298,10 @@ These need a device round or a log pull before they can be fixed.
 
 ## 4. From the ledger, NOT re-verified
 
+- [ ] **Instant-record flashes the old ready screen** (device feedback 2026-06-11, backlog:7978–8003; surfaced by the ledger's second pass, never triaged).
+- [ ] **AirPods re-insertion after removal does not resume input** (same batch; hardware, diagnose from devlog first).
+- [ ] **Live Activity shows stale on the lock screen after a fresh install** (same batch).
+
 Leads. Check them against source before you act — section 5 is why.
 
 - [ ] Append can silently add no text (3× repro on build ~30, broader than the cold-model theory) —
@@ -279,8 +310,9 @@ Leads. Check them against source before you act — section 5 is why.
       race was fixed for one path (`audioFile.close()` before the one-shot read); unclear if this
       report is the same one.
 - [ ] Mac search-jump parity gap — Mac search filters the sidebar but doesn't jump to the hit.
+      Re-verify: commit `785a8156` (2026-07-16) claims fixed; not checked against source before
+      this row was filed.
 - [ ] Post-0.2.0 prod findings (2026-06-26, build 22) — a triage block nobody closed out.
-- [ ] Device-testing feedback 2026-06-17 — one data-integrity finding in that batch.
 - [ ] ANE-compile hang has no timeout or retry affordance (speculative, needs UX).
 - [ ] `NamesMerge` millisecond-tie always favours remote (`Shared/Naming/NamesData.swift:172-178`);
       `MacCloudWriteBack` wall-clock LWW has no skew tolerance (fine on a single Mac).

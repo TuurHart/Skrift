@@ -902,6 +902,60 @@ Audiobooks, locks, reminders, export:
   targets the frames actually spent. || check: `plan/perf-measured.md` exists with both traces.
   — plan/perf-sweep.md §5; AUDIT_PLAN §0
 
+### From the source ledger (plan/sources.md, 2026-09-23)
+
+- C283 [auto] A roster change re-exports every already-exported vault `.md` file whose
+  `people:` frontmatter is now stale; `rescanRoster` does not stop at the in-app roster.
+  || check: `RosterAudit` test asserts a re-export queue entry on roster change. —
+  plan/sources.md #15
+- C284 [auto] YAML frontmatter carries `editedAt` alongside the `createdAt`/`duration`
+  fields D12 already added. || check: `VaultExporterTests` asserts `editedAt` in
+  frontmatter. — plan/sources.md #18
+- C285 [auto] The summary voice stays implied first person, present participle, never
+  third person ("the speaker"). || check: a golden prompt-output fixture asserts no
+  third-person framing. — plan/sources.md #24
+- C286 [auto] A golden model-output baseline is recorded once over the synthetic corpus
+  so every later run diffs against it, not against v1. || check: the baseline file
+  exists under `test-fixtures/corpus/` and a diff-gate test reads it. — plan/sources.md #26
+- C287 [auto] Every recording-lifecycle transition (start/segment/interrupt/finalize)
+  logs a Release-safe `os_log` line, not only the DEBUG-only `DevLog`. || check: a
+  log-line assertion test run in a Release-configured harness. — plan/sources.md #27
+- C288 [auto] Unrecoverable `rec_tmp_*` files are cleaned up after a failed recovery
+  sweep, once the D26/C99 recovery path exists. || check: `RecoverySweepTests` covers
+  the cleanup-after-failure branch. — plan/sources.md #28
+- C289 [auto] A whole ePub import ingests every part of the source file, or reports
+  exactly what it skipped and why; no silent partial ingest. || check: an ePub fixture
+  with a deliberately malformed mid-file section asserts a skip report. —
+  plan/sources.md #40
+- C290 [auto] A long ePub/book import shows real progress and states whether listening
+  can continue during the import. || check: `BookImportProgressTests`. — plan/sources.md #41
+- C291 [auto] ePub upload is blocked, with a clear message, while the same book's
+  transcription is still running. || check: a guard test asserts the upload path checks
+  the transcription job state. — plan/sources.md #42
+- C292 [auto] The model-download completeness check verifies the actual download by byte
+  count or hash, not a size floor. || check: `ResumableModelDownloaderTests` covers a
+  truncated-but-over-floor download as incomplete. — plan/sources.md #43
+- C293 [auto] Multi-select import of several distinct books never merges them into one.
+  || check: an import fixture with 2+ distinct books asserts 2+ resulting entries. —
+  plan/sources.md #55
+- C294 [auto] A query issued mid-sweep never observes a partially-swapped memo; the
+  sweep's `await` points are guarded against actor reentrancy. || check: a concurrency
+  stress test. — plan/sources.md #64
+- C295 [tuur] Print-to-wall fires only to the saved printer, never a random or
+  office-network printer. || check: `WallPrinterTests` asserts the printer-identity
+  check. — plan/sources.md #118
+- C296 [auto] The performance debt list is a queue lane: every site named in
+  `plan/perf-sweep.md` §2 and in `plan/sources.md` rows 29, 30, 37, 38, 52, 58, 59, 60,
+  61, 62 is a queue item with its own before/after measurement (C282). || check:
+  QUEUE.md has one item per site. — plan/sources.md #29, #30, #37, #38, #52, #58, #59,
+  #60, #61, #62 Also sources.md #115 (related-derivation computed twice at regular width).
+- C297 [auto] An imported book's title never repeats its author: "Title — Author" plus a separate
+  author byline collapses to the title alone, the author in its own field. || check: import fixture
+  with an "X — Author" filename yields title X, author Author. — sources.md #94
+- C298 [auto] Unsharing an audiobook never leaves a phantom library entry: an entry with no local
+  audio and no cloud carrier is garbage-collected at the next library load, with a log line.
+  || check: unshare-then-relaunch test shows no empty row. — sources.md #78
+
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
 Method and gate:
@@ -963,8 +1017,7 @@ Copy-edit:
   the visible verb (no polish-on-open, Tuur 2026-07-23), one note at a time, iPad only (≥ 6 GB,
   never the simulator); the iPhone never polishes. || check: `PolishCenter` gate tests. — A28
 - C181 [tuur] The phone shows the polish as the ONE editable body (no raw/polished toggle);
-  an edit lands in the enhancement, stamped; title chooser Suggested / recording / own;
-  "Polished on your Mac" provenance. — A29
+  an edit lands in the enhancement, stamped; title chooser Suggested / recording / own. — A29
 - C182 [auto] Interrupted runs reset to pending at launch. THE process queue, stated once for
   both apps: RATED (any ball) ∧ not trashed ∧ not done — a LOCKED note is included, because
   lock is about eyes, not the pipeline (D10) — oldest first, one at a time; models unload
@@ -1028,7 +1081,7 @@ Export:
   || check: `VaultExporterTests`. — A63
 - C197 [tuur] Full-exportability doctrine (2026-07-18: the vault is a complete mirror of rated
   notes; timings, embeddings, sync state stay internal) is superseded in part by C61
-  (processed-only, verb-driven). Confirm the narrowing. — A66
+  (processed-only, verb-driven). ⚠ Confirm the narrowing — see D132. — A66
 
 Ingress:
 - C198 [auto] Share dispatch order: audio → web URL → movie → image(s) → plain text → document;
@@ -1507,7 +1560,17 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     capture tool; the player exists so quotes can be captured from what he listens to. Proposed
     frame: the tab is the things he captures FROM (books now, podcasts next), the player the
     means, not the point; rename accordingly; possibly fold into Notes as a source. Mock first.
-    Open.
+    Open. — 2026-09-23 Tuur: podcasts are IN scope; "this app is an information collector and
+    distributor to the right channels to act on later". A podcast episode enters through the
+    show's public RSS feed (an MP3 enclosure), never by scraping a player page; a Spotify or
+    Apple link resolves to the feed when the show has one, and a player-exclusive episode is
+    refused with a plain message (the "broken features suck" rule, D14). First fixture: NRC Het
+    Uur, "Joris Luyendijk: Ik zit in een rouwproces om de wereld die er niet meer is",
+    2026-06-26, feed `https://rss.art19.com/het-uur`. Media groups on the table for the tab, his
+    pick owed: audio he listens to (podcasts, talks, others' voice messages), text he reads
+    (ePub, articles in reader mode with highlight-capture, PDFs, Kindle/Readwise highlight
+    imports), things people hand him (forwards, screenshots, photos of a page). Music and
+    scrape-hostile sources stay out.
 
 91. **D91 Empty typed notes.** Seen 2026-09-22: three "Note" rows with no text, created by ⌘N
     presses that never got words ("ik heb er drie lege notities staan"). Default: an untouched
@@ -1541,6 +1604,113 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     Default: call them **Personal** and **Projects** in every UI string and in the spec; the
     frontmatter table between the two (C130/C62) stays as is.
 
+101. **D101 Nickname preservation.** Preserve genuine alternate nicknames as distinct aliases,
+     or keep normalising everything to one canonical name? Default: preserve as aliases
+     (matches the existing alias model). — plan/sources.md #14
+102. **D102 Portfolio-repo archive questions.** Four questions for the portfolio-repo chat:
+     is `_inspiration` still the right bucket name; do `[[Jack]]`-style links dangle on the
+     site or resolve to person pages; does the site have a "type" concept matching the four
+     destinations; does the archive accept video files. Default: ask before the next archive
+     export round ships. — plan/sources.md #17
+103. **D103 Trash and the vault file.** Does trashing a note also delete its exported Obsidian
+     `.md`? Default: no — trash is local lifecycle, the vault file stays until an explicit
+     vault-side delete (matches the "never write over what isn't provably ours" doctrine). —
+     plan/sources.md #20
+104. **D104 Digest-menu idea "Daily, spoken."** Fold into `i15` (monthly digest) as a cadence
+     option, or drop. Default: fold in as the "weekly too?" question below (D106). —
+     plan/sources.md #46
+105. **D105 Timeline-in-Review.** Give the "how did my thinking evolve" view its own idea id
+     and a design-chat kickoff, distinct from the generic roadmap idea P8c it currently loose-
+     matches. Default: yes, new idea id, cite this Decision as its origin. — plan/sources.md #47
+106. **D106 Monthly-digest cadence + landing + silence.** Three sub-questions on idea `i15`:
+     (a) monthly only, or weekly too — default monthly only; (b) lands in Review as a pinned
+     card, or vault-only at first — default vault-only at first; (c) an all-quiet month
+     produces a digest or silence — default silence (matches the no-bad-information doctrine).
+     — plan/sources.md #48
+107. **D107 Main-column polish proposal (mock #m6).** Approve or reject: tags move up,
+     importance control one size down, icons on context chips. Default: needs Tuur's look at
+     the mock before a verdict. — plan/sources.md #68
+108. **D108 `names-mac.html` sign-off.** Approve, reject, or defer the Mac Names screen
+     redesign (avatars, voice status, side-by-side editor, in-place linking before enhance).
+     Default: needs Tuur's look before scheduling. — plan/sources.md #120
+109. **D109 `resolver-inline.html` status.** Confirm whether variant A (click-to-resolve
+     popover) is the same interaction that shipped in `naming-review.html`'s in-prose popover,
+     or is still a distinct, unbuilt proposal. Default: needs a side-by-side comparison before
+     closing. — plan/sources.md #121
+110. **D110 Desktop Models/Storage view.** Build a Mac mirror of the phone's model-inventory
+     screen, or mark not-doing. Default: build (parity expectation set by every other Settings
+     screen). — plan/sources.md #6
+111. **D111 Desktop "Send feedback" capture.** Build the Mac equivalent of the phone's
+     record+type+screenshot→Mail flow, or drop now that `pull-phone-feedback` covers the
+     voice-memo half of feedback. Default: drop — the skill already covers the workflow this
+     served. — plan/sources.md #8
+112. **D112 Image-drag reposition.** Confirm this is the same item as C119's "picture
+     drag-reposition (no mock yet, after C10)" and fold there. Default: yes, same item, no
+     separate track needed. — plan/sources.md #25
+113. **D113 Shared source-taxonomy module.** Consolidate the source-kind glyph/label maps
+     (voice/URL/PDF/video/audiobook quote/Apple Note) into one `Shared/SourceTaxonomy.swift`
+     used by both apps, or keep the per-app duplicates? Default: yes, one Shared module, per
+     the C239 twin-audit. — plan/sources.md #1
+114. **D114 Mac filter/sort parity.** Build the Mac up to the phone's 5 sort modes +
+     multi-axis filters (replacing the 3-way `QueueFilter`), or leave the gap? Default:
+     mock-first, after v2. — plan/sources.md #2
+115. **D115 Obsidian-grade markdown parity (i10).** Graduate idea i10 (bold/italic/highlight/
+     strike, phone #tag/heading popup) to a build, or leave it an idea? Default: stays an
+     idea. — plan/sources.md #3
+116. **D116 DriftedPair and SignificanceCircles dedup.** Collapse the 6 `DriftedPair` colours
+     (9 call sites) and the hand-rolled `SignificanceCircles`/`Theme` duplicates into one
+     shared implementation, or leave them? Default: yes, under the C239 twin-audit. —
+     plan/sources.md #4, #5
+117. **D117 Mac voice-enrollment parity.** Build the desktop's "record a voice" enrollment
+     (Settings and the standalone `PersonDetailView` affordance) to phone parity, or leave it
+     a placeholder? Default: yes, parity. — plan/sources.md #7, #12
+118. **D118 Phone word-select "add as name".** Give the phone the desktop's word-select →
+     "add as name" gesture on the transcript body, or skip it? Default: yes. —
+     plan/sources.md #9
+119. **D119 Storage stats + "Clear synced memos".** Build Settings extras (storage stats,
+     "Clear synced memos", a persisted last-sync time) on whichever app still lacks them, or
+     drop the wish? Default: parked. — plan/sources.md #11
+120. **D120 Per-Person "treat as distinctive" override.** Build Q7's stoplist override, or
+     park it under a named roadmap idea? Default: parked idea. — plan/sources.md #13
+121. **D121 Vault-completeness indicator.** Surface a coarse "is my vault a full mirror of my
+     rated notes" signal, or leave it unanswered? Default: yes, coarse. — plan/sources.md #16
+122. **D122 Mac reminders.** Give the Mac a `remindAt` alarm reconciler using the same
+     `UserNotifications` API the phone uses (the field already syncs), or leave reminders
+     phone-only? Default: yes, same API. — plan/sources.md #19
+123. **D123 Bookmark on an un-transcribed book.** Allow a time-only bookmark on a book with no
+     transcript yet, or block bookmarking until transcription? Default: allow, time-only. —
+     plan/sources.md #21
+124. **D124 Manual pause/resume button.** Add a Tuur-pressed pause/resume control during
+     recording, beyond the existing auto-pause-on-interruption (C149)? Default: no, auto-pause
+     only. — plan/sources.md #22
+125. **D125 Cmd+F find-in-page on the Mac.** Add in-app find/search to the desktop app?
+     Default: yes, it is a text app. — plan/sources.md #23
+126. **D126 Board A #3b PDF follow-ups.** Give each follow-up (the mock's first-page inline
+     PDF render on Mac, the `PDFTextExtract` Mac-wire fallback, a vault copy of the capture
+     document on export) its own backlog line and device round, or drop them? Default: queue
+     them. — plan/sources.md #49
+127. **D127 Per-book "N notes" surface.** Build a per-book note count with a note→book
+     jump-back, or skip it? Default: yes. — plan/sources.md #54
+128. **D128 Books empty-state CTA.** Give the Books empty state a real call-to-action button,
+     tied to the Books-tab reframe (D90), or leave it bare? Default: yes, with the Books-tab
+     reframe D90. — plan/sources.md #56
+129. **D129 Phone Connections failure-state parity.** Port the Mac's Connections
+     query-failure empty state to the phone, or leave the phone silent on failure? Default:
+     yes, parity. — plan/sources.md #63
+130. **D130 Paragrapher in reading mode.** Wire the audiobook reading-mode display into
+     Paragrapher's grouping, or keep reading mode's own grouping? Default: excluded. —
+     plan/sources.md #65
+131. **D131 Captions backgrounded + memory-warning unload.** Do live captions keep running
+     while the app is backgrounded, and does a memory-warning `unload()` interrupt
+     mid-recording? Default: captions stop in background; unload never fires mid-recording. —
+     plan/sources.md #66
+132. **D132 Full-exportability narrowing.** C197's full-exportability doctrine is narrowed by
+     C61 to processed notes only. Confirm the narrowing. Default: confirmed. — SPEC.md C197
+
+133. **D133 Photo viewer.** The old wish for a photo filmstrip with offset labels and a
+    full-screen viewer: do inline photo blocks in the editor close it? Default: yes, closed by
+    inline embeds; a full-screen viewer is a tap on a block, nothing more. — sources.md #10
+
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
 commonplace book, folders model, watched-folder ingest, substitutions list, Backlink
@@ -1549,7 +1719,7 @@ per-book quotes page (i16), ePub images in the reader, per-book language, cross-
 quotes, player polish P9b, unlinked-mention mining (i21), names → vocab auto-boost,
 place-triggered resurfacing, query expansion / themes (i18), people pages (P7), Mac Names
 parity (i6), scan-into-this-note, lasso multi-select, the wall-card design round, Mac
-in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI (owed after v2).
+in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI (owed after v2). Added from the source ledger 2026-09-23 (plan/sources.md rows): sentiment as a retrieval facet (#85), cluster labels (#86), a running decision log (#87), action/todo extraction (#88), LLM confirm step for open loops (#89), closed-set tag suggestion (#90), a contradiction/evolution detector (#91), per-turn conversation summary (#92), person digest (#93), memory-aid prompts on the record screen (#75), cellular "ready to sync · N MB" tap-to-pull (#84), per-file align resume + BGProcessingTask align-on-lock + AlignmentCore progress % + the 30 s gap-bridge tune + per-file coverage in the sidecar (#70–#74), a Mac mirror of whole-book text-capture transcription (#99), a direct Bookmarks tab (#100), one Library import affordance instead of two (#97).
 
 ---
 
@@ -1590,6 +1760,14 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
   cache file adopted as empty and written back (library.json, settings.json), and one-tap destroys
   with no confirm (close-X on a live recording, delete person, remove download). A trashed locked
   note is readable with no Face ID (R88).
+- 2026-09-23 Podcasts join the reframed Books tab (D90): RSS-feed ingest only, first fixture NRC Het
+  Uur 2026-06-26 (found on the public feed, MP3 enclosure). Media groups for the tab listed under
+  D90, his pick owed. The 31 ledger rows the fold left unplaced are landed: D133, C297–C298, two
+  BUGS rows, the rest named in Parked ideas or the verify/tooling lists (plan/sources.md).
+- 2026-09-23 Source ledger (C276) folded: 249 raw OPEN items across 19 slices, 121 after
+  de-duplication → C283–C296, D101–D132, 6 BUGS rows, 8 ledger corrections, 19 device checks.
+  Biggest: C181 still required the caption Tuur killed in July; the roadmap still showed
+  export destinations in progress; CLAUDE.md called two built features unbuilt.
 - 2026-09-23 Cap corrected to 120 ("if nobody cares"). The merge notice on same-name people is
   required, not optional ("it should not be silent"). The August audit plan's main-thread lag
   items were cited by the extraction but never taken up: a source ledger with a verdict per

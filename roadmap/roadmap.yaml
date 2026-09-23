@@ -4,7 +4,7 @@ status: active
 repo: OsamaBinBallZak/Skrift
 roadmapPath: roadmap/roadmap.yaml
 version: 45
-updated: 2026-09-22T23:30:00.000Z
+updated: 2026-09-23T12:00:00.000Z
 lanes:
   - track: -1
     label: Differentiator
@@ -721,6 +721,7 @@ nodes:
       - {text: "Tuur's spec sitting — nine rounds, every decision with a verdict; old state docs frozen under archive/state-2026-09", done: 2026-09-22}
       - {text: "three hunt waves (parity tables, bug-shape sweeps, adverse/archive/test-coverage, names + capture probes, 12 data-loss sweeps) + the Opus whole-spec re-read applied — SPEC.md at 274 clauses, R1–R89, D1–D99", done: 2026-09-22}
       - "NEXT CHAT: Tuur rules on the two ⚠ (C137 location: in archive exports, C165 filename cap 80/120), then /2-plan → QUEUE.md. Mocks first: quick note, tag UI, conflict prompt, 3-ball importance, Books tab (D90). Subagents on SONNET. No handoff until he says."
+      - "source ledger (C276): 121 OPEN items verdicted 2026-09-23 → 14 clauses, ~30 decisions, 6 bugs, 19 device checks in plan/sources.md §verify"
       - body/image model v2 behind the diff gate
       - copy-edit pipeline v2
       - reconcile sweep v2
@@ -756,7 +757,8 @@ nodes:
     title: four destinations, one per note
     lane: 0
     order: 6.5
-    status: inprogress
+    status: done
+    done: 2026-08-28T00:00:00.000Z
     deps:
       - RateToRow
     win: "a note carries ONE of four destinations — Personal to the vault, Made /

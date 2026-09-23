@@ -1,22 +1,27 @@
-# RESUME — 2026-09-22 night
+# RESUME — 2026-09-23
 
 Branch `claude/skrift-v2-core-rewrite-564928`, all folds committed and pushed. Gate green (770/0; no
-Swift changed since). SPEC.md: 274 clauses, R1–R89 (R10 deleted as IDENTICAL), D1–D99. BUGS.md §1
-D1–D19, §2 extended. Tuur's instructions in force: NO handoff until he says; subagents on SONNET.
+Swift changed). SPEC.md: 298 clauses, R1–R94, D1–D133. BUGS.md §1 D1–D19, §2 + §4 extended.
+Tuur: NO handoff until he says; subagents on SONNET.
 
-## Owed by Tuur (two ⚠ needs-Tuur marks in SPEC.md)
-1. C137 — does the archive export keep `location:`? (C62 and C130 say yes, C137 says no.)
-2. C165 — filename stem cap: 80 or 120 characters.
+## Owed by Tuur
+1. The decision round D101–D133 (each has a default; answer in one sitting like the first).
+2. D100: confirm the names Personal / Projects for the two exports.
+3. D90: which media groups belong in v1 of the reframed Books tab (podcasts are in; first fixture
+   NRC Het Uur 2026-06-26 via `https://rss.art19.com/het-uur`).
+4. Record the spoken-hashtag test note in Skrift Dev (C275).
+5. Three mocks with no verdict on record: `names-mac`, `resolver-inline`, `standalone-models-polish`
+   (D108, D109, and the models-polish one).
 
 ## Then
-`/2-plan` → QUEUE.md. Mocks first: quick note, tag UI, conflict prompt, 3-ball importance, Books
-tab (D90). C253: the untested `[auto]` clauses in the four rewrite targets are the first queue items.
+`/2-plan` → QUEUE.md. C276 is satisfied: `plan/sources.md` has no OPEN row (121 landed, second pass
+folded). C253 untested clauses first; C296 perf lane measured before fixed (C282); 19 + 5 device
+checks in plan/sources.md are queue verify items.
 
 ## Reports (all folded)
-plan/parity.md, bug-shapes.md, bug-shapes-outer.md, scenarios-adverse.md, scenarios-review-archive.md,
-test-coverage.md, scenarios-names.md, scenarios-capture.md, data-loss.md (+ fold-draft.md, the paste
-source), spec-consistency.md (applied), research/multiplatform-swiftui.md (C240 amended).
+plan/parity.md, bug-shapes*.md, scenarios-*.md, test-coverage.md, data-loss.md, spec-consistency.md,
+perf-sweep.md, research/multiplatform-swiftui.md, sources*.md (19 slices + merge + verify).
 
 ## Corpus / local-only
-`test-fixtures/dutch-rambles/` = his 5 real Dutch rambles (git-ignored, with word timings pulled from
-the Mac row). Skrift Dev on the Mac is running; never start a second instance.
+`test-fixtures/dutch-rambles/` = his 5 real Dutch rambles (git-ignored). Skrift Dev on the Mac is
+running; never start a second instance.

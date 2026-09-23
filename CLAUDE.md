@@ -124,7 +124,7 @@ Rules:
   process for new UI): v5 (desktop shell), significance-circles, name-unlink, name-a-speaker,
   capture-items, audiobook-capture, text-capture, **audiobook-player-redesign** (text-forward A+D
   hybrid player, signed off + built 2026-06-13), **audiobook-player-reading-mode** (e-reader "reading
-  mode" + tab-bar IA redesign, signed off 2026-06-19 — not yet built), **journal-desktop** (Journal on
+  mode" + tab-bar IA redesign, signed off and built 2026-06-19, build 14), **journal-desktop** (Journal on
   the Mac + iPad v2 — map mode behind Places, slim in-flight row, body-parity panels; signed off
   2026-07-11 — not yet built; build board = backlog "CONTINUE HERE — desktop-parity"),
   **related-panel** (Mac Connections side-panel — ONE list + Date⇄Closest pill, P1 importance
@@ -136,8 +136,9 @@ Rules:
   **book-sharing** (hand a book to ANOTHER PERSON as one `.skriftbook` file — ONE option, no switches:
   the audio + the ePub if there is one, never bookmarks/position; AirDrop / Files / Messages, one
   importer; cut twice 2026-07-30 — own devices are covered by CloudKit sync, and dropping the audio
-  toggle also deleted the duration-match + merge paths; **NOT signed off yet**; board = backlog
-  "📦 CONTINUE HERE"). A mock the user approved IS the spec — build to it.
+  toggle also deleted the duration-match + merge paths; signed off + built 2026-08-01/08-11,
+  round-trip proven on device, roadmap node `BookShare` done 2026-08-12). A mock the user approved
+  IS the spec — build to it.
 - **`.claude/skills/pull-phone-feedback/`** — the feedback loop: user records test findings as
   memos in Skrift Dev on the phone → pull over USB (devicectl app-container copy) → parse →
   MANDATORY second-agent verify → triage into BUGS.md (bugs) and SPEC.md Decisions (verdicts). Crash logs via `idevicecrashreport`.

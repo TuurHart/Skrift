@@ -134,7 +134,7 @@ Mostly already-marked-done narrative. Open threads found inside it:
 | Copy-edit test sweep #5 — unbounded shrink is real (7% of input survives on repetitive Dutch text) | 954-958 | DONE-SINCE | Shrink guard shipped, commit `f67b135d` ("copy-edit fix wave" 2026-08-19), per the backlog's own later entry at line 1084. |
 | Copy-edit fix-wave board item 1 — prompt reword for EN/NL paragraphing | 974-985 | DROPPED | The doc says so directly (line 974): "REFUTED BY THE A/B... the model won't paragraph long Dutch/mixed at temp 0 under any wording." |
 | Copy-edit fix-wave board item 2 — deterministic paragraph fallback (`ensureParagraphs`) | 986-987 | DONE-SINCE | Shipped commit `f67b135d`, confirmed by the doc's own line 1084 ("+ ensureParagraphs (the wall cure)"). |
-| Copy-edit fix-wave board item 3 — shrink guard | 988 | DONE-SINCE | Same commit `f67b135d`. |
+| Copy-edit fix-wave board item 3 — shrink guard | 988 | DONE-SINCE | Commit `10705445` (second pass corrected the hash; `f67b135d` is a sibling fix three minutes later). |
 | Copy-edit fix-wave board item 4 — surface `coordinator.lastError` on the Mac | 989-990 | DONE-SINCE | Same commit `f67b135d` (doc line 1084: "+ lastError strip on the Mac"). |
 | ConnectionsPanel is twinned (683 + 593 lines) and drifted, Mac cards vs iPad bare rows | 1140-1142 | FOLDED | SPEC C232 ("Connections chrome matches related-panel v3 + chrome-belongs v2"), tagged `[tuur]` — eyeball-only check, spec exists, build status per A126 tests. |
 | The rating line is stateless ("Rated — ready to process" on an already-processed note) | 1143-1144 | DONE-SINCE | Fixed by the shared `NoteWorkState` three-state control, commit `5de2b71c` ("the iPad's verbs move to the Mac's places"), shipped 2026-08-18 per roadmap. |
