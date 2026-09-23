@@ -1619,14 +1619,17 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      folders, not to `type:`; wikilinks: the site tooling has 4 file(s) mentioning `[[`, so
      whether `[[Jack]]` becomes a link or stays literal text is still to ask the portfolio chat
      (owed, before the next export round). — plan/sources.md #17
+     Tuur 2026-09-23 on the links: "I don't think the site will link people like that, I think
+     it will give credit at the bottom instead" (the `credit:` field, C130); so `[[Jack]]` in the
+     body is literal text there. Still to confirm with that chat when it matters.
 103. **D103 Trash and the vault file.** ✅ DECIDED 2026-09-23: trashing a note NEVER deletes its
      Obsidian file; "no we don't delete from Obsidian". The vault file stays until he deletes it
      there. — plan/sources.md #20
 104. **D104 "Daily, spoken" digest.** ✅ DECIDED 2026-09-23: folded into the monthly digest idea
      `i15` as a cadence option (see D106). — plan/sources.md #46
-105. **D105 Timeline-in-Review.** Give the "how did my thinking evolve" view its own idea id
-     and a design-chat kickoff, distinct from the generic roadmap idea P8c it currently loose-
-     matches. Default: yes, new idea id, cite this Decision as its origin. — plan/sources.md #47
+105. **D105 Timeline view.** ✅ DECIDED 2026-09-23: already covered. "We do have a timeline in
+     the right panel: the related notes sorted by date." The Connections panel's Date sort IS
+     the timeline; no separate view, no new idea. — plan/sources.md #47
 106. **D106 Monthly digest.** ✅ DECIDED 2026-09-23: monthly only for now; lands vault-only at
      first, not as a Review card; a quiet month produces silence, never an empty digest. —
      plan/sources.md #48
@@ -1636,37 +1639,37 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 108. **D108 The Mac Names screen (`names-mac.html`).** ✅ DECIDED 2026-09-23: mock first — he
      looks at a refreshed mock (drawn as-is from source, per the mock rule) before scheduling. —
      plan/sources.md #120
-109. **D109 `resolver-inline.html` status.** Confirm whether variant A (click-to-resolve
-     popover) is the same interaction that shipped in `naming-review.html`'s in-prose popover,
-     or is still a distinct, unbuilt proposal. Default: needs a side-by-side comparison before
-     closing. — plan/sources.md #121
+109. **D109 The inline name-resolver mock.** ✅ DECIDED 2026-09-23 (builder default, "no
+     idea"): compare `resolver-inline.html` variant A with the shipped in-prose naming popover
+     side by side; if identical, close the mock as built, else it becomes a queue mock. —
+     plan/sources.md #121
 110. **D110 Desktop Models/Storage view.** Build a Mac mirror of the phone's model-inventory
      screen, or mark not-doing. Default: build (parity expectation set by every other Settings
      screen). — plan/sources.md #6
-111. **D111 Desktop "Send feedback" capture.** Build the Mac equivalent of the phone's
-     record+type+screenshot→Mail flow, or drop now that `pull-phone-feedback` covers the
-     voice-memo half of feedback. Default: drop — the skill already covers the workflow this
-     served. — plan/sources.md #8
-112. **D112 Image-drag reposition.** Confirm this is the same item as C119's "picture
-     drag-reposition (no mock yet, after C10)" and fold there. Default: yes, same item, no
-     separate track needed. — plan/sources.md #25
-113. **D113 Shared source-taxonomy module.** Consolidate the source-kind glyph/label maps
-     (voice/URL/PDF/video/audiobook quote/Apple Note) into one `Shared/SourceTaxonomy.swift`
-     used by both apps, or keep the per-app duplicates? Default: yes, one Shared module, per
-     the C239 twin-audit. — plan/sources.md #1
-114. **D114 Mac filter/sort parity.** Build the Mac up to the phone's 5 sort modes +
-     multi-axis filters (replacing the 3-way `QueueFilter`), or leave the gap? Default:
-     mock-first, after v2. — plan/sources.md #2
+111. **D111 Mac "Send feedback".** ✅ DECIDED 2026-09-23: the Mac gets it too, and the transport
+     is HIS SERVER, not email, "same as the master24 repo does": one multipart POST of audio +
+     photos + text to a review-items endpoint (`~/Hackerman/master24/FEEDBACK-DESIGN.md` §2:
+     `POST /v1/review-items`, `Idempotency-Key` = the client item id, per-install token, 202 on
+     stored bytes, transcription server-side). The phone's mail flow moves to the same endpoint.
+     Which host runs it is owed. — plan/sources.md #8
+112. **D112 Dragging a photo within a note.** ✅ DECIDED 2026-09-23: "make it work the same as
+     Apple Notes" — an inline photo block is picked up with a long press and dropped between
+     paragraphs, on all three devices; one item with C119's photo-block reorder. —
+     plan/sources.md #25
+113. **D113 Shared source-taxonomy module.** ✅ DECIDED 2026-09-23: yes, one `Shared/` module for
+     the source glyphs and labels, used by all three apps (C238/C239). — plan/sources.md #1
+114. **D114 Mac filter/sort parity.** ✅ DECIDED 2026-09-23: yes, the Mac gets the phone's five
+     sorts and multi-axis filters; mock first, after v2. — plan/sources.md #2
 115. **D115 Obsidian-grade markdown parity (i10).** Graduate idea i10 (bold/italic/highlight/
      strike, phone #tag/heading popup) to a build, or leave it an idea? Default: stays an
      idea. — plan/sources.md #3
-116. **D116 DriftedPair and SignificanceCircles dedup.** Collapse the 6 `DriftedPair` colours
-     (9 call sites) and the hand-rolled `SignificanceCircles`/`Theme` duplicates into one
-     shared implementation, or leave them? Default: yes, under the C239 twin-audit. —
-     plan/sources.md #4, #5
-117. **D117 Mac voice-enrollment parity.** Build the desktop's "record a voice" enrollment
-     (Settings and the standalone `PersonDetailView` affordance) to phone parity, or leave it
-     a placeholder? Default: yes, parity. — plan/sources.md #7, #12
+116. **D116 DriftedPair and SignificanceCircles dedup.** ✅ DECIDED 2026-09-23: yes, one shared
+     implementation under the C239 twin-audit. — plan/sources.md #4, #5
+117. **D117 Voice enrollment.** ✅ DECIDED 2026-09-23, a simplification: NO manual "record a
+     voice" anywhere, on any device. "Voice enrollment always happens automatically when
+     selecting the speaker when diarization is activated. Never need to enroll." Assigning a
+     speaker to a person IS the enrollment (the turn's embedding is unioned onto that person,
+     C86); the phone's `VoiceEnrollView` and the Mac placeholder go away. — plan/sources.md #7, #12
 118. **D118 Phone word-select "add as name".** Give the phone the desktop's word-select →
      "add as name" gesture on the transcript body, or skip it? Default: yes. —
      plan/sources.md #9
@@ -1763,6 +1766,11 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
   cache file adopted as empty and written back (library.json, settings.json), and one-tap destroys
   with no confirm (close-X on a live recording, delete person, remove download). A trashed locked
   note is readable with no Face ID (R88).
+- 2026-09-23 Decision round 2 (D109–D117): the timeline is already the Connections panel by date
+  (D105); Send feedback goes to HIS SERVER on both apps, master24's review-items pattern (D111);
+  photo drag works like Apple Notes (D112); shared source taxonomy, Mac filter/sort parity, colour
+  dedup all yes; NO manual voice enrollment anywhere, assigning a speaker enrolls (D117). D110
+  (Mac models screen) and D115 (markdown formatting) re-asked with an explanation.
 - 2026-09-23 Decision round 1 (D100–D108): Personal / Projects are the export names; nicknames stay
   as aliases; trash never deletes from Obsidian; the daily-spoken digest folds into the monthly one
   (monthly, vault-only, silence when quiet); the main-column polish is yes on all three devices;
