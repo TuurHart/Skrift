@@ -1570,7 +1570,11 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     pick owed: audio he listens to (podcasts, talks, others' voice messages), text he reads
     (ePub, articles in reader mode with highlight-capture, PDFs, Kindle/Readwise highlight
     imports), things people hand him (forwards, screenshots, photos of a page). Music and
-    scrape-hostile sources stay out.
+    scrape-hostile sources stay out. ✅ DECIDED 2026-09-23: ALL of those groups are in scope
+    ("all of it"); the tab has to "look really good, almost like a news app": a feed of sources
+    and captures as cards, sortable and filterable by type (book, podcast, article, PDF, voice
+    message, handed-over item), the player and reader behind the card. Mock first (this is the
+    biggest mock of the queue); the name is part of the mock.
 
 91. **D91 Empty typed notes.** Seen 2026-09-22: three "Note" rows with no text, created by ⌘N
     presses that never got words ("ik heb er drie lege notities staan"). Default: an untouched
@@ -1760,6 +1764,8 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
   cache file adopted as empty and written back (library.json, settings.json), and one-tap destroys
   with no confirm (close-X on a live recording, delete person, remove download). A trashed locked
   note is readable with no Face ID (R88).
+- 2026-09-23 D90 decided: every media group is in v1 of the reframed tab, "all of it"; it must
+  "look really good, almost like a news app", sortable by type. Mock first.
 - 2026-09-23 Podcasts join the reframed Books tab (D90): RSS-feed ingest only, first fixture NRC Het
   Uur 2026-06-26 (found on the public feed, MP3 enclosure). Media groups for the tab listed under
   D90, his pick owed. The 31 ledger rows the fold left unplaced are landed: D133, C297–C298, two
