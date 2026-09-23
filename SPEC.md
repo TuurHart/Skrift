@@ -1571,10 +1571,12 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     (ePub, articles in reader mode with highlight-capture, PDFs, Kindle/Readwise highlight
     imports), things people hand him (forwards, screenshots, photos of a page). Music and
     scrape-hostile sources stay out. ✅ DECIDED 2026-09-23: ALL of those groups are in scope
-    ("all of it"); the tab has to "look really good, almost like a news app": a feed of sources
-    and captures as cards, sortable and filterable by type (book, podcast, article, PDF, voice
-    message, handed-over item), the player and reader behind the card. Mock first (this is the
-    biggest mock of the queue); the name is part of the mock.
+    ("all of it"); the tab has to "look really good". The LOOK is not decided: "almost like a
+    news app" (a feed of sources and captures as cards, sortable and filterable by type) is one
+    candidate, "but perhaps we need something that looks better". Before the mock, an inspiration
+    pass over existing apps that mix media types (Apple News, Readwise Reader, Matter, Snipd,
+    Apple Podcasts, Flipboard, Bound) with screenshots, he picks a direction, then the mock is
+    drawn to it. Biggest mock of the queue; the tab's name is part of it. Mock first.
 
 91. **D91 Empty typed notes.** Seen 2026-09-22: three "Note" rows with no text, created by ⌘N
     presses that never got words ("ik heb er drie lege notities staan"). Default: an untouched
