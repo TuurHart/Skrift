@@ -156,7 +156,7 @@ suite is retired; the unit suite IS the gate (D85).
   dim-visible; characters verbatim. || check: `BodyMarkdown` tests. — ledgers:38-39
 - C25 [auto] Title ladder, ONE for both apps: user title → suggested title → first body
   line (markers stripped) → share title → "Note"/"Voice note"; derived titles clip at 80
-  chars on a word boundary for DISPLAY only (the vault filename keeps its own rule, C165); a
+  chars on a word boundary for display AND filename, C165 (the vault filename keeps its own rule, C165); a
   share capture with an empty annotation titles from urlTitle → first 8 words → image
   filename → "Capture". || check: corpus `typed-title-*`, `voice-en-raw-title`.
   — code-core Title, D6
@@ -638,10 +638,9 @@ never in Skrift ("then you can't have immediate AI back and forth" — rejected)
   reuses audio in videos), and the source movie too when the note is a video filed Made /
   Idea / Inspiration (D44, C63); a video never reaches the Obsidian vault. || check:
   `dest-made` export folder. — D44
-- C137 [auto] `people:` and `[[names]]` stay in archive exports (public site, credit his
-  friends); places do not. ⚠ needs-Tuur: this contradicts C62 ("the archive keeps …
-  `location:`") and C130, which lists `location` among the keys Skrift may write. No decision
-  governs it — one ruling settles all three. — Tuur 2026-08-27, don't fix back
+- C137 [auto] `people:`, `[[names]]` and `location:` stay in archive exports (public site, credit
+  his friends; C62, C130 agree). || check: corpus `dest-idea` frontmatter carries all three. — Tuur
+  2026-08-27 + 2026-09-23 "the archive export will keep location"
 - C138 [tuur] Ideas do NOT come back into Skrift in v2: the archive reads Skrift's files,
   never the reverse, and Skrift does not attach a capture to an existing archive item
   (D40, i43, i14).
@@ -839,11 +838,11 @@ Audiobooks, locks, reminders, export:
 
 ### Names probe (plan/scenarios-names.md, 2026-09-22 — 25 scenarios, 8 clean, 11 broken)
 
-- C254 [auto] Two people can share a full name without fusing: a second "John Smith" gets his
-  own row (identity is an id, not the name string) or the add asks for a distinguisher. Both
-  `upsert` paths use the same case rule, and the collision audit (`RosterAudit`) runs on EVERY
-  path that lands a person, including Settings and sync. || check: `roster-duplicate-canonical`
-  yields two rows; a collision arriving by sync trips the audit. — names #1, #25, shapes 7+10; D96
+- C254 [auto] Same full name = same person. Adding a person whose full name matches an existing
+  one merges into that row (aliases and voiceprints unioned) and SAYS so ("merged into John
+  Smith"); the match is case-insensitive on every add path (Settings, sync, the assign sheet).
+  || check: `roster-duplicate-canonical` yields one row and a visible merge notice. — Tuur
+  2026-09-23 "I would hope so, otherwise how could we keep track"; names shapes 7+10
 - C255 [auto] A Dutch bare possessive on an alias (`Wims`, `Lottes`) is recognised like the
   apostrophe form. || check: `edge-name-dutch-possessive` links "Wims auto". — names #4
 - C256 [auto] Name matching ignores diacritics both ways (Ines/Inés, Månsson/Mansson).
@@ -876,14 +875,21 @@ Audiobooks, locks, reminders, export:
 - C273 [auto] A photo annotated with Markup keeps its un-annotated original recoverable; markup is never a destructive in-place overwrite. || check: `markup-overwrites-original`. — data-loss sweep a381c992
 - C274 [auto] A capture whose transcription yields no text is kept (or the user is told) until the note is saved or explicitly discarded, never deleted on a silent success haptic. || check: `voice-annotation-empty-transcript-kept`. — data-loss sweep ac24e468
 
+### Tuur 2026-09-23
+
+- C275 [auto] A spoken hashtag becomes a real tag, by rule and not by the model: "hashtag
+  motivation" / "hashtag motivatie" → `#motivation` / `#motivatie` in the body; a run of spoken
+  hashtags at the end of a note becomes one tag line; the raw transcript keeps the words.
+  || check: corpus `voice-spoken-hashtags` (owed: EN + NL note, three tags at the end, one
+  mid-sentence). — Tuur: "I would often talk and then in the end I would end with some hashtags"
+
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
 Method and gate:
 - C165 [auto] The vault filename stem derives from the title by ONE rule: title else filename
-  stem; `/ \` → `-`; strip `* " < > : | ? # ^ [ ]`; collapse spaces; cap 120; the exporter's
-  hard 80-char slice stays because it feeds the filename. ⚠ needs-Tuur: 120 and 80 cannot both
-  be the cap, and C25 calls 80 "DISPLAY only" — one number, stated once. No decision governs
-  it. || check: `VaultName` tests. — A53
+  stem; `/ \` → `-`; strip `* " < > : | ? # ^ [ ]`; collapse spaces; cap 80 characters, the one
+  number for display and filename (APFS allows 255 bytes; 80 is a readability choice).
+  || check: `VaultName` tests. — A53; Tuur 2026-09-23 "eighty seemed good enough"
 - C166 [auto] Mac corpus goldens come from `-ingestfile` → `-processfile -exportafter` on the Dev
   store (GUI quit first); simulator runs use the seeded engines. || check: harness script. — A1
 - C167 [auto] Every engine and the model are revision-pinned; a pin bump is its own commit and
@@ -1235,8 +1241,7 @@ rewrite targets, each with its corpus note and the expected output:
 | R58 | a failed Connections index sweep is invisible on iPhone/iPad (`JournalIndexService.swift:63`); the iPad panel is hard-capped at 4 rows with a dead "Show all" | failure shown; cap = the Mac's 7 + Show all | index-failure test | C110, C232 |
 | R59 | a corrupt local `bookmarks.json` wipes a book's bookmarks on the next edit (`Bookmark.swift:46`); `receiveTranscripts` lacks the landed-file check its siblings have (`AudiobookCloudSync.swift:472`) | a file that fails to decode is never overwritten; every receiver verifies | corrupt-file tests | C218 |
 | R60 | `SpeakerTurnsView`'s in-progress edit can land on the wrong turn after a rename/merge reshapes the list (`SpeakerTurnsView.swift:26`) | an edit commits to the turn it started in | rename-during-edit test | C23 |
-| R61 | a second person with the same full name silently fuses into the first, unioning aliases and voiceprints (`NamesStore.swift:157-179`, `NamesData.swift:154-184`); the two `upsert` overloads even disagree on case | two rows or a disambiguation prompt, never a silent merge | `roster-duplicate-canonical` | C254 |
-| R62 | the Mac's collision guard `RosterAudit` runs on one of three add paths; Settings adds and synced adds skip it (`SettingsView.swift:47,50-53`, `NamesCloudSync.swift:54`) | every path runs the audit | roster-collision-via-sync test | C254 |
+| R62 | the same-name merge is silent, and the two `upsert` overloads disagree on case (`NamesStore.swift:157-179`, `NamesData.swift:154-184`); the Mac's `RosterAudit` runs on one of three add paths (`SettingsView.swift:47,50-53`, `NamesCloudSync.swift:54`) | the merge is announced and case-insensitive on every path | `roster-duplicate-canonical` | C254 |
 | R63 | a deleted person's voiceprints come back: the sync merge unions embeddings onto the tombstone (`NamesStore.swift:88-97`, `NamesData.swift:180`) | a tombstone carries nothing | `roster-delete-with-voiceprint` | C259 |
 | R64 | only a note-opening quote is protected; a mid-body `> ` quote links names (`Sanitiser.swift:713-716`) | every quote run protected (D21) | `edge-name-midbody-quote` | C82 |
 | R65 | an inline `#tag` that equals an alias is split into `#[[Name]]` (`Sanitiser.swift:751-756`) | tags never split | `edge-name-is-tag` | C260 |
@@ -1264,7 +1269,7 @@ rewrite targets, each with its corpus note and the expected output:
 | R87 | `CaptureVoiceAnnotate.swift:176` deletes the voice-annotation audio unconditionally after transcription, even when both live caption and the full ASR pass returned empty text; a success haptic fires anyway | a capture whose transcription yields no text is kept (or the user is told) until saved or explicitly discarded | `voice-annotation-empty-transcript-kept` | C274 (new) |
 | R88 | locked notes lose protection the moment they're trashed: `WayOutView.swift:169,329,375-401,407-434` render a locked note's title/transcript/photos with no auth, and none of the 3 delete entry points (`MemosListView.swift:483-488,516-518,1089-1091`) check `memo.locked` first; `copyTranscript`/`copyableText` also bypass the lock | a locked note in Recently-Deleted/Fading shows the same "Locked note" placeholder MemosListView already shows, or is excluded until unlock; copy is gated too | `locked-note-in-fading-shelf`, `locked-note-copy-bypass` | C161 (existing — violated) |
 | R89 | `NotesRepository.swift:259-268` `save()`'s second consecutive SwiftData failure only `DevLog`s, never reaches the UI — the central persistence chokepoint for every mutation in the app | a second consecutive store-save failure is a visible error, matching C168's letter for "store" | `store-save-fails-twice` | C168 (existing — violated) |
-Pre-registered as IDENTICAL (unchanged on purpose): `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (the
+Pre-registered as IDENTICAL (unchanged on purpose): a second person with the same full name merges into the first (R61 withdrawn, D96); `goo.gl` plain card; silent video → `.failed` "no audio track"; purge before the first frame; the duration chip on synced notes; old PDF captures never sync their document; the domain as title on a title-less page (the
 withdrawn R10 — its row is gone; under C5 a row cannot be both a required difference and
 IDENTICAL).
 
@@ -1496,16 +1501,21 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 95. **D95 Redo over a hand edit.** Redo (title / copy-edit / summary) on a part he edited by hand
     asks first, never silently overwrites. Default: yes.
 
-96. **D96 Two people, one full name.** When a second person with the exact same full name is
-    added, does Skrift keep two rows (identity is an id, the picker shows a distinguisher) or
-    refuse until a distinguisher is typed? Default: two rows, the add sheet asks for the
-    distinguisher (initial, city). v1's silent fuse is R61.
+96. **D96 Two people, one full name.** ✅ DECIDED 2026-09-23: the same full name IS the same
+    person; a second add merges into the existing row and says so. "Otherwise how could we keep
+    track." (C254; R61 withdrawn.)
 
 97. **D97 How long before an orphaned `.transcribing` memo is adoptable by any device.** A phone that died mid-recording and was later replaced leaves a `.transcribing` memo no device can ever pick up (R75/C264). Default: any device may adopt after 7 days, or the Mac always may (it's never "replaced").
 
 98. **D98 Confirm threshold for closing an active recording.** R71/C262 — confirm on every X-tap, or only above a floor (mirrors the existing 0.4s auto-discard floor for Stop)? Default: confirm whenever `elapsed >= 1s` or any photo was captured; below that, discard silently as today.
 
 99. **D99 Whether "Remove download" should offer a "keep syncing in background, remove after" option** instead of a hard block while an audiobook upload is in flight (C268). Default: hard block — simplest, matches "nothing of his is lost silently."
+
+100. **D100 The name of the second destination.** "Archive export" is not intuitive. The two
+    exports are the PERSONAL one (Obsidian vault, his thoughts, never read by AI) and the
+    PROJECT-focused one (the portfolio repo, ideas and inspirations, deliberately read by AI).
+    Default: call them **Personal** and **Projects** in every UI string and in the spec; the
+    frontmatter table between the two (C130/C62) stays as is.
 
 Parked ideas that are NOT decisions today (listed so the sitting can skip them): ramble
 modes, monthly digest, vault-read direction, tightness lens, Obsidian plugin bundle,
@@ -1556,6 +1566,10 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
   cache file adopted as empty and written back (library.json, settings.json), and one-tap destroys
   with no confirm (close-X on a live recording, delete person, remove download). A trashed locked
   note is readable with no Face ID (R88).
+- 2026-09-23 Tuur's answers to the third wave: the archive export KEEPS `location:` (C137); the
+  filename cap is 80 (C165); same full name = same person, merge on purpose (D96, R61 withdrawn);
+  spoken "hashtag X" becomes a real tag by rule (C275); the second destination needs a plainer name
+  than "archive" (D100, default Personal / Projects).
 - 2026-09-22 Third run, names probe on Sonnet (`plan/scenarios-names.md`, 25 scenarios: 8
   clean, 11 broken): R61–R69, C254–C260, D96. Two same-name people silently fuse; a mid-body
   quote links names against the D21 verdict; `#tag` splits into `#[[Name]]`; the names file is

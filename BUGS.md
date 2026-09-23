@@ -119,10 +119,10 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
 
 ## 2. Wrong behaviour — verified open today
 
-- [ ] **Two people with the same full name fuse into one.** `Shared/Naming/NamesStore.swift:157-179`
-      and `NamesData.swift:154-184` union the aliases and voiceprints of a second "John Smith" into the
-      first; the Mac's `RosterAudit` guard only runs on one of three add paths (`SettingsView.swift:47,
-      50-53`, `NamesCloudSync.swift:54`). SPEC R61, R62 / C254 / D96.
+- [ ] **The same-name merge is silent and case-inconsistent.** Merging a second "John Smith" into the
+      first is the intended rule (D96), but `NamesStore.swift:157-179` says nothing to the user, the two
+      `upsert` overloads disagree on case, and the Mac's `RosterAudit` runs on one of three add paths
+      (`SettingsView.swift:47,50-53`, `NamesCloudSync.swift:54`). SPEC R62 / C254.
 - [ ] **A deleted person's voiceprints come back.** The sync merge unions embeddings onto the
       tombstone (`NamesStore.swift:88-97`, `NamesData.swift:180`). SPEC R63 / C259.
 - [ ] **A mid-body quote links names.** `Sanitiser.swift:713-716` protects only a note-opening `>`
