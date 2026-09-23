@@ -155,7 +155,7 @@ suite is retired; the unit suite IS the gate (D85).
 - C24 [auto] Headings `^#{1,6} ` and inline `#tags` are recognised from text; marks stay
   dim-visible; characters verbatim. || check: `BodyMarkdown` tests. — ledgers:38-39
 - C25 [auto] Title ladder, ONE for both apps: user title → suggested title → first body
-  line (markers stripped) → share title → "Note"/"Voice note"; derived titles clip at 80
+  line (markers stripped) → share title → "Note"/"Voice note"; derived titles clip at 120
   chars on a word boundary for display AND filename, C165 (the vault filename keeps its own rule, C165); a
   share capture with an empty annotation titles from urlTitle → first 8 words → image
   filename → "Capture". || check: corpus `typed-title-*`, `voice-en-raw-title`.
@@ -883,13 +883,20 @@ Audiobooks, locks, reminders, export:
   || check: corpus `voice-spoken-hashtags` (owed: EN + NL note, three tags at the end, one
   mid-sentence). — Tuur: "I would often talk and then in the end I would end with some hashtags"
 
+- C276 [auto] A cited document is not a folded document. Every plan, handoff, audit and backlog
+  doc in the repo (`archive/state-2026-09/*`, `archive/handoffs/*`, root ledgers) has one row per
+  open item in `plan/sources.md` with a verdict: folded (clause / R / BUGS id), superseded (by
+  which decision), dropped (why, in words), or OPEN. `/2-plan` does not run while any row is OPEN.
+  || check: `plan/sources.md` has no OPEN row; every doc in those folders has a section. — Tuur
+  2026-09-23: the August audit plan's lag items were cited twice and folded nowhere
+
 ### Rules recovered by the coverage audit (plan/extraction/spec-coverage.md §A) — for confirmation
 
 Method and gate:
 - C165 [auto] The vault filename stem derives from the title by ONE rule: title else filename
-  stem; `/ \` → `-`; strip `* " < > : | ? # ^ [ ]`; collapse spaces; cap 80 characters, the one
-  number for display and filename (APFS allows 255 bytes; 80 is a readability choice).
-  || check: `VaultName` tests. — A53; Tuur 2026-09-23 "eighty seemed good enough"
+  stem; `/ \` → `-`; strip `* " < > : | ? # ^ [ ]`; collapse spaces; cap 120 characters, the one
+  number for display and filename (APFS allows 255 bytes; nothing downstream cares).
+  || check: `VaultName` tests. — A53; Tuur 2026-09-23 "if nobody cares let's go for 120"
 - C166 [auto] Mac corpus goldens come from `-ingestfile` → `-processfile -exportafter` on the Dev
   store (GUI quit first); simulator runs use the seeded engines. || check: harness script. — A1
 - C167 [auto] Every engine and the model are revision-pinned; a pin bump is its own commit and
@@ -1566,6 +1573,11 @@ in-place linking, a `SkriftDesignKit` package, the Mac name-a-speaker review UI 
   cache file adopted as empty and written back (library.json, settings.json), and one-tap destroys
   with no confirm (close-X on a live recording, delete person, remove download). A trashed locked
   note is readable with no Face ID (R88).
+- 2026-09-23 Cap corrected to 120 ("if nobody cares"). The merge notice on same-name people is
+  required, not optional ("it should not be silent"). The August audit plan's main-thread lag
+  items were cited by the extraction but never taken up: a source ledger with a verdict per
+  item is now the rule (C276, `plan/sources.md`), and /2-plan waits for it. Performance sweep
+  running.
 - 2026-09-23 Tuur's answers to the third wave: the archive export KEEPS `location:` (C137); the
   filename cap is 80 (C165); same full name = same person, merge on purpose (D96, R61 withdrawn);
   spoken "hashtag X" becomes a real tag by rule (C275); the second destination needs a plainer name
