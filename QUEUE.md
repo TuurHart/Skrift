@@ -83,7 +83,7 @@ node: V2Core
 do: `CorpusSeed.Note` decodes `expect` (prose: note / bug / bug-fixed). For every corpus note a body clause names (`pic-*`, `typed-crlf-tabs-nbsp`, `voice-en-triple-blank-lines`, `typed-wall-one-paragraph`, `cap-image-voice-ramble`, `pic-shared-no-timestamp`), add a machine-checkable expected stored body as `test-fixtures/corpus/notes/<n>/expect_body.txt`, written from the prose expect + the clause. Record v1's body output for every note (strip markers from the stored transcript, re-place them with v1's `ImageMarkers.insert` from `word_timings.json` + manifest offsets, then `BodyTransform` display + export body) into `test-fixtures/corpus/goldens/v1-body/<slug>.txt`, recorded only when `SKRIFT_RECORD_GOLDENS=1`.
 check: `test $(ls test-fixtures/corpus/goldens/v1-body | wc -l) -ge 109 && test $(ls test-fixtures/corpus/notes/*/expect_body.txt | wc -l) -ge 10`
 
-### Q10 [auto] (doing) body diff harness + body invariants
+### Q10 [auto] (done) body diff harness + body invariants
 spec: C5 C6 C9 C253
 needs: Q9
 gate+: yes
@@ -199,3 +199,4 @@ check: Tuur clicked through it and said go.
 - 2026-09-24 12:12 Q10 -> doing — worker out
 - 2026-09-24 12:12 Q16 -> doing — worker out
 - 2026-09-24 12:21 Q22 -> tuur — built @9f61c346 — awaiting sitting
+- 2026-09-24 12:30 Q10 -> done — gate pass @4d7cb60a
