@@ -22,13 +22,13 @@ Staged, not dropped. Each comes back as items at the next resync (`/2-plan`), in
 
 ## Items
 
-### Q1 [tuur] (todo) mockup: quick note
+### Q1 [tuur] (doing) mockup: quick note
 spec: C112 C114 C43
 needs: -
 do: One clickable HTML page: the app opening into the list with the New Note action one tap away; the Lock Screen / Control Center widget and the Siri path each landing in an empty note with the keyboard up; leaving an untouched empty note discards it (D91). Phone and iPad frames.
 check: Tuur clicked through it and said go.
 
-### Q2 [tuur] (todo) mockup: three-ball importance
+### Q2 [tuur] (tuur) mockup: three-ball importance
 spec: C94 C210 C183
 needs: -
 node: i23
@@ -47,7 +47,7 @@ needs: -
 do: The conflict shown on a note edited on two devices before they synced: the note's marker in the list, the dialog with Keep this device / Keep the other / Keep both (two notes), and where the unkept version sits for the trash window. Modelled on Shapr3D's "Version Conflict Detected". Phone and Mac.
 check: Tuur clicked through it and said go.
 
-### Q5 [tuur] (todo) inspiration board: the long-form sources tab
+### Q5 [tuur] (doing) inspiration board: the long-form sources tab
 spec: C229
 needs: -
 node: Podcasts
@@ -74,7 +74,7 @@ node: i23
 do: Build the signed Q2 mock as ONE shared view in `Skrift_Native/Shared/UI/` with a per-app style struct (C240), used on the Mac, phone and iPad. The scale lives in Shared: legacy values bucket (0.1–0.3 → 0.3, 0.4–0.6 → 0.6, 0.7–1.0 → 1.0), re-tap → 0 (Not rated). Test the bucketing and the tap rules in a NEW `ThreeBallScaleTests` (desktop test target); the existing `SignificanceScaleTests` covers the old 10-circle scale and is retired or rewritten with it.
 check: `grep -rqE "class ThreeBallScaleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "litCount" Skrift_Native/Shared Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q9 [auto] (todo) corpus expectations become data + v1 body goldens
+### Q9 [auto] (doing) corpus expectations become data + v1 body goldens
 spec: C4 C5 C10 C11 C12 C13 C14 C15 C19 C20 C253
 needs: -
 gate+: yes
@@ -173,3 +173,8 @@ check: `plan/mtest.sh LockedNoteVisibilityTests`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
+- 2026-09-24 11:25 Q1 -> doing — mockup out
+- 2026-09-24 11:25 Q2 -> doing — mockup out
+- 2026-09-24 11:25 Q5 -> doing — mockup out
+- 2026-09-24 11:25 Q9 -> doing — worker out
+- 2026-09-24 11:33 Q2 -> tuur — built @86142b9a — awaiting sitting
