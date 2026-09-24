@@ -278,7 +278,7 @@ node: V2Core
 do: Q33 finding. (1) DELETE `plan/reads/list-q33/mac-sidebar-dark.png` from the tree — it shows Tuur's real Dev notes. (2) Render the Mac sidebar ONLY from a fresh, isolated store seeded with the synthetic corpus (`-corpus test-fixtures/corpus`, C4): point the Dev app / `-snapshot-shell` at a temp store directory so the live Skrift Dev store (and its CloudKit data) is never read; if the harness cannot isolate the store, stop and report. (3) Look at the new PNG: if the sidebar's left edge is clipped (Q33 showed "ODAY", "UE 22 SEP", cut "All" chip), fix the layout; if it is a harness artefact, prove it with a real window screenshot of the same isolated store. (4) Mac unrated (quiet) rows get the snippet + chips of the signed mock's "One list" tab (`Skrift_Native/SkriftDesktop/mocks/one-notes-list.html`), duration as a chip. (5) Re-shoot the iPad list to confirm the always-on "starts fading" line is gone. Commit the new PNGs under `plan/reads/list-q35/`.
 check: `test ! -e plan/reads/list-q33/mac-sidebar-dark.png && test $(ls plan/reads/list-q35/*.png | wc -l) -ge 2 && ./gate.sh`
 
-### Q36 [auto] (doing) tag editor matches the signed mock: Mac keyboard menu, Undo toast, screenshots
+### Q36 [auto] (done) tag editor matches the signed mock: Mac keyboard menu, Undo toast, screenshots
 spec: C241 C117 C4
 needs: Q28
 node: V2Core
@@ -429,3 +429,4 @@ check: `grep -rqE "class PolishedNormaliseTests\b" Skrift_Native/SkriftDesktop/S
 - 2026-09-24 22:54 Q40 added
 - 2026-09-24 22:54 Q15 -> tuur — awaiting sitting: tag v1-body + delete v1 (Q14 done)
 - 2026-09-24 22:54 Q40 -> doing — worker out (opus)
+- 2026-09-24 22:55 Q36 -> done — gate pass @f5b7a0b7
