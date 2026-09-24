@@ -54,7 +54,7 @@ node: Podcasts
 do: One HTML page of screenshots from Apple News, Readwise Reader, Matter, Snipd, Apple Podcasts, Flipboard and Bound, grouped by how each mixes media types (books, episodes, articles, PDFs, talks), with one line per app on what to take. Ends with 3 named directions for Tuur to pick from (D90).
 check: Tuur picked a direction.
 
-### Q6 [tuur] (todo) mockup: the long-form sources tab
+### Q6 [tuur] (doing) mockup: the long-form sources tab
 spec: C229 C79
 needs: Q5
 node: Podcasts
@@ -67,9 +67,10 @@ needs: Q1
 do: Build the signed Q1 mock (`Skrift_Native/SkriftDesktop/mocks/quick-note.html`, D134: ✎ in the list HEADER beside Select, cursor in the body, silent discard) on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). `Memo.newTyped` saves on the tap today, so create the Memo on the first keystroke, or an empty note syncs to the Mac (Q1 finding). Test the routing and the discard in `QuickNoteTests`.
 check: `plan/mtest.sh QuickNoteTests`
 
-### Q8 [auto] (todo) build three-ball importance on all three devices
+### Q8 [auto] (doing) build three-ball importance on all three devices
 spec: C94 C210 C183 C240
 needs: Q2
+gate+: yes
 node: i23
 do: Build the signed Q2 mock (`Skrift_Native/SkriftDesktop/mocks/three-ball-importance.html`, D134: one row, cumulative fill, word-only readout) as ONE shared view in `Skrift_Native/Shared/UI/` with a per-app style struct (C240), used on the Mac, phone and iPad. The scale lives in Shared: legacy values bucket (0.1–0.3 → 0.3, 0.4–0.6 → 0.6, 0.7–1.0 → 1.0), re-tap → 0 (Not rated). Test the bucketing and the tap rules in a NEW `ThreeBallScaleTests` (desktop test target); the existing `SignificanceScaleTests` covers the old 10-circle scale and is retired or rewritten with it.
 check: `grep -rqE "class ThreeBallScaleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "litCount" Skrift_Native/Shared Skrift_Native/SkriftDesktop/SkriftDesktopTests`
@@ -82,7 +83,7 @@ node: V2Core
 do: `CorpusSeed.Note` decodes `expect` (prose: note / bug / bug-fixed). For every corpus note a body clause names (`pic-*`, `typed-crlf-tabs-nbsp`, `voice-en-triple-blank-lines`, `typed-wall-one-paragraph`, `cap-image-voice-ramble`, `pic-shared-no-timestamp`), add a machine-checkable expected stored body as `test-fixtures/corpus/notes/<n>/expect_body.txt`, written from the prose expect + the clause. Record v1's body output for every note (strip markers from the stored transcript, re-place them with v1's `ImageMarkers.insert` from `word_timings.json` + manifest offsets, then `BodyTransform` display + export body) into `test-fixtures/corpus/goldens/v1-body/<slug>.txt`, recorded only when `SKRIFT_RECORD_GOLDENS=1`.
 check: `test $(ls test-fixtures/corpus/goldens/v1-body | wc -l) -ge 109 && test $(ls test-fixtures/corpus/notes/*/expect_body.txt | wc -l) -ge 10`
 
-### Q10 [auto] (todo) body diff harness + body invariants
+### Q10 [auto] (doing) body diff harness + body invariants
 spec: C5 C6 C9 C253
 needs: Q9
 gate+: yes
@@ -127,9 +128,10 @@ node: V2Core
 do: Tag the current commit `v1-body`, then in ONE commit delete the v1 snap code (`snapImages`, `SnapResult`, `imageBreaks`, `snappedImageBody`) and the tests that pin it: `NoteBodyTests` render-time snap cases and `VaultExporterTests` export-time snap case (C252). This touches protected test files on purpose, so accept.sh parks it stuck; Tuur approves the diff in the sitting and the orchestrator merges it.
 check: `git rev-parse -q --verify refs/tags/v1-body >/dev/null && ! grep -rqE "snapImages|SnapResult|snappedImageBody|imageBreaks" Skrift_Native --include='*.swift'`
 
-### Q16 [auto] (todo) a recording is never lost
+### Q16 [auto] (doing) a recording is never lost
 spec: C99 C287 C288 C263
 needs: -
+gate+: yes
 node: AuditFix2
 do: The phone persists audio in segments on every interruption and every 60 s with a marker; a launch sweep rebuilds the note from the segments and says so; a force-quit finalises; disk full stops the take with an honest error and keeps what landed (R46). D131: on a low-memory warning the audio is flushed and a checkpoint row written FIRST, then the transcriber unloads, captions stop, the model reloads after Stop; in the background live captions stop and the recording continues. Recovery never runs over a `transcriptUserEdited` memo (C263); unrecoverable `rec_tmp_*` are cleaned after a failed sweep (C288); every lifecycle transition logs a Release-safe `os_log` line (C287). Test in `RecoverySweepTests`. Hardware-flavoured: per CLAUDE.md the orchestrator owns route/audio-session changes; the worker keeps to persistence + sweep.
 check: `plan/mtest.sh RecoverySweepTests`
@@ -171,7 +173,7 @@ node: AuditFix2
 do: One Shared predicate decides whether a note's content may show without auth; `WayOutView` (Fading / Recently Deleted) shows the "Locked note" placeholder the list already shows; the three delete entry points in `MemosListView` check the lock; `copyTranscript` / `copyableText` are gated behind auth (R88). Test in `LockedNoteVisibilityTests` (phone target).
 check: `plan/mtest.sh LockedNoteVisibilityTests`
 
-### Q22 [tuur] (todo) mockup: one notes list across phone, iPad and Mac
+### Q22 [tuur] (doing) mockup: one notes list across phone, iPad and Mac
 spec: C117 C114
 needs: -
 do: Tuur 2026-09-24 (D134): "the way the notes are viewed, the list of notes… we need to unify that over all three devices". One clickable page: today's list row on the phone, iPad and Mac drawn from source side by side, then ONE unified row + list for all three, with the signed Q1 header ✎ and Q2 three balls in place. Phone, iPad and Mac frames.
@@ -191,3 +193,8 @@ check: Tuur clicked through it and said go.
 - 2026-09-24 12:05 Q1 -> done — signed with ✎ in the header beside Select (D134)
 - 2026-09-24 12:05 Q5 -> done — A Shelf, tab named Library; captures stay in Notes (D134)
 - 2026-09-24 12:05 Q22 added
+- 2026-09-24 12:12 Q22 -> doing — mockup out
+- 2026-09-24 12:12 Q6 -> doing — mockup out
+- 2026-09-24 12:12 Q8 -> doing — worker out
+- 2026-09-24 12:12 Q10 -> doing — worker out
+- 2026-09-24 12:12 Q16 -> doing — worker out
