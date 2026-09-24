@@ -255,7 +255,7 @@ node: AuditFix2
 do: Q19 finding: `VaultWrite.writeAsset`'s `.data` branch (phone MemoAsset blobs) still overwrites an existing vault file blind. Route it through the same `VaultAttachmentOwnership` check Q19 added for `.file` (byte-identical → no-op; foreign file → never touched, ours lands under the id8 name with embeds rewritten). Test in a new `DataAttachmentOwnershipTests` (desktop target), temp dirs only (never the real vault).
 check: `grep -rqE "class DataAttachmentOwnershipTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q33 [auto] (doing) list visual check against the signed mock + UI tests follow the verb row
+### Q33 [auto] (done) list visual check against the signed mock + UI tests follow the verb row
 spec: C117 C240
 needs: Q26
 node: V2Core
@@ -362,3 +362,4 @@ check: `grep -rqE "class AttachmentEmbedNameTests\b" Skrift_Native/SkriftDesktop
 - 2026-09-24 21:54 Q28 -> doing — worker out
 - 2026-09-24 22:04 Q33 -> stuck — gate failed — .queue/Q33.gate.log
 - 2026-09-24 22:05 Q33 -> doing — re-accept: prior gate run was INTERRUPTED, not red
+- 2026-09-24 22:05 Q33 -> done — gate pass @ff543191
