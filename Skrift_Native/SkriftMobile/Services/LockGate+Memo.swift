@@ -4,9 +4,11 @@ import Foundation
 /// The gate keys on the memo UUID **string** (the unified key); these bridge the
 /// phone's `Memo`/`UUID` call sites onto it.
 extension LockGate {
-    /// Whether this memo's CONTENT is currently gated.
+    /// Whether this memo's CONTENT is currently gated — routes through the
+    /// ONE Shared predicate (`NoteVisibility`, R88) so every surface (list
+    /// rows, WayOutView, copy) agrees with the detail page's gate.
     func isLocked(_ memo: Memo) -> Bool {
-        memo.locked && !isUnlocked(memo.id.uuidString)
+        !NoteVisibility.contentVisible(locked: memo.locked, unlockedThisSession: isUnlocked(memo.id.uuidString))
     }
 
     /// Face ID → unlock for this session. Returns whether the content may show.
