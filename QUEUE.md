@@ -71,8 +71,8 @@ check: `plan/mtest.sh QuickNoteTests`
 spec: C94 C210 C183 C240
 needs: Q2
 node: i23
-do: Build the signed Q2 mock as ONE shared view in `Skrift_Native/Shared/UI/` with a per-app style struct (C240), used on the Mac, phone and iPad. The scale lives in Shared: legacy values bucket (0.1–0.3 → 0.3, 0.4–0.6 → 0.6, 0.7–1.0 → 1.0), re-tap → 0 (Not rated). Test the bucketing and the tap rules in `SignificanceScaleTests` (desktop test target).
-check: `grep -rqE "class SignificanceScaleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
+do: Build the signed Q2 mock as ONE shared view in `Skrift_Native/Shared/UI/` with a per-app style struct (C240), used on the Mac, phone and iPad. The scale lives in Shared: legacy values bucket (0.1–0.3 → 0.3, 0.4–0.6 → 0.6, 0.7–1.0 → 1.0), re-tap → 0 (Not rated). Test the bucketing and the tap rules in a NEW `ThreeBallScaleTests` (desktop test target); the existing `SignificanceScaleTests` covers the old 10-circle scale and is retired or rewritten with it.
+check: `grep -rqE "class ThreeBallScaleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "litCount" Skrift_Native/Shared Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
 ### Q9 [auto] (todo) corpus expectations become data + v1 body goldens
 spec: C4 C5 C10 C11 C12 C13 C14 C15 C19 C20 C253
