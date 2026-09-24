@@ -79,7 +79,12 @@ enum BodyNormaliseMigration {
         let out: String
         if machineText {
             let manifest = (0..<manifestCount).map { _ in ImageManifestEntry(filename: "", offsetSeconds: 0) }
-            out = BodyV2.committed(.init(text: body, manifest: manifest, source: .typed))
+            let committed = BodyV2.committed(.init(text: body, manifest: manifest, source: .typed))
+            // `BodyV2.isBlock` counts v1's wrap (`one.\n\n[[img_001]]\n\n That`) as already a
+            // block, and `BodyV2Text.normalised` keeps that single leading space, so commit
+            // alone can leave it; the marker move then does it.
+            out = needsNormalise(committed, manifestCount: manifestCount)
+                ? BodyV2Text.normalised(markersMoved(body, manifestCount: manifestCount)) : committed
         } else {
             out = markersMoved(body, manifestCount: manifestCount)
         }

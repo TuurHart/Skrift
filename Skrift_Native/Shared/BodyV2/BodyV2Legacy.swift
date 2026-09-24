@@ -1,7 +1,10 @@
 import Foundation
 
-/// Q13 READ-ONLY FALLBACK — Q14 deletes this file and its callers once old notes are
-/// normalised at first open (C10). Every write site stores body v2 now, but a body stored
+/// Q13 READ-ONLY FALLBACK. Q14 KEPT it: `BodyNormaliseMigration` rewrites an old body at the
+/// note's first open (onAppear, after the first render), but the vault exporter, the phone
+/// publisher and the snapshot tool read bodies of notes never opened on this device, a v1 body
+/// can arrive over CloudKit while its note is on screen, and a refused rewrite stays v1 — all
+/// of those still need the snap. Every write site stores body v2 now, but a body stored
 /// before the swap (v1 wrote `sat\n\n[[img_001]]\n\n down.` at the photo's moment; a v1 edit
 /// or a copy-edit can leave a marker inline) would render with the photo mid-sentence
 /// without the old snap. Such a body is still shown and exported through v1's snap, exactly
