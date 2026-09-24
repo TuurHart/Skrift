@@ -35,6 +35,10 @@ struct CaptureVoiceAnnotate: View {
         }
         .animation(Theme.Motion.snappy, value: service.isRecording)
         .animation(Theme.Motion.snappy, value: transcribing)
+        // R46: the disk refused a write — stop and keep what landed.
+        .onChange(of: service.writeFailure) { _, failure in
+            if failure != nil, service.isRecording { stopTapped() }
+        }
     }
 
     // MARK: - Idle (the pill)

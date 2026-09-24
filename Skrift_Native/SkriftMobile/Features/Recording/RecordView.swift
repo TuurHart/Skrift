@@ -115,6 +115,11 @@ struct RecordView: View {
         .onChange(of: intentBridge.stopRequestID) {
             if service.isRecording { stopTapped() }
         }
+        // R46: the disk refused a write — stop and save what landed; the note's
+        // title carries the reason.
+        .onChange(of: service.writeFailure) { _, failure in
+            if failure != nil, service.isRecording { stopTapped() }
+        }
         // A recording ended but we're still on this screen (the empty-capture
         // retry case) → from here on the manual ready screen is the idle state.
         .onChange(of: service.isRecording) { was, now in
@@ -547,6 +552,8 @@ struct RecordView: View {
 
     private func stopTapped() {
         Haptics.recordingTap()
+        // R46: a take the disk stopped carries the reason onto its note.
+        let failure = service.writeFailure
         guard let result = service.stop() else { dismiss(); return }
         // Empty capture (no audio frames — fast start→stop, or an unavailable
         // mic/session): discard it and tell the user instead of saving a silent,
@@ -570,7 +577,8 @@ struct RecordView: View {
             duration: result.duration,
             photos: camera.takeAll(),
             provisionalTranscript: result.liveCaption,
-            capturedMetadata: context
+            capturedMetadata: context,
+            title: failure
         )
         Haptics.success()
         // Set the navigation target before dismissing the cover — pushing onto
