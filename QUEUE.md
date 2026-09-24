@@ -106,7 +106,7 @@ node: V2Core
 do: Three rulings owed with the read (Q11 finding): (a) four fixtures put a picture mid-sentence against C11 (pic-at-start, pic-ocr-text, pic-three-spread #3, ingress-p3) — fix the fixtures' offsets, or allow a boundary tolerance; (b) pic-in-task-list cannot satisfy R95 under C20+D3 — drop its R95 entry; (c) the 13 extra differences in `expected-differences-q11.json` are accepted. -
 check: Tuur read `plan/reads/body-v2.md` and said it reads right.
 
-### Q13 [auto] (doing) swap: every body write site calls v2
+### Q13 [auto] (done) swap: every body write site calls v2
 spec: C10 C17 C65 C2
 needs: Q12 Q30
 node: V2Core
@@ -312,3 +312,4 @@ check: `./gate.sh && test -s plan/reads/body-v2.md`
 - 2026-09-24 21:17 Q24 -> done — hand-merged (D138 tests only), gate+check+phone build green @132ea364
 - 2026-09-24 21:17 Q19 -> doing — worker out
 - 2026-09-24 21:17 Q26 -> doing — worker out
+- 2026-09-24 21:27 Q13 -> done — gate pass @a42cd2cb
