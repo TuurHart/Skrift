@@ -490,6 +490,11 @@ struct MemoDetailView: View {
                                          guard memos.contains(where: { $0.id == id }) else { return }
                                          withAnimation(Theme.Motion.snappy) { selection = id }
                                      })
+                            // C98/D139: two versions → prompt on open, banner after
+                            // "Later", read-only until picked. Only the CURRENT page
+                            // gates, so an adjacent realised page never raises a sheet.
+                            .editConflictGate(memoID: memo.id == selection ? memo.id : nil,
+                                              context: repository.context, look: .phone, style: .skrift)
                             .containerRelativeFrame(.horizontal)
                             // The LazyHStack realises adjacent pages; hide the
                             // off-screen ones from VoiceOver (and XCUITest) so

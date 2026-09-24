@@ -232,7 +232,11 @@ private struct WayOutRow: View {
                 }
             }
         case .deleted:
-            if let deletedAt = memo.deletedAt {
+            if let replacedAt = memo.replacedAt {
+                // D139: the version he did not keep when settling an edit conflict.
+                Text("replaced \(replacedAt.formatted(date: .abbreviated, time: .omitted))")
+                    .foregroundStyle(Color.skAmber).fontWeight(.semibold)
+            } else if let deletedAt = memo.deletedAt {
                 Text("deleted \(deletedAt.formatted(date: .abbreviated, time: .omitted))")
             }
         }
