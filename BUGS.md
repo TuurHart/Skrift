@@ -202,6 +202,10 @@ Built 2026-09-14 off `main` at `858ec1b`. Fixing something? Tick it here and in 
       still open. SPEC sources.md #31.
 - [ ] **Deleting the last note leaves a stale detail pane on the Mac until a click.** Shell does not
       clear the selection when the list empties. sources.md #114 (backlog-3:260).
+- [ ] **The Mac archive export writes wiki embeds.** `SkriftDesktop/Pipeline/Export/VaultExporter.swift:235`
+      (`convertImageMarkers`) and `:296` (`convertNoteAttachments`) emit `![[name]]` on every profile;
+      the archive wants `![](name)`. `ExportProfile.imageMarkdown` exists and the phone uses it
+      (`ObsidianPublisher.swift:253`). Found by the portfolio chat 2026-09-24. SPEC R51 / C134.
 - [ ] **The Mac never sends timings or speaker turns back to the phone.** `MacCloudWriteBack` has no
       asset writer, so a Mac re-transcription of an untrusted phone note, or a conversation split on
       the Mac, loses karaoke and turns on the phone/iPad. Widens the Mac-take bug above. SPEC R35.
