@@ -360,3 +360,5 @@ check: `grep -rqE "class AttachmentEmbedNameTests\b" Skrift_Native/SkriftDesktop
 - 2026-09-24 21:51 Q34 -> done — gate pass @87faab1c
 - 2026-09-24 21:54 Q31 -> done — gate pass @3b66bc50
 - 2026-09-24 21:54 Q28 -> doing — worker out
+- 2026-09-24 22:04 Q33 -> stuck — gate failed — .queue/Q33.gate.log
+- 2026-09-24 22:05 Q33 -> doing — re-accept: prior gate run was INTERRUPTED, not red
