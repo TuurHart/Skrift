@@ -28,7 +28,11 @@ enum ThreeBallScale {
     /// trapping, same discipline as `SignificanceScale.step(for:)`.
     static func step(for value: Double) -> Int {
         guard value.isFinite, value > 0 else { return 0 }
-        let tenth = Int((value * 10).rounded())
+        // Clamp BEFORE the `Int` conversion — `value * 10` on a huge finite
+        // double (e.g. `.greatestFiniteMagnitude`) overflows to `.infinity`,
+        // and `Int(.infinity)` traps. Same discipline as
+        // `SignificanceScale.step(for:)`.
+        let tenth = Int(min(10, (value * 10).rounded()))
         switch tenth {
         case ..<1: return 0
         case 1...3: return 1
