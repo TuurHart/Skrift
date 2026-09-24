@@ -585,7 +585,7 @@ suite is retired; the unit suite IS the gate (D85).
   "already in Skrift" notice. || check: share the WhatsApp fixture twice. — D36
 - C128 [auto] The WhatsApp / Signal chat-export zip is NOT an ingress path in v2 (parked;
   it is the only carrier of sender names and exact order). || check: `.zip` shares refuse
-  honestly. ⚠ needs-verdict D37
+  honestly. D37 decided 2026-09-24: never; sender name via the share sheet, with roster autocomplete
 
 ### The archive contract — Skrift ↔ the portfolio repo (`~/Hackerman/Tiurihartog.com`)
 
@@ -1450,9 +1450,10 @@ Not blocking v2, but he asked for one sitting:
 35. **D35 Per-message times in a merged messenger note.** ✅ DECIDED 2026-09-22: hidden (kept
     in the manifest); the note's date = the first message's sent time.
 36. **D36 Same file shared twice.** ✅ DECIDED 2026-09-22: one note + an "already in Skrift" notice.
-37. **D37 Chat-export zip import** (WhatsApp/Signal "Export chat"): the only way to get sender
-    names and exact order automatically. Default: parked; the share-sheet name field (C123)
-    covers the common case.
+37. **D37 Chat-export zip import.** ✅ DECIDED 2026-09-24: never. "I don't click export chat."
+    The share-sheet sender field (C123) is the way, and it autocompletes from the roster when the
+    name is already known.
+
 38. **D38 Is Skrift's copy-edit "cleaned" by the archive's rule?** ✅ DECIDED 2026-09-22: YES —
     "the way the copy edit does it is the right one. removing fillers and shit is good". Archive
     notes get the normal copy-edit as `voice: cleaned`; the archive README's grammar-only
@@ -1590,32 +1591,41 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     a source, one action each. Parked idea: a Skrift highlighter browser extension in place of
     Readwise ("interesting, but for later").
 
-91. **D91 Empty typed notes.** Seen 2026-09-22: three "Note" rows with no text, created by ⌘N
-    presses that never got words ("ik heb er drie lege notities staan"). Default: an untouched
-    empty typed note is discarded when he leaves it; nothing empty is ever listed.
+91. **D91 Empty typed notes.** ✅ DECIDED 2026-09-24: an untouched empty typed note is discarded
+    when he leaves it; nothing empty is ever listed.
 
-92. **D92 Context on Mac recordings.** The Mac stamps a place only (`MacLocationStamp`); no
-    weather, daypart, daylight. Default: the same context a phone recording gets, where the Mac
-    can (weather via the same key; steps stay phone-only), so a Mac take exports like a phone take.
+92. **D92 Context on Mac recordings.** ✅ DECIDED 2026-09-24: a Mac take gets the same context as
+    a phone take where the Mac can (weather via the same key, daypart, daylight; steps stay
+    phone-only), so it exports like a phone take.
 
-93. **D93 Clock skew rule.** Sync "newer wins" compares stamp to stamp, never to the local clock,
-    with a few seconds of tolerance; a future `recordedAt` is flagged, never trusted. Default: yes.
-94. **D94 Archive date key.** The archive expects `added:` (when the entry was created) and has no
-    `date:`; Skrift writes `date:`. Default: write `added:` on the archive profile (mechanical —
-    follow the archive's own README); `date:` stays in the vault.
-95. **D95 Redo over a hand edit.** Redo (title / copy-edit / summary) on a part he edited by hand
-    asks first, never silently overwrites. Default: yes.
+93. **D93 Clock skew rule.** ✅ DECIDED 2026-09-24: stamp to stamp, never to the local clock, a
+    few seconds of tolerance; a future `recordedAt` is flagged, never trusted.
+
+94. **D94 Archive date key.** ✅ DECIDED 2026-09-24 (my advice, applied; say if you disagree):
+    Skrift changes, not the portfolio. The archive's frontmatter is the archive's own contract
+    (C129–C130), every tool over there already reads `added:`, and `date:` in the vault is the
+    Obsidian convention with different readers. So the Projects profile writes `added:` = the
+    note's recording date (not the export time), the Personal profile keeps `date:`. One line in
+    the profile table, no drift because the two files have different readers.
+
+95. **D95 Redo over a hand edit.** ✅ DECIDED 2026-09-24: Redo runs over the text AS IT STANDS,
+    his edits included ("won't redo just take in my changes and apply the LLM over what I
+    wrote?"), never over the raw transcript behind his back; nothing to ask, nothing lost.
 
 96. **D96 Two people, one full name.** ✅ DECIDED 2026-09-23: the same full name IS the same
     person; a second add merges into the existing row and says so. "Otherwise how could we keep
     track." (C254; R61 withdrawn.)
 
-97. **D97 How long before an orphaned `.transcribing` memo is adoptable by any device.** A phone that died mid-recording and was later replaced leaves a `.transcribing` memo no device can ever pick up (R75/C264). Default: any device may adopt after 7 days, or the Mac always may (it's never "replaced").
-
-98. **D98 Confirm threshold for closing an active recording.** R71/C262 — confirm on every X-tap, or only above a floor (mirrors the existing 0.4s auto-discard floor for Stop)? Default: confirm whenever `elapsed >= 1s` or any photo was captured; below that, discard silently as today.
-
-99. **D99 Whether "Remove download" should offer a "keep syncing in background, remove after" option** instead of a hard block while an audiobook upload is in flight (C268). Default: hard block — simplest, matches "nothing of his is lost silently."
-
+97. **D97 Orphaned transcription.** ✅ DECIDED 2026-09-24 (my advice, applied): no 7-day wait
+    and no Mac special case, both were guesses. Rule: any device that holds the audio may
+    transcribe a memo still `.transcribing` after 24 hours; the first result wins by stamp (D93).
+    24 hours because the recording device syncs within minutes when it is alive, and a day is
+    the longest a phone is plausibly off before he notices.
+98. **D98 Closing an active recording.** ✅ DECIDED 2026-09-24: the X asks before discarding when
+    the live caption holds at least one word or a photo was taken; a wordless take (pocket
+    noise, a mis-tap) is discarded silently as today. His refinement: words, not seconds.
+99. **D99 Remove download during upload.** ✅ DECIDED 2026-09-24: hard block with a message while
+    the book is still uploading.
 100. **D100 The name of the second destination.** ✅ DECIDED 2026-09-23: the two exports are
     called **Personal** (Obsidian vault, his thoughts, never read by AI) and **Projects** (the
     portfolio repo, ideas and inspirations, deliberately read by AI) in every UI string and in the
