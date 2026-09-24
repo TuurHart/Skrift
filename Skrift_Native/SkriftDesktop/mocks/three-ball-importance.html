@@ -1,0 +1,364 @@
+<title>Three-ball Importance</title>
+<style>
+/* App colours = Shared/DesignSystem Palette.swift (phone pairs). Redline = mock-only
+   annotation ink; it never appears in the app. */
+:root{
+  --bg:#f5f5f7; --surface:#ffffff; --elev:#ebebf0;
+  --t1:#1c1c1e; --t2:#6c6c72; --t3:#a3a3aa;
+  --accent:#6c5ce0; --accent-rgb:108 92 224; --accentText:#6051c8; --accentSoft:rgb(108 92 224 / .14);
+  --green:#0f9d72; --amber:#d97706; --warm:#d97706;
+  --ring:rgba(0,0,0,.18); --hair:rgba(0,0,0,.08); --macStroke:rgba(0,0,0,.07);
+  --page:#e9e8ee; --ink:#26242e; --inkDim:#6d6a78;
+  --red:#d6336c; --redSoft:rgba(214,51,108,.09); --redLine:rgba(214,51,108,.45);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0f1117; --surface:#181a23; --elev:#1e2130;
+    --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+    --accent:#7c6bf5; --accent-rgb:124 107 245; --accentText:#b9acff; --accentSoft:rgb(124 107 245 / .18);
+    --green:#34d399; --amber:#f59e0b; --warm:rgb(194 137 109);
+    --ring:rgba(255,255,255,.22); --hair:rgba(255,255,255,.08); --macStroke:rgba(255,255,255,.07);
+    --page:#07080c; --ink:#ecebf2; --inkDim:#9491a3;
+    --red:#ff6b9a; --redSoft:rgba(255,107,154,.1); --redLine:rgba(255,107,154,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0f1117; --surface:#181a23; --elev:#1e2130;
+  --t1:#e4e4e7; --t2:#8b8b97; --t3:#55556a;
+  --accent:#7c6bf5; --accent-rgb:124 107 245; --accentText:#b9acff; --accentSoft:rgb(124 107 245 / .18);
+  --green:#34d399; --amber:#f59e0b; --warm:rgb(194 137 109);
+  --ring:rgba(255,255,255,.22); --hair:rgba(255,255,255,.08); --macStroke:rgba(255,255,255,.07);
+  --page:#07080c; --ink:#ecebf2; --inkDim:#9491a3;
+  --red:#ff6b9a; --redSoft:rgba(255,107,154,.1); --redLine:rgba(255,107,154,.5);
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;padding-inline:16px;padding-block:14px 48px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:6px}
+
+/* ── mock chrome ─────────────────────────────── */
+.head h1{font-size:19px;font-weight:700;letter-spacing:-.015em;margin:0;text-wrap:balance}
+.head .meta{font-size:12px;color:var(--inkDim);margin-top:2px}
+.head .meta b{color:var(--ink);font-weight:600}
+.picks{border:1.5px dashed var(--redLine);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:12px;background:var(--redSoft)}
+.picks .ph{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--red)}
+.pick{display:flex;flex-direction:column;gap:6px}
+.pick .q{font-size:13px;line-height:1.4}
+.pick .q b{font-weight:650}
+.seg{display:flex;background:var(--hair);border-radius:9px;padding:2px;gap:2px}
+.seg button{flex:1;min-height:36px;border-radius:7px;font-size:12.5px;color:var(--inkDim);padding:4px 6px;line-height:1.2}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg .tagp{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.08em;color:var(--red);margin-left:4px;vertical-align:1px}
+.gone{font-size:12px;color:var(--inkDim);line-height:1.45}
+.gone s{color:var(--inkDim)}
+
+.tabs{display:flex;gap:6px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--page);padding-block:6px}
+.tabs button{flex:1;min-height:40px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--inkDim);border:1px solid var(--hair)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--page);border-color:var(--ink)}
+
+.redline{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--red);display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.redline span{font-weight:500;letter-spacing:0;text-transform:none;color:var(--red);opacity:.85}
+.boxed{outline:1.5px dashed var(--redLine);outline-offset:5px;border-radius:14px}
+
+/* ── device stages (app palette, 1:1 points) ─── */
+.stage{background:var(--bg);color:var(--t1);border-radius:22px;overflow:hidden;border:1px solid var(--hair)}
+.stage .cap{font-size:11px;color:var(--t3);padding:10px 16px 0}
+.scroll-x{overflow-x:auto}
+.screen{padding:8px 20px 22px}
+.nav{display:flex;justify-content:space-between;align-items:center;height:40px;color:var(--accent);font-size:16px}
+.nav .more{color:var(--t2);letter-spacing:2px}
+.ptitle{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:2px 0 10px;color:var(--t1)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--t2);background:var(--elev);border-radius:7px;padding:2px 7px;line-height:16px}
+.chip svg{width:10px;height:10px;flex:none}
+.chip.tag{color:var(--accentText);background:var(--accentSoft)}
+.fade-line{font-size:11.5px;color:var(--amber);opacity:.9;margin-top:8px}
+.body{font-size:16px;line-height:1.5;color:var(--t1);margin-top:16px}
+.body p{margin:0 0 10px}
+.ipadbar{display:flex;justify-content:space-between;align-items:center;height:40px;color:var(--accent);font-size:15px}
+.col{max-width:640px}
+
+.mac{border-radius:12px}
+.mac .tb{height:28px;display:flex;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid var(--hair)}
+.mac .tb i{width:11px;height:11px;border-radius:50%;display:block}
+.mac .tb i:nth-child(1){background:#ff5f57}.mac .tb i:nth-child(2){background:#febc2e}.mac .tb i:nth-child(3){background:#28c840}
+.mac .tb span{font-size:11px;color:var(--t3);margin-left:8px}
+.mac .screen{padding:14px 18px 20px;display:flex;flex-direction:column;gap:13px}
+.mac .ptitle{font-size:19px;margin:0}
+.mac .chip{font-size:11px}
+.mac .body{font-size:14px;margin-top:4px}
+.audiorow{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--t2)}
+.sw{width:26px;height:15px;border-radius:8px;background:var(--accent);position:relative}
+.sw::after{content:"";position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:50%;background:#fff}
+.audiorow b{font-size:10px;color:var(--t3);font-weight:600}
+
+/* ── the control, shared anatomy ─────────────── */
+.card{background:var(--surface);padding:13px 13px 12px;width:100%}
+.card.phone{border-radius:16px}
+.card.mac{border-radius:12px;box-shadow:inset 0 0 0 1px var(--macStroke)}
+.card .lab{font-size:11px;font-weight:500;color:var(--t3);white-space:nowrap}
+.card .val{font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.card .val.none{font-weight:500;color:var(--t3)}
+.card .val.on{color:var(--accent)}
+.card .val.warm{color:var(--amber)}
+.card .val.pre{color:var(--t2)}
+.divider{height:.5px;background:var(--hair);margin:11px 0 9px}
+.card.mac .divider{height:1px;background:var(--macStroke)}
+.sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2);white-space:nowrap}
+.sync .d{border-radius:50%;flex:none}
+.row{display:flex;align-items:center}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+
+.ball{flex:none;display:grid;place-items:center;border-radius:12px}
+.ball i{display:block;border-radius:50%;border:1.5px solid var(--ring);background:transparent;transition:background .12s,border-color .12s,transform .1s,box-shadow .12s}
+.ball.lit i{background:var(--accent);border-color:var(--accent);box-shadow:0 1px 5px rgb(var(--accent-rgb) / .35)}
+.ball.pre i{background:rgb(var(--accent-rgb) / .3);border-color:rgb(var(--accent-rgb) / .55)}
+.ball.hov i{transform:scale(1.22)}
+.ball.warm i{background:var(--warm);border-color:var(--warm);box-shadow:0 0 8px rgba(245,158,11,.3)}
+.ball:active i{transform:scale(.9)}
+.caps{display:flex}
+.caps span{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);text-align:center;flex:none;white-space:nowrap}
+.caps span.on{color:var(--accent);font-weight:600}
+.caps span.warm{color:var(--amber)}
+.wall{flex:none;width:1px;border-radius:.5px;background:var(--amber);opacity:.35}
+.flame{display:inline-flex;align-items:center;gap:4px;color:var(--amber);font-size:9px;font-weight:700;letter-spacing:.05em;white-space:nowrap;transition:opacity .18s}
+.flame svg{width:9px;height:9px}
+
+.today{opacity:.96}
+.foot{font-size:12px;color:var(--inkDim);line-height:1.5}
+.foot code{font:11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);background:var(--hair);padding:1px 5px;border-radius:5px}
+.store{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:var(--inkDim)}
+.store code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);background:var(--hair);padding:3px 7px;border-radius:6px;transition:background .3s}
+.store code.flash{background:var(--redSoft);color:var(--red)}
+.bucket{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px;color:var(--inkDim)}
+.bucket b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.ask{border-left:3px solid var(--red);padding:4px 0 4px 12px;font-size:13.5px;line-height:1.45}
+.ask .ph{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--red);display:block;margin-bottom:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <h1>Importance, three balls</h1>
+    <div class="meta"><b>Q2</b> · C94 C210 C183 · D30 D52 D107 · Passing 0.3 / Useful 0.6 / Important 1.0 · tap sets, re-tap clears, no fourth button</div>
+  </header>
+
+  <section class="picks" aria-label="Choices to overrule">
+    <div class="ph">Three picks to overrule — flip any, every device follows</div>
+    <div class="pick">
+      <div class="q"><b>1 · Layout.</b> Label, balls and the value word share ONE row. No caption row under the balls (the m6 "one size down" cut).</div>
+      <div class="seg" id="seg-layout">
+        <button id="lay-row" data-set="layout:row">One row<span class="tagp">PICK</span></button>
+        <button id="lay-stack" data-set="layout:stack">Stacked, word under each ball</button>
+      </div>
+    </div>
+    <div class="pick">
+      <div class="q"><b>2 · Fill.</b> Cumulative, like today's circles: Useful lights balls 1 and 2.</div>
+      <div class="seg" id="seg-fill">
+        <button id="fill-cum" data-set="fill:cum">Cumulative<span class="tagp">PICK</span></button>
+        <button id="fill-one" data-set="fill:one">Only the chosen ball</button>
+      </div>
+    </div>
+    <div class="pick">
+      <div class="q"><b>3 · Readout.</b> The word alone ("Useful"). The number stays in storage, the Mac tooltip and the export frontmatter.</div>
+      <div class="seg" id="seg-read">
+        <button id="read-word" data-set="readout:word">Useful<span class="tagp">PICK</span></button>
+        <button id="read-num" data-set="readout:num">0.6 · Useful</button>
+      </div>
+    </div>
+    <div class="gone">Gone from today's control: <s>7 of the 10 circles</s>, <s>the amber refine wall before circle 8</s>, <s>warm amber fills 8–10</s>, <s>the REFINE PASS tag</s>, <s>"Rated for a refine pass"</s>. Amber leaves the control entirely.</div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Device">
+    <button role="tab" id="tab-phone" data-dev="phone">iPhone</button>
+    <button role="tab" id="tab-ipad" data-dev="ipad">iPad</button>
+    <button role="tab" id="tab-mac" data-dev="mac">Mac</button>
+  </nav>
+
+  <div id="stage"></div>
+
+  <div class="store" id="store"></div>
+
+  <section class="foot" aria-label="How old ratings read">
+    <div class="bucket">
+      <b>0.1–0.3</b><span>→ Passing (0.3)</span>
+      <b>0.4–0.6</b><span>→ Useful (0.6)</span>
+      <b>0.7–1.0</b><span>→ Important (1.0) — 0.7 goes up, because it was already "Important" on today's scale</span>
+    </div>
+    <p style="margin:8px 0 0">The two controls share one stored value. Tap a circle in <b>Today</b> to play an old rating; the new control shows where it lands. Tapping the lit ball clears it, whatever old value lit it.</p>
+  </section>
+
+  <div class="ask"><span class="ph">The one question</span>On the phone the balls carry no names until you tap one. Is the word appearing on tap enough, or do you want the names always visible (flip pick 1)?</div>
+</div>
+
+<script>
+(function(){
+  var STOPS=[0.3,0.6,1.0], NAMES=["Passing","Useful","Important"];
+  var S={device:"phone",layout:"row",fill:"cum",readout:"word",value:null,hov:null,thov:null};
+  try{var d=localStorage.getItem("q2-device"); if(d) S.device=d;}catch(e){}
+  var h=(location.hash||"").slice(1); if(["phone","ipad","mac"].indexOf(h)>=0) S.device=h;
+
+  // Per-device measurements. TODAY = the live style tables in source
+  // (SkriftMobile/.../SignificanceCircles.swift `.phone`, SkriftDesktop/.../SignificanceCircles.swift `.mac`).
+  var NEW={ phone:{ball:15,gap:10,target:44,was:18}, ipad:{ball:15,gap:10,target:44,was:18}, mac:{ball:10,gap:8,target:20,was:13} };
+  var OLD={ phone:{dot:18,gap:6,row:30,trailing:true,tint:true,tierW:600}, ipad:{dot:18,gap:6,row:30,trailing:true,tint:true,tierW:600}, mac:{dot:13,gap:7,row:null,trailing:false,tint:false,tierW:400} };
+  var isMac=function(){return S.device==="mac";};
+
+  function bucket(v){ if(v==null||v<=0) return 0; var s=Math.round(v*10); return s<=3?1:s<=6?2:3; }
+  function step(v){ if(v==null) return 0; return Math.max(0,Math.min(10,Math.round(v*10))); }
+  function fmt(v){ return v>=1?"1.0":v.toFixed(1); }
+
+  var IC={
+    cal:'<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.1"><rect x="1" y="1.8" width="8" height="7.2" rx="1.3"/><path d="M1 4.2h8M3.2 .8v2M6.8 .8v2"/></svg>',
+    pin:'<svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 .6a3.2 3.2 0 0 0-3.2 3.2C1.8 6.2 5 9.4 5 9.4s3.2-3.2 3.2-5.6A3.2 3.2 0 0 0 5 .6zm0 4.4a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4z"/></svg>',
+    sun:'<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.1"><circle cx="5" cy="5" r="2"/><path d="M5 .5v1.3M5 8.2v1.3M.5 5h1.3M8.2 5h1.3M1.8 1.8l.9.9M7.3 7.3l.9.9M1.8 8.2l.9-.9M7.3 2.7l.9-.9"/></svg>',
+    mic:'<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.1"><rect x="3.3" y=".8" width="3.4" height="5.4" rx="1.7"/><path d="M1.8 4.8a3.2 3.2 0 0 0 6.4 0M5 8v1.3"/></svg>',
+    clock:'<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.1"><circle cx="5" cy="5" r="4.1"/><path d="M5 2.6V5l1.6 1"/></svg>',
+    flame:'<svg viewBox="0 0 10 10" fill="currentColor"><path d="M5.3.4c.3 1.6 2.9 2.7 2.9 5.4A3.2 3.2 0 0 1 5 9.6a3.1 3.1 0 0 1-3.2-3.1c0-1.5.9-2.4 1.5-3 0 1 .5 1.7 1.1 1.8C4.6 3.9 4 2 5.3.4z"/></svg>'
+  };
+  function chip(t,ic){return '<span class="chip">'+(ic?IC[ic]:"")+t+'</span>';}
+  var CHIPS = chip("24 Sep, 09:12","cal")+chip("Lisbon","pin")+chip("19° clear","sun")+chip("Morning","sun")+chip("Voice memo","mic")+chip("3:42","clock");
+
+  // ── the proposed control ─────────────────────────
+  function proposed(){
+    var m=NEW[S.device], b=bucket(S.value), shown=S.hov||b, preview=!!S.hov && S.hov!==b;
+    var balls="";
+    for(var i=1;i<=3;i++){
+      var lit = S.fill==="cum" ? i<=b : i===b;
+      var pre = !lit && S.hov && (S.fill==="cum" ? i<=S.hov : i===S.hov);
+      var cls="ball"+(lit?" lit":"")+(pre?" pre":"")+(S.hov===i?" hov":"");
+      balls+='<button class="'+cls+'" id="ball-'+i+'" data-ball="'+i+'" aria-pressed="'+(i===b)+'" aria-label="Importance '+NAMES[i-1]+'"'+
+        (isMac()?' title="'+fmt(STOPS[i-1])+' · '+NAMES[i-1]+'"':'')+
+        ' style="width:'+m.target+'px;height:'+m.target+'px"><i style="width:'+m.ball+'px;height:'+m.ball+'px"></i></button>';
+    }
+    // readout
+    var valTxt, valCls;
+    if(preview){ valTxt=(S.readout==="num"?fmt(STOPS[S.hov-1])+" · ":"")+NAMES[S.hov-1]; valCls="val pre"; }
+    else if(b===0){ valTxt="Not rated"; valCls="val none"; }
+    else { valTxt=(S.readout==="num"?fmt(STOPS[b-1])+" · ":"")+NAMES[b-1]; valCls="val on"; }
+    var val='<span class="'+valCls+'" id="new-val">'+valTxt+'</span>';
+    var gapPx = m.gap - (m.target-m.ball); // visual gap between glyphs
+    var ballRow = '<div class="row" style="gap:'+Math.max(0,gapPx)+'px">'+balls+'</div>';
+    var inner;
+    if(S.layout==="row"){
+      inner='<div class="row" style="justify-content:space-between;gap:8px;margin:'+(-(m.target-m.ball)/2)+'px 0">'+
+        '<div class="row" style="gap:'+(isMac()?6:8)+'px"><span class="lab">Importance</span>'+ballRow+'</div>'+val+'</div>';
+    } else {
+      var colW = isMac()?58:72, caps="", bs="";
+      for(var k=1;k<=3;k++){
+        var on = S.fill==="cum" ? k<=b : k===b;
+        caps+='<span class="'+(k===b?"on":"")+'" style="width:'+colW+'px">'+NAMES[k-1]+'</span>';
+      }
+      for(var j=1;j<=3;j++){ bs+='<div style="width:'+colW+'px;display:grid;place-items:center">'+balls.split('</button>')[j-1]+'</button></div>'; }
+      inner='<div class="top"><span class="lab">Importance</span>'+val+'</div>'+
+        '<div class="row" style="margin-top:'+(isMac()?4:2)+'px">'+bs+'</div>'+
+        '<div class="caps" style="margin-top:'+(isMac()?2:0)+'px">'+caps+'</div>';
+    }
+    var rated=b>0, tint=!isMac();
+    var sync='<div class="divider"></div><div class="sync" style="'+(tint?'font-size:10.5px;color:'+(rated?'var(--t2)':'var(--t3)'):'')+'">'+
+      '<span class="d" style="width:'+(isMac()?5:6)+'px;height:'+(isMac()?5:6)+'px;background:'+(rated?'var(--green)':'var(--t3)')+'"></span>'+
+      (rated?"Rated — ready to process":"Not rated — left alone")+'</div>';
+    return '<div class="card '+(isMac()?"mac":"phone")+'" id="new-card">'+inner+sync+'</div>';
+  }
+
+  // ── today's control, drawn from SignificanceCirclesView.swift ─
+  function today(){
+    var m=OLD[S.device], lit=step(S.value), hv=S.thov, warm=lit>=8;
+    var dots="";
+    for(var i=1;i<=10;i++){
+      if(i===8) dots+='<span class="wall" style="height:'+(m.dot+5)+'px"></span>';
+      var isLit=i<=lit, isWarm=isLit&&warm&&i>=8, isPre=!isLit&&hv&&i<=hv;
+      var cls="ball"+(isWarm?" warm":isLit?" lit":"")+(isPre?" pre":"")+(hv===i&&isMac()?" hov":"");
+      dots+='<button class="'+cls+'" data-dot="'+i+'" aria-label="Today '+(i/10).toFixed(1)+'"'+(isMac()?' title="'+(i===10?"1.0":"0."+i)+' · '+(i>=7?"Important":i>=4?"Useful":"Passing")+'"':'')+
+        ' style="width:'+m.dot+'px;height:'+(m.row||m.dot)+'px;border-radius:0"><i style="width:'+m.dot+'px;height:'+m.dot+'px"></i></button>';
+    }
+    var flame='<span class="flame" style="opacity:'+(warm?(isMac()?.9:1):0)+';'+(m.trailing?'margin-left:auto':'margin-left:6px')+'">'+IC.flame+'REFINE PASS</span>';
+    var tier=function(s){return s>=7?"Important":s>=4?"Useful":"Passing";};
+    var label;
+    if(hv&&isMac()) label='<span class="val pre">'+(hv===10?"1.0":"0."+hv)+' · '+tier(hv)+'</span>';
+    else if(lit===0) label='<span class="val none">Not rated</span>';
+    else label='<span class="val '+(warm?"warm":"on")+'">'+(lit===10?"1.0":"0."+lit)+' · '+tier(lit)+'</span>';
+    var small=3*m.dot+2*m.gap, large=4*m.dot+4*m.gap+1;
+    var tl=function(t,w,on,wm){return '<span class="'+(on?(wm?"warm":"on"):"")+'" style="width:'+w+'px;font-weight:'+m.tierW+'">'+t+'</span>';};
+    var tiers='<div class="caps" style="gap:'+m.gap+'px;margin-top:7px">'+tl("Passing",small,lit>=1&&lit<=3)+tl("Useful",small,lit>=4&&lit<=6)+tl("Important",large,lit>=7,warm)+'</div>';
+    var syncTxt= lit===0?"Not rated — left alone": warm?"Rated for a refine pass":"Rated — ready to process";
+    var syncCol = m.tint ? (lit===0?"var(--t3)":warm?"var(--amber)":"var(--t2)") : "var(--t2)";
+    var lead = (m.tint&&warm) ? '<span style="color:var(--amber);display:inline-flex;width:9px">'+IC.flame+'</span>'
+      : '<span class="d" style="width:'+(isMac()?5:6)+'px;height:'+(isMac()?5:6)+'px;background:'+(lit===0?'var(--t3)':warm?'var(--amber)':'var(--green)')+'"></span>';
+    return '<div class="card today '+(isMac()?"mac":"phone")+'" id="old-card">'+
+      '<div class="top" style="align-items:'+(isMac()?"center":"baseline")+'"><span class="lab">Importance</span>'+label+'</div>'+
+      '<div class="row" style="gap:'+m.gap+'px;margin-top:9px">'+dots+flame+'</div>'+tiers+
+      '<div class="divider"></div><div class="sync" style="color:'+syncCol+';font-size:'+(isMac()?11:10.5)+'px">'+lead+syncTxt+'</div></div>';
+  }
+
+  function redNew(){
+    var m=NEW[S.device];
+    return '<div class="redline">New<span>3 balls · '+m.ball+'pt (today '+m.was+'pt, D107 one size down) · '+(isMac()?'pointer target '+m.target+'pt':m.target+'pt tap target each')+'</span></div>';
+  }
+  function redOld(){
+    return '<div class="redline">Today, from source<span>SignificanceCirclesView.swift, style <code style="font:inherit">.'+(isMac()?"mac":"phone")+'</code> · '+OLD[S.device].dot+'pt circles</span></div>';
+  }
+
+  function screen(){
+    var fade = S.value==null ? '<div class="fade-line">starts fading 24 Oct — rate it to keep it</div>' : '';
+    var body='<div class="body"><p>On the tram past Graça I figured out why half my notes never get finished. They need a shelf, not a folder: somewhere a half-thought can sit and still be seen.</p><p>Ask Marta if the Lx Factory space still has that corkboard wall.</p></div>';
+    var tags='<span class="chip tag">#skrift</span><span class="chip tag">#design</span><span class="chip">+ Tag</span>';
+    var title="A shelf for half-finished thoughts";
+    var ctl='<div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">'+redNew()+'<div class="boxed">'+proposed()+'</div></div>';
+    var old='<div style="display:flex;flex-direction:column;gap:8px;margin-top:22px;padding-top:16px;border-top:1px dashed var(--redLine)">'+redOld()+today()+'</div>';
+    if(S.device==="phone"){
+      return '<div class="stage"><div class="cap">iPhone 13 · 390pt · MemoDetailView header, drawn 1:1</div><div class="screen">'+
+        '<div class="nav"><span>‹ Notes</span><span class="more">···</span></div>'+
+        '<div class="ptitle">'+title+'</div><div class="chips">'+CHIPS+tags+'</div>'+ctl+fade+old+body+'</div></div>';
+    }
+    if(S.device==="ipad"){
+      return '<div class="stage"><div class="cap">iPad regular width · same <code style="font:inherit">.phone</code> style · 640pt reading column, 1:1 (cropped to your screen)</div><div class="scroll-x"><div class="screen col">'+
+        '<div class="ipadbar"><span>◧</span><span style="color:var(--t2);letter-spacing:2px">···</span></div>'+
+        '<div class="ptitle" style="font-size:22px">'+title+'</div><div class="chips">'+CHIPS+tags+'</div>'+ctl+fade+old+body+'</div></div></div>';
+    }
+    return '<div class="stage mac"><div class="tb"><i></i><i></i><i></i><span>Skrift — note column (NoteProperties)</span></div><div class="screen">'+
+      '<div class="ptitle">'+title+'</div><div class="chips">'+CHIPS+tags.replace("+ Tag","+ add tag")+'</div>'+
+      '<div style="display:flex;flex-direction:column;gap:8px">'+redNew()+'<div class="boxed">'+proposed()+'</div></div>'+
+      '<div class="audiorow"><span class="sw"></span><b>ON</b>Include audio in export</div>'+
+      '<div style="display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px dashed var(--redLine)">'+redOld()+today()+'</div>'+
+      body.replace('class="body"','class="body" style="margin-top:0"')+'</div></div>';
+  }
+
+  var flashT;
+  function store(flash){
+    var v=S.value, dev=S.device;
+    var field = dev==="mac" ? "PipelineFile.significance" : "Memo.significance";
+    var shown = v==null ? (dev==="mac"?"nil":"0") : fmt(v);
+    var el=document.getElementById("store");
+    el.innerHTML='Stored: <code id="store-val" class="'+(flash?"flash":"")+'">'+field+' = '+shown+'</code><span>'+(v==null?"Not rated":("reads as "+NAMES[bucket(v)-1]))+'</span>';
+    if(flash){clearTimeout(flashT);flashT=setTimeout(function(){var c=document.getElementById("store-val");if(c)c.className="";},650);}
+  }
+
+  function render(flash){
+    document.getElementById("stage").innerHTML=screen();
+    ["phone","ipad","mac"].forEach(function(d){document.getElementById("tab-"+d).setAttribute("aria-selected",String(S.device===d));});
+    [["lay-row","layout","row"],["lay-stack","layout","stack"],["fill-cum","fill","cum"],["fill-one","fill","one"],["read-word","readout","word"],["read-num","readout","num"]]
+      .forEach(function(x){document.getElementById(x[0]).setAttribute("aria-pressed",String(S[x[1]]===x[2]));});
+    store(flash);
+  }
+
+  document.addEventListener("click",function(e){
+    var t=e.target.closest("button"); if(!t) return;
+    if(t.dataset.dev){ S.device=t.dataset.dev; S.hov=S.thov=null; try{localStorage.setItem("q2-device",S.device);}catch(_){} render(); return; }
+    if(t.dataset.set){ var p=t.dataset.set.split(":"); S[p[0]]=p[1]; render(); return; }
+    if(t.dataset.ball){ var i=+t.dataset.ball; S.value = bucket(S.value)===i ? null : STOPS[i-1]; S.hov=null; render(true); return; }
+    if(t.dataset.dot){ var n=+t.dataset.dot; S.value = step(S.value)===n ? null : n/10; S.thov=null; render(true); return; }
+  });
+  document.addEventListener("mouseover",function(e){
+    if(!isMac()) return;
+    var b=e.target.closest("[data-ball]"), d=e.target.closest("[data-dot]");
+    var nh=b?+b.dataset.ball:null, nt=d?+d.dataset.dot:null;
+    if(nh!==S.hov||nt!==S.thov){ S.hov=nh; S.thov=nt; render(); }
+  });
+  render();
+})();
+</script>
