@@ -114,7 +114,7 @@ node: V2Core
 do: (Q11 finding: call `BodyV2.committed(BodyV2.Input(text:words:manifest:source:userEdited:))` at every write site, `.speech` only with real word times; `BodyTransform.snappedImageBody` and v1's `ImageMarkers.insert → Paragrapher` leave in the same swap; thumbnail = `BodyV2Thumbnail.pick`.) Point every place a body is WRITTEN at body v2: phone capture (`MemoSaver`), share drain, editor commit, imports, the Mac author path and Mac recordings. Renderers and both exporters stop calling the render-time snap (`snapImages`, `SnapResult`), the display-only `imageBreaks` and the export-time `snappedImageBody` (the v1 functions stay in place for Q15 to delete). The three offset remaps collapse to one (marker → one glyph).
 check: `! grep -rnE "snapImages\(|snappedImageBody\(|imageBreaks" Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features Skrift_Native/SkriftMobile/Services`
 
-### Q14 [auto] (doing) old notes normalised once
+### Q14 [auto] (done) old notes normalised once
 spec: C10 C203
 needs: Q13 Q31
 gate+: yes
@@ -412,3 +412,4 @@ check: `test $(ls plan/reads/conflict-q39/*.png | wc -l) -ge 4 && ./gate.sh`
 - 2026-09-24 22:50 Q38 added
 - 2026-09-24 22:50 Q39 added
 - 2026-09-24 22:50 Q7 -> doing — worker out
+- 2026-09-24 22:54 Q14 -> done — gate pass @edfbd51e
