@@ -168,6 +168,16 @@ enum EditConflicts {
                            kind: String = EditConflicts.thisDeviceKind, now: Date = Date()) -> Bool {
         guard canRecord(in: ctx) else { return false }
         if memo.editStampHash == hash(memo) { return false }
+        // First touch on a note this device never stamped (pre-Q29, or simply never edited
+        // here before): we have no prior words to compare against, so we cannot tell a real
+        // word edit from a words-neutral touch (audio trim, annotation) that merely reached
+        // this call. Seed the baseline silently — no bump, no head — so it never falsely
+        // counts as a conflicting edit (C98/Q42). The NEXT touch compares against a real
+        // baseline and is correctly detected either way.
+        if memo.editStampHash == nil {
+            memo.editStampHash = hash(memo)
+            return false
+        }
         return stamp(memo, in: ctx, device: device, kind: kind, now: now)
     }
 
@@ -181,6 +191,12 @@ enum EditConflicts {
         guard canRecord(in: ctx), canHoldPolish(in: ctx) else { return false }
         let p = polishedBody(for: memo.id, in: ctx)
         if p == nil || memo.polishStampHash == polishHash(p) { return false }
+        // Same first-touch seeding as `recordEdit` (Q42): a never-stamped polish has no known
+        // prior text to diff against, so the first call just establishes the baseline.
+        if memo.polishStampHash == nil {
+            memo.polishStampHash = polishHash(p)
+            return false
+        }
         return stamp(memo, in: ctx, device: device, kind: kind, now: now)
     }
 

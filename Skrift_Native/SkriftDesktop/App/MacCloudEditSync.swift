@@ -51,14 +51,24 @@ final class MacCloudEditSync {
     func flush(_ pf: PipelineFile) {
         guard let container = MemoCloudStore.container else { return }
         do {
-            let raw = Sanitiser.unlinkToSpoken(pf.bestBodyText, people: NamesStore.shared.livePeople())
+            let people = NamesStore.shared.livePeople()
+            let raw = Sanitiser.unlinkToSpoken(pf.bestBodyText, people: people)
             let ctx = container.mainContext
             let memo = MacCloudWriteBack.resolve(for: pf, in: ctx)
             let before = memo.flatMap { EditConflicts.polishedBody(for: $0.id, in: ctx) }
+            // A title/summary-only edit never touches `pf.sanitised`, but re-`process`ing it and
+            // unlinking it again (the same round trip `raw` just went through) isn't guaranteed
+            // to reproduce `before` byte-for-byte (short-name demotion on re-link). Round-trip
+            // `before` through the SAME pipeline so only a REAL body change registers (Q42).
+            let beforeRoundTripped = before.map {
+                Sanitiser.unlinkToSpoken(Sanitiser.process(text: $0, people: people,
+                                                           neverLink: Set(pf.unlinkedNames),
+                                                           namePicks: pf.namePicks).sanitised, people: people)
+            }
             try MacCloudWriteBack.upsert(for: pf, into: ctx, deviceID: DeviceID.current(), bodyOverride: raw)
             // C98 (Q38): he edited the polished body here, so it is a words edit for conflict
-            // detection. Only when the body moved: a title/summary edit flushes here too.
-            if let memo, EditConflicts.polishedBody(for: memo.id, in: ctx) != before,
+            // detection. Only when the body actually moved: a title/summary edit flushes here too.
+            if let memo, beforeRoundTripped != raw,
                EditConflicts.recordPolishedEdit(memo, in: ctx) {
                 try ctx.save()
             }
