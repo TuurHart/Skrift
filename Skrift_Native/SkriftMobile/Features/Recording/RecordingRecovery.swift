@@ -10,18 +10,30 @@ extension MemoSaver {
     struct RecordingSweepReport: Equatable {
         /// Notes rebuilt from a dead take, oldest take first.
         var recovered: [UUID] = []
-        /// Take ids whose files held no readable audio and were deleted.
+        /// Take ids whose files held no readable audio: moved to
+        /// `QuarantinedRecordings` (never deleted — C288/C99, an m4a with no moov
+        /// atom is often rescuable) and out of this directory, so the name still
+        /// means "gone from the recordings dir", just not "gone from disk".
         var cleaned: [String] = []
         /// Take ids whose audio was readable but could not be rebuilt this time;
         /// their files stay for the next launch.
         var kept: [String] = []
     }
 
+    /// Sidecar written next to a quarantined take's files, so a later rescue
+    /// (`tools/rescue-lost-recordings.py`) or explicit user action can identify it.
+    struct QuarantinedTakeSidecar: Codable {
+        var take: String
+        var firstSeen: Date
+        /// Filename -> byte size, as quarantined.
+        var fileSizes: [String: Int]
+    }
+
     /// Sweep `directory` for takes left behind by an earlier process run: every
     /// `rec_ckpt_*` marker, and any `rec_tmp_*` / `rec_seg_*` file with no marker.
     /// A take with readable audio becomes a new note (`.transcribing`, titled
     /// `recoveredTitle`, dated when the take started) that the launch
-    /// transcription recovery picks up; a take with none is deleted.
+    /// transcription recovery picks up; a take with none is quarantined.
     ///
     /// Never touches an existing memo: a rebuilt take always becomes a NEW note,
     /// so an append that died mid-take cannot run over the note it was appending
@@ -62,9 +74,9 @@ extension MemoSaver {
             let sources = Self.recoverableSources(take: take, marker: marker, in: directory)
             let files = RecordingCheckpoint.takeFiles(take: take, in: directory)
             guard !sources.isEmpty else {
-                for f in files { try? fm.removeItem(at: directory.appendingPathComponent(f)) }
+                Self.quarantine(take: take, files: files, in: directory)
                 report.cleaned.append(take)
-                RecordingLifecycleLog.log("recover-failed", "take=\(take) no readable audio — cleaned \(files.count) file(s)")
+                RecordingLifecycleLog.log("rec quarantined", "take=\(take) no readable audio — quarantined \(files.count) file(s)")
                 continue
             }
             let startedAt = marker?.startedAt ?? Self.creationDate(take: take, in: directory)
@@ -73,7 +85,24 @@ extension MemoSaver {
                 RecordingLifecycleLog.log("recover-deferred", "take=\(take) rebuild failed — files kept for the next launch")
                 continue
             }
-            for f in files { try? fm.removeItem(at: directory.appendingPathComponent(f)) }
+            // Only reached once rebuildNote has merged the audio into the new
+            // memo's file, verified it opens with frames, and inserted + SAVED
+            // the note to the repository (see rebuildNote below) — so the
+            // original take files are only discarded after the new note's
+            // audio exists on disk and is recorded in the store. But `sources`
+            // can be a STRICT SUBSET of `files`: an unfinalized main or a
+            // truncated in-progress segment that `recoverableSources` skipped as
+            // unreadable is still on disk and still rescuable — quarantine those,
+            // and delete only what actually made it into the new memo (the
+            // merged sources) plus the marker, which is pure metadata.
+            let mergedNames = Set(sources.map(\.lastPathComponent))
+            let markerName = RecordingCheckpoint.markerFilename(take: take)
+            let unmerged = files.filter { $0 != markerName && !mergedNames.contains($0) }
+            if !unmerged.isEmpty {
+                Self.quarantine(take: take, files: unmerged, in: directory)
+                RecordingLifecycleLog.log("rec quarantined", "take=\(take) unmerged \(unmerged.count) file(s) alongside the rebuilt note")
+            }
+            RecordingCheckpoint.discardTakeFiles(take: take, in: directory)
             report.recovered.append(id)
             RecordingLifecycleLog.log("recovered", "take=\(take) memo=\(id) sources=\(sources.count)"
                                       + " finalized=\(marker?.finalized ?? false)")
@@ -108,11 +137,11 @@ extension MemoSaver {
                 try MemoSaver.mergeAudioSync(sources: sources, to: dest)
             }.value
         } catch {
-            try? FileManager.default.removeItem(at: dest)
+            RecordingCheckpoint.discardIfExists(dest)
             return nil
         }
         guard let f = try? AVAudioFile(forReading: dest), f.length > 0 else {
-            try? FileManager.default.removeItem(at: dest)
+            RecordingCheckpoint.discardIfExists(dest)
             return nil
         }
         let duration = Double(f.length) / f.fileFormat.sampleRate
@@ -146,6 +175,60 @@ extension MemoSaver {
             return String(body[..<us])
         }
         return nil
+    }
+
+    /// `QuarantinedRecordings`, a sibling of the swept recordings directory (in
+    /// production: `Documents/QuarantinedRecordings`, beside `Documents/recordings`).
+    /// A sibling, not a subfolder, so the next sweep's directory listing never
+    /// sees a quarantined take again.
+    nonisolated static func quarantineDirectory(besideRecordings directory: URL) -> URL {
+        let dir = directory.deletingLastPathComponent().appendingPathComponent("QuarantinedRecordings", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    /// Move every file of an unrecoverable take out of `directory` and into
+    /// quarantine, with a sidecar JSON (take id, each file's size, first-seen
+    /// date) — the take's own audio is only ever moved, never deleted (C288/C99).
+    /// A move that fails leaves the source file where it was, so the next sweep
+    /// sees it again. Never deletes inside quarantine either: a name collision
+    /// (an earlier quarantined copy, or two takes producing the same filename)
+    /// gets a unique `_2`, `_3`, … suffix instead.
+    private static func quarantine(take: String, files: [String], in directory: URL) {
+        let fm = FileManager.default
+        let dest = quarantineDirectory(besideRecordings: directory)
+        let firstSeen = Self.creationDate(take: take, in: directory)   // read BEFORE the move
+        var sizes: [String: Int] = [:]
+        for f in files {
+            let src = directory.appendingPathComponent(f)
+            sizes[f] = (try? fm.attributesOfItem(atPath: src.path))?[.size] as? Int ?? 0
+            let dstURL = Self.uniqueQuarantineURL(for: f, in: dest)
+            do {
+                try fm.moveItem(at: src, to: dstURL)
+            } catch {
+                RecordingLifecycleLog.log("rec quarantine-failed", "take=\(take) file=\(f) \(error.localizedDescription)")
+            }
+        }
+        let sidecar = QuarantinedTakeSidecar(take: take, firstSeen: firstSeen, fileSizes: sizes)
+        let sidecarURL = Self.uniqueQuarantineURL(for: "quarantine_\(take).json", in: dest)
+        try? JSONEncoder().encode(sidecar).write(to: sidecarURL, options: .atomic)
+    }
+
+    /// A URL for `name` inside `dest` that names nothing on disk yet — `_2`,
+    /// `_3`, … on collision. Never overwrites (and never deletes) whatever is
+    /// already in quarantine.
+    private static func uniqueQuarantineURL(for name: String, in dest: URL) -> URL {
+        var candidate = dest.appendingPathComponent(name)
+        guard FileManager.default.fileExists(atPath: candidate.path) else { return candidate }
+        let ext = (name as NSString).pathExtension
+        let base = (name as NSString).deletingPathExtension
+        var n = 2
+        repeat {
+            let suffixed = ext.isEmpty ? "\(base)_\(n)" : "\(base)_\(n).\(ext)"
+            candidate = dest.appendingPathComponent(suffixed)
+            n += 1
+        } while FileManager.default.fileExists(atPath: candidate.path)
+        return candidate
     }
 
     private static func liveMarker(take: String, in directory: URL) -> RecordingMarker? {

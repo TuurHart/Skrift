@@ -164,6 +164,24 @@ final class RecordingCheckpoint: @unchecked Sendable {
         }.sorted()
     }
 
+    /// Delete every file belonging to `take` from disk. Only ever safe to call
+    /// once the take's audio has been merged into a new memo file that opened
+    /// with frames and was inserted + saved to the repository — an unreadable /
+    /// unrecoverable take is quarantined instead (see `RecordingRecovery`, C288).
+    static func discardTakeFiles(take: String, in directory: URL) {
+        let fm = FileManager.default
+        for f in takeFiles(take: take, in: directory) {
+            try? fm.removeItem(at: directory.appendingPathComponent(f))
+        }
+    }
+
+    /// Delete a single scratch file if it exists — used for working output that
+    /// never became a note (e.g. a failed audio merge attempt), never for a
+    /// take's own recorded audio.
+    static func discardIfExists(_ url: URL) {
+        try? FileManager.default.removeItem(at: url)
+    }
+
     /// True when `url` opens as audio with at least one frame.
     static func isReadableAudio(_ url: URL) -> Bool {
         guard let f = try? AVAudioFile(forReading: url) else { return false }
