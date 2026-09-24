@@ -5,17 +5,24 @@ enum BodyV2Text {
 
     // MARK: - C19
 
-    /// The ONE whitespace rule, applied once at commit: CRLF/CR → LF; horizontal runs INSIDE a
-    /// line → one space (leading indentation is left alone, so a nested list survives); ≥3 line
-    /// breaks → one blank line; ends trimmed.
+    /// A list-item line (bullet `- * +`, a task box, or `1.`/`1)`) — the only line shape whose
+    /// leading whitespace is INDENTATION, not noise. A leading tab/run before plain text renders
+    /// as a code block in Obsidian, so every other line still collapses its leading run too.
+    private static let listItemLine = try! NSRegularExpression(pattern: #"^(?:[-*+]\s|\d+[.)]\s)"#)
+
+    /// The ONE whitespace rule, applied once at commit: CRLF/CR → LF; horizontal runs → one
+    /// space, EXCEPT a list item's leading run (kept verbatim, so a nested list survives — C19);
+    /// ≥3 line breaks → one blank line; ends trimmed.
     static func normalised(_ s: String) -> String {
         var t = s.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
         let lines = t.components(separatedBy: "\n").map { line -> String in
             guard let leadingRange = line.range(of: #"^[\t\p{Zs}]*"#, options: .regularExpression) else { return line }
             let leading = line[leadingRange]
-            let rest = line[leadingRange.upperBound...]
-                .replacingOccurrences(of: #"[\t\p{Zs}]+"#, with: " ", options: .regularExpression)
-            return leading + rest
+            let rest = String(line[leadingRange.upperBound...])
+            let isListItem = listItemLine.firstMatch(in: rest, range: NSRange(location: 0, length: (rest as NSString).length)) != nil
+            let collapsedRest = rest.replacingOccurrences(of: #"[\t\p{Zs}]+"#, with: " ", options: .regularExpression)
+            return isListItem ? leading + collapsedRest
+                : line.replacingOccurrences(of: #"[\t\p{Zs}]+"#, with: " ", options: .regularExpression)
         }
         t = lines.joined(separator: "\n")
         t = t.replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)

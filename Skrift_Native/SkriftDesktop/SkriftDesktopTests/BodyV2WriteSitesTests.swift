@@ -29,6 +29,21 @@ final class BodyV2WriteSitesTests: XCTestCase {
                        "- top\n\t\t- deep item\n\t- shallow")
     }
 
+    /// Narrowed per the dispatcher (2026-09-24): a leading run before PLAIN text (not a
+    /// list item) still collapses to one space, same as pre-fix — a bare leading tab
+    /// renders as a code block in Obsidian, and this is the pinned corpus fixture
+    /// `024-typed-crlf-tabs-nbsp` (`expect_body.txt`: "\tIndented" → " Indented").
+    func testTabBeforePlainTextStillCollapses_C19() {
+        XCTAssertEqual(BodyV2Text.normalised("Line one\n\n\tIndented with a tab\n\nEnd."),
+                       "Line one\n\n Indented with a tab\n\nEnd.")
+    }
+
+    /// An ordered list (`1.` / `2)`) keeps its indentation exactly like a bulleted one.
+    func testOrderedListIndentationSurvives_C19() {
+        XCTAssertEqual(BodyV2Text.normalised("1. top  item\n   2) nested  one"),
+                       "1. top item\n   2) nested one")
+    }
+
     /// The ≥3-line-break rule is untouched by the per-line indentation change: still
     /// exactly one blank line survives a run of 4.
     func testBlankRunStillCollapses_C19() {
