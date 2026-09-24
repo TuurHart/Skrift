@@ -160,6 +160,7 @@ code{font:12.5px ui-monospace,Menlo,monospace}
 
 /* empty tab */
 .empty{margin:18px 20px;display:flex;flex-direction:column;gap:14px}
+.empty.new{padding:10px}
 .empty .eh{font-size:22px;font-weight:700;letter-spacing:-.2px;line-height:1.2;text-wrap:balance}
 .empty .es{font-size:13.5px;color:var(--dim);line-height:1.4}
 .doorlist{background:var(--surface);border-radius:14px;border:.5px solid var(--border);overflow:hidden}
@@ -209,7 +210,7 @@ code{font:12.5px ui-monospace,Menlo,monospace}
 .page td{border-bottom:1px solid rgba(128,128,128,.25);padding:5px 2px}
 .page td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .page mark{background:var(--hl);color:inherit;border-radius:2px;padding:1px 0}
-.callout{position:absolute;left:50%;transform:translateX(-50%);top:118px;display:flex;background:#1c1c1e;border-radius:9px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:2}
+.callout{position:absolute;left:50%;transform:translateX(-50%);top:62px;display:flex;background:#1c1c1e;border-radius:9px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:2}
 .callout button{color:#fff!important;font:500 13px/1 -apple-system,system-ui,sans-serif!important;padding:10px 12px!important;border-left:.5px solid rgba(255,255,255,.2)!important;white-space:nowrap;min-height:38px}
 .callout button:first-child{border-left:0!important}
 .callout .hot{color:#c9bfff!important;font-weight:700!important}
@@ -535,7 +536,7 @@ code{font:12.5px ui-monospace,Menlo,monospace}
   function srcNotesRow(id){
     var c=ncount(id),s=byId(id);
     if(!c) return '<div class="srcnotes new" style="cursor:default"><span class="q">❝</span><span><span class="t" style="display:block">No notes yet</span><span class="d">Add note saves a quote and your voice from here.</span></span></div>';
-    return '<button type="button" class="srcnotes new" data-a="notes" data-id="'+id+'"><span class="q">❝</span><span><span class="t" style="display:block">'+c+' notes from this '+esc(s.sub.toLowerCase())+'</span><span class="d">Newest: '+esc(N[id][0].t)+' · '+esc(N[id][0].when)+'</span></span><span class="chev" aria-hidden="true">›</span></button>';
+    return '<button type="button" class="srcnotes new" data-a="notes" data-id="'+id+'"><span class="q">❝</span><span><span class="t" style="display:block">'+c+' notes from this '+esc(/^[A-Z][a-z]/.test(s.sub)?s.sub.toLowerCase():s.sub)+'</span><span class="d">Newest: '+esc(N[id][0].t)+' · '+esc(N[id][0].when)+'</span></span><span class="chev" aria-hidden="true">›</span></button>';
   }
   function readerScreen(){
     var s=byId('pdf');
