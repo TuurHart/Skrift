@@ -282,8 +282,8 @@ suite is retired; the unit suite IS the gate (D85).
   summary · tags · people · significance · location · weather · pressure · pressureTrend ·
   dayPeriod · daylight · steps · stamp trio — the code's grouped order
   (`Compiler.swift:60-175`); `created` and `duration` are added, coordinates and the reminder
-  are not (D12). ARCHIVE profile = the C130 key list only, with `added:` in place of `date:`
-  (D94). Title always quoted, and a tag containing `: ` is quoted the same way (R50);
+  are not (D12). ARCHIVE profile = the C130 key list only, `date:` = the recording date on BOTH
+  profiles (the archive's `added:` is its own seeding date and is never written, D94). Title always quoted, and a tag containing `: ` is quoted the same way (R50);
   `people:` = the distinct linked canonicals of the body, reading order, written as a block
   list of plain names on the archive profile (R51); OCR text and shared documents export
   (R38). || check: `CompilerTests`; corpus
@@ -310,8 +310,7 @@ suite is retired; the unit suite IS the gate (D85).
   (Tuur 2026-09-22; v1 writes flat `_inbox/` — ⚠ required difference, D41); the archive keeps
   `[[names]]` and `people:`, plainifies place LINKS, drops weather, significance, SUMMARY,
   `author`, `type`, `source` (C130); writes `capture:` and `voice:` (set by each app, never
-  derived) and `added:` in place of `date:` (D94); whether `location:` stays is C137's open
-  question; flat,
+  derived) and `date:` = the recording date (never `added:`, D94); `location:` stays (C137); flat,
   named, media beside the note; the whole feature sits behind ONE Settings switch, off by
   default; a destination is a per-device folder bookmark, one archive root. || check:
   `ArchiveExportTests`; corpus `dest-*`. — ledgers:144-155
@@ -602,9 +601,10 @@ never in Skrift ("then you can't have immediate AI back and forth" — rejected)
   `dest-*`. — portfolio/README, _ideas/README
 - C130 [auto] Archive frontmatter is flat YAML: one line per value, no `: ` inside a plain
   value (reword, never quote), block lists never `[a, b]`; keys Skrift may write: `title`
-  (only when HE gave one), `added`, `capture`, `voice`, `tags`, `people`, `location`,
+  (only when HE gave one), `date` (the recording date), `capture`, `voice`, `tags`, `people`, `location`,
   `credit` (shape `- <who> — <what they did>[, <url>]`), `needs`, the stamp trio. Skrift never
-  writes `type`, `source`, `author`, `summary`, `confidence`, `status`, `layer`, `shortlist`.
+  writes `type`, `source`, `author`, `summary`, `confidence`, `status`, `layer`, `shortlist`,
+  `added` (the archive's own seeding date) or `destination` (the folder is the only signal).
   || check: every corpus `dest-*` export parses with the archive's own parser
   (`capture/tools/vault_index.py`). ⚠ required difference (v1 writes `summary:` into every
   profile — `Shared/Export/Compiler.swift:128`; the archive dropped the key 2026-08-26)
@@ -1601,14 +1601,11 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 93. **D93 Clock skew rule.** ✅ DECIDED 2026-09-24: stamp to stamp, never to the local clock, a
     few seconds of tolerance; a future `recordedAt` is flagged, never trusted.
 
-94. **D94 Archive date key.** ✅ DECIDED 2026-09-24 (my advice, applied; say if you disagree):
-    Skrift changes, not the portfolio. The archive's frontmatter is the archive's own contract
-    (C129–C130), every tool over there already reads `added:`, and `date:` in the vault is the
-    Obsidian convention with different readers. So the Projects profile writes `added:` = the
-    note's recording date (not the export time), the Personal profile keeps `date:`. One line in
-    the profile table, no drift because the two files have different readers. Provisional:
-    Tuur asks the portfolio chat first (with the D102 questions) whether `added:` = the
-    recording date is right for the site, or whether it would rather read `date:`.
+94. **D94 Archive date key.** ✅ DECIDED 2026-09-24 by the portfolio chat, reversing my advice:
+    Skrift keeps `date:` = the recording date on BOTH profiles and never writes `added:`. In the
+    archive `added:` means "when the item.md was created", mostly a seeding day (121 items read
+    2026-08-19); the applet's own captures already write `date:` for when he spoke, and when an
+    idea graduates into a project its `date:` feeds the item's `started:`.
 
 95. **D95 Redo over a hand edit.** ✅ DECIDED 2026-09-24: Redo runs over the text AS IT STANDS,
     his edits included ("won't redo just take in my changes and apply the LLM over what I
@@ -1635,17 +1632,16 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 
 101. **D101 Nicknames.** ✅ DECIDED 2026-09-23: a person keeps every genuine nickname as an
      alias of the one person ("Bram" and "Brammetje"), never normalised away. — plan/sources.md #14
-102. **D102 Portfolio-repo questions.** ✅ DECIDED 2026-09-23 with what the repo itself says:
-     `_inspiration` IS the bucket name (Tuur); the site accepts video ("yes it should", he takes
-     many videos, some will come through Skrift); `type:` exists on the site but is the ARCHIVE's
-     own category taken from the folder name (`portfolio/README.md:54,122-123`, "Skrift writes
-     `capture:` for its own provenance, never `type:`"), so Skrift's four destinations map to
-     folders, not to `type:`; wikilinks: the site tooling has 4 file(s) mentioning `[[`, so
-     whether `[[Jack]]` becomes a link or stays literal text is still to ask the portfolio chat
-     (owed, before the next export round). — plan/sources.md #17
-     Tuur 2026-09-23 on the links: "I don't think the site will link people like that, I think
-     it will give credit at the bottom instead" (the `credit:` field, C130); so `[[Jack]]` in the
-     body is literal text there. Still to confirm with that chat when it matters.
+102. **D102 Portfolio-repo questions.** ✅ DECIDED 2026-09-24, answered by the portfolio chat
+     (the site has no code reading `portfolio/` yet, so these are decisions, not lookups):
+     (1) `_inspiration` is the folder; `NoteDestination.archiveFolder` already maps to it.
+     (2) `[[Jack]]` stays in the file; the site shows it as plain text (`[[Jack|Jacky]]` renders
+     "Jacky"), no link, no people page; credit comes ONLY from `credit:`, never from a mention
+     ("being mentioned is not being credited"). (3) The folder is the only signal: `_inbox` gets
+     sorted into item folders and becomes projects, `_ideas` and `_inspiration` stay; Skrift never
+     writes a `destination:` key. (4) Video: any size, the archive keeps everything on disk and
+     git carries only the `.md`; the source movie beside the note is the right shape (D44).
+     (5) `date:`, not `added:` (D94). — plan/sources.md #17
 103. **D103 Trash and the vault file.** ✅ DECIDED 2026-09-23: trashing a note NEVER deletes its
      Obsidian file; "no we don't delete from Obsidian". The vault file stays until he deletes it
      there. — plan/sources.md #20
