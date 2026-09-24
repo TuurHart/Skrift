@@ -318,7 +318,7 @@ do: Q14 finding. (1) The one-time migration (`Shared/BodyV2/BodyNormaliseMigrati
  That` as finished and keeps the leading space, so the body still breaks C10: strip the leading horizontal run of a paragraph that follows a picture paragraph (C19), and drop the migration's plain-marker-move fallback once v2 handles it. Test in a new `PolishedNormaliseTests` (desktop target) incl. `conv-with-picture`.
 check: `grep -rqE "class PolishedNormaliseTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q41 [auto] (doing) tag Undo toast centred at the bottom of the screen, not on the tag row
+### Q41 [auto] (done) tag Undo toast centred at the bottom of the screen, not on the tag row
 spec: C241 C117
 needs: Q36
 node: V2Core
@@ -463,3 +463,4 @@ check: `test $(ls plan/reads/quicknote-q43/*.png | wc -l) -ge 1 && plan/mtest.sh
 - 2026-09-24 23:23 Q37 -> done — gate pass @54474703
 - 2026-09-24 23:23 Q43 added
 - 2026-09-24 23:23 Q41 -> doing — worker out
+- 2026-09-24 23:37 Q41 -> done — gate pass @f33acceb
