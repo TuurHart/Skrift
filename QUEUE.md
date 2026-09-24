@@ -270,6 +270,13 @@ node: AuditFix2
 do: Q32 finding: when `VaultAttachmentOwnership` writes our attachment under an id8-disambiguated name (a foreign file holds the original name), the note's markdown embed on the commit path still points at the ORIGINAL name, so Obsidian shows the foreign file. Make the written name flow back: every `![[…]]` / link the exporter writes for that attachment uses the name actually written, on both apps' export paths (`VaultWrite` commit path, Mac `VaultExporter`, phone publisher). Test in a new `AttachmentEmbedNameTests` (desktop target, temp dirs only): foreign `IMG_0001.jpg` present → our photo lands as `IMG_0001 <id8>.jpg` AND the note embeds exactly that name.
 check: `grep -rqE "class AttachmentEmbedNameTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
+### Q35 [auto] (todo) Mac sidebar reshoot from the synthetic corpus: left-edge clip, quiet rows, iPad fade line
+spec: C117 C4
+needs: Q33
+node: V2Core
+do: Q33 finding. (1) DELETE `plan/reads/list-q33/mac-sidebar-dark.png` from the tree — it shows Tuur's real Dev notes. (2) Render the Mac sidebar ONLY from a fresh, isolated store seeded with the synthetic corpus (`-corpus test-fixtures/corpus`, C4): point the Dev app / `-snapshot-shell` at a temp store directory so the live Skrift Dev store (and its CloudKit data) is never read; if the harness cannot isolate the store, stop and report. (3) Look at the new PNG: if the sidebar's left edge is clipped (Q33 showed "ODAY", "UE 22 SEP", cut "All" chip), fix the layout; if it is a harness artefact, prove it with a real window screenshot of the same isolated store. (4) Mac unrated (quiet) rows get the snippet + chips of the signed mock's "One list" tab (`Skrift_Native/SkriftDesktop/mocks/one-notes-list.html`), duration as a chip. (5) Re-shoot the iPad list to confirm the always-on "starts fading" line is gone. Commit the new PNGs under `plan/reads/list-q35/`.
+check: `test ! -e plan/reads/list-q33/mac-sidebar-dark.png && test $(ls plan/reads/list-q35/*.png | wc -l) -ge 2 && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -363,3 +370,4 @@ check: `grep -rqE "class AttachmentEmbedNameTests\b" Skrift_Native/SkriftDesktop
 - 2026-09-24 22:04 Q33 -> stuck — gate failed — .queue/Q33.gate.log
 - 2026-09-24 22:05 Q33 -> doing — re-accept: prior gate run was INTERRUPTED, not red
 - 2026-09-24 22:05 Q33 -> done — gate pass @ff543191
+- 2026-09-24 22:07 Q35 added
