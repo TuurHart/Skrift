@@ -134,7 +134,17 @@ struct EditConflictPrompt: View {
             VStack(spacing: 4) { glyph; title.multilineTextAlignment(.center); sub.multilineTextAlignment(.center) }
                 .frame(maxWidth: .infinity)
         } else {
-            HStack(alignment: .top, spacing: 12) { glyph; VStack(alignment: .leading, spacing: 2) { title; sub } }
+            // Q39 fix: without fixedSize the Mac's 2-3 line subtitle truncated to "…" mid
+            // sentence — the HStack row gave it only its first-pass single-line height
+            // (the same trap the version cards' body Text already guards against below).
+            HStack(alignment: .top, spacing: 12) {
+                glyph
+                VStack(alignment: .leading, spacing: 2) {
+                    title
+                    sub.fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
