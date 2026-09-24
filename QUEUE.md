@@ -300,7 +300,7 @@ gate+: yes
 do: Q29 finding: conflict detection watches `Memo` only, but a body edit on a Mac-polished note lands in `MemoEnhancement.copyedit` — the most common edit. Extend the `MemoEditHead` / edit-vector scheme to the polished body (the text he actually edits), so two devices editing the same polished note apart yield a conflict record, not an LWW overwrite. Keep new fields optional/additive (CloudKit). Test in a new `PolishedEditConflictTests` (desktop target, two in-memory stores).
 check: `grep -rqE "class PolishedEditConflictTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q39 [auto] (doing) edit-conflict prompt, banner and pill rendered and checked against the mock
+### Q39 [auto] (done) edit-conflict prompt, banner and pill rendered and checked against the mock
 spec: C242 C117 C4
 needs: Q29
 do: Q29 never rendered its UI. From an ISOLATED store seeded with the synthetic corpus plus one forced conflict (never the live Dev store), capture: the phone prompt, the phone banner after "Later", the list row "2 versions" pill, the Mac prompt; LOOK at each against `Skrift_Native/SkriftDesktop/mocks/Q4-edit-conflict.html` and fix clipping/overflow/differences. Confirm editing is blocked on the iPad workbench until a pick. Commit PNGs under `plan/reads/conflict-q39/`.
@@ -484,3 +484,4 @@ check: `grep -rqE "class NonWordEditTests\b" Skrift_Native/SkriftDesktop/SkriftD
 - 2026-09-24 23:39 Q45 -> doing — worker out
 - 2026-09-24 23:52 Q45 -> done — gate pass @355a60aa
 - 2026-09-24 23:52 Q45 -> done — accepted
+- 2026-09-24 23:58 Q39 -> done — gate pass @26db0381
