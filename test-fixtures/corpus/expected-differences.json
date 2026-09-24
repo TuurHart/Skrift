@@ -1,0 +1,23 @@
+{
+  "_schema": "slug -> array of SPEC.md required-difference row ids (R#). A note's slug matches manifest.json's `slug` field. C5's harness: a v2-vs-v1-golden diff on a slug listed here for that R id is expected-different (pass); the SAME slug with NO diff is a matched-bug (fail — v2 must have fixed it); any diff on a slug/R-id pair not listed here is unexplained (fail).",
+  "_missing_fixtures": {
+    "R25": "SPEC.md's example fixture 'migrated corpus notes' does not exist in test-fixtures/corpus/notes — no note is authored as a pre-normalisation old-shape note requiring the one-time C10/D4 re-normalisation pass. Not registered below; Q11/a later item must add the fixture before this row can be exercised.",
+    "R33": "SPEC.md's example fixture 'ingress P3' (5 clips + 1 picture between clip 3 and 4) does not exist in test-fixtures/corpus — ingress fixtures are a separate, not-yet-built set (SPEC.md:1373: 'listed at [scenarios.md]'s end and are queue items, not spec'). Not registered below.",
+    "R74": "SPEC.md names 'pic-during-pause-two-shots' and 'pic-burst-same-offset' as the fixtures; neither exists. The corpus's actual tie-order fixture for C13 (two markers at the same nearest-word position) is 057-pic-two-same-second, mapped below as the closest existing analog."
+  },
+  "cap-image-voice-ramble": ["R1"],
+  "pic-shared-no-timestamp": ["R1", "R95"],
+  "pic-mid-sentence": ["R2", "R95"],
+  "pic-nl": ["R2", "R95"],
+  "pic-three-spread": ["R2", "R95"],
+  "pic-two-same-second": ["R74", "R95"],
+  "pic-at-start": ["R95"],
+  "pic-at-end": ["R95"],
+  "pic-ocr-text": ["R95"],
+  "pic-missing-file": ["R95"],
+  "pic-manifest-no-marker": ["R95"],
+  "pic-wall": ["R95"],
+  "pic-user-snapped-markers": ["R95"],
+  "pic-in-task-list": ["R95"],
+  "pic-in-blockquote": ["R95"]
+}
