@@ -22,7 +22,7 @@ Staged, not dropped. Each comes back as items at the next resync (`/2-plan`), in
 
 ## Items
 
-### Q1 [tuur] (doing) mockup: quick note
+### Q1 [tuur] (tuur) mockup: quick note
 spec: C112 C114 C43
 needs: -
 do: One clickable HTML page: the app opening into the list with the New Note action one tap away; the Lock Screen / Control Center widget and the Siri path each landing in an empty note with the keyboard up; leaving an untouched empty note discards it (D91). Phone and iPad frames.
@@ -178,3 +178,4 @@ check: `plan/mtest.sh LockedNoteVisibilityTests`
 - 2026-09-24 11:25 Q5 -> doing — mockup out
 - 2026-09-24 11:25 Q9 -> doing — worker out
 - 2026-09-24 11:33 Q2 -> tuur — built @86142b9a — awaiting sitting
+- 2026-09-24 11:39 Q1 -> tuur — built @54d80333 — awaiting sitting
