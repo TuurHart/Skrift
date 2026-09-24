@@ -151,7 +151,7 @@ node: AuditFix2
 do: One shared doctrine for every locally cached JSON file: `names.json` (atomic write, actor-guarded, merge never shrinks — R8), phone `library.json` and `bookmarks.json`, the Mac's `settings.json`, the audiobook-bookmark sync blob (R42, R59, R78). A file present but undecodable is kept aside as `<name>.corrupt-<date>`, recovery is surfaced, and nothing is written over it. One helper in `Skrift_Native/Shared/`. Tests: `CorruptStoreTests` in BOTH test targets (Mac: names + settings; phone: library + bookmarks).
 check: `grep -rqE "class CorruptStoreTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && plan/mtest.sh CorruptStoreTests`
 
-### Q19 [auto] (doing) re-transcribe keeps the text; attachments obey ownership
+### Q19 [auto] (stuck) re-transcribe keeps the text; attachments obey ownership
 spec: C51 C58 C54
 needs: -
 gate+: yes
@@ -323,3 +323,4 @@ check: `grep -rqE "class BodyV2WriteSitesTests\b" Skrift_Native/SkriftDesktop/Sk
 - 2026-09-24 21:27 Q13 -> done — gate pass @a42cd2cb
 - 2026-09-24 21:28 Q31 added
 - 2026-09-24 21:28 Q31 -> doing — worker out
+- 2026-09-24 21:33 Q19 -> stuck — merge conflict onto claude/session-3-f90c83
