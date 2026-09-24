@@ -196,6 +196,30 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
 .flag{position:absolute;z-index:6;font-size:9px;font-weight:800;letter-spacing:.07em;color:var(--red);background:var(--page);border:1.2px dashed var(--redLine);border-radius:6px;padding:2px 5px;pointer-events:none;white-space:nowrap}
 .pr{outline:1.5px dashed var(--redLine);outline-offset:2px;border-radius:6px}
 
+/* ── ONE LIST, second pass (D135): every device on the phone's grey ground ──
+   Palette.bg.phone = #f5f5f7 light / #0f1117 dark (Shared/UI/Palette.swift), = --bg.
+   Cards take the phone's white card (skSurface). On grey the #ebebf0 chip fill nearly
+   vanishes, so verb chips + search take the phone's search-field look: white + hairline. */
+.frame.one,.frame.one.ipad,.frame.one.mac{background:var(--bg)}
+.frame.one .card{background:var(--surface);border-color:var(--border)}
+.frame.one .card.sel{background:var(--accentSoft);border-color:rgb(var(--accent-rgb) / .55)}
+.frame.one.mac .rows{gap:6px}
+.frame.one .vb,.frame.one .search{background:var(--surface);border:1px solid var(--border)}
+.frame.one .surf{background:var(--elev)}
+.frame.one.phone .verbs{padding:2px 16px 4px}
+.frame.one.phone .phdr{padding-bottom:8px}
+.vbwrap{position:relative;flex:1;display:flex}
+.vbwrap>.vb{flex:1}
+.menu{position:absolute;left:0;top:calc(100% + 6px);z-index:8;min-width:236px;background:var(--surface);color:var(--t1);border:1px solid var(--border);border-radius:13px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:4px 0;display:flex;flex-direction:column}
+.menu button{display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:15px;text-align:left;min-height:44px}
+.menu button+button{border-top:1px solid var(--hair)}
+.menu .i{font-size:17px;color:var(--t2)}
+.ghostfab{position:absolute;right:20px;bottom:30px;width:60px;height:60px;border-radius:50%;border:1.5px dashed var(--redLine);display:grid;place-items:center;pointer-events:none}
+.ghostfab span{position:absolute;right:0;bottom:66px;font-size:9px;font-weight:800;letter-spacing:.07em;color:var(--red);background:var(--redSoft);border:1.2px dashed var(--redLine);border-radius:6px;padding:2px 6px;white-space:nowrap}
+.signed{border:1px solid var(--hair);background:var(--card);border-radius:14px;padding:11px 12px 12px;display:flex;flex-direction:column;gap:6px}
+.signed .redline{color:var(--green)}
+.signed ul{margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:3px}
+
 /* diff list */
 .diffs{display:grid;grid-template-columns:1fr;gap:10px}
 @media (min-width:760px){.diffs{grid-template-columns:1fr 1fr}}
@@ -226,13 +250,15 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
   <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></symbol>
   <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
   <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="photo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></symbol>
 </svg>
 
 <div class="wrap">
   <header class="head">
     <h1>One notes list: phone, iPad, Mac</h1>
-    <div class="meta"><b>Q22</b> · C117 C114 C115 C119 · D134 · built on the signed Q1 (header ✎) and Q2 (three balls)</div>
-    <p>Same five notes on every screen. <b>Today</b> draws each device's list as the source builds it now. <b>One list</b> is the proposal: one row, one list, every device.</p>
+    <div class="meta"><b>Q22</b> · second pass · C117 C114 C115 C119 · D134 D135 · built on the signed Q2 (three balls)</div>
+    <p>Same five notes on every screen. <b>Today</b> draws each device's list as the source builds it now. <b>One list</b> is the proposal: one row, one list, one set of verbs, one grey ground, every device.</p>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -259,29 +285,32 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
     <div class="note" id="stagehint" style="text-align:center"></div>
 
     <div class="picks" id="picks">
-      <div class="redline">Choices to overrule</div>
+      <div class="redline">New choice to overrule</div>
       <div class="pick">
-        <div class="k">1 · The status pill<small>Today the Mac always shows its pipeline state; the phone shows only Transcribing or Error.</small></div>
-        <div class="seg"><button id="p1-a" data-pick="pill:quiet" aria-pressed="true">Only while working or broken<span class="tagp">PICK</span></button><button id="p1-b" data-pick="pill:mac" aria-pressed="false">Mac keeps Ready / Exported</button></div>
-      </div>
-      <div class="pick">
-        <div class="k">2 · The three balls on the row<small>No row shows importance today; unrated is only a dim.</small></div>
-        <div class="seg"><button id="p2-a" data-pick="balls:show" aria-pressed="true">Show only, rate in the note<span class="tagp">PICK</span></button><button id="p2-b" data-pick="balls:tap" aria-pressed="false">Tap to rate from the list</button></div>
-      </div>
-      <div class="pick">
-        <div class="k">3 · Day groups<small>Phone and iPad group by day today; the Mac is one flat list.</small></div>
-        <div class="seg"><button id="p3-a" data-pick="group:day" aria-pressed="true">Day groups everywhere<span class="tagp">PICK</span></button><button id="p3-b" data-pick="group:flat" aria-pressed="false">Flat everywhere</button></div>
+        <div class="k">The phone's red mic button<small>Record now sits in the phone's verb row. The iPad already dropped its corner button for the same reason: a second Record in one column (<code>NotesBottomChrome(showRecordButton: !isRegular)</code>).</small></div>
+        <div class="seg"><button id="p4-a" data-pick="mic:row" aria-pressed="true">Row only, mic button goes<span class="tagp">PICK</span></button><button id="p4-b" data-pick="mic:keep" aria-pressed="false">Keep the mic button too</button></div>
       </div>
     </div>
 
-    <div class="ask"><span class="ph">The one question</span>On the Mac, a finished note would stop saying "Ready" or "Exported" on its row. Are the <b>Done</b> chip and the "N ready to review" line enough to tell what's finished, or does the Mac keep its pill (flip pick 1)?</div>
+    <div class="signed">
+      <div class="redline">Signed at the sitting (D135), now fixed in the mock</div>
+      <ul>
+        <li>Status pill only while a note is being worked on or is broken.</li>
+        <li>Three balls on every row, display only. You rate inside the note.</li>
+        <li>Day groups on all three devices.</li>
+        <li>Phone gets Import · Record · ✎, the iPad's row. The ✎ leaves the header spot Q1 gave it.</li>
+        <li>All three lists on the iPhone's grey (<code>#f5f5f7</code>, dark <code>#0f1117</code>).</li>
+      </ul>
+    </div>
+
+    <div class="ask"><span class="ph">The one question</span>With Record in the row at the top, the phone loses the red mic button in the thumb corner. Is reaching up for Record OK, or does the mic stay and Record show twice?</div>
 
     <div class="panel">
       <div class="redline" id="chg-title">What changes on the iPhone</div>
       <ul class="changes" id="changes"></ul>
     </div>
 
-    <div class="note"><b>Drawn from source:</b> <code>MemosListView.swift</code> (phone header, iPad <code>macStyleHeader</code>, <code>MemoCard</code>, day groups, <code>clockLine</code> / <code>quietTriageLine</code>), <code>Shared/UI/NoteCardView.swift</code> (card metrics), <code>SidebarView.swift</code> (Mac header, <code>QueueRowView</code>, quiet rows, triage line), <code>MemoDisplay.swift</code> (<code>MemoDate.label</code>, <code>statusKind</code>), <code>QueueDerivations.swift</code> (Mac stamp, pipeline labels), <code>Adaptive.listColumnWidth</code> = 375, Mac sidebar ideal width 292. New here: balls on the row, one stamp, one pill rule, one header order, Mac day groups. Notes are fake.</div>
+    <div class="note"><b>Drawn from source:</b> <code>MemosListView.swift</code> (phone header, iPad <code>macStyleHeader</code>, <code>MemoCard</code>, day groups, <code>clockLine</code> / <code>quietTriageLine</code>), <code>Shared/UI/NoteCardView.swift</code> (card metrics), <code>SidebarView.swift</code> (Mac header, <code>QueueRowView</code>, quiet rows, triage line), <code>MemoDisplay.swift</code> (<code>MemoDate.label</code>, <code>statusKind</code>), <code>QueueDerivations.swift</code> (Mac stamp, pipeline labels), <code>Adaptive.listColumnWidth</code> = 375, Mac sidebar ideal width 292. Second pass: the verb row is the iPad's (<code>MemosListView.swift:683–745</code>: Import menu = Files · Photos · Scan, Record with the red dot, ✎ 34 pt wide); the grey is <code>Palette.bg.phone</code> (<code>Shared/UI/Palette.swift</code>), the phone's <code>skBg</code>. Today the iPad list and the Mac sidebar sit on <code>skSurface</code> / <code>Theme.surface</code> (white). New here: balls on the row, one stamp, one pill rule, one header order, one verb row, one ground, Mac day groups. Notes are fake.</div>
   </section>
 </div>
 
@@ -310,7 +339,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
   var MACLABEL={ready:"Ready",exported:"Exported",enhancing:"Enhancing",transcribing:"Transcribing",queued:"Queued"};
   var MACKIND={ready:"done",exported:"done",enhancing:"progress",transcribing:"progress",queued:"progress"};
 
-  var S={tab:"one",dev:"phone",pill:"quiet",balls:"show",group:"day",q:"",chip:"All",select:false,sel:{},open:null,notes:BASE.slice(),newCount:0};
+  var S={tab:"one",dev:"phone",pill:"quiet",balls:"show",group:"day",mic:"row",menu:false,q:"",chip:"All",select:false,sel:{},open:null,notes:BASE.slice(),newCount:0};
   try{var t=localStorage.getItem("q22tab"); if(t==="today"||t==="one") S.tab=t;}catch(e){}
 
   function phoneStamp(n){ return (n.day==="Today"||n.day==="Yesterday"?n.day:(n.wk||n.day))+" · "+n.time; }
@@ -501,29 +530,42 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
   }
   function renderOne(){
     var h='', d=S.dev, sel=Object.keys(S.sel).filter(function(k){return S.sel[k];}).length;
+    // The iPad's verb row (MemosListView.swift:683-745), now on all three.
+    function verbRow(dev){
+      var imp = dev==="mac"
+        ? '<button class="vb" data-toast="Import panel (unchanged)">'+ic('plus')+'Import</button>'
+        : '<span class="vbwrap"><button class="vb" data-act="menu" aria-haspopup="menu" aria-expanded="'+S.menu+'">'+ic('plus')+'Import</button>'+
+          (S.menu?'<span class="menu" role="menu"><button role="menuitem" data-pickmenu="Audio or video from Files">'+ic('folder')+'Audio or video from Files</button><button role="menuitem" data-pickmenu="Video from Photos">'+ic('photo')+'Video from Photos</button><button role="menuitem" data-pickmenu="Scan a document">'+ic('scan')+'Scan a document</button></span>':'')+'</span>';
+      var recMsg = dev==="phone" ? "Record: opens the recorder, the mic starts at this tap (prestart)" : "Record (unchanged)";
+      return '<div class="verbs">'+imp+'<button class="vb rec" data-toast="'+recMsg+'"><b></b>Record</button><button class="vb pen" data-act="new" aria-label="New note">'+ic('pen')+'</button></div>';
+    }
     if(d==="phone"){
-      h+='<div class="frame phone"><div class="status"><span>15:10</span><span style="font-size:12px">▮▮▮ ▮</span></div><div class="scroller" id="scr">';
-      h+='<div class="phdr" style="position:relative"><span class="t">Notes</span><button class="lnk" data-act="select">'+(S.select?'Done':'Select')+'</button>'+
-        (S.select?'':'<button class="ic" data-act="new" aria-label="New note">'+ic('pen')+'</button><button class="ic" data-toast="Import: audio or video from Files, video from Photos" aria-label="Import">'+ic('dl')+'</button><button class="ic" data-toast="Scan a document" aria-label="Scan">'+ic('scan')+'</button>')+
-        '</div>';
-      if(!S.select) h+='<span class="iflag" style="margin-left:auto;margin-right:16px">&uarr; &#9998; BESIDE SELECT: Q1, SIGNED</span>';
+      h+='<div class="frame phone one"><div class="status"><span>15:10</span><span style="font-size:12px">▮▮▮ ▮</span></div><div class="scroller" id="scr">';
+      h+='<div class="phdr" style="position:relative"><span class="t">Notes</span><button class="lnk" data-act="select">'+(S.select?'Done':'Select')+'</button></div>';
+      h+=verbRow("phone");
+      h+='<span class="iflag" style="margin-left:16px">&uarr; NEW ON PHONE: THE IPAD\'S ROW. &#9998; LEAVES THE HEADER, SCAN MOVES INTO IMPORT</span>';
       h+=belowHeader()+'<span class="iflag" style="margin-left:16px">&uarr; NEW ON PHONE: CHIPS + TRIAGE LINE (FILTER MOVED HERE)</span>'+listBody();
-      h+='</div>'+(S.select?'<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>':'<button class="fab" data-toast="Record (unchanged: the thumb button stays on the phone)" aria-label="Record">'+ic('mic')+'</button>');
+      h+='</div>';
+      if(S.select) h+='<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>';
+      else if(S.mic==="keep") h+='<button class="fab" data-toast="Record, the second one on this screen" aria-label="Record">'+ic('mic')+'</button>';
+      else h+='<div class="ghostfab" aria-hidden="true"><span>MIC BUTTON GONE: RECORD IS IN THE ROW</span></div>';
       h+='<div class="toast" id="toast"></div></div>';
     } else if(d==="ipad"){
-      h+='<div class="frame ipad"><span class="edgehint"></span><div class="scroller" id="scr">';
-      h+='<div style="position:relative"><div class="idrow"><span class="t">Notes</span><button class="lnk" data-act="select">'+(S.select?'Done':'Select')+'</button></div><span class="tog" style="position:absolute;left:14px;top:9px;width:30px;height:30px;border-radius:8px;background:var(--elev);display:grid;place-items:center;color:var(--t2);font-size:15px">'+ic('sidebar')+'</span></div>';
-      h+='<div class="verbs"><button class="vb" data-toast="Import menu (unchanged)">'+ic('plus')+'Import</button><button class="vb rec" data-toast="Record (unchanged)"><b></b>Record</button><button class="vb pen" data-act="new" aria-label="New note">'+ic('pen')+'</button></div>';
+      h+='<div class="frame ipad one"><span class="edgehint"></span><div class="scroller" id="scr">';
+      h+='<div style="position:relative"><div class="idrow"><span class="t">Notes</span><button class="lnk" data-act="select">'+(S.select?'Done':'Select')+'</button></div><span class="tog" style="position:absolute;left:14px;top:9px;width:30px;height:30px;border-radius:8px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--t2);font-size:15px">'+ic('sidebar')+'</span></div>';
+      h+=verbRow("ipad");
       h+='<button class="proc" style="width:calc(100% - 28px)" data-toast="Process runs the rated pile on this iPad">'+ic('play')+'Process <small>1</small></button>';
-      h+='<div style="height:4px"></div>'+belowHeader()+'<span class="iflag">&uarr; MOVED: SEARCH NOW ABOVE THE CHIPS, AS ON THE MAC</span>'+listBody();
+      h+='<span class="iflag" style="margin-top:6px">GROUND: WHITE &rarr; THE PHONE\'S GREY. CARDS, CHIPS, SEARCH TURN WHITE</span>';
+      h+=belowHeader()+'<span class="iflag">&uarr; MOVED: SEARCH NOW ABOVE THE CHIPS, AS ON THE MAC</span>'+listBody();
       h+='</div>'+(S.select?'<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>':'');
       h+='<div class="toast" id="toast"></div></div>';
     } else {
-      h+='<div class="frame mac"><div class="macbar"><i></i><i></i><i></i></div><div class="scroller" id="scr">';
+      h+='<div class="frame mac one"><div class="macbar"><i></i><i></i><i></i></div><div class="scroller" id="scr">';
       h+='<div class="surf" style="margin-top:0"><span class="on">Notes</span><span>Review</span></div>';
       h+='<div class="macid"><span class="lg">S</span><span class="t">Skrift</span><button class="g" data-toast="Settings">'+ic('gear')+'</button></div>';
-      h+='<div class="macstack"><div class="verbs"><button class="vb" data-toast="Import panel (unchanged)">'+ic('plus')+'Import</button><button class="vb rec" data-toast="Record (unchanged)"><b></b>Record</button><button class="vb pen" data-act="new" aria-label="New note">'+ic('pen')+'</button></div>';
+      h+='<div class="macstack">'+verbRow("mac");
       h+='<button class="proc" data-toast="Process (unchanged)">'+ic('play')+'Process <small>1</small></button></div>';
+      h+='<span class="iflag" style="margin:6px 12px 2px">SIDEBAR: WHITE &rarr; THE PHONE\'S GREY; ROWS BECOME WHITE CARDS</span>';
       h+=belowHeader()+'<span class="iflag" style="margin-left:8px">NEW ON MAC: DAY GROUPS, BALLS, CHIPS, TIME &darr;</span>'+listBody();
       h+='</div>'+(S.select?'<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>':'');
       h+='<div class="toast" id="toast"></div></div>';
@@ -533,14 +575,14 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
     stage.innerHTML=h;
     var sc=stage.querySelector('#scr'); if(sc) sc.scrollTop=top;
     if(hadFocus){var qi=document.getElementById('q'); qi.focus(); qi.setSelectionRange(qi.value.length,qi.value.length);}
-    document.getElementById('stagehint').textContent = d==="phone" ? "iPhone 13, 390 pt. Tap rows, chips, ✎, Select, the balls."
+    document.getElementById('stagehint').textContent = d==="phone" ? "iPhone 13, 390 pt. Tap Import, Record, ✎, the chips, Select, a row."
       : d==="ipad" ? "iPad list column, 375 pt (Adaptive.listColumnWidth). The note pane sits to the right." : "Mac sidebar, 292 pt (RootView ideal width). The note pane sits to the right.";
     renderChanges();
   }
   var CH={
-    phone:["Gains the chips (All, Needs Work, Done, Unrated) and the triage line with Filter. The Filter icon leaves the header.","✎ New note joins the header beside Select (Q1, signed D134).","Unrated rows dim once (0.62), not twice (0.34 today), and show three hollow balls.","Rated rows show their balls at the end of the date line.","Unchanged: day groups, the mic button, swipe and long-press menus."],
-    ipad:["Search moves above the chips, matching the Mac.","The always-on \"starts fading …\" line on unrated rows goes; the amber line shows only in the last 7 days, as on the phone.","Unrated rows dim once, not twice; balls on every row.","Unchanged: Import · Record · ✎ row, Process N, the ◧ toggle."],
-    mac:["Date stamp gains the time and the day word: \"Today · 14:32\", not \"today\".","Day groups replace the flat list (pick 3).","Rows gain place, weather, #tags and the photo thumb (already signed in mac-notes-list-rich, C119).","Untitled notes stop showing their first line twice.","Unrated rows keep their snippet and chips; duration moves out of the spine line into a chip.","Ready, Exported and Transcribed pills go; Queued, Transcribing, Enhancing and Error stay (pick 1)."]
+    phone:["Gains the iPad's Import · Record · ✎ row under the title (D135). The header keeps only Notes and Select.","Import becomes a menu: Files, Photos, Scan. The Import and Scan icons leave the header.","✎ moves from beside Select (Q1) into the row, the same place as on the iPad and Mac.","The red mic button goes; Record lives in the row (the pick). The bottom row keeps only the audiobook pill.","Gains the chips (All, Needs Work, Done, Unrated) and the triage line with Filter.","Unrated rows dim once (0.62), not twice (0.34 today), and show three hollow balls.","Unchanged: the grey ground, white cards, day groups, swipe and long-press menus."],
+    ipad:["Search moves above the chips, matching the Mac.","The always-on \"starts fading …\" line on unrated rows goes; the amber line shows only in the last 7 days, as on the phone.","Unrated rows dim once, not twice; balls on every row.","The list column turns from white (skSurface) to the phone's grey (#f5f5f7); the cards turn from grey to white.","Import, Record, ✎ and search turn white with a hairline, so they stay visible on grey.","Unchanged: the verb row itself, Process N, the ◧ toggle."],
+    mac:["Date stamp gains the time and the day word: \"Today · 14:32\", not \"today\".","Day groups replace the flat list (pick 3).","Rows gain place, weather, #tags and the photo thumb (already signed in mac-notes-list-rich, C119).","Untitled notes stop showing their first line twice.","Unrated rows keep their snippet and chips; duration moves out of the spine line into a chip.","Ready, Exported and Transcribed pills go; Queued, Transcribing, Enhancing and Error stay (D135).","The sidebar turns from white (Theme.surface) to the phone's grey; rows become white cards, 6 pt apart instead of 2."]
   };
   function renderChanges(){
     document.getElementById('chg-title').textContent="What changes on the "+(S.dev==="phone"?"iPhone":S.dev==="ipad"?"iPad":"Mac");
@@ -561,21 +603,26 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
   }
   function setPick(key,val){
     S[key]=val;
+    if(key==="mic"&&S.dev!=="phone"){ S.dev="phone"; S.open=null; document.querySelectorAll('[data-dev]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.dev==="phone");}); }
     document.querySelectorAll('[data-pick^="'+key+':"]').forEach(function(b){b.setAttribute('aria-pressed', b.dataset.pick===key+":"+val);});
     renderOne();
     var msg={ "pill:mac":"Mac rows show Ready / Exported again. Switch to Mac to see it.","pill:quiet":"Pill only while working or broken.",
       "balls:tap":"Balls are tappable on the row. Tap targets are 26 × 34 pt, under the 44 pt rule.","balls:show":"Balls show the rating; you rate inside the note.",
-      "group:flat":"One flat list, newest first. The date line carries the day.","group:day":"Day sections on all three."}[key+":"+val];
+      "group:flat":"One flat list, newest first. The date line carries the day.","group:day":"Day sections on all three.",
+      "mic:keep":"Mic button stays: Record now shows twice on the phone.","mic:row":"Mic button goes: Record lives in the row."}[key+":"+val];
     toast(document.getElementById('stage'),msg);
   }
 
   document.addEventListener('click',function(e){
-    var t=e.target.closest('[data-tab],[data-dev],[data-pick],[data-chip],[data-act],[data-rate],[data-toast],[data-row]');
+    var t=e.target.closest('[data-tab],[data-dev],[data-pick],[data-chip],[data-act],[data-rate],[data-toast],[data-row],[data-pickmenu]');
+    if(S.menu && !(t && (t.dataset.act==="menu"||t.dataset.pickmenu))){ S.menu=false; renderOne(); if(!t||t.dataset.row) return; }
     if(!t) return;
     var frame=t.closest('.frame');
     if(t.dataset.tab){ setTab(t.dataset.tab); return; }
-    if(t.dataset.dev){ S.dev=t.dataset.dev; S.open=S.dev==="phone"?null:"n2"; document.querySelectorAll('[data-dev]').forEach(function(b){b.setAttribute('aria-pressed',b===t);}); renderOne(); return; }
+    if(t.dataset.dev){ S.dev=t.dataset.dev; S.open=S.dev==="phone"?null:"n2"; S.menu=false; document.querySelectorAll('[data-dev]').forEach(function(b){b.setAttribute('aria-pressed',b===t);}); renderOne(); return; }
     if(t.dataset.pick){ var p=t.dataset.pick.split(':'); setPick(p[0],p[1]); return; }
+    if(t.dataset.act==="menu"){ S.menu=!S.menu; renderOne(); return; }
+    if(t.dataset.pickmenu){ S.menu=false; renderOne(); toast(document.getElementById('stage'),t.dataset.pickmenu+": opens the picker"); return; }
     if(t.dataset.chip){ S.chip=t.dataset.chip; renderOne(); return; }
     if(t.dataset.rate){
       e.stopPropagation();
