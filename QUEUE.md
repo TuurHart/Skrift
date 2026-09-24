@@ -188,7 +188,7 @@ node: V2Core
 do: Add the synthetic corpus notes the R table names but the corpus never had (Q10 finding): `pic-during-pause-two-shots` and `pic-burst-same-offset` (R74: two pictures tie on one nearest word), an ingress-P3 note (R33: 5 clips + 1 picture between clip 3 and 4), and a migrated note with name offsets (R25). Follow `test-fixtures/corpus/README.md` and `generate.py`; fictional roster only (C4). Record their v1 goldens (BodyGoldenTests, re-record recipe in plan/RUN.md Q9 finding), add them to `expected-differences.json`, and drop them from `_missing_fixtures` by adding a new mapping file rather than editing the existing one if gate+ forbids the edit.
 check: `test -d test-fixtures/corpus/notes/pic-during-pause-two-shots && test -d test-fixtures/corpus/notes/pic-burst-same-offset && ./gate.sh`
 
-### Q24 [auto] (doing) the old 10-stop scale and refine pass leave the code (litCount)
+### Q24 [auto] (done) the old 10-stop scale and refine pass leave the code (litCount)
 spec: C210 C183 C94
 needs: Q8
 node: i23
@@ -309,3 +309,4 @@ check: `./gate.sh && test -s plan/reads/body-v2.md`
 - 2026-09-24 20:59 Q13 -> doing — worker out
 - 2026-09-24 20:59 Q18 -> doing — worker out
 - 2026-09-24 21:15 Q18 -> done — gate pass @3dc27cbc
+- 2026-09-24 21:17 Q24 -> done — hand-merged (D138 tests only), gate+check+phone build green @132ea364
