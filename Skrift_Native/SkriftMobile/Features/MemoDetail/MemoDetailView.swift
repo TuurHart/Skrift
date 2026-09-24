@@ -1920,8 +1920,12 @@ private struct MemoPageView: View {
             // Keyboard down: this Group's frame runs to the real screen bottom, so
             // 96pt clears the floating player bar. Keyboard up: standard SwiftUI
             // avoidance already shrinks the Group's frame to end right above the
-            // keyboard's accessory bar — a hairline is enough (Q44).
-            .padding(.bottom, keyboardVisible ? 10 : 96)
+            // keyboard's accessory bar; MORE padding here moves the pill UP the
+            // screen (toward the note body, not away from it) — 96 stacked on top of
+            // that shrink is what put it mid-screen over the Importance card (Q41
+            // finding). A hairline hugs the player bar, the correct direction to
+            // clear scrolled-up transcript text below it.
+            .padding(.bottom, keyboardVisible ? 6 : 96)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .task(id: toast.id) {
                 try? await Task.sleep(for: .seconds(4))
