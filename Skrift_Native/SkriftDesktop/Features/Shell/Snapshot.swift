@@ -727,7 +727,7 @@ enum Snapshot {
             let tv = SelfSizingTextView()
             coordinator.render(tv, model: text)
             let round = coordinator.modelString(tv)
-            let want = BodyTransform.snappedImageBody(text)
+            let want = BodyV2Legacy.shown(text).text
             let roundOK = round == want
             // Every DISPLAYED word must translate back to the model word with the same text —
             // that is exactly what a click-to-seek does before it looks up a time.

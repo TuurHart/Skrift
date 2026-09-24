@@ -162,11 +162,12 @@ struct BodyTextView: NSViewRepresentable {
         //    while editing NEXT TO a snapped photo: mid-edit the reconstruct isn't
         //    snap-stable, so a snapped-only compare re-rendered on every keystroke — the
         //    photo flashed and typed text jumped before the image); AND
-        //  • its snapped form — a pure display has `modelString == snapped(text)`, so a
-        //    raw-only compare would loop forever (raw ≠ snapped when a photo is mid-sentence).
+        //  • its shown form — a body stored before v2 is shown through the Q13 read-only
+        //    fallback (`BodyV2Legacy`, Q14 removes it), so a raw-only compare would loop
+        //    forever on it (raw ≠ shown when a photo is mid-sentence). Identity for v2.
         // Differ from both ⇒ the text genuinely changed under us (a phone sync).
         let ms = context.coordinator.modelString(tv)
-        let textChanged = ms != text && ms != BodyTransform.snappedImageBody(text)
+        let textChanged = ms != text && ms != BodyV2Legacy.shown(text).text
         if textChanged {
             context.coordinator.render(tv, model: text)
             tv.invalidateIntrinsicContentSize()
@@ -429,13 +430,10 @@ struct BodyTextView: NSViewRepresentable {
         /// + ambiguous-name marks.
         func render(_ tv: SelfSizingTextView, model rawModel: String) {
             let primary = NSColor(Theme.textPrimary)
-            // Photos snap to their sentence end for DISPLAY (shared with the phone +
-            // the Obsidian export): a mid-sentence marker lands on its own `\n\n` block
-            // beneath the whole sentence, so the sentence reads intact and the photo no
-            // longer shares a line with prose (killing the image-height caret). The
-            // stored `sanitised` keeps the marker at its moment until an edit; the
-            // transform is idempotent, so the no-op check in `updateNSView` holds.
-            let model = BodyTransform.snappedImageBody(rawModel)
+            // Body v2 stores every picture as its own paragraph (C10), so the display IS
+            // the stored text — no render-time snap (C17). A body stored before v2 is
+            // shown through the Q13 read-only fallback (`BodyV2Legacy`, Q14 removes it).
+            let model = BodyV2Legacy.shown(rawModel).text
             hideTagSuggest()   // note switch / external change → the caret's run is gone
             // Synchronous: text + markers-as-text only — instant. Image disk-load +
             // thumbnailing (measured ~600ms EACH on the main thread, freezing the
@@ -840,20 +838,19 @@ struct BodyTextView: NSViewRepresentable {
         }
 
         /// Each `parent.suggested` occurrence (offset/length into the RAW
-        /// `PipelineFile.sanitised`) mapped to its STORAGE range. The display SNAPS
-        /// photos to their sentence end, so the raw offset is first mapped through the
-        /// snap (`rawSnap`), then the attachment collapse (an 11-char `[[img_NNN]]`
-        /// marker → 1 char). A stale offset (the body was hand-edited after sanitise,
+        /// `PipelineFile.sanitised`) mapped to its STORAGE range: the ONE remap is the
+        /// attachment collapse (an 11-char `[[img_NNN]]` marker → 1 char, C17). A body
+        /// stored before v2 first goes through the Q13 fallback's map (identity for v2). A stale offset (the body was hand-edited after sanitise,
         /// so `ambiguousNames` no longer lines up) is dropped — the storage text there
         /// must still read as the alias.
         func suggestedRanges(in storage: NSTextStorage) -> [(occ: AmbiguousOccurrence, range: NSRange)] {
             guard !parent.suggested.isEmpty else { return [] }
             let locs = attachmentModelLocs(storage)
-            let rawSnap = BodyTransform.snapImages(parent.text)
+            let shown = BodyV2Legacy.shown(parent.text)
             let ns = storage.string as NSString
             var out: [(AmbiguousOccurrence, NSRange)] = []
             for occ in parent.suggested {
-                let snapOffset = rawSnap.snapped(rawLocation: occ.offset)
+                let snapOffset = shown.map(NSRange(location: occ.offset, length: 0)).location
                 let shift = locs.reduce(0) { $0 + ($1.loc < snapOffset ? $1.shift : 0) }
                 let loc = snapOffset - shift
                 guard loc >= 0, loc + occ.length <= ns.length else { continue }
