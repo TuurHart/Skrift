@@ -166,10 +166,11 @@ node: AuditFix2
 do: Claude prepares the `xctrace` commands; Tuur runs Time Profiler on the iPhone 13 PROD build during a list scroll and a note open, and a typing session in a 5,000-word note on the Mac (Dev, the corpus `typed-wall-7k` note). Claude writes the top frames of both traces into `plan/perf-measured.md`.
 check: `test -s plan/perf-measured.md`
 
-### Q21 [auto] (todo) a locked note stays locked in Fading and Recently Deleted
+### Q21 [auto] (doing) a locked note stays locked in Fading and Recently Deleted
 spec: C161 C213 C91
 needs: -
 node: AuditFix2
+gate+: yes
 do: One Shared predicate decides whether a note's content may show without auth; `WayOutView` (Fading / Recently Deleted) shows the "Locked note" placeholder the list already shows; the three delete entry points in `MemosListView` check the lock; `copyTranscript` / `copyableText` are gated behind auth (R88). Test in `LockedNoteVisibilityTests` (phone target).
 check: `plan/mtest.sh LockedNoteVisibilityTests`
 
@@ -252,3 +253,4 @@ check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-09-24 14:47 Q3 -> doing — mockup out
 - 2026-09-24 14:47 Q4 -> doing — mockup out
 - 2026-09-24 14:53 Q17 -> tuur — built @798e826f — awaiting sitting
+- 2026-09-24 14:53 Q21 -> doing — worker out
