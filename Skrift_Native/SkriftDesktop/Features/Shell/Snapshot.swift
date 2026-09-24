@@ -18,6 +18,7 @@ import AVFoundation
 ///   -snapshot-livedraft <path>  → the m1/m2/m4 recording draft surface (fixture-driven)
 ///   -snapshot-sidebar-selection <path> [+ `-light`] → both sidebar row kinds SELECTED,
 ///                                 side by side (the 2026-07-28 "can't see selection" fix)
+///   -snapshot-conflict <path>   → the Q39 edit-conflict prompt (mocks/Q4-edit-conflict.html)
 enum Snapshot {
     nonisolated static func renderIfRequested() {
         let args = ProcessInfo.processInfo.arguments
@@ -63,6 +64,7 @@ enum Snapshot {
             MainActor.assumeIsolated { renderTurnsBody(to: p, bodyFile: b, scheme: light ? .light : .dark); exit(0) }
         }
         if let p = path("-snapshot-tags")           { MainActor.assumeIsolated { renderTags(to: p); exit(0) } }
+        if let p = path("-snapshot-conflict")       { MainActor.assumeIsolated { renderConflict(to: p); exit(0) } }
         if let p = path("-snapshot-linkpicker")     { MainActor.assumeIsolated { renderLinkPicker(to: p); exit(0) } }
         if let p = path("-snapshot-connections")    { MainActor.assumeIsolated { renderConnections(to: p); exit(0) } }
         if let p = path("-snapshot-inspector")      { MainActor.assumeIsolated { renderInspector(to: p); exit(0) } }
@@ -570,6 +572,29 @@ enum Snapshot {
         .preferredColorScheme(.dark)
         .modelContainer(container)
         hostPNG(view, size: NSSize(width: 436, height: 470), to: path)
+    }
+
+    /// Q39: the Mac edit-conflict prompt (C242/D139) against `mocks/Q4-edit-conflict.html`.
+    /// `EditConflictPrompt` takes a plain `EditConflict` — no store, no PipelineFile row —
+    /// so this renders it directly with synthetic diverging words, same idea as `renderTags`.
+    /// Triggered by: `-snapshot-conflict <path>`.
+    @MainActor private static func renderConflict(to path: String) {
+        let now = Date()
+        let local = NoteWords(deviceID: "MAC-DEVICE", deviceKind: "Mac",
+                              title: "Tiles for the bathroom floor",
+                              body: "The hexagon ones from the shop, in the corner by the window. Actually let's go with the plain white tiles instead.",
+                              tags: ["house"], editedAt: now)
+        let other = NoteWords(deviceID: "PHONE-DEVICE", deviceKind: "iPhone",
+                              title: "Tiles for the bathroom floor",
+                              body: "The hexagon ones from the shop, in the corner by the window. Adding the hexagon ones from the shop.",
+                              tags: ["house"], editedAt: now.addingTimeInterval(-1_620))
+        let conflict = EditConflict(memoID: UUID(), local: local, other: other)
+        let view = EditConflictPrompt(conflict: conflict, look: .mac, style: .mac,
+                                      onPick: { _ in }, onLater: {})
+            .padding(20)
+            .background(Theme.bg)
+            .preferredColorScheme(.dark)
+        hostPNG(view, size: NSSize(width: 460, height: 640), to: path)
     }
 
     /// Image-at-sentence-end reflow (2026-07-16): a photo marker that the injector

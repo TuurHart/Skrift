@@ -30,6 +30,11 @@ struct SkriftApp: App {
                                                 names: NamesStore.shared)).map(String.init(describing:))
             DevLog.log(outcome ?? "corpus: seed FAILED at \(corpus.path)")
         }
+        if LaunchFlags.forceEditConflict {
+            // MemosListView's own @Query(MemoEditHead) + onChange(initial: true) refreshes
+            // EditConflictWatch from these heads once the list appears — no manual kick here.
+            EditConflicts.debugForceConflict(in: repo.context)
+        }
         #endif
 
         // The shared embedder logs through an app-wired sink (it moved to
