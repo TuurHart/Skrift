@@ -41,7 +41,7 @@ needs: -
 do: A redesigned tag editor for phone and Mac that keeps the C93 rules (comma/newline split, `#` stripped, case kept, case-variants fold to the first spelling, destination words allowed). Start from today's tag chips drawn from source, show add / remove / suggest / typeahead.
 check: Tuur clicked through it and said go.
 
-### Q4 [tuur] (doing) mockup: edit-conflict prompt
+### Q4 [tuur] (tuur) mockup: edit-conflict prompt
 spec: C242 C98
 needs: -
 do: The conflict shown on a note edited on two devices before they synced: the note's marker in the list, the dialog with Keep this device / Keep the other / Keep both (two notes), and where the unkept version sits for the trash window. Modelled on Shapr3D's "Version Conflict Detected". Phone and Mac.
@@ -254,3 +254,4 @@ check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-09-24 14:47 Q4 -> doing — mockup out
 - 2026-09-24 14:53 Q17 -> tuur — built @798e826f — awaiting sitting
 - 2026-09-24 14:53 Q21 -> doing — worker out
+- 2026-09-24 14:55 Q4 -> tuur — built @5b77e43f — awaiting sitting
