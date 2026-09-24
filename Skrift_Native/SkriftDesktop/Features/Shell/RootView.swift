@@ -184,10 +184,22 @@ struct RootView: View {
             #if DEBUG
             // The synthetic corpus (test-fixtures/corpus): `-corpus <path>` seeds it into the
             // shared MEMO store, so the reconcile sweep ingests it like phone notes.
+            // Q37: under `-isolatedRun`, the recordings dir + names db are ALSO redirected to a
+            // scratch temp location — the corpus's audio + synthetic names must never land in
+            // the real Dev recordings folder / names.json on disk, matching the isolated
+            // MemoCloudStore/SharedStore containers above.
             if let corpus = CorpusSeed.launchPath, let cloudCtx = MemoCloudStore.container?.mainContext {
+                let isolated = args.contains("-isolatedRun")
+                let recordingsDir = isolated
+                    ? FileManager.default.temporaryDirectory.appendingPathComponent("isolated-run-recordings-\(UUID().uuidString)", isDirectory: true)
+                    : AppPaths.recordingsDirectory
+                if isolated { try? FileManager.default.createDirectory(at: recordingsDir, withIntermediateDirectories: true) }
+                let namesStore = isolated
+                    ? NamesStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("isolated-run-names-\(UUID().uuidString).json"))
+                    : NamesStore.shared
                 let outcome = (try? CorpusSeed.seed(from: corpus, into: cloudCtx,
-                                                    recordingsDirectory: AppPaths.recordingsDirectory,
-                                                    names: NamesStore.shared)).map(String.init(describing:))
+                                                    recordingsDirectory: recordingsDir,
+                                                    names: namesStore)).map(String.init(describing:))
                 FileHandle.standardError.write(Data(((outcome ?? "corpus: seed FAILED at \(corpus.path)") + "\n").utf8))
             }
             #endif

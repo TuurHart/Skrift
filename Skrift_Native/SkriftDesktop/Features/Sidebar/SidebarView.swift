@@ -37,11 +37,21 @@ struct SidebarView: View {
     private var queuedCount: Int { files.filter { $0.queueStatus == .queued }.count }
     /// D135: "Each chip counts its own notes" — Needs Work / Done / Unrated, over
     /// ALL live items (not the filtered view), like the old triage line's counts.
+    ///
+    /// Q37 fix: Needs Work used to count ONLY `files` (PipelineFile rows), so a
+    /// rated memo waiting on its OWN row — `strandedMemos`, WayOutRules.stranded —
+    /// was invisible to the chip (the "Needs Work 6 vs the iPad's 99" gap over the
+    /// same corpus: the iPad's `ProcessPile.matches(.needsWork,…)` scans every rated
+    /// memo directly, with no pipeline-row prerequisite). Unrated switched from the
+    /// band's `unpipelinedMemos` (which also excludes a fading note — right for the
+    /// row list, since the conveyor owns that row, but wrong for the doctrine above:
+    /// "ALL live items") to `ProcessPile.unrated`, the SAME shared call the iPad's
+    /// chip makes — one definition, not two.
     private var chipCounts: [QueueFilter: Int] {
         NotesListModel.chipCounts(
-            needsWork: files.filter { !model.isComplete($0) }.count,
+            needsWork: files.filter { !model.isComplete($0) }.count + strandedMemos.count,
             done: files.filter { model.isComplete($0) }.count,
-            notRated: unpipelinedMemos.count)
+            notRated: ProcessPile.unrated(memos: effectiveCloudMemos).count)
     }
     /// Files still waiting on the Process button — gated through
     /// `coordinator.needsProcessing` too (not just `queueStatus`), so an unrated

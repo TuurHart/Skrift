@@ -47,6 +47,17 @@ enum MemoCloudStore {
         let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         guard !isTesting else { return nil }
 
+        #if DEBUG
+        // Q37: `-isolatedRun` points the DEV app at an in-memory, non-CloudKit store
+        // instead of the real `memo_cloud.store` (which mirrors Tuur's actual synced
+        // Dev notes) — so a real-window eyeball/screenshot with `-corpus` never opens
+        // the live Dev CloudKit store. DEBUG-only; prod never reads this argument.
+        if ProcessInfo.processInfo.arguments.contains("-isolatedRun") {
+            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+            return try? ModelContainer(for: schema, configurations: config)
+        }
+        #endif
+
         let config = ModelConfiguration(
             schema: schema,
             url: AppPaths.memoCloudStoreFile,

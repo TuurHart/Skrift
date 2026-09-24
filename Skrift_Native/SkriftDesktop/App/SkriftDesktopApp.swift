@@ -7,6 +7,16 @@ import FluidAudio  // Phase 0 proof: FluidAudio (ASR) links + builds for macOS a
 /// background upload/list contexts.
 enum SharedStore {
     static let container: ModelContainer = {
+        #if DEBUG
+        // Q37: `-isolatedRun` — see MemoCloudStore's twin flag — keeps the local
+        // pipeline store in memory too, so a corpus-seeded eyeball run never writes
+        // into the real Dev pipeline store on disk.
+        if ProcessInfo.processInfo.arguments.contains("-isolatedRun") {
+            let config = ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+            do { return try ModelContainer(for: PipelineFile.self, configurations: config) }
+            catch { fatalError("Failed to create isolated ModelContainer: \(error)") }
+        }
+        #endif
         // Explicit store path so dev ("Skrift Dev") and prod ("Skrift") keep
         // SEPARATE SwiftData stores (AppPaths.storeFile is suffixed per build).
         // cloudKitDatabase: .none is REQUIRED, not cosmetic: this is the LOCAL pipeline store
