@@ -603,9 +603,14 @@ struct MemoDetailView: View {
             }
     }
 
+    /// Feeds all three Copy entry points (⋯-menu `workbenchChrome`, the ⋯
+    /// menu's `noteOverflowItems` item, and the compact-sheet "Copy
+    /// transcript" — same function, one gate) through `GatedCopy` (R88/C213):
+    /// a locked, not-yet-unlocked-this-session note asks for auth before
+    /// copying — it does NOT silently no-op.
     private func copyTranscript() {
-        guard let text = currentMemo?.transcript, !text.isEmpty else { return }
-        UIPasteboard.general.string = text
+        guard let memo = currentMemo else { return }
+        Task { await GatedCopy.copyTranscript(memo, lockGate: lockGate) }
     }
 
     /// "512 words · 3:07" — the ⋯ sheet's title doubles as the note's stats line.
