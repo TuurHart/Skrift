@@ -35,13 +35,13 @@ node: i23
 do: The importance control as three balls (Passing 0.3 / Useful 0.6 / Important 1.0), tap sets, re-tap clears to Not rated, no fourth button, "Importance" label; shown on the Mac note column, the phone note and the iPad note, one size smaller than today (D107). Draw the current control from source beside it.
 check: Tuur clicked through it and said go.
 
-### Q3 [tuur] (todo) mockup: tag UI revamp
+### Q3 [tuur] (doing) mockup: tag UI revamp
 spec: C241 C93
 needs: -
 do: A redesigned tag editor for phone and Mac that keeps the C93 rules (comma/newline split, `#` stripped, case kept, case-variants fold to the first spelling, destination words allowed). Start from today's tag chips drawn from source, show add / remove / suggest / typeahead.
 check: Tuur clicked through it and said go.
 
-### Q4 [tuur] (todo) mockup: edit-conflict prompt
+### Q4 [tuur] (doing) mockup: edit-conflict prompt
 spec: C242 C98
 needs: -
 do: The conflict shown on a note edited on two devices before they synced: the note's marker in the list, the dialog with Keep this device / Keep the other / Keep both (two notes), and where the unkept version sits for the trash window. Modelled on Shapr3D's "Version Conflict Detected". Phone and Mac.
@@ -136,7 +136,7 @@ node: AuditFix2
 do: The phone persists audio in segments on every interruption and every 60 s with a marker; a launch sweep rebuilds the note from the segments and says so; a force-quit finalises; disk full stops the take with an honest error and keeps what landed (R46). D131: on a low-memory warning the audio is flushed and a checkpoint row written FIRST, then the transcriber unloads, captions stop, the model reloads after Stop; in the background live captions stop and the recording continues. Recovery never runs over a `transcriptUserEdited` memo (C263); unrecoverable `rec_tmp_*` are cleaned after a failed sweep (C288); every lifecycle transition logs a Release-safe `os_log` line (C287). Test in `RecoverySweepTests`. Hardware-flavoured: per CLAUDE.md the orchestrator owns route/audio-session changes; the worker keeps to persistence + sweep.
 check: `plan/mtest.sh RecoverySweepTests`
 
-### Q17 [tuur] (todo) iPhone 13: call and force-quit mid-take
+### Q17 [tuur] (doing) iPhone 13: call and force-quit mid-take
 spec: C99
 needs: Q16
 node: AuditFix2
@@ -179,7 +179,7 @@ needs: -
 do: Tuur 2026-09-24 (D134): "the way the notes are viewed, the list of notes… we need to unify that over all three devices". One clickable page: today's list row on the phone, iPad and Mac drawn from source side by side, then ONE unified row + list for all three, with the signed Q1 header ✎ and Q2 three balls in place. Phone, iPad and Mac frames.
 check: Tuur clicked through it and said go.
 
-### Q23 [auto] (todo) corpus notes for R25, R33 and R74 that SPEC cites but never existed
+### Q23 [auto] (doing) corpus notes for R25, R33 and R74 that SPEC cites but never existed
 spec: C4 C13 C12 C10
 needs: -
 gate+: yes
@@ -187,7 +187,7 @@ node: V2Core
 do: Add the synthetic corpus notes the R table names but the corpus never had (Q10 finding): `pic-during-pause-two-shots` and `pic-burst-same-offset` (R74: two pictures tie on one nearest word), an ingress-P3 note (R33: 5 clips + 1 picture between clip 3 and 4), and a migrated note with name offsets (R25). Follow `test-fixtures/corpus/README.md` and `generate.py`; fictional roster only (C4). Record their v1 goldens (BodyGoldenTests, re-record recipe in plan/RUN.md Q9 finding), add them to `expected-differences.json`, and drop them from `_missing_fixtures` by adding a new mapping file rather than editing the existing one if gate+ forbids the edit.
 check: `test -d test-fixtures/corpus/notes/pic-during-pause-two-shots && test -d test-fixtures/corpus/notes/pic-burst-same-offset && ./gate.sh`
 
-### Q24 [auto] (todo) the old 10-stop scale and refine pass leave the code (litCount)
+### Q24 [auto] (doing) the old 10-stop scale and refine pass leave the code (litCount)
 spec: C210 C183 C94
 needs: Q8
 node: i23
@@ -246,3 +246,8 @@ check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-09-24 14:24 Q22 -> tuur — built @2c719317 — awaiting sitting
 - 2026-09-24 14:42 Q22 -> done — signed third pass; Mark all as Passing removed (D137)
 - 2026-09-24 14:42 Q26 added
+- 2026-09-24 14:47 Q17 -> doing — worker out
+- 2026-09-24 14:47 Q24 -> doing — worker out
+- 2026-09-24 14:47 Q23 -> doing — worker out
+- 2026-09-24 14:47 Q3 -> doing — mockup out
+- 2026-09-24 14:47 Q4 -> doing — mockup out
