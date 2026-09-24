@@ -128,3 +128,15 @@ enum AppTheme {
         NSApplication.shared.appearance = nsAppearance(raw)
     }
 }
+
+/// The Mac look for the shared `TagEditorRow` (C240) — 12 pt chips, 22 pt tall, `✕`
+/// on hover rather than tap-arm (D139 signed mock `tag-ui-revamp.html`: the pointer's
+/// hover already gives the "are you sure" beat a touch doesn't have).
+extension TagRowStyle {
+    static let mac = TagRowStyle(
+        chipFont: .system(size: 12, weight: .medium), chipHeight: 22, chipHPad: 9,
+        fieldWidth: 90, armsOnTap: false,
+        textColor: Theme.accent, backgroundColor: Theme.accentSoft, dimTextColor: Theme.textSecondary,
+        elevColor: Theme.chip, borderColor: Theme.hairline.opacity(0.2), dangerColor: Theme.destructive,
+        fieldBackground: Theme.hairline.opacity(0.06), fieldBorder: Theme.hairline.opacity(0.2))
+}

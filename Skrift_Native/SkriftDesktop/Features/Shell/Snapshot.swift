@@ -532,7 +532,9 @@ enum Snapshot {
 
         let view = VStack(alignment: .leading, spacing: 8) {
             Text("Tags — typing “te”").font(.system(size: 10)).tracking(0.6).foregroundStyle(Theme.textMuted)
-            TagEditor(file: subject, seedAdding: true, seedDraft: "te")
+            TagEditorRow(tags: Binding(get: { subject.tags }, set: { subject.tags = $0 }),
+                         library: TagLibrary.mostUsedFirst(ctx), style: .mac,
+                         seedAdding: true, seedDraft: "te")
             Text("Body — inline “#te” menu").font(.system(size: 10)).tracking(0.6).foregroundStyle(Theme.textMuted)
                 .padding(.top, 10)
             TagSuggestList(matches: ["testing", "testflight", "testy"], selected: 0, onPick: { _ in })

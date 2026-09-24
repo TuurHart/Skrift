@@ -33,12 +33,22 @@ struct NoteProperties: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
             titleSection
-            // ONE chips row — date · place · weather · daypart · source · duration ·
-            // reminder/lock, then the tags and "+ add tag". Signed mock
-            // `mocks/mac-note-header.html` (Tuur 2026-07-25, at the iPad's weight):
-            // this replaces the four-row properties table, which repeated what the
-            // chips, the player and the sidebar glyph already said.
-            TagEditor(file: file, leadingChips: metaChips)
+            // Facts row — date · place · weather · daypart · source · duration ·
+            // reminder/lock. Signed mock `mocks/mac-note-header.html` (Tuur
+            // 2026-07-25, at the iPad's weight): this replaces the four-row
+            // properties table, which repeated what the chips, the player and the
+            // sidebar glyph already said.
+            FlowLayout(spacing: 6) {
+                ForEach(metaChips) { c in
+                    MacContextChip(text: c.text, systemImage: c.symbol, tint: c.tint)
+                }
+            }
+            // Tags — their OWN row (D139 pick 3, signed mock `mocks/tag-ui-revamp.html`):
+            // an inline field (no sheet), `✕` on hover, library-wide case fold (C93/D139).
+            // `.onChange(of: file.tags)` below already mirrors any tag edit to the
+            // phone — no extra sync call needed here.
+            TagEditorRow(tags: $file.tags, library: TagLibrary.mostUsedFirst(file.modelContext),
+                         style: .mac)
             SignificanceCircles(value: $file.significance)
             // WHERE this note goes when it leaves — the SHARED `DestinationRowView`, in
             // the same place as the phone's (signed mock note-destination-tags.html,
@@ -284,187 +294,3 @@ struct MacContextChip: View {
     }
 }
 
-// ── Tags ────────────────────────────────────────────────────
-/// Tag editor (design #1, 2026-07-16): applied tags as pills + a "+ add tag" field
-/// that opens a TYPEAHEAD dropdown of MATCHING tags as you type (most-used first) with
-/// a "Create #x" row — never a wall of every tag (that didn't scale past a handful).
-/// The note's own deterministic `tagSuggestions` (TagMatcher) rank first in the
-/// dropdown, and show as a few quick chips only when the field is open + empty.
-struct TagEditor: View {
-    @Bindable var file: PipelineFile
-    /// Facts that share the tags' FlowLayout so the header is ONE flowing row rather
-    /// than a chips row above a tags row (signed mock `mac-note-header.html`). Passed
-    /// in rather than derived here: this view owns tag editing, not the note's facts.
-    var leadingChips: [MacChip] = []
-    /// Snapshot/preview seed — opens the field with a draft so the dropdown renders.
-    var seedAdding = false
-    var seedDraft = ""
-
-    @State private var adding = false
-    @State private var draft = ""
-    @FocusState private var fieldFocused: Bool
-
-    /// The note's own deterministic suggestions — small + note-specific. Shown as quick
-    /// chips only while adding with an empty field (never a wall), and ranked first in
-    /// the typeahead once you start typing.
-    private var aiSuggestions: [String] {
-        Array((file.tagSuggestions ?? []).filter { !file.tags.contains($0) }.prefix(4))
-    }
-
-    /// Every tag across the library, most-used first — the typeahead source.
-    /// Snapshot per OPEN of the add-field: the computed form re-fetched and
-    /// re-tallied the entire library on every keystroke (twice — `matches` and
-    /// `exactExists` both read it).
-    @State private var libraryTags: [String] = []
-
-    private var typed: String { draft.trimmingCharacters(in: .whitespaces).lowercased() }
-
-    /// Typeahead matches: note suggestions first, then library by frequency; PREFIX
-    /// match on the typed text (predictable for tags); excludes tags already on the
-    /// note; capped to stay a menu.
-    private var matches: [String] {
-        guard !typed.isEmpty else { return [] }
-        let have = Set(file.tags.map { $0.lowercased() })
-        var seen = Set<String>(); var out: [String] = []
-        for t in (file.tagSuggestions ?? []) + libraryTags {
-            let lt = t.lowercased()
-            guard !have.contains(lt), !seen.contains(lt), lt.hasPrefix(typed) else { continue }
-            seen.insert(lt); out.append(t)
-            if out.count >= 8 { break }
-        }
-        return out
-    }
-
-    /// Typed text already IS a tag somewhere → hide the "Create" row.
-    private var exactExists: Bool {
-        guard !typed.isEmpty else { return false }
-        return Set((file.tags + libraryTags + (file.tagSuggestions ?? [])).map { $0.lowercased() }).contains(typed)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            FlowLayout(spacing: 6) {
-                ForEach(leadingChips) { c in
-                    MacContextChip(text: c.text, systemImage: c.symbol, tint: c.tint)
-                }
-                ForEach(file.tags, id: \.self) { chip($0) }
-                addControl
-            }
-            if adding {
-                if !typed.isEmpty {
-                    suggestionMenu
-                } else if !aiSuggestions.isEmpty {
-                    FlowLayout(spacing: 6) {
-                        ForEach(aiSuggestions, id: \.self) { suggestionChip($0) }
-                    }
-                }
-            }
-        }
-        .onAppear { if seedAdding { adding = true; draft = seedDraft } }
-        // The field auto-focuses the moment it appears — clicking "+ add tag" should let
-        // you type immediately (device finding: it opened unfocused, needing a 2nd click).
-        .onChange(of: adding) { _, now in
-            if now {
-                fieldFocused = true
-                libraryTags = TagLibrary.mostUsedFirst(file.modelContext)
-            }
-        }
-    }
-
-    private func chip(_ tag: String) -> some View {
-        HStack(spacing: 5) {
-            Text("#\(tag)").font(.system(size: 11, weight: .medium))
-            Button { file.tags.removeAll { $0 == tag } } label: {
-                Image(systemName: "xmark").font(.system(size: 8, weight: .bold)).opacity(0.5)
-                    .frame(width: 15, height: 15)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-        .foregroundStyle(Theme.accent)
-        .padding(.horizontal, 9).padding(.vertical, 3)
-        .background(Theme.accent.opacity(0.15), in: Capsule())
-    }
-
-    /// A note's own deterministic suggestion, as a dashed quick-add chip (empty-field state).
-    private func suggestionChip(_ s: String) -> some View {
-        Button { file.tags.append(s) } label: {
-            Text("+ #\(s)").font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
-                .padding(.horizontal, 9).padding(.vertical, 3)
-                .overlay(Capsule().stroke(Theme.hairline.opacity(0.2), style: StrokeStyle(lineWidth: 0.5, dash: [3])))
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// The typeahead dropdown — a "Create #x" row (when the typed tag is new) + the
-    /// matching tags, most-used first.
-    private var suggestionMenu: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if !exactExists {
-                menuRow(icon: "plus", label: "Create #\(typed)", accent: true) { commitOne(typed) }
-            }
-            ForEach(matches, id: \.self) { m in
-                menuRow(icon: "number", label: "#\(m)") { commitOne(m) }
-            }
-            if exactExists && matches.isEmpty {
-                Text("#\(typed) — already on this note")
-                    .font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-                    .padding(.horizontal, 10).padding(.vertical, 6)
-            }
-        }
-        .frame(maxWidth: 260, alignment: .leading)
-        .background(Theme.surfaceHover, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.hairline.opacity(0.1), lineWidth: 1))
-    }
-
-    private func menuRow(icon: String, label: String, accent: Bool = false,
-                         action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 7) {
-                Image(systemName: icon).font(.system(size: 10))
-                    .foregroundStyle(accent ? Theme.accent : Theme.textMuted).frame(width: 12)
-                Text(label).font(.system(size: 12)).foregroundStyle(accent ? Theme.accent : Theme.textPrimary)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 10).padding(.vertical, 6)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder private var addControl: some View {
-        if adding {
-            TextField("tag", text: $draft)
-                .textFieldStyle(.plain)
-                .font(.system(size: 11))
-                .foregroundStyle(Theme.textPrimary)
-                .frame(width: 90)
-                .padding(.horizontal, 9).padding(.vertical, 3)
-                .background(Theme.hairline.opacity(0.06), in: Capsule())
-                .focused($fieldFocused)
-                .onSubmit { commit() }
-                .onExitCommand { draft = ""; adding = false }   // Esc closes the field
-        } else {
-            Button { adding = true } label: {
-                Text("+ add tag").font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
-                    .padding(.horizontal, 9).padding(.vertical, 3)
-                    .overlay(Capsule().stroke(Theme.hairline.opacity(0.2), style: StrokeStyle(lineWidth: 0.5, dash: [3])))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    /// Add ONE tag (a dropdown pick) and keep the field open for the next.
-    private func commitOne(_ tag: String) {
-        let t = tag.trimmingCharacters(in: .whitespaces).lowercased().replacingOccurrences(of: "#", with: "")
-        if !t.isEmpty && !file.tags.contains(t) { file.tags.append(t) }
-        draft = ""
-    }
-
-    /// Return commits the typed text (comma-splits, shared parser) and closes the field.
-    private func commit() {
-        for t in Memo.parseTagInput(draft) where !file.tags.contains(t) { file.tags.append(t) }
-        draft = ""; adding = false
-    }
-}
