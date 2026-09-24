@@ -224,7 +224,7 @@ gate+: yes
 do: Build the signed `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html` (D139 picks: inline field in the tag row, no sheet; tap-twice remove + 4 s Undo, Mac ✕ on hover; own row under the title, 14 pt / 30 pt) as ONE shared view in `Shared/UI/` with a per-app style (C240). Tag rules single-sourced in Shared: comma/newline split, `#` stripped ONCE, case kept on first use, and a new tag whose case-folded form exists ANYWHERE in the library reuses that spelling (D139). Fix the three BUGS §4 tag leads on the way (Mac `NoteProperties.swift:460` lowercases on pick; no case fold; `Memo.splitTagInput` strips every `#`). Test in a new `TagRulesTests` (desktop target).
 check: `grep -rqE "class TagRulesTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q29 [auto] (doing) build edit conflicts: detect, prompt, keep both
+### Q29 [auto] (done) build edit conflicts: detect, prompt, keep both
 spec: C98 C242
 needs: Q26
 gate+: yes
@@ -394,3 +394,4 @@ check: `test $(ls plan/reads/list-q37/*.png | wc -l) -ge 1 && grep -rqE "class C
 - 2026-09-24 22:23 Q35 -> done — gate pass @67bd1faf
 - 2026-09-24 22:23 Q37 added
 - 2026-09-24 22:23 Q14 -> doing — worker out
+- 2026-09-24 22:50 Q29 -> done — gate pass @438ba0f9
