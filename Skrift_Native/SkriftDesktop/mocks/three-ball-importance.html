@@ -44,13 +44,14 @@ button:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radi
 .head h1{font-size:19px;font-weight:700;letter-spacing:-.015em;margin:0;text-wrap:balance}
 .head .meta{font-size:12px;color:var(--inkDim);margin-top:2px}
 .head .meta b{color:var(--ink);font-weight:600}
-.picks{border:1.5px dashed var(--redLine);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:12px;background:var(--redSoft)}
+.picks{border:1.5px dashed var(--redLine);border-radius:14px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:7px;background:var(--redSoft)}
 .picks .ph{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--red)}
-.pick{display:flex;flex-direction:column;gap:6px}
+.pick{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:8px}
+.pick .k{font-size:11.5px;font-weight:650;color:var(--ink)}
 .pick .q{font-size:13px;line-height:1.4}
 .pick .q b{font-weight:650}
 .seg{display:flex;background:var(--hair);border-radius:9px;padding:2px;gap:2px}
-.seg button{flex:1;min-height:36px;border-radius:7px;font-size:12.5px;color:var(--inkDim);padding:4px 6px;line-height:1.2}
+.seg button{flex:1;min-height:34px;border-radius:7px;font-size:12.5px;color:var(--inkDim);padding:4px 6px;line-height:1.2}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .seg .tagp{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.08em;color:var(--red);margin-left:4px;vertical-align:1px}
 .gone{font-size:12px;color:var(--inkDim);line-height:1.45}
@@ -148,29 +149,13 @@ button:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radi
   </header>
 
   <section class="picks" aria-label="Choices to overrule">
-    <div class="ph">Three picks to overrule — flip any, every device follows</div>
-    <div class="pick">
-      <div class="q"><b>1 · Layout.</b> Label, balls and the value word share ONE row. No caption row under the balls (the m6 "one size down" cut).</div>
-      <div class="seg" id="seg-layout">
-        <button id="lay-row" data-set="layout:row">One row<span class="tagp">PICK</span></button>
-        <button id="lay-stack" data-set="layout:stack">Stacked, word under each ball</button>
-      </div>
-    </div>
-    <div class="pick">
-      <div class="q"><b>2 · Fill.</b> Cumulative, like today's circles: Useful lights balls 1 and 2.</div>
-      <div class="seg" id="seg-fill">
-        <button id="fill-cum" data-set="fill:cum">Cumulative<span class="tagp">PICK</span></button>
-        <button id="fill-one" data-set="fill:one">Only the chosen ball</button>
-      </div>
-    </div>
-    <div class="pick">
-      <div class="q"><b>3 · Readout.</b> The word alone ("Useful"). The number stays in storage, the Mac tooltip and the export frontmatter.</div>
-      <div class="seg" id="seg-read">
-        <button id="read-word" data-set="readout:word">Useful<span class="tagp">PICK</span></button>
-        <button id="read-num" data-set="readout:num">0.6 · Useful</button>
-      </div>
-    </div>
-    <div class="gone">Gone from today's control: <s>7 of the 10 circles</s>, <s>the amber refine wall before circle 8</s>, <s>warm amber fills 8–10</s>, <s>the REFINE PASS tag</s>, <s>"Rated for a refine pass"</s>. Amber leaves the control entirely.</div>
+    <div class="ph">Three picks to overrule · flip any, all three devices follow</div>
+    <div class="pick"><span class="k">1 Layout</span>
+      <div class="seg"><button id="lay-row" data-set="layout:row">One row<span class="tagp">PICK</span></button><button id="lay-stack" data-set="layout:stack">Word under each ball</button></div></div>
+    <div class="pick"><span class="k">2 Fill</span>
+      <div class="seg"><button id="fill-cum" data-set="fill:cum">Cumulative<span class="tagp">PICK</span></button><button id="fill-one" data-set="fill:one">Only the chosen ball</button></div></div>
+    <div class="pick"><span class="k">3 Readout</span>
+      <div class="seg"><button id="read-word" data-set="readout:word">Useful<span class="tagp">PICK</span></button><button id="read-num" data-set="readout:num">0.6 · Useful</button></div></div>
   </section>
 
   <nav class="tabs" role="tablist" aria-label="Device">
@@ -184,6 +169,7 @@ button:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radi
   <div class="store" id="store"></div>
 
   <section class="foot" aria-label="How old ratings read">
+    <p class="gone" style="margin:0 0 8px">Gone from today's control: <s>7 of the 10 circles</s>, <s>the amber refine wall before circle 8</s>, <s>warm amber fills 8–10</s>, <s>the REFINE PASS tag</s>, <s>"Rated for a refine pass"</s>. Amber leaves the control entirely.</p>
     <div class="bucket">
       <b>0.1–0.3</b><span>→ Passing (0.3)</span>
       <b>0.4–0.6</b><span>→ Useful (0.6)</span>
