@@ -61,7 +61,7 @@ node: Podcasts
 do: The tab in direction A "Shelf" from `Skrift_Native/SkriftDesktop/mocks/Q5-long-form-inspiration.html`, named "Library"; captures stay in Notes, not on the tab (D134): long-form sources only (book, episode, article, PDF, talk), door-based routing (share-sheet PDF → the tab with "Added to Library · add to a note instead"), capture and "send to a note" on every source, "move to Library" on a note, per-book "N notes" with jump-back, the empty-tab call to action (D90, D126, D127, D128).
 check: Tuur clicked through it and said go.
 
-### Q7 [auto] (doing) build quick note
+### Q7 [auto] (done) build quick note
 spec: C112 C114 C43
 needs: Q1 Q22 Q26
 gate+: yes
@@ -452,3 +452,4 @@ check: `grep -rqE "class ConflictFirstTouchTests\b" Skrift_Native/SkriftDesktop/
 - 2026-09-24 23:16 Q38 -> done — gate pass @6b216dbb
 - 2026-09-24 23:17 Q42 added
 - 2026-09-24 23:17 Q42 -> doing — worker out
+- 2026-09-24 23:21 Q7 -> done — gate pass @5458caba
