@@ -54,7 +54,7 @@ node: Podcasts
 do: One HTML page of screenshots from Apple News, Readwise Reader, Matter, Snipd, Apple Podcasts, Flipboard and Bound, grouped by how each mixes media types (books, episodes, articles, PDFs, talks), with one line per app on what to take. Ends with 3 named directions for Tuur to pick from (D90).
 check: Tuur picked a direction.
 
-### Q6 [tuur] (doing) mockup: the long-form sources tab
+### Q6 [tuur] (tuur) mockup: the long-form sources tab
 spec: C229 C79
 needs: Q5
 node: Podcasts
@@ -209,3 +209,4 @@ check: `test -d test-fixtures/corpus/notes/pic-during-pause-two-shots && test -d
 - 2026-09-24 12:21 Q22 -> tuur — built @9f61c346 — awaiting sitting
 - 2026-09-24 12:30 Q10 -> done — gate pass @4d7cb60a
 - 2026-09-24 12:30 Q23 added
+- 2026-09-24 12:30 Q6 -> tuur — built @1aed4a5d — awaiting sitting
