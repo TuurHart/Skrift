@@ -325,7 +325,7 @@ node: V2Core
 do: Q36 finding: on the phone the "Removed #x · Undo" toast is overlaid on the tag row, so it runs off the left screen edge and covers the remaining chips (`plan/reads/tags-q36/phone-undo-toast.png`). Hoist the toast to the note screen (phone + iPad) and the Mac note column so it is a centred pill near the bottom, above the player/keyboard, as in `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html`; also show per-tag usage counts in the Mac menu rows as the mock does. Re-shoot the toast on the phone (synthetic corpus, isolated store) and LOOK at it; commit under `plan/reads/tags-q41/`.
 check: `test $(ls plan/reads/tags-q41/*.png | wc -l) -ge 1 && ./gate.sh`
 
-### Q42 [auto] (doing) a first touch with no word change never counts as a conflicting edit
+### Q42 [auto] (done) a first touch with no word change never counts as a conflicting edit
 spec: C98
 needs: Q38
 gate+: yes
@@ -464,3 +464,4 @@ check: `test $(ls plan/reads/quicknote-q43/*.png | wc -l) -ge 1 && plan/mtest.sh
 - 2026-09-24 23:23 Q43 added
 - 2026-09-24 23:23 Q41 -> doing — worker out
 - 2026-09-24 23:37 Q41 -> done — gate pass @f33acceb
+- 2026-09-24 23:38 Q42 -> done — gate pass @78045573
