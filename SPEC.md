@@ -1606,7 +1606,9 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     (C129–C130), every tool over there already reads `added:`, and `date:` in the vault is the
     Obsidian convention with different readers. So the Projects profile writes `added:` = the
     note's recording date (not the export time), the Personal profile keeps `date:`. One line in
-    the profile table, no drift because the two files have different readers.
+    the profile table, no drift because the two files have different readers. Provisional:
+    Tuur asks the portfolio chat first (with the D102 questions) whether `added:` = the
+    recording date is right for the site, or whether it would rather read `date:`.
 
 95. **D95 Redo over a hand edit.** ✅ DECIDED 2026-09-24: Redo runs over the text AS IT STANDS,
     his edits included ("won't redo just take in my changes and apply the LLM over what I
