@@ -413,3 +413,4 @@ check: `test $(ls plan/reads/conflict-q39/*.png | wc -l) -ge 4 && ./gate.sh`
 - 2026-09-24 22:50 Q39 added
 - 2026-09-24 22:50 Q7 -> doing — worker out
 - 2026-09-24 22:54 Q14 -> done — gate pass @edfbd51e
+- 2026-09-24 22:54 Q14 -> done — gate pass @a2ca16c5
