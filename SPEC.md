@@ -1755,3 +1755,12 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      Notes, not on the tab. Voice notes with a photo get speech paragraphs like any other (R95);
      the photo stays its own paragraph (C10). New: the notes LIST is unified across phone,
      iPad and Mac, mock first.
+135. **D135 Round-2 mock verdicts.** ✅ DECIDED 2026-09-24 (sitting): Q22 notes list — all three
+     picks taken (pill only while working/broken, display-only balls on rows, day groups on all
+     three); second pass asked: the PHONE gets the same Import · Record · New Note verbs as the
+     iPad and Mac ("just get the same ones… also unify that"), and all three use the iPhone's
+     GREY list background, not white ("I like the gray of the iPhone better"). Q6 Library —
+     signed: a tap on a tile opens/plays it; capture keeps the verb "Add note" and lives in the
+     player, mini bar and PDF reader; the note→source jump-back ("that's so sick"). Note: no PDF
+     reader with text selection exists today (only `PDFTextExtract` + thumbnails), so Q6's build
+     includes one.

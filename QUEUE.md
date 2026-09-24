@@ -54,7 +54,7 @@ node: Podcasts
 do: One HTML page of screenshots from Apple News, Readwise Reader, Matter, Snipd, Apple Podcasts, Flipboard and Bound, grouped by how each mixes media types (books, episodes, articles, PDFs, talks), with one line per app on what to take. Ends with 3 named directions for Tuur to pick from (D90).
 check: Tuur picked a direction.
 
-### Q6 [tuur] (tuur) mockup: the long-form sources tab
+### Q6 [tuur] (done) mockup: the long-form sources tab
 spec: C229 C79
 needs: Q5
 node: Podcasts
@@ -63,8 +63,8 @@ check: Tuur clicked through it and said go.
 
 ### Q7 [auto] (todo) build quick note
 spec: C112 C114 C43
-needs: Q1
-do: Build the signed Q1 mock (`Skrift_Native/SkriftDesktop/mocks/quick-note.html`, D134: ✎ in the list HEADER beside Select, cursor in the body, silent discard) on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). `Memo.newTyped` saves on the tap today, so create the Memo on the first keystroke, or an empty note syncs to the Mac (Q1 finding). Test the routing and the discard in `QuickNoteTests`.
+needs: Q1 Q22
+do: Build the signed Q1 mock (`Skrift_Native/SkriftDesktop/mocks/quick-note.html`, D134: cursor in the body, silent discard; the phone's New Note placement follows the signed Q22 second pass, D135 — the same Import · Record · New Note verbs as iPad/Mac) on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). `Memo.newTyped` saves on the tap today, so create the Memo on the first keystroke, or an empty note syncs to the Mac (Q1 finding). Test the routing and the discard in `QuickNoteTests`.
 check: `plan/mtest.sh QuickNoteTests`
 
 ### Q8 [auto] (done) build three-ball importance on all three devices
@@ -173,7 +173,7 @@ node: AuditFix2
 do: One Shared predicate decides whether a note's content may show without auth; `WayOutView` (Fading / Recently Deleted) shows the "Locked note" placeholder the list already shows; the three delete entry points in `MemosListView` check the lock; `copyTranscript` / `copyableText` are gated behind auth (R88). Test in `LockedNoteVisibilityTests` (phone target).
 check: `plan/mtest.sh LockedNoteVisibilityTests`
 
-### Q22 [tuur] (tuur) mockup: one notes list across phone, iPad and Mac
+### Q22 [tuur] (doing) mockup: one notes list across phone, iPad and Mac
 spec: C117 C114
 needs: -
 do: Tuur 2026-09-24 (D134): "the way the notes are viewed, the list of notes… we need to unify that over all three devices". One clickable page: today's list row on the phone, iPad and Mac drawn from source side by side, then ONE unified row + list for all three, with the signed Q1 header ✎ and Q2 three balls in place. Phone, iPad and Mac frames.
@@ -194,7 +194,7 @@ node: i23
 do: Q8 finding: `litCount` and the refine-pass concept still live in `Shared/Model/SignificanceScale.swift`, `Shared/Pipeline/NoteConsent.swift`, `SkriftDesktop/Pipeline/NoteConsent+PipelineFile.swift`, both `ConnectionsPanel.swift`, `SkriftDesktop/Features/Shell/RunFile.swift`, `JournalView`, `LookbackProvider`. Move every caller to `ThreeBallScale` (three stops, legacy values bucket, no refine wall), delete `SignificanceScale` and the `SignificanceCirclesView` wrapper name. The protected tests `SignificanceScaleTests`, `SignificanceCirclesTests`, `SignificanceCirclesRenderTests`, `UnratedTakeTests`, `NoteConsentTests` reference the old scale: retiring or rewriting them needs Tuur's OK first (a protected-path change, not gate+).
 check: `! grep -rqE "litCount|SignificanceScale\b" Skrift_Native --include='*.swift'`
 
-### Q25 [auto] (todo) pin swift-collections to 1.6.0 (Xcode 27 _swift_initBorrow crash)
+### Q25 [auto] (doing) pin swift-collections to 1.6.0 (Xcode 27 _swift_initBorrow crash)
 spec: C4
 needs: -
 node: AuditFix2
@@ -228,3 +228,6 @@ check: `grep -q "exactVersion: 1.6.0" Skrift_Native/SkriftMobile/project.yml && 
 - 2026-09-24 13:07 Q8 -> done — gate pass @0d081cca
 - 2026-09-24 13:48 Q16 -> stuck — check failed — .queue/Q16.check.log
 - 2026-09-24 13:49 Q25 added
+- 2026-09-24 13:49 Q25 -> doing — worker out
+- 2026-09-24 13:58 Q22 -> doing — second pass: phone gets iPad/Mac verbs, grey background (D135)
+- 2026-09-24 13:58 Q6 -> done — signed: tap opens, 'Add note' capture, jump-back (D135)
