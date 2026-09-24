@@ -1803,3 +1803,8 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 142. **D142 Old C11 unit test follows D140.** ✅ DECIDED 2026-09-24: the protected
      `testTimedPictureAfterSpokenSentence_C11_C13` (photo 0.5 s into "A cat.") now expects the
      photo BEFORE the sentence, per D140 — "yes".
+143. **D143 ✅ BUILDER DEFAULT 2026-09-24 (veto any time) — C19 keeps list indentation only.**
+     Leading whitespace survives commit ONLY on list-item lines (`-`/`*`/`+`/`- [ ]`/`1.`), so nested
+     lists stay nested; any other line's leading run collapses per C19 (a leading tab before plain
+     text would render as a code block in Obsidian). A typed note with an inserted photo keeps its
+     photo as the list thumbnail (today's behaviour; C170's "typed → none" means typed WITHOUT one).
