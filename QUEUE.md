@@ -122,7 +122,7 @@ node: V2Core
 do: (Q23 finding: the corpus has no name-offset field — `CorpusSeed.Note`/`makeMemo` hardcode `nameResolutionsData = nil`; add one so `migrated-stale-name-offsets` proves R25.) At first open on any device, a note whose stored body breaks C10 is rewritten once to the v2 layout and its name offsets re-derived (D4, R25); a local per-note flag makes it one-time and a second run a no-op; the C203 legacy shapes (old test image-captures, pre-build-76 PDF captures) are left alone. Test in `BodyNormaliseMigrationTests` (desktop target) using the v1 goldens as the legacy bodies.
 check: `grep -rqE "class BodyNormaliseMigrationTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q15 [tuur] (todo) delete v1 body after the tag
+### Q15 [tuur] (tuur) delete v1 body after the tag
 spec: C2 C17 C65 C252
 needs: Q14
 node: V2Core
@@ -305,6 +305,18 @@ needs: Q29
 do: Q29 never rendered its UI. From an ISOLATED store seeded with the synthetic corpus plus one forced conflict (never the live Dev store), capture: the phone prompt, the phone banner after "Later", the list row "2 versions" pill, the Mac prompt; LOOK at each against `Skrift_Native/SkriftDesktop/mocks/Q4-edit-conflict.html` and fix clipping/overflow/differences. Confirm editing is blocked on the iPad workbench until a pick. Commit PNGs under `plan/reads/conflict-q39/`.
 check: `test $(ls plan/reads/conflict-q39/*.png | wc -l) -ge 4 && ./gate.sh`
 
+### Q40 [auto] (todo) old-note normalisation covers the polished text + v2 drops v1's leading space
+spec: C10 C19
+needs: Q14
+gate+: yes
+node: V2Core
+do: Q14 finding. (1) The one-time migration (`Shared/BodyV2/BodyNormaliseMigration.swift`) rewrites only `Memo.transcript` on the phone; the Mac-polished `MemoEnhancement.copyedit` (the text he reads and edits) keeps v1's mid-sentence markers. Apply the same guarded, undoable, once-per-note rewrite to the polished text on both apps (words/markers in == out; local ledger; editedAt untouched). (2) `BodyV2.committed` treats v1's wrap `one.
+
+[[img_001]]
+
+ That` as finished and keeps the leading space, so the body still breaks C10: strip the leading horizontal run of a paragraph that follows a picture paragraph (C19), and drop the migration's plain-marker-move fallback once v2 handles it. Test in a new `PolishedNormaliseTests` (desktop target) incl. `conv-with-picture`.
+check: `grep -rqE "class PolishedNormaliseTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -414,3 +426,5 @@ check: `test $(ls plan/reads/conflict-q39/*.png | wc -l) -ge 4 && ./gate.sh`
 - 2026-09-24 22:50 Q7 -> doing — worker out
 - 2026-09-24 22:54 Q14 -> done — gate pass @edfbd51e
 - 2026-09-24 22:54 Q14 -> done — gate pass @a2ca16c5
+- 2026-09-24 22:54 Q40 added
+- 2026-09-24 22:54 Q15 -> tuur — awaiting sitting: tag v1-body + delete v1 (Q14 done)
