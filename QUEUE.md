@@ -325,6 +325,13 @@ node: V2Core
 do: Q36 finding: on the phone the "Removed #x · Undo" toast is overlaid on the tag row, so it runs off the left screen edge and covers the remaining chips (`plan/reads/tags-q36/phone-undo-toast.png`). Hoist the toast to the note screen (phone + iPad) and the Mac note column so it is a centred pill near the bottom, above the player/keyboard, as in `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html`; also show per-tag usage counts in the Mac menu rows as the mock does. Re-shoot the toast on the phone (synthetic corpus, isolated store) and LOOK at it; commit under `plan/reads/tags-q41/`.
 check: `test $(ls plan/reads/tags-q41/*.png | wc -l) -ge 1 && ./gate.sh`
 
+### Q42 [auto] (todo) a first touch with no word change never counts as a conflicting edit
+spec: C98
+needs: Q38
+gate+: yes
+do: Q38 finding: `EditConflicts.recordEdit` stamps the first touch on a never-stamped (pre-Q29) note even when no words changed, so a first audio trim / annotation counts as a word edit and can produce a false "2 versions". Seed the stamp from the current words WITHOUT bumping the edit vector on first touch; bump only when words actually differ. Same for `recordPolishedEdit`. Also make the Mac `MacCloudEditSync.flush` compare the polished body before/after `unlinkToSpoken` round-trip so a title-only edit is not a polished edit. Test in a new `ConflictFirstTouchTests` (desktop target).
+check: `grep -rqE "class ConflictFirstTouchTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -443,3 +450,4 @@ check: `test $(ls plan/reads/tags-q41/*.png | wc -l) -ge 1 && ./gate.sh`
 - 2026-09-24 23:06 Q40 -> done — gate pass @049a2722
 - 2026-09-24 23:06 Q38 -> doing — worker out (opus)
 - 2026-09-24 23:16 Q38 -> done — gate pass @6b216dbb
+- 2026-09-24 23:17 Q42 added
