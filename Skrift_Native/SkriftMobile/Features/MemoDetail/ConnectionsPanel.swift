@@ -45,22 +45,29 @@ enum ConnectionsPanelLogic {
     }
 
     /// The owner-set importance as a one-decimal readout — "0.8" / "1.0", and
-    /// NOTHING when unrated (no fake 0.0). Uses the shared `SignificanceScale`
-    /// so the panel, the significance control, and the Mac panel never drift.
-    /// Is this importance past the refine wall? The COLOUR half of `importanceText`, which
+    /// NOTHING when unrated (no fake 0.0). This reads the RAW stored grid value
+    /// (not the ball control's 3-stop `ThreeBallScale`, which only ever writes
+    /// 0.3/0.6/1.0 going forward) — a pre-Q24 note can still carry any 0.1–1.0
+    /// value, and the panel shows what's actually stored. Literal, no shared
+    /// enum: kept in lock-step with `IPadDetailConnectionsTests` (0.7/0.8
+    /// boundary), which Q24 does not touch.
+    /// Is this importance past the old 0.8 boundary? The COLOUR half of `importanceText`, which
     /// the iPad had been missing: the Mac painted 0.8+ amber (the same language the circles
     /// and the flame tag speak) while the iPad painted every value one colour, so a 1.0
     /// connection looked exactly like a 0.2 one and the number carried nothing (Tuur spotted
     /// it comparing the two panels, 2026-08-14). Sharing the string but not the rule is how
     /// that happened — they live together now.
     static func isRefineImportance(_ significance: Double) -> Bool {
-        SignificanceScale.isRefine(step: SignificanceScale.litCount(significance))
+        guard significance.isFinite else { return false }
+        let step = Int(min(10, max(0, (significance * 10).rounded())))
+        return step >= 8
     }
 
     static func importanceText(_ significance: Double) -> String? {
-        let step = SignificanceScale.litCount(significance)
+        guard significance.isFinite else { return nil }
+        let step = Int(min(10, max(0, (significance * 10).rounded())))
         guard step > 0 else { return nil }
-        return step == SignificanceScale.stepCount ? "1.0" : "0.\(step)"
+        return step == 10 ? "1.0" : "0.\(step)"
     }
 
     /// Closest = score DESC (best match first). Date mode renders the RAIL

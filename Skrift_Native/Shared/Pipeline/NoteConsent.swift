@@ -30,10 +30,10 @@ import Foundation
 enum NoteConsent {
 
     /// Has this note been judged? `nil` and `0` both mean no —
-    /// `SignificanceScale.litCount` is the one dialect-tolerant reading of a
+    /// `ThreeBallScale.step(for:)` is the one dialect-tolerant reading of a
     /// significance value (float-noise and non-finite tolerant too).
     static func isRated(_ significance: Double?) -> Bool {
-        SignificanceScale.litCount(significance) > 0
+        ThreeBallScale.step(for: significance) > 0
     }
 
     /// The memo channel (both apps): non-optional storage, 0 = unrated.

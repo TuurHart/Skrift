@@ -4,7 +4,7 @@ import SwiftUI
 // (Shared/UI/ThreeBallImportanceView.swift) and the 3-stop scale is the SHARED
 // `ThreeBallScale` — one copy each for both apps, since the scale gates
 // phone→Mac sync and the control has already drifted twice (Q8, replacing the
-// 10-circle `SignificanceCirclesView`/`SignificanceScale` pairing here). What is
+// old 10-circle scale/view pairing here, fully retired by Q24). What is
 // left here is the phone's half (also drawn on iPad — SkriftMobile is universal,
 // TARGETED_DEVICE_FAMILY "1,2"): which colours out of `Theme`, and the
 // measurements a touch screen was tuned to.

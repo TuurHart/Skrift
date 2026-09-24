@@ -5,7 +5,7 @@ import AppKit
 // (Shared/UI/ThreeBallImportanceView.swift) and the value↔ball mapping is the
 // SHARED `ThreeBallScale` — one copy each for both apps, since the scale gates
 // phone→Mac sync and the control has already drifted twice (Q8, replacing the
-// 10-circle `SignificanceCirclesView`/`SignificanceScale` pairing here). What is
+// old 10-circle scale/view pairing here, fully retired by Q24). What is
 // left here is the Mac's half: which colours out of `Theme`, and the
 // measurements a pointer-driven desktop card was tuned to.
 

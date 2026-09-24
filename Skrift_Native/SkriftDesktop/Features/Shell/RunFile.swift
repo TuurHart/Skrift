@@ -801,9 +801,9 @@ enum RunFile {
             }
             // "Unrated" is the app's own definition, not a stricter one invented here: the
             // desktop stores `Double?` (nil = never rated) and the phone a non-optional 0, and
-            // `SignificanceScale.litCount` reads BOTH as zero circles — "Not rated". A reflect
+            // `ThreeBallScale.step(for:)` reads BOTH as ball 0 — "Not rated". A reflect
             // from the synced Memo legitimately turns nil into 0.0.
-            let locallyUnrated = SignificanceScale.litCount(pf.significance) == 0
+            let locallyUnrated = ThreeBallScale.step(for: pf.significance) == 0
             let ok = pf.transcribeStatus == .done && !transcript.isEmpty
                 && pf.enhanceStatus != .done && locallyUnrated && memoUnrated
             log(ok ? ">>> PASS — words on arrival, still unrated (here AND on the synced Memo), nothing processed"
