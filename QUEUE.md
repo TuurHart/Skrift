@@ -67,7 +67,7 @@ needs: Q1
 do: Build the signed Q1 mock (`Skrift_Native/SkriftDesktop/mocks/quick-note.html`, D134: ✎ in the list HEADER beside Select, cursor in the body, silent discard) on the phone and iPad: an in-app New Note action, a Lock Screen / Control Center widget and a Siri App Intent (plain `AppIntent`, no haptic before the session is ours, C222) that open an empty typed note with the keyboard up; an untouched empty typed note is discarded on leave and never listed (D91). `Memo.newTyped` saves on the tap today, so create the Memo on the first keystroke, or an empty note syncs to the Mac (Q1 finding). Test the routing and the discard in `QuickNoteTests`.
 check: `plan/mtest.sh QuickNoteTests`
 
-### Q8 [auto] (doing) build three-ball importance on all three devices
+### Q8 [auto] (done) build three-ball importance on all three devices
 spec: C94 C210 C183 C240
 needs: Q2
 gate+: yes
@@ -218,3 +218,4 @@ check: `! grep -rqE "litCount|SignificanceScale\b" Skrift_Native --include='*.sw
 - 2026-09-24 12:30 Q23 added
 - 2026-09-24 12:30 Q6 -> tuur — built @1aed4a5d — awaiting sitting
 - 2026-09-24 13:07 Q24 added
+- 2026-09-24 13:07 Q8 -> done — gate pass @0d081cca
