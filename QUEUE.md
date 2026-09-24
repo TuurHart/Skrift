@@ -231,7 +231,7 @@ gate+: yes
 do: Build the signed `Skrift_Native/SkriftDesktop/mocks/Q4-edit-conflict.html` (D139): a same-note edit on two devices that meet after being apart becomes a conflict record, never a silent overwrite (C98) — only body, title and tags conflict; rating, lock and reminder stay newest-wins; new notes never conflict. The note shows the "2 versions" pill in the list and the prompt on open (Keep both = default/Return; Keep this device / Keep the other); editing blocked until picked, "Later" leaves the amber banner; the unkept version goes to Recently Deleted as a "replaced" row (14 days); the Mac holds processing/export until picked. Test in a new `EditConflictTests` (desktop target): two in-memory stores with diverging edits → a conflict record, no loss.
 check: `grep -rqE "class EditConflictTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q30 [auto] (todo) body v2: photo in a sentence's first second goes before it
+### Q30 [auto] (doing) body v2: photo in a sentence's first second goes before it
 spec: C11 C10
 needs: Q11
 gate+: yes
@@ -304,3 +304,4 @@ check: `./gate.sh && test -s plan/reads/body-v2.md`
 - 2026-09-24 20:21 Q27 -> done — gate pass @94cab5b1
 - 2026-09-24 20:28 Q12 -> done — read signed with D140 + D141
 - 2026-09-24 20:28 Q30 added
+- 2026-09-24 20:28 Q30 -> doing — worker out
