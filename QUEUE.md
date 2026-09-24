@@ -91,7 +91,7 @@ node: V2Core
 do: `BodyDiffHarnessTests` (desktop target) runs every registered body engine (v1 now) over the whole corpus and classes each note identical / expected-different / unexplained against the v1 goldens and `expect_body.txt`; `test-fixtures/corpus/expected-differences.json` maps slug → R id (R1 R2 R25 R33 R74, R95: every voice note with a picture, which v1 never speech-paragraphs — confirmed D134); any unexplained row, or an R row where the engine MATCHES v1, fails (C5). For v1 itself, the notes failing their `expect_body` must be exactly the registered set. Body invariants from C6 as assertions: markers in = markers out, paragraph count never drops, `BodyTransform` round-trip identical, idempotent, pieces cover the body, and (for any non-v1 engine) no `[[img_` inside a sentence.
 check: `grep -qE '"R74"' test-fixtures/corpus/expected-differences.json && grep -rqE "class BodyDiffHarnessTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q11 [auto] (todo) body/image v2 beside v1
+### Q11 [auto] (doing) body/image v2 beside v1
 spec: C10 C11 C12 C13 C14 C15 C16 C19 C20 C169 C170 C2 C3
 needs: Q10
 gate+: yes
@@ -258,3 +258,4 @@ check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-09-24 15:02 Q3 -> tuur — built @840e77be — awaiting sitting
 - 2026-09-24 15:09 Q21 -> done — gate pass @9d3d583b
 - 2026-09-24 15:13 Q23 -> done — gate pass @12a1ca1a
+- 2026-09-24 15:13 Q11 -> doing — worker out (opus)
