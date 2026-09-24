@@ -74,7 +74,7 @@ node: i23
 do: Build the signed Q2 mock as ONE shared view in `Skrift_Native/Shared/UI/` with a per-app style struct (C240), used on the Mac, phone and iPad. The scale lives in Shared: legacy values bucket (0.1–0.3 → 0.3, 0.4–0.6 → 0.6, 0.7–1.0 → 1.0), re-tap → 0 (Not rated). Test the bucketing and the tap rules in a NEW `ThreeBallScaleTests` (desktop test target); the existing `SignificanceScaleTests` covers the old 10-circle scale and is retired or rewritten with it.
 check: `grep -rqE "class ThreeBallScaleTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ! grep -rqE "litCount" Skrift_Native/Shared Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q9 [auto] (doing) corpus expectations become data + v1 body goldens
+### Q9 [auto] (done) corpus expectations become data + v1 body goldens
 spec: C4 C5 C10 C11 C12 C13 C14 C15 C19 C20 C253
 needs: -
 gate+: yes
@@ -180,3 +180,4 @@ check: `plan/mtest.sh LockedNoteVisibilityTests`
 - 2026-09-24 11:33 Q2 -> tuur — built @86142b9a — awaiting sitting
 - 2026-09-24 11:39 Q1 -> tuur — built @54d80333 — awaiting sitting
 - 2026-09-24 11:40 Q5 -> tuur — built @23c7662b — awaiting sitting
+- 2026-09-24 11:49 Q9 -> done — gate pass @0efe1220
