@@ -339,7 +339,7 @@ node: V2Core
 do: Q7 finding: the quick note opens a NEW minimal `QuickNoteView` (title field + TextEditor, no accessory bar) that was never rendered. The signed `Skrift_Native/SkriftDesktop/mocks/quick-note.html` shows the app's normal note screen, empty, keyboard up, cursor in the body. Either route the quick note into the normal note editor in a draft state (preferred: one editor) or make QuickNoteView match it; keep first-keystroke creation + empty discard (QuickNoteTests must stay green). Screenshot on the iPhone 17 SIM only (synthetic corpus, isolated store; the sim renders offscreen) and LOOK at it: keyboard up, cursor in body, nothing clipped. Commit under `plan/reads/quicknote-q43/`. NEVER `open -a` a Skrift app, never capture the whole screen.
 check: `test $(ls plan/reads/quicknote-q43/*.png | wc -l) -ge 1 && plan/mtest.sh QuickNoteTests && ./gate.sh`
 
-### Q44 [auto] (todo) tag Undo toast sits just above the player and keyboard, over no content
+### Q44 [auto] (doing) tag Undo toast sits just above the player and keyboard, over no content
 spec: C241 C117
 needs: Q41
 do: Q41 finding: `plan/reads/tags-q41/phone-undo-toast.png` shows the toast centred horizontally but floating mid-screen over the Importance card. Place it as the mock does (`Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html`): a centred pill anchored to the bottom safe area, just above the player (keyboard down) or above the keyboard accessory bar (keyboard up), never covering note content; same on iPad and the Mac column. Re-shoot on the iPhone 17 sim (synthetic corpus, isolated store) with the keyboard up AND down; LOOK at both. Commit under `plan/reads/tags-q44/`. NEVER `open -a` a Skrift app; never capture the whole screen.
@@ -498,3 +498,4 @@ check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh QuickNoteTests && ./gate.sh
 - 2026-09-25 00:27 Q46 -> done — gate pass @75ef8ac1
 - 2026-09-25 00:27 Q43 -> doing — resumed after Q46
 - 2026-09-25 00:36 Q43 -> done — gate pass @58aee0f3
+- 2026-09-25 00:36 Q44 -> doing — worker out
