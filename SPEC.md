@@ -1800,3 +1800,6 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      `pic-in-task-list` (already a checkbox list; v2 correctly leaves it); the 13 extra differences
      in `expected-differences-q11.json` are accepted (C19 whitespace, C12 lone shared photo to the
      top, C14 markers v1 lost) — "yes sounds good to me".
+142. **D142 Old C11 unit test follows D140.** ✅ DECIDED 2026-09-24: the protected
+     `testTimedPictureAfterSpokenSentence_C11_C13` (photo 0.5 s into "A cat.") now expects the
+     photo BEFORE the sentence, per D140 — "yes".
