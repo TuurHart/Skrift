@@ -843,6 +843,11 @@ private struct MemoPageView: View {
     /// level (`tagToastView`'s own `.overlay`), not `TagEditorRow`'s own bounds
     /// (which ran the pill off the left screen edge, Q36 finding).
     @State private var tagToast: TagEditorRow.TagToast?
+    /// Q44: the tag toast's own screen already backs off for the keyboard (standard
+    /// SwiftUI avoidance shrinks this Group's frame), so the fixed 96pt "clear the
+    /// player" padding must drop to a hairline once a keyboard is up — otherwise the
+    /// two paddings stack and the pill floats mid-screen over the Importance card.
+    @State private var keyboardVisible = false
     @State private var personSheet: PersonSheetRequest?
     @State private var showPeopleSheet = false
     // Phase 4 — the polish (Mac write-back / phone edits), shown as the editable body.
@@ -1023,6 +1028,14 @@ private struct MemoPageView: View {
         .overlay(alignment: .bottom) { undoToastView }
         // Tag removal → its own Undo toast (Q41), centred on the whole page.
         .overlay(alignment: .bottom) { tagToastView }
+        // Q44: the toast anchors above the player (keyboard down) OR above the
+        // keyboard's accessory bar (keyboard up) — never floating mid-screen.
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            keyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardVisible = false
+        }
     }
 
     // MARK: - Page kinds (B2 pinned title + body)
@@ -1904,7 +1917,11 @@ private struct MemoPageView: View {
                 toast.undo()
                 withAnimation(Theme.Motion.spring) { tagToast = nil }
             })
-            .padding(.bottom, 96)                          // clear the floating player bar
+            // Keyboard down: this Group's frame runs to the real screen bottom, so
+            // 96pt clears the floating player bar. Keyboard up: standard SwiftUI
+            // avoidance already shrinks the Group's frame to end right above the
+            // keyboard's accessory bar — a hairline is enough (Q44).
+            .padding(.bottom, keyboardVisible ? 10 : 96)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .task(id: toast.id) {
                 try? await Task.sleep(for: .seconds(4))
