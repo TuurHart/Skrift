@@ -262,7 +262,7 @@ node: V2Core
 do: Q26 was never looked at on screen. Seed the synthetic corpus (`-corpus test-fixtures/corpus`, never real data) and render: the phone list (iPhone 17 sim screenshot, light + dark), the iPad list (iPad sim), and the Mac sidebar (the desktop `-snapshot` harness or a Dev-app screenshot). Compare each against the "One list" tab of `Skrift_Native/SkriftDesktop/mocks/one-notes-list.html` by LOOKING at the PNGs: verb row, chip bar with counts + icon Filter, grey ground, day groups, display-only balls, pill only while working/broken, no clipping/overflow, long titles, empty list. Fix what differs. Also update `SkriftMobileUITests` RecordingUITests + ConversationMockUITests to tap Record in the verb row (the corner FAB `new-recording-button` is gone, D136). Commit the PNGs under `plan/reads/list-q33/`.
 check: `test $(ls plan/reads/list-q33/*.png | wc -l) -ge 4 && ! grep -rqE "new-recording-button" Skrift_Native/SkriftMobile/SkriftMobileUITests && ./gate.sh`
 
-### Q34 [auto] (doing) vault embeds follow a disambiguated attachment name
+### Q34 [auto] (done) vault embeds follow a disambiguated attachment name
 spec: C58 C54 C56
 needs: Q32
 gate+: yes
@@ -357,3 +357,4 @@ check: `grep -rqE "class AttachmentEmbedNameTests\b" Skrift_Native/SkriftDesktop
 - 2026-09-24 21:42 Q34 added
 - 2026-09-24 21:42 Q33 -> doing — worker out
 - 2026-09-24 21:42 Q34 -> doing — worker out
+- 2026-09-24 21:51 Q34 -> done — gate pass @87faab1c
