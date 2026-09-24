@@ -285,9 +285,10 @@ node: V2Core
 do: Q28 finding: bring the built tag editor to the signed `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html` (D139): restore the Mac's keyboard-navigable suggestion menu (↑↓, Tab/Return accept, a "Create #x" row) that Q28 replaced with a chip strip; Undo as the mock's floating 4 s toast, not an inline row. Rewrite or retire `SkriftMobileUITests/TagSheetUITests.swift` (it drives the deleted sheet and the pre-2026-08-27 "destination words refused" rule; destination words ARE tags per C93). Screenshots from the SYNTHETIC corpus only in an isolated store (`-inMemoryStore -corpus test-fixtures/corpus`, never the live Dev store): phone note header with tags, the armed-remove state, the Undo toast, the Mac menu open — LOOK at each vs the mock and fix differences. Commit PNGs under `plan/reads/tags-q36/`.
 check: `test $(ls plan/reads/tags-q36/*.png | wc -l) -ge 4 && ./gate.sh`
 
-### Q37 [auto] (todo) Mac sidebar left-edge verdict from a real window + one chip count on every device
+### Q37 [auto] (doing) Mac sidebar left-edge verdict from a real window + one chip count on every device
 spec: C117 C4 C240
 needs: Q35
+gate+: yes
 node: V2Core
 do: Q35 finding. (1) The dispatcher sees the Mac sidebar's left ~12 px cut in `plan/reads/list-q35/mac-sidebar-dark.png` ("ODAY", "AT 19 SEP", logo, "All" chip). Launch the DEV Mac app built from your worktree against an ISOLATED store seeded from the synthetic corpus (never the live Dev store, never /Applications/Skrift.app; quit it after; one instance only) and capture the real window with `screencapture -l <windowid>`. If the left edge is cut there, fix the layout; if not, fix `-snapshot-shell`'s crop so its PNG matches the real window. (2) The same corpus shows "Needs Work 6 · Unrated 5" on the Mac and "Needs Work 99 · Unrated 6" on the iPad: find why, and make every device count from the shared `NotesListModel` on the same inputs (one definition per chip), with a test in a new `ChipCountParityTests` (desktop target) feeding the corpus. Commit PNGs under `plan/reads/list-q37/`.
 check: `test $(ls plan/reads/list-q37/*.png | wc -l) -ge 1 && grep -rqE "class ChipCountParityTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
@@ -438,3 +439,4 @@ check: `test $(ls plan/reads/tags-q41/*.png | wc -l) -ge 1 && ./gate.sh`
 - 2026-09-24 22:54 Q40 -> doing — worker out (opus)
 - 2026-09-24 22:55 Q36 -> done — gate pass @f5b7a0b7
 - 2026-09-24 22:56 Q41 added
+- 2026-09-24 22:56 Q37 -> doing — worker out
