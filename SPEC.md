@@ -1773,3 +1773,13 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
 137. **D137 No bulk rating.** ✅ DECIDED 2026-09-24: the Mac's "Mark all as Passing" button
      (`SidebarView.swift:570-583`) is REMOVED with the triage line: "rating a note should be an
      intentional choice". Reverses the 2026-07-23 bulk verb. Q22 third pass signed.
+138. **D138 Library routing + export.** ✅ DECIDED 2026-09-24: a shared link that is NOT an article
+     (video, tweet, product page) becomes a NOTE, not a Library source (builder pick, "your pick").
+     "Send to a note" keeps the source in Library; the note links back ("yes"). Export: the
+     Library source never exports on its own; a note captured from it exports like an audiobook
+     quote (C60) — italic quote + attribution (`— [[Author]], *Title*, p. N` / `— *Title*, site`
+     + URL / `— *Show*, episode, mm:ss`), `source:` in frontmatter; the jump-back is Skrift-only;
+     a PDF file reaches the vault only when attached to the note (D126) — builder default, his
+     question "what happens during export?" answered, say if wrong. Q24 approved: retire or
+     rewrite the five 10-circle protected tests (SignificanceScaleTests, SignificanceCirclesTests,
+     SignificanceCirclesRenderTests, UnratedTakeTests, NoteConsentTests) — "yes".
