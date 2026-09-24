@@ -202,7 +202,7 @@ node: AuditFix2
 do: Per `plan/research/swift-collections-initborrow.md`: add a `packages:` entry `swift-collections` (url https://github.com/apple/swift-collections, `exactVersion: 1.6.0`) to BOTH `Skrift_Native/SkriftMobile/project.yml` and `Skrift_Native/SkriftDesktop/project.yml`, with a one-line comment citing swiftlang/swift#92574 and swift-collections#733 (drop the pin when a fixed toolchain ships). Regenerate both, confirm each generated Package.resolved says 1.6.0, and that the phone test host launches on the iPhone 17 sim.
 check: `grep -q "exactVersion: 1.6.0" Skrift_Native/SkriftMobile/project.yml && grep -q "exactVersion: 1.6.0" Skrift_Native/SkriftDesktop/project.yml && plan/mtest.sh CorpusSeedTests`
 
-### Q26 [auto] (doing) build the one notes list on phone, iPad and Mac
+### Q26 [auto] (done) build the one notes list on phone, iPad and Mac
 spec: C117 C114 C240
 needs: Q22 Q8
 gate+: yes
@@ -336,3 +336,4 @@ check: `grep -rqE "class DataAttachmentOwnershipTests\b" Skrift_Native/SkriftDes
 - 2026-09-24 21:36 Q19 -> done — gate pass @c25e6221
 - 2026-09-24 21:36 Q32 added
 - 2026-09-24 21:36 Q32 -> doing — worker out
+- 2026-09-24 21:41 Q26 -> done — gate pass @e1658dc1
