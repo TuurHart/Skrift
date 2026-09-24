@@ -106,7 +106,6 @@ extension Memo {
         return AppPaths.recordingsDirectory.appendingPathComponent(manifest[n - 1].filename)
     }
 
-    private static let imgMarkerRegex = try! NSRegularExpression(pattern: #"\[\[img_(\d+)\]\]"#)
 
     /// The photo the LIST ROW thumbnails — the note's first VISIBLE photo, not
     /// blindly the first manifest entry. Deleting a photo in the editor removes
@@ -124,21 +123,21 @@ extension Memo {
     ///   shows no photos, so no thumbnail.
     var thumbnailPhotoFilename: String? {
         guard let manifest = metadata?.imageManifest, !manifest.isEmpty else { return nil }
-        if let transcript, transcript.contains("[[img_") {
-            let ns = transcript as NSString
-            let matches = Self.imgMarkerRegex.matches(in: transcript,
-                                                      range: NSRange(location: 0, length: ns.length))
-            for m in matches {
-                guard let n = Int(ns.substring(with: m.range(at: 1))),
-                      n >= 1, n <= manifest.count else { continue }
-                return manifest[n - 1].filename
-            }
-            return nil
+        let body = (isShareCapture ? annotationText : transcript) ?? ""
+        // A recording whose body hasn't landed yet thumbnails the photo taken while
+        // recording — the thumb must not wait for the body.
+        if !isShareCapture, !transcriptMarkersInjected,
+           body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return manifest.first?.filename
         }
-        if transcriptMarkersInjected { return nil }
-        if isShareCapture { return manifest.first?.filename }
-        let body = transcript?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return body.isEmpty ? manifest.first?.filename : nil
+        // C170 via body v2's one rule. A typed body passes as `.speech`: v2 never gives a
+        // typed note a marker it doesn't have, so a marker there is an editor photo and
+        // drives the thumb like any other.
+        let source: BodyV2.Source = isShareCapture ? .shareCapture : .speech
+        guard let n = BodyV2Thumbnail.pick(body: body, manifestCount: manifest.count,
+                                           source: source, resolves: { _ in true })
+        else { return nil }
+        return manifest[n - 1].filename
     }
 
     /// Honest status for the list pill, or `nil` when no pill should show.
@@ -250,6 +249,12 @@ extension Memo {
     /// True when this memo is a C3 capture item (no audio, has sharedContent).
     var isShareCapture: Bool {
         audioFilename.isEmpty && sharedContent != nil
+    }
+
+    /// Body v2's source for this note (C10, C170): a share capture, a typed note (no
+    /// audio), or speech.
+    var bodyV2Source: BodyV2.Source {
+        isShareCapture ? .shareCapture : audioFilename.isEmpty ? .typed : .speech
     }
 
     /// SF Symbol glyph for the list row icon, keyed off `sharedContent.type`.

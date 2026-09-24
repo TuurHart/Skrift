@@ -121,15 +121,14 @@ enum VaultExporter {
                                         knownPeople: NamesStore.shared.livePeople(),
                                         linkLedger: writer.ledger, profile: profile)
 
-        // Snap mid-sentence photo markers to their sentence end (shared with both
-        // app bodies) so the exported `![[…]]` embed drops beneath the whole sentence,
-        // exactly as the note reads on screen — only `[[img_NNN]]` moves; names,
-        // frontmatter and existing embeds pass through untouched.
+        // The body is exported as stored (C65): body v2 already made every picture its
+        // own paragraph at write time. Only a body stored before v2 goes through the Q13
+        // read-only fallback (`BodyV2Legacy`, Q14 removes it), so it still exports as it reads.
         // Convert [[img_NNN]] markers → ![[<safe>_NNN.ext]] Obsidian embeds and copy
         // the matched images into the attachments subfolder. The working folder (which holds
         // `images/`) is the ONE `pf.workingFolder` derivation (captures → pf.path; audio/notes
         // → its parent).
-        var finalMarkdown = BodyTransform.snappedImageBody(markdown)
+        var finalMarkdown = BodyV2Legacy.shown(markdown).text
         var imageCount = 0
         let imagesDir = pf.workingFolder?.appendingPathComponent("images")
         if let imagesDir, FileManager.default.fileExists(atPath: imagesDir.path) {

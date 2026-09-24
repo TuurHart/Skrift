@@ -507,6 +507,9 @@ enum CaptureInboxDrainer {
                 .map { "[[img_\(String(format: "%03d", $0))]]" }
                 .joined(separator: "\n\n")
             annotation = annotation.isEmpty ? markers : annotation + "\n\n" + markers
+            // Body v2 (C10): the share capture's body is committed once, here.
+            annotation = BodyV2.committed(BodyV2.Input(text: annotation, manifest: manifest,
+                                                       source: .shareCapture))
         }
 
         let memo = Memo.make(
