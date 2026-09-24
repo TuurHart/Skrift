@@ -334,7 +334,7 @@ check: `grep -rqE "class ConflictFirstTouchTests\b" Skrift_Native/SkriftDesktop/
 
 ### Q43 [auto] (doing) quick-note screen rendered and matched to the note editor and the mock
 spec: C112 C117 C4
-needs: Q7
+needs: Q7 Q46
 node: V2Core
 do: Q7 finding: the quick note opens a NEW minimal `QuickNoteView` (title field + TextEditor, no accessory bar) that was never rendered. The signed `Skrift_Native/SkriftDesktop/mocks/quick-note.html` shows the app's normal note screen, empty, keyboard up, cursor in the body. Either route the quick note into the normal note editor in a draft state (preferred: one editor) or make QuickNoteView match it; keep first-keystroke creation + empty discard (QuickNoteTests must stay green). Screenshot on the iPhone 17 SIM only (synthetic corpus, isolated store; the sim renders offscreen) and LOOK at it: keyboard up, cursor in body, nothing clipped. Commit under `plan/reads/quicknote-q43/`. NEVER `open -a` a Skrift app, never capture the whole screen.
 check: `test $(ls plan/reads/quicknote-q43/*.png | wc -l) -ge 1 && plan/mtest.sh QuickNoteTests && ./gate.sh`
@@ -351,6 +351,12 @@ needs: Q42
 gate+: yes
 do: Q42 finding: the first-touch false conflict can't be fixed inside `recordEdit` without breaking protected tests. Fix it at the call sites: every `markEdited` caller that does not change the words (audio trim, audio append's non-text part, voice annotation audio, photo add/remove/markup, rating, lock, destination) passes `stampWords: false`, as `ReminderSheet` already does. Grep every `markEdited(` call on both apps, list them in the report with the value chosen. Test in a new `NonWordEditTests` (desktop target): a pre-Q29 note trimmed on A while B edits words → no conflict.
 check: `grep -rqE "class NonWordEditTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
+
+### Q46 [auto] (done) phone test target builds again (onCommit accepts the old no-argument form)
+spec: C98
+needs: Q45
+do: Regression from Q45: `NoteBodyView.onCommit` is now `(Bool) -> Void` and the protected `SkriftMobileTests/NoteBodyTests.swift` + `QuotePresentationTests.swift` call `onCommit: {}` (17 sites), so the phone test target no longer compiles. Without touching any protected file, make the zero-argument form compile again (e.g. an extra `init` overload taking `onCommit: @escaping () -> Void` that forwards as `{ _ in onCommit() }` treating it as wordsChanged = true, or a default) while Q45's `wordsChanged` path keeps working. Prove with `xcodebuild build-for-testing` for SkriftMobile AND two phone test classes.
+check: `plan/mtest.sh NoteBodyTests && plan/mtest.sh QuickNoteTests && ./gate.sh`
 
 ## Log
 - 2026-09-24 10:59 plan: 21 items
@@ -486,3 +492,8 @@ check: `grep -rqE "class NonWordEditTests\b" Skrift_Native/SkriftDesktop/SkriftD
 - 2026-09-24 23:52 Q45 -> done — accepted
 - 2026-09-24 23:58 Q39 -> done — gate pass @26db0381
 - 2026-09-24 23:58 Q43 -> doing — worker out
+- 2026-09-25 00:14 Q46 added
+- 2026-09-25 00:14 Q43 -> todo — blocked by the Q45 test-target regression; redispatch after Q46 from wt/Q43 (agent-aa06e0ed307fea7ce)
+- 2026-09-25 00:14 Q46 -> doing — worker out
+- 2026-09-25 00:27 Q46 -> done — gate pass @75ef8ac1
+- 2026-09-25 00:27 Q43 -> doing — resumed after Q46
