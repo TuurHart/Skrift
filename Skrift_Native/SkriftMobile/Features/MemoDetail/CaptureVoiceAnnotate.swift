@@ -173,7 +173,10 @@ struct CaptureVoiceAnnotate: View {
             }
             if !text.isEmpty {
                 let existing = memo.annotationText ?? ""
-                memo.annotationText = existing.isEmpty ? text : existing + "\n\n" + text
+                // Body v2 (C10): the combined annotation is an edit — every picture keeps its place.
+                memo.annotationText = BodyV2.committed(BodyV2.Input(
+                    text: existing.isEmpty ? text : existing + "\n\n" + text,
+                    manifest: memo.metadata?.imageManifest ?? [], source: memo.bodyV2Source, userEdited: true))
                 memo.markEdited()
                 repository.save()
             }

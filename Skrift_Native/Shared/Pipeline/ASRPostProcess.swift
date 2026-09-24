@@ -57,10 +57,13 @@ enum ASRPostProcess {
 
         let wordTimings = words.map { WordTiming(word: $0.text, start: $0.start, end: $0.end) }
 
-        // 3. Photo markers last — they need final words to anchor to.
+        // 3. Photo markers last — they need final words to anchor to. Body v2 (C10): the
+        //    speech body is committed once, here, so a picture is its own paragraph from
+        //    the start (no v1 inline marker + later snap).
         var markersInjected = false
         if !imageManifest.isEmpty, !words.isEmpty {
-            text = ImageMarkers.insert(transcript: text, words: words, manifest: imageManifest)
+            text = BodyV2.committed(BodyV2.Input(text: text, words: wordTimings, manifest: imageManifest,
+                                                 source: .speech))
             markersInjected = true
         }
         return TranscriptionResult(text: text, confidence: confidence, durationMs: durationMs,

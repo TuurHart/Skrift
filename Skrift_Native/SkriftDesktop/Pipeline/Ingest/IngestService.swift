@@ -193,7 +193,8 @@ struct IngestService: Sendable {
         let pf = PipelineFile(id: id, filename: filename, path: dest.path,
                               size: content.utf8.count, sourceType: .note)
         // Apple notes arrive already "transcribed" — the markdown body is the text.
-        pf.transcript = content
+        // Body v2 (C10/C19): committed once, here, at the Mac text import.
+        pf.transcript = BodyV2.committed(BodyV2.Input(text: content, source: .typed))
         pf.transcribeStatus = .done
         // BatchRunner won't clobber this; the LLM title becomes the suggestion.
         pf.enhancedTitle = title
