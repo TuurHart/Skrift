@@ -36,7 +36,7 @@ enum MemoCloudStore {
     /// created them — so the Mac is just a second client of them.
     static let schema = Schema([Memo.self, MemoAsset.self, MemoEnhancement.self,
                                 NamesRecord.self, VocabularyRecord.self,
-                                PolishPromptsRecord.self])
+                                PolishPromptsRecord.self, MemoEditHead.self])
 
     /// The CloudKit-backed container, or `nil` when CloudKit is unavailable/disabled.
     static let container: ModelContainer? = makeContainer()

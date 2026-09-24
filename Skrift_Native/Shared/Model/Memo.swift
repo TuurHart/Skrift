@@ -184,6 +184,19 @@ final class Memo {
     /// ADDITIVE, nil default → lightweight SwiftData migration (safe for prod data).
     var pendingDiarizationTarget: Int? = nil
 
+    /// Edit-conflict detection (C98, `EditConflicts`): JSON `[deviceID: Int]` — how many WORDS
+    /// edits (title/body/tags) each device has made that this note's words have seen. ADDITIVE,
+    /// nil default → lightweight migration; older builds ignore it and keep newest-wins.
+    var editVectorData: Data? = nil
+
+    /// Hash of the words at the last vector bump, so a `markEdited` that changed no words
+    /// (reminder, audio trim) does not count as a words edit. ADDITIVE, nil default.
+    var editStampHash: String? = nil
+
+    /// Set on the version he did NOT keep when settling an edit conflict (D139): the note sits
+    /// in Recently Deleted as a "replaced" row instead of "deleted". ADDITIVE, nil default.
+    var replacedAt: Date? = nil
+
     /// Designated, **blob-based** initializer (desktop-compilable — no `MemoMetadata` /
     /// `SharedContent`). The mobile app constructs memos with typed contextual metadata
     /// via `Memo.make(metadata:sharedContent:…)` (the `Memo+Mobile.swift` extension),
@@ -249,7 +262,25 @@ final class Memo {
     /// reads; edits stopped being immortality when Parked died). Every caller
     /// is a genuine user investment (audited 2026-07-22), so the coupling is
     /// safe — system writes never call this.
-    func markEdited(_ date: Date = Date()) { editedAt = date; keptAt = date }
+    /// `stampWords: false` for a touch that changes no words (reminder) — it must never count
+    /// as a words edit for conflict detection (C98: only body, title and tags conflict).
+    func markEdited(_ date: Date = Date(), stampWords: Bool = true) {
+        editedAt = date; keptAt = date
+        if stampWords { scheduleEditStamp() }
+    }
+
+    /// Stamp the words edit for conflict detection (`EditConflicts.recordEdit`) on the NEXT
+    /// main-queue turn: several call sites mutate the title/body AFTER calling `markEdited`,
+    /// so stamping inline would snapshot the words before the edit. Skipped under XCTest
+    /// (tests call `recordEdit` directly) and when the note has no context.
+    private func scheduleEditStamp() {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              modelContext != nil else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.isDeleted, let ctx = self.modelContext else { return }
+            if EditConflicts.recordEdit(self, in: ctx), ctx.hasChanges { try? ctx.save() }
+        }
+    }
 
     /// Parse a tag-entry string into individual tags: COMMA / newline separated (a
     /// tag may contain spaces, so we don't split on whitespace), each trimmed and

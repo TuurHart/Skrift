@@ -1196,6 +1196,10 @@ private struct QueueRowView: View {
         case .transcribed, .ready: .done
         }
         m.statusPill = .init(label: st.label, kind: kind, pulses: st.pulses)
+        // D139: two versions replace Enhancing (and every other state) in the pill slot.
+        if let id = UUID(uuidString: file.id), EditConflictWatch.shared.ids.contains(id) {
+            m.statusPill = .twoVersions
+        }
         let body = (file.sanitised ?? file.enhancedCopyedit ?? file.transcript ?? "")
             .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)

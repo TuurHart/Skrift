@@ -124,6 +124,17 @@ struct NoteDisplayView: View {
             }
         } else {
             unlockedContent(file)
+                // C98/D139: two versions → prompt on open (Keep Both = Return), banner
+                // after "Later", read-only and held from processing/export until picked.
+                .editConflictGate(memoID: UUID(uuidString: file.id),
+                                  context: MemoCloudStore.container?.mainContext,
+                                  look: .mac, style: .mac,
+                                  onResolved: { _, _ in
+                                      // The pick released the hold; the next sweep reflects
+                                      // the kept words into this row and ingests a Keep-both copy.
+                                      EditConflictHold.ids.remove(file.id)
+                                      MemoCloudReconciler.reconcileSoon()
+                                  })
         }
     }
 

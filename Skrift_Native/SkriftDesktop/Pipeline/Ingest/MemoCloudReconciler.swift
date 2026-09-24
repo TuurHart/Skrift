@@ -58,6 +58,10 @@ enum MemoCloudReconciler {
         let memos = MemoDuplicates.canonicalRows(
             (try? cloudContext.fetch(FetchDescriptor<Memo>())) ?? [])
         var outcome = SweepOutcome()
+        // C98/D139: a note edited on two devices while apart is a conflict — its row keeps
+        // the Mac's words (no reflect of the newest-wins `Memo` row over them) and waits.
+        let held = EditConflictHold.refresh(memos: memos, in: cloudContext,
+                                            thisDevice: thisDeviceID.isEmpty ? DeviceID.current() : thisDeviceID)
         // ONE local fetch + ONE enhancement fetch up front, instead of 2-3
         // fetches per memo — and NO MemoAsset fetch unless a memo actually
         // needs its blobs: asset rows fault-fill their multi-MB audio/photo
@@ -100,9 +104,10 @@ enum MemoCloudReconciler {
             let byFilename = filenameRowIsAnothersMemo ? nil : filenameRow
             if let pf = fileByID[id] ?? byFilename {
                 // Already have a row — reflect a phone edit into it (no-op when up to date).
-                let applied = MemoCloudUpdate.apply(memo: memo, enhancement: enhancementByMemo[memoID], to: pf,
-                                                    people: people, author: author,
-                                                    thisDeviceID: thisDeviceID, now: now)
+                let applied = held.contains(id) ? false
+                    : MemoCloudUpdate.apply(memo: memo, enhancement: enhancementByMemo[memoID], to: pf,
+                                            people: people, author: author,
+                                            thisDeviceID: thisDeviceID, now: now)
                 // Materialize photos the phone added AFTER first ingest — the update path above
                 // reflects the [[img_NNN]] markers but never wrote the image files (they'd render
                 // as literal text + miss the vault). Idempotent; heals an already-broken note on

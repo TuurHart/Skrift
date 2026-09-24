@@ -43,7 +43,12 @@ struct NoteCardModel {
         var label: String
         var kind: Kind
         var pulses = false
+        /// Optional leading glyph (the conflict pill's fork, Q4 mock).
+        var systemImage: String? = nil
         enum Kind { case progress, done, error, amber }
+        /// C98/D139: the note has two versions waiting for a pick. Amber, a fork glyph, no
+        /// pulse — it waits for him. Same slot as Transcribing; it outranks every other pill.
+        static let twoVersions = Pill(label: "2 versions", kind: .amber, systemImage: "arrow.triangle.branch")
     }
     struct Chip: Equatable {
         var text: String
@@ -153,7 +158,10 @@ struct NoteCardView: View {
         case .error: style.red
         case .amber: style.amber
         }
-        return Text(pill.label)
+        return HStack(spacing: 3) {
+            if let glyph = pill.systemImage { Image(systemName: glyph).font(.system(size: 9, weight: .semibold)) }
+            Text(pill.label)
+        }
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 7).padding(.vertical, 2)

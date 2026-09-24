@@ -134,6 +134,11 @@ struct WayOutColumn: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary).lineLimit(1)
                 HStack(spacing: 10) {
+                    if let replacedAt = memo.replacedAt {
+                        // D139: the version he did not keep when settling an edit conflict.
+                        Text("replaced \(replacedAt.formatted(date: .abbreviated, time: .omitted))")
+                            .foregroundStyle(Theme.amber).fontWeight(.semibold)
+                    }
                     Text(memo.recordedAt.formatted(date: .abbreviated, time: .omitted))
                     if let place = memo.metadata?.location?.placeName { Text(place) }
                     if memo.duration > 0 { Text(SkriftFormat.clock(memo.duration)) }

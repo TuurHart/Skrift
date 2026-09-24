@@ -65,6 +65,9 @@ struct MemosListView: View {
     /// polished content. Per-memo enhancement fetches inside a body are the
     /// frozen-library trap (2026-07-23), so the set is built once here.
     @Query private var enhancements: [MemoEnhancement]
+    /// C98: every device's latest words per note. A change here (a head synced in, a pick
+    /// made anywhere) recomputes which notes carry the "2 versions" pill — once, here.
+    @Query private var editHeads: [MemoEditHead]
     @Environment(\.modelContext) private var context
     private let repository = NotesRepository.shared
 
@@ -280,6 +283,9 @@ struct MemosListView: View {
             })
             .fullScreenCover(isPresented: $showBookPlayer) {
                 AudiobookPlayerView()
+            }
+            .onChange(of: editHeads.map { "\($0.memoID)\($0.editedAt.timeIntervalSince1970)" }, initial: true) {
+                EditConflictWatch.shared.refresh(in: context)
             }
             .onChange(of: intentBridge.startRequestID) { handleStartRequest() }
             .onChange(of: memoOpen.requestID) { handleOpenRequest() }
@@ -1321,6 +1327,8 @@ private struct MemoCard: View {
             }
             m.statusPill = .init(label: kind.label, kind: pillKind, pulses: kind == .transcribing)
         }
+        // D139: two versions outrank every other state in the pill slot.
+        if EditConflictWatch.shared.ids.contains(memo.id) { m.statusPill = .twoVersions }
         if memo.locked {
             m.title = memo.title?.isEmpty == false ? memo.title : "Locked note"
             return m   // locked rows show title + 🔒 and NOTHING else
