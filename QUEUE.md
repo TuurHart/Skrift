@@ -270,7 +270,7 @@ node: AuditFix2
 do: Q32 finding: when `VaultAttachmentOwnership` writes our attachment under an id8-disambiguated name (a foreign file holds the original name), the note's markdown embed on the commit path still points at the ORIGINAL name, so Obsidian shows the foreign file. Make the written name flow back: every `![[…]]` / link the exporter writes for that attachment uses the name actually written, on both apps' export paths (`VaultWrite` commit path, Mac `VaultExporter`, phone publisher). Test in a new `AttachmentEmbedNameTests` (desktop target, temp dirs only): foreign `IMG_0001.jpg` present → our photo lands as `IMG_0001 <id8>.jpg` AND the note embeds exactly that name.
 check: `grep -rqE "class AttachmentEmbedNameTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
-### Q35 [auto] (todo) Mac sidebar reshoot from the synthetic corpus: left-edge clip, quiet rows, iPad fade line
+### Q35 [auto] (doing) Mac sidebar reshoot from the synthetic corpus: left-edge clip, quiet rows, iPad fade line
 spec: C117 C4
 needs: Q33
 node: V2Core
@@ -371,3 +371,4 @@ check: `test ! -e plan/reads/list-q33/mac-sidebar-dark.png && test $(ls plan/rea
 - 2026-09-24 22:05 Q33 -> doing — re-accept: prior gate run was INTERRUPTED, not red
 - 2026-09-24 22:05 Q33 -> done — gate pass @ff543191
 - 2026-09-24 22:07 Q35 added
+- 2026-09-24 22:07 Q35 -> doing — worker out
