@@ -285,7 +285,7 @@ node: V2Core
 do: Q28 finding: bring the built tag editor to the signed `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html` (D139): restore the Mac's keyboard-navigable suggestion menu (↑↓, Tab/Return accept, a "Create #x" row) that Q28 replaced with a chip strip; Undo as the mock's floating 4 s toast, not an inline row. Rewrite or retire `SkriftMobileUITests/TagSheetUITests.swift` (it drives the deleted sheet and the pre-2026-08-27 "destination words refused" rule; destination words ARE tags per C93). Screenshots from the SYNTHETIC corpus only in an isolated store (`-inMemoryStore -corpus test-fixtures/corpus`, never the live Dev store): phone note header with tags, the armed-remove state, the Undo toast, the Mac menu open — LOOK at each vs the mock and fix differences. Commit PNGs under `plan/reads/tags-q36/`.
 check: `test $(ls plan/reads/tags-q36/*.png | wc -l) -ge 4 && ./gate.sh`
 
-### Q37 [auto] (doing) Mac sidebar left-edge verdict from a real window + one chip count on every device
+### Q37 [auto] (done) Mac sidebar left-edge verdict from a real window + one chip count on every device
 spec: C117 C4 C240
 needs: Q35
 gate+: yes
@@ -453,3 +453,4 @@ check: `grep -rqE "class ConflictFirstTouchTests\b" Skrift_Native/SkriftDesktop/
 - 2026-09-24 23:17 Q42 added
 - 2026-09-24 23:17 Q42 -> doing — worker out
 - 2026-09-24 23:21 Q7 -> done — gate pass @5458caba
+- 2026-09-24 23:23 Q37 -> done — gate pass @54474703
