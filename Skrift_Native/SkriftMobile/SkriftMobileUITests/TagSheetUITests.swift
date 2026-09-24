@@ -1,9 +1,10 @@
 import XCTest
 
-/// The reworked tag sheet (signed mock `mocks/note-destination-tags.html`). The thing that
-/// made it annoying was invisible from source: the field auto-focused, so the sheet opened
-/// as mostly keyboard and the suggestions you would rather tap were under it. This opens it
-/// and looks.
+/// The inline tag row (D139 signed mock `mocks/tag-ui-revamp.html`, Q28/Q36 revamp).
+/// Rewritten from the old `TagSheetUITests`, which drove a Tags SHEET that no longer
+/// exists (`+ tag` now turns into a field in the row itself, D139 pick 1) and asserted
+/// the pre-2026-08-27 rule that a destination word (`inspiration`) gets refused as a
+/// tag — C93 now says all four destination words ARE tags (Q36 brief).
 final class TagSheetUITests: XCTestCase {
 
     private func capture(_ app: XCUIApplication, _ name: String) {
@@ -14,30 +15,26 @@ final class TagSheetUITests: XCTestCase {
         add(attachment)
     }
 
-    func testSheetOpensWithoutTheKeyboardAndRefusesADestinationWord() {
+    func testAddTagOpensInlineFieldNoSheetAndAcceptsADestinationWord() {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemoryStore", "-seedPolished", "-selectFirstMemo"]
         app.launch()
 
         let addTag = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'add-tag-button'")).firstMatch
-        XCTAssertTrue(addTag.waitForExistence(timeout: 20), "the ＋ Tag chip is missing")
+        XCTAssertTrue(addTag.waitForExistence(timeout: 20), "the ＋ tag control is missing")
         addTag.tap()
 
-        let field = app.textFields["tag-input"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5), "the tag sheet did not open")
-        // The keyboard must NOT be up: nothing is focused until you tap the field.
-        XCTAssertFalse(app.keyboards.element.exists,
-                       "the sheet opened straight into the keyboard again")
-        capture(app, "tagsheet-open")
+        // No sheet: the field lands INLINE, in the tag row itself.
+        let field = app.textFields.matching(NSPredicate(format: "identifier BEGINSWITH 'tag-input'")).firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "the inline tag field did not open")
+        XCTAssertFalse(app.navigationBars["Tags"].exists, "a Tags sheet appeared — D139 replaced it with the inline row")
+        capture(app, "tag-row-field-open")
 
-        // A destination word typed into the free field is refused, not tagged.
+        // A destination word IS a tag now (C93 revamp) — it becomes a real chip, not a refusal.
         field.tap()
         field.typeText("inspiration\n")
-        let helper = app.staticTexts["tag-helper"]
-        XCTAssertTrue(helper.waitForExistence(timeout: 5))
-        XCTAssertTrue(helper.label.contains("destination"), helper.label)
-        XCTAssertFalse(app.buttons["tag-chip-inspiration"].exists,
-                       "it must not have become a tag")
-        capture(app, "tagsheet-reserved-word")
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier == 'tag-chip-inspiration'")).firstMatch
+            .waitForExistence(timeout: 5), "\"inspiration\" should have landed as a tag chip (C93)")
+        capture(app, "tag-destination-word-accepted")
     }
 }
