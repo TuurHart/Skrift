@@ -229,13 +229,15 @@ final class BodyV2HarnessTests: XCTestCase {
                        "text that already has a newline is untouched")
     }
 
+    /// D142: img_001/img_002 at 0.5 s fall inside "A cat."'s first 1.0 s (that sentence starts
+    /// at t=0), so D140 puts them BEFORE it — merging with img_003 (offset 0, already top).
     func testTimedPictureAfterSpokenSentence_C11_C13() {
         func w(_ word: String, _ s: Double) -> WordTiming { WordTiming(word: word, start: s, end: s + 0.3) }
         let words = [w("A", 0), w("cat.", 0.4), w("A", 0.8), w("dog.", 1.2)]
         let pics = [ImageManifestEntry(filename: "a", offsetSeconds: 0.5), ImageManifestEntry(filename: "b", offsetSeconds: 0.5),
                     ImageManifestEntry(filename: "c", offsetSeconds: 0)]
         XCTAssertEqual(BodyV2.committed(.init(text: "A cat. A dog.", words: words, manifest: pics, source: .speech)),
-                       "[[img_003]]\n\nA cat.\n\n[[img_001]]\n\n[[img_002]]\n\nA dog.")
+                       "[[img_003]]\n\n[[img_001]]\n\n[[img_002]]\n\nA cat. A dog.")
     }
 
     func testThumbnail_C170() {
