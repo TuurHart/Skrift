@@ -16,7 +16,7 @@ import UserNotifications
 final class WallPrinter: ObservableObject {
     static let shared = WallPrinter()
 
-    /// The orange tier — where the circles change color (SignificanceScale).
+    /// The orange tier — where the circles change color.
     static let threshold = 0.8
 
     private let defaults = UserDefaults.standard

@@ -4,7 +4,7 @@ import SwiftData
 /// The FILE-channel answer to "is this note rated?" — the ONE place the
 /// `PipelineFile.significance` dialect (`Double?`) is resolved.
 ///
-/// An explicit value answers directly (`litCount`): a synced row converges to
+/// An explicit value answers directly (`ThreeBallScale.step(for:)`): a synced row converges to
 /// its memo's true value via `MemoCloudUpdate`, so a mirrored `0` is a real
 /// "consent withdrawn", and the circles bind the row's value live. `nil` is
 /// the ambiguous case — it means three different things in three populations,

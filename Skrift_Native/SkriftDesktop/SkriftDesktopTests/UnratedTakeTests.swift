@@ -120,7 +120,7 @@ final class UnratedTakeTests: XCTestCase {
         XCTAssertFalse(WayOutRules.needsProcessing(pf))
     }
 
-    // MARK: - 5. litCount edge, at the exact boundary the doctrine leans on
+    // MARK: - 5. the nil/zero-vs-0.1 edge, at the exact boundary the doctrine leans on
 
     func testLitCountEdgeNilAndZeroBothReadUnrated() {
         XCTAssertTrue(WayOutRules.isUnratedLocalRecording(file(isLocalRecording: true, significance: nil)))

@@ -7,7 +7,7 @@ import SwiftData
 /// every surface moves with it — which is the point.
 final class NoteConsentTests: XCTestCase {
 
-    // ── the value dialect (litCount's reading, pinned from the consent side) ──
+    // ── the value dialect (ThreeBallScale.step's reading, pinned from the consent side) ──
 
     func testValueTable() {
         XCTAssertFalse(NoteConsent.isRated(nil), "nil = never judged")

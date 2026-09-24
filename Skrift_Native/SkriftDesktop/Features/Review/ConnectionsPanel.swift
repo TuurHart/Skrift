@@ -416,13 +416,14 @@ struct ConnectionsPanelBody: View {
     }
 
     /// P1 (picked): the owner-set importance as the control's own decimal readout —
-    /// warm amber past the refine wall, NOTHING when unrated (no fake 0.0).
+    /// warm amber at the top tier, NOTHING when unrated (no fake 0.0). No refine
+    /// wall (D52/C183) — the amber marks "Important" (ball 3), not a pass.
     @ViewBuilder private func importanceText(_ value: Double?) -> some View {
-        let step = SignificanceScale.litCount(value)
+        let step = ThreeBallScale.step(for: value)
         if step > 0 {
-            Text(step == SignificanceScale.stepCount ? "1.0" : "0.\(step)")
+            Text(String(format: "%.1f", ThreeBallScale.value(forStep: step)))
                 .font(.system(size: 9, weight: .bold).monospacedDigit())
-                .foregroundStyle(SignificanceScale.isRefine(step: step) ? Theme.amber : Theme.accent)
+                .foregroundStyle(step == ThreeBallScale.stepCount ? Theme.amber : Theme.accent)
         }
     }
 

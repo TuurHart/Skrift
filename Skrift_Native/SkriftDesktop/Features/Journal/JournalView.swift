@@ -618,11 +618,11 @@ struct JournalView: View {
     }
 
     private func importanceDots(_ memo: Memo) -> some View {
-        let lit = SignificanceScale.step(for: memo.significance)
+        let lit = ThreeBallScale.step(for: memo.significance)
         // Whole-pixel pitch (5pt dot + 3pt gap): at 2.5 the 7.5pt pitch landed on
         // half-pixels and rasterized as visibly uneven gaps (Tuur, 2026-07-21).
         return HStack(spacing: 3) {
-            ForEach(1...SignificanceScale.stepCount, id: \.self) { i in
+            ForEach(1...ThreeBallScale.stepCount, id: \.self) { i in
                 Circle()
                     .fill(i <= lit ? Theme.accent : Theme.hairline.opacity(0.12))
                     .frame(width: 5, height: 5)
