@@ -106,7 +106,7 @@ node: V2Core
 do: Three rulings owed with the read (Q11 finding): (a) four fixtures put a picture mid-sentence against C11 (pic-at-start, pic-ocr-text, pic-three-spread #3, ingress-p3) — fix the fixtures' offsets, or allow a boundary tolerance; (b) pic-in-task-list cannot satisfy R95 under C20+D3 — drop its R95 entry; (c) the 13 extra differences in `expected-differences-q11.json` are accepted. -
 check: Tuur read `plan/reads/body-v2.md` and said it reads right.
 
-### Q13 [auto] (todo) swap: every body write site calls v2
+### Q13 [auto] (doing) swap: every body write site calls v2
 spec: C10 C17 C65 C2
 needs: Q12 Q30
 node: V2Core
@@ -143,7 +143,7 @@ node: AuditFix2
 do: Install the Dev build on the iPhone 13. Take 1: record, take a phone call mid-take, hang up. Take 2: record, force-quit mid-take. Relaunch after each; pull `Documents/devlog.txt`.
 check: Both notes are present after relaunch with all audio up to the event, and Tuur says so.
 
-### Q18 [auto] (todo) a corrupt local file is never loaded as empty
+### Q18 [auto] (doing) a corrupt local file is never loaded as empty
 spec: C50 C265 C218
 needs: -
 gate+: yes
@@ -306,3 +306,5 @@ check: `./gate.sh && test -s plan/reads/body-v2.md`
 - 2026-09-24 20:28 Q30 added
 - 2026-09-24 20:28 Q30 -> doing — worker out
 - 2026-09-24 20:49 Q30 -> done — hand-merged (D141/D142 protected edits only), gate green @4e02061b
+- 2026-09-24 20:59 Q13 -> doing — worker out
+- 2026-09-24 20:59 Q18 -> doing — worker out
