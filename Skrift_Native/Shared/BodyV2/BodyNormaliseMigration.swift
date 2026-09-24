@@ -79,12 +79,7 @@ enum BodyNormaliseMigration {
         let out: String
         if machineText {
             let manifest = (0..<manifestCount).map { _ in ImageManifestEntry(filename: "", offsetSeconds: 0) }
-            let committed = BodyV2.committed(.init(text: body, manifest: manifest, source: .typed))
-            // `BodyV2.isBlock` counts v1's wrap (`one.\n\n[[img_001]]\n\n That`) as already a
-            // block, and `BodyV2Text.normalised` keeps that single leading space, so commit
-            // alone can leave it; the marker move then does it.
-            out = needsNormalise(committed, manifestCount: manifestCount)
-                ? BodyV2Text.normalised(markersMoved(body, manifestCount: manifestCount)) : committed
+            out = BodyV2.committed(.init(text: body, manifest: manifest, source: .typed))
         } else {
             out = markersMoved(body, manifestCount: manifestCount)
         }
@@ -273,6 +268,38 @@ enum BodyNormaliseMigration {
             didRewrite(body.name, old, new)
         }
         return record.outcome
+    }
+
+    // MARK: - the polished text (Q40)
+
+    /// The polished copy-edit (`MemoEnhancement.copyedit`, the text he reads and edits, and the
+    /// Mac's local copy of it) gets its OWN once-flag under this key: a polish can land long
+    /// after the note's first open, and must still get its one pass.
+    static func polishedKey(_ id: String) -> String { "\(id).polished" }
+
+    /// The same guarded, once-only, undoable rewrite over a note's polished text. Always
+    /// marker-move only (`machineText: false`): the polish is reading text the user edits, and
+    /// every device must compute the IDENTICAL result from the identical input, so two devices
+    /// migrating the same synced copy-edit write the same string. Nothing is flagged while no
+    /// polished text exists yet. Callers write the text ONLY — never `enhancedAt`, the author
+    /// id, `processedAt`, `editedAt` or an edit vector.
+    @discardableResult
+    static func runPolished(id: String, bodies: [Body], manifestCount: Int, legacyShape: Bool,
+                            ledger: Ledger = .standard, now: Date = Date(),
+                            didRewrite: (String, String, String) -> Void = { _, _, _ in }) -> Outcome? {
+        let key = polishedKey(id)
+        guard !ledger.hasRun(key),
+              bodies.contains(where: { !($0.get() ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+        else { return nil }
+        return run(id: key, bodies: bodies, manifestCount: manifestCount, machineText: false,
+                   legacyShape: legacyShape, ledger: ledger, now: now, didRewrite: didRewrite)
+    }
+
+    /// `undo` for the polished text's record.
+    @discardableResult
+    static func undoPolished(id: String, bodies: [Body], ledger: Ledger = .standard, now: Date = Date(),
+                             didRestore: (String, String, String) -> Void = { _, _, _ in }) -> [String] {
+        undo(id: polishedKey(id), bodies: bodies, ledger: ledger, now: now, didRestore: didRestore)
     }
 
     /// Puts back every original whose body is still exactly the migrated text (a later edit

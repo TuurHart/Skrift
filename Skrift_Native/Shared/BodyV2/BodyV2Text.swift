@@ -12,7 +12,8 @@ enum BodyV2Text {
 
     /// The ONE whitespace rule, applied once at commit: CRLF/CR → LF; horizontal runs → one
     /// space, EXCEPT a list item's leading run (kept verbatim, so a nested list survives — C19);
-    /// ≥3 line breaks → one blank line; ends trimmed.
+    /// ≥3 line breaks → one blank line; the paragraph after a picture paragraph loses its
+    /// leading run (v1's wrap `one.\n\n[[img_001]]\n\n That` — C10, D143); ends trimmed.
     static func normalised(_ s: String) -> String {
         var t = s.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
         let lines = t.components(separatedBy: "\n").map { line -> String in
@@ -26,8 +27,16 @@ enum BodyV2Text {
         }
         t = lines.joined(separator: "\n")
         t = t.replacingOccurrences(of: #"\n{3,}"#, with: "\n\n", options: .regularExpression)
+        t = afterPicture.stringByReplacingMatches(
+            in: t, range: NSRange(location: 0, length: (t as NSString).length), withTemplate: "$1")
         return t.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// A picture paragraph (a line of only `[[img_NNN]]`), its blank line, then the next
+    /// paragraph's leading horizontal run — unless that line is a list item (D143). The run is
+    /// possessive so a partial match can't slip past the list-item check.
+    private static let afterPicture = try! NSRegularExpression(
+        pattern: #"(?m)(^\[\[img_\d+\]\]\n\n)[\t\p{Zs}]++(?![-*+]\s|\d+[.)]\s)"#)
 
     // MARK: - C20
 
