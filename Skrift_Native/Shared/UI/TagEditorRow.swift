@@ -191,6 +191,11 @@ struct TagEditorRow: View {
             .padding(.leading, 16).padding(.trailing, 6).padding(.vertical, 6)
             .background(Color.black.opacity(0.85), in: .capsule)
             .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+            // The overlay is proposed the ROW's current width, which can be narrower
+            // than the tag row was a moment ago (a chip just left) — `.fixedSize()`
+            // keeps the pill at its own ideal width instead of being squeezed and
+            // truncated ("Remov…" / "U…", caught in the Q36 screenshot pass).
+            .fixedSize()
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .accessibilityIdentifier("tag-undo-toast")
             .task(id: removed.id) {
