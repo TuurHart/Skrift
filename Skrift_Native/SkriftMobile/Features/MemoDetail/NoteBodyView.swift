@@ -261,6 +261,13 @@ struct NoteBodyView: UIViewRepresentable {
             self.onCommit = onCommit
         }
 
+        /// Zero-argument compatibility form (pre-C98 signature): treats the commit as
+        /// having changed the raw words, since callers using this form have no way to
+        /// say otherwise. Kept for older call sites / tests written before `wordsChanged`.
+        convenience init(memo: Memo, onCommit: @escaping () -> Void) {
+            self.init(memo: memo, onCommit: { _ in onCommit() })
+        }
+
         /// The note column's content width, minus margins. The phone is
         /// portrait-locked → the screen width; the iPad at regular size class
         /// passes `readingWidthCap` (the 640 reading measure) so inline images
