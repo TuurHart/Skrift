@@ -277,6 +277,13 @@ node: V2Core
 do: Q33 finding. (1) DELETE `plan/reads/list-q33/mac-sidebar-dark.png` from the tree — it shows Tuur's real Dev notes. (2) Render the Mac sidebar ONLY from a fresh, isolated store seeded with the synthetic corpus (`-corpus test-fixtures/corpus`, C4): point the Dev app / `-snapshot-shell` at a temp store directory so the live Skrift Dev store (and its CloudKit data) is never read; if the harness cannot isolate the store, stop and report. (3) Look at the new PNG: if the sidebar's left edge is clipped (Q33 showed "ODAY", "UE 22 SEP", cut "All" chip), fix the layout; if it is a harness artefact, prove it with a real window screenshot of the same isolated store. (4) Mac unrated (quiet) rows get the snippet + chips of the signed mock's "One list" tab (`Skrift_Native/SkriftDesktop/mocks/one-notes-list.html`), duration as a chip. (5) Re-shoot the iPad list to confirm the always-on "starts fading" line is gone. Commit the new PNGs under `plan/reads/list-q35/`.
 check: `test ! -e plan/reads/list-q33/mac-sidebar-dark.png && test $(ls plan/reads/list-q35/*.png | wc -l) -ge 2 && ./gate.sh`
 
+### Q36 [auto] (doing) tag editor matches the signed mock: Mac keyboard menu, Undo toast, screenshots
+spec: C241 C117 C4
+needs: Q28
+node: V2Core
+do: Q28 finding: bring the built tag editor to the signed `Skrift_Native/SkriftDesktop/mocks/tag-ui-revamp.html` (D139): restore the Mac's keyboard-navigable suggestion menu (↑↓, Tab/Return accept, a "Create #x" row) that Q28 replaced with a chip strip; Undo as the mock's floating 4 s toast, not an inline row. Rewrite or retire `SkriftMobileUITests/TagSheetUITests.swift` (it drives the deleted sheet and the pre-2026-08-27 "destination words refused" rule; destination words ARE tags per C93). Screenshots from the SYNTHETIC corpus only in an isolated store (`-inMemoryStore -corpus test-fixtures/corpus`, never the live Dev store): phone note header with tags, the armed-remove state, the Undo toast, the Mac menu open — LOOK at each vs the mock and fix differences. Commit PNGs under `plan/reads/tags-q36/`.
+check: `test $(ls plan/reads/tags-q36/*.png | wc -l) -ge 4 && ./gate.sh`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -373,3 +380,5 @@ check: `test ! -e plan/reads/list-q33/mac-sidebar-dark.png && test $(ls plan/rea
 - 2026-09-24 22:07 Q35 added
 - 2026-09-24 22:07 Q35 -> doing — worker out
 - 2026-09-24 22:13 Q28 -> done — gate pass @b22f6538
+- 2026-09-24 22:14 Q36 added
+- 2026-09-24 22:14 Q36 -> doing — worker out
