@@ -194,7 +194,7 @@ node: i23
 do: Q8 finding: `litCount` and the refine-pass concept still live in `Shared/Model/SignificanceScale.swift`, `Shared/Pipeline/NoteConsent.swift`, `SkriftDesktop/Pipeline/NoteConsent+PipelineFile.swift`, both `ConnectionsPanel.swift`, `SkriftDesktop/Features/Shell/RunFile.swift`, `JournalView`, `LookbackProvider`. Move every caller to `ThreeBallScale` (three stops, legacy values bucket, no refine wall), delete `SignificanceScale` and the `SignificanceCirclesView` wrapper name. The protected tests `SignificanceScaleTests`, `SignificanceCirclesTests`, `SignificanceCirclesRenderTests`, `UnratedTakeTests`, `NoteConsentTests` reference the old scale: retiring or rewriting them needs Tuur's OK first (a protected-path change, not gate+).
 check: `! grep -rqE "litCount|SignificanceScale\b" Skrift_Native --include='*.swift'`
 
-### Q25 [auto] (doing) pin swift-collections to 1.6.0 (Xcode 27 _swift_initBorrow crash)
+### Q25 [auto] (done) pin swift-collections to 1.6.0 (Xcode 27 _swift_initBorrow crash)
 spec: C4
 needs: -
 node: AuditFix2
@@ -232,3 +232,4 @@ check: `grep -q "exactVersion: 1.6.0" Skrift_Native/SkriftMobile/project.yml && 
 - 2026-09-24 13:58 Q22 -> doing — second pass: phone gets iPad/Mac verbs, grey background (D135)
 - 2026-09-24 13:58 Q6 -> done — signed: tap opens, 'Add note' capture, jump-back (D135)
 - 2026-09-24 14:05 Q22 -> tuur — built @2d8c92a7 — awaiting sitting
+- 2026-09-24 14:11 Q25 -> done — gate pass @ec9282f1
