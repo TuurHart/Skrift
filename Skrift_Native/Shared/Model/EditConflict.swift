@@ -368,6 +368,40 @@ enum EditConflicts {
     }
 }
 
+#if DEBUG
+extension EditConflicts {
+    /// DEBUG-only, screenshot/UI-test seam (Q39): manufacture ONE conflict on the first
+    /// eligible memo by writing two concurrent heads directly — one for THIS device, one
+    /// for a synthetic other device — bypassing the real two-devices-apart flow. Never
+    /// compiled into a Release binary; never touches a real store (callers gate it behind
+    /// `-inMemoryStore`).
+    static func debugForceConflict(in ctx: ModelContext, now: Date = Date()) {
+        guard canRecord(in: ctx) else { return }
+        // Sort matches MemosListView's own query (`recordedAt` reverse) so the conflicted
+        // note IS list row 0 — the same one `-selectFirstMemo` opens on iPad.
+        var d = FetchDescriptor<Memo>(predicate: #Predicate { $0.deletedAt == nil })
+        d.sortBy = [SortDescriptor(\.recordedAt, order: .reverse)]
+        let memos = (try? ctx.fetch(d)) ?? []
+        guard let memo = memos.first else { return }
+        let mine = DeviceID.current()
+        let mineKind = thisDeviceKind
+        let otherKind = mineKind == "Mac" ? "iPhone" : "Mac"
+        let base = memo.transcript ?? ""
+        let headA = MemoEditHead(memoID: memo.id, deviceID: mine, deviceKind: mineKind,
+                                 vector: [mine: 1], baseHash: nil, title: memo.title,
+                                 body: base + " Adding the hexagon ones from the shop.",
+                                 tags: memo.tags, editedAt: now)
+        let headB = MemoEditHead(memoID: memo.id, deviceID: "Q39-OTHER-DEVICE", deviceKind: otherKind,
+                                 vector: ["Q39-OTHER-DEVICE": 1], baseHash: nil, title: memo.title,
+                                 body: base + " Actually let's go with the plain white tiles instead.",
+                                 tags: memo.tags, editedAt: now.addingTimeInterval(-1_620))
+        ctx.insert(headA)
+        ctx.insert(headB)
+        try? ctx.save()
+    }
+}
+#endif
+
 /// Which notes have two versions right now — the list pill and the note gate read it, so a
 /// row never fetches heads itself. Refreshed by each app when heads change (the phone's
 /// `@Query` on `MemoEditHead`, the Mac's reconcile sweep) and after a pick.

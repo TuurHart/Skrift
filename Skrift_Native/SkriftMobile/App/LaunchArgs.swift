@@ -131,6 +131,10 @@ enum LaunchFlags {
     /// mode (no mic, no permission prompt) so the record→save→transcribe flow is
     /// hermetically UI-testable.
     static var seedTranscript: String? { args.stringValue("-seedTranscript") }
+    /// Q39 screenshot/UI-test seam: manufacture ONE edit conflict on the first seeded memo
+    /// (`EditConflicts.debugForceConflict`) so the prompt/banner/pill can be captured
+    /// against `mocks/Q4-edit-conflict.html` without two real devices going apart.
+    static var forceEditConflict: Bool { args.boolFlag("-forceEditConflict") }
 
     /// DEBUG surgical-recovery hook (P0 2026-07-10): rewrite ONE memo's enhancement
     /// copy-edit from a base64 launch argument (newline-safe), stamping fresh
