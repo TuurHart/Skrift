@@ -89,20 +89,23 @@ final class BodyV2HarnessTests: XCTestCase {
 
     // MARK: - known conflicts (each self-expiring: the test fails once the conflict is gone)
 
-    /// Registered for an R row, but the SPEC makes v2 equal v1 here. `pic-in-task-list` is a
-    /// list (it has newlines, so C20 leaves it unparagraphed) and D3 puts the picture after the
-    /// item — exactly where v1's golden already has it. Needs its R95 registration removed from
-    /// `expected-differences.json` (protected).
-    static let registrationConflicts: Set<String> = ["pic-in-task-list"]
+    /// `pic-in-task-list` was registered for an R row, but the SPEC makes v2 equal v1 here (it's
+    /// a list, so C20 leaves it unparagraphed, and D3 puts the picture after the item — exactly
+    /// where v1's golden already has it). D141: R95 dropped from `expected-differences.json`
+    /// (protected, approved) — nothing left to carve out here.
+    static let registrationConflicts: Set<String> = []
 
-    /// `expect_body.txt` disagrees with C11 applied to the note's own `offsetSeconds`:
-    /// - pic-at-start: 0.40 s is inside "is" of the only sentence → after it, not the top.
-    /// - pic-ocr-text: 3.02 s is inside "Grey" (starts 3.015 s) → after "…went up again."
-    /// - pic-three-spread: img_003 at 13.27 s is inside "Friday" of "Friday night job." → after it.
+    /// D140 resolved three of these (the picture now lands before the sentence, matching
+    /// `expect_body.txt`, not after it per the old C11-only reading):
+    /// - pic-at-start: 0.40 s is within the first 1.0 s of the only sentence (starts at 0.0) → top.
+    /// - pic-ocr-text: 3.02 s is within the first 1.0 s of "Grey body…" (starts 3.015 s) → before it.
+    /// - pic-three-spread: img_003 at 13.27 s is within the first 1.0 s of "Friday night job."
+    ///   (starts 12.935 s) → before it.
+    /// Still open:
     /// - ingress-p3-five-clips-one-picture: 10.70 s is inside "pick" of sentence 4; the fixture
     ///   carries no clip boundaries, so the share-order place (C12) is not in the input.
     static let expectBodyConflicts: Set<String> = [
-        "pic-at-start", "pic-ocr-text", "pic-three-spread", "ingress-p3-five-clips-one-picture",
+        "ingress-p3-five-clips-one-picture",
     ]
 
     // MARK: - C5 classification against v1's golden
@@ -226,13 +229,16 @@ final class BodyV2HarnessTests: XCTestCase {
                        "text that already has a newline is untouched")
     }
 
+    /// D142: img_001/img_002 at 0.5 s fall inside "A cat."'s first 1.0 s (that sentence starts
+    /// at t=0), so D140 puts them BEFORE it too — same top spot as img_003 (offset 0), so all
+    /// three tie and land in manifest order (C13).
     func testTimedPictureAfterSpokenSentence_C11_C13() {
         func w(_ word: String, _ s: Double) -> WordTiming { WordTiming(word: word, start: s, end: s + 0.3) }
         let words = [w("A", 0), w("cat.", 0.4), w("A", 0.8), w("dog.", 1.2)]
         let pics = [ImageManifestEntry(filename: "a", offsetSeconds: 0.5), ImageManifestEntry(filename: "b", offsetSeconds: 0.5),
                     ImageManifestEntry(filename: "c", offsetSeconds: 0)]
         XCTAssertEqual(BodyV2.committed(.init(text: "A cat. A dog.", words: words, manifest: pics, source: .speech)),
-                       "[[img_003]]\n\nA cat.\n\n[[img_001]]\n\n[[img_002]]\n\nA dog.")
+                       "[[img_001]]\n\n[[img_002]]\n\n[[img_003]]\n\nA cat. A dog.")
     }
 
     func testThumbnail_C170() {
@@ -271,12 +277,12 @@ final class BodyV2HarnessTests: XCTestCase {
         \(sections.count) of \(total) corpus notes change. v1 = the recorded golden (v1's stored body + its display/export snap). \
         v2 = `BodyV2.committed`, what v2 would store. A blank quote line is a paragraph break.
 
-        Read first — four notes where v2 follows C11 (the sentence being spoken at the photo's second) \
-        and the fixture's expected text does not: pic-at-start (0.40 s falls inside the first sentence, so v2 puts the \
-        picture after it, not on top), pic-ocr-text (3.02 s is 5 ms into "Grey", so after "…went up again."), \
-        pic-three-spread picture 3 (13.27 s is inside "Friday night job.", so after it), ingress-p3 (10.70 s is inside \
-        sentence 4; the fixture has no clip boundaries, so v2 cannot know the share-order place). \
-        pic-in-task-list is not below: v2 equals v1 there (after the list item, D3) although it is registered for R95.
+        Read first — ingress-p3 is the one note left where v2 (C11 + D140) and the fixture's expected \
+        text disagree: 10.70 s is inside sentence 4; the fixture has no clip boundaries, so v2 cannot \
+        know the share-order place (C12). D140 (a picture within the first 1.0 s of the sentence being \
+        spoken lands before it, not after) resolved the other three: pic-at-start, pic-ocr-text, \
+        pic-three-spread now match `expect_body.txt`. pic-in-task-list is not below: v2 equals v1 there \
+        (after the list item, D3); its stale R95 registration was dropped (D141).
 
         Generated by `BodyV2HarnessTests.testWriteBodyV2Read`.
 

@@ -7,8 +7,10 @@ import Foundation
 ///
 /// Placement:
 /// - speech the user never edited, with word times: every manifest picture is placed from
-///   its moment — after the sentence being spoken at `offsetSeconds` (C11, C16). A moment
-///   before the first word (offset 0 = no moment) puts it at the TOP (C12). Same spot →
+///   its moment — after the sentence being spoken at `offsetSeconds` (C11, C16), unless the
+///   moment falls within that sentence's first 1.0 s, in which case it lands BEFORE the
+///   sentence instead (D140). A moment before the first word (offset 0 = no moment) puts it
+///   at the TOP (C12). Same spot →
 ///   consecutive paragraphs in manifest order (C13). Speech paragraphs first (C20), so the
 ///   pictures never change where speech breaks.
 /// - everything else (typed, edited, share captures, speech without word times): a marker
@@ -53,7 +55,15 @@ enum BodyV2 {
             for (i, entry) in input.manifest.enumerated() {
                 let spoken = input.words.lastIndex { $0.start < entry.offsetSeconds }
                 if let w = spoken, let end = ends[w] {
-                    spots.append((spot(after: end - 1, in: ns), i + 1))
+                    let sentenceStart = sentenceStartIndex(of: w, in: input.words)
+                    let inFirstSecond = entry.offsetSeconds - input.words[sentenceStart].start < 1.0
+                    if inFirstSecond, sentenceStart == 0 {
+                        spots.append((nil, i + 1))                            // D140: before the top sentence = top
+                    } else if inFirstSecond, let prevEnd = ends[sentenceStart - 1] {
+                        spots.append((spot(after: prevEnd - 1, in: ns), i + 1))  // D140: before this sentence
+                    } else {
+                        spots.append((spot(after: end - 1, in: ns), i + 1))    // C11: after the sentence
+                    }
                 } else {
                     spots.append((nil, i + 1))
                 }
@@ -194,6 +204,14 @@ enum BodyV2 {
             }
             return nil
         }
+    }
+
+    /// Walks back from word `w` to the first word of its sentence (D140): a word starts a new
+    /// sentence when the word before it ends one (`.` `?` `!`, closers aside).
+    static func sentenceStartIndex(of w: Int, in words: [WordTiming]) -> Int {
+        var i = w
+        while i > 0, !BodyV2Text.endsSentence(Substring(words[i - 1].word)) { i -= 1 }
+        return i
     }
 
     private static func isSpace(_ c: unichar) -> Bool { c == 32 || c == 9 || c == 10 || c == 0xA0 }
