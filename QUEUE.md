@@ -35,7 +35,7 @@ node: i23
 do: The importance control as three balls (Passing 0.3 / Useful 0.6 / Important 1.0), tap sets, re-tap clears to Not rated, no fourth button, "Importance" label; shown on the Mac note column, the phone note and the iPad note, one size smaller than today (D107). Draw the current control from source beside it.
 check: Tuur clicked through it and said go.
 
-### Q3 [tuur] (doing) mockup: tag UI revamp
+### Q3 [tuur] (tuur) mockup: tag UI revamp
 spec: C241 C93
 needs: -
 do: A redesigned tag editor for phone and Mac that keeps the C93 rules (comma/newline split, `#` stripped, case kept, case-variants fold to the first spelling, destination words allowed). Start from today's tag chips drawn from source, show add / remove / suggest / typeahead.
@@ -255,3 +255,4 @@ check: `grep -rqE "class NotesListModelTests\b" Skrift_Native/SkriftDesktop/Skri
 - 2026-09-24 14:53 Q17 -> tuur — built @798e826f — awaiting sitting
 - 2026-09-24 14:53 Q21 -> doing — worker out
 - 2026-09-24 14:55 Q4 -> tuur — built @5b77e43f — awaiting sitting
+- 2026-09-24 15:02 Q3 -> tuur — built @840e77be — awaiting sitting
