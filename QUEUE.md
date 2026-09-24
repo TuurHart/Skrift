@@ -159,7 +159,7 @@ node: AuditFix2
 do: Re-transcribe clears nothing until the new transcript exists; a missing audio file is an error on the row (R9). Every attachment lane — the Mac `VaultExporter` attachment copy and the shared `VaultWrite.writeAsset` `.file` branch — goes through the same stamp/ownership check as the markdown lane and never removes a file it doesn't own (R7, R77). Tests `RetranscribeKeepsTextTests` and `AttachmentOwnershipTests` (desktop target).
 check: `grep -rqE "class RetranscribeKeepsTextTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && grep -rqE "class AttachmentOwnershipTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests`
 
-### Q20 [tuur] (todo) perf baseline before any perf fix
+### Q20 [tuur] (tuur) perf baseline before any perf fix
 spec: C282
 needs: -
 node: AuditFix2
@@ -383,3 +383,4 @@ check: `test $(ls plan/reads/tags-q36/*.png | wc -l) -ge 4 && ./gate.sh`
 - 2026-09-24 22:14 Q36 added
 - 2026-09-24 22:14 Q36 -> doing — worker out
 - 2026-09-24 22:14 Q29 -> doing — worker out (opus)
+- 2026-09-24 22:17 Q20 -> tuur — awaiting sitting: xctrace on iPhone 13 + Mac
