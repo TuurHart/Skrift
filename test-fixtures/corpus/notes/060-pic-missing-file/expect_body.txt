@@ -1,0 +1,5 @@
+The photo for this one never made it across.
+
+[[img_001]]
+
+Should show a placeholder, not crash, not drop the marker.
