@@ -1,0 +1,22 @@
+{
+  "_schema": "Q11 ADDITIVE companion to expected-differences.json / expected-differences-q23.json (both protected): slug -> [SPEC clause id] for notes where body v2 differs from v1's golden because a CONFIRMED clause requires it, but no R row names the note. Read only by BodyV2HarnessTests.swift. Same stale rule as the R files: a slug listed here whose v2 body equals the golden fails. A slug whose only id is C19 must differ from the golden in whitespace alone (checked).",
+  "typed-whitespace-only": ["C19"],
+  "typed-crlf-tabs-nbsp": ["C19"],
+  "voice-en-triple-blank-lines": ["C19"],
+  "conv-with-picture": ["C19"],
+  "migrated-stale-name-offsets": ["C19"],
+  "cap-image-no-words": ["C12"],
+  "cap-image-typed-note": ["C12"],
+  "video-portrait": ["C12"],
+  "video-landscape": ["C12"],
+  "video-no-speech": ["C12"],
+  "applenote-with-attachment": ["C14"],
+  "edge-literal-marker-typed": ["C14"],
+  "dest-made": ["C10", "C11"],
+  "_why": {
+    "C19": "whitespace at commit: v1's golden keeps CRLF/tabs/triple breaks, a trailing blank line after an end picture, or the double space the marker left behind; v2 normalises once.",
+    "C12": "a LONE shared picture or a LONE video's frame goes to the TOP. v1's recipe drops a share capture's picture (no word times → no marker) and moves a video frame from the top to the end.",
+    "C14": "v1's recipe strips every pre-baked marker: an Apple Note's attachment marker (a real manifest picture) is lost, and a typed literal `[[img_001]]` with no manifest entry is eaten. v2 keeps the first as its own paragraph and leaves the second as the author's text (not a picture: no manifest entry).",
+    "C10/C11": "dest-made is a voice note with a picture that no R row lists (R2/R95 name pic-* slugs only): v1 puts the picture after the last sentence (nearest word), v2 after 'came out right.' (the sentence being spoken at 4.19 s)."
+  }
+}
