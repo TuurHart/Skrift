@@ -151,7 +151,7 @@ node: AuditFix2
 do: One shared doctrine for every locally cached JSON file: `names.json` (atomic write, actor-guarded, merge never shrinks — R8), phone `library.json` and `bookmarks.json`, the Mac's `settings.json`, the audiobook-bookmark sync blob (R42, R59, R78). A file present but undecodable is kept aside as `<name>.corrupt-<date>`, recovery is surfaced, and nothing is written over it. One helper in `Skrift_Native/Shared/`. Tests: `CorruptStoreTests` in BOTH test targets (Mac: names + settings; phone: library + bookmarks).
 check: `grep -rqE "class CorruptStoreTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && plan/mtest.sh CorruptStoreTests`
 
-### Q19 [auto] (todo) re-transcribe keeps the text; attachments obey ownership
+### Q19 [auto] (doing) re-transcribe keeps the text; attachments obey ownership
 spec: C51 C58 C54
 needs: -
 gate+: yes
@@ -202,7 +202,7 @@ node: AuditFix2
 do: Per `plan/research/swift-collections-initborrow.md`: add a `packages:` entry `swift-collections` (url https://github.com/apple/swift-collections, `exactVersion: 1.6.0`) to BOTH `Skrift_Native/SkriftMobile/project.yml` and `Skrift_Native/SkriftDesktop/project.yml`, with a one-line comment citing swiftlang/swift#92574 and swift-collections#733 (drop the pin when a fixed toolchain ships). Regenerate both, confirm each generated Package.resolved says 1.6.0, and that the phone test host launches on the iPhone 17 sim.
 check: `grep -q "exactVersion: 1.6.0" Skrift_Native/SkriftMobile/project.yml && grep -q "exactVersion: 1.6.0" Skrift_Native/SkriftDesktop/project.yml && plan/mtest.sh CorpusSeedTests`
 
-### Q26 [auto] (todo) build the one notes list on phone, iPad and Mac
+### Q26 [auto] (doing) build the one notes list on phone, iPad and Mac
 spec: C117 C114 C240
 needs: Q22 Q8
 gate+: yes
@@ -310,3 +310,5 @@ check: `./gate.sh && test -s plan/reads/body-v2.md`
 - 2026-09-24 20:59 Q18 -> doing — worker out
 - 2026-09-24 21:15 Q18 -> done — gate pass @3dc27cbc
 - 2026-09-24 21:17 Q24 -> done — hand-merged (D138 tests only), gate+check+phone build green @132ea364
+- 2026-09-24 21:17 Q19 -> doing — worker out
+- 2026-09-24 21:17 Q26 -> doing — worker out
