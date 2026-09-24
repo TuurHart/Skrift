@@ -27,6 +27,7 @@ enum MacCloudMetaSync {
               let container = MemoCloudStore.container else { return false }
         let ctx = container.mainContext
         guard let memo = MacCloudWriteBack.resolve(for: pf, in: ctx), mutate(memo) else { return false }
+        EditConflicts.recordEdit(memo, in: ctx)   // C98: no-op unless the words changed
         do { try ctx.save() }
         catch { log.error("\(what, privacy: .public) write failed: \(String(describing: error), privacy: .public)") }
         return true
@@ -43,7 +44,9 @@ enum MacCloudMetaSync {
         var wrote = false
         for pf in files {
             guard let memo = MacCloudWriteBack.resolve(for: pf, in: ctx) else { continue }
-            for field in MirroredNoteFields.pushable where field.push!(pf, memo) { wrote = true }
+            var pushed = false
+            for field in MirroredNoteFields.pushable where field.push!(pf, memo) { pushed = true }
+            if pushed { wrote = true; EditConflicts.recordEdit(memo, in: ctx) }   // C98: words only
         }
         if wrote {
             do { try ctx.save() }

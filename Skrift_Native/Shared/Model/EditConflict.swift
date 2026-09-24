@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import CryptoKit
+import Observation
 
 /// `[deviceID: edits made on that device]` — a version vector over a note's WORDS.
 typealias EditVector = [String: Int]
@@ -271,6 +272,20 @@ enum EditConflicts {
         copy.destinationRaw = memo.destinationRaw
         copy.keptAt = now
         return copy
+    }
+}
+
+/// Which notes have two versions right now — the list pill and the note gate read it, so a
+/// row never fetches heads itself. Refreshed by each app when heads change (the phone's
+/// `@Query` on `MemoEditHead`, the Mac's reconcile sweep) and after a pick.
+@MainActor @Observable
+final class EditConflictWatch {
+    static let shared = EditConflictWatch()
+    private(set) var ids: Set<UUID> = []
+    func set(_ new: Set<UUID>) { if new != ids { ids = new } }
+    func refresh(in ctx: ModelContext, thisDevice: String = DeviceID.current()) {
+        let live = (try? ctx.fetch(FetchDescriptor<Memo>(predicate: #Predicate { $0.deletedAt == nil }))) ?? []
+        set(EditConflicts.conflictedIDs(in: ctx, memos: live, thisDevice: thisDevice))
     }
 }
 
