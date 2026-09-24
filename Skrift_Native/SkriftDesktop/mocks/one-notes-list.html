@@ -172,6 +172,15 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
 .triage .sp{flex:1;min-width:6px}
 .fbtn{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:500;color:var(--t2);background:var(--hair);padding:4px 8px;border-radius:6px}
 .fbtn .i{font-size:10px}
+/* D136 chip bar: counts on the chips, icon-only Filter at the end */
+.cbar{align-items:center;gap:4px;padding:6px 14px 4px}
+.frame.one.phone .cbar{padding:6px 16px 4px}
+.frame.one.mac .cbar{padding:2px 12px 4px}
+.cbar .fchip{padding:4px 7px}
+.cbar .cn{margin-left:4px;font-weight:600;opacity:.75;font-variant-numeric:tabular-nums}
+.cbar .sp{flex:1;min-width:4px}
+.fbtn.ficon{width:28px;height:24px;padding:0;justify-content:center;background:var(--surface);border:1px solid var(--border)}
+.fbtn.ficon .i{font-size:12px}
 .surf{display:flex;gap:3px;padding:3px;margin:10px 10px 0;background:var(--hair);border-radius:8px}
 .surf span{flex:1;text-align:center;font-size:11.5px;font-weight:600;color:var(--t3);padding:5px 0;border-radius:6px}
 .surf span.on{background:var(--surface);color:var(--t1);box-shadow:0 1px 2px rgba(0,0,0,.25)}
@@ -257,7 +266,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
 <div class="wrap">
   <header class="head">
     <h1>One notes list: phone, iPad, Mac</h1>
-    <div class="meta"><b>Q22</b> · second pass · C117 C114 C115 C119 · D134 D135 · built on the signed Q2 (three balls)</div>
+    <div class="meta"><b>Q22</b> · third pass · C117 C114 C115 C119 · D134 D135 D136 · built on the signed Q2 (three balls)</div>
     <p>Same five notes on every screen. <b>Today</b> draws each device's list as the source builds it now. <b>One list</b> is the proposal: one row, one list, one set of verbs, one grey ground, every device.</p>
   </header>
 
@@ -285,25 +294,26 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
     <div class="note" id="stagehint" style="text-align:center"></div>
 
     <div class="picks" id="picks">
-      <div class="redline">New choice to overrule</div>
-      <div class="pick">
-        <div class="k">The phone's red mic button<small>Record now sits in the phone's verb row. The iPad already dropped its corner button for the same reason: a second Record in one column (<code>NotesBottomChrome(showRecordButton: !isRegular)</code>).</small></div>
-        <div class="seg"><button id="p4-a" data-pick="mic:row" aria-pressed="true">Row only, mic button goes<span class="tagp">PICK</span></button><button id="p4-b" data-pick="mic:keep" aria-pressed="false">Keep the mic button too</button></div>
-      </div>
+      <div class="redline">Builder defaults in this pass, to overrule</div>
+      <div class="pick"><div class="k">Each chip counts its own notes<small>Needs Work 1 · Done 2 · Unrated 2. The old line's "1 ready to review" counted only Ready notes (<code>queueStatus == .ready</code>), a subset of Done; Done 2 also counts the exported one. "To process" was already on the Process button. All carries no number.</small></div></div>
+      <div class="pick"><div class="k">Filter is an icon-only button at the right end of the chip bar<small>Same glyph as today's Filter. The word "Filter" does not fit next to four counted chips in the Mac's 292 pt sidebar, so it goes on all three devices.</small></div></div>
     </div>
 
     <div class="signed">
-      <div class="redline">Signed at the sitting (D135), now fixed in the mock</div>
+      <div class="redline">Signed at the sittings (D135, D136), now fixed in the mock</div>
       <ul>
         <li>Status pill only while a note is being worked on or is broken.</li>
         <li>Three balls on every row, display only. You rate inside the note.</li>
         <li>Day groups on all three devices.</li>
         <li>Phone gets Import · Record · ✎, the iPad's row. The ✎ leaves the header spot Q1 gave it.</li>
         <li>All three lists on the iPhone's grey (<code>#f5f5f7</code>, dark <code>#0f1117</code>).</li>
+        <li>D136: the phone's red mic corner button goes. Record lives only in the row ("reaching up to record is not that bad").</li>
+        <li>D136: Filter moves up into the chip bar with All · Needs Work · Done · Unrated, on all three.</li>
+        <li>D136: the "N ready to review · N to process" line goes on all three. Its counts move onto the chips.</li>
       </ul>
     </div>
 
-    <div class="ask"><span class="ph">The one question</span>With Record in the row at the top, the phone loses the red mic button in the thumb corner. Is reaching up for Record OK, or does the mic stay and Record show twice?</div>
+    <div class="ask"><span class="ph">The one question</span>On the Mac, that line was also where "Mark all as Passing" lived, under the Unrated chip (<code>SidebarView.swift:570-583</code>). With the line gone, where does that button go: a slim row at the top of the Unrated list, or into the Filter menu?</div>
 
     <div class="panel">
       <div class="redline" id="chg-title">What changes on the iPhone</div>
@@ -459,7 +469,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
       ["Unrated note","dimmed twice: <code>MemoCard</code> 0.55 × <code>NoteCardView</code> 0.62 = 0.34; amber line only within 7 days of fading","same double dim, plus the always-on spine line (starts fading 24 Oct)","dimmed once (0.62); title only, no snippet; duration inside the spine line","One dim (0.62), three hollow balls, full row content, amber line only when urgent."],
       ["Importance","not shown","not shown","not shown","Pick 2: three balls at the end of the stamp line."],
       ["Grouping","day sections (TODAY, YESTERDAY, SUN 21 SEP)","same as phone","one flat list, sorted","Pick 3: day sections on all three."],
-      ["List chrome","Notes 30pt · Select · Import · Scan · Filter icons; search; mic button","Notes 22pt · Select; Import · Record · ✎; Process N; chips <b>above</b> search; triage line + Filter","Notes | Review; Skrift + gear; Import · Record · ✎; Process; search <b>above</b> chips; triage line + Filter","One order under the header: search, chips, triage line + Filter. The phone gains the chips and triage line."]
+      ["List chrome","Notes 30pt · Select · Import · Scan · Filter icons; search; mic button","Notes 22pt · Select; Import · Record · ✎; Process N; chips <b>above</b> search; triage line + Filter","Notes | Review; Skrift + gear; Import · Record · ✎; Process; search <b>above</b> chips; triage line + Filter","One order under the header: search, then the chips with their counts and Filter at the end (D136). No triage line on any device."]
     ];
     document.getElementById('diffs').innerHTML=D.map(function(d){
       return '<div class="diff"><h3>'+d[0]+'</h3><dl><dt>iPhone</dt><dd>'+d[1]+'</dd><dt>iPad</dt><dd>'+d[2]+'</dd><dt>Mac</dt><dd>'+d[3]+'</dd></dl><div class="to"><b>ONE</b>'+d[4]+'</div></div>';
@@ -506,7 +516,9 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
     var ready=S.notes.filter(function(n){return n.macState==="ready";}).length;
     var toProc=S.notes.filter(function(n){return rated(n)&&!n.macState;}).length + S.notes.filter(function(n){return n.macState==="enhancing";}).length;
     var unrated=S.notes.filter(function(n){return !rated(n);}).length;
-    return {ready:ready,toProc:toProc,unrated:unrated};
+    var needsWork=S.notes.filter(function(n){return rated(n)&&n.macState!=="ready"&&n.macState!=="exported";}).length;
+    var done=S.notes.filter(function(n){return rated(n)&&(n.macState==="ready"||n.macState==="exported");}).length;
+    return {ready:ready,toProc:toProc,unrated:unrated,needsWork:needsWork,done:done};
   }
   function listBody(){
     var v=visible(), h='';
@@ -521,11 +533,10 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
   function belowHeader(){
     var c=counts();
     var h='<div class="search" '+(S.dev==="mac"?'style="margin:0 12px"':'')+'>'+ic('mag')+'<input id="q" placeholder="Search memos" aria-label="Search notes" value="'+esc(S.q)+'"></div>';
-    h+='<div class="fchips" style="padding-top:6px">'+["All","Needs Work","Done","Unrated"].map(function(k){return '<button class="fchip'+(S.chip===k?' on':'')+'" data-chip="'+k+'">'+k+'</button>';}).join('')+'</div>';
-    h+='<div class="triage">';
-    if(S.chip==="Unrated") h+='<span class="u">'+c.unrated+' not rated</span>';
-    else h+='<span class="a">'+c.ready+' ready to review</span>'+(c.toProc?'<span class="b"> · '+c.toProc+' to process</span>':'');
-    h+='<span class="sp"></span><button class="fbtn" data-toast="Sort &amp; Filter: newest, oldest, title · place, photos, dates">'+ic('filter')+'Filter</button></div>';
+    // D136: the triage line is gone; each chip carries its own count, Filter ends the bar.
+    var num={"All":null,"Needs Work":c.needsWork,"Done":c.done,"Unrated":c.unrated};
+    h+='<div class="fchips cbar">'+["All","Needs Work","Done","Unrated"].map(function(k){return '<button class="fchip'+(S.chip===k?' on':'')+'" data-chip="'+k+'">'+k+(num[k]!=null?'<span class="cn">'+num[k]+'</span>':'')+'</button>';}).join('')+
+      '<span class="sp"></span><button class="fbtn ficon" aria-label="Filter" data-toast="Sort &amp; Filter: newest, oldest, title · place, photos, dates">'+ic('filter')+'</button></div>';
     return h;
   }
   function renderOne(){
@@ -544,11 +555,9 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
       h+='<div class="phdr" style="position:relative"><span class="t">Notes</span><button class="lnk" data-act="select">'+(S.select?'Done':'Select')+'</button></div>';
       h+=verbRow("phone");
       h+='<span class="iflag" style="margin-left:16px">&uarr; NEW ON PHONE: THE IPAD\'S ROW. &#9998; LEAVES THE HEADER, SCAN MOVES INTO IMPORT</span>';
-      h+=belowHeader()+'<span class="iflag" style="margin-left:16px">&uarr; NEW ON PHONE: CHIPS + TRIAGE LINE (FILTER MOVED HERE)</span>'+listBody();
+      h+=belowHeader()+'<span class="iflag" style="margin-left:16px">&uarr; NEW ON PHONE: CHIPS WITH COUNTS, FILTER ENDS THE BAR (D136)</span>'+listBody();
       h+='</div>';
       if(S.select) h+='<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>';
-      else if(S.mic==="keep") h+='<button class="fab" data-toast="Record, the second one on this screen" aria-label="Record">'+ic('mic')+'</button>';
-      else h+='<div class="ghostfab" aria-hidden="true"><span>MIC BUTTON GONE: RECORD IS IN THE ROW</span></div>';
       h+='<div class="toast" id="toast"></div></div>';
     } else if(d==="ipad"){
       h+='<div class="frame ipad one"><span class="edgehint"></span><div class="scroller" id="scr">';
@@ -556,7 +565,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
       h+=verbRow("ipad");
       h+='<button class="proc" style="width:calc(100% - 28px)" data-toast="Process runs the rated pile on this iPad">'+ic('play')+'Process <small>1</small></button>';
       h+='<span class="iflag" style="margin-top:6px">GROUND: WHITE &rarr; THE PHONE\'S GREY. CARDS, CHIPS, SEARCH TURN WHITE</span>';
-      h+=belowHeader()+'<span class="iflag">&uarr; MOVED: SEARCH NOW ABOVE THE CHIPS, AS ON THE MAC</span>'+listBody();
+      h+=belowHeader()+'<span class="iflag">&uarr; SEARCH ABOVE THE CHIPS. TRIAGE LINE GONE: COUNTS ON THE CHIPS, FILTER IN THE BAR (D136)</span>'+listBody();
       h+='</div>'+(S.select?'<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>':'');
       h+='<div class="toast" id="toast"></div></div>';
     } else {
@@ -566,7 +575,7 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
       h+='<div class="macstack">'+verbRow("mac");
       h+='<button class="proc" data-toast="Process (unchanged)">'+ic('play')+'Process <small>1</small></button></div>';
       h+='<span class="iflag" style="margin:6px 12px 2px">SIDEBAR: WHITE &rarr; THE PHONE\'S GREY; ROWS BECOME WHITE CARDS</span>';
-      h+=belowHeader()+'<span class="iflag" style="margin-left:8px">NEW ON MAC: DAY GROUPS, BALLS, CHIPS, TIME &darr;</span>'+listBody();
+      h+=belowHeader()+'<span class="iflag" style="margin-left:8px">&uarr; TRIAGE LINE GONE (D136). PROCESS 1 ABOVE IS UNCHANGED</span><span class="iflag" style="margin-left:8px">NEW ON MAC: DAY GROUPS, BALLS, CHIPS, TIME &darr;</span>'+listBody();
       h+='</div>'+(S.select?'<div class="selbar"><span style="color:var(--t2);font-weight:600">'+sel+' selected</span><button class="dl" data-act="del">'+ic('trash')+'Delete</button></div>':'');
       h+='<div class="toast" id="toast"></div></div>';
     }
@@ -580,9 +589,9 @@ svg.i{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.9;stroke
     renderChanges();
   }
   var CH={
-    phone:["Gains the iPad's Import · Record · ✎ row under the title (D135). The header keeps only Notes and Select.","Import becomes a menu: Files, Photos, Scan. The Import and Scan icons leave the header.","✎ moves from beside Select (Q1) into the row, the same place as on the iPad and Mac.","The red mic button goes; Record lives in the row (the pick). The bottom row keeps only the audiobook pill.","Gains the chips (All, Needs Work, Done, Unrated) and the triage line with Filter.","Unrated rows dim once (0.62), not twice (0.34 today), and show three hollow balls.","Unchanged: the grey ground, white cards, day groups, swipe and long-press menus."],
-    ipad:["Search moves above the chips, matching the Mac.","The always-on \"starts fading …\" line on unrated rows goes; the amber line shows only in the last 7 days, as on the phone.","Unrated rows dim once, not twice; balls on every row.","The list column turns from white (skSurface) to the phone's grey (#f5f5f7); the cards turn from grey to white.","Import, Record, ✎ and search turn white with a hairline, so they stay visible on grey.","Unchanged: the verb row itself, Process N, the ◧ toggle."],
-    mac:["Date stamp gains the time and the day word: \"Today · 14:32\", not \"today\".","Day groups replace the flat list (pick 3).","Rows gain place, weather, #tags and the photo thumb (already signed in mac-notes-list-rich, C119).","Untitled notes stop showing their first line twice.","Unrated rows keep their snippet and chips; duration moves out of the spine line into a chip.","Ready, Exported and Transcribed pills go; Queued, Transcribing, Enhancing and Error stay (D135).","The sidebar turns from white (Theme.surface) to the phone's grey; rows become white cards, 6 pt apart instead of 2."]
+    phone:["Gains the iPad's Import · Record · ✎ row under the title (D135). The header keeps only Notes and Select.","Import becomes a menu: Files, Photos, Scan. The Import and Scan icons leave the header.","✎ moves from beside Select (Q1) into the row, the same place as on the iPad and Mac.","The red mic button goes (D136); Record lives only in the row. The bottom row keeps only the audiobook pill.","Gains the chips with their counts (Needs Work 1, Done 2, Unrated 2) and Filter at the end of the chip bar (D136). No triage line.","Unrated rows dim once (0.62), not twice (0.34 today), and show three hollow balls.","Unchanged: the grey ground, white cards, day groups, swipe and long-press menus."],
+    ipad:["Search moves above the chips, matching the Mac.","The \"1 ready to review · 1 to process\" line goes (D136). The chips carry the counts; Filter moves to the end of the chip bar. Process N is unchanged.","The always-on \"starts fading …\" line on unrated rows goes; the amber line shows only in the last 7 days, as on the phone.","Unrated rows dim once, not twice; balls on every row.","The list column turns from white (skSurface) to the phone's grey (#f5f5f7); the cards turn from grey to white.","Import, Record, ✎ and search turn white with a hairline, so they stay visible on grey.","Unchanged: the verb row itself, Process N, the ◧ toggle."],
+    mac:["Date stamp gains the time and the day word: \"Today · 14:32\", not \"today\".","Day groups replace the flat list (pick 3).","Rows gain place, weather, #tags and the photo thumb (already signed in mac-notes-list-rich, C119).","Untitled notes stop showing their first line twice.","Unrated rows keep their snippet and chips; duration moves out of the spine line into a chip.","Ready, Exported and Transcribed pills go; Queued, Transcribing, Enhancing and Error stay (D135).","The sidebar turns from white (Theme.surface) to the phone's grey; rows become white cards, 6 pt apart instead of 2.","The \"N ready to review · N to process\" line goes (D136); the chips carry the counts and Filter ends the chip bar. The Process action is unaffected: the line was only a summary (SidebarView.swift:588-591: readyCount = queueStatus .ready, pendingCount = rated notes awaiting Process, which the Process button already shows)."]
   };
   function renderChanges(){
     document.getElementById('chg-title').textContent="What changes on the "+(S.dev==="phone"?"iPhone":S.dev==="ipad"?"iPad":"Mac");
