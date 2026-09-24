@@ -1,0 +1,11 @@
+Moved the markers myself in the editor so they sit on sentence ends.
+
+[[img_001]]This paragraph is after the first picture.
+
+[[img_002]]
+
+
+
+
+
+And this one after the second.

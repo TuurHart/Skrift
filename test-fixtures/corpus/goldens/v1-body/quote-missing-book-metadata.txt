@@ -1,0 +1,3 @@
+> Fire it slower than you think you need to.
+
+The June bug: this reached the Mac with an EMPTY metadata blob and rendered as a raw > wall.
