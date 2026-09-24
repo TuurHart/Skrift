@@ -155,7 +155,7 @@ struct EditConflictPrompt: View {
             if let t = v.title, !t.isEmpty, t != (isHere ? there.title : here.title) {
                 Text(t).font(.system(size: 14, weight: .semibold)).foregroundStyle(style.text)
             }
-            Text(v.body?.isEmpty == false ? v.body! : "No words")
+            Text(v.shownBody?.isEmpty == false ? v.shownBody! : "No words")
                 .font(.system(size: look == .phone ? 14 : 12.5))
                 .foregroundStyle(style.text)
                 .lineLimit(look == .phone ? 8 : 5)

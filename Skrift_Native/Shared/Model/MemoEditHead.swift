@@ -31,9 +31,14 @@ final class MemoEditHead {
     var body: String? = nil
     var tags: [String] = []
     var editedAt: Date = Date()
+    /// The POLISHED body (`MemoEnhancement.copyedit`) this device held at this edit — the
+    /// text he actually edits on a Mac-polished note (Q38). nil = the note had no polish, or
+    /// the head came from a build before Q38. ADDITIVE, nil default.
+    var polishedBody: String? = nil
 
     init(memoID: UUID, deviceID: String, deviceKind: String, vector: EditVector,
-         baseHash: String?, title: String?, body: String?, tags: [String], editedAt: Date) {
+         baseHash: String?, title: String?, body: String?, tags: [String], editedAt: Date,
+         polishedBody: String? = nil) {
         self.memoID = memoID
         self.deviceID = deviceID
         self.deviceKind = deviceKind
@@ -43,6 +48,7 @@ final class MemoEditHead {
         self.body = body
         self.tags = tags
         self.editedAt = editedAt
+        self.polishedBody = polishedBody
     }
 
     var vector: EditVector {
@@ -50,5 +56,7 @@ final class MemoEditHead {
         set { vectorData = EditVectors.encode(newValue) }
     }
 
-    var contentHash: String { EditConflicts.hash(title: title, body: body, tags: tags) }
+    var contentHash: String {
+        EditConflicts.hash(title: title, body: body, tags: tags, polished: polishedBody)
+    }
 }

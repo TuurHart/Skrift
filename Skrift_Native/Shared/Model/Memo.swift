@@ -193,6 +193,12 @@ final class Memo {
     /// (reminder, audio trim) does not count as a words edit. ADDITIVE, nil default.
     var editStampHash: String? = nil
 
+    /// Hash of the POLISHED body (`MemoEnhancement.copyedit`) at the last vector bump (Q38),
+    /// nil = no polish then. Only a USER edit of the polished body moves it
+    /// (`EditConflicts.recordPolishedEdit`); the Mac's polish write and the one-time body
+    /// normalisation never do, so neither counts as an edit. ADDITIVE, nil default.
+    var polishStampHash: String? = nil
+
     /// Set on the version he did NOT keep when settling an edit conflict (D139): the note sits
     /// in Recently Deleted as a "replaced" row instead of "deleted". ADDITIVE, nil default.
     var replacedAt: Date? = nil
