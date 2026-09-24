@@ -119,7 +119,7 @@ final class ConversationMockUITests: XCTestCase {
         let seed = (1...20).map { "word\($0)" }.joined(separator: " ")   // ~6s → spans 2 seeded speakers
         app.launchArguments = ["-seedTranscript", seed, "-resetNames", "-appTheme", "dark"]
         app.launch()
-        app.buttons["new-recording-button"].tap()
+        app.buttons["ipad-record-button"].tap()
         let record = app.buttons["record-button"]
         XCTAssertTrue(record.waitForExistence(timeout: 5))   // instant record: auto-starts
         XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5))
@@ -144,7 +144,7 @@ final class ConversationMockUITests: XCTestCase {
         let seed = (1...20).map { "word\($0)" }.joined(separator: " ")
         app.launchArguments = ["-seedTranscript", seed, "-seedDemoNames", "-appTheme", "dark"]
         app.launch()
-        app.buttons["new-recording-button"].tap()
+        app.buttons["ipad-record-button"].tap()
         let record = app.buttons["record-button"]
         XCTAssertTrue(record.waitForExistence(timeout: 5))   // instant record: auto-starts
         XCTAssertTrue(app.buttons["pause-button"].waitForExistence(timeout: 5))

@@ -28,8 +28,9 @@ final class RecordingUITests: XCTestCase {
 
         // Open the recorder — INSTANT RECORD: recording auto-starts on open (the
         // "ready" screen is only a transient/fallback state now), so the pause
-        // control must appear WITHOUT tapping the record button.
-        let newRecording = app.buttons["new-recording-button"]
+        // control must appear WITHOUT tapping the record button. Record now
+        // lives in the verb row (D136 — the corner FAB is gone).
+        let newRecording = app.buttons["ipad-record-button"]
         XCTAssertTrue(newRecording.waitForExistence(timeout: 5))
         newRecording.tap()
 
@@ -67,7 +68,7 @@ final class RecordingUITests: XCTestCase {
         let cancel = springboard.buttons["Cancel"]
         if cancel.waitForExistence(timeout: 2) { cancel.tap() }
 
-        let newRecording = app.buttons["new-recording-button"]
+        let newRecording = app.buttons["ipad-record-button"]
         XCTAssertTrue(newRecording.waitForExistence(timeout: 15))
         newRecording.tap()
 

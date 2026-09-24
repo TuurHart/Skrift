@@ -458,7 +458,12 @@ struct MemosListView: View {
                                     fading: searchFadingIDs.contains(memo.id),
                                     clockLine: clockLine(for: memo, backlinked: backlinked),
                                     quiet: isUnratedLive(memo),
-                                    quietLine: quietTriageLine(for: memo, backlinked: backlinked),
+                                    // D136 (one-notes-list, Q33 visual check): the iPad's
+                                    // always-on "starts fading …" spine line is retired —
+                                    // unrated rows show the amber `clockLine` only within
+                                    // `fadeWarningDays`, same as the phone, never a standing
+                                    // quiet line. Was `quietTriageLine(for:backlinked:)`.
+                                    quietLine: nil,
                                     selected: memo.id == selectedMemoID) {
                                 // Opening a SEARCH RESULT carries the query
                                 // along — the note flashes where it matched
@@ -1056,15 +1061,6 @@ struct MemosListView: View {
     /// tap opens the note, whose Importance circles are the rating surface.
     private func isUnratedLive(_ memo: Memo) -> Bool {
         !NoteConsent.isRated(memo) && memo.deletedAt == nil && !memo.locked
-    }
-
-    /// The quiet row's ALWAYS-ON spine line — triage surfaces only (iPad
-    /// regular; the Mac list has its own). The phone notebook keeps the
-    /// urgency-only amber `clockLine` below instead: fade = the universal
-    /// signal, the standing line = triage-bench detail.
-    private func quietTriageLine(for memo: Memo, backlinked: Set<UUID>, now: Date = Date()) -> String? {
-        guard isRegular, isUnratedLive(memo) else { return nil }
-        return MemoSpine.oneLiner(for: MemoSpine.station(for: .from(memo, backlinked: backlinked), now: now), now: now)
     }
 
     /// Urgency-only clock line (⏱ eyeball wave 2, 2026-07-22; asymmetry
