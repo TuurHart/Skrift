@@ -239,7 +239,7 @@ node: V2Core
 do: Apply D140 in `Shared/BodyV2/`: a picture whose `offsetSeconds` falls within the first 1.0 s of a spoken sentence lands BEFORE that sentence, otherwise after it. Re-run the v2 harness: resolve the `registrationConflicts` / `expectBodyConflicts` carve-outs in `BodyV2HarnessTests` for pic-at-start, pic-ocr-text, pic-three-spread (each either now matches its expect_body or stays listed with the reason); D141: drop `pic-in-task-list` from R95 — that edits the protected `expected-differences.json`, which Tuur approved (D141), so the dispatcher hand-merges after checking it is the ONLY protected edit. Regenerate `plan/reads/body-v2.md`. ingress-p3 stays open (no clip boundaries in the fixture).
 check: `./gate.sh && test -s plan/reads/body-v2.md`
 
-### Q31 [auto] (doing) body v2 everywhere: the last four write sites + keep leading indentation
+### Q31 [auto] (done) body v2 everywhere: the last four write sites + keep leading indentation
 spec: C10 C19 C170
 needs: Q13
 gate+: yes
@@ -358,3 +358,4 @@ check: `grep -rqE "class AttachmentEmbedNameTests\b" Skrift_Native/SkriftDesktop
 - 2026-09-24 21:42 Q33 -> doing — worker out
 - 2026-09-24 21:42 Q34 -> doing — worker out
 - 2026-09-24 21:51 Q34 -> done — gate pass @87faab1c
+- 2026-09-24 21:54 Q31 -> done — gate pass @3b66bc50
