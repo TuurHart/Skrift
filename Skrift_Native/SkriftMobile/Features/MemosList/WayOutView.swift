@@ -163,16 +163,31 @@ private struct WayOutRow: View {
     var onDeleteNow: (() -> Void)? = nil
     var onPeek: () -> Void = {}
 
+    /// R88: routes through the same Shared gate the detail page and list use
+    /// (`LockGate.isLocked`, which itself calls `NoteVisibility`) — a locked
+    /// note gets the same "title + 🔒 only" placeholder here, not the meta line.
+    @ObservedObject private var lockGate = LockGate.shared
+    private var isLocked: Bool { lockGate.isLocked(memo) }
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(memo.displayTitle)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.skText)
-                    .lineLimit(1)
-                meta
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(Color.skTextFaint)
+                HStack(spacing: 4) {
+                    if isLocked {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(Color.skTextFaint)
+                    }
+                    Text(isLocked ? lockedTitle : memo.displayTitle)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Color.skText)
+                        .lineLimit(1)
+                }
+                if !isLocked {
+                    meta
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Color.skTextFaint)
+                }
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: onPeek)
@@ -199,6 +214,12 @@ private struct WayOutRow: View {
         .padding(.vertical, 2)
         .skCard()
         .modifier(DeleteNowActions(onDeleteNow: onDeleteNow))
+    }
+
+    /// Same fallback MemosListView's card uses for a locked row (R88: one
+    /// vocabulary for "locked, no title yet").
+    private var lockedTitle: String {
+        memo.title?.isEmpty == false ? memo.title! : "Locked note"
     }
 
     @ViewBuilder private var meta: some View {
@@ -310,6 +331,14 @@ private struct WayOutPeekSheet: View {
     let onDelete: () -> Void
     @Environment(\.dismiss) private var dismiss
 
+    /// R88: the peek is a content surface (meta + full body) — it must not
+    /// show either for a locked, unauthenticated note. Same gate as the row.
+    @ObservedObject private var lockGate = LockGate.shared
+    private var isLocked: Bool { lockGate.isLocked(memo) }
+    private var displayTitle: String {
+        isLocked ? (memo.title?.isEmpty == false ? memo.title! : "Locked note") : memo.displayTitle
+    }
+
     /// A displayable slice of the body: a text run or a resolved photo.
     private enum BodyRun: Identifiable {
         case text(id: Int, String)
@@ -326,22 +355,45 @@ private struct WayOutPeekSheet: View {
             ZStack {
                 Color.skBg.ignoresSafeArea()
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(memo.displayTitle)
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Color.skText)
-                        .lineLimit(2)
-                    HStack(spacing: 10) {
-                        Text(memo.recordedAt.formatted(date: .abbreviated, time: .omitted))
-                        if let place = memo.metadata?.location?.placeName { Text(place) }
-                        if memo.duration > 0 { Text(Duration.seconds(memo.duration).formatted(.time(pattern: .minuteSecond))) }
+                    HStack(spacing: 6) {
+                        if isLocked {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Color.skTextDim)
+                        }
+                        Text(displayTitle)
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(Color.skText)
+                            .lineLimit(2)
                     }
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.skTextFaint)
-                    Text(oneLiner)
+                    if isLocked {
+                        Text("Locked notes stay hidden here too — unlock to see them.")
+                            .font(.system(size: 12.5))
+                            .foregroundStyle(Color.skTextFaint)
+                        Button {
+                            Task { _ = await lockGate.unlock(memo.id) }
+                        } label: {
+                            Label("Unlock", systemImage: "faceid")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.skAccent)
+                        .accessibilityIdentifier("wayout-peek-unlock")
+                        Spacer(minLength: 0)
+                    } else {
+                        HStack(spacing: 10) {
+                            Text(memo.recordedAt.formatted(date: .abbreviated, time: .omitted))
+                            if let place = memo.metadata?.location?.placeName { Text(place) }
+                            if memo.duration > 0 { Text(Duration.seconds(memo.duration).formatted(.time(pattern: .minuteSecond))) }
+                        }
                         .font(.system(size: 12))
-                        .foregroundStyle(Color.skAmber)
-                    ScrollView {
-                        bodyView
+                        .foregroundStyle(Color.skTextFaint)
+                        Text(oneLiner)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.skAmber)
+                        ScrollView {
+                            bodyView
+                        }
                     }
                     Button(action: onBringBack) {
                         Text("Bring back")

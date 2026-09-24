@@ -1073,9 +1073,11 @@ struct MemosListView: View {
         }
     }
 
+    /// R88: `copyableText` itself refuses a locked, unauthenticated memo — this
+    /// just supplies the right banner instead of the generic "nothing to copy".
     private func copyTranscript(_ memo: Memo) {
         guard let text = memo.copyableText else {
-            flashBanner("Nothing to copy yet")
+            flashBanner(LockGate.shared.isLocked(memo) ? "Locked note" : "Nothing to copy yet")
             return
         }
         UIPasteboard.general.string = text
@@ -1085,9 +1087,19 @@ struct MemosListView: View {
 
     /// Soft-delete: move the memo to Recently Deleted (audio + sidecars stay on
     /// disk so Restore is lossless; purged for good after ~2 weeks at startup).
-    /// Shared by multi-select delete, swipe-to-delete, and the context menu.
+    /// Shared by multi-select delete, swipe-to-delete, and the context menu —
+    /// all three entry points funnel through here, so gating it once (R88)
+    /// covers all three: a locked note needs auth first, the same idiom
+    /// `toggleLock`'s Remove-Lock path already uses.
     private func deleteMemo(_ memo: Memo) {
-        repository.softDelete(memo)
+        guard LockGate.shared.isLocked(memo) else {
+            repository.softDelete(memo)
+            return
+        }
+        Task {
+            guard await LockGate.shared.unlock(memo.id) else { return }
+            repository.softDelete(memo)
+        }
     }
 
     // MARK: - Derived
@@ -1565,8 +1577,12 @@ private struct MemoCard: View {
 
 extension Memo {
     /// What a quick "Copy" copies: the transcript when there is one, else the
-    /// title; nil when the memo has neither (not yet transcribed, untitled).
+    /// title; nil when the memo has neither (not yet transcribed, untitled)
+    /// OR when it's locked and this session hasn't unlocked it (R88 — Copy is
+    /// gated behind auth, C213 — same rule the player's `audioURL` load uses).
+    @MainActor
     var copyableText: String? {
+        guard !LockGate.shared.isLocked(self) else { return nil }
         if let t = transcript, !t.isEmpty { return t }
         if let t = title, !t.isEmpty { return t }
         return nil
