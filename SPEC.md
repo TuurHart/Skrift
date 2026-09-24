@@ -1764,3 +1764,9 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      player, mini bar and PDF reader; the note→source jump-back ("that's so sick"). Note: no PDF
      reader with text selection exists today (only `PDFTextExtract` + thumbnails), so Q6's build
      includes one.
+136. **D136 Q22 second-pass verdicts.** ✅ DECIDED 2026-09-24: the phone takes the iPad/Mac verb row
+     and LOSES the red mic corner button ("reaching up to record is not that bad"); the Filter
+     control moves up into the chip bar (All · Needs Work · Done · Unrated); the "N ready to
+     review · N to process" line (Mac `SidebarView.swift:588-591`) confused him — builder default:
+     the line goes on all three devices and its counts move onto the chips. Worker branches
+     (`wt/*`) may be pushed (his worker agent rule); the dispatcher deletes each after merge.

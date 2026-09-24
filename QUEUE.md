@@ -173,7 +173,7 @@ node: AuditFix2
 do: One Shared predicate decides whether a note's content may show without auth; `WayOutView` (Fading / Recently Deleted) shows the "Locked note" placeholder the list already shows; the three delete entry points in `MemosListView` check the lock; `copyTranscript` / `copyableText` are gated behind auth (R88). Test in `LockedNoteVisibilityTests` (phone target).
 check: `plan/mtest.sh LockedNoteVisibilityTests`
 
-### Q22 [tuur] (tuur) mockup: one notes list across phone, iPad and Mac
+### Q22 [tuur] (doing) mockup: one notes list across phone, iPad and Mac
 spec: C117 C114
 needs: -
 do: Tuur 2026-09-24 (D134): "the way the notes are viewed, the list of notes… we need to unify that over all three devices". One clickable page: today's list row on the phone, iPad and Mac drawn from source side by side, then ONE unified row + list for all three, with the signed Q1 header ✎ and Q2 three balls in place. Phone, iPad and Mac frames.
@@ -235,3 +235,4 @@ check: `grep -q "exactVersion: 1.6.0" Skrift_Native/SkriftMobile/project.yml && 
 - 2026-09-24 14:11 Q25 -> done — gate pass @ec9282f1
 - 2026-09-24 14:11 Q16 -> doing — re-accept after Q25 pin
 - 2026-09-24 14:12 Q16 -> done — gate pass @4ce87f55
+- 2026-09-24 14:18 Q22 -> doing — third pass: filter into chip bar, triage line → chip counts (D136)
