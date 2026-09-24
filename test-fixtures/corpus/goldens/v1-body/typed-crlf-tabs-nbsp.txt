@@ -1,0 +1,10 @@
+Line one with a trailing space 
+Line two after CRLF
+
+	Indented with a tab
+
+Non breaking spaces here and three blank lines follow
+
+
+
+End.

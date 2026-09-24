@@ -1,0 +1,9 @@
+Parts to order for the cargo bike:
+
+- [ ] chain, 1/8
+- [ ] the rear hub, this one
+
+[[img_001]]
+
+- [ ] brake pads, four
+- [x] new bell

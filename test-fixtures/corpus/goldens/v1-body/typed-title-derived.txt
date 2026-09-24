@@ -1,0 +1,3 @@
+First line becomes the title if nothing else does.
+
+Second paragraph is just here so the first line is clearly a line.

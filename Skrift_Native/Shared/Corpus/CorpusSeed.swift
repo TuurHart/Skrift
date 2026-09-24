@@ -62,6 +62,26 @@ enum CorpusSeed {
         let wordTimings: String?
         let diarization: String?
         let enhancement: Enhancement?
+        /// The corpus author's expected-behaviour note (`generate.py`'s `expect` dict) —
+        /// prose only, read by the golden/expectation harness, never by app code.
+        /// `{}` (no keys) when the note carries no specific expectation.
+        let expect: Expect?
+
+        struct Expect: Decodable {
+            /// A plain expectation for this note's shape.
+            let note: String?
+            /// A known v1 defect this note demonstrates (v1's golden is expected to be wrong).
+            let bug: String?
+            /// A defect already fixed by the time this note was authored.
+            let bugFixed: String?
+            /// A behaviour Tuur hasn't ruled on yet — not a pass/fail criterion.
+            let needsVerdict: String?
+            enum CodingKeys: String, CodingKey {
+                case note, bug
+                case bugFixed = "bug-fixed"
+                case needsVerdict = "needs-verdict"
+            }
+        }
     }
 
     /// Minimal JSON passthrough so a blob round-trips byte-for-byte in meaning.

@@ -1,0 +1,1 @@
+A voice note whose stored title looks like a raw filename. The list must not show memo_ garbage; a generated or first-line title wins over a raw one.
