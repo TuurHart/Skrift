@@ -34,8 +34,15 @@ struct SidebarView: View {
     /// renders instead via `quietMemoRow` (see `unpipelinedMemos`/`WayOutRules`).
     private var queueRowFiles: [PipelineFile] { filtered.filter { !WayOutRules.isQuietLocalTake($0) } }
     private var orderedIDs: [String] { queueRowFiles.map(\.id) }
-    private var readyCount: Int { files.filter { $0.queueStatus == .ready }.count }
     private var queuedCount: Int { files.filter { $0.queueStatus == .queued }.count }
+    /// D135: "Each chip counts its own notes" — Needs Work / Done / Unrated, over
+    /// ALL live items (not the filtered view), like the old triage line's counts.
+    private var chipCounts: [QueueFilter: Int] {
+        NotesListModel.chipCounts(
+            needsWork: files.filter { !model.isComplete($0) }.count,
+            done: files.filter { model.isComplete($0) }.count,
+            notRated: unpipelinedMemos.count)
+    }
     /// Files still waiting on the Process button — gated through
     /// `coordinator.needsProcessing` too (not just `queueStatus`), so an unrated
     /// local recording is never counted into "Process N" / `canProcess`, matching
@@ -66,12 +73,13 @@ struct SidebarView: View {
             SurfaceSwitch(model: model)
                 .padding(.horizontal, 10).padding(.top, 10)
             header
-            triageLine
             queue
             bottomBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.surface)
+        // D135/D136 (one-notes-list): the sidebar ground turns from white to the
+        // phone's grey — rows become white cards, matching the phone/iPad.
+        .background(Theme.sidebarGround)
         // Why a take couldn't start (no mic, refused permission, engine wouldn't come up).
         // An alert rather than a dimmed button: the check that decides this is a synchronous
         // CoreAudio call, and running it while DRAWING made the button visibly slow to
@@ -456,38 +464,44 @@ struct SidebarView: View {
         HStack(spacing: 5) {
             ForEach(QueueFilter.allCases, id: \.self) { f in
                 let on = model.filter == f
-                Text(f.rawValue)
-                    .font(.system(size: 11))
-                    .lineLimit(1).fixedSize()
-                    .foregroundStyle(on ? Theme.accent : Theme.textSecondary)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(on ? Theme.accent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6)
-                        .stroke(on ? Theme.accent.opacity(0.22) : .clear, lineWidth: 1))
-                    .contentShape(Rectangle())
-                    .onTapGesture { model.filter = f }
+                HStack(spacing: 3) {
+                    Text(f.rawValue)
+                    // D135: "All carries no number" — the other three show the
+                    // count `chipCounts` computed, over every live item.
+                    if let n = chipCounts[f] {
+                        Text("\(n)").fontWeight(.semibold)
+                    }
+                }
+                .font(.system(size: 11))
+                .lineLimit(1).fixedSize()
+                .foregroundStyle(on ? Theme.accent : Theme.textSecondary)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(on ? Theme.accent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(on ? Theme.accent.opacity(0.22) : .clear, lineWidth: 1))
+                .contentShape(Rectangle())
+                .onTapGesture { model.filter = f }
+                .accessibilityIdentifier("sidebar.chip.\(f.rawValue)")
             }
             Spacer(minLength: 0)
+            filterControl
         }
     }
 
     /// ONE Filter control (Tuur 2026-07-23: "that filter button should also be
-    /// on the Mac… similar between them") — the same affordance as the iPad's
-    /// single Filter button, replacing the old inline sort CYCLE. A Button (not
-    /// a Menu — a Menu can't render in `ImageRenderer`, the snapshot harness) that
-    /// toggles a popover; the popover is unpresented at render time, so snapshots
-    /// stay clean. Holds Sort for now — the iPad's place/photo filters ride on
-    /// Memo metadata the `PipelineFile` row doesn't carry (a follow-up).
+    /// on the Mac… similar between them") — icon-only now (D136: "Filter" the
+    /// word doesn't fit next to four counted chips), ending the chip bar like
+    /// the phone/iPad. A Button (not a Menu — a Menu can't render in
+    /// `ImageRenderer`, the snapshot harness) that toggles a popover; the
+    /// popover is unpresented at render time, so snapshots stay clean.
     private var filterControl: some View {
         Button { showFilterPopover.toggle() } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "line.3.horizontal.decrease").font(.system(size: 9, weight: .semibold))
-                Text("Filter").font(.system(size: 10.5, weight: .medium))
-            }
-            .foregroundStyle(model.dateFilterActive ? Theme.accent : Theme.textSecondary)
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+            Image(systemName: "line.3.horizontal.decrease")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(model.dateFilterActive ? Theme.accent : Theme.textSecondary)
+                .padding(6)
+                .background(Theme.hairline.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
         .help("Sort & filter")
@@ -564,49 +578,10 @@ struct SidebarView: View {
         Binding(get: { model.dateTo ?? Date() }, set: { model.dateTo = $0 })
     }
 
-    // ── Triage line — what needs ME right now ───────────────
-    @ViewBuilder private var triageLine: some View {
-        HStack(spacing: 0) {
-            if model.filter == .notRated {
-                Text("\(unpipelinedMemos.count) not rated")
-                    .foregroundStyle(Theme.textSecondary).fontWeight(.semibold)
-                Spacer(minLength: 6)
-                if !unpipelinedMemos.isEmpty {
-                    // "Mark all as Passing" (Tuur 2026-07-23, closing the flag-verb
-                    // retirement): the bulk gives every unrated note the MINIMUM
-                    // rating — say exactly that, in the circles' own tier word
-                    // (the floor value 0.1 buckets to ball 1, "Passing"). No flag language.
-                    capsuleButton("Mark all as Passing", prominent: false) {
-                        processAll(unpipelinedMemos)
-                    }
-                    .accessibilityIdentifier("sidebar.mark-all-passing")
-                }
-                filterControl.padding(.leading, 6).fixedSize()
-            } else {
-                // Two counts + sort ONLY — a third count wrapped the line
-                // (Tuur's screenshot; the Unrated chip carries that number now).
-                Text("\(readyCount) ready to review")
-                    .foregroundStyle(Theme.accent).fontWeight(.semibold)
-                if pendingCount > 0 {
-                    Text(" · \(pendingCount) to process").foregroundStyle(Theme.textMuted)
-                }
-                Spacer(minLength: 0)
-                filterControl.fixedSize()
-            }
-        }
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
-        .font(.system(size: 11))
-        .contentShape(Rectangle())   // whole-line hover target — the tooltip was unreachable between texts
-        .help("""
-        Ready to review — the Mac finished these: transcript cleaned, title + summary written. Open one to check it; export sends it to Obsidian.
-        To process — waiting for the Process button (transcribe + enhance).
-        Unrated — synced from your phone without a rating; the Mac skips them until you rate one.
-        """)
-        .padding(.horizontal, 14)
-        .padding(.top, 9)
-        .padding(.bottom, 4)
-    }
+    // D136/D137: the old two-count triage line and its bulk-rate-everything
+    // button are GONE — "rating a note should be an intentional choice". The
+    // chips now carry the counts (`chipCounts` below); Process is unaffected,
+    // it already showed its own pile size.
 
     // ── Queue ───────────────────────────────────────────────
     @ViewBuilder private var queue: some View {
@@ -620,22 +595,42 @@ struct SidebarView: View {
         } else {
             // Plain VStack (not Lazy) is fine for a personal-scale vault; revisit
             // windowing (List / lazy) only if a very large queue shows scroll jank.
-            let content = VStack(spacing: 2) {
+            // D136: day groups, new on the Mac — the SAME `MemoDate.group` key the
+            // phone/iPad use, via the shared `NotesListModel.dayGroups`, so a day
+            // header reads the same word everywhere.
+            let content = VStack(alignment: .leading, spacing: 10) {
                 // Synthetic "Recording…"/"settling…" row (m1/m2/m4) — NOT a `PipelineFile`,
                 // pinned above every real row, purely presentational from `session`.
                 if sessionBusy {
                     LiveTakeRow(phase: session.phase, elapsedLabel: session.elapsedLabel,
                                 settledText: session.settledText)
                 }
-                ForEach(rows) { entry in
-                    switch entry {
-                    case .file(let f):
-                        QueueRowView(file: f, selected: model.selection.contains(f.id)) {
-                            model.handleClick(f.id, in: orderedIDs)
+                // Title sort scrambles chronological order, so day headers would
+                // repeat non-contiguously (the phone's `.longest` bypass, mirrored):
+                // one flat "All" bucket instead.
+                ForEach(model.sort == .title
+                        ? [(title: "", items: rows)]
+                        : NotesListModel.dayGroups(rows, dayLabel: { MemoDate.group($0.date) }),
+                        id: \.title) { group in
+                    VStack(alignment: .leading, spacing: 6) {
+                        if !group.title.isEmpty {
+                            Text(group.title.uppercased())
+                                .font(.system(size: 10.5, weight: .bold))
+                                .kerning(0.4)
+                                .foregroundStyle(Theme.textMuted)
+                                .padding(.horizontal, 4)
                         }
-                        .contextMenu { rowMenu(f) }
-                    case .memo(let m):
-                        quietMemoRow(m)
+                        ForEach(group.items) { entry in
+                            switch entry {
+                            case .file(let f):
+                                QueueRowView(file: f, selected: model.selection.contains(f.id)) {
+                                    model.handleClick(f.id, in: orderedIDs)
+                                }
+                                .contextMenu { rowMenu(f) }
+                            case .memo(let m):
+                                quietMemoRow(m)
+                            }
+                        }
                     }
                 }
             }
@@ -696,8 +691,11 @@ struct SidebarView: View {
         // Quiet rows render the SAME shared card, dimmed (m2): quiet ≠ urgent,
         // the spine one-liner rides the stamp slot, no pill, no verbs.
         let selected = model.selection.contains(memo.id.uuidString)
-        var m = NoteCardModel(stamp: SkriftFormat.shortDate(memo.recordedAt))
+        var m = NoteCardModel(stamp: MemoDate.label(memo.recordedAt))
         m.quiet = true
+        // Unrated memos ARE 0 — three hollow balls, same readout as the phone's
+        // quiet rows (D135's "display-only balls on rows" applies here too).
+        m.balls = memo.locked ? nil : 0
         // The card's stamp already prints the date — hand the quiet line WITHOUT
         // its leading date or the row reads "07 Aug · 7 Aug · …" (Tuur's first
         // m2 eyeball catch, 2026-08-19).
@@ -772,14 +770,6 @@ struct SidebarView: View {
     /// which LANE_AUTHOR owns) so the new queue row appears promptly.
     private func process(_ memo: Memo) {
         memo.significance = 0.1
-        try? MemoCloudStore.container?.mainContext.save()
-        MemoCloudReconciler.reconcileSoon()
-        refreshCloudMemos()
-    }
-
-    private func processAll(_ memos: [Memo]) {
-        guard !memos.isEmpty else { return }
-        for memo in memos { memo.significance = 0.1 }
         try? MemoCloudStore.container?.mainContext.save()
         MemoCloudReconciler.reconcileSoon()
         refreshCloudMemos()
@@ -1174,8 +1164,11 @@ private struct QueueRowView: View {
     }
 
     private var cardModel: NoteCardModel {
-        var m = NoteCardModel(stamp: SkriftFormat.shortDate(file.uploadedAt))
+        // D135: the Mac's stamp gains the time + day word ("Today · 14:32"),
+        // matching the phone/iPad instead of the old lowercase "today".
+        var m = NoteCardModel(stamp: MemoDate.label(file.uploadedAt))
         m.selected = selected
+        m.balls = ThreeBallScale.step(for: file.significance)
         let st = file.queueStatus
         let kind: NoteCardModel.Pill.Kind = switch st {
         case .error: .error
@@ -1184,18 +1177,29 @@ private struct QueueRowView: View {
         case .transcribed, .ready: .done
         }
         m.statusPill = .init(label: st.label, kind: kind, pulses: st.pulses)
+        let body = (file.sanitised ?? file.enhancedCopyedit ?? file.transcript ?? "")
+            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\n{2,}"#, with: "\n", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         // The raw filename leak (Tuur's 11:26 screenshot): the filename arm of
         // displayTitle never belongs on a CARD — a row with neither a title nor a word of
         // body falls to the shared taxonomy word instead. Tested by the filename SHAPE
         // before ("memo_…"), which missed every other shape a filename can take — the
         // typed-note rows ingested since 2026-08-20 are named `<uuid>.md`.
         let named = !(file.enhancedTitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
-        m.title = (named || file.firstBodyLine != nil) ? file.queueTitle : file.sourceDescriptor.label
-        let body = (file.sanitised ?? file.enhancedCopyedit ?? file.transcript ?? "")
-            .replacingOccurrences(of: #"\[\[img_\d+\]\]"#, with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if !body.isEmpty {
-            m.snippet = body.replacingOccurrences(of: #"\n+"#, with: " ", options: .regularExpression)
+        if named {
+            m.title = file.queueTitle
+            m.snippet = body.isEmpty ? nil : body
+        } else if file.firstBodyLine != nil {
+            // Q26 fix (BUGS §4 untitled-row repeat): an untitled row used to fall
+            // back to `queueTitle` (= the opening line) for the title AND show the
+            // full body — starting with that SAME line — as the snippet, so the
+            // row read its own first line twice. The phone's `MemoCard` never has
+            // this bug because it leaves `title` nil for an untitled note (mirrored
+            // here): the body alone carries the row.
+            m.snippet = body.isEmpty ? file.firstBodyLine : body
+        } else {
+            m.title = file.sourceDescriptor.label
         }
         if let dur = file.durationString { m.chips.append(.init(text: dur)) }
         if file.sourceType != .audio {
@@ -1286,6 +1290,8 @@ extension NoteCardStyle {
         text: Theme.textPrimary, textDim: Theme.textSecondary, textFaint: Theme.textMuted,
         amber: Theme.amber, green: Theme.green, red: Theme.destructive,
         chipFill: Theme.hairline.opacity(0.07),
-        surface: Color.white.opacity(0.015),
+        // D136: rows become white cards on the sidebar's new grey ground (was a
+        // near-transparent wash meant to blend into the old white sidebar).
+        surface: Theme.surface,
         border: Theme.hairline.opacity(0.16))
 }

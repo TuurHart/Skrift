@@ -15,6 +15,11 @@ enum Theme {
     // docked player — now all sit on the SHARED surface below, exactly as the iPad's
     // list column and Connections sheet do.
     static let surface      = dyn(Palette.surface)                    // panels + cards
+    /// D135/D136 (one-notes-list): the sidebar's own ground, deliberately the
+    /// PHONE's grey (`Palette.bg.phone`), not the Mac's own `Palette.bg.mac` window
+    /// color — "I like the gray of the iPhone better". Rows sit on `Theme.surface`
+    /// (white) over this, same figure/ground the phone/iPad now share.
+    static let sidebarGround = dyn(Palette.bg.phone)
     static let surfaceHover = dyn(light: 0xf0f1f6, dark: 0x1e2130)    // (Mac-only)
     /// Bar-control containment fill — the quiet chip a toolbar control sits in
     /// (see `barGlass` below). Shared with the phone's `skElev`.

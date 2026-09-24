@@ -34,6 +34,10 @@ struct NoteCardModel {
     /// Unrated = dimmed, hollow — untriaged, not urgent.
     var quiet = false
     var selected = false
+    /// Display-only three-ball importance (Q26, one-notes-list D135): 0–3 lit
+    /// balls in the stamp line, nil to omit entirely (locked rows). NEVER
+    /// tappable here — rating happens in detail, via `ThreeBallImportanceView`.
+    var balls: Int?
 
     struct Pill: Equatable {
         var label: String
@@ -121,7 +125,25 @@ struct NoteCardView: View {
             }
             Spacer(minLength: 0)
             if let pill = model.statusPill { pillView(pill) }
+            if let balls = model.balls { ballsView(balls) }
         }
+    }
+
+    /// Display-only three-ball importance readout (mocks/one-notes-list.html
+    /// `.rb` — 7pt circles, hollow ring when unlit). Never a `Button`: rating a
+    /// note from the list is not a verb this row offers (D137's "intentional
+    /// choice" doctrine applies to the whole control, not just the bulk one).
+    private func ballsView(_ lit: Int) -> some View {
+        HStack(spacing: 3) {
+            ForEach(1...3, id: \.self) { i in
+                Circle()
+                    .fill(i <= lit ? style.accent : .clear)
+                    .overlay(Circle().strokeBorder(i <= lit ? style.accent : style.border, lineWidth: 1.2))
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .accessibilityIdentifier("card-importance-balls")
+        .accessibilityLabel(lit == 0 ? "Unrated" : "Importance \(lit) of 3")
     }
 
     private func pillView(_ pill: NoteCardModel.Pill) -> some View {

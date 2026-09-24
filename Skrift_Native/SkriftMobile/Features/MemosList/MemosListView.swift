@@ -211,14 +211,17 @@ struct MemosListView: View {
     /// kept out here.
     private var notesRoot: some View {
         ZStack(alignment: .bottom) {
-                // Two materials (signed mock ipad-note-surfaces.html): at regular
-                // the list is a SURFACE (skSurface, slightly grayer — Tuur's own
-                // observation of how Notes/Files read), so it reads as a distinct
-                // region from the note's paper (skBg). The phone stays skBg.
-                (isRegular ? Color.skSurface : Color.skBg).ignoresSafeArea()
+                // D135/D136 (one-notes-list): the list column's ground is now the
+                // phone's grey EVERYWHERE — the iPad's separate white "surface"
+                // material is gone ("I like the gray of the iPhone better"); the
+                // cards stay white either way (`NoteCardStyle.skrift.surface`),
+                // so they now read as cards against a visibly different ground.
+                Color.skBg.ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     if isRegular { macStyleHeader } else { headerRow }
+                    verbRow
+                    if isRegular { processRow }
                     if memos.isEmpty {
                         // No list to scroll — the card sits pinned here.
                         ContinueListeningCard(openPlayer: { showBookPlayer = true })
@@ -234,18 +237,10 @@ struct MemosListView: View {
                     selectionBar
                 } else {
                     // ONE bottom row (Option A, mocks/notes-bottom-chrome.html):
-                    // compact book pill left (session-gated) + record right —
-                    // explicitly side by side so they can never overlap (the
-                    // build-40 regression: a tab-level safeAreaInset never
-                    // propagated into this NavigationStack on iOS 26 and the
-                    // capsule buried the record button). At regular width this
-                    // row rides INSIDE the sidebar column (capture is a
-                    // list-side act; the reading pane stays calm — m1).
-                    // At regular width Record lives in the header verb row (the
-                    // Mac's construction, Tuur 2026-08-18) — the corner FAB would
-                    // be a second record button in the same column, so it yields;
-                    // the row stays for the book pill. Compact keeps the FAB.
-                    NotesBottomChrome(showRecordButton: !isRegular) {
+                    // the book pill only now — D136 drops the phone's red mic
+                    // corner button too ("reaching up to record is not that bad"),
+                    // Record lives ONLY in `verbRow` on every width now.
+                    NotesBottomChrome(showRecordButton: false) {
                         intentBridge.clearPendingStart()
                         // PRESTART (2026-07-26): capture begins HERE, at the
                         // button, while the cover is still animating in —
@@ -439,11 +434,11 @@ struct MemosListView: View {
             // Same rule for the backlink scan (never per row) — feeds the
             // Mac-parity clock line on unrated rows.
             let backlinked = MemoLifecycle.backlinkedIDs(in: memos)
-            // The Mac sidebar's triage line (regular only): chips carry membership
-            // (the count line is the two ACTIONABLE numbers — ready to review · to
-            // process — with the sort control trailing, exactly like the Mac). The
-            // chips themselves ride in `macStyleHeader` above, under search.
-            if isRegular { macTriageLine }
+            // D136: the triage line is gone on every width — each chip carries
+            // its own count now (`chipCounts`), Filter ends the bar. On BOTH
+            // widths now (was iPad-regular only) — the phone's chip bar filters
+            // the list too.
+            filterChips
             // Native List → reliable swipe-to-delete (.swipeActions) + native
             // multi-select (EditMode + selection binding, incl. drag-over-rows).
             // Plain style + cleared backgrounds keep the custom card look.
@@ -646,243 +641,217 @@ struct MemosListView: View {
     /// pile's size ON the button) — then search, the filter chips and the
     /// count/sort line. Compact width keeps the phone's own header below,
     /// untouched.
+    /// D136 second pass: the iPad-regular identity row is now JUST the title +
+    /// Select — the verb row, Process and the chips all moved out into
+    /// `notesRoot` so the phone can share them at compact width too.
     private var macStyleHeader: some View {
-        VStack(spacing: 7) {
-            HStack(spacing: 8) {
-                // 22pt, hugging the top — "the notes title can be bigger, move
-                // the whole notes bit up" (Tuur, live round b130).
-                Text(SharedCopy.notesTitle)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Color.skText)
-                Spacer(minLength: 0)
-                Button(editMode.isEditing ? "Done" : "Select") {
-                    withAnimation(Theme.Motion.snappy) {
-                        if editMode.isEditing { editMode = .inactive; selected.removeAll() }
-                        else { editMode = .active }
-                    }
+        HStack(spacing: 8) {
+            // 22pt, hugging the top — "the notes title can be bigger, move
+            // the whole notes bit up" (Tuur, live round b130).
+            Text(SharedCopy.notesTitle)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(Color.skText)
+            Spacer(minLength: 0)
+            Button(editMode.isEditing ? "Done" : "Select") {
+                withAnimation(Theme.Motion.snappy) {
+                    if editMode.isEditing { editMode = .inactive; selected.removeAll() }
+                    else { editMode = .active }
                 }
-                .font(.system(size: 13))
-                .tint(.skAccent)
-                .accessibilityIdentifier("select-button")
-                // The Filter control moved DOWN to the triage line (one button
-                // owns sort + filter; Tuur 2026-07-23: "we don't need the
-                // redundancy"). The identity row is just Notes + Select now.
             }
-            // Clear the screen-pinned ◧ (14 + 30) and sit on the same 48pt line
-            // as the note's chrome bar, so the button reads as belonging to this
-            // header while the list is open (signed mock ipad-note-chrome-belongs).
-            .padding(.leading, 34)
-            .frame(height: 48)
+            .font(.system(size: 13))
+            .tint(.skAccent)
+            .accessibilityIdentifier("select-button")
+        }
+        // Clear the screen-pinned ◧ (14 + 30) and sit on the same 48pt line
+        // as the note's chrome bar, so the button reads as belonging to this
+        // header while the list is open (signed mock ipad-note-chrome-belongs).
+        .padding(.leading, 34)
+        .frame(height: 48)
+        .padding(.horizontal, 14)
+    }
 
-            // The Mac sidebar's verb rows, ported whole (Tuur 2026-08-18: "we can
-            // have the record button on the same place as the Mac does… and the
-            // new note button… we can unify those"; the Mac's own construction is
-            // the signed mocks mac-record-button.html option B + mac-new-note.html
-            // m2): the two verbs that BRING MATERIAL IN pair up with the typing ✎,
-            // and Process — the one expensive verb — gets the full width below.
-            HStack(spacing: 7) {
-                // Import IS the picker chooser now (Tuur: "when you click import
-                // you should see if you want files or video from photos").
-                Menu {
-                    Button { showMediaFileImporter = true } label: {
-                        Label("Audio or video from Files", systemImage: "folder")
-                    }
-                    Button { showVideoImporter = true } label: {
-                        Label("Video from Photos", systemImage: "photo.on.rectangle")
-                    }
-                    if DocScanView.isSupported {
-                        Button { showDocScanner = true } label: {
-                            Label("Scan a document", systemImage: "doc.viewfinder")
-                        }
-                    }
-                } label: {
-                    Label(SharedCopy.importVerb, systemImage: "plus")
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .foregroundStyle(Color.skText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    /// The Mac sidebar's verb row, ported whole and now shared by the PHONE too
+    /// (D135/D136, Tuur: "just get the same ones… also unify that" — the phone
+    /// gains this row and loses its corner FAB): Import (the picker chooser),
+    /// Record, and the typed-note ✎ — the two verbs that BRING MATERIAL IN pair
+    /// up with typing, the signed mocks mac-record-button.html option B +
+    /// mac-new-note.html m2.
+    private var verbRow: some View {
+        HStack(spacing: 7) {
+            // Import IS the picker chooser now (Tuur: "when you click import
+            // you should see if you want files or video from photos").
+            Menu {
+                Button { showMediaFileImporter = true } label: {
+                    Label("Audio or video from Files", systemImage: "folder")
                 }
-                .accessibilityIdentifier("ipad-import-button")
-
-                // Start a take — the Mac's Record, same shape as Import (they are
-                // the same verb family). Replaces the bottom-corner FAB at regular
-                // width; compact keeps the FAB.
-                Button {
-                    intentBridge.clearPendingStart()
-                    LiveRecordingService.prestart()
-                    showRecord = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Circle().fill(Color.skRed).frame(width: 9, height: 9)
-                        Text("Record")
+                Button { showVideoImporter = true } label: {
+                    Label("Video from Photos", systemImage: "photo.on.rectangle")
+                }
+                if DocScanView.isSupported {
+                    Button { showDocScanner = true } label: {
+                        Label("Scan a document", systemImage: "doc.viewfinder")
                     }
+                }
+            } label: {
+                Label(SharedCopy.importVerb, systemImage: "plus")
                     .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(Color.skRed)
+                    .foregroundStyle(Color.skText)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 7)
                     .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("ipad-record-button")
-                .accessibilityLabel("Record a voice memo")
-
-                // A typed note (the Mac's ✎/⌘N, mocks/mac-new-note.html m2):
-                // Import and Record name their sources, typing is the third verb —
-                // a quiet fixed-width chip, ⌘N on a hardware keyboard.
-                Button { newTypedNote() } label: {
-                    Image(systemName: "square.and.pencil")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.skText)
-                        .frame(width: 34)
-                        .padding(.vertical, 7)
-                        .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut("n", modifiers: .command)
-                .accessibilityIdentifier("ipad-new-note-button")
-                .accessibilityLabel("New note")
             }
+            .accessibilityIdentifier("ipad-import-button")
 
-            // "Process N" — the Mac's button, ported whole: N is the pile a
-            // polisher would pick up (ProcessPile.waiting — RATED and not yet
-            // written back), and pressing it RUNS that pile here — full-width on
-            // its own row, like the Mac's. It exists only where this device can
-            // actually process; the unrated pile has its own tap target on the
-            // count line below (they are different piles: one waits on a model,
-            // one waits on Tuur).
-            SwiftUI.Group {
-                if PolishCenter.shared.isAvailable {
-                    if let run = PolishCenter.shared.pileRun {
-                        Button { PolishCenter.shared.cancelPile() } label: {
-                            HStack(spacing: 6) {
-                                ProgressView(value: run.fraction)
-                                    .progressViewStyle(.linear)
-                                    .frame(width: 54)
-                                    .tint(.white)
-                                Text(run.line)
-                                    .font(.system(size: 11.5, weight: .semibold))
-                                    .lineLimit(1)
-                            }
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 7)
-                            .background(Color.skAccent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("ipad-process-pile-running")
-                        .accessibilityLabel("\(run.line). Tap to stop.")
-                    } else {
-                        Button { PolishCenter.shared.processPile(processPile) } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "play.fill").font(.system(size: 10, weight: .bold))
-                                Text(SharedCopy.processVerb).font(.system(size: 12.5, weight: .semibold))
-                                if !processPile.isEmpty {
-                                    Text("\(processPile.count)")
-                                        .font(.system(size: 12, weight: .bold).monospacedDigit())
-                                        .opacity(0.8)
-                                }
-                            }
-                            .lineLimit(1)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 7)
-                            .background(Color.skAccent.opacity(processPile.isEmpty ? 0.4 : 1),
-                                        in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(processPile.isEmpty)
-                        .accessibilityIdentifier("ipad-process-pile-button")
-                    }
+            // Start a take — the Mac's Record, same shape as Import (they are
+            // the same verb family). D136: this replaces the phone's corner FAB
+            // too now ("reaching up to record is not that bad").
+            Button {
+                intentBridge.clearPendingStart()
+                LiveRecordingService.prestart()
+                showRecord = true
+            } label: {
+                HStack(spacing: 6) {
+                    Circle().fill(Color.skRed).frame(width: 9, height: 9)
+                    Text("Record")
                 }
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Color.skRed)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("ipad-record-button")
+            .accessibilityLabel("Record a voice memo")
 
-            filterChips
+            // A typed note (the Mac's ✎/⌘N, mocks/mac-new-note.html m2):
+            // Import and Record name their sources, typing is the third verb —
+            // a quiet fixed-width chip, ⌘N on a hardware keyboard.
+            Button { newTypedNote() } label: {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.skText)
+                    .frame(width: 34)
+                    .padding(.vertical, 7)
+                    .background(Color.skElev, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut("n", modifiers: .command)
+            .accessibilityIdentifier("ipad-new-note-button")
+            .accessibilityLabel("New note")
         }
         .padding(.horizontal, 14)
         .padding(.bottom, 2)
     }
 
+    /// "Process N" — the Mac's button, ported whole: N is the pile a polisher
+    /// would pick up (ProcessPile.waiting), and pressing it RUNS that pile here
+    /// — full-width, like the Mac's. Regular width only (D136's mock: the phone
+    /// has no Process row in the unified list).
+    private var processRow: some View {
+        SwiftUI.Group {
+            if PolishCenter.shared.isAvailable {
+                if let run = PolishCenter.shared.pileRun {
+                    Button { PolishCenter.shared.cancelPile() } label: {
+                        HStack(spacing: 6) {
+                            ProgressView(value: run.fraction)
+                                .progressViewStyle(.linear)
+                                .frame(width: 54)
+                                .tint(.white)
+                            Text(run.line)
+                                .font(.system(size: 11.5, weight: .semibold))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(Color.skAccent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("ipad-process-pile-running")
+                    .accessibilityLabel("\(run.line). Tap to stop.")
+                } else {
+                    Button { PolishCenter.shared.processPile(processPile) } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "play.fill").font(.system(size: 10, weight: .bold))
+                            Text(SharedCopy.processVerb).font(.system(size: 12.5, weight: .semibold))
+                            if !processPile.isEmpty {
+                                Text("\(processPile.count)")
+                                    .font(.system(size: 12, weight: .bold).monospacedDigit())
+                                    .opacity(0.8)
+                            }
+                        }
+                        .lineLimit(1)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(Color.skAccent.opacity(processPile.isEmpty ? 0.4 : 1),
+                                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(processPile.isEmpty)
+                    .accessibilityIdentifier("ipad-process-pile-button")
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+    }
+
     /// The Mac sidebar's chip row (All / Needs Work / Done / Unrated), verbatim
     /// idiom — one `QueueFilter`, the shared word set. Selecting a chip filters
-    /// the list (`matchesFilter`); the Unrated chip carries the not-rated number.
+    /// the list (`matchesFilter`); D136: each chip now carries ITS OWN count
+    /// (the old triage line's numbers moved here) and Filter ends the bar,
+    /// icon-only — on the phone too now, not just the iPad.
     private var filterChips: some View {
         HStack(spacing: 5) {
             ForEach(QueueFilter.allCases, id: \.self) { chip in
                 let on = listChip == chip
-                // The Mac's chip, opacity-for-opacity (Tuur, 2026-07-23: the Mac's
-                // chips "just look better") — accent text on accent@0.14, no count
-                // on the chip (the number lives in the triage line, like the Mac).
-                Text(chip.rawValue)
-                    .font(.system(size: 11))
-                    .lineLimit(1).fixedSize()
-                    .foregroundStyle(on ? Color.skAccent : Color.skTextDim)
-                    .padding(.horizontal, 9).padding(.vertical, 4)
-                    .background(on ? Color.skAccent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
-                    .overlay(RoundedRectangle(cornerRadius: 6)
-                        .stroke(on ? Color.skAccent.opacity(0.22) : .clear, lineWidth: 1))
-                    .contentShape(Rectangle())
-                    .onTapGesture { withAnimation(Theme.Motion.snappy) { listChip = chip } }
-                    .accessibilityIdentifier("ipad-chip-\(chip.rawValue)")
+                HStack(spacing: 3) {
+                    Text(chip.rawValue)
+                    if let n = chipCounts[chip] {
+                        Text("\(n)").fontWeight(.semibold)
+                    }
+                }
+                .font(.system(size: 11))
+                .lineLimit(1).fixedSize()
+                .foregroundStyle(on ? Color.skAccent : Color.skTextDim)
+                .padding(.horizontal, 9).padding(.vertical, 4)
+                .background(on ? Color.skAccent.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(on ? Color.skAccent.opacity(0.22) : .clear, lineWidth: 1))
+                .contentShape(Rectangle())
+                .onTapGesture { withAnimation(Theme.Motion.snappy) { listChip = chip } }
+                .accessibilityIdentifier("ipad-chip-\(chip.rawValue)")
             }
             Spacer(minLength: 0)
-        }
-        .padding(.top, 2)
-    }
-
-    /// The Mac's triage line: the two actionable counts + the sort cycle. Counts
-    /// are over ALL live notes (not the filtered view), like the Mac's sidebar.
-    private var macTriageLine: some View {
-        HStack(spacing: 0) {
-            // Under the Unrated chip the line becomes the not-rated count (the
-            // number the chip used to carry) — the Mac's own branch.
-            if listChip == .notRated {
-                Text("\(unratedCount) not rated")
-                    .foregroundStyle(Color.skTextDim).fontWeight(.semibold)
-            } else {
-                Text("\(readyToReviewCount) ready to review")
-                    .foregroundStyle(Color.skAccentText).fontWeight(.semibold)
-                if toProcessCount > 0 {
-                    Text(" · \(toProcessCount) to process").foregroundStyle(Color.skTextFaint)
-                }
-            }
-            Spacer(minLength: 6)
-            // ONE control: sort + filter behind a single button (Tuur
-            // 2026-07-23: collapse the inline "Newest" and the ⋯ — "we don't
-            // need the redundancy"). Opens the sheet, which carries Sort AND the
-            // metadata filters; the Unrated chip already owns "not rated".
+            // Icon-only Filter (D136: "Filter" the word doesn't fit next to four
+            // counted chips) — same identifier as the old header icon so it
+            // stays discoverable at the same tap-order spot.
             Button { showSortFilter = true } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "line.3.horizontal.decrease").font(.system(size: 10, weight: .semibold))
-                    Text("Filter").font(.system(size: 10.5, weight: .medium))
-                }
-                .foregroundStyle(filter.isActive ? Color.skAccent : Color.skTextDim)
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+                Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
+                    .font(.system(size: 12, weight: .semibold))
             }
             .buttonStyle(.plain)
-            .fixedSize()
-            .accessibilityIdentifier("ipad-filter-button")
+            .foregroundStyle(filter.isActive ? Color.skAccent : Color.skTextDim)
+            .padding(6)
+            .background(Color.skElev, in: RoundedRectangle(cornerRadius: 6))
+            .accessibilityIdentifier("sort-filter-button")
+            .accessibilityLabel("Sort and filter")
         }
-        .font(.system(size: 11))
-        .lineLimit(1)
         .padding(.horizontal, 16)
+        .padding(.top, 2)
         .padding(.bottom, 4)
-        .accessibilityIdentifier("ipad-triage-count-line")
     }
 
-    /// Processed notes ready to read (rated + a `MemoEnhancement` with content).
-    private var readyToReviewCount: Int {
-        ProcessPile.done(memos: memos, enhancedIDs: enhancedMemoIDs).count
+    /// D135: "each chip counts its own notes" — over ALL live notes (not the
+    /// filtered view), like the Mac's sidebar. `.all` carries no number.
+    private var chipCounts: [QueueFilter: Int] {
+        let enhanced = enhancedMemoIDs
+        return NotesListModel.chipCounts(
+            needsWork: memos.filter { ProcessPile.matches(.needsWork, $0, enhancedIDs: enhanced) }.count,
+            done: memos.filter { ProcessPile.matches(.done, $0, enhancedIDs: enhanced) }.count,
+            notRated: ProcessPile.unrated(memos: memos).count)
     }
-
-    /// The pile a polisher would pick up — the SAME count the Process button
-    /// shows, so the two never disagree.
-    private var toProcessCount: Int { processPile.count }
-
-    /// Live notes that carry no rating — the pile waiting on TUUR, not on a
-    /// model (the count line's tap target).
-    private var unratedCount: Int { ProcessPile.unrated(memos: memos).count }
 
     /// The pile a polisher would pick up, by the shared rule. Built off ONE
     /// enhancements query rather than a fetch per memo (body-safe).
@@ -904,6 +873,9 @@ struct MemosListView: View {
         }, uniquingKeysWith: { a, _ in a })
     }
 
+    /// D135/D136: the phone's header simplifies to JUST Notes + Select — Import,
+    /// Scan and Filter all leave it (Import/Scan fold into the shared `verbRow`'s
+    /// Import menu below; Filter moves into the chip bar's icon-only button).
     private var headerRow: some View {
         HStack(spacing: 18) {
             ScreenTitle("Notes")
@@ -917,40 +889,9 @@ struct MemosListView: View {
             .font(.system(size: 16))
             .tint(.skAccent)
             .accessibilityIdentifier("select-button")
-            if !editMode.isEditing {
-                // D8: import media into Skrift without the share sheet — a Files
-                // picker (audio + video) and the Photos video picker.
-                Menu {
-                    Button { showMediaFileImporter = true } label: {
-                        Label("Audio or video from Files", systemImage: "folder")
-                    }
-                    Button { showVideoImporter = true } label: {
-                        Label("Video from Photos", systemImage: "photo.on.rectangle")
-                    }
-                } label: {
-                    Image(systemName: "square.and.arrow.down").font(.system(size: 17))
-                }
-                .tint(.skAccent)
-                .accessibilityIdentifier("import-media-button")
-                if DocScanView.isSupported {
-                    // Scan a paper document → PDF capture (chunk 9). No sim
-                    // camera → the button honestly disappears there.
-                    Button { showDocScanner = true } label: {
-                        Image(systemName: "doc.viewfinder").font(.system(size: 17))
-                    }
-                    .tint(.skAccent)
-                    .accessibilityIdentifier("doc-scan-button")
-                }
-                Button { showSortFilter = true } label: {
-                    Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease")
-                        .font(.system(size: 17))
-                }
-                .tint(.skAccent)
-                .accessibilityIdentifier("sort-filter-button")
-                // (The ⋯ shelf entry lived here 2026-07-18 → 2026-07-21. Q-placement
-                // pick B, mocks/wayout-phone-placement.html: the conveyor's one home
-                // is the Review feed now — same room as the Mac.)
-            }
+            // (The ⋯ shelf entry lived here 2026-07-18 → 2026-07-21. Q-placement
+            // pick B, mocks/wayout-phone-placement.html: the conveyor's one home
+            // is the Review feed now — same room as the Mac.)
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -1248,7 +1189,9 @@ struct MemosListView: View {
     private func matchesFilter(_ memo: Memo, enhanced: Set<UUID>) -> Bool {
         // The Mac's triage chip (regular width only). `.all` is a no-op, so
         // compact and the phone are untouched (listChip stays .all there).
-        if isRegular && !ProcessPile.matches(listChip, memo, enhancedIDs: enhanced) { return false }
+        // D136: the chip bar filters on EVERY width now (was iPad-regular only —
+        // `listChip` stayed `.all` on the phone before, a no-op).
+        if !ProcessPile.matches(listChip, memo, enhancedIDs: enhanced) { return false }
         if filter.unsyncedOnly && memo.syncStatus == .synced { return false }
         if filter.hasPhotosOnly && memo.thumbnailPhotoFilename == nil { return false }
         if filter.notRatedOnly && (NoteConsent.isRated(memo) || memo.locked) { return false }
@@ -1353,15 +1296,15 @@ private struct MemoCard: View {
     /// gets an accent-soft fill. Always false on the phone.
     var selected: Bool = false
 
-    private var isQuiet: Bool { quiet }
-
     /// m2 adapter (2026-08-19, chunk 2 of the un-twinning): every derivation this
     /// card owned now FEEDS the shared `NoteCardView` instead of a hand-built
     /// layout — the Mac maps its own rows into the same view, so the two lists
     /// cannot drift again ("make sure the ipad also follows that one to the T").
     var body: some View {
+        // Q26 fix (BUGS §4): this used to layer .opacity(0.55) OVER NoteCardView's
+        // own quiet dim (0.62), so an unrated row read at 0.34 — nearly invisible.
+        // `m.quiet` below already drives the ONE dim; this view adds nothing on top.
         NoteCardView(model: cardModel, style: .skrift)
-            .opacity(isQuiet ? 0.55 : 1)
             .accessibilityIdentifier(memo.isShareCapture ? "capture-row" : "memo-card")
     }
 
@@ -1372,6 +1315,7 @@ private struct MemoCard: View {
         m.quiet = quiet
         m.selected = selected
         m.locked = memo.locked
+        m.balls = memo.locked ? nil : ThreeBallScale.step(for: memo.significance)
         if let kind = memo.statusKind {
             let pillKind: NoteCardModel.Pill.Kind = switch kind {
             case .synced: .done
