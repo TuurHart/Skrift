@@ -4,6 +4,7 @@ import Foundation
 /// - a shared audio file ("Open in Skrift" / Share Sheet) → import as a memo
 /// - a shared VIDEO file → extract audio + a frame thumbnail → import as a memo
 /// - the `skrift://record` deep link → start recording (wired in 8d)
+/// - the `skrift://newnote` deep link → open the quick-note screen (Q7)
 @MainActor
 enum AppURLHandler {
     // `.mp4`/`.mov` are deliberately NOT here — those container extensions are
@@ -43,6 +44,11 @@ enum AppURLHandler {
         // recording via the same bridge the Record App Intent uses.
         if url.scheme == "skrift", url.host == "record" {
             RecordingIntentBridge.shared.requestStart()
+        }
+        // skrift://newnote (Lock Screen widget) → open the quick-note screen
+        // via the same bridge the New Note App Intent uses (C112).
+        if url.scheme == "skrift", url.host == "newnote" {
+            QuickNoteBridge.shared.requestNew()
         }
     }
 }
