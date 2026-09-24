@@ -1582,8 +1582,13 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
     episode, an article, a PDF, a talk); anything short or handed to him (a voice message, a
     photo of a page, a forward, a screenshot) stays a NOTE in Notes as today, with the sender
     (C123). A source reaches Notes only through capture (quote/highlight + his voice) or "send
-    to a note", and the capture links back to its source. Builder default. Parked idea: a Skrift
-    highlighter browser extension in place of Readwise ("interesting, but for later").
+    to a note", and the capture links back to its source. ✅ DECIDED 2026-09-24 ("sick"): a
+    WhatsApp message ALWAYS goes to Notes. "Long-form" is not length but a place you come back
+    to (a playback position, a page, a chapter, a title of its own). The app decides by the door:
+    messenger, camera, microphone, screenshot → Notes; book file, podcast feed, ePub, PDF from
+    Files, article link → the tab. Two hatches: "move to Library" on a note, "send to a note" on
+    a source, one action each. Parked idea: a Skrift highlighter browser extension in place of
+    Readwise ("interesting, but for later").
 
 91. **D91 Empty typed notes.** Seen 2026-09-22: three "Note" rows with no text, created by ⌘N
     presses that never got words ("ik heb er drie lege notities staan"). Default: an untouched
