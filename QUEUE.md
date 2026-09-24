@@ -99,7 +99,7 @@ node: V2Core
 do: Write body v2 in `Skrift_Native/Shared/BodyV2/`: a picture is its own paragraph (`\n\n[[img_NNN]]\n\n`), placed after the sentence spoken at `offsetSeconds` (paused time excluded), no-moment pictures keep their sequence place or go to the top, same-second pictures in manifest order, `%03d` writers / `\d+` readers via one shared regex, whitespace normalised once at commit, paragraphs at a 2.0 s gap on every device, typed text never paragraphed; thumbnail = first resolving marker in body order. Register it in the Q10 harness; the app keeps calling v1 (C2). The two `knownSnapIdempotenceGaps` in `BodyInvariantTests` die with snap (C17), so v2 is never excused from idempotence (Q10 finding). Register v2 against BOTH mapping sets: the Q10 files and the additive `manifest-q23.json` / `expected-differences-q23.json` (Q23 finding), so R74 is judged on its real notes. Write `plan/reads/body-v2.md`: for every note whose body changed, v1 and v2 side by side, for Tuur's read.
 check: `test $(cat Skrift_Native/Shared/BodyV2/*.swift | wc -l) -le 3176 && test -s plan/reads/body-v2.md`
 
-### Q12 [tuur] (tuur) read the body v2 corpus output
+### Q12 [tuur] (done) read the body v2 corpus output
 spec: C8 C27
 needs: Q11
 node: V2Core
@@ -108,7 +108,7 @@ check: Tuur read `plan/reads/body-v2.md` and said it reads right.
 
 ### Q13 [auto] (todo) swap: every body write site calls v2
 spec: C10 C17 C65 C2
-needs: Q12
+needs: Q12 Q30
 node: V2Core
 do: (Q11 finding: call `BodyV2.committed(BodyV2.Input(text:words:manifest:source:userEdited:))` at every write site, `.speech` only with real word times; `BodyTransform.snappedImageBody` and v1's `ImageMarkers.insert → Paragrapher` leave in the same swap; thumbnail = `BodyV2Thumbnail.pick`.) Point every place a body is WRITTEN at body v2: phone capture (`MemoSaver`), share drain, editor commit, imports, the Mac author path and Mac recordings. Renderers and both exporters stop calling the render-time snap (`snapImages`, `SnapResult`), the display-only `imageBreaks` and the export-time `snappedImageBody` (the v1 functions stay in place for Q15 to delete). The three offset remaps collapse to one (marker → one glyph).
 check: `! grep -rnE "snapImages\(|snappedImageBody\(|imageBreaks" Skrift_Native/SkriftDesktop/Pipeline Skrift_Native/SkriftDesktop/Features Skrift_Native/SkriftMobile/Features Skrift_Native/SkriftMobile/Services`
@@ -231,6 +231,14 @@ gate+: yes
 do: Build the signed `Skrift_Native/SkriftDesktop/mocks/Q4-edit-conflict.html` (D139): a same-note edit on two devices that meet after being apart becomes a conflict record, never a silent overwrite (C98) — only body, title and tags conflict; rating, lock and reminder stay newest-wins; new notes never conflict. The note shows the "2 versions" pill in the list and the prompt on open (Keep both = default/Return; Keep this device / Keep the other); editing blocked until picked, "Later" leaves the amber banner; the unkept version goes to Recently Deleted as a "replaced" row (14 days); the Mac holds processing/export until picked. Test in a new `EditConflictTests` (desktop target): two in-memory stores with diverging edits → a conflict record, no loss.
 check: `grep -rqE "class EditConflictTests\b" Skrift_Native/SkriftDesktop/SkriftDesktopTests && ./gate.sh`
 
+### Q30 [auto] (todo) body v2: photo in a sentence's first second goes before it
+spec: C11 C10
+needs: Q11
+gate+: yes
+node: V2Core
+do: Apply D140 in `Shared/BodyV2/`: a picture whose `offsetSeconds` falls within the first 1.0 s of a spoken sentence lands BEFORE that sentence, otherwise after it. Re-run the v2 harness: resolve the `registrationConflicts` / `expectBodyConflicts` carve-outs in `BodyV2HarnessTests` for pic-at-start, pic-ocr-text, pic-three-spread (each either now matches its expect_body or stays listed with the reason); D141: drop `pic-in-task-list` from R95 — that edits the protected `expected-differences.json`, which Tuur approved (D141), so the dispatcher hand-merges after checking it is the ONLY protected edit. Regenerate `plan/reads/body-v2.md`. ingress-p3 stays open (no clip boundaries in the fixture).
+check: `./gate.sh && test -s plan/reads/body-v2.md`
+
 ## Log
 - 2026-09-24 10:59 plan: 21 items
 - 2026-09-24 11:25 Q1 -> doing — mockup out
@@ -294,3 +302,5 @@ check: `grep -rqE "class EditConflictTests\b" Skrift_Native/SkriftDesktop/Skrift
 - 2026-09-24 20:18 Q28 added
 - 2026-09-24 20:18 Q29 added
 - 2026-09-24 20:21 Q27 -> done — gate pass @94cab5b1
+- 2026-09-24 20:28 Q12 -> done — read signed with D140 + D141
+- 2026-09-24 20:28 Q30 added

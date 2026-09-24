@@ -1796,3 +1796,7 @@ From the coverage audit (spec-coverage.md §B) — smaller, mostly engineering, 
      ("if you snap a photo in the first moment of a sentence, it should be put at the start");
      otherwise after the sentence being spoken (C11 narrowed). Settles pic-at-start, pic-ocr-text,
      pic-three-spread #3 if they fall in that window; any that don't keep C11.
+141. **D141 Body v2 read signed.** ✅ DECIDED 2026-09-24: Q12 read — R95 does not apply to
+     `pic-in-task-list` (already a checkbox list; v2 correctly leaves it); the 13 extra differences
+     in `expected-differences-q11.json` are accepted (C19 whitespace, C12 lone shared photo to the
+     top, C14 markers v1 lost) — "yes sounds good to me".
