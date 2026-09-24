@@ -76,7 +76,7 @@ code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px}
 .stagewrap{margin-inline:-16px;display:flex;justify-content:center}
 @media (min-width:430px){.stagewrap{margin-inline:0}}
 .frame{position:relative;background:var(--bg);color:var(--t1);overflow:hidden;border:1px solid var(--hair);display:flex;flex-direction:column}
-.frame.phone{width:390px;max-width:100vw;height:760px}
+.frame.phone{width:390px;max-width:100vw;height:clamp(600px,calc(100svh - 118px),760px)}
 @media (min-width:430px){.frame.phone{border-radius:34px}}
 .frame.mac{width:292px;height:640px;border-radius:12px}
 .frame.macwin{width:390px;max-width:100vw;height:640px;border-radius:12px;background:var(--surface)}
@@ -198,8 +198,8 @@ code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px}
 .ver mark{background:var(--ins);color:inherit;border-radius:3px;padding:0 2px}
 .ver .tags{display:flex;gap:4px;flex-wrap:wrap}
 .same{font-size:12px;color:var(--t3);text-align:center}
-.acts{display:flex;flex-direction:column;gap:8px;padding-top:2px}
-.btn{min-height:50px;border-radius:12px;font-size:16px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;padding:6px 12px;background:var(--surface);border:1px solid var(--border);color:var(--accent)}
+.acts{display:flex;flex-direction:column;gap:7px;padding:10px 16px 26px;border-top:1px solid var(--hair);background:var(--bg);flex:none}
+.btn{min-height:48px;border-radius:12px;font-size:16px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;padding:6px 12px;background:var(--surface);border:1px solid var(--border);color:var(--accent)}
 .btn small{font-size:11.5px;font-weight:500;color:var(--t2);margin-top:2px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary small{color:rgba(255,255,255,.82)}
@@ -213,7 +213,9 @@ code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px}
 .macwin .pane .metachips .chip{font-size:10.5px}
 .macsheet{position:absolute;left:14px;right:14px;top:28px;z-index:11;background:var(--surface);border:1px solid var(--border);border-radius:0 0 12px 12px;box-shadow:0 18px 40px rgba(0,0,0,.28);display:flex;flex-direction:column;max-height:calc(100% - 40px)}
 .macsheet .shscroll{padding:14px 16px 14px;gap:10px}
-.macsheet .cfhead{align-items:flex-start;text-align:left;flex-direction:row;gap:12px;padding:0}
+.macsheet .cfhead{display:grid;grid-template-columns:36px 1fr;column-gap:12px;row-gap:2px;align-items:start;text-align:left;padding:0}
+.macsheet .cfhead .gl{grid-row:span 2}
+.macsheet .cfhead>h2,.macsheet .cfhead>p{grid-column:2}
 .macsheet .cfhead .gl{width:36px;height:36px;font-size:18px;flex:none}
 .macsheet .cfhead h2{font-size:14px;margin:0}
 .macsheet .cfhead p{font-size:12px;max-width:none}
@@ -337,7 +339,7 @@ code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px}
   var V={
     iphone:{label:"iPhone",when:"edited today 14:32, offline",glyph:"phone",
       ctx:"The hexagon ones from the shop on Rua da Madalena, ",
-      diff:'but only if they come in the <mark>warm grey</mark>. <mark>Ask about the grout colour too.</mark>',
+      diff:'<mark>but only if they come</mark> in the warm grey. <mark>Ask about the grout colour too.</mark>',
       plain:"but only if they come in the warm grey. Ask about the grout colour too.",
       tags:["house"]},
     mac:{label:"Mac",when:"edited today 14:05",glyph:"desk",
@@ -460,6 +462,7 @@ code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px}
     h+='<div class="same">Same in both: the title, the recording, the photo, the rating. Green marks what differs.</div>';
     return h;
   }
+  function dest(){ return S.where==="trash"?"goes to Recently Deleted for 14 days":"stays on the note for 14 days"; }
   function phoneNote(){
     var sheet=S.step==="sheet";
     var h='<div class="frame phone"><div class="status"><span>15:10</span><span style="font-size:12px">▮▮▮ ▮</span></div>';
@@ -472,10 +475,10 @@ code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px}
     h+='</div>';
     if(sheet){
       h+='<div class="scrim" data-act="later"></div><div class="sheet" role="dialog" aria-label="Two versions"><div class="grab"></div><div class="shbar"><button class="later" data-act="later">Later</button><span class="sp"></span></div><div class="shscroll">'+prompt();
-      h+='<div class="acts"><button class="btn primary flagpos" data-keep="both">Keep both<small>two notes, nothing is lost</small><span class="fl">PICK 1: FIRST + FILLED</span></button>';
-      h+='<button class="btn" data-keep="'+here()+'">Keep this iPhone\'s<small>the Mac\'s goes to Recently Deleted for 14 days</small></button>';
-      h+='<button class="btn" data-keep="'+there()+'">Keep the Mac\'s<small>this iPhone\'s goes to Recently Deleted for 14 days</small></button></div>';
-      h+='</div></div>';
+      h+='</div><div class="acts"><button class="btn primary flagpos" data-keep="both">Keep both<small>two notes, nothing is lost</small><span class="fl">PICK 1: FIRST + FILLED</span></button>';
+      h+='<button class="btn" data-keep="'+here()+'">Keep this iPhone\'s<small>the Mac\'s '+dest()+'</small></button>';
+      h+='<button class="btn" data-keep="'+there()+'">Keep the Mac\'s<small>this iPhone\'s '+dest()+'</small></button></div>';
+      h+='</div>';
     }
     h+='<div class="toast"></div></div>';
     return h;
